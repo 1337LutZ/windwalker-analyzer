@@ -237,4 +237,23 @@ describe('the lane cap', () => {
 	it('hides nothing on a pull inside the cap', () => {
 		expect(analysis.timeline?.hiddenTargets).toBe(0);
 	});
+
+	/**
+	 * The count is what the copy says; these are what the picker draws.
+	 *
+	 * The enemies past the cap used to be reduced to that number and dropped, which left the chart
+	 * unable to offer them at all — a lane cannot be drawn from an id with no windows behind it. They
+	 * are carried in the order the cap cut them at, so the two lists concatenate back into the full
+	 * damage order, and they stay out of `lanes`: that array is still exactly what the chart draws
+	 * before the reader touches anything.
+	 */
+	it('carries the enemies past the cap instead of discarding them', () => {
+		expect(swarm.timeline?.hiddenLanes?.map((l) => l.target?.id)).toEqual([35, 36, 37, 38]);
+		expect(swarm.timeline?.hiddenLanes?.every((l) => l.windows.length > 0)).toBe(true);
+		expect(swarm.timeline?.lanes.filter((l) => l.group === 'debuff')).toHaveLength(RSK_TARGET_LANES);
+	});
+
+	it('carries no spare lanes on a pull inside the cap', () => {
+		expect(analysis.timeline?.hiddenLanes).toEqual([]);
+	});
 });

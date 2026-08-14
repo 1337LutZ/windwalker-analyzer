@@ -227,6 +227,8 @@
       "share": "Engaged time at cap"
     },
     "caption": "The longest stretches the bar spent full, longest first",
+    "chartCaption": "Energy over the pull, with every stretch at the cap picked out",
+    "chartLabel": "Energy over the pull, holding up to {{max}}, capped for {{capped, duration}} of {{duration, duration}}",
     "columns": {
       "at": "at",
       "held": "full for",
@@ -238,6 +240,27 @@
     },
     "noRows": "No single stretch at the cap lasted a full global, so there is nothing worth pointing at on the clock.",
     "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto ordinary events rather than onto a clock — {{samples}} of them here, a median of {{median, gap}} apart and 99% of them within {{p99, gap}} — so nothing between two readings is measured. A cap that opened and closed inside one gap is missed entirely, and a stretch counts only when the readings at both ends show a full bar and the first of them spent nothing, which under-reports rather than over-reports."
+  },
+  "chi": {
+    "title": "Chi",
+    "intent": "Chi arrives in whole points from a button you pressed, which makes its waste a different kind of mistake from energy’s. Energy overflows on a clock whether you are there or not; chi only overflows because a generator went off into a bar that had no room for what it returned. Every point below was paid for with a global.",
+    "none": "This log carried no resource snapshots for the player, so there is no chi bar to read. Nothing is wrong with the pull — the report simply was not given the numbers.",
+    "clean": "Nothing overflowed. Every point of chi the pull generated had somewhere to go.",
+    "summary": "{{wasted}} chi went nowhere, across {{moments}} presses that returned more than the bar could hold. Each one cost a global and bought nothing.",
+    "caption": "Chi over the pull, with every overflow marked where it happened",
+    "chartLabel": "Chi over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
+    "tableCaption": "Presses that returned more chi than the bar could hold, most wasteful first",
+    "noRows": "No press returned more chi than the bar could hold.",
+    "resolution": "This is a sampled bar, not a continuous one — the same caveat the energy section carries. A point gained and spent between two readings is invisible here, so treat the count as a floor rather than a total.",
+    "kpi": {
+      "wasted": "Chi wasted",
+      "moments": "Presses that overflowed",
+      "cap": "Bar holds"
+    },
+    "columns": {
+      "at": "At",
+      "wasted": "Chi lost"
+    }
   },
   "damage": {
     "title": "Damage by ability",
@@ -322,15 +345,36 @@
     "tip": {
       "at": "Pressed",
       "from": "Up",
-      "to": "Down"
+      "to": "Down",
+      "by": "Killed by"
     },
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",
       "primary": "graded",
-      "primaryTitle": "The enemy that took most of your damage, and the only one debuff uptime is graded against."
+      "primaryTitle": "The enemy that took most of your damage, and the only one debuff uptime is graded against.",
+      "grouping": "Target rows",
+      "auto": "Auto",
+      "autoTitle": "Name the enemy above its rows only when the debuff was on more than one of them.",
+      "on": "Per enemy",
+      "onTitle": "Always name the enemy above its rows, even when the pull only had one.",
+      "off": "Combined",
+      "offTitle": "Collapse the per-enemy rows into a single row covering every enemy drawn.",
+      "mergedLane": "{{aura}} · any enemy",
+      "mergedNote": "The per-enemy rows are collapsed into one. That bar marks where the debuff was on at least one of the enemies drawn here, which is coverage and not uptime: it says nothing about how long any single enemy carried it, and it is not the figure graded beside the chart — that one is measured against a single enemy.",
+      "pick": "Enemies · {{drawn}} of {{total}}",
+      "pickHint": "Pick the enemies you want rows for. Up to {{max}} at once: past that the debuff block is taller than everything above it, and the pull stops being readable against it."
     },
-    "hiddenTargets_one": "One more enemy carried the debuff and has no row here: the timeline draws the targets that took the most of your damage.",
-    "hiddenTargets_other": "{{count}} more enemies carried the debuff and have no rows here: the timeline draws the targets that took the most of your damage.",
+    "hiddenTargets_one": "One more enemy carried the debuff and has no row here. Pick it above to draw it.",
+    "hiddenTargets_other": "{{count}} more enemies carried the debuff and have no rows here. Pick them above to draw them.",
+    "intermission": {
+      "title": "Intermission",
+      "note": "The shaded stretches are intermissions: the boss was out of reach, so there was nothing to press it at. That is the fight taking the target away, and none of it is counted against you."
+    },
+    "death": {
+      "title": "Death",
+      "unnamed": "Nothing the log named",
+      "note": "A death is marked with a rule across every lane. Hover it for what landed the killing blow."
+    },
     "resource": {
       "energy": "Energy",
       "chi": "Chi",

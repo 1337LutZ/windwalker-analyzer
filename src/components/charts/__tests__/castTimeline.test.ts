@@ -7,13 +7,13 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import type { Analysis, CastTimeline as Timeline } from '~/lib/types';
+import type { Analysis, AuraLane, CastTimeline as Timeline } from '~/lib/types';
 
 import { formatClock } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '../../sections/CastLog';
-import CastTimeline from '../CastTimeline';
+import CastTimeline, { collapseTargets, perTargetBlock } from '../CastTimeline';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -347,5 +347,208 @@ describe('CastTimeline, presses merged into the row they open', () => {
 	/** A button whose aura never went up has no row to join, so it keeps the one it had. */
 	it('keeps a press with no aura on this pull in a lane of its own', () => {
 		expect(labelled(render(merged), 'Jab')).toBe(1);
+	});
+});
+
+/**
+ * Where the per-enemy rows sit, which is a rule and not the order the engine happened to emit them.
+ *
+ * The lanes below are handed over *debuff first* on purpose: the engine emits them last, so a chart
+ * that merely preserved engine order would pass a test built the other way round and fail nothing the
+ * day either array changed.
+ */
+describe('CastTimeline, the per-enemy block at the foot of the chart', () => {
+	/** Where a row's own label first appears, which is the order the gutter draws them in. */
+	const at = (html: string, name: string) => html.indexOf(`title="${name}"`);
+
+	const sunk: Analysis = {
+		...captured,
+		timeline: {
+			casts: [
+				// Auto-attacks, which the aura rows sit directly under — so the Rising Sun Kick lane below
+				// lands in the block of presses drawn *after* them, which is the block the enemies must clear.
+				{ t: 1000, id: 1, name: 'Melee', onGcd: false },
+				{ t: 2000, id: 107428, name: 'Rising Sun Kick', onGcd: true },
+			],
+			lanes: [
+				{
+					key: 'rising-sun-kick-debuff',
+					name: 'Rising Sun Kick (debuff)',
+					id: 130320,
+					group: 'debuff',
+					windows: [{ start: 1000, end: 20000 }],
+					target: { id: 20, name: 'Iron Juggernaut', primary: true },
+				},
+				{
+					key: 'rising-sun-kick-debuff',
+					name: 'Rising Sun Kick (debuff)',
+					id: 130320,
+					group: 'debuff',
+					windows: [{ start: 30000, end: 40000 }],
+					target: { id: 21, name: 'Siege Engineer', primary: false },
+				},
+				timeline.lanes[0]!,
+				timeline.lanes[1]!,
+			],
+		},
+	};
+
+	it('draws the debuff rows below every buff and proc row', () => {
+		const html = render(sunk);
+		expect(at(html, 'Rising Sun Kick (debuff)')).toBeGreaterThan(at(html, 'Re-Origination'));
+		expect(at(html, 'Rising Sun Kick (debuff)')).toBeGreaterThan(at(html, 'Tigereye Brew'));
+	});
+
+	/**
+	 * And below the presses too, which sorting the lanes alone could never have done: the buttons that
+	 * follow melee are drawn under the aura rows, and they are the player's rows as much as the buffs
+	 * are. The chart reads resources, then the player, then the enemies.
+	 */
+	it('draws them below the player’s own press lanes as well', () => {
+		const html = render(sunk);
+		expect(at(html, 'Rising Sun Kick (debuff)')).toBeGreaterThan(at(html, 'Rising Sun Kick'));
+		expect(at(html, 'Iron Juggernaut')).toBeGreaterThan(at(html, 'Rising Sun Kick'));
+	});
+
+	/** The heading belongs to the block and goes down with it, not to the lane above it. */
+	it('takes the target headings down with the rows', () => {
+		const html = render(sunk);
+		expect(at(html, 'Iron Juggernaut')).toBeGreaterThan(at(html, 'Tigereye Brew'));
+		expect(at(html, 'Siege Engineer')).toBeGreaterThan(at(html, 'Iron Juggernaut'));
+	});
+
+	it('sinks a lane for carrying a target or for being the debuff, and nothing else', () => {
+		const lane = (group: AuraLane['group'], target?: AuraLane['target']): AuraLane => ({
+			key: 'k',
+			name: 'n',
+			id: 1,
+			group,
+			windows: [],
+			target,
+		});
+		expect(perTargetBlock(lane('debuff'))).toBe(true);
+		expect(perTargetBlock(lane('debuff', { id: 20, name: null, primary: true }))).toBe(true);
+		expect(perTargetBlock(lane('buff'))).toBe(false);
+		expect(perTargetBlock(lane('proc'))).toBe(false);
+	});
+});
+
+/**
+ * Collapsing the per-enemy rows into one.
+ *
+ * The override is view state with no prop behind it and a static render cannot press a button, so
+ * what is exercised here is the function the button calls. The claim it makes is the thing worth
+ * pinning: a union of several enemies' windows says the debuff was on *something*, which is weaker
+ * than any row it replaces and is not the number `debuff.engagedUptimePct` grades.
+ */
+describe('CastTimeline, collapsing the per-target lanes', () => {
+	const named = (aura: string) => t('castLog.target.mergedLane', { aura });
+	const on = (id: number, start: number, end: number): AuraLane => ({
+		key: 'rising-sun-kick-debuff',
+		name: 'Rising Sun Kick (debuff)',
+		id: 130320,
+		group: 'debuff',
+		windows: [{ start, end }],
+		target: { id, name: `Add ${id}`, primary: id === 20 },
+	});
+
+	it('unions the enemies’ windows into one row', () => {
+		const [row, ...rest] = collapseTargets([on(20, 0, 10000), on(21, 5000, 20000), on(22, 40000, 50000)], named);
+		expect(rest).toEqual([]);
+		// Two overlapping windows are one bar and the disjoint one stays its own: the row says where the
+		// debuff was on at least one enemy, which is coverage and not any enemy's uptime.
+		expect(row?.windows).toEqual([
+			{ start: 0, end: 20000 },
+			{ start: 40000, end: 50000 },
+		]);
+	});
+
+	/** The row has stopped naming an enemy, and its label has to stop implying one. */
+	it('renames the row so it cannot be read as one enemy’s', () => {
+		expect(collapseTargets([on(20, 0, 1000), on(21, 2000, 3000)], named)[0]?.name).toBe(
+			t('castLog.target.mergedLane', { aura: 'Rising Sun Kick (debuff)' }),
+		);
+	});
+
+	/**
+	 * A key of its own, which is what keeps the press stream off the row: which enemy a Rising Sun Kick
+	 * landed on is exactly what this row has stopped saying, so every press drawn on it would be a
+	 * claim it cannot support. It also keeps React from reconciling it with the rows it replaced.
+	 */
+	it('takes a key of its own rather than the aura’s', () => {
+		const [row] = collapseTargets([on(20, 0, 1000), on(21, 2000, 3000)], named);
+		expect(row?.key).not.toBe('rising-sun-kick-debuff');
+		expect(row?.target).toBeUndefined();
+		expect(row?.group).toBe('debuff');
+	});
+
+	/** One enemy is not a group: the row already says exactly what it means, and every fixture is this. */
+	it('leaves a single enemy’s row exactly as it was', () => {
+		const one = [on(20, 0, 1000)];
+		expect(collapseTargets(one, named)).toEqual(one);
+	});
+
+	it('leaves the buffs and procs alone', () => {
+		const buffs = [timeline.lanes[0]!, timeline.lanes[1]!];
+		expect(collapseTargets(buffs, named)).toEqual(buffs);
+	});
+});
+
+/**
+ * The two things on the chart that are not presses and not auras.
+ *
+ * Both were already in the data — the intermission is the complement of `debuff.engagedSegments` and
+ * the deaths are events the fetch already returned — so neither costs a request.
+ */
+describe('CastTimeline, intermissions and deaths', () => {
+	it('shades the stretches the boss was out of reach, and says so', () => {
+		// The reference pull goes untargetable twice, so the fixture's own segments are the case.
+		const html = render(drawn);
+		expect(html).toContain(`data-tip="${t('castLog.intermission.title')}"`);
+		expect(html).toContain(t('castLog.intermission.note'));
+	});
+
+	/** Nothing to shade on a pull that never lost contact, and no sentence about shading either. */
+	it('shades nothing on a pull with no intermission', () => {
+		const unbroken: Analysis = {
+			...drawn,
+			debuff: { ...captured.debuff, engagedSegments: [[0, captured.durationMs]] },
+		};
+		const html = render(unbroken);
+		expect(html).not.toContain(`data-tip="${t('castLog.intermission.title')}"`);
+		expect(html).not.toContain(t('castLog.intermission.note'));
+	});
+
+	const died: Analysis = {
+		...drawn,
+		debuff: { ...captured.debuff, engagedSegments: [[0, captured.durationMs]] },
+		timeline: {
+			...timeline,
+			deaths: [
+				{ t: 61000, abilityId: 146743, ability: 'Iron Star' },
+				// The log named nothing: a fall, an enrage, a wipe.
+				{ t: 90000, abilityId: null, ability: null },
+			],
+		},
+	};
+
+	it('marks each death, and names what landed the blow', () => {
+		const html = render(died);
+		expect(html).toContain(`data-tip="${t('castLog.death.title')}"`);
+		expect(html).toContain(`data-tip-at="${formatClock(61000)}"`);
+		expect(html).toContain('data-tip-by="Iron Star"');
+		expect(html).toContain(t('castLog.death.note'));
+	});
+
+	/** An id the log never gave is said in words rather than left as an empty row in the tooltip. */
+	it('says so plainly when nothing named the killing blow', () => {
+		expect(render(died)).toContain(`data-tip-by="${t('castLog.death.unnamed')}"`);
+	});
+
+	/** The common case: no marks, and no sentence about marks that are not there. */
+	it('marks nothing on a pull nobody died on', () => {
+		const html = render(drawn);
+		expect(html).not.toContain(`data-tip="${t('castLog.death.title')}"`);
+		expect(html).not.toContain(t('castLog.death.note'));
 	});
 });

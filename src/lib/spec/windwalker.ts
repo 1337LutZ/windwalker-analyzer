@@ -11,7 +11,7 @@
 //
 // Ids are verified against qDZ2J7v4CP98aQmV #57 and KvCazMYkqZxfjRBg #48 (Garrosh HC 25).
 
-import { abilityIdOf, eventsOn, isDamage } from '~/lib/events';
+import { abilityIdOf, eventsOn, isDamage, isDeath } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
@@ -28,6 +28,7 @@ import type {
 	AuraLane,
 	BrewUse,
 	CastMark,
+	DeathMark,
 	FightDataset,
 	LaneGroup,
 	LostCastRow,
@@ -1769,9 +1770,44 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 						]),
 				...drawn,
 			],
+			// The remainder, kept rather than counted and dropped. The cap decides what the chart draws
+			// *by default* and that is unchanged; but a reader who wants to see the seventh add can only
+			// be offered it if it survived this far, and an id with no windows behind it is not a lane
+			// anyone can draw. Same order the sort left them in, so the two lists concatenate back into
+			// the full damage order.
+			rest: others.slice(drawn.length),
 			hidden: others.length - drawn.length,
 		};
 	})();
+
+	/** A per-enemy lane, in the one shape both the drawn set and the remainder are built from. */
+	const targetLane = (target: { id: number; name: string | null; windows: Window[] }): AuraLane => ({
+		...lane(RSK_DEBUFF, 'debuff', target.windows),
+		target: { id: target.id, name: target.name, primary: target.id === primaryID },
+	});
+
+	/**
+	 * The player's own deaths, off the event stream that was already fetched.
+	 *
+	 * Filtered by `targetID` and not by `sourceID`: a death event names the killer in `sourceID` — or
+	 * `-1` when the game credits nobody — and the victim in `targetID`. WarcraftLogs returns it for a
+	 * `sourceID` filter matching the victim all the same, which is why these arrive without a second
+	 * query and why filtering the way the field is named would drop every one of them.
+	 *
+	 * Nothing here is graded. A death explains a lane that stops and is never a fault this report
+	 * counts, so it reaches the timeline as a mark and reaches no metric at all.
+	 */
+	const deaths: DeathMark[] = events
+		.filter(isDeath)
+		.filter((e) => e.targetID === actor.id)
+		.map((e): DeathMark => {
+			// Zero is the log's "nothing killed them that has a spell id" — a fall, a wipe, the enrage
+			// timer — and resolving it would ask the icon map for spell 0 and the name table for `#0`.
+			const abilityId =
+				e.killingAbilityGameID !== undefined && e.killingAbilityGameID > 0 ? e.killingAbilityGameID : null;
+			return { t: e.timestamp - t0, abilityId, ability: abilityId === null ? null : nameOf(abilityId) };
+		})
+		.sort((a, b) => a.t - b.t);
 
 	// A lane with nothing on it is dropped rather than drawn empty: an unlit row costs a line of height
 	// and a label, and tells the reader only that the aura exists.
@@ -1785,11 +1821,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		lane(TIGER_STRIKES, 'buff', tigerStrikesWindows),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
-		...rskTargets.targets.map((target): AuraLane => ({
-			...lane(RSK_DEBUFF, 'debuff', target.windows),
-			target: { id: target.id, name: target.name, primary: target.id === primaryID },
-		})),
+		...rskTargets.targets.map(targetLane),
 	].filter((l) => l.windows.length > 0);
+
+	// The enemies past the cap, in the same shape. Not in `lanes`, deliberately: that array is what the
+	// chart draws, and these are what it may be asked to draw instead.
+	const hiddenLanes: AuraLane[] = rskTargets.rest.map(targetLane);
 
 	// --------------------------------------------------------------- assembly
 	return {
@@ -1825,7 +1862,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			activePct: duration > 0 ? (activeMs / duration) * 100 : 0,
 		},
 		casts: castList,
-		timeline: { casts: castMarks, lanes, hiddenTargets: rskTargets.hidden },
+		timeline: { casts: castMarks, lanes, hiddenTargets: rskTargets.hidden, hiddenLanes, deaths },
 		lostCasts,
 		brew: {
 			uses: uses.length,

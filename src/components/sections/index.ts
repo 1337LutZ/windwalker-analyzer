@@ -3,6 +3,7 @@ export { default as CastLog } from './CastLog';
 export { default as CastsPerMinute } from './CastsPerMinute';
 export { default as DamageByAbility } from './DamageByAbility';
 export { default as EnergizingBrew } from './EnergizingBrew';
+export { default as Chi } from './Chi';
 export { default as Energy } from './Energy';
 export { default as FistsOfFury } from './FistsOfFury';
 export { default as GearSetup } from './GearSetup';

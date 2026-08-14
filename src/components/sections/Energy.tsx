@@ -4,6 +4,8 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatPercentValue, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
+import ResourceTrack, { cappedOf } from '../charts/ResourceTrack';
+import ChartKey from '../charts/ChartKey';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 import LogLink from './LogLink';
 
@@ -74,10 +76,40 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 
 	const capped = energy.total.cappedMs > 0;
 	const wasted = energy.engaged.wasted;
+	const curve = analysis.resources?.energy;
 
 	return (
 		<Section id="energy" title={t('energy.title')}>
 			<Prose>{t('energy.intent')}</Prose>
+
+			{/* The bar itself, drawn by the same component and at the same scale as the timeline's energy
+			    row, so the two are recognisably one reading rather than two charts of the same pull. The
+			    numbers below are all derived from this line, and a reader who cannot see it has to take
+			    them on trust — a run at the cap is a shape long before it is a figure.
+
+			    Guarded separately from `energy` above: the audit and the curve are independent fields, and
+			    a report captured before the events query asked for resources can carry the audit's empty
+			    state without carrying a curve to draw. */}
+			{curve === undefined || curve.points.length === 0 ? null : (
+				<figure className="m-0 mt-4.5 flex flex-col gap-2">
+					<ResourceTrack
+						curve={curve}
+						durationMs={analysis.durationMs}
+						stroke="var(--color-kick)"
+						fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
+						shades={[{ windows: cappedOf(curve), className: 'fill-miss/25', label: 'capped' }]}
+						label={t('energy.chartLabel', {
+							max: curve.max,
+							capped: energy.total.cappedMs,
+							duration: analysis.durationMs,
+						})}
+					/>
+					<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
+						<ChartKey tone="kick">{t('energy.chartCaption')}</ChartKey>
+						<ChartKey tone="miss">{t('energy.columns.held')}</ChartKey>
+					</figcaption>
+				</figure>
+			)}
 
 			{capped ? (
 				<>

@@ -237,6 +237,53 @@ export interface CastTimeline {
 	 * existed: read it as `?? 0`.
 	 */
 	hiddenTargets?: number;
+	/**
+	 * The lanes that count is about, carried rather than discarded.
+	 *
+	 * `lanes` is the set the chart draws by default and stays exactly that — the cap is a reading
+	 * decision the engine still makes, and a reader who touches nothing sees what they always saw. But
+	 * the enemies past the cap used to be reduced to a number here and thrown away, which left the
+	 * chart unable to offer them at all: a picker cannot draw a lane it was never handed. These are
+	 * the same lanes in the same order the cap cut them at, so `lanes` ++ `hiddenLanes` is the full
+	 * per-target set, primary first and then by damage taken.
+	 *
+	 * Absent on an analysis captured before this existed, where `hiddenTargets` is a count with no
+	 * lanes behind it — so read it for truthiness and treat the count as the last word when it is
+	 * bigger than what arrived here.
+	 */
+	hiddenLanes?: AuraLane[];
+	/**
+	 * The player's own deaths, in order.
+	 *
+	 * Empty on most pulls and absent on any analysis captured before this existed, so read it for
+	 * truthiness. A death is not graded anywhere in this report — the sections measure what was
+	 * pressed, and a corpse presses nothing — but it is the single loudest explanation for a lane that
+	 * simply stops, which is why the timeline marks it.
+	 */
+	deaths?: DeathMark[];
+}
+
+/**
+ * One death, on the clock.
+ *
+ * The event carries `sourceID: -1` and names the victim in `targetID`, so this is filtered by target
+ * and not by source — the same event WarcraftLogs returns for a `sourceID` filter matching the
+ * victim, which is what makes these free of any extra query.
+ */
+export interface DeathMark {
+	/** Fight-relative ms, like every other timestamp in this file. */
+	t: number;
+	/**
+	 * The spell that landed the killing blow, or null when the log did not name one — it logs a `0`
+	 * for an environmental death, and a zero would resolve to an icon nobody has.
+	 */
+	abilityId: number | null;
+	/**
+	 * That spell's name, resolved through the same table every other id in this report goes through.
+	 * Null when there was no id to resolve; `#<id>` when there was one and nothing could name it,
+	 * which is this report's standing answer for an id it does not know rather than an invented name.
+	 */
+	ability: string | null;
 }
 
 export interface CpmSummary {

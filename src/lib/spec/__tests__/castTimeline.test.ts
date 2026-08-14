@@ -191,9 +191,15 @@ describe('the cast timeline', () => {
 		}
 	});
 
-	/** A pull with no events at all still has to produce a timeline rather than a missing field. */
+	/**
+	 * A pull with no events at all still has to produce a timeline rather than a missing field.
+	 *
+	 * Every list is present and empty, which is the shape the chart guards for: `hiddenLanes` and
+	 * `deaths` arrive as `undefined` only on a fixture captured before they existed, never from a live
+	 * analysis, and a field that is sometimes absent from a fresh run is a guard nobody would write.
+	 */
 	it('comes back empty rather than absent for a silent pull', () => {
 		const quiet = analyse({ ...dataset, events: [] });
-		expect(quiet.timeline).toEqual({ casts: [], lanes: [], hiddenTargets: 0 });
+		expect(quiet.timeline).toEqual({ casts: [], lanes: [], hiddenTargets: 0, hiddenLanes: [], deaths: [] });
 	});
 });

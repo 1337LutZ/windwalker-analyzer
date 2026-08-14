@@ -18,7 +18,17 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Analysis, AuraLane, CastMark, LaneGroup, LaneTarget, ResourceCurve, Window } from '~/lib/types';
+import { complementOf, mergeIntervals, type Interval } from '~/lib/analysis/intervals';
+import type {
+	Analysis,
+	AuraLane,
+	CastMark,
+	DeathMark,
+	LaneGroup,
+	LaneTarget,
+	ResourceCurve,
+	Window,
+} from '~/lib/types';
 import { TEB_CAP, registry } from '~/lib/spec/windwalker';
 
 import { SpellIcon, buttonClass, spellIconUrl } from '../primitives';
@@ -153,6 +163,39 @@ const TIP_OFFSET_PX = 14;
 /** Stable identities for an absent timeline, so the memos below do not re-run on every render. */
 const NO_CASTS: CastMark[] = [];
 const NO_LANES: AuraLane[] = [];
+const NO_DEATHS: DeathMark[] = [];
+
+/**
+ * How the reader has overridden the per-enemy grouping, if at all.
+ *
+ * `auto` is the chart's own judgement — a heading only where there is more than one enemy to tell
+ * apart — and the other two are the reader disagreeing with it in either direction: `on` names the
+ * enemy even on a single-target pull, `off` collapses the per-enemy rows into one.
+ */
+type Grouping = 'auto' | 'on' | 'off';
+
+const GROUPINGS: readonly Grouping[] = ['auto', 'on', 'off'];
+
+/**
+ * How many enemies may hold a lane at once, however the reader picks them.
+ *
+ * The engine's `RSK_TARGET_LANES` decides the *default* set and is untouched by any of this; this is
+ * the ceiling on what the reader may add to it. Twelve rows at 24px apiece is already the tallest
+ * block on the chart, and past that the presses the block exists to be read against are off the top
+ * of the screen — which is the failure the engine's cap prevents, reintroduced by hand. So the picker
+ * refuses rather than drawing a lane per add.
+ */
+const MAX_TARGET_LANES = 12;
+
+/**
+ * The shortest stretch out of contact worth shading.
+ *
+ * `engagedSegments` is measured from damage, so a segment ends wherever the last hit landed and a
+ * sliver either side of that boundary is the sampling rather than a phase — `DebuffTimeline` draws
+ * the same complement and discards the same slivers. It is also about the narrowest band that still
+ * reads as a band instead of as a gridline nobody drew.
+ */
+const MIN_INTERMISSION_MS = 1000;
 
 /**
  * The presses, as one absolutely positioned node each.
@@ -169,7 +212,8 @@ const NO_LANES: AuraLane[] = [];
  * Not the order the engine happens to build them in: the lanes are read against each other, and the
  * comparison a Windwalker actually makes runs Re-Origination first (what the pull is worth), then
  * the brew that snapshots it, then the procs that decide which button is free, then the resource
- * cooldown. Anything unlisted keeps its engine order and follows.
+ * cooldown. Anything unlisted keeps its engine order and follows — inside its block, which
+ * `perTargetBlock` below decides first.
  */
 const LANE_ORDER = [
 	're-origination',
@@ -202,7 +246,7 @@ const RESOURCE_LANES = [
 		fill: 'color-mix(in oklch, var(--color-kick) 18%, transparent)',
 		mode: 'line' as const,
 		// The section that argues about this bar, so its label can jump there. Null while no such
-		// section exists — chi has no page of its own yet, and a link to nowhere is worse than none.
+		// section exists; a link to nowhere is worse than none.
 		section: 'energy' as string | null,
 	},
 	{
@@ -210,7 +254,7 @@ const RESOURCE_LANES = [
 		stroke: 'var(--color-brew)',
 		fill: 'color-mix(in oklch, var(--color-brew) 18%, transparent)',
 		mode: 'steps' as const,
-		section: null as string | null,
+		section: 'chi' as string | null,
 	},
 ];
 
@@ -280,6 +324,80 @@ const laneRank = (key: string): number => {
 	const at = LANE_ORDER.indexOf(key);
 	return at === -1 ? LANE_ORDER.length : at;
 };
+
+/**
+ * Whether a lane belongs to the per-enemy block at the foot of the chart.
+ *
+ * **This is a rule, not an accident.** The debuff rows and their target headings sat last because the
+ * engine emits them last and an unlisted key keeps engine order — which is a fact about the order two
+ * arrays were built in, not a decision, and would have quietly reversed the day either changed. So it
+ * is stated here and sorted on before anything else.
+ *
+ * The reason it is worth stating: every row above this block is about the player — a button they
+ * pressed, a buff they held — and reads the same whatever the fight was. These are the only rows
+ * whose meaning depends on *which enemy* they are about, and a reader scanning down should reach the
+ * per-enemy accounting once, at the end, rather than have it interleaved with their own rotation.
+ * The debuff group is named as well as the target, so a collapsed row that has stopped naming an
+ * enemy sinks with the block it came from rather than floating back up among the buffs.
+ */
+export const perTargetBlock = (lane: AuraLane): boolean => lane.group === 'debuff' || lane.target !== undefined;
+
+/**
+ * The per-target lanes of one aura, as a single lane.
+ *
+ * A union, and it has to be read as one: the bar says the debuff was on *something* at that moment,
+ * which is a weaker claim than any of the rows it replaces and is emphatically not the uptime the
+ * Rising Sun Kick section grades — that figure is measured against one enemy and stays that way,
+ * whatever this chart is showing. `castLog.target.mergedNote` says so under the chart; this only
+ * builds the row.
+ *
+ * `mergeIntervals` does the coalescing rather than a loop written here, because "which of these
+ * overlapping windows join up" is the question it already answers for every uptime in the report.
+ *
+ * The row takes a key of its own, and two things follow from that which are both wanted. Nothing
+ * merges a press into it — the press stream cannot say which enemy a Rising Sun Kick landed on, and
+ * this row has stopped saying it too — and React cannot reconcile it with the per-enemy rows it
+ * replaces, which share the aura's key between them.
+ *
+ * One enemy is left alone. Collapsing a single lane would rename a row that already says exactly
+ * what it means, and every reference pull is that case.
+ *
+ * Exported, with `perTargetBlock` above it, because the overrides they serve are held as view state
+ * with no prop to set them from — a static render cannot click a button, and these two functions are
+ * where the claims worth testing actually live.
+ */
+export function collapseTargets(lanes: readonly AuraLane[], name: (aura: string) => string): AuraLane[] {
+	const perKey = new Map<string, AuraLane[]>();
+	for (const lane of lanes) {
+		if (lane.target === undefined) continue;
+		const bucket = perKey.get(lane.key);
+		if (bucket === undefined) perKey.set(lane.key, [lane]);
+		else bucket.push(lane);
+	}
+
+	const out: AuraLane[] = [];
+	const done = new Set<string>();
+	for (const lane of lanes) {
+		const group = lane.target === undefined ? undefined : perKey.get(lane.key);
+		if (group === undefined || group.length < 2) {
+			out.push(lane);
+			continue;
+		}
+		// The union takes the place of the first of its rows, so the block keeps the position the
+		// engine's order gave it rather than jumping to the end of the list.
+		if (done.has(lane.key)) continue;
+		done.add(lane.key);
+		const merged = mergeIntervals(group.flatMap((l) => l.windows.map(({ start, end }): Interval => [start, end])));
+		out.push({
+			key: `${lane.key}:any`,
+			name: name(lane.name),
+			id: lane.id,
+			group: lane.group,
+			windows: merged.map(([start, end]): Window => ({ start, end })),
+		});
+	}
+	return out;
+}
 
 /**
  * Which row each press sits on, so that no two icons overlap.
@@ -580,13 +698,74 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// Measured from this pull's own readings, so a hasted monk is not charged at a stranger's rate.
 	const energyRegen = analysis.energy?.regenPerSec ?? null;
 	const casts = analysis.timeline?.casts ?? NO_CASTS;
-	const lanes = analysis.timeline?.lanes ?? NO_LANES;
+	// The set the engine drew by default, and the enemies it kept back behind the cap. Both truthiness
+	// guards rather than null checks: on a fixture captured before either field existed they arrive as
+	// `undefined`, which is the distinction this codebase has been bitten by twice.
+	const drawnLanes = analysis.timeline?.lanes ?? NO_LANES;
+	const spareLanes = analysis.timeline?.hiddenLanes ?? NO_LANES;
+	const deaths = analysis.timeline?.deaths ?? NO_DEATHS;
 	const span = spanOf(analysis.durationMs);
 
-	// Both are view state and neither is persisted: which rows a reader is looking at right now is not
-	// a preference about how the report should be scored, which is what `lib/settings` is for.
+	// All four are view state and none is persisted: which rows a reader is looking at right now is not
+	// a preference about how the report should be scored, which is what `lib/settings` is for — that
+	// module holds thresholds the analysis is *measured* with, and nothing here reaches a number.
 	const [zoom, setZoom] = useState(DEFAULT_ZOOM);
 	const [shown, setShown] = useState<Record<Toggle, boolean>>({ casts: true, buff: true, proc: true, debuff: true });
+	const [grouping, setGrouping] = useState<Grouping>('auto');
+	// Null is not "none picked": it is "not picked at all", which is what keeps the engine's own default
+	// set the default. A `Set` of ids would have to be rebuilt — and kept in step — the moment the
+	// analysis changed, and an empty one would draw no enemies at all.
+	const [picked, setPicked] = useState<ReadonlySet<number> | null>(null);
+
+	/**
+	 * Every enemy the engine measured, drawn or not, in one list.
+	 *
+	 * `lanes` ++ `hiddenLanes` is the full per-target set in the engine's own order — the primary
+	 * first, then by the damage each enemy took — because the cap cut that order in two and these are
+	 * the two halves. Nothing here re-sorts it: the order is the debuff section's answer to "which
+	 * enemy was this pull about", and a second opinion about that belongs in neither file.
+	 */
+	const targetLanes = useMemo(
+		() =>
+			[...drawnLanes, ...spareLanes].filter(
+				(lane): lane is AuraLane & { target: LaneTarget } => lane.target !== undefined,
+			),
+		[drawnLanes, spareLanes],
+	);
+	const defaultTargets = useMemo(
+		() => new Set(drawnLanes.flatMap((lane) => (lane.target === undefined ? [] : [lane.target.id]))),
+		[drawnLanes],
+	);
+	const shownTargets = picked ?? defaultTargets;
+
+	/**
+	 * The lanes as this reader has asked for them: their pick of the enemies, collapsed if they said so.
+	 *
+	 * Everything downstream — the merge into press rows, the bars, the toggles, the tooltip — reads
+	 * this rather than the engine's array, so an override is one list rebuilt and not a second code
+	 * path through the chart.
+	 */
+	const lanes = useMemo(() => {
+		const kept = [...drawnLanes, ...spareLanes].filter(
+			(lane) => lane.target === undefined || shownTargets.has(lane.target.id),
+		);
+		return grouping === 'off' ? collapseTargets(kept, (aura) => t('castLog.target.mergedLane', { aura })) : kept;
+	}, [drawnLanes, spareLanes, shownTargets, grouping, t]);
+
+	/**
+	 * The stretches the boss was out of reach, as the complement of engaged time.
+	 *
+	 * Not a row of its own: an intermission is not something the player did, and a lane for it would
+	 * sit among twenty lanes that are. Shaded behind everything instead, which is what says "this is
+	 * the fight's doing" without saying it in a colour that grades anything.
+	 */
+	const intermissions = useMemo(
+		() =>
+			complementOf(analysis.debuff.engagedSegments ?? [], analysis.durationMs).filter(
+				([start, end]) => end - start >= MIN_INTERMISSION_MS,
+			),
+		[analysis.debuff.engagedSegments, analysis.durationMs],
+	);
 
 	const drag = useDragScroll();
 	const pxPerSec = ZOOM_LADDER[zoom] ?? ZOOM_LADDER[DEFAULT_ZOOM] ?? 24;
@@ -689,9 +868,13 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				const at = mark.getAttribute('data-tip-at');
 				const from = mark.getAttribute('data-tip-from');
 				const to = mark.getAttribute('data-tip-to');
+				// A death has a fourth thing to say — what landed the blow — and it is the one mark on the
+				// chart that names another actor's spell rather than one of the player's own.
+				const by = mark.getAttribute('data-tip-by');
 				if (at !== null) rows.push([t('castLog.tip.at'), at]);
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
+				if (by !== null) rows.push([t('castLog.tip.by'), by]);
 				node.innerHTML = tip(theme, {
 					title: mark.getAttribute('data-tip') ?? '',
 					tone: (mark.getAttribute('data-tip-tone') ?? GROUP_TONE.casts) as keyof ChartTheme,
@@ -754,44 +937,77 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// Sorted here rather than in the engine: the order is a reading decision about this chart, and the
 	// same lanes are consumed elsewhere by components that want them grouped their own way.
 	//
-	// A stable sort, which is load-bearing now that several lanes share one key: the engine emits the
-	// debuff's lanes primary-first by damage taken, and equal ranks have to keep that order.
+	// The per-enemy block sinks first and by rule — see `perTargetBlock` — and `laneRank` orders what
+	// is left inside each block. A stable sort, which is load-bearing now that several lanes share one
+	// key: the engine emits the debuff's lanes primary-first by damage taken, and equal ranks have to
+	// keep that order.
 	const rows = laneRows
 		.filter(({ lane }) => shownRow(lane))
-		.sort((a, b) => laneRank(a.lane.key) - laneRank(b.lane.key));
+		.sort(
+			(a, b) =>
+				Number(perTargetBlock(a.lane)) - Number(perTargetBlock(b.lane)) || laneRank(a.lane.key) - laneRank(b.lane.key),
+		);
 
 	/**
-	 * The aura rows, with a heading above each enemy's block of per-target lanes.
+	 * The two blocks of rows, in the order the chart reads: the player's own, then the enemies'.
 	 *
-	 * Only when the pull actually has more than one target. On a single-target pull the heading would
-	 * spend a row of height repeating the boss's name, which the report's header already says — and
-	 * every one of the reference pulls is single-target, so that would be the common case.
+	 * Split rather than merely sorted, because the cast lanes are drawn between them — the loose
+	 * presses that follow melee sit below the aura rows, and they are the player's rows too. Sorting
+	 * alone would have left the per-enemy block above them, which is exactly the interleaving the rule
+	 * exists to stop.
 	 *
-	 * The label goes in the gutter and the track spends the same row on nothing, because the two
-	 * columns are separate elements that line up only by agreeing on a height per row.
+	 * A heading goes above each enemy's rows: the label in the gutter and the same row spent on nothing
+	 * in the track, because the two columns are separate elements that line up only by agreeing on a
+	 * height per row.
 	 */
-	const targetIDs = new Set(rows.flatMap(({ lane }) => (lane.target === undefined ? [] : [lane.target.id])));
-	const headTargets = targetIDs.size > 1;
+	type Block =
+		| { key: string; head: LaneTarget; row?: never }
+		| { key: string; head?: never; row: (typeof rows)[number] };
+	const auraRows = rows.filter(({ lane }) => !perTargetBlock(lane));
+	const targetRows = rows.filter(({ lane }) => perTargetBlock(lane));
+
+	/**
+	 * When an enemy is named above its rows.
+	 *
+	 * `auto` is the chart's own judgement and the default: only when the pull actually has more than
+	 * one target, because on a single-target pull the heading spends a row of height repeating the
+	 * boss's name that the report's header already says — and every reference pull is that case. The
+	 * reader can overrule it in either direction, which is what `on` and `off` are; `off` has already
+	 * collapsed the rows by the time this is read, so there is nothing left to head.
+	 */
+	const targetIDs = new Set(targetRows.flatMap(({ lane }) => (lane.target === undefined ? [] : [lane.target.id])));
+	const headTargets = grouping === 'auto' ? targetIDs.size > 1 : grouping === 'on';
 	const targetLabel = (target: LaneTarget): string => target.name ?? t('castLog.target.unnamed', { id: target.id });
 
-	const blocks: Array<
-		{ key: string; head: LaneTarget; row?: never } | { key: string; head?: never; row: (typeof rows)[number] }
-	> = [];
+	const auraBlocks: Block[] = auraRows.map((row) => ({ key: row.lane.key, row }));
+	const targetBlocks: Block[] = [];
 	let heading: number | null = null;
-	for (const row of rows) {
+	for (const row of targetRows) {
 		const target = row.lane.target;
 		if (target === undefined) heading = null;
 		else if (headTargets && target.id !== heading) {
-			blocks.push({ key: `target-${target.id}`, head: target });
+			targetBlocks.push({ key: `target-${target.id}`, head: target });
 			heading = target.id;
 		}
 		// Several lanes share one aura key and differ only by the enemy they were measured on, so the
 		// React key has to carry both — with the key alone React reconciles two enemies' rows into one.
-		blocks.push({ key: target === undefined ? row.lane.key : `${row.lane.key}@${target.id}`, row });
+		targetBlocks.push({ key: target === undefined ? row.lane.key : `${row.lane.key}@${target.id}`, row });
 	}
-	// Counted by the engine, which is the only place that knows how many enemies it declined to draw.
-	// `?? 0` and not a null check: on an analysis captured before the cap existed the field is absent.
-	const hiddenTargets = analysis.timeline?.hiddenTargets ?? 0;
+
+	/**
+	 * How many enemies carried the debuff and have no row on the screen.
+	 *
+	 * Two sources, because there are two ways to end up without a row. The reader may have unticked an
+	 * enemy in the picker — that is the first term — and an analysis captured before the engine carried
+	 * the lanes past its cap has a count with nothing behind it, which the second term recovers. On a
+	 * current analysis the count and the carried lanes agree and the second term is zero.
+	 */
+	const hiddenCount = analysis.timeline?.hiddenTargets ?? 0;
+	const undrawnTargets =
+		targetLanes.filter(({ target }) => !shownTargets.has(target.id)).length +
+		Math.max(0, hiddenCount - spareLanes.length);
+	// Whether the collapse actually merged anything, which is when its caption has something to explain.
+	const collapsed = grouping === 'off' && targetLanes.filter(({ target }) => shownTargets.has(target.id)).length > 1;
 
 	/**
 	 * The auras go directly under the melee lane, not after every ability.
@@ -833,6 +1049,90 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		press === undefined || press.lane.name === lane.name
 			? lane.name
 			: t('castLog.mergedLane', { ability: press.lane.name, aura: lane.name });
+
+	// One renderer per column, called for both blocks. Written out once because the aura block and the
+	// per-enemy block below the casts have to be identical in every respect but where they sit — two
+	// copies of this is how the gutter and the track stop agreeing about a row's height.
+	const laneLabel = (block: Block) => {
+		// The press that opens this row's windows, when one merged into it. Looked up in both columns
+		// rather than carried on the block, because the two have to agree on the height and a row taking
+		// its height from anywhere else is how the gutter drifts off the track.
+		const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
+		return block.head === undefined ? (
+			<div
+				key={block.key}
+				// Indented under its heading when it has one, so the block reads as belonging to the
+				// enemy named above it rather than as another aura in the same flat list.
+				className={`flex items-center gap-2 pr-2 ${LANE_RULE} ${block.row.lane.target !== undefined && headTargets ? 'pl-3' : ''}`}
+				style={{ height: rowHeight(press) }}
+			>
+				{/* The button's icon on a merged row, because the label leads with the button. */}
+				<SpellIcon id={press?.lane.id ?? block.row.lane.id} size="sm" />
+				<span className="truncate font-mono text-sm text-ink-2" title={rowLabel(block.row.lane, press)}>
+					{rowLabel(block.row.lane, press)}
+				</span>
+			</div>
+		) : (
+			<div key={block.key} className={`flex items-baseline gap-2 pr-2 ${LANE_RULE}`} style={{ height: ROW_PX }}>
+				<span className="truncate font-mono text-sm text-ink" title={targetLabel(block.head)}>
+					{targetLabel(block.head)}
+				</span>
+				{/* Which of the enemies the graded uptime is about. Without it the reader has several
+				    lanes and no way to tell which one the number beside the chart was measured on. */}
+				{block.head.primary ? (
+					<span className="shrink-0 font-mono text-xs text-muted" title={t('castLog.target.primaryTitle')}>
+						{t('castLog.target.primary')}
+					</span>
+				) : null}
+			</div>
+		);
+	};
+	const laneTrack = (block: Block) => {
+		const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
+		return block.head === undefined ? (
+			<div key={block.key} className={`relative ${LANE_RULE}`} style={{ height: rowHeight(press) }}>
+				{/* The bars are the aura's half of the row and answer to the aura's toggle; the marks
+				    are the row itself and are drawn wherever it is. Marks second, so an icon sits on
+				    top of the bar it opened rather than under it. */}
+				{shown[block.row.lane.group] ? block.row.bars : null}
+				{press?.nodes}
+			</div>
+		) : (
+			// The heading spends a row in the gutter, so the track spends the same row on nothing:
+			// the two columns line up by agreeing on a height per row and by nothing else.
+			<div key={block.key} className={LANE_RULE} style={{ height: ROW_PX }} />
+		);
+	};
+
+	/**
+	 * Ticking an enemy on or off.
+	 *
+	 * The first tick materialises the engine's default set, so the reader starts from what they were
+	 * looking at rather than from an empty chart. Taken from the updater's argument rather than from
+	 * `shownTargets` above it, which is what keeps two clicks in one frame from losing the first.
+	 */
+	const toggleTarget = (id: number) =>
+		setPicked((current) => {
+			const next = new Set(current ?? defaultTargets);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+
+	/**
+	 * The lines under the chart, as one caption.
+	 *
+	 * A `<figure>` may carry exactly one `<figcaption>`, so these are lines inside it rather than four
+	 * of them. Each says something the reader can see on the chart and could not be expected to infer:
+	 * what a collapsed row is claiming, which enemies are not drawn, what the shading is, and what the
+	 * red rules are.
+	 */
+	const notes = [
+		collapsed && shown.debuff ? t('castLog.target.mergedNote') : null,
+		undrawnTargets > 0 && shown.debuff ? t('castLog.hiddenTargets', { count: undrawnTargets }) : null,
+		intermissions.length > 0 ? t('castLog.intermission.note') : null,
+		deaths.length > 0 ? t('castLog.death.note') : null,
+	].filter((note): note is string => note !== null);
 
 	// Only the lanes that kept a row of their own: the rest are drawn on the aura they apply, below.
 	const meleeAt = pressed.loose.findIndex(({ lane }) => lane.id === MELEE_ID);
@@ -882,6 +1182,63 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				</span>
 			</div>
 
+			{/* The two overrides on the per-enemy rows, and nothing at all on a pull that has none. Kept
+			    off the row above so the categories and the zoom stay where a reader who never opens this
+			    already knows to find them. */}
+			{targetLanes.length === 0 ? null : (
+				<div className="flex flex-wrap items-center gap-2">
+					<span className="font-mono text-xs tracking-[0.1em] text-muted uppercase">
+						{t('castLog.target.grouping')}
+					</span>
+					{GROUPINGS.map((mode) => (
+						<button
+							key={mode}
+							type="button"
+							aria-pressed={grouping === mode}
+							title={t(`castLog.target.${mode}Title`)}
+							onClick={() => setGrouping(mode)}
+							className={`${buttonClass} px-3 ${grouping === mode ? 'border-kick text-ink' : 'text-muted'}`}
+						>
+							{t(`castLog.target.${mode}`)}
+						</button>
+					))}
+				</div>
+			)}
+
+			{/* Which enemies get a lane. Only worth a control when there is a choice to make: one enemy is
+			    the reference case and a picker over a list of one is a control that cannot change
+			    anything. Closed by default — a thirty-add pull has thirty rows of chips, and the chart is
+			    what the reader came for. */}
+			{targetLanes.length < 2 ? null : (
+				<details className="rounded-sm border border-line bg-surface px-3 py-2">
+					<summary className="cursor-pointer font-mono text-sm text-ink-2">
+						{t('castLog.target.pick', { drawn: shownTargets.size, total: targetLanes.length })}
+					</summary>
+					<p className="mt-2 mb-0 font-mono text-xs text-muted">
+						{t('castLog.target.pickHint', { max: MAX_TARGET_LANES })}
+					</p>
+					<div className="mt-2 flex flex-wrap gap-2">
+						{targetLanes.map(({ target }) => {
+							const on = shownTargets.has(target.id);
+							return (
+								<button
+									key={target.id}
+									type="button"
+									aria-pressed={on}
+									// At the ceiling the unticked enemies stop being tickable rather than silently
+									// replacing one of the drawn ones, which would be the chart choosing for the reader.
+									disabled={!on && shownTargets.size >= MAX_TARGET_LANES}
+									onClick={() => toggleTarget(target.id)}
+									className={`${buttonClass} max-w-56 px-3 ${on ? 'border-kick text-ink' : 'text-muted'}`}
+								>
+									<span className="truncate">{targetLabel(target)}</span>
+								</button>
+							);
+						})}
+					</div>
+				</details>
+			)}
+
 			<div className="flex gap-2">
 				{/* The gutter sits outside the scroller so the names stay put while the clock moves. Row
 				    heights are the same constant on both sides, which is what lines them up without anything
@@ -929,41 +1286,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						</div>
 					)}
 					{showCasts ? castsAbove.map(({ lane }) => castLabel(lane)) : null}
-					{blocks.map((block) => {
-						// The press that opens this row's windows, when one merged into it. Looked up in both
-						// columns rather than carried on the block, because the two have to agree on the height
-						// and a row taking its height from anywhere else is how the gutter drifts off the track.
-						const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
-						return block.head === undefined ? (
-							<div
-								key={block.key}
-								// Indented under its heading when it has one, so the block reads as belonging to the
-								// enemy named above it rather than as another aura in the same flat list.
-								className={`flex items-center gap-2 pr-2 ${LANE_RULE} ${block.row.lane.target !== undefined && headTargets ? 'pl-3' : ''}`}
-								style={{ height: rowHeight(press) }}
-							>
-								{/* The button's icon on a merged row, because the label leads with the button. */}
-								<SpellIcon id={press?.lane.id ?? block.row.lane.id} size="sm" />
-								<span className="truncate font-mono text-sm text-ink-2" title={rowLabel(block.row.lane, press)}>
-									{rowLabel(block.row.lane, press)}
-								</span>
-							</div>
-						) : (
-							<div key={block.key} className={`flex items-baseline gap-2 pr-2 ${LANE_RULE}`} style={{ height: ROW_PX }}>
-								<span className="truncate font-mono text-sm text-ink" title={targetLabel(block.head)}>
-									{targetLabel(block.head)}
-								</span>
-								{/* Which of the enemies the graded uptime is about. Without it the reader has several
-								    lanes and no way to tell which one the number beside the chart was measured on. */}
-								{block.head.primary ? (
-									<span className="shrink-0 font-mono text-xs text-muted" title={t('castLog.target.primaryTitle')}>
-										{t('castLog.target.primary')}
-									</span>
-								) : null}
-							</div>
-						);
-					})}
+					{auraBlocks.map(laneLabel)}
 					{showCasts ? castsBelow.map(({ lane }) => castLabel(lane)) : null}
+					{/* Last, and by rule rather than by accident — see `perTargetBlock`. Below the player's own
+					    rows on both columns, so the two keep agreeing about which row is which. */}
+					{targetBlocks.map(laneLabel)}
 				</div>
 
 				{/* `tabIndex` so the pull can be scrolled from the keyboard, and `role="img"` with a summary
@@ -1022,6 +1349,32 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								fill="none"
 							/>
 						</svg>
+						{/* The intermissions, shaded behind every lane.
+
+						    Behind, and in `muted` rather than in `miss`: the boss going out of reach is the
+						    fight's script and never the player's doing, so it has to read as the ground the
+						    pull was played on rather than as a stretch anyone is being charged for. A row of
+						    its own would have made it one more thing that happened, in a column of rows that
+						    are all things the player did.
+
+						    The layer is inert and each band is not, so the hit test finds a band under an
+						    empty stretch of track and finds the mark first everywhere else. */}
+						{intermissions.length === 0 ? null : (
+							<div className="pointer-events-none absolute inset-0">
+								{intermissions.map(([start, end]) => (
+									<span
+										key={start}
+										title={`${t('castLog.intermission.title')} · ${fmt(start)} → ${fmt(end)}`}
+										data-tip={t('castLog.intermission.title')}
+										data-tip-tone="muted"
+										data-tip-from={fmt(start)}
+										data-tip-to={fmt(end)}
+										style={{ left: pct(start, span), width: pct(end - start, span) }}
+										className="pointer-events-auto absolute inset-y-0 border-x border-line bg-muted/10"
+									/>
+								))}
+							</div>
+						)}
 						{/* Above everything. The bars are the constraint the whole rotation is played against, so
 						    they are what a reader scans first and what every lane below is measured against —
 						    and being tallest, they anchor the eye rather than interrupting the lanes. Same clock
@@ -1070,38 +1423,54 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							</div>
 						)}
 						{showCasts ? castsAbove.map(castTrack) : null}
-						{blocks.map((block) => {
-							const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
-							return block.head === undefined ? (
-								<div key={block.key} className={`relative ${LANE_RULE}`} style={{ height: rowHeight(press) }}>
-									{/* The bars are the aura's half of the row and answer to the aura's toggle; the marks
-									    are the row itself and are drawn wherever it is. Marks second, so an icon sits on
-									    top of the bar it opened rather than under it. */}
-									{shown[block.row.lane.group] ? block.row.bars : null}
-									{press?.nodes}
-								</div>
-							) : (
-								// The heading spends a row in the gutter, so the track spends the same row on nothing:
-								// the two columns line up by agreeing on a height per row and by nothing else.
-								<div key={block.key} className={LANE_RULE} style={{ height: ROW_PX }} />
-							);
-						})}
+						{auraBlocks.map(laneTrack)}
 						{showCasts ? castsBelow.map(castTrack) : null}
+						{targetBlocks.map(laneTrack)}
 						<div className="relative" style={{ height: AXIS_PX }}>
 							{ticks}
 						</div>
+						{/* The deaths, on top of everything and last in the source for that reason.
+
+						    A rule across every lane rather than a mark in a row of its own, because a death is
+						    not a thing that happened *on* one of these rows — it is the moment the rest of them
+						    stop meaning anything. In `miss`, which is the one place on this chart colour says
+						    more than which category a row belongs to, and it is not a verdict on the player:
+						    nothing in this report grades a death. It is the loudest available explanation for a
+						    lane that simply ends.
+
+						    Named through the tooltip like every other mark, which is where `killingAbilityGameID`
+						    arrives resolved. */}
+						{deaths.map((death) => {
+							const by = death.ability ?? t('castLog.death.unnamed');
+							return (
+								<span
+									key={death.t}
+									title={`${t('castLog.death.title')} · ${fmt(death.t)} · ${by}`}
+									data-tip={t('castLog.death.title')}
+									data-tip-tone="miss"
+									data-tip-at={fmt(death.t)}
+									data-tip-by={by}
+									style={{ left: pct(death.t, span) }}
+									className="absolute inset-y-0 w-[2px] -translate-x-1/2 bg-miss"
+								/>
+							);
+						})}
 					</div>
 				</div>
 			</div>
 
-			{/* What the cap left out, said out loud. A chart that draws six of thirty enemies and says
-			    nothing is claiming the pull had six. Only while the debuff rows are on: with them hidden
-			    the sentence describes rows that are not on the screen. */}
-			{hiddenTargets > 0 && shown.debuff ? (
-				<figcaption className="font-mono text-xs text-muted">
-					{t('castLog.hiddenTargets', { count: hiddenTargets })}
+			{/* What the chart is not showing, and what it is showing that is not a press — said out loud.
+			    A chart that draws six of thirty enemies and says nothing is claiming the pull had six, and
+			    a merged row nobody explains is a row that will be read as uptime. The two lines about the
+			    debuff rows are conditional on those rows being on: with them hidden the sentences describe
+			    rows that are not on the screen. */}
+			{notes.length === 0 ? null : (
+				<figcaption className="flex flex-col gap-1 font-mono text-xs text-muted">
+					{notes.map((note) => (
+						<span key={note}>{note}</span>
+					))}
 				</figcaption>
-			) : null}
+			)}
 
 			{/* The chart's one tooltip, filled and moved by the effect above. `fixed` so the scroller's
 			    own overflow cannot clip it, and `aria-hidden` because every mark still carries the same

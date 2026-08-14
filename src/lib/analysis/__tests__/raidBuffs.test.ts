@@ -33,8 +33,7 @@ function pull(auras: Array<{ ability: number; source: number }>): WclEvent {
 	return { timestamp: T0, type: 'combatantinfo', sourceID: ME, auras };
 }
 
-const rowOf = (events: WclEvent[], key: string) =>
-	readRaidBuffs(events, ME, T0, END).rows.find((r) => r.key === key)!;
+const rowOf = (events: WclEvent[], key: string) => readRaidBuffs(events, ME, T0, END).rows.find((r) => r.key === key)!;
 
 describe('readRaidBuffs', () => {
 	it('reports an effect the log says nothing about as not reported, never as 0%', () => {
@@ -99,7 +98,7 @@ describe('readRaidBuffs', () => {
 	 * window while the second aura is still running — on a real pull that reported a buff which never
 	 * dropped as 69% uptime. Tracked per caster and unioned, the survivor covers the gap.
 	 */
-	it('does not let one caster\'s removal end another caster\'s buff', () => {
+	it("does not let one caster's removal end another caster's buff", () => {
 		const events = [
 			pull([
 				{ ability: TRUESHOT, source: 6 },
@@ -113,7 +112,7 @@ describe('readRaidBuffs', () => {
 	});
 
 	/** Two different spells supplying one effect cover for each other in exactly the same way. */
-	it('treats a second provider as covering the first one\'s gap', () => {
+	it("treats a second provider as covering the first one's gap", () => {
 		const events = [ev(0, 'applybuff', HOW, 4), ev(30_000, 'removebuff', HOW, 4), ev(20_000, 'applybuff', TRUESHOT, 6)];
 		const row = rowOf(events, 'attackPower');
 		expect(row.uptimePct).toBe(100);
@@ -121,7 +120,11 @@ describe('readRaidBuffs', () => {
 	});
 
 	it('measures a real drop against the whole pull, intermissions included', () => {
-		const events = [pull([{ ability: MOONKIN, source: 7 }]), ev(20_000, 'removebuff', MOONKIN, 7), ev(60_000, 'applybuff', MOONKIN, 7)];
+		const events = [
+			pull([{ ability: MOONKIN, source: 7 }]),
+			ev(20_000, 'removebuff', MOONKIN, 7),
+			ev(60_000, 'applybuff', MOONKIN, 7),
+		];
 		const row = rowOf(events, 'spellHaste');
 		expect(row.uptimeMs).toBe(60_000);
 		expect(row.uptimePct).toBe(60);
@@ -129,7 +132,11 @@ describe('readRaidBuffs', () => {
 	});
 
 	it('ignores a gap too short to have cost anything', () => {
-		const events = [pull([{ ability: HOW, source: 4 }]), ev(10_000, 'removebuff', HOW, 4), ev(10_500, 'applybuff', HOW, 4)];
+		const events = [
+			pull([{ ability: HOW, source: 4 }]),
+			ev(10_000, 'removebuff', HOW, 4),
+			ev(10_500, 'applybuff', HOW, 4),
+		];
 		expect(rowOf(events, 'attackPower').gaps).toEqual([]);
 	});
 
@@ -185,7 +192,7 @@ describe('readRaidBuffs', () => {
 	});
 
 	/** A corpse holds no buffs, so the section has to be able to say a death explains the gaps. */
-	it('counts the player\'s own deaths', () => {
+	it("counts the player's own deaths", () => {
 		const events: WclEvent[] = [
 			{ timestamp: T0 + 40_000, type: 'death', targetID: ME },
 			{ timestamp: T0 + 50_000, type: 'death', targetID: 99 },

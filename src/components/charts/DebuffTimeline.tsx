@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { ApexOptions } from 'apexcharts';
 import { useTranslation } from 'react-i18next';
 
+import { complementOf } from '~/lib/analysis/intervals';
 import type { Analysis } from '~/lib/types';
 
 import { fmt, sec } from '../format';
@@ -171,15 +172,14 @@ export default function DebuffTimeline({ analysis }: { analysis: Analysis }) {
 	);
 }
 
-/** The stretches *not* covered by `segments`, which is where the fight was out of reach. */
+/**
+ * The stretches *not* covered by `segments`, which is where the fight was out of reach.
+ *
+ * The complement itself is `complementOf` in the interval primitives — the cast timeline shades the
+ * same stretches, and two hand-rolled complements would eventually disagree about a boundary. What
+ * stays here is the filter: a sliver either side of a segment boundary is rounding, not a phase, and
+ * a second's worth of it is a bar too thin to hover on a chart drawn at this width.
+ */
 function gapsBetween(segments: ReadonlyArray<readonly [number, number]>, durationMs: number): Array<[number, number]> {
-	const gaps: Array<[number, number]> = [];
-	let cursor = 0;
-	for (const [start, end] of [...segments].sort((a, b) => a[0] - b[0])) {
-		if (start > cursor) gaps.push([cursor, start]);
-		cursor = Math.max(cursor, end);
-	}
-	if (cursor < durationMs) gaps.push([cursor, durationMs]);
-	// A sliver either side of a segment boundary is rounding, not a phase.
-	return gaps.filter(([start, end]) => end - start > 1000);
+	return complementOf([...segments], durationMs).filter(([start, end]) => end - start > 1000);
 }

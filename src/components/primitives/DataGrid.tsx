@@ -27,6 +27,22 @@ const BAND = { warn: 'bg-band-warn', ok: 'bg-band-ok' } as const;
 const cellBase = 'border-t border-line py-2 align-middle';
 
 /**
+ * Padding on the row's outer edges, so a banded row is a band *behind* its content rather than a
+ * block ending at it.
+ *
+ * The tint is painted per cell, and the cells carry only the gutter between columns — `pr-3` on the
+ * heading, `pl-3` on the rest. That leaves nothing at either end of the row, so the colour began
+ * flush against the first icon and stopped flush against the last value, which reads as a fill that
+ * ran out of room rather than as a highlight.
+ *
+ * Applied to the header cells as well, and that is not decoration: the two are separate elements
+ * lined up only by agreeing on their padding, so adding it to one alone shifts every column heading
+ * out of line with the values beneath it.
+ */
+const EDGE_START = 'pl-3';
+const EDGE_END = 'pr-3';
+
+/**
  * The same rows twice: a real `<table>` from `md` up, stacked cards below it.
  *
  * Shrinking a six-column grid to 390px collides the labels, and a horizontal scroller hides half the
@@ -111,8 +127,10 @@ export default function DataGrid({
 											: undefined
 									}
 									className={`pb-2 font-mono text-sm font-medium tracking-[0.1em] whitespace-nowrap uppercase text-muted ${
-										i === 0 ? 'pr-3' : 'pl-3'
-									} ${column.align === 'right' ? 'text-right' : 'text-left'}`}
+										i === 0 ? `${EDGE_START} pr-3` : 'pl-3'
+									} ${i === columns.length - 1 ? EDGE_END : ''} ${
+										column.align === 'right' ? 'text-right' : 'text-left'
+									}`}
 								>
 									{column.hideLabel ? <span className="sr-only">{column.label}</span> : column.label}
 								</th>
@@ -124,13 +142,16 @@ export default function DataGrid({
 							const band = row.band ? BAND[row.band] : '';
 							return (
 								<tr key={row.key}>
-									<th scope="row" className={`${cellBase} ${band} pr-3 text-left text-sm font-medium text-ink-2`}>
+									<th
+										scope="row"
+										className={`${cellBase} ${band} ${EDGE_START} pr-3 text-left text-sm font-medium text-ink-2`}
+									>
 										{row.cells[head.key]}
 									</th>
-									{rest.map((column) => (
+									{rest.map((column, i) => (
 										<td
 											key={column.key}
-											className={`${cellBase} ${band} pl-3 ${
+											className={`${cellBase} ${band} pl-3 ${i === rest.length - 1 ? EDGE_END : ''} ${
 												column.align === 'right'
 													? 'tabular text-right font-mono text-sm text-muted'
 													: 'text-left text-sm text-ink-2'

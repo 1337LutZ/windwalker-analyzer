@@ -9,6 +9,7 @@ import {
 	CastsPerMinute,
 	DamageByAbility,
 	EnergizingBrew,
+	Chi,
 	Energy,
 	FistsOfFury,
 	GearSetup,
@@ -42,29 +43,49 @@ import {
  * screen is a wasted line.
  */
 const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis }> })[] = [
-	{ id: 'snapshots', titleKey: 'snapshots.title', Component: SnapshotTable },
-	{ id: 'timeline', titleKey: 'timeline.title', Component: PullTimeline },
-	// Straight after the mechanics clock, because it is the same four minutes at a finer grain: that
-	// one shows the windows, this one shows the buttons pressed inside them.
+	// First after the summary, because it is the pull itself: every press, every buff, one clock. A
+	// reader who has just been handed a verdict wants to see what actually happened before they are
+	// shown any argument about it, and every section below this one is an argument about some slice of
+	// this chart.
 	{ id: 'cast-log', titleKey: 'castLog.title', Component: CastLog },
-	{ id: 'bank', titleKey: 'brew.title', Component: BrewBankTimeline },
+	// The same four minutes at a coarser grain: the timeline above shows the buttons, this shows the
+	// windows they were pressed inside. Reading them the other way round — windows first — meant
+	// naming a mechanic before the reader had seen a single press.
+	{ id: 'timeline', titleKey: 'timeline.title', Component: PullTimeline },
+	{ id: 'snapshots', titleKey: 'snapshots.title', Component: SnapshotTable },
+
+	// How the globals were spent, then what paid for them. Together these two are the whole economy of
+	// the pull: the rate says whether the buttons were pressed, the bars say whether there was anything
+	// to press them with — and a low cast rate means something different depending on which.
 	{ id: 'cpm', titleKey: 'casts.title', Component: CastsPerMinute },
+	{ id: 'energy', titleKey: 'energy.title', Component: Energy },
+	// Beside energy, because the two are one economy read from opposite ends: energy is a pool that
+	// refills on a clock and wastes by the second, chi arrives in whole points from a press and wastes
+	// by the point. Split apart they read as two unrelated bars; together the reader can see that a
+	// full energy bar and an overflowing chi bar are the same global going missing.
+	{ id: 'chi', titleKey: 'chi.title', Component: Chi },
+
+	// ---------------------------------------------------------------- the buttons, one section each
+	//
+	// Everything below here judges a single ability, ordered by how much a Windwalker's damage moves
+	// when it goes wrong rather than by when it is pressed. Grouped rather than scattered because a
+	// reader arrives at this part of the report holding a button, not a moment.
+	//
+	// Tigereye Brew first: it multiplies everything else in the list, so a mistake here is the only one
+	// that costs damage the other sections have already counted.
+	{ id: 'bank', titleKey: 'brew.title', Component: BrewBankTimeline },
 	{ id: 'debuff', titleKey: 'debuff.title', Component: RisingSunKick },
 	{ id: 'fof', titleKey: 'fistsOfFury.title', Component: FistsOfFury },
 	// Directly under the channel, because the two share a condition: the priority list will not
 	// channel Fists of Fury through an Energizing Brew unless Rushing Jade Wind covers it, and each
 	// section counts the same overlap from its own side. Reading them apart loses that.
 	{ id: 'energizing', titleKey: 'energizingBrew.title', Component: EnergizingBrew },
-	// After the button that hands energy back, because it is the same resource read from the other
-	// end: that section grades a press it cannot see the bar behind, this one shows the bar. It sits
-	// here rather than beside the cast rate because what it measures is a resource sitting unspent,
-	// which is only legible once the reader has seen what spends it.
-	{ id: 'energy', titleKey: 'energy.title', Component: Energy },
 	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', Component: TigerPalm },
 	// Last of the damage cooldowns, because it is the one with no placement to judge: the sim fires it
 	// from an unconditional autocast, so it follows the sections that do grade placement rather than
 	// sitting among them.
 	{ id: 'xuen', titleKey: 'xuen.title', Component: Xuen },
+	// The defensive, and so the last button: it is the only one here that is not trying to do damage.
 	{ id: 'karma', titleKey: 'karma.title', Component: TouchOfKarma },
 	{ id: 'damage', titleKey: 'damage.title', Component: DamageByAbility },
 	{ id: 'misses', titleKey: 'misses.title', Component: MissLedger },

@@ -30,6 +30,28 @@ export function overlapMs(start: number, end: number, ranges: readonly Interval[
 	return ranges.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(end, b) - Math.max(start, a)), 0);
 }
 
+/**
+ * What `intervals` does *not* cover, from 0 to `durationMs`.
+ *
+ * The complement of engaged time is the fight taking the target away — an intermission — which two
+ * charts now shade, so it is one operation here rather than one per chart. Merged first, because a
+ * pair of overlapping segments would otherwise open a gap between them that nothing was ever absent
+ * for. Slivers are left in: how short a gap has to be before it is rounding rather than a phase is a
+ * question about what is being drawn, and the callers answer it.
+ */
+export function complementOf(intervals: ReadonlyArray<readonly [number, number]>, durationMs: number): Interval[] {
+	const gaps: Interval[] = [];
+	let cursor = 0;
+	// Copied into mutable pairs rather than asserted: `engagedSegments` reaches this as a readonly
+	// tuple from the analysis, and `mergeIntervals` builds its own pairs to coalesce into.
+	for (const [start, end] of mergeIntervals(intervals.map(([a, b]): Interval => [a, b]))) {
+		if (start > cursor) gaps.push([cursor, start]);
+		cursor = Math.max(cursor, end);
+	}
+	if (cursor < durationMs) gaps.push([cursor, durationMs]);
+	return gaps;
+}
+
 /** Pairwise intersection of two sets of intervals; empty overlaps are dropped. */
 export function intersect(a: readonly Interval[], b: readonly Interval[]): Interval[] {
 	const out: Interval[] = [];
