@@ -268,7 +268,8 @@
     "onGcdCasts": 217,
     "offGcdCasts": 294,
     "gcdSlots": 252,
-    "gcdUtilisationPct": 90.15311228102097,
+    "gcdUtilisationPct": 78.28700938608739,
+    "wastedGcds": 30,
     "channelSec": 15.9,
     "activeMs": 252821,
     "activePct": 99.0693427796674
@@ -3976,9 +3977,42 @@
             "start": 3386,
             "end": 255159
           }
-        ]
+        ],
+        "target": {
+          "id": 332,
+          "name": "Malkorok",
+          "primary": true
+        }
+      },
+      {
+        "key": "rising-sun-kick-debuff",
+        "name": "Rising Sun Kick (debuff)",
+        "id": 130320,
+        "group": "debuff",
+        "windows": [
+          {
+            "start": 49164,
+            "end": 57804
+          },
+          {
+            "start": 104779,
+            "end": 108513
+          },
+          {
+            "start": 228003,
+            "end": 237647
+          }
+        ],
+        "target": {
+          "id": 333,
+          "name": "Living Corruption",
+          "primary": false
+        }
       }
-    ]
+    ],
+    "hiddenTargets": 0,
+    "hiddenLanes": [],
+    "deaths": []
   },
   "lostCasts": [
     {
@@ -4061,9 +4095,11 @@
     "fullUses": 5,
     "refreshUses": 0,
     "wastedAtCap": 10,
+    "wastedProtecting": 0,
     "maxStacks": 20,
     "bankAtEnd": 17,
     "uptimePct": 35.27876612486089,
+    "damagePerStack": null,
     "windows": [
       {
         "start": 12421,
@@ -4337,6 +4373,7 @@
     "lastGcd": 1,
     "late": 1,
     "early": 0,
+    "protectedEarly": 0,
     "unsnapshotted": 7,
     "redundant": 0,
     "sameAsPrevious": 8,
@@ -4387,7 +4424,11 @@
         "b2bWaste": false,
         "b2bWith": [],
         "nextStat": "Mastery",
-        "missedByMs": 21
+        "missedByMs": 21,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false
       },
       {
         "start": 19389,
@@ -4422,7 +4463,11 @@
         "b2bWaste": false,
         "b2bWith": [],
         "nextStat": "Mastery",
-        "missedByMs": null
+        "missedByMs": null,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false
       },
       {
         "start": 36133,
@@ -4468,7 +4513,11 @@
         "b2bWaste": true,
         "b2bWith": [3, 4],
         "nextStat": "Mastery",
-        "missedByMs": null
+        "missedByMs": null,
+        "earlyCostStackSec": 2.9,
+        "holdCostStackSec": 0,
+        "holdStacksLost": 0,
+        "protectedBrew": false
       },
       {
         "start": 46158,
@@ -4504,6 +4553,10 @@
         "b2bWith": [],
         "nextStat": "Mastery",
         "missedByMs": null,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false,
         "overlapOfMs": 9984,
         "overlapOfIndex": 2
       },
@@ -4541,6 +4594,10 @@
         "b2bWith": [],
         "nextStat": "Mastery",
         "missedByMs": null,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false,
         "overlapOfMs": 2718,
         "overlapOfIndex": 2
       },
@@ -4577,7 +4634,11 @@
         "b2bWaste": false,
         "b2bWith": [],
         "nextStat": "Mastery",
-        "missedByMs": null
+        "missedByMs": null,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false
       },
       {
         "start": 106811,
@@ -4612,7 +4673,11 @@
         "b2bWaste": false,
         "b2bWith": [],
         "nextStat": "Mastery",
-        "missedByMs": null
+        "missedByMs": null,
+        "earlyCostStackSec": 24.8,
+        "holdCostStackSec": 15,
+        "holdStacksLost": 1,
+        "protectedBrew": false
       },
       {
         "start": 157468,
@@ -4647,7 +4712,11 @@
         "b2bWaste": false,
         "b2bWith": [],
         "nextStat": "Mastery",
-        "missedByMs": null
+        "missedByMs": null,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false
       },
       {
         "start": 248512,
@@ -4683,7 +4752,11 @@
         "b2bWaste": false,
         "b2bWith": [],
         "nextStat": null,
-        "missedByMs": null
+        "missedByMs": null,
+        "earlyCostStackSec": null,
+        "holdCostStackSec": null,
+        "holdStacksLost": null,
+        "protectedBrew": false
       }
     ]
   },
@@ -4692,7 +4765,7 @@
     "uptimeMs": 251773,
     "uptimePct": 98.65867803570589,
     "engagedMs": 252821,
-    "engagedUptimePct": 99.5360353768081,
+    "engagedUptimePct": 99.36199920101573,
     "secondsLost": 0,
     "intermissionSec": 0,
     "drops": [],
@@ -4705,6 +4778,34 @@
     "engagedSegments": [[2213, 255034]],
     "primaryDamageShare": 96.3,
     "singleTarget": true
+  },
+  "targets": {
+    "windowMs": 5000,
+    "counts": {
+      "max": 5,
+      "points": [
+        [2382, 1],
+        [104616, 2],
+        [113310, 1],
+        [128463, 2],
+        [134054, 1],
+        [150861, 4],
+        [155861, 1],
+        [158856, 3],
+        [158857, 5],
+        [163856, 3],
+        [163857, 1],
+        [182565, 2],
+        [188814, 1],
+        [232810, 2],
+        [237810, 1],
+        [260034, 0]
+      ]
+    },
+    "multiTargetMs": 35535,
+    "multiTargetPct": 13.8,
+    "thresholdPct": 33,
+    "detected": "single"
   },
   "channel": {
     "casts": 5,
@@ -5542,7 +5643,96 @@
     ],
     "averageItemLevel": 566.8,
     "missingEnchants": [],
-    "gems": 21
+    "gems": 21,
+    "masteryRating": null
+  },
+  "raidBuffs": {
+    "rows": [
+      {
+        "key": "stats",
+        "iconId": 115921,
+        "providers": ["Mark of the Wild"],
+        "notReported": false,
+        "uptimeMs": 255196,
+        "uptimePct": 100,
+        "fromPull": true,
+        "byPlayer": false,
+        "selfProvided": true,
+        "gaps": []
+      },
+      {
+        "key": "attackPower",
+        "iconId": 57330,
+        "providers": ["Horn of Winter", "Trueshot Aura"],
+        "notReported": false,
+        "uptimeMs": 255196,
+        "uptimePct": 100,
+        "fromPull": true,
+        "byPlayer": false,
+        "selfProvided": false,
+        "gaps": []
+      },
+      {
+        "key": "meleeHaste",
+        "iconId": 55610,
+        "providers": ["Serpent's Swiftness"],
+        "notReported": false,
+        "uptimeMs": 232906,
+        "uptimePct": 91.26553707738367,
+        "fromPull": false,
+        "byPlayer": false,
+        "selfProvided": false,
+        "gaps": [
+          {
+            "at": 0,
+            "seconds": 1.7
+          },
+          {
+            "at": 234648,
+            "seconds": 20.5
+          }
+        ]
+      },
+      {
+        "key": "spellHaste",
+        "iconId": 24907,
+        "providers": [],
+        "notReported": true,
+        "uptimeMs": 0,
+        "uptimePct": 0,
+        "fromPull": false,
+        "byPlayer": false,
+        "selfProvided": false,
+        "gaps": []
+      },
+      {
+        "key": "crit",
+        "iconId": 116781,
+        "providers": ["Arcane Brilliance"],
+        "notReported": false,
+        "uptimeMs": 255196,
+        "uptimePct": 100,
+        "fromPull": true,
+        "byPlayer": false,
+        "selfProvided": true,
+        "gaps": []
+      },
+      {
+        "key": "mastery",
+        "iconId": 116956,
+        "providers": ["Grace of Air"],
+        "notReported": false,
+        "uptimeMs": 255196,
+        "uptimePct": 100,
+        "fromPull": true,
+        "byPlayer": false,
+        "selfProvided": false,
+        "gaps": []
+      }
+    ],
+    "deaths": 0,
+    "notReported": 1,
+    "selfGaps": 0
   },
   "resources": {
     "energy": {
@@ -6263,6 +6453,1358 @@
         }
       ]
     }
+  },
+  "apl": {
+    "presses": [
+      {
+        "t": 1357,
+        "pressed": 115098,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 2382,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 3385,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 4400,
+        "pressed": 100784,
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
+      },
+      {
+        "t": 5417,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 6407,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 7409,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 8420,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 9421,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 10431,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 11428,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 12806,
+        "pressed": 113656,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 14398,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 15355,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 16370,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 17372,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 18369,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 19386,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 20391,
+        "pressed": 122470,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 22521,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 23531,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 24559,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 25543,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 26540,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 27544,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 28549,
+        "pressed": 100784,
+        "wanted": "combo-breaker-palm",
+        "verdict": "skipped"
+      },
+      {
+        "t": 29540,
+        "pressed": 100787,
+        "wanted": "combo-breaker-palm",
+        "verdict": "followed"
+      },
+      {
+        "t": 30550,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 31557,
+        "pressed": 100784,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 32555,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 33552,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 34566,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 35568,
+        "pressed": 115098,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 36572,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 37586,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 38587,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 39589,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 40589,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 41594,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 42604,
+        "pressed": 113656,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 46135,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 47154,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 48148,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 49163,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 50161,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 51169,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 52162,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 53166,
+        "pressed": 100787,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 54187,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 55175,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 58213,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 59210,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 60211,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 61677,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 63027,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 64046,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 65652,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 67687,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 69640,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 70648,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 71656,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 72698,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 73696,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 74704,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 75718,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 77350,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 78352,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 79353,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 80356,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 81362,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 82374,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 83378,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 84378,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 85391,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 86398,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 87392,
+        "pressed": 100784,
+        "wanted": "fists-of-fury",
+        "verdict": "skipped"
+      },
+      {
+        "t": 88392,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 89730,
+        "pressed": 100780,
+        "wanted": "combo-breaker-palm",
+        "verdict": "skipped"
+      },
+      {
+        "t": 90729,
+        "pressed": 100787,
+        "wanted": "combo-breaker-palm",
+        "verdict": "followed"
+      },
+      {
+        "t": 91735,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 92739,
+        "pressed": 100780,
+        "wanted": "combo-breaker-palm",
+        "verdict": "skipped"
+      },
+      {
+        "t": 93747,
+        "pressed": 100787,
+        "wanted": "combo-breaker-palm",
+        "verdict": "followed"
+      },
+      {
+        "t": 94747,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 95754,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 96751,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 97759,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 99385,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 102129,
+        "pressed": 100787,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 103329,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 104777,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 106786,
+        "pressed": 100787,
+        "wanted": null,
+        "verdict": "off-list"
+      },
+      {
+        "t": 110420,
+        "pressed": 122470,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 111594,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 112606,
+        "pressed": 100787,
+        "wanted": "combo-breaker-palm",
+        "verdict": "followed"
+      },
+      {
+        "t": 113617,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 114616,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 115635,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 116643,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 117637,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 118642,
+        "pressed": 113656,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 121790,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 122799,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 124270,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 125275,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 126291,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 127275,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 128273,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 129290,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 130579,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 131693,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 132696,
+        "pressed": 100784,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 133712,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 134717,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 135725,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 137605,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 138611,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 139616,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 140625,
+        "pressed": 100787,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 141645,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 142641,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 143643,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 144671,
+        "pressed": 100787,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 145865,
+        "pressed": 100784,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 146668,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 147678,
+        "pressed": 100787,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 148682,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 149677,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 150675,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 151682,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 152691,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 153688,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 155027,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 156015,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 157025,
+        "pressed": 100787,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 158022,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 162705,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 163882,
+        "pressed": 100787,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 164885,
+        "pressed": 100787,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 165891,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 166891,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 167896,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 168896,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 169894,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 170904,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 171907,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 172911,
+        "pressed": 100787,
+        "wanted": "fists-of-fury",
+        "verdict": "skipped"
+      },
+      {
+        "t": 173917,
+        "pressed": 100780,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 174915,
+        "pressed": 100784,
+        "wanted": "fists-of-fury",
+        "verdict": "skipped"
+      },
+      {
+        "t": 175923,
+        "pressed": 100787,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 176924,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 177938,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 178941,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 179949,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 181549,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 182562,
+        "pressed": 113656,
+        "wanted": "fists-of-fury",
+        "verdict": "followed"
+      },
+      {
+        "t": 185267,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 186271,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 187270,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 188283,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 189300,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 192453,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 193452,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 194450,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 195463,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 196470,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 197482,
+        "pressed": 100784,
+        "wanted": "blackout-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 198479,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 199489,
+        "pressed": 100787,
+        "wanted": "blackout-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 200504,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 201498,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 202506,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 203520,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 204827,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 205825,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 206845,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 207839,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 208839,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 209844,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 211280,
+        "pressed": 122470,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 212276,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 213282,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 214795,
+        "pressed": 100780,
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
+      },
+      {
+        "t": 215796,
+        "pressed": 100780,
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
+      },
+      {
+        "t": 216788,
+        "pressed": 100784,
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
+      },
+      {
+        "t": 217797,
+        "pressed": 100787,
+        "wanted": "fists-of-fury",
+        "verdict": "skipped"
+      },
+      {
+        "t": 218798,
+        "pressed": 100780,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 219803,
+        "pressed": 100787,
+        "wanted": "combo-breaker-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 220810,
+        "pressed": 100784,
+        "wanted": "combo-breaker-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 221817,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 222817,
+        "pressed": 113656,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 226974,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 228001,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 228979,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 229995,
+        "pressed": 100780,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 231535,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 232536,
+        "pressed": 101545,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 233545,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 234539,
+        "pressed": 100787,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 235655,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 236663,
+        "pressed": 100784,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 237665,
+        "pressed": 100780,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 238695,
+        "pressed": 100787,
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
+      },
+      {
+        "t": 239678,
+        "pressed": 100784,
+        "wanted": "chi-wave",
+        "verdict": "skipped"
+      },
+      {
+        "t": 241349,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 242356,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 243368,
+        "pressed": 115098,
+        "wanted": "chi-wave",
+        "verdict": "followed"
+      },
+      {
+        "t": 244363,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 245376,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 246381,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 247382,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 248384,
+        "pressed": 100787,
+        "wanted": "combo-breaker-palm",
+        "verdict": "followed"
+      },
+      {
+        "t": 249389,
+        "pressed": 107428,
+        "wanted": "rising-sun-kick",
+        "verdict": "followed"
+      },
+      {
+        "t": 250388,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 251393,
+        "pressed": 100784,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 252403,
+        "pressed": 100780,
+        "wanted": "jab",
+        "verdict": "followed"
+      },
+      {
+        "t": 253421,
+        "pressed": 100787,
+        "wanted": "jab",
+        "verdict": "skipped"
+      },
+      {
+        "t": 255011,
+        "pressed": 100780,
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
+      }
+    ],
+    "followed": 95,
+    "skipped": 121,
+    "unknown": 0,
+    "offList": 1,
+    "skippedBy": [
+      {
+        "key": "chi-wave",
+        "id": 115098,
+        "count": 31
+      },
+      {
+        "key": "rising-sun-kick",
+        "id": 107428,
+        "count": 25
+      },
+      {
+        "key": "jab",
+        "id": 100780,
+        "count": 24
+      },
+      {
+        "key": "blackout-kick",
+        "id": 100784,
+        "count": 15
+      },
+      {
+        "key": "combo-breaker-kick",
+        "id": 100784,
+        "count": 14
+      },
+      {
+        "key": "tiger-palm-refresh",
+        "id": 100787,
+        "count": 5
+      },
+      {
+        "key": "fists-of-fury",
+        "id": 113656,
+        "count": 4
+      },
+      {
+        "key": "combo-breaker-palm",
+        "id": 100787,
+        "count": 3
+      }
+    ]
   },
   "misses": [
     {

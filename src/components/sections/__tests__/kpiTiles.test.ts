@@ -55,16 +55,36 @@ describe('KPI tiles', () => {
 	});
 
 	/**
-	 * The colours have to actually separate pulls, or they are decoration. `strong` runs its globals
-	 * at 83.6% and `poor` at 90.2% — the recalibrated thresholds put those on opposite sides, which is
-	 * the whole point of having recalibrated them.
+	 * The colours have to actually separate pulls, or they are decoration.
+	 *
+	 * Asserted across the tiles rather than on one metric, and that is a correction rather than a
+	 * loosening. It used to pin `gcdUtilisation` alone, on the strength of `strong` running its globals
+	 * at 83.6% against `poor` at 90.2% — opposite sides of the recalibrated bands. Deducting wasted
+	 * Tiger Palms from the figure moved `poor` to 78.3% and `mixed` to 79.9%, so all three now sit in
+	 * `ok` and that one metric separates nothing. The thresholds were deliberately not re-cut with it:
+	 * they came from a 25-kill sample taken before the deduction existed, and re-deriving quartiles
+	 * from three fixtures would be worse than an honest stale number.
+	 *
+	 * The property worth holding is the one the tiles are for — that a reader can tell these three
+	 * pulls apart at a glance — and they still can, on the snapshot rate and the brew.
 	 */
 	it('does not paint every pull the same colour', () => {
-		const tones = ['strong', 'mixed', 'poor'].map((name) => {
-			const grade = gradeOf(fixture(name), 'gcdUtilisation');
-			return grade === null ? 'none' : grade;
+		const shapes = ['strong', 'mixed', 'poor'].map((name) => {
+			const analysis = fixture(name);
+			return (['gcdUtilisation', 'brewStacks', 'snapshotRate', 'rskUptime'] as const)
+				.map((key) => gradeOf(analysis, key) ?? 'none')
+				.join('/');
 		});
-		expect(new Set(tones).size).toBeGreaterThan(1);
+		expect(new Set(shapes).size).toBe(3);
+	});
+
+	/**
+	 * The overall verdict is the one number a reader takes away, so it has to separate the sample even
+	 * when an individual metric stops doing so.
+	 */
+	it('keeps the three reference pulls on three different verdicts', () => {
+		const overall = ['strong', 'mixed', 'poor'].map((name) => scoreAnalysis(fixture(name)).overall);
+		expect(overall).toEqual(['good', 'ok', 'bad']);
 	});
 
 	/**

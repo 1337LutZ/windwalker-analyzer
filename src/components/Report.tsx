@@ -104,10 +104,12 @@ const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis
 	// Reference, not analysis: it says nothing about this pull and renders the same for every log. It
 	// belongs after everything that grades, because it is where a reader goes once a section above has
 	// told them a number was wrong and they want to know what right looked like.
-	// Directly above the rotation reference, and the pair is the point: this section says what the
-	// priority list wanted at each of your globals, and the one below it is the list itself. A reader
-	// told they passed a button over needs somewhere to go and read what that button was for.
-	{ id: 'priority', titleKey: 'priority.title', Component: PriorityLadder },
+	// The priority ladder belongs here, directly above the reference list it is judged against, and it
+	// is deliberately NOT rendered yet. `spec/apl.ts` produces the audit and it is carried on the
+	// analysis, but measured against the reference pulls it flags roughly half of every player's
+	// globals — see the note at the top of that module. Until the chi it reads is reconstructed rather
+	// than sampled, a section here would tell a good player they misplayed two hundred presses.
+	// { id: 'priority', titleKey: 'priority.title', Component: PriorityLadder },
 	{ id: 'rotation', titleKey: 'rotation.title', Component: Rotation },
 	{ id: 'method', titleKey: 'method.title', Component: Method },
 ];
@@ -163,9 +165,9 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
 				</section>
 				{SECTIONS.map(({ id, Component }) =>
-					// One section reads the reader's choice rather than only the detection. Threaded as a prop
-					// rather than through context: it is one consumer, and a context here would put every
-					// section behind a provider for the sake of it.
+					// The priority section reads the reader's choice rather than only the detection, threaded as
+					// a prop rather than through context: one consumer does not justify putting every section
+					// behind a provider. Kept wired for the day the section renders again.
 					id === 'priority' ? (
 						<PriorityLadder key={id} analysis={analysis} mode={mode} />
 					) : (

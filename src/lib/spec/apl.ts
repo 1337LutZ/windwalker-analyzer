@@ -40,6 +40,28 @@ import { inWindow, remainingIn } from '../analysis/auras';
  * every press below it `unknown` rather than `followed` — silence, not a plausible guess, because a
  * wrong "you misplayed here" costs a reader more than a missing one.
  *
+ * ## Measured, and not yet trustworthy — read this before rendering it
+ *
+ * Run against the three reference pulls this ladder flags roughly **half of every player's globals**,
+ * including the strongest: 208 skips in 400 judged presses on `strong`, 121 in 216 on `poor`. A model
+ * that says every player misplays every other global is not measuring what it claims, and the section
+ * that draws it is registered but commented out in `components/Report.tsx` until this is fixed.
+ *
+ * The cause is measured, not guessed. **Chi is sampled far too sparsely to judge a press by.** On
+ * `strong` the energy bar carries 1724 readings at a median 193ms apart, while chi carries 178 at a
+ * median of 2368ms — because generators report only energy in `classResources`, so chi is stamped
+ * only onto spenders. `valueAt` therefore hands a rule the chi the player held a median of *two
+ * globals ago*. Of the 41 Jabs flagged as "should have been Rushing Jade Wind", 35 read chi as 3 of 4
+ * — no room for Jab's two — when the press two seconds later was almost certainly made at 1 or 2.
+ *
+ * The fix is the one `chiWasted` in `analysis/energy.ts` already makes for the same reason: walk
+ * forward from each reading, applying the known gains and costs of the presses in between, and resync
+ * whenever a spender reports the bar. Until the ladder reads a reconstructed chi rather than a sampled
+ * one, every chi condition in it — affordability, Jab's headroom, the dump's threshold — is being
+ * evaluated against a stale number.
+ *
+ * Energy conditions are unaffected: at 193ms the energy bar is sampled several times per global.
+ *
  * ## Where the numbers come from
  *
  * Conditions are transcribed from `ui/monk/windwalker/apls/default.apl.json` in wowsims-mop, and the
