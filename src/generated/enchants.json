@@ -1,0 +1,1277 @@
+{
+	"36": {
+		"name": "Enchant: Fiery Blaze",
+		"icon": "inv_jewelry_talisman_01",
+		"spellId": 6297
+	},
+	"37": {
+		"name": "Weapon Chain",
+		"icon": "spell_frost_chainsofice",
+		"spellId": 43588
+	},
+	"43": {
+		"name": "Iron Shield Spike",
+		"icon": "inv_misc_armorkit_01",
+		"spellId": 9784
+	},
+	"44": {
+		"name": "Enchant Chest - Minor Absorption",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 7445
+	},
+	"463": {
+		"name": "Mithril Shield Spike",
+		"icon": "inv_misc_armorkit_02",
+		"spellId": 9782
+	},
+	"464": {
+		"name": "Mithril Spurs",
+		"icon": "ability_rogue_sprint",
+		"spellId": 7215
+	},
+	"803": {
+		"name": "Enchant Weapon - Fiery Weapon",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13897
+	},
+	"844": {
+		"name": "Enchant Gloves - Mining",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13611
+	},
+	"845": {
+		"name": "Enchant Gloves - Herbalism",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13614
+	},
+	"846": {
+		"name": "Eternium Fishing Line",
+		"icon": "inv_fabric_mageweave_02",
+		"spellId": 71691
+	},
+	"865": {
+		"name": "Enchant Gloves - Skinning",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13697
+	},
+	"906": {
+		"name": "Enchant Gloves - Advanced Mining",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13838
+	},
+	"909": {
+		"name": "Enchant Gloves - Advanced Herbalism",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13839
+	},
+	"910": {
+		"name": "Enchant Cloak - Stealth",
+		"icon": "ability_stealth",
+		"spellId": 359640
+	},
+	"911": {
+		"name": "Enchant Boots - Minor Speed",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13889
+	},
+	"912": {
+		"name": "Enchant Weapon - Demonslaying",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13907
+	},
+	"926": {
+		"name": "Enchant Shield - Frost Resistance",
+		"icon": "spell_frost_frostward",
+		"spellId": 359895
+	},
+	"930": {
+		"name": "Enchant Gloves - Riding Skill",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 13927
+	},
+	"1593": {
+		"name": "Enchant Bracer - Assault",
+		"icon": "inv_misc_desecrated_clothbracer",
+		"spellId": 359639
+	},
+	"1704": {
+		"name": "Thorium Shield Spike",
+		"icon": "inv_misc_armorkit_20",
+		"spellId": 16624
+	},
+	"1894": {
+		"name": "Enchant Weapon - Icy Chill",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 20005
+	},
+	"1898": {
+		"name": "Enchant Weapon - Lifestealing",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 20004
+	},
+	"1899": {
+		"name": "Enchant Weapon - Unholy Weapon",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 20006
+	},
+	"1900": {
+		"name": "Enchant Weapon - Crusader",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 20007
+	},
+	"2564": {
+		"name": "Enchant Gloves - Superior Agility",
+		"icon": "spell_holy_blessingofagility",
+		"spellId": 359641
+	},
+	"2567": {
+		"name": "Enchant Weapon - Mighty Spirit",
+		"icon": "spell_holy_divinespirit",
+		"spellId": 359642
+	},
+	"2603": {
+		"name": "Enchant Gloves - Fishing",
+		"icon": "trade_engraving",
+		"spellId": 24303
+	},
+	"2613": {
+		"name": "Enchant Gloves - Threat",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 25063
+	},
+	"2619": {
+		"name": "Enchant Cloak - Greater Fire Resistance",
+		"icon": "spell_fire_sealoffire",
+		"spellId": 359950
+	},
+	"2620": {
+		"name": "Enchant Cloak - Greater Nature Resistance",
+		"icon": "spell_nature_elementalshields",
+		"spellId": 359949
+	},
+	"2621": {
+		"name": "Enchant Cloak - Subtlety",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 25070
+	},
+	"2673": {
+		"name": "Enchant Weapon - Mongoose",
+		"icon": "inv_sword_11",
+		"spellId": 28093
+	},
+	"2674": {
+		"name": "Enchant Weapon - Spellsurge",
+		"icon": "inv_staff_18",
+		"spellId": 27997
+	},
+	"2675": {
+		"name": "Enchant Weapon - Battlemaster",
+		"icon": "inv_sword_27",
+		"spellId": 28005
+	},
+	"3228": {
+		"name": "Enchant Bracer - Template",
+		"icon": "trade_engraving",
+		"spellId": 44119
+	},
+	"3229": {
+		"name": "Enchant Shield - Resistance",
+		"icon": "spell_holy_avengersshield",
+		"spellId": 359685
+	},
+	"3238": {
+		"name": "Enchant Gloves - Gatherer",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 44507
+	},
+	"3239": {
+		"name": "Enchant Weapon - Icebreaker",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 44525
+	},
+	"3241": {
+		"name": "Enchant Weapon - Lifeward",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 44578
+	},
+	"3251": {
+		"name": "Enchant Weapon - Giant Slayer",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 44622
+	},
+	"3269": {
+		"name": "Truesilver Fishing Line",
+		"icon": "inv_misc_thread_01",
+		"spellId": 45698
+	},
+	"3273": {
+		"name": "Enchant Weapon - Deathfrost",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 46579
+	},
+	"3289": {
+		"name": "Riding Crop",
+		"icon": "inv_misc_crop_01",
+		"spellId": 47103
+	},
+	"3315": {
+		"name": "Carrot on a Stick",
+		"icon": "inv_misc_food_54",
+		"spellId": 48401
+	},
+	"3365": {
+		"name": "Rune of Swordshattering",
+		"icon": "trade_engraving",
+		"spellId": 53387
+	},
+	"3366": {
+		"name": "Rune of Lichbane",
+		"icon": "trade_engraving",
+		"spellId": 56903
+	},
+	"3367": {
+		"name": "Rune of Spellshattering",
+		"icon": "trade_engraving",
+		"spellId": 53362
+	},
+	"3368": {
+		"name": "Rune of the Fallen Crusader",
+		"icon": "trade_engraving",
+		"spellId": 53365
+	},
+	"3369": {
+		"name": "Rune of Cinderglacier",
+		"icon": "trade_engraving",
+		"spellId": 53386
+	},
+	"3370": {
+		"name": "Rune of Razorice",
+		"icon": "trade_engraving",
+		"spellId": 50401
+	},
+	"3594": {
+		"name": "Rune of Swordbreaking",
+		"icon": "trade_engraving",
+		"spellId": 54448
+	},
+	"3595": {
+		"name": "Rune of Spellbreaking",
+		"icon": "trade_engraving",
+		"spellId": 54449
+	},
+	"3599": {
+		"name": "EMP Generator",
+		"icon": "inv_misc_enggizmos_02",
+		"spellId": 54736
+	},
+	"3601": {
+		"name": "Frag Belt",
+		"icon": "inv_misc_enggizmos_02",
+		"spellId": 54793
+	},
+	"3603": {
+		"name": "Hand-Mounted Pyro Rocket",
+		"icon": "inv_misc_enggizmos_01",
+		"spellId": 54998
+	},
+	"3604": {
+		"name": "Hyperspeed Accelerators",
+		"icon": "trade_engraving",
+		"spellId": 54999
+	},
+	"3605": {
+		"name": "Flexweave Underlay",
+		"icon": "inv_misc_cape_22",
+		"spellId": 55002
+	},
+	"3722": {
+		"name": "Lightweave Embroidery (Rank 1)",
+		"icon": "trade_engraving",
+		"spellId": 55640
+	},
+	"3728": {
+		"name": "Darkglow Embroidery (Rank 1)",
+		"icon": "trade_engraving",
+		"spellId": 55768
+	},
+	"3730": {
+		"name": "Swordguard Embroidery (Rank 1)",
+		"icon": "trade_engraving",
+		"spellId": 55776
+	},
+	"3748": {
+		"name": "Titanium Shield Spike",
+		"icon": "inv_titanium_shield_spike",
+		"spellId": 56355
+	},
+	"3789": {
+		"name": "Enchant Weapon - Berserking",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 59620
+	},
+	"3790": {
+		"name": "Enchant Weapon - Black Magic",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 59630
+	},
+	"3847": {
+		"name": "Rune of the Stoneskin Gargoyle",
+		"icon": "trade_engraving",
+		"spellId": 62157
+	},
+	"3860": {
+		"name": "Reticulated Armor Webbing",
+		"icon": "trade_engraving",
+		"spellId": 63770
+	},
+	"3869": {
+		"name": "Enchant Weapon - Blade Ward",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 64440
+	},
+	"3870": {
+		"name": "Enchant Weapon - Blood Draining",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 64571
+	},
+	"3883": {
+		"name": "Rune of the Nerubian Carapace",
+		"icon": "trade_engraving",
+		"spellId": 70163
+	},
+	"4061": {
+		"name": "Enchant Gloves - Mastery",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74132
+	},
+	"4062": {
+		"name": "Enchant Boots - Earthen Vitality",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 24090
+	},
+	"4063": {
+		"name": "Enchant Chest - Mighty Stats",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74190
+	},
+	"4064": {
+		"name": "Enchant Cloak - Lesser Power",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74192
+	},
+	"4065": {
+		"name": "Enchant Bracer - Speed",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74193
+	},
+	"4066": {
+		"name": "Enchant Weapon - Mending",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74194
+	},
+	"4067": {
+		"name": "Enchant Weapon - Avalanche",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74196
+	},
+	"4068": {
+		"name": "Enchant Gloves - Haste",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74198
+	},
+	"4069": {
+		"name": "Enchant Boots - Haste",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74199
+	},
+	"4070": {
+		"name": "Enchant Chest - Stamina",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74200
+	},
+	"4071": {
+		"name": "Enchant Bracer - Critical Strike",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74201
+	},
+	"4072": {
+		"name": "Enchant Cloak - Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74202
+	},
+	"4073": {
+		"name": "Enchant Shield - Protection",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74207
+	},
+	"4074": {
+		"name": "Enchant Weapon - Elemental Slayer",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74208
+	},
+	"4075": {
+		"name": "Enchant Gloves - Exceptional Strength",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74212
+	},
+	"4076": {
+		"name": "Enchant Boots - Major Agility",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74213
+	},
+	"4077": {
+		"name": "Enchant Chest - Mighty Resilience",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74214
+	},
+	"4078": {
+		"name": "Enchant Ring - Strength",
+		"icon": "trade_engraving",
+		"spellId": 74215
+	},
+	"4079": {
+		"name": "Enchant Ring - Agility",
+		"icon": "trade_engraving",
+		"spellId": 74216
+	},
+	"4080": {
+		"name": "Enchant Ring - Intellect",
+		"icon": "trade_engraving",
+		"spellId": 74217
+	},
+	"4081": {
+		"name": "Enchant Ring - Stamina",
+		"icon": "trade_engraving",
+		"spellId": 74218
+	},
+	"4082": {
+		"name": "Enchant Gloves - Greater Expertise",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74220
+	},
+	"4083": {
+		"name": "Enchant Weapon - Hurricane",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74221
+	},
+	"4084": {
+		"name": "Enchant Weapon - Heartsong",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 95653
+	},
+	"4085": {
+		"name": "Enchant Shield - Mastery",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74226
+	},
+	"4086": {
+		"name": "Enchant Bracer - Superior Dodge",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74229
+	},
+	"4087": {
+		"name": "Enchant Cloak - Critical Strike",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74230
+	},
+	"4088": {
+		"name": "Enchant Chest - Exceptional Spirit",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74231
+	},
+	"4089": {
+		"name": "Enchant Bracer - Precision",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74232
+	},
+	"4090": {
+		"name": "Enchant Cloak - Protection",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74234
+	},
+	"4091": {
+		"name": "Enchant Off-Hand - Superior Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74235
+	},
+	"4092": {
+		"name": "Enchant Boots - Precision",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74236
+	},
+	"4093": {
+		"name": "Enchant Bracer - Exceptional Spirit",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74237
+	},
+	"4094": {
+		"name": "Enchant Boots - Mastery",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74238
+	},
+	"4095": {
+		"name": "Enchant Bracer - Greater Expertise",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74239
+	},
+	"4096": {
+		"name": "Enchant Cloak - Greater Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74240
+	},
+	"4097": {
+		"name": "Enchant Weapon - Power Torrent",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 94746
+	},
+	"4098": {
+		"name": "Enchant Weapon - Windwalk",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74243
+	},
+	"4099": {
+		"name": "Enchant Weapon - Landslide",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74245
+	},
+	"4100": {
+		"name": "Enchant Cloak - Greater Critical Strike",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74247
+	},
+	"4101": {
+		"name": "Enchant Bracer - Greater Critical Strike",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74248
+	},
+	"4102": {
+		"name": "Enchant Chest - Peerless Stats",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74249
+	},
+	"4103": {
+		"name": "Enchant Chest - Greater Stamina",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74251
+	},
+	"4104": {
+		"name": "Enchant Boots - Lavawalker",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 24090
+	},
+	"4105": {
+		"name": "Enchant Boots - Assassin's Step",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 24090
+	},
+	"4106": {
+		"name": "Enchant Gloves - Mighty Strength",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74254
+	},
+	"4107": {
+		"name": "Enchant Gloves - Greater Mastery",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74255
+	},
+	"4108": {
+		"name": "Enchant Bracer - Greater Speed",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 74256
+	},
+	"4109": {
+		"name": "Ghostly Spellthread",
+		"icon": "spell_nature_astralrecal",
+		"spellId": 75149
+	},
+	"4110": {
+		"name": "Powerful Ghostly Spellthread",
+		"icon": "spell_nature_astralrecalgroup",
+		"spellId": 75150
+	},
+	"4111": {
+		"name": "Enchanted Spellthread",
+		"icon": "item_spellcloththread",
+		"spellId": 75151
+	},
+	"4112": {
+		"name": "Powerful Enchanted Spellthread",
+		"icon": "inv_misc_thread_eternium",
+		"spellId": 75152
+	},
+	"4113": {
+		"name": "Master's Spellthread (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 75154
+	},
+	"4114": {
+		"name": "Sanctified Spellthread (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 75155
+	},
+	"4115": {
+		"name": "Lightweave Embroidery (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 75171
+	},
+	"4116": {
+		"name": "Darkglow Embroidery (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 75174
+	},
+	"4118": {
+		"name": "Swordguard Embroidery (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 75177
+	},
+	"4120": {
+		"name": "Savage Armor Kit",
+		"icon": "inv_misc_armorkit_28",
+		"spellId": 78165
+	},
+	"4121": {
+		"name": "Heavy Savage Armor Kit",
+		"icon": "inv_misc_armorkit_30",
+		"spellId": 78166
+	},
+	"4124": {
+		"name": "Twilight Leg Armor",
+		"icon": "inv_misc_armorkit_29",
+		"spellId": 78170
+	},
+	"4126": {
+		"name": "Dragonscale Leg Armor",
+		"icon": "inv_misc_monsterscales_14",
+		"spellId": 78171
+	},
+	"4127": {
+		"name": "Charscale Leg Armor",
+		"icon": "inv_misc_monsterscales_20",
+		"spellId": 78172
+	},
+	"4175": {
+		"name": "Gnomish X-Ray Scope",
+		"icon": "inv_misc_scopea",
+		"spellId": 95713
+	},
+	"4179": {
+		"name": "Synapse Springs (Mark I)",
+		"icon": "trade_engraving",
+		"spellId": 1250229
+	},
+	"4180": {
+		"name": "Quickflip Deflection Plates",
+		"icon": "trade_engraving",
+		"spellId": 82177
+	},
+	"4181": {
+		"name": "Tazik Shocker",
+		"icon": "trade_engraving",
+		"spellId": 82180
+	},
+	"4187": {
+		"name": "Invisibility Field",
+		"icon": "trade_engraving",
+		"spellId": 84424
+	},
+	"4188": {
+		"name": "Grounded Plasma Shield",
+		"icon": "trade_engraving",
+		"spellId": 84427
+	},
+	"4189": {
+		"name": "Fur Lining - Stamina (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 85007
+	},
+	"4190": {
+		"name": "Fur Lining - Agility (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 85008
+	},
+	"4191": {
+		"name": "Fur Lining - Strength (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 85009
+	},
+	"4192": {
+		"name": "Fur Lining - Intellect (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 85010
+	},
+	"4193": {
+		"name": "Swiftsteel Inscription",
+		"icon": "trade_engraving",
+		"spellId": 86375
+	},
+	"4194": {
+		"name": "Lionsmane Inscription",
+		"icon": "trade_engraving",
+		"spellId": 86401
+	},
+	"4195": {
+		"name": "Inscription of the Earth Prince",
+		"icon": "trade_engraving",
+		"spellId": 86402
+	},
+	"4196": {
+		"name": "Felfire Inscription",
+		"icon": "trade_engraving",
+		"spellId": 86403
+	},
+	"4197": {
+		"name": "Inscription of Unbreakable Quartz",
+		"icon": "inv_misc_gem_crystal_01",
+		"spellId": 86847
+	},
+	"4198": {
+		"name": "Greater Inscription of Unbreakable Quartz",
+		"icon": "inv_misc_gem_crystal_01",
+		"spellId": 86854
+	},
+	"4199": {
+		"name": "Inscription of Charged Lodestone",
+		"icon": "inv_misc_gem_bloodstone_02",
+		"spellId": 86898
+	},
+	"4200": {
+		"name": "Greater Inscription of Charged Lodestone",
+		"icon": "inv_misc_gem_bloodstone_02",
+		"spellId": 86899
+	},
+	"4201": {
+		"name": "Inscription of Jagged Stone",
+		"icon": "inv_misc_gem_emeraldrough_02",
+		"spellId": 86900
+	},
+	"4202": {
+		"name": "Greater Inscription of Jagged Stone",
+		"icon": "inv_misc_gem_emeraldrough_02",
+		"spellId": 86901
+	},
+	"4204": {
+		"name": "Greater Inscription of Shattered Crystal",
+		"icon": "inv_misc_gem_goldendraenite_01",
+		"spellId": 86907
+	},
+	"4205": {
+		"name": "Inscription of Shattered Crystal",
+		"icon": "inv_misc_gem_goldendraenite_01",
+		"spellId": 86909
+	},
+	"4214": {
+		"name": "Cardboard Assassin",
+		"icon": "trade_engraving",
+		"spellId": 84425
+	},
+	"4215": {
+		"name": "Elementium Shield Spike",
+		"icon": "inv_qiraj_hiltspiked",
+		"spellId": 92432
+	},
+	"4216": {
+		"name": "Pyrium Shield Spike",
+		"icon": "inv_shield_08",
+		"spellId": 92436
+	},
+	"4217": {
+		"name": "Pyrium Weapon Chain",
+		"icon": "inv_misc_steelweaponchain",
+		"spellId": 43588
+	},
+	"4222": {
+		"name": "Mind Amplification Dish",
+		"icon": "trade_engraving",
+		"spellId": 67839
+	},
+	"4223": {
+		"name": "Nitro Boosts",
+		"icon": "inv_gizmo_rocketbootextreme",
+		"spellId": 55016
+	},
+	"4227": {
+		"name": "Enchant 2H Weapon - Mighty Agility",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 95471
+	},
+	"4248": {
+		"name": "Greater Inscription of Vicious Intellect",
+		"icon": "inv_misc_gem_bloodstone_02",
+		"spellId": 96249
+	},
+	"4249": {
+		"name": "Greater Inscription of Vicious Strength",
+		"icon": "inv_misc_gem_emeraldrough_02",
+		"spellId": 96250
+	},
+	"4250": {
+		"name": "Greater Inscription of Vicious Agility",
+		"icon": "inv_misc_gem_goldendraenite_01",
+		"spellId": 96251
+	},
+	"4256": {
+		"name": "Enchant Bracer - Major Strength",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 96261
+	},
+	"4257": {
+		"name": "Enchant Bracer - Mighty Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 96262
+	},
+	"4258": {
+		"name": "Enchant Bracer - Agility",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 96264
+	},
+	"4259": {
+		"name": "Reinforced Fishing Line",
+		"icon": "inv_fabric_mageweave_02",
+		"spellId": 96285
+	},
+	"4267": {
+		"name": "Flintlocke's Woodchucker",
+		"icon": "inv_misc_scopeb",
+		"spellId": 99622
+	},
+	"4270": {
+		"name": "Drakehide Leg Armor",
+		"icon": "inv_misc_cataclysmarmorkit_08",
+		"spellId": 101598
+	},
+	"4359": {
+		"name": "Enchant Ring - Greater Agility",
+		"icon": "inv_scroll_03",
+		"spellId": 103461
+	},
+	"4360": {
+		"name": "Enchant Ring - Greater Intellect",
+		"icon": "inv_scroll_03",
+		"spellId": 103462
+	},
+	"4361": {
+		"name": "Enchant Ring - Greater Stamina",
+		"icon": "inv_scroll_03",
+		"spellId": 103463
+	},
+	"4411": {
+		"name": "Enchant Bracer - Mastery",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104338
+	},
+	"4412": {
+		"name": "Enchant Bracer - Major Dodge",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104385
+	},
+	"4414": {
+		"name": "Enchant Bracer - Super Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104389
+	},
+	"4415": {
+		"name": "Enchant Bracer - Exceptional Strength",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104390
+	},
+	"4416": {
+		"name": "Enchant Bracer - Greater Agility",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104391
+	},
+	"4417": {
+		"name": "Enchant Chest - Super Resilience",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104392
+	},
+	"4418": {
+		"name": "Enchant Chest - Mighty Spirit",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104393
+	},
+	"4419": {
+		"name": "Enchant Chest - Glorious Stats",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104395
+	},
+	"4420": {
+		"name": "Enchant Chest - Superior Stamina",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104397
+	},
+	"4421": {
+		"name": "Enchant Cloak - Accuracy",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104398
+	},
+	"4422": {
+		"name": "Enchant Cloak - Greater Protection",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104401
+	},
+	"4423": {
+		"name": "Enchant Cloak - Superior Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104403
+	},
+	"4424": {
+		"name": "Enchant Cloak - Superior Critical Strike",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104404
+	},
+	"4426": {
+		"name": "Enchant Boots - Greater Haste",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104407
+	},
+	"4427": {
+		"name": "Enchant Boots - Greater Precision",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104408
+	},
+	"4428": {
+		"name": "Enchant Boots - Blurred Speed",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104409
+	},
+	"4429": {
+		"name": "Enchant Boots - Pandaren's Step",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104414
+	},
+	"4430": {
+		"name": "Enchant Gloves - Greater Haste",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104416
+	},
+	"4431": {
+		"name": "Enchant Gloves - Superior Expertise",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104417
+	},
+	"4432": {
+		"name": "Enchant Gloves - Super Strength",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104419
+	},
+	"4433": {
+		"name": "Enchant Gloves - Superior Mastery",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104420
+	},
+	"4434": {
+		"name": "Enchant Off-Hand - Major Intellect",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104445
+	},
+	"4441": {
+		"name": "Enchant Weapon - Windsong",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104425
+	},
+	"4442": {
+		"name": "Enchant Weapon - Jade Spirit",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104427
+	},
+	"4443": {
+		"name": "Enchant Weapon - Elemental Force",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104430
+	},
+	"4444": {
+		"name": "Enchant Weapon - Dancing Steel",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104434
+	},
+	"4445": {
+		"name": "Enchant Weapon - Colossus",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104040
+	},
+	"4446": {
+		"name": "Enchant Weapon - River's Song",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 104442
+	},
+	"4697": {
+		"name": "Phase Fingers",
+		"icon": "trade_engraving",
+		"spellId": 108789
+	},
+	"4698": {
+		"name": "Incendiary Fireworks Launcher",
+		"icon": "trade_engraving",
+		"spellId": 109077
+	},
+	"4699": {
+		"name": "Lord Blastington's Scope of Doom",
+		"icon": "inv_misc_scopeb",
+		"spellId": 109085
+	},
+	"4700": {
+		"name": "Mirror Scope",
+		"icon": "inv_misc_scopea",
+		"spellId": 109092
+	},
+	"4719": {
+		"name": "Inscription",
+		"icon": "trade_engraving",
+		"spellId": 113011
+	},
+	"4732": {
+		"name": "Enchant Gloves - Angler",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 71691
+	},
+	"4750": {
+		"name": "Spinal Healing Injector",
+		"icon": "trade_engraving",
+		"spellId": 82200
+	},
+	"4803": {
+		"name": "Greater Tiger Fang Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_yellow",
+		"spellId": 121192
+	},
+	"4804": {
+		"name": "Greater Tiger Claw Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_yellow",
+		"spellId": 121193
+	},
+	"4805": {
+		"name": "Greater Ox Horn Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_yellow",
+		"spellId": 121194
+	},
+	"4806": {
+		"name": "Greater Crane Wing Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_yellow",
+		"spellId": 121195
+	},
+	"4807": {
+		"name": "Enchant Ring - Greater Strength",
+		"icon": "inv_scroll_03",
+		"spellId": 103465
+	},
+	"4822": {
+		"name": "Shadowleather Leg Armor",
+		"icon": "inv_misc_cataclysmarmorkit_02",
+		"spellId": 122387
+	},
+	"4823": {
+		"name": "Angerhide Leg Armor",
+		"icon": "inv_misc_armorkit_mop_04",
+		"spellId": 122388
+	},
+	"4824": {
+		"name": "Ironscale Leg Armor",
+		"icon": "inv_misc_armorkit_mop_01",
+		"spellId": 122386
+	},
+	"4825": {
+		"name": "Greater Cerulean Spellthread",
+		"icon": "inv_belt_42",
+		"spellId": 122392
+	},
+	"4826": {
+		"name": "Greater Pearlescent Spellthread",
+		"icon": "inv_belt_42c",
+		"spellId": 122393
+	},
+	"4869": {
+		"name": "Sha Armor Kit",
+		"icon": "inv_misc_armorkit_28",
+		"spellId": 124091
+	},
+	"4870": {
+		"name": "Toughened Leg Armor",
+		"icon": "inv_misc_armorkit_mop_00",
+		"spellId": 124116
+	},
+	"4871": {
+		"name": "Sha-Touched Leg Armor",
+		"icon": "inv_misc_cataclysmarmorkit_01",
+		"spellId": 124118
+	},
+	"4872": {
+		"name": "Brutal Leg Armor",
+		"icon": "inv_misc_armorkit_mop_02",
+		"spellId": 124119
+	},
+	"4875": {
+		"name": "Fur Lining - Agility (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124551
+	},
+	"4877": {
+		"name": "Fur Lining - Intellect (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124552
+	},
+	"4878": {
+		"name": "Fur Lining - Stamina (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124553
+	},
+	"4879": {
+		"name": "Fur Lining - Strength (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124554
+	},
+	"4880": {
+		"name": "Primal Leg Reinforcements (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124559
+	},
+	"4881": {
+		"name": "Draconic Leg Reinforcements (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124561
+	},
+	"4882": {
+		"name": "Heavy Leg Reinforcements (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 124563
+	},
+	"4883": {
+		"name": "Primal Leg Reinforcements (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 124564
+	},
+	"4884": {
+		"name": "Heavy Leg Reinforcements (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 124565
+	},
+	"4885": {
+		"name": "Draconic Leg Reinforcements (Rank 2)",
+		"icon": "trade_engraving",
+		"spellId": 124566
+	},
+	"4892": {
+		"name": "Lightweave Embroidery (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 125481
+	},
+	"4893": {
+		"name": "Darkglow Embroidery (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 125482
+	},
+	"4894": {
+		"name": "Swordguard Embroidery (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 125483
+	},
+	"4895": {
+		"name": "Master's Spellthread (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 125496
+	},
+	"4896": {
+		"name": "Sanctified Spellthread (Rank 3)",
+		"icon": "trade_engraving",
+		"spellId": 125497
+	},
+	"4897": {
+		"name": "Goblin Glider",
+		"icon": "trade_engraving",
+		"spellId": 126392
+	},
+	"4898": {
+		"name": "Synapse Springs (Mark II)",
+		"icon": "trade_engraving",
+		"spellId": 126731
+	},
+	"4907": {
+		"name": "Tiger Fang Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_blue",
+		"spellId": 127015
+	},
+	"4908": {
+		"name": "Tiger Claw Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_blue",
+		"spellId": 127014
+	},
+	"4909": {
+		"name": "Crane Wing Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_blue",
+		"spellId": 127013
+	},
+	"4910": {
+		"name": "Ox Horn Inscription",
+		"icon": "inv_inscription_runescrolloffortitude_blue",
+		"spellId": 127012
+	},
+	"4912": {
+		"name": "Secret Ox Horn Inscription",
+		"icon": "inv_misc_mastersinscription",
+		"spellId": 113048
+	},
+	"4913": {
+		"name": "Secret Tiger Fang Inscription",
+		"icon": "inv_misc_mastersinscription",
+		"spellId": 113047
+	},
+	"4914": {
+		"name": "Secret Tiger Claw Inscription",
+		"icon": "inv_misc_mastersinscription",
+		"spellId": 113046
+	},
+	"4915": {
+		"name": "Secret Crane Wing Inscription",
+		"icon": "inv_misc_mastersinscription",
+		"spellId": 113045
+	},
+	"4918": {
+		"name": "Living Steel Weapon Chain",
+		"icon": "inv_misc_steelweaponchain",
+		"spellId": 43588
+	},
+	"4993": {
+		"name": "Enchant Shield - Greater Parry",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 130758
+	},
+	"5000": {
+		"name": "Watergliding Jets",
+		"icon": "inv_scroll_03",
+		"spellId": 109099
+	},
+	"5001": {
+		"name": "Ghost Iron Shield Spike",
+		"icon": "inv_shield_63",
+		"spellId": 131465
+	},
+	"5003": {
+		"name": "Cerulean Spellthread",
+		"icon": "inv_misc_thread_eternium",
+		"spellId": 131862
+	},
+	"5004": {
+		"name": "Pearlescent Spellthread",
+		"icon": "inv_bracer_69",
+		"spellId": 131863
+	},
+	"5035": {
+		"name": "Enchant Weapon - Glorious Tyranny",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 43588
+	},
+	"5124": {
+		"name": "Enchant Weapon - Spirit of Conquest",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 142469
+	},
+	"5125": {
+		"name": "Enchant Weapon - Bloody Dancing Steel",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 142468
+	},
+	"8550": {
+		"name": "Enchant Weapon - Tyranny",
+		"icon": "inv_misc_enchantedscroll",
+		"spellId": 43588
+	}
+}

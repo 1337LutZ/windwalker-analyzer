@@ -10,7 +10,18 @@ import ChartEmpty from './ChartEmpty';
 import TrackLabels, { type Track } from './TrackLabels';
 import { baseChart, baseGrid, baseTooltip, LABEL_FONT_SIZE, NARROW_QUERY } from './apex';
 
-const ROW_HEIGHT = 38;
+/**
+ * Row height, on a 4px grid shared by every chart in the report.
+ *
+ * 48 for the two that carry an icon beside each row — the pull timeline and the Rising Sun Kick
+ * debuff — because a 24px icon in a 34px row leaves no air, and because those two are read against
+ * each other. 24 for the rest, which are bars and text.
+ *
+ * Picked as a grid rather than per chart: five charts had five heights (32, 34, 38, 46, 34), which is
+ * five arbitrary numbers rather than a system, and two timelines of the same pull sitting at
+ * different pitches read as two different tools.
+ */
+const ROW_HEIGHT = 24;
 const CHROME = 56;
 
 /** Beyond this the tail is single-percent rows, and the chart stops being a comparison. */
@@ -136,7 +147,7 @@ export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
 	);
 
 	if (abilities.length === 0) {
-		return <ChartEmpty>No pressed ability did damage in this pull.</ChartEmpty>;
+		return <ChartEmpty>No button did any damage in this pull.</ChartEmpty>;
 	}
 
 	// Matched to `build`'s own `narrow`, which ApexCharts is handed at draw time: the label column and

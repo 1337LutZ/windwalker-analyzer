@@ -29,6 +29,9 @@ export type {
 /** The discriminated union over `type`, with its narrowing helpers, lives in ~/lib/events. */
 export type { WclEvent } from '~/lib/events';
 
+/** One equipped item as the log reports it, re-exported so the analysis layer need not reach in. */
+export type { GearPiece } from '~/lib/events/model';
+
 /**
  * What actually limits a button, which decides whether a "lost cast" figure means anything. Every
  * ability declares one, so it is the game model's word rather than a second opinion held here.
@@ -141,6 +144,57 @@ export interface CastRow {
 	medianGapSec: number;
 	longestGapSec: number;
 	times: number[];
+}
+
+/**
+ * One press, on the clock.
+ *
+ * `CastRow` above is the aggregate — how many Jabs, at what rate — and deliberately stays that way.
+ * A timeline needs the opposite shape: the flat, time-ordered stream of presses, because the question
+ * it answers is "what was up when this button went out", which no per-ability total can reach.
+ */
+export interface CastMark {
+	/** Fight-relative ms, like every other timestamp in this file. */
+	t: number;
+	/**
+	 * The button's canonical cast id, which is what resolves an icon — *not* whichever id the log
+	 * happened to use first. Jab logs one id per weapon type, and those ids carry the weapon's icon.
+	 */
+	id: number;
+	name: string;
+	/**
+	 * Whether the press cost a global. The reader wants to see the rotation, and an off-GCD brew or
+	 * trinket sitting in the same lane at the same weight reads as a global that was spent.
+	 */
+	onGcd: boolean;
+}
+
+/** The category a lane belongs to, which is the granularity the reader turns rows off at. */
+export type LaneGroup = 'buff' | 'proc' | 'debuff';
+
+/** One aura's windows, as a row drawn under the casts. */
+export interface AuraLane {
+	/** The aura's key in the spec's game model — stable, and what a React list keys on. */
+	key: string;
+	name: string;
+	/** The spell whose icon stands for the row. */
+	id: number;
+	group: LaneGroup;
+	windows: Window[];
+}
+
+/**
+ * Every press on one clock, with the aura windows worth drawing underneath.
+ *
+ * Assembled from what the metrics already computed rather than measured again: the casts are the
+ * cast series flattened, and each lane is a window set some section above already needed. So this
+ * carries no judgement of its own and costs no extra pass over the events — it is a view, and the
+ * moment it starts deciding anything it belongs in a metric instead.
+ */
+export interface CastTimeline {
+	casts: CastMark[];
+	/** Only lanes with something on them. An aura that never went up is not drawn as an empty row. */
+	lanes: AuraLane[];
 }
 
 export interface CpmSummary {
@@ -295,6 +349,14 @@ export interface ChannelAudit {
 	inProc: number;
 	clean: number;
 	faulted: number;
+	/**
+	 * This audit does not read the energy bar. Always false.
+	 *
+	 * It used to say the bar could not be read at all, which was wrong — see `EnergyAudit`. What is
+	 * still true is narrower and is why the flag stays: the APL's energy clause is about the moment
+	 * of the press, and grading a channel against a bar sampled three times a second would turn the
+	 * sampling grid into a verdict. The Energy section reports the bar on its own terms instead.
+	 */
 	energyCheckable: false;
 	castList: Array<{
 		t: number;
@@ -307,6 +369,127 @@ export interface ChannelAudit {
 		faults: string[];
 		link: string;
 	}>;
+}
+
+/**
+ * Energizing Brew: six seconds of energy, judged against the priority list's own conditions.
+ *
+ * The sim hands back 10 energy a second for six one-second ticks on a one-minute cooldown, so what a
+ * use is *worth* depends entirely on how starved the bar was when it went out — and this audit does
+ * not ask. Not because the bar is unreadable, which is what this comment used to claim and what
+ * `EnergyAudit` disproves, but because "five seconds from filling" is a condition about one instant
+ * and the bar is sampled about three times a second: judging a press against the nearest reading
+ * would grade the sampling grid. What is graded here is the Bloodlust clause, which is an aura and
+ * therefore exact, and the overlap with the channel, which the channel audit already reads.
+ */
+export interface EnergizingBrewAudit {
+	casts: number;
+	/** How many the cooldown allowed across the pull. */
+	available: number;
+	uptimeMs: number;
+	uptimePct: number;
+	/** Uses that went out with Bloodlust, Heroism, Time Warp or an equivalent already running. */
+	duringHaste: number;
+	/** Uses the priority list rules out. Never more than `duringHaste` — see the engine for why. */
+	faulted: number;
+	/** True when Rushing Jade Wind was pressed at all, which is half of the APL's Bloodlust exception. */
+	rushingJadeWind: boolean;
+	/**
+	 * The haste cooldowns running over the pull — Bloodlust, Time Warp and the rest of that group.
+	 *
+	 * Carried so the section can draw them behind the brews rather than only naming them per row:
+	 * whether a brew sat inside one is the condition being judged, and an overlap is a thing to see.
+	 */
+	hasteWindows: Window[];
+	/** Fists of Fury channels that began inside one of these windows. Read from the channel audit. */
+	channelsInside: number;
+	/** Of those, the ones Rushing Jade Wind covered end to end — which is what the APL allows. */
+	channelsCovered: number;
+	/** This audit does not read the energy bar, exactly as for the channel. Always false. */
+	energyCheckable: false;
+	uses: Array<{
+		t: number;
+		lengthMs: number;
+		/** The haste cooldown running at the press — `Bloodlust`, `Time Warp` — or null for none. */
+		haste: string | null;
+		channels: number;
+		/** How long the bar sat full inside this window. */
+		cappedMs: number;
+		/**
+		 * Energy thrown away during it, at the brew's own rate plus the regen it stacked on.
+		 *
+		 * Null when the pull carried no readings to measure a rate from, which is not the same as zero
+		 * and must not be printed as one.
+		 */
+		wasted: number | null;
+		faults: string[];
+		link: string;
+	}>;
+	windows: Window[];
+}
+
+/** Time at the energy cap over one stretch of the pull, and what it cost. */
+export interface EnergyCapSplit {
+	cappedMs: number;
+	/** Against the length of the stretch this describes, not of the whole pull. */
+	pct: number;
+	/** Energy that arrived on a full bar and evaporated. Null when no regen rate could be measured. */
+	wasted: number | null;
+}
+
+/**
+ * The energy bar over the pull, and what topping it out cost.
+ *
+ * Reconstructed rather than assumed, and the correction to a claim this report used to make in
+ * three places. `resourcechange` events really are useless as a curve — around twenty on a
+ * five-minute pull, every one an Energizing Brew tick — but they are not where the bar lives.
+ * WarcraftLogs staples a `classResources` snapshot onto ordinary casts, damage and heals when the
+ * events query passes `includeResources: true`, at about three readings a second, and that flag
+ * costs no API points at all.
+ *
+ * The split is the point of the whole audit. Raw time at the cap is not a fault: energy fills while
+ * a boss is untargetable exactly as it does while you are hitting one, and a metric that charged a
+ * player for an intermission would be inventing a mistake out of the fight's own script. Only
+ * `engaged` describes a decision.
+ */
+export interface EnergyAudit {
+	/** The bar's ceiling, straight off the samples — so a talent that widens it needs no inference. */
+	max: number;
+	/** Readings the curve was built from. Zero means the log carried none, which is a caveat not a zero. */
+	samples: number;
+	/** Energy per second, measured from the samples. Null when the pull was too quiet to measure one. */
+	regenPerSec: number | null;
+	/** Median gap between readings: the shortest cap this can see at all. */
+	medianGapMs: number;
+	/** 99th percentile gap. A cap that opened and closed inside one of these is invisible here. */
+	p99GapMs: number;
+	total: EnergyCapSplit;
+	engaged: EnergyCapSplit;
+	downtime: EnergyCapSplit;
+	/** The longest stretches spent full, longest first, each with a link into the log. */
+	worst: Array<{ at: number; ms: number; engaged: boolean; link: string }>;
+}
+
+/**
+ * One resource bar over the pull, for drawing.
+ *
+ * Points are `[ms, amount]` tuples rather than objects: a pull carries one to two thousand readings
+ * and the shape is repeated in every captured fixture, where the key names would be most of the
+ * bytes. Nothing is interpolated — these are the readings the log carried, at the ~3/s the events
+ * happened to sample, so a line drawn through them is a reconstruction and not a measurement
+ * between the points.
+ */
+export interface ResourceCurve {
+	max: number;
+	points: Array<[number, number]>;
+	/**
+	 * Moments the bar overflowed, and by how much.
+	 *
+	 * Only chi carries these. Energy overflow is a rate against a clock — time at the cap times the
+	 * regen — while chi arrives in whole points from a button, so its waste is a discrete event with
+	 * a press behind it.
+	 */
+	wasted?: Array<{ t: number; wasted: number }>;
 }
 
 export interface FillerAudit {
@@ -347,12 +530,67 @@ export interface KarmaAudit {
 	sharePct: number;
 	/** A full health pool per use, from the settings — null until the reader supplies one. */
 	capPerUse: number | null;
+	/**
+	 * Uses that overlapped Fortifying Brew, which is *not* a damage bonus — see the engine.
+	 *
+	 * Optional because the committed fixtures were captured before this field existed and are read
+	 * back as `Analysis` with no migration: absent means "analysed by an older build", not "zero".
+	 */
+	withFortifyingBrew?: number;
 	uses: Array<{
 		t: number;
 		reflected: number;
 		hits: number;
 		/** Share of the per-use ceiling this one returned, or null when no ceiling is known. */
 		capPct: number | null;
+		/** Fortifying Brew was running for part of the redirect. Absent on a fixture, never null. */
+		fortifyingBrew?: boolean;
+	}>;
+}
+
+/**
+ * Invoke Xuen, the White Tiger: a three-minute summon that fights as its own actor for 45 seconds.
+ *
+ * Both numbers come from the sim — `sim/monk/talents.go:1070` for the cooldown, `talents.go:1075`
+ * (`EnableWithTimeout(sim, monk.XuenPet, time.Second*45.0)`) for how long the pet stays out — and the
+ * sim's Windwalker APL presses it from an unconditional `autocastOtherCooldowns`, i.e. on cooldown
+ * and on nothing else. There is therefore no per-use verdict here of the kind `ChannelAudit` carries:
+ * the only thing a press can be judged against is the clock, so this reports the clock.
+ */
+export interface XuenAudit {
+	casts: number;
+	/**
+	 * How many the pull allowed — the presses taken plus the ones cooldown drift shows were dropped
+	 * between them, so it inherits that function's two exclusions: idle time is clipped to the
+	 * stretches the target was there, and neither the run-up to the first press nor the tail after the
+	 * last is charged.
+	 */
+	available: number;
+	cooldownSec: number;
+	/** How long one summon lasts: 45s, from the sim. */
+	durationSec: number;
+	/** Time the cooldown sat ready and unused between presses. */
+	driftSec: number;
+	/** Time the tiger was out, clipped to the pull. */
+	uptimeMs: number;
+	uptimePct: number;
+	/**
+	 * Damage dealt by the pet's own actor across the pull.
+	 *
+	 * Its Crackling Tiger Lightning only — the pet's autoattacks log under id 1 like every other melee
+	 * swing, so they cannot be separated from the monk's own and are not claimed here.
+	 */
+	petDamage: number;
+	/** Share of the player's whole damage that came from the pet. */
+	petSharePct: number;
+	uses: Array<{
+		t: number;
+		/** The 45s window, clipped to the fight — shorter than that means the pull ended first. */
+		windowMs: number;
+		truncated: boolean;
+		damage: number;
+		hits: number;
+		link: string;
 	}>;
 }
 
@@ -364,6 +602,38 @@ export interface Miss {
 }
 
 /** The full analysis of one fight — what the renderer consumes. */
+export interface GearSlot {
+	slot: string;
+	id: number;
+	itemLevel: number | null;
+	quality: number | null;
+	icon: string | null;
+	/** The gems socketed into this piece, with the icon each one draws. */
+	gems: Array<{ id: number; icon: string | null }>;
+	enchantID: number | null;
+	/** True when this slot takes an enchant any player can obtain — see `~/lib/analysis/gear`. */
+	enchantable: boolean;
+	/**
+	 * The item set this piece belongs to, or null when it belongs to none.
+	 *
+	 * Only exists to group the equipped tier pieces so each one's Wowhead tooltip can show its set
+	 * block — see `ItemIcon`. Deliberately not surfaced as text anywhere: the log gives a set *id* and
+	 * no name, so naming a tier set would mean shipping another generated map for something the
+	 * tooltip already says.
+	 */
+	setID: number | null;
+}
+
+export interface GearSummary {
+	slots: GearSlot[];
+	/** Mean item level over equipped, non-cosmetic slots. Null when the log carried no gear. */
+	averageItemLevel: number | null;
+	/** Enchantable slots holding an item and no enchant. */
+	missingEnchants: string[];
+	/** Total gems socketed, which is the other half of "is this character finished". */
+	gems: number;
+}
+
 export interface Analysis {
 	player: string;
 	code: string;
@@ -390,18 +660,64 @@ export interface Analysis {
 	};
 	cpm: CpmSummary;
 	casts: CastRow[];
+	/**
+	 * Every press on one clock, with the auras that were up underneath it.
+	 *
+	 * Optional for the same reason `energizing` below is: the committed fixtures are `analyse()` output
+	 * captured before this field existed and are cast to `Analysis` rather than migrated, so on a
+	 * fixture it arrives as `undefined` — not `null`, not an empty timeline. `analyse()` always fills it
+	 * in; anything reading it has to guard on truthiness.
+	 */
+	timeline?: CastTimeline;
 	lostCasts: LostCastRow[];
 	brew: BrewSummary;
 	procs: ProcSummary;
 	debuff: DebuffSummary;
 	channel: ChannelAudit;
+	/**
+	 * Optional for one reason only: every committed fixture in `~/lib/__fixtures__` is captured
+	 * `analyse()` output from before this field existed, and they are cast to `Analysis` rather than
+	 * migrated — so on a fixture this is `undefined`, not `null` and not an empty audit. `analyse()`
+	 * always fills it in. Anything reading it has to guard on truthiness.
+	 */
+	energizing?: EnergizingBrewAudit;
+	/**
+	 * Optional for the same reason every field above it is: the committed fixtures are `analyse()`
+	 * output captured before the events query asked for resources, and they are cast to `Analysis`
+	 * rather than migrated — so on a fixture this is `undefined`, not `null` and not an empty audit.
+	 * `analyse()` always fills it in, and fills it in with zero samples when a log genuinely carried
+	 * none. Anything reading it has to guard on truthiness.
+	 */
+	energy?: EnergyAudit;
 	filler: FillerAudit;
 	karma: KarmaAudit;
+	/**
+	 * Optional only because the committed fixtures predate it.
+	 *
+	 * `analyse()` always produces it, but the fixtures in `lib/__fixtures__` are captured output read
+	 * back as `JSON.parse(...) as Analysis` — a cast, not a check — so on those this is `undefined`,
+	 * not `null`. Marking it optional is what forces the renderer to guard instead of reading through
+	 * a field TypeScript would otherwise promise was there.
+	 */
+	xuen?: XuenAudit;
 	comboBreaker: Array<{
 		id: number;
 		label: string;
 		procs: number;
 		wasted: number;
 	}>;
+	/**
+	 * What the player was wearing. Empty when the log carried no `combatantinfo` for them, which the
+	 * UI has to treat as "not reported" rather than as "nothing equipped".
+	 */
+	gear: GearSummary;
+	/**
+	 * The energy and chi bars over the pull, for the charts that draw them.
+	 *
+	 * Optional because a report captured before the events query asked for resources carries none,
+	 * and because a log that answers without them is a real case rather than an error — the analysis
+	 * above still stands, it simply cannot draw the bar.
+	 */
+	resources?: { energy: ResourceCurve; chi: ResourceCurve };
 	misses: Miss[];
 }

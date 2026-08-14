@@ -32,6 +32,11 @@
       "unit": "ms",
       "hint": "How much of a Re-Origination proc's tail still counts as brewing on the last global. The default of {{default}}ms is one global, which is what the rotation asks for — raise it if your latency means the log records you later than you acted, or if you deliberately brew with a cushion. Between {{min}} and {{max}}ms."
     },
+    "tigerPalm": {
+      "label": "Tiger Palm refresh window",
+      "unit": "ms",
+      "hint": "How much Tiger Power may be left for a Tiger Palm to count as refreshing it rather than clipping a healthy buff. The sim's rotation refreshes at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
+    },
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull already loaded — it does not fetch anything from WarcraftLogs again.",
     "save": "Save",
     "reset": "Back to defaults",

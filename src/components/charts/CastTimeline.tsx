@@ -1,0 +1,803 @@
+// The one view in this report that is not an ApexCharts chart, and deliberately so.
+//
+// ApexCharts is the house library and everything else here is built on it. It cannot draw this. The
+// mark for a cast is the ability's *icon*, and ApexCharts renders into SVG — an icon there is an
+// `<image>` node the library positions, not an `<img>` CSS positions — while its data labels are
+// dropped whenever they are wider than the mark beneath them (the hard-won note in `FightTimeline`
+// says so), and an icon is always wider than an instant. A rangeBar would have to invent a duration
+// for a press that has none. On top of that, every toggle and every zoom step would mean rebuilding
+// the whole chart through `build`, because that is the only way options reach it.
+//
+// Built as DOM instead, on one rule: **every position is a percentage of the pull**. Zoom then
+// changes exactly one number — the track's width — and the browser re-lays-out several hundred marks
+// with React re-rendering none of them, because the elements are memoised and identical. Turning a
+// category off unmounts its nodes rather than hiding them, so the cost of a row the reader does not
+// want is zero rather than merely invisible. The grid is a repeating gradient on the track, which is
+// a whole axis for no nodes at all.
+
+import { useMemo, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import type { Analysis, AuraLane, CastMark, LaneGroup, ResourceCurve, Window } from '~/lib/types';
+import { TEB_CAP } from '~/lib/spec/windwalker';
+
+import { SpellIcon, buttonClass, spellIconUrl } from '../primitives';
+import { fmt } from '../format';
+import ChartEmpty from './ChartEmpty';
+import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
+import ResourceTrack, { cappedOf, type ShadeWindow } from './ResourceTrack';
+
+/**
+ * One lane's height, and the label gutter uses the same number — which is what lines the two columns
+ * up without either of them measuring anything.
+ *
+ * Tight to the icon rather than padded. The rows used to breathe on 8px of slack apiece, which over
+ * twenty-odd lanes pushed the pull's later abilities off the screen and made two lanes harder to
+ * compare, not easier. A hairline between rows separates them for a fraction of the height.
+ */
+const ROW_PX = 24;
+/** The axis strip under the last lane. */
+const AXIS_PX = 24;
+/**
+ * The icon box for a press. One size for every mark, deliberately.
+ *
+ * Off-GCD presses used to be drawn smaller, so that a brew or a trinket could not be mistaken for a
+ * global that was spent. That distinction was carrying real weight while every press shared one row
+ * — and none once the presses were grouped into a lane per ability, because the lane's own label
+ * already says which button it is. All it did then was make some rows shorter than others and leave
+ * auto-attacks looking like a rendering fault.
+ */
+const GCD_ICON_PX = 24;
+
+/** Clear air between two icons on the same row, so neighbours read as two marks rather than one. */
+const ICON_GUTTER_PX = 3;
+
+/**
+ * How much two icons may overlap before they are considered to collide.
+ *
+ * An icon is exactly one global wide at the default zoom, and consecutive presses land 990–1000ms
+ * apart — so two ordinary Blackout Kicks overlapped by a quarter of a pixel and the packer opened a
+ * second row for the whole lane. A lane drawn two rows tall reads as two different things happening,
+ * which is a much bigger lie than a hairline of overlap.
+ */
+const OVERLAP_TOLERANCE_PX = 4;
+
+/**
+ * Vertical pitch of a stacked cast row: exactly the icon.
+ *
+ * No padding at all. The rule between lanes is what separates them, and any slack on top of it made
+ * the icons look small in rows that were taller than they needed to be — the two complaints were the
+ * same complaint.
+ */
+const CAST_ROW_PITCH_PX = GCD_ICON_PX;
+
+/**
+ * How many rows the cast lane may grow to before it stops stacking.
+ *
+ * A press is an instant, so two of them at the same moment have nowhere to go but upwards, and at
+ * the wide end of the zoom ladder a whole pull's worth of presses lands within an icon's width of a
+ * neighbour. Stacking without a ceiling would make the lane taller than the viewport at 3px/s.
+ * Beyond this the least-crowded row takes the mark and the two overlap, which is the honest failure:
+ * the reader can see it is crowded and zoom in, which is what the ladder is for.
+ */
+const MAX_CAST_ROWS = 5;
+
+/**
+ * Marks are drawn at the moment they were logged, and deliberately not snapped to that grid.
+ *
+ * Rounding presses onto the gridlines was tried, measured and rejected. Three findings, all from the
+ * reference pulls:
+ *
+ * - A global is not 1000ms in practice. The median gap between on-GCD presses is 1004–1008ms, so a
+ *   fixed grid drifts out of phase within a minute however it is anchored — from the pull's start or
+ *   from the first press.
+ * - Rebuilding the grid at the *observed* median does not help either: only about a quarter of
+ *   presses land within 150ms of any line. Presses are not a metronome — weaving, waiting and
+ *   channelling reset the phase constantly.
+ * - Snapping only the presses that were already close introduced 33 order inversions on one pull. An
+ *   off-GCD press cannot be snapped (it occupies no global), so a nudged on-GCD press could be drawn
+ *   *before* an off-GCD one it actually followed — and since each ability has its own lane now, that
+ *   reads as a brew going out before the Jab that preceded it.
+ *
+ * So the gridlines are a ruler, not a claim about which global a press occupied. A mark sits where
+ * the log says it went out.
+ */
+
+/** The pull's own clock is what everything is measured against; a zero-length one would divide by it. */
+const spanOf = (durationMs: number): number => Math.max(1, durationMs);
+
+const pct = (value: number, span: number): string => `${(value / span) * 100}%`;
+
+/** Which rows the reader can turn off. `casts` is the icon lane; the rest are the aura lanes' groups. */
+type Toggle = 'casts' | LaneGroup;
+
+const TOGGLES: readonly Toggle[] = ['casts', 'buff', 'proc', 'debuff'];
+
+/**
+ * Colour marks the *category* here, not the mechanic — which is the opposite of `FightTimeline`,
+ * where colour is the verdict on a span.
+ *
+ * Nothing on this timeline is graded: it shows what was pressed and what was up, and leaves the
+ * judgement to the sections that own it. So the useful thing for colour to say is which toggle a row
+ * belongs to, and that makes the toggle its own legend — the swatch on the button is the swatch on
+ * the bars. The three mechanic tokens keep the meanings they already have where they can: buffs take
+ * Tigereye Brew's amber, procs the Rune's violet, the debuff Rising Sun Kick's teal.
+ */
+const GROUP_SWATCH: Record<Toggle, string> = {
+	casts: 'bg-ink-2',
+	buff: 'bg-brew',
+	proc: 'bg-rune',
+	debuff: 'bg-kick',
+};
+
+/** Stable identities for an absent timeline, so the memos below do not re-run on every render. */
+const NO_CASTS: CastMark[] = [];
+const NO_LANES: AuraLane[] = [];
+
+/**
+ * The presses, as one absolutely positioned node each.
+ *
+ * One node, not a wrapper around a node: at three hundred casts the difference is three hundred
+ * elements. The tooltip is the native `title` attribute for the same reason — a rendered tooltip is
+ * another element per mark, and this one costs nothing until the pointer stops.
+ */
+/**
+ * The order the aura lanes are drawn in, by key.
+ *
+ * Not the order the engine happens to build them in: the lanes are read against each other, and the
+ * comparison a Windwalker actually makes runs Re-Origination first (what the pull is worth), then
+ * the brew that snapshots it, then the procs that decide which button is free, then the resource
+ * cooldown. Anything unlisted keeps its engine order and follows.
+ */
+const LANE_ORDER = [
+	're-origination',
+	'tigereye-brew',
+	'combo-breaker-tiger-palm',
+	'combo-breaker-blackout-kick',
+	'energizing-brew',
+];
+
+/**
+ * The rule that divides one lane from the next.
+ *
+ * On both columns, because the gutter and the track are separate elements and a line on only one of
+ * them stops halfway across the chart. Faint enough to read as a ruling rather than as data — the
+ * bars in the lanes are the data, and they are drawn in the mechanic colours.
+ */
+const LANE_RULE = 'border-b border-line/40';
+
+/**
+ * The two bars, in the order they are spent: energy buys chi, chi buys the abilities that matter.
+ *
+ * Colours are the mechanics' own tokens rather than new ones — energy takes the teal every
+ * "this went well" figure uses and chi the brew's amber — so the timeline introduces no palette of
+ * its own.
+ */
+const RESOURCE_LANES = [
+	{
+		key: 'energy' as const,
+		stroke: 'var(--color-kick)',
+		fill: 'color-mix(in oklch, var(--color-kick) 18%, transparent)',
+		mode: 'line' as const,
+		// The section that argues about this bar, so its label can jump there. Null while no such
+		// section exists — chi has no page of its own yet, and a link to nowhere is worse than none.
+		section: 'energy' as string | null,
+	},
+	{
+		key: 'chi' as const,
+		stroke: 'var(--color-brew)',
+		fill: 'color-mix(in oklch, var(--color-brew) 18%, transparent)',
+		mode: 'steps' as const,
+		section: null as string | null,
+	},
+];
+
+/** Auto-attacks, which WarcraftLogs logs under this id for every class. */
+const MELEE_ID = 1;
+
+/**
+ * A resource lane, which needs more height than a row of icons to have a shape at all.
+ *
+ * Energy swings a hundred points several times a minute; drawn at 24px that is a jagged line with no
+ * readable peaks. Three rows' worth is enough to see the bar fill, sit at the top, and drop.
+ */
+const RESOURCE_ROW_PX = 72;
+
+/**
+ * What each stretch at the ceiling cost, written on the band.
+ *
+ * Energy is measurable: the bar refills at a rate this pull can be measured at, so a stretch spent
+ * full threw away that rate times its length. The number is deliberately approximate — the readings
+ * are ~3/s and the regen figure is itself measured — so it is shown rounded and prefixed.
+ *
+ * Chi is not, and is labelled with its duration instead. Chi arrives in whole points from Jab and
+ * the other generators rather than ticking up, so what a capped stretch cost depends on which
+ * buttons were pressed inside it — and this chart cannot see a generator that was skipped *because*
+ * the bar was full. Printing an invented chi figure beside a measured energy one would make the two
+ * look equally solid.
+ */
+function lostIn(windows: readonly Window[], key: 'energy' | 'chi', regenPerSec: number | null): ShadeWindow[] {
+	return windows.map((w) => {
+		// Chi bands are drawn but never labelled: what a capped stretch cost is counted per press on the
+		// curve itself, because chi arrives in whole points rather than accruing against a clock.
+		if (key === 'chi' || regenPerSec === null) return { ...w };
+		return { ...w, text: `~${Math.round(((w.end - w.start) / 1000) * regenPerSec)}` };
+	});
+}
+
+/**
+ * A vertical rule at every global the player actually spent, drawn as one SVG path.
+ *
+ * This replaced a gridline every 1000ms, which was a ruler pretending to be the rotation: a global is
+ * 1004–1008ms in practice and the phase resets whenever the player waits or channels, so a fixed grid
+ * lines up with nothing. These lines *are* the data — one per on-GCD press — so there is nothing to
+ * round and nothing to misrepresent, and reading straight up a line answers the question the chart is
+ * for: this press, and what was up when it went out.
+ *
+ * Off-GCD presses are left out. They occupy no global, so a line at one would claim a slot that was
+ * never spent.
+ *
+ * One `<path>` rather than one element per press, which at four hundred globals is the difference
+ * between a node each and a node total. `viewBox` plus `preserveAspectRatio="none"` is what lets the
+ * x coordinates stay proportions of the pull: the path stretches with the track at every zoom step
+ * without being rebuilt, exactly as the background gradient did. `vector-effect` keeps the strokes a
+ * hairline while that stretch happens — without it the lines would fatten with the zoom.
+ */
+function gcdRulesPath(casts: readonly CastMark[], span: number): string {
+	let d = '';
+	for (const c of casts) {
+		if (!c.onGcd) continue;
+		// Per-mille of the pull, which is finer than any screen this is drawn on.
+		const x = ((c.t / span) * 1000).toFixed(3);
+		d += `M${x} 0V1`;
+	}
+	return d;
+}
+
+const laneRank = (key: string): number => {
+	const at = LANE_ORDER.indexOf(key);
+	return at === -1 ? LANE_ORDER.length : at;
+};
+
+/**
+ * Which row each press sits on, so that no two icons overlap.
+ *
+ * Marks are placed as percentages of the pull, but whether two of them *collide* is a question about
+ * pixels: the same two casts 400ms apart are clear of each other at 48px/s and on top of each other
+ * at 3px/s. So the packing is recomputed per zoom, converting each icon's half-width back into the
+ * milliseconds it covers at the current scale.
+ *
+ * Greedy, in time order, first row that has room — which gives simultaneous presses their own rows
+ * (the case that is not a matter of degree: two casts on the same timestamp can never share a row)
+ * while keeping a quiet stretch of the pull on a single line.
+ */
+
+function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number; rowOf: Map<CastMark, number> } {
+	const msPerPx = 1000 / pxPerSec;
+	const rowOf = new Map<CastMark, number>();
+	// The moment each row is free again, in fight time.
+	const freeAt: number[] = [];
+
+	// An icon starts at its moment and runs rightwards, so it occupies `[t, t + its own width]`, less
+	// the slack that keeps a hairline of overlap from splitting a lane in two.
+	const widthMs = Math.max(0, GCD_ICON_PX + ICON_GUTTER_PX - OVERLAP_TOLERANCE_PX) * msPerPx;
+	const gutterMs = 0;
+
+	for (const c of [...casts].sort((a, b) => a.t - b.t)) {
+		let row = freeAt.findIndex((free) => c.t >= free);
+		if (row === -1) {
+			if (freeAt.length < MAX_CAST_ROWS) {
+				row = freeAt.length;
+			} else {
+				// Every row is busy. The one that has been busy longest is the least bad place to overlap.
+				row = freeAt.reduce((best, free, i) => (free < (freeAt[best] ?? Infinity) ? i : best), 0);
+			}
+		}
+		freeAt[row] = c.t + widthMs + gutterMs;
+		rowOf.set(c, row);
+	}
+
+	return { rows: Math.max(1, freeAt.length), rowOf };
+}
+
+/**
+ * The presses grouped into one lane per ability, in the order the lanes are drawn.
+ *
+ * Packing alone put whichever press came next on whichever row happened to be free, so the same
+ * button appeared on a different line every time it was pressed and the lane read as noise. A lane
+ * per ability makes the vertical position mean something: one row is one button, and a gap in a row
+ * is that button not being pressed.
+ *
+ * Ordered by how often the button was pressed, so the rotation's backbone sits at the top and the
+ * once-a-pull cooldowns fall to the bottom. Ties break on the first press, which keeps the order
+ * stable between two pulls that used the same kit.
+ *
+ * Each lane is still packed internally: two presses of the *same* ability can land close enough to
+ * overlap at the wide end of the zoom ladder, and a lane that needs two sub-rows gets two.
+ */
+interface CastLane {
+	id: number;
+	name: string;
+	casts: CastMark[];
+	rows: number;
+	rowOf: Map<CastMark, number>;
+}
+
+function castLanesOf(casts: readonly CastMark[], pxPerSec: number): CastLane[] {
+	// Keyed by name, not by id. One spell can log under several ids — measured on a real pull, Spear
+	// Hand Strike arrives under two and drew two identical rows — and a reader grouping "by spell"
+	// means the button, not the id behind it. The first id seen carries the icon, which is safe
+	// because the variants of one spell share their art.
+	const byName = new Map<string, CastMark[]>();
+	for (const c of casts) {
+		const bucket = byName.get(c.name);
+		if (bucket === undefined) byName.set(c.name, [c]);
+		else bucket.push(c);
+	}
+
+	return [...byName.values()]
+		.map((list) => {
+			const packed = packCasts(list, pxPerSec);
+			const first = list[0];
+			return {
+				id: first?.id ?? 0,
+				name: first?.name ?? '',
+				casts: list,
+				rows: packed.rows,
+				rowOf: packed.rowOf,
+			};
+		})
+		.sort((a, b) => b.casts.length - a.casts.length || (a.casts[0]?.t ?? 0) - (b.casts[0]?.t ?? 0));
+}
+
+function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMark, number>) {
+	return casts.map((c) => {
+		const url = spellIconUrl(c.id);
+		const size = GCD_ICON_PX;
+		const title = `${c.name} · ${fmt(c.t)}`;
+		const key = `${c.t}-${c.id}`;
+		// The icon's *left* edge is its moment, not its centre.
+		//
+		// A press occupies the global that begins when it goes out, so the icon should start on that
+		// gridline and run into the global it spent — centred, every mark straddled its own line and two
+		// lanes could not be read against each other, which is the whole point of drawing the grid.
+		const left = pct(c.t, span);
+		// Rows run downwards from the top of the lane, each one an icon box tall. `top` is the row's
+		// centre and the mark is translated up by half itself, so it sits centred in its row rather
+		// than hanging from the top of it.
+		const top = (rowOf.get(c) ?? 0) * CAST_ROW_PITCH_PX + CAST_ROW_PITCH_PX / 2;
+
+		// Nothing in the icon map answers for this id — a rare trinket, a racial. Drawn as a tick rather
+		// than dropped: a hole in the lane would read as a global nobody spent, which is a claim about
+		// the rotation that the log did not make.
+		if (url === null) {
+			return (
+				<span
+					key={key}
+					title={title}
+					style={{ left, top, height: size }}
+					className="absolute w-[3px] -translate-y-1/2 rounded-[1px] bg-muted"
+				/>
+			);
+		}
+
+		return (
+			<img
+				key={key}
+				src={url}
+				// Decorative: the plot as a whole carries the text alternative, and announcing three hundred
+				// icons one at a time is not a description of anything.
+				alt=""
+				title={title}
+				width={size}
+				height={size}
+				loading="lazy"
+				decoding="async"
+				style={{ left, top, width: size, height: size }}
+				className="absolute -translate-y-1/2 rounded-[3px] border border-line/60"
+			/>
+		);
+	});
+}
+
+/**
+ * One lane's windows, as bars. Width is a percentage too, so zoom never touches them.
+ *
+ * `notes` labels a bar with a number when the lane has one worth carrying — the stacks a Tigereye
+ * Brew spent, which is what separates a brew worth pressing from one that was not, and is invisible
+ * from the bar's length alone.
+ */
+function barNodesOf(lane: AuraLane, span: number, notes: Map<number, number> | null) {
+	return lane.windows.map((w: Window) => (
+		<span
+			// Both ends, not just the start: an aura logged under several ids — Re-Origination is one —
+			// can open two windows on the same millisecond, and React would then see a duplicate key.
+			key={`${w.start}-${w.end}`}
+			title={`${lane.name} · ${fmt(w.start)} → ${fmt(w.end)}`}
+			style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+			// A floor of two pixels, because a window can be shorter than the screen can draw and a bar
+			// nobody can see is indistinguishable from an aura that never went up.
+			// The full row, top to bottom. A bar floating inside its lane reads as a smaller thing than
+			// the lane it belongs to, and the rule underneath is what separates one lane from the next —
+			// so the bar does not need to leave room for a separation that is already drawn.
+			// The 2px radius every other chart's bars carry — ApexCharts draws its rangeBars with
+			// `borderRadius: 2`, so matching it keeps the two kinds of timeline looking like one report.
+			className={`absolute inset-y-0 min-w-[2px] rounded-[2px] ${GROUP_SWATCH[lane.group]}`}
+		>
+			{notes?.get(w.start) === undefined ? null : (
+				// Larger than the chart's other incidental figures, and deliberately: this one is a verdict in
+				// miniature — a brew on ten stacks and one on five draw the same bar, and the number is the
+				// only thing separating them.
+				<span className="pointer-events-none absolute inset-y-0 left-[4px] flex items-center font-mono text-xs leading-none font-semibold text-bg">
+					{notes.get(w.start)}
+				</span>
+			)}
+		</span>
+	));
+}
+
+/**
+ * Every cast on a clock, with the buffs, procs and the debuff drawn as bars underneath.
+ *
+ * Reads `analysis.timeline`, which is absent on any fixture captured before it existed — hence the
+ * truthiness guard rather than a null check, and an empty state rather than a crash.
+ */
+export default function CastTimeline({ analysis }: { analysis: Analysis }) {
+	// `useTranslation`, not `useReportCopy`: this draws what it is handed and holds no verdict.
+	const { t } = useTranslation('report');
+	const resources = analysis.resources;
+	/**
+	 * The Tigereye Brew bank, as a third resource lane.
+	 *
+	 * It behaves like one and is spent like one — it fills from procs, holds twenty, and a brew empties
+	 * ten of it — so it is read the same way and drawn the same way. The engine already tracks it for
+	 * the bank chart, so this is the same numbers on a different clock rather than a second count.
+	 *
+	 * `TEB_CAP` rather than the pull's observed peak: a bank that never reached twenty still had twenty
+	 * to reach, and scaling to the peak would draw a half-full bank as a full one.
+	 */
+	const brewBank = useMemo<ResourceCurve | null>(
+		() =>
+			analysis.brew.bankTimeline.length === 0
+				? null
+				: { max: TEB_CAP, points: analysis.brew.bankTimeline.map(([t, n]): [number, number] => [t, n]) },
+		[analysis.brew.bankTimeline],
+	);
+
+	/**
+	 * What each brew window spent, keyed by when it opened.
+	 *
+	 * The lane draws the window; this is what makes it worth looking at. A brew that went out on eight
+	 * stacks and one that went out on ten are the same bar otherwise, and the difference is the whole
+	 * argument of the Tigereye Brew section.
+	 */
+	const brewSpend = useMemo(() => {
+		const by = new Map<number, number>();
+		for (const use of analysis.brew.useList) {
+			if (use.window === null) continue;
+			by.set(use.window.start, (by.get(use.window.start) ?? 0) + use.consumed);
+		}
+		return by;
+	}, [analysis.brew.useList]);
+	// Measured from this pull's own readings, so a hasted monk is not charged at a stranger's rate.
+	const energyRegen = analysis.energy?.regenPerSec ?? null;
+	const casts = analysis.timeline?.casts ?? NO_CASTS;
+	const lanes = analysis.timeline?.lanes ?? NO_LANES;
+	const span = spanOf(analysis.durationMs);
+
+	// Both are view state and neither is persisted: which rows a reader is looking at right now is not
+	// a preference about how the report should be scored, which is what `lib/settings` is for.
+	const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+	const [shown, setShown] = useState<Record<Toggle, boolean>>({ casts: true, buff: true, proc: true, debuff: true });
+
+	const drag = useDragScroll();
+	const pxPerSec = ZOOM_LADDER[zoom] ?? ZOOM_LADDER[DEFAULT_ZOOM] ?? 24;
+	const stepMs = tickStepMs(pxPerSec);
+	// Room for two digits and a breath, converted from pixels into fight time at the current zoom —
+	// which is the only place that conversion can be made, since the tracks are drawn proportionally.
+	const labelGapMs = (18 / pxPerSec) * 1000;
+
+	// The two expensive lists, built once per pull. A zoom step or a toggle re-renders this component
+	// and hands React the very same element objects, so it skips them instead of reconciling hundreds
+	// of nodes — which is the whole reason the geometry is percentages rather than pixels.
+	// Lanes depend on zoom, because whether a lane needs a second sub-row is a question about pixels.
+	// Still cheap beside rebuilding the marks: one pass over the presses, no elements created.
+	const castLanes = useMemo(() => castLanesOf(casts, pxPerSec), [casts, pxPerSec]);
+	const castNodes = useMemo(
+		() => castLanes.map((lane) => ({ lane, nodes: castNodesOf(lane.casts, span, lane.rowOf) })),
+		[castLanes, span],
+	);
+	const laneRows = useMemo(
+		() =>
+			lanes.map((lane) => ({ lane, bars: barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null) })),
+		[lanes, span, brewSpend],
+	);
+	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
+	const gcdRules = useMemo(() => gcdRulesPath(casts, span), [casts, span]);
+
+	// The axis does depend on zoom — a tick every five seconds at the far end of the ladder — but it is
+	// a couple of dozen nodes rather than a couple of hundred.
+	const ticks = useMemo(() => {
+		const out = [];
+		for (let at = 0; at < span; at += stepMs) {
+			out.push(
+				<span
+					key={at}
+					style={{ left: pct(at, span) }}
+					className="tabular absolute top-1 pl-1 font-mono text-sm text-muted"
+				>
+					{fmt(at)}
+				</span>,
+			);
+		}
+		return out;
+	}, [span, stepMs]);
+
+	if (casts.length === 0 && lanes.length === 0) return <ChartEmpty>{t('castLog.empty')}</ChartEmpty>;
+
+	// A toggle for a category the pull has nothing in would be a control that does nothing.
+	const available: Record<Toggle, boolean> = {
+		casts: casts.length > 0,
+		buff: lanes.some((lane) => lane.group === 'buff'),
+		proc: lanes.some((lane) => lane.group === 'proc'),
+		debuff: lanes.some((lane) => lane.group === 'debuff'),
+	};
+	const label: Record<Toggle, string> = {
+		casts: t('castLog.groups.casts'),
+		buff: t('castLog.groups.buffs'),
+		proc: t('castLog.groups.procs'),
+		debuff: t('castLog.groups.debuffs'),
+	};
+
+	const showCasts = shown.casts && available.casts;
+	// Sorted here rather than in the engine: the order is a reading decision about this chart, and the
+	// same lanes are consumed elsewhere by components that want them grouped their own way.
+	const rows = laneRows
+		.filter(({ lane }) => shown[lane.group])
+		.sort((a, b) => laneRank(a.lane.key) - laneRank(b.lane.key));
+
+	/**
+	 * The auras go directly under the melee lane, not after every ability.
+	 *
+	 * Melee is the pull's metronome — it swings throughout, whatever else is happening — so a buff
+	 * window read against it is read against a continuous line rather than against a lane with holes
+	 * in it. Putting the auras below twenty ability lanes instead left the two things being compared
+	 * a screen apart.
+	 */
+	// One definition per column, used by the block above the auras and the block below it — the two
+	// have to be identical or a lane would change height depending on where it sat.
+	const laneHeight = (lane: CastLane) => Math.max(ROW_PX, lane.rows * CAST_ROW_PITCH_PX);
+	const castLabel = (lane: CastLane) => (
+		<div key={lane.name} className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: laneHeight(lane) }}>
+			<SpellIcon id={lane.id} size="sm" />
+			<span className="truncate font-mono text-sm text-ink-2" title={lane.name}>
+				{lane.name}
+			</span>
+		</div>
+	);
+	const castTrack = ({ lane, nodes }: { lane: CastLane; nodes: ReactNode }) => (
+		<div key={lane.name} className={`relative ${LANE_RULE}`} style={{ height: laneHeight(lane) }}>
+			{nodes}
+		</div>
+	);
+
+	const meleeAt = castNodes.findIndex(({ lane }) => lane.id === MELEE_ID);
+	const castsAbove = meleeAt === -1 ? castNodes : castNodes.slice(0, meleeAt + 1);
+	const castsBelow = meleeAt === -1 ? [] : castNodes.slice(meleeAt + 1);
+	const trackPx = Math.max(320, (span / 1000) * pxPerSec);
+
+	return (
+		<figure className="m-0 flex flex-col gap-3.5">
+			<div className="flex flex-wrap items-center gap-2">
+				{TOGGLES.filter((key) => available[key]).map((key) => (
+					<button
+						key={key}
+						type="button"
+						aria-pressed={shown[key]}
+						onClick={() => setShown((current) => ({ ...current, [key]: !current[key] }))}
+						className={`${buttonClass} px-3 ${shown[key] ? 'border-kick text-ink' : 'text-muted'}`}
+					>
+						<i
+							aria-hidden="true"
+							className={`inline-block h-2.5 w-2.5 shrink-0 rounded-[2px] ${GROUP_SWATCH[key]} ${shown[key] ? '' : 'opacity-40'}`}
+						/>
+						{label[key]}
+					</button>
+				))}
+				<span className="ml-auto flex items-center gap-2">
+					<button
+						type="button"
+						className={`${buttonClass} px-3`}
+						disabled={zoom === 0}
+						aria-label={t('castLog.zoomOut')}
+						title={t('castLog.zoomOut')}
+						onClick={() => setZoom((z) => Math.max(0, z - 1))}
+					>
+						<span aria-hidden="true">&minus;</span>
+					</button>
+					<button
+						type="button"
+						className={`${buttonClass} px-3`}
+						disabled={zoom === ZOOM_LADDER.length - 1}
+						aria-label={t('castLog.zoomIn')}
+						title={t('castLog.zoomIn')}
+						onClick={() => setZoom((z) => Math.min(ZOOM_LADDER.length - 1, z + 1))}
+					>
+						<span aria-hidden="true">+</span>
+					</button>
+				</span>
+			</div>
+
+			<div className="flex gap-2">
+				{/* The gutter sits outside the scroller so the names stay put while the clock moves. Row
+				    heights are the same constant on both sides, which is what lines them up without anything
+				    having to measure anything. */}
+				<div className="w-28 shrink-0 sm:w-44">
+					{/* One label per ability, matching the aura lanes below it: the same icon-and-name shape,
+					    so the two halves of the chart read as one list rather than as two conventions. */}
+					{resources === undefined
+						? null
+						: RESOURCE_LANES.map(({ key }) => (
+								<div
+									key={key}
+									className={`flex items-center gap-2 pr-2 ${LANE_RULE}`}
+									style={{ height: RESOURCE_ROW_PX }}
+								>
+									{/* A real anchor when the bar has a section arguing about it, so it middle-clicks
+									    and keyboards like every other link on the page. `scroll-mt` on the headings
+									    already keeps the landing clear of the sticky bar. */}
+									{RESOURCE_LANES.find((l) => l.key === key)?.section == null ? (
+										<span className="truncate font-mono text-sm text-ink-2">{t(`castLog.resource.${key}`)}</span>
+									) : (
+										<a
+											href={`#${RESOURCE_LANES.find((l) => l.key === key)?.section}-heading`}
+											className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
+										>
+											{t(`castLog.resource.${key}`)}
+										</a>
+									)}
+									<span className="font-mono text-xs text-muted tabular-nums">{resources[key].max}</span>
+								</div>
+							))}
+					{brewBank === null ? null : (
+						<div className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+							<a
+								href="#bank-heading"
+								className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-brew hover:text-ink"
+							>
+								{t('castLog.resource.brew')}
+							</a>
+							<span className="font-mono text-xs text-muted tabular-nums">{brewBank.max}</span>
+						</div>
+					)}
+					{showCasts ? castsAbove.map(({ lane }) => castLabel(lane)) : null}
+					{rows.map(({ lane }) => (
+						<div key={lane.key} className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: ROW_PX }}>
+							<SpellIcon id={lane.id} size="sm" />
+							<span className="truncate font-mono text-sm text-ink-2" title={lane.name}>
+								{lane.name}
+							</span>
+						</div>
+					))}
+					{showCasts ? castsBelow.map(({ lane }) => castLabel(lane)) : null}
+				</div>
+
+				{/* `tabIndex` so the pull can be scrolled from the keyboard, and `role="img"` with a summary
+				    for a reader who cannot see it — the same contract `ApexChart` gives its canvas. */}
+				{/* The padding is on the scroller rather than on the track, and load-bearing: a mark starts
+				    at its moment and runs rightwards, so a press in the last global of the pull would hang
+				    past the end of the track and be sliced by the edge. Padding the track instead would move
+				    the percentages the marks, the gridlines and the axis labels are all resolved against, and
+				    they would stop agreeing. */}
+				<div
+					ref={drag.ref}
+					onPointerDown={drag.onPointerDown}
+					onPointerMove={drag.onPointerMove}
+					onPointerUp={drag.onPointerUp}
+					onPointerCancel={drag.onPointerUp}
+					// `select-none` only while dragging: a drag across icons would otherwise select the text
+					// in the lane labels, and the browser's own drag-select fights the pan.
+					className={`min-w-0 flex-1 overflow-x-auto rounded-sm border border-line bg-surface px-3 ${
+						drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+					}`}
+					tabIndex={0}
+					role="img"
+					aria-label={t('castLog.aria', {
+						duration: fmt(analysis.durationMs),
+						casts: casts.length,
+						abilities: new Set(casts.map((c) => c.id)).size,
+						lanes: lanes.length,
+					})}
+				>
+					<div
+						className="relative"
+						style={{
+							width: trackPx,
+							// No background grid.
+							//
+							// A rule every five, ten or fifteen seconds sits among marks that *are* events, so it
+							// reads as one — a press with no icon, or an aura window too short to draw. The axis keeps
+							// its labels below, and the only lines crossing the lanes are the globals actually spent,
+							// which cannot be mistaken for anything else because that is exactly what they are.
+						}}
+					>
+						{/* Behind every lane and across all of them, which is the point: a rule runs the full
+						    height so a press can be read against every buff and proc row at once. `inset-0`
+						    rather than a height, so it grows with the lanes as categories are toggled. */}
+						<svg
+							className="pointer-events-none absolute inset-0 h-full w-full"
+							viewBox="0 0 1000 1"
+							preserveAspectRatio="none"
+							aria-hidden="true"
+						>
+							<path
+								d={gcdRules}
+								stroke="var(--color-line)"
+								strokeWidth={1}
+								vectorEffect="non-scaling-stroke"
+								fill="none"
+							/>
+						</svg>
+						{/* Above everything. The bars are the constraint the whole rotation is played against, so
+						    they are what a reader scans first and what every lane below is measured against —
+						    and being tallest, they anchor the eye rather than interrupting the lanes. Same clock
+						    and same proportional geometry, so a peak lines up with the press that caused it. */}
+						{resources === undefined
+							? null
+							: RESOURCE_LANES.map(({ key, stroke, fill, mode }) => (
+									<div key={key} className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+										<ResourceTrack
+											curve={resources[key]}
+											durationMs={span}
+											stroke={stroke}
+											fill={fill}
+											mode={mode}
+											minLabelGapMs={labelGapMs}
+											// The stretches at the ceiling, in the colour every other section uses for a
+											// loss. A full bar is not a fault by itself — it is one while there was
+											// something to spend it on — so the shading says "here", and the Energy
+											// section beside it is where the engaged-versus-downtime split is argued.
+											shades={[
+												{
+													windows: lostIn(cappedOf(resources[key]), key, energyRegen),
+													className: 'fill-miss/25',
+													textClassName: 'text-miss',
+													label: 'capped',
+												},
+											]}
+											label={t(`castLog.resourceAria.${key}`, { max: resources[key].max })}
+										/>
+									</div>
+								))}
+						{brewBank === null ? null : (
+							<div className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+								<ResourceTrack
+									curve={brewBank}
+									durationMs={span}
+									stroke="var(--color-rune)"
+									fill="color-mix(in oklch, var(--color-rune) 18%, transparent)"
+									// Stepped like chi, for the same reason: the bank holds whole stacks, and a slope
+									// between two readings would draw a fraction of a stack nobody ever had.
+									mode="steps"
+									minLabelGapMs={labelGapMs}
+									shades={[{ windows: cappedOf(brewBank), className: 'fill-miss/25', label: 'capped' }]}
+									label={t('castLog.resourceAria.brew', { max: brewBank.max })}
+								/>
+							</div>
+						)}
+						{showCasts ? castsAbove.map(castTrack) : null}
+						{rows.map(({ lane, bars }) => (
+							<div key={lane.key} className={`relative ${LANE_RULE}`} style={{ height: ROW_PX }}>
+								{bars}
+							</div>
+						))}
+						{showCasts ? castsBelow.map(castTrack) : null}
+						<div className="relative" style={{ height: AXIS_PX }}>
+							{ticks}
+						</div>
+					</div>
+				</div>
+			</div>
+		</figure>
+	);
+}

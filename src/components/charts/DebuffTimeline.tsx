@@ -12,7 +12,18 @@ import ChartKey from './ChartKey';
 import type { ChartTheme, TipContent } from './apex';
 import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
 
-const ROW_HEIGHT = 34;
+/**
+ * Row height, on a 4px grid shared by every chart in the report.
+ *
+ * 36 for the two that carry an icon beside each row — the pull timeline and the Rising Sun Kick
+ * debuff — which clears a 24px icon without leaving the row mostly empty. 24 for the rest, which are
+ * bars and text.
+ *
+ * Picked as a grid rather than per chart: five charts had five heights (32, 34, 38, 46, 34), which is
+ * five arbitrary numbers rather than a system, and two timelines of the same pull sitting at
+ * different pitches read as two different tools.
+ */
+const ROW_HEIGHT = 36;
 const CHROME = 96;
 
 /**
@@ -104,7 +115,9 @@ export default function DebuffTimeline({ analysis }: { analysis: Analysis }) {
 					}),
 				},
 				series: [{ name: 'debuff', data: spans }],
-				plotOptions: { bar: { horizontal: true, barHeight: '52%', borderRadius: 2, rangeBarGroupRows: false } },
+				// Bars fill their row: it is the lane, and one floating inside it reads as something
+				// smaller than the lane it belongs to.
+				plotOptions: { bar: { horizontal: true, barHeight: '92%', borderRadius: 2, rangeBarGroupRows: false } },
 				dataLabels: { enabled: false },
 				legend: { show: false },
 				stroke: { width: 0 },

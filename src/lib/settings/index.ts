@@ -2,8 +2,10 @@ export {
 	DEFAULT_SETTINGS,
 	MAX_HEALTH,
 	SNAPSHOT_LEEWAY,
+	TIGER_PALM_REFRESH,
 	clampHealth,
 	clampLeeway,
+	clampRefreshWindow,
 	isDefault,
 	normaliseSettings,
 } from './model';

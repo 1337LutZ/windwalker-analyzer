@@ -4,6 +4,7 @@
 // tests around `clampLeeway` prove the number is safe, not that it changes anything.
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_SETTINGS } from '~/lib/settings';
 import { analyse } from '~/lib/spec/windwalker';
 import { WclClient, fetchFightDataset } from '~/lib/wcl';
 
@@ -21,8 +22,10 @@ describe.skipIf(token === '')('snapshot leeway against a live pull', () => {
 			playerName: 'Player (10)',
 		});
 
-		const strict = analyse(dataset, { snapshotLeewayMs: 1000, maxHealth: null });
-		const generous = analyse(dataset, { snapshotLeewayMs: 2500, maxHealth: null });
+		// Spread rather than written out: only the leeway is under test, and every other setting held at
+		// its default is what makes the two runs comparable.
+		const strict = analyse(dataset, { ...DEFAULT_SETTINGS, snapshotLeewayMs: 1000 });
+		const generous = analyse(dataset, { ...DEFAULT_SETTINGS, snapshotLeewayMs: 2500 });
 
 		// The window only decides which band a caught proc lands in.
 		expect(generous.procs.lastGcd).toBeGreaterThan(strict.procs.lastGcd);

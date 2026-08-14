@@ -9,6 +9,19 @@
 # `nextPageTimestamp`. Callers must follow that cursor to exhaustion, or a nine-minute pull silently
 # becomes its first ninety seconds.
 #
+# `includeResources: true` is what puts the energy bar in the payload, and it is free.
+#
+# It defaults to false, and without it *no* event carries a `classResources` array — which is why
+# this report spent its first version asserting that an energy curve could not be rebuilt from a
+# WarcraftLogs log. With it, roughly two thirds of the events on a pull arrive carrying
+# `resourceActor` and `classResources: [{ amount, max, type, cost }]`, sampled about three times a
+# second. That is the curve, read rather than inferred: `max` comes back with every sample, so a
+# talent that widens the bar needs no guessing at either.
+#
+# Measured against `rateLimitData.pointsSpentThisHour` before and after: the flag costs zero extra
+# points. It roughly doubles the bytes on the wire, which the paging loop absorbs, and points are
+# the budget that actually runs out.
+#
 # `data` is the untyped JSON scalar — the schema cannot describe a combat-log event — so codegen
 # types it `unknown` and it is narrowed through ~/lib/events.
 
@@ -21,6 +34,7 @@ query FightEvents($code: String!, $fightID: Int!, $sourceID: Int!, $startTime: F
 				sourceID: $sourceID
 				startTime: $startTime
 				endTime: $endTime
+				includeResources: true
 				limit: 10000
 			) {
 				data

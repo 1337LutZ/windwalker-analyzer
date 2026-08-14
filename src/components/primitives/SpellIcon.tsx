@@ -30,6 +30,19 @@ export function spellIconName(id: number): string | null {
 	return (ICONS as Record<string, string>)[String(id)] ?? null;
 }
 
+/**
+ * The image URL for a spell id, or null when nothing is known about it.
+ *
+ * Exported for the cast timeline, which draws hundreds of icons and cannot afford the wrapper element
+ * `SpellIcon` would put around each one — it positions a bare `<img>` itself. The URL shape stays here
+ * so there is still one place that knows where an icon lives, which is what the content-security
+ * policy is written against.
+ */
+export function spellIconUrl(id: number): string | null {
+	const icon = spellIconName(id);
+	return icon === null ? null : iconUrl(icon);
+}
+
 export default function SpellIcon({ id, size = 'md' }: { id: number; size?: SpellIconSize }) {
 	const icon = spellIconName(id);
 	if (icon === null) return null;

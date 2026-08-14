@@ -29,8 +29,13 @@ const all = (source: string, pattern: RegExp): string[] => [...source.matchAll(p
 
 /** Every fragment the nav points at, in the order the nav lists them. */
 const targets = all(nav, /href="#([^"]+)"/g);
-/** Every section heading the report rendered, in document order. */
-const headings = all(html, /<h2 id="([^"]+)"/g);
+/**
+ * Every heading the report rendered, in document order.
+ *
+ * `h1` as well as `h2`: the summary at the top of the report is a nav entry with no section heading
+ * of its own — the report's own title is what it jumps to — so the anchor it offers is that `<h1>`.
+ */
+const headings = all(html, /<h[12] id="([^"]+)"/g);
 
 describe('SectionNav', () => {
 	it('is rendered with the report', () => {
@@ -52,7 +57,16 @@ describe('SectionNav', () => {
 	 * it names — which would otherwise render a plausible-looking list of the wrong titles.
 	 */
 	it('calls each section what the section calls itself', () => {
-		expect(all(nav, /<a [^>]*>([^<]*)<\/a>/g)).toEqual(all(html, /<h2 id="[^"]+"[^>]*>([^<]*)<\/h2>/g));
+		// The summary is the exception and the only one: its link reads "Summary" while the heading it
+		// points at is the report's title — the encounter and the player. Everything below it must
+		// still match its own heading exactly.
+		expect(all(nav, /<a [^>]*>([^<]*)<\/a>/g).slice(1)).toEqual(all(html, /<h2 id="[^"]+"[^>]*>([^<]*)<\/h2>/g));
+	});
+
+	/** The summary leads, because it is the top of the report and the thing a reader returns to. */
+	it('offers the summary first', () => {
+		expect(targets[0]).toBe('summary-heading');
+		expect(all(nav, /<a [^>]*>([^<]*)<\/a>/g)[0]).toBe('Summary');
 	});
 
 	/**

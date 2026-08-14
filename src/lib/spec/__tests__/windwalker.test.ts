@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
+import { DEFAULT_SETTINGS, TIGER_PALM_REFRESH } from '~/lib/settings';
 import type { FightDataset } from '~/lib/types';
 import { analyse, registry } from '../windwalker';
 
@@ -177,6 +178,26 @@ describe('analyse', () => {
 		expect(a.filler.casts).toBe(2);
 		expect(a.filler.refresh).toBe(1);
 		expect(a.filler.wasted).toBe(1);
+	});
+
+	/**
+	 * The window is the reader's, not the APL's. A press with 1.5s of Tiger Power left is a refresh
+	 * under the report's default and a clipped buff under the sim's `auraRemainingTime <= 1s`, and
+	 * both readings have to be available or the setting is decoration.
+	 */
+	it('reads the Tiger Palm refresh window from the settings', () => {
+		const late: FightDataset = {
+			...dataset,
+			events: [...events, e(20500, 'cast', 100787, { targetID: 20 }), e(20501, 'refreshbuff', 125359)],
+		};
+		const reasonAt = (ms: number): string | undefined =>
+			analyse(late, { ...DEFAULT_SETTINGS, tigerPalmRefreshMs: ms }).filler.castList.find((c) => c.t === 20500)?.reason;
+
+		expect(reasonAt(TIGER_PALM_REFRESH.default)).toBe('refresh');
+		expect(reasonAt(TIGER_PALM_REFRESH.min)).toBe('wasted');
+		// And the number the report prints follows the setting, or the section would explain itself
+		// against a threshold it did not use.
+		expect(analyse(late, { ...DEFAULT_SETTINGS, tigerPalmRefreshMs: 3000 }).filler.refreshWindowSec).toBe(3);
 	});
 
 	it('links every miss back into the report', () => {

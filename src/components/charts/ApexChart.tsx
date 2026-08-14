@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type ApexChartsInstance from 'apexcharts';
 import type { ApexOptions } from 'apexcharts';
 
+import '~/lib/i18n';
+
+import { Skeleton } from '../primitives';
 import type { ChartTheme } from './apex';
 import { COARSE_POINTER_QUERY, NARROW_QUERY, REDUCED_MOTION_QUERY, readTheme, trackCursor } from './apex';
 
@@ -20,6 +24,43 @@ export interface ChartEnv {
 }
 
 const matches = (query: string): boolean => window.matchMedia(query).matches;
+
+/**
+ * The bars the placeholder draws, as widths of the box they sit in.
+ *
+ * Long to short but with one step out of order, because a cleanly descending stack reads as
+ * decoration and a ragged one reads as data — which is the whole job of this box: it stands in for a
+ * chart, not for a form. Written out as literal class names because Tailwind emits only the values
+ * it can find in the source, so an interpolated `w-[${n}%]` would generate nothing at all.
+ */
+const PLACEHOLDER_BARS = ['w-[86%]', 'w-[64%]', 'w-[73%]', 'w-[41%]', 'w-[27%]'];
+
+/**
+ * What fills the reserved box until ApexCharts has drawn into it.
+ *
+ * One animated element for the whole placeholder, not one per bar: a page carrying eight charts
+ * resolves them at eight different moments, and eight independently breathing boxes is the slot
+ * machine this replaces. `motion-safe:` is the guard rather than the blanket reduced-motion rule in
+ * global.css — that rule collapses a running animation to nothing, whereas the honest answer to
+ * "less motion" is not to start one.
+ *
+ * `overflow-hidden` because the same placeholder serves a 90px bar chart and a 400px timeline; on
+ * the shortest of them the stack is clipped evenly top and bottom rather than bursting the box that
+ * was reserved to stop the page moving.
+ */
+function ChartPlaceholder({ caption }: { caption: string }) {
+	return (
+		<div
+			aria-hidden="true"
+			className="absolute inset-0 flex flex-col justify-center gap-2.5 overflow-hidden rounded-sm border border-line bg-surface px-4 py-4 motion-safe:animate-pulse"
+		>
+			{PLACEHOLDER_BARS.map((width) => (
+				<Skeleton key={width} className={`h-2 ${width}`} />
+			))}
+			<span className="mt-2 font-mono text-sm tracking-[0.1em] uppercase text-muted">{caption}</span>
+		</div>
+	);
+}
 
 /**
  * Mounts an ApexCharts instance into a div React never puts children into.
@@ -41,6 +82,9 @@ export default function ApexChart({
 	/** Describes the chart for a reader who cannot see it — the canvas itself is not readable. */
 	label: string;
 }) {
+	// The placeholder's caption is app-shell copy rather than anything the analysis says, so it comes
+	// from the `ui` namespace — the same place the step titles and the settings dialog read from.
+	const { t } = useTranslation('ui');
 	const host = useRef<HTMLDivElement>(null);
 	const [ready, setReady] = useState(false);
 
@@ -97,16 +141,18 @@ export default function ApexChart({
 	}, [build]);
 
 	return (
-		<div className="relative w-full" style={{ height }} role="img" aria-label={label}>
+		<div
+			className="relative w-full"
+			style={{ height }}
+			// Both only once there is a picture to describe. An undrawn chart announcing its own summary
+			// is describing something that is not on the page, and a `role="img"` with nothing in it is a
+			// placeholder claiming to be content — so until the draw lands this box is silent, and the
+			// state it is in is announced once for the whole page by the fetch progress bar instead.
+			role={ready ? 'img' : undefined}
+			aria-label={ready ? label : undefined}
+		>
 			<div ref={host} className="h-full w-full" />
-			{ready ? null : (
-				<div
-					className="absolute inset-0 grid place-items-center rounded-sm border border-line bg-surface font-mono text-sm tracking-[0.1em] uppercase text-muted"
-					aria-hidden="true"
-				>
-					Drawing chart
-				</div>
-			)}
+			{ready ? null : <ChartPlaceholder caption={t('chart.drawing')} />}
 		</div>
 	);
 }

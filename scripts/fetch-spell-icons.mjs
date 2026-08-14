@@ -48,6 +48,17 @@ function idsFromFixtures() {
 	return ids;
 }
 
+/**
+ * Ids Wowhead cannot answer for, or answers wrongly.
+ *
+ * `1` is melee: WarcraftLogs logs every auto-attack under it, but it is not a spell anyone can look
+ * up — Wowhead's spell 1 is an unrelated engineering entry, and the lookup below dutifully returned
+ * its icon. An override rather than a hand-edit of the generated file, so a regeneration keeps it.
+ */
+const OVERRIDES = {
+	1: 'inv_sword_04',
+};
+
 const ids = [...new Set([...idsFromSpec(), ...idsFromFixtures()])].filter((id) => id > 0).sort((a, b) => a - b);
 console.log(`resolving ${ids.length} spell ids`);
 
@@ -58,7 +69,9 @@ try {
 	// First run.
 }
 
-const icons = { ...known };
+// Overrides win over anything already on disk, so correcting one means editing this file rather
+// than remembering to delete a line from the output first.
+const icons = { ...known, ...Object.fromEntries(Object.entries(OVERRIDES).map(([id, icon]) => [String(id), icon])) };
 let fetched = 0;
 let missing = 0;
 

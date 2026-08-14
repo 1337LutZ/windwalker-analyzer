@@ -16,6 +16,8 @@ import TigerPalm from '../TigerPalm';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
+// The chart's own placeholder copy is app-shell text, so it lives in the `ui` namespace.
+const tUi = i18n.getFixedT('en', 'ui');
 
 const fx = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
@@ -70,20 +72,18 @@ describe('Tiger Palm summary cards', () => {
 	/**
 	 * The timeline replaced a strip of squares and a modal table. It is an ApexCharts island, so the
 	 * prerendered HTML holds its sized box and its legend and nothing else — the marks arrive after
-	 * hydration. What can be asserted server-side is that the box is there, that it is described for
-	 * a reader who cannot see it, and that the whole cast list is not sitting in every report's HTML.
+	 * hydration, and so does the description.
+	 *
+	 * This used to assert the chart's `aria-label` server-side. It no longer appears there, and that
+	 * is deliberate rather than a regression: `ApexChart` now applies `role="img"` and its label only
+	 * once the chart has actually drawn, so an undrawn box does not announce a picture that is not
+	 * there yet. What the server still owes the reader is the sized box, the legend, and — the point
+	 * of the whole rewrite — no cast list inlined into every report's HTML.
 	 */
 	it('renders the press timeline rather than a strip or a modal', () => {
 		const html = render(poor);
-		expect(html).toContain(
-			t('tigerPalm.split', {
-				casts: poor.filler.casts,
-				onProc: poor.filler.onProc,
-				applied: poor.filler.applied,
-				refresh: poor.filler.refresh,
-				wasted: poor.filler.wasted,
-			}),
-		);
+		// The placeholder that holds the space until the marks arrive.
+		expect(html).toContain(tUi('chart.drawing'));
 		// The strip is gone.
 		expect(html).not.toMatch(/h-\[15px\]/);
 		// So is the modal.

@@ -39,6 +39,33 @@ const { title, description } = Astro.props;
 		}
 	</head>
 	<body class="bg-bg text-ink min-h-screen">
+		{/*
+			Wowhead's tooltip widget, which is the one third-party script this page loads.
+			
+			It exists because the gear section shows items by icon, and an icon with no name is a
+			picture of a puzzle. The log gives an item id and nothing else — no name, no stats — so the
+			only way to say what a piece *is* comes from Wowhead, and their widget is how they publish
+			it. It attaches to any link pointing at one of their item or spell pages.
+
+			What this costs, stated plainly because the README makes a promise about it: hovering an
+			item tells wowhead.com that someone looked at that item. It is loaded from the same image
+			host the icons already come from, it is deferred so it never blocks the report, and it sees
+			nothing else on the page — no token, which lives in sessionStorage and is never in the DOM,
+			and no report code, which is in the URL but not passed to them.
+
+			Injected from a bundled module rather than written inline so the policy below can name
+			'self' instead of 'unsafe-inline'.
+		*/}
+		<script>
+			// The widget reads this before it initialises. Left plain: recolouring and renaming the
+			// report's own links to match Wowhead's house style would fight the design.
+			Object.assign(window, { whTooltips: { colorLinks: false, iconizeLinks: false, renameLinks: false } });
+
+			const widget = document.createElement('script');
+			widget.src = 'https://wow.zamimg.com/widgets/power.js';
+			widget.defer = true;
+			document.head.append(widget);
+		</script>
 		<slot />
 	</body>
 </html>

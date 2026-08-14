@@ -67,7 +67,18 @@ const NARROW_LABEL_PX = 84;
 // standard 8px the final proc's number was half cut off by the plot edge.
 const GRID_PADDING = { top: 0, right: 22, bottom: 0 };
 
-const ROW_HEIGHT = 46;
+/**
+ * Row height, on a 4px grid shared by every chart in the report.
+ *
+ * 36 for the two that carry an icon beside each row — the pull timeline and the Rising Sun Kick
+ * debuff — which clears a 24px icon without leaving the row mostly empty. 24 for the rest, which are
+ * bars and text.
+ *
+ * Picked as a grid rather than per chart: five charts had five heights (32, 34, 38, 46, 34), which is
+ * five arbitrary numbers rather than a system, and two timelines of the same pull sitting at
+ * different pitches read as two different tools.
+ */
+const ROW_HEIGHT = 36;
 const CHROME = 92;
 
 /**
@@ -77,10 +88,10 @@ const CHROME = 92;
 const minimumSpan = (durationMs: number) => durationMs / 400;
 
 const GRADE_VERDICT: Record<SnapshotGrade, string> = {
-	'last-gcd': 'snapshotted on the last GCD',
-	late: 'snapshotted late',
-	early: 'snapshotted early',
-	none: 'never snapshotted',
+	'last-gcd': 'held to the last global',
+	late: 'held late into the proc',
+	early: 'brewed early, with proc left on the clock',
+	none: 'the whole proc went past',
 };
 
 interface Span {
@@ -137,7 +148,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 			if (w.missedByMs !== null) {
 				rows.push(['brew', `${formatGap(w.missedByMs)} after it expired`]);
 			} else {
-				rows.push(['brew', w.redundant ? 'none — redundant repeat' : 'none']);
+				rows.push(['brew', w.redundant ? 'none — the same stat was already held' : 'none']);
 			}
 		} else {
 			rows.push(['brewed at', `${fmt(w.snapshotAt)} · ${sec(w.snapshotAt - w.start)}s in`]);
@@ -291,7 +302,10 @@ export default function FightTimeline({ analysis }: { analysis: Analysis }) {
 				plotOptions: {
 					bar: {
 						horizontal: true,
-						barHeight: '54%',
+						// `barHeight` is the share of its row a bar fills, and it is deliberately near the whole of it:
+						// the row is the lane, so a bar floating inside one reads as a smaller thing than the lane it
+						// belongs to. The few percent left over is what keeps two adjacent rows from touching.
+						barHeight: '92%',
 						borderRadius: 2,
 						// `false`, deliberately. With `true` ApexCharts splits the points sharing a category
 						// into sub-rows inside the band, so one track becomes several thin strips stacked on

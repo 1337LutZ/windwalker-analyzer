@@ -41,6 +41,37 @@ const UTILITY_IDS = new Set([101545]);
 /** Tiger Palm, whose target this report can compute downwards rather than up. */
 const TIGER_PALM_ID = 100787;
 
+/** `Combo Breaker: Tiger Palm`, the buff that makes one free — matching the aura in the spec. */
+const COMBO_BREAKER_TIGER_PALM_ID = 118864;
+
+/**
+ * What Tiger Palm was worth pressing in this pull, against what it actually was.
+ *
+ * `earned` counts every Combo Breaker proc that *happened*, not the ones that were taken. Building
+ * it from presses instead was an inversion: a player who let procs expire had a smaller `onProc`,
+ * so a smaller target, so a better-looking row — the table quietly advised them to keep ignoring
+ * them. A proc is a free global whether or not anyone reached for it.
+ *
+ * `applied` and `refresh` are still what the player did, because there is no honest count of the
+ * refreshes a pull *needed*: that depends on when the buff was allowed to lapse, which is what
+ * Tiger Power uptime measures instead.
+ */
+interface TigerPalmBudget {
+	casts: number;
+	earned: number;
+}
+
+function tigerPalmBudget(analysis: Analysis): TigerPalmBudget {
+	const { filler, comboBreaker } = analysis;
+	const procs = comboBreaker.find((cb) => cb.id === COMBO_BREAKER_TIGER_PALM_ID)?.procs;
+	return {
+		casts: filler.casts,
+		// Falling back to the presses is the old behaviour, and it is the right fallback: without the
+		// proc aura in the log there is nothing better to say, and it never reads as more than it is.
+		earned: (procs ?? filler.onProc) + filler.applied + filler.refresh,
+	};
+}
+
 /**
  * Abilities that get a section of their own, by cast id.
  *
@@ -55,13 +86,13 @@ const DEEP_DIVE: Record<number, string> = {
 	107428: 'debuff',
 };
 
-function optimalCpm(c: CastRow, filler: Analysis['filler']): number | null {
+function optimalCpm(c: CastRow, budget: TigerPalmBudget): number | null {
 	// Tiger Palm is a budget, not a ceiling: it earns its global only on a Combo Breaker proc or to
-	// refresh Tiger Power, so its target is the presses that bought something — below what was
+	// keep Tiger Power up, so its target is the presses that were worth making — below what was
 	// observed whenever the button is being spammed. The gap is globals to give back, not casts to
 	// add, which is the opposite of every cooldown in the table.
-	if (c.id === TIGER_PALM_ID && filler.casts > 0) {
-		return (c.cpm * (filler.onProc + filler.applied + filler.refresh)) / filler.casts;
+	if (c.id === TIGER_PALM_ID && budget.casts > 0) {
+		return (c.cpm * budget.earned) / budget.casts;
 	}
 	// A cooldown is a ceiling whatever gates it. Fists of Fury and Touch of Karma are `conditional`
 	// because *when* they go out is a judgement the log cannot second-guess — but both still have a
@@ -130,8 +161,8 @@ function pairTone(achieved: number | null): { found: string; target: string } {
 }
 
 /** What was pressed against what should have been, as a percentage, or null when there is no target. */
-function achievedPct(c: CastRow, filler: Analysis['filler']): number | null {
-	const optimal = optimalCpm(c, filler);
+function achievedPct(c: CastRow, budget: TigerPalmBudget): number | null {
+	const optimal = optimalCpm(c, budget);
 	if (optimal === null) return null;
 	return optimal > 0 ? (c.cpm / optimal) * 100 : 100;
 }
@@ -140,9 +171,9 @@ function achievedPct(c: CastRow, filler: Analysis['filler']): number | null {
  * The count cell, in the same `found / target` shape as the rate beside it — whole casts, because
  * "eleven presses too many" is the unit a reader can act on in a way "3.2 cpm too many" is not.
  */
-function castsCell(c: CastRow, filler: Analysis['filler'], activeMin: number) {
-	const optimal = optimalCpm(c, filler);
-	const tone = pairTone(achievedPct(c, filler));
+function castsCell(c: CastRow, budget: TigerPalmBudget, activeMin: number) {
+	const optimal = optimalCpm(c, budget);
+	const tone = pairTone(achievedPct(c, budget));
 	return (
 		<span className="whitespace-nowrap tabular-nums">
 			<b className={`font-semibold ${tone.found}`}>{c.count}</b>
@@ -158,9 +189,9 @@ function castsCell(c: CastRow, filler: Analysis['filler'], activeMin: number) {
  * to know which abilities work which way. A row with no target shows the rate alone rather than a
  * dash against nothing.
  */
-function rateCell(c: CastRow, filler: Analysis['filler']) {
-	const optimal = optimalCpm(c, filler);
-	const tone = pairTone(achievedPct(c, filler));
+function rateCell(c: CastRow, budget: TigerPalmBudget) {
+	const optimal = optimalCpm(c, budget);
+	const tone = pairTone(achievedPct(c, budget));
 	return (
 		<span className="whitespace-nowrap tabular-nums">
 			<b className={`font-semibold ${tone.found}`}>{formatDecimal(c.cpm)}</b>
@@ -175,8 +206,8 @@ function rateCell(c: CastRow, filler: Analysis['filler']) {
  * The share is shown as text beside the bar as well, because the bar's meaning changed — a reader
  * who saw the old chart would otherwise still read it as "relative to the biggest row".
  */
-function barCell(c: CastRow, filler: Analysis['filler'], t: ReportCopy['t']) {
-	const optimal = optimalCpm(c, filler);
+function barCell(c: CastRow, budget: TigerPalmBudget, t: ReportCopy['t']) {
+	const optimal = optimalCpm(c, budget);
 	if (optimal === null) {
 		return <span className="text-sm text-muted">{t('casts.noCeiling')}</span>;
 	}
@@ -211,6 +242,7 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 	);
 	// `cpm` is per active minute, so a target count has to be converted back through the same clock.
 	const activeMin = analysis.cpm.activeMs / 60_000;
+	const budget = useMemo(() => tigerPalmBudget(analysis), [analysis]);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -221,14 +253,14 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 					// Each row against its own ceiling, not against the fastest row in the table: Jab at 21
 					// cpm and Rising Sun Kick at 6 are not competing, and barring them on one scale said
 					// only that Jab is pressed more often — which the rate column already said.
-					bar: barCell(c, analysis.filler, t),
+					bar: barCell(c, budget, t),
 					// Observed against its target in one cell, so the gap is read without crossing columns.
-					rate: rateCell(c, analysis.filler),
-					casts: castsCell(c, analysis.filler, activeMin),
+					rate: rateCell(c, budget),
+					casts: castsCell(c, budget, activeMin),
 					gate: gateLabel(c, t),
 				},
 			})),
-		[gcdCasts, analysis.filler, activeMin, t],
+		[gcdCasts, budget, activeMin, t],
 	);
 
 	// Built as a list and joined rather than laid out in JSX: two of these sentences only exist on

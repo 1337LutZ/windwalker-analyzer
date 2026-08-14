@@ -12,12 +12,13 @@ import { useReportFights } from '~/hooks/useReportFights';
 
 import { useSession } from '../auth';
 import Report from '../Report';
-import { Callout, Step, buttonClass, primaryButtonClass } from '../primitives';
+import { Callout, Skeleton, Step, buttonClass, primaryButtonClass } from '../primitives';
 
 import FetchProgress from './FetchProgress';
 import FightSelector from './FightSelector';
 import PlayerSelector from './PlayerSelector';
 import ReportInput from './ReportInput';
+import ReportSkeleton from './ReportSkeleton';
 import StickySelectionBar from './StickySelectionBar';
 import { defaultFightID, groupByEncounter } from './encounterGroups';
 import { describeFailure } from './describeFailure';
@@ -284,7 +285,12 @@ export default function ReportFlow() {
 				</Step>
 
 				<Step index={3} title={t('steps.fight')} state={loaded ? 'active' : 'pending'}>
-					{!fights.data ? (
+					{/* The fetch comes first, because the step is otherwise a single line of copy that the
+					    arriving list expands to several hundred pixels — the largest jump above the fold,
+					    and one that happens while the reader is still looking at this step. */}
+					{fights.isFetching ? (
+						<FightListSkeleton />
+					) : !fights.data ? (
 						<p className="m-0 leading-relaxed text-muted">Load a report above and its boss pulls appear here.</p>
 					) : hasFights ? (
 						<FightSelector
@@ -373,8 +379,42 @@ export default function ReportFlow() {
 					<div className="pt-6 md:pt-10">
 						<Report analysis={analysis} />
 					</div>
+				) : isFetching ? (
+					// A fetch with no analysis behind it is the first read of a pull *or* the read of a
+					// different one — the query is keyed by the request, so asking for another pull drops the
+					// report that was on screen. Either way the page is about to grow by several thousand
+					// pixels; putting the shape up now means that growth happens once, in answer to the
+					// click that caused it, rather than silently several seconds later.
+					<div className="pt-6 md:pt-10">
+						<ReportSkeleton />
+					</div>
 				) : null}
 			</div>
 		</>
+	);
+}
+
+/**
+ * How many boss rows to hold the fight step open with.
+ *
+ * The real count is not knowable before the report answers — it is the whole reason this exists —
+ * so five is a plausible raid night rather than a promise. Being wrong by a row or two costs a row
+ * or two of movement; not reserving anything costs the entire list's height.
+ */
+const FIGHT_ROWS = [1, 2, 3, 4, 5];
+
+/**
+ * `FightSelector`'s shape while the report's pulls are being fetched.
+ *
+ * The height is that selector's own row: two lines of type inside `py-2.5`, gathered at the same
+ * `gap-2`, so what lands is close to the same size as what was reserved.
+ */
+function FightListSkeleton() {
+	return (
+		<div aria-hidden="true" className="flex flex-col gap-2 motion-safe:animate-pulse">
+			{FIGHT_ROWS.map((row) => (
+				<Skeleton key={row} className="h-[68px]" />
+			))}
+		</div>
 	);
 }

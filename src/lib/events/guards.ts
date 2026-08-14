@@ -11,11 +11,14 @@ import type {
 	AuraRemoveEvent,
 	BeginCastEvent,
 	CastEvent,
+	ClassResource,
 	CombatantInfoEvent,
 	DamageEvent,
 	DeathEvent,
+	EventBase,
 	HealEvent,
 	ResourceChangeEvent,
+	ResourceSampled,
 	StackChangeEvent,
 	WclEvent,
 } from './model';
@@ -41,6 +44,34 @@ const STACK_CHANGE: ReadonlySet<string> = new Set([
 export function abilityIdOf(e: WclEvent): number | null {
 	if (typeof e.abilityGameID === 'number') return e.abilityGameID;
 	return typeof e.ability?.guid === 'number' ? e.ability.guid : null;
+}
+
+/**
+ * The resource bars an event was stamped with, or null when it carries none.
+ *
+ * A defensive read rather than a narrowing, for the same reason `abilityIdOf` is one: only some
+ * variants declare `classResources`, and the catch-all variant types every field `unknown`, so a
+ * bare `e.classResources` does not compile across the union. Every field on `ResourceSampled` is
+ * optional, which is what makes the assertion below sound for every member of it.
+ *
+ * Null is the ordinary answer, not a failure: an aura going up is not a moment the game samples a
+ * bar, and a query that never passed `includeResources: true` gets null for everything.
+ */
+export function classResourcesOf(e: WclEvent): ClassResource[] | null {
+	const raw: unknown = (e as EventBase & ResourceSampled).classResources;
+	return Array.isArray(raw) ? (raw as ClassResource[]) : null;
+}
+
+/**
+ * Whose bars `classResourcesOf` just returned.
+ *
+ * Not the same as `sourceID`, and the difference matters on a pull with a pet in it: a summon's
+ * damage is sourced by the pet and carries the pet's own (empty) resources. Reading the player's
+ * energy off `sourceID` alone would splice a second actor's bar into the curve.
+ */
+export function resourceActorOf(e: WclEvent): number | null {
+	const raw: unknown = (e as EventBase & ResourceSampled).resourceActor;
+	return typeof raw === 'number' ? raw : null;
 }
 
 export function isCast(e: WclEvent): e is CastEvent {

@@ -21,10 +21,19 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  *
  * The judgement it *can* support is the one that matters anyway: a Karma pressed into a quiet
  * stretch returns almost nothing, and the per-use table shows that directly.
+ *
+ * The Fortifying Brew column is reported and pointedly not celebrated. It arrived as a request to
+ * flag the pairing "for the extra damage done", and the sim does not support that reading — see the
+ * engine, which carries the numbers. The copy says what the overlap is instead of what it was hoped
+ * to be, and the column only exists on a pull that actually has one.
  */
 export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 	const { karma } = analysis;
 	const { t } = useReportCopy(analysis);
+	// Fixtures captured before this was measured carry no `fortifyingBrew` on a use and no count at
+	// all, so both read `undefined` rather than `0` — hence the truthiness guard rather than a
+	// comparison, which is the exact shape of a bug this file has already had once.
+	const withFortifying = karma.withFortifyingBrew ?? 0;
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -45,9 +54,16 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 						? {}
 						: { capPct: <span className="text-ink-2">{formatPercentValue(use.capPct)}</span> }),
 					hits: formatInteger(use.hits),
+					// Neutral weight on purpose: an overlap is a fact about the pull, not a fault and not
+					// an achievement, so it is neither banded nor coloured.
+					...(withFortifying === 0
+						? {}
+						: {
+								fortifying: <span className="text-ink-2">{use.fortifyingBrew ? t('karma.cells.yes') : '—'}</span>,
+							}),
 				},
 			})),
-		[karma.uses],
+		[karma.uses, withFortifying, t],
 	);
 
 	return (
@@ -93,6 +109,18 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 											},
 										]),
 								{ key: 'hits', label: t('karma.columns.hits'), align: 'right', width: '96px' },
+								// Only on a pull that had one. A column of dashes would imply the overlap is
+								// something to aim for, which is the opposite of what the note under it says.
+								...(withFortifying === 0
+									? []
+									: [
+											{
+												key: 'fortifying',
+												label: t('karma.columns.fortifying'),
+												align: 'right' as const,
+												width: '96px',
+											},
+										]),
 							]}
 							rows={rows}
 							empty={t('karma.none', { available: karma.available })}
@@ -126,6 +154,13 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 								})}
 							</Prose>
 						)}
+						{/* Only when it happened, and stated as a correction rather than as a credit: the
+						    overlap raises the redirect's ceiling and lowers what fills it at the same time. */}
+						{withFortifying > 0 ? (
+							<Note>
+								{t('karma.fortifying', { count: withFortifying })} {t('karma.fortifyingNote')}
+							</Note>
+						) : null}
 					</div>
 				</>
 			)}

@@ -1,6 +1,7 @@
 // What the cap looks like against a real pull, once a health pool is supplied.
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_SETTINGS } from '~/lib/settings';
 import { analyse } from '~/lib/spec/windwalker';
 import { WclClient, fetchFightDataset } from '~/lib/wcl';
 
@@ -15,8 +16,8 @@ describe.skipIf(token === '')('Touch of Karma cap', () => {
 		});
 
 		const HEALTH = 750_000;
-		const withCap = analyse(dataset, { snapshotLeewayMs: 1000, maxHealth: HEALTH });
-		const without = analyse(dataset, { snapshotLeewayMs: 1000, maxHealth: null });
+		const withCap = analyse(dataset, { ...DEFAULT_SETTINGS, maxHealth: HEALTH });
+		const without = analyse(dataset, { ...DEFAULT_SETTINGS, maxHealth: null });
 
 		expect(without.karma.capPerUse).toBeNull();
 		expect(withCap.karma.capPerUse).toBe(HEALTH);

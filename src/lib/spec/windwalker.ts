@@ -15,14 +15,25 @@ import { abilityIdOf, eventsOn, isDamage } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
-import { DEFAULT_SETTINGS, clampHealth, clampLeeway, type AnalysisSettings } from '~/lib/settings';
+import {
+	DEFAULT_SETTINGS,
+	TIGER_PALM_REFRESH,
+	clampHealth,
+	clampLeeway,
+	clampRefreshWindow,
+	type AnalysisSettings,
+} from '~/lib/settings';
 import type {
 	Analysis,
+	AuraLane,
 	BrewUse,
+	CastMark,
 	FightDataset,
+	LaneGroup,
 	LostCastRow,
 	Miss,
 	ProcWindow,
+	ResourceCurve,
 	SnapshotGrade,
 	Window,
 } from '~/lib/types';
@@ -39,14 +50,21 @@ import {
 	intersect,
 	makeLinker,
 	measureChannels,
+	readGear,
 	median,
 	mergeIntervals,
+	overlapMs,
 	pairDrainsToWindows,
+	POWER_TYPE,
 	primaryTargetID,
 	damageByTarget,
 	r1,
+	chiWasted,
+	resourceSamples,
+	trackResourceBar,
 	remainingAtCast,
 	remainingIn,
+	SELF_EVENT_MS,
 	snapshotWindowEnd,
 	toIntervals,
 	trackStackBank,
@@ -61,7 +79,7 @@ import {
 // reads a bare one twice.
 
 /** The Tigereye Brew bank caps at 20. Its removals are how a use is read — never the cast. */
-const TEB_CAP = 20;
+export const TEB_CAP = 20;
 /** Stacks a full use drains. */
 const TEB_DRAIN = 10;
 /** A brew always lasts 15s; a re-cast refreshes it rather than extending it. */
@@ -69,6 +87,61 @@ const TEB_ACTIVE_MS = 15000;
 
 const TIGER_POWER_MS = 20000;
 const COMBO_BREAKER_MS = 15000;
+/**
+ * Energizing Brew's window. Six one-second ticks of 10 energy — 60 in total — on a one-minute
+ * cooldown, taken from `sim/monk/windwalker/energizing_brew.go` (`Duration: time.Second * 6`,
+ * `Period: time.Second * 1`, `NumTicks: int(aura.Duration.Seconds())`, `AddEnergy(sim, 10, …)`) and
+ * confirmed against the 5.4 client data the sim ships: spell 115288, `SpellDuration` 6000ms,
+ * `SpellCooldowns.RecoveryTime` 60000ms.
+ */
+const ENERGIZING_BREW_MS = 6000;
+
+/**
+ * What the brew adds per second: 60 energy over its 6 seconds.
+ *
+ * `sim/monk/windwalker/energizing_brew.go` — a periodic action with `Period: time.Second * 1` and
+ * `NumTicks` equal to the aura's duration in seconds, each tick `AddEnergy(sim, 10, …)`.
+ */
+const ENERGIZING_BREW_PER_SEC = 10;
+
+/**
+ * Chi each generator returns, by cast id.
+ *
+ * From the simulator: Jab gives 2 in Fierce Tiger stance and 1 otherwise (`sim/monk/jab.go:91`, a
+ * ternary on `StanceMatches(FierceTiger)` — a Windwalker is in Fierce Tiger, which is where the flat
+ * ×1.1 comes from too), Spinning Crane Kick 1 (`spinning_crane_kick.go:154`), Rushing Jade Wind 1,
+ * and Chi Brew 2 (`talents.go:752`).
+ *
+ * Needed because a chi *gain* is not logged. `resourcechange` carries chi for Chi Brew alone —
+ * measured on a real pull, 12 events, all of it — so every other generator's contribution has to be
+ * inferred from the button that produced it.
+ */
+const CHI_GAIN: Record<number, number> = {
+	100780: 2, // Jab
+	108557: 2,
+	115687: 2,
+	115693: 2,
+	115695: 2,
+	115698: 2,
+	101546: 1, // Spinning Crane Kick
+	116847: 1, // Rushing Jade Wind
+	115399: 2, // Chi Brew
+};
+/**
+ * Fortifying Brew's window: 20s, from `sim/monk/fortifying_brew.go` (`Duration: time.Second * 20`)
+ * and from the client data for aura 120954. Only used to bound the overlap below — nothing here
+ * grades it, because Windwalker presses it to survive.
+ */
+const FORTIFYING_BREW_MS = 20000;
+/**
+ * Touch of Karma's advertised ten seconds, and deliberately *not* `KARMA_WINDOW_MS`.
+ *
+ * That one is 20s because redirect ticks run well past the tooltip and every tick has to find an
+ * owner. This is the real duration, and it is what an overlap with another cooldown has to be
+ * measured against: a Fortifying Brew pressed fifteen seconds after a Karma did not overlap it,
+ * however wide the attribution window is.
+ */
+const TOUCH_OF_KARMA_MS = 10000;
 /** The Rune's proc is shorter than the brew that snapshots it, and that gap is the whole game. */
 const RE_ORIGINATION_MS = 10000;
 
@@ -110,6 +183,40 @@ const SNAPSHOT_STACK_FLOOR = 4;
  * turned 12 channels into 71 casts.
  */
 const FOF_CHANNEL: Channel = { tickId: 117418, baseMs: 4000 };
+
+/**
+ * How long the tiger stays out, taken from the sim rather than from a tooltip.
+ *
+ * `sim/monk/talents.go:1075` — `monk.XuenPet.EnableWithTimeout(sim, monk.XuenPet, time.Second*45.0)`
+ * — and the timeline aura beside it (`talents.go:1052`, `Duration: time.Second * 45.0`) agree on 45s.
+ * The cooldown that pairs with it is 3 minutes (`talents.go:1070`, `Duration: time.Minute * 3`),
+ * which is what `invoke-xuen` already declares below.
+ *
+ * The window is measured *forward from the cast* rather than off an aura, and that is deliberate.
+ * The sim registers a `Xuen, the White Tiger` aura on the monk explicitly commented "For timeline
+ * only" (`talents.go:1048-1053`): it exists so the sim's own chart has a bar to draw and so the APL
+ * can ask whether the tiger is out. Reading uptime out of a `123904` buff would therefore be reading
+ * a fabrication back as though it were data, and on a log that carries no such buff it would report
+ * a confident 0% for a pull that summoned Xuen twice. A cast plus 45 seconds is what the sim models.
+ */
+const XUEN_DURATION_MS = 45000;
+
+/**
+ * Crackling Tiger Lightning: the pet's own nuke, `sim/monk/xuen_pet.go:55-81`.
+ *
+ * Xuen fights as a **separate actor** (`core.NewPet`, `xuen_pet.go:28`), so every point it deals
+ * arrives under a `sourceID` that is not the monk's — which is what `petIDs`/`mine()` in `analyse()`
+ * exist to fold back in. This id is the one thing unique to the tiger: its autoattacks land under
+ * `1` like every other melee swing, so they cannot be told from the monk's own, and a Windwalker can
+ * field more than one pet-typed actor. Matching this id is how the tiger's actor is found without
+ * trusting a localised name.
+ *
+ * Deliberately *not* wired into `invoke-xuen`'s `damageIds`. That would move this damage out of the
+ * passive column into the button's row, which would still be missing the pet's melee — a row that
+ * reads as the summon's whole contribution while quietly understating it. Left as its own passive
+ * row it is already counted exactly once, under the name of the thing that actually dealt it.
+ */
+const XUEN_NUKE_ID = 123996;
 
 export const GCD_MS = 1000;
 
@@ -285,14 +392,49 @@ const ABILITIES: Ability[] = [
 		name: 'Energizing Brew',
 		castIds: [115288],
 		onGcd: false,
-		// Conditional, not a cooldown to hold to. The sim's APL presses it on
-		// `energyTimeToCap > 5s AND (Bloodlust inactive OR (Rushing Jade Wind known AND >1 target))`,
-		// so holding it through Bloodlust is the intended play. Scored as a cooldown it produced
-		// "lost casts" for doing the right thing.
+		/**
+		 * Conditional, not a cooldown to hold to. This is the condition, transcribed from priority 14
+		 * of wowsims-mop/ui/monk/windwalker/apls/default.apl.json — the only place that file casts
+		 * 115288 — and it is the standard the `energizing` audit judges a pull against:
+		 *
+		 *   AND(
+		 *     energyTimeToTarget(maxEnergy) > 5s,
+		 *     OR(
+		 *       auraIsInactive(2825 [Bloodlust], tag -1, includeReactionTime),
+		 *       AND(spellIsKnown(116847 [Rushing Jade Wind]), numberTargets >= 2)
+		 *     )
+		 *   )  ->  castSpell(115288)
+		 *
+		 * So: press it when the bar is at least five seconds from capping, and hold it through
+		 * Bloodlust unless Rushing Jade Wind is in the build *and* there is more than one target.
+		 * Scored as a cooldown instead, it produced "lost casts" for doing exactly that.
+		 *
+		 * The audit checks the second clause and declines the first, the same division the Fists of
+		 * Fury audit makes. Not because the bar is unreadable — `classResources` reconstructs it, and
+		 * the Energy section reports it — but because "five seconds from capping" is a condition about
+		 * one instant, and the bar is sampled about three times a second. Grading a press against the
+		 * nearest reading would be grading the sampling grid.
+		 */
 		gate: 'conditional',
 		cooldownMs: 60000,
 		applies: ['energizing-brew'],
 		note: 'Held deliberately through Bloodlust, so it is never judged against its cooldown.',
+	},
+	{
+		key: 'fortifying-brew',
+		name: 'Fortifying Brew',
+		// 115203 is the button; the buff it applies logs under 120954, which is why the two are
+		// declared apart. The sim registers both halves under a third id, 126456
+		// (`sim/monk/fortifying_brew.go`), which never appears in a Classic log — all three carry the
+		// same name in the client data, so matching by name would have picked whichever came first.
+		castIds: [115203],
+		onGcd: false,
+		// A survival cooldown, and the sim treats it as exactly that: `CooldownTypeSurvival` with
+		// `ShouldActivate: CurrentHealthPercent() < 0.4`. Windwalker presses it to live, so there is
+		// nothing here to score — it is modelled only so the Touch of Karma overlap can be read.
+		gate: 'other',
+		cooldownMs: 180000,
+		applies: ['fortifying-brew'],
 	},
 	{
 		key: 'chi-brew',
@@ -411,7 +553,43 @@ const AURAS: Aura[] = [
 		name: 'Energizing Brew',
 		ids: [115288],
 		kind: 'buff',
+		durationMs: ENERGIZING_BREW_MS,
 		appliedBy: 'energizing-brew',
+	},
+	{
+		key: 'fortifying-brew',
+		name: 'Fortifying Brew',
+		// Not 115203 and not the sim's 126456: the buff a Classic log actually carries is 120954.
+		// Verified on a:YBQzrcgVJnAj7NMP fight 10, where one cast of 115203 produced exactly one
+		// apply/remove pair of 120954, twenty seconds apart.
+		ids: [120954],
+		kind: 'buff',
+		durationMs: FORTIFYING_BREW_MS,
+		appliedBy: 'fortifying-brew',
+	},
+	{
+		key: 'bloodlust',
+		// Named for the effect rather than for any one spell: the log names whichever was cast and the
+		// rotation's condition does not care which. `variants` is what says which it actually was.
+		name: 'Bloodlust',
+		/**
+		 * The raid's haste cooldown, whichever class brought it.
+		 *
+		 * The APL writes this condition as `auraIsInactive(2825, tag: -1)`, and in wowsims a tag of -1
+		 * means "any source" rather than "Bloodlust specifically" — the whole shared-exclusion group is
+		 * one effect as far as the rotation is concerned. A log names whichever spell was cast, so all
+		 * five ids have to be here or a raid with a mage instead of a shaman reads as having no haste
+		 * cooldown at all. Names confirmed against the 5.4 client data the sim ships.
+		 */
+		ids: [2825, 32182, 80353, 90355, 146555],
+		variants: {
+			2825: 'Bloodlust',
+			32182: 'Heroism',
+			80353: 'Time Warp',
+			90355: 'Primal Rage',
+			146555: 'Drums of Rage',
+		},
+		kind: 'buff',
 	},
 	{
 		key: 'rushing-jade-wind',
@@ -419,6 +597,25 @@ const AURAS: Aura[] = [
 		ids: [116847],
 		kind: 'buff',
 		appliedBy: 'rushing-jade-wind',
+	},
+	{
+		/**
+		 * The passive that makes some melee swings land twice.
+		 *
+		 * Modelled because the extra strikes were visible in the report and their cause was not: the
+		 * damage arrives under its own id and drew a lane of its own on the timeline, with nothing to
+		 * say why a third swing had appeared between two autos.
+		 *
+		 * `120273` is the buff and `120274` the extra strike's damage — the two are easy to swap, and
+		 * both are named "Tiger Strikes" in the log. Confirmed against `sim/monk/ww_tiger_strikes.go`,
+		 * where the aura carrying 120273 is the one with `Duration: 15s` and `MaxStacks: 4`, and
+		 * 120274 is the action id given to the extra main-hand swing.
+		 */
+		key: 'tiger-strikes',
+		name: 'Tiger Strikes',
+		ids: [120273],
+		kind: 'buff',
+		durationMs: 15000,
 	},
 	{
 		key: 're-origination',
@@ -447,6 +644,7 @@ const FISTS_OF_FURY = registry.ability('fists-of-fury');
 const TIGER_PALM = registry.ability('tiger-palm');
 const TOUCH_OF_KARMA = registry.ability('touch-of-karma');
 const TIGEREYE_BREW = registry.ability('tigereye-brew');
+const INVOKE_XUEN = registry.ability('invoke-xuen');
 
 const BREW = registry.aura('tigereye-brew');
 const BREW_BANK = registry.aura('tigereye-brew-bank');
@@ -455,7 +653,12 @@ const RSK_DEBUFF = registry.aura('rising-sun-kick-debuff');
 const TIGER_POWER = registry.aura('tiger-power');
 const CB_TIGER_PALM = registry.aura('combo-breaker-tiger-palm');
 const ENERGIZING_BREW = registry.aura('energizing-brew');
+const FORTIFYING_BREW = registry.aura('fortifying-brew');
+const BLOODLUST = registry.aura('bloodlust');
 const RUSHING_JADE_WIND = registry.aura('rushing-jade-wind');
+const TIGER_STRIKES = registry.aura('tiger-strikes');
+const RUSHING_JADE_WIND_CAST = registry.ability('rushing-jade-wind');
+const ENERGIZING_BREW_CAST = registry.ability('energizing-brew');
 const COMBO_BREAKERS = [CB_TIGER_PALM, registry.aura('combo-breaker-blackout-kick')];
 
 /** The id an aura is reported under. Every aura above declares at least one. */
@@ -485,7 +688,6 @@ const EXTRA_NAMES: Record<number, string> = {
 	116841: "Tiger's Lust",
 	109132: 'Roll',
 	122783: 'Diffuse Magic',
-	115203: 'Fortifying Brew',
 	116705: 'Spear Hand Strike',
 	116709: 'Spear Hand Strike',
 	120273: 'Tiger Strikes',
@@ -509,8 +711,14 @@ const EXTRA_NAMES: Record<number, string> = {
 
 // ---------------------------------------------------------------- thresholds
 
-/** The APL threshold for a Tiger Palm refresh: auraRemainingTime(Tiger Power) <= 1s. */
-export const TP_REFRESH_WINDOW_MS = 1000;
+/**
+ * The default Tiger Palm refresh window, and only the default: the reader owns this one.
+ *
+ * The APL threshold is `auraRemainingTime(Tiger Power) <= 1s`, and the report used to grade against
+ * that literally. It is now the floor rather than the rule, and the default sits a global above it —
+ * see `TIGER_PALM_REFRESH` in `lib/settings` for why the departure is deliberate.
+ */
+export const TP_REFRESH_WINDOW_MS = TIGER_PALM_REFRESH.default;
 
 /**
  * How late inside a Re-Origination proc a brew went out. The brew keeps the Rune's converted stats
@@ -560,13 +768,24 @@ export const ENGAGED_GAP_MS = 15000;
 /** Debuff gaps shorter than this are refresh jitter, not drops. */
 export const DROP_MS = 1000;
 
+/**
+ * The shortest stretch at the energy cap worth naming a timestamp for.
+ *
+ * One Windwalker global. Below that there was no press to have made, so a row saying "you were full
+ * for 0.4s at 2:13" describes the sampling grid rather than a decision — and a table of forty of
+ * them would hide the three stretches that actually cost casts. The total is unaffected: this filters
+ * what is listed, never what is counted.
+ */
+export const ENERGY_CAP_ROW_MS = 1000;
+
 // -------------------------------------------------------------------- engine
 
 /** The full analysis of one fight for one Windwalker. */
 export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFAULT_SETTINGS): Analysis {
-	// The one threshold the reader owns. Everything else here is the spec's; this is theirs, because
-	// it describes their latency and their hands rather than the rotation.
+	// The two thresholds the reader owns. Everything else here is the spec's; these are theirs,
+	// because they describe their latency and their hands rather than the rotation.
 	const snapshotLeewayMs = clampLeeway(settings.snapshotLeewayMs);
+	const tpRefreshWindowMs = clampRefreshWindow(settings.tigerPalmRefreshMs);
 	const { code, fight, actor, events, table, actors } = dataset;
 	const t0 = fight.startTime;
 	const duration = fight.endTime - fight.startTime;
@@ -830,6 +1049,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		if (total <= 0 || primaryID === undefined) return 0;
 		return ((byTarget.get(primaryID) ?? 0) / total) * 100;
 	})();
+	/**
+	 * Whether the pull was concentrated enough on one enemy to be read as single-target.
+	 *
+	 * Hoisted out of the assembly because two metrics now need the same answer: the debuff declines to
+	 * grade uptime below it, and the Energizing Brew audit needs it to tell whether the priority
+	 * list's `numberTargets >= 2` exception was even available.
+	 */
+	const singleTarget = primaryDamageShare >= SINGLE_TARGET_SHARE_PCT;
 	const primaryGameID = (table.fight.enemyNPCs ?? []).find((n) => n.id === primaryID)?.gameID ?? null;
 	// Scoped to the primary target: the same debuff on an add says nothing about the boss.
 	const rskWindows = auraWindows(
@@ -840,11 +1067,55 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	);
 	const rskMerged = mergeIntervals(toIntervals(rskWindows));
 	const engaged = engagedWindows(
-		damageEvents.filter((e) => e.targetID === primaryID).map((e) => e.timestamp - t0),
+		// Landed hits only. A damage-over-time tick is not contact: it lands on a boss that has gone
+		// untargetable just as happily as on one being hit, so counting ticks as engagement bridges the
+		// very gaps this is looking for. Measured across the three reference pulls, 14.8% of the
+		// player's damage events on the primary target are ticks, and on one of them three of those
+		// ticks — arriving while the player was incapacitated and unable to act — shortened a 17.8s
+		// intermission to 13.9s, putting it under `ENGAGED_GAP_MS` and hiding it completely.
+		damageEvents
+			.filter((e) => e.targetID === primaryID && !(isDamage(e) && e.tick === true))
+			.map((e) => e.timestamp - t0),
 		ENGAGED_GAP_MS,
 	);
 	const engagedMs = unionMs(engaged);
 	const rskEngagedMs = unionMs(intersect(rskMerged, engaged));
+
+	// ----------------------------------------------------------------- energy
+	// Read straight off the `classResources` snapshots the events query now asks for, and split by
+	// the engaged windows computed immediately above — which is why it sits here rather than with the
+	// other resource sections. A bar that fills while the boss is untargetable is the fight's doing;
+	// only the engaged half of the number describes anything the player chose.
+	const energySamples = resourceSamples(events, POWER_TYPE.energy, actor.id, t0);
+	const chiSamples = resourceSamples(events, POWER_TYPE.chi, actor.id, t0);
+	const energyBar = trackResourceBar(energySamples, duration, engaged);
+	const chiOverflow = chiWasted(events, actor.id, t0, (id) => CHI_GAIN[id]);
+
+	/**
+	 * The readings themselves, kept for the charts.
+	 *
+	 * `max` is taken from the samples rather than from a constant: an Ascension monk carries a wider
+	 * bar and the log says so, so nothing here has to know which talents were taken.
+	 */
+	const curveOf = (samples: readonly { t: number; amount: number; max: number }[]): ResourceCurve => ({
+		max: samples.reduce((widest, s) => Math.max(widest, s.max), 0),
+		points: samples.map((s): [number, number] => [s.t, s.amount]),
+	});
+	// Longest first, and only the handful worth linking: the ledger below already carries one row per
+	// engaged cap, and a list of every sub-second gap would bury the stretches that cost something.
+	const worstCaps = [...energyBar.capped]
+		.map(([start, end]) => ({
+			at: start,
+			ms: end - start,
+			// A stretch that straddles the edge of an engaged window is called engaged when most of it
+			// was: the reader is being told which bucket the row belongs to, and half a label is worse
+			// than a rounded one.
+			engaged: overlapMs(start, end, engaged) * 2 >= end - start,
+			link: link(start),
+		}))
+		.filter((w) => w.ms >= ENERGY_CAP_ROW_MS)
+		.sort((a, b) => b.ms - a.ms)
+		.slice(0, 5);
 
 	const allGaps: Array<{ t: number; ms: number }> = [];
 	for (let i = 1; i < rskMerged.length; i++) {
@@ -870,6 +1141,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			procs: windows.length,
 			wasted: expired.length,
 			expired,
+			// Both kept for the cast timeline, which draws a lane per proc and names it from the aura.
+			// Carried out of here rather than re-derived down there: `auraWindows` is a pass over the whole
+			// event stream, and two passes that must agree is exactly how a lane comes to disagree with the
+			// count printed beside it.
+			aura,
+			windows,
 		};
 	});
 
@@ -881,6 +1158,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// full 20s.
 	const cbTigerPalmWindows = auraWindows(selfEvents, CB_TIGER_PALM, t0, fight.endTime);
 	const tigerPowerTimeline = auraTimeline(selfEvents, TIGER_POWER, t0);
+	// The buff's own windows, which the uptime figure and the timeline's Tiger Power lane both read.
+	// The timeline is not allowed to disagree with the percentage printed above it, and computing it
+	// twice is what would let it.
+	const tigerPowerWindows = auraWindows(selfEvents, TIGER_POWER, t0, fight.endTime);
 
 	const tigerPalmCasts = castTimes(TIGER_PALM).map((t) => {
 		const proc = inWindow(t, cbTigerPalmWindows);
@@ -890,13 +1171,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// actually lapsed — was reported as a refresh, which is how a "refresh" turned up seven seconds
 		// into a fight for a buff that lasts twenty. Both are justified presses, but only one of them
 		// is a decision about timing, and the detail table has to be able to say which.
-		const reason = proc
-			? 'proc'
-			: buffLeftMs <= 0
-				? 'apply'
-				: buffLeftMs <= TP_REFRESH_WINDOW_MS
-					? 'refresh'
-					: 'wasted';
+		const reason = proc ? 'proc' : buffLeftMs <= 0 ? 'apply' : buffLeftMs <= tpRefreshWindowMs ? 'refresh' : 'wasted';
 		return { t, proc, buffLeftMs, reason: reason as 'proc' | 'apply' | 'refresh' | 'wasted' };
 	});
 
@@ -923,6 +1198,35 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		owner.hits += 1;
 	}
 	const karmaReflected = karmaUses.reduce((sum, u) => sum + u.reflected, 0);
+
+	/**
+	 * Whether Fortifying Brew was up while the redirect ran — reported, and deliberately not praised.
+	 *
+	 * The request behind this was "flag Touch of Karma used with Fortifying Brew, for the extra damage
+	 * done". The simulator does not support that, and it is worth writing down why rather than
+	 * quietly shipping the flag as a bonus:
+	 *
+	 *   - Touch of Karma is not in wowsims-mop at all. `sim/monk/` registers no spell, no aura and no
+	 *     APL entry for 122470 — the only trace of it anywhere is the range glyph enum. So the sim can
+	 *     neither confirm nor deny anything about what the redirect returns.
+	 *   - Fortifying Brew, which *is* modelled (`sim/monk/fortifying_brew.go`), does two things at
+	 *     once: `MaxHealth * 0.20` more health and `DamageTakenMultiplier *= 0.8`. Karma redirects the
+	 *     damage you take, capped at a share of maximum health. Those pull opposite ways — the cap
+	 *     goes up a fifth, and the thing that fills it comes in a fifth slower.
+	 *
+	 * So a use that would have hit its ceiling gains, and every use that would not — which is most of
+	 * them, and this report cannot tell which is which because MoP Classic logs carry no health —
+	 * simply redirects a fifth less. That is not a pairing to recommend, so the overlap is surfaced as
+	 * a fact about the pull and the copy says what it is.
+	 *
+	 * Measured against `TOUCH_OF_KARMA_MS`, the redirect's real ten seconds, rather than the wide
+	 * attribution window: a brew pressed after the redirect finished did not overlap it.
+	 */
+	const fortifyingWindows = auraWindows(selfEvents, FORTIFYING_BREW, t0, fight.endTime);
+	const karmaWithFortifying = karmaUses.map((use) => ({
+		...use,
+		fortifyingBrew: fortifyingWindows.some((w) => w.start <= use.t + TOUCH_OF_KARMA_MS && w.end >= use.t),
+	}));
 	// Touch of Karma redirects up to a full health pool per use, so a health pool is the whole ceiling.
 	// The log cannot supply one — MoP Classic carries no health anywhere — so this is null unless the
 	// reader has told the settings what theirs is, and the report claims no ceiling until they do.
@@ -951,12 +1255,76 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		};
 	}).filter((row): row is LostCastRow => row !== null);
 
+	// ------------------------------------------------------------ Invoke Xuen
+	//
+	// The sim presses it on cooldown and on nothing else, and that is the whole standard here.
+	//
+	// It is registered as a major cooldown — `sim/monk/talents.go:1080-1083`,
+	// `monk.AddMajorCooldown(core.MajorCooldown{Spell: spell, Type: core.CooldownTypeDPS})` — and the
+	// Windwalker APL never casts it by name. Its only action for it is the bare
+	//
+	//     { "action": { "autocastOtherCooldowns": {} } }
+	//
+	// in `ui/monk/windwalker/apls/default.apl.json`, which carries no `condition` key at all; the
+	// machinery behind it (`sim/core/apl_actions_casting.go:491-511`) just fires the first ready major
+	// cooldown. So unlike Fists of Fury or Energizing Brew there is no gate to grade a press against —
+	// the cooldown *is* the condition, which is what `gate: 'cooldown'` on the ability already says.
+	//
+	// The APL does name `123904` twice, but in the opposite direction. Its "Cooldowns: On use" list
+	// fires trinkets when
+	//
+	//     auraIsActive(2825) OR auraIsActive(123904) OR (spellTimeToReady(123904) + 25s > remainingTime)
+	//
+	// — the trinkets are held for Xuen, not Xuen for the trinkets. That is a rule about trinkets, and
+	// charging a Xuen press with it would invent a condition the sim does not put on the button.
+	const xuenTimes = castTimes(INVOKE_XUEN);
+	// The drift row the cast table already shows, rather than a second `cooldownDrift` call: two
+	// different "lost Xuen casts" figures in one report would be a bug whichever of them was right.
+	const xuenDrift = lostCasts.find((row) => row.id === castId(INVOKE_XUEN)) ?? null;
+
+	// Xuen's damage is already inside `damageEvents` — `mine()` folds pet sources into the player's —
+	// but telling which of it was the tiger's needs the actor rather than the ability, because its
+	// autoattacks log under id 1 exactly like the monk's own swings. So the tiger's actor is whichever
+	// non-player source dealt Crackling Tiger Lightning, an id nothing else in the kit produces.
+	// Excluding the player's own id is not defensive noise: were that nuke ever attributed to the monk
+	// directly, taking the id from it would sweep the entire pull's damage in as the pet's.
+	const xuenActors = new Set(
+		damageEvents
+			.filter((e) => abilityIdOf(e) === XUEN_NUKE_ID)
+			.map((e) => e.sourceID)
+			.filter((id): id is number => id !== undefined && id !== actor.id),
+	);
+	const xuenDamageEvents = damageEvents.filter((e) => e.sourceID !== undefined && xuenActors.has(e.sourceID));
+	const xuenPetDamage = xuenDamageEvents.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+
+	// Each summon runs 45s from the press and is clipped to the pull: a tiger sent in twenty seconds
+	// before the boss died was out for twenty seconds, not forty-five, and counting the whole window
+	// would claim more uptime than the fight had room for. The 180s cooldown is four times the 45s
+	// window, so two of these can never overlap and no point of damage can fall inside two of them.
+	const xuenUses = xuenTimes.map((t) => {
+		const end = Math.min(t + XUEN_DURATION_MS, duration);
+		const inside = xuenDamageEvents.filter((e) => {
+			const at = e.timestamp - t0;
+			return at >= t && at <= end;
+		});
+		return {
+			t,
+			windowMs: end - t,
+			truncated: t + XUEN_DURATION_MS > duration,
+			damage: inside.reduce((sum, e) => sum + (e.amount ?? 0), 0),
+			hits: inside.length,
+			link: link(t),
+		};
+	});
+	const xuenUptimeMs = unionMs(xuenUses.map((use): Interval => [use.t, use.t + use.windowMs]));
+
 	// -------------------------------------------------------- Fists of Fury
 	// Graded against the two APL conditions a log can answer. Condition 1 (energy cap) is not
 	// checkable: WarcraftLogs emits only a handful of resourcechange events per fight, nowhere near
 	// enough to reconstruct an energy curve, so a channel marked ok here may still have overcapped.
 	const ebWindows = auraWindows(selfEvents, ENERGIZING_BREW, t0, fight.endTime);
 	const rjwWindows = auraWindows(selfEvents, RUSHING_JADE_WIND, t0, fight.endTime);
+	const tigerStrikesWindows = auraWindows(selfEvents, TIGER_STRIKES, t0, fight.endTime);
 	const fofCasts = fofChannels.map((ch) => {
 		const t = ch.start;
 		const channelMs = ch.channelMs || (FOF_CHANNEL.baseMs ?? 4000);
@@ -986,6 +1354,72 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		};
 	});
 	const channelledMs = fofCasts.reduce((s, c) => s + c.channelMs, 0);
+
+	// ----------------------------------------------------- Energizing Brew
+	// Judged against priority 14 of the sim's Windwalker APL, transcribed in full on the
+	// `energizing-brew` ability above. Two clauses, and only one of them a log can answer:
+	//
+	//   1. `energyTimeToTarget(maxEnergy) > 5s` — not checkable, and for exactly the reason the
+	//      channel's own energy clause is not: WarcraftLogs emits a handful of resource events per
+	//      fight, nowhere near enough to rebuild the bar. `energyCheckable: false` says so, and the
+	//      section prints the caveat rather than implying a use was well timed.
+	//   2. `Bloodlust inactive OR (Rushing Jade Wind known AND numberTargets >= 2)` — checkable. The
+	//      haste cooldown is an aura on the player whoever cast it, having Rushing Jade Wind in the
+	//      build is a cast somewhere in the pull, and the multi-target half is the same concentration
+	//      read the debuff already declines to grade below.
+	const hasteWindows = auraWindows(selfEvents, BLOODLUST, t0, fight.endTime);
+	const hasteAt = (t: number): string | null => hasteWindows.find((w) => t >= w.start && t <= w.end)?.variant ?? null;
+	// Both halves of the APL's exception, and it is only ever used to *excuse* a press. With Rushing
+	// Jade Wind in the build and the damage spread across enemies the priority list genuinely does
+	// want Energizing Brew inside Bloodlust, so faulting it there would invent a mistake.
+	const rjwKnown = castCount(RUSHING_JADE_WIND_CAST) > 0;
+	const ebCasts = castTimes(ENERGIZING_BREW_CAST);
+	const ebUses = ebCasts.map((t) => {
+		// The buff is stamped at the same millisecond as the press, and occasionally a hair before it,
+		// which is what `SELF_EVENT_MS` exists for — a strict `t >= w.start` drops the window entirely
+		// and reports a six-second buff as never having gone up.
+		const window = ebWindows.find((w) => t >= w.start - SELF_EVENT_MS && t <= w.end) ?? null;
+		const haste = hasteAt(t);
+		// Channels that began inside this window. Counted from the channel audit's own rows rather
+		// than recomputed, so the two sections cannot disagree about which channel was where — and
+		// deliberately *not* raised as a fault here, because that audit already raises it and the miss
+		// ledger would otherwise carry the same channel twice.
+		const channels = fofCasts.filter((c) => window !== null && c.t >= window.start && c.t <= window.end);
+		const faults: string[] = [];
+		if (haste !== null && !rjwKnown) {
+			faults.push(`pressed under ${haste} with no Rushing Jade Wind in the build, which is what would allow it`);
+		} else if (haste !== null && singleTarget) {
+			faults.push(`pressed under ${haste} against one target, and the exception to that needs more than one`);
+		}
+		/**
+		 * Energy the brew poured into a bar that was already full.
+		 *
+		 * The point of the button is 60 energy over 6 seconds — 10 a second on top of the regen that
+		 * was already running — so a press onto a full bar throws away both rates for as long as the
+		 * bar stays there. That is the loss the priority list's "at least five seconds from capping"
+		 * condition exists to prevent, and it is worth naming per press rather than only in aggregate.
+		 *
+		 * Measured from the same capped stretches the energy audit uses, intersected with this window,
+		 * so a brew and the section above it cannot disagree about when the bar was full. Null when
+		 * the pull carried no readings to measure a regen rate from — an unmeasured loss is not zero.
+		 */
+		const cappedInside = window === null ? 0 : overlapMs(window.start, window.end, energyBar.capped);
+		const wasted =
+			window === null || energyBar.regenPerSec === null
+				? null
+				: Math.round((cappedInside / 1000) * (energyBar.regenPerSec + ENERGIZING_BREW_PER_SEC));
+
+		return {
+			t,
+			lengthMs: window ? window.end - window.start : 0,
+			haste,
+			channels: channels.length,
+			cappedMs: cappedInside,
+			wasted,
+			faults,
+			link: link(t),
+		};
+	});
 
 	// ----------------------------------------------------------- miss ledger
 	const misses: Miss[] = [
@@ -1034,6 +1468,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 				detail: c.faults.join('; '),
 				link: c.link,
 			})),
+		...ebUses
+			.filter((u) => u.faults.length)
+			.map((u) => ({
+				kind: 'Energizing Brew held through',
+				at: u.t,
+				detail: u.faults.join('; '),
+				link: u.link,
+			})),
 		...tigerPalmCasts
 			.filter((c) => c.reason === 'wasted')
 			.map((c) => ({
@@ -1059,6 +1501,56 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			})),
 		),
 	].sort((a, b) => a.at - b.at);
+
+	// --------------------------------------------------------- cast timeline
+	// Every press on one clock, with the auras that were up underneath it.
+	//
+	// Assembled here rather than in a primitive, and deliberately: it invents nothing. The presses are
+	// the same `castSeries` the cast table is built from, flattened out of their per-ability buckets,
+	// and every lane is a window set some metric above already had to compute. So this costs no extra
+	// pass over the events and — more importantly — cannot disagree with the numbers printed beside
+	// it, which a second reading of the same auras eventually would.
+	const castMarks: CastMark[] = [...series.values()]
+		.flatMap((c) =>
+			c.times.map((t) => ({
+				t,
+				// The button's canonical id, not `c.id` — which is whichever id the log happened to use
+				// first. Jab logs one id per weapon type and those ids carry the *weapon's* icon, so a monk
+				// holding a sword would have had every Jab on the timeline drawn as a sword.
+				id: c.ability?.castIds[0] ?? c.id,
+				name: c.ability?.name ?? nameOf(c.id),
+				// An unmodelled press reads as off-GCD, the same assumption `buildCastTable` makes and for
+				// the same reason: a trinket drawn at the weight of a global claims a global was spent.
+				onGcd: c.ability?.onGcd ?? false,
+			})),
+		)
+		.sort((a, b) => a.t - b.t);
+
+	const lane = (aura: Aura, group: LaneGroup, windows: Window[]): AuraLane => ({
+		key: aura.key,
+		name: aura.name,
+		id: auraId(aura),
+		group,
+		windows,
+	});
+
+	// The debuff, merged. `rskWindows` is one entry per application and Rising Sun Kick is re-applied
+	// long before it falls off, so the raw windows would draw one continuous bar as thirty abutting
+	// pieces. `rskMerged` is what the uptime figure is measured over, so it is what the row shows.
+	const rskLaneWindows: Window[] = rskMerged.map(([start, end]): Window => ({ start, end }));
+
+	// A lane with nothing on it is dropped rather than drawn empty: an unlit row costs a line of height
+	// and a label, and tells the reader only that the aura exists.
+	const lanes: AuraLane[] = [
+		lane(RE_ORIGINATION, 'proc', rawProcs),
+		...comboBreaker.map((cb) => lane(cb.aura, 'proc', cb.windows)),
+		lane(BREW, 'buff', brewWindows),
+		lane(TIGER_POWER, 'buff', tigerPowerWindows),
+		lane(ENERGIZING_BREW, 'buff', ebWindows),
+		lane(RUSHING_JADE_WIND, 'buff', rjwWindows),
+		lane(TIGER_STRIKES, 'buff', tigerStrikesWindows),
+		lane(RSK_DEBUFF, 'debuff', rskLaneWindows),
+	].filter((l) => l.windows.length > 0);
 
 	// --------------------------------------------------------------- assembly
 	return {
@@ -1093,6 +1585,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			activePct: duration > 0 ? (activeMs / duration) * 100 : 0,
 		},
 		casts: castList,
+		timeline: { casts: castMarks, lanes },
 		lostCasts,
 		brew: {
 			uses: uses.length,
@@ -1152,10 +1645,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			// ledger already carries a linked row per drop — a second copy nothing renders is a field
 			// that quietly goes stale.
 			drops: drops.map((g) => ({ at: g.t, seconds: r1(g.ms / 1000) })),
-			windows: rskMerged.map(([start, end]): Window => ({ start, end })),
+			windows: rskLaneWindows,
 			engagedSegments: engaged,
 			primaryDamageShare: r1(primaryDamageShare),
-			singleTarget: primaryDamageShare >= SINGLE_TARGET_SHARE_PCT,
+			singleTarget,
 		},
 		channel: {
 			casts: fofCasts.length,
@@ -1168,6 +1661,60 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			energyCheckable: false,
 			castList: fofCasts,
 		},
+		energizing: {
+			// Carried so the section can draw the overlap rather than only name it per row.
+			hasteWindows,
+			casts: ebCasts.length,
+			// The same reading Touch of Karma gets: the opener plus one per full recharge inside the
+			// pull. It is a ceiling on presses, not a target — the priority list holds this button.
+			available: ENERGIZING_BREW_CAST.cooldownMs
+				? Math.floor(duration / ENERGIZING_BREW_CAST.cooldownMs) + 1
+				: ebCasts.length,
+			uptimeMs: unionMs(toIntervals(ebWindows)),
+			uptimePct: uptimePct(ebWindows, duration),
+			duringHaste: ebUses.filter((u) => u.haste !== null).length,
+			faulted: ebUses.filter((u) => u.faults.length).length,
+			rushingJadeWind: rjwKnown,
+			channelsInside: fofCasts.filter((c) => c.energizingBrew).length,
+			channelsCovered: fofCasts.filter((c) => c.energizingBrew && c.rjwCovers).length,
+			energyCheckable: false,
+			uses: ebUses,
+			windows: ebWindows,
+		},
+		energy: {
+			max: energyBar.max,
+			samples: energyBar.sampleCount,
+			regenPerSec: energyBar.regenPerSec === null ? null : r1(energyBar.regenPerSec),
+			medianGapMs: energyBar.medianGapMs,
+			p99GapMs: energyBar.p99GapMs,
+			total: energyBar.whole,
+			engaged: energyBar.engaged,
+			downtime: energyBar.downtime,
+			worst: worstCaps,
+		},
+		// Pressed on cooldown and on nothing else — the sim's APL fires it from a bare, unconditional
+		// `autocastOtherCooldowns`, so there is no gate here to grade a press against.
+		xuen: {
+			casts: xuenTimes.length,
+			// What the pull actually allowed: the presses taken plus the ones drift proves were dropped
+			// between them. Deliberately not `floor(duration / cooldown) + 1` — `cooldownDrift` clips its
+			// windows to the time the target was there, and ignores both the stretch before the first press
+			// (opener noise) and the stretch after the last (a boss dying on a cooldown that was coming back
+			// anyway), so this counts only presses the player could have made and did not.
+			//
+			// It follows that a pull with no Xuen at all reports 0 of 0 rather than a shortfall. Invoke Xuen
+			// is a talent, and a log cannot tell "chose a different tier-90 talent" from "never pressed it";
+			// naming the second would be inventing a fault out of the first.
+			available: xuenTimes.length + (xuenDrift?.lostCasts ?? 0),
+			cooldownSec: (INVOKE_XUEN.cooldownMs ?? 0) / 1000,
+			durationSec: XUEN_DURATION_MS / 1000,
+			driftSec: xuenDrift?.driftSec ?? 0,
+			uptimeMs: xuenUptimeMs,
+			uptimePct: duration > 0 ? (xuenUptimeMs / duration) * 100 : 0,
+			petDamage: xuenPetDamage,
+			petSharePct: eventTotal > 0 ? (xuenPetDamage / eventTotal) * 100 : 0,
+			uses: xuenUses,
+		},
 		karma: {
 			casts: karmaCasts.length,
 			// Uses the cooldown allowed: the opener plus one per full recharge inside the pull.
@@ -1175,7 +1722,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			reflected: karmaReflected,
 			sharePct: eventTotal > 0 ? (karmaReflected / eventTotal) * 100 : 0,
 			capPerUse: karmaCap,
-			uses: karmaUses.map((use) => ({
+			withFortifyingBrew: karmaWithFortifying.filter((use) => use.fortifyingBrew).length,
+			uses: karmaWithFortifying.map((use) => ({
 				...use,
 				// Can exceed 100: the redirect is capped per use, but a pull spans gear and buffs that
 				// move a health pool, so a single number for the whole fight is an approximation. Showing
@@ -1189,8 +1737,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			applied: tigerPalmCasts.filter((c) => c.reason === 'apply').length,
 			refresh: tigerPalmCasts.filter((c) => c.reason === 'refresh').length,
 			wasted: tigerPalmCasts.filter((c) => c.reason === 'wasted').length,
-			refreshWindowSec: TP_REFRESH_WINDOW_MS / 1000,
-			buffUptimePct: uptimePct(auraWindows(selfEvents, TIGER_POWER, t0, fight.endTime), duration),
+			refreshWindowSec: tpRefreshWindowMs / 1000,
+			buffUptimePct: uptimePct(tigerPowerWindows, duration),
 			castList: tigerPalmCasts,
 		},
 		comboBreaker: comboBreaker.map(({ id, label, procs: count, wasted }) => ({
@@ -1199,6 +1747,20 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			procs: count,
 			wasted,
 		})),
+		// Read from the `combatantinfo` the event fetch already returned, so this costs no request.
+		gear: readGear(events, actor.id),
+		// Absent rather than empty when the log carried no readings: the charts branch on "not reported"
+		// and would otherwise draw a flat line at zero, which is a claim the log never made.
+		...(energySamples.length === 0 && chiSamples.length === 0
+			? {}
+			: {
+					resources: {
+						energy: curveOf(energySamples),
+						// The chi curve carries its overflow with it: the amount on the bar cannot show what
+						// went past the top of it, so the chart would otherwise have to guess.
+						chi: { ...curveOf(chiSamples), wasted: chiOverflow },
+					},
+				}),
 		misses,
 	};
 }

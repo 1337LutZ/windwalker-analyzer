@@ -529,6 +529,3457 @@
       "times": [232536]
     }
   ],
+  "timeline": {
+    "casts": [
+      {
+        "t": 92,
+        "id": 105697,
+        "name": "Virmen's Bite",
+        "onGcd": false
+      },
+      {
+        "t": 461,
+        "id": 109132,
+        "name": "Roll",
+        "onGcd": false
+      },
+      {
+        "t": 1357,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 2199,
+        "id": 123904,
+        "name": "Invoke Xuen, the White Tiger",
+        "onGcd": false
+      },
+      {
+        "t": 2382,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 2382,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 2577,
+        "id": 126734,
+        "name": "Synapse Springs",
+        "onGcd": false
+      },
+      {
+        "t": 3113,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 3385,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 3923,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 4200,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 4400,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 4931,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 5417,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 5690,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 6028,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 6407,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 6763,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 7409,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 7842,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 8420,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 8584,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 9421,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 9664,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 9682,
+        "id": 115288,
+        "name": "Energizing Brew",
+        "onGcd": false
+      },
+      {
+        "t": 10391,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 10431,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 11428,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 11492,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 12226,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 12422,
+        "id": 1247275,
+        "name": "Tigereye Brew",
+        "onGcd": false
+      },
+      {
+        "t": 12806,
+        "id": 113656,
+        "name": "Fists of Fury",
+        "onGcd": true
+      },
+      {
+        "t": 14398,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 14602,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 15208,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 15355,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 16073,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 16370,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 16668,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 17372,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 17544,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 18123,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 18369,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 19021,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 19386,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 19646,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 20391,
+        "id": 122470,
+        "name": "Touch of Karma",
+        "onGcd": true
+      },
+      {
+        "t": 22248,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 22521,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 22996,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 23531,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 24090,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 24559,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 24803,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 25543,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 25909,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 26540,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 26642,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 27367,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 27544,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 27850,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 28549,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 28586,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 29072,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 29540,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 29720,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 30110,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 30550,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 31008,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 31557,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 31582,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 32475,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 32555,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 33040,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 33552,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 33941,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 34505,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 34566,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 35401,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 35568,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 35982,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 36572,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 37064,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 37524,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 37586,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 38278,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 38587,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 38743,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 39489,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 39589,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 39950,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 40589,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 40705,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 41177,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 41594,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 42604,
+        "id": 113656,
+        "name": "Fists of Fury",
+        "onGcd": true
+      },
+      {
+        "t": 45845,
+        "id": 1247275,
+        "name": "Tigereye Brew",
+        "onGcd": false
+      },
+      {
+        "t": 45913,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 46135,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 47154,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 47386,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 48148,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 48282,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 49163,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 49760,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 50161,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 50653,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 51169,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 52129,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 52162,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 53022,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 53166,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 54187,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 54500,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 55088,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 55175,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 56074,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 56574,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 57355,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 58090,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 58213,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 59049,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 59210,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 59667,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 60211,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 60644,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 61251,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 61677,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 62211,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 62833,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 63027,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 63797,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 64046,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 64726,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 65652,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 66148,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 67080,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 67687,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 68438,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 69200,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 69640,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 70004,
+        "id": 126734,
+        "name": "Synapse Springs",
+        "onGcd": false
+      },
+      {
+        "t": 70357,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 70648,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 71107,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 71656,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 71893,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 72030,
+        "id": 115288,
+        "name": "Energizing Brew",
+        "onGcd": false
+      },
+      {
+        "t": 72388,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 72698,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 73158,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 73647,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 73696,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 74435,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 74704,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 74933,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 75718,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 76093,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 77350,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 78000,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 78308,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 78352,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 79268,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 79353,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 79573,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 80356,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 80555,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 81008,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 81362,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 81976,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 82276,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 82374,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 83248,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 83378,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 83554,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 84378,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 85017,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 85391,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 85454,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 86398,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 86910,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 87218,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 87375,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 87392,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 88392,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 88816,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 89277,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 89730,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 90729,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 90755,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 91194,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 91735,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 92646,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 92739,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 93088,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 93747,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 94578,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 94747,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 95016,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 95754,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 95977,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 96276,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 96751,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 97378,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 97736,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 97759,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 99385,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 99575,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 100381,
+        "id": 115450,
+        "name": "#115450",
+        "onGcd": false
+      },
+      {
+        "t": 102129,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 102749,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 102749,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 103329,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 104777,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 105615,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 105616,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 106786,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 107996,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 107996,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 110367,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 110367,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 110420,
+        "id": 122470,
+        "name": "Touch of Karma",
+        "onGcd": true
+      },
+      {
+        "t": 111594,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 112606,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 112717,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 112717,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 113617,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 114325,
+        "id": 1247275,
+        "name": "Tigereye Brew",
+        "onGcd": false
+      },
+      {
+        "t": 114616,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 115092,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 115092,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 115635,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 116643,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 116672,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 116672,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 116698,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 117637,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 117989,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 117989,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 118642,
+        "id": 113656,
+        "name": "Fists of Fury",
+        "onGcd": true
+      },
+      {
+        "t": 121786,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 121786,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 121790,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 122799,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 123696,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 123700,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 124270,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 124968,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 124969,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 125275,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 126236,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 126238,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 126291,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 127275,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 128135,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 128135,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 128273,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 129290,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 130049,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 130049,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 130091,
+        "id": 126734,
+        "name": "Synapse Springs",
+        "onGcd": false
+      },
+      {
+        "t": 130579,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 131693,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 131973,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 131973,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 132696,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 133330,
+        "id": 115288,
+        "name": "Energizing Brew",
+        "onGcd": false
+      },
+      {
+        "t": 133712,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 133880,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 133881,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 134717,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 135725,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 135782,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 135782,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 137605,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 137683,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 137683,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 138611,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 139601,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 139601,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 139616,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 140625,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 141513,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 141513,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 141645,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 142641,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 142790,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 142790,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 143643,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 144063,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 144065,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 144671,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 145350,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 145350,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 145865,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 146619,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 146621,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 146668,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 147678,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 148539,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 148539,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 148682,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 149677,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 149822,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 149823,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 150675,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 151086,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 151086,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 151682,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 152691,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 152994,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 152994,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 153278,
+        "id": 1247275,
+        "name": "Tigereye Brew",
+        "onGcd": false
+      },
+      {
+        "t": 153688,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 154554,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 154887,
+        "id": 105697,
+        "name": "Virmen's Bite",
+        "onGcd": false
+      },
+      {
+        "t": 154991,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 154992,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 155027,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 156015,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 156184,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 156185,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 157025,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 157466,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 157466,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 158022,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 159522,
+        "id": 109132,
+        "name": "Roll",
+        "onGcd": false
+      },
+      {
+        "t": 162705,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 162848,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 162848,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 163882,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 164885,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 165213,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 165213,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 165891,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 166891,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 167566,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 167566,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 167896,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 168518,
+        "id": 1247275,
+        "name": "Tigereye Brew",
+        "onGcd": false
+      },
+      {
+        "t": 168896,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 169732,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 169733,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 169894,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 170904,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 171389,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 171390,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 171907,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 172911,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 173291,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 173291,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 173917,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 174915,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 175207,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 175207,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 175923,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 176924,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 177100,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 177100,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 177938,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 178941,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 179028,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 179029,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 179949,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 180942,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 180942,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 181549,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 182562,
+        "id": 113656,
+        "name": "Fists of Fury",
+        "onGcd": true
+      },
+      {
+        "t": 184753,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 184753,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 185014,
+        "id": 123904,
+        "name": "Invoke Xuen, the White Tiger",
+        "onGcd": false
+      },
+      {
+        "t": 185267,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 186271,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 186665,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 186665,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 187270,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 187935,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 187935,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 188283,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 189204,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 189204,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 189300,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 191116,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 191116,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 191309,
+        "id": 122783,
+        "name": "Diffuse Magic",
+        "onGcd": false
+      },
+      {
+        "t": 192453,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 193023,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 193023,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 193452,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 193818,
+        "id": 126734,
+        "name": "Synapse Springs",
+        "onGcd": false
+      },
+      {
+        "t": 194450,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 194929,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 194929,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 195463,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 196470,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 196844,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 196844,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 197482,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 198479,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 198749,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 198750,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 199258,
+        "id": 115288,
+        "name": "Energizing Brew",
+        "onGcd": false
+      },
+      {
+        "t": 199489,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 200027,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 200028,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 200504,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 201049,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 201294,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 201294,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 201498,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 202506,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 202571,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 202571,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 203520,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 204479,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 204479,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 204827,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 205825,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 206382,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 206382,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 206845,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 207648,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 207649,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 207839,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 208839,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 208960,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 208960,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 209844,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 210839,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 210839,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 211280,
+        "id": 122470,
+        "name": "Touch of Karma",
+        "onGcd": true
+      },
+      {
+        "t": 212276,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 212750,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 212750,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 213282,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 214659,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 214659,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 214795,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 215796,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 216567,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 216567,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 216788,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 217797,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 218472,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 218472,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 218798,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 219803,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 220375,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 220375,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 220810,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 221817,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 222291,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 222292,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 222817,
+        "id": 113656,
+        "name": "Fists of Fury",
+        "onGcd": true
+      },
+      {
+        "t": 226113,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 226113,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 226974,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 228001,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 228045,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 228045,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 228979,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 229926,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 229926,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 229995,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 231535,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 231848,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 231848,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 232536,
+        "id": 101545,
+        "name": "Flying Serpent Kick",
+        "onGcd": true
+      },
+      {
+        "t": 233545,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 234539,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 234734,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 234734,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 235655,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 236663,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 236826,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 236826,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 236935,
+        "id": 1247275,
+        "name": "Tigereye Brew",
+        "onGcd": false
+      },
+      {
+        "t": 237665,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 238695,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 238918,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 238918,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 239678,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 241021,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 241021,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 241134,
+        "id": 115399,
+        "name": "Chi Brew",
+        "onGcd": false
+      },
+      {
+        "t": 241349,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 242356,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 243107,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 243107,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 243368,
+        "id": 115098,
+        "name": "Chi Wave",
+        "onGcd": true
+      },
+      {
+        "t": 244363,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 245215,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 245215,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 245376,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 246381,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 247299,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 247300,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 247382,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 248384,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 249389,
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "onGcd": true
+      },
+      {
+        "t": 249615,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 249615,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 250388,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 251393,
+        "id": 100784,
+        "name": "Blackout Kick",
+        "onGcd": true
+      },
+      {
+        "t": 252215,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 252216,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 252403,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      },
+      {
+        "t": 253421,
+        "id": 100787,
+        "name": "Tiger Palm",
+        "onGcd": true
+      },
+      {
+        "t": 254830,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 254831,
+        "id": 1,
+        "name": "Melee",
+        "onGcd": false
+      },
+      {
+        "t": 255011,
+        "id": 100780,
+        "name": "Jab",
+        "onGcd": true
+      }
+    ],
+    "lanes": [
+      {
+        "key": "re-origination",
+        "name": "Re-Origination",
+        "id": 139117,
+        "group": "proc",
+        "windows": [
+          {
+            "start": 2413,
+            "end": 12399,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 19389,
+            "end": 29394,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 36133,
+            "end": 46133,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 46158,
+            "end": 56142,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 58123,
+            "end": 68108,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 96772,
+            "end": 106760,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 106811,
+            "end": 116802,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 157468,
+            "end": 167475,
+            "id": 139120,
+            "variant": "Mastery"
+          },
+          {
+            "start": 248512,
+            "end": 255196,
+            "truncated": true,
+            "id": 139120,
+            "variant": "Mastery"
+          }
+        ]
+      },
+      {
+        "key": "combo-breaker-tiger-palm",
+        "name": "Combo Breaker: Tiger Palm",
+        "id": 118864,
+        "group": "proc",
+        "windows": [
+          {
+            "start": 27542,
+            "end": 29541,
+            "id": 118864
+          },
+          {
+            "start": 72696,
+            "end": 75720,
+            "id": 118864
+          },
+          {
+            "start": 77349,
+            "end": 78353,
+            "id": 118864
+          },
+          {
+            "start": 89728,
+            "end": 90730,
+            "id": 118864
+          },
+          {
+            "start": 92737,
+            "end": 93747,
+            "id": 118864
+          },
+          {
+            "start": 111592,
+            "end": 112607,
+            "id": 118864
+          },
+          {
+            "start": 133711,
+            "end": 135726,
+            "id": 118864
+          },
+          {
+            "start": 214793,
+            "end": 217798,
+            "id": 118864
+          },
+          {
+            "start": 247380,
+            "end": 248385,
+            "id": 118864
+          }
+        ]
+      },
+      {
+        "key": "combo-breaker-blackout-kick",
+        "name": "Combo Breaker: Blackout Kick",
+        "id": 116768,
+        "group": "proc",
+        "windows": [
+          {
+            "start": 24557,
+            "end": 25544,
+            "id": 116768
+          },
+          {
+            "start": 30548,
+            "end": 31558,
+            "id": 116768
+          },
+          {
+            "start": 38585,
+            "end": 39589,
+            "id": 116768
+          },
+          {
+            "start": 82372,
+            "end": 86399,
+            "id": 116768
+          },
+          {
+            "start": 115634,
+            "end": 116644,
+            "id": 116768
+          },
+          {
+            "start": 121788,
+            "end": 125276,
+            "id": 116768
+          },
+          {
+            "start": 142639,
+            "end": 145866,
+            "id": 116768
+          },
+          {
+            "start": 152689,
+            "end": 153689,
+            "id": 116768
+          },
+          {
+            "start": 162703,
+            "end": 166891,
+            "id": 116768
+          },
+          {
+            "start": 169893,
+            "end": 170904,
+            "id": 116768
+          },
+          {
+            "start": 202504,
+            "end": 204828,
+            "id": 116768
+          },
+          {
+            "start": 218796,
+            "end": 220811,
+            "id": 116768
+          }
+        ]
+      },
+      {
+        "key": "tigereye-brew",
+        "name": "Tigereye Brew",
+        "id": 1247275,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 12421,
+            "end": 27416,
+            "id": 1247275
+          },
+          {
+            "start": 45844,
+            "end": 60841,
+            "id": 1247275
+          },
+          {
+            "start": 114323,
+            "end": 129342,
+            "id": 1247275
+          },
+          {
+            "start": 153277,
+            "end": 168281,
+            "id": 1247275
+          },
+          {
+            "start": 168517,
+            "end": 183516,
+            "id": 1247275
+          },
+          {
+            "start": 236934,
+            "end": 251950,
+            "id": 1247275
+          }
+        ]
+      },
+      {
+        "key": "tiger-power",
+        "name": "Tiger Power",
+        "id": 125359,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 5416,
+            "end": 49552,
+            "id": 125359
+          },
+          {
+            "start": 50159,
+            "end": 215462,
+            "id": 125359
+          },
+          {
+            "start": 217796,
+            "end": 255196,
+            "truncated": true,
+            "id": 125359
+          }
+        ]
+      },
+      {
+        "key": "energizing-brew",
+        "name": "Energizing Brew",
+        "id": 115288,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 9681,
+            "end": 15694,
+            "id": 115288
+          },
+          {
+            "start": 72028,
+            "end": 78025,
+            "id": 115288
+          },
+          {
+            "start": 133329,
+            "end": 139345,
+            "id": 115288
+          },
+          {
+            "start": 199257,
+            "end": 205261,
+            "id": 115288
+          }
+        ]
+      },
+      {
+        "key": "tiger-strikes",
+        "name": "Tiger Strikes",
+        "id": 120273,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 26642,
+            "end": 30110,
+            "id": 120273
+          },
+          {
+            "start": 37064,
+            "end": 41177,
+            "id": 120273
+          },
+          {
+            "start": 54500,
+            "end": 57355,
+            "id": 120273
+          },
+          {
+            "start": 58090,
+            "end": 63797,
+            "id": 120273
+          },
+          {
+            "start": 71107,
+            "end": 74932,
+            "id": 120273
+          },
+          {
+            "start": 78000,
+            "end": 80555,
+            "id": 120273
+          },
+          {
+            "start": 81007,
+            "end": 83553,
+            "id": 120273
+          },
+          {
+            "start": 95016,
+            "end": 97736,
+            "id": 120273
+          },
+          {
+            "start": 115092,
+            "end": 117989,
+            "id": 120273
+          },
+          {
+            "start": 123700,
+            "end": 126238,
+            "id": 120273
+          },
+          {
+            "start": 141512,
+            "end": 144063,
+            "id": 120273
+          },
+          {
+            "start": 144064,
+            "end": 146621,
+            "id": 120273
+          },
+          {
+            "start": 148539,
+            "end": 151086,
+            "id": 120273
+          },
+          {
+            "start": 154991,
+            "end": 157466,
+            "id": 120273
+          },
+          {
+            "start": 186664,
+            "end": 189204,
+            "id": 120273
+          },
+          {
+            "start": 198749,
+            "end": 202571,
+            "id": 120273
+          },
+          {
+            "start": 206381,
+            "end": 208960,
+            "id": 120273
+          }
+        ]
+      },
+      {
+        "key": "rising-sun-kick-debuff",
+        "name": "Rising Sun Kick (debuff)",
+        "id": 130320,
+        "group": "debuff",
+        "windows": [
+          {
+            "start": 3386,
+            "end": 255159
+          }
+        ]
+      }
+    ]
+  },
   "lostCasts": [
     {
       "id": 107428,
@@ -1322,29 +4773,200 @@
       }
     ]
   },
+  "energizing": {
+    "hasteWindows": [
+      {
+        "start": 1166,
+        "end": 41151,
+        "id": 80353,
+        "variant": "Time Warp"
+      }
+    ],
+    "casts": 4,
+    "available": 5,
+    "uptimeMs": 24030,
+    "uptimePct": 9.416291791407389,
+    "duringHaste": 1,
+    "faulted": 1,
+    "rushingJadeWind": false,
+    "channelsInside": 1,
+    "channelsCovered": 0,
+    "energyCheckable": false,
+    "uses": [
+      {
+        "t": 9682,
+        "lengthMs": 6013,
+        "haste": "Time Warp",
+        "channels": 1,
+        "cappedMs": 706,
+        "wasted": 16,
+        "faults": ["pressed under Time Warp with no Rushing Jade Wind in the build, which is what would allow it"],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6791376&end=6797376"
+      },
+      {
+        "t": 72030,
+        "lengthMs": 5997,
+        "haste": null,
+        "channels": 0,
+        "cappedMs": 0,
+        "wasted": 0,
+        "faults": [],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6853724&end=6859724"
+      },
+      {
+        "t": 133330,
+        "lengthMs": 6016,
+        "haste": null,
+        "channels": 0,
+        "cappedMs": 0,
+        "wasted": 0,
+        "faults": [],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6915024&end=6921024"
+      },
+      {
+        "t": 199258,
+        "lengthMs": 6004,
+        "haste": null,
+        "channels": 0,
+        "cappedMs": 434,
+        "wasted": 10,
+        "faults": [],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6980952&end=6986952"
+      }
+    ],
+    "windows": [
+      {
+        "start": 9681,
+        "end": 15694,
+        "id": 115288
+      },
+      {
+        "start": 72028,
+        "end": 78025,
+        "id": 115288
+      },
+      {
+        "start": 133329,
+        "end": 139345,
+        "id": 115288
+      },
+      {
+        "start": 199257,
+        "end": 205261,
+        "id": 115288
+      }
+    ]
+  },
+  "energy": {
+    "max": 100,
+    "samples": 587,
+    "regenPerSec": 12.3,
+    "medianGapMs": 315,
+    "p99GapMs": 1910,
+    "total": {
+      "cappedMs": 14745,
+      "pct": 5.777911879496544,
+      "wasted": 181
+    },
+    "engaged": {
+      "cappedMs": 12624,
+      "pct": 4.993256098188046,
+      "wasted": 155
+    },
+    "downtime": {
+      "cappedMs": 2121,
+      "pct": 89.30526315789473,
+      "wasted": 26
+    },
+    "worst": [
+      {
+        "at": 159522,
+        "ms": 3183,
+        "engaged": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6941216&end=6947216"
+      },
+      {
+        "at": 20109,
+        "ms": 2412,
+        "engaged": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6801803&end=6807803"
+      },
+      {
+        "at": 92,
+        "ms": 2290,
+        "engaged": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6781786&end=6787786"
+      },
+      {
+        "at": 5532,
+        "ms": 1877,
+        "engaged": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6787226&end=6793226"
+      },
+      {
+        "at": 15694,
+        "ms": 1678,
+        "engaged": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6797388&end=6803388"
+      }
+    ]
+  },
+  "xuen": {
+    "casts": 2,
+    "available": 2,
+    "cooldownSec": 180,
+    "durationSec": 45,
+    "driftSec": 2.8,
+    "uptimeMs": 90000,
+    "uptimePct": 35.26701045470932,
+    "petDamage": 5195190,
+    "petSharePct": 5.705868544100775,
+    "uses": [
+      {
+        "t": 2199,
+        "windowMs": 45000,
+        "truncated": false,
+        "damage": 2394751,
+        "hits": 127,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6783893&end=6789893"
+      },
+      {
+        "t": 185014,
+        "windowMs": 45000,
+        "truncated": false,
+        "damage": 2713352,
+        "hits": 122,
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6966708&end=6972708"
+      }
+    ]
+  },
   "karma": {
     "casts": 3,
     "available": 3,
     "reflected": 2215868,
     "sharePct": 2.433684142269964,
     "capPerUse": null,
+    "withFortifyingBrew": 0,
     "uses": [
       {
         "t": 20391,
         "reflected": 723916,
         "hits": 10,
+        "fortifyingBrew": false,
         "capPct": null
       },
       {
         "t": 110420,
         "reflected": 720992,
         "hits": 10,
+        "fortifyingBrew": false,
         "capPct": null
       },
       {
         "t": 211280,
         "reflected": 770960,
         "hits": 7,
+        "fortifyingBrew": false,
         "capPct": null
       }
     ]
@@ -1355,7 +4977,7 @@
     "applied": 2,
     "refresh": 0,
     "wasted": 30,
-    "refreshWindowSec": 1,
+    "refreshWindowSec": 2,
     "buffUptimePct": 96.72526215144438,
     "castList": [
       {
@@ -1620,6 +5242,1028 @@
       "wasted": 0
     }
   ],
+  "gear": {
+    "slots": [
+      {
+        "slot": "Head",
+        "id": 105409,
+        "itemLevel": 580,
+        "quality": 4,
+        "icon": "inv_leather_raiddruid_n_01helm.jpg",
+        "gems": [
+          {
+            "id": 95346,
+            "icon": "inv_legendary_chimeraoffear.jpg"
+          },
+          {
+            "id": 76700,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          }
+        ],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Neck",
+        "id": 96443,
+        "itemLevel": 549,
+        "quality": 4,
+        "icon": "inv_jewelry_necklace_140.jpg",
+        "gems": [
+          {
+            "id": 76700,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          }
+        ],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Shoulder",
+        "id": 99146,
+        "itemLevel": 561,
+        "quality": 4,
+        "icon": "inv_shoulder_leather_raidmonk_n_01.jpg",
+        "gems": [
+          {
+            "id": 76670,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          },
+          {
+            "id": 76658,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          }
+        ],
+        "enchantID": 4804,
+        "enchantable": true,
+        "setID": 1193
+      },
+      {
+        "slot": "Shirt",
+        "id": 0,
+        "itemLevel": 0,
+        "quality": 1,
+        "icon": "inv_axe_02.jpg",
+        "gems": [],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Chest",
+        "id": 99154,
+        "itemLevel": 561,
+        "quality": 4,
+        "icon": "inv_chest_leather_raidmonk_n_01.jpg",
+        "gems": [
+          {
+            "id": 76659,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          },
+          {
+            "id": 76659,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          },
+          {
+            "id": 76658,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          }
+        ],
+        "enchantID": 4419,
+        "enchantable": true,
+        "setID": 1193
+      },
+      {
+        "slot": "Waist",
+        "id": 96465,
+        "itemLevel": 549,
+        "quality": 4,
+        "icon": "inv_belt_leather_raidrogue_m_01.jpg",
+        "gems": [
+          {
+            "id": 76659,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          },
+          {
+            "id": 76700,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          },
+          {
+            "id": 76700,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          }
+        ],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Legs",
+        "id": 99145,
+        "itemLevel": 561,
+        "quality": 4,
+        "icon": "inv_pant_leather_raidmonk_n_01.jpg",
+        "gems": [
+          {
+            "id": 76700,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          },
+          {
+            "id": 76697,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          }
+        ],
+        "enchantID": 4822,
+        "enchantable": true,
+        "setID": 1193
+      },
+      {
+        "slot": "Feet",
+        "id": 103779,
+        "itemLevel": 567,
+        "quality": 4,
+        "icon": "inv_boot_leather_raidrogue_n_01.jpg",
+        "gems": [
+          {
+            "id": 76576,
+            "icon": "inv_misc_gem_x4_uncommon_perfectcut_green.jpg"
+          }
+        ],
+        "enchantID": 4428,
+        "enchantable": true,
+        "setID": null
+      },
+      {
+        "slot": "Wrist",
+        "id": 105334,
+        "itemLevel": 567,
+        "quality": 4,
+        "icon": "inv_leather_raiddruid_n_01bracer.jpg",
+        "gems": [],
+        "enchantID": 4416,
+        "enchantable": true,
+        "setID": null
+      },
+      {
+        "slot": "Hands",
+        "id": 99155,
+        "itemLevel": 561,
+        "quality": 4,
+        "icon": "inv_glove_leather_raidmonk_n_01.jpg",
+        "gems": [
+          {
+            "id": 76658,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          },
+          {
+            "id": 76659,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          }
+        ],
+        "enchantID": 4430,
+        "enchantable": true,
+        "setID": 1193
+      },
+      {
+        "slot": "Ring 1",
+        "id": 104487,
+        "itemLevel": 580,
+        "quality": 4,
+        "icon": "inv_misc_ring_mop4.jpg",
+        "gems": [
+          {
+            "id": 76697,
+            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
+          }
+        ],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Ring 2",
+        "id": 95021,
+        "itemLevel": 549,
+        "quality": 4,
+        "icon": "inv_jewelry_ring_170.jpg",
+        "gems": [
+          {
+            "id": 76576,
+            "icon": "inv_misc_gem_x4_uncommon_perfectcut_green.jpg"
+          }
+        ],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Trinket 1",
+        "id": 104531,
+        "itemLevel": 580,
+        "quality": 4,
+        "icon": "inv_jewelry_orgrimmarraid_trinket_08.jpg",
+        "gems": [],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Trinket 2",
+        "id": 96546,
+        "itemLevel": 549,
+        "quality": 4,
+        "icon": "inv_offhand_1h_ulduarraid_d_01.jpg",
+        "gems": [],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      },
+      {
+        "slot": "Back",
+        "id": 102248,
+        "itemLevel": 608,
+        "quality": 5,
+        "icon": "inv_cape_pandaria_tigermelee_d_02.jpg",
+        "gems": [
+          {
+            "id": 76658,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          }
+        ],
+        "enchantID": 4424,
+        "enchantable": true,
+        "setID": null
+      },
+      {
+        "slot": "Main hand",
+        "id": 104508,
+        "itemLevel": 580,
+        "quality": 4,
+        "icon": "inv_mace_1h_orgrimmarraid_d_04.jpg",
+        "gems": [
+          {
+            "id": 76667,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          }
+        ],
+        "enchantID": 4444,
+        "enchantable": true,
+        "setID": null
+      },
+      {
+        "slot": "Off hand",
+        "id": 103775,
+        "itemLevel": 567,
+        "quality": 4,
+        "icon": "inv_hand_1h_orgrimmarraid_d_01.jpg",
+        "gems": [
+          {
+            "id": 76670,
+            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
+          }
+        ],
+        "enchantID": 4444,
+        "enchantable": true,
+        "setID": null
+      },
+      {
+        "slot": "Tabard",
+        "id": 89795,
+        "itemLevel": 1,
+        "quality": 3,
+        "icon": "inv_misc_tabard_lorewalkers.jpg",
+        "gems": [],
+        "enchantID": null,
+        "enchantable": false,
+        "setID": null
+      }
+    ],
+    "averageItemLevel": 566.8,
+    "missingEnchants": [],
+    "gems": 21
+  },
+  "resources": {
+    "energy": {
+      "max": 100,
+      "points": [
+        [92, 100],
+        [461, 100],
+        [1357, 100],
+        [1991, 100],
+        [2199, 100],
+        [2382, 100],
+        [2577, 63],
+        [3113, 69],
+        [3337, 72],
+        [3647, 76],
+        [3921, 81],
+        [3923, 81],
+        [4200, 84],
+        [4444, 87],
+        [4931, 92],
+        [5532, 100],
+        [5688, 100],
+        [5690, 100],
+        [6110, 100],
+        [6610, 100],
+        [6763, 100],
+        [7109, 100],
+        [7409, 100],
+        [7842, 65],
+        [8115, 65],
+        [9119, 73],
+        [9664, 86],
+        [9682, 89],
+        [10123, 91],
+        [10391, 91],
+        [10431, 99],
+        [10689, 69],
+        [11124, 69],
+        [11428, 82],
+        [11699, 52],
+        [12117, 58],
+        [12226, 58],
+        [12422, 66],
+        [12695, 80],
+        [12804, 83],
+        [13107, 83],
+        [13396, 92],
+        [13692, 100],
+        [14398, 100],
+        [14602, 60],
+        [14722, 70],
+        [15694, 100],
+        [16073, 100],
+        [16668, 100],
+        [17372, 100],
+        [17544, 60],
+        [18123, 69],
+        [18369, 76],
+        [19021, 85],
+        [19646, 92],
+        [20109, 100],
+        [20391, 100],
+        [21470, 100],
+        [22014, 100],
+        [22074, 100],
+        [22248, 100],
+        [22437, 100],
+        [22521, 100],
+        [22649, 60],
+        [22996, 60],
+        [23276, 66],
+        [23918, 73],
+        [24090, 79],
+        [24559, 86],
+        [24561, 46],
+        [24803, 46],
+        [25194, 52],
+        [25543, 59],
+        [25815, 59],
+        [25909, 59],
+        [26454, 67],
+        [26642, 74],
+        [27091, 74],
+        [27367, 83],
+        [27544, 85],
+        [27720, 45],
+        [27850, 49],
+        [28366, 52],
+        [29072, 65],
+        [29130, 65],
+        [29540, 73],
+        [29720, 76],
+        [30110, 82],
+        [30550, 89],
+        [31008, 50],
+        [31557, 65],
+        [31582, 65],
+        [33040, 82],
+        [33552, 98],
+        [33941, 58],
+        [35401, 74],
+        [35568, 90],
+        [36572, 100],
+        [36797, 60],
+        [37064, 66],
+        [37524, 72],
+        [38073, 78],
+        [38278, 82],
+        [38587, 86],
+        [38743, 48],
+        [39489, 58],
+        [39589, 59],
+        [39813, 59],
+        [40705, 74],
+        [41177, 78],
+        [41594, 82],
+        [41937, 43],
+        [42602, 52],
+        [43564, 62],
+        [44408, 69],
+        [44502, 72],
+        [45457, 81],
+        [45845, 85],
+        [45913, 85],
+        [46135, 89],
+        [46875, 50],
+        [48148, 69],
+        [49354, 39],
+        [49760, 42],
+        [50345, 50],
+        [50653, 50],
+        [51169, 59],
+        [51847, 59],
+        [52162, 69],
+        [53022, 30],
+        [54187, 49],
+        [54315, 9],
+        [54500, 12],
+        [56074, 28],
+        [56574, 34],
+        [57355, 44],
+        [58090, 53],
+        [59049, 63],
+        [59162, 63],
+        [59210, 64],
+        [60644, 38],
+        [61677, 49],
+        [62197, 44],
+        [62211, 46],
+        [63027, 54],
+        [63797, 22],
+        [64727, 29],
+        [65652, 41],
+        [66014, 4],
+        [66148, 4],
+        [67080, 15],
+        [67284, 15],
+        [68553, 31],
+        [69200, 36],
+        [69640, 44],
+        [70004, 9],
+        [71083, 17],
+        [71107, 22],
+        [71893, 32],
+        [72030, 34],
+        [72349, 37],
+        [72388, 38],
+        [72698, 42],
+        [73032, 14],
+        [73158, 18],
+        [73635, 22],
+        [73647, 24],
+        [74037, 36],
+        [74435, 44],
+        [74704, 47],
+        [74893, 7],
+        [74933, 10],
+        [75051, 21],
+        [75718, 30],
+        [76041, 43],
+        [76164, 43],
+        [76314, 43],
+        [77025, 65],
+        [77350, 70],
+        [78000, 38],
+        [78024, 48],
+        [78352, 52],
+        [79268, 64],
+        [79353, 65],
+        [79573, 28],
+        [80555, 40],
+        [82276, 61],
+        [82374, 62],
+        [82523, 22],
+        [83248, 33],
+        [83554, 37],
+        [84378, 47],
+        [85017, 52],
+        [85055, 55],
+        [85391, 60],
+        [85454, 20],
+        [86319, 21],
+        [86398, 32],
+        [86468, 32],
+        [86910, 38],
+        [87216, 42],
+        [87218, 42],
+        [87375, 42],
+        [88816, 62],
+        [88866, 62],
+        [89730, 73],
+        [90729, 46],
+        [90755, 46],
+        [92111, 62],
+        [92646, 68],
+        [92663, 70],
+        [92739, 71],
+        [93088, 34],
+        [93747, 43],
+        [94021, 45],
+        [94578, 52],
+        [95016, 59],
+        [95754, 68],
+        [95977, 31],
+        [96276, 35],
+        [97759, 51],
+        [99385, 27],
+        [100297, 35],
+        [100381, 37],
+        [102749, 38],
+        [102749, 38],
+        [103329, 46],
+        [104105, 13],
+        [104859, 21],
+        [104986, 21],
+        [104988, 21],
+        [105384, 27],
+        [105615, 27],
+        [105616, 27],
+        [106182, 35],
+        [106279, 35],
+        [106433, 37],
+        [106519, 37],
+        [106641, 37],
+        [107252, 45],
+        [107745, 48],
+        [107996, 48],
+        [107996, 48],
+        [110220, 75],
+        [110367, 75],
+        [110420, 78],
+        [111594, 90],
+        [112606, 60],
+        [112703, 60],
+        [112717, 60],
+        [112717, 60],
+        [114325, 77],
+        [114616, 80],
+        [115092, 85],
+        [115092, 85],
+        [115173, 85],
+        [115635, 90],
+        [116643, 60],
+        [116672, 61],
+        [116672, 61],
+        [116696, 61],
+        [116698, 61],
+        [117671, 73],
+        [117989, 77],
+        [117989, 77],
+        [118640, 85],
+        [119410, 95],
+        [120122, 95],
+        [120189, 100],
+        [120948, 100],
+        [121708, 100],
+        [121786, 100],
+        [121786, 100],
+        [121790, 100],
+        [123700, 84],
+        [124270, 91],
+        [124968, 60],
+        [124969, 60],
+        [125275, 63],
+        [125702, 65],
+        [125703, 65],
+        [126236, 75],
+        [126238, 75],
+        [126291, 76],
+        [126364, 36],
+        [128135, 49],
+        [128843, 67],
+        [129290, 73],
+        [130049, 42],
+        [130091, 43],
+        [131319, 56],
+        [131693, 63],
+        [131973, 23],
+        [131973, 23],
+        [133330, 43],
+        [133712, 48],
+        [133800, 8],
+        [133880, 8],
+        [133881, 8],
+        [134338, 21],
+        [135323, 41],
+        [135725, 53],
+        [135782, 53],
+        [135782, 53],
+        [136259, 54],
+        [136335, 64],
+        [137338, 74],
+        [137605, 96],
+        [138328, 74],
+        [138739, 79],
+        [139344, 95],
+        [139601, 99],
+        [139616, 100],
+        [141513, 84],
+        [141513, 84],
+        [142101, 87],
+        [142200, 87],
+        [142641, 98],
+        [142790, 60],
+        [142790, 60],
+        [143643, 70],
+        [144065, 36],
+        [144160, 36],
+        [145350, 51],
+        [145350, 51],
+        [145865, 55],
+        [146621, 67],
+        [146668, 68],
+        [148539, 51],
+        [148539, 51],
+        [149677, 65],
+        [149822, 27],
+        [149823, 27],
+        [149825, 27],
+        [150270, 27],
+        [151086, 43],
+        [151682, 50],
+        [152339, 50],
+        [152691, 62],
+        [152994, 22],
+        [152994, 22],
+        [153093, 27],
+        [153278, 30],
+        [153688, 35],
+        [154494, 35],
+        [154551, 46],
+        [154554, 46],
+        [154653, 46],
+        [154810, 47],
+        [154887, 50],
+        [154990, 50],
+        [154991, 50],
+        [154992, 50],
+        [155901, 60],
+        [156015, 64],
+        [156184, 66],
+        [156640, 66],
+        [157279, 78],
+        [157322, 78],
+        [157446, 78],
+        [157466, 82],
+        [157466, 82],
+        [158750, 90],
+        [159522, 100],
+        [159763, 100],
+        [160868, 100],
+        [162231, 100],
+        [162705, 100],
+        [162848, 60],
+        [162848, 60],
+        [162972, 60],
+        [164719, 72],
+        [165083, 82],
+        [165213, 82],
+        [165213, 82],
+        [165891, 92],
+        [166094, 52],
+        [166332, 52],
+        [166891, 62],
+        [167193, 62],
+        [167566, 62],
+        [167604, 70],
+        [167919, 74],
+        [168518, 82],
+        [168870, 82],
+        [168896, 87],
+        [169728, 47],
+        [169732, 47],
+        [169733, 47],
+        [169814, 47],
+        [169894, 59],
+        [170053, 19],
+        [170145, 19],
+        [170737, 19],
+        [170904, 32],
+        [171389, 32],
+        [171390, 32],
+        [171691, 41],
+        [171907, 44],
+        [172169, 44],
+        [172183, 44],
+        [172842, 56],
+        [173291, 56],
+        [173291, 56],
+        [173567, 63],
+        [173894, 69],
+        [173917, 69],
+        [174296, 29],
+        [175207, 42],
+        [176111, 55],
+        [176412, 55],
+        [177100, 66],
+        [177100, 66],
+        [177938, 79],
+        [178505, 39],
+        [178596, 39],
+        [179029, 51],
+        [179949, 64],
+        [180628, 24],
+        [180942, 24],
+        [180942, 24],
+        [181061, 36],
+        [181549, 44],
+        [182560, 16],
+        [183537, 27],
+        [183906, 33],
+        [184753, 42],
+        [184753, 42],
+        [185014, 47],
+        [185267, 50],
+        [186015, 13],
+        [186665, 27],
+        [186665, 27],
+        [187935, 43],
+        [187935, 43],
+        [188283, 47],
+        [188484, 8],
+        [189204, 19],
+        [189204, 19],
+        [189300, 20],
+        [190982, 32],
+        [191116, 32],
+        [191116, 32],
+        [191309, 45],
+        [191986, 50],
+        [192998, 65],
+        [193023, 65],
+        [193023, 65],
+        [193452, 71],
+        [193818, 36],
+        [194929, 48],
+        [196470, 69],
+        [196844, 30],
+        [196844, 30],
+        [198479, 54],
+        [199258, 23],
+        [199721, 26],
+        [200027, 33],
+        [200028, 33],
+        [200266, 45],
+        [201047, 55],
+        [201049, 55],
+        [201201, 55],
+        [201262, 65],
+        [201294, 68],
+        [202269, 90],
+        [202506, 94],
+        [202571, 54],
+        [202571, 54],
+        [203269, 66],
+        [204028, 76],
+        [204276, 86],
+        [204479, 96],
+        [204479, 96],
+        [204827, 100],
+        [204984, 100],
+        [205825, 100],
+        [206271, 60],
+        [206382, 67],
+        [206382, 67],
+        [207648, 83],
+        [207649, 83],
+        [207839, 85],
+        [208839, 98],
+        [210839, 81],
+        [210839, 81],
+        [211280, 88],
+        [212276, 100],
+        [212750, 63],
+        [212750, 63],
+        [213470, 73],
+        [214659, 88],
+        [214659, 88],
+        [214795, 91],
+        [215796, 64],
+        [216567, 32],
+        [217797, 49],
+        [218472, 57],
+        [218472, 57],
+        [218698, 60],
+        [218798, 61],
+        [219425, 21],
+        [220375, 34],
+        [220375, 34],
+        [220810, 46],
+        [221198, 46],
+        [221817, 59],
+        [222291, 19],
+        [222292, 19],
+        [222815, 31],
+        [223588, 41],
+        [223652, 41],
+        [223669, 41],
+        [224355, 50],
+        [225119, 60],
+        [225890, 69],
+        [226113, 69],
+        [226113, 69],
+        [226129, 69],
+        [226974, 83],
+        [227885, 43],
+        [228045, 55],
+        [228620, 63],
+        [229926, 68],
+        [229975, 80],
+        [229995, 80],
+        [231090, 80],
+        [231535, 91],
+        [231848, 55],
+        [231957, 55],
+        [232434, 63],
+        [232536, 64],
+        [233857, 76],
+        [234734, 90],
+        [234734, 90],
+        [235262, 91],
+        [235655, 100],
+        [236666, 73],
+        [236826, 73],
+        [236826, 73],
+        [236935, 76],
+        [237576, 83],
+        [237665, 85],
+        [237995, 45],
+        [238084, 45],
+        [238415, 45],
+        [238829, 58],
+        [238918, 58],
+        [239238, 58],
+        [239490, 58],
+        [239645, 58],
+        [240053, 71],
+        [240479, 71],
+        [240614, 71],
+        [240889, 83],
+        [240890, 83],
+        [241021, 83],
+        [241021, 83],
+        [241132, 88],
+        [241134, 88],
+        [241301, 88],
+        [241716, 95],
+        [242124, 98],
+        [242356, 100],
+        [242542, 60],
+        [242963, 66],
+        [243107, 66],
+        [243368, 73],
+        [243369, 73],
+        [243791, 77],
+        [244193, 81],
+        [245215, 90],
+        [245215, 90],
+        [245376, 97],
+        [247299, 81],
+        [247300, 81],
+        [247382, 82],
+        [248384, 55],
+        [249543, 66],
+        [249615, 66],
+        [249615, 66],
+        [250388, 75],
+        [252215, 45],
+        [252216, 45],
+        [252403, 55],
+        [254830, 25],
+        [255011, 41]
+      ]
+    },
+    "chi": {
+      "max": 4,
+      "points": [
+        [3385, 4],
+        [4400, 4],
+        [5417, 2],
+        [6407, 3],
+        [8420, 3],
+        [9421, 1],
+        [12806, 4],
+        [15355, 3],
+        [16370, 1],
+        [19386, 2],
+        [23531, 2],
+        [26540, 2],
+        [28549, 3],
+        [32555, 3],
+        [34566, 3],
+        [37586, 3],
+        [40589, 3],
+        [42604, 3],
+        [47154, 2],
+        [49163, 3],
+        [50161, 1],
+        [53166, 2],
+        [55175, 3],
+        [58213, 1],
+        [60211, 2],
+        [64046, 2],
+        [67687, 2],
+        [70648, 3],
+        [71656, 1],
+        [73696, 2],
+        [80356, 4],
+        [81362, 2],
+        [83378, 2],
+        [87392, 4],
+        [88392, 2],
+        [91735, 2],
+        [94747, 2],
+        [96751, 2],
+        [102129, 2],
+        [104777, 3],
+        [106786, 1],
+        [113617, 2],
+        [117637, 4],
+        [118642, 3],
+        [122799, 2],
+        [127275, 4],
+        [128273, 2],
+        [130579, 2],
+        [132696, 3],
+        [134717, 3],
+        [138611, 3],
+        [140625, 3],
+        [141645, 2],
+        [144671, 4],
+        [147678, 4],
+        [148682, 3],
+        [150675, 3],
+        [151682, 1],
+        [155027, 4],
+        [157025, 3],
+        [158022, 2],
+        [163882, 2],
+        [164885, 1],
+        [167896, 2],
+        [172911, 4],
+        [174915, 4],
+        [175923, 3],
+        [176924, 2],
+        [178941, 2],
+        [182562, 4],
+        [186271, 3],
+        [187270, 1],
+        [192453, 2],
+        [194450, 3],
+        [195463, 1],
+        [197482, 2],
+        [199489, 2],
+        [200504, 2],
+        [201498, 2],
+        [203520, 2],
+        [206845, 2],
+        [209844, 2],
+        [213282, 2],
+        [216788, 4],
+        [219803, 4],
+        [222817, 4],
+        [228001, 3],
+        [228979, 1],
+        [233545, 2],
+        [234539, 1],
+        [236663, 2],
+        [238695, 2],
+        [239678, 1],
+        [241349, 2],
+        [244363, 2],
+        [246381, 2],
+        [249389, 2],
+        [251393, 2],
+        [253421, 2]
+      ],
+      "wasted": [
+        {
+          "t": 79353,
+          "wasted": 2
+        },
+        {
+          "t": 87218,
+          "wasted": 1
+        },
+        {
+          "t": 146668,
+          "wasted": 1
+        },
+        {
+          "t": 173917,
+          "wasted": 1
+        },
+        {
+          "t": 221817,
+          "wasted": 1
+        }
+      ]
+    }
+  },
   "misses": [
     {
       "kind": "Rune proc unsnapshotted (Mastery)",
@@ -1632,6 +6276,12 @@
       "at": 9421,
       "detail": "no Combo Breaker, and Tiger Power still had 16s",
       "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6791115&end=6797115"
+    },
+    {
+      "kind": "Energizing Brew held through",
+      "at": 9682,
+      "detail": "pressed under Time Warp with no Rushing Jade Wind in the build, which is what would allow it",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6791376&end=6797376"
     },
     {
       "kind": "Partial brew",

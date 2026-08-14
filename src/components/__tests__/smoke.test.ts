@@ -329,6 +329,37 @@ export const base: Analysis = {
 		],
 	},
 	comboBreaker: [{ id: 116768, label: 'Blackout Kick', procs: 9, wasted: 1 }],
+	gear: {
+		slots: [
+			{
+				slot: 'Head',
+				id: 99178,
+				itemLevel: 553,
+				quality: 4,
+				icon: 'inv_helm_leather_raidmonk_o_01.jpg',
+				gems: [{ id: 76680, icon: 'inv_misc_gem_x4.jpg' }],
+				enchantID: null,
+				enchantable: false,
+				// Both pieces share a set, so rendering this exercises the tier grouping that feeds the
+				// Wowhead tooltip rather than only the not-in-a-set path every other slot takes.
+				setID: 1108,
+			},
+			{
+				slot: 'Chest',
+				id: 104556,
+				itemLevel: 580,
+				quality: 4,
+				icon: 'inv_chest_leather_raidmonk_o_01.jpg',
+				gems: [],
+				enchantID: null,
+				enchantable: true,
+				setID: 1108,
+			},
+		],
+		averageItemLevel: 566.5,
+		missingEnchants: ['Chest'],
+		gems: 1,
+	},
 	misses: [
 		{
 			kind: 'Tiger Palm wasted',

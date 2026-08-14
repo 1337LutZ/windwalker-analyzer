@@ -13,8 +13,18 @@ import ChartKey from './ChartKey';
 import type { ChartTheme, TipContent } from './apex';
 import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip } from './apex';
 
-/** Tall enough that a 14px row label is not crowded by the rows above and below it. */
-const ROW_HEIGHT = 32;
+/**
+ * Row height, on a 4px grid shared by every chart in the report.
+ *
+ * 48 for the two that carry an icon beside each row — the pull timeline and the Rising Sun Kick
+ * debuff — because a 24px icon in a 34px row leaves no air, and because those two are read against
+ * each other. 24 for the rest, which are bars and text.
+ *
+ * Picked as a grid rather than per chart: five charts had five heights (32, 34, 38, 46, 34), which is
+ * five arbitrary numbers rather than a system, and two timelines of the same pull sitting at
+ * different pitches read as two different tools.
+ */
+const ROW_HEIGHT = 24;
 const CHROME = 88;
 
 interface Bar {
@@ -82,7 +92,7 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 						// player read it and was late, which is a different thing to not going for it.
 						w.missedByMs !== null
 							? (['brewed', `${formatGap(w.missedByMs)} too late`] as [string, string])
-							: (['brewed at', w.redundant ? 'never — redundant repeat' : 'never'] as [string, string]),
+							: (['brewed at', w.redundant ? 'never — the same stat was already held' : 'never'] as [string, string]),
 						...backToBack(w),
 					],
 				},

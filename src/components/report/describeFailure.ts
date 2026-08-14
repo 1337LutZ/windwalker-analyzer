@@ -23,7 +23,7 @@ export function describeFailure(error: unknown): Failure {
 			case 'missing':
 				return {
 					tokenAtFault: false,
-					title: 'Not in that report',
+					title: 'Could not find that',
 					detail: error.message,
 				};
 			case 'rate-limit':
