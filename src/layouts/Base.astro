@@ -1,0 +1,44 @@
+---
+interface Props {
+	title: string;
+	description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<meta name="color-scheme" content="dark" />
+		{/*
+			Mirrors --color-bg in src/styles/global.css. A meta tag cannot read a CSS custom property,
+			and without it a phone browser paints its own light chrome above a dark page.
+		*/}
+		<meta name="theme-color" content="#0d1311" />
+		{/*
+			The whole privacy claim of this app is "your token only ever goes to
+			classic.warcraftlogs.com". A connect-src policy is the only version of that claim a visitor
+			can verify without reading our source, so ship one — the browser, not our code, enforces it.
+			It names the single MoP host rather than a wildcard, because that is the only host this app
+			has any business reaching. Production-only, because `astro dev` talks to an HMR websocket
+			this would block.
+		*/}
+		{
+			import.meta.env.PROD && (
+				<meta
+					http-equiv="Content-Security-Policy"
+					content="connect-src 'self' https://classic.warcraftlogs.com; img-src 'self' data: https://wow.zamimg.com; form-action 'none'; base-uri 'none'"
+				/>
+			)
+		}
+	</head>
+	<body class="bg-bg text-ink min-h-screen">
+		<slot />
+	</body>
+</html>

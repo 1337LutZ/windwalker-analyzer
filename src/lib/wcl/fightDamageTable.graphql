@@ -1,0 +1,16 @@
+# The damage-done table for one fight, viewed by source (the default).
+#
+# This is the only place the player's item level and WarcraftLogs' own damage total come from.
+# Recomputing either from events would disagree with the site — the event sum counts overkill — and
+# anyone cross-checking the report against the log would be told the analyser is wrong.
+#
+# `table` is the untyped JSON scalar, so codegen types it `unknown`; the shape is asserted in
+# client.ts and nowhere else.
+
+query FightDamageTable($code: String!, $fightID: Int!) {
+	reportData {
+		report(code: $code) {
+			table(dataType: DamageDone, fightIDs: [$fightID])
+		}
+	}
+}

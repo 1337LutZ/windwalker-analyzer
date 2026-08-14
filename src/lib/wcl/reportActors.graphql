@@ -1,0 +1,18 @@
+# The report's actor roster. Event payloads carry only report-local IDs, so this is the only way to
+# turn a sourceID or targetID into a name, and the only way to tell a player's pets from the player.
+
+query ReportActors($code: String!) {
+	reportData {
+		report(code: $code) {
+			masterData {
+				actors {
+					id
+					name
+					type
+					subType
+					petOwner
+				}
+			}
+		}
+	}
+}

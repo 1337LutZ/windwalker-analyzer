@@ -1,0 +1,14 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    // TypeScript 7 removed `baseUrl`. Without it, `paths` resolves relative to this file, so the
+    // mapping has to be written as an explicit relative path.
+    "paths": { "~/*": ["./src/*"] },
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
+}

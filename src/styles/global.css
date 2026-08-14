@@ -1,0 +1,162 @@
+@import 'tailwindcss';
+
+/* Dark only, deliberately — there is no light theme and no toggle.
+ *
+ * The palette is not improvised: these are the dark-mode values validated with a CVD/contrast
+ * checker while building the original static reports. Adjacent categorical pairs clear ΔE 13+ under
+ * deutan and tritan simulation, every hue sits inside the OKLCH L 0.48–0.67 band for a dark surface,
+ * and all clear 3:1 against the ground. Changing a hue means re-validating it, not eyeballing it.
+ *
+ * Colour carries meaning here, so it is named for the mechanic rather than for the hue:
+ *   brew  Tigereye Brew        rune  Re-Origination        kick  Rising Sun Kick
+ *   miss  a mistake or a drop  trk   an empty track
+ */
+@theme {
+	--color-bg: #0d1311;
+	--color-surface: #141c19;
+	--color-raised: #1a2420;
+	--color-line: #2b3833;
+
+	/* Body text is pure white. Everything readable sits at 8:1 or better against the ground — the
+	 * earlier palette technically passed AA but sat just over the line at ~5:1, which reads as washed
+	 * out rather than as contrast. */
+	--color-ink: #ffffff;
+	--color-ink-2: #dbe6e1;
+	--color-muted: #a3b5ad;
+
+	/* Accents, named for the mechanic they mean rather than the hue they are.
+	 *
+	 * These are brighter than the palette they replace and were re-checked, not eyeballed. Two
+	 * numbers matter and both were measured:
+	 *   - contrast against the ground: all >= 6.7:1, so they are legible as text, not just as marks
+	 *   - colour-blind separation: worst pair 8.4 dE under deuteranopia, all pairs, which clears the
+	 *     floor. The obvious brightening (a vivid green + a vivid red) collapsed to 4.6 dE and was
+	 *     rejected: it is the classic red/green collision, and here those two carry opposite
+	 *     meanings. `kick` is therefore teal rather than green, which is what buys the separation.
+	 *
+	 * They deliberately sit above the lightness band a chart-mark palette would use. That band
+	 * optimises marks on a dark ground; these double as text, and legibility won. */
+	--color-brew: #fbbf24;
+	--color-rune: #a78bfa;
+	--color-kick: #2dd4bf;
+	--color-miss: #fb7185;
+	/* `miss` mixed 45% into the ground. Not a category of its own and not part of the pairing above:
+	 * it decorates a `miss` bar, marking the part of it that runs past where the proc ended. It has
+	 * to read as the same red, weaker — a *lighter* tint would sit brighter than the bar it hangs
+	 * off, and the overshoot would shout louder than the miss it belongs to. */
+	--color-miss-soft: #783d45;
+	--color-track: #2b3833;
+
+	/* Faint row bands for grouping paired rows in dense tables. */
+	--color-band-warn: #2e1d1f;
+	--color-band-ok: #16302b;
+
+	--font-mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
+	--font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* The viewer's own theme must not bleed through: paint the ground explicitly. */
+html {
+	color-scheme: dark;
+	background: var(--color-bg);
+}
+
+body {
+	background: var(--color-bg);
+	color: var(--color-ink);
+	font-family: var(--font-sans);
+	/* 16px minimum for body copy. Anything smaller is a readability problem before it is a style
+	 * choice, and on iOS an input below 16px makes the browser zoom on focus. */
+	font-size: 1rem;
+	line-height: 1.6;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Digits that line up in columns should not jitter. */
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+	outline: 2px solid var(--color-kick);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* ApexCharts ships a light theme, so its tooltip chrome arrives white on a dark page: the container
+ * behind the tooltip, the axis tooltips, and the little arrow on each of those — which is a CSS
+ * triangle built from one coloured border edge, a different edge per placement.
+ *
+ * Set through the library's own custom properties rather than by restyling the elements. Overriding
+ * `border-color` directly would have to know which edge is the visible one for each of the four
+ * placements, and colouring all four turns the triangle into a square.
+ *
+ * The variables have to be set on the tooltip elements themselves, not on `.apexcharts-canvas`
+ * above them: ApexCharts declares them on the elements, and a declaration on the element always
+ * beats an inherited one however specific the ancestor selector is. Each selector is qualified with
+ * `.apexcharts-canvas` for the same reason — the library injects its stylesheet at runtime from
+ * inside the chart's SVG, so it lands after this file and wins any tie. */
+.apexcharts-canvas .apexcharts-xaxistooltip,
+.apexcharts-canvas .apexcharts-yaxistooltip {
+	--apx-axt-bg: var(--color-surface);
+	--apx-axt-border: var(--color-line);
+	--apx-axt-color: var(--color-ink-2);
+	--apx-axt-shadow: none;
+	font-family: var(--font-mono);
+}
+
+.apexcharts-canvas .apexcharts-tooltip {
+	--apx-tt-arrow-bg: var(--color-surface);
+	--apx-tt-arrow-shadow: none;
+	/* The tooltip markup paints its own surface and border — see `tip()` in `charts/apex.ts` — so the
+	 * container behind it only ever showed as a white halo around the corners. */
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+}
+
+/* The chart toolbar — zoom in, zoom out, pan, reset — and the context menu behind its own button.
+ *
+ * Same story as the tooltips above: a light-theme pill in white with slate icons, sitting on top of
+ * a dark chart. `.apexcharts-canvas` qualifies each selector to outweigh the library's runtime
+ * stylesheet, and the `button` element adds the extra weight needed to beat its two-class rules for
+ * `:hover` and `.apexcharts-selected`. */
+.apexcharts-canvas .apexcharts-toolbar {
+	background: var(--color-raised);
+	border: 1px solid var(--color-line);
+}
+
+.apexcharts-canvas .apexcharts-toolbar button {
+	color: var(--color-muted);
+}
+
+.apexcharts-canvas .apexcharts-toolbar button:hover {
+	background: var(--color-line);
+	color: var(--color-ink);
+}
+
+/* Which drag tool is armed. Teal is the app's "this one is active" accent — the same colour as the
+ * focus ring — rather than ApexCharts' default blue, which appears nowhere else on the page. */
+.apexcharts-canvas .apexcharts-toolbar button.apexcharts-selected {
+	background: var(--color-line);
+	color: var(--color-kick);
+}
+
+/* The menu's colours come from variables set on the canvas and read by the menu inside it, so an
+ * ancestor selector is the right place for them — unlike the axis tooltips, which declare their own.
+ * `html` supplies the weight to win the tie. */
+html .apexcharts-canvas {
+	--apx-menu-bg: var(--color-surface);
+	--apx-menu-fg: var(--color-ink-2);
+	--apx-menu-border: var(--color-line);
+	--apx-menu-hover: var(--color-raised);
+	--apx-menu-shadow: rgb(0 0 0 / 0.45);
+}

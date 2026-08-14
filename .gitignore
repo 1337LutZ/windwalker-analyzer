@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+*.local
+
+# Never commit credentials. This app is designed so a token never reaches a server, and the repo is
+# public — an API token that lands here is exposed to everyone, permanently, even if later deleted.
+.env
+.env.*
+!.env.example
+*.token
+public/_devtoken.json

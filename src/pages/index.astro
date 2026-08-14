@@ -1,0 +1,14 @@
+---
+import '~/styles/global.css';
+
+import Base from '~/layouts/Base.astro';
+import App from '~/components/App';
+---
+
+<Base
+	title="Windwalker analyzer"
+	description="Read a Mists of Pandaria Windwalker pull from its own event stream: brew discipline, Re-Origination snapshots, lost casts and a timestamped miss ledger. Runs entirely in your browser."
+>
+	{/* client:load, not client:visible: the island is the entire page, so there is nothing to defer. */}
+	<App client:load />
+</Base>

@@ -1,0 +1,43 @@
+# Report header plus every fight. `friendlyPlayers` is why one query can answer "which pulls was X
+# in" without a second request per fight.
+#
+# Every timestamp the API returns here is milliseconds relative to the report start, except the
+# report's own startTime/endTime, which are epoch.
+
+query ReportFights($code: String!) {
+	reportData {
+		report(code: $code) {
+			title
+			startTime
+			endTime
+			zone {
+				id
+				name
+				# The zone names its own difficulties, so the report can label a pull without this app
+				# holding a table of ids. The ids are not portable: on Classic, 4 is Heroic at either
+				# raid size, while the same id on retail means something else again — and raid size is
+				# a separate field, not part of the difficulty.
+				difficulties {
+					id
+					name
+				}
+			}
+			fights {
+				id
+				name
+				encounterID
+				kill
+				difficulty
+				size
+				fightPercentage
+				startTime
+				endTime
+				friendlyPlayers
+				enemyNPCs {
+					id
+					gameID
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,110 @@
+// Where the lines sit, and why each one sits there.
+//
+// These are the only numbers in the app that turn a measurement into a judgement, so each carries
+// the reasoning that put it where it is. A threshold nobody can argue with is a threshold nobody can
+// correct — if one of these is wrong, the comment is what makes it possible to see that.
+//
+// All of them were checked against three real pulls spanning strong, mediocre and poor play, so
+// none of them is a guess that happens to grade every pull the same colour.
+
+import type { Threshold } from './model';
+
+export const THRESHOLDS = {
+	/**
+	 * Share of available globals actually used.
+	 *
+	 * Windwalker is energy-gated with real downtime, so 100% is not the target and never happens.
+	 *
+	 * Calibrated against 25 real kills rather than guessed: they run 65.5% to 92.0%, median 82.6%. The
+	 * old 80/65 split put a *third* of that range below the bottom threshold, so no pull in the sample
+	 * could score `bad` at all — a band nothing reaches is a weight that only ever flatters. These cut
+	 * roughly at the sample's upper quartile and lower quartile, so the grade separates real pulls.
+	 */
+	gcdUtilisation: { good: 85, ok: 75, higherIsBetter: true },
+
+	/**
+	 * Share of Re-Origination procs converted into a Tigereye Brew.
+	 *
+	 * The spec's whole payoff. A brew during a proc freezes the converted stats for the brew's full
+	 * 15 seconds, so a missed proc is not a small loss. Catching most of them is the skill being
+	 * measured; catching under half means the pairing is not being played at all.
+	 *
+	 * Measured against the procs the bank could have paid for. Procs that arrived with too few stacks
+	 * to be worth a brew are not chances and never count against this.
+	 */
+	snapshotRate: { good: 70, ok: 45, higherIsBetter: true },
+
+	/**
+	 * How deep into the proc the brew landed, averaged over the procs that *were* caught.
+	 *
+	 * Conditional on snapshotting, which makes it a poor primary grade — a player who catches two
+	 * procs out of nine can post a better depth than one who catches twelve, because the average
+	 * only sees their two best moments. It grades the technique, never the discipline, and the copy
+	 * has to say which of the two it is talking about.
+	 *
+	 * Same recalibration as the globals above: the sample runs 51.6% to 96.2%, so nothing could reach
+	 * the old 45% floor either.
+	 */
+	snapshotDepth: { good: 80, ok: 65, higherIsBetter: true },
+
+	/**
+	 * Rising Sun Kick's debuff uptime against engaged time.
+	 *
+	 * A 15-second debuff on an 8-second cooldown, so the ceiling really is ~100% and the bar is
+	 * correspondingly high. Measured against engaged time rather than pull time, so intermissions
+	 * and target swaps do not read as mistakes.
+	 */
+	rskUptime: { good: 95, ok: 88, higherIsBetter: true },
+
+	/**
+	 * Share of Tiger Palm presses that bought nothing.
+	 *
+	 * Tiger Palm earns its global two ways: spending a free Combo Breaker proc, or refreshing Tiger
+	 * Power before it drops. Anything else clips a healthy buff and takes a global that Jab or
+	 * Blackout Kick wanted. A handful is noise; a third of them is a habit.
+	 */
+	tigerPalmWaste: { good: 10, ok: 30, higherIsBetter: false },
+
+	/**
+	 * Average stacks consumed per brew, out of the ten a full brew spends.
+	 *
+	 * This one grades tightly on purpose: brewing under a full ten is throwing away the difference,
+	 * and even weak pulls tend to land near the cap, so the interesting range is narrow.
+	 */
+	brewStacks: { good: 9.5, ok: 8.5, higherIsBetter: true },
+
+	/**
+	 * Stacks lost to sitting at the twenty-stack cap.
+	 *
+	 * Every stack gained at cap is a stack that never existed. Zero is genuinely achievable — it
+	 * only asks that a brew goes out before the bank fills — so anything above zero is a real miss
+	 * rather than a rounding error.
+	 */
+	brewCapWaste: { good: 0, ok: 5, higherIsBetter: false },
+} as const satisfies Record<string, Threshold>;
+
+export type MetricKey = keyof typeof THRESHOLDS;
+
+/**
+ * How much each metric moves the overall verdict.
+ *
+ * Snapshotting and globals carry the most because they are the two things a Windwalker most
+ * controls and that most change the damage. Brew-stack economy is weighted lightly: it barely
+ * separates good pulls from bad ones in practice, so letting it swing the headline would make the
+ * headline noisy.
+ */
+export const WEIGHTS: Record<MetricKey, number> = {
+	// The two things this spec is actually about, and the two that separate the sample most sharply:
+	// catch rate spreads 25–100% and Tiger Palm waste is frankly bimodal — players either have the
+	// habit or they do not.
+	snapshotRate: 4,
+	tigerPalmWaste: 3,
+	// Table stakes. Both are close to universally passed once the cast data is right, so they were
+	// carrying five of thirteen weight while telling the reader almost nothing; a pull could post
+	// three red sections and still come out `ok` on the strength of them.
+	gcdUtilisation: 2,
+	rskUptime: 2,
+	snapshotDepth: 1,
+	brewStacks: 1,
+	brewCapWaste: 1,
+};

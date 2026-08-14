@@ -1,0 +1,20 @@
+# Who was in one pull, already grouped into tanks / healers / dps, each with their class and the
+# spec WarcraftLogs resolved for them.
+#
+# This is the only thing that can name a spec on a Classic log. `combatantinfo` reports `specID` as
+# 0 on Mists of Pandaria reports, so the event stream itself cannot tell a Windwalker from a
+# Brewmaster — but `playerDetails` separates them correctly.
+#
+# It is also one point, and it runs *before* the several pages of events. Discovering after that
+# fetch that the chosen monk was a tank throws the whole fetch away.
+#
+# `playerDetails` is the untyped JSON scalar, so codegen types it `unknown`; the shape is narrowed
+# in client.ts and nowhere else.
+
+query FightPlayerDetails($code: String!, $fightID: Int!) {
+	reportData {
+		report(code: $code) {
+			playerDetails(fightIDs: [$fightID])
+		}
+	}
+}

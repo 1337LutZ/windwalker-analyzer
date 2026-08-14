@@ -1,0 +1,159 @@
+import { useCallback } from 'react';
+import type { ApexOptions } from 'apexcharts';
+import { useTranslation } from 'react-i18next';
+
+import type { Analysis } from '~/lib/types';
+
+import { fmt, sec } from '../format';
+import type { ChartEnv } from './ApexChart';
+import ApexChart from './ApexChart';
+import ChartEmpty from './ChartEmpty';
+import ChartKey from './ChartKey';
+import type { ChartTheme, TipContent } from './apex';
+import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
+
+const ROW_HEIGHT = 34;
+const CHROME = 96;
+
+/**
+ * A gap of a second or two is a real drop but too thin to hover, so every span is drawn at least
+ * this wide and its true length is left to the tooltip.
+ */
+const minimumSpan = (durationMs: number) => durationMs / 400;
+
+interface Span {
+	x: string;
+	y: [number, number];
+	fillColor: string;
+	meta: TipContent;
+}
+
+/**
+ * Rising Sun Kick's debuff across the pull: where it was up, where it fell off, and where the fight
+ * would not let it be up at all.
+ *
+ * Three tracks rather than one, because the third is what makes the second fair. A gap during an
+ * intermission is not a drop the player caused, and a single up/down bar cannot tell the two apart —
+ * it would show a phase transition as the same red as a missed global. Uptime is measured against
+ * engaged time for exactly this reason, and the chart has to agree with the number.
+ */
+export default function DebuffTimeline({ analysis }: { analysis: Analysis }) {
+	const { t } = useTranslation('report');
+	const { debuff } = analysis;
+
+	const build = useCallback(
+		({ theme, narrow, animate, touch }: ChartEnv): ApexOptions => {
+			const rows = {
+				up: t('debuff.track.up'),
+				dropped: t('debuff.track.dropped'),
+				away: t('debuff.track.away'),
+			};
+			const floor = minimumSpan(analysis.durationMs);
+			const span = (x: string, start: number, end: number, tone: keyof ChartTheme, meta: TipContent): Span => ({
+				x,
+				y: [start, Math.max(end, start + floor)],
+				fillColor: theme[tone] as string,
+				meta,
+			});
+
+			const spans: Span[] = [
+				...debuff.windows.map((w) =>
+					span(rows.up, w.start, w.end, 'kick', {
+						title: rows.up,
+						tone: 'kick',
+						rows: [
+							['from', fmt(w.start)],
+							['held for', `${sec(w.end - w.start)}s`],
+						],
+					}),
+				),
+				...debuff.drops.map((d) =>
+					span(rows.dropped, d.at, d.at + d.seconds * 1000, 'miss', {
+						title: rows.dropped,
+						tone: 'miss',
+						rows: [
+							['at', fmt(d.at)],
+							['off the target for', `${d.seconds}s`],
+						],
+					}),
+				),
+				// The complement of engaged time: the stretches the fight took away.
+				...gapsBetween(debuff.engagedSegments, analysis.durationMs).map(([start, end]) =>
+					span(rows.away, start, end, 'muted', {
+						title: rows.away,
+						tone: 'muted',
+						rows: [
+							['from', fmt(start)],
+							['for', `${sec(end - start)}s`],
+						],
+					}),
+				),
+			];
+
+			return {
+				chart: {
+					...baseChart({
+						id: 'ww-debuff',
+						type: 'rangeBar',
+						height: 3 * ROW_HEIGHT + CHROME,
+						theme,
+						animate,
+						scrubbable: true,
+						durationMs: analysis.durationMs,
+						touch,
+					}),
+				},
+				series: [{ name: 'debuff', data: spans }],
+				plotOptions: { bar: { horizontal: true, barHeight: '52%', borderRadius: 2, rangeBarGroupRows: false } },
+				dataLabels: { enabled: false },
+				legend: { show: false },
+				stroke: { width: 0 },
+				grid: baseGrid(theme),
+				xaxis: timeAxis(theme, analysis.durationMs, narrow),
+				yaxis: {
+					labels: {
+						maxWidth: narrow ? 96 : 150,
+						style: { colors: theme.ink2, fontSize: LABEL_FONT_SIZE, fontFamily: theme.mono },
+					},
+				},
+				tooltip: baseTooltip(theme),
+			};
+		},
+		[analysis.durationMs, debuff.windows, debuff.drops, debuff.engagedSegments, t],
+	);
+
+	if (debuff.windows.length === 0) {
+		return <ChartEmpty>{t('debuff.verdict', { context: 'none' })}</ChartEmpty>;
+	}
+
+	return (
+		<figure className="m-0 flex flex-col gap-3.5">
+			<ApexChart
+				build={build}
+				height={3 * ROW_HEIGHT + CHROME}
+				label={t('debuff.chartLabel', {
+					uptime: debuff.engagedUptimePct,
+					drops: debuff.drops.length,
+					lost: debuff.secondsLost,
+				})}
+			/>
+			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
+				<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
+				<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
+			</figcaption>
+		</figure>
+	);
+}
+
+/** The stretches *not* covered by `segments`, which is where the fight was out of reach. */
+function gapsBetween(segments: ReadonlyArray<readonly [number, number]>, durationMs: number): Array<[number, number]> {
+	const gaps: Array<[number, number]> = [];
+	let cursor = 0;
+	for (const [start, end] of [...segments].sort((a, b) => a[0] - b[0])) {
+		if (start > cursor) gaps.push([cursor, start]);
+		cursor = Math.max(cursor, end);
+	}
+	if (cursor < durationMs) gaps.push([cursor, durationMs]);
+	// A sliver either side of a segment boundary is rounding, not a phase.
+	return gaps.filter(([start, end]) => end - start > 1000);
+}

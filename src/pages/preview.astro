@@ -1,0 +1,19 @@
+---
+// TEMPORARY dev harness — delete before shipping. Renders captured fixtures so charts and copy can
+// be checked against real numbers without a token in the browser.
+import '~/styles/global.css';
+
+import PreviewSwitcher from '~/components/PreviewSwitcher';
+import Base from '~/layouts/Base.astro';
+import mixed from '~/lib/__fixtures__/mixed.json';
+import poor from '~/lib/__fixtures__/poor.json';
+import strong from '~/lib/__fixtures__/strong.json';
+
+const fixtures = { poor, mixed, strong } as never;
+---
+
+<Base title="Report preview" description="Fixture-driven render for chart and copy validation.">
+	<main class="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 pt-8 pb-16 sm:px-6 md:px-8 2xl:max-w-[1440px]">
+		<PreviewSwitcher client:load fixtures={fixtures} />
+	</main>
+</Base>

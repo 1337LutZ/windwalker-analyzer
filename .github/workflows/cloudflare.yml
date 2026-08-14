@@ -1,0 +1,53 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  # So a failed or superseded deploy can be re-run from the Actions tab without an empty commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One live site. Queue pushes rather than racing them, and never cancel a deploy mid-upload — that
+# is how a half-published site happens.
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # The gates that decide whether this build deserves to be published. A deploy that skips them
+      # publishes whatever happens to compile.
+      - run: npx prettier --check src/
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+      - run: npx astro check
+
+      # `src/pages/preview.astro` is a development harness: it renders committed fixtures so charts
+      # and copy can be checked without a token. It has no place on the public site, and removing
+      # the page removes its only import of the fixture JSON, so none of that data is bundled.
+      # Deleted here rather than from the repo so the harness stays available in `npm run dev`.
+      - name: Drop the fixture preview harness from the published build
+        run: rm -f src/pages/preview.astro
+
+      - run: npm run build
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # `--branch=main` marks this a production deployment. Without it Cloudflare treats the
+          # upload as a preview and the production URL never moves.
+          command: pages deploy dist --project-name=windwalker-analyzer --branch=main

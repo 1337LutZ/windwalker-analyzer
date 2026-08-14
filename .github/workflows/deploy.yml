@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+# Manual only. Cloudflare Pages is what publishes this site on a push (see `cloudflare.yml`); two
+# workflows deploying the same commit to two hosts means two live copies that drift apart, and only
+# one of them can hold the redirect URI registered with WarcraftLogs — the other's sign-in fails.
+#
+# Kept rather than deleted because it still works: it is the fallback if Cloudflare is ever the
+# wrong answer, and it sets `BASE_PATH` below because a GitHub project site is served under a path
+# prefix while the Cloudflare default is the domain root.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Pages has exactly one live deployment. Queue pushes instead of racing them, and never cancel a
+# deploy that is already uploading — that is how a half-published site happens.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # No `static_site_generator: astro` on purpose: that option injects its own site/base, and
+      # they are set explicitly below. Two sources of truth for `base` produce a site whose asset
+      # URLs 404.
+      - uses: actions/configure-pages@v5
+
+      # A GitHub project site lives under `/<repo>/`. The build defaults to the domain root for
+      # Cloudflare, so this path prefix has to be put back for a Pages build specifically.
+      - run: npm run build
+        env:
+          SITE_URL: https://1337lutz.github.io
+          BASE_PATH: /windwalker-analyzer
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

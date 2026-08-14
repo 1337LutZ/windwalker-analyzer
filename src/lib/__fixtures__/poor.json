@@ -1,0 +1,1883 @@
+{
+  "player": "Player (10)",
+  "code": "a:YBQzrcgVJnAj7NMP",
+  "fightID": 30,
+  "actorID": 10,
+  "encounter": "Malkorok",
+  "difficulty": 4,
+  "size": 10,
+  "difficultyName": "Heroic",
+  "kill": true,
+  "durationMs": 255196,
+  "itemLevel": 566,
+  "isSpec": true,
+  "specName": "Windwalker",
+  "primaryTarget": {
+    "id": 332,
+    "gameID": 71454
+  },
+  "damage": {
+    "wclTotal": 86958829,
+    "eventTotal": 91049942,
+    "dps": 340753.10349692,
+    "abilities": [
+      {
+        "id": 100784,
+        "name": "Blackout Kick",
+        "total": 16242011,
+        "hits": 210,
+        "crits": 24,
+        "share": 17.838573691787744,
+        "critPct": 11.428571428571429,
+        "avgHit": 77342.90952380952,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 1,
+        "name": "Melee",
+        "total": 15550662,
+        "hits": 265,
+        "crits": 144,
+        "share": 17.079266233909298,
+        "critPct": 54.339622641509436,
+        "avgHit": 58681.74339622642,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 107428,
+        "name": "Rising Sun Kick",
+        "total": 12726329,
+        "hits": 26,
+        "crits": 17,
+        "share": 13.977305993231715,
+        "critPct": 65.38461538461539,
+        "avgHit": 489474.1923076923,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 117418,
+        "name": "Fists of Fury",
+        "total": 5688168,
+        "hits": 19,
+        "crits": 11,
+        "share": 6.247305462314298,
+        "critPct": 57.89473684210527,
+        "avgHit": 299377.2631578947,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 132467,
+        "name": "Chi Wave",
+        "total": 5239343,
+        "hits": 39,
+        "crits": 9,
+        "share": 5.754361710631293,
+        "critPct": 23.076923076923077,
+        "avgHit": 134342.12820512822,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 147891,
+        "name": "Flurry of Xuen",
+        "total": 4326063,
+        "hits": 138,
+        "crits": 70,
+        "share": 4.751307804237811,
+        "critPct": 50.72463768115942,
+        "avgHit": 31348.282608695652,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 123996,
+        "name": "Crackling Tiger Lightning",
+        "total": 4159339,
+        "hits": 106,
+        "crits": 59,
+        "share": 4.568195112084751,
+        "critPct": 55.660377358490564,
+        "avgHit": 39239.04716981132,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 100787,
+        "name": "Tiger Palm",
+        "total": 4083296,
+        "hits": 41,
+        "crits": 22,
+        "share": 4.484677211546165,
+        "critPct": 53.65853658536586,
+        "avgHit": 99592.58536585367,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 115693,
+        "name": "Jab",
+        "total": 3930975,
+        "hits": 81,
+        "crits": 40,
+        "share": 4.317383310359495,
+        "critPct": 49.382716049382715,
+        "avgHit": 48530.555555555555,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 146061,
+        "name": "Multistrike",
+        "total": 3846108,
+        "hits": 123,
+        "crits": 0,
+        "share": 4.224174025283838,
+        "critPct": 0,
+        "avgHit": 31269.170731707316,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 137597,
+        "name": "Lightning Strike",
+        "total": 3594071,
+        "hits": 22,
+        "crits": 11,
+        "share": 3.9473622069962437,
+        "critPct": 50,
+        "avgHit": 163366.86363636365,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 120274,
+        "name": "Tiger Strikes",
+        "total": 3544303,
+        "hits": 40,
+        "crits": 20,
+        "share": 3.8927020952962277,
+        "critPct": 50,
+        "avgHit": 88607.575,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 124280,
+        "name": "Touch of Karma",
+        "total": 2215868,
+        "hits": 27,
+        "crits": 0,
+        "share": 2.433684142269964,
+        "critPct": 0,
+        "avgHit": 82069.18518518518,
+        "passive": false,
+        "utility": false
+      },
+      {
+        "id": 142928,
+        "name": "#142928",
+        "total": 2103981,
+        "hits": 7,
+        "crits": 0,
+        "share": 2.310798836093712,
+        "critPct": 0,
+        "avgHit": 300568.71428571426,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 120278,
+        "name": "Tiger Strikes",
+        "total": 1541752,
+        "hits": 40,
+        "crits": 20,
+        "share": 1.693303659655269,
+        "critPct": 50,
+        "avgHit": 38543.8,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": -8,
+        "name": "#-8",
+        "total": 1035851,
+        "hits": 147,
+        "crits": 80,
+        "share": 1.1376734320160249,
+        "critPct": 54.421768707483,
+        "avgHit": 7046.60544217687,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 120687,
+        "name": "Stormlash",
+        "total": 721446,
+        "hits": 7,
+        "crits": 3,
+        "share": 0.7923629429659604,
+        "critPct": 42.857142857142854,
+        "avgHit": 103063.71428571429,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 146075,
+        "name": "#146075",
+        "total": 384784,
+        "hits": 36,
+        "crits": 0,
+        "share": 0.4226076278005756,
+        "critPct": 0,
+        "avgHit": 10688.444444444445,
+        "passive": true,
+        "utility": false
+      },
+      {
+        "id": 123586,
+        "name": "Flying Serpent Kick",
+        "total": 115592,
+        "hits": 2,
+        "crits": 1,
+        "share": 0.12695450151961657,
+        "critPct": 50,
+        "avgHit": 57796,
+        "passive": false,
+        "utility": true
+      },
+      {
+        "id": 120086,
+        "name": "#120086",
+        "total": 0,
+        "hits": 18,
+        "crits": 0,
+        "share": 0,
+        "critPct": 0,
+        "avgHit": 0,
+        "passive": true,
+        "utility": false
+      }
+    ]
+  },
+  "cpm": {
+    "totalCpm": 51.4988865640117,
+    "onGcdCasts": 217,
+    "offGcdCasts": 294,
+    "gcdSlots": 252,
+    "gcdUtilisationPct": 90.15311228102097,
+    "channelSec": 15.9,
+    "activeMs": 252821,
+    "activePct": 99.0693427796674
+  },
+  "casts": [
+    {
+      "id": 1,
+      "name": "Melee",
+      "count": 265,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 62.89034534314792,
+      "cooldownSec": null,
+      "medianGapSec": 0.8,
+      "longestGapSec": 5.4,
+      "times": [
+        2382, 3113, 4200, 4931, 6028, 6763, 7842, 8584, 9664, 10391, 11492, 12226, 14602, 15208, 16073, 16668, 17544,
+        18123, 19021, 19646, 22248, 22996, 24090, 24803, 25909, 26642, 27367, 27850, 28586, 29072, 29720, 30110, 31008,
+        31582, 32475, 33040, 33941, 34505, 35401, 35982, 37064, 37524, 38278, 38743, 39489, 39950, 40705, 41177, 45913,
+        47386, 48282, 49760, 50653, 52129, 53022, 54500, 55088, 56074, 56574, 57355, 58090, 59049, 59667, 60644, 61251,
+        62211, 62833, 63797, 64726, 66148, 67080, 68438, 69200, 70357, 71107, 71893, 72388, 73158, 73647, 74435, 74933,
+        76093, 78000, 78308, 79268, 79573, 80555, 81008, 81976, 82276, 83248, 83554, 85017, 85454, 86910, 87375, 88816,
+        89277, 90755, 91194, 92646, 93088, 94578, 95016, 95977, 96276, 97378, 97736, 99575, 102749, 102749, 105615,
+        105616, 107996, 107996, 110367, 110367, 112717, 112717, 115092, 115092, 116672, 116672, 117989, 117989, 121786,
+        121786, 123696, 123700, 124968, 124969, 126236, 126238, 128135, 128135, 130049, 130049, 131973, 131973, 133880,
+        133881, 135782, 135782, 137683, 137683, 139601, 139601, 141513, 141513, 142790, 142790, 144063, 144065, 145350,
+        145350, 146619, 146621, 148539, 148539, 149822, 149823, 151086, 151086, 152994, 152994, 154991, 154992, 156184,
+        156185, 157466, 157466, 162848, 162848, 165213, 165213, 167566, 167566, 169732, 169733, 171389, 171390, 173291,
+        173291, 175207, 175207, 177100, 177100, 179028, 179029, 180942, 180942, 184753, 184753, 186665, 186665, 187935,
+        187935, 189204, 189204, 191116, 191116, 193023, 193023, 194929, 194929, 196844, 196844, 198749, 198750, 200027,
+        200028, 201294, 201294, 202571, 202571, 204479, 204479, 206382, 206382, 207648, 207649, 208960, 208960, 210839,
+        210839, 212750, 212750, 214659, 214659, 216567, 216567, 218472, 218472, 220375, 220375, 222291, 222292, 226113,
+        226113, 228045, 228045, 229926, 229926, 231848, 231848, 234734, 234734, 236826, 236826, 238918, 238918, 241021,
+        241021, 243107, 243107, 245215, 245215, 247299, 247300, 249615, 249615, 252215, 252216, 254830, 254831
+      ]
+    },
+    {
+      "id": 115693,
+      "name": "Jab",
+      "count": 81,
+      "onGcd": true,
+      "gate": "energy",
+      "cpm": 19.223086689792385,
+      "cooldownSec": null,
+      "medianGapSec": 3,
+      "longestGapSec": 10,
+      "times": [
+        2382, 7409, 10431, 11428, 14398, 17372, 22521, 24559, 27544, 30550, 33552, 36572, 38587, 41594, 46135, 48148,
+        52162, 54187, 59210, 61677, 63027, 65652, 69640, 72698, 74704, 77350, 79353, 82374, 85391, 89730, 92739, 95754,
+        97759, 103329, 111594, 115635, 121790, 124270, 126291, 129290, 131693, 133712, 137605, 139616, 142641, 143643,
+        146668, 149677, 152691, 162705, 165891, 168896, 169894, 173917, 177938, 179949, 181549, 185267, 188283, 193452,
+        196470, 198479, 202506, 205825, 208839, 212276, 214795, 215796, 218798, 221817, 226974, 229995, 231535, 235655,
+        237665, 242356, 245376, 247382, 250388, 252403, 255011
+      ]
+    },
+    {
+      "id": 100784,
+      "name": "Blackout Kick",
+      "count": 48,
+      "onGcd": true,
+      "gate": "chi",
+      "cpm": 11.391458779136228,
+      "cooldownSec": null,
+      "medianGapSec": 4,
+      "longestGapSec": 21.9,
+      "times": [
+        4400, 6407, 8420, 19386, 25543, 28549, 31557, 34566, 37586, 39589, 47154, 55175, 64046, 73696, 81362, 86398,
+        87392, 91735, 94747, 116643, 117637, 125275, 127275, 128273, 132696, 138611, 141645, 145865, 150675, 153688,
+        155027, 166891, 170904, 174915, 178941, 197482, 200504, 201498, 204827, 206845, 209844, 216788, 220810, 236663,
+        239678, 244363, 246381, 251393
+      ]
+    },
+    {
+      "id": 100787,
+      "name": "Tiger Palm",
+      "count": 41,
+      "onGcd": true,
+      "gate": "chi",
+      "cpm": 9.730204373845527,
+      "cooldownSec": null,
+      "medianGapSec": 5,
+      "longestGapSec": 20.6,
+      "times": [
+        5417, 9421, 16370, 26540, 29540, 50161, 53166, 58213, 67687, 71656, 75718, 78352, 83378, 90729, 93747, 102129,
+        106786, 112606, 130579, 135725, 140625, 144671, 147678, 151682, 157025, 163882, 164885, 172911, 175923, 187270,
+        192453, 195463, 199489, 217797, 219803, 228979, 233545, 234539, 238695, 248384, 253421
+      ]
+    },
+    {
+      "id": 107428,
+      "name": "Rising Sun Kick",
+      "count": 26,
+      "onGcd": true,
+      "gate": "cooldown",
+      "cpm": 6.170373505365457,
+      "cooldownSec": 8,
+      "medianGapSec": 9.2,
+      "longestGapSec": 14.7,
+      "times": [
+        3385, 15355, 23531, 32555, 40589, 49163, 60211, 70648, 80356, 88392, 96751, 104777, 113617, 122799, 134717,
+        148682, 158022, 167896, 176924, 186271, 194450, 203520, 213282, 228001, 241349, 249389
+      ]
+    },
+    {
+      "id": 115098,
+      "name": "Chi Wave",
+      "count": 12,
+      "onGcd": true,
+      "gate": "cooldown",
+      "cpm": 2.847864694784057,
+      "cooldownSec": 15,
+      "medianGapSec": 17.2,
+      "longestGapSec": 41.4,
+      "times": [1357, 18369, 35568, 51169, 84378, 99385, 114616, 156015, 171907, 189300, 207839, 243368]
+    },
+    {
+      "id": 115399,
+      "name": "Chi Brew",
+      "count": 7,
+      "onGcd": false,
+      "gate": "conditional",
+      "cpm": 1.6612544052907,
+      "cooldownSec": 45,
+      "medianGapSec": 40.1,
+      "longestGapSec": 81.5,
+      "times": [3923, 5690, 87218, 116698, 154554, 201049, 241134]
+    },
+    {
+      "id": 1247275,
+      "name": "Tigereye Brew",
+      "count": 6,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 1.4239323473920285,
+      "cooldownSec": null,
+      "medianGapSec": 39,
+      "longestGapSec": 68.5,
+      "times": [12422, 45845, 114325, 153278, 168518, 236935]
+    },
+    {
+      "id": 113656,
+      "name": "Fists of Fury",
+      "count": 5,
+      "onGcd": true,
+      "gate": "conditional",
+      "cpm": 1.186610289493357,
+      "cooldownSec": 25,
+      "medianGapSec": 63.9,
+      "longestGapSec": 76,
+      "times": [12806, 42604, 118642, 182562, 222817]
+    },
+    {
+      "id": 126734,
+      "name": "Synapse Springs",
+      "count": 4,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 0.9492882315946857,
+      "cooldownSec": null,
+      "medianGapSec": 63.7,
+      "longestGapSec": 67.4,
+      "times": [2577, 70004, 130091, 193818]
+    },
+    {
+      "id": 115288,
+      "name": "Energizing Brew",
+      "count": 4,
+      "onGcd": false,
+      "gate": "conditional",
+      "cpm": 0.9492882315946857,
+      "cooldownSec": 60,
+      "medianGapSec": 62.3,
+      "longestGapSec": 65.9,
+      "times": [9682, 72030, 133330, 199258]
+    },
+    {
+      "id": 122470,
+      "name": "Touch of Karma",
+      "count": 3,
+      "onGcd": true,
+      "gate": "conditional",
+      "cpm": 0.7119661736960142,
+      "cooldownSec": 90,
+      "medianGapSec": 100.9,
+      "longestGapSec": 100.9,
+      "times": [20391, 110420, 211280]
+    },
+    {
+      "id": 105697,
+      "name": "Virmen's Bite",
+      "count": 2,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 0.47464411579734284,
+      "cooldownSec": null,
+      "medianGapSec": 154.8,
+      "longestGapSec": 154.8,
+      "times": [92, 154887]
+    },
+    {
+      "id": 109132,
+      "name": "Roll",
+      "count": 2,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 0.47464411579734284,
+      "cooldownSec": null,
+      "medianGapSec": 159.1,
+      "longestGapSec": 159.1,
+      "times": [461, 159522]
+    },
+    {
+      "id": 123904,
+      "name": "Invoke Xuen, the White Tiger",
+      "count": 2,
+      "onGcd": false,
+      "gate": "cooldown",
+      "cpm": 0.47464411579734284,
+      "cooldownSec": 180,
+      "medianGapSec": 182.8,
+      "longestGapSec": 182.8,
+      "times": [2199, 185014]
+    },
+    {
+      "id": 115450,
+      "name": "#115450",
+      "count": 1,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 0.23732205789867142,
+      "cooldownSec": null,
+      "medianGapSec": 0,
+      "longestGapSec": 0,
+      "times": [100381]
+    },
+    {
+      "id": 122783,
+      "name": "Diffuse Magic",
+      "count": 1,
+      "onGcd": false,
+      "gate": "other",
+      "cpm": 0.23732205789867142,
+      "cooldownSec": null,
+      "medianGapSec": 0,
+      "longestGapSec": 0,
+      "times": [191309]
+    },
+    {
+      "id": 101545,
+      "name": "Flying Serpent Kick",
+      "count": 1,
+      "onGcd": true,
+      "gate": "other",
+      "cpm": 0.23732205789867142,
+      "cooldownSec": null,
+      "medianGapSec": 0,
+      "longestGapSec": 0,
+      "times": [232536]
+    }
+  ],
+  "lostCasts": [
+    {
+      "id": 107428,
+      "name": "Rising Sun Kick",
+      "cooldownSec": 8,
+      "casts": 26,
+      "driftSec": 43.7,
+      "lostCasts": 5,
+      "openerSec": 1.2,
+      "tailSec": 0,
+      "worst": [
+        {
+          "at": 221282,
+          "seconds": 6.7,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7002976&end=7008976"
+        },
+        {
+          "at": 142717,
+          "seconds": 6,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6924411&end=6930411"
+        },
+        {
+          "at": 236001,
+          "seconds": 5.3,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7017695&end=7023695"
+        }
+      ]
+    },
+    {
+      "id": 115098,
+      "name": "Chi Wave",
+      "cooldownSec": 15,
+      "casts": 12,
+      "driftSec": 75.3,
+      "lostCasts": 5,
+      "openerSec": 0,
+      "tailSec": 0,
+      "worst": [
+        {
+          "at": 129616,
+          "seconds": 26.4,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6911310&end=6917310"
+        },
+        {
+          "at": 222839,
+          "seconds": 20.5,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7004533&end=7010533"
+        },
+        {
+          "at": 66169,
+          "seconds": 18.2,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6847863&end=6853863"
+        }
+      ]
+    },
+    {
+      "id": 123904,
+      "name": "Invoke Xuen, the White Tiger",
+      "cooldownSec": 180,
+      "casts": 2,
+      "driftSec": 2.8,
+      "lostCasts": 0,
+      "openerSec": 2.2,
+      "tailSec": 0,
+      "worst": [
+        {
+          "at": 182199,
+          "seconds": 2.8,
+          "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6963893&end=6969893"
+        }
+      ]
+    }
+  ],
+  "brew": {
+    "uses": 6,
+    "castCount": 6,
+    "totalConsumed": 57,
+    "avgConsumed": 9.5,
+    "fullUses": 5,
+    "refreshUses": 0,
+    "wastedAtCap": 10,
+    "maxStacks": 20,
+    "bankAtEnd": 17,
+    "uptimePct": 35.27876612486089,
+    "windows": [
+      {
+        "start": 12421,
+        "end": 27416,
+        "id": 1247275
+      },
+      {
+        "start": 45844,
+        "end": 60841,
+        "id": 1247275
+      },
+      {
+        "start": 114323,
+        "end": 129342,
+        "id": 1247275
+      },
+      {
+        "start": 153277,
+        "end": 168281,
+        "id": 1247275
+      },
+      {
+        "start": 168517,
+        "end": 183516,
+        "id": 1247275
+      },
+      {
+        "start": 236934,
+        "end": 251950,
+        "id": 1247275
+      }
+    ],
+    "useList": [
+      {
+        "t": 12420,
+        "before": 7,
+        "consumed": 7,
+        "window": {
+          "start": 12421,
+          "end": 27416,
+          "id": 1247275
+        },
+        "refresh": false
+      },
+      {
+        "t": 45842,
+        "before": 11,
+        "consumed": 10,
+        "window": {
+          "start": 45844,
+          "end": 60841,
+          "id": 1247275
+        },
+        "refresh": false
+      },
+      {
+        "t": 114322,
+        "before": 18,
+        "consumed": 10,
+        "window": {
+          "start": 114323,
+          "end": 129342,
+          "id": 1247275
+        },
+        "refresh": false
+      },
+      {
+        "t": 153276,
+        "before": 20,
+        "consumed": 10,
+        "window": {
+          "start": 153277,
+          "end": 168281,
+          "id": 1247275
+        },
+        "refresh": false
+      },
+      {
+        "t": 168516,
+        "before": 16,
+        "consumed": 10,
+        "window": {
+          "start": 168517,
+          "end": 183516,
+          "id": 1247275
+        },
+        "refresh": false
+      },
+      {
+        "t": 236933,
+        "before": 20,
+        "consumed": 10,
+        "window": {
+          "start": 236934,
+          "end": 251950,
+          "id": 1247275
+        },
+        "refresh": false
+      }
+    ],
+    "bankTimeline": [
+      [3407, 1],
+      [3921, 2],
+      [3921, 2],
+      [3922, 3],
+      [3922, 3],
+      [5414, 4],
+      [5415, 4],
+      [5688, 5],
+      [5689, 5],
+      [5689, 6],
+      [5689, 6],
+      [8418, 7],
+      [8418, 7],
+      [12420, 0],
+      [12831, 1],
+      [15384, 2],
+      [15384, 2],
+      [19384, 3],
+      [19384, 3],
+      [23557, 4],
+      [23558, 4],
+      [26538, 5],
+      [26538, 5],
+      [29539, 6],
+      [29539, 6],
+      [32576, 7],
+      [32576, 7],
+      [34563, 8],
+      [34564, 8],
+      [39587, 9],
+      [39588, 9],
+      [40611, 10],
+      [40611, 10],
+      [42628, 11],
+      [42628, 11],
+      [45842, 1],
+      [49188, 2],
+      [49188, 2],
+      [53164, 3],
+      [53164, 3],
+      [58211, 4],
+      [58211, 4],
+      [64044, 5],
+      [64044, 5],
+      [70672, 6],
+      [70673, 6],
+      [73693, 7],
+      [73693, 7],
+      [78351, 8],
+      [78351, 8],
+      [81360, 9],
+      [81360, 9],
+      [86396, 10],
+      [86396, 10],
+      [87216, 11],
+      [87216, 11],
+      [87217, 12],
+      [87217, 12],
+      [87389, 13],
+      [87389, 13],
+      [90727, 14],
+      [90728, 14],
+      [93745, 15],
+      [93745, 15],
+      [96772, 16],
+      [96772, 16],
+      [104780, 17],
+      [104780, 17],
+      [112605, 18],
+      [112605, 18],
+      [114322, 8],
+      [116641, 9],
+      [116641, 9],
+      [116696, 10],
+      [116697, 10],
+      [116697, 11],
+      [116697, 11],
+      [117635, 12],
+      [117635, 12],
+      [118667, 13],
+      [118667, 13],
+      [125273, 14],
+      [125273, 14],
+      [127272, 15],
+      [127273, 15],
+      [130576, 16],
+      [130576, 16],
+      [134744, 17],
+      [134744, 17],
+      [138608, 18],
+      [138608, 18],
+      [141642, 19],
+      [141642, 19],
+      [145861, 20],
+      [145863, 20],
+      [148684, 20],
+      [150673, 20],
+      [153276, 10],
+      [153687, 11],
+      [153687, 11],
+      [154551, 12],
+      [154552, 12],
+      [154552, 13],
+      [154552, 13],
+      [157022, 14],
+      [157022, 14],
+      [163879, 15],
+      [163880, 15],
+      [166889, 16],
+      [166890, 16],
+      [168516, 6],
+      [170902, 7],
+      [170903, 7],
+      [174913, 8],
+      [174913, 8],
+      [176944, 9],
+      [176944, 9],
+      [178938, 10],
+      [178938, 10],
+      [182589, 11],
+      [182589, 11],
+      [187267, 12],
+      [187267, 12],
+      [194472, 13],
+      [194472, 13],
+      [197479, 14],
+      [197480, 14],
+      [201047, 15],
+      [201047, 15],
+      [201048, 16],
+      [201048, 16],
+      [201492, 17],
+      [201493, 17],
+      [203555, 18],
+      [203555, 18],
+      [206842, 19],
+      [206842, 19],
+      [209841, 20],
+      [209842, 20],
+      [216786, 20],
+      [219800, 20],
+      [222841, 20],
+      [228007, 20],
+      [233543, 20],
+      [236661, 20],
+      [236933, 10],
+      [239676, 11],
+      [239676, 11],
+      [241132, 12],
+      [241132, 12],
+      [241133, 13],
+      [241133, 13],
+      [244361, 14],
+      [244361, 14],
+      [246379, 15],
+      [246379, 15],
+      [249417, 16],
+      [249417, 16],
+      [253418, 17],
+      [253418, 17]
+    ]
+  },
+  "procs": {
+    "procs": 9,
+    "snapshotted": 2,
+    "narrowlyMissed": 1,
+    "opportunities": 8,
+    "unaffordable": 1,
+    "stackFloor": 4,
+    "lastGcd": 1,
+    "late": 1,
+    "early": 0,
+    "unsnapshotted": 7,
+    "redundant": 0,
+    "sameAsPrevious": 8,
+    "backToBack": 1,
+    "backToBackWasted": 1,
+    "devaluedSec": 12.7,
+    "medianRemainingSec": 2.5,
+    "meanDepthPct": 86.13382994695226,
+    "secondsGivenAway": 69.4,
+    "brewsOutsideProc": 4,
+    "uptimePct": 33.946456841016314,
+    "statMix": {
+      "Mastery": 9
+    },
+    "lastGcdMs": 1000,
+    "lateMs": 3000,
+    "windows": [
+      {
+        "start": 2413,
+        "end": 12399,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 9986,
+        "stacksAvailable": 7,
+        "couldSnapshot": true,
+        "sameAsPrevious": false,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": false,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": 6990,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": null,
+        "b2bWaste": false,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": 21
+      },
+      {
+        "start": 19389,
+        "end": 29394,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 10005,
+        "stacksAvailable": 5,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": true,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": 6739,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": null,
+        "b2bWaste": false,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": null
+      },
+      {
+        "start": 36133,
+        "end": 46133,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 10000,
+        "stacksAvailable": 11,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": 45842,
+        "snapshotEnd": 60841,
+        "snapshotStacks": 10,
+        "brewEnd": 60841,
+        "remainingMs": 291,
+        "depthPct": 97.09,
+        "grade": "last-gcd",
+        "brewAlreadyUp": false,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 1,
+        "stacksInside": 10,
+        "gapToNextMs": 25,
+        "overlaps": [
+          {
+            "index": 3,
+            "stat": "Mastery",
+            "ms": 9984
+          },
+          {
+            "index": 4,
+            "stat": "Mastery",
+            "ms": 2718
+          }
+        ],
+        "devaluedMs": 12702,
+        "wastedMs": 12702,
+        "backToBack": true,
+        "backToBackWasted": true,
+        "b2bRole": "source",
+        "b2bWaste": true,
+        "b2bWith": [3, 4],
+        "nextStat": "Mastery",
+        "missedByMs": null
+      },
+      {
+        "start": 46158,
+        "end": 56142,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 9984,
+        "stacksAvailable": 3,
+        "couldSnapshot": false,
+        "sameAsPrevious": true,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": true,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": 1981,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": "follow-up",
+        "b2bWaste": true,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": null,
+        "overlapOfMs": 9984,
+        "overlapOfIndex": 2
+      },
+      {
+        "start": 58123,
+        "end": 68108,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 9985,
+        "stacksAvailable": 5,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": true,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": 28664,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": "follow-up",
+        "b2bWaste": true,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": null,
+        "overlapOfMs": 2718,
+        "overlapOfIndex": 2
+      },
+      {
+        "start": 96772,
+        "end": 106760,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 9988,
+        "stacksAvailable": 17,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": false,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": 51,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": null,
+        "b2bWaste": false,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": null
+      },
+      {
+        "start": 106811,
+        "end": 116802,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 9991,
+        "stacksAvailable": 18,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": 114322,
+        "snapshotEnd": 129322,
+        "snapshotStacks": 10,
+        "brewEnd": 129342,
+        "remainingMs": 2480,
+        "depthPct": 75.17765989390452,
+        "grade": "late",
+        "brewAlreadyUp": false,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 1,
+        "stacksInside": 10,
+        "gapToNextMs": 40666,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": null,
+        "b2bWaste": false,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": null
+      },
+      {
+        "start": 157468,
+        "end": 167475,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 10007,
+        "stacksAvailable": 16,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": true,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": 81037,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": null,
+        "b2bWaste": false,
+        "b2bWith": [],
+        "nextStat": "Mastery",
+        "missedByMs": null
+      },
+      {
+        "start": 248512,
+        "end": 255196,
+        "truncated": true,
+        "id": 139120,
+        "variant": "Mastery",
+        "spellID": 139120,
+        "stat": "Mastery",
+        "lengthMs": 6684,
+        "stacksAvailable": 17,
+        "couldSnapshot": true,
+        "sameAsPrevious": true,
+        "snapshotAt": null,
+        "snapshotEnd": null,
+        "snapshotStacks": null,
+        "brewEnd": null,
+        "remainingMs": null,
+        "depthPct": null,
+        "grade": "none",
+        "brewAlreadyUp": true,
+        "heldStat": null,
+        "redundant": false,
+        "brewCastInside": 0,
+        "stacksInside": 0,
+        "gapToNextMs": null,
+        "overlaps": [],
+        "devaluedMs": 0,
+        "wastedMs": 0,
+        "backToBack": false,
+        "backToBackWasted": false,
+        "b2bRole": null,
+        "b2bWaste": false,
+        "b2bWith": [],
+        "nextStat": null,
+        "missedByMs": null
+      }
+    ]
+  },
+  "debuff": {
+    "casts": 26,
+    "uptimeMs": 251773,
+    "uptimePct": 98.65867803570589,
+    "engagedMs": 252821,
+    "engagedUptimePct": 99.5360353768081,
+    "secondsLost": 0,
+    "intermissionSec": 0,
+    "drops": [],
+    "windows": [
+      {
+        "start": 3386,
+        "end": 255159
+      }
+    ],
+    "engagedSegments": [[2213, 255034]],
+    "primaryDamageShare": 96.3,
+    "singleTarget": true
+  },
+  "channel": {
+    "casts": 5,
+    "channelSec": 15.9,
+    "avgChannelSec": 3.2,
+    "withBrew": 3,
+    "inProc": 1,
+    "clean": 3,
+    "faulted": 2,
+    "energyCheckable": false,
+    "castList": [
+      {
+        "t": 12806,
+        "channelMs": 1590,
+        "ticks": 2,
+        "energizingBrew": true,
+        "rjwCovers": false,
+        "brewUp": true,
+        "procRemainingMs": null,
+        "faults": ["channelled through Energizing Brew with no Rushing Jade Wind covering it"],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6794500&end=6800500"
+      },
+      {
+        "t": 42604,
+        "channelMs": 3853,
+        "ticks": 4,
+        "energizingBrew": false,
+        "rjwCovers": false,
+        "brewUp": false,
+        "procRemainingMs": 3529,
+        "faults": ["channelled inside a Rune proc with no brew holding the snapshot"],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6824298&end=6830298"
+      },
+      {
+        "t": 118642,
+        "channelMs": 4066,
+        "ticks": 5,
+        "energizingBrew": false,
+        "rjwCovers": false,
+        "brewUp": true,
+        "procRemainingMs": null,
+        "faults": [],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6900336&end=6906336"
+      },
+      {
+        "t": 182562,
+        "channelMs": 2344,
+        "ticks": 2,
+        "energizingBrew": false,
+        "rjwCovers": false,
+        "brewUp": true,
+        "procRemainingMs": null,
+        "faults": [],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6964256&end=6970256"
+      },
+      {
+        "t": 222817,
+        "channelMs": 4073,
+        "ticks": 5,
+        "energizingBrew": false,
+        "rjwCovers": false,
+        "brewUp": false,
+        "procRemainingMs": null,
+        "faults": [],
+        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7004511&end=7010511"
+      }
+    ]
+  },
+  "karma": {
+    "casts": 3,
+    "available": 3,
+    "reflected": 2215868,
+    "sharePct": 2.433684142269964,
+    "capPerUse": null,
+    "uses": [
+      {
+        "t": 20391,
+        "reflected": 723916,
+        "hits": 10,
+        "capPct": null
+      },
+      {
+        "t": 110420,
+        "reflected": 720992,
+        "hits": 10,
+        "capPct": null
+      },
+      {
+        "t": 211280,
+        "reflected": 770960,
+        "hits": 7,
+        "capPct": null
+      }
+    ]
+  },
+  "filler": {
+    "casts": 41,
+    "onProc": 9,
+    "applied": 2,
+    "refresh": 0,
+    "wasted": 30,
+    "refreshWindowSec": 1,
+    "buffUptimePct": 96.72526215144438,
+    "castList": [
+      {
+        "t": 5417,
+        "proc": false,
+        "buffLeftMs": 0,
+        "reason": "apply"
+      },
+      {
+        "t": 9421,
+        "proc": false,
+        "buffLeftMs": 15995,
+        "reason": "wasted"
+      },
+      {
+        "t": 16370,
+        "proc": false,
+        "buffLeftMs": 13049,
+        "reason": "wasted"
+      },
+      {
+        "t": 26540,
+        "proc": false,
+        "buffLeftMs": 9828,
+        "reason": "wasted"
+      },
+      {
+        "t": 29540,
+        "proc": true,
+        "buffLeftMs": 16999,
+        "reason": "proc"
+      },
+      {
+        "t": 50161,
+        "proc": false,
+        "buffLeftMs": 0,
+        "reason": "apply"
+      },
+      {
+        "t": 53166,
+        "proc": false,
+        "buffLeftMs": 16993,
+        "reason": "wasted"
+      },
+      {
+        "t": 58213,
+        "proc": false,
+        "buffLeftMs": 14952,
+        "reason": "wasted"
+      },
+      {
+        "t": 67687,
+        "proc": false,
+        "buffLeftMs": 10525,
+        "reason": "wasted"
+      },
+      {
+        "t": 71656,
+        "proc": false,
+        "buffLeftMs": 16029,
+        "reason": "wasted"
+      },
+      {
+        "t": 75718,
+        "proc": true,
+        "buffLeftMs": 15937,
+        "reason": "proc"
+      },
+      {
+        "t": 78352,
+        "proc": true,
+        "buffLeftMs": 17366,
+        "reason": "proc"
+      },
+      {
+        "t": 83378,
+        "proc": false,
+        "buffLeftMs": 14973,
+        "reason": "wasted"
+      },
+      {
+        "t": 90729,
+        "proc": true,
+        "buffLeftMs": 12647,
+        "reason": "proc"
+      },
+      {
+        "t": 93747,
+        "proc": true,
+        "buffLeftMs": 16981,
+        "reason": "proc"
+      },
+      {
+        "t": 102129,
+        "proc": false,
+        "buffLeftMs": 11617,
+        "reason": "wasted"
+      },
+      {
+        "t": 106786,
+        "proc": false,
+        "buffLeftMs": 15342,
+        "reason": "wasted"
+      },
+      {
+        "t": 112606,
+        "proc": true,
+        "buffLeftMs": 14178,
+        "reason": "proc"
+      },
+      {
+        "t": 130579,
+        "proc": false,
+        "buffLeftMs": 2027,
+        "reason": "wasted"
+      },
+      {
+        "t": 135725,
+        "proc": true,
+        "buffLeftMs": 14852,
+        "reason": "proc"
+      },
+      {
+        "t": 140625,
+        "proc": false,
+        "buffLeftMs": 15099,
+        "reason": "wasted"
+      },
+      {
+        "t": 144671,
+        "proc": false,
+        "buffLeftMs": 15952,
+        "reason": "wasted"
+      },
+      {
+        "t": 147678,
+        "proc": false,
+        "buffLeftMs": 16991,
+        "reason": "wasted"
+      },
+      {
+        "t": 151682,
+        "proc": false,
+        "buffLeftMs": 15994,
+        "reason": "wasted"
+      },
+      {
+        "t": 157025,
+        "proc": false,
+        "buffLeftMs": 14655,
+        "reason": "wasted"
+      },
+      {
+        "t": 163882,
+        "proc": false,
+        "buffLeftMs": 13141,
+        "reason": "wasted"
+      },
+      {
+        "t": 164885,
+        "proc": false,
+        "buffLeftMs": 18995,
+        "reason": "wasted"
+      },
+      {
+        "t": 172911,
+        "proc": false,
+        "buffLeftMs": 11973,
+        "reason": "wasted"
+      },
+      {
+        "t": 175923,
+        "proc": false,
+        "buffLeftMs": 16986,
+        "reason": "wasted"
+      },
+      {
+        "t": 187270,
+        "proc": false,
+        "buffLeftMs": 8651,
+        "reason": "wasted"
+      },
+      {
+        "t": 192453,
+        "proc": false,
+        "buffLeftMs": 14815,
+        "reason": "wasted"
+      },
+      {
+        "t": 195463,
+        "proc": false,
+        "buffLeftMs": 16989,
+        "reason": "wasted"
+      },
+      {
+        "t": 199489,
+        "proc": false,
+        "buffLeftMs": 15972,
+        "reason": "wasted"
+      },
+      {
+        "t": 217797,
+        "proc": true,
+        "buffLeftMs": 0,
+        "reason": "proc"
+      },
+      {
+        "t": 219803,
+        "proc": false,
+        "buffLeftMs": 17993,
+        "reason": "wasted"
+      },
+      {
+        "t": 228979,
+        "proc": false,
+        "buffLeftMs": 10822,
+        "reason": "wasted"
+      },
+      {
+        "t": 233545,
+        "proc": false,
+        "buffLeftMs": 15432,
+        "reason": "wasted"
+      },
+      {
+        "t": 234539,
+        "proc": false,
+        "buffLeftMs": 19005,
+        "reason": "wasted"
+      },
+      {
+        "t": 238695,
+        "proc": false,
+        "buffLeftMs": 15843,
+        "reason": "wasted"
+      },
+      {
+        "t": 248384,
+        "proc": true,
+        "buffLeftMs": 10309,
+        "reason": "proc"
+      },
+      {
+        "t": 253421,
+        "proc": false,
+        "buffLeftMs": 14962,
+        "reason": "wasted"
+      }
+    ]
+  },
+  "comboBreaker": [
+    {
+      "id": 118864,
+      "label": "Tiger Palm",
+      "procs": 9,
+      "wasted": 0
+    },
+    {
+      "id": 116768,
+      "label": "Blackout Kick",
+      "procs": 12,
+      "wasted": 0
+    }
+  ],
+  "misses": [
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 2413,
+      "detail": "brewed 21ms after the proc expired — read, but late",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6784107&end=6790107"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 9421,
+      "detail": "no Combo Breaker, and Tiger Power still had 16s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6791115&end=6797115"
+    },
+    {
+      "kind": "Partial brew",
+      "at": 12420,
+      "detail": "7 of 10 stacks",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6794114&end=6800114"
+    },
+    {
+      "kind": "Fists of Fury misplaced",
+      "at": 12806,
+      "detail": "channelled through Energizing Brew with no Rushing Jade Wind covering it",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6794500&end=6800500"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 16370,
+      "detail": "no Combo Breaker, and Tiger Power still had 13s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6798064&end=6804064"
+    },
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 19389,
+      "detail": "a brew was already running, holding no proc at all instead of Mastery",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6801083&end=6807083"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 26540,
+      "detail": "no Combo Breaker, and Tiger Power still had 9.8s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6808234&end=6814234"
+    },
+    {
+      "kind": "Fists of Fury misplaced",
+      "at": 42604,
+      "detail": "channelled inside a Rune proc with no brew holding the snapshot",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6824298&end=6830298"
+    },
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 46158,
+      "detail": "a brew was already running, holding no proc at all instead of Mastery",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6827852&end=6833852"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 53166,
+      "detail": "no Combo Breaker, and Tiger Power still had 17s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6834860&end=6840860"
+    },
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 58123,
+      "detail": "a brew was already running, holding no proc at all instead of Mastery",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6839817&end=6845817"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 58213,
+      "detail": "no Combo Breaker, and Tiger Power still had 15s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6839907&end=6845907"
+    },
+    {
+      "kind": "Chi Wave held",
+      "at": 66169,
+      "detail": "ready and unused for 18.2s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6847863&end=6853863"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 67687,
+      "detail": "no Combo Breaker, and Tiger Power still had 10.5s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6849381&end=6855381"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 71656,
+      "detail": "no Combo Breaker, and Tiger Power still had 16s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6853350&end=6859350"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 83378,
+      "detail": "no Combo Breaker, and Tiger Power still had 15s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6865072&end=6871072"
+    },
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 96772,
+      "detail": "proc expired with no brew cast at all",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6878466&end=6884466"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 102129,
+      "detail": "no Combo Breaker, and Tiger Power still had 11.6s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6883823&end=6889823"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 106786,
+      "detail": "no Combo Breaker, and Tiger Power still had 15.3s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6888480&end=6894480"
+    },
+    {
+      "kind": "Chi Wave held",
+      "at": 129616,
+      "detail": "ready and unused for 26.4s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6911310&end=6917310"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 130579,
+      "detail": "no Combo Breaker, and Tiger Power still had 2s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6912273&end=6918273"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 140625,
+      "detail": "no Combo Breaker, and Tiger Power still had 15.1s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6922319&end=6928319"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 144671,
+      "detail": "no Combo Breaker, and Tiger Power still had 16s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6926365&end=6932365"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 147678,
+      "detail": "no Combo Breaker, and Tiger Power still had 17s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6929372&end=6935372"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 151682,
+      "detail": "no Combo Breaker, and Tiger Power still had 16s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6933376&end=6939376"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 157025,
+      "detail": "no Combo Breaker, and Tiger Power still had 14.7s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6938719&end=6944719"
+    },
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 157468,
+      "detail": "a brew was already running, holding no proc at all instead of Mastery",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6939162&end=6945162"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 163882,
+      "detail": "no Combo Breaker, and Tiger Power still had 13.1s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6945576&end=6951576"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 164885,
+      "detail": "no Combo Breaker, and Tiger Power still had 19s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6946579&end=6952579"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 172911,
+      "detail": "no Combo Breaker, and Tiger Power still had 12s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6954605&end=6960605"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 175923,
+      "detail": "no Combo Breaker, and Tiger Power still had 17s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6957617&end=6963617"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 187270,
+      "detail": "no Combo Breaker, and Tiger Power still had 8.7s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6968964&end=6974964"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 192453,
+      "detail": "no Combo Breaker, and Tiger Power still had 14.8s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6974147&end=6980147"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 195463,
+      "detail": "no Combo Breaker, and Tiger Power still had 17s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6977157&end=6983157"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 199489,
+      "detail": "no Combo Breaker, and Tiger Power still had 16s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6981183&end=6987183"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 219803,
+      "detail": "no Combo Breaker, and Tiger Power still had 18s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7001497&end=7007497"
+    },
+    {
+      "kind": "Chi Wave held",
+      "at": 222839,
+      "detail": "ready and unused for 20.5s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7004533&end=7010533"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 228979,
+      "detail": "no Combo Breaker, and Tiger Power still had 10.8s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7010673&end=7016673"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 233545,
+      "detail": "no Combo Breaker, and Tiger Power still had 15.4s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7015239&end=7021239"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 234539,
+      "detail": "no Combo Breaker, and Tiger Power still had 19s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7016233&end=7022233"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 238695,
+      "detail": "no Combo Breaker, and Tiger Power still had 15.8s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7020389&end=7026389"
+    },
+    {
+      "kind": "Rune proc unsnapshotted (Mastery)",
+      "at": 248512,
+      "detail": "a brew was already running, holding no proc at all instead of Mastery",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7030206&end=7036206"
+    },
+    {
+      "kind": "Tiger Palm wasted",
+      "at": 253421,
+      "detail": "no Combo Breaker, and Tiger Power still had 15s",
+      "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=7035115&end=7041115"
+    }
+  ]
+}

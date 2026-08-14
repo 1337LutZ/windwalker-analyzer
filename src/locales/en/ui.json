@@ -1,0 +1,44 @@
+{
+  "app": {
+    "eyebrow": "Mists of Pandaria · Windwalker",
+    "title": "Windwalker analyzer",
+    "intro": "Read one Mists of Pandaria pull the way the spec is actually played: how full the Tigereye Brew bank was when it got spent, whether those brews landed on a Re-Origination proc, where the rotation leaked, and every mistake with a link back into the replay. It runs entirely in this tab.",
+    "privacy": "No server, no cookies, no analytics, nothing stored but your token and only until this tab closes. Open DevTools → Network while it runs: this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host — which are sent no token, no report code, and nothing else."
+  },
+  "steps": {
+    "signIn": "Sign in to WarcraftLogs",
+    "report": "Point it at a pull",
+    "fight": "Pick the fight",
+    "player": "Pick the player",
+    "thisTabOnly": "this tab only"
+  },
+  "chart": {
+    "drawing": "Drawing chart",
+    "empty": "There is nothing to draw for this pull."
+  },
+  "common": {
+    "change": "Change",
+    "kill": "kill",
+    "wipe": "wipe",
+    "wipeAt": "wipe at {{pct, percent}}"
+  },
+  "settings": {
+    "open": "Analysis settings",
+    "short": "Settings",
+    "title": "Analysis settings",
+    "intent": "Most of what this report judges is the spec's business and not yours to change. These are the exceptions — the thresholds that depend on you, or that the log cannot tell us.",
+    "leeway": {
+      "label": "Snapshot leeway",
+      "unit": "ms",
+      "hint": "How much of a Re-Origination proc's tail still counts as brewing on the last global. The default of {{default}}ms is one global, which is what the rotation asks for — raise it if your latency means the log records you later than you acted, or if you deliberately brew with a cushion. Between {{min}} and {{max}}ms."
+    },
+    "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull already loaded — it does not fetch anything from WarcraftLogs again.",
+    "save": "Save",
+    "reset": "Back to defaults",
+    "health": {
+      "label": "Maximum health",
+      "placeholder": "e.g. 750000",
+      "hint": "Touch of Karma redirects up to a full health pool per use, so this is the only way to show what a use could have returned. Mists Classic logs carry no health at all, which is why it has to be typed. Leave it blank and the report shows what each use did return and claims no ceiling."
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "windwalker-analyzer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Static, browser-only WarcraftLogs analyser for Mists of Pandaria Windwalker monks.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "npm run codegen && astro build",
+    "preview": "astro preview",
+    "check": "astro check && tsc --noEmit",
+    "test": "vitest run",
+    "codegen": "graphql-codegen --config codegen.ts"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.2",
+    "@base-ui/react": "^1.7.0",
+    "@tanstack/react-query": "^5.101.4",
+    "apexcharts": "^6.8.0",
+    "astro": "^7.2.1",
+    "date-fns": "^4.4.0",
+    "i18next": "^26.3.6",
+    "react": "^19.2.8",
+    "react-apexcharts": "^2.1.1",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.85.0",
+    "react-i18next": "^17.0.11"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@graphql-codegen/cli": "^7.2.0",
+    "@graphql-codegen/import-types-preset": "^4.0.1",
+    "@graphql-codegen/typescript": "^6.1.0",
+    "@graphql-codegen/typescript-operations": "^6.1.6",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "graphql": "^16.14.2",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

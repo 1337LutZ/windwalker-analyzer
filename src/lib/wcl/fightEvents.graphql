@@ -1,0 +1,31 @@
+# One page of every event the player was the source of.
+#
+# `dataType: All` on purpose. A query costs the same point whether it returns 61 bytes or 500 KB, and
+# `filterExpression` or a narrower `dataType` saves bandwidth but not points — so fetching casts,
+# buffs, debuffs and damage in one wide pass costs one point per page, while fetching them per
+# ability would cost one point per ability and still return strictly less.
+#
+# `limit` does not set the page size: the server pages on its own schedule and signals more data with
+# `nextPageTimestamp`. Callers must follow that cursor to exhaustion, or a nine-minute pull silently
+# becomes its first ninety seconds.
+#
+# `data` is the untyped JSON scalar — the schema cannot describe a combat-log event — so codegen
+# types it `unknown` and it is narrowed through ~/lib/events.
+
+query FightEvents($code: String!, $fightID: Int!, $sourceID: Int!, $startTime: Float!, $endTime: Float!) {
+	reportData {
+		report(code: $code) {
+			events(
+				fightIDs: [$fightID]
+				dataType: All
+				sourceID: $sourceID
+				startTime: $startTime
+				endTime: $endTime
+				limit: 10000
+			) {
+				data
+				nextPageTimestamp
+			}
+		}
+	}
+}
