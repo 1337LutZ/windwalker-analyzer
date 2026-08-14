@@ -27,10 +27,7 @@ function pickRepresentative(attempts: FightWithRoster[], first: FightWithRoster)
 	// re-cleared, and the later attempt is the one being asked about.
 	const kill = [...attempts].reverse().find((attempt) => attempt.kill);
 	if (kill) return kill;
-	return attempts.reduce(
-		(longest, attempt) => (durationOf(attempt) > durationOf(longest) ? attempt : longest),
-		first,
-	);
+	return attempts.reduce((longest, attempt) => (durationOf(attempt) > durationOf(longest) ? attempt : longest), first);
 }
 
 /** One group per encounter, in the order the raid first pulled it. */

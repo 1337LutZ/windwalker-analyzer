@@ -251,10 +251,7 @@ export function baseChart(args: BaseChartArgs): NonNullable<ApexOptions['chart']
 		// `{ xaxis: { min, max } }` as the corrected range. Without that return there is no way to
 		// refuse a zoom, only to observe one.
 		...(args.scrubbable && args.durationMs
-			? ({ events: boundsWithin(args.durationMs) } as unknown as Pick<
-					NonNullable<ApexOptions['chart']>,
-					'events'
-				>)
+			? ({ events: boundsWithin(args.durationMs) } as unknown as Pick<NonNullable<ApexOptions['chart']>, 'events'>)
 			: {}),
 	};
 }

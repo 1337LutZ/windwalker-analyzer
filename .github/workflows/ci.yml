@@ -25,7 +25,9 @@ jobs:
 
       - run: npm ci
 
-      - name: Types and Astro diagnostics
+      # `npm run check` is types, Astro diagnostics, oxlint and oxfmt — the same command a human
+      # runs locally, so CI cannot disagree with a clean working copy.
+      - name: Types, diagnostics, lint and formatting
         run: npm run check
 
       - name: Unit tests

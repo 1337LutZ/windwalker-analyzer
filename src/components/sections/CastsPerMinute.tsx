@@ -5,7 +5,6 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatDecimal } from '~/lib/format';
 import type { Analysis, CastRow } from '~/lib/types';
 
-import { share } from '../format';
 import { Bar, DataGrid, Prose, Section, SpellIcon, type GridRow } from '../primitives';
 
 const gateLabel = (c: CastRow, t: ReportCopy['t']): string =>

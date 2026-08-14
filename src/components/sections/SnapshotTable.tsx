@@ -106,9 +106,7 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 				{/* Depth averages the procs that were caught, so when the catch rate itself grades badly the
 				    average is describing a handful of moments rather than the pull. The caveat is keyed off
 				    that grade rather than off a count, so the line it draws is the one in `thresholds`. */}
-				{depth && !depth.unmeasurable && rate?.grade === 'bad' ? (
-					<Note>{t('snapshots.depthCaveat')}</Note>
-				) : null}
+				{depth && !depth.unmeasurable && rate?.grade === 'bad' ? <Note>{t('snapshots.depthCaveat')}</Note> : null}
 			</div>
 		</Section>
 	);

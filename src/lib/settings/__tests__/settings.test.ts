@@ -1,19 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { analyse } from '~/lib/spec/windwalker';
-import type { FightDataset } from '~/lib/types';
-
-import {
-	DEFAULT_SETTINGS,
-	MAX_HEALTH,
-	SNAPSHOT_LEEWAY,
-	clampHealth,
-	clampLeeway,
-	isDefault,
-	normaliseSettings,
-} from '../model';
+import { DEFAULT_SETTINGS, SNAPSHOT_LEEWAY, clampLeeway, isDefault, normaliseSettings } from '../model';
 
 describe('snapshot leeway', () => {
 	it('defaults to one global', () => {

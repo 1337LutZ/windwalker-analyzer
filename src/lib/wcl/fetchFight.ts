@@ -87,10 +87,7 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 			.slice(0, 20)
 			.map((candidate) => `${candidate.id} (${candidate.name})`)
 			.join(', ');
-		throw new WclError(
-			'missing',
-			`Report "${code}" has no fight ${fightID}. Boss pulls in it: ${known || 'none'}.`,
-		);
+		throw new WclError('missing', `Report "${code}" has no fight ${fightID}. Boss pulls in it: ${known || 'none'}.`);
 	}
 
 	const actor = resolvePlayer(actors, playerName);
@@ -184,10 +181,7 @@ function resolvePlayer(actors: Actor[], playerName: string): Actor {
 
 	const near = nearMatches(players, wanted);
 	if (near.length) {
-		throw new WclError(
-			'missing',
-			`No player called "${playerName}" in this report. Did you mean ${near.join(', ')}?`,
-		);
+		throw new WclError('missing', `No player called "${playerName}" in this report. Did you mean ${near.join(', ')}?`);
 	}
 	const roster = players
 		.map((player) => player.name)

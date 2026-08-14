@@ -71,9 +71,7 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 					<Dialog.Title className="m-0 font-mono text-lg font-semibold tracking-[-0.01em] text-ink">
 						{t('settings.title')}
 					</Dialog.Title>
-					<Dialog.Description className="m-0 leading-relaxed text-ink-2">
-						{t('settings.intent')}
-					</Dialog.Description>
+					<Dialog.Description className="m-0 leading-relaxed text-ink-2">{t('settings.intent')}</Dialog.Description>
 
 					<form onSubmit={submit} className="flex flex-col gap-4">
 						<div className="flex flex-col gap-2">

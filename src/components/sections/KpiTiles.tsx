@@ -62,11 +62,7 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					label={t('kpi.brewStacks')}
 					grade={toneOf('brewStacks')}
 				/>
-				<StatTile
-					value={formatPercentValue(debuff.uptimePct)}
-					label={t('kpi.rskUptime')}
-					grade={toneOf('rskUptime')}
-				/>
+				<StatTile value={formatPercentValue(debuff.uptimePct)} label={t('kpi.rskUptime')} grade={toneOf('rskUptime')} />
 				{/* Graded on depth rather than on the catch rate: this tile counts the ones held to the
 				    final global, which is the timing question, not the discipline one. */}
 				<StatTile

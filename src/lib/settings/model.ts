@@ -99,7 +99,6 @@ export function normaliseSettings(raw: unknown): AnalysisSettings {
 /** True when nothing has been changed from the defaults, so the UI can say "default" rather than repeat it. */
 export function isDefault(settings: AnalysisSettings): boolean {
 	return (
-		settings.snapshotLeewayMs === DEFAULT_SETTINGS.snapshotLeewayMs &&
-		settings.maxHealth === DEFAULT_SETTINGS.maxHealth
+		settings.snapshotLeewayMs === DEFAULT_SETTINGS.snapshotLeewayMs && settings.maxHealth === DEFAULT_SETTINGS.maxHealth
 	);
 }

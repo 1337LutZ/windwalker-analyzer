@@ -37,11 +37,7 @@ export default function Step({
 				<span
 					aria-hidden="true"
 					className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-sm font-semibold ${
-						done
-							? 'border-kick bg-kick text-bg'
-							: pending
-								? 'border-line text-muted'
-								: 'border-kick text-kick'
+						done ? 'border-kick bg-kick text-bg' : pending ? 'border-line text-muted' : 'border-kick text-kick'
 					}`}
 				>
 					{done ? '✓' : index}

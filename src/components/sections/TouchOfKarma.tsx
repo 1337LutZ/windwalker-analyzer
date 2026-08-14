@@ -62,11 +62,7 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
-							<StatTile
-								value={`${karma.casts}`}
-								suffix={`/${karma.available}`}
-								label={t('karma.kpi.uses')}
-							/>
+							<StatTile value={`${karma.casts}`} suffix={`/${karma.available}`} label={t('karma.kpi.uses')} />
 							<StatTile value={formatCompact(karma.reflected)} label={t('karma.kpi.reflected')} />
 							<StatTile
 								value={formatCompact(karma.casts > 0 ? karma.reflected / karma.casts : 0)}

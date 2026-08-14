@@ -25,25 +25,22 @@ export default function TokenHelp() {
 					</Dialog.Title>
 
 					<Dialog.Description className="m-0 leading-relaxed text-ink-2">
-						You sign in on WarcraftLogs' own page, not this one. Your password is typed there and this app
-						never sees it — WarcraftLogs asks you whether to let the analyser read your logs, and only your
-						answer comes back.
+						You sign in on WarcraftLogs' own page, not this one. Your password is typed there and this app never sees it
+						— WarcraftLogs asks you whether to let the analyser read your logs, and only your answer comes back.
 					</Dialog.Description>
 
 					<div className="flex flex-col gap-3 leading-relaxed text-ink-2">
 						<p className="m-0">
 							What comes back is an access token. It is held in this browser tab, sent to{' '}
 							<code className="font-mono text-ink">warcraftlogs.com</code> as an{' '}
-							<code className="font-mono text-ink">Authorization</code> header, and sent nowhere else.
-							This page has no server to send it to: it is a folder of static files, and the
-							content-security policy it ships makes your browser enforce that whatever the JavaScript
-							intends.
+							<code className="font-mono text-ink">Authorization</code> header, and sent nowhere else. This page has no
+							server to send it to: it is a folder of static files, and the content-security policy it ships makes your
+							browser enforce that whatever the JavaScript intends.
 						</p>
 						<p className="m-0">
-							Closing this tab discards it. Nothing is written to a cookie, and nothing survives that
-							outlives the tab — on a shared machine there is nothing to remember to clean up. Signing out
-							clears it immediately, and you can revoke the app's access from your WarcraftLogs account
-							whenever you like.
+							Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab —
+							on a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you
+							can revoke the app's access from your WarcraftLogs account whenever you like.
 						</p>
 						<p className="m-0">
 							The underlying API, and what the analyser reads with that token, is documented at{' '}

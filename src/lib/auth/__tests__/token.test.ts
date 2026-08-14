@@ -117,9 +117,7 @@ describe('routing', () => {
 
 	it('sends an expired token wherever its kind says, so the failure is about expiry and not the path', () => {
 		expect(endpointFor(inspectToken(userToken({ exp: (NOW - HOUR) / 1000 }), NOW).kind)).toBe(WCL_USER_ENDPOINT);
-		expect(endpointFor(inspectToken(clientToken({ exp: (NOW - HOUR) / 1000 }), NOW).kind)).toBe(
-			WCL_CLIENT_ENDPOINT,
-		);
+		expect(endpointFor(inspectToken(clientToken({ exp: (NOW - HOUR) / 1000 }), NOW).kind)).toBe(WCL_CLIENT_ENDPOINT);
 	});
 
 	it('sends an undecodable token to /user rather than refusing it', () => {

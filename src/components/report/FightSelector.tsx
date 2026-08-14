@@ -51,14 +51,10 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
 										selected ? 'bg-raised' : 'bg-bg hover:bg-raised'
 									}`}
 								>
-									<span
-										className={`font-mono text-base font-semibold ${selected ? 'text-ink' : 'text-ink-2'}`}
-									>
+									<span className={`font-mono text-base font-semibold ${selected ? 'text-ink' : 'text-ink-2'}`}>
 										{group.name}
 									</span>
-									<span className="font-mono text-sm text-muted">
-										{attemptSummary(shown, difficultyNames)}
-									</span>
+									<span className="font-mono text-sm text-muted">{attemptSummary(shown, difficultyNames)}</span>
 								</button>
 
 								{group.attempts.length > 1 ? (
@@ -69,10 +65,7 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
 											    voice control matches on it. */}
 											<span className="sr-only"> of {group.name}</span>
 										</span>
-										<span
-											aria-hidden="true"
-											className="transition-transform data-[panel-open]:rotate-180"
-										>
+										<span aria-hidden="true" className="transition-transform data-[panel-open]:rotate-180">
 											&#9662;
 										</span>
 									</Collapsible.Trigger>
@@ -93,14 +86,10 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
 													aria-pressed={picked}
 													onClick={() => onChange(attempt.id)}
 													className={`flex min-h-11 w-full flex-col items-start justify-center gap-0.5 rounded-sm border px-3 py-2 text-left transition-colors ${
-														picked
-															? 'border-kick text-ink'
-															: 'border-transparent text-ink-2 hover:border-line'
+														picked ? 'border-kick text-ink' : 'border-transparent text-ink-2 hover:border-line'
 													}`}
 												>
-													<span className="font-mono text-base font-medium">
-														Pull {index + 1}
-													</span>
+													<span className="font-mono text-base font-medium">Pull {index + 1}</span>
 													<span className="font-mono text-sm text-muted">
 														{attemptSummary(attempt, difficultyNames)}
 													</span>

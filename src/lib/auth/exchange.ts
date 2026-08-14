@@ -57,9 +57,7 @@ export async function exchangeCode({ code, verifier }: { code: string; verifier:
 	try {
 		payload = await response.json();
 	} catch {
-		throw new Error(
-			`WarcraftLogs answered the sign-in with something that was not JSON (HTTP ${response.status}).`,
-		);
+		throw new Error(`WarcraftLogs answered the sign-in with something that was not JSON (HTTP ${response.status}).`);
 	}
 
 	if (!response.ok || (isRecord(payload) && typeof payload['error'] === 'string')) {

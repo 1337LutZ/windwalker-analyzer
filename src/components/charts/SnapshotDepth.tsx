@@ -312,15 +312,11 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 					<span className="flex items-center gap-2">
 						{/* Stacked, because a bracket side by side with itself is two corner glyphs rather than
 						    a bracket — the shape is the whole point of the key. */}
-						<span
-							aria-hidden="true"
-							className="flex flex-col font-mono text-[10px] leading-[0.85] text-ink-2"
-						>
+						<span aria-hidden="true" className="flex flex-col font-mono text-[10px] leading-[0.85] text-ink-2">
 							<span>┌</span>
 							<span>└</span>
 						</span>
-						Bracketed rows are one back-to-back roll: the second proc landed while the first was still being
-						carried
+						Bracketed rows are one back-to-back roll: the second proc landed while the first was still being carried
 					</span>
 				) : null}
 				{procs.narrowlyMissed > 0 ? (

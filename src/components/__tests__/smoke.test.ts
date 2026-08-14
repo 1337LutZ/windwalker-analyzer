@@ -347,13 +347,11 @@ export const base: Analysis = {
 
 describe('parseReportInput', () => {
 	it('pulls the code, fight and source out of a pasted URL', () => {
-		expect(parseReportInput('https://classic.warcraftlogs.com/reports/aBcD1234efGH5678#fight=12&source=5')).toEqual(
-			{
-				code: 'aBcD1234efGH5678',
-				fightID: 12,
-				sourceID: 5,
-			},
-		);
+		expect(parseReportInput('https://classic.warcraftlogs.com/reports/aBcD1234efGH5678#fight=12&source=5')).toEqual({
+			code: 'aBcD1234efGH5678',
+			fightID: 12,
+			sourceID: 5,
+		});
 	});
 
 	it('accepts a bare code', () => {

@@ -286,8 +286,7 @@ export class WclClient {
 	async fetchActors(code: string): Promise<Actor[]> {
 		const data = await this.#graphql<ReportActorsQuery, ReportActorsQueryVariables>(REPORT_ACTORS_QUERY, { code });
 		const actors = data.reportData?.report?.masterData?.actors;
-		if (!actors)
-			throw new WclError('missing', `Report "${code}" has no actor list, so nothing in it can be named.`);
+		if (!actors) throw new WclError('missing', `Report "${code}" has no actor list, so nothing in it can be named.`);
 
 		// An actor with no report id cannot be matched to an event, so it is dropped rather than
 		// given a placeholder that would silently never match anything.
@@ -312,10 +311,10 @@ export class WclClient {
 	 * Cheap on purpose: it is what decides whether the expensive event fetch is worth starting.
 	 */
 	async fetchPlayerDetails(code: string, fightID: number): Promise<FightPlayer[]> {
-		const data = await this.#graphql<FightPlayerDetailsQuery, FightPlayerDetailsQueryVariables>(
-			PLAYER_DETAILS_QUERY,
-			{ code, fightID },
-		);
+		const data = await this.#graphql<FightPlayerDetailsQuery, FightPlayerDetailsQueryVariables>(PLAYER_DETAILS_QUERY, {
+			code,
+			fightID,
+		});
 		const roles = unwrapPlayerDetails(data.reportData?.report?.playerDetails);
 		if (!roles) {
 			throw new WclError(
@@ -329,10 +328,10 @@ export class WclClient {
 	}
 
 	async fetchDamageTable(code: string, fightID: number): Promise<{ entries: DamageEntry[] }> {
-		const data = await this.#graphql<FightDamageTableQuery, FightDamageTableQueryVariables>(
-			FIGHT_DAMAGE_TABLE_QUERY,
-			{ code, fightID },
-		);
+		const data = await this.#graphql<FightDamageTableQuery, FightDamageTableQueryVariables>(FIGHT_DAMAGE_TABLE_QUERY, {
+			code,
+			fightID,
+		});
 		const table = data.reportData?.report?.table;
 		// `table` is an untyped JSON leaf whose payload sits one level down under `data`. Older
 		// report versions hand back the payload directly, so accept both rather than crash on one.
@@ -420,9 +419,7 @@ function normalisePlayers(rows: unknown): FightPlayer[] {
 				id,
 				name: typeof row['name'] === 'string' ? row['name'] : `Actor ${id}`,
 				playerClass: typeof row['type'] === 'string' ? row['type'] : 'Unknown',
-				specs: specs
-					.filter(isRecord)
-					.flatMap((entry) => (typeof entry['spec'] === 'string' ? [entry['spec']] : [])),
+				specs: specs.filter(isRecord).flatMap((entry) => (typeof entry['spec'] === 'string' ? [entry['spec']] : [])),
 			},
 		];
 	});

@@ -41,9 +41,7 @@ export default function TrackLabels({ tracks, width }: { tracks: Track[]; width:
 			// again — a render loop that locked the tab solid. A fresh object is never `===` to the last
 			// one, so React could not break the cycle either; comparing the numbers is what breaks it.
 			setBand((current) =>
-				current !== null &&
-				Math.abs(current.top - next.top) < 0.5 &&
-				Math.abs(current.height - next.height) < 0.5
+				current !== null && Math.abs(current.top - next.top) < 0.5 && Math.abs(current.height - next.height) < 0.5
 					? current
 					: next,
 			);

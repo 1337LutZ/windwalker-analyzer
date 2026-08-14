@@ -316,8 +316,7 @@ export default function FightTimeline({ analysis }: { analysis: Analysis }) {
 				// narrow to hold a digit without it landing on its neighbour.
 				dataLabels: {
 					enabled: !narrow,
-					formatter: (_value, opts) =>
-						counts[(opts as unknown as { dataPointIndex: number }).dataPointIndex] ?? '',
+					formatter: (_value, opts) => counts[(opts as unknown as { dataPointIndex: number }).dataPointIndex] ?? '',
 					textAnchor: 'start',
 					offsetX: 5,
 					// Body ink: back-to-back spans leave no gap, so a count lands on the neighbouring bar as

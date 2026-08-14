@@ -16,12 +16,8 @@ describe.skipIf(token === '')('sweep', () => {
 			for (const fight of report.fights.filter((f) => f.encounterID !== 0 && f.kill)) {
 				try {
 					const players = await client.fetchPlayerDetails(code, fight.id);
-					for (const ww of players.filter(
-						(p) => p.playerClass === 'Monk' && p.specs.includes('Windwalker'),
-					)) {
-						const a = analyse(
-							await fetchFightDataset(client, { code, fightID: fight.id, playerName: ww.name }),
-						);
+					for (const ww of players.filter((p) => p.playerClass === 'Monk' && p.specs.includes('Windwalker'))) {
+						const a = analyse(await fetchFightDataset(client, { code, fightID: fight.id, playerName: ww.name }));
 						if (!a.isSpec) continue;
 						const c = scoreAnalysis(a);
 						rows.push(

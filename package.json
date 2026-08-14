@@ -8,7 +8,10 @@
     "dev": "astro dev",
     "build": "npm run codegen && astro build",
     "preview": "astro preview",
-    "check": "astro check && tsc --noEmit",
+    "check": "astro check && tsc --noEmit && oxlint && oxfmt --check",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "test": "vitest run",
     "codegen": "graphql-codegen --config codegen.ts"
   },
@@ -37,6 +40,8 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "graphql": "^16.14.2",
+    "oxfmt": "0.63.0",
+    "oxlint": "1.78.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "vitest": "^4.1.10"

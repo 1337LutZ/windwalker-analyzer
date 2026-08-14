@@ -155,10 +155,13 @@ asset URLs behave identically in both.
 
 ## Deployment
 
-Pushing to `main` runs `.github/workflows/cloudflare.yml`: `npm ci`, the full check suite
-(`prettier --check`, `tsc`, `vitest`, `astro check`), then `npm run build` and
-`wrangler pages deploy dist`. A build that fails any check is not published. Pull requests run
-`.github/workflows/ci.yml`, which is `npm run check` and `npm test`.
+Pushing to `main` runs `.github/workflows/cloudflare.yml`: `npm ci`, `npm run check`, `npm test`,
+then `npm run build` and `wrangler pages deploy dist`. A build that fails any check is not
+published. Pull requests run `.github/workflows/ci.yml`, which is the same two commands.
+
+Both go through `npm run`, never `npx <tool>`. `npx` downloads a tool that is not a declared
+dependency, so CI can silently run a different version from the one on your machine — which is how
+the first deploy failed, on a file that was correctly formatted locally.
 
 It needs two repository secrets, under Settings → Secrets and variables → Actions:
 

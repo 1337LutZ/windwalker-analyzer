@@ -93,7 +93,10 @@ export default function ReportFlow() {
 	const fight = fights.data?.fights.find((candidate) => candidate.id === fightID) ?? null;
 
 	const players = useFightPlayers(token, code, fightID);
-	const windwalkers = players.data ?? [];
+	// Memoised for the auto-run effect below, which depends on it. `players.data ?? []` hands back a
+	// fresh array on every render while the query is in flight, so that effect woke on every render
+	// until the roster arrived — harmless only because a ref stops it from firing twice.
+	const windwalkers = useMemo(() => players.data ?? [], [players.data]);
 	const playerName =
 		windwalkers.find((player) => player.name === chosenPlayer)?.name ??
 		windwalkers.find((player) => player.id === input?.sourceID)?.name ??
@@ -267,8 +270,7 @@ export default function ReportFlow() {
 							{fights.data ? (
 								<p className="mt-3 mb-0 truncate text-sm text-muted">
 									{fights.data.title}
-									{fights.data.zoneName ? ` · ${fights.data.zoneName}` : ''} ·{' '}
-									{fights.data.fights.length} boss pull
+									{fights.data.zoneName ? ` · ${fights.data.zoneName}` : ''} · {fights.data.fights.length} boss pull
 									{fights.data.fights.length === 1 ? '' : 's'}
 								</p>
 							) : null}
@@ -276,17 +278,14 @@ export default function ReportFlow() {
 						</>
 					) : (
 						<p className="m-0 leading-relaxed text-muted">
-							Once you are signed in: paste a report URL or code, pick the pull, pick the player, read the
-							report.
+							Once you are signed in: paste a report URL or code, pick the pull, pick the player, read the report.
 						</p>
 					)}
 				</Step>
 
 				<Step index={3} title={t('steps.fight')} state={loaded ? 'active' : 'pending'}>
 					{!fights.data ? (
-						<p className="m-0 leading-relaxed text-muted">
-							Load a report above and its boss pulls appear here.
-						</p>
+						<p className="m-0 leading-relaxed text-muted">Load a report above and its boss pulls appear here.</p>
 					) : hasFights ? (
 						<FightSelector
 							fights={fights.data.fights}

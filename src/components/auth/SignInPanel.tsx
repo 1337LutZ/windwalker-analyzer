@@ -44,14 +44,14 @@ export default function SignInPanel() {
 				{publicOnly ? (
 					<Callout tone="brew" title="This token reads public logs only">
 						<p className="m-0">
-							It carries no account with it — a client-credentials token — so WarcraftLogs will not show
-							it anything private. Public logs analyse perfectly well.
+							It carries no account with it — a client-credentials token — so WarcraftLogs will not show it anything
+							private. Public logs analyse perfectly well.
 						</p>
 						<p className="m-0">
 							The catch worth knowing: a private report does not come back refused, it comes back as{' '}
-							<strong className="font-semibold text-ink">not found</strong>, exactly as a mistyped code
-							does. If a report code you know is right is rejected below, that is the reason — sign in
-							with your account instead, or make the log public.
+							<strong className="font-semibold text-ink">not found</strong>, exactly as a mistyped code does. If a
+							report code you know is right is rejected below, that is the reason — sign in with your account instead,
+							or make the log public.
 						</p>
 					</Callout>
 				) : null}
@@ -62,8 +62,8 @@ export default function SignInPanel() {
 	return (
 		<div className="flex flex-col gap-4">
 			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-				Sign in with your WarcraftLogs account to read your logs, including private and archived ones. You sign
-				in on WarcraftLogs' own page — this one never sees your password, and there is nothing to paste.
+				Sign in with your WarcraftLogs account to read your logs, including private and archived ones. You sign in on
+				WarcraftLogs' own page — this one never sees your password, and there is nothing to paste.
 			</p>
 
 			<ClientIdPanel />

@@ -4,10 +4,15 @@
 
 ```sh
 npm install
-npm run dev      # http://localhost:4321/windwalker-analyzer
-npm run check    # astro check + tsc --noEmit
+npm run dev      # http://localhost:4321
+npm run check    # astro check + tsc --noEmit + oxlint + oxfmt --check
 npm test         # vitest
+npm run format   # oxfmt, writing in place
 ```
+
+Linting and formatting are [oxlint](https://oxc.rs) and oxfmt — one Rust binary each, no ESLint and
+no Prettier. Both are declared dependencies and are run through `npm run`, so the version CI uses is
+the version in the lockfile.
 
 `npm run check` and `npm test` are what CI runs on a pull request, so run both before opening one.
 Tests are plain vitest over pure functions: `src/**/*.test.ts`, or anything under `src/**/__tests__/`.
@@ -46,6 +51,6 @@ its comment in the same commit. "This looked unnecessary" is not a reason.
 
 ## Style
 
-Tabs, LF, and the settings in `.editorconfig`. Comments explain *why* — never restate what the line
+Tabs, LF, and the settings in `.editorconfig`. Comments explain _why_ — never restate what the line
 already says. Colours come from the semantic tokens in `src/styles/global.css`; the palette was
 contrast- and colour-vision-validated, so new hex values do not go in by eye.

@@ -1,3 +1,0 @@
-# Codegen output. Formatting it would put a diff in every `npm run codegen` run for no benefit.
-src/generated/
-dist/

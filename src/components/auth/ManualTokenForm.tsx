@@ -56,10 +56,10 @@ export default function ManualTokenForm() {
 
 			<Collapsible.Panel className="flex flex-col gap-3">
 				<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-					If you already generate your own WarcraftLogs tokens, paste one here instead. It is kept in this tab
-					exactly like a signed-in one: never written to disk, never logged, sent only to warcraftlogs.com,
-					and gone when the tab closes. A token from the client-credentials flow works too — it reads public
-					logs only, and you will be told so.
+					If you already generate your own WarcraftLogs tokens, paste one here instead. It is kept in this tab exactly
+					like a signed-in one: never written to disk, never logged, sent only to warcraftlogs.com, and gone when the
+					tab closes. A token from the client-credentials flow works too — it reads public logs only, and you will be
+					told so.
 				</p>
 
 				<form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row sm:items-end">

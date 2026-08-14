@@ -56,9 +56,7 @@ export default function MissLedger({ analysis }: { analysis: Analysis }) {
 				<Prose>{t('misses.intent')}</Prose>
 				{/* Counted over misses rather than rows: the grid folds them by kind, and "9 things worth
 				    looking at" must not shrink to "3" because they happen to share three labels. */}
-				{analysis.misses.length > 0 ? (
-					<Prose>{t('misses.summary', { count: analysis.misses.length })}</Prose>
-				) : null}
+				{analysis.misses.length > 0 ? <Prose>{t('misses.summary', { count: analysis.misses.length })}</Prose> : null}
 			</div>
 			<DataGrid
 				caption={t('misses.caption')}

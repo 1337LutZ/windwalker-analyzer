@@ -28,8 +28,8 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 	return (
 		<header>
 			<p className="m-0 mb-3 font-mono text-sm font-medium tracking-[0.16em] uppercase text-muted">
-				{analysis.encounter} &middot; {difficultyLabel(analysis.difficulty, analysis.size, difficultyNames)}{' '}
-				&middot; {analysis.kill ? 'kill' : 'wipe'} &middot; {formatClock(analysis.durationMs)}
+				{analysis.encounter} &middot; {difficultyLabel(analysis.difficulty, analysis.size, difficultyNames)} &middot;{' '}
+				{analysis.kill ? 'kill' : 'wipe'} &middot; {formatClock(analysis.durationMs)}
 			</p>
 			<h1 className="m-0 font-mono text-[28px] leading-[1.05] font-semibold tracking-[-0.02em] text-balance text-ink sm:text-[34px] md:text-[38px]">
 				{analysis.player}

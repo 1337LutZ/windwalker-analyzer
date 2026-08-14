@@ -191,6 +191,9 @@ export type AuraApplyEvent = ApplyBuffEvent | ApplyDebuffEvent;
 export type AuraRefreshEvent = RefreshBuffEvent | RefreshDebuffEvent;
 export type AuraRemoveEvent = RemoveBuffEvent | RemoveDebuffEvent;
 export type StackChangeEvent =
-	ApplyBuffStackEvent | RemoveBuffStackEvent | ApplyDebuffStackEvent | RemoveDebuffStackEvent;
+	| ApplyBuffStackEvent
+	| RemoveBuffStackEvent
+	| ApplyDebuffStackEvent
+	| RemoveDebuffStackEvent;
 /** Everything that moves an aura: the buff and debuff halves are the same bookkeeping. */
 export type AuraEvent = AuraApplyEvent | AuraRefreshEvent | AuraRemoveEvent | StackChangeEvent;

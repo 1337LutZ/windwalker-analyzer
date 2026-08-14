@@ -10,9 +10,7 @@ describe('SpellIcon', () => {
 	it('resolves a known spell to its Wowhead icon', () => {
 		// Rising Sun Kick. Names come from the build-time map, not from a request at render time.
 		expect(spellIconName(107428)).toBe('ability_monk_risingsunkick');
-		expect(render(107428)).toContain(
-			'https://wow.zamimg.com/images/wow/icons/large/ability_monk_risingsunkick.jpg',
-		);
+		expect(render(107428)).toContain('https://wow.zamimg.com/images/wow/icons/large/ability_monk_risingsunkick.jpg');
 	});
 
 	/**

@@ -115,10 +115,7 @@ describe('auraWindows', () => {
 				ev(1000, 'applybuff', 139120),
 				ev(11000, 'removebuff', 139120),
 			];
-			expect(auraWindows(events, RE_ORIGINATION, T0, T0 + 60000).map((w) => w.variant)).toEqual([
-				'Mastery',
-				'Haste',
-			]);
+			expect(auraWindows(events, RE_ORIGINATION, T0, T0 + 60000).map((w) => w.variant)).toEqual(['Mastery', 'Haste']);
 		});
 	});
 });

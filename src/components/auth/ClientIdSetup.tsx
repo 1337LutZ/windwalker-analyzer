@@ -53,9 +53,9 @@ export default function ClientIdSetup() {
 			</h3>
 
 			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-				WarcraftLogs meters its API per client, so this app cannot sign you in with one of its own — everyone
-				using it would share a single hourly budget and run each other out of it. Registering your own takes
-				about a minute and gives you a budget nobody else spends.
+				WarcraftLogs meters its API per client, so this app cannot sign you in with one of its own — everyone using it
+				would share a single hourly budget and run each other out of it. Registering your own takes about a minute and
+				gives you a budget nobody else spends.
 			</p>
 
 			{/* Same measure as the prose above it. The steps are read, not scanned, and a 64ch column is
@@ -70,17 +70,16 @@ export default function ClientIdSetup() {
 				</Step>
 				<Step n={2}>Give it any name. You will see it on the consent screen when you sign in.</Step>
 				<Step n={3}>
-					Paste this as the redirect URL, exactly as it appears — a URL that differs by so much as a trailing
-					slash is refused, and the refusal blames the client id rather than the URL.
+					Paste this as the redirect URL, exactly as it appears — a URL that differs by so much as a trailing slash is
+					refused, and the refusal blames the client id rather than the URL.
 					{uri === null ? null : <CopyField label="Redirect URL" value={uri} />}
 				</Step>
 				<Step n={4}>
-					Tick <strong className="font-semibold text-ink">Public Client</strong> so the client can use PKCE,
-					then save.
+					Tick <strong className="font-semibold text-ink">Public Client</strong> so the client can use PKCE, then save.
 				</Step>
 				<Step n={5}>
-					Copy the <strong className="font-semibold text-ink">client ID</strong> it gives you back and paste
-					it below. Not the client secret — this app has no use for one and should never be given it.
+					Copy the <strong className="font-semibold text-ink">client ID</strong> it gives you back and paste it below.
+					Not the client secret — this app has no use for one and should never be given it.
 				</Step>
 			</ol>
 
@@ -116,9 +115,9 @@ export default function ClientIdSetup() {
 			</form>
 
 			<p className="m-0 max-w-[64ch] text-sm leading-relaxed text-muted">
-				The client ID is kept in this browser so you do not have to paste it again, and unlike your access token
-				it survives closing the tab. It is not a secret — PKCE publishes it with every sign-in — and it goes
-				nowhere but warcraftlogs.com.
+				The client ID is kept in this browser so you do not have to paste it again, and unlike your access token it
+				survives closing the tab. It is not a secret — PKCE publishes it with every sign-in — and it goes nowhere but
+				warcraftlogs.com.
 			</p>
 		</div>
 	);

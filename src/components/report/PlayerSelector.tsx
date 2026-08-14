@@ -20,8 +20,8 @@ export default function PlayerSelector({ players, value, onChange, fightName }: 
 	if (players.length === 0) {
 		return (
 			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-				No Windwalker monk was in {fightName}. Pick another pull above — this reads one spec, and there is
-				nothing in this fight for it to read.
+				No Windwalker monk was in {fightName}. Pick another pull above — this reads one spec, and there is nothing in
+				this fight for it to read.
 			</p>
 		);
 	}
@@ -49,9 +49,7 @@ export default function PlayerSelector({ players, value, onChange, fightName }: 
 							aria-pressed={selected}
 							onClick={() => onChange(player.name)}
 							className={`flex min-h-11 w-full items-center rounded-sm border px-3 py-2 text-left font-mono text-base font-medium transition-colors ${
-								selected
-									? 'border-kick bg-raised text-ink'
-									: 'border-line bg-bg text-ink-2 hover:bg-raised'
+								selected ? 'border-kick bg-raised text-ink' : 'border-line bg-bg text-ink-2 hover:bg-raised'
 							}`}
 						>
 							<span className="w-full truncate">{player.name}</span>

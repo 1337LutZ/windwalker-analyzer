@@ -600,10 +600,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const castTimes = (ability: Ability): number[] => series.get(ability.key)?.times ?? [];
 	const castCount = (ability: Ability): number => series.get(ability.key)?.count ?? 0;
 
-	const fofChannels = measureChannels(
-		castTimes(FISTS_OF_FURY),
-		channelTickTimes(events, FISTS_OF_FURY, actor.id, t0),
-	);
+	const fofChannels = measureChannels(castTimes(FISTS_OF_FURY), channelTickTimes(events, FISTS_OF_FURY, actor.id, t0));
 	const fofChannelMs = fofChannels.reduce((s, c) => s + c.channelMs, 0);
 
 	// ----------------------------------------------------------------- damage
@@ -707,9 +704,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		if (w.snapshotAt !== null || !w.brewAlreadyUp) continue;
 		const brew = brewWindows.find((b) => b.start < w.end && b.end > w.start);
 		if (!brew) continue;
-		const heldBy = procs.find(
-			(p) => p.snapshotAt !== null && p.snapshotAt >= brew.start && p.snapshotAt <= brew.end,
-		);
+		const heldBy = procs.find((p) => p.snapshotAt !== null && p.snapshotAt >= brew.start && p.snapshotAt <= brew.end);
 		w.heldStat = heldBy?.stat ?? null;
 		w.redundant = !!heldBy && heldBy.stat === w.stat;
 	}
@@ -976,11 +971,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		if (energizingBrew && !rjwCovers)
 			faults.push('channelled through Energizing Brew with no Rushing Jade Wind covering it');
 		if (proc && !procOutlasts)
-			faults.push(
-				`started with only ${r1((proc.end - t) / 1000)}s of the Rune proc left, so it expired mid-channel`,
-			);
-		if (proc && procOutlasts && !brewUp)
-			faults.push('channelled inside a Rune proc with no brew holding the snapshot');
+			faults.push(`started with only ${r1((proc.end - t) / 1000)}s of the Rune proc left, so it expired mid-channel`);
+		if (proc && procOutlasts && !brewUp) faults.push('channelled inside a Rune proc with no brew holding the snapshot');
 		return {
 			t,
 			channelMs,
@@ -1136,9 +1128,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			backToBack: procs.filter((w) => w.backToBack).length,
 			backToBackWasted: procs.filter((w) => w.backToBackWasted).length,
 			devaluedSec,
-			medianRemainingSec: snapshotted.length
-				? r1(median(snapshotted.map((w) => w.remainingMs ?? 0)) / 1000)
-				: null,
+			medianRemainingSec: snapshotted.length ? r1(median(snapshotted.map((w) => w.remainingMs ?? 0)) / 1000) : null,
 			meanDepthPct: snapshotted.length
 				? snapshotted.reduce((s, w) => s + (w.depthPct ?? 0), 0) / snapshotted.length
 				: 0,
@@ -1181,9 +1171,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		karma: {
 			casts: karmaCasts.length,
 			// Uses the cooldown allowed: the opener plus one per full recharge inside the pull.
-			available: TOUCH_OF_KARMA.cooldownMs
-				? Math.floor(duration / TOUCH_OF_KARMA.cooldownMs) + 1
-				: karmaCasts.length,
+			available: TOUCH_OF_KARMA.cooldownMs ? Math.floor(duration / TOUCH_OF_KARMA.cooldownMs) + 1 : karmaCasts.length,
 			reflected: karmaReflected,
 			sharePct: eventTotal > 0 ? (karmaReflected / eventTotal) * 100 : 0,
 			capPerUse: karmaCap,

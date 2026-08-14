@@ -65,9 +65,7 @@ export async function completeSignIn(): Promise<string | null> {
 	}
 	if (code === null) {
 		stripCallbackParams();
-		throw new Error(
-			'WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.',
-		);
+		throw new Error('WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.');
 	}
 
 	// Stripped before the exchange, not after: the exchange is a network round trip, and for its whole

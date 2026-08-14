@@ -30,10 +30,13 @@ jobs:
 
       # The gates that decide whether this build deserves to be published. A deploy that skips them
       # publishes whatever happens to compile.
-      - run: npx prettier --check src/
-      - run: npx tsc --noEmit
-      - run: npx vitest run
-      - run: npx astro check
+      #
+      # Through `npm run`, not `npx <tool>`. `npx` falls back to *downloading* a tool that is not a
+      # declared dependency, so CI silently ran a different version from the one on this machine —
+      # which is exactly how the first deploy failed: a formatter build newer than the local one
+      # disagreed about a JSON file that was, locally, correctly formatted.
+      - run: npm run check
+      - run: npm test
 
       # `src/pages/preview.astro` is a development harness: it renders committed fixtures so charts
       # and copy can be checked without a token. It has no place on the public site, and removing

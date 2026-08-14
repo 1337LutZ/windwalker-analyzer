@@ -65,10 +65,7 @@ export default function DataGrid({
 		<>
 			<ul aria-label={caption} className="m-0 flex list-none flex-col gap-2 p-0 md:hidden">
 				{rows.map((row) => (
-					<li
-						key={row.key}
-						className={`rounded-sm border border-line p-3 ${row.band ? BAND[row.band] : 'bg-surface'}`}
-					>
+					<li key={row.key} className={`rounded-sm border border-line p-3 ${row.band ? BAND[row.band] : 'bg-surface'}`}>
 						<div className="font-mono text-sm font-semibold text-ink">{row.cells[head.key]}</div>
 						<div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2">
 							{rest.map((column) =>
@@ -77,26 +74,18 @@ export default function DataGrid({
 										{row.cells[column.key]}
 									</div>
 								) : column.card === 'wide' ? (
-									<div
-										key={column.key}
-										className="col-span-2 flex flex-col gap-1 border-t border-line pt-2"
-									>
+									<div key={column.key} className="col-span-2 flex flex-col gap-1 border-t border-line pt-2">
 										<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
 											{column.label}
 										</span>
 										<span className="text-sm text-ink-2">{row.cells[column.key]}</span>
 									</div>
 								) : (
-									<div
-										key={column.key}
-										className="flex items-baseline justify-between gap-2 border-t border-line pt-2"
-									>
+									<div key={column.key} className="flex items-baseline justify-between gap-2 border-t border-line pt-2">
 										<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
 											{column.label}
 										</span>
-										<span className="tabular font-mono text-sm text-ink-2">
-											{row.cells[column.key]}
-										</span>
+										<span className="tabular font-mono text-sm text-ink-2">{row.cells[column.key]}</span>
 									</div>
 								),
 							)}
@@ -135,10 +124,7 @@ export default function DataGrid({
 							const band = row.band ? BAND[row.band] : '';
 							return (
 								<tr key={row.key}>
-									<th
-										scope="row"
-										className={`${cellBase} ${band} pr-3 text-left text-sm font-medium text-ink-2`}
-									>
+									<th scope="row" className={`${cellBase} ${band} pr-3 text-left text-sm font-medium text-ink-2`}>
 										{row.cells[head.key]}
 									</th>
 									{rest.map((column) => (

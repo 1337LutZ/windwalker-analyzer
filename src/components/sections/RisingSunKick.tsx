@@ -69,18 +69,14 @@ export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 								casts: debuff.casts,
 								lost: debuff.secondsLost,
 							})}{' '}
-							{debuff.drops.length === 0
-								? t('debuff.dropsNone')
-								: t('debuff.drops', { count: debuff.drops.length })}
+							{debuff.drops.length === 0 ? t('debuff.dropsNone') : t('debuff.drops', { count: debuff.drops.length })}
 						</Prose>
 
 						{/* Two reasons the number may not mean what it looks like, each shown only when true. */}
 						{debuff.intermissionSec > 0 ? (
 							<Note>{t('debuff.intermission', { seconds: debuff.intermissionSec })}</Note>
 						) : null}
-						{debuff.singleTarget ? null : (
-							<Note>{t('debuff.multiTarget', { share: debuff.primaryDamageShare })}</Note>
-						)}
+						{debuff.singleTarget ? null : <Note>{t('debuff.multiTarget', { share: debuff.primaryDamageShare })}</Note>}
 					</div>
 				</>
 			)}
