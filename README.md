@@ -170,10 +170,17 @@ It needs two repository secrets, under Settings → Secrets and variables → Ac
 | `CLOUDFLARE_API_TOKEN`  | Cloudflare dashboard → My Profile → API Tokens, template **Edit Cloudflare Workers**, or a custom token with the _Cloudflare Pages: Edit_ permission |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → Workers & Pages, shown in the right-hand sidebar                                                                              |
 
-The Pages project must exist first and be named `windwalker-analyzer` — create it in the dashboard
-as **Direct Upload** (not a Git connection; the workflow uploads the build itself, and a Git
-connection would build it a second time). Change the name in both the workflow and `SITE_URL` if you
-use another.
+The Pages project is created by the workflow if it does not exist, so a fresh account needs no
+dashboard visit — only the two secrets. The name lives in one place, `PROJECT_NAME` at the top of
+the workflow; change `SITE_URL` in `astro.config.mjs` to match if you use another.
+
+If you would rather create it by hand, make it a **Direct Upload** project: the workflow uploads a
+build it made itself, and a Git-connected project would build the site a second time on Cloudflare's
+side.
+
+Wrangler is a pinned dependency and is invoked directly rather than through
+`cloudflare/wrangler-action`. The action looks for a local wrangler, rejects what it finds, and
+installs its own — measured: 3.90.0, against a current 4.x.
 
 The workflow deletes `src/pages/preview.astro` before building. That page is a development harness
 that renders committed fixtures, and removing it also removes the only import of that data, so none
