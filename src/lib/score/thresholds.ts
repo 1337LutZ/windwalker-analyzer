@@ -73,6 +73,30 @@ export const THRESHOLDS = {
 	 * A 15-second debuff on an 8-second cooldown, so the ceiling really is ~100% and the bar is
 	 * correspondingly high. Measured against engaged time rather than pull time, so intermissions
 	 * and target swaps do not read as mistakes.
+	 *
+	 * **The number underneath these bands has changed, and the bands have not.** It used to be the
+	 * debuff on one inferred primary target, graded only on pulls concentrated on that target; it is
+	 * now the debuff on whichever enemy the player was hitting at each moment, graded on every pull.
+	 * That is a different population, so what it does to the same 25 real kills is worth stating rather
+	 * than discovering:
+	 *
+	 *     graded before   13 of 25 pulls      good 9   ok 1   bad 3
+	 *     graded now      25 of 25            good 5   ok 4   bad 16
+	 *     spread          min 29.3  q25 71.3  median 84.3  q75 93.3  max 99.4
+	 *
+	 * The nine pulls the counts read as single-target still separate against these lines much as they
+	 * always did (median 93.2, four of nine at or above 95). The sixteen the counts read as
+	 * multi-target sit about fourteen points lower, and that is what puts two thirds of the sample in
+	 * `bad`. How much of that gap is a fault is genuinely unresolved: on the Dark Shaman a 15s debuff
+	 * and an 8s cooldown cover two bosses comfortably, so 59% there is a real miss, while on Spoils of
+	 * Pandaria the adds die inside the cooldown and no amount of play reaches 95%. This sample cannot
+	 * tell those apart, and a band cut from it would bake the mixture in.
+	 *
+	 * So they are deliberately left alone. Re-cutting them here would be tuning a new measurement to
+	 * the sample that produced the old one, and doing it silently is how a threshold stops being
+	 * arguable. The honest fix is mode-aware — `Analysis.targets.detected` now says which kind of pull
+	 * it was — and that is a decision to take deliberately, with a population per mode, rather than a
+	 * side effect of changing what is measured.
 	 */
 	rskUptime: { good: 95, ok: 88, higherIsBetter: true },
 

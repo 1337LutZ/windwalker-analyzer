@@ -4,11 +4,14 @@
 // fixture is a single-target pull, so the case this exists for — a debuff spread across adds — does
 // not appear in any of them at all.
 //
-// The load-bearing assertion is the one that says the graded number did not move. `debuff.uptimePct`
-// and `debuff.engagedUptimePct` are measured against the primary target on purpose, because grading a
-// debuff that the fight asks you to spread produced uptimes as low as 0.6% on real add pulls. The
-// lanes below are drawing only, and the test that strips every add from the log and gets the same
-// debuff numbers back is what proves it.
+// The load-bearing assertion is the one that says the window model did not move. `debuff.windows`,
+// `debuff.uptimePct` and the drops are measured against the primary target — they are what the
+// timeline draws and what the miss ledger lists — and the lanes below are drawing only. The test that
+// strips every add from the log and gets the same window numbers back is what proves it.
+//
+// `debuff.engagedUptimePct` is no longer one of those numbers: it now asks whether the enemy being hit
+// carried the debuff, which is a different reading of the same windows and is pinned in
+// `targeting.test.ts` instead.
 
 import { describe, expect, it } from 'vitest';
 
@@ -170,13 +173,18 @@ describe('the Rising Sun Kick debuff lanes', () => {
 	});
 });
 
-describe('the graded debuff uptime', () => {
+describe('the debuff window model', () => {
 	/**
-	 * The whole point of the change: the lanes gained the adds and the metric did not.
+	 * The lanes gained the adds and the window model did not.
 	 *
 	 * Checked by stripping every event that touches anything but the boss and re-analysing. If a single
-	 * add had leaked into the scoped windows, the two runs would disagree — and `engagedUptimePct` is
-	 * what `score.ts` grades.
+	 * add had leaked into the scoped windows, the two runs would disagree — and these are the numbers
+	 * the timeline draws and the miss ledger lists a drop for.
+	 *
+	 * `engagedUptimePct` is deliberately not in this list any more. It is now the debuff on the enemy
+	 * being hit rather than on the primary alone, so stripping the adds *may* move it; on this pull it
+	 * does not, because every add was tagged during the stretches the boss was out of reach and none of
+	 * that time is engaged.
 	 */
 	it('measures exactly what it measured before the adds were drawn', () => {
 		const bossOnly = addFight.filter((ev) => ev.targetID === ME || ev.targetID === BOSS);
@@ -186,7 +194,6 @@ describe('the graded debuff uptime', () => {
 		expect(analysis.debuff.uptimeMs).toBe(scoped.debuff.uptimeMs);
 		expect(analysis.debuff.uptimePct).toBe(scoped.debuff.uptimePct);
 		expect(analysis.debuff.engagedMs).toBe(scoped.debuff.engagedMs);
-		expect(analysis.debuff.engagedUptimePct).toBe(scoped.debuff.engagedUptimePct);
 		expect(analysis.debuff.drops).toEqual(scoped.debuff.drops);
 	});
 
@@ -196,10 +203,11 @@ describe('the graded debuff uptime', () => {
 	});
 
 	/**
-	 * Unchanged behaviour, asserted here because the lanes now make the spread visible: a pull this
-	 * scattered still declines to grade, so `score.ts` reads `null` rather than a red 30%.
+	 * The concentration read still says what it always said — this pull was fought across four enemies
+	 * — and no longer decides whether uptime is graded. What it still feeds is the Energizing Brew
+	 * audit's `numberTargets >= 2` exception and the caveat the section prints.
 	 */
-	it('still declines to grade a pull the damage was spread across', () => {
+	it('still reads a pull the damage was spread across as multi-target', () => {
 		expect(analysis.debuff.singleTarget).toBe(false);
 		expect(analysis.debuff.primaryDamageShare).toBeLessThan(66);
 	});

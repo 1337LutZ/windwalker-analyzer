@@ -21,8 +21,9 @@ It answers a fairly narrow set of questions:
 - **Re-Origination snapshots** — for each proc, how late in the window the brew snapshotted it,
   which stat the proc returned, whether it repeated the previous stat, and which procs landed
   back-to-back so the second one was partly wasted.
-- **Rising Sun Kick** — debuff uptime against engaged time (target-swap and intermission gaps
-  excluded), plus every drop with a timestamp.
+- **Rising Sun Kick** — debuff uptime against engaged time, asked at each moment of the enemy you
+  were actually hitting rather than of one target for the whole pull, plus every drop with a
+  timestamp.
 - **Fists of Fury and Tiger Palm** — channel placement against the sim's rotation, and whether the
   Tiger Power buff was refreshed on time or on a wasted cast.
 - **Miss ledger** — every fault above, in one timestamped list, each row linking back to the moment

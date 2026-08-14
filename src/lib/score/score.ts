@@ -89,10 +89,16 @@ export function scoreAnalysis(analysis: Analysis): Scorecard {
 	const snapshotRate = metric('snapshotRate', share(procs.snapshotted, procs.opportunities));
 	// Averaged over caught procs only, so with none caught there is nothing to average.
 	const snapshotDepth = metric('snapshotDepth', procs.snapshotted > 0 ? procs.meanDepthPct : null);
-	// Only graded on a pull concentrated on one enemy. On an add fight the debuff is spread across
-	// targets by design, and grading uptime against whichever enemy took the most damage marks correct
-	// play as a fault — it produced uptimes as low as 0.6% across a real 25-pull sample.
-	const rskUptime = metric('rskUptime', debuff.casts > 0 && debuff.singleTarget ? debuff.engagedUptimePct : null);
+	// Graded on every pull that cast it, add fight or not.
+	//
+	// It used to decline whenever the damage was spread, and that was the honest answer to a broken
+	// measurement rather than a judgement about add fights: uptime was taken against a single inferred
+	// primary target, which measured as low as 0.6% on a real kill. That 0.6% has since been traced —
+	// see `primaryTargetID` — to the inference picking a Sha Puddle over Immerseus; against the boss the
+	// same pull reads 93.6%. Both halves are fixed now, and `debuff.engagedUptimePct` asks whether the
+	// debuff was on the enemy the player was hitting at each moment, which is a fair question on any
+	// pull. Keeping the gate would leave the section silent on exactly the fights it can speak to.
+	const rskUptime = metric('rskUptime', debuff.casts > 0 ? debuff.engagedUptimePct : null);
 	const tigerPalmWaste = metric('tigerPalmWaste', share(filler.wasted, filler.casts));
 	const brewStacks = metric('brewStacks', brew.uses > 0 ? brew.avgConsumed : null);
 	// Graded on the stacks that were avoidable, not on every stack the cap refused. A stack lost while

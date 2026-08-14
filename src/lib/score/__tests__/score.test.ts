@@ -41,19 +41,26 @@ describe('scoreAnalysis', () => {
 	});
 
 	/**
-	 * Rising Sun Kick's debuff is per-target. On an add fight the damage is spread by design, and
-	 * measuring uptime against whichever enemy took the most of it produced uptimes as low as 0.6%
-	 * across a real 25-pull sample — a red grade for playing the fight correctly.
+	 * Debuff uptime is graded on every pull that cast it, spread or not.
+	 *
+	 * It used to decline whenever the damage was spread, and that was the honest answer to a broken
+	 * measurement: uptime was taken against one inferred primary target, so a debuff the fight asks you
+	 * to move across adds measured as low as 0.6% across a real 25-pull sample — a red grade for playing
+	 * the fight correctly. `debuff.engagedUptimePct` now asks whether the enemy being *hit* carried the
+	 * debuff, which is a fair question on an add fight, so declining to answer it would leave the
+	 * section silent on exactly the pulls it has something to say about.
 	 */
-	it('declines to grade debuff uptime on a multi-target pull', () => {
+	it('grades debuff uptime on a multi-target pull too', () => {
 		const analysis = fixture('poor');
 		const spread: Analysis = {
 			...analysis,
 			debuff: { ...analysis.debuff, singleTarget: false, primaryDamageShare: 23 },
 		};
-		expect(scoreAnalysis(spread).sections['debuff']?.unmeasurable).toBe(true);
-		// And still grades it when the pull really was one target.
+		expect(scoreAnalysis(spread).sections['debuff']?.unmeasurable).toBe(false);
 		expect(scoreAnalysis(analysis).sections['debuff']?.unmeasurable).toBe(false);
+		// The one thing that still cannot be graded: a pull the button was never pressed in.
+		const never: Analysis = { ...analysis, debuff: { ...analysis.debuff, casts: 0 } };
+		expect(scoreAnalysis(never).sections['debuff']?.unmeasurable).toBe(true);
 	});
 
 	it('grades snapshot discipline off the catch rate, not the depth of the ones caught', () => {

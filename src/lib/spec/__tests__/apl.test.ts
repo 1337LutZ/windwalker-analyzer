@@ -60,7 +60,7 @@ describe('the priority ladder', () => {
 	it('names Rising Sun Kick when a lower button was pressed with the chi to afford it', () => {
 		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.jab)] }));
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick' });
-		expect(audit?.skippedBy).toEqual([{ key: 'rising-sun-kick', count: 1 }]);
+		expect(audit?.skippedBy).toEqual([{ key: 'rising-sun-kick', id: ID.risingSunKick, count: 1 }]);
 	});
 
 	it('counts the same press as followed when it is the button the list wanted', () => {

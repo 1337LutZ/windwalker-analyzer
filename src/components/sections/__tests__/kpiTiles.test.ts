@@ -81,16 +81,17 @@ describe('KPI tiles', () => {
 	});
 
 	/**
-	 * On an add fight, debuff uptime against one target is not a fault — the report already refuses
-	 * to grade it, and the tile must not quietly paint it red anyway.
+	 * A figure the report cannot measure must not be painted as though it had been.
+	 *
+	 * The case used to be an add fight, where uptime against a single target was refused rather than
+	 * graded. It is not refused any more — uptime follows the enemy being hit, which is fair on an add
+	 * fight — so the remaining unmeasurable case is the honest one: a pull Rising Sun Kick was never
+	 * pressed in has no uptime to show, and a tile that painted 0% red would be inventing the fault.
 	 */
 	it('leaves an unmeasurable figure ungraded', () => {
 		const analysis = fixture('poor');
-		const spread: Analysis = {
-			...analysis,
-			debuff: { ...analysis.debuff, singleTarget: false, primaryDamageShare: 23 },
-		};
-		const rsk = tile(render(spread), 'RSK uptime');
+		const never: Analysis = { ...analysis, debuff: { ...analysis.debuff, casts: 0 } };
+		const rsk = tile(render(never), 'RSK uptime');
 		expect(rsk).toContain('text-ink');
 		expect(rsk).not.toContain('text-miss');
 	});

@@ -15,6 +15,7 @@ import { abilityIdOf, eventsOn, isDamage, isDeath } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
+import { aplAudit } from './apl';
 import {
 	DEFAULT_SETTINGS,
 	TIGER_PALM_REFRESH,
@@ -36,6 +37,8 @@ import type {
 	ProcWindow,
 	ResourceCurve,
 	SnapshotGrade,
+	TargetMode,
+	WclEvent,
 	Window,
 } from '~/lib/types';
 import {
@@ -69,11 +72,14 @@ import {
 	remainingIn,
 	SELF_EVENT_MS,
 	snapshotWindowEnd,
+	targetCounts,
+	intervalsAtLeast,
 	toIntervals,
 	trackStackBank,
 	unionMs,
 	uptimePct,
 	type Interval,
+	type TargetHit,
 } from '../analysis';
 
 // ------------------------------------------------------------------ constants
@@ -261,14 +267,61 @@ const XUEN_NUKE_ID = 123996;
 export const GCD_MS = 1000;
 
 /**
- * Share of a player's damage that has to land on one enemy before debuff uptime on that enemy is
- * worth grading.
+ * Share of a player's damage that has to land on one enemy for the pull to read as single-target.
  *
  * Measured across 25 real kills: single-target pulls sit near 100%, while the add fights that
  * produced the false red grades sit far below. Two thirds is comfortably between the two groups
  * rather than tuned to either.
+ *
+ * It used to gate the debuff grade, and no longer does — uptime is measured against the enemy being
+ * hit, which is fair on an add fight and needs no gate. What still reads it is the Energizing Brew
+ * audit, whose APL exception is written `numberTargets >= 2`, and the caveat the debuff section
+ * prints beside a spread pull. Both are whole-pull questions, which is what this number is; the
+ * per-moment answer is `TARGET_WINDOW_MS` below.
  */
 export const SINGLE_TARGET_SHARE_PCT = 66;
+
+/**
+ * How far back a per-moment target count looks.
+ *
+ * A count at an instant is always one: a monk hits one enemy per swing and per global, so asking "how
+ * many targets" at a millisecond answers one however many enemies are stood in front of them. The
+ * window is what turns a sequence of single hits back into "three enemies were being cycled", so its
+ * length is the claim about how long a swing away from an enemy still counts as being on it.
+ *
+ * Five seconds. It has to clear the gap between two hits on the same enemy — a Windwalker's global is
+ * a flat 1.0s and the melee swing runs slower — with room for a global spent on something that does
+ * no damage at all, or a target that dodges; below about three the count flickers between one and two
+ * on a straightforward two-target pull. And it has to be short enough that an add killed six seconds
+ * ago has stopped counting, which is what rules out anything on the scale of Tiger Power's 20s.
+ */
+export const TARGET_WINDOW_MS = 5000;
+
+/**
+ * How much of the time a player was hitting *anything* has to be spent hitting more than one thing
+ * before the pull reads as multi-target.
+ *
+ * A third, and measured rather than picked. Across the same 25 real kills the other thresholds here
+ * were calibrated against, the share runs
+ *
+ *     7.0  10.3  11.4  13.8  14.0  16.8  21.5  22.9  25.0  25.1  27.5  27.8 | 36.7  39.0  47.0
+ *     53.0  54.6  56.2  62.7  68.1  85.8  88.5  90.0  93.2  94.4
+ *
+ * and the widest gap in that distribution — 8.9 points, against a median spacing of about 2 — is the
+ * one marked. Below it sit every Iron Juggernaut, Thok, Malkorok, Garrosh and Sha of Pride kill in the
+ * set; above it sit both Dark Shaman, both Fallen Protectors, both Spoils, both Galakras and the
+ * Paragons, which are the fights whose adds *are* the fight. A third sits inside the gap and can be
+ * said out loud, which a number tuned to either edge of it could not.
+ *
+ * Three encounters land on both sides — Immerseus at 21.5 and 36.7, Norushen at 22.9 and 56.2,
+ * Nazgrim at 27.5 and 39.0 — and that is the point rather than noise in it: two monks on the same
+ * pull can play it two ways, and this is a reading of what the player did and not of what the
+ * encounter is. It is why the reader gets an override rather than a lookup table of boss names.
+ *
+ * Deliberately a share of time rather than a peak count: every pull in the sample touched two enemies
+ * at some point, and nine of them touched five or more, so "did you ever cleave" separates nothing.
+ */
+export const MULTI_TARGET_SHARE_PCT = 33;
 
 /**
  * How many enemies the Rising Sun Kick debuff may be drawn for on the timeline, primary included.
@@ -1158,17 +1211,27 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	}, {});
 
 	// ------------------------------------------------------- Rising Sun Kick
-	const primaryID = primaryTargetID(damageEvents);
+	//
+	// Which enemies the report itself calls bosses. WarcraftLogs marks them in the report's master
+	// data — `type: 'NPC'`, `subType: 'Boss'` — which is the only place a boss is *named* rather than
+	// inferred, and inferring it from damage picked an add on every fight where the adds are the job.
+	// A fight with two of them (the Fallen Protectors, the Dark Shaman) puts two ids in here, and
+	// `primaryTargetID` picks whichever this player was actually on.
+	const bossIDs = new Set(actors.filter((a) => a.type === 'NPC' && a.subType === 'Boss').map((a) => a.id));
+	const primaryID = primaryTargetID(damageEvents, bossIDs);
 
 	/**
 	 * How much of the player's damage the primary target took.
 	 *
-	 * Rising Sun Kick's debuff is per-target, and uptime is only a fair thing to grade when there was
-	 * one target to keep it on. On Immerseus, Spoils of Pandaria, Galakras or either two-boss fight
-	 * the damage is spread across adds by design, and measuring the debuff against whichever enemy
-	 * happened to take the most produced uptimes as low as 0.6% — read as a red grade, for a player
-	 * doing exactly what the fight asked. Below the threshold the metric declines to grade rather than
-	 * inventing a fault; the number is still shown, with the caveat.
+	 * A whole-pull concentration read, and no longer the gate on grading the debuff — that gate is gone,
+	 * because uptime is now measured against the enemy being hit rather than against this one enemy. It
+	 * is still what the Energizing Brew audit asks about the priority list's `numberTargets >= 2`
+	 * exception, and still what the section prints beside a spread pull so the reader knows the debuff
+	 * was being moved around rather than held.
+	 *
+	 * It moves with the boss fix above: the share is now the *boss's* share, which on an add fight is
+	 * lower than the old figure — that one was, by construction, the largest share on the pull. So it
+	 * can only ever fall, and `singleTarget` with it, never the other way.
 	 */
 	const primaryDamageShare = (() => {
 		const byTarget = damageByTarget(damageEvents);
@@ -1176,16 +1239,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		if (total <= 0 || primaryID === undefined) return 0;
 		return ((byTarget.get(primaryID) ?? 0) / total) * 100;
 	})();
-	/**
-	 * Whether the pull was concentrated enough on one enemy to be read as single-target.
-	 *
-	 * Hoisted out of the assembly because two metrics now need the same answer: the debuff declines to
-	 * grade uptime below it, and the Energizing Brew audit needs it to tell whether the priority
-	 * list's `numberTargets >= 2` exception was even available.
-	 */
+	/** Whether the pull was concentrated enough on one enemy to be read as single-target. */
 	const singleTarget = primaryDamageShare >= SINGLE_TARGET_SHARE_PCT;
 	const primaryGameID = (table.fight.enemyNPCs ?? []).find((n) => n.id === primaryID)?.gameID ?? null;
-	// Scoped to the primary target: the same debuff on an add says nothing about the boss.
+	// Scoped to the primary target: this is the window model — the lane the timeline draws, the drops
+	// the miss ledger lists, and the intermission. The graded figure below is a different reading of
+	// the same debuff and deliberately does not replace this one.
 	const rskWindows = auraWindows(
 		events.filter((e) => e.targetID === primaryID),
 		RSK_DEBUFF,
@@ -1193,6 +1252,36 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		fight.endTime,
 	);
 	const rskMerged = mergeIntervals(toIntervals(rskWindows));
+
+	/**
+	 * The same debuff, merged, once per enemy that carried it.
+	 *
+	 * One pass over the events, bucketed by target, rather than a filtered pass per enemy: Spoils of
+	 * Pandaria sprays it across thirty-odd adds, and a pass apiece is thirty passes over a hundred
+	 * thousand events to answer one question.
+	 *
+	 * The primary's entry *is* `rskMerged` rather than a second reading of the same events, so the
+	 * graded figure and the lane the reader compares it against cannot drift apart — the same reason
+	 * the timeline's primary lane is `rskLaneWindows` itself.
+	 */
+	const rskByTarget = (() => {
+		const debuffIDs = new Set(RSK_DEBUFF.ids);
+		const byTarget = new Map<number, WclEvent[]>();
+		for (const e of events) {
+			const id = abilityIdOf(e);
+			if (id === null || !debuffIDs.has(id) || e.targetID === undefined || e.targetID === primaryID) continue;
+			const bucket = byTarget.get(e.targetID);
+			if (bucket) bucket.push(e);
+			else byTarget.set(e.targetID, [e]);
+		}
+		const merged = new Map<number, Interval[]>();
+		for (const [id, own] of byTarget) {
+			merged.set(id, mergeIntervals(toIntervals(auraWindows(own, RSK_DEBUFF, t0, fight.endTime))));
+		}
+		if (primaryID !== undefined) merged.set(primaryID, rskMerged);
+		return merged;
+	})();
+
 	const engaged = engagedWindows(
 		// Landed hits only. A damage-over-time tick is not contact: it lands on a boss that has gone
 		// untargetable just as happily as on one being hit, so counting ticks as engagement bridges the
@@ -1206,7 +1295,101 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		ENGAGED_GAP_MS,
 	);
 	const engagedMs = unionMs(engaged);
-	const rskEngagedMs = unionMs(intersect(rskMerged, engaged));
+
+	/**
+	 * Every hit the player landed themselves: when, and on whom.
+	 *
+	 * Ticks are out for the reason `engagedWindows` takes them out — a tick lands on an enemy nobody is
+	 * near, so it is not evidence of contact. The pet's damage is out too, and that is the one place
+	 * this parts company with the engaged windows above: Xuen picks a target and stays on it, so its
+	 * swings would say the player was still on an add they left five seconds ago. The windows ask
+	 * whether the boss was reachable at all and can afford the tiger's evidence; this asks which enemy
+	 * *this player's* hands were on, and cannot.
+	 *
+	 * Sorted rather than trusted to arrive in order — the walk below reads each hit as "the enemy the
+	 * player was on until the next one", so one event out of order would hand a stretch of the pull to
+	 * the wrong enemy. The sort is stable, so hits sharing a millisecond keep the order the log gave
+	 * them, which is what decides the tie an area hit creates.
+	 */
+	const landedHits: TargetHit[] = [];
+	for (const e of damageEvents) {
+		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
+		landedHits.push({ t: e.timestamp - t0, target: e.targetID });
+	}
+	landedHits.sort((a, b) => a.t - b.t);
+
+	/**
+	 * The debuff on the enemy the player was actually hitting, across engaged time.
+	 *
+	 * The reader's own rule: uptime counts as long as there is no downtime and a target to be hit in
+	 * melee range. So the question is asked of one enemy at every moment — the one the most recent
+	 * landed hit was on — and answered from that enemy's own windows.
+	 *
+	 * Measured against a real 33-enemy pull, the three candidate definitions are not variations on a
+	 * number, they are different numbers:
+	 *
+	 *     primary target only — what this used to ship      20.5% of engaged
+	 *     the debuff up on any engaged enemy                71.2%
+	 *     the debuff up on the enemy being hit              69.1%
+	 *
+	 * The first is what a player is told when a metric watches one enemy they left four minutes ago;
+	 * engaged time on that pull was 456.1s of 464.8s in a single segment, so downtime was not what made
+	 * it 20%. The second is the wrong question — it credits a debuff sitting on an add across the room
+	 * while the player was hitting something else. This is the third.
+	 *
+	 * Ties inside one millisecond go to the last event in the stream. An area hit lands on every enemy
+	 * at one timestamp, so which of them is "the" target is arbitrary there — but only for the sliver
+	 * until the next hit, and it is the same 15s debuff on each of them.
+	 */
+	const engagedDebuffOn = new Map<number, Interval[]>();
+	const debuffOn = (target: number): Interval[] => {
+		const known = engagedDebuffOn.get(target);
+		if (known) return known;
+		// Merged because `overlapMs` sums its ranges rather than unioning them, and clipped to engaged
+		// time here rather than per hit so an enemy carried through a long stretch is intersected once.
+		const windows = mergeIntervals(intersect(rskByTarget.get(target) ?? [], engaged));
+		engagedDebuffOn.set(target, windows);
+		return windows;
+	};
+	let rskContactMs = 0;
+	for (let i = 0; i < landedHits.length; i++) {
+		const hit = landedHits[i];
+		if (hit === undefined) continue;
+		// Each hit owns the time until the next one — that is how long the player was demonstrably on
+		// that enemy — and the last one owns the rest of the pull, which the intersection with engaged
+		// time clips back to nothing past the final window.
+		const until = landedHits[i + 1]?.t ?? duration;
+		rskContactMs += overlapMs(hit.t, until, debuffOn(hit.target));
+	}
+
+	// ---------------------------------------------------------- target count
+	/**
+	 * How many enemies the player was damaging, moment by moment, and what that makes the pull.
+	 *
+	 * Read off the same hits the contact rule above uses, so the report has one answer to "was the
+	 * player on this enemy" rather than two that can disagree. What it is *for* is the question
+	 * `primaryDamageShare` answers badly: a pull is not single- or multi-target as a whole, it is one
+	 * for four minutes and the other for one, and the ladder in `lib/spec/apl.ts` refuses whole pulls at
+	 * a time because nothing could tell it which minute it was in.
+	 */
+	const targetPoints = targetCounts(landedHits, TARGET_WINDOW_MS);
+	const multiTargetMs = unionMs(intervalsAtLeast(targetPoints, 2, duration));
+	/**
+	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
+	 * alternatives.
+	 *
+	 * Not engaged time, which is the boss's clock: on the Galakras kill in the reference reports the
+	 * boss is reachable for the last 84 seconds of a five-minute pull, so measuring the mode against
+	 * engaged time called a fight whose middle three minutes are add waves single-target — 6.0% by that
+	 * denominator, and the add phases simply invisible.
+	 *
+	 * Not pull length either, which counts every second nobody could hit anything as evidence for
+	 * single target. The time with at least one enemy in the window is the honest denominator: of the
+	 * time you were fighting, how much of it was against more than one thing.
+	 */
+	const contactMs = unionMs(intervalsAtLeast(targetPoints, 1, duration));
+	const multiTargetPct = contactMs > 0 ? (multiTargetMs / contactMs) * 100 : 0;
+	const detectedMode: TargetMode = multiTargetPct >= MULTI_TARGET_SHARE_PCT ? 'multi' : 'single';
 
 	// ----------------------------------------------------------------- energy
 	// Read straight off the `classResources` snapshots the events query now asks for, and split by
@@ -1700,50 +1883,30 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const rskLaneWindows: Window[] = rskMerged.map(([start, end]): Window => ({ start, end }));
 
 	/**
-	 * The same debuff again, one window set per enemy that carried it — for drawing, and only for
-	 * drawing.
+	 * The same debuff again, one window set per enemy that carried it — for drawing.
 	 *
-	 * Deliberately a second reading rather than a widening of the first. `rskMerged` above stays scoped
-	 * to the primary target because `debuff.engagedUptimePct` is graded off it, and a debuff spread
-	 * across adds by design measures as low as 0.6% there — marking correct play as a fault. The chart
-	 * has the opposite failure: on an add pull a single primary lane hides every Rising Sun Kick the
-	 * player landed on anything else. So the metric keeps its scope and the timeline gets the rest;
-	 * nothing computed here reaches a number.
+	 * The window sets are `rskByTarget`, computed once up in the debuff section, so a lane here and the
+	 * graded figure are readings of one array rather than two passes that have to agree. The primary's
+	 * lane is `rskLaneWindows` itself for the same reason: the row the reader compares the number
+	 * against is the very array that number's own window model was measured from.
 	 *
-	 * The primary's lane is `rskLaneWindows` itself rather than a third reading of the same events, so
-	 * the row the reader compares the graded figure against is the very array that figure was measured
-	 * from and cannot drift from it.
+	 * What is decided here and nowhere else is *order and cut* — which enemies are drawn, in what order,
+	 * and which are held back for the picker. Nothing computed here reaches a number.
 	 */
 	const rskTargets = (() => {
-		const debuffIDs = new Set(RSK_DEBUFF.ids);
-		const carriers = new Set<number>();
-		for (const e of events) {
-			const id = abilityIdOf(e);
-			if (id !== null && debuffIDs.has(id) && e.targetID !== undefined) carriers.add(e.targetID);
-		}
-
 		// The report's actor list is the only thing that can name an enemy — `enemyNPCs` carries ids and
 		// no names at all. An id it does not answer for stays null and is labelled as an unnamed enemy by
 		// the chart's own copy: a lane named after the wrong add is worse than a lane named after none.
 		const named = (id: number): string | null => actors.find((a) => a.id === id)?.name ?? null;
 		const damageTaken = damageByTarget(damageEvents);
 
-		const others = [...carriers]
-			.filter((id) => id !== primaryID)
-			.map((id) => ({
+		const others = [...rskByTarget]
+			.filter(([id]) => id !== primaryID)
+			.map(([id, windows]) => ({
 				id,
 				name: named(id),
 				damage: damageTaken.get(id) ?? 0,
-				windows: mergeIntervals(
-					toIntervals(
-						auraWindows(
-							events.filter((e) => e.targetID === id),
-							RSK_DEBUFF,
-							t0,
-							fight.endTime,
-						),
-					),
-				).map(([start, end]): Window => ({ start, end })),
+				windows: windows.map(([start, end]): Window => ({ start, end })),
 			}))
 			// An enemy that shows up only in a stray refresh has no window to draw, and an empty lane
 			// costs a row to say that the add existed.
@@ -1827,6 +1990,39 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// The enemies past the cap, in the same shape. Not in `lanes`, deliberately: that array is what the
 	// chart draws, and these are what it may be asked to draw instead.
 	const hiddenLanes: AuraLane[] = rskTargets.rest.map(targetLane);
+
+	/**
+	 * The priority list run against every global of this pull.
+	 *
+	 * Assembled here rather than inside the ladder because every input it needs already exists on this
+	 * pass — the press marks, both bars, the aura windows, the measured channel — and re-deriving any
+	 * of them would give the section a second reading free to disagree with the one printed above it.
+	 *
+	 * `chiCostReduction` is zero: the tier-16 four-piece knocks a chi off three of these buttons, and
+	 * nothing in this report reads set bonuses yet. Zero is the conservative direction — it makes the
+	 * ladder demand *more* chi than a tiered player needed, so it can only ever fail to flag a skip,
+	 * never invent one.
+	 */
+	const apl = aplAudit({
+		casts: castMarks,
+		energy: curveOf(energySamples),
+		chi: curveOf(chiSamples),
+		regenPerSec: energyBar.regenPerSec ?? 0,
+		gcdMs: GCD_MS,
+		auras: {
+			'tiger-power': tigerPowerWindows,
+			'combo-breaker-tiger-palm': cbTigerPalmWindows,
+			'combo-breaker-blackout-kick': comboBreaker.find((cb) => cb.aura.key === 'combo-breaker-blackout-kick')?.windows,
+			'energizing-brew': ebWindows,
+			'rushing-jade-wind': rjwWindows,
+			'tigereye-brew': brewWindows,
+			're-origination': rawProcs,
+		},
+		// Measured from this pull rather than assumed: the channel is hasted, and the list's condition
+		// is written in units of how long it actually runs.
+		fofChannelSec: fofCasts.length > 0 ? channelledMs / fofCasts.length / 1000 : (FOF_CHANNEL.baseMs ?? 4000) / 1000,
+		singleTarget,
+	});
 
 	// --------------------------------------------------------------- assembly
 	return {
@@ -1921,7 +2117,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			uptimeMs: unionMs(rskMerged),
 			uptimePct: duration > 0 ? (unionMs(rskMerged) / duration) * 100 : 0,
 			engagedMs,
-			engagedUptimePct: engagedMs ? (rskEngagedMs / engagedMs) * 100 : 0,
+			// The graded figure, and the one number here that is not about the primary target: the debuff
+			// on whichever enemy the player was hitting, across engaged time.
+			engagedUptimePct: engagedMs ? (rskContactMs / engagedMs) * 100 : 0,
 			secondsLost: r1(drops.reduce((s, g) => s + g.ms, 0) / 1000),
 			intermissionSec: r1(longestGap / 1000),
 			// No link here. The section plots drops on a timeline rather than listing them, and the miss
@@ -1932,6 +2130,18 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			engagedSegments: engaged,
 			primaryDamageShare: r1(primaryDamageShare),
 			singleTarget,
+		},
+		targets: {
+			windowMs: TARGET_WINDOW_MS,
+			counts: {
+				// The most enemies inside one window, which is the ceiling a chart would draw against.
+				max: targetPoints.reduce((most, [, count]) => Math.max(most, count), 0),
+				points: targetPoints,
+			},
+			multiTargetMs,
+			multiTargetPct: r1(multiTargetPct),
+			thresholdPct: MULTI_TARGET_SHARE_PCT,
+			detected: detectedMode,
 		},
 		channel: {
 			casts: fofCasts.length,
@@ -2044,6 +2254,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 						chi: { ...curveOf(chiSamples), wasted: chiOverflow },
 					},
 				}),
+		apl,
 		misses,
 	};
 }

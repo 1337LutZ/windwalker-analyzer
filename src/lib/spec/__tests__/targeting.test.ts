@@ -1,0 +1,229 @@
+// Which enemy the player was on: who the pull was about, whether the debuff was on the thing being
+// hit, and how many enemies were being hit at once.
+//
+// Synthetic events rather than a fixture, for the reason `rskTargets.test.ts` gives: every committed
+// fixture is a single-target pull, so the cases these exist for — a boss outdamaged by its own adds,
+// a debuff spread across several enemies, a player cycling two of them — appear in none of them.
+
+import { describe, expect, it } from 'vitest';
+
+import { scoreAnalysis } from '~/lib/score';
+import type { Actor, FightDataset, WclEvent } from '~/lib/types';
+
+import { TARGET_WINDOW_MS, analyse } from '../windwalker';
+
+const T0 = 100_000;
+const DURATION = 120_000;
+const END = T0 + DURATION;
+const ME = 5;
+const BOSS = 20;
+const ADD = 21;
+
+const RSK_CAST_ID = 107_428;
+const RSK_DEBUFF_ID = 130_320;
+const JAB_ID = 100_780;
+
+const e = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
+	timestamp: T0 + t,
+	type,
+	abilityGameID: id,
+	sourceID: ME,
+	targetID: ME,
+	...extra,
+});
+
+/** A landed hit that is not a Rising Sun Kick: what the contact rule reads, and what engagement reads. */
+const hit = (at: number, target: number, amount: number): WclEvent =>
+	e(at, 'damage', JAB_ID, { targetID: target, amount, hitType: 1 });
+
+/** A Rising Sun Kick on `target`: the press, the hit that carries it, and the debuff it applies. */
+const kick = (at: number, target: number, amount: number, until: number): WclEvent[] => [
+	e(at, 'cast', RSK_CAST_ID, { targetID: target }),
+	e(at, 'damage', RSK_CAST_ID, { targetID: target, amount, hitType: 2 }),
+	e(at, 'applydebuff', RSK_DEBUFF_ID, { targetID: target }),
+	e(until, 'removedebuff', RSK_DEBUFF_ID, { targetID: target }),
+];
+
+/** The tell that this player was Windwalker at all; without it `analyse` refuses the spec. */
+const brewBank: WclEvent[] = [e(0, 'applybuff', 1_247_279), e(500, 'applybuffstack', 1_247_279, { stack: 10 })];
+
+/**
+ * `subType: 'Boss'` is how WarcraftLogs names the encounter's boss in the report's master data, and
+ * the only thing here that separates it from an add — by damage the add wins comfortably.
+ */
+const actors = (bossIsMarked: boolean): Actor[] => [
+	{ id: ME, name: 'Bigdogmo', type: 'Player' },
+	{ id: BOSS, name: 'Galakras', type: 'NPC', ...(bossIsMarked ? { subType: 'Boss' } : {}) },
+	{ id: ADD, name: "Kor'kron Demolisher", type: 'NPC' },
+];
+
+const datasetOf = (events: WclEvent[], bossIsMarked = true): FightDataset => ({
+	code: 'abc123',
+	fight: {
+		id: 7,
+		name: 'Galakras',
+		encounterID: 1620,
+		kill: true,
+		difficulty: 4,
+		size: 25,
+		startTime: T0,
+		endTime: END,
+	},
+	actor: { id: ME, name: 'Bigdogmo', type: 'Player' },
+	actors: actors(bossIsMarked),
+	events,
+	table: {
+		fight: {
+			id: 7,
+			name: 'Galakras',
+			encounterID: 1620,
+			kill: true,
+			difficulty: 4,
+			size: 25,
+			startTime: T0,
+			endTime: END,
+			enemyNPCs: [
+				{ id: BOSS, gameID: 72_249 },
+				{ id: ADD, gameID: 72_947 },
+			],
+		},
+		damageDone: {
+			entries: [
+				{
+					name: 'Bigdogmo',
+					id: ME,
+					type: 'Monk',
+					itemLevel: 553,
+					total: 660_000,
+					activeTime: 110_000,
+					abilities: [{ guid: RSK_CAST_ID, name: 'Rising Sun Kick', total: 300_000 }],
+				},
+			],
+		},
+	},
+});
+
+/**
+ * An add pull the boss does not dominate.
+ *
+ * The player stays in contact with the boss throughout — a hit every ten seconds, which is what keeps
+ * engaged time one unbroken segment of 110s — and spends the middle of the pull kicking an add, which
+ * takes three times the damage the boss does. The debuff runs on the boss for the first 39 seconds and
+ * on the add for the next 39, and the two never overlap: every moment of the pull has at most one
+ * enemy carrying it, which is what makes the three candidate readings of "uptime" produce three
+ * different numbers off one set of events.
+ */
+const addFight: WclEvent[] = [
+	...brewBank,
+	...Array.from({ length: 12 }, (_, i) => hit(i * 10_000, BOSS, 5000)),
+	...kick(1000, BOSS, 100_000, 40_000),
+	...kick(41_000, ADD, 200_000, 80_000),
+	hit(45_000, ADD, 100_000),
+	hit(55_000, ADD, 100_000),
+	hit(65_000, ADD, 100_000),
+].sort((a, b) => a.timestamp - b.timestamp);
+
+const analysis = analyse(datasetOf(addFight));
+
+/** Engaged time is the boss contact, unbroken: hits every 10s against a 15s gap threshold. */
+const ENGAGED_MS = 110_000;
+/** The debuff on the enemy being hit: 39s on the boss less the first second, plus 19s of add contact. */
+const CONTACT_MS = 39_000 + 19_000;
+/** What the old measurement returned: the boss's own window, and nothing the player did to the add. */
+const PRIMARY_ONLY_MS = 39_000;
+/** The reading this deliberately is not: the debuff up on any enemy, whether or not it was being hit. */
+const ANY_ENEMY_MS = 39_000 + 39_000;
+
+describe('the enemy a pull is about', () => {
+	/**
+	 * The fix this file exists for. The add took 500k of the player's damage and the boss 160k, so
+	 * ranking by damage picks the add — and every number scoped to the primary target then describes an
+	 * add, on a fight whose whole point is that adds are not the boss.
+	 */
+	it('is the boss the report names, not the enemy that took the most damage', () => {
+		expect(analysis.primaryTarget.id).toBe(BOSS);
+		expect(analysis.primaryTarget.gameID).toBe(72_249);
+	});
+
+	/** With no boss named — trash, or master data that gave no subtype — the damage is all there is. */
+	it('falls back to the biggest damage taker when the report names no boss', () => {
+		expect(analyse(datasetOf(addFight, false)).primaryTarget.id).toBe(ADD);
+	});
+
+	/** The share is the boss's now, so it can only fall: the old figure was the largest on the pull. */
+	it('measures the damage share against the boss', () => {
+		expect(analysis.debuff.primaryDamageShare).toBeCloseTo((160_000 / 660_000) * 100, 1);
+		expect(analysis.debuff.singleTarget).toBe(false);
+	});
+});
+
+describe('the graded debuff uptime', () => {
+	it('asks whether the enemy being hit carried the debuff', () => {
+		expect(analysis.debuff.engagedMs).toBe(ENGAGED_MS);
+		expect(analysis.debuff.engagedUptimePct).toBeCloseTo((CONTACT_MS / ENGAGED_MS) * 100, 6);
+	});
+
+	/**
+	 * The number is neither of the two readings it was chosen over, and the gap is not a rounding one:
+	 * 35.5% for the primary target alone, 70.9% for the debuff up on anything at all, 52.7% for the
+	 * enemy actually being hit. Asserted as an ordering rather than three constants so this keeps
+	 * failing if the middle definition is ever quietly swapped for one of the others.
+	 */
+	it('is neither the primary target alone nor the debuff on any enemy', () => {
+		expect(analysis.debuff.engagedUptimePct).toBeGreaterThan((PRIMARY_ONLY_MS / ENGAGED_MS) * 100);
+		expect(analysis.debuff.engagedUptimePct).toBeLessThan((ANY_ENEMY_MS / ENGAGED_MS) * 100);
+	});
+
+	/** The window model is untouched: `debuff.windows` is still the primary's, and still what is drawn. */
+	it('leaves the primary target’s windows exactly as they were', () => {
+		expect(analysis.debuff.windows).toEqual([{ start: 1000, end: 40_000 }]);
+		expect(analysis.debuff.uptimeMs).toBe(PRIMARY_ONLY_MS);
+	});
+
+	/**
+	 * The consequence in `score.ts`: a spread pull used to be left ungraded, because the only number
+	 * available described one enemy the player had left. This one describes the pull, so it is graded.
+	 */
+	it('is graded on a pull the damage was spread across', () => {
+		expect(scoreAnalysis(analysis).sections['debuff']?.unmeasurable).toBe(false);
+	});
+});
+
+describe('the per-moment target count', () => {
+	it('carries the counts as a step series, in the shape the resource curves use', () => {
+		expect(analysis.targets?.windowMs).toBe(TARGET_WINDOW_MS);
+		expect(analysis.targets?.counts.max).toBe(2);
+		expect(analysis.targets?.counts.points[0]).toEqual([0, 1]);
+	});
+
+	/**
+	 * One enemy at a time is not a multi-target pull, however many enemies the pull contains. The
+	 * player here is on the boss or on the add and almost never on both inside one window — four
+	 * seconds of it, the overlap where a kick on the add followed a hit on the boss.
+	 *
+	 * The share is against contact time rather than against engaged time, which is the boss's clock. On
+	 * this pull that is 76s of the 120s: the hits are ten seconds apart and the window is five, so the
+	 * count falls to zero between them. That is the same behaviour that keeps an intermission out of the
+	 * denominator, at the coarse spacing a synthetic pull is written with.
+	 */
+	it('reads a pull fought one enemy at a time as single target', () => {
+		expect(analysis.targets?.multiTargetMs).toBe(4000);
+		expect(analysis.targets?.multiTargetPct).toBeCloseTo((4000 / 76_000) * 100, 1);
+		expect(analysis.targets?.detected).toBe('single');
+	});
+
+	/** And the opposite pull: two enemies cycled throughout, which is what the multi-target list is for. */
+	it('reads a pull spent cycling two enemies as multi-target', () => {
+		const cycling = [
+			...brewBank,
+			...kick(1000, BOSS, 100_000, 40_000),
+			...Array.from({ length: 25 }, (_, i) => hit(i * 4000, BOSS, 5000)),
+			...Array.from({ length: 25 }, (_, i) => hit(2000 + i * 4000, ADD, 5000)),
+		].sort((a, b) => a.timestamp - b.timestamp);
+		const spread = analyse(datasetOf(cycling));
+
+		expect(spread.targets?.counts.max).toBe(2);
+		expect(spread.targets?.detected).toBe('multi');
+		expect(spread.targets?.multiTargetPct).toBeGreaterThan(90);
+	});
+});

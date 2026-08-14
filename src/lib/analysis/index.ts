@@ -19,3 +19,4 @@ export * from './intervals';
 export * from './links';
 export * from './raidBuffs';
 export * from './stacks';
+export * from './targets';

@@ -1,8 +1,10 @@
-import type { ComponentType } from 'react';
+import { useState, type ComponentType } from 'react';
 
 import type { Analysis } from '~/lib/types';
 
 import SectionNav, { type ReportSection } from './report/SectionNav';
+import TargetModeControl from './report/TargetModeControl';
+import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 import {
 	BrewBankTimeline,
 	CastLog,
@@ -16,6 +18,7 @@ import {
 	KpiTiles,
 	Method,
 	MissLedger,
+	PriorityLadder,
 	PullTimeline,
 	RaidBuffs,
 	RisingSunKick,
@@ -23,6 +26,7 @@ import {
 	Rotation,
 	SnapshotTable,
 	SpecRefusal,
+	Takeaways,
 	TigerPalm,
 	TouchOfKarma,
 	Xuen,
@@ -100,6 +104,10 @@ const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis
 	// Reference, not analysis: it says nothing about this pull and renders the same for every log. It
 	// belongs after everything that grades, because it is where a reader goes once a section above has
 	// told them a number was wrong and they want to know what right looked like.
+	// Directly above the rotation reference, and the pair is the point: this section says what the
+	// priority list wanted at each of your globals, and the one below it is the list itself. A reader
+	// told they passed a button over needs somewhere to go and read what that button was for.
+	{ id: 'priority', titleKey: 'priority.title', Component: PriorityLadder },
 	{ id: 'rotation', titleKey: 'rotation.title', Component: Rotation },
 	{ id: 'method', titleKey: 'method.title', Component: Method },
 ];
@@ -128,6 +136,13 @@ const NAV: ReportSection[] = [{ id: 'summary', titleKey: 'summary.title' }, ...S
  * width the report already had.
  */
 export default function Report({ analysis }: { analysis: Analysis }) {
+	// View state, per the argument in `lib/view/targetMode`: it changes which reading the report argues
+	// from, never anything the engine measured, so it lives for as long as this report is on screen and
+	// no longer. `useState` before the refusal below would be a conditional hook, so the refusal moved
+	// above it rather than the hook below.
+	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
+	const { mode } = resolveTargetMode(analysis.targets?.detected, targetChoice);
+
 	if (!analysis.isSpec) return <SpecRefusal analysis={analysis} />;
 
 	return (
@@ -140,10 +155,23 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 				<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
 					<ReportHeader analysis={analysis} />
 					<KpiTiles analysis={analysis} />
+					{/* Derived from the same scorecard every section below reads, so the short list at the top
+					    cannot drift out of agreement with the detail underneath it. */}
+					<Takeaways analysis={analysis} />
+					{/* Beside the headline figures because it qualifies them: whether this pull is read as one
+					    target or several decides what the priority section is willing to judge. */}
+					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
 				</section>
-				{SECTIONS.map(({ id, Component }) => (
-					<Component key={id} analysis={analysis} />
-				))}
+				{SECTIONS.map(({ id, Component }) =>
+					// One section reads the reader's choice rather than only the detection. Threaded as a prop
+					// rather than through context: it is one consumer, and a context here would put every
+					// section behind a provider for the sake of it.
+					id === 'priority' ? (
+						<PriorityLadder key={id} analysis={analysis} mode={mode} />
+					) : (
+						<Component key={id} analysis={analysis} />
+					),
+				)}
 			</article>
 		</div>
 	);

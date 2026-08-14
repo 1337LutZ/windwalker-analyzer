@@ -13,6 +13,10 @@
 
 import type { ReportActor, ReportFight, ReportFightNpc } from '~/generated/wcl-schema';
 import type { WclEvent } from '~/lib/events';
+// Type-only, and circular with `spec/apl` on purpose: the ladder is defined beside the model that
+// produces it, and a type-only import is erased before it can become a runtime cycle. Restating the
+// shape here would give the report two definitions of one audit, free to drift apart.
+import type { AplAudit } from '~/lib/spec/apl';
 import type { Gate } from '~/lib/game/model';
 
 // ---------------------------------------------------------------- WCL types
@@ -191,8 +195,10 @@ export interface LaneTarget {
 	 */
 	name: string | null;
 	/**
-	 * True for the enemy `debuff.engagedUptimePct` is measured against — the one that took the most of
-	 * this player's damage. The other lanes are drawn and never graded.
+	 * True for the enemy the pull was about — the boss the report names, or the biggest damage taker
+	 * when it names none. It is the lane `debuff.windows` is measured on and the enemy the engaged
+	 * windows are read from; it is no longer the only enemy the graded uptime looks at, which is what
+	 * `debuff.engagedUptimePct` now says.
 	 */
 	primary: boolean;
 }
@@ -488,9 +494,23 @@ export interface ProcSummary {
 
 export interface DebuffSummary {
 	casts: number;
+	/** The debuff on the primary target: the window model the timeline draws and the drops are read from. */
 	uptimeMs: number;
 	uptimePct: number;
 	engagedMs: number;
+	/**
+	 * The graded figure: how much of engaged time the debuff was up **on the enemy being hit**.
+	 *
+	 * Not the primary target's uptime, which is what this used to be and what every other field here
+	 * still is. At each moment the enemy in question is the one the player's most recent landed hit was
+	 * on, and the question is asked of that enemy's own debuff windows — the reader's own rule, that
+	 * uptime counts as long as there is no downtime and a target in melee range.
+	 *
+	 * The difference is not a rounding one. On a real 33-enemy pull the primary-only reading was 20.5%
+	 * of engaged time and this one is 69.1%; the pull was not 20% covered, it was a player kicking adds
+	 * that were carrying the debuff while a metric watched one enemy they had left. Measured against
+	 * engaged time still, so intermissions and phases with nothing to hit remain excluded.
+	 */
 	engagedUptimePct: number;
 	secondsLost: number;
 	intermissionSec: number;
@@ -500,10 +520,68 @@ export interface DebuffSummary {
 	/** Percentage of the player's damage that landed on the primary target. */
 	primaryDamageShare: number;
 	/**
-	 * True when the pull was concentrated enough on one enemy for debuff uptime to mean something.
-	 * False on add fights, where uptime against a single target is not a fault to grade.
+	 * True when the pull's damage was concentrated on the primary target.
+	 *
+	 * A whole-pull average, and read as one: it no longer decides whether uptime is graded — the figure
+	 * above is fair on an add fight — and what is left of it is the Energizing Brew audit's reading of
+	 * the priority list's `numberTargets >= 2` exception, plus the caveat the section prints beside a
+	 * spread pull. `Analysis.targets` is the per-moment answer to the same question.
 	 */
 	singleTarget: boolean;
+}
+
+/**
+ * What a pull was fought against: one enemy, or several.
+ *
+ * Two values and no third. `unknown` was considered and rejected — a pull always has a count of
+ * enemies being hit, and the honest expression of doubt here is the detected/overridden pair below
+ * rather than a mode nothing can act on.
+ */
+export type TargetMode = 'single' | 'multi';
+
+/**
+ * How many enemies the player was damaging, moment by moment, and what that makes the pull.
+ *
+ * The report could previously only answer this as a whole-pull average — `debuff.primaryDamageShare`
+ * — which cannot say that four minutes of one target and one minute of six adds were different
+ * minutes. That average is what the APL ladder in `lib/spec/apl.ts` refuses on, and it refuses whole
+ * pulls at a time.
+ */
+export interface TargetSummary {
+	/**
+	 * The trailing window a count is taken over.
+	 *
+	 * A count at an instant is always one — a monk hits one enemy per swing — so the window is what
+	 * turns a sequence of single hits back into "three enemies were being cycled".
+	 */
+	windowMs: number;
+	/**
+	 * The count over the pull, as `[ms, enemies]` steps holding until the next point.
+	 *
+	 * Deliberately the same shape as the energy and chi bars: `apl.ts` reads those with one binary
+	 * search over `[t, value]` pairs, and a series in a shape of its own would need a second reader
+	 * that could disagree with the first. `max` is the most enemies damaged inside one window.
+	 */
+	counts: ResourceCurve;
+	/**
+	 * Time spent damaging two or more enemies, and its share of the time anything was being damaged.
+	 *
+	 * Contact time is the denominator, not engaged time and not pull length: engaged time is the boss's
+	 * clock and would call a fight whose middle three minutes are add waves single-target, and pull
+	 * length counts intermissions nobody could hit anything in as evidence for one target.
+	 */
+	multiTargetMs: number;
+	multiTargetPct: number;
+	/** The share `detected` was decided against, so the copy can name the line rather than repeat it. */
+	thresholdPct: number;
+	/**
+	 * What the pull looks like from the counts alone.
+	 *
+	 * Detected, never enforced: a reader who deliberately ignored the adds to parse can say so, and
+	 * `lib/view/targetMode` is where their answer and this one are reconciled. This field is what the
+	 * report shows them so they can see they are disagreeing with it.
+	 */
+	detected: TargetMode;
 }
 
 export interface ChannelAudit {
@@ -884,6 +962,16 @@ export interface Analysis {
 	brew: BrewSummary;
 	procs: ProcSummary;
 	debuff: DebuffSummary;
+	/**
+	 * How many enemies were being damaged, moment by moment.
+	 *
+	 * Optional for the reason every field below it is: the committed fixtures are captured `analyse()`
+	 * output from before this existed and are cast to `Analysis` rather than migrated, so on a fixture
+	 * it arrives as `undefined` — not `null`, not an empty summary. `analyse()` always fills it in, and
+	 * fills it in with an empty series on a pull with no damage at all. Anything reading it has to
+	 * guard on truthiness.
+	 */
+	targets?: TargetSummary;
 	channel: ChannelAudit;
 	/**
 	 * Optional for one reason only: every committed fixture in `~/lib/__fixtures__` is captured
@@ -939,5 +1027,15 @@ export interface Analysis {
 	 * above still stands, it simply cannot draw the bar.
 	 */
 	resources?: { energy: ResourceCurve; chi: ResourceCurve };
+	/**
+	 * The priority list run against the pull, press by press.
+	 *
+	 * Three states, all distinct and none collapsible into the others. `undefined` is an analysis
+	 * captured before the ladder existed — the fixtures. `null` is the ladder *refusing*: the pull was
+	 * not concentrated on one enemy, and the single-target list is the wrong thing to judge it against.
+	 * An audit is an answer. Reading any of the three as either of the others would either invent a
+	 * verdict or hide one.
+	 */
+	apl?: AplAudit | null;
 	misses: Miss[];
 }

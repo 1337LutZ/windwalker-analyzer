@@ -115,7 +115,7 @@
   },
   "debuff": {
     "title": "Rising Sun Kick",
-    "intent": "The debuff is a flat damage increase for everything you do to the target — your own abilities and your Storm, Earth and Fire clones, not the rest of the raid. It runs 15 seconds on an 8-second cooldown, so the only reason it drops is a global that never went out. Measured against engaged time, so intermissions and target swaps do not count against you.",
+    "intent": "The debuff is a flat damage increase for everything you do to the target — your own abilities and your Storm, Earth and Fire clones, not the rest of the raid. It runs 15 seconds on an 8-second cooldown, so the only reason it drops is a global that never went out. Uptime asks, at each moment, whether the enemy you were hitting had it, and is measured against engaged time — so swapping targets and phases with nothing to hit do not count against you.",
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. Effectively never off the target.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts — {{lost, seconds}} of the fight without it.",
     "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. {{lost, seconds}} without the debuff is a raid-wide loss, not just yours.",
@@ -129,13 +129,25 @@
       "casts": "Casts",
       "lost": "Time without it"
     },
-    "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this is uptime on whichever took the most — on a fight with adds that is not a number to judge yourself by, and it is left ungraded.",
+    "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this pull was fought across several. Uptime above follows you rather than the boss — at each moment it asks whether the enemy you were hitting carried the debuff — so keeping it on the add in front of you counts. The timeline below draws a lane per enemy.",
     "track": {
       "up": "Debuff up",
       "dropped": "Dropped",
       "away": "Out of reach"
     },
     "chartLabel": "Rising Sun Kick's debuff across the pull: {{uptime, percent}} uptime against engaged time, {{drops}} drops totalling {{lost, seconds}}."
+  },
+  "targets": {
+    "label": "Target mode",
+    "hint": "The rotation changes shape at two or more enemies. Auto follows the pull's own counts; force one if you deliberately ignored the adds.",
+    "auto": "Auto",
+    "single": "Single target",
+    "multi": "Multi-target",
+    "detected_single": "Detected single target: {{share, percent}} of the time you were hitting anything, you were hitting more than one thing.",
+    "detected_multi": "Detected multi-target: {{share, percent}} of the time you were hitting anything, you were hitting more than one thing.",
+    "detectedNone": "This pull was analysed before target counts existed, so there is nothing detected to compare against.",
+    "overridden_single": "You are reading it as single target anyway.",
+    "overridden_multi": "You are reading it as multi-target anyway."
   },
   "tigerPalm": {
     "title": "Tiger Palm",
@@ -670,6 +682,68 @@
     }
   },
   "summary": {
-    "title": "Summary"
+    "title": "Summary",
+    "takeaways": {
+      "intent": "The three things that would move this pull the most, taken from whichever numbers actually scored worst below.",
+      "clean": "Nothing came out below its target. Every graded number on this pull is where it should be, so there is no short list to give you — the sections below are the detail rather than the fix.",
+      "jump": "See the detail",
+      "metric": {
+        "snapshotRate": {
+          "label": "Catch the procs",
+          "fix": "You brewed on the last global of {{value}}% of your Re-Origination windows. Aim for {{target}}%. This is the single biggest number on the page — a brew fired a global early gives away the strongest seconds the trinket had."
+        },
+        "tigerPalmWaste": {
+          "label": "Stop overwriting Tiger Power",
+          "fix": "{{value}}% of your Tiger Palms went out with the buff still comfortably up, so they bought nothing. Keep it under {{target}}%: those globals are free damage elsewhere."
+        },
+        "gcdUtilisation": {
+          "label": "Fill the globals",
+          "fix": "You spent {{value}}% of your available globals on a press that bought something, against a target of {{target}}%. The gap is time the rotation was simply not running."
+        },
+        "rskUptime": {
+          "label": "Keep the kick rolling",
+          "fix": "Rising Sun Kick’s debuff was up for {{value}}% of the time you could reach a target, against {{target}}%. It raises everything else you do, so a gap here costs more than the kick itself."
+        },
+        "brewStacks": {
+          "label": "Spend fuller brews",
+          "fix": "Your brews averaged {{value}} stacks. Ten is a full one, and {{target}} is the mark worth holding for — every stack short is damage the brew could have carried and did not."
+        },
+        "brewCapWaste": {
+          "label": "Stop overflowing the bank",
+          "fix": "{{value}} stacks were earned into a bank that was already full, so they vanished. The bank holds twenty; spending a brew before you reach it costs nothing and keeps them."
+        }
+      }
+    }
+  },
+  "priority": {
+    "title": "Priority list",
+    "intent": "Every other section here measures one thing on its own. This one walks the simulator’s priority list alongside your pull and asks a different question at each global you spent: was there a better button available right then? The list, its conditions and its costs are read out of wowsims rather than remembered.",
+    "summary": "You pressed what the list wanted on {{followed}} of {{judged}} globals it could judge, leaving {{skipped}} where something higher up was available and affordable.",
+    "unjudged": "{{unknown}} presses could not be judged — a rule above them depends on something this log does not carry — and {{offList}} were buttons the list has no opinion about, like a cooldown or a defensive. Neither counts against you.",
+    "clean": "Nothing was ever passed over. On every global the list could judge, the button you pressed was the one it wanted.",
+    "multiTarget": "This pull was not concentrated on a single enemy, and the ladder below is the single-target list. At two or more targets the simulator’s own priorities change — Spinning Crane Kick and Rushing Jade Wind move up, Rising Sun Kick moves down — so grading these presses against the single-target order would call correct play a mistake. Nothing is judged here.",
+    "caption": "Buttons that were available and passed over, most often first",
+    "noRows": "Nothing was passed over.",
+    "scope": "The ladder covers the filler priorities — Rising Sun Kick downwards, the entries that decide what a global is spent on. Touch of Death is left out because its condition is the target’s health, which this report does not fetch; the cooldowns are left out because each already has its own section judging it against the same conditions. A button you could not afford is never counted as passed over.",
+    "kpi": {
+      "followed": "Followed the list",
+      "skipped": "Passed over",
+      "unknown": "Could not judge"
+    },
+    "columns": {
+      "button": "Button",
+      "count": "Times passed over"
+    },
+    "rule": {
+      "rising-sun-kick": "Rising Sun Kick",
+      "tiger-palm-refresh": "Tiger Palm, to refresh Tiger Power",
+      "chi-wave": "Chi Wave",
+      "combo-breaker-kick": "Blackout Kick, free from Combo Breaker",
+      "fists-of-fury": "Fists of Fury",
+      "combo-breaker-palm": "Tiger Palm, free from Combo Breaker",
+      "jab": "Jab",
+      "rushing-jade-wind": "Rushing Jade Wind",
+      "blackout-kick": "Blackout Kick, to spend chi"
+    }
   }
 }

@@ -96,8 +96,14 @@ export interface AplAudit {
 	skipped: number;
 	unknown: number;
 	offList: number;
-	/** Skips per rule, so the section can say *which* button kept being passed over. */
-	skippedBy: Array<{ key: AplRuleKey; count: number }>;
+	/**
+	 * Skips per rule, so the section can say *which* button kept being passed over.
+	 *
+	 * Carries the cast id as well as the key, because the section draws the ability's icon beside its
+	 * name and the alternative — a second lookup table mapping rule keys back to spells — would be a
+	 * copy of the ladder that could disagree with it.
+	 */
+	skippedBy: Array<{ key: AplRuleKey; id: number; count: number }>;
 }
 
 export interface AplInputs {
@@ -496,6 +502,8 @@ export function aplAudit(inputs: AplInputs): AplAudit | null {
 		skipped: presses.filter((p) => p.verdict === 'skipped').length,
 		unknown: presses.filter((p) => p.verdict === 'unknown').length,
 		offList: presses.filter((p) => p.verdict === 'off-list').length,
-		skippedBy: [...skips].map(([key, count]) => ({ key, count })).sort((a, b) => b.count - a.count),
+		skippedBy: [...skips]
+			.map(([key, count]) => ({ key, id: LADDER.find((r) => r.key === key)?.id ?? 0, count }))
+			.sort((a, b) => b.count - a.count),
 	};
 }

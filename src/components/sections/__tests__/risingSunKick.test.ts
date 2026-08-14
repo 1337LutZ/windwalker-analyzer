@@ -41,10 +41,14 @@ describe('Rising Sun Kick section', () => {
 	});
 
 	/**
-	 * On an add fight the debuff is spread across targets by design. The report already refuses to
-	 * grade it there, and the section has to say why rather than showing a bare low number.
+	 * On an add fight the debuff is spread across targets by design, and the number above is measured
+	 * against whichever enemy the player was hitting — so the section says so rather than leaving a
+	 * reader to assume it was measured on the boss and drew the wrong conclusion from a high figure.
+	 *
+	 * It is graded now: the refusal this used to assert belonged to the old measurement, which watched
+	 * one target and read a spread pull as a fault.
 	 */
-	it('explains itself on a multi-target pull instead of grading', () => {
+	it('explains what a multi-target pull was measured against', () => {
 		const analysis = fixture('poor');
 		const spread: Analysis = {
 			...analysis,
@@ -52,8 +56,6 @@ describe('Rising Sun Kick section', () => {
 		};
 		const html = render(spread);
 		expect(html).toContain(t('debuff.multiTarget', { share: 23 }));
-		// Ungraded: no verdict colour on the uptime tile.
-		expect(html).not.toContain('text-miss">' + t('debuff.kpi.uptime'));
 	});
 
 	it('says nothing was cast rather than reporting 0% uptime', () => {
