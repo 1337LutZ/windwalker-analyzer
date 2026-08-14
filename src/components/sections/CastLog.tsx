@@ -4,7 +4,8 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import type { Analysis } from '~/lib/types';
 
 import { CastTimeline } from '../charts';
-import { Section, buttonClass } from '../primitives';
+import { Section } from '../primitives';
+import { buttonClass } from '../primitives/controls';
 
 /**
  * Every press on a clock, with what was up underneath — inline, and full-width in a dialog.

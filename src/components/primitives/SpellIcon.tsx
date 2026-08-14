@@ -1,15 +1,15 @@
-import ICONS from '~/generated/spell-icons.json';
+import { iconUrl, spellIconName } from './spellIcon';
 
 /**
  * The game's own icon for a spell, beside its name.
  *
- * Names come from a map generated at build time by `scripts/fetch-spell-icons.mjs`, so the page
- * makes no call to Wowhead — the only third-party request is the image itself, from
- * `wow.zamimg.com`, which the content-security policy names explicitly and the README declares.
- *
  * An unknown id renders nothing at all rather than a broken-image glyph or a placeholder box. Icons
  * here are decoration next to a name that is already on screen: their absence should cost nothing,
  * and a row of grey squares for the trinket procs nobody has an icon for would cost plenty.
+ *
+ * Where the image comes from is `./spellIcon`, deliberately not this file: a component module has to
+ * export nothing but components or React Fast Refresh cannot hot-swap it, and this one is reached
+ * through the primitives barrel by most of the report.
  */
 const SIZES = {
 	sm: 'h-6 w-6',
@@ -18,30 +18,6 @@ const SIZES = {
 } as const;
 
 export type SpellIconSize = keyof typeof SIZES;
-
-/**
- * Wowhead's `large` is 56px. Every size here draws at 24–32 CSS pixels, so on a 2× display the 36px
- * `medium` would be resampled upwards and look soft; 56px covers all of them with room to spare and
- * the file is still only a couple of kilobytes.
- */
-const iconUrl = (icon: string): string => `https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg`;
-
-export function spellIconName(id: number): string | null {
-	return (ICONS as Record<string, string>)[String(id)] ?? null;
-}
-
-/**
- * The image URL for a spell id, or null when nothing is known about it.
- *
- * Exported for the cast timeline, which draws hundreds of icons and cannot afford the wrapper element
- * `SpellIcon` would put around each one — it positions a bare `<img>` itself. The URL shape stays here
- * so there is still one place that knows where an icon lives, which is what the content-security
- * policy is written against.
- */
-export function spellIconUrl(id: number): string | null {
-	const icon = spellIconName(id);
-	return icon === null ? null : iconUrl(icon);
-}
 
 export default function SpellIcon({ id, size = 'md' }: { id: number; size?: SpellIconSize }) {
 	const icon = spellIconName(id);

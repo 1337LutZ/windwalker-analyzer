@@ -4,7 +4,9 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatPercentValue, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
-import ResourceTrack, { cappedOf } from '../charts/ResourceTrack';
+import ResourceTrack from '../charts/ResourceTrack';
+import { cappedOf } from '../charts/capped';
+import ScrollableTrack from '../charts/ScrollableTrack';
 import ChartKey from '../charts/ChartKey';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 import LogLink from './LogLink';
@@ -92,18 +94,20 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 			    state without carrying a curve to draw. */}
 			{curve === undefined || curve.points.length === 0 ? null : (
 				<figure className="m-0 mt-4.5 flex flex-col gap-2">
-					<ResourceTrack
-						curve={curve}
-						durationMs={analysis.durationMs}
-						stroke="var(--color-kick)"
-						fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
-						shades={[{ windows: cappedOf(curve), className: 'fill-miss/25', label: 'capped' }]}
-						label={t('energy.chartLabel', {
-							max: curve.max,
-							capped: energy.total.cappedMs,
-							duration: analysis.durationMs,
-						})}
-					/>
+					<ScrollableTrack durationMs={analysis.durationMs}>
+						<ResourceTrack
+							curve={curve}
+							durationMs={analysis.durationMs}
+							stroke="var(--color-kick)"
+							fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
+							shades={[{ windows: cappedOf(curve), className: 'fill-miss/25', label: 'capped' }]}
+							label={t('energy.chartLabel', {
+								max: curve.max,
+								capped: energy.total.cappedMs,
+								duration: analysis.durationMs,
+							})}
+						/>
+					</ScrollableTrack>
 					<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
 						<ChartKey tone="kick">{t('energy.chartCaption')}</ChartKey>
 						<ChartKey tone="miss">{t('energy.columns.held')}</ChartKey>

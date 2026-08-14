@@ -15,7 +15,7 @@ import {
 	isDefault,
 } from '~/lib/settings';
 
-import { buttonClass, fieldClass, labelClass, primaryButtonClass } from '../primitives';
+import { buttonClass, fieldClass, labelClass, primaryButtonClass } from '../primitives/controls';
 
 interface Values {
 	snapshotLeewayMs: number | string;

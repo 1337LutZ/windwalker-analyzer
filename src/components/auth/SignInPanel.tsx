@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 
 import { inspectToken, useSession } from '~/lib/auth';
 
-import { Callout, buttonClass } from '../primitives';
+import { Callout } from '../primitives';
+import { buttonClass } from '../primitives/controls';
 
 import ClientIdPanel from './ClientIdPanel';
 import ManualTokenForm from './ManualTokenForm';

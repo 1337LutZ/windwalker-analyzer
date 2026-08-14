@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { buttonClass, fieldClass, labelClass } from '../primitives';
+import { buttonClass, fieldClass, labelClass } from '../primitives/controls';
 import { parseReportInput, type ResolvedReportInput } from './parseReportInput';
 
 interface Values {

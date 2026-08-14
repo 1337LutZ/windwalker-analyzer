@@ -1,6 +1,6 @@
 import { useSession } from '~/lib/auth';
 
-import { primaryButtonClass } from '../primitives';
+import { primaryButtonClass } from '../primitives/controls';
 
 /**
  * Starts the PKCE flow. There is nothing to type and nothing to paste: the next thing the visitor

@@ -8,9 +8,11 @@ import { Skeleton } from '../primitives';
  * because every section sizes itself from the pull. Four is roughly a screen: enough to say "a long
  * report is coming and this is its shape", without claiming to know it.
  *
- * The heights are the ones the charts themselves use — 240 is `BrewBank`, the rest are what a
- * timeline and a nine-row bar chart come out at — so the blocks read as the right kind of object
- * rather than as four identical rectangles. Distinct values also give each block a stable key.
+ * The heights are roughly what the charts themselves come out at — a timeline, a resource track, a
+ * nine-row bar chart — so the blocks read as the right kind of object rather than as four identical
+ * rectangles. Distinct values also give each block a stable key. They are deliberately approximate:
+ * a skeleton that matched a chart exactly would still be wrong for the next pull, since every chart
+ * here sizes itself from the fight.
  */
 const SECTION_HEIGHTS = ['h-[300px]', 'h-[240px]', 'h-[360px]', 'h-[200px]'];
 

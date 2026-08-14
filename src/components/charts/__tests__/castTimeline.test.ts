@@ -13,7 +13,8 @@ import { formatClock } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '../../sections/CastLog';
-import CastTimeline, { collapseTargets, perTargetBlock } from '../CastTimeline';
+import CastTimeline from '../CastTimeline';
+import { collapseTargets, perTargetBlock } from '../targetLanes';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');

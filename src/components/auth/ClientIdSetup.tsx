@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { useRedirectUri } from '~/hooks/useRedirectUri';
 import { WCL_CLIENTS_URL, looksLikeClientID, useSession } from '~/lib/auth';
 
-import { CopyField, buttonClass, fieldClass, labelClass } from '../primitives';
+import { CopyField } from '../primitives';
+import { buttonClass, fieldClass, labelClass } from '../primitives/controls';
 
 interface Values {
 	clientID: string;

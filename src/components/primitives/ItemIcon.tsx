@@ -13,8 +13,7 @@
 const iconUrl = (icon: string): string =>
 	`https://wow.zamimg.com/images/wow/icons/large/${icon.replace(/\.jpg$/, '')}.jpg`;
 
-/** Wowhead's Mists Classic item pages, which is the branch this report reads logs from. */
-export const itemUrl = (id: number): string => `https://www.wowhead.com/mop-classic/item=${id}`;
+import { itemUrl } from './itemUrl';
 
 /**
  * The tooltip parameter that turns a tier piece's card into a useful one: the set block listing

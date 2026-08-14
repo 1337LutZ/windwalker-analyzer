@@ -1,4 +1,4 @@
-import ENCHANTS from '~/generated/enchants.json';
+import { enchantById, enchantIconUrl } from './enchants';
 
 /**
  * The enchant on a slot, as its own icon rather than the word "enchanted".
@@ -11,19 +11,6 @@ import ENCHANTS from '~/generated/enchants.json';
  * spell id: it is the only one of the two that can be linked, and the link is what raises the
  * tooltip.
  */
-const iconUrl = (icon: string): string =>
-	`https://wow.zamimg.com/images/wow/icons/large/${icon.replace(/\.jpg$/, '')}.jpg`;
-
-interface Enchant {
-	name: string;
-	icon: string;
-	spellId: number;
-}
-
-export function enchantById(id: number): Enchant | null {
-	return (ENCHANTS as Record<string, Enchant>)[String(id)] ?? null;
-}
-
 export default function EnchantIcon({ id }: { id: number }) {
 	const enchant = enchantById(id);
 
@@ -42,7 +29,7 @@ export default function EnchantIcon({ id }: { id: number }) {
 			className="inline-flex items-center gap-1.5 rounded-sm text-muted transition-colors hover:text-ink-2"
 		>
 			<img
-				src={iconUrl(enchant.icon)}
+				src={enchantIconUrl(enchant.icon)}
 				alt=""
 				aria-hidden="true"
 				width={56}

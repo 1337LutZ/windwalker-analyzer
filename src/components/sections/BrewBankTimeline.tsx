@@ -1,7 +1,7 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
 import type { Analysis } from '~/lib/types';
 
-import { BrewBank } from '../charts';
+import { BrewBankTrack } from '../charts';
 import { Note, Prose, Section } from '../primitives';
 
 /** The bank counter over the pull, sharing its clock with the timeline above it. */
@@ -38,7 +38,7 @@ export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 		<Section id="bank" title={t('brew.title')}>
 			<Prose>{t('brew.intent')}</Prose>
 			<div className="mt-5">
-				{brew.bankTimeline.length > 0 ? <BrewBank analysis={analysis} /> : <Note>{t('empty.section')}</Note>}
+				{brew.bankTimeline.length > 0 ? <BrewBankTrack analysis={analysis} /> : <Note>{t('empty.section')}</Note>}
 			</div>
 			<div className="mt-5">
 				<Prose>{summary}</Prose>

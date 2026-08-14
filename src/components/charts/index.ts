@@ -1,5 +1,5 @@
 export { default as AbilityDamage } from './AbilityDamage';
-export { default as BrewBank } from './BrewBank';
+export { default as BrewBankTrack } from './BrewBankTrack';
 export { default as CastTimeline } from './CastTimeline';
 export { default as ChartKey } from './ChartKey';
 export { default as DebuffTimeline } from './DebuffTimeline';

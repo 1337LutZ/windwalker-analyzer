@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 
 import { cleanToken, inspectToken, useSession } from '~/lib/auth';
 
-import { buttonClass, fieldClass, labelClass } from '../primitives';
+import { buttonClass, fieldClass, labelClass } from '../primitives/controls';
 
 interface Values {
 	token: string;

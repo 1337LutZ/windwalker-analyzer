@@ -16,7 +16,7 @@ import type { ChartTheme, TipContent } from './apex';
 import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
 
 /** Charts in this group share their zoom, pan and crosshair. */
-export const FIGHT_GROUP = 'ww-fight';
+const FIGHT_GROUP = 'ww-fight';
 
 /**
  * Ability names stay out of the locale files, deliberately.

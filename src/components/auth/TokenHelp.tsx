@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog';
 
-import { buttonClass } from '../primitives';
+import { buttonClass } from '../primitives/controls';
 
 const linkClass = 'text-kick underline underline-offset-2';
 

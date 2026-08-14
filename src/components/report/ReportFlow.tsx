@@ -12,7 +12,8 @@ import { useReportFights } from '~/hooks/useReportFights';
 
 import { useSession } from '../auth';
 import Report from '../Report';
-import { Callout, Skeleton, Step, buttonClass, primaryButtonClass } from '../primitives';
+import { Callout, Skeleton, Step } from '../primitives';
+import { buttonClass, primaryButtonClass } from '../primitives/controls';
 
 import FetchProgress from './FetchProgress';
 import FightSelector from './FightSelector';

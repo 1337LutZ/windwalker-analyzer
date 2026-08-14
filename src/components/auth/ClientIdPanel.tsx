@@ -2,7 +2,7 @@ import { Collapsible } from '@base-ui/react/collapsible';
 
 import { useSession } from '~/lib/auth';
 
-import { buttonClass } from '../primitives';
+import { buttonClass } from '../primitives/controls';
 
 import ClientIdSetup from './ClientIdSetup';
 

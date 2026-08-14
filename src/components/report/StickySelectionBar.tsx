@@ -4,7 +4,7 @@ import { formatPercentValue } from '~/lib/format';
 
 import type { SettingsState } from '~/hooks/useSettings';
 
-import { buttonClass } from '../primitives';
+import { buttonClass } from '../primitives/controls';
 import SettingsDialog from './SettingsDialog';
 
 interface Props {

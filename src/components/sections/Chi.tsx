@@ -5,6 +5,7 @@ import { formatClock, formatInteger } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import ResourceTrack from '../charts/ResourceTrack';
+import ScrollableTrack from '../charts/ScrollableTrack';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 
 /**
@@ -82,14 +83,16 @@ export default function Chi({ analysis }: { analysis: Analysis }) {
 			    so the row up there and the chart down here are recognisably one bar rather than two
 			    readings of it. It marks each overflow itself, which is why no annotation is passed. */}
 			<figure className="m-0 mt-5 flex flex-col gap-2">
-				<ResourceTrack
-					curve={chi}
-					durationMs={analysis.durationMs}
-					mode="steps"
-					stroke="var(--color-brew)"
-					fill="color-mix(in oklch, var(--color-brew) 18%, transparent)"
-					label={t('chi.chartLabel', { max: chi.max, wasted: total })}
-				/>
+				<ScrollableTrack durationMs={analysis.durationMs}>
+					<ResourceTrack
+						curve={chi}
+						durationMs={analysis.durationMs}
+						mode="steps"
+						stroke="var(--color-brew)"
+						fill="color-mix(in oklch, var(--color-brew) 18%, transparent)"
+						label={t('chi.chartLabel', { max: chi.max, wasted: total })}
+					/>
+				</ScrollableTrack>
 				<figcaption className="text-sm text-muted">{t('chi.caption')}</figcaption>
 			</figure>
 
