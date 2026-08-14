@@ -16,6 +16,14 @@ export interface StackBank {
 	maxStacks: number;
 	/** Stack gains that arrived on a bank already at the cap. */
 	wastedAtCap: number;
+	/**
+	 * When each of those gains arrived.
+	 *
+	 * The count alone cannot say whether a lost stack was the price of something — a bank held full
+	 * while its owner waited out a proc is a different story from one left full for a minute — and
+	 * answering that needs the timestamps, not the total.
+	 */
+	wastedAt: number[];
 	/** Stacks still banked when the fight ended — damage never taken. */
 	bankAtEnd: number;
 }
@@ -42,7 +50,7 @@ export function trackStackBank(events: readonly WclEvent[], aura: Aura, targetID
 	const timeline: Array<[number, number]> = [];
 	let stacks = 0;
 	let maxStacks = 0;
-	let wastedAtCap = 0;
+	const wastedAt: number[] = [];
 
 	for (const e of bankEvents) {
 		const t = e.timestamp - t0;
@@ -59,7 +67,7 @@ export function trackStackBank(events: readonly WclEvent[], aura: Aura, targetID
 			// A gain that actually landed emits its own apply on the same millisecond; a lone refresh
 			// at the cap is a stack the bank had no room for.
 			const paired = bankEvents.some((x) => x.timestamp === e.timestamp && (isAuraApply(x) || isStackChange(x)));
-			if (!paired && stacks >= cap) wastedAtCap++;
+			if (!paired && stacks >= cap) wastedAt.push(t);
 		} else if (isAuraRemove(e)) {
 			drains.push({ t, before: stacks, consumed: stacks });
 			stacks = 0;
@@ -72,7 +80,52 @@ export function trackStackBank(events: readonly WclEvent[], aura: Aura, targetID
 		timeline.push([t, stacks]);
 	}
 
-	return { drains, timeline, maxStacks, wastedAtCap, bankAtEnd: stacks };
+	return { drains, timeline, maxStacks, wastedAtCap: wastedAt.length, wastedAt, bankAtEnd: stacks };
+}
+
+/**
+ * Stacks the bank would have thrown away had a drain not happened when it did.
+ *
+ * The counterfactual behind "should this have been held". `startStacks` is the level the bank
+ * carried *into* the drain — `StackDrain.before`, which is already recorded — and every gain the
+ * timeline shows between `from` and `to` is replayed onto it. Whatever the cap refuses is a stack
+ * the wait would have cost.
+ *
+ * Only gains are replayed. A drain inside the window is the player spending the bank again, which
+ * the counterfactual by definition did not do, so a fall in the timeline moves nothing.
+ *
+ * Gains that never landed at all — a refresh onto a full bank — are not in the timeline and are not
+ * replayed either, which is right: those were lost in both worlds and `wastedAt` already has them.
+ * What comes back here is the *extra* loss holding would have caused, and nothing else.
+ */
+export function overflowIfHeld(
+	timeline: readonly (readonly [number, number])[],
+	startStacks: number,
+	from: number,
+	to: number,
+	cap: number,
+): number {
+	let level = startStacks;
+	let lost = 0;
+	let previous: number | null = null;
+
+	for (const [at, stacks] of timeline) {
+		// Everything up to and including the drain only sets the baseline the next entry is a change
+		// from. The drain's own entry is what usually provides it.
+		if (at <= from) {
+			previous = stacks;
+			continue;
+		}
+		if (at > to) break;
+		if (previous !== null && stacks > previous) {
+			const gained = stacks - previous;
+			lost += Math.max(0, gained - Math.max(0, cap - level));
+			level = Math.min(cap, level + gained);
+		}
+		previous = stacks;
+	}
+
+	return lost;
 }
 
 export interface PairedDrain extends StackDrain {

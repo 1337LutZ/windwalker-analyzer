@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 
 import '~/lib/i18n';
 
+import { jumpToHeading } from '../jump';
+
 export interface ReportSection {
 	/**
 	 * The name the section is addressed by. `Section` puts it on the section's own `<h2>` suffixed
@@ -92,22 +94,9 @@ export default function SectionNav({ sections }: { sections: readonly ReportSect
 	}, [sections]);
 
 	const jump = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
-		const heading = document.getElementById(`${id}-heading`);
-		// Nothing to improve on — let the browser follow the href.
-		if (heading === null) return;
-		event.preventDefault();
-
-		// The same check `ReportFlow` makes before it scrolls: smooth movement over a page this long is
-		// a genuine problem for a reader who has asked for less of it.
-		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		// Focus follows the jump, which is the half of a fragment link that `preventDefault` throws
-		// away: without it a keyboard user is scrolled to a section but still tabbing through the nav,
-		// and a screen reader is told nothing arrived. Focusing the heading announces the section by
-		// name and puts the next Tab inside it. The tab stop is programmatic-only and made at the
-		// moment of the jump, so the heading never joins the tab order for anyone else.
-		heading.setAttribute('tabindex', '-1');
-		heading.focus({ preventScroll: true });
-		heading.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+		// Shared with the timeline's resource labels, so a link into a section behaves the same wherever
+		// it is on the page. `false` means the heading is not here — let the browser follow the href.
+		if (!jumpToHeading(`${id}-heading`, event)) return;
 		// Answered now rather than waiting for the observer, so the click reads as having landed even
 		// while a smooth scroll is still travelling.
 		setCurrent(id);

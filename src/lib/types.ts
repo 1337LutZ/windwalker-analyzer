@@ -172,6 +172,31 @@ export interface CastMark {
 /** The category a lane belongs to, which is the granularity the reader turns rows off at. */
 export type LaneGroup = 'buff' | 'proc' | 'debuff';
 
+/**
+ * The enemy a lane's windows were measured on.
+ *
+ * Only a debuff has one: a buff is on the player and a proc is on their gear, so neither has a target
+ * to be grouped under. It exists because a debuff is per-enemy in the game and was not per-enemy on
+ * the chart — an add pull drew one lane for whichever enemy took the most damage and silently dropped
+ * everything the player did to the rest.
+ */
+export interface LaneTarget {
+	/** The report actor id, which is what events carry as `targetID`. */
+	id: number;
+	/**
+	 * The enemy's name, or null when the report's actor list did not name this id.
+	 *
+	 * Never invented. A lane the report cannot name is labelled as an unnamed enemy carrying that id,
+	 * which is the truth, rather than being given the boss's name or a plausible-looking add's.
+	 */
+	name: string | null;
+	/**
+	 * True for the enemy `debuff.engagedUptimePct` is measured against — the one that took the most of
+	 * this player's damage. The other lanes are drawn and never graded.
+	 */
+	primary: boolean;
+}
+
 /** One aura's windows, as a row drawn under the casts. */
 export interface AuraLane {
 	/** The aura's key in the spec's game model — stable, and what a React list keys on. */
@@ -181,6 +206,14 @@ export interface AuraLane {
 	id: number;
 	group: LaneGroup;
 	windows: Window[];
+	/**
+	 * Which enemy these windows are on, when the aura is per-target.
+	 *
+	 * Absent on a buff or a proc, and absent on any analysis captured before per-target lanes existed
+	 * — so read it for truthiness, never against null. Several lanes then share one `key` and differ
+	 * only by target, which is why the chart composes its React key from both.
+	 */
+	target?: LaneTarget;
 }
 
 /**
@@ -195,6 +228,15 @@ export interface CastTimeline {
 	casts: CastMark[];
 	/** Only lanes with something on them. An aura that never went up is not drawn as an empty row. */
 	lanes: AuraLane[];
+	/**
+	 * How many further enemies carried a per-target aura and were left off the chart.
+	 *
+	 * A pull with thirty adds must not draw thirty lanes, so the debuff lanes are capped — and a cap
+	 * that truncates in silence is a chart that quietly lies about how many enemies were hit. The
+	 * count is carried so the copy can say what is missing. Absent on an analysis captured before this
+	 * existed: read it as `?? 0`.
+	 */
+	hiddenTargets?: number;
 }
 
 export interface CpmSummary {
@@ -202,7 +244,25 @@ export interface CpmSummary {
 	onGcdCasts: number;
 	offGcdCasts: number;
 	gcdSlots: number;
+	/**
+	 * Share of available globals spent on a press that bought something.
+	 *
+	 * Deliberately not "share of globals spent pressing anything". A global given to a Tiger Palm
+	 * that clipped a healthy Tiger Power with no Combo Breaker up did occupy the global, and counting
+	 * it as used made the report advise against its own finding: fixing the thirty wasted presses the
+	 * Tiger Palm section flags would have dropped this figure by 11.9 points on the poor fixture, from
+	 * 90.2% to 78.3%. The right play was never "press nothing" — it was "press Jab instead", which
+	 * keeps the global. So the credit for a wasted press is removed rather than a second penalty added.
+	 */
 	gcdUtilisationPct: number;
+	/**
+	 * Globals spent on a press that bought nothing, and so excluded from the figure above.
+	 *
+	 * Carried so the copy can show the deduction rather than quietly applying it. Optional because
+	 * every committed fixture is `analyse()` output captured before it existed — on those it is
+	 * `undefined`, not `0`, and anything reading it has to guard on truthiness.
+	 */
+	wastedGcds?: number;
 	channelSec: number;
 	activeMs: number;
 	activePct: number;
@@ -236,9 +296,30 @@ export interface BrewSummary {
 	fullUses: number;
 	refreshUses: number;
 	wastedAtCap: number;
+	/**
+	 * The share of `wastedAtCap` that was the price of holding a brew for a Re-Origination proc.
+	 *
+	 * A stack lost at the cap while the player waited out a proc is not the same mistake as one lost
+	 * to a bank left full for a minute, and this report used to charge for both identically — while
+	 * separately faulting the brew that would have prevented it for going out early. Only the stacks
+	 * outside this count are graded; all of them are still reported.
+	 *
+	 * Optional because the committed fixtures predate it. `undefined` there, never `0`.
+	 */
+	wastedProtecting?: number;
 	maxStacks: number;
 	bankAtEnd: number;
 	uptimePct: number;
+	/**
+	 * What one brew stack adds to damage, as a fraction — `0.05 + masteryPercent` from
+	 * `sim/monk/windwalker/tigereye_brew.go:52`.
+	 *
+	 * Null when the log did not report a mastery rating, which on every Mists Classic report checked
+	 * so far is always. The comparison between brewing early and holding does not need it — both
+	 * sides scale by it identically — but stating either cost *as damage* does, so the copy says the
+	 * log does not carry it rather than printing a plausible number.
+	 */
+	damagePerStack?: number | null;
 	windows: Window[];
 	useList: BrewUse[];
 	bankTimeline: Array<[number, number]>;
@@ -288,6 +369,36 @@ export interface ProcWindow extends Window {
 	 * fraction and never going for it. Both are misses; only one is a timing problem.
 	 */
 	missedByMs: number | null;
+	/**
+	 * What brewing here rather than at the end of the proc gave up, in stack-seconds.
+	 *
+	 * One stack-second is one Tigereye Brew stack amplifying for one second. The brew's bonus is
+	 * frozen at cast — `damagePerStack` is read once in `OnGain` and never again — over a fixed 15s
+	 * window, so a brew cast with `remainingMs` still on the proc's clock spends that much of its
+	 * window overlapping stats the player already had, instead of carrying them past the proc. The
+	 * cost is therefore `remainingMs` seconds at the stacks the brew actually spent.
+	 *
+	 * Null on a proc no brew was spent on, and `undefined` on the committed fixtures.
+	 */
+	earlyCostStackSec?: number | null;
+	/**
+	 * What waiting for the proc's last global would have cost instead, in the same stack-seconds.
+	 *
+	 * Stacks the bank would have overflowed during the wait, each one worth a full brew's 15 seconds
+	 * of one stack. Zero is the common answer and the honest one: with room in the bank, holding
+	 * costs nothing at all and an early brew protected nothing.
+	 */
+	holdCostStackSec?: number | null;
+	/** Stacks the wait would have thrown away — the count behind `holdCostStackSec`. */
+	holdStacksLost?: number | null;
+	/**
+	 * True when this brew went out early *and* holding for the last global would have cost at least
+	 * as much as the tail it gave up.
+	 *
+	 * The one case the report used to have no correct answer for. Ties go to the player: a decision
+	 * the arithmetic calls level is not a fault to name.
+	 */
+	protectedBrew?: boolean;
 }
 
 export interface ProcSummary {
@@ -304,6 +415,13 @@ export interface ProcSummary {
 	lastGcd: number;
 	late: number;
 	early: number;
+	/**
+	 * Early brews the arithmetic endorses: the bank was close enough to its cap that holding for the
+	 * last global would have cost at least as much as the tail the brew gave up.
+	 *
+	 * A subset of `early`, so the two are not added together. Optional because the fixtures predate it.
+	 */
+	protectedEarly?: number;
 	unsnapshotted: number;
 	redundant: number;
 	sameAsPrevious: number;
@@ -632,6 +750,52 @@ export interface GearSummary {
 	missingEnchants: string[];
 	/** Total gems socketed, which is the other half of "is this character finished". */
 	gems: number;
+	/**
+	 * Mastery rating as `combatantinfo` reported it, or null when it reported none.
+	 *
+	 * Null is the normal answer on a Mists Classic report: the field is present on every one checked
+	 * and carries `0` beside believable crit and haste ratings, which is WarcraftLogs not filling it
+	 * rather than a character with no mastery. Optional on top of that because the committed fixtures
+	 * predate the field entirely.
+	 */
+	masteryRating?: number | null;
+}
+
+/** One raid-buff *effect* — not one spell. Several classes supply each, and they do not stack. */
+export interface RaidBuffRow {
+	/** Effect key: `stats`, `attackPower`, `meleeHaste`, `spellHaste`, `crit`, `mastery`. */
+	key: string;
+	/** The spell whose icon stands for the effect. */
+	iconId: number;
+	/** The providers the log actually named, deduplicated. Empty when it named none. */
+	providers: string[];
+	/**
+	 * True when the log carried nothing at all about this effect.
+	 *
+	 * Not the same as 0% uptime, and must never be rendered as one: a buff applied before the pull
+	 * that never drops logs no events for the whole fight, so silence is "cannot say" rather than
+	 * "was not there".
+	 */
+	notReported: boolean;
+	uptimeMs: number;
+	uptimePct: number;
+	/** True when some provider was already running at the first millisecond of the pull. */
+	fromPull: boolean;
+	/** True when the player was one of the casters — which makes any gap theirs to fix. */
+	byPlayer: boolean;
+	/** True when a Monk can supply this effect at all, whether or not this one did. */
+	selfProvided: boolean;
+	/** Stretches with no provider up, in time order, including one before the first application. */
+	gaps: Array<{ at: number; seconds: number }>;
+}
+
+export interface RaidBuffSummary {
+	rows: RaidBuffRow[];
+	/** Player deaths in the pull. A corpse holds no buffs, so these explain gaps in every row. */
+	deaths: number;
+	notReported: number;
+	/** Effects the Monk supplies that were not up for the whole pull. */
+	selfGaps: number;
 }
 
 export interface Analysis {
@@ -711,6 +875,15 @@ export interface Analysis {
 	 * UI has to treat as "not reported" rather than as "nothing equipped".
 	 */
 	gear: GearSummary;
+	/**
+	 * The raid buffs that move a Windwalker's damage, one row per effect.
+	 *
+	 * Optional for the same reason every field above it is: the committed fixtures are captured
+	 * `analyse()` output from before this field existed and are cast to `Analysis` rather than
+	 * migrated, so on a fixture it arrives as `undefined` — not `null`, not an empty summary.
+	 * `analyse()` always fills it in. Anything reading it has to guard on truthiness.
+	 */
+	raidBuffs?: RaidBuffSummary;
 	/**
 	 * The energy and chi bars over the pull, for the charts that draw them.
 	 *

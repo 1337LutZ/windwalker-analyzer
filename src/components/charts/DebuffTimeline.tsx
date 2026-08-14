@@ -24,7 +24,20 @@ import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip, timeAxis } from './a
  * different pitches read as two different tools.
  */
 const ROW_HEIGHT = 36;
-const CHROME = 96;
+/**
+ * Everything in the chart's height that is not a row: the clock axis and the margins around it.
+ *
+ * 92, matching the pull timeline exactly, and that is the point rather than a coincidence. ApexCharts
+ * is given a total height and divides whatever is left after its own chrome among the categories — so
+ * this number is a *claim* about how much chrome there will be, and an over-estimate does not add
+ * padding, it fattens every row. Reserving 96 against 92 of real chrome spread the surplus across
+ * three rows and drew them at 37.3px, next to a pull timeline drawing 36 from the same declared grid.
+ *
+ * Both charts run the same `timeAxis`, no legend, no title and zero vertical grid padding, so their
+ * chrome is the same and the number has to be. Changing one without the other puts two timelines of
+ * one pull at two pitches again.
+ */
+const CHROME = 92;
 
 /**
  * A gap of a second or two is a real drop but too thin to hover, so every span is drawn at least

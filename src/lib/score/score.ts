@@ -66,6 +66,10 @@ function overall(metrics: Metric[]): Grade {
 		points += POINTS[m.grade] * weight;
 		total += weight;
 	}
+	// A metric can carry weight zero — see `snapshotDepth` in `thresholds` — so a pull whose only
+	// measurable metric is one of those has nothing to average and must say so rather than divide by
+	// nothing.
+	if (total === 0) return 'ok';
 	const pct = (points / total) * 100;
 	return pct >= 75 ? 'good' : pct >= 45 ? 'ok' : 'bad';
 }
@@ -91,7 +95,14 @@ export function scoreAnalysis(analysis: Analysis): Scorecard {
 	const rskUptime = metric('rskUptime', debuff.casts > 0 && debuff.singleTarget ? debuff.engagedUptimePct : null);
 	const tigerPalmWaste = metric('tigerPalmWaste', share(filler.wasted, filler.casts));
 	const brewStacks = metric('brewStacks', brew.uses > 0 ? brew.avgConsumed : null);
-	const brewCapWaste = metric('brewCapWaste', brew.uses > 0 || brew.maxStacks > 0 ? brew.wastedAtCap : null);
+	// Graded on the stacks that were avoidable, not on every stack the cap refused. A stack lost while
+	// holding a brew for a Re-Origination proc, on a proc where holding was the cheaper of the two
+	// moves, was correctly spent — charging for it while separately faulting the early brew that would
+	// have prevented it left a bank near its cap with no move the report called right. All of them are
+	// still reported; only the avoidable ones are graded. `?? 0` because the committed fixtures predate
+	// the field and carry `undefined`, which must read as "nothing forgiven" rather than as NaN.
+	const avoidableCapWaste = Math.max(0, brew.wastedAtCap - (brew.wastedProtecting ?? 0));
+	const brewCapWaste = metric('brewCapWaste', brew.uses > 0 || brew.maxStacks > 0 ? avoidableCapWaste : null);
 
 	const all = [gcdUtilisation, snapshotRate, snapshotDepth, rskUptime, tigerPalmWaste, brewStacks, brewCapWaste];
 

@@ -16,6 +16,7 @@ import {
 	Method,
 	MissLedger,
 	PullTimeline,
+	RaidBuffs,
 	RisingSunKick,
 	ReportHeader,
 	Rotation,
@@ -67,6 +68,11 @@ const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis
 	{ id: 'karma', titleKey: 'karma.title', Component: TouchOfKarma },
 	{ id: 'damage', titleKey: 'damage.title', Component: DamageByAbility },
 	{ id: 'misses', titleKey: 'misses.title', Component: MissLedger },
+	// Beside the gear, and immediately before it, because the two answer the same kind of question:
+	// what the character walked into the pull carrying. Nothing in either is a rotation decision, and
+	// most of this one is not even the player's — which is why it sits after everything that grades
+	// them rather than among it.
+	{ id: 'raid-buffs', titleKey: 'raidBuffs.title', Component: RaidBuffs },
 	// After the pull, before the method: it is the one section about the character rather than the
 	// four minutes, so it reads as a footnote to the analysis rather than as part of it.
 	{ id: 'gear', titleKey: 'gear.title', Component: GearSetup },

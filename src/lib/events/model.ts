@@ -220,6 +220,27 @@ export type CombatantInfoEvent = EventBase & {
 	talentTree?: string;
 	gear?: GearPiece[];
 	talents?: Talent[];
+	/**
+	 * The auras already on the player when the pull started, with the actor that cast each.
+	 *
+	 * The only record a log keeps of anything buffed *before* the pull: WarcraftLogs emits no
+	 * `applybuff` for those, so a raid buff put up in the usual place is otherwise invisible for the
+	 * whole fight unless it happens to drop.
+	 *
+	 * TRAP, and the reason `~/lib/analysis/raidBuffs` will not read absence from it: it is not
+	 * exhaustive. On a captured pull the monk's own Legacy of the Emperor is missing from this array
+	 * while the event stream proves it was up — it carries a `removebuff` with no apply before it. So
+	 * an entry here proves a buff was present, and its absence proves nothing at all.
+	 */
+	auras?: Array<{ ability?: number; source?: number; stacks?: number; icon?: string; name?: string }>;
+	/**
+	 * Mastery rating at the pull.
+	 *
+	 * TRAP, and the same shape as `specID` above: the field is always present on a Mists report and
+	 * always `0`, while `critMelee` and `hasteMelee` beside it carry real ratings. Anything reading it
+	 * has to treat zero as "not reported" — see `readMastery` in `~/lib/analysis/gear`.
+	 */
+	mastery?: number;
 };
 
 export type DeathEvent = EventBase & {

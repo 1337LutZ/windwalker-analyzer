@@ -38,15 +38,22 @@ someone playing their own spec correctly.
 This is the part worth being precise about, because you are pasting a credential into a web page.
 
 - **There is no backend.** The site is a folder of static files on Cloudflare Pages — HTML, JS, CSS.
-  There is no server of ours, no API route, no serverless function, no database, no analytics and no
-  third-party script. There is nowhere for the token to be sent even if the code wanted to.
-- **One third party is contacted, and only for pictures.** Spell icons are loaded from
-  `wow.zamimg.com`, Wowhead's image host — the same place the wowsims simulator gets them. That
-  request carries your IP and the page's address to Wowhead, as any hotlinked image does, and it
-  carries nothing else: no token, no report code, no query string. The content-security policy pins
-  it to images (`img-src`), so that host cannot be reached by script even if some future code tried.
-  If you would rather not contact them at all, an ad blocker will drop the icons and the report is
-  fully readable without them.
+  There is no server of ours, no API route, no serverless function, no database and no analytics.
+  There is nowhere for the token to be sent even if the code wanted to.
+- **One third party is contacted: Wowhead.** Two things come from `wow.zamimg.com`, their asset
+  host — the same place the wowsims simulator gets them:
+  - **Icons.** Every spell, item, gem and enchant icon on the page.
+  - **Their tooltip widget** (`widgets/power.js`), which is what makes an item icon in the gear
+    section hoverable. Without it an icon is a picture with no name: a combat log reports an item as
+    a bare id, so what a piece actually _is_ can only come from Wowhead.
+
+  This is the only third-party script on the page. It is deferred, so it never delays the report,
+  and hovering an item tells Wowhead that someone looked at that item. What it does not see: your
+  token, which lives in `sessionStorage` and never enters the DOM, and your report code, which is in
+  the address bar but is never passed to them. If you would rather not contact them at all, an ad
+  blocker will drop both the icons and the tooltips, and the report is fully readable without them —
+  every number the report argues from is rendered by us, not by them.
+
 - **The token goes to exactly one place.** It is used only as an `Authorization: Bearer` header on
   requests to `https://classic.warcraftlogs.com/api/v2/user`. It is never written into a URL, never
   logged, and never attached to anything else.
@@ -63,17 +70,20 @@ This is the part worth being precise about, because you are pasting a credential
 You do not have to take that on faith. In descending order of effort:
 
 1. **Watch it.** Open DevTools → Network and run an analysis. The requests are the page's own assets
-   from `pages.dev`, POSTs to `classic.warcraftlogs.com`, and spell icons from `wow.zamimg.com`.
-   Search the request list for your token: it appears in the `Authorization` header of those POSTs
-   and nowhere else — no query string, no beacon, and nothing on the icon requests.
+   from `pages.dev`, POSTs to `classic.warcraftlogs.com`, and icons plus the tooltip widget from
+   `wow.zamimg.com` (with Wowhead's own tooltip lookups once you hover an item). Search the request
+   list for your token: it appears in the `Authorization` header of those POSTs and nowhere else —
+   no query string, no beacon, and nothing on the Wowhead requests.
 2. **Check the storage.** DevTools → Application → Storage. `sessionStorage` holds `wcl.token` and a
    label saying where it came from; `localStorage` holds `wcl.clientId` and nothing else. There are
    no cookies, and closing the tab empties the session half.
 3. **Check the policy.** View source on the deployed page: it ships a Content-Security-Policy meta
-   tag of `connect-src 'self' https://classic.warcraftlogs.com; img-src 'self' data:
-https://wow.zamimg.com`. That is enforced by your browser, not by our code — any attempt to reach
-   another host is blocked whether the JavaScript intends it or not, and `wow.zamimg.com` is allowed
-   for images only, never for data. (It is production-only; `astro dev` needs its own websocket.)
+   tag whose `connect-src` is `'self' https://classic.warcraftlogs.com`. That is the claim that
+   matters and it is enforced by your browser, not by our code: the token travels over `connect-src`
+   requests, and there are exactly two hosts it can be sent to — ourselves, and WarcraftLogs. Any
+   other destination is blocked whether the JavaScript intends it or not. `wow.zamimg.com` is
+   allowed for images and for the tooltip widget, and is not in `connect-src`. (The policy is
+   production-only; `astro dev` needs its own websocket.)
 4. **Read it.** This repo is the site. Every network call in the app goes through one method,
    `#graphql` in `src/lib/wcl/client.ts` — that is the only place a request leaves the page, and it
    is short enough to read in a minute. The build that publishes it is `.github/workflows/deploy.yml`,

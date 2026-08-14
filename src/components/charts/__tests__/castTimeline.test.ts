@@ -76,6 +76,16 @@ const drawn: Analysis = { ...captured, timeline };
 const render = (analysis: Analysis, Component = CastTimeline) =>
 	renderToStaticMarkup(createElement(Component, { analysis }));
 
+/**
+ * How many rows are labelled with exactly this name.
+ *
+ * The gutter writes a row's name into the label's own `title` as well as its text, and nothing else
+ * on the chart ends a `title` there — a mark's reads `Tiger Palm · 0:05` and a bar's carries both
+ * ends of its window — so this counts rows and not marks. Which is the question the merge asks: a
+ * button and the aura it applies used to be two of these and are now one.
+ */
+const labelled = (html: string, name: string) => (html.match(new RegExp(`title="${name}">`, 'g')) ?? []).length;
+
 describe('CastTimeline', () => {
 	it('draws one icon per press, at its own point on the clock', () => {
 		const html = render(drawn);
@@ -104,12 +114,33 @@ describe('CastTimeline', () => {
 	 * Grouping by ability is what makes vertical position mean something: one row is one button, so a
 	 * gap in a row is that button not being pressed. Packed rows alone put the same spell on whichever
 	 * line happened to be free, which read as noise.
+	 *
+	 * Which row a button ends up on is a separate question now that a press can be drawn on the row of
+	 * the aura it applies — that is the block at the bottom of this file. What is asserted here is only
+	 * that every button the pull pressed is named somewhere, which holds either way.
 	 */
-	it('gives each ability its own labelled row', () => {
+	it('names every ability it drew a press for', () => {
 		const html = render(drawn);
 		for (const name of new Set(timeline.casts.map((c) => c.name))) {
 			expect(html, name).toContain(name);
 		}
+	});
+
+	/**
+	 * The tooltip is one shared node for the whole chart, moved to the pointer and filled from a hit
+	 * test, so what a mark has to carry is its content — as attributes, which are not elements. The
+	 * `title` stays beside them: it is the fallback for a reader whose pointer never fires, and it is
+	 * what the styled tip is built to replace on screen rather than in the markup.
+	 */
+	it('carries each mark’s tooltip as attributes, and keeps the title beside it', () => {
+		const html = render(drawn);
+		expect(html).toContain('data-tip="Tiger Palm"');
+		expect(html).toContain(`data-tip-at="${formatClock(5000)}"`);
+		expect(html).toContain(`title="Tiger Palm · ${formatClock(5000)}"`);
+		// A window carries both its ends, which is what the bar's own `title` has always said.
+		expect(html).toContain('data-tip="Re-Origination"');
+		expect(html).toContain(`data-tip-from="${formatClock(20000)}"`);
+		expect(html).toContain(`data-tip-to="${formatClock(30000)}"`);
 	});
 
 	it('names every lane beside its row', () => {
@@ -168,5 +199,153 @@ describe('CastLog', () => {
 		const html = render(captured, CastLog);
 		expect(html).toContain(t('castLog.empty'));
 		expect(html).not.toContain(t('castLog.expand'));
+	});
+});
+
+/**
+ * An add pull, where the debuff is on several enemies at once.
+ *
+ * None of the committed fixtures is one — they are all single-target — so the lanes are built by hand,
+ * in the shape the engine emits them: one per enemy, sharing the aura's key and differing only by
+ * `target`, primary first.
+ */
+describe('CastTimeline, per-target debuff lanes', () => {
+	const debuffLane = (id: number, name: string | null, primary: boolean, start: number) => ({
+		key: 'rising-sun-kick-debuff',
+		name: 'Rising Sun Kick (debuff)',
+		id: 130320,
+		group: 'debuff' as const,
+		windows: [{ start, end: start + 10000 }],
+		target: { id, name, primary },
+	});
+
+	const adds: Analysis = {
+		...captured,
+		timeline: {
+			casts: timeline.casts,
+			lanes: [
+				timeline.lanes[0]!,
+				debuffLane(20, 'Iron Juggernaut', true, 1000),
+				debuffLane(21, 'Siege Engineer', false, 20000),
+				// The enemy the report's actor list could not name.
+				debuffLane(22, null, false, 40000),
+			],
+			hiddenTargets: 3,
+		},
+	};
+
+	it('heads each enemy’s lanes with the enemy', () => {
+		const html = render(adds);
+		expect(html).toContain('Iron Juggernaut');
+		expect(html).toContain('Siege Engineer');
+	});
+
+	/** A lane the report cannot name says so. Any name printed here would be a different enemy's. */
+	it('labels an unnamed enemy by its id rather than inventing a name', () => {
+		expect(render(adds)).toContain(t('castLog.target.unnamed', { id: 22 }));
+	});
+
+	/** Several lanes and one graded number: the reader has to be told which lane the number is about. */
+	it('marks which enemy the graded uptime belongs to', () => {
+		expect(render(adds)).toContain(t('castLog.target.primary'));
+	});
+
+	/** A chart that draws six of nine enemies and says nothing is claiming the pull had six. */
+	it('says how many enemies the cap left out', () => {
+		expect(render(adds)).toContain(t('castLog.hiddenTargets', { count: 3 }));
+	});
+
+	/**
+	 * On a single-target pull a heading would spend a row repeating the boss's name — which the report
+	 * header already says — and every reference pull is single-target, so that is the common case.
+	 */
+	it('draws no heading, and no note, when the debuff was on one enemy', () => {
+		const one: Analysis = {
+			...captured,
+			timeline: { casts: timeline.casts, lanes: [timeline.lanes[0]!, debuffLane(20, 'Iron Juggernaut', true, 1000)] },
+		};
+		const html = render(one);
+		expect(html).not.toContain('Iron Juggernaut');
+		expect(html).not.toContain(t('castLog.hiddenTargets', { count: 1 }));
+	});
+
+	/**
+	 * The one relationship the merge refuses, and the reason it is drawn from the lane count rather
+	 * than from `appliedBy` alone: the press stream says a Rising Sun Kick went out, never which enemy
+	 * it landed on. Drawn on all three rows it would claim each press hit all three, so the button
+	 * keeps a lane of its own and the debuff rows stay bars.
+	 */
+	it('leaves the button its own lane when the debuff is on several enemies', () => {
+		const html = render(adds);
+		expect(labelled(html, 'Rising Sun Kick')).toBe(1);
+		expect(html).not.toContain(
+			t('castLog.mergedLane', { ability: 'Rising Sun Kick', aura: 'Rising Sun Kick (debuff)' }),
+		);
+	});
+});
+
+/**
+ * One ability, one row.
+ *
+ * A press and the aura it puts up were two rows saying one thing, five lanes apart, and the reader
+ * had to find the pair before they could read either. The pairing is not written here and is not
+ * written in the chart: `Aura.appliedBy` in the game model already names the button that applies each
+ * aura, so a new aura merges without either file learning a spell id — which is what these lanes
+ * exercise, since not one of them is named in the component.
+ */
+describe('CastTimeline, presses merged into the row they open', () => {
+	const auraLane = (key: string, name: string, id: number, group: 'buff' | 'proc', start: number) => ({
+		key,
+		name,
+		id,
+		group,
+		windows: [{ start, end: start + 10000 }],
+	});
+
+	const merged: Analysis = {
+		...captured,
+		timeline: {
+			casts: [
+				{ t: 1000, id: 100787, name: 'Tiger Palm', onGcd: true },
+				{ t: 5000, id: 1247275, name: 'Tigereye Brew', onGcd: false },
+				// Applies nothing that went up on this pull, so it has no row to join.
+				{ t: 9000, id: 100780, name: 'Jab', onGcd: true },
+			],
+			lanes: [
+				auraLane('tiger-power', 'Tiger Power', 125359, 'buff', 1000),
+				// Tiger Palm *consumes* this one, which is the relationship that must not merge.
+				auraLane('combo-breaker-tiger-palm', 'Combo Breaker: Tiger Palm', 118864, 'proc', 4000),
+				auraLane('tigereye-brew', 'Tigereye Brew', 1247275, 'buff', 5000),
+			],
+		},
+	};
+
+	/** The ability leads the label, because the row is a button now and the button is what is scanned for. */
+	it('draws the press on the row of the aura it applies, named for the button', () => {
+		const html = render(merged);
+		expect(html).toContain(t('castLog.mergedLane', { ability: 'Tiger Palm', aura: 'Tiger Power' }));
+		expect(labelled(html, 'Tiger Palm')).toBe(0);
+	});
+
+	/** Both brews are named for their own buff, and a row that said it twice would only be noise. */
+	it('says the name once when the button and the aura share it', () => {
+		expect(labelled(render(merged), 'Tigereye Brew')).toBe(1);
+	});
+
+	/**
+	 * `consumedBy` is the asymmetry, and it is deliberately not read. Most Tiger Palms spend no Combo
+	 * Breaker at all, so drawing every press on the proc's row would claim a consumption in every
+	 * stretch where nothing was ever up — and Tiger Palm applies Tiger Power as well, so the same press
+	 * would have two rows and no reason to prefer either.
+	 */
+	it('leaves a proc a press only consumes on its own row', () => {
+		const html = render(merged);
+		expect(labelled(html, 'Combo Breaker: Tiger Palm')).toBe(1);
+		expect(html).not.toContain(t('castLog.mergedLane', { ability: 'Tiger Palm', aura: 'Combo Breaker: Tiger Palm' }));
+	});
+
+	/** A button whose aura never went up has no row to join, so it keeps the one it had. */
+	it('keeps a press with no aura on this pull in a lane of its own', () => {
+		expect(labelled(render(merged), 'Jab')).toBe(1);
 	});
 });

@@ -23,6 +23,10 @@ export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 		// `count`, not `wasted`: the sentence has singular and plural forms, and i18next selects them
 		// off `count` alone. One stack lost at the cap is reachable, so "1 stacks" was too.
 		cap && !cap.unmeasurable ? t('brew.cap', { context: cap.grade, count: brew.wastedAtCap }) : null,
+		// The count above is every stack the cap refused; the grade beside it is only the avoidable ones.
+		// A reader shown a total that does not match the verdict will assume one of them is wrong, so the
+		// difference is named rather than left to be inferred. `?? 0` because the fixtures predate it.
+		(brew.wastedProtecting ?? 0) > 0 ? t('brew.capProtected', { count: brew.wastedProtecting ?? 0 }) : null,
 		// An empty bank is only worth praising when brews were actually going out; on a pull with none
 		// it would be congratulating a bank that never filled.
 		brew.bankAtEnd > 0 ? t('brew.bankLeft', { count: brew.bankAtEnd }) : spent ? t('brew.bankLeftNone') : null,

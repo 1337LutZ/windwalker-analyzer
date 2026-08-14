@@ -19,6 +19,16 @@ export const THRESHOLDS = {
 	 * old 80/65 split put a *third* of that range below the bottom threshold, so no pull in the sample
 	 * could score `bad` at all — a band nothing reaches is a weight that only ever flatters. These cut
 	 * roughly at the sample's upper quartile and lower quartile, so the grade separates real pulls.
+	 *
+	 * What is measured beneath them has since narrowed: a global given to a Tiger Palm that bought
+	 * nothing no longer counts as used, because crediting it made the report contradict itself — see
+	 * `CpmSummary.gcdUtilisationPct`. The bands are unchanged and deliberately not re-cut, because the
+	 * 25-kill sample that produced them predates the change and re-deriving quartiles from three
+	 * fixtures would be a worse number than an honest old one. What the change does to those three is
+	 * worth stating rather than discovering: strong is untouched at 83.6% with no wasted presses at
+	 * all, mixed falls 87.4% → 79.9%, poor falls 90.2% → 78.3%. Both of the latter move from `good` to
+	 * `ok`, which is the correction — a pull cannot be near the ceiling on globals while throwing away
+	 * one press in eight.
 	 */
 	gcdUtilisation: { good: 85, ok: 75, higherIsBetter: true },
 
@@ -37,13 +47,23 @@ export const THRESHOLDS = {
 	/**
 	 * How deep into the proc the brew landed, averaged over the procs that *were* caught.
 	 *
-	 * Conditional on snapshotting, which makes it a poor primary grade — a player who catches two
-	 * procs out of nine can post a better depth than one who catches twelve, because the average
-	 * only sees their two best moments. It grades the technique, never the discipline, and the copy
-	 * has to say which of the two it is talking about.
+	 * Descriptive only — its weight is zero, and the bands below exist to pick a sentence rather than
+	 * to pass a judgement. The note here used to warn that "a player who catches two procs out of nine
+	 * can post a better depth than one who catches twelve", and then graded it at full weight anyway.
+	 * The three fixtures say the warning was not hypothetical:
 	 *
-	 * Same recalibration as the globals above: the sample runs 51.6% to 96.2%, so nothing could reach
-	 * the old 45% floor either.
+	 *   strong  12 of 14 caught, mean depth 61.2%  →  bad
+	 *   mixed    4 of 6  caught, mean depth 59.0%  →  bad
+	 *   poor     2 of 8  caught, mean depth 86.1%  →  good
+	 *
+	 * The best snapshotter in the set graded worst on it and the worst graded best, because the
+	 * average only ever sees the procs someone bothered to catch. A number conditional on another
+	 * number cannot stand on its own, and no threshold fixes that — the inversion is in the shape of
+	 * the average, not in where the lines sit. So the bands stay, the grade stops counting, and
+	 * `snapshotRate` carries the section alone.
+	 *
+	 * The bands themselves are the recalibrated ones: the 25-kill sample runs 51.6% to 96.2%, so
+	 * nothing could reach the old 45% floor either.
 	 */
 	snapshotDepth: { good: 80, ok: 65, higherIsBetter: true },
 
@@ -104,7 +124,10 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// three red sections and still come out `ok` on the strength of them.
 	gcdUtilisation: 2,
 	rskUptime: 2,
-	snapshotDepth: 1,
+	// Measured, shown, and deliberately not counted. Zero rather than deletion so the metric keeps
+	// existing for the copy to read a band off, and so the reason it does not count lives beside every
+	// weight that does — see the note above `snapshotDepth` for the inversion that put it here.
+	snapshotDepth: 0,
 	brewStacks: 1,
 	brewCapWaste: 1,
 };

@@ -34,16 +34,28 @@ const TONE: Record<Reason, keyof ChartTheme> = {
 /**
  * Row height, on a 4px grid shared by every chart in the report.
  *
- * 48 for the two that carry an icon beside each row — the pull timeline and the Rising Sun Kick
- * debuff — because a 24px icon in a 34px row leaves no air, and because those two are read against
- * each other. 24 for the rest, which are bars and text.
+ * 36 for the two that carry an icon beside each row — the pull timeline and the Rising Sun Kick
+ * debuff — which clears a 24px icon without leaving the row mostly empty. 24 for the rest, which are
+ * bars and text.
  *
  * Picked as a grid rather than per chart: five charts had five heights (32, 34, 38, 46, 34), which is
  * five arbitrary numbers rather than a system, and two timelines of the same pull sitting at
  * different pitches read as two different tools.
  */
 const ROW_HEIGHT = 24;
-const CHROME = 96;
+/**
+ * Everything in the chart's height that is not a row: the clock axis and the margins around it.
+ *
+ * 92, the same as the other two timelines, and that is the point rather than a coincidence.
+ * ApexCharts is given a total height and divides whatever is left after its own chrome among the
+ * categories — so this number is a *claim* about how much chrome there will be, and an over-estimate
+ * does not add padding, it fattens every row. Reserving 96 against 92 of real chrome drew 25.3px rows
+ * from a grid that says 24.
+ *
+ * All three timelines run the same `timeAxis`, no legend, no title and zero vertical grid padding, so
+ * their chrome is the same and the number has to be.
+ */
+const CHROME = 92;
 
 /**
  * A cast is an instant, not a span, so every mark is drawn at this width and the axis carries the

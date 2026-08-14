@@ -28,6 +28,10 @@ function idsFromSpec() {
 	// `EXTRA_NAMES` is a flat id → name map of the passives and trinket procs the report lists.
 	const extras = source.match(/const EXTRA_NAMES[^{]*\{([\s\S]*?)\n\};/);
 	if (extras) for (const n of extras[1].matchAll(/^\s*(\d+):/gm)) ids.add(Number(n[1]));
+	// The raid-buff roster lives outside the spec model — it is other classes' spells, not the monk's
+	// — and its rows draw an icon like every other, so its provider ids have to be resolved too.
+	const raidBuffs = readFileSync(resolve(ROOT, 'src/lib/analysis/raidBuffs.ts'), 'utf8');
+	for (const n of raidBuffs.matchAll(/\b(?:id|iconId):\s*(\d+)/g)) ids.add(Number(n[1]));
 	return ids;
 }
 
@@ -49,14 +53,21 @@ function idsFromFixtures() {
 }
 
 /**
- * Ids Wowhead cannot answer for, or answers wrongly.
+ * Ids Wowhead cannot answer for or answers wrongly, and ids neither source above collects.
  *
  * `1` is melee: WarcraftLogs logs every auto-attack under it, but it is not a spell anyone can look
  * up — Wowhead's spell 1 is an unrelated engineering entry, and the lookup below dutifully returned
  * its icon. An override rather than a hand-edit of the generated file, so a regeneration keeps it.
+ *
+ * Zen Sphere and Chi Burst are the second kind. The rotation section draws Chi Wave's whole talent
+ * row as a fork, so it names two abilities the spec model has no reason to know and no captured log
+ * ever contains — neither `idsFromSpec` nor `idsFromFixtures` can reach them, and without a line
+ * here the two branches beside Chi Wave would be the only cards on the page with no icon.
  */
 const OVERRIDES = {
 	1: 'inv_sword_04',
+	123986: 'spell_arcane_arcanetorrent',
+	124081: 'ability_monk_forcesphere',
 };
 
 const ids = [...new Set([...idsFromSpec(), ...idsFromFixtures()])].filter((id) => id > 0).sort((a, b) => a - b);

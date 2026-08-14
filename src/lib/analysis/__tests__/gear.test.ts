@@ -10,8 +10,11 @@ import { readGear } from '../gear';
  * Built by hand rather than taken from a fixture because every committed fixture is a fully
  * enchanted raider — the case this section exists to catch does not appear in any of them.
  */
-const gearEvent = (gear: Array<Record<string, unknown>>, sourceID = 10): WclEvent =>
-	({ type: 'combatantinfo', timestamp: 0, sourceID, gear }) as unknown as WclEvent;
+const gearEvent = (
+	gear: Array<Record<string, unknown>>,
+	sourceID = 10,
+	extra: Record<string, unknown> = {},
+): WclEvent => ({ type: 'combatantinfo', timestamp: 0, sourceID, gear, ...extra }) as unknown as WclEvent;
 
 const piece = (over: Record<string, unknown> = {}) => ({
 	id: 100000,
@@ -127,6 +130,35 @@ describe('readGear', () => {
 
 	/** Not reported is not the same as nothing equipped, and the UI branches on the difference. */
 	it('comes back empty when the log carried no combatant info', () => {
-		expect(readGear([], 10)).toEqual({ slots: [], averageItemLevel: null, missingEnchants: [], gems: 0 });
+		expect(readGear([], 10)).toEqual({
+			slots: [],
+			averageItemLevel: null,
+			missingEnchants: [],
+			gems: 0,
+			masteryRating: null,
+		});
+	});
+
+	/**
+	 * Mastery is the only stat that turns a count of Tigereye Brew stacks into a damage figure —
+	 * `damagePerStack := 0.05 + ww.getMasteryPercent()` in the simulator — so it is read here rather
+	 * than through a second request.
+	 */
+	it('reads the mastery rating off the same event as the gear', () => {
+		expect(readGear([gearEvent(at(0, piece()), 10, { mastery: 7200 })], 10).masteryRating).toBe(7200);
+	});
+
+	/**
+	 * The case every Mists Classic report actually presents. `mastery` is on the event and is `0`,
+	 * sitting beside a believable `critMelee` and `hasteMelee` — WarcraftLogs declining to fill the
+	 * field, not a character with no mastery, which nobody at level 90 is. Reading it as a real zero
+	 * would give every pull the same invented per-stack figure.
+	 */
+	it('treats a reported zero as not reported', () => {
+		expect(readGear([gearEvent(at(0, piece()), 10, { mastery: 0 })], 10).masteryRating).toBeNull();
+	});
+
+	it('says nothing when the field is absent altogether', () => {
+		expect(readGear([gearEvent(at(0, piece()))], 10).masteryRating).toBeNull();
 	});
 });

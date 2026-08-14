@@ -15,14 +15,16 @@
 // want is zero rather than merely invisible. The grid is a repeating gradient on the track, which is
 // a whole axis for no nodes at all.
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Analysis, AuraLane, CastMark, LaneGroup, ResourceCurve, Window } from '~/lib/types';
-import { TEB_CAP } from '~/lib/spec/windwalker';
+import type { Analysis, AuraLane, CastMark, LaneGroup, LaneTarget, ResourceCurve, Window } from '~/lib/types';
+import { TEB_CAP, registry } from '~/lib/spec/windwalker';
 
 import { SpellIcon, buttonClass, spellIconUrl } from '../primitives';
 import { fmt } from '../format';
+import { jumpToHeading } from '../jump';
+import { readTheme, tip, type ChartTheme } from './apex';
 import ChartEmpty from './ChartEmpty';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
 import ResourceTrack, { cappedOf, type ShadeWindow } from './ResourceTrack';
@@ -130,6 +132,24 @@ const GROUP_SWATCH: Record<Toggle, string> = {
 	debuff: 'bg-kick',
 };
 
+/**
+ * The same four categories again, as the token `tip()` tints a tooltip's title line with.
+ *
+ * A second table rather than a parse of the first: the swatches are Tailwind classes and the tooltip
+ * is built as an HTML string from resolved values, so the two cannot share a spelling. Kept beside
+ * each other so the pairing is visible — a tip raised off a proc bar is titled in the proc's violet,
+ * which is the swatch on the button that shows it.
+ */
+const GROUP_TONE: Record<Toggle, keyof ChartTheme> = {
+	casts: 'ink2',
+	buff: 'brew',
+	proc: 'rune',
+	debuff: 'kick',
+};
+
+/** How far the tip sits from the cursor: clear of the icon underneath without leaving the pointer. */
+const TIP_OFFSET_PX = 14;
+
 /** Stable identities for an absent timeline, so the memos below do not re-run on every render. */
 const NO_CASTS: CastMark[] = [];
 const NO_LANES: AuraLane[] = [];
@@ -138,8 +158,10 @@ const NO_LANES: AuraLane[] = [];
  * The presses, as one absolutely positioned node each.
  *
  * One node, not a wrapper around a node: at three hundred casts the difference is three hundred
- * elements. The tooltip is the native `title` attribute for the same reason — a rendered tooltip is
- * another element per mark, and this one costs nothing until the pointer stops.
+ * elements. That is also why a mark carries its tooltip as `data-*` attributes rather than as
+ * markup — an attribute is not an element — and why the tooltip they feed is a single shared node
+ * rather than one per mark. The `title` stays as well, unrendered and free, for the reader whose
+ * pointer never fires.
  */
 /**
  * The order the aura lanes are drawn in, by key.
@@ -375,6 +397,9 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 				<span
 					key={key}
 					title={title}
+					data-tip={c.name}
+					data-tip-tone={GROUP_TONE.casts}
+					data-tip-at={fmt(c.t)}
 					style={{ left, top, height: size }}
 					className="absolute w-[3px] -translate-y-1/2 rounded-[1px] bg-muted"
 				/>
@@ -389,6 +414,11 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 				// icons one at a time is not a description of anything.
 				alt=""
 				title={title}
+				// What the shared tooltip reads off the mark under the cursor. Attributes rather than a
+				// rendered tooltip: they cost no node at all, which is what the objection above was about.
+				data-tip={c.name}
+				data-tip-tone={GROUP_TONE.casts}
+				data-tip-at={fmt(c.t)}
 				width={size}
 				height={size}
 				loading="lazy"
@@ -398,6 +428,68 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 			/>
 		);
 	});
+}
+
+/** A cast lane and its marks, which travel together whether the lane keeps its row or joins an aura's. */
+interface CastRow {
+	lane: CastLane;
+	nodes: ReactNode;
+}
+
+/**
+ * Which aura a press puts up, by the press's cast id.
+ *
+ * Read out of the game model rather than written here. `Aura.appliedBy` already names the button that
+ * applies each aura, so an aura added to the spec merges itself and nothing in this file ever learns
+ * a spell id. Inverted to id-first because that is the direction a cast lane has to ask in, and built
+ * once because the registry is a module constant.
+ *
+ * Every cast id, not only the canonical one the engine stamps on a mark: a lane built from an id the
+ * model splits — Jab has one per weapon type — would otherwise lose its aura for the sake of a lookup.
+ *
+ * `consumedBy` is deliberately not read. A press that *spends* a proc is not the press that put it
+ * up: most Tiger Palms consume no Combo Breaker at all, so drawing every one of them on the proc's
+ * row would claim a consumption in every stretch where nothing was ever up — and Tiger Palm applies
+ * Tiger Power as well, so the same press would have two rows to sit on and no reason to prefer
+ * either. Which presses actually spent a proc is a judgement, and the Combo Breaker section owns it.
+ */
+const APPLIED_BY_CAST = ((): Map<number, string> => {
+	const by = new Map<number, string>();
+	for (const aura of registry.auras) {
+		if (aura.appliedBy === undefined) continue;
+		// First claim wins, so an ability that applies two auras lands on one row rather than being
+		// silently redrawn on whichever the spec happened to declare last.
+		for (const id of registry.ability(aura.appliedBy).castIds) if (!by.has(id)) by.set(id, aura.key);
+	}
+	return by;
+})();
+
+/**
+ * The presses that belong on an aura's row, and the ones that keep a row of their own.
+ *
+ * A button and the buff it puts up were two rows saying one thing — Energizing Brew's press sat five
+ * lanes above Energizing Brew's window, and the reader had to find the pair before they could read
+ * it. Merged, the mark sits on the bar it opened and one ability is one row.
+ *
+ * Only when exactly one lane carries the aura's key. A per-target debuff draws a lane per enemy and
+ * the press stream cannot say which enemy a given Rising Sun Kick landed on, so putting every press
+ * on all six rows would claim each one hit every add; on an add pull the button keeps its own lane
+ * and the debuff rows stay bars. On a single-target pull there is one lane and no doubt about it.
+ */
+function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
+	const lanesPerKey = new Map<string, number>();
+	for (const lane of lanes) lanesPerKey.set(lane.key, (lanesPerKey.get(lane.key) ?? 0) + 1);
+
+	const into = new Map<string, CastRow>();
+	const loose: CastRow[] = [];
+	for (const press of pressed) {
+		const key = APPLIED_BY_CAST.get(press.lane.id);
+		// `into.has` guards a loss rather than an impossibility: two cast lanes claiming one aura would
+		// overwrite each other, and the marks of whichever lost would leave the chart without a trace.
+		if (key !== undefined && lanesPerKey.get(key) === 1 && !into.has(key)) into.set(key, press);
+		else loose.push(press);
+	}
+	return { into, loose };
 }
 
 /**
@@ -414,6 +506,12 @@ function barNodesOf(lane: AuraLane, span: number, notes: Map<number, number> | n
 			// can open two windows on the same millisecond, and React would then see a duplicate key.
 			key={`${w.start}-${w.end}`}
 			title={`${lane.name} · ${fmt(w.start)} → ${fmt(w.end)}`}
+			// The aura's own name, which is the half of a merged row's label that the gutter may have
+			// truncated — and on a row named after the button, the only place the aura is named at all.
+			data-tip={lane.name}
+			data-tip-tone={GROUP_TONE[lane.group]}
+			data-tip-from={fmt(w.start)}
+			data-tip-to={fmt(w.end)}
 			style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
 			// A floor of two pixels, because a window can be shorter than the screen can draw and a bar
 			// nobody can see is indistinguishable from an aura that never went up.
@@ -504,9 +602,12 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// Still cheap beside rebuilding the marks: one pass over the presses, no elements created.
 	const castLanes = useMemo(() => castLanesOf(casts, pxPerSec), [casts, pxPerSec]);
 	const castNodes = useMemo(
-		() => castLanes.map((lane) => ({ lane, nodes: castNodesOf(lane.casts, span, lane.rowOf) })),
+		() => castLanes.map((lane): CastRow => ({ lane, nodes: castNodesOf(lane.casts, span, lane.rowOf) })),
 		[castLanes, span],
 	);
+	// Which of those rows an aura has claimed. Split rather than rebuilt, so the marks a merged row
+	// draws are the very element objects the memo above made and React skips them all the same.
+	const pressed = useMemo(() => mergeRows(castNodes, lanes), [castNodes, lanes]);
 	const laneRows = useMemo(
 		() =>
 			lanes.map((lane) => ({ lane, bars: barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null) })),
@@ -533,6 +634,92 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		return out;
 	}, [span, stepMs]);
 
+	/**
+	 * One tooltip for the whole chart, moved to the pointer and filled from a hit test.
+	 *
+	 * The native `title` was here because a rendered tooltip is another element per mark and there are
+	 * several hundred marks. That objection is about *per-mark* nodes and it is answered by having
+	 * exactly one: every mark carries its content in `data-*` attributes, which are not elements, and
+	 * `elementsFromPoint` at the cursor says which mark to read — the same technique `trackCursor` in
+	 * `apex.ts` uses to work around ApexCharts' own hover resolution. The markup comes from `tip()`, so
+	 * this is the tooltip the four ApexCharts charts already draw rather than a second design of one.
+	 *
+	 * Imperative, and outside React's render, for the same reason the marks are memoised: a pointer
+	 * move is not a state change worth reconciling twenty rows for, and the content is only rebuilt
+	 * when the mark under the cursor actually changes.
+	 *
+	 * The hovered mark's `title` is lifted off it while the styled tip covers it and put straight back
+	 * on the way out. The attribute is the fallback for a reader whose pointer never fires — but left
+	 * in place the browser raises its own tooltip on top of this one, which is the two-tooltip problem
+	 * this replaces.
+	 */
+	const tipRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const scroller = drag.ref.current;
+		const node = tipRef.current;
+		if (scroller === null || node === null) return;
+		// Resolved once: ApexCharts' markup writes colours as literal values, and the palette is a
+		// stylesheet constant on a page that has no theme to switch to.
+		const theme = readTheme();
+		let over: { mark: Element; title: string } | null = null;
+
+		const hide = () => {
+			node.style.display = 'none';
+			if (over !== null) over.mark.setAttribute('title', over.title);
+			over = null;
+		};
+
+		const move = (event: PointerEvent) => {
+			// The whole stack at that pixel rather than the topmost element, for the reason `trackCursor`
+			// gives: a mark can be covered — here by the stack count printed inside a brew's bar — and a
+			// single-element test would report nothing under a cursor that is plainly over something.
+			const mark = document
+				.elementsFromPoint(event.clientX, event.clientY)
+				.map((el) => el.closest('[data-tip]'))
+				.find((el): el is Element => el !== null);
+			if (mark === undefined) {
+				hide();
+				return;
+			}
+			if (over?.mark !== mark) {
+				hide();
+				// Values on the mark, labels from the copy file: a press carries the moment it went out and
+				// a window the two ends of it, which is exactly what the `title` used to say in one line.
+				const rows: Array<[string, string]> = [];
+				const at = mark.getAttribute('data-tip-at');
+				const from = mark.getAttribute('data-tip-from');
+				const to = mark.getAttribute('data-tip-to');
+				if (at !== null) rows.push([t('castLog.tip.at'), at]);
+				if (from !== null) rows.push([t('castLog.tip.from'), from]);
+				if (to !== null) rows.push([t('castLog.tip.to'), to]);
+				node.innerHTML = tip(theme, {
+					title: mark.getAttribute('data-tip') ?? '',
+					tone: (mark.getAttribute('data-tip-tone') ?? GROUP_TONE.casts) as keyof ChartTheme,
+					rows,
+				});
+				over = { mark, title: mark.getAttribute('title') ?? '' };
+				mark.removeAttribute('title');
+				node.style.display = 'block';
+			}
+			// Below and right of the cursor, folded back inside the viewport at either edge. Measured
+			// after the content is written, so this is the size the tip will actually have rather than
+			// the one it had for the previous mark.
+			const x = Math.min(event.clientX + TIP_OFFSET_PX, window.innerWidth - node.offsetWidth - TIP_OFFSET_PX);
+			const y = Math.min(event.clientY + TIP_OFFSET_PX, window.innerHeight - node.offsetHeight - TIP_OFFSET_PX);
+			node.style.left = `${Math.max(TIP_OFFSET_PX, x)}px`;
+			node.style.top = `${Math.max(TIP_OFFSET_PX, y)}px`;
+		};
+
+		hide();
+		scroller.addEventListener('pointermove', move);
+		scroller.addEventListener('pointerleave', hide);
+		return () => {
+			scroller.removeEventListener('pointermove', move);
+			scroller.removeEventListener('pointerleave', hide);
+			hide();
+		};
+	}, [drag.ref, t, casts, lanes]);
+
 	if (casts.length === 0 && lanes.length === 0) return <ChartEmpty>{t('castLog.empty')}</ChartEmpty>;
 
 	// A toggle for a category the pull has nothing in would be a control that does nothing.
@@ -550,11 +737,61 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	};
 
 	const showCasts = shown.casts && available.casts;
+	/**
+	 * How a merged row answers to two toggles at once.
+	 *
+	 * It is filed under both categories and drawn while *either* is on, because both halves are things
+	 * the reader asked for by name. Its bars belong to the aura and go when the aura's toggle goes; its
+	 * marks are the row itself — the label names the button, and a row named after a press with no
+	 * press on it is a row about nothing — so they are drawn wherever the row is.
+	 *
+	 * That leaves both toggles honest and neither idle. Turning `casts` off still unmounts every button
+	 * that puts nothing up, which on a real pull is most of the chart, and it no longer quietly empties
+	 * a buff row the reader kept. Turning `buff` off takes the bars away and leaves the press lane
+	 * exactly as it was before the merge.
+	 */
+	const shownRow = (lane: AuraLane): boolean => shown[lane.group] || (showCasts && pressed.into.has(lane.key));
 	// Sorted here rather than in the engine: the order is a reading decision about this chart, and the
 	// same lanes are consumed elsewhere by components that want them grouped their own way.
+	//
+	// A stable sort, which is load-bearing now that several lanes share one key: the engine emits the
+	// debuff's lanes primary-first by damage taken, and equal ranks have to keep that order.
 	const rows = laneRows
-		.filter(({ lane }) => shown[lane.group])
+		.filter(({ lane }) => shownRow(lane))
 		.sort((a, b) => laneRank(a.lane.key) - laneRank(b.lane.key));
+
+	/**
+	 * The aura rows, with a heading above each enemy's block of per-target lanes.
+	 *
+	 * Only when the pull actually has more than one target. On a single-target pull the heading would
+	 * spend a row of height repeating the boss's name, which the report's header already says — and
+	 * every one of the reference pulls is single-target, so that would be the common case.
+	 *
+	 * The label goes in the gutter and the track spends the same row on nothing, because the two
+	 * columns are separate elements that line up only by agreeing on a height per row.
+	 */
+	const targetIDs = new Set(rows.flatMap(({ lane }) => (lane.target === undefined ? [] : [lane.target.id])));
+	const headTargets = targetIDs.size > 1;
+	const targetLabel = (target: LaneTarget): string => target.name ?? t('castLog.target.unnamed', { id: target.id });
+
+	const blocks: Array<
+		{ key: string; head: LaneTarget; row?: never } | { key: string; head?: never; row: (typeof rows)[number] }
+	> = [];
+	let heading: number | null = null;
+	for (const row of rows) {
+		const target = row.lane.target;
+		if (target === undefined) heading = null;
+		else if (headTargets && target.id !== heading) {
+			blocks.push({ key: `target-${target.id}`, head: target });
+			heading = target.id;
+		}
+		// Several lanes share one aura key and differ only by the enemy they were measured on, so the
+		// React key has to carry both — with the key alone React reconciles two enemies' rows into one.
+		blocks.push({ key: target === undefined ? row.lane.key : `${row.lane.key}@${target.id}`, row });
+	}
+	// Counted by the engine, which is the only place that knows how many enemies it declined to draw.
+	// `?? 0` and not a null check: on an analysis captured before the cap existed the field is absent.
+	const hiddenTargets = analysis.timeline?.hiddenTargets ?? 0;
 
 	/**
 	 * The auras go directly under the melee lane, not after every ability.
@@ -575,15 +812,32 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			</span>
 		</div>
 	);
-	const castTrack = ({ lane, nodes }: { lane: CastLane; nodes: ReactNode }) => (
+	const castTrack = ({ lane, nodes }: CastRow) => (
 		<div key={lane.name} className={`relative ${LANE_RULE}`} style={{ height: laneHeight(lane) }}>
 			{nodes}
 		</div>
 	);
+	// A merged row is as tall as its presses need, which is the height the button had when it was a
+	// lane of its own: two Tiger Palms inside an icon's width of each other still stack at the wide end
+	// of the ladder, and a row that stopped stacking on merging would have lost the marks it packed.
+	const rowHeight = (press: CastRow | undefined) => (press === undefined ? ROW_PX : laneHeight(press.lane));
+	/**
+	 * What a merged row is called.
+	 *
+	 * The ability first, because the row is a button now and the button is what the reader is scanning
+	 * for. The aura keeps its name after it when the two differ — Tiger Palm puts up Tiger Power, and a
+	 * row labelled only "Tiger Palm" leaves the bars under it unexplained. When the names agree, as
+	 * they do for both brews, saying it twice is noise.
+	 */
+	const rowLabel = (lane: AuraLane, press: CastRow | undefined): string =>
+		press === undefined || press.lane.name === lane.name
+			? lane.name
+			: t('castLog.mergedLane', { ability: press.lane.name, aura: lane.name });
 
-	const meleeAt = castNodes.findIndex(({ lane }) => lane.id === MELEE_ID);
-	const castsAbove = meleeAt === -1 ? castNodes : castNodes.slice(0, meleeAt + 1);
-	const castsBelow = meleeAt === -1 ? [] : castNodes.slice(meleeAt + 1);
+	// Only the lanes that kept a row of their own: the rest are drawn on the aura they apply, below.
+	const meleeAt = pressed.loose.findIndex(({ lane }) => lane.id === MELEE_ID);
+	const castsAbove = meleeAt === -1 ? pressed.loose : pressed.loose.slice(0, meleeAt + 1);
+	const castsBelow = meleeAt === -1 ? [] : pressed.loose.slice(meleeAt + 1);
 	const trackPx = Math.max(320, (span / 1000) * pxPerSec);
 
 	return (
@@ -651,6 +905,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									) : (
 										<a
 											href={`#${RESOURCE_LANES.find((l) => l.key === key)?.section}-heading`}
+											onClick={(event) =>
+												jumpToHeading(`${RESOURCE_LANES.find((l) => l.key === key)?.section}-heading`, event)
+											}
 											className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
 										>
 											{t(`castLog.resource.${key}`)}
@@ -663,6 +920,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						<div className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
 							<a
 								href="#bank-heading"
+								onClick={(event) => jumpToHeading('bank-heading', event)}
 								className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-brew hover:text-ink"
 							>
 								{t('castLog.resource.brew')}
@@ -671,14 +929,40 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						</div>
 					)}
 					{showCasts ? castsAbove.map(({ lane }) => castLabel(lane)) : null}
-					{rows.map(({ lane }) => (
-						<div key={lane.key} className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: ROW_PX }}>
-							<SpellIcon id={lane.id} size="sm" />
-							<span className="truncate font-mono text-sm text-ink-2" title={lane.name}>
-								{lane.name}
-							</span>
-						</div>
-					))}
+					{blocks.map((block) => {
+						// The press that opens this row's windows, when one merged into it. Looked up in both
+						// columns rather than carried on the block, because the two have to agree on the height
+						// and a row taking its height from anywhere else is how the gutter drifts off the track.
+						const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
+						return block.head === undefined ? (
+							<div
+								key={block.key}
+								// Indented under its heading when it has one, so the block reads as belonging to the
+								// enemy named above it rather than as another aura in the same flat list.
+								className={`flex items-center gap-2 pr-2 ${LANE_RULE} ${block.row.lane.target !== undefined && headTargets ? 'pl-3' : ''}`}
+								style={{ height: rowHeight(press) }}
+							>
+								{/* The button's icon on a merged row, because the label leads with the button. */}
+								<SpellIcon id={press?.lane.id ?? block.row.lane.id} size="sm" />
+								<span className="truncate font-mono text-sm text-ink-2" title={rowLabel(block.row.lane, press)}>
+									{rowLabel(block.row.lane, press)}
+								</span>
+							</div>
+						) : (
+							<div key={block.key} className={`flex items-baseline gap-2 pr-2 ${LANE_RULE}`} style={{ height: ROW_PX }}>
+								<span className="truncate font-mono text-sm text-ink" title={targetLabel(block.head)}>
+									{targetLabel(block.head)}
+								</span>
+								{/* Which of the enemies the graded uptime is about. Without it the reader has several
+								    lanes and no way to tell which one the number beside the chart was measured on. */}
+								{block.head.primary ? (
+									<span className="shrink-0 font-mono text-xs text-muted" title={t('castLog.target.primaryTitle')}>
+										{t('castLog.target.primary')}
+									</span>
+								) : null}
+							</div>
+						);
+					})}
 					{showCasts ? castsBelow.map(({ lane }) => castLabel(lane)) : null}
 				</div>
 
@@ -786,11 +1070,22 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							</div>
 						)}
 						{showCasts ? castsAbove.map(castTrack) : null}
-						{rows.map(({ lane, bars }) => (
-							<div key={lane.key} className={`relative ${LANE_RULE}`} style={{ height: ROW_PX }}>
-								{bars}
-							</div>
-						))}
+						{blocks.map((block) => {
+							const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
+							return block.head === undefined ? (
+								<div key={block.key} className={`relative ${LANE_RULE}`} style={{ height: rowHeight(press) }}>
+									{/* The bars are the aura's half of the row and answer to the aura's toggle; the marks
+									    are the row itself and are drawn wherever it is. Marks second, so an icon sits on
+									    top of the bar it opened rather than under it. */}
+									{shown[block.row.lane.group] ? block.row.bars : null}
+									{press?.nodes}
+								</div>
+							) : (
+								// The heading spends a row in the gutter, so the track spends the same row on nothing:
+								// the two columns line up by agreeing on a height per row and by nothing else.
+								<div key={block.key} className={LANE_RULE} style={{ height: ROW_PX }} />
+							);
+						})}
 						{showCasts ? castsBelow.map(castTrack) : null}
 						<div className="relative" style={{ height: AXIS_PX }}>
 							{ticks}
@@ -798,6 +1093,21 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					</div>
 				</div>
 			</div>
+
+			{/* What the cap left out, said out loud. A chart that draws six of thirty enemies and says
+			    nothing is claiming the pull had six. Only while the debuff rows are on: with them hidden
+			    the sentence describes rows that are not on the screen. */}
+			{hiddenTargets > 0 && shown.debuff ? (
+				<figcaption className="font-mono text-xs text-muted">
+					{t('castLog.hiddenTargets', { count: hiddenTargets })}
+				</figcaption>
+			) : null}
+
+			{/* The chart's one tooltip, filled and moved by the effect above. `fixed` so the scroller's
+			    own overflow cannot clip it, and `aria-hidden` because every mark still carries the same
+			    sentence as a `title` — this is the pointer's copy of what is already there, not a second
+			    source of it. */}
+			<div ref={tipRef} aria-hidden="true" className="pointer-events-none fixed top-0 left-0 z-50" />
 		</figure>
 	);
 }

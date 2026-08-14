@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { Aura } from '~/lib/game/model';
 import type { Window } from '~/lib/types';
-import { pairDrainsToWindows, snapshotWindowEnd, trackStackBank } from '../stacks';
+import { overflowIfHeld, pairDrainsToWindows, snapshotWindowEnd, trackStackBank } from '../stacks';
 
 const ME = 7;
 const T0 = 1000;
@@ -241,5 +241,85 @@ describe('snapshotWindowEnd', () => {
 		const undated: Aura = { key: 'x', name: 'X', ids: [1], kind: 'buff' };
 		expect(snapshotWindowEnd(0, extended, undated, null)).toBe(28700);
 		expect(snapshotWindowEnd(0, extended, undated, 5000)).toBe(5000);
+	});
+});
+
+/**
+ * The counterfactual behind "should this brew have been held".
+ *
+ * A drain empties the bank, so whatever the bank gains afterwards has room it would not have had if
+ * the drain never happened. That difference is the only thing that makes holding a brew cost
+ * anything, and it cannot be read off the timeline directly — the timeline records the world where
+ * the brew went out.
+ */
+describe('overflowIfHeld', () => {
+	/** Every point the timeline would carry over one drain and four one-stack gains after it. */
+	const timeline: Array<[number, number]> = [
+		[0, 1],
+		[100, 20],
+		[5000, 10],
+		[6000, 11],
+		[7000, 12],
+		[8000, 13],
+		[9000, 14],
+	];
+
+	it('counts every gain the cap would have refused', () => {
+		// Held from a bank of 20, all four gains arrive with nowhere to go.
+		expect(overflowIfHeld(timeline, 20, 5000, 10000, 20)).toBe(4);
+	});
+
+	it('costs nothing when the bank had room for the whole wait', () => {
+		expect(overflowIfHeld(timeline, 10, 5000, 10000, 20)).toBe(0);
+	});
+
+	/** Partial room is partial waste: two gains fit, the two after them do not. */
+	it('charges only the gains past the cap', () => {
+		expect(overflowIfHeld(timeline, 18, 5000, 10000, 20)).toBe(2);
+	});
+
+	it('ignores everything outside the window it was asked about', () => {
+		// The window closes before the last two gains, so only the first two are replayed.
+		expect(overflowIfHeld(timeline, 20, 5000, 7000, 20)).toBe(2);
+	});
+
+	/**
+	 * A fall in the timeline is the player spending the bank again, which the counterfactual by
+	 * definition did not do — so it must not hand the wait free room it never had.
+	 */
+	it('does not credit a later drain with making room', () => {
+		const withSecondDrain: Array<[number, number]> = [
+			[5000, 10],
+			[6000, 11],
+			[7000, 0],
+			[8000, 1],
+		];
+		expect(overflowIfHeld(withSecondDrain, 20, 5000, 10000, 20)).toBe(2);
+	});
+});
+
+/**
+ * When each capped gain happened, not just how many there were.
+ *
+ * A stack lost while a brew was deliberately held for a Re-Origination proc is a different story
+ * from one lost to a bank left full, and only the timestamps can tell them apart.
+ */
+describe('trackStackBank timestamps', () => {
+	it('records when each stack was lost at the cap', () => {
+		const bank = trackStackBank(
+			[
+				ev(0, 'applybuff'),
+				ev(100, 'applybuffstack', { stack: BANK.maxStacks }),
+				ev(2000, 'refreshbuff'),
+				ev(9000, 'refreshbuff'),
+			],
+			BANK,
+			ME,
+			T0,
+		);
+
+		expect(bank.wastedAt).toEqual([2000, 9000]);
+		// The count stays exactly what it was, so nothing reading it has to change.
+		expect(bank.wastedAtCap).toBe(bank.wastedAt.length);
 	});
 });

@@ -55,6 +55,28 @@ function backToBack(w: ProcWindow): Array<[string, string]> {
 }
 
 /**
+ * The other half of the decision this bar's length only shows one half of.
+ *
+ * The rows above already say what brewing here gave up — the proc left on the clock, at the stacks
+ * spent. What they cannot say is what the alternative was worth, and on a bank near its cap that is
+ * the whole question. Only rendered on a brew that went out with proc time left: a brew held to the
+ * last global had no second option to price.
+ *
+ * `undefined` rather than `0` on a captured fixture, so the row is simply absent there rather than
+ * claiming a bank with room the analysis never checked.
+ */
+function holdCost(w: ProcWindow): Array<[string, string]> {
+	if (w.grade !== 'early' || w.holdStacksLost === null || w.holdStacksLost === undefined) return [];
+	if (w.holdStacksLost === 0) return [['holding instead', 'would have cost nothing — the bank had room']];
+	return [
+		[
+			'holding instead',
+			`would have capped ${w.holdStacksLost} stack${w.holdStacksLost === 1 ? '' : 's'}${w.protectedBrew ? ' — worth more than the tail given up' : ' — still cheaper than the tail given up'}`,
+		],
+	];
+}
+
+/**
  * A row's identity on the y-axis, behind a gutter column carrying the pair bracket.
  *
  * The bracket leads rather than trails because ApexCharts right-aligns these labels: a trailing
@@ -99,7 +121,11 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 			};
 		}
 		const waited = w.snapshotAt - w.start;
-		const tone: keyof ChartTheme = w.grade === 'early' ? 'brew' : 'kick';
+		// An early brew the bank justified is drawn in the held colour. The bar's *length* still says it
+		// went out early — that is the measurement and it does not move — but colour on this chart is
+		// the verdict, and marking a defensible trade red is exactly the invented fault this row now
+		// exists to avoid.
+		const tone: keyof ChartTheme = w.grade === 'early' && !w.protectedBrew ? 'brew' : 'kick';
 		return {
 			x: label,
 			y: r1(waited / 1000),
@@ -113,6 +139,7 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 					['held for', `${sec(waited)}s of the proc`],
 					['proc left', `${sec(w.remainingMs ?? 0)}s`],
 					['stacks spent', w.snapshotStacks === null ? '—' : `${w.snapshotStacks}/10`],
+					...holdCost(w),
 					...backToBack(w),
 				],
 			},

@@ -280,6 +280,11 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 						total: analysis.durationMs,
 					}),
 				]),
+		// The deduction behind the figure, shown rather than silently applied — a reader who counts the
+		// presses in the table below and divides will otherwise get a different number and trust that
+		// one. Only on a pull that has some: nothing deducted needs no explanation. `?? 0` because a
+		// captured fixture predates the field and carries `undefined`.
+		...((cpm.wastedGcds ?? 0) > 0 ? [t('casts.wastedGcds', { count: cpm.wastedGcds ?? 0 })] : []),
 		...(cpm.channelSec > 0 ? [t('casts.channel', { seconds: cpm.channelSec })] : []),
 		t('casts.barCaveat'),
 		t('casts.caveat'),

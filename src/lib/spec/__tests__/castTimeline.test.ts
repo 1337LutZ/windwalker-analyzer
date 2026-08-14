@@ -194,6 +194,6 @@ describe('the cast timeline', () => {
 	/** A pull with no events at all still has to produce a timeline rather than a missing field. */
 	it('comes back empty rather than absent for a silent pull', () => {
 		const quiet = analyse({ ...dataset, events: [] });
-		expect(quiet.timeline).toEqual({ casts: [], lanes: [] });
+		expect(quiet.timeline).toEqual({ casts: [], lanes: [], hiddenTargets: 0 });
 	});
 });

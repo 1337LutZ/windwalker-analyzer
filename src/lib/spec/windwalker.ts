@@ -53,12 +53,14 @@ import {
 	readGear,
 	median,
 	mergeIntervals,
+	overflowIfHeld,
 	overlapMs,
 	pairDrainsToWindows,
 	POWER_TYPE,
 	primaryTargetID,
 	damageByTarget,
 	r1,
+	readRaidBuffs,
 	chiWasted,
 	resourceSamples,
 	trackResourceBar,
@@ -84,6 +86,43 @@ export const TEB_CAP = 20;
 const TEB_DRAIN = 10;
 /** A brew always lasts 15s; a re-cast refreshes it rather than extending it. */
 const TEB_ACTIVE_MS = 15000;
+
+/**
+ * What one Tigereye Brew stack adds to damage, before mastery.
+ *
+ * `sim/monk/windwalker/tigereye_brew.go:52` — `damagePerStack := 0.05 + ww.getMasteryPercent()`,
+ * computed inside the buff aura's `OnGain` and captured in a closure variable that `OnExpire` later
+ * divides back out. It is read exactly once per cast and never re-read, which is the entire reason a
+ * brew is worth holding for a Re-Origination proc: the proc's converted stats are frozen into the
+ * buff and keep paying after the proc itself has gone.
+ */
+const TEB_BASE_PER_STACK = 0.05;
+
+/**
+ * Mastery's contribution to that number, from the simulator rather than from memory.
+ *
+ * `sim/monk/windwalker/windwalker.go:88` — `getMasteryPercent()` returns
+ * `(8.0 + ww.GetMasteryPoints()) * 0.002`. The eight is the flat mastery every level-90 character
+ * has before any rating; the points come from `sim/core/unit.go:279` → `sim/core/utils.go:238`,
+ * which is `masteryRating / MasteryRatingPerMasteryPoint`, and that divisor is
+ * `sim/core/base_stats_auto_gen.go:19` — `const MasteryRatingPerMasteryPoint = 600.000000`.
+ */
+const MASTERY_BASE_POINTS = 8;
+const MASTERY_PER_POINT = 0.002;
+const MASTERY_RATING_PER_POINT = 600;
+
+/**
+ * Damage one brew stack adds, given a mastery rating — or null when the log did not report one.
+ *
+ * Null rather than a default. Substituting a plausible rating would put a number in front of the
+ * reader that came from this file rather than from their pull, and the two costs this section
+ * compares are both proportional to it anyway, so the comparison never needs it. Only saying what a
+ * choice cost *in damage* does.
+ */
+function brewDamagePerStack(masteryRating: number | null | undefined): number | null {
+	if (typeof masteryRating !== 'number' || masteryRating <= 0) return null;
+	return TEB_BASE_PER_STACK + (MASTERY_BASE_POINTS + masteryRating / MASTERY_RATING_PER_POINT) * MASTERY_PER_POINT;
+}
 
 const TIGER_POWER_MS = 20000;
 const COMBO_BREAKER_MS = 15000;
@@ -229,6 +268,19 @@ export const GCD_MS = 1000;
  * rather than tuned to either.
  */
 export const SINGLE_TARGET_SHARE_PCT = 66;
+
+/**
+ * How many enemies the Rising Sun Kick debuff may be drawn for on the timeline, primary included.
+ *
+ * Purely a drawing limit — no metric reads it. Spoils of Pandaria and Galakras spray the debuff across
+ * every add in the room, and a lane apiece would push the casts off a laptop screen to say almost
+ * nothing, because most of those enemies carried it for one application before they died. Six is the
+ * primary plus the five that took the most damage, which covers every enemy that lived long enough to
+ * matter on the add fights in the zone while keeping the aura block under a thumb's width. Whatever is
+ * left over is counted into `timeline.hiddenTargets` and named in the copy rather than dropped in
+ * silence.
+ */
+export const RSK_TARGET_LANES = 6;
 
 // -------------------------------------------------------------------- the kit
 //
@@ -830,7 +882,21 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const offGcdCasts = castList.filter((c) => !c.onGcd).reduce((s, c) => s + c.count, 0);
 	// Each on-GCD press occupies one GCD, except Fists of Fury, whose channel is counted at its real
 	// measured length instead of the single GCD its cast event implies.
+	//
+	// Time *occupied*, which is not the same as time *used* — a press that bought nothing occupies its
+	// global just as thoroughly as one that did. The deduction happens further down, once the Tiger
+	// Palm audit has said which presses those were.
 	const occupiedMs = (onGcdCasts - fofChannels.length) * GCD_MS + fofChannelMs;
+
+	// Read from the `combatantinfo` the event fetch already returned, so this costs no request. Hoisted
+	// above the brew section because it is also where the mastery rating comes from, and mastery is
+	// what turns a count of brew stacks into a damage figure.
+	const gear = readGear(events, actor.id);
+
+	// Beside the gear because it reads the same free `combatantinfo` — that event's aura list is the
+	// only record of anything buffed before the pull, and without it a raid that buffs in the usual
+	// place looks unbuffed.
+	const raidBuffs = readRaidBuffs(events, actor.id, t0, fight.endTime);
 
 	// ---------------------------------------------------------- Tigereye Brew
 	const bank = trackStackBank(events, BREW_BANK, actor.id, t0);
@@ -885,6 +951,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		nextStat: null,
 		// Filled in below, once the brew uses are known.
 		missedByMs: null,
+		// Null rather than 0 on a proc no brew was spent on: there was no decision to price.
+		earlyCostStackSec: null,
+		holdCostStackSec: null,
+		holdStacksLost: null,
+		protectedBrew: false,
 	}));
 
 	for (const w of procs) {
@@ -909,6 +980,35 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			w.remainingMs = remaining;
 			w.depthPct = ((snap.t - w.start) / w.lengthMs) * 100;
 			w.grade = remaining <= snapshotLeewayMs ? 'last-gcd' : remaining <= LATE_MS ? 'late' : 'early';
+
+			// What each way of playing this proc actually cost.
+			//
+			// The grade above is the whole story only while the bank has room. When it does not, the two
+			// available moves punish each other: hold for the last global and the bank keeps filling into
+			// its cap, brew early to make room and the snapshot reads as sloppy. Both costs are
+			// measurable, so both get measured, in one currency — stack-seconds, meaning one Tigereye
+			// Brew stack amplifying for one second. `damagePerStack` multiplies both sides identically,
+			// so it cancels out of the comparison and is needed only to state a cost as damage.
+			//
+			// Brewing early costs the tail. The bonus is frozen at cast over a fixed 15s window
+			// (`sim/monk/windwalker/tigereye_brew.go`, `Duration: time.Second * 15`, with
+			// `damagePerStack` read once in `OnGain`), so a brew cast with `remaining` still on the
+			// proc's clock spends that much of its window alongside stats the player already had rather
+			// than carrying them past the proc.
+			w.earlyCostStackSec = r1((remaining / 1000) * snap.consumed);
+			// Holding costs whatever the bank would have overflowed while waiting. Replayed from
+			// `snap.before` — the level the bank carried *into* the drain, which is exactly what a player
+			// who did not brew would have been sitting on.
+			w.holdStacksLost = overflowIfHeld(bank.timeline, snap.before, snap.t, w.end, TEB_CAP);
+			// Each stack the cap refuses would have amplified a later brew for that brew's whole 15
+			// seconds. That equivalence is what makes the two sides comparable at all.
+			w.holdCostStackSec = r1(w.holdStacksLost * (TEB_ACTIVE_MS / 1000));
+			// Ties go to the player: a decision the arithmetic calls level is not a fault worth naming.
+			//
+			// Only `early` is tested, because only `early` is charged anywhere — a `late` brew is
+			// described but never listed as a miss, and a `last-gcd` brew gave nothing up to protect
+			// anything with.
+			w.protectedBrew = w.grade === 'early' && w.earlyCostStackSec > 0 && w.holdCostStackSec >= w.earlyCostStackSec;
 		} else {
 			// A brew already running when the proc landed benefits from it but was not aimed at it.
 			w.brewAlreadyUp = brewWindows.some((b) => b.start < w.end && b.end > w.start);
@@ -1025,6 +1125,32 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			1000,
 	);
 	const devaluedSec = r1(procs.reduce((s, w) => s + w.wastedMs, 0) / 1000);
+
+	/**
+	 * Stacks lost at the cap that were the price of holding a brew for a proc.
+	 *
+	 * The other half of the comparison above, applied to the player who *did* hold. A stack refused by
+	 * the cap while a proc was running and the brew had not yet gone out could only have been saved by
+	 * brewing at that instant — which would have given up the rest of the proc's clock at the stacks
+	 * the brew went out with. When that tail is worth more than the stack, the stack was correctly
+	 * spent, and charging for it is the mirror image of charging an early brew for protecting the bank.
+	 *
+	 * Waste outside a proc is untouched, which is where a bank genuinely left to fill shows up: on the
+	 * poor fixture the two stretches at the cap sit at 2:26–2:33 and 3:30–3:57, neither of them inside
+	 * any proc, so all ten of its lost stacks stay charged.
+	 *
+	 * The counter-argument, written down rather than buried: a bank that reaches its cap during a proc
+	 * usually got there through the preceding minute, and better management then would have made the
+	 * whole dilemma disappear. That is true, and it is a decision this cannot see — which is why only
+	 * the waste inside the proc window is forgiven and none of the waste before it is.
+	 */
+	const wastedProtecting = bank.wastedAt.filter((at) =>
+		procs.some((w) => {
+			if (w.snapshotAt === null || at < w.start || at > w.snapshotAt) return false;
+			return ((w.end - at) / 1000) * (w.snapshotStacks ?? TEB_DRAIN) > TEB_ACTIVE_MS / 1000;
+		}),
+	).length;
+
 	const statMix = procs.reduce<Record<string, number>>((acc, w) => {
 		acc[w.stat] = (acc[w.stat] ?? 0) + 1;
 		return acc;
@@ -1174,6 +1300,26 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		const reason = proc ? 'proc' : buffLeftMs <= 0 ? 'apply' : buffLeftMs <= tpRefreshWindowMs ? 'refresh' : 'wasted';
 		return { t, proc, buffLeftMs, reason: reason as 'proc' | 'apply' | 'refresh' | 'wasted' };
 	});
+
+	/**
+	 * Globals spent on a press that bought nothing, and the productive time left after removing them.
+	 *
+	 * Globals used to count every on-GCD press alike, which made the report argue against itself: a
+	 * Tiger Palm that clipped a healthy Tiger Power with no Combo Breaker up is flagged as a mistake
+	 * one section down and was credited as a global well spent here. On the poor fixture that is 30
+	 * presses — 11.9 points of utilisation, 90.2% with them and 78.3% without — so acting on the
+	 * report's own advice made its headline number worse.
+	 *
+	 * This removes an undeserved credit rather than adding a second penalty. The correct play was never
+	 * to press nothing: it was to press Jab or Blackout Kick instead, which occupies the same global
+	 * and keeps the figure where it was. Only the presses that bought nothing come off.
+	 *
+	 * Tiger Palm is the only button this can be said of. Every other press on the list either costs
+	 * chi, spends a proc or is on a cooldown, and "was that Blackout Kick worth its global" is not a
+	 * question the log can answer.
+	 */
+	const wastedGcds = tigerPalmCasts.filter((c) => c.reason === 'wasted').length;
+	const productiveMs = Math.max(0, occupiedMs - wastedGcds * GCD_MS);
 
 	// ------------------------------------------------------- Touch of Karma
 	// A defensive that does damage: it redirects what the player takes onto the target for ten
@@ -1442,12 +1588,25 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 							: 'proc expired with no brew cast at all',
 				link: link(w.start),
 			})),
+		// An early brew that bought the bank more than it gave up is not a miss, so it is not listed as
+		// one. The ledger is the report's list of things that went wrong; a defensible trade on it is
+		// the fabricated fault this codebase refuses everywhere else.
 		...procs
-			.filter((w) => w.grade === 'early')
+			.filter((w) => w.grade === 'early' && !w.protectedBrew)
 			.map((w) => ({
 				kind: `Snapshot too early (${w.stat})`,
 				at: w.snapshotAt ?? w.start,
-				detail: `brewed with ${r1((w.remainingMs ?? 0) / 1000)}s of proc still on the clock`,
+				// The second clause is what makes the first one a fault rather than a trade, so it says
+				// which of the two it is: a bank with room protected nothing, and a bank that would have
+				// spilled a little still spilled less than the tail was worth. Neither is asserted on a
+				// captured fixture, where the counterfactual was never run and the field is `undefined`.
+				detail:
+					`brewed with ${r1((w.remainingMs ?? 0) / 1000)}s of proc still on the clock` +
+					(w.holdStacksLost === null || w.holdStacksLost === undefined
+						? ''
+						: w.holdStacksLost === 0
+							? ', and the bank had room to hold it'
+							: `, and holding would have cost only ${w.holdStacksLost} stack${w.holdStacksLost === 1 ? '' : 's'}`),
 				link: link(w.snapshotAt ?? w.start),
 			})),
 		...lostCasts.flatMap((l) =>
@@ -1539,6 +1698,81 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// pieces. `rskMerged` is what the uptime figure is measured over, so it is what the row shows.
 	const rskLaneWindows: Window[] = rskMerged.map(([start, end]): Window => ({ start, end }));
 
+	/**
+	 * The same debuff again, one window set per enemy that carried it — for drawing, and only for
+	 * drawing.
+	 *
+	 * Deliberately a second reading rather than a widening of the first. `rskMerged` above stays scoped
+	 * to the primary target because `debuff.engagedUptimePct` is graded off it, and a debuff spread
+	 * across adds by design measures as low as 0.6% there — marking correct play as a fault. The chart
+	 * has the opposite failure: on an add pull a single primary lane hides every Rising Sun Kick the
+	 * player landed on anything else. So the metric keeps its scope and the timeline gets the rest;
+	 * nothing computed here reaches a number.
+	 *
+	 * The primary's lane is `rskLaneWindows` itself rather than a third reading of the same events, so
+	 * the row the reader compares the graded figure against is the very array that figure was measured
+	 * from and cannot drift from it.
+	 */
+	const rskTargets = (() => {
+		const debuffIDs = new Set(RSK_DEBUFF.ids);
+		const carriers = new Set<number>();
+		for (const e of events) {
+			const id = abilityIdOf(e);
+			if (id !== null && debuffIDs.has(id) && e.targetID !== undefined) carriers.add(e.targetID);
+		}
+
+		// The report's actor list is the only thing that can name an enemy — `enemyNPCs` carries ids and
+		// no names at all. An id it does not answer for stays null and is labelled as an unnamed enemy by
+		// the chart's own copy: a lane named after the wrong add is worse than a lane named after none.
+		const named = (id: number): string | null => actors.find((a) => a.id === id)?.name ?? null;
+		const damageTaken = damageByTarget(damageEvents);
+
+		const others = [...carriers]
+			.filter((id) => id !== primaryID)
+			.map((id) => ({
+				id,
+				name: named(id),
+				damage: damageTaken.get(id) ?? 0,
+				windows: mergeIntervals(
+					toIntervals(
+						auraWindows(
+							events.filter((e) => e.targetID === id),
+							RSK_DEBUFF,
+							t0,
+							fight.endTime,
+						),
+					),
+				).map(([start, end]): Window => ({ start, end })),
+			}))
+			// An enemy that shows up only in a stray refresh has no window to draw, and an empty lane
+			// costs a row to say that the add existed.
+			.filter((target) => target.windows.length > 0)
+			// Ordered by the damage the enemy took from this player: the same currency `primaryTargetID`
+			// and `primaryDamageShare` are measured in, so the lane order agrees with the "which enemy was
+			// this pull about" answer the debuff section already prints rather than offering a second one.
+			// Time up was the alternative and it ranks a tagged-and-forgotten add above the one the player
+			// actually killed, because the debuff runs its full 15s either way.
+			.sort((a, b) => b.damage - a.damage || (a.windows[0]?.start ?? 0) - (b.windows[0]?.start ?? 0));
+
+		const drawn = others.slice(0, Math.max(0, RSK_TARGET_LANES - 1));
+		return {
+			targets: [
+				...(primaryID === undefined
+					? []
+					: [
+							{
+								id: primaryID,
+								name: named(primaryID),
+								damage: damageTaken.get(primaryID) ?? 0,
+								windows: rskLaneWindows,
+							},
+						]),
+				...drawn,
+			],
+			hidden: others.length - drawn.length,
+		};
+	})();
+
 	// A lane with nothing on it is dropped rather than drawn empty: an unlit row costs a line of height
 	// and a label, and tells the reader only that the aura exists.
 	const lanes: AuraLane[] = [
@@ -1549,7 +1783,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		lane(ENERGIZING_BREW, 'buff', ebWindows),
 		lane(RUSHING_JADE_WIND, 'buff', rjwWindows),
 		lane(TIGER_STRIKES, 'buff', tigerStrikesWindows),
-		lane(RSK_DEBUFF, 'debuff', rskLaneWindows),
+		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
+		// which is the row that used to stand for the whole pull.
+		...rskTargets.targets.map((target): AuraLane => ({
+			...lane(RSK_DEBUFF, 'debuff', target.windows),
+			target: { id: target.id, name: target.name, primary: target.id === primaryID },
+		})),
 	].filter((l) => l.windows.length > 0);
 
 	// --------------------------------------------------------------- assembly
@@ -1579,13 +1818,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			onGcdCasts,
 			offGcdCasts,
 			gcdSlots: Math.floor(activeMs / GCD_MS),
-			gcdUtilisationPct: activeMs > 0 ? (occupiedMs / activeMs) * 100 : 0,
+			gcdUtilisationPct: activeMs > 0 ? (productiveMs / activeMs) * 100 : 0,
+			wastedGcds,
 			channelSec: r1(fofChannelMs / 1000),
 			activeMs,
 			activePct: duration > 0 ? (activeMs / duration) * 100 : 0,
 		},
 		casts: castList,
-		timeline: { casts: castMarks, lanes },
+		timeline: { casts: castMarks, lanes, hiddenTargets: rskTargets.hidden },
 		lostCasts,
 		brew: {
 			uses: uses.length,
@@ -1595,9 +1835,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			fullUses: uses.filter((u) => u.consumed >= TEB_DRAIN).length,
 			refreshUses: uses.filter((u) => u.refresh).length,
 			wastedAtCap: bank.wastedAtCap,
+			wastedProtecting,
 			maxStacks: bank.maxStacks,
 			bankAtEnd: bank.bankAtEnd,
 			uptimePct: uptimePct(brewWindows, duration),
+			// Read from the same `combatantinfo` the gear comes from, and null on every Mists Classic
+			// report checked so far — the field is there and always zero. Null is the answer that
+			// stops the copy inventing a damage figure out of a rating the log never gave.
+			damagePerStack: brewDamagePerStack(gear.masteryRating),
 			windows: brewWindows,
 			useList: uses,
 			bankTimeline: bank.timeline,
@@ -1615,6 +1860,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			lastGcd: procs.filter((w) => w.grade === 'last-gcd').length,
 			late: procs.filter((w) => w.grade === 'late').length,
 			early: procs.filter((w) => w.grade === 'early').length,
+			protectedEarly: procs.filter((w) => w.protectedBrew).length,
 			unsnapshotted: procs.filter((w) => w.grade === 'none').length,
 			redundant: procs.filter((w) => w.redundant).length,
 			sameAsPrevious: procs.filter((w) => w.sameAsPrevious).length,
@@ -1747,8 +1993,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			procs: count,
 			wasted,
 		})),
-		// Read from the `combatantinfo` the event fetch already returned, so this costs no request.
-		gear: readGear(events, actor.id),
+		gear,
+		raidBuffs,
 		// Absent rather than empty when the log carried no readings: the charts branch on "not reported"
 		// and would otherwise draw a flat line at zero, which is a claim the log never made.
 		...(energySamples.length === 0 && chiSamples.length === 0

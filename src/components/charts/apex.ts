@@ -314,8 +314,12 @@ const escape = (value: string): string => value.replace(/&/g, '&amp;').replace(/
 /**
  * Tooltip markup, built by hand because ApexCharts' own tooltip is styled from its light/dark
  * themes rather than from this app's tokens.
+ *
+ * Exported because the cast timeline is not an ApexCharts chart and still has to raise a tooltip:
+ * it feeds this the same `TipContent` and writes the string into one shared node. Two tooltip
+ * designs on one page is exactly what a second implementation there would have produced.
  */
-function tip(theme: ChartTheme, content: TipContent): string {
+export function tip(theme: ChartTheme, content: TipContent): string {
 	const rows = content.rows
 		.map(
 			([label, value]) =>

@@ -48,7 +48,7 @@ const ENCHANTABLE = new Set(['Shoulder', 'Chest', 'Legs', 'Feet', 'Wrist', 'Hand
 /** Slots that never count toward an item level average, whatever they hold. */
 const COSMETIC = new Set(['Shirt', 'Tabard']);
 
-const EMPTY: GearSummary = { slots: [], averageItemLevel: null, missingEnchants: [], gems: 0 };
+const EMPTY: GearSummary = { slots: [], averageItemLevel: null, missingEnchants: [], gems: 0, masteryRating: null };
 
 /**
  * What the player was wearing, from the `combatantinfo` event the fight fetch already returns.
@@ -74,7 +74,26 @@ export function readGear(events: readonly WclEvent[], sourceID: number): GearSum
 		// there, and saying otherwise would invent a fault out of a two-handed weapon.
 		missingEnchants: slots.filter((s) => s.enchantable && s.id !== 0 && s.enchantID === null).map((s) => s.slot),
 		gems: slots.reduce((count, s) => count + s.gems.length, 0),
+		masteryRating: readMastery(info.mastery),
 	};
+}
+
+/**
+ * The player's mastery rating at the pull, or null when the log did not report one.
+ *
+ * Wanted because Tigereye Brew's per-stack bonus is `0.05 + masteryPercent`
+ * (`sim/monk/windwalker/tigereye_brew.go:52`), so mastery is the only thing that turns a count of
+ * brew stacks into a damage figure.
+ *
+ * `0` has to mean "not reported" rather than "no mastery". Nobody at level 90 has zero mastery
+ * rating — the stat exists on gear, on reforges and on two raid buffs — and every `combatantinfo`
+ * checked on a Mists Classic report carries `mastery: 0` beside a perfectly plausible
+ * `critMelee` and `hasteMelee`, which is WarcraftLogs declining to fill the field rather than a
+ * character sheet. Reading it as a real zero would hand every pull the same invented number, which
+ * is exactly the failure this report refuses elsewhere.
+ */
+function readMastery(rating: unknown): number | null {
+	return typeof rating === 'number' && rating > 0 ? rating : null;
 }
 
 function toSlot(piece: GearPiece, slot: string): GearSlot {

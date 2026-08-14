@@ -49,6 +49,15 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 		procs.lastGcd > 0 ? t('snapshots.lastGcd', { count: procs.lastGcd }) : t('snapshots.lastGcdNone'),
 		procs.backToBack > 0 ? t('snapshots.b2b', { count: procs.backToBack }) : null,
 		procs.secondsGivenAway > 0 ? t('snapshots.givenAway', { seconds: procs.secondsGivenAway }) : null,
+		// Only when the pull actually contains one. A reader whose bank never came near its cap has no
+		// use for the rule, and stating it anyway invites them to look for a decision they never made.
+		// `?? 0` rather than a null check: on a captured fixture the field is `undefined`, not `0`.
+		(procs.protectedEarly ?? 0) > 0
+			? t('snapshots.protected', {
+					count: procs.protectedEarly ?? 0,
+					stacks: procs.windows.find((w) => w.protectedBrew)?.holdStacksLost ?? 0,
+				})
+			: null,
 		// Worth saying out loud: a miss by a fraction reads as the same failure as never trying, and it
 		// is not. The seconds are only shown for a single one — with several, the count is the point.
 		procs.narrowlyMissed > 0
@@ -103,10 +112,20 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 				{depth && !depth.unmeasurable ? (
 					<Prose>{t('snapshots.depth', { context: depth.grade, depth: procs.meanDepthPct })}</Prose>
 				) : null}
-				{/* Depth averages the procs that were caught, so when the catch rate itself grades badly the
-				    average is describing a handful of moments rather than the pull. The caveat is keyed off
-				    that grade rather than off a count, so the line it draws is the one in `thresholds`. */}
-				{depth && !depth.unmeasurable && rate?.grade === 'bad' ? <Note>{t('snapshots.depthCaveat')}</Note> : null}
+				{/* Depth averages the procs that were caught, which makes it conditional on the discipline
+				    beside it — so it is described and never graded, and the caveat now says so on every pull
+				    rather than only on the ones whose catch rate already grades badly. Hiding it when the
+				    rate was good was how a 61% depth on the best pull in the sample read as a verdict. */}
+				{depth && !depth.unmeasurable ? <Note>{t('snapshots.depthCaveat')}</Note> : null}
+				{/* How the two costs are weighed, said once and only where a pull had the choice to make.
+				    The second half is the honest limit on it: the trade is decided in stacks and seconds
+				    because those are what the log carries, and the damage each side is worth needs a mastery
+				    rating WarcraftLogs does not report on a Mists log. */}
+				{(procs.protectedEarly ?? 0) > 0 ? (
+					<Note>
+						{t('snapshots.tradeMethod')} {analysis.brew.damagePerStack ? null : t('snapshots.tradeNoMastery')}
+					</Note>
+				) : null}
 			</div>
 		</Section>
 	);

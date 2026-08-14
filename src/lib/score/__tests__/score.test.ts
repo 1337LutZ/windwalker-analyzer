@@ -67,6 +67,53 @@ describe('scoreAnalysis', () => {
 	});
 
 	/**
+	 * Depth is measured and shown and must not move a verdict, in either direction.
+	 *
+	 * It was already kept out of the section grade; what it still carried was a full unit of weight in
+	 * the overall mean, which is where the inversion actually landed. On the three fixtures the strong
+	 * pull graded `bad` on depth off 12 catches and the poor pull graded `good` off 2, so the metric
+	 * was quietly handing points to the worse player. Flipping it in both directions on the same pull
+	 * is the direct test: neither the section nor the overall may notice.
+	 */
+	it('lets no verdict depend on snapshot depth', () => {
+		const analysis = fixture('strong');
+		const at = (meanDepthPct: number): Analysis => ({ ...analysis, procs: { ...analysis.procs, meanDepthPct } });
+
+		const perfect = scoreAnalysis(at(100));
+		const dreadful = scoreAnalysis(at(5));
+
+		expect(perfect.overall).toBe(dreadful.overall);
+		expect(perfect.sections['snapshots']?.grade).toBe(dreadful.sections['snapshots']?.grade);
+		// Still reported, and still graded against its own bands — the section's copy picks a sentence
+		// off that grade, so removing it entirely would leave the depth line with nothing to say.
+		const metricOf = (card: ReturnType<typeof scoreAnalysis>) =>
+			card.sections['snapshots']?.metrics.find((m) => m.key === 'snapshotDepth');
+		expect(metricOf(perfect)?.grade).toBe('good');
+		expect(metricOf(dreadful)?.grade).toBe('bad');
+	});
+
+	/**
+	 * A stack lost at the cap while holding a brew for a Re-Origination proc was the price of the
+	 * snapshot, and the report used to charge for it while separately faulting the early brew that
+	 * would have prevented it — leaving a full bank with no move it called correct. Only the avoidable
+	 * stacks are graded; every one of them is still reported.
+	 */
+	it('grades cap waste on the stacks that were avoidable', () => {
+		const analysis = fixture('poor');
+		const protectedWaste: Analysis = {
+			...analysis,
+			brew: { ...analysis.brew, wastedProtecting: analysis.brew.wastedAtCap },
+		};
+		const capOf = (a: Analysis) => scoreAnalysis(a).sections['brew']?.metrics.find((m) => m.key === 'brewCapWaste');
+
+		// The poor pull's ten lost stacks all sit outside any proc, so nothing there is forgiven.
+		expect(capOf(analysis)?.value).toBe(10);
+		expect(capOf(analysis)?.grade).toBe('bad');
+		expect(capOf(protectedWaste)?.value).toBe(0);
+		expect(capOf(protectedWaste)?.grade).toBe('good');
+	});
+
+	/**
 	 * A pull where every proc arrived with too few stacks to brew has no catch rate to report — the
 	 * denominator is zero. That must read as unmeasurable rather than as 0%.
 	 */
