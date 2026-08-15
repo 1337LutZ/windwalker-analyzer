@@ -288,8 +288,8 @@
     "clean": "Nothing overflowed. Every point of chi the pull generated had somewhere to go.",
     "summary": "{{wasted}} chi went nowhere, across {{moments}} presses that returned more than the bar could hold. Each one cost a global and bought nothing.",
     "key": {
-      "bar": "Chi over the pull",
-      "wasted": "Chi lost to a full bar"
+      "bar": "Chi",
+      "wasted": "Overcapped"
     },
     "chartLabel": "Chi over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
     "tableCaption": "Presses that returned more chi than the bar could hold, most wasteful first",
