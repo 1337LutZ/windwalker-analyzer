@@ -10961,6 +10961,6131 @@
       }
     ]
   },
+  "aplForced": {
+    "1": {
+      "presses": [
+        {
+          "t": 5903,
+          "pressed": 137639,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 6884,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 7886,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 8908,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 9909,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 10896,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 11917,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 12926,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind",
+          "verdict": "skipped"
+        },
+        {
+          "t": 13919,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 14935,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 15939,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 16937,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 17950,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 18956,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 19968,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind",
+          "verdict": "followed"
+        },
+        {
+          "t": 21217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 22216,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 23217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 24961,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 25966,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 27949,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 28966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 30116,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 31149,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 32949,
+          "pressed": 107428,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 37666,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 38667,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 39899,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 60781,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 61736,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 63323,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 64334,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 65343,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 66335,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 67351,
+          "pressed": 116847,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 69367,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 70354,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 72343,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 73343,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 74351,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 75350,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 76346,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 78150,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 79134,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 80334,
+          "pressed": 107428,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 81333,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 82366,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 83368,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 84383,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 85367,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 86382,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 87383,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 89467,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 92782,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 93782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 115716,
+          "pressed": 137639,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 117882,
+          "pressed": 137639,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 118883,
+          "pressed": 116847,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 119883,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 120899,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 121900,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 122909,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 123918,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 125087,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind",
+          "verdict": "followed"
+        },
+        {
+          "t": 126079,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 128410,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 129405,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 130613,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 131966,
+          "pressed": 100780,
+          "wanted": "combo-breaker-palm",
+          "verdict": "skipped"
+        },
+        {
+          "t": 132966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 135051,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 136050,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 137067,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 140315,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 141300,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159015,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159999,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 162749,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 164149,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 166217,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind",
+          "verdict": "skipped"
+        },
+        {
+          "t": 167232,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind",
+          "verdict": "skipped"
+        },
+        {
+          "t": 169204,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 170266,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 171265,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 172266,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 174150,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 175149,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 176165,
+          "pressed": 100787,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 177166,
+          "pressed": 116847,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 178166,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 179549,
+          "pressed": 137639,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 183334,
+          "pressed": 101545,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 185816,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 186832,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 187816,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 188816,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 189866,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 190865,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 191865,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 192882,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 193899,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 194898,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 226333,
+          "pressed": 137639,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 227316,
+          "pressed": 137639,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 228336,
+          "pressed": 116847,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 229333,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 230337,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 231337,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 232358,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 233359,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 234372,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind",
+          "verdict": "followed"
+        },
+        {
+          "t": 235381,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 236388,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 237387,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 238399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 239735,
+          "pressed": 116847,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 240736,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 241744,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 243701,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 244710,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 245782,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 246795,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 248890,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 249885,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 252933,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 253950,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 256850,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 257900,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 260599,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 261601,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 262601,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 263933,
+          "pressed": 100780,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 264967,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 280331,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 281315,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 282349,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 283765,
+          "pressed": 100787,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 284767,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 287965,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 290999,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 292050,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 293050,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 294075,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 300415,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 305066,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 307007,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 308282,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 309399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 311800,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 313065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 314066,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 315066,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 316084,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 318700,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 320715,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 321717,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 322732,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 323750,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 324749,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 326433,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 327816,
+          "pressed": 100780,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 328818,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 330049,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 331067,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 334349,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 335349,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 337051,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 338065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 339532,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 340565,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 343466,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 345899,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 348752,
+          "pressed": 101545,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 349770,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 350749,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 351749,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 353782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 354778,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 355800,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 356782,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 357798,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 358799,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 360314,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 361314,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 364131,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 365131,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 370399,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 371415,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 372415,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 373414,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 374417,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 375431,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 376448,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 377450,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 378448,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 379448,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 380465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 381481,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 382465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 383482,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 384497,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 385498,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 386499,
+          "pressed": 100780,
+          "wanted": "combo-breaker-palm",
+          "verdict": "skipped"
+        },
+        {
+          "t": 387514,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 388514,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 389514,
+          "pressed": 122470,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 390515,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 391531,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 392532,
+          "pressed": 100780,
+          "wanted": "combo-breaker-palm",
+          "verdict": "skipped"
+        },
+        {
+          "t": 393532,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 394532,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 395547,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 396549,
+          "pressed": 113656,
+          "wanted": "fists-of-fury",
+          "verdict": "followed"
+        },
+        {
+          "t": 399114,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 400564,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 401581,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 402585,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 403581,
+          "pressed": 100784,
+          "wanted": "combo-breaker-palm",
+          "verdict": "skipped"
+        },
+        {
+          "t": 404582,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 405598,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 406594,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind",
+          "verdict": "skipped"
+        },
+        {
+          "t": 407605,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 408620,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 409623,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 410620,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 411637,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind",
+          "verdict": "skipped"
+        },
+        {
+          "t": 412636,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 413649,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind",
+          "verdict": "skipped"
+        },
+        {
+          "t": 414650,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 415666,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 416666,
+          "pressed": 100784,
+          "wanted": "combo-breaker-palm",
+          "verdict": "skipped"
+        },
+        {
+          "t": 417667,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 418666,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 419667,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 420681,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 421698,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 422699,
+          "pressed": 100784,
+          "wanted": "combo-breaker-palm",
+          "verdict": "skipped"
+        },
+        {
+          "t": 423700,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 424714,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 425701,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 426731,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 427714,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 428731,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 429715,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 430731,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 432749,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 433743,
+          "pressed": 100784,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        }
+      ],
+      "followed": 116,
+      "skipped": 122,
+      "unknown": 0,
+      "offList": 9,
+      "skippedBy": [
+        {
+          "key": "jab",
+          "id": 100780,
+          "count": 37
+        },
+        {
+          "key": "fists-of-fury",
+          "id": 113656,
+          "count": 27
+        },
+        {
+          "key": "rising-sun-kick",
+          "id": 107428,
+          "count": 23
+        },
+        {
+          "key": "combo-breaker-kick",
+          "id": 100784,
+          "count": 10
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 7
+        },
+        {
+          "key": "blackout-kick",
+          "id": 100784,
+          "count": 6
+        },
+        {
+          "key": "rushing-jade-wind",
+          "id": 116847,
+          "count": 6
+        },
+        {
+          "key": "combo-breaker-palm",
+          "id": 100787,
+          "count": 6
+        }
+      ]
+    },
+    "2": {
+      "presses": [
+        {
+          "t": 5903,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 6884,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 7886,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 8908,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 9909,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 10896,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 11917,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 12926,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 13919,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 14935,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 15939,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 16937,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 17950,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 18956,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 19968,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 21217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 22216,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 23217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 24961,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 25966,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 27949,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 28966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 30116,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 31149,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 32949,
+          "pressed": 107428,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 37666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 38667,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 39899,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 60781,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 61736,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 63323,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 64334,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 65343,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 66335,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 67351,
+          "pressed": 116847,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 69367,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 70354,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 72343,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 73343,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 74351,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 75350,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 76346,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 78150,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 79134,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 80334,
+          "pressed": 107428,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 81333,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 82366,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 83368,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 84383,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 85367,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 86382,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 87383,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 89467,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 92782,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 93782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 115716,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 117882,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 118883,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 119883,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 120899,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 121900,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 122909,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 123918,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 125087,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 126079,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 128410,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 129405,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 130613,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 131966,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 132966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 135051,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 136050,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 137067,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 140315,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 141300,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159015,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159999,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 162749,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 164149,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 166217,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 167232,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 169204,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 170266,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 171265,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 172266,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 174150,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 175149,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 176165,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 177166,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 178166,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 179549,
+          "pressed": 137639,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 183334,
+          "pressed": 101545,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 185816,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 186832,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 187816,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 188816,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 189866,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 190865,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 191865,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 192882,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 193899,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 194898,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 226333,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 227316,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 228336,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 229333,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 230337,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 231337,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 232358,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 233359,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 234372,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 235381,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 236388,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 237387,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 238399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 239735,
+          "pressed": 116847,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 240736,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 241744,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 243701,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 244710,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 245782,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 246795,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 248890,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 249885,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 252933,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 253950,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 256850,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 257900,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 260599,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 261601,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 262601,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 263933,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 264967,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 280331,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 281315,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 282349,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 283765,
+          "pressed": 100787,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 284767,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 287965,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 290999,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 292050,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 293050,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 294075,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 300415,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 305066,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 307007,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 308282,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 309399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 311800,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 313065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 314066,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 315066,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 316084,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 318700,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 320715,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 321717,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 322732,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 323750,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 324749,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 326433,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 327816,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 328818,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 330049,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 331067,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 334349,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 335349,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 337051,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 338065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 339532,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 340565,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 343466,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 345899,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 348752,
+          "pressed": 101545,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 349770,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 350749,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 351749,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 353782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 354778,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 355800,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 356782,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 357798,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 358799,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 360314,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 361314,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 364131,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 365131,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 370399,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 371415,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 372415,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 373414,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 374417,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 375431,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 376448,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 377450,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 378448,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 379448,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 380465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 381481,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 382465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 383482,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 384497,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 385498,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 386499,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 387514,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 388514,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 389514,
+          "pressed": 122470,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 390515,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 391531,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 392532,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 393532,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 394532,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 395547,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 396549,
+          "pressed": 113656,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 399114,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 400564,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 401581,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 402585,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 403581,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 404582,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 405598,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 406594,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 407605,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 408620,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 409623,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 410620,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 411637,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 412636,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 413649,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 414650,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 415666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 416666,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 417667,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 418666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 419667,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 420681,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 421698,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 422699,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 423700,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 424714,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 425701,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 426731,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 427714,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 428731,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 429715,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 430731,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 432749,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 433743,
+          "pressed": 100784,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        }
+      ],
+      "followed": 106,
+      "skipped": 132,
+      "unknown": 0,
+      "offList": 9,
+      "skippedBy": [
+        {
+          "key": "rushing-jade-wind-open",
+          "id": 116847,
+          "count": 70
+        },
+        {
+          "key": "fists-of-fury",
+          "id": 113656,
+          "count": 22
+        },
+        {
+          "key": "jab",
+          "id": 100780,
+          "count": 15
+        },
+        {
+          "key": "rising-sun-kick",
+          "id": 107428,
+          "count": 9
+        },
+        {
+          "key": "blackout-kick",
+          "id": 100784,
+          "count": 6
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 5
+        },
+        {
+          "key": "combo-breaker-kick",
+          "id": 100784,
+          "count": 5
+        }
+      ]
+    },
+    "3": {
+      "presses": [
+        {
+          "t": 5903,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 6884,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 7886,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 8908,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 9909,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 10896,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 11917,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 12926,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 13919,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 14935,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 15939,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 16937,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 17950,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 18956,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 19968,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 21217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 22216,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 23217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 24961,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 25966,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 27949,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 28966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 30116,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 31149,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 32949,
+          "pressed": 107428,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 37666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 38667,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 39899,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 60781,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 61736,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 63323,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 64334,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 65343,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 66335,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 67351,
+          "pressed": 116847,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 69367,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 70354,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 72343,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 73343,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 74351,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 75350,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 76346,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 78150,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 79134,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 80334,
+          "pressed": 107428,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 81333,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 82366,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 83368,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 84383,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 85367,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 86382,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 87383,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 89467,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 92782,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 93782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 115716,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 117882,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 118883,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 119883,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 120899,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 121900,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 122909,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 123918,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 125087,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 126079,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 128410,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 129405,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 130613,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 131966,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 132966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 135051,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 136050,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 137067,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 140315,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 141300,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159015,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159999,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 162749,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 164149,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 166217,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 167232,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 169204,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 170266,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 171265,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 172266,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 174150,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 175149,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 176165,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 177166,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 178166,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 179549,
+          "pressed": 137639,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 183334,
+          "pressed": 101545,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 185816,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 186832,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 187816,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 188816,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 189866,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 190865,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 191865,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 192882,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 193899,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 194898,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 226333,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 227316,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 228336,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 229333,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 230337,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 231337,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 232358,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 233359,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 234372,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 235381,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 236388,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 237387,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 238399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 239735,
+          "pressed": 116847,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 240736,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 241744,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 243701,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 244710,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 245782,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 246795,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 248890,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 249885,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 252933,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 253950,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 256850,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 257900,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 260599,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 261601,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 262601,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 263933,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 264967,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 280331,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 281315,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 282349,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 283765,
+          "pressed": 100787,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 284767,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 287965,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 290999,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 292050,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 293050,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 294075,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 300415,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 305066,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 307007,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 308282,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 309399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 311800,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 313065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 314066,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 315066,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 316084,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 318700,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 320715,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 321717,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 322732,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 323750,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 324749,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 326433,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 327816,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 328818,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 330049,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 331067,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 334349,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 335349,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 337051,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 338065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 339532,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 340565,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 343466,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 345899,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 348752,
+          "pressed": 101545,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 349770,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 350749,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 351749,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 353782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 354778,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 355800,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 356782,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 357798,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 358799,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 360314,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 361314,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 364131,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 365131,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 370399,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 371415,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 372415,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 373414,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 374417,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 375431,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 376448,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 377450,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 378448,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 379448,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 380465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 381481,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 382465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 383482,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 384497,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 385498,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 386499,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 387514,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 388514,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 389514,
+          "pressed": 122470,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 390515,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 391531,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 392532,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 393532,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 394532,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 395547,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 396549,
+          "pressed": 113656,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 399114,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 400564,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 401581,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 402585,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 403581,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 404582,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 405598,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 406594,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 407605,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 408620,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 409623,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 410620,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 411637,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 412636,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 413649,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 414650,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 415666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 416666,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 417667,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 418666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 419667,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 420681,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 421698,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 422699,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 423700,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 424714,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 425701,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 426731,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 427714,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 428731,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 429715,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 430731,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 432749,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 433743,
+          "pressed": 100784,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        }
+      ],
+      "followed": 97,
+      "skipped": 131,
+      "unknown": 0,
+      "offList": 19,
+      "skippedBy": [
+        {
+          "key": "rushing-jade-wind-open",
+          "id": 116847,
+          "count": 70
+        },
+        {
+          "key": "fists-of-fury",
+          "id": 113656,
+          "count": 22
+        },
+        {
+          "key": "jab",
+          "id": 100780,
+          "count": 15
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 5
+        },
+        {
+          "key": "blackout-kick",
+          "id": 100784,
+          "count": 5
+        },
+        {
+          "key": "combo-breaker-kick",
+          "id": 100784,
+          "count": 5
+        },
+        {
+          "key": "rising-sun-kick",
+          "id": 107428,
+          "count": 5
+        },
+        {
+          "key": "rising-sun-kick-filler",
+          "id": 107428,
+          "count": 4
+        }
+      ]
+    },
+    "4": {
+      "presses": [
+        {
+          "t": 5903,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 6884,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 7886,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 8908,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 9909,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 10896,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 11917,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 12926,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 13919,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 14935,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 15939,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 16937,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 17950,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 18956,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 19968,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 21217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 22216,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 23217,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 24961,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 25966,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 27949,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 28966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 30116,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 31149,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 32949,
+          "pressed": 107428,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 37666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 38667,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 39899,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 60781,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 61736,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 63323,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 64334,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 65343,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 66335,
+          "pressed": 100787,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 67351,
+          "pressed": 116847,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 69367,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 70354,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 72343,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 73343,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 74351,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 75350,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 76346,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 78150,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 79134,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 80334,
+          "pressed": 107428,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 81333,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 82366,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 83368,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 84383,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 85367,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 86382,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 87383,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 89467,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 92782,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 93782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 115716,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 117882,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 118883,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 119883,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 120899,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 121900,
+          "pressed": 100787,
+          "wanted": "combo-breaker-palm",
+          "verdict": "followed"
+        },
+        {
+          "t": 122909,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 123918,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 125087,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 126079,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 128410,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 129405,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 130613,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 131966,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 132966,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 135051,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 136050,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 137067,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 140315,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 141300,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159015,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 159999,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 162749,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 164149,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 166217,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 167232,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 169204,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 170266,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 171265,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 172266,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 174150,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 175149,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 176165,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 177166,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 178166,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 179549,
+          "pressed": 137639,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 183334,
+          "pressed": 101545,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 185816,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 186832,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 187816,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 188816,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 189866,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 190865,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 191865,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 192882,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 193899,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 194898,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 226333,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 227316,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 228336,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 229333,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 230337,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 231337,
+          "pressed": 100780,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 232358,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 233359,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 234372,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 235381,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 236388,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 237387,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 238399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 239735,
+          "pressed": 116847,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 240736,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 241744,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 243701,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 244710,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 245782,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 246795,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 248890,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 249885,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 252933,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 253950,
+          "pressed": 100787,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 256850,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 257900,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 260599,
+          "pressed": 119381,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 261601,
+          "pressed": 100780,
+          "wanted": "combo-breaker-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 262601,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 263933,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 264967,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 280331,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 281315,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 282349,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 283765,
+          "pressed": 100787,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 284767,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 287965,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 290999,
+          "pressed": 100780,
+          "wanted": "blackout-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 292050,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 293050,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 294075,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 300415,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 305066,
+          "pressed": 137639,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 307007,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 308282,
+          "pressed": 100787,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 309399,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 311800,
+          "pressed": 116847,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "skipped"
+        },
+        {
+          "t": 313065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 314066,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 315066,
+          "pressed": 100784,
+          "wanted": "blackout-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 316084,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 318700,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 320715,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 321717,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 322732,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 323750,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 324749,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 326433,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 327816,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 328818,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 330049,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 331067,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 334349,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 335349,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 337051,
+          "pressed": 116847,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 338065,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 339532,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 340565,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 343466,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 345899,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 348752,
+          "pressed": 101545,
+          "wanted": "rising-sun-kick",
+          "verdict": "skipped"
+        },
+        {
+          "t": 349770,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 350749,
+          "pressed": 137639,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 351749,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 353782,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 354778,
+          "pressed": 100780,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        },
+        {
+          "t": 355800,
+          "pressed": 100787,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 356782,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 357798,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 358799,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 360314,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 361314,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 364131,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 365131,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 370399,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 371415,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 372415,
+          "pressed": 100784,
+          "wanted": "jab",
+          "verdict": "skipped"
+        },
+        {
+          "t": 373414,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 374417,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 375431,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 376448,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 377450,
+          "pressed": 116847,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "followed"
+        },
+        {
+          "t": 378448,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 379448,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 380465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 381481,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 382465,
+          "pressed": 100780,
+          "wanted": "jab",
+          "verdict": "followed"
+        },
+        {
+          "t": 383482,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 384497,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 385498,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 386499,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 387514,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 388514,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 389514,
+          "pressed": 122470,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 390515,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 391531,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 392532,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 393532,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 394532,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 395547,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 396549,
+          "pressed": 113656,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 399114,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 400564,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 401581,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 402585,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 403581,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 404582,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 405598,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 406594,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 407605,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 408620,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 409623,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 410620,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 411637,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 412636,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 413649,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 414650,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 415666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 416666,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 417667,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 418666,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 419667,
+          "pressed": 107428,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 420681,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 421698,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 422699,
+          "pressed": 100784,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 423700,
+          "pressed": 100787,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 424714,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 425701,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 426731,
+          "pressed": 100784,
+          "wanted": "combo-breaker-kick",
+          "verdict": "followed"
+        },
+        {
+          "t": 427714,
+          "pressed": 107428,
+          "wanted": "rising-sun-kick-filler",
+          "verdict": "followed"
+        },
+        {
+          "t": 428731,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 429715,
+          "pressed": 100784,
+          "wanted": "fists-of-fury",
+          "verdict": "skipped"
+        },
+        {
+          "t": 430731,
+          "pressed": 100784,
+          "wanted": null,
+          "verdict": "off-list"
+        },
+        {
+          "t": 432749,
+          "pressed": 100780,
+          "wanted": "rushing-jade-wind-open",
+          "verdict": "skipped"
+        },
+        {
+          "t": 433743,
+          "pressed": 100784,
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
+        }
+      ],
+      "followed": 97,
+      "skipped": 131,
+      "unknown": 0,
+      "offList": 19,
+      "skippedBy": [
+        {
+          "key": "rushing-jade-wind-open",
+          "id": 116847,
+          "count": 70
+        },
+        {
+          "key": "fists-of-fury",
+          "id": 113656,
+          "count": 22
+        },
+        {
+          "key": "jab",
+          "id": 100780,
+          "count": 15
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 5
+        },
+        {
+          "key": "blackout-kick",
+          "id": 100784,
+          "count": 5
+        },
+        {
+          "key": "combo-breaker-kick",
+          "id": 100784,
+          "count": 5
+        },
+        {
+          "key": "rising-sun-kick",
+          "id": 107428,
+          "count": 5
+        },
+        {
+          "key": "rising-sun-kick-filler",
+          "id": 107428,
+          "count": 4
+        }
+      ]
+    }
+  },
   "misses": [
     {
       "kind": "Partial brew",

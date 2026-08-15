@@ -16,7 +16,7 @@ import type { WclEvent } from '~/lib/events';
 // Type-only, and circular with `spec/apl` on purpose: the ladder is defined beside the model that
 // produces it, and a type-only import is erased before it can become a runtime cycle. Restating the
 // shape here would give the report two definitions of one audit, free to drift apart.
-import type { AplAudit } from '~/lib/spec/apl';
+import type { AplAudit, Band } from '~/lib/spec/apl';
 // Circular with `analysis/auras` in the same way and for the same reason: a window that remembers
 // which of an aura's ids opened it is defined beside the walk that produces it, and an audit below
 // carries those rather than a copy of the shape that could drift from them.
@@ -1491,11 +1491,25 @@ export interface Analysis {
 	 * The priority list run against the pull, press by press.
 	 *
 	 * Three states, all distinct and none collapsible into the others. `undefined` is an analysis
-	 * captured before the ladder existed — the fixtures. `null` is the ladder *refusing*: the pull was
-	 * not concentrated on one enemy, and the single-target list is the wrong thing to judge it against.
-	 * An audit is an answer. Reading any of the three as either of the others would either invent a
-	 * verdict or hide one.
+	 * captured before the ladder existed. `null` is the ladder having nothing to walk — a log fetched
+	 * without resources, so there is no bar to reconstruct. An audit is an answer. Reading any of the
+	 * three as either of the others would either invent a verdict or hide one.
+	 *
+	 * `null` no longer means "add fight". The ladder bands on the live target count and judges a wave
+	 * pull against what the list wanted during the waves.
 	 */
 	apl?: AplAudit | null;
+	/**
+	 * The same walk, forced to one target count, keyed by band.
+	 *
+	 * Precomputed because the walk's inputs — the reconstructed chi bar, the aura windows, the cast
+	 * marks — are not on `Analysis` and reconstructing them in the browser to answer a toggle would
+	 * mean shipping the engine to the client. Four extra walks cost 0.6ms on the longest pull, which is
+	 * cheaper than the plumbing to defer them.
+	 *
+	 * This is what makes the reader's override real rather than decorative: it answers the one question
+	 * no count taken off the log can, which is whether ignoring the adds was a decision.
+	 */
+	aplForced?: Partial<Record<Band, AplAudit | null>>;
 	misses: Miss[];
 }

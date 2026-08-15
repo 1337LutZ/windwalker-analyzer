@@ -32,9 +32,20 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  */
 export default function PriorityLadder({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);
-	// `undefined` is a report captured before the ladder existed; `null` is the ladder refusing to
-	// judge this pull. Two different facts, and the section says a different thing for each.
-	const apl = analysis.apl;
+	/**
+	 * The audit this reading calls for.
+	 *
+	 * `auto` — or a choice that agrees with the pull — reads the walk the engine already did at the live
+	 * target count. An override reads the walk forced to that count, which the engine precomputed for
+	 * exactly this: the inputs are not on `Analysis`, so the choice cannot be answered by recomputing
+	 * here. `single` forces one target; `multi` forces three, the band where the list's multi-target
+	 * entries are all live and the dump threshold has moved.
+	 *
+	 * Falls back to the natural audit when a report predates `aplForced`, which keeps an older analysis
+	 * rendering rather than showing a reader a refusal caused by the shape of the file they loaded.
+	 */
+	const forced = mode === 'single' ? 1 : mode === 'multi' ? 3 : null;
+	const apl = forced === null ? analysis.apl : (analysis.aplForced?.[forced] ?? analysis.apl);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -68,20 +79,17 @@ export default function PriorityLadder({ analysis, mode }: { analysis: Analysis;
 		);
 	}
 
-	// `null` is the refusal, and it means something specific: the pull was not concentrated enough on
-	// one enemy for the single-target ladder to be the right list to judge it against.
-	//
-	// A reader who has forced the pull to read as multi-target gets the same refusal even when the
-	// engine produced an audit: they are saying the adds mattered, and the single-target ladder is
-	// then the wrong list whatever the damage concentration said. The reverse does not hold — forcing
-	// `single` cannot conjure an audit the engine declined to run, and inventing one here would grade
-	// presses against a list nobody checked the conditions of.
-	if (apl === null || mode === 'multi') {
+	// `null` now means only one thing: the log carried no resource readings, so there was no bar to
+	// reconstruct and nothing to walk. It used to also mean "add fight", and forcing `multi` used to
+	// land here on purpose — the ladder was the single-target list and the reader saying the adds
+	// mattered was saying it was the wrong list. The ladder bands on target count now, so an add fight
+	// gets judged against the entries the adds were in, and both of those refusals are gone.
+	if (apl === null) {
 		return (
 			<Section id="priority" title={t('priority.title')}>
 				<Prose>{t('priority.intent')}</Prose>
 				<div className="mt-5">
-					<Note>{t('priority.multiTarget')}</Note>
+					<Note>{t('priority.noResources')}</Note>
 				</div>
 			</Section>
 		);
@@ -93,6 +101,17 @@ export default function PriorityLadder({ analysis, mode }: { analysis: Analysis;
 	return (
 		<Section id="priority" title={t('priority.title')}>
 			<Prose>{t('priority.intent')}</Prose>
+
+			{/* Said here rather than left to the control at the top of the page: by the time a reader has
+			    scrolled to this section the toggle is off screen, and a set of verdicts is worthless
+			    without knowing which list produced them. Attributed to the reader's choice — "you are
+			    reading this pull as" — because that is what it is. The copy this replaced asserted a
+			    property of the pull instead, and said it even when the reader had picked the mode. */}
+			{forced === null ? null : (
+				<div className="mt-5">
+					<Note>{t(mode === 'single' ? 'priority.forced_single' : 'priority.forced_multi')}</Note>
+				</div>
+			)}
 
 			<div className="mt-4.5">
 				<StatTiles>

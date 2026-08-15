@@ -29,6 +29,7 @@ import { createRegistry } from '~/lib/game/registry';
 import { readTalents } from '~/lib/analysis/gear';
 import SPELLS from '~/generated/spells.json';
 import { aplAudit } from './apl';
+import type { AplAudit, Band } from './apl';
 import {
 	DEFAULT_SETTINGS,
 	TIGER_PALM_REFRESH,
@@ -3420,7 +3421,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * ladder demand *more* chi than a tiered player needed, so it can only ever fail to flag a skip,
 	 * never invent one.
 	 */
-	const apl = aplAudit({
+	const aplInputs: Parameters<typeof aplAudit>[0] = {
 		casts: castMarks,
 		energy: curveOf(energySamples),
 		chi: { max: chiWalk.max, points: chiWalk.points },
@@ -3442,7 +3443,20 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// over the pull. `singleTarget` is deliberately no longer passed: it is a damage-concentration
 		// boolean, and what the list needs is a live count.
 		targetsAt: countAt(targetPoints),
-	});
+	};
+	const apl = aplAudit(aplInputs);
+	/**
+	 * The same walk at each band the reader can force it to.
+	 *
+	 * Computed here rather than in the browser because the inputs above are not on `Analysis` and never
+	 * will be — the reconstructed chi bar alone is a walk of the whole log. Measured at 0.18ms a walk on
+	 * a 409-press pull, so four more is under a millisecond, which is less than the code to make them
+	 * lazy would cost to read.
+	 */
+	const aplForced: Partial<Record<Band, AplAudit | null>> = {};
+	for (const band of [1, 2, 3, 4] as const) {
+		aplForced[band] = aplAudit({ ...aplInputs, forceBand: band });
+	}
 
 	// --------------------------------------------------------------- assembly
 	return {
@@ -3756,6 +3770,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 					},
 				}),
 		apl,
+		aplForced,
 		misses,
 	};
 }
