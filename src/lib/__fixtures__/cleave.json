@@ -6632,8 +6632,8 @@
       {
         "t": 4490,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
-        "verdict": "followed"
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
       },
       {
         "t": 5468,
@@ -7496,13 +7496,13 @@
       {
         "t": 192377,
         "pressed": 100787,
-        "wanted": "rising-sun-kick-filler",
+        "wanted": "rising-sun-kick",
         "verdict": "skipped"
       },
       {
         "t": 193394,
         "pressed": 116847,
-        "wanted": "rising-sun-kick-filler",
+        "wanted": "rising-sun-kick",
         "verdict": "skipped"
       },
       {
@@ -7572,8 +7572,8 @@
         "verdict": "followed"
       }
     ],
-    "followed": 74,
-    "skipped": 76,
+    "followed": 73,
+    "skipped": 77,
     "unknown": 0,
     "offList": 11,
     "skippedBy": [
@@ -7588,6 +7588,11 @@
         "count": 12
       },
       {
+        "key": "rising-sun-kick",
+        "id": 107428,
+        "count": 10
+      },
+      {
         "key": "fists-of-fury",
         "id": 113656,
         "count": 9
@@ -7598,24 +7603,19 @@
         "count": 9
       },
       {
-        "key": "rising-sun-kick",
-        "id": 107428,
-        "count": 8
-      },
-      {
-        "key": "rising-sun-kick-filler",
-        "id": 107428,
-        "count": 6
-      },
-      {
         "key": "tiger-palm-refresh",
         "id": 100787,
-        "count": 5
+        "count": 6
       },
       {
         "key": "combo-breaker-palm",
         "id": 100787,
         "count": 5
+      },
+      {
+        "key": "rising-sun-kick-filler",
+        "id": 107428,
+        "count": 4
       },
       {
         "key": "blackout-kick",
@@ -9701,8 +9701,8 @@
         {
           "t": 4490,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 5468,
@@ -10109,7 +10109,7 @@
         {
           "t": 90583,
           "pressed": 100784,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
@@ -10133,13 +10133,13 @@
         {
           "t": 98201,
           "pressed": 101545,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
           "t": 99242,
           "pressed": 100780,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
@@ -10349,7 +10349,7 @@
         {
           "t": 139750,
           "pressed": 107428,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "followed"
         },
         {
@@ -10565,19 +10565,19 @@
         {
           "t": 192377,
           "pressed": 100787,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
           "t": 193394,
           "pressed": 116847,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
           "t": 194394,
           "pressed": 107428,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "followed"
         },
         {
@@ -10641,8 +10641,8 @@
           "verdict": "followed"
         }
       ],
-      "followed": 71,
-      "skipped": 70,
+      "followed": 70,
+      "skipped": 71,
       "unknown": 0,
       "offList": 20,
       "skippedBy": [
@@ -10652,14 +10652,19 @@
           "count": 24
         },
         {
-          "key": "rising-sun-kick-filler",
-          "id": 107428,
-          "count": 12
-        },
-        {
           "key": "fists-of-fury",
           "id": 113656,
           "count": 9
+        },
+        {
+          "key": "rising-sun-kick-filler",
+          "id": 107428,
+          "count": 7
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 6
         },
         {
           "key": "chi-wave",
@@ -10672,8 +10677,8 @@
           "count": 6
         },
         {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
+          "key": "rising-sun-kick",
+          "id": 107428,
           "count": 5
         },
         {
@@ -10722,8 +10727,8 @@
         {
           "t": 4490,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 5468,
@@ -11130,7 +11135,7 @@
         {
           "t": 90583,
           "pressed": 100784,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
@@ -11154,13 +11159,13 @@
         {
           "t": 98201,
           "pressed": 101545,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
           "t": 99242,
           "pressed": 100780,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
@@ -11370,7 +11375,7 @@
         {
           "t": 139750,
           "pressed": 107428,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "followed"
         },
         {
@@ -11586,19 +11591,19 @@
         {
           "t": 192377,
           "pressed": 100787,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
           "t": 193394,
           "pressed": 116847,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "skipped"
         },
         {
           "t": 194394,
           "pressed": 107428,
-          "wanted": "rising-sun-kick-filler",
+          "wanted": "rising-sun-kick",
           "verdict": "followed"
         },
         {
@@ -11662,8 +11667,8 @@
           "verdict": "followed"
         }
       ],
-      "followed": 71,
-      "skipped": 70,
+      "followed": 70,
+      "skipped": 71,
       "unknown": 0,
       "offList": 20,
       "skippedBy": [
@@ -11673,14 +11678,19 @@
           "count": 24
         },
         {
-          "key": "rising-sun-kick-filler",
-          "id": 107428,
-          "count": 12
-        },
-        {
           "key": "fists-of-fury",
           "id": 113656,
           "count": 9
+        },
+        {
+          "key": "rising-sun-kick-filler",
+          "id": 107428,
+          "count": 7
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 6
         },
         {
           "key": "chi-wave",
@@ -11693,8 +11703,8 @@
           "count": 6
         },
         {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
+          "key": "rising-sun-kick",
+          "id": 107428,
           "count": 5
         },
         {

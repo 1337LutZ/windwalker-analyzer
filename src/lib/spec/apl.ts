@@ -261,8 +261,8 @@ const COMBO_BREAKER_PALM_AFTER_MS = 23_000;
  */
 const DUMP_ENERGY = { few: 35, many: 105 } as const;
 
-/** Tiger Power a heavy Spinning Crane Kick needs left on the clock, from APL 20. */
-const SCK_TIGER_POWER_MS = 2250;
+/** Debuff a heavy Spinning Crane Kick needs left on the target, from APL 20. */
+const SCK_DEBUFF_MS = 2250;
 
 interface State {
 	t: number;
@@ -366,8 +366,13 @@ const LADDER: readonly Rule[] = [
 		energyCost: 0,
 		condition: (state, auras) => {
 			if (state.band <= 2) return true;
-			if (!auras.present('tiger-power')) return 'unknown';
-			return auras.remainingMs('tiger-power') <= state.gcdSec * 1000;
+			// Rising Sun Kick's own debuff, not Tiger Power. The APL reads
+			// `auraRemainingTime(CurrentTarget, 130320)` here, and 130320 is the kick's debuff
+			// (`ww_rising_sun_kick.go`); Tiger Power is 125359 and belongs to entry 19 below. Above two
+			// targets the list only wants this global to keep the debuff alive, so reading the wrong aura
+			// made the rule fire on an unrelated clock.
+			if (!auras.present('rising-sun-kick-debuff')) return 'unknown';
+			return auras.remainingMs('rising-sun-kick-debuff') <= state.gcdSec * 1000;
 		},
 	},
 	{
@@ -396,8 +401,13 @@ const LADDER: readonly Rule[] = [
 		energyCost: 40,
 		bands: [4],
 		condition: (_state, auras) => {
-			if (!auras.present('tiger-power')) return 'unknown';
-			return auras.remainingMs('tiger-power') >= SCK_TIGER_POWER_MS;
+			// Also the kick's debuff, for the same reason as entry 18 — and the direction of the error
+			// matters here. The windows are merged across every enemy, so above one target they answer
+			// "up on something" rather than "up on the one you are hitting", which is optimistic. For
+			// entry 18 that is the safe direction (it under-demands the kick and cannot invent a skip);
+			// here it is not, so this rule stands down instead of guessing when the log cannot answer.
+			if (!auras.present('rising-sun-kick-debuff')) return 'unknown';
+			return auras.remainingMs('rising-sun-kick-debuff') >= SCK_DEBUFF_MS;
 		},
 	},
 	{

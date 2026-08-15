@@ -3485,6 +3485,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			'rushing-jade-wind': rjwWindows,
 			'tigereye-brew': brewWindows,
 			're-origination': rawProcs,
+			// The merged debuff, which APL entries 18 and 20 read rather than Tiger Power. Merged across
+			// every enemy that carried it, because the log does not say which enemy a press was aimed at
+			// and the sim's condition is written against the current target. Exact at one target; above
+			// that it answers "the debuff was up on something you were fighting".
+			'rising-sun-kick-debuff': rskLaneWindows,
 		},
 		// Measured from this pull rather than assumed: the channel is hasted, and the list's condition
 		// is written in units of how long it actually runs.

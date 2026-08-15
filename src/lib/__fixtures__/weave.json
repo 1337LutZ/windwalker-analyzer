@@ -6846,8 +6846,8 @@
         {
           "t": 1949,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 2965,
@@ -7540,8 +7540,8 @@
           "verdict": "skipped"
         }
       ],
-      "followed": 18,
-      "skipped": 92,
+      "followed": 17,
+      "skipped": 93,
       "unknown": 0,
       "offList": 7,
       "skippedBy": [
@@ -7549,6 +7549,11 @@
           "key": "spinning-crane-kick",
           "id": 101546,
           "count": 87
+        },
+        {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 2
         },
         {
           "key": "rising-sun-kick-filler",
@@ -7564,11 +7569,6 @@
           "key": "combo-breaker-kick",
           "id": 100784,
           "count": 1
-        },
-        {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
-          "count": 1
         }
       ]
     },
@@ -7583,8 +7583,8 @@
         {
           "t": 1949,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 2965,
@@ -8277,8 +8277,8 @@
           "verdict": "skipped"
         }
       ],
-      "followed": 9,
-      "skipped": 101,
+      "followed": 8,
+      "skipped": 102,
       "unknown": 0,
       "offList": 7,
       "skippedBy": [
@@ -8293,6 +8293,11 @@
           "count": 2
         },
         {
+          "key": "tiger-palm-refresh",
+          "id": 100787,
+          "count": 2
+        },
+        {
           "key": "fists-of-fury",
           "id": 113656,
           "count": 1
@@ -8300,11 +8305,6 @@
         {
           "key": "combo-breaker-kick",
           "id": 100784,
-          "count": 1
-        },
-        {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
           "count": 1
         }
       ]

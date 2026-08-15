@@ -11536,8 +11536,8 @@
         {
           "t": 49163,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 50161,
@@ -12578,8 +12578,8 @@
           "verdict": "skipped"
         }
       ],
-      "followed": 32,
-      "skipped": 177,
+      "followed": 31,
+      "skipped": 178,
       "unknown": 0,
       "offList": 8,
       "skippedBy": [
@@ -12601,7 +12601,7 @@
         {
           "key": "tiger-palm-refresh",
           "id": 100787,
-          "count": 5
+          "count": 6
         },
         {
           "key": "fists-of-fury",
@@ -12872,14 +12872,14 @@
         {
           "t": 48148,
           "pressed": 100780,
-          "wanted": "spinning-crane-kick",
+          "wanted": "spinning-crane-kick-heavy",
           "verdict": "skipped"
         },
         {
           "t": 49163,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 50161,
@@ -13700,8 +13700,8 @@
         {
           "t": 213282,
           "pressed": 107428,
-          "wanted": "rising-sun-kick-filler",
-          "verdict": "followed"
+          "wanted": "spinning-crane-kick-heavy",
+          "verdict": "skipped"
         },
         {
           "t": 214795,
@@ -13920,15 +13920,15 @@
           "verdict": "skipped"
         }
       ],
-      "followed": 16,
-      "skipped": 193,
+      "followed": 14,
+      "skipped": 195,
       "unknown": 0,
       "offList": 8,
       "skippedBy": [
         {
           "key": "spinning-crane-kick-heavy",
           "id": 101546,
-          "count": 171
+          "count": 173
         },
         {
           "key": "chi-wave",
@@ -13938,12 +13938,12 @@
         {
           "key": "tiger-palm-refresh",
           "id": 100787,
-          "count": 5
+          "count": 6
         },
         {
           "key": "spinning-crane-kick",
           "id": 101546,
-          "count": 4
+          "count": 3
         },
         {
           "key": "rising-sun-kick-filler",
