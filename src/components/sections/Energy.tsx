@@ -32,22 +32,30 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			(energy?.worst ?? []).map((cap, i) => ({
-				key: `${cap.at}-${i}`,
-				// Only the engaged stretches are banded. A cap through an intermission is a fact about the
-				// fight, and colouring it the same as one taken with a boss in front of you would undo the
-				// split the rest of the section exists to make.
-				band: cap.engaged ? ('warn' as const) : undefined,
-				cells: {
-					at: <LogLink href={cap.link}>{formatClock(cap.at)}</LogLink>,
-					held: <b className="font-semibold text-ink-2">{formatSeconds(cap.ms)}</b>,
-					where: (
-						<span className={cap.engaged ? 'text-brew' : 'text-ink-2'}>
-							{t(cap.engaged ? 'energy.where.engaged' : 'energy.where.downtime')}
-						</span>
-					),
-				},
-			})),
+			// Selected by severity, shown on the clock — and those are two different jobs. The engine still
+			// picks the five longest stretches, because a table of every cap on a four-minute pull is not a
+			// table anyone reads; sorting here before that cut would have shown the first five stretches
+			// instead of the worst five, which is a quietly different claim. What changes is only the order
+			// the five are drawn in, so a row can be matched to the chart above it. The `held` column is
+			// what carries severity now.
+			[...(energy?.worst ?? [])]
+				.sort((a, b) => a.at - b.at)
+				.map((cap, i) => ({
+					key: `${cap.at}-${i}`,
+					// Only the engaged stretches are banded. A cap through an intermission is a fact about the
+					// fight, and colouring it the same as one taken with a boss in front of you would undo the
+					// split the rest of the section exists to make.
+					band: cap.engaged ? ('warn' as const) : undefined,
+					cells: {
+						at: <LogLink href={cap.link}>{formatClock(cap.at)}</LogLink>,
+						held: <b className="font-semibold text-ink-2">{formatSeconds(cap.ms)}</b>,
+						where: (
+							<span className={cap.engaged ? 'text-brew' : 'text-ink-2'}>
+								{t(cap.engaged ? 'energy.where.engaged' : 'energy.where.downtime')}
+							</span>
+						),
+					},
+				})),
 		[energy, t],
 	);
 

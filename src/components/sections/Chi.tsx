@@ -38,10 +38,14 @@ export default function Chi({ analysis }: { analysis: Analysis }) {
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			// Worst first: a press that threw away two points is a different mistake from one that
-			// threw away one, and a reader scanning this table is looking for the expensive ones.
+			// The clock, matching the curve directly above it. This table used to rank worst-first, on the
+			// argument that a press throwing away two points is a different mistake from one throwing away
+			// one — which is true, and is why the `wasted` column is still coloured and still carries the
+			// count. What ranking cost was the reader's ability to tie a row to the chart above: every
+			// overflow row renders, so severity is a column they can scan, while sequence was information
+			// only the order could carry and the sort was spending it.
 			[...overflow]
-				.sort((a, b) => b.wasted - a.wasted || a.t - b.t)
+				.sort((a, b) => a.t - b.t)
 				.map((w, i) => ({
 					key: `${w.t}-${i}`,
 					band: 'warn' as const,

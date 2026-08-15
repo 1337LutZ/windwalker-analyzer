@@ -272,7 +272,7 @@
       "engaged": "Overcapped",
       "wasted": "Energy lost"
     },
-    "caption": "The longest stretches the bar spent full, longest first",
+    "caption": "The five longest stretches the bar spent full, in the order they happened",
     "key": {
       "bar": "Energy over the pull",
       "lost": "Energy lost to a full bar"
@@ -301,7 +301,7 @@
       "wasted": "Overcapped"
     },
     "chartLabel": "Chi over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
-    "tableCaption": "Presses that returned more chi than the bar could hold, most wasteful first",
+    "tableCaption": "Every press that returned more chi than the bar could hold, in the order they happened",
     "noRows": "No press returned more chi than the bar could hold.",
     "resolution": "This is a sampled bar, not a continuous one — the same caveat the energy section carries. WarcraftLogs only reports your chi when you spend it, so the figures above come from walking the log forward through what each button gains and costs. Two consequences worth knowing: a point gained and spent between two readings is invisible, so treat the waste as a floor rather than a total; and spent can exceed gained, because chi you were already holding when the log first reported the bar was paid out here without ever being counted in.",
     "kpi": {
