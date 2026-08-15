@@ -1,4 +1,5 @@
-import type { Grade } from './model';
+import { gradeOf } from './model';
+import type { Grade, Threshold } from './model';
 
 /**
  * How a share of wasted resource reads as a colour.
@@ -17,13 +18,34 @@ import type { Grade } from './model';
  *
  * The copy beside it never says "good" or "bad". It states the number.
  */
+/**
+ * The bands, as data.
+ *
+ * All three tones below are the same comparison — `gradeOf` in `./model`, which the graded metrics
+ * already run on — differing only in where the lines sit and which direction is better. Writing that
+ * comparison out three times invited the three copies to drift, and drift here is invisible: a band
+ * off by a point still returns a plausible colour.
+ *
+ * They stay three named functions rather than one taking a band, because the reason they were split
+ * is that a caller passing the wrong bands gets a believable answer instead of an error. The names
+ * are the type check. What is shared is the arithmetic, not the choice.
+ */
+const BANDS = {
+	// Lower is better: this is a share of something thrown away.
+	waste: { good: 2, ok: 5, higherIsBetter: false },
+	usage: { good: 90, ok: 70, higherIsBetter: true },
+	defensiveUse: { good: 80, ok: 50, higherIsBetter: true },
+} as const satisfies Record<string, Threshold>;
+
+/** A share, or null when there is no denominator to take one of. */
+function share(part: number, whole: number): number | null {
+	return whole > 0 ? (part / whole) * 100 : null;
+}
+
 export function wasteTone(wasted: number, generated: number): Grade | null {
 	// No denominator, no opinion. A pull that generated nothing has not wasted a share of anything.
-	if (!(generated > 0)) return null;
-	const share = (wasted / generated) * 100;
-	if (share < 2) return 'good';
-	if (share < 5) return 'ok';
-	return 'bad';
+	const pct = share(wasted, generated);
+	return pct === null ? null : gradeOf(BANDS.waste, pct);
 }
 
 /**
@@ -37,11 +59,8 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
  */
 export function usageTone(used: number, possible: number): Grade | null {
 	// A ceiling of zero is not a target anyone missed.
-	if (!(possible > 0)) return null;
-	const share = (used / possible) * 100;
-	if (share >= 90) return 'good';
-	if (share >= 70) return 'ok';
-	return 'bad';
+	const pct = share(used, possible);
+	return pct === null ? null : gradeOf(BANDS.usage, pct);
 }
 
 /**
@@ -60,9 +79,6 @@ export function usageTone(used: number, possible: number): Grade | null {
  * question about Touch of Karma is what the presses *returned*, which is a different tile.
  */
 export function defensiveUseTone(used: number, possible: number): Grade | null {
-	if (!(possible > 0)) return null;
-	const share = (used / possible) * 100;
-	if (share >= 80) return 'good';
-	if (share >= 50) return 'ok';
-	return 'bad';
+	const pct = share(used, possible);
+	return pct === null ? null : gradeOf(BANDS.defensiveUse, pct);
 }

@@ -1,7 +1,8 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
-import type { Grade } from '~/lib/score';
 import type { Analysis } from '~/lib/types';
+
+import { gradeClass } from '../primitives/grade';
 
 import { difficultyLabel } from '../format';
 
@@ -12,11 +13,6 @@ import { difficultyLabel } from '../format';
  * The colour only reinforces the sentence — the words carry the judgement on their own, so nothing
  * is lost to a reader who cannot separate the three hues.
  */
-const VERDICT_TONE: Record<Grade, string> = {
-	good: 'border-kick',
-	ok: 'border-brew',
-	bad: 'border-miss',
-};
 
 /** Which pull this is, who it belongs to, how it went, and what the report is about to argue. */
 export default function ReportHeader({ analysis }: { analysis: Analysis }) {
@@ -44,7 +40,7 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 			    a caption: brightest ink, above body size, and a rule in the grade's own colour. Everything
 			    below it is detail that this sentence has already framed. */}
 			<p
-				className={`mt-4 mb-0 max-w-[56ch] border-l-2 pl-4 text-lg leading-snug font-semibold text-balance text-ink sm:text-xl ${VERDICT_TONE[card.overall]}`}
+				className={`mt-4 mb-0 max-w-[56ch] border-l-2 pl-4 text-lg leading-snug font-semibold text-balance text-ink sm:text-xl ${gradeClass('border', card.overall)}`}
 			>
 				{t(`overall.${card.overall}`)}
 			</p>
