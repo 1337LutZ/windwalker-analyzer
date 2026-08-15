@@ -2140,7 +2140,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			link: link(start),
 		}))
 		.filter((w) => w.ms >= ENERGY_CAP_ROW_MS)
-		.sort((a, b) => b.ms - a.ms)
+		.sort((a, b) => b.ms - a.ms || a.at - b.at)
 		.slice(0, 5);
 
 	const allGaps: Array<{ t: number; ms: number }> = [];
