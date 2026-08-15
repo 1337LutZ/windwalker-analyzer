@@ -32,6 +32,78 @@ export interface Shade {
 	upright?: boolean;
 }
 
+/**
+ * A smooth path through the points, without inventing a value outside them.
+ *
+ * Monotone cubic rather than a plain Catmull-Rom or a fixed-tension spline, and the difference
+ * matters here: an ordinary spline overshoots on a sharp turn, and this bar has a hard ceiling and a
+ * hard floor. A curve that bulges past a reading would draw 104 energy, which is not a quantity
+ * anyone had and is exactly the sort of invented number the rest of this report refuses. Monotone
+ * tangents cannot overshoot — between two readings the curve stays between their values.
+ *
+ * What it *does* soften is the drop at a spend. Energy falls instantly when a button is pressed and
+ * the curve rounds that corner over the neighbouring samples, so a press reads as a steep slope
+ * rather than a cliff. That is a real distortion and it is why this is opt-in: it suits energy, which
+ * genuinely refills continuously and is sampled several times a global, and it is wrong for anything
+ * counted in whole units.
+ */
+function smoothPath(pts: ReadonlyArray<readonly [number, number]>): string {
+	if (pts.length < 3)
+		return pts.map(([px, py], i) => `${i === 0 ? 'M' : 'L'}${px.toFixed(2)} ${py.toFixed(2)}`).join('');
+
+	// Secant slopes between neighbours, then tangents clamped so no segment turns back on itself.
+	const slope: number[] = [];
+	for (let i = 0; i < pts.length - 1; i += 1) {
+		const a = pts[i];
+		const b = pts[i + 1];
+		if (a === undefined || b === undefined) continue;
+		const run = b[0] - a[0];
+		slope.push(run === 0 ? 0 : (b[1] - a[1]) / run);
+	}
+
+	const tangent: number[] = [slope[0] ?? 0];
+	for (let i = 1; i < slope.length; i += 1) {
+		const prev = slope[i - 1] ?? 0;
+		const next = slope[i] ?? 0;
+		// A sign change is a peak or a trough — a reading the curve must pass through flat, or it would
+		// sail past it.
+		tangent.push(prev * next <= 0 ? 0 : (prev + next) / 2);
+	}
+	tangent.push(slope[slope.length - 1] ?? 0);
+
+	// Fritsch–Carlson: pull any tangent back inside three times its secant, which is the condition that
+	// makes the segment monotone and therefore incapable of overshooting.
+	for (let i = 0; i < slope.length; i += 1) {
+		const sec = slope[i] ?? 0;
+		if (sec === 0) {
+			tangent[i] = 0;
+			tangent[i + 1] = 0;
+			continue;
+		}
+		const a = (tangent[i] ?? 0) / sec;
+		const b = (tangent[i + 1] ?? 0) / sec;
+		const scale = Math.hypot(a, b);
+		if (scale > 3) {
+			tangent[i] = (3 / scale) * a * sec;
+			tangent[i + 1] = (3 / scale) * b * sec;
+		}
+	}
+
+	const first = pts[0];
+	if (first === undefined) return '';
+	let d = `M${first[0].toFixed(2)} ${first[1].toFixed(2)}`;
+	for (let i = 0; i < pts.length - 1; i += 1) {
+		const a = pts[i];
+		const b = pts[i + 1];
+		if (a === undefined || b === undefined) continue;
+		const run = (b[0] - a[0]) / 3;
+		d += `C${(a[0] + run).toFixed(2)} ${(a[1] + (tangent[i] ?? 0) * run).toFixed(2)},`;
+		d += `${(b[0] - run).toFixed(2)} ${(b[1] - (tangent[i + 1] ?? 0) * run).toFixed(2)},`;
+		d += `${b[0].toFixed(2)} ${b[1].toFixed(2)}`;
+	}
+	return d;
+}
+
 /** Tall enough to read a shape off, short enough to sit above a timeline without dominating it. */
 const HEIGHT = 72;
 
@@ -43,6 +115,7 @@ export default function ResourceTrack({
 	fill,
 	label,
 	mode = 'line',
+	smooth = false,
 	minLabelGapMs = 0,
 }: {
 	curve: ResourceCurve;
@@ -63,6 +136,14 @@ export default function ResourceTrack({
 	 * actually happened.
 	 */
 	mode?: 'line' | 'steps';
+	/**
+	 * Round the corners between readings, for a bar that really is continuous.
+	 *
+	 * Energy only. It refills on a clock and is sampled several times a global, so the straight
+	 * segments between readings are the artefact and the curve is closer to what happened. Never for
+	 * `steps`: a resource counted in whole units has no in-between to smooth.
+	 */
+	smooth?: boolean;
 	/**
 	 * Nearest two step labels may be, in fight time.
 	 *
@@ -100,6 +181,8 @@ export default function ResourceTrack({
 			lastLabelled = point[0];
 		}
 	}
+	// Built once as points so a smooth path and a straight one read the same data.
+	const xy = points.map(([t, amount]): [number, number] => [x(t), y(amount)]);
 	const line =
 		mode === 'steps'
 			? // Hold the value, then jump: horizontal to the next reading's moment, vertical to its value.
@@ -113,7 +196,9 @@ export default function ResourceTrack({
 						return step;
 					})
 					.join('')
-			: points.map(([t, amount], i) => `${i === 0 ? 'M' : 'L'}${x(t).toFixed(2)} ${y(amount).toFixed(2)}`).join('');
+			: smooth
+				? smoothPath(xy)
+				: xy.map(([px, py], i) => `${i === 0 ? 'M' : 'L'}${px.toFixed(2)} ${py.toFixed(2)}`).join('');
 	// Closed back along the baseline, so the area under the curve can be washed in without a second
 	// pass over the points.
 	const first = points[0];

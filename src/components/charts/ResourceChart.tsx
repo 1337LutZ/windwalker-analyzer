@@ -52,6 +52,7 @@ export default function ResourceChart({
 	label,
 	bands = [],
 	mode,
+	smooth,
 	wastedLegend,
 }: {
 	curve: ResourceCurve;
@@ -64,6 +65,8 @@ export default function ResourceChart({
 	label: string;
 	bands?: readonly TrackBand[];
 	mode?: 'line' | 'steps';
+	/** Round the corners between readings. Energy only — see `ResourceTrack`. */
+	smooth?: boolean;
 	/**
 	 * What the overflow ticks mean, for a curve that carries any.
 	 *
@@ -80,6 +83,7 @@ export default function ResourceChart({
 					curve={curve}
 					durationMs={durationMs}
 					mode={mode}
+					smooth={smooth}
 					stroke={VAR[tone]}
 					// The area under the line, at the strength every one of these charts already washed it:
 					// enough to read the shape off, faint enough that a band shaded behind it still shows.

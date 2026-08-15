@@ -96,6 +96,7 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 						curve={curve}
 						durationMs={analysis.durationMs}
 						tone="kick"
+						smooth
 						legend={t('energy.key.bar')}
 						// The shaded stretches are regeneration that arrived on a full bar and went nowhere, so
 						// the key says what was lost rather than what the bar was doing. It reads close enough

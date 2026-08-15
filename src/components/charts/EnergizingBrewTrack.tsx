@@ -35,6 +35,7 @@ export default function EnergizingBrewTrack({ analysis }: { analysis: Analysis }
 			curve={energy}
 			durationMs={durationMs}
 			tone="kick"
+			smooth
 			legend={t('energizingBrew.key.energy')}
 			bands={[
 				// Painted in the order they should stack: the haste window is the widest claim, the brew sits

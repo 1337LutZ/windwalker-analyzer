@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 
 import { complementOf } from '~/lib/analysis/intervals';
 import type {
+	AbilityDamage,
 	Analysis,
 	AuraLane,
 	CastMark,
@@ -371,6 +372,42 @@ function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number
 }
 
 /**
+ * Which press lanes did damage on this pull, by the name their lane is keyed on.
+ *
+ * Derived, and it must never become a list of spell names written here. The damage table is the
+ * pull's own answer to "did pressing this hurt anything", so a button added to the spec — or one this
+ * report has never heard of, a trinket or a racial — sorts correctly the first time somebody presses
+ * it, with nothing to keep in step. `Ability.damageIds` was the alternative and answers worse: it is
+ * declared only where a button's damage lands under an id that is *not* its cast, so Touch of Death
+ * carries none and would sink — while the damage table has a row for it either way, because it
+ * resolves an id through `abilityByDamageId` **or** `abilityByCastId`.
+ *
+ * What the table cannot see is a cooldown whose damage arrives under somebody else's name: Invoke
+ * Xuen lands as the pet's Crackling Tiger Lightning and Storm, Earth and Fire lands as the clones'
+ * copies of the buttons being mirrored, so both sort as if they did nothing. Answering that needs
+ * something the model does not carry — the pet ids a press is responsible for — and inventing it here
+ * would be exactly the hardcoded list this avoids. They cost one row each near the foot of the block.
+ *
+ * Keyed by name rather than by id because a button and its damage are usually two different ids —
+ * Rushing Jade Wind is cast as 116847 and lands as 148187 — while both sides resolve the *name*
+ * through the same registry, and the lanes above are grouped by name for the same reason.
+ *
+ * `utility` is the model's own answer to the one case a total gets wrong. Flying Serpent Kick is a
+ * movement button that happens to hit, and `Ability.utility` marks it as not-pressed-for-damage,
+ * which is precisely the question being asked here — so it is read rather than re-decided, exactly as
+ * the damage table's own comparison reads it.
+ *
+ * Auto-attacks stay on the damaging side, and it is a judgement rather than an oversight. They are
+ * not a press, but they are damage — usually the second largest row in the table — and excluding them
+ * would need the one hardcoded exception this is written to avoid. It would also move the whole chart:
+ * the aura lanes are drawn directly under melee on purpose, because melee is the pull's metronome and
+ * a buff window is read against a continuous line, so sinking melee among the potions would drag every
+ * aura row down with it.
+ */
+const damagingNames = (abilities: readonly AbilityDamage[]): Set<string> =>
+	new Set(abilities.filter((a) => a.total > 0 && !a.utility).map((a) => a.name));
+
+/**
  * The presses grouped into one lane per ability, in the order the lanes are drawn.
  *
  * Packing alone put whichever press came next on whichever row happened to be free, so the same
@@ -378,9 +415,13 @@ function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number
  * per ability makes the vertical position mean something: one row is one button, and a gap in a row
  * is that button not being pressed.
  *
- * Ordered by how often the button was pressed, so the rotation's backbone sits at the top and the
- * once-a-pull cooldowns fall to the bottom. Ties break on the first press, which keeps the order
- * stable between two pulls that used the same kit.
+ * Damage first, and then by how often the button was pressed. Press count alone is a count of
+ * keystrokes and not of the rotation: it put Roll, Synapse Springs and a Healthstone above Fists of
+ * Fury on every reference pull, because a global spent on damage is pressed rarely and a utility
+ * button is pressed whenever the fight asks for it. The reader scans this chart top-down looking for
+ * their rotation, so the buttons that did something to the boss come first and the rest sink — inside
+ * the player's own rows, which is a block the per-enemy sort has already settled. Ties break on the
+ * first press, which keeps the order stable between two pulls that used the same kit.
  *
  * Each lane is still packed internally: two presses of the *same* ability can land close enough to
  * overlap at the wide end of the zoom ladder, and a lane that needs two sub-rows gets two.
@@ -393,7 +434,7 @@ interface CastLane {
 	rowOf: Map<CastMark, number>;
 }
 
-function castLanesOf(casts: readonly CastMark[], pxPerSec: number): CastLane[] {
+function castLanesOf(casts: readonly CastMark[], pxPerSec: number, damaging: ReadonlySet<string>): CastLane[] {
 	// Keyed by name, not by id. One spell can log under several ids — measured on a real pull, Spear
 	// Hand Strike arrives under two and drew two identical rows — and a reader grouping "by spell"
 	// means the button, not the id behind it. The first id seen carries the icon, which is safe
@@ -417,7 +458,12 @@ function castLanesOf(casts: readonly CastMark[], pxPerSec: number): CastLane[] {
 				rowOf: packed.rowOf,
 			};
 		})
-		.sort((a, b) => b.casts.length - a.casts.length || (a.casts[0]?.t ?? 0) - (b.casts[0]?.t ?? 0));
+		.sort(
+			(a, b) =>
+				Number(damaging.has(b.name)) - Number(damaging.has(a.name)) ||
+				b.casts.length - a.casts.length ||
+				(a.casts[0]?.t ?? 0) - (b.casts[0]?.t ?? 0),
+		);
 }
 
 function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMark, number>) {
@@ -709,7 +755,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// of nodes — which is the whole reason the geometry is percentages rather than pixels.
 	// Lanes depend on zoom, because whether a lane needs a second sub-row is a question about pixels.
 	// Still cheap beside rebuilding the marks: one pass over the presses, no elements created.
-	const castLanes = useMemo(() => castLanesOf(casts, pxPerSec), [casts, pxPerSec]);
+	//
+	// The damaging set is built once per pull rather than per lane, so what the sort does is a lookup
+	// and not a scan of the damage table for every button the player owns.
+	const damaging = useMemo(() => damagingNames(analysis.damage.abilities), [analysis.damage.abilities]);
+	const castLanes = useMemo(() => castLanesOf(casts, pxPerSec, damaging), [casts, pxPerSec, damaging]);
 	const castNodes = useMemo(
 		() => castLanes.map((lane): CastRow => ({ lane, nodes: castNodesOf(lane.casts, span, lane.rowOf) })),
 		[castLanes, span],

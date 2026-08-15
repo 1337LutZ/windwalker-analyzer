@@ -352,6 +352,66 @@ describe('CastTimeline, presses merged into the row they open', () => {
 });
 
 /**
+ * Which press lane sits above which, inside the player's own rows.
+ *
+ * Press count alone is a count of keystrokes: a utility button is pressed whenever the fight asks for
+ * it and a damaging global is pressed on a cooldown, so Roll, Synapse Springs and a Healthstone all
+ * sorted above Fists of Fury on the reference pulls. The reader scans this chart top-down for their
+ * rotation, so damage comes first.
+ *
+ * Nothing below names a spell to the chart. Which presses did damage is read off `damage.abilities` —
+ * the pull's own table, which is why the fixture is the one supplying it — so an ability the report
+ * has never heard of sorts correctly the first time somebody presses it.
+ */
+describe('CastTimeline, damaging presses above the rest', () => {
+	/** Where a row's own label first appears, which is the order the gutter draws them in. */
+	const at = (html: string, name: string) => html.indexOf(`title="${name}"`);
+
+	const scan: Analysis = {
+		...captured,
+		timeline: {
+			casts: [
+				// The metronome the aura rows are drawn directly under.
+				{ t: 1000, id: 1, name: 'Melee', onGcd: false },
+				// Pressed six times, and not one of them did anything to anybody.
+				...[2000, 3000, 4000, 5000, 6000, 7000].map((t) => ({ t, id: 109132, name: 'Roll', onGcd: false })),
+				// Pressed once, and worth four seconds of the pull's damage.
+				{ t: 20000, id: 113656, name: 'Fists of Fury', onGcd: true },
+				// In the damage table and still not a rotation press: the model marks it `utility`, which is
+				// the distinction being read here rather than one this test re-decides.
+				{ t: 30000, id: 101545, name: 'Flying Serpent Kick', onGcd: true },
+			],
+			lanes: [timeline.lanes[0]!],
+		},
+	};
+
+	it('draws a damaging press above one that was pressed six times as often', () => {
+		const html = render(scan);
+		expect(at(html, 'Fists of Fury')).toBeLessThan(at(html, 'Roll'));
+	});
+
+	/** The one case a damage total gets wrong, and the model already answers it. */
+	it('sinks a movement button that happens to hit', () => {
+		const html = render(scan);
+		expect(at(html, 'Flying Serpent Kick')).toBeGreaterThan(at(html, 'Fists of Fury'));
+		// And below Roll, because press count still orders the block once damage has divided it.
+		expect(at(html, 'Flying Serpent Kick')).toBeGreaterThan(at(html, 'Roll'));
+	});
+
+	/**
+	 * Auto-attacks were the judgement call: not a press, but damage, and the table says so. Counting
+	 * them as damaging is what keeps the aura rows where they are drawn on purpose — directly under
+	 * melee, so a buff window is read against a continuous line rather than against a lane with holes.
+	 */
+	it('keeps melee at the top, with the aura rows still directly under it', () => {
+		const html = render(scan);
+		expect(at(html, 'Melee')).toBeLessThan(at(html, 'Fists of Fury'));
+		expect(at(html, 'Re-Origination')).toBeGreaterThan(at(html, 'Melee'));
+		expect(at(html, 'Re-Origination')).toBeLessThan(at(html, 'Fists of Fury'));
+	});
+});
+
+/**
  * Where the per-enemy rows sit, which is a rule and not the order the engine happened to emit them.
  *
  * The lanes below are handed over *debuff first* on purpose: the engine emits them last, so a chart
