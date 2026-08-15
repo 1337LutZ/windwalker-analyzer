@@ -658,9 +658,24 @@
       "intent": "Read down and press the first thing that is true. There is no second list for packs: the same rungs are read at one enemy and at six, and only which of them the list reaches changes. Where a rung holds two or three buttons instead of one, they are alternatives, and the line above them is what chooses. A chip on a rung is a gate — the list does not look at that entry at all unless the chip is true.",
       "caption": "The priority list, one rung per entry, in the order the rotation checks it",
       "reading_single": "This is the list at one enemy, because that is how the report above is reading the pull. The rungs the priority list only reaches from two enemies up are not drawn, and the two rungs that hold one rule below three targets and another above it show only the half that applies. The chips above still name every count at which something changes, including the ones outside this reading — the control at the top of the report switches it.",
-      "reading_multi": "This is the list at three enemies, which is the same count the section above judges every press at. The single-target half of each split rung is not drawn, and neither is the Spinning Crane Kick the list only reaches from four. The chips above still name every count at which something changes — the control at the top of the report switches the reading."
+      "reading_multi": "This is the list at three enemies, which is the same count the section above judges every press at. The single-target half of each split rung is not drawn, and neither is the Spinning Crane Kick the list only reaches from four. The chips above still name every count at which something changes — the control at the top of the report switches the reading.",
+      "legend": {
+        "title": "How to read it",
+        "spine": "Every rung is one question. Answer yes and you press the button beside it and the list stops there; answer no and the line carries you down to the next question.",
+        "gate": "A chip laid across the line is a gate: below the count written on it the list does not ask the question underneath at all.",
+        "fork": "A dashed box is one question with two or three answers. Only one of them is ever yours, and the line above it says what decides."
+      },
+      "yes": "yes",
+      "no": "no",
+      "count_one": "This reading draws {{count}} of the {{total}} rungs.",
+      "count_other": "This reading draws {{count}} of the {{total}} rungs.",
+      "details": "why",
+      "expand": "Open every rung",
+      "collapse": "Close every rung"
     },
     "crossover": {
+      "title": "Where the pack changes the button",
+      "outside": "outside this reading",
       "sef": "2+ · Storm, Earth and Fire",
       "rjw": "2+ · Rushing Jade Wind",
       "sck": "3+ · Crane Kick over Fists of Fury",
@@ -699,121 +714,145 @@
     "entry": {
       "touchOfDeath": {
         "name": "Touch of Death",
+        "test": "the target's health drops below yours",
         "when": "the target's health falls below yours.",
         "why": "It deals a lump equal to your own maximum health for one global. The list presses Fortifying Brew in the same breath, because that raises the number it rolls against."
       },
       "chiBrew": {
         "name": "Chi Brew",
+        "test": "2 chi below cap, in the opener or under a brew",
         "when": "you are two chi below the cap, during the opener or with a brew running and energy at least four seconds from full.",
         "why": "Two chi for no global. Those two chi save you a Jab, and a Jab you do not press is 40 energy left sitting in a bar that was already close to full."
       },
       "tigereyeBrewRune": {
         "name": "Tigereye Brew",
+        "test": "a proc is a global from ending and the bank beats it",
         "when": "the Re-Origination proc is a global from ending and the bank holds more than the buff you are already wearing. Failing that: at a full 20 stacks, above 15 with no proc running, or with the fight ending inside the buff.",
         "why": "With the Rune on, the brew is a snapshot tool and almost nothing else. It reads your mastery once and carries it fifteen seconds, so spending it on the proc's last global is what makes the proc's stats outlive the proc — see below. Every other condition here exists to stop the bank overflowing while it waits."
       },
       "tigereyeBrewBank": {
         "name": "Tigereye Brew",
+        "test": "no brew running and the bank is at 19",
         "when": "no brew is already running and the bank is at 19. Below that it wants two chi in hand as well: from 15, from 8 under an agility trinket, from 7 in the opener, or at any size with under 30 seconds left.",
         "why": "With nothing to snapshot there is nothing to hold it for, so the only failure left is overflow: 20 is the ceiling and every stack earned past it is three chi spent for nothing. The two chi is a floor on the state you spend it in — fifteen seconds of buff are worth less starting from an empty bar."
       },
       "energizingBrew": {
         "name": "Energizing Brew",
+        "test": "energy is 5+ seconds from full",
         "when": "energy is at least five seconds from full. Held through Bloodlust, unless you have Rushing Jade Wind and more than one target.",
         "why": "Sixty energy poured into a nearly full bar is sixty energy gone. Bloodlust already refills the bar faster than a flat one-second global can empty it, so the two overlap into waste."
       },
       "invokeXuen": {
         "name": "Invoke Xuen",
+        "test": "it is ready",
         "when": "it is ready.",
         "why": "Nothing. It is the one entry with no condition on it at all, so the only thing holding it can cost you is a summon you never fit in."
       },
       "risingSunKickCooldown": {
         "name": "Rising Sun Kick",
+        "test": "the cooldown is up",
         "when": "the cooldown is up. It runs 15 seconds on an 8-second cooldown, so nothing but a missed global makes it drop.",
         "why": "The debuff, not the kick — see below. It is the only button here whose cost is paid by everything else you press."
       },
       "risingSunKickHold": {
         "name": "Rising Sun Kick",
+        "test": "its debuff is a global from expiring",
         "when": "the debuff it leaves is a global from expiring. That is the only thing that claims this rung once there are three enemies — otherwise the kick waits for its unconditional rung further down.",
         "why": "Holding the debuff, not landing the kick. From three targets the buttons above this one hit the whole pack and are worth more than one kick, so the list lets the kick slide — but never far enough to drop the 20% it is lifting everything by."
       },
       "tigerPalmRefresh": {
         "name": "Tiger Palm",
+        "test": "Tiger Power has a second or less left",
         "when": "Tiger Power has a second or less left on it.",
         "why": "Tiger Power ignores 30% of the target's armour for 20 seconds. It does not stack and it cannot be banked, so a press with a healthy buff still up throws the rest of it away and takes a global Jab wanted."
       },
       "chiWave": {
         "name": "Chi Wave",
+        "test": "cooldown up, energy a second from full",
         "when": "the 15-second cooldown is up and energy is at least a second from full.",
         "why": "It costs nothing, which is the problem: a global that generates no energy, spent while the bar is about to cap, is a Jab you could not afford to skip."
       },
       "zenSphere": {
         "name": "Zen Sphere",
+        "test": "cooldown up, energy spare, under two spheres",
         "when": "the 10-second cooldown is up, energy is more than two seconds from full, and fewer than two spheres are out. Past two targets that rung is skipped and it is picked up again below Jab, where only the two-sphere limit is left.",
         "why": "Two spheres is the cap, and a third press replaces one that is still ticking. Its energy check is twice Chi Wave's — two seconds of headroom rather than one — which is what buys it the lower rung."
       },
       "chiBurst": {
         "name": "Chi Burst",
+        "test": "cooldown up, energy a global from full",
         "when": "the 30-second cooldown is up and energy is more than a global from full.",
         "why": "The same check as Chi Wave and the same reason for it, on twice the cooldown: half as many presses over a pull, so half as much of it there is to lose by holding one."
       },
       "comboBreakerKick": {
         "name": "Blackout Kick",
+        "test": "Combo Breaker has made it free",
         "when": "Combo Breaker has made it free.",
         "why": "A chi-free spender, which is the thing this list is permanently short of. The proc lasts 15 seconds, so there is no hurry — and no reason to let it lapse either."
       },
       "fistsOfFury": {
         "name": "Fists of Fury",
+        "test": "energy will not cap, and no brew or proc says hold",
         "when": "energy will not cap during the channel, you are not inside an Energizing Brew unless Rushing Jade Wind covers the whole of it, and — if a Re-Origination proc is running — the proc outlasts the channel and a brew is already up.",
         "why": "The most damage you can buy with chi, and four seconds spent doing nothing else: your auto-attacks are held for the whole channel too. All three conditions are there to stop those four seconds swallowing something."
       },
       "tigerPalmProc": {
         "name": "Tiger Palm",
+        "test": "a free palm, past the opener, with room to spend it",
         "when": "Combo Breaker has made it free, the opener is over, no Energizing Brew is running, and either the proc is nearly gone or energy is two globals from full.",
         "why": "The same free-global logic as the kick, several rungs lower. Tiger Palm hits for very little, so a free one only earns its global when there is nothing better to put in it."
       },
       "jab": {
         "name": "Jab",
+        "test": "two or more chi below the cap",
         "when": "you are two or more chi below the cap.",
         "why": "Two below, not one. Jab returns two chi, so pressing it one short of the cap throws the second one away. Everything above it is spending what this generated."
       },
       "rushingJadeWind": {
         "name": "Rushing Jade Wind",
+        "test": "nothing above it fired, and the dot is not spinning",
         "when": "nothing above it fired.",
         "why": "40 energy on a six-second cooldown. Down here it is a filler for a global with nothing better in it; at two targets it moves near the top of the list instead."
       },
       "blackoutKick": {
         "name": "Blackout Kick",
+        "test": "35 energy still banked when the kick returns",
         "when": "you will still have 35 energy banked by the time Rising Sun Kick comes back.",
         "why": "The chi dump, and the only entry that looks ahead. Spending chi here is right only if what is left over still covers the Jabs the next Rising Sun Kick needs."
       },
       "stormEarthAndFire": {
         "name": "Storm, Earth and Fire",
+        "test": "one clone at 2 targets, two at 3+",
         "when": "two targets, for one clone. Three or more, for two.",
         "why": "A clone cuts everyone's damage, yours included: to 60% each with one out, 45% each with two. One clone across two enemies is 120% of your damage and two across three is 135%. At one enemy there is nowhere to put a clone, so it is pure loss and the list never casts it."
       },
       "rushingJadeWindMulti": {
         "name": "Rushing Jade Wind",
+        "test": "the dot is not already spinning",
         "when": "two targets and up.",
         "why": "It moves above Rising Sun Kick. It hits everything for as long as it spins and the kick hits one, so the second enemy is roughly where the two cross. From three targets it starts returning a chi as well."
       },
       "spinningCraneKick": {
         "name": "Spinning Crane Kick",
+        "test": "nothing above it fired",
         "when": "three targets and up.",
         "why": "It moves above Fists of Fury. Fists of Fury splits one lump of damage evenly across everything in front of you, so its total never grows with the pack; this one's does. Three is where the growing one passes the fixed one."
       },
       "blackoutKickDump": {
         "name": "Blackout Kick",
+        "test": "105 energy still banked when the kick returns",
         "when": "105 energy will still be banked by the time Rising Sun Kick comes back, rather than 35.",
         "why": "With Spinning Crane Kick in the list there is far more worth spending energy on, so the chi dump has to leave three times as much behind before it will fire."
       },
       "craneOverKick": {
         "name": "Spinning Crane Kick",
+        "test": "the kick's debuff is safe for another 2.25 seconds",
         "when": "four targets and up, with the Rising Sun Kick debuff safe for another 2.25 seconds.",
         "why": "Now it goes above Rising Sun Kick as well. The 2.25 seconds is what keeps the debuff from being lost to it: at four targets the kick is delayed, not dropped."
       },
       "risingSunKickMulti": {
         "name": "Rising Sun Kick",
+        "test": "nothing above it fired",
         "when": "nothing above it fired. There is no condition at all on this rung — it is where the kick lands once a pack has pushed it off the one above, after Tiger Palm and, from four targets, after Spinning Crane Kick.",
         "why": "It never leaves the list, because the debuff lands on every enemy. One kick amplifies the whole pack, so a pack delays the kick rather than dropping it."
       }
@@ -824,7 +863,8 @@
       "debuff": "Rising Sun Kick's debuff goes on every enemy, not only the one you kicked, and it lifts every one of your abilities by 20% for fifteen seconds. Auto-attacks are the exception. Losing it costs you a sixth of all of that, across the whole pack, for as long as it is down.",
       "talents": "The list assumes two talent choices and quietly skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs of the flow above and not a fork: with the wind talented at a single target, neither of those rungs fires and it waits for its own one near the bottom. Chi Wave, Zen Sphere and Chi Burst share a row too, and that one is drawn as a fork wherever this log cannot tell which of the three you brought.",
       "inferred": "Some of those rungs are dropped from the flow above, and only ever on proof that a button was not on your bar. A log carries no talent tree, so the only thing this report knows is which buttons you pressed — and a button you never pressed is exactly the button you may have forgotten, so an unpressed rung is never taken away. What is taken away is the alternative to something you did press: one Spinning Crane Kick in the log means there was no Rushing Jade Wind to take it off your bars, one Rushing Jade Wind means there was no Spinning Crane Kick to press, and one Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
-      "mastery": "One correction, because the name of the mechanic misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder — it appears in exactly one line of the whole simulator, and that is the line. There is no alternating-ability mastery here; Combo Strikes belongs to a later expansion. Pressing the same button twice in a row costs you nothing."
+      "mastery": "One correction, because the name of the mechanic misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder — it appears in exactly one line of the whole simulator, and that is the line. There is no alternating-ability mastery here; Combo Strikes belongs to a later expansion. Pressing the same button twice in a row costs you nothing.",
+      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick the moment there is a second enemy; entry 31 leaves it unconditional near the bottom, which is where it sits on a single target. Neither entry tests energy at all. It costs 40 — the same as a Jab — and returns one chi where Jab returns two, so from two enemies up the list is knowingly spending the generator's energy on a spinning dot. What keeps that from being every global is the spell's own six-second cooldown, re-armed to whatever is left on the dot, so the entry needs no “already running” clause. The one place the list weighs the two against each other is the Fists of Fury rule, which will not channel through an Energizing Brew unless the wind is up to spend the energy the brew is pouring in."
     }
   },
   "summary": {

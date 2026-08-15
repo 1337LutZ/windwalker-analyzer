@@ -268,6 +268,42 @@ export function pressedButtons(casts: readonly CastRow[]): ReadonlySet<number> {
 	return new Set(casts.filter((c) => c.count > 0).map((c) => c.id));
 }
 
+/**
+ * A target count at which the button changes, and the rung that change lands on.
+ *
+ * The four chips above the chart are a contents page for the four crossovers, and they are printed
+ * unfiltered on purpose — a reader whose list has just lost a rung needs the count that would bring it
+ * back, which is the one thing a filtered index could not tell them. That is also how the index
+ * acquired a way to lie: read at three enemies, `4+ · Crane Kick over Rising Sun Kick` names a rung
+ * that the reading has taken off the page, and the reader goes looking for something that is not
+ * there.
+ *
+ * So each chip carries the rung it names, and the section asks the drawn flow whether that rung
+ * survived. A chip whose rung did not is drawn as what it is — a crossover outside this reading —
+ * rather than as one of the three the reader can go and find.
+ *
+ * `key` is a `rotation.entry.<key>` and `copy` a `rotation.crossover.<copy>`; the pairing is asserted
+ * against the unfiltered flow in `rotationFlow.test.ts`, so a renamed rung fails there rather than
+ * silently marking a live crossover as absent.
+ */
+export interface Crossover {
+	copy: string;
+	key: string;
+}
+
+/** The four counts at which the list changes shape, in the order the index prints them. */
+export const CROSSOVERS: readonly Crossover[] = [
+	{ copy: 'rjw', key: 'rushingJadeWindMulti' },
+	{ copy: 'sef', key: 'stormEarthAndFire' },
+	{ copy: 'sck', key: 'spinningCraneKick' },
+	{ copy: 'sckOverRsk', key: 'craneOverKick' },
+];
+
+/** Every button a drawn flow holds, forks flattened. What the chart opens, and what the index checks against. */
+export function flowKeys(flow: readonly FlowSlot[]): string[] {
+	return flow.flatMap((slot) => ('fork' in slot ? slot.branches.map((b) => b.key) : [slot.entry.key]));
+}
+
 export interface RotationFlowInput {
 	/**
 	 * The target count the flow is read at, or null to show every band.

@@ -98,6 +98,32 @@
 
 	--font-mono: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
 	--font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+	/* A rung arriving in the rotation flowchart.
+	 *
+	 * The one animation in the app, and it is there because the chart's shape is the thing that
+	 * changes when a reader moves the target-count control: at one enemy the list has fourteen rungs,
+	 * at three eighteen, unfiltered nineteen. React only remounts the rungs that were not there
+	 * before, so this plays on exactly the boxes that entered and on nothing else — which is the
+	 * change, drawn. Rungs that leave simply go; animating an exit would mean holding a removed rung
+	 * in the tree after the list stopped containing it, and this section's whole claim is that it
+	 * draws the list the reader can actually press.
+	 *
+	 * Short and small on purpose: 12px of travel, not a slide across the page. The global
+	 * `prefers-reduced-motion` rule below cuts every animation in the app to 0.01ms, so this needs no
+	 * guard of its own. */
+	--animate-rung-in: rung-in 220ms ease-out;
+
+	@keyframes rung-in {
+		from {
+			opacity: 0;
+			transform: translateY(-12px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
 }
 
 /* The viewer's own theme must not bleed through: paint the ground explicitly. */

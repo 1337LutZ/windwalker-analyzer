@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
 import { LADDER_ENTRIES } from '~/lib/spec/apl';
-import { pressedButtons, rotationFlow, type FlowSlot } from '../rotationFlow';
+import { CROSSOVERS, flowKeys, pressedButtons, rotationFlow, type FlowSlot } from '../rotationFlow';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -89,10 +89,17 @@ describe('the reference flow against the ladder', () => {
 				}
 			}
 			for (const entry of entries) {
-				for (const field of ['name', 'when', 'why']) {
+				// `test` is the one-line condition the chart's node holds; `when` and `why` are the two
+				// paragraphs it discloses. All three are required of every rung, because the chart shows the
+				// first and a reader opening the box expects the other two — a rung with a node and no prose
+				// behind it is the one failure mode the drawing could introduce that the old list could not.
+				for (const field of ['name', 'test', 'when', 'why']) {
 					const key = `rotation.entry.${entry.key}.${field}`;
 					expect(t(key), key).not.toBe(key);
 				}
+				// A node label, not a paragraph. The whole design rests on this staying short: past about
+				// sixty characters a box stops being a box at 390px and the chart is a column of cards again.
+				expect(t(`rotation.entry.${entry.key}.test`).length, `${entry.key} test`).toBeLessThanOrEqual(64);
 				if (entry.gated) {
 					const key = `rotation.gate.${entry.key}`;
 					expect(t(key), key).not.toBe(key);
@@ -158,6 +165,34 @@ describe('reading the flow at a target count', () => {
 		expect(chipped(null)).toContain('spinningCraneKick');
 		// The Rune of Re-Origination has nothing to do with how many enemies there are.
 		expect(chipped(1)).toEqual(['tigereyeBrewRune', 'tigereyeBrewBank']);
+	});
+});
+
+describe('the index of crossovers', () => {
+	it('names a rung that exists, for every chip', () => {
+		// The chips are the contents page for the chart, and the failure they can hide is a chip naming a
+		// rung nobody renamed *it* alongside. Checked against the unfiltered flow, because that is the
+		// only reading in which all four are guaranteed to be drawable.
+		const all = new Set(flowKeys(rotationFlow({ band: null, pressed: nothing })));
+		for (const { copy, key } of CROSSOVERS) {
+			expect(all.has(key), `${copy} points at ${key}, which no rung has`).toBe(true);
+			const label = `rotation.crossover.${copy}`;
+			expect(t(label), label).not.toBe(label);
+		}
+	});
+
+	it('knows which of its chips the reading has taken off the page', () => {
+		// The bug this pairing exists to fix: read at three enemies, the `4+` chip named a rung entry 20
+		// only reaches at four, and a reader following it found nothing. The section marks a chip whose
+		// rung is not drawn; this asserts the two answers it has to tell apart.
+		const drawnAt = (band: 1 | 3) => new Set(flowKeys(rotationFlow({ band, pressed: nothing })));
+		const multi = drawnAt(3);
+		expect(multi.has('craneOverKick')).toBe(false);
+		expect(multi.has('spinningCraneKick')).toBe(true);
+		expect(multi.has('rushingJadeWindMulti')).toBe(true);
+		// At one enemy the pack has changed nothing yet, so all four chips are outside the reading.
+		const single = drawnAt(1);
+		for (const { key } of CROSSOVERS) expect(single.has(key), `${key} at one target`).toBe(false);
 	});
 });
 
