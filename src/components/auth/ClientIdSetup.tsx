@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import { useRedirectUri } from '~/hooks/useRedirectUri';
 import { WCL_CLIENTS_URL, looksLikeClientID, useSession } from '~/lib/auth';
 
-import { CopyField } from '../primitives';
-import { buttonClass, fieldClass, labelClass } from '../primitives/controls';
+import { CopyField, Field } from '../primitives';
+import { buttonClass, fieldClass } from '../primitives/controls';
 
 interface Values {
 	clientID: string;
@@ -32,7 +32,6 @@ export default function ClientIdSetup() {
 	const { clientID, saveClientID } = useSession();
 	const uri = useRedirectUri();
 	const inputID = useId();
-	const errorID = useId();
 	const {
 		register,
 		handleSubmit,
@@ -87,10 +86,7 @@ export default function ClientIdSetup() {
 			{/* Held to the same column as the steps. A full-card-width box for a 36-character UUID reads as
 			    a field expecting something much longer than what is being asked for. */}
 			<form onSubmit={submit} className="flex max-w-[64ch] flex-col gap-3 sm:flex-row sm:items-end">
-				<div className="flex flex-1 flex-col gap-2">
-					<label className={labelClass} htmlFor={inputID}>
-						Client ID
-					</label>
+				<Field id={inputID} label="Client ID" error={problem}>
 					<input
 						id={inputID}
 						type="text"
@@ -101,15 +97,10 @@ export default function ClientIdSetup() {
 						spellCheck={false}
 						enterKeyHint="go"
 						aria-invalid={problem !== undefined}
-						aria-describedby={problem === undefined ? undefined : errorID}
+						aria-describedby={problem === undefined ? undefined : `${inputID}-error`}
 						{...register('clientID', { validate: refuse })}
 					/>
-					{problem === undefined ? null : (
-						<p id={errorID} role="alert" className="m-0 text-base leading-relaxed text-miss">
-							{problem}
-						</p>
-					)}
-				</div>
+				</Field>
 				<button type="submit" className={`${buttonClass} w-full sm:w-auto`}>
 					Save client ID
 				</button>
@@ -128,7 +119,7 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
 	return (
 		<li className="flex flex-col gap-2">
 			<span className="flex gap-3">
-				<span aria-hidden="true" className="font-mono font-semibold text-brew tabular-nums">
+				<span aria-hidden="true" className="tabular font-mono font-semibold text-brew">
 					{n}.
 				</span>
 				<span>{children}</span>

@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 
 import { cleanToken, inspectToken, useSession } from '~/lib/auth';
 
-import { buttonClass, fieldClass, labelClass } from '../primitives/controls';
+import { Field } from '../primitives';
+import { buttonClass, fieldClass } from '../primitives/controls';
 
 interface Values {
 	token: string;
@@ -30,7 +31,6 @@ interface Values {
 export default function ManualTokenForm() {
 	const { signInWithToken } = useSession();
 	const inputID = useId();
-	const errorID = useId();
 	const {
 		register,
 		handleSubmit,
@@ -63,10 +63,7 @@ export default function ManualTokenForm() {
 				</p>
 
 				<form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-					<div className="flex flex-1 flex-col gap-2">
-						<label className={labelClass} htmlFor={inputID}>
-							Access token
-						</label>
+					<Field id={inputID} label="Access token" error={problem}>
 						<input
 							id={inputID}
 							type="password"
@@ -77,15 +74,10 @@ export default function ManualTokenForm() {
 							spellCheck={false}
 							enterKeyHint="go"
 							aria-invalid={problem !== undefined}
-							aria-describedby={problem === undefined ? undefined : errorID}
+							aria-describedby={problem === undefined ? undefined : `${inputID}-error`}
 							{...register('token', { validate: refuse })}
 						/>
-						{problem === undefined ? null : (
-							<p id={errorID} role="alert" className="m-0 text-base leading-relaxed text-miss">
-								{problem}
-							</p>
-						)}
-					</div>
+					</Field>
 					<button type="submit" className={`${buttonClass} w-full sm:w-auto`}>
 						Use this token
 					</button>

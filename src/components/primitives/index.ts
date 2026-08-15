@@ -22,10 +22,13 @@
 export { default as Bar } from './Bar';
 export type { BarTone } from './Bar';
 export { default as Callout } from './Callout';
+export { default as ChartFigure } from './ChartFigure';
 export { default as CopyField } from './CopyField';
 export { default as DataGrid } from './DataGrid';
+export { default as DialogShell } from './DialogShell';
 export type { GridColumn, GridRow } from './DataGrid';
 export { default as EnchantIcon } from './EnchantIcon';
+export { default as Field } from './Field';
 export { default as ItemIcon } from './ItemIcon';
 export { default as Note } from './Note';
 export { default as Pill } from './Pill';

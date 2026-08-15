@@ -7,6 +7,7 @@ import type { SettingsState } from '~/hooks/useSettings';
 import type { AnalysisSettings } from '~/lib/settings';
 import { SNAPSHOT_LEEWAY, TIGER_PALM_REFRESH, clampLeeway, clampRefreshWindow, isDefault } from '~/lib/settings';
 
+import { DialogShell } from '../primitives';
 import { buttonClass, fieldClass, labelClass, primaryButtonClass } from '../primitives/controls';
 
 interface Values {
@@ -55,105 +56,100 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 	});
 
 	return (
-		<Dialog.Root>
-			<Dialog.Trigger
-				className={`${buttonClass} shrink-0 px-3`}
-				// The gear alone is not a name; this is what a screen reader announces.
-				aria-label={t('settings.open')}
-				title={t('settings.open')}
-			>
-				<span aria-hidden="true" className="text-base leading-none">
-					&#9881;
-				</span>
-				<span className="sr-only sm:not-sr-only">{t('settings.short')}</span>
-			</Dialog.Trigger>
-			<Dialog.Portal>
-				<Dialog.Backdrop className="fixed inset-0 z-40 min-h-dvh bg-bg/80 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-				<Dialog.Popup className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-sm border border-line bg-surface p-5 text-ink transition-[scale,opacity] duration-150 data-ending-style:scale-[0.98] data-ending-style:opacity-0 data-starting-style:scale-[0.98] data-starting-style:opacity-0 sm:p-6">
-					<Dialog.Title className="m-0 font-mono text-lg font-semibold tracking-[-0.01em] text-ink">
-						{t('settings.title')}
-					</Dialog.Title>
-					<Dialog.Description className="m-0 leading-relaxed text-ink-2">{t('settings.intent')}</Dialog.Description>
+		<DialogShell
+			trigger={
+				<Dialog.Trigger
+					className={`${buttonClass} shrink-0 px-3`}
+					// The gear alone is not a name; this is what a screen reader announces.
+					aria-label={t('settings.open')}
+					title={t('settings.open')}
+				>
+					<span aria-hidden="true" className="text-base leading-none">
+						&#9881;
+					</span>
+					<span className="sr-only sm:not-sr-only">{t('settings.short')}</span>
+				</Dialog.Trigger>
+			}
+			title={t('settings.title')}
+			description={t('settings.intent')}
+		>
+			<form onSubmit={submit} className="flex flex-col gap-4">
+				<div className="flex flex-col gap-2">
+					<label className={labelClass} htmlFor={inputID}>
+						{t('settings.leeway.label')}
+					</label>
+					<div className="flex items-center gap-2">
+						<input
+							id={inputID}
+							type="number"
+							inputMode="numeric"
+							min={SNAPSHOT_LEEWAY.min}
+							max={SNAPSHOT_LEEWAY.max}
+							step={SNAPSHOT_LEEWAY.step}
+							aria-describedby={hintID}
+							className={`${fieldClass} max-w-[10rem]`}
+							{...register('snapshotLeewayMs')}
+						/>
+						<span className="font-mono text-sm text-muted">{t('settings.leeway.unit')}</span>
+					</div>
+					<p id={hintID} className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">
+						{t('settings.leeway.hint', {
+							min: SNAPSHOT_LEEWAY.min,
+							max: SNAPSHOT_LEEWAY.max,
+							default: SNAPSHOT_LEEWAY.default,
+						})}
+					</p>
+				</div>
 
-					<form onSubmit={submit} className="flex flex-col gap-4">
-						<div className="flex flex-col gap-2">
-							<label className={labelClass} htmlFor={inputID}>
-								{t('settings.leeway.label')}
-							</label>
-							<div className="flex items-center gap-2">
-								<input
-									id={inputID}
-									type="number"
-									inputMode="numeric"
-									min={SNAPSHOT_LEEWAY.min}
-									max={SNAPSHOT_LEEWAY.max}
-									step={SNAPSHOT_LEEWAY.step}
-									aria-describedby={hintID}
-									className={`${fieldClass} max-w-[10rem]`}
-									{...register('snapshotLeewayMs')}
-								/>
-								<span className="font-mono text-sm text-muted">{t('settings.leeway.unit')}</span>
-							</div>
-							<p id={hintID} className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">
-								{t('settings.leeway.hint', {
-									min: SNAPSHOT_LEEWAY.min,
-									max: SNAPSHOT_LEEWAY.max,
-									default: SNAPSHOT_LEEWAY.default,
-								})}
-							</p>
-						</div>
+				<div className="flex flex-col gap-2">
+					<label className={labelClass} htmlFor={refreshID}>
+						{t('settings.tigerPalm.label')}
+					</label>
+					<div className="flex items-center gap-2">
+						<input
+							id={refreshID}
+							type="number"
+							inputMode="numeric"
+							min={TIGER_PALM_REFRESH.min}
+							max={TIGER_PALM_REFRESH.max}
+							step={TIGER_PALM_REFRESH.step}
+							aria-describedby={refreshHintID}
+							className={`${fieldClass} max-w-[10rem]`}
+							{...register('tigerPalmRefreshMs')}
+						/>
+						<span className="font-mono text-sm text-muted">{t('settings.tigerPalm.unit')}</span>
+					</div>
+					<p id={refreshHintID} className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">
+						{t('settings.tigerPalm.hint', {
+							min: TIGER_PALM_REFRESH.min,
+							max: TIGER_PALM_REFRESH.max,
+							default: TIGER_PALM_REFRESH.default,
+						})}
+					</p>
+				</div>
 
-						<div className="flex flex-col gap-2">
-							<label className={labelClass} htmlFor={refreshID}>
-								{t('settings.tigerPalm.label')}
-							</label>
-							<div className="flex items-center gap-2">
-								<input
-									id={refreshID}
-									type="number"
-									inputMode="numeric"
-									min={TIGER_PALM_REFRESH.min}
-									max={TIGER_PALM_REFRESH.max}
-									step={TIGER_PALM_REFRESH.step}
-									aria-describedby={refreshHintID}
-									className={`${fieldClass} max-w-[10rem]`}
-									{...register('tigerPalmRefreshMs')}
-								/>
-								<span className="font-mono text-sm text-muted">{t('settings.tigerPalm.unit')}</span>
-							</div>
-							<p id={refreshHintID} className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">
-								{t('settings.tigerPalm.hint', {
-									min: TIGER_PALM_REFRESH.min,
-									max: TIGER_PALM_REFRESH.max,
-									default: TIGER_PALM_REFRESH.default,
-								})}
-							</p>
-						</div>
+				<p className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">{t('settings.storage')}</p>
 
-						<p className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">{t('settings.storage')}</p>
-
-						<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-							<button
-								type="button"
-								className={`${buttonClass} w-full sm:w-auto`}
-								onClick={() => {
-									reset();
-									resetForm({
-										snapshotLeewayMs: SNAPSHOT_LEEWAY.default,
-										tigerPalmRefreshMs: TIGER_PALM_REFRESH.default,
-									});
-								}}
-								disabled={isDefault(settings)}
-							>
-								{t('settings.reset')}
-							</button>
-							<Dialog.Close className={`${primaryButtonClass} w-full sm:w-auto`} onClick={() => submit()}>
-								{t('settings.save')}
-							</Dialog.Close>
-						</div>
-					</form>
-				</Dialog.Popup>
-			</Dialog.Portal>
-		</Dialog.Root>
+				<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+					<button
+						type="button"
+						className={`${buttonClass} w-full sm:w-auto`}
+						onClick={() => {
+							reset();
+							resetForm({
+								snapshotLeewayMs: SNAPSHOT_LEEWAY.default,
+								tigerPalmRefreshMs: TIGER_PALM_REFRESH.default,
+							});
+						}}
+						disabled={isDefault(settings)}
+					>
+						{t('settings.reset')}
+					</button>
+					<Dialog.Close className={`${primaryButtonClass} w-full sm:w-auto`} onClick={() => submit()}>
+						{t('settings.save')}
+					</Dialog.Close>
+				</div>
+			</form>
+		</DialogShell>
 	);
 }

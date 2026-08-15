@@ -175,7 +175,7 @@ function castsCell(c: CastRow, budget: TigerPalmBudget, activeMin: number) {
 	const optimal = optimalCpm(c, budget);
 	const tone = pairTone(achievedPct(c, budget));
 	return (
-		<span className="whitespace-nowrap tabular-nums">
+		<span className="tabular whitespace-nowrap">
 			<b className={`font-semibold ${tone.found}`}>{c.count}</b>
 			{optimal === null ? null : <span className={tone.target}> / {Math.round(optimal * activeMin)}</span>}
 		</span>
@@ -193,7 +193,7 @@ function rateCell(c: CastRow, budget: TigerPalmBudget) {
 	const optimal = optimalCpm(c, budget);
 	const tone = pairTone(achievedPct(c, budget));
 	return (
-		<span className="whitespace-nowrap tabular-nums">
+		<span className="tabular whitespace-nowrap">
 			<b className={`font-semibold ${tone.found}`}>{formatDecimal(c.cpm)}</b>
 			{optimal === null ? null : <span className={tone.target}> / {formatDecimal(optimal)}</span>}
 		</span>
@@ -218,7 +218,7 @@ function barCell(c: CastRow, budget: TigerPalmBudget, t: ReportCopy['t']) {
 			<span className="min-w-0 flex-1">
 				<Bar pct={Math.min(achieved, 100)} tone={rateTone(achieved)} />
 			</span>
-			<span className="shrink-0 font-mono text-sm tabular-nums text-muted">{Math.round(achieved)}%</span>
+			<span className="tabular shrink-0 font-mono text-sm text-muted">{Math.round(achieved)}%</span>
 		</span>
 	);
 }

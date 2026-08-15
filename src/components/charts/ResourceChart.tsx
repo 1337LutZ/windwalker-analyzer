@@ -1,5 +1,6 @@
 import type { ResourceCurve } from '~/lib/types';
 
+import { ChartFigure } from '../primitives';
 import ChartKey from './ChartKey';
 import ResourceTrack, { type ShadeWindow } from './ResourceTrack';
 import ScrollableTrack from './ScrollableTrack';
@@ -77,7 +78,21 @@ export default function ResourceChart({
 	wastedLegend?: string;
 }) {
 	return (
-		<figure className="m-0 flex flex-col gap-2">
+		<ChartFigure
+			caption={
+				<>
+					<ChartKey tone={tone}>{legend}</ChartKey>
+					{bands.map((band) => (
+						<ChartKey key={band.tone} tone={band.tone} band>
+							{band.legend}
+						</ChartKey>
+					))}
+					{wastedLegend === undefined || (curve.wasted ?? []).length === 0 ? null : (
+						<ChartKey tone="miss">{wastedLegend}</ChartKey>
+					)}
+				</>
+			}
+		>
 			<ScrollableTrack durationMs={durationMs}>
 				<ResourceTrack
 					curve={curve}
@@ -101,17 +116,6 @@ export default function ResourceChart({
 					label={label}
 				/>
 			</ScrollableTrack>
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone={tone}>{legend}</ChartKey>
-				{bands.map((band) => (
-					<ChartKey key={band.tone} tone={band.tone} band>
-						{band.legend}
-					</ChartKey>
-				))}
-				{wastedLegend === undefined || (curve.wasted ?? []).length === 0 ? null : (
-					<ChartKey tone="miss">{wastedLegend}</ChartKey>
-				)}
-			</figcaption>
-		</figure>
+		</ChartFigure>
 	);
 }

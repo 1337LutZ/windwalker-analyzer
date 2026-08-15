@@ -38,7 +38,14 @@ export const labelClass = 'block font-mono text-sm font-medium tracking-[0.1em] 
  * One option in a pick-one list. A list of these beats a `<select>` here because the choice carries
  * two lines of context — kill or wipe, how long, which class — that a native option row cannot show.
  */
+const selectionPalette = (selected: boolean): string =>
+	selected ? 'border-kick bg-raised text-ink' : 'border-line bg-bg text-ink-2 hover:border-muted hover:bg-raised';
+
 export const choiceClass = (selected: boolean): string =>
-	`flex min-h-11 w-full cursor-pointer flex-col items-start justify-center gap-0.5 rounded-sm border px-3 py-2 text-left transition-colors ${
-		selected ? 'border-kick bg-raised text-ink' : 'border-line bg-bg text-ink-2 hover:border-muted hover:bg-raised'
-	}`;
+	`flex min-h-11 w-full cursor-pointer flex-col items-start justify-center gap-0.5 rounded-sm border px-3 py-2 text-left transition-colors ${selectionPalette(selected)}`;
+
+export const compactChoiceClass = (selected: boolean): string =>
+	`min-h-11 flex-1 cursor-pointer rounded-sm border px-3 py-2 font-mono text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${selectionPalette(selected)}`;
+
+export const singleLineChoiceClass = (selected: boolean): string =>
+	`flex min-h-11 w-full cursor-pointer items-center rounded-sm border px-3 py-2 text-left font-mono text-base font-medium transition-colors ${selectionPalette(selected)}`;

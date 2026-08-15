@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { buttonClass } from './controls';
+
 /**
  * A value the reader has to reproduce somewhere else, exactly.
  *
@@ -40,11 +42,7 @@ export default function CopyField({ label, value }: { label: string; value: stri
 				<code className="flex flex-1 items-center rounded-sm border border-line bg-bg px-3 py-2 font-mono text-base break-all text-ink">
 					{value}
 				</code>
-				<button
-					type="button"
-					onClick={copy}
-					className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-sm border border-line bg-raised px-4 py-2 font-mono text-sm font-semibold tracking-[0.1em] text-ink uppercase transition-colors hover:bg-line"
-				>
+				<button type="button" onClick={copy} className={`${buttonClass} shrink-0`}>
 					{copied ? 'Copied' : 'Copy'}
 				</button>
 			</div>

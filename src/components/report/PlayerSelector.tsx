@@ -1,5 +1,8 @@
 import type { FightPlayer } from '~/lib/wcl';
 
+import { Prose } from '../primitives';
+import { singleLineChoiceClass } from '../primitives/controls';
+
 interface Props {
 	/** Already narrowed to the Windwalkers in this pull. */
 	players: FightPlayer[];
@@ -19,19 +22,19 @@ interface Props {
 export default function PlayerSelector({ players, value, onChange, fightName }: Props) {
 	if (players.length === 0) {
 		return (
-			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
+			<Prose>
 				No Windwalker monk was in {fightName}. Pick another pull above — this reads one spec, and there is nothing in
 				this fight for it to read.
-			</p>
+			</Prose>
 		);
 	}
 
 	if (players.length === 1) {
 		return (
-			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
+			<Prose>
 				<span className="font-mono font-semibold text-ink">{players[0]!.name}</span> was the only Windwalker in{' '}
 				{fightName}.
-			</p>
+			</Prose>
 		);
 	}
 
@@ -48,9 +51,7 @@ export default function PlayerSelector({ players, value, onChange, fightName }: 
 							type="button"
 							aria-pressed={selected}
 							onClick={() => onChange(player.name)}
-							className={`flex min-h-11 w-full items-center rounded-sm border px-3 py-2 text-left font-mono text-base font-medium transition-colors ${
-								selected ? 'border-kick bg-raised text-ink' : 'border-line bg-bg text-ink-2 hover:bg-raised'
-							}`}
+							className={singleLineChoiceClass(selected)}
 						>
 							<span className="w-full truncate">{player.name}</span>
 						</button>

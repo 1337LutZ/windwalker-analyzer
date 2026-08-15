@@ -5,6 +5,7 @@ import { useSession } from '~/lib/auth';
 
 import SignInPanel from './auth/SignInPanel';
 import { Step } from './primitives';
+import { pageShellClass } from './primitives/pageShell';
 import ReportFlow from './report/ReportFlow';
 
 /**
@@ -21,7 +22,7 @@ export default function Analyzer() {
 	const { t } = useTranslation('ui');
 
 	return (
-		<main className="mx-auto flex w-full max-w-[1280px] flex-col gap-4 px-4 pt-8 pb-16 sm:gap-5 sm:px-6 sm:pt-10 md:px-8 md:pt-12 md:pb-20 2xl:max-w-[1440px]">
+		<main className={pageShellClass}>
 			<header className="mb-2 flex flex-col gap-3">
 				<p className="m-0 font-mono text-sm font-medium tracking-[0.16em] uppercase text-muted">{t('app.eyebrow')}</p>
 				<h1 className="m-0 font-mono text-[26px] leading-[1.05] font-semibold tracking-[-0.02em] text-balance text-ink sm:text-[32px] md:text-[38px]">

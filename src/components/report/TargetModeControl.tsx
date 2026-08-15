@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { TargetSummary } from '~/lib/types';
 import { TARGET_MODE_CHOICES, resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 
-import { labelClass } from '../primitives/controls';
+import { compactChoiceClass, labelClass } from '../primitives/controls';
 import { Note } from '../primitives';
 
 /**
@@ -39,11 +39,6 @@ const LABEL: Record<TargetModeChoice, string> = {
  * One of the three, sharing the picker's palette without sharing `choiceClass` — that one stacks two
  * lines and fills its row, which is a list of pulls rather than a three-way switch.
  */
-const optionClass = (selected: boolean): string =>
-	`min-h-11 flex-1 rounded-sm border px-3 py-2 font-mono text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${
-		selected ? 'border-kick bg-raised text-ink' : 'border-line bg-bg text-ink-2 hover:border-muted hover:bg-raised'
-	}`;
-
 export default function TargetModeControl({ targets, value, onChange }: Props) {
 	const { t } = useTranslation('report');
 	const { detected, overridden } = resolveTargetMode(targets?.detected, value);
@@ -58,7 +53,7 @@ export default function TargetModeControl({ targets, value, onChange }: Props) {
 						type="button"
 						role="radio"
 						aria-checked={choice === value}
-						className={optionClass(choice === value)}
+						className={compactChoiceClass(choice === value)}
 						onClick={() => onChange(choice)}
 					>
 						{t(LABEL[choice])}

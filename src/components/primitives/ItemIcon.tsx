@@ -126,7 +126,7 @@ export default function ItemIcon({
 			    `pointer-events-none` so it does not punch a hole in the item's own hover target. */}
 			{itemLevel === null ? null : (
 				<span
-					className={`pointer-events-none absolute top-0 left-0 z-10 rounded-br-[3px] bg-bg/85 px-1 font-mono ${scale.text} leading-tight font-semibold text-ink tabular-nums`}
+					className={`pointer-events-none absolute top-0 left-0 z-10 rounded-br-[3px] bg-bg/85 px-1 font-mono ${scale.text} leading-tight font-semibold text-ink tabular`}
 				>
 					{itemLevel}
 				</span>

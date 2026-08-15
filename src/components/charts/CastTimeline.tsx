@@ -1634,7 +1634,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 											{t(`castLog.resource.${key}`)}
 										</a>
 									)}
-									<span className="font-mono text-xs text-muted tabular-nums">{resources[key].max}</span>
+									<span className="tabular font-mono text-xs text-muted">{resources[key].max}</span>
 								</div>
 							))}
 					{brewBank === null ? null : (
@@ -1646,7 +1646,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							>
 								{t('castLog.resource.brew')}
 							</a>
-							<span className="font-mono text-xs text-muted tabular-nums">{brewBank.max}</span>
+							<span className="tabular font-mono text-xs text-muted">{brewBank.max}</span>
 						</div>
 					)}
 					{/* The player's own rows, in the five runs the two seams cut them into: the damage down to

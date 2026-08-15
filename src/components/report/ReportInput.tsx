@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { buttonClass, fieldClass, labelClass } from '../primitives/controls';
+import { Field } from '../primitives';
+import { buttonClass, fieldClass } from '../primitives/controls';
 import { parseReportInput, type ResolvedReportInput } from './parseReportInput';
 
 interface Values {
@@ -31,7 +32,6 @@ const REFUSAL =
  */
 export default function ReportInput({ busy, onSubmit, onDiverge }: Props) {
 	const inputID = useId();
-	const errorID = useId();
 	const {
 		register,
 		handleSubmit,
@@ -68,10 +68,7 @@ export default function ReportInput({ busy, onSubmit, onDiverge }: Props) {
 
 	return (
 		<form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-			<div className="flex flex-1 flex-col gap-2">
-				<label className={labelClass} htmlFor={inputID}>
-					Report code or URL
-				</label>
+			<Field id={inputID} label="Report code or URL" error={problem}>
 				<input
 					id={inputID}
 					type="text"
@@ -83,17 +80,12 @@ export default function ReportInput({ busy, onSubmit, onDiverge }: Props) {
 					autoCapitalize="off"
 					spellCheck={false}
 					aria-invalid={problem !== undefined}
-					aria-describedby={problem === undefined ? undefined : errorID}
+					aria-describedby={problem === undefined ? undefined : `${inputID}-error`}
 					{...register('report', {
 						validate: (value) => parseReportInput(value).code !== null || REFUSAL,
 					})}
 				/>
-				{problem === undefined ? null : (
-					<p id={errorID} role="alert" className="m-0 text-base leading-relaxed text-miss">
-						{problem}
-					</p>
-				)}
-			</div>
+			</Field>
 			<button type="submit" className={`${buttonClass} w-full sm:w-auto`} disabled={busy}>
 				{busy ? 'Loading…' : 'Load fights'}
 			</button>

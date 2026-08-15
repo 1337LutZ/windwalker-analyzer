@@ -7,6 +7,7 @@ import { DROP_MS } from '~/lib/spec/windwalker';
 import type { Analysis } from '~/lib/types';
 
 import { fmt, sec } from '../format';
+import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
@@ -217,7 +218,18 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 	// pull the first two are the two tiles above, which is the claim the caption makes.
 	const context = tracks.scoped ? undefined : 'primary';
 	return (
-		<figure className="m-0 flex flex-col gap-3.5">
+		<ChartFigure
+			gap="wide"
+			caption={
+				<>
+					<span className="flex flex-wrap gap-x-4 gap-y-2">
+						<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
+						<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
+					</span>
+					<span>{t('debuff.chartCaption', { context, target })}</span>
+				</>
+			}
+		>
 			<ApexChart
 				build={build}
 				height={3 * ROW_HEIGHT + CHROME}
@@ -230,14 +242,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 					drops: tracks.down.length,
 				})}
 			/>
-			<figcaption className="flex flex-col gap-2 text-sm text-muted">
-				<span className="flex flex-wrap gap-x-4 gap-y-2">
-					<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
-					<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
-				</span>
-				<span>{t('debuff.chartCaption', { context, target })}</span>
-			</figcaption>
-		</figure>
+		</ChartFigure>
 	);
 }
 

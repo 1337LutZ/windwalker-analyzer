@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Analysis, ResourceCurve } from '~/lib/types';
+import type { Analysis } from '~/lib/types';
 
 import ResourceChart from './ResourceChart';
+import { resourceCurveFromPoints } from './resourceCurve';
 
 /**
  * Chi Brew's charge counter over the pull, with every stretch at two of two picked out.
@@ -24,11 +25,9 @@ export default function ChiBrewTrack({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	const brew = analysis.chiBrew;
 
-	const curve = useMemo<ResourceCurve | null>(
+	const curve = useMemo(
 		() =>
-			brew === undefined || brew.charges.length === 0
-				? null
-				: { max: brew.maxCharges, points: brew.charges.map(([at, n]): [number, number] => [at, n]) },
+			brew === undefined || brew.charges.length === 0 ? null : resourceCurveFromPoints(brew.charges, brew.maxCharges),
 		[brew],
 	);
 

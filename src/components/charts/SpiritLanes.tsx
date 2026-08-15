@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { SefTargetLane } from '~/lib/types';
 
 import { fmt, sec } from '../format';
+import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
@@ -129,7 +130,17 @@ export default function SpiritLanes({
 	if (targets.length === 0) return <ChartEmpty>{t('sef.lanes.empty')}</ChartEmpty>;
 
 	return (
-		<figure className="m-0 flex flex-col gap-3.5">
+		<ChartFigure
+			gap="wide"
+			caption={
+				<>
+					<span className="flex flex-wrap gap-x-4 gap-y-2">
+						<ChartKey tone="brew">{t('sef.lanes.key')}</ChartKey>
+					</span>
+					<span>{t('sef.lanes.caption')}</span>
+				</>
+			}
+		>
 			<ApexChart
 				build={build}
 				height={targets.length * ROW_HEIGHT + CHROME}
@@ -137,12 +148,6 @@ export default function SpiritLanes({
 				// `chartLabel_one`/`_other` variants that have no reason to exist.
 				label={t('sef.lanes.chartLabel', { lanes: targets.length })}
 			/>
-			<figcaption className="flex flex-col gap-2 text-sm text-muted">
-				<span className="flex flex-wrap gap-x-4 gap-y-2">
-					<ChartKey tone="brew">{t('sef.lanes.key')}</ChartKey>
-				</span>
-				<span>{t('sef.lanes.caption')}</span>
-			</figcaption>
-		</figure>
+		</ChartFigure>
 	);
 }

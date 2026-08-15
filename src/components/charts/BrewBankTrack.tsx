@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TEB_CAP } from '~/lib/spec/windwalker';
-import type { Analysis, ResourceCurve } from '~/lib/types';
+import type { Analysis } from '~/lib/types';
 
 import ResourceChart from './ResourceChart';
 import type { ShadeWindow } from './ResourceTrack';
 import { cappedOf } from './capped';
+import { resourceCurveFromPoints } from './resourceCurve';
 
 /**
  * The Tigereye Brew bank across the pull, with every brew marked by what it spent.
@@ -29,13 +30,7 @@ export default function BrewBankTrack({ analysis }: { analysis: Analysis }) {
 
 	// `TEB_CAP` rather than the pull's observed peak: a bank that never reached twenty still had twenty
 	// to reach, and scaling to the peak would draw a half-full bank as a full one.
-	const curve = useMemo<ResourceCurve | null>(
-		() =>
-			brew.bankTimeline.length === 0
-				? null
-				: { max: TEB_CAP, points: brew.bankTimeline.map(([at, n]): [number, number] => [at, n]) },
-		[brew.bankTimeline],
-	);
+	const curve = useMemo(() => resourceCurveFromPoints(brew.bankTimeline, TEB_CAP), [brew.bankTimeline]);
 
 	/**
 	 * One shade per brew, carrying its stack count as the note drawn inside it.
