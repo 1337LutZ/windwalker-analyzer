@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger } from '~/lib/format';
+import { wasteTone } from '~/lib/score/waste';
 import type { Analysis } from '~/lib/types';
 
 import ResourceChart from '../charts/ResourceChart';
@@ -71,10 +72,22 @@ export default function Chi({ analysis }: { analysis: Analysis }) {
 			<Prose>{t('chi.intent')}</Prose>
 
 			<div className="mt-4.5">
+				{/* Three views of one accounting, worst first. The press count and the bar's ceiling were here
+				    before and are gone: the ceiling is drawn on the chart below, and how *many* presses
+				    overflowed matters far less than how much chi they threw away — two presses losing one
+				    each is a smaller fault than one press losing two. */}
 				<StatTiles>
-					<StatTile value={formatInteger(total)} label={t('chi.kpi.wasted')} />
-					<StatTile value={formatInteger(overflow.length)} label={t('chi.kpi.moments')} />
-					<StatTile value={formatInteger(chi.max)} label={t('chi.kpi.cap')} />
+					{/* Waste leads, and carries the only colour on the row. `gained` excludes the overflow by
+					    construction — the walk clamps each gain at the ceiling — so the share is measured
+					    against everything the pull generated, overflow included, which is the denominator a
+					    reader means by "how much did I throw away". */}
+					<StatTile
+						value={formatInteger(total)}
+						label={t('chi.kpi.wasted')}
+						grade={wasteTone(total, (chi.gained ?? 0) + total)}
+					/>
+					<StatTile value={formatInteger(chi.spent ?? 0)} label={t('chi.kpi.spent')} />
+					<StatTile value={formatInteger(chi.gained ?? 0)} label={t('chi.kpi.gained')} />
 				</StatTiles>
 			</div>
 

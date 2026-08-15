@@ -571,9 +571,16 @@ describe('CastTimeline, intermissions and deaths', () => {
 
 	/** Nothing to shade on a pull that never lost contact, and no sentence about shading either. */
 	it('shades nothing on a pull with no intermission', () => {
+		// Both segment lists, because the chart reads the wider one. `engagedSegments` is scoped to the
+		// primary target and its complement is "you were not on the boss" — which on an add fight is
+		// most of the pull and is not downtime, so the shading follows `contactSegments` instead.
 		const unbroken: Analysis = {
 			...drawn,
-			debuff: { ...captured.debuff, engagedSegments: [[0, captured.durationMs]] },
+			debuff: {
+				...captured.debuff,
+				engagedSegments: [[0, captured.durationMs]],
+				contactSegments: [[0, captured.durationMs]],
+			},
 		};
 		const html = render(unbroken);
 		expect(html).not.toContain(`data-tip="${t('castLog.intermission.title')}"`);

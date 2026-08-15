@@ -20,6 +20,7 @@ export { default as ReportHeader } from './ReportHeader';
 export { default as Rotation } from './Rotation';
 export { default as SnapshotTable } from './SnapshotTable';
 export { default as SpecRefusal } from './SpecRefusal';
+export { default as StormEarthAndFire } from './StormEarthAndFire';
 export { default as Takeaways } from './Takeaways';
 export { default as TigerPalm } from './TigerPalm';
 export { default as TouchOfKarma } from './TouchOfKarma';

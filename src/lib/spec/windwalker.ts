@@ -1958,9 +1958,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * Every press, with the enemy it was aimed at.
 	 *
 	 * The cast event carries a `targetID` and that target is the assignment — confirmed against the
-	 * spirits' own swings on the Galakras pull, where each cast is followed 1.5–2.5s later by a pet
-	 * actor beginning to hit exactly that enemy, which is the sim's 2–2.3s spawn delay. Read from the
-	 * raw events rather than from `castTimes`, which carries the clock and not the target.
+	 * spirits' own swings on the Galakras pull, where every cast is followed between one and two and a
+	 * half seconds later by a pet actor beginning to hit exactly that enemy, which is the sim's 2–2.3s
+	 * spawn delay plus a swing timer. Read from the raw events rather than from `castTimes`, which
+	 * carries the clock and not the target.
 	 *
 	 * A press aimed at an enemy that already has a spirit *recalls* it rather than sending a second —
 	 * the sim's `PickClone` deactivates it — so a press is not always an arrival. Nothing here claims
@@ -2733,7 +2734,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 						energy: curveOf(energySamples),
 						// The chi curve carries its overflow with it: the amount on the bar cannot show what
 						// went past the top of it, so the chart would otherwise have to guess.
-						chi: { ...curveOf(chiSamples), wasted: chiOverflow },
+						chi: { ...curveOf(chiSamples), wasted: chiOverflow, gained: chiWalk.gained, spent: chiWalk.spent },
 					},
 				}),
 		apl,

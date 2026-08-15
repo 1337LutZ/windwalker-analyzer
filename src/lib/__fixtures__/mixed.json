@@ -3818,7 +3818,9 @@
       {
         "t": 72981,
         "abilityId": 144459,
-        "ability": "#144459"
+        "ability": "#144459",
+        "until": 75122,
+        "resurrected": true
       }
     ]
   },
@@ -4522,6 +4524,10 @@
       [1212, 147738],
       [186768, 279308]
     ],
+    "contactSegments": [
+      [1212, 147738],
+      [186768, 279308]
+    ],
     "primaryDamageShare": 100,
     "singleTarget": true
   },
@@ -4790,6 +4796,24 @@
         "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3561685&end=3567685"
       }
     ]
+  },
+  "sef": {
+    "casts": 0,
+    "uses": [],
+    "windows": [],
+    "uptimeMs": 0,
+    "uptimePct": 0,
+    "clones": 0,
+    "cloneDamage": 0,
+    "cloneSharePct": 0,
+    "overlapMs": null,
+    "measuredMs": 0,
+    "overlapPct": null,
+    "overlaps": [],
+    "secondTargetMs": 10000,
+    "justified": false,
+    "justifiedMs": 0,
+    "longestSecondTargetMs": 6205
   },
   "karma": {
     "casts": 3,
@@ -6325,7 +6349,9 @@
           "t": 81558,
           "wasted": 1
         }
-      ]
+      ],
+      "gained": 160,
+      "spent": 163
     }
   },
   "apl": {

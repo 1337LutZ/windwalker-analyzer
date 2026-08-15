@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useMemo, useState, type ComponentType } from 'react';
 
 import type { Analysis } from '~/lib/types';
 
@@ -27,6 +27,7 @@ import {
 	Rotation,
 	SnapshotTable,
 	SpecRefusal,
+	StormEarthAndFire,
 	Takeaways,
 	TigerPalm,
 	TouchOfKarma,
@@ -46,8 +47,17 @@ import {
  * The header and the KPI tiles are not in it. Neither is a `Section` — they have no heading to
  * address and no id to jump to — and a contents list whose first entry is the thing already on
  * screen is a wasted line.
+ *
+ * `when` is what lets a section decline to appear on a pull it has nothing to say about, and it has
+ * to live here rather than inside the section: the nav is built from this same list, so a component
+ * that quietly returned null would leave a link pointing at a heading that was never rendered.
+ * Omitting it means "always", which is what every section but one wants — a section with a real
+ * verdict has to say so even when the verdict is that nothing happened.
  */
-const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis }> })[] = [
+const SECTIONS: (ReportSection & {
+	Component: ComponentType<{ analysis: Analysis }>;
+	when?: (analysis: Analysis) => boolean;
+})[] = [
 	// First after the summary, because it is the pull itself: every press, every buff, one clock. A
 	// reader who has just been handed a verdict wants to see what actually happened before they are
 	// shown any argument about it, and every section below this one is an argument about some slice of
@@ -93,6 +103,17 @@ const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis
 	// from an unconditional autocast, so it follows the sections that do grade placement rather than
 	// sitting among them.
 	{ id: 'xuen', titleKey: 'xuen.title', Component: Xuen },
+	// Beside the other summon, and the only section in the list that can decline to appear. Storm,
+	// Earth and Fire is a multi-target button: on a single-target pull it is correct never to press it,
+	// so a heading saying "not pressed, and rightly" on every Garrosh kill would be a line of noise on
+	// most reports. It renders when the spirits went out, and when they did not but the pull held a
+	// second enemy long enough that they should have.
+	{
+		id: 'sef',
+		titleKey: 'sef.title',
+		Component: StormEarthAndFire,
+		when: (analysis) => Boolean(analysis.sef && (analysis.sef.casts > 0 || analysis.sef.justified)),
+	},
 	// The defensive, and so the last button: it is the only one here that is not trying to do damage.
 	{ id: 'karma', titleKey: 'karma.title', Component: TouchOfKarma },
 	{ id: 'damage', titleKey: 'damage.title', Component: DamageByAbility },
@@ -117,14 +138,13 @@ const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis
 ];
 
 /**
- * The contents list, which is the sections plus the summary at the top of the report.
+ * The summary entry, which is nav-only.
  *
- * The summary is nav-only: it has no `Component` because it is not a `Section` — it is the header
- * and the tiles, which have no heading of their own and are rendered directly below. It still needs
- * to be reachable, though; landing back at the top of a long report is exactly what a contents list
- * is for.
+ * It has no `Component` because it is not a `Section` — it is the header and the tiles, which have no
+ * heading of their own and are rendered directly below. It still needs to be reachable, though;
+ * landing back at the top of a long report is exactly what a contents list is for.
  */
-const NAV: ReportSection[] = [{ id: 'summary', titleKey: 'summary.title' }, ...SECTIONS];
+const SUMMARY_NAV: ReportSection = { id: 'summary', titleKey: 'summary.title' };
 
 /**
  * The report: headline figures, then the sections above, with a contents list beside them from `lg`
@@ -146,12 +166,18 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 	// above it rather than the hook below.
 	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
 	const { mode } = resolveTargetMode(analysis.targets?.detected, targetChoice);
+	// The sections this pull actually renders, and the list the nav is built from — one array, so a
+	// section that declines to appear cannot leave a link behind pointing at a heading that is not
+	// there. Memoised because `SectionNav` observes whatever it is handed and rebuilds its observer
+	// whenever the array's identity changes, which a fresh `filter` per render would do every time.
+	const sections = useMemo(() => SECTIONS.filter(({ when }) => when === undefined || when(analysis)), [analysis]);
+	const nav = useMemo<ReportSection[]>(() => [SUMMARY_NAV, ...sections], [sections]);
 
 	if (!analysis.isSpec) return <SpecRefusal analysis={analysis} />;
 
 	return (
 		<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
-			<SectionNav sections={NAV} />
+			<SectionNav sections={nav} />
 			<article className="flex flex-col gap-10 md:gap-12">
 				{/* A section so the nav's observer can find it the same way it finds every other one:
 				    by the id on its heading, then the section around it. Labelled by that heading rather
@@ -166,7 +192,7 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 					    target or several decides what the priority section is willing to judge. */}
 					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
 				</section>
-				{SECTIONS.map(({ id, Component }) =>
+				{sections.map(({ id, Component }) =>
 					// The priority section reads the reader's choice rather than only the detection, threaded as
 					// a prop rather than through context: one consumer does not justify putting every section
 					// behind a provider. Kept wired for the day the section renders again.

@@ -71,7 +71,15 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-4.5">
 				<StatTiles>
-					<StatTile value={formatInteger(brew.casts)} label={t('chiBrew.kpi.uses')} />
+					{/* `pressed / possible`, the same shape the cast table uses, because a count of presses
+					    cannot be read as good or bad without the ceiling beside it — seven is most of a short
+					    pull and a third of a long one. The ceiling goes in `suffix`, which the tile already
+					    draws smaller and muted, so the number a reader is judging stays the loud one. */}
+					<StatTile
+						value={formatInteger(brew.casts)}
+						suffix={` / ${formatInteger(brew.possibleUses)}`}
+						label={t('chiBrew.kpi.uses')}
+					/>
 					<StatTile value={formatInteger(netChi)} label={t('chiBrew.kpi.chi')} />
 					<StatTile value={formatSeconds(brew.cappedMs)} label={t('chiBrew.kpi.capped')} />
 					{/* Only once there is idle time to price. A tile reading "0 chi" on a pull that never let a

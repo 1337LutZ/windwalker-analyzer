@@ -4776,6 +4776,7 @@
       }
     ],
     "engagedSegments": [[2213, 255034]],
+    "contactSegments": [[2213, 255034]],
     "primaryDamageShare": 96.29910033330938,
     "singleTarget": true
   },
@@ -5072,6 +5073,24 @@
         "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=30&type=damage-done&view=events&source=10&start=6966708&end=6972708"
       }
     ]
+  },
+  "sef": {
+    "casts": 0,
+    "uses": [],
+    "windows": [],
+    "uptimeMs": 0,
+    "uptimePct": 0,
+    "clones": 0,
+    "cloneDamage": 0,
+    "cloneSharePct": 0,
+    "overlapMs": null,
+    "measuredMs": 0,
+    "overlapPct": null,
+    "overlaps": [],
+    "secondTargetMs": 10000,
+    "justified": false,
+    "justifiedMs": 0,
+    "longestSecondTargetMs": 8694
   },
   "karma": {
     "casts": 3,
@@ -6483,7 +6502,9 @@
           "t": 221817,
           "wasted": 1
         }
-      ]
+      ],
+      "gained": 168,
+      "spent": 170
     }
   },
   "apl": {

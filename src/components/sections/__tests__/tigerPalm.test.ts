@@ -56,11 +56,13 @@ describe('Tiger Palm summary cards', () => {
 		// seconds into a fight.
 		// Shares are printed to two decimals: at one, 9 of 41 and 2 of 41 rounded to `22%` and `4.9%`,
 		// and figures a hair apart elsewhere in the report printed identical.
+		// Worst first: the wasted presses are the only outcome a reader can act on, so they lead rather
+		// than sitting behind three numbers that were fine.
 		expect(cards).toEqual([
-			{ edge: 'border-rune', count: '9', share: '21.95%', label: t('tigerPalm.key.proc') },
+			{ edge: 'border-miss', count: '30', share: '73.17%', label: t('tigerPalm.key.wasted') },
 			{ edge: 'border-kick', count: '2', share: '4.88%', label: t('tigerPalm.key.apply') },
 			{ edge: 'border-kick', count: '0', share: '0%', label: t('tigerPalm.key.refresh') },
-			{ edge: 'border-miss', count: '30', share: '73.17%', label: t('tigerPalm.key.wasted') },
+			{ edge: 'border-rune', count: '9', share: '21.95%', label: t('tigerPalm.key.proc') },
 		]);
 	});
 

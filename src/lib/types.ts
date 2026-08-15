@@ -794,6 +794,13 @@ export interface ResourceCurve {
 	 * a press behind it.
 	 */
 	wasted?: Array<{ t: number; wasted: number }>;
+	/**
+	 * What the bar took in and paid out over the pull. Chi's only, and both counted by the same
+	 * forward walk that reconstructs the curve — gains clamped at the ceiling so that gained, spent and
+	 * wasted are three views of one accounting rather than three numbers that need not add up.
+	 */
+	gained?: number;
+	spent?: number;
 }
 
 export interface FillerAudit {

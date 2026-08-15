@@ -364,7 +364,17 @@ export function chiAtCasts(
 	actorID: number,
 	t0: number,
 	gainOf: (abilityID: number) => number | undefined,
-): { points: Array<[number, number]>; max: number; readings: number; predicted: number; exact: number } {
+): {
+	points: Array<[number, number]>;
+	max: number;
+	readings: number;
+	predicted: number;
+	exact: number;
+	/** Every point the bar took in, capped at the ceiling — what the pull actually generated. */
+	gained: number;
+	/** Every point paid out to a button, read off the spenders' own `cost`. */
+	spent: number;
+} {
 	const points: Array<[number, number]> = [];
 	let chi: number | null = null;
 	let max = 0;
@@ -373,6 +383,8 @@ export function chiAtCasts(
 	let predicted = 0;
 	let exact = 0;
 	let readings = 0;
+	let gained = 0;
+	let spent = 0;
 
 	for (const e of events) {
 		const side = resourceActorOf(e);
@@ -382,8 +394,14 @@ export function chiAtCasts(
 		// A gain the log states outright — Chi Brew, Power Strikes. Applied whole; the bar's own ceiling
 		// clamps it, and `waste` on the event is what the overflow audit reads.
 		if (isResourceChange(e) && e.resourceChangeType === POWER_TYPE.chi) {
-			const gained = e.resourceChange ?? 0;
-			if (chi !== null && gained > 0) chi = Math.min(max, chi + gained);
+			const amount = e.resourceChange ?? 0;
+			if (chi !== null && amount > 0) {
+				// What fitted, not what was offered: the ceiling is the point of the overflow audit, and
+				// counting the whole return here would make gained and spent disagree by the waste.
+				const room = Math.min(max - chi, amount);
+				gained += Math.max(0, room);
+				chi = Math.min(max, chi + amount);
+			}
 			continue;
 		}
 
@@ -407,11 +425,19 @@ export function chiAtCasts(
 
 		// The spend, applied after the reading it was measured before. Known only from the reading, which
 		// is fine: a press that pays chi is exactly the press that carries one.
-		if (bar !== undefined && chi !== null) chi = Math.max(0, chi - (bar.cost ?? 0));
+		if (bar !== undefined && chi !== null) {
+			// Clamped to what was on the bar, so a reading that disagrees with the walk cannot push the
+			// total past what the player could possibly have paid.
+			spent += Math.min(chi, bar.cost ?? 0);
+			chi = Math.max(0, chi - (bar.cost ?? 0));
+		}
 
 		const gain = gainOf(abilityIdOf(e) ?? 0) ?? 0;
-		if (gain > 0 && chi !== null && max > 0) chi = Math.min(max, chi + gain);
+		if (gain > 0 && chi !== null && max > 0) {
+			gained += Math.max(0, Math.min(max - chi, gain));
+			chi = Math.min(max, chi + gain);
+		}
 	}
 
-	return { points, max, readings, predicted, exact };
+	return { points, max, readings, predicted, exact, gained, spent };
 }

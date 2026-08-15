@@ -36,14 +36,18 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 
 	// Written out rather than mapped from `reason`, because Tailwind only ships a class it can see
 	// spelled in full — and because the colour of an outcome is a decision, not a lookup.
+	//
+	// Worst first. The wasted presses are the only outcome here a reader can act on, and they led the
+	// row of cards in every pull that had a problem — putting them last meant scanning past three
+	// numbers that were fine to reach the one that was not.
 	const outcomes = [
-		{ key: 'proc', label: t('tigerPalm.key.proc'), count: filler.onProc, edge: 'border-rune' },
+		{ key: 'wasted', label: t('tigerPalm.key.wasted'), count: filler.wasted, edge: 'border-miss' },
 		// Putting the buff up and refreshing it are both justified presses, so they share the colour —
 		// but they are separate cards, because a pull with no refreshes and several applications is a
 		// buff that kept falling off, which reads nothing like keeping it rolling.
 		{ key: 'apply', label: t('tigerPalm.key.apply'), count: filler.applied, edge: 'border-kick' },
 		{ key: 'refresh', label: t('tigerPalm.key.refresh'), count: filler.refresh, edge: 'border-kick' },
-		{ key: 'wasted', label: t('tigerPalm.key.wasted'), count: filler.wasted, edge: 'border-miss' },
+		{ key: 'proc', label: t('tigerPalm.key.proc'), count: filler.onProc, edge: 'border-rune' },
 	];
 
 	return (
