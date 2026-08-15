@@ -3,6 +3,9 @@ import { formatPercentValue, formatSecondsValue } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import { DebuffTimeline } from '../charts';
+import { RSK_COOLDOWN_MS } from '~/lib/spec/windwalker';
+import { usageTone } from '~/lib/score/waste';
+
 import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primitives';
 
 /**
@@ -29,6 +32,9 @@ export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 	// and stays neutral on a multi-target pull, where the report declines to grade it at all.
 	const uptime = card.sections.debuff?.metrics.find((m) => m.key === 'rskUptime');
 
+	// The engaged clock, not the pull's: `engagedMs` is what the fight actually allowed.
+	const possibleKicks = Math.floor(analysis.debuff.engagedMs / RSK_COOLDOWN_MS);
+
 	return (
 		<Section id="debuff" title={t('debuff.title')}>
 			<Prose>{t('debuff.intent')}</Prose>
@@ -46,7 +52,19 @@ export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 								label={t('debuff.kpi.uptime')}
 								grade={uptime && !uptime.unmeasurable ? uptime.grade : null}
 							/>
-							<StatTile value={`${debuff.casts}`} label={t('debuff.kpi.casts')} />
+							{/* `cast / possible`, where possible is the engaged time divided by the cooldown.
+						    
+						    Engaged time and not the pull, because a kick cannot go out at a boss that is not
+						    there — dividing the whole pull would set a target the fight itself made impossible
+						    and call the player short of it. The cooldown is the sim's own eight seconds, cited
+						    where it is declared. Rounded down: a target of 27.6 casts is a target nobody can
+						    hit, and asking for 28 is asking for a kick the pull had no room for. */}
+							<StatTile
+								value={`${debuff.casts}`}
+								suffix={` / ${possibleKicks}`}
+								label={t('debuff.kpi.casts')}
+								grade={usageTone(debuff.casts, possibleKicks)}
+							/>
 							<StatTile
 								value={formatSecondsValue(debuff.secondsLost)}
 								label={t('debuff.kpi.lost')}

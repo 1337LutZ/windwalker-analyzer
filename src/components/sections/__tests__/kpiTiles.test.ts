@@ -33,7 +33,10 @@ const render = (analysis: Analysis) => renderToStaticMarkup(createElement(KpiTil
  * rendered look rather than the source text is what makes this brittle.
  */
 function tile(html: string, label: string): string {
-	const parts = html.split('<div class="bg-surface');
+	// Split on the tile's opening tag, not on one class inside it: the class list changed when the
+	// tiles gained a grade stripe, and a helper keyed to a substring of it silently returned nothing
+	// rather than failing, which made every assertion below pass against an empty string.
+	const parts = html.split('<div class="border-l-2');
 	const needle = label.toLowerCase();
 	return parts.find((part) => part.toLowerCase().includes(needle)) ?? '';
 }

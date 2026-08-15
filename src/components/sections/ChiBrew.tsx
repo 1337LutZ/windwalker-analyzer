@@ -3,6 +3,8 @@ import { formatDecimal, formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import ChiBrewTrack from '../charts/ChiBrewTrack';
+import { usageTone, wasteTone } from '~/lib/score/waste';
+
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
 
 /**
@@ -79,13 +81,25 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 						value={formatInteger(brew.casts)}
 						suffix={` / ${formatInteger(brew.possibleUses)}`}
 						label={t('chiBrew.kpi.uses')}
+						grade={usageTone(brew.casts, brew.possibleUses)}
 					/>
 					<StatTile value={formatInteger(netChi)} label={t('chiBrew.kpi.chi')} />
-					<StatTile value={formatSeconds(brew.cappedMs)} label={t('chiBrew.kpi.capped')} />
+					{/* Idle time against the pull, and the chi it cost against everything the pull generated —
+					    two denominators because they answer different questions. Seconds idle says how much
+					    cooldown went unused; the chi says what that was worth next to all the chi you had. */}
+					<StatTile
+						value={formatSeconds(brew.cappedMs)}
+						label={t('chiBrew.kpi.capped')}
+						grade={wasteTone(brew.cappedMs, analysis.durationMs)}
+					/>
 					{/* Only once there is idle time to price. A tile reading "0 chi" on a pull that never let a
 					    charge sit is a fault reported where there was none. */}
 					{brew.cappedMs === 0 ? null : (
-						<StatTile value={formatDecimal(brew.chiLostToIdle)} label={t('chiBrew.kpi.lost')} />
+						<StatTile
+							value={formatDecimal(brew.chiLostToIdle)}
+							label={t('chiBrew.kpi.lost')}
+							grade={wasteTone(brew.chiLostToIdle, analysis.resources?.chi?.gained ?? 0)}
+						/>
 					)}
 				</StatTiles>
 			</div>
