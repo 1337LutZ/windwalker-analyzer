@@ -11,3 +11,8 @@ dist/
 !.env.example
 *.token
 public/_devtoken.json
+
+# `capture.test.ts` always writes here, and the file is a staging area rather than a fixture:
+# the three committed fixtures are made by renaming it. Left tracked it gets swept into whatever
+# commit is open when a capture runs, which is how a 25k-line orphan reached the history once.
+src/lib/__fixtures__/analysis.json
