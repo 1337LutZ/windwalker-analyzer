@@ -584,6 +584,28 @@ export interface TargetSummary {
 	detected: TargetMode;
 }
 
+/**
+ * Chi Brew, which is a talent — so a pull with none of it is two different reports.
+ *
+ * `talented` comes from `combatantinfo`, not from whether the button was ever pressed: "did not take
+ * it" and "took it and never used it" are opposite findings, and inferring the first from the second
+ * reads a forgotten cooldown as a deliberate choice. Null when the log carried no `combatantinfo`,
+ * which is a third answer again — the report cannot say.
+ */
+export interface ChiBrewAudit {
+	talented: boolean | null;
+	casts: number;
+	/** Chi it actually returned, summed from the log's own `resourcechange` amounts. */
+	chiGained: number;
+	/** Chi it returned into a bar with no room, summed from those events' own `waste`. */
+	chiWasted: number;
+	/** Time both charges sat full, which is recharge time that will never be spent. */
+	cappedMs: number;
+	cappedPct: number;
+	/** Roughly how many uses the pull had room for: the opening two charges plus one per recharge. */
+	possibleUses: number;
+}
+
 export interface ChannelAudit {
 	casts: number;
 	channelSec: number;
@@ -973,6 +995,8 @@ export interface Analysis {
 	 */
 	targets?: TargetSummary;
 	channel: ChannelAudit;
+	/** Optional only because the committed fixtures predate it; `analyse()` always fills it in. */
+	chiBrew?: ChiBrewAudit;
 	/**
 	 * Optional for one reason only: every committed fixture in `~/lib/__fixtures__` is captured
 	 * `analyse()` output from before this field existed, and they are cast to `Analysis` rather than

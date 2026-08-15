@@ -61,7 +61,10 @@ export default function GearSetup({ analysis }: { analysis: Analysis }) {
 
 			<p className="m-0 mt-4">
 				{gear.averageItemLevel === null ? null : <Pill>{t('gear.pill.ilvl', { ilvl: gear.averageItemLevel })}</Pill>}
-				<Pill>{t('gear.pill.gems', { count: gear.gems })}</Pill>
+				{/* No gem total. Every gem is already drawn on the icon of the slot it sits in, so a count
+				    beside the item level was the same fact a second time — and the only question it could
+				    answer, "is a socket empty", it cannot, because it counts what is there rather than what
+				    is missing. */}
 				{gear.missingEnchants.length > 0 ? (
 					<Pill>{t('gear.pill.missing', { count: gear.missingEnchants.length })}</Pill>
 				) : null}

@@ -73,12 +73,29 @@
     "key": {
       "bank": "Stacks banked",
       "press": "A brew spent",
-      "capped": "At the cap, losing stacks"
+      "capped": "Lost stacks"
     },
     "noChart": "Nothing ever went into the Tigereye Brew bank in this pull, so there is no line to draw.",
     "spentStacks_one": "{{count}} stack",
     "spentStacks_other": "{{count}} stacks",
     "chartLabel": "Tigereye Brew bank across the {{duration, clock}} pull, peaking at {{peak}} of {{cap}} stacks, with {{uses}} brews spent averaging {{avg, decimal}} stacks, and {{capped, seconds}} spent at the cap."
+  },
+  "chiBrew": {
+    "title": "Chi Brew",
+    "intent": "Two charges, forty-five seconds each, and two chi plus two brew stacks every press. It fails in two opposite directions: pressed onto a full bar the chi has nowhere to go, and not pressed at all the charges sit at the ceiling where they are not recharging. Those are different mistakes, so they are counted separately rather than added together.",
+    "notTalented": "You did not take Chi Brew, so there is nothing to report here. Read from the talent list your log carries, not from whether the button was pressed — a talent you chose against is not a cooldown you forgot.",
+    "unknownTalent": "This log carried no character snapshot for you, so the report cannot tell whether you took Chi Brew. It is not saying you did not — it is saying it does not know.",
+    "never": "You took Chi Brew and never pressed it. The pull had room for about {{possible}} uses, each worth two chi and two brew stacks.",
+    "gained_clean": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi, all of which fit on the bar.",
+    "gained_wasted": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi — but {{wasted}} of it arrived on a bar with no room and vanished. Chi Brew returns two at once, so pressing it above two chi throws part of it away.",
+    "capped_none": "Neither charge ever sat idle at the ceiling, so no recharge time went unused.",
+    "capped_some": "Both charges sat full for {{seconds, duration}} — {{pct, percent}} of the pull. A charge at the ceiling is not recharging, so that is cooldown this pull was never going to get back.",
+    "scope": "Nothing here is graded. The priority list presses Chi Brew when it wants chi and holds it when it does not, and it contains no number of idle seconds it calls acceptable — a threshold would be inventing one. Charges recharge every {{seconds}}.",
+    "kpi": {
+      "uses": "Presses",
+      "chi": "Chi kept",
+      "capped": "Charges idle"
+    }
   },
   "casts": {
     "title": "Casts per minute",
@@ -690,27 +707,27 @@
       "metric": {
         "snapshotRate": {
           "label": "Catch the procs",
-          "fix": "You brewed on the last global of {{value}}% of your Re-Origination windows. Aim for {{target}}%. This is the single biggest number on the page — a brew fired a global early gives away the strongest seconds the trinket had."
+          "fix": "You brewed on the last global of {{value, percent}} of your Re-Origination windows. Aim for {{target, percent}}. This is the single biggest number on the page — a brew fired a global early gives away the strongest seconds the trinket had."
         },
         "tigerPalmWaste": {
           "label": "Stop overwriting Tiger Power",
-          "fix": "{{value}}% of your Tiger Palms went out with the buff still comfortably up, so they bought nothing. Keep it under {{target}}%: those globals are free damage elsewhere."
+          "fix": "{{value, percent}} of your Tiger Palms went out with the buff still comfortably up, so they bought nothing. Keep it under {{target, percent}}: those globals are free damage elsewhere."
         },
         "gcdUtilisation": {
           "label": "Fill the globals",
-          "fix": "You spent {{value}}% of your available globals on a press that bought something, against a target of {{target}}%. The gap is time the rotation was simply not running."
+          "fix": "You spent {{value, percent}} of your available globals on a press that bought something, against a target of {{target, percent}}. The gap is time the rotation was simply not running."
         },
         "rskUptime": {
           "label": "Keep the kick rolling",
-          "fix": "Rising Sun Kick’s debuff was up for {{value}}% of the time you could reach a target, against {{target}}%. It raises everything else you do, so a gap here costs more than the kick itself."
+          "fix": "Rising Sun Kick’s debuff was up for {{value, percent}} of the time you could reach a target, against {{target, percent}}. It raises everything else you do, so a gap here costs more than the kick itself."
         },
         "brewStacks": {
           "label": "Spend fuller brews",
-          "fix": "Your brews averaged {{value}} stacks. Ten is a full one, and {{target}} is the mark worth holding for — every stack short is damage the brew could have carried and did not."
+          "fix": "Your brews averaged {{value, decimal}} stacks. Ten is a full one, and {{target, decimal}} is the mark worth holding for — every stack short is damage the brew could have carried and did not."
         },
         "brewCapWaste": {
           "label": "Stop overflowing the bank",
-          "fix": "{{value}} stacks were earned into a bank that was already full, so they vanished. The bank holds twenty; spending a brew before you reach it costs nothing and keeps them."
+          "fix": "{{value, integer}} stacks were earned into a bank that was already full, so they vanished. The bank holds twenty; spending a brew before you reach it costs nothing and keeps them."
         }
       }
     }

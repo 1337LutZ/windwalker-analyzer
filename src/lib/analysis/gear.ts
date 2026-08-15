@@ -113,3 +113,21 @@ function toSlot(piece: GearPiece, slot: string): GearSlot {
 		setID: piece.setID === undefined || piece.setID === 0 ? null : piece.setID,
 	};
 }
+
+/**
+ * Which talents the player brought, as spell ids.
+ *
+ * From the same `combatantinfo` the gear comes from, so it costs nothing extra. It matters because
+ * it is the only way to tell "did not take this talent" from "took it and never pressed it" — and
+ * those are opposite findings. Inferring a talent from whether its button was ever cast reads a
+ * player who forgot their cooldown as a player who chose differently.
+ *
+ * Returns `null`, not an empty set, when the log carried no `combatantinfo` for this player. A pull
+ * that cannot say which talents were taken must not be reported as a pull with none.
+ */
+export function readTalents(events: readonly WclEvent[], sourceID: number): Set<number> | null {
+	const info = events.find((event) => isCombatantInfo(event) && event.sourceID === sourceID);
+	if (info === undefined || !isCombatantInfo(info) || info.talents === undefined) return null;
+	// `-1` is the glyph/weapon filler row the log pads the list with, not a talent.
+	return new Set(info.talents.map((t) => t.id).filter((id) => id > 0));
+}

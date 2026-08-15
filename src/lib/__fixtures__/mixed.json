@@ -4545,9 +4545,18 @@
       ]
     },
     "multiTargetMs": 17128,
-    "multiTargetPct": 7,
+    "multiTargetPct": 6.988139583273833,
     "thresholdPct": 33,
     "detected": "single"
+  },
+  "chiBrew": {
+    "talented": true,
+    "casts": 7,
+    "chiGained": 14,
+    "chiWasted": 1,
+    "cappedMs": 19624,
+    "cappedPct": 7.017368200851783,
+    "possibleUses": 8
   },
   "channel": {
     "casts": 3,

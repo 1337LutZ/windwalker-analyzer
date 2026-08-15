@@ -8821,7 +8821,7 @@
       [112861, 399772],
       [417621, 534749]
     ],
-    "primaryDamageShare": 86,
+    "primaryDamageShare": 85.95792591314554,
     "singleTarget": true
   },
   "targets": {
@@ -8878,9 +8878,18 @@
       ]
     },
     "multiTargetMs": 87077,
-    "multiTargetPct": 16.8,
+    "multiTargetPct": 16.841834484786126,
     "thresholdPct": 33,
     "detected": "single"
+  },
+  "chiBrew": {
+    "talented": true,
+    "casts": 12,
+    "chiGained": 24,
+    "chiWasted": 0,
+    "cappedMs": 455,
+    "cappedPct": 0.08501637733070996,
+    "possibleUses": 13
   },
   "channel": {
     "casts": 8,

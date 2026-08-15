@@ -12,6 +12,7 @@ import {
 	DamageByAbility,
 	EnergizingBrew,
 	Chi,
+	ChiBrew,
 	Energy,
 	FistsOfFury,
 	GearSetup,
@@ -78,6 +79,9 @@ const SECTIONS: (ReportSection & { Component: ComponentType<{ analysis: Analysis
 	// Tigereye Brew first: it multiplies everything else in the list, so a mistake here is the only one
 	// that costs damage the other sections have already counted.
 	{ id: 'bank', titleKey: 'brew.title', Component: BrewBankTimeline },
+	// Directly under the bank it feeds: Chi Brew's two stacks a press are the only source of brew that
+	// is not chi spent, so a reader looking at a bank that filled slowly wants this row next.
+	{ id: 'chi-brew', titleKey: 'chiBrew.title', Component: ChiBrew },
 	{ id: 'debuff', titleKey: 'debuff.title', Component: RisingSunKick },
 	{ id: 'fof', titleKey: 'fistsOfFury.title', Component: FistsOfFury },
 	// Directly under the channel, because the two share a condition: the priority list will not

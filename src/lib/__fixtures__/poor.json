@@ -4776,7 +4776,7 @@
       }
     ],
     "engagedSegments": [[2213, 255034]],
-    "primaryDamageShare": 96.3,
+    "primaryDamageShare": 96.29910033330938,
     "singleTarget": true
   },
   "targets": {
@@ -4803,9 +4803,18 @@
       ]
     },
     "multiTargetMs": 35535,
-    "multiTargetPct": 13.8,
+    "multiTargetPct": 13.791858786269854,
     "thresholdPct": 33,
     "detected": "single"
+  },
+  "chiBrew": {
+    "talented": true,
+    "casts": 7,
+    "chiGained": 14,
+    "chiWasted": 1,
+    "cappedMs": 3923,
+    "cappedPct": 1.5372498001536072,
+    "possibleUses": 7
   },
   "channel": {
     "casts": 5,

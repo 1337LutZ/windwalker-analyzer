@@ -11,10 +11,11 @@
 //
 // Ids are verified against qDZ2J7v4CP98aQmV #57 and KvCazMYkqZxfjRBg #48 (Garrosh HC 25).
 
-import { abilityIdOf, eventsOn, isDamage, isDeath } from '~/lib/events';
+import { abilityIdOf, eventsOn, isDamage, isDeath, isResourceChange, resourceActorOf } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
+import { readTalents } from '~/lib/analysis/gear';
 import { aplAudit } from './apl';
 import {
 	DEFAULT_SETTINGS,
@@ -25,6 +26,7 @@ import {
 	type AnalysisSettings,
 } from '~/lib/settings';
 import type {
+	ChiBrewAudit,
 	Analysis,
 	AuraLane,
 	BrewUse,
@@ -753,6 +755,7 @@ const RISING_SUN_KICK = registry.ability('rising-sun-kick');
 const FISTS_OF_FURY = registry.ability('fists-of-fury');
 const TIGER_PALM = registry.ability('tiger-palm');
 const TOUCH_OF_KARMA = registry.ability('touch-of-karma');
+const CHI_BREW = registry.ability('chi-brew');
 const TIGEREYE_BREW = registry.ability('tigereye-brew');
 const INVOKE_XUEN = registry.ability('invoke-xuen');
 
@@ -852,6 +855,86 @@ export const TP_REFRESH_WINDOW_MS = TIGER_PALM_REFRESH.default;
 export const LAST_GCD_MS = GCD_MS;
 /** Still respectable. */
 export const LATE_MS = 3000;
+
+/** Chi Brew: two charges, forty-five seconds each, from `sim/monk/talents.go:741-742`. */
+const CHI_BREW_CHARGES = 2;
+const CHI_BREW_RECHARGE_MS = 45_000;
+
+/**
+ * What Chi Brew returned, and what it left on the table.
+ *
+ * Two different kinds of waste, and the section keeps them apart because the fixes are opposite.
+ * *Overcapped chi* is a press made with a full-ish bar — the button returns two and the bar had room
+ * for one — and the log states it outright: Chi Brew's chi arrives as a `resourcechange` carrying
+ * both the amount and the `waste`, so nothing is inferred. *Charges sitting at the ceiling* is the
+ * opposite mistake, the button not being pressed at all: a charge that is already full is not
+ * recharging, so every second at two of two is forty-five seconds of cooldown that will never be
+ * spent.
+ *
+ * The charge walk is the standard one: dropping below the ceiling starts a timer, each completion
+ * returns a charge and restarts the timer while there is still room. Time at the ceiling is
+ * accumulated between the moment the last charge came back and the next press.
+ */
+function chiBrewAudit(
+	events: readonly WclEvent[],
+	actorID: number,
+	t0: number,
+	casts: readonly number[],
+	durationMs: number,
+): Omit<ChiBrewAudit, 'talented'> {
+	let gained = 0;
+	let wasted = 0;
+	for (const e of events) {
+		if (!isResourceChange(e)) continue;
+		const side = resourceActorOf(e);
+		const owner = side === 1 ? e.sourceID : side === 2 ? e.targetID : undefined;
+		if (owner !== actorID) continue;
+		if (abilityIdOf(e) !== CHI_BREW_ID) continue;
+		gained += e.resourceChange ?? 0;
+		wasted += e.waste ?? 0;
+	}
+
+	let charges = CHI_BREW_CHARGES;
+	let fullSince: number | null = 0;
+	let timer: number | null = null;
+	let cappedMs = 0;
+
+	const advance = (to: number): void => {
+		while (timer !== null && timer <= to) {
+			// The moment this charge actually landed, which is when the ceiling starts being wasted — not
+			// `to`, which is only where the walk happens to be looking. Taking `to` here charged the pull
+			// nothing for the gap between a charge coming back and the next press, which is exactly the
+			// gap this audit exists to measure.
+			const landed = timer;
+			charges += 1;
+			timer = charges < CHI_BREW_CHARGES ? landed + CHI_BREW_RECHARGE_MS : null;
+			if (charges === CHI_BREW_CHARGES) fullSince = landed;
+		}
+	};
+
+	for (const at of [...casts].sort((a, b) => a - b)) {
+		advance(at);
+		if (charges === CHI_BREW_CHARGES && fullSince !== null) {
+			cappedMs += Math.max(0, at - fullSince);
+			fullSince = null;
+		}
+		if (charges > 0) {
+			charges -= 1;
+			if (timer === null) timer = at + CHI_BREW_RECHARGE_MS;
+		}
+	}
+	advance(durationMs);
+	if (charges === CHI_BREW_CHARGES && fullSince !== null) cappedMs += Math.max(0, durationMs - fullSince);
+
+	return {
+		casts: casts.length,
+		chiGained: gained,
+		chiWasted: wasted,
+		cappedMs: Math.round(cappedMs),
+		cappedPct: durationMs > 0 ? (cappedMs / durationMs) * 100 : 0,
+		possibleUses: Math.floor(durationMs / CHI_BREW_RECHARGE_MS) + CHI_BREW_CHARGES,
+	};
+}
 
 /**
  * How long after a Touch of Karma its redirect can still be landing.
@@ -1426,6 +1509,13 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * `CHI_BREW` is excluded from the gains handed over: it emits a `resourcechange` carrying its own
 	 * amount, which `chiAtCasts` applies, and counting it here as well would give it four chi.
 	 */
+	const talents = readTalents(events, actor.id);
+	const chiBrew: ChiBrewAudit = {
+		// A talent list the log did carry and Chi Brew is not on it is a real "not talented"; no list at
+		// all is a report that cannot say, and must not be rendered as a choice the player made.
+		talented: talents === null ? null : talents.has(CHI_BREW_ID),
+		...chiBrewAudit(events, actor.id, t0, castTimes(CHI_BREW), duration),
+	};
 	const chiWalk = chiAtCasts(events, actor.id, t0, (id) => (id === CHI_BREW_ID ? undefined : CHI_GAIN[id]));
 
 	/**
@@ -2155,7 +2245,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			drops: drops.map((g) => ({ at: g.t, seconds: r1(g.ms / 1000) })),
 			windows: rskLaneWindows,
 			engagedSegments: engaged,
-			primaryDamageShare: r1(primaryDamageShare),
+			primaryDamageShare,
 			singleTarget,
 		},
 		targets: {
@@ -2166,10 +2256,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 				points: targetPoints,
 			},
 			multiTargetMs,
-			multiTargetPct: r1(multiTargetPct),
+			multiTargetPct,
 			thresholdPct: MULTI_TARGET_SHARE_PCT,
 			detected: detectedMode,
 		},
+		chiBrew,
 		channel: {
 			casts: fofCasts.length,
 			channelSec: r1(channelledMs / 1000),

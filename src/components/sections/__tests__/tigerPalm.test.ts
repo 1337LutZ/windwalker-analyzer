@@ -54,11 +54,13 @@ describe('Tiger Palm summary cards', () => {
 		// lapsed buff twice and refreshed a running one never, which the old three-card split reported
 		// as "2 refreshes" — the same conflation that had a 20-second buff being "refreshed" seven
 		// seconds into a fight.
+		// Shares are printed to two decimals: at one, 9 of 41 and 2 of 41 rounded to `22%` and `4.9%`,
+		// and figures a hair apart elsewhere in the report printed identical.
 		expect(cards).toEqual([
-			{ edge: 'border-rune', count: '9', share: '22%', label: t('tigerPalm.key.proc') },
-			{ edge: 'border-kick', count: '2', share: '4.9%', label: t('tigerPalm.key.apply') },
+			{ edge: 'border-rune', count: '9', share: '21.95%', label: t('tigerPalm.key.proc') },
+			{ edge: 'border-kick', count: '2', share: '4.88%', label: t('tigerPalm.key.apply') },
 			{ edge: 'border-kick', count: '0', share: '0%', label: t('tigerPalm.key.refresh') },
-			{ edge: 'border-miss', count: '30', share: '73.2%', label: t('tigerPalm.key.wasted') },
+			{ edge: 'border-miss', count: '30', share: '73.17%', label: t('tigerPalm.key.wasted') },
 		]);
 	});
 
