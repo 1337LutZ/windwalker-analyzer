@@ -527,7 +527,7 @@ export interface BrewSummary {
 	 * log does not carry it rather than printing a plausible number.
 	 */
 	damagePerStack?: number | null;
-	windows: LaneWindow[];
+	windows: Window[];
 	useList: BrewUse[];
 	bankTimeline: Array<[number, number]>;
 }
@@ -606,6 +606,19 @@ export interface ProcWindow extends Window {
 	 * the arithmetic calls level is not a fault to name.
 	 */
 	protectedBrew?: boolean;
+	/**
+	 * True when this proc was skipped on purpose, by weaving a battle elixir straight after the brew.
+	 *
+	 * Not a miss and not a near miss — the play the report's own copy asks for. Tigereye Brew freezes
+	 * `0.05 + masteryPercent` at cast, so a brew held to the end of a Mastery proc is already carrying
+	 * that proc's mastery for its whole fifteen seconds. Swapping to a secondary-lifting elixir
+	 * immediately afterwards makes a *different* secondary the highest on the sheet, so the Rune's
+	 * next conversion returns that stat instead of re-serving mastery the brew is already holding —
+	 * and a second brew cast during it would freeze nothing but base mastery. There was never
+	 * anything here to catch, so it is excluded from `opportunities` rather than counted as a chance
+	 * missed. `undefined` on the committed fixtures, which predate it.
+	 */
+	weaved?: boolean;
 }
 
 export interface ProcSummary {
@@ -617,6 +630,14 @@ export interface ProcSummary {
 	opportunities: number;
 	/** Procs that arrived with too few stacks to be worth a brew. Never counted as faults. */
 	unaffordable: number;
+	/**
+	 * Procs skipped on purpose by weaving an elixir. Out of `opportunities`, and never a fault.
+	 *
+	 * A subset of neither `snapshotted` nor `unaffordable` — its own reason for a proc leaving the
+	 * denominator, and the only one of the three that is a thing the player *did* rather than a thing
+	 * that happened to them. Optional because the fixtures predate it.
+	 */
+	weaved?: number;
 	/** The stack floor those two were judged against, so the UI can name it. */
 	stackFloor: number;
 	lastGcd: number;
@@ -717,7 +738,7 @@ export interface DebuffSummary {
 	intermissionSec: number;
 	/** The primary target's own gaps, longest one excluded: what the timeline plots and the ledger lists. */
 	drops: Array<{ at: number; seconds: number }>;
-	windows: LaneWindow[];
+	windows: Window[];
 	/** The primary target's windows, summed as `engagedMs`. The chart's out-of-reach track is their complement. */
 	engagedSegments: Array<[number, number]>;
 	/**
@@ -948,7 +969,7 @@ export interface EnergizingBrewAudit {
 		faults: string[];
 		link: string;
 	}>;
-	windows: LaneWindow[];
+	windows: Window[];
 }
 
 /** Time at the energy cap over one stretch of the pull, and what it cost. */
@@ -1174,7 +1195,7 @@ export interface SefTargetLane {
 	 * Stretches a spirit was demonstrably on this enemy. Empty is a real answer — the player engaged it
 	 * and no spirit ever went there — so the lane is still drawn rather than dropped.
 	 */
-	windows: LaneWindow[];
+	windows: Window[];
 	heldMs: number;
 	heldPct: number;
 	/**
@@ -1235,7 +1256,7 @@ export interface SefAudit {
 		link: string;
 	}>;
 	/** Stretches with at least one spirit out, read off the aura rather than measured from a press. */
-	windows: LaneWindow[];
+	windows: Window[];
 	uptimeMs: number;
 	uptimePct: number;
 	/** Distinct pet actors the spirits used. Three exist; at most two are out at once. */

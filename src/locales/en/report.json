@@ -48,7 +48,15 @@
     "unaffordable_other": "{{count}} more procs arrived with too few stacks banked to be worth a brew, so they are not counted as chances missed.",
     "narrowlyMissed_one": "One of the misses was a brew {{ms, gap}} too late — the proc was read, not ignored.",
     "narrowlyMissed_other": "{{count}} of the misses were brews that went out just after the proc expired rather than just before, which is a timing problem and not a habit.",
-    "oneStat": "Every proc converted into {{stat}}. The Rune turns your two lowest of crit, haste and mastery into twice the highest of the three, so {{stat}} is the one sitting on top of your sheet right now. If that is not the stat you want doubled, the ordering is what has to change — reforging, or weaving an elixir that lifts another stat above it."
+    "oneStat": "Every proc converted into {{stat}}. The Rune turns your two lowest of crit, haste and mastery into twice the highest of the three, so {{stat}} is the one sitting on top of your sheet right now. If that is not the stat you want doubled, the ordering is what has to change — reforging, or weaving an elixir that lifts another stat above it.",
+    "weaved_one": "One proc came back as {{stat}} instead of {{held}}, because you swapped an elixir immediately after the brew went out. Tigereye Brew freezes mastery at the moment it is cast, so that proc was never a snapshot to take — it is counted as the play it was, not as a chance missed, and it is left out of the total above.",
+    "weaved_other": "{{count}} procs came back as a stat the running brew could not hold, because an elixir went out immediately after each brew. Tigereye Brew freezes mastery at the moment it is cast, so none of them was a snapshot to take — they are counted as the play they were, not as chances missed, and they are left out of the total above.",
+    "key": {
+      "weaved": "Weaved past on purpose: the elixir swap made this proc a stat no brew can hold"
+    },
+    "tip": {
+      "weaved": "the brew was already holding {{held}}; the swap turned this proc into {{stat}}, which no brew can freeze"
+    }
   },
   "brew": {
     "title": "Tigereye Brew",
@@ -373,7 +381,7 @@
     "key": {
       "brew": "Brew held",
       "kick": "Debuff up, or a proc snapshotted late",
-      "rune": "A proc snapshotted early, or a clean channel",
+      "rune": "A proc snapshotted early, a proc weaved past on purpose, or a clean channel",
       "miss": "A drop, a proc left unsnapshotted, or a misplaced channel"
     }
   },

@@ -512,4 +512,46 @@ describe('Report', () => {
 		};
 		expect(() => renderToStaticMarkup(createElement(Report, { analysis: empty }))).not.toThrow();
 	});
+
+	/**
+	 * The colour is not the signal, and this is what checks that.
+	 *
+	 * A weaved proc is drawn violet where every other uncaught proc is drawn red, which is worth
+	 * nothing to a reader who cannot separate the two. So the section says it in a sentence and the
+	 * chart's key names the colour, and both have to be on the page — a missing locale key would
+	 * otherwise ship as the key's own name and nothing would fail.
+	 */
+	it('says in words that a weaved proc was played rather than missed', () => {
+		const weaved = procWindow({
+			start: 150000,
+			end: 160000,
+			stat: 'Haste',
+			snapshotAt: null,
+			snapshotEnd: null,
+			snapshotStacks: null,
+			brewEnd: null,
+			remainingMs: null,
+			depthPct: null,
+			grade: 'none',
+			brewAlreadyUp: true,
+			heldStat: 'Mastery',
+			brewCastInside: 0,
+			stacksInside: 0,
+			nextStat: null,
+			weaved: true,
+		});
+		const html = renderToStaticMarkup(
+			createElement(Report, {
+				analysis: { ...base, procs: { ...base.procs, weaved: 1, windows: [...base.procs.windows, weaved] } },
+			}),
+		);
+		expect(html).toContain(t('snapshots.weaved', { count: 1, stat: 'Haste', held: 'Mastery' }));
+		expect(html).toContain(t('snapshots.key.weaved'));
+	});
+
+	/** And a key for a colour the chart never drew sends the reader hunting for it. */
+	it('says nothing about weaving on a pull that did not weave', () => {
+		const html = renderToStaticMarkup(createElement(Report, { analysis: base }));
+		expect(html).not.toContain(t('snapshots.key.weaved'));
+	});
 });

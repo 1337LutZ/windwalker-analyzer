@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis, ProcSummary, ProcWindow } from '~/lib/types';
@@ -34,6 +35,15 @@ interface Bar {
 	fillColor: string;
 	meta: TipContent;
 }
+
+/**
+ * The translator, threaded down rather than reached for.
+ *
+ * `buildBars` is a plain function called from inside `useCallback`, so it cannot hold a hook. Only
+ * the rows this change added read from it — every other string in this file is still written inline,
+ * and converting them is a separate job from marking a weaved proc.
+ */
+type Translate = ReturnType<typeof useTranslation>['t'];
 
 /**
  * A back-to-back roll is a pair, so both halves say so: the snapshot that lost time to a later proc,
@@ -93,7 +103,7 @@ const rowLabel = (w: ProcWindow, i: number, brackets: Map<number, string>): stri
 	return `${gutter}${String(i + 1).padStart(2, '0')} · ${fmt(w.start)}`;
 };
 
-function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, string>): Bar[] {
+function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, string>, t: Translate): Bar[] {
 	return procs.windows.map((w, i) => {
 		const label = rowLabel(w, i, brackets);
 		// A proc that was never caught is drawn full width: the whole thing went past.
@@ -101,21 +111,34 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 			// The full proc, in the ordinary miss red. A brew that landed a fraction after it expired
 			// adds the `late` series on top of this bar rather than recolouring it: the proc is still a
 			// proc, and how far past its end the brew went is a separate length worth seeing.
+			//
+			// Violet instead when the player made this proc happen. Colour on this chart is the verdict,
+			// and a proc weaved past is the one uncaught proc that is not a fault: the elixir swap turned
+			// it into a stat Tigereye Brew cannot hold, so the bar's full width is still the honest
+			// measurement and red is the wrong word for it. The tooltip and the key below say the same
+			// thing in words, because a reader who cannot separate violet from red would otherwise lose
+			// the distinction entirely.
+			const weaved = w.weaved === true;
 			return {
 				x: label,
 				y: r1(w.lengthMs / 1000),
-				fillColor: theme.miss,
+				fillColor: weaved ? theme.rune : theme.miss,
 				meta: {
 					title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
-					tone: 'miss' as const,
+					tone: weaved ? ('rune' as const) : ('miss' as const),
 					rows: [
 						['proc at', fmt(w.start)],
 						['proc length', `${sec(w.lengthMs)}s`],
 						// "never" is wrong when a brew went out a fraction after the proc expired: the
 						// player read it and was late, which is a different thing to not going for it.
-						w.missedByMs !== null
-							? (['brewed', `${formatGap(w.missedByMs)} too late`] as [string, string])
-							: (['brewed at', w.redundant ? 'never — the same stat was already held' : 'never'] as [string, string]),
+						weaved
+							? (['weaved past', t('snapshots.tip.weaved', { held: w.heldStat ?? '', stat: w.stat })] as [
+									string,
+									string,
+								])
+							: w.missedByMs !== null
+								? (['brewed', `${formatGap(w.missedByMs)} too late`] as [string, string])
+								: (['brewed at', w.redundant ? 'never — the same stat was already held' : 'never'] as [string, string]),
 						...backToBack(w),
 					],
 				},
@@ -196,7 +219,10 @@ function buildOvershoot(procs: ProcSummary, theme: ChartTheme, brackets: Map<num
 		// read as held-plus-late — a duration nobody spent — under an axis titled "seconds held into
 		// the proc". It also drew in a tone whose key is gated on `narrowlyMissed`, so the tail could
 		// appear with nothing in the legend naming it.
-		y: w.snapshotAt !== null || w.missedByMs === null ? 0 : Math.round(w.missedByMs) / 1000,
+		// Gated on `weaved` for the same reason and against the same counter: the engine stopped counting
+		// a weaved proc as a near miss, so a `missSoft` tail on its violet bar would be a mark whose key
+		// is not shown and whose meaning the section has just denied.
+		y: w.snapshotAt !== null || w.missedByMs === null || w.weaved === true ? 0 : Math.round(w.missedByMs) / 1000,
 		fillColor: theme.missSoft,
 		meta: {
 			title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
@@ -219,7 +245,11 @@ function buildOvershoot(procs: ProcSummary, theme: ChartTheme, brackets: Map<num
  * bar reaching into it is a brew held to the last moment.
  */
 export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
+	// `useTranslation`, not `useReportCopy`: a chart draws what it is handed and holds no verdict.
+	const { t } = useTranslation('report');
 	const procs = analysis.procs;
+	// `?? 0` rather than a null check: on a captured fixture the field is `undefined`, not `0`.
+	const weaved = procs.weaved ?? 0;
 	const height = procs.windows.length * ROW_HEIGHT + CHROME;
 	// Every proc is nominally the same length, but the last one of a pull is cut short by the boss
 	// dying; the target band belongs to a full proc, so it is measured against the longest one.
@@ -242,7 +272,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 				stacked: true,
 			},
 			series: [
-				{ name: 'held', data: buildBars(procs, theme, brackets) },
+				{ name: 'held', data: buildBars(procs, theme, brackets, t) },
 				{ name: 'late', data: buildOvershoot(procs, theme, brackets) },
 			],
 			plotOptions: {
@@ -330,7 +360,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 			},
 			tooltip: baseTooltip(theme),
 		}),
-		[procs, height, fullLengthMs, longestOvershootMs, brackets],
+		[procs, height, fullLengthMs, longestOvershootMs, brackets, t],
 	);
 
 	if (procs.windows.length === 0) {
@@ -347,6 +377,11 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 					<ChartKey tone="kick">Held into the last global — the whole tail kept</ChartKey>
 					<ChartKey tone="brew">Brewed early, with proc left on the clock</ChartKey>
 					<ChartKey tone="miss">Never snapshotted: the full proc went past</ChartKey>
+					{/* Violet is the Rune's own colour everywhere else in the report, and it is not otherwise
+					    used on this chart — so it is free here, and it says "the Rune did what you asked it
+					    to" rather than borrowing a verdict from another mark. Gated on the pull having one,
+					    like every other conditional key below. */}
+					{weaved > 0 ? <ChartKey tone="rune">{t('snapshots.key.weaved')}</ChartKey> : null}
 					{/* Only when the pull actually has one — a key for an outcome nobody hit sends the reader
 					    hunting the chart for a colour that is not on it. */}
 					{procs.backToBack > 0 ? (
@@ -369,7 +404,10 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 			<ApexChart
 				build={build}
 				height={height}
-				label={`How long each of the ${procs.procs} Re-Origination procs ran before Tigereye Brew snapshotted it: ${procs.lastGcd} caught on the last global, ${procs.early} brewed early, ${procs.unsnapshotted} never snapshotted`}
+				// The weaved count is read out here as well as drawn, because this label is the whole chart
+				// for a screen-reader listener — leaving it out would put the row back in "never
+				// snapshotted" for exactly the readers who have no colour to correct it with.
+				label={`How long each of the ${procs.procs} Re-Origination procs ran before Tigereye Brew snapshotted it: ${procs.lastGcd} caught on the last global, ${procs.early} brewed early, ${procs.unsnapshotted} never snapshotted${weaved > 0 ? `, ${weaved} weaved past on purpose` : ''}`}
 			/>
 		</ChartFigure>
 	);

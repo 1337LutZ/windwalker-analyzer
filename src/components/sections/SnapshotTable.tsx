@@ -46,6 +46,18 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 		// Said out loud rather than quietly dropped — the reader can see the proc on the chart, so a
 		// denominator smaller than the proc count has to explain itself.
 		procs.unaffordable > 0 ? t('snapshots.unaffordable', { count: procs.unaffordable }) : null,
+		// The other reason the denominator can be smaller than the proc count, and the one that has to
+		// be in words whatever the reader can see: the chart draws this proc violet rather than red, and
+		// a colour is not a sentence. It names both stats because that is the whole mechanism — the brew
+		// is holding one, the swap turned the proc into the other, and neither is worth anything said
+		// alone. `?? 0` rather than a null check: on a captured fixture the field is `undefined`.
+		(procs.weaved ?? 0) > 0
+			? t('snapshots.weaved', {
+					count: procs.weaved ?? 0,
+					stat: procs.windows.find((w) => w.weaved)?.stat ?? '',
+					held: procs.windows.find((w) => w.weaved)?.heldStat ?? '',
+				})
+			: null,
 		procs.lastGcd > 0 ? t('snapshots.lastGcd', { count: procs.lastGcd }) : t('snapshots.lastGcdNone'),
 		procs.backToBack > 0 ? t('snapshots.b2b', { count: procs.backToBack }) : null,
 		procs.secondsGivenAway > 0 ? t('snapshots.givenAway', { seconds: procs.secondsGivenAway }) : null,
@@ -63,7 +75,9 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 		procs.narrowlyMissed > 0
 			? t('snapshots.narrowlyMissed', {
 					count: procs.narrowlyMissed,
-					ms: procs.windows.find((w) => w.snapshotAt === null && w.missedByMs !== null)?.missedByMs ?? 0,
+					// The same three clauses the engine's own counter uses, or the sentence can quote the
+					// lateness of a proc that counter deliberately left out.
+					ms: procs.windows.find((w) => w.snapshotAt === null && w.missedByMs !== null && !w.weaved)?.missedByMs ?? 0,
 				})
 			: null,
 	]

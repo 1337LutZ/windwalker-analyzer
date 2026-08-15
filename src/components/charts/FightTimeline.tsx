@@ -136,7 +136,12 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 	// Rising Sun Kick's teal, an early one is the Rune's violet, a proc never caught is red. The
 	// legend under the chart is what makes that readable; teal and violet do not announce themselves.
 	analysis.procs.windows.forEach((w, i) => {
-		const tone: keyof ChartTheme = w.grade === 'none' ? 'miss' : w.grade === 'early' ? 'rune' : 'kick';
+		// A weaved proc is tested before the grade, and has to be: its grade is `none`, which would draw
+		// the one proc on the pull the player engineered on purpose in the same red as the ones they let
+		// go. The Snapshots section stopped calling it a miss; this chart drawing the same proc red
+		// would have left the report saying two different things about one window.
+		const tone: keyof ChartTheme =
+			w.weaved === true ? 'rune' : w.grade === 'none' ? 'miss' : w.grade === 'early' ? 'rune' : 'kick';
 		const rows: Array<[string, string]> = [
 			when(w.start, w.end),
 			['stat gained', w.stat],
@@ -146,7 +151,9 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 			// A brew that went out a fraction after the proc expired is not "no brew". Saying so here
 			// contradicted the snapshot chart, which draws that proc in its own colour, and told the
 			// reader they ignored a proc they had actually read.
-			if (w.missedByMs !== null) {
+			if (w.weaved === true) {
+				rows.push(['brew', `none — the elixir swap made this ${w.stat}, which no brew can hold`]);
+			} else if (w.missedByMs !== null) {
 				rows.push(['brew', `${formatGap(w.missedByMs)} after it expired`]);
 			} else {
 				rows.push(['brew', w.redundant ? 'none — the same stat was already held' : 'none']);
@@ -162,7 +169,12 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 		// just after it expired carries both: the tooltip printed "brewed at 2:31 · 8.4s in" and then
 		// called it "brewed too late" in the same breath.
 		const nearMiss = w.snapshotAt === null && w.missedByMs !== null;
-		rows.push(['verdict', nearMiss ? 'read, but brewed too late' : GRADE_VERDICT[w.grade]]);
+		// `GRADE_VERDICT.none` reads "the whole proc went past", which is true of a weaved proc and is
+		// nonetheless the wrong verdict on it — the point is that the whole proc was *meant* to go past.
+		rows.push([
+			'verdict',
+			w.weaved === true ? 'weaved past on purpose' : nearMiss ? 'read, but brewed too late' : GRADE_VERDICT[w.grade],
+		]);
 		spans.push(
 			span(
 				track.proc,

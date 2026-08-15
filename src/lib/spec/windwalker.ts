@@ -1285,6 +1285,41 @@ export const LAST_GCD_MS = GCD_MS;
 /** Still respectable. */
 export const LATE_MS = 3000;
 
+/**
+ * The secondary each swappable consumable puts on top of the sheet, which is what the Rune reads.
+ *
+ * Rune of Re-Origination converts the two lowest secondaries into twice the highest, so the stat a
+ * proc returns is decided entirely by which of these was live when it fired. The three elixirs are
+ * +750 of one rating apiece — items 76076, 76078 and 76083 in the simulator's
+ * `assets/database/db.json`, at stat indices 6, 7 and 11, which `proto/common.proto` names
+ * `StatCritRating`, `StatHasteRating` and `StatMasteryRating`. The flask is agility only and lifts
+ * no secondary at all, which is why its stat is `null` rather than a fourth name: it can close a
+ * weave but never open one.
+ *
+ * Monk's Elixir being *mastery* rather than agility is the fact this whole reading turns on. It is
+ * the one a weave drops, so the swap has to come after the brew or it lowers the number the brew is
+ * about to freeze.
+ */
+const ELIXIR_STATS: Array<[Ability, string | null]> = [
+	[registry.ability('flask-of-spring-blossoms'), null],
+	[registry.ability('mad-hozen-elixir'), 'Crit'],
+	[registry.ability('elixir-of-the-rapids'), 'Haste'],
+	[registry.ability('monks-elixir'), 'Mastery'],
+];
+
+/**
+ * How far *before* the brew an elixir may stamp and still count as pressed with it.
+ *
+ * Not a reaction allowance — the opposite of one. A swap made genuinely before the brew lowers the
+ * mastery the brew is about to freeze, so it is a real dilution and has to stay chargeable; widening
+ * this would forgive the mistake the ordering test exists to catch. All it absorbs is the log's own
+ * stamp granularity for a single composite press, and that is measured rather than guessed: on
+ * `weave.json` the bank drain and the brew's `applybuff` land 0-1ms apart across all five brews, and
+ * the elixir lands exactly 1ms after the drain on all three swaps. One millisecond is the entire
+ * observed spread, so one millisecond is the entire allowance.
+ */
+const WEAVE_ORDER_SLACK_MS = 1;
+
 /** Chi Brew: two charges, forty-five seconds each, from `sim/monk/talents.go:741-742`. */
 const CHI_BREW_CHARGES = 2;
 /** And two chi a press, from the same file's `monk.AddChi(sim, spell, 2, chiMetrics)`. */
@@ -1721,6 +1756,69 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		w.redundant = !!heldBy && heldBy.stat === w.stat;
 	}
 
+	/**
+	 * The proc that was skipped on purpose, which the two paragraphs above cannot tell from a fumble.
+	 *
+	 * `redundant` forgives a proc that returned the stat the running brew is already holding. Its
+	 * mirror image is the case that mattered more and was being charged as a fault: a proc that
+	 * returned a *different* stat because the player made it do so. Tigereye Brew freezes
+	 * `0.05 + masteryPercent` at cast and never re-reads it, so a brew held to the end of a Mastery
+	 * proc carries that mastery for its own fifteen seconds; swapping to a secondary-lifting battle
+	 * elixir straight afterwards puts a different secondary on top of the sheet, and the Rune's next
+	 * conversion returns *that* instead of re-serving mastery the brew already has frozen in. A
+	 * second brew during it would capture base mastery and nothing else. There is no snapshot to
+	 * miss, so this is not a missed snapshot — it is the play `snapshots.oneStat` tells the reader to
+	 * make.
+	 *
+	 * **The elixir has to come after the brew, and that ordering is mechanical rather than stylistic.**
+	 * Monk's Elixir is +750 *mastery* — item 76083 in the simulator's `assets/database/db.json`, stat
+	 * index 11, `StatMasteryRating` in `proto/common.proto` — so it is usually the live consumable a
+	 * weave drops. Dropping it before the brew lowers the very number the brew is about to freeze.
+	 * After the brew it cannot: the multiplier is already closed over in `OnGain`.
+	 *
+	 * The rule is checked against the log rather than assumed: on `weave.json` the battle elixir live
+	 * at each proc's start predicts that proc's converted stat five times out of five — flask then
+	 * Monk's (mastery) for the four Mastery procs, Elixir of the Rapids (haste) for the one Haste
+	 * proc. Nothing here rests on a timing threshold; the one tolerance is `WEAVE_ORDER_SLACK_MS`,
+	 * and it exists only to absorb the log's stamp granularity.
+	 *
+	 * False positives forgive a real miss on the report's heaviest metric, so every clause is a
+	 * conjunction and the doubtful case stays charged.
+	 */
+	const battleElixirs = ELIXIR_STATS.flatMap(([ability, stat]) => castTimes(ability).map((t) => ({ t, stat }))).sort(
+		(a, b) => a.t - b.t,
+	);
+	/**
+	 * Which consumable was live at an instant: the last one pressed, because they cancel each other.
+	 *
+	 * A flask and a battle elixir share the `FlaskVsBattleElixir` exclusive category and
+	 * `sim/core/consumes.go` deactivates whichever is running when the other goes up, so "live" is
+	 * simply "most recent press" and needs no duration. Virmen's Bite is deliberately not in the
+	 * list: a combat potion is its own category and cancels nothing.
+	 */
+	const elixirAt = (t: number): { t: number; stat: string | null } | null => {
+		let live: { t: number; stat: string | null } | null = null;
+		for (const e of battleElixirs) {
+			if (e.t > t) break;
+			live = e;
+		}
+		return live;
+	};
+
+	for (const w of procs) {
+		// A proc someone did brew on is a decision of a different kind and is graded as one; a proc with
+		// no brew running has nothing being protected and is an ordinary miss.
+		if (w.snapshotAt !== null || !w.brewAlreadyUp) continue;
+		if (w.heldStat === null || w.heldStat === w.stat) continue;
+		const live = elixirAt(w.start);
+		// The elixir has to explain this proc, not merely precede it: the stat it lifts must be the
+		// stat the Rune returned. The flask lifts no secondary at all and so can never satisfy this.
+		if (live === null || live.stat !== w.stat) continue;
+		const brew = brewWindows.find((b) => b.start < w.end && b.end > w.start);
+		if (!brew || live.t < brew.start - WEAVE_ORDER_SLACK_MS) continue;
+		w.weaved = true;
+	}
+
 	// Back-to-back procs are the unlucky roll. You hold the brew to the end of a proc, snapshot it, and
 	// the Rune immediately fires again — so for those seconds you would have had those stats live
 	// anyway, and the snapshot you paid 10 stacks for is worth only its margin over a proc you were
@@ -1804,17 +1902,27 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// A proc the player actually brewed on was affordable by demonstration, whatever the floor
 		// says — the rotation permits brewing below it, and excluding those produced catch rates above
 		// 100% (a caught proc counted in the numerator and not the denominator).
-		w.couldSnapshot = w.snapshotAt !== null || w.stacksAvailable > SNAPSHOT_STACK_FLOOR;
+		// A proc weaved past leaves the denominator for the same reason a proc below the floor does:
+		// there was no snapshot on offer to buy. The floor says the bank could not pay for one; the
+		// weave says the Rune did not return a stat Tigereye Brew can hold. Both are the absence of a
+		// chance rather than a chance declined, and `snapshotRate` is the heaviest weight on the card —
+		// so a proc that was never catchable must not sit in its denominator.
+		w.couldSnapshot = w.snapshotAt !== null || (w.weaved !== true && w.stacksAvailable > SNAPSHOT_STACK_FLOOR);
 	}
 
 	const opportunities = procs.filter((w) => w.couldSnapshot);
 	const snapshotted = procs.filter((w) => w.snapshotAt !== null);
+	const weaved = procs.filter((w) => w.weaved === true);
 	// Every early snapshot throws away the proc's remainder; every proc never captured throws away its
 	// whole window — unless it was redundant, which costs nothing. Same currency throughout: seconds of
-	// Re-Origination-boosted brew not taken.
+	// Re-Origination-boosted brew not taken. A weaved proc is on neither side of that ledger: its
+	// window was spent on live haste or crit exactly as intended, so counting it as time given away
+	// would price a deliberate trade as a loss.
 	const secondsGivenAway = r1(
 		(snapshotted.reduce((s, w) => s + (w.remainingMs ?? 0), 0) +
-			procs.filter((w) => w.snapshotAt === null && !w.redundant).reduce((s, w) => s + w.lengthMs, 0)) /
+			procs
+				.filter((w) => w.snapshotAt === null && !w.redundant && w.weaved !== true)
+				.reduce((s, w) => s + w.lengthMs, 0)) /
 			1000,
 	);
 	const devaluedSec = r1(procs.reduce((s, w) => s + w.wastedMs, 0) / 1000);
@@ -3045,8 +3153,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			detail: `${r1(g.ms / 1000)}s without the debuff`,
 			link: link(g.t),
 		})),
+		// `!w.weaved` for the same reason as `!w.redundant` beside it, and with more force: the ledger is
+		// the report's list of things that went wrong, and a proc the player deliberately traded for a
+		// live secondary is the one entry on it that would have been describing correct play.
 		...procs
-			.filter((w) => w.grade === 'none' && !w.redundant)
+			.filter((w) => w.grade === 'none' && !w.redundant && w.weaved !== true)
 			.map((w) => ({
 				kind: `Rune proc unsnapshotted (${w.stat})`,
 				at: w.start,
@@ -3577,18 +3688,35 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		procs: {
 			procs: procs.length,
 			snapshotted: snapshotted.length,
-			/** Procs where a brew landed inside the reader's leeway *after* the proc ended. */
-			narrowlyMissed: procs.filter((w) => w.snapshotAt === null && w.missedByMs !== null).length,
+			/**
+			 * Procs where a brew landed inside the reader's leeway *after* the proc ended.
+			 *
+			 * Never a weaved one, even though a weaved proc can carry a `missedByMs`: Tigereye Brew has no
+			 * cooldown, so the brew opening the *next* rotation can easily land within a global of a
+			 * weaved proc expiring. Counting it here would have the section call one proc a deliberate
+			 * trade and a brew a fraction too late in the same paragraph.
+			 */
+			narrowlyMissed: procs.filter((w) => w.snapshotAt === null && w.missedByMs !== null && w.weaved !== true).length,
 			/** Procs the bank could actually have paid for — the honest denominator for a catch rate. */
 			opportunities: opportunities.length,
-			/** Procs that arrived with too few stacks to be worth a brew. Reported, never counted as faults. */
-			unaffordable: procs.length - opportunities.length,
+			/**
+			 * Procs that arrived with too few stacks to be worth a brew. Reported, never counted as faults.
+			 *
+			 * The weaved ones are subtracted rather than swept in here: both leave the denominator, but
+			 * this count is printed under copy that says "too few stacks banked", which is the wrong
+			 * reason and a false one.
+			 */
+			unaffordable: procs.length - opportunities.length - weaved.length,
+			weaved: weaved.length,
 			stackFloor: SNAPSHOT_STACK_FLOOR,
 			lastGcd: procs.filter((w) => w.grade === 'last-gcd').length,
 			late: procs.filter((w) => w.grade === 'late').length,
 			early: procs.filter((w) => w.grade === 'early').length,
 			protectedEarly: procs.filter((w) => w.protectedBrew).length,
-			unsnapshotted: procs.filter((w) => w.grade === 'none').length,
+			// The weaved proc is excluded here too, and not only from the score. This count is what the
+			// chart's accessible label reads out as "never snapshotted", and a screen-reader listener has
+			// no colour to tell them the section means something else by it.
+			unsnapshotted: procs.filter((w) => w.grade === 'none' && w.weaved !== true).length,
 			redundant: procs.filter((w) => w.redundant).length,
 			sameAsPrevious: procs.filter((w) => w.sameAsPrevious).length,
 			backToBack: procs.filter((w) => w.backToBack).length,
