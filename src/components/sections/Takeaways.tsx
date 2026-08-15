@@ -7,6 +7,7 @@ import { WEIGHTS, type MetricKey } from '~/lib/score/thresholds';
 import type { Analysis } from '~/lib/types';
 
 import { Note, Prose } from '../primitives';
+import { secondaryButtonClass } from '../primitives/controls';
 
 /**
  * Where each graded section actually lives on the page.
@@ -128,7 +129,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 								<a
 									href={`#${anchor}-heading`}
 									onClick={(event) => jumpToHeading(`${anchor}-heading`, event)}
-									className="mt-auto font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
+									className={`mt-auto self-start ${secondaryButtonClass}`}
 								>
 									{t('summary.takeaways.jump')}
 								</a>

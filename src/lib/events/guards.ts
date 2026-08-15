@@ -15,6 +15,7 @@ import type {
 	CombatantInfoEvent,
 	DamageEvent,
 	DeathEvent,
+	ResurrectEvent,
 	EventBase,
 	HealEvent,
 	ResourceChangeEvent,
@@ -119,6 +120,10 @@ export function isCombatantInfo(e: WclEvent): e is CombatantInfoEvent {
 
 export function isDeath(e: WclEvent): e is DeathEvent {
 	return e.type === 'death';
+}
+
+export function isResurrect(e: WclEvent): e is ResurrectEvent {
+	return e.type === 'resurrect';
 }
 
 export function isResourceChange(e: WclEvent): e is ResourceChangeEvent {

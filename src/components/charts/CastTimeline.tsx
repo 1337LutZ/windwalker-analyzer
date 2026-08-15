@@ -741,10 +741,17 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 */
 	const intermissions = useMemo(
 		() =>
-			complementOf(analysis.debuff.engagedSegments ?? [], analysis.durationMs).filter(
-				([start, end]) => end - start >= MIN_INTERMISSION_MS,
-			),
-		[analysis.debuff.engagedSegments, analysis.durationMs],
+			// Contact with *anything*, falling back to the graded windows only on an analysis captured
+			// before the wider measure existed. The two are not interchangeable: `engagedSegments` is
+			// scoped to the primary target so Rising Sun Kick's uptime means something, and its complement
+			// therefore reads "you were not on the boss". On Galakras that flagged 85% of the pull as
+			// intermission — the player was fighting adds for most of it. Against every target the same
+			// pull gives six segments and 27%, which is the add waves the reader actually watched.
+			complementOf(
+				analysis.debuff.contactSegments ?? analysis.debuff.engagedSegments ?? [],
+				analysis.durationMs,
+			).filter(([start, end]) => end - start >= MIN_INTERMISSION_MS),
+		[analysis.debuff.contactSegments, analysis.debuff.engagedSegments, analysis.durationMs],
 	);
 
 	const drag = useDragScroll();
@@ -1427,6 +1434,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						    arrives resolved. */}
 						{deaths.map((death) => {
 							const by = death.ability ?? t('castLog.death.unnamed');
+							// A band, not a line. The death is an instant but what it costs is the stretch after
+							// it, and a two-pixel rule drew a nine-minute corpse and a battle-res two seconds
+							// later identically. It runs to the resurrection, or to the end of the pull when
+							// none came — which is why the mark can be wider than everything else on the chart.
+							const width = Math.max(0, death.until - death.t);
 							return (
 								<span
 									key={death.t}
@@ -1434,9 +1446,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									data-tip={t('castLog.death.title')}
 									data-tip-tone="miss"
 									data-tip-at={fmt(death.t)}
+									data-tip-to={death.resurrected ? fmt(death.until) : t('castLog.death.noRes')}
 									data-tip-by={by}
-									style={{ left: pct(death.t, span) }}
-									className="absolute inset-y-0 w-[2px] -translate-x-1/2 bg-miss"
+									style={{ left: pct(death.t, span), width: pct(width, span) }}
+									className="absolute inset-y-0 border-l-2 border-miss bg-[var(--color-band-miss)]"
 								/>
 							);
 						})}

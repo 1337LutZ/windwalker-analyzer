@@ -11,7 +11,16 @@
 //
 // Ids are verified against qDZ2J7v4CP98aQmV #57 and KvCazMYkqZxfjRBg #48 (Garrosh HC 25).
 
-import { abilityIdOf, eventsOn, isDamage, isDeath, isResourceChange, resourceActorOf } from '~/lib/events';
+import {
+	abilityIdOf,
+	eventsOn,
+	isCast,
+	isDamage,
+	isDeath,
+	isResourceChange,
+	isResurrect,
+	resourceActorOf,
+} from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
@@ -270,6 +279,39 @@ const XUEN_DURATION_MS = 45000;
  * row it is already counted exactly once, under the name of the thing that actually dealt it.
  */
 const XUEN_NUKE_ID = 123996;
+
+/**
+ * Spirits Storm, Earth and Fire can have out at once.
+ *
+ * Two, and both sources agree: the 5.4 tooltip says "The Monk can split into up to 2 elemental
+ * spirits at a time", and the sim's aura declares `MaxStacks: 2` beside a controller that refuses a
+ * third (`sim/monk/ww_storm_earth_and_fire.go`). Only ever read as the aura's ceiling — the count at
+ * any given moment is the one the log stamped on the stack.
+ */
+const SEF_MAX_CLONES = 2;
+
+/**
+ * How long a second enemy has to be under the monk's hands before the cooldown was worth pressing.
+ *
+ * **The reader's rule, not the simulator's**, and written down as such. The sim does have a number
+ * and it is not this one: its APL gates the button on `numberTargets == 2` — an exact count at the
+ * instant of the press, with no duration attached — and a log cannot answer that, because a log has
+ * no notion of what is "in the fight", only of what was hit.
+ *
+ * What a duration adds is the thing an instant count gets wrong. A spirit costs a global and 10
+ * energy to place, takes about two seconds to arrive (`SEF Spawn Delay`, a 2–2.3s roll in the sim's
+ * controller) and is recalled the moment its target dies — so an enemy that is only there for a
+ * global or two is an enemy that never repays the press.
+ *
+ * Ten seconds lands in a real gap rather than on either edge of one. Measured across the reference
+ * pulls, the longest stretch with a second enemy under the player's hands is 5.9s on Iron Juggernaut
+ * and 9.8s on Malkorok — both pulls where the button was correctly never pressed — against 27.5s on
+ * Garrosh, 36.7s on Galakras and 63.9s on the Dark Shaman.
+ *
+ * Nothing grades against it. It decides whether the section speaks at all, which is the most a
+ * number this soft may be allowed to decide.
+ */
+export const SEF_SECOND_TARGET_MS = 10_000;
 
 export const GCD_MS = 1000;
 
@@ -564,12 +606,31 @@ const ABILITIES: Ability[] = [
 	},
 	{
 		key: 'storm-earth-and-fire',
-		name: 'Storm, Earth and Fire',
-		castIds: [138228],
+		// The log's spelling, comma and all, which is also Wowhead's for 137639 — and not the sim's.
+		name: 'Storm, Earth, and Fire',
+		/**
+		 * 137639, and deliberately **not** the 138228 the simulator uses.
+		 *
+		 * wowsims registers the spell *and* its aura under one id — `SEFSpellID = int32(138228)` in
+		 * `sim/monk/ww_storm_earth_and_fire.go` — and the Windwalker APL both casts that id and reads
+		 * its stacks (`auraNumStacks(138228)` against 1 and 2). Taking the id from the sim is therefore
+		 * the obvious move, and it is wrong: 138228 appears nowhere in a Mists Classic log. Measured on
+		 * a:6MhZgjyAknFWrYfK fight 10 — a Galakras kill with fifteen presses of the button — a cast
+		 * query for 138228 returns zero events and a damage query returns zero, while 137639 returns
+		 * all fifteen casts, each carrying the enemy the spirit was sent to.
+		 *
+		 * The two are genuinely different spells rather than one id under two names. In the mop-classic
+		 * client data 138228 is "Storm, Earth and Fire", a hidden level-75 monk trigger whose own
+		 * tooltip carries no text and links back to 137639 for its description; 137639 is "Storm,
+		 * Earth, and Fire" — with the comma — and is what the log prints beside every one of those
+		 * casts. The sim picked the trigger; the client logs the ability.
+		 */
+		castIds: [137639],
 		// On the global, which is why its absence mattered: every press was missing from the on-GCD
 		// count, so GCD utilisation was understated for anyone playing it.
 		onGcd: true,
 		gate: 'conditional',
+		applies: ['storm-earth-and-fire'],
 		note: "Spent on the APL's target conditions rather than on a cooldown.",
 	},
 	{
@@ -731,6 +792,29 @@ const AURAS: Aura[] = [
 		durationMs: 15000,
 	},
 	{
+		/**
+		 * The same id as the press, and it is a *count of spirits* rather than a plain buff.
+		 *
+		 * Each press sends one spirit out and the log says so by stacking this aura. Measured on
+		 * a:6MhZgjyAknFWrYfK fight 10: `applybuff` → `applybuffstack stack: 2` → `removebuffstack
+		 * stack: 1` → `removebuff`, which is one spirit, then two, then one, then none. The APL reads
+		 * exactly this state — `auraNumStacks < 1` before the first press of a pair, `== 0` before both
+		 * — so the stack count is the rotation's own variable rather than decoration.
+		 *
+		 * No `durationMs`, deliberately. The spirits stay until the monk cancels them or their target
+		 * dies (the 5.4 tooltip says so in as many words), so the window is whatever the log recorded
+		 * and can never be a duration measured forward from a press. That is the opposite of Xuen, and
+		 * for the opposite reason: Xuen's aura is a fabrication the sim keeps so its own chart has a bar
+		 * to draw, while this one is a real aura the game applies and removes.
+		 */
+		key: 'storm-earth-and-fire',
+		name: 'Storm, Earth, and Fire',
+		ids: [137639],
+		kind: 'buff',
+		maxStacks: SEF_MAX_CLONES,
+		appliedBy: 'storm-earth-and-fire',
+	},
+	{
 		key: 're-origination',
 		name: 'Re-Origination',
 		/**
@@ -759,6 +843,7 @@ const TOUCH_OF_KARMA = registry.ability('touch-of-karma');
 const CHI_BREW = registry.ability('chi-brew');
 const TIGEREYE_BREW = registry.ability('tigereye-brew');
 const INVOKE_XUEN = registry.ability('invoke-xuen');
+const STORM_EARTH_AND_FIRE = registry.ability('storm-earth-and-fire');
 
 const BREW = registry.aura('tigereye-brew');
 const BREW_BANK = registry.aura('tigereye-brew-bank');
@@ -774,6 +859,32 @@ const TIGER_STRIKES = registry.aura('tiger-strikes');
 const RUSHING_JADE_WIND_CAST = registry.ability('rushing-jade-wind');
 const ENERGIZING_BREW_CAST = registry.ability('energizing-brew');
 const COMBO_BREAKERS = [CB_TIGER_PALM, registry.aura('combo-breaker-blackout-kick')];
+const SEF_AURA = registry.aura('storm-earth-and-fire');
+
+/**
+ * The damage ids that land on exactly one enemy, which is the only evidence of where an actor stood.
+ *
+ * Here for one question: was the player hitting an enemy one of their own Storm, Earth and Fire
+ * spirits was already on. Answering it means reading a target off a damage event, and most of what a
+ * Windwalker deals cannot carry that reading — Rushing Jade Wind, Spinning Crane Kick, Fists of Fury,
+ * Chi Burst and Chi Wave all spray across whatever is nearby, so on the add fights this metric exists
+ * for everything would overlap everything and every pull would be reported as a fault.
+ *
+ * Measured rather than assumed. Counting distinct enemies hit by one source, under one id, at one
+ * timestamp across the Galakras pull: Rushing Jade Wind reaches five, Flurry of Xuen and the weapon's
+ * Multistrike proc reach three, Chi Burst two — while melee, Jab, Tiger Palm, Blackout Kick and
+ * Rising Sun Kick reach exactly one, every time, across 1,178 timestamps. So these five and no more.
+ *
+ * Blackout Kick's DoT id rides along inside `damageIds` and is harmless: every one of its 340 events
+ * on that pull is flagged `tick`, and ticks are filtered out before this set is consulted. A DoT goes
+ * on ticking on an enemy the actor walked away from, which is the same reason `engagedWindows` throws
+ * them out.
+ */
+const SINGLE_TARGET_DAMAGE_IDS: ReadonlySet<number> = new Set([
+	// Melee. Modelled nowhere, because there is no button behind it; `EXTRA_NAMES` is what names it.
+	1,
+	...['jab', 'tiger-palm', 'blackout-kick', 'rising-sun-kick'].flatMap((key) => registry.ability(key).damageIds ?? []),
+]);
 
 /** The id an aura is reported under. Every aura above declares at least one. */
 const auraId = (aura: Aura): number => aura.ids[0] ?? 0;
@@ -1437,6 +1548,24 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const engagedMs = unionMs(engaged);
 
 	/**
+	 * When the player was in contact with *anything*, as opposed to with the boss.
+	 *
+	 * A second, deliberately wider notion of engagement, and the timeline's shading needs this one. The
+	 * windows above are scoped to the primary target because that is what Rising Sun Kick's uptime is
+	 * measured against — but their complement is not downtime. On an add fight the player is fighting
+	 * for most of the pull and touching the boss for very little of it, and drawing that complement as
+	 * "the fight took the target away" flagged 85% of a Galakras pull as intermission. Against every
+	 * target the same pull reads six segments and 27%, which is what a reader watching add waves come
+	 * and go actually sees.
+	 *
+	 * Ticks are out for the same reason they are out above: a tick lands on an enemy nobody is near.
+	 */
+	const contact = engagedWindows(
+		damageEvents.filter((e) => !(isDamage(e) && e.tick === true)).map((e) => e.timestamp - t0),
+		ENGAGED_GAP_MS,
+	);
+
+	/**
 	 * Every hit the player landed themselves: when, and on whom.
 	 *
 	 * Ticks are out for the reason `engagedWindows` takes them out — a tick lands on an enemy nobody is
@@ -1513,7 +1642,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * a time because nothing could tell it which minute it was in.
 	 */
 	const targetPoints = targetCounts(landedHits, TARGET_WINDOW_MS);
-	const multiTargetMs = unionMs(intervalsAtLeast(targetPoints, 2, duration));
+	// The stretches themselves and not only their total, because Storm, Earth and Fire asks a question
+	// the total cannot answer: whether any *one* of them ran long enough to be worth a spirit. Named
+	// here rather than counted twice, so the mode below and the cooldown further down are two readings
+	// of one array.
+	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
+	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
 	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
 	 * alternatives.
@@ -1805,6 +1939,140 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		};
 	});
 	const xuenUptimeMs = unionMs(xuenUses.map((use): Interval => [use.t, use.t + use.windowMs]));
+
+	// ----------------------------------------------- Storm, Earth and Fire
+	//
+	// Two questions, and they are not the same question.
+	//
+	// Whether the button was worth pressing is about the *pull*: a spirit needs a second body to stand
+	// on, and the target counts above already say when there was one. Whether the presses were spent
+	// well is about the *player*, and there is exactly one way to get it wrong once the spirits are
+	// out — a spirit mirrors the monk onto its own target, so a monk stood on an enemy a spirit is
+	// already handling has paid a global and a damage penalty for a clone that is duplicating them.
+	// The sim will not even model that case: `CastCopySpell` skips any clone whose target equals the
+	// owner's (`sim/monk/ww_storm_earth_and_fire.go`), so the copy the press bought does not happen.
+	const sefWindows = auraWindows(selfEvents, SEF_AURA, t0, fight.endTime);
+	const sefUptimeMs = unionMs(toIntervals(sefWindows));
+
+	/**
+	 * Every press, with the enemy it was aimed at.
+	 *
+	 * The cast event carries a `targetID` and that target is the assignment — confirmed against the
+	 * spirits' own swings on the Galakras pull, where each cast is followed 1.5–2.5s later by a pet
+	 * actor beginning to hit exactly that enemy, which is the sim's 2–2.3s spawn delay. Read from the
+	 * raw events rather than from `castTimes`, which carries the clock and not the target.
+	 *
+	 * A press aimed at an enemy that already has a spirit *recalls* it rather than sending a second —
+	 * the sim's `PickClone` deactivates it — so a press is not always an arrival. Nothing here claims
+	 * otherwise; the aura's own windows are what say how many were actually out.
+	 */
+	const sefUses = events
+		.filter((e) => isCast(e) && e.sourceID === actor.id && abilityIdOf(e) === castId(STORM_EARTH_AND_FIRE))
+		.map((e) => ({
+			t: e.timestamp - t0,
+			target: e.targetID ?? null,
+			name: actors.find((a) => a.id === e.targetID)?.name ?? null,
+			link: link(e.timestamp - t0),
+		}))
+		.sort((a, b) => a.t - b.t);
+
+	/**
+	 * The spirits' own actors: this player's pets that dealt damage while the aura was up, less Xuen.
+	 *
+	 * They arrive in the fetched stream for free, and that was worth checking rather than assuming.
+	 * WarcraftLogs reads a `sourceID` filter as "that actor or its pets", which is what already folds
+	 * the tiger's damage in, and the report's master data lists each spirit as a `Pet` owned by the
+	 * monk — so `mine()` has put them in `damageEvents` before this line runs. Verified on
+	 * a:6MhZgjyAknFWrYfK fight 10: three pet actors, 1,911 damage events between them, of which 1,910
+	 * fall inside a Storm, Earth and Fire window.
+	 *
+	 * Identified by what they did rather than by what they are called. The anonymous reports name every
+	 * pet `Pet (105)`, and a Windwalker's only other pet is the tiger — which `xuenActors` above has
+	 * already picked out by the one spell nothing else casts.
+	 */
+	const sefCloneActors = new Set(
+		damageEvents
+			.filter(
+				(e) => e.sourceID !== actor.id && !xuenActors.has(e.sourceID ?? -1) && inWindow(e.timestamp - t0, sefWindows),
+			)
+			.map((e) => e.sourceID)
+			.filter((id): id is number => id !== undefined),
+	);
+	const sefCloneDamage = damageEvents
+		.filter((e) => e.sourceID !== undefined && sefCloneActors.has(e.sourceID))
+		.reduce((sum, e) => sum + (e.amount ?? 0), 0);
+
+	/** Where one actor's hands were: its single-target hits, in time order. See `SINGLE_TARGET_DAMAGE_IDS`. */
+	const contactHits = (source: number): TargetHit[] => {
+		const hits: TargetHit[] = [];
+		for (const e of damageEvents) {
+			if (e.sourceID !== source || e.tick === true || e.targetID === undefined) continue;
+			if (!SINGLE_TARGET_DAMAGE_IDS.has(abilityIdOf(e) ?? -1)) continue;
+			hits.push({ t: e.timestamp - t0, target: e.targetID });
+		}
+		return hits.sort((a, b) => a.t - b.t);
+	};
+
+	/**
+	 * The enemy an actor was on, moment by moment, inside one window.
+	 *
+	 * Each hit owns the time until that actor's next hit — the rule the debuff's contact figure already
+	 * uses — and the last one owns the rest of the window. Bounded by the window at *both* ends,
+	 * because a spirit does not exist outside it: its last swing before the aura dropped says nothing
+	 * about where the next press sent it, and letting a segment run across the gap put spirits on
+	 * enemies they had been recalled from forty seconds earlier.
+	 */
+	const contactIn = (hits: readonly TargetHit[], w: Window): Array<{ from: number; to: number; target: number }> => {
+		const own = hits.filter((h) => h.t >= w.start && h.t <= w.end);
+		return own.map((h, i) => ({ from: h.t, to: own[i + 1]?.t ?? w.end, target: h.target }));
+	};
+
+	const sefCloneHits = [...sefCloneActors].map(contactHits);
+	const sefPlayerHits = sefWindows.length > 0 ? contactHits(actor.id) : [];
+	let sefOverlapMs = 0;
+	let sefMeasuredMs = 0;
+	const sefOverlapByTarget = new Map<number, number>();
+	for (const w of sefWindows) {
+		const spirits = sefCloneHits.flatMap((hits) => contactIn(hits, w));
+		for (const stood of contactIn(sefPlayerHits, w)) {
+			sefMeasuredMs += stood.to - stood.from;
+			// Merged before it is measured. Two spirits can never share a target — the controller recalls
+			// whichever is already there — but a union cannot report more overlap than the stretch it is
+			// measured across, and a sum of ranges could.
+			const held = mergeIntervals(
+				spirits.filter((s) => s.target === stood.target).map((s): Interval => [s.from, s.to]),
+			);
+			const ms = overlapMs(stood.from, stood.to, held);
+			if (ms <= 0) continue;
+			sefOverlapMs += ms;
+			sefOverlapByTarget.set(stood.target, (sefOverlapByTarget.get(stood.target) ?? 0) + ms);
+		}
+	}
+	/**
+	 * Whether the overlap could be read at all — and it is a real third answer, not a zero.
+	 *
+	 * A pull that pressed the button and whose spirits left no identifiable actor behind cannot be
+	 * asked this question, and "the player never doubled up" is precisely the wrong thing to print
+	 * there. So the audit carries null and the section says it cannot say.
+	 */
+	const sefResolved = sefCloneActors.size > 0 && sefMeasuredMs > 0;
+
+	/**
+	 * The reader's ten-second rule, as a measurement.
+	 *
+	 * A stretch where the counts above say two or more enemies were being damaged, lasting longer than
+	 * `SEF_SECOND_TARGET_MS`. `multiTargetWindows` is the same array the pull's own target mode was
+	 * decided from, reused rather than counted a third time.
+	 *
+	 * It deliberately does **not** require the second enemy to be the *same* enemy throughout.
+	 * `targetCounts` asks how many distinct enemies were hit in a trailing five seconds, so an add that
+	 * dies and is replaced by the next one holds the count at two without a break, and the whole wave
+	 * reads as one stretch. That is the right answer for this cooldown rather than a shortcut: a spirit
+	 * is recalled when its target dies and re-placed for one global and 10 energy, so a chain of adds
+	 * is one continuous reason to be pressing the button. Demanding one enemy survive ten seconds would
+	 * refuse exactly the fights Storm, Earth and Fire is for.
+	 */
+	const sefSustained = multiTargetWindows.filter(([start, end]) => end - start > SEF_SECOND_TARGET_MS);
 
 	// -------------------------------------------------------- Fists of Fury
 	// Graded against the two APL conditions a log can answer. Condition 1 (energy cap) is not
@@ -2118,6 +2386,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * Nothing here is graded. A death explains a lane that stops and is never a fault this report
 	 * counts, so it reaches the timeline as a mark and reaches no metric at all.
 	 */
+	// When the player was picked back up. A death runs until the next of these, or to the end of the
+	// pull when none follows — a corpse held to the kill is the same event with no closing bracket.
+	const revivals = events
+		.filter(isResurrect)
+		.filter((e) => e.targetID === actor.id)
+		.map((e) => e.timestamp - t0)
+		.sort((a, b) => a - b);
+
 	const deaths: DeathMark[] = events
 		.filter(isDeath)
 		.filter((e) => e.targetID === actor.id)
@@ -2126,7 +2402,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			// timer — and resolving it would ask the icon map for spell 0 and the name table for `#0`.
 			const abilityId =
 				e.killingAbilityGameID !== undefined && e.killingAbilityGameID > 0 ? e.killingAbilityGameID : null;
-			return { t: e.timestamp - t0, abilityId, ability: abilityId === null ? null : nameOf(abilityId) };
+			const at = e.timestamp - t0;
+			const back = revivals.find((r) => r > at);
+			return {
+				t: at,
+				abilityId,
+				ability: abilityId === null ? null : nameOf(abilityId),
+				until: back ?? duration,
+				resurrected: back !== undefined,
+			};
 		})
 		.sort((a, b) => a.t - b.t);
 
@@ -2140,6 +2424,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		lane(ENERGIZING_BREW, 'buff', ebWindows),
 		lane(RUSHING_JADE_WIND, 'buff', rjwWindows),
 		lane(TIGER_STRIKES, 'buff', tigerStrikesWindows),
+		// The spirits' own lane. It is the one buff here that is not a damage modifier the reader is
+		// meant to line other presses up against — it is a bar saying "a clone of you was out" — and it
+		// earns its row because every fault the section below names happened somewhere inside it.
+		lane(SEF_AURA, 'buff', sefWindows),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
 		...rskTargets.targets.map(targetLane),
@@ -2286,6 +2574,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			drops: drops.map((g) => ({ at: g.t, seconds: r1(g.ms / 1000) })),
 			windows: rskLaneWindows,
 			engagedSegments: engaged,
+			contactSegments: contact,
 			primaryDamageShare,
 			singleTarget,
 		},
@@ -2366,6 +2655,40 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			petDamage: xuenPetDamage,
 			petSharePct: eventTotal > 0 ? (xuenPetDamage / eventTotal) * 100 : 0,
 			uses: xuenUses,
+		},
+		// Reported, never graded. The two numbers here have no threshold anyone can defend: the sim's
+		// answer to "how much overlap is acceptable" is zero, because it refuses to copy a spell onto the
+		// owner's own target at all, and a zero line would call a real pull a failure for the seconds
+		// after a player's enemy dies and they roll onto one a spirit is holding. The ten-second rule is
+		// the reader's and is a gate on speaking, not a grade. So `lib/score` knows nothing about this.
+		sef: {
+			casts: sefUses.length,
+			uses: sefUses,
+			windows: sefWindows.map(({ start, end, truncated }): Window => ({
+				start,
+				end,
+				...(truncated ? { truncated } : {}),
+			})),
+			uptimeMs: sefUptimeMs,
+			uptimePct: duration > 0 ? (sefUptimeMs / duration) * 100 : 0,
+			clones: sefCloneActors.size,
+			cloneDamage: sefCloneDamage,
+			cloneSharePct: eventTotal > 0 ? (sefCloneDamage / eventTotal) * 100 : 0,
+			// Null, not zero, when the spirits left nothing to measure against — see `sefResolved`.
+			overlapMs: sefResolved ? sefOverlapMs : null,
+			measuredMs: sefMeasuredMs,
+			overlapPct: sefResolved ? (sefOverlapMs / sefMeasuredMs) * 100 : null,
+			overlaps: [...sefOverlapByTarget]
+				.sort((a, b) => b[1] - a[1])
+				.map(([target, ms]) => ({
+					target,
+					name: actors.find((a) => a.id === target)?.name ?? null,
+					ms,
+				})),
+			secondTargetMs: SEF_SECOND_TARGET_MS,
+			justified: sefSustained.length > 0,
+			justifiedMs: unionMs(sefSustained),
+			longestSecondTargetMs: Math.max(0, ...multiTargetWindows.map(([start, end]) => end - start)),
 		},
 		karma: {
 			casts: karmaCasts.length,

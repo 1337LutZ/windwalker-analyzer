@@ -290,6 +290,16 @@ export interface DeathMark {
 	 * which is this report's standing answer for an id it does not know rather than an invented name.
 	 */
 	ability: string | null;
+	/**
+	 * When the player was back on their feet, or the end of the pull when they never were.
+	 *
+	 * A death is a span, not an instant: everything between it and the resurrection is time the player
+	 * could not act, and drawing it as a line understates it to nothing. `resurrected` is what tells
+	 * the two cases apart — a battle res two seconds later and a corpse held to the kill are the same
+	 * mark otherwise, and only one of them explains a chart that stops.
+	 */
+	until: number;
+	resurrected: boolean;
 }
 
 export interface CpmSummary {
@@ -517,6 +527,16 @@ export interface DebuffSummary {
 	drops: Array<{ at: number; seconds: number }>;
 	windows: Window[];
 	engagedSegments: Array<[number, number]>;
+	/**
+	 * When the player was in contact with any enemy, not only the graded one.
+	 *
+	 * The wider of the two, and the one a chart should shade against. `engagedSegments` is scoped to the
+	 * primary target so that Rising Sun Kick's uptime means something; its complement is therefore "you
+	 * were not on the boss", which on an add fight is most of the pull and is not downtime. Optional
+	 * because the committed fixtures predate it — read it for truthiness and fall back to the narrower
+	 * one rather than to nothing.
+	 */
+	contactSegments?: Array<[number, number]>;
 	/** Percentage of the player's damage that landed on the primary target. */
 	primaryDamageShare: number;
 	/**
@@ -878,6 +898,67 @@ export interface XuenAudit {
 	}>;
 }
 
+/**
+ * Storm, Earth and Fire: up to two spirits that mirror the monk onto other enemies.
+ *
+ * The spell is 137639 in a Mists Classic log — both the press and the aura whose stacks count the
+ * spirits — and not the 138228 the simulator registers; see `castIds` on the ability in
+ * `lib/spec/windwalker`, which carries the evidence.
+ *
+ * Two things are worth knowing about a pull, and this carries both without grading either. Whether
+ * the button was worth pressing is `justified`, decided by the reader's ten-second rule. Whether the
+ * presses were spent well is `overlapMs`: the time the player spent hitting an enemy one of their own
+ * spirits was already on, which is the one way the cooldown is wasted after it goes out.
+ */
+export interface SefAudit {
+	casts: number;
+	/**
+	 * Every press, with the enemy it was aimed at.
+	 *
+	 * The cast event carries a target and that target is where the spirit went — or, when the enemy
+	 * already had one, which spirit was recalled. `target`/`name` are null when the log named no target
+	 * or the report's actor list cannot name it; a lane named after the wrong add is worse than one
+	 * named after none.
+	 */
+	uses: Array<{ t: number; target: number | null; name: string | null; link: string }>;
+	/** Stretches with at least one spirit out, read off the aura rather than measured from a press. */
+	windows: Window[];
+	uptimeMs: number;
+	uptimePct: number;
+	/** Distinct pet actors the spirits used. Three exist; at most two are out at once. */
+	clones: number;
+	/**
+	 * Damage the spirits dealt, and its share of the player's whole.
+	 *
+	 * Already inside the player's total — WarcraftLogs returns a pet's damage under its owner's filter
+	 * — and deliberately not broken out into the ability rows: a spirit's Blackout Kick logs under the
+	 * monk's own id, so separating them would mean claiming a split the log does not state.
+	 */
+	cloneDamage: number;
+	cloneSharePct: number;
+	/**
+	 * Time the player spent hitting an enemy one of their own spirits was already on.
+	 *
+	 * **Null is a real answer and is not zero.** A pull that pressed the button but whose spirits left
+	 * no identifiable actor cannot be asked this at all, and printing "never doubled up" there would be
+	 * an invented compliment in the same way a fabricated fault is an invented accusation.
+	 */
+	overlapMs: number | null;
+	/** Time inside the spirits' windows the player was demonstrably on some enemy: the denominator. */
+	measuredMs: number;
+	overlapPct: number | null;
+	/** The enemies it happened on, worst first. `name` is null when the actor list cannot name one. */
+	overlaps: Array<{ target: number; name: string | null; ms: number }>;
+	/** The rule the section speaks under, so the copy names the number rather than restating it. */
+	secondTargetMs: number;
+	/** True when some stretch held a second enemy for longer than `secondTargetMs`. */
+	justified: boolean;
+	/** Total time inside those stretches. */
+	justifiedMs: number;
+	/** The longest stretch with two or more enemies, whether or not it cleared the rule. */
+	longestSecondTargetMs: number;
+}
+
 export interface Miss {
 	kind: string;
 	at: number;
@@ -1042,6 +1123,13 @@ export interface Analysis {
 	 * a field TypeScript would otherwise promise was there.
 	 */
 	xuen?: XuenAudit;
+	/**
+	 * Optional for the same reason `xuen` above it is: the committed fixtures are captured `analyse()`
+	 * output from before this field existed and are cast to `Analysis` rather than migrated, so on a
+	 * fixture it arrives as `undefined` — not `null`, and not an audit full of zeroes. `analyse()`
+	 * always fills it in. Anything reading it has to guard on truthiness.
+	 */
+	sef?: SefAudit;
 	comboBreaker: Array<{
 		id: number;
 		label: string;

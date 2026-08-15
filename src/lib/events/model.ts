@@ -243,6 +243,11 @@ export type CombatantInfoEvent = EventBase & {
 	mastery?: number;
 };
 
+/** The end of a death: `targetID` is who came back, `sourceID` who brought them. */
+export type ResurrectEvent = EventBase & {
+	type: 'resurrect';
+};
+
 export type DeathEvent = EventBase & {
 	type: 'death';
 	killerID?: number;
@@ -282,6 +287,7 @@ export type WclEvent =
 	| ResourceChangeEvent
 	| CombatantInfoEvent
 	| DeathEvent
+	| ResurrectEvent
 	| UnmodelledEvent;
 
 export type AuraApplyEvent = ApplyBuffEvent | ApplyDebuffEvent;

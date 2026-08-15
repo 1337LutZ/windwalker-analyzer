@@ -49,6 +49,15 @@ const death = (t: number, victim: number, killingAbilityGameID?: number): WclEve
 	...(killingAbilityGameID === undefined ? {} : { killingAbilityGameID }),
 });
 
+/** The event that closes a death: `targetID` is who came back. */
+const resurrect = (t: number, victim: number): WclEvent => ({
+	timestamp: T0 + t,
+	type: 'resurrect',
+	sourceID: SOMEONE_ELSE,
+	targetID: victim,
+	abilityGameID: 20484,
+});
+
 const actors: Actor[] = [
 	{ id: ME, name: 'Bigdogmo', type: 'Player' },
 	{ id: SOMEONE_ELSE, name: 'Someoneelse', type: 'Player' },
@@ -133,7 +142,7 @@ describe('the player’s deaths', () => {
 
 	/** The marker names what killed them, resolved through the same table every other id goes through. */
 	it('name the killing blow when the report can name it', () => {
-		expect(deathsIn([death(30_000, ME, NAMED_KILLER)])[0]).toEqual({
+		expect(deathsIn([death(30_000, ME, NAMED_KILLER)])[0]).toMatchObject({
 			t: 30_000,
 			abilityId: NAMED_KILLER,
 			ability: 'Iron Star',
@@ -155,12 +164,46 @@ describe('the player’s deaths', () => {
 	 * back null so the chart can say so in its own words.
 	 */
 	it('carry no ability at all when the log named none', () => {
-		expect(deathsIn([death(30_000, ME, 0)])[0]).toEqual({ t: 30_000, abilityId: null, ability: null });
-		expect(deathsIn([death(30_000, ME)])[0]).toEqual({ t: 30_000, abilityId: null, ability: null });
+		expect(deathsIn([death(30_000, ME, 0)])[0]).toMatchObject({ t: 30_000, abilityId: null, ability: null });
+		expect(deathsIn([death(30_000, ME)])[0]).toMatchObject({ t: 30_000, abilityId: null, ability: null });
 	});
 
 	/** The common case, and it has to be an empty list rather than an absent field. */
 	it('are an empty list on a pull nobody died on', () => {
 		expect(deathsIn([])).toEqual([]);
+	});
+
+	/**
+	 * A death is a span, not an instant. It runs to the resurrection, or to the end of the pull when
+	 * nobody came — which is the difference between a battle res two seconds later and a corpse held
+	 * to the kill, and a chart drawing both as a line said nothing about either.
+	 */
+	it('run until the player is picked back up', () => {
+		const mark = deathsIn([death(30_000, ME, NAMED_KILLER), resurrect(42_000, ME)])[0];
+		expect(mark?.until).toBe(42_000);
+		expect(mark?.resurrected).toBe(true);
+	});
+
+	it('run to the end of the pull when nobody came', () => {
+		const mark = deathsIn([death(30_000, ME, NAMED_KILLER)])[0];
+		expect(mark?.resurrected).toBe(false);
+		expect(mark?.until).toBeGreaterThan(30_000);
+	});
+
+	it('take the next resurrection, not a later one', () => {
+		// Two deaths and two revivals: each band has to close on its own, or a first death would swallow
+		// the second and the chart would draw one long corpse where there were two short ones.
+		const marks = deathsIn([
+			death(30_000, ME, NAMED_KILLER),
+			resurrect(35_000, ME),
+			death(60_000, ME, NAMED_KILLER),
+			resurrect(70_000, ME),
+		]);
+		expect(marks.map((m) => m.until)).toEqual([35_000, 70_000]);
+	});
+
+	it('ignores a resurrection of somebody else', () => {
+		const mark = deathsIn([death(30_000, ME, NAMED_KILLER), resurrect(35_000, SOMEONE_ELSE)])[0];
+		expect(mark?.resurrected).toBe(false);
 	});
 });

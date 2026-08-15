@@ -90,6 +90,22 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+/* Anything that acts like a control gets a pointer.
+ *
+ * Tailwind's preflight sets `cursor: default` on `button`, and `<summary>` and role-tagged elements
+ * never had one — so a page full of working controls was showing the arrow that means "this is
+ * text". Named by role rather than by class so a control added later inherits it instead of having
+ * to remember, and scoped tightly enough that a disabled button keeps its own `not-allowed`. */
+a[href],
+button:not(:disabled),
+summary,
+label[for],
+[role='button']:not([aria-disabled='true']),
+[role='radio'],
+[role='tab'] {
+	cursor: pointer;
+}
+
 /* Digits that line up in columns should not jitter. */
 .tabular {
 	font-variant-numeric: tabular-nums;

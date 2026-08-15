@@ -586,9 +586,11 @@ describe('CastTimeline, intermissions and deaths', () => {
 		timeline: {
 			...timeline,
 			deaths: [
-				{ t: 61000, abilityId: 146743, ability: 'Iron Star' },
-				// The log named nothing: a fall, an enrage, a wipe.
-				{ t: 90000, abilityId: null, ability: null },
+				// Picked back up eleven seconds later, so the band closes.
+				{ t: 61000, abilityId: 146743, ability: 'Iron Star', until: 72000, resurrected: true },
+				// The log named nothing — a fall, an enrage, a wipe — and nobody came, so the band runs to
+				// the end of the pull.
+				{ t: 90000, abilityId: null, ability: null, until: captured.durationMs, resurrected: false },
 			],
 		},
 	};
