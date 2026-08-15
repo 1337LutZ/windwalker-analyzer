@@ -73,6 +73,35 @@ export function targetCounts(hits: readonly TargetHit[], windowMs: number): Targ
 }
 
 /**
+ * A reader for the count at a moment, as a step function.
+ *
+ * The last point at or before `t`, never an interpolation — the series *is* a step function, and a
+ * value between two points is a count nobody was ever fighting. Binary search rather than a scan
+ * because the priority ladder asks this once per press, and the same shape as `valueAt` in
+ * `spec/apl.ts` for the resource curves.
+ *
+ * Zero before the first point, which is correct rather than a fallback: the series opens at the first
+ * landed hit, and before it the player was fighting nothing.
+ */
+export function countAt(points: readonly TargetCountPoint[]): (t: number) => number {
+	return (t) => {
+		let lo = 0;
+		let hi = points.length - 1;
+		let found = -1;
+		while (lo <= hi) {
+			const mid = (lo + hi) >> 1;
+			const point = points[mid];
+			if (point === undefined) break;
+			if (point[0] <= t) {
+				found = mid;
+				lo = mid + 1;
+			} else hi = mid - 1;
+		}
+		return points[found]?.[1] ?? 0;
+	};
+}
+
+/**
  * The stretches where the count was at least `min`, closed at `endMs`.
  *
  * The series is a step function, so a stretch runs from the point that reached the count to the next

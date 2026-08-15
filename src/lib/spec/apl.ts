@@ -27,16 +27,22 @@ import { inWindow, remainingIn } from '../analysis/auras';
  * - **The elixir, weapon-swap, potion and trinket groups** model a sim-only optimisation, exactly as
  *   `components/sections/Rotation.tsx` records when it drops them from the reference table.
  *
- * ## What it refuses to answer
+ * ## The target count is read per press, not per pull
  *
- * The ladder below is the **single-target** list. At two or more enemies the sim's own list changes
- * shape — Spinning Crane Kick, Rushing Jade Wind and the 105-energy Blackout Kick branch switch on
- * with `numberTargets` tests — and this report cannot yet count enemies per moment. So a pull that is
- * not concentrated on one target returns `null` rather than a ladder graded against the wrong list.
- * That gate is `debuff.singleTarget`, the same one that already decides whether Rising Sun Kick
- * uptime is a fault or a fight's doing.
+ * The sim's list is one list that branches on `numberTargets`, at 2 and at 3, plus a raw `>= 4` on
+ * entry 20. So the rules here carry `bands` and the walk reads the live count at each press through
+ * `targetsAt`.
  *
- * The same refusal applies press by press. A rule whose condition cannot be read off this log leaves
+ * Per press rather than per pull, and that distinction is the whole of it. A Kor'kron Dark Shaman
+ * pull opens on four enemies and settles at two; a Galakras pull climbs to five and falls to nothing
+ * between waves. Neither *has* a target count, and picking one number for the pull would mark correct
+ * presses as faults through every stretch that did not match it.
+ *
+ * This used to return `null` for any pull that was not concentrated on a single target, on the
+ * grounds that the ladder was the single-target list. It cost those pulls their priority section
+ * entirely — a Galakras kill got no verdict at all rather than a verdict about the waves.
+ *
+ * A rule whose condition cannot be read off this log leaves
  * every press below it `unknown` rather than `followed` — silence, not a plausible guess, because a
  * wrong "you misplayed here" costs a reader more than a missing one.
  *
@@ -70,8 +76,12 @@ import { inWindow, remainingIn } from '../analysis/auras';
 
 /** The rules this ladder models, in priority order. */
 export type AplRuleKey =
+	| 'rushing-jade-wind-open'
 	| 'rising-sun-kick'
 	| 'tiger-palm-refresh'
+	| 'spinning-crane-kick-heavy'
+	| 'rising-sun-kick-filler'
+	| 'spinning-crane-kick'
 	| 'chi-wave'
 	| 'combo-breaker-kick'
 	| 'fists-of-fury'
@@ -79,6 +89,24 @@ export type AplRuleKey =
 	| 'jab'
 	| 'rushing-jade-wind'
 	| 'blackout-kick';
+
+/**
+ * How many enemies the player was on, as the APL bands it.
+ *
+ * Four values because the file draws four lines, not because four is a round number: its three named
+ * variables split at 2 and 3 (`More than 1`, `More than 2`, `Max 2`), and entry 20 adds a raw
+ * `targets >= 4` that those names hide. A three-band model would silently drop the heavy Spinning
+ * Crane Kick rule.
+ */
+export type Band = 1 | 2 | 3 | 4;
+
+/** The band a live target count falls in. Anything past four is still four — the list draws no line above it. */
+export function bandOf(targets: number): Band {
+	if (targets <= 1) return 1;
+	if (targets === 2) return 2;
+	if (targets === 3) return 3;
+	return 4;
+}
 
 /**
  * A condition's answer.
@@ -139,10 +167,23 @@ export interface AplInputs {
 	/** How long a Fists of Fury channel ran, measured. The APL writes this as four ticks plus input delay. */
 	fofChannelSec: number;
 	/**
-	 * False on an add fight. The ladder below is the single-target list, and grading a multi-target
-	 * pull against it would mark correct Spinning Crane Kicks as mistakes.
+	 * How many enemies the player was engaged with at a moment.
+	 *
+	 * Read per press, never per pull, because neither of those is the same question. A Dark Shaman pull
+	 * opens on four and settles at two; a Galakras pull climbs to five and falls to nothing between
+	 * waves. Neither *has* a target count, and grading either against one number would mark correct
+	 * presses as faults through every stretch that did not match it. The sim evaluates `numberTargets`
+	 * at each action, so this does too.
 	 */
-	singleTarget: boolean;
+	targetsAt: (t: number) => number;
+	/**
+	 * A reader's override, forcing every press to be judged at one band.
+	 *
+	 * Absent means "read the log", which is what the report does unless asked otherwise. Present, it
+	 * answers the one question the measurement cannot: a player who deliberately ignored the adds was
+	 * on one target by choice, and no count taken off the log can know that.
+	 */
+	forceBand?: Band;
 	/**
 	 * Chi knocked off Rising Sun Kick, Blackout Kick and Fists of Fury by the tier-16 four-piece.
 	 * Zero when the bonus is not equipped; the sim applies it to those three and not to Tiger Palm.
@@ -159,13 +200,28 @@ const ID = {
 	chiWave: 115098,
 	fistsOfFury: 113656,
 	rushingJadeWind: 116847,
+	spinningCraneKick: 101546,
 } as const;
 
 /** Cooldowns, in ms, from the sim's spell configs. */
 const COOLDOWN_MS: Partial<Record<AplRuleKey, number>> = {
 	'rising-sun-kick': 8000,
+	// The same button and the same cooldown, listed twice because the APL lists it twice. Keyed by rule
+	// rather than by id, so both entries have to carry it or the lower one reads as always ready.
+	'rising-sun-kick-filler': 8000,
 	'fists-of-fury': 25_000,
 	'chi-wave': 15_000,
+	/**
+	 * Six seconds, from `sim/monk/talents.go`, and load-bearing rather than housekeeping.
+	 *
+	 * The APL's entry 17 is a bare `Targets: More than 1` with no "not already running" clause, because
+	 * the sim does not need one: the spell's own cooldown is its duration, and it re-arms the cooldown to
+	 * whatever is left on the dot. Modelled without it, the list appears to demand Rushing Jade Wind on
+	 * every global from the second target onwards — which on the Galakras pull invented 95 skips out of
+	 * 148, all of them for a button that was already spinning.
+	 */
+	'rushing-jade-wind-open': 6000,
+	'rushing-jade-wind': 6000,
 };
 
 /**
@@ -184,8 +240,17 @@ const TIGER_POWER_REFRESH_MS = 1000;
  */
 const COMBO_BREAKER_PALM_AFTER_MS = 23_000;
 
-/** The energy the dump branch needs to have banked by the time Rising Sun Kick comes back, at ≤2 targets. */
-const DUMP_ENERGY = 35;
+/**
+ * The energy the dump branch needs banked by the time Rising Sun Kick comes back.
+ *
+ * Two numbers, and the gap between them is the whole point: at three or more targets the list wants
+ * the bar nearly full before it spends chi on a Blackout Kick, because that chi is worth more through
+ * Spinning Crane Kick. Grading an add fight against the 35 would call a correct hold a skipped dump.
+ */
+const DUMP_ENERGY = { few: 35, many: 105 } as const;
+
+/** Tiger Power a heavy Spinning Crane Kick needs left on the clock, from APL 20. */
+const SCK_TIGER_POWER_MS = 2250;
 
 interface State {
 	t: number;
@@ -201,6 +266,8 @@ interface State {
 	/** Carried on the state rather than closed over, so a rule reads every number it needs from one place. */
 	fofChannelSec: number;
 	regenPerSec: number;
+	/** Enemies engaged at this press, banded as the list bands them. */
+	band: Band;
 }
 
 /**
@@ -228,6 +295,24 @@ interface Rule {
 	 * this ladder exists to catch.
 	 */
 	talent?: true;
+	/**
+	 * The bands this entry exists in. Omitted means every band, which is what most of the list wants.
+	 *
+	 * A band gate is not the same as a false condition and is kept separate from one: an entry outside
+	 * its band is not *in* the list at this press, so it can never be the thing a press skipped. Writing
+	 * these as conditions instead would leave `wanted` pointing at a button the list was not offering.
+	 */
+	bands?: readonly Band[];
+	/**
+	 * A button that removes this one from the character's bars entirely.
+	 *
+	 * Not a priority relationship — an existence one. `registerSpinningCraneKick` in the sim opens with
+	 * `if monk.Talents.RushingJadeWind && monk.Level >= 90 { return }`, so a monk who took Rushing Jade
+	 * Wind has no Spinning Crane Kick at all. Without this the ladder would hand an add fight a column
+	 * of skips for a button that was never on the bar, which is the worst kind of wrong: confident,
+	 * specific, and impossible to act on.
+	 */
+	replacedBy?: number;
 	/** Free presses: an aura that waives the cost, which changes what "could afford it" means. */
 	freeWhen?: (state: State, auras: AuraReader) => boolean;
 	condition: (state: State, auras: AuraReader) => Truth;
@@ -249,13 +334,29 @@ interface AuraReader {
  */
 const LADDER: readonly Rule[] = [
 	{
-		// 18 — cast on cooldown at one target: the `not(Targets: More than 2)` half of the condition is
-		// always true here, so the only gate that matters is affording it.
+		// 17 — above Rising Sun Kick the moment there is a second target, and this is the single biggest
+		// change the target count makes to the list. At one target the entry does not exist at all.
+		key: 'rushing-jade-wind-open',
+		id: ID.rushingJadeWind,
+		chiCost: 0,
+		energyCost: 40,
+		talent: true,
+		bands: [2, 3, 4],
+		condition: () => true,
+	},
+	{
+		// 18 — `auraRemainingTime(TigerPower) <= GCD or not(Targets: More than 2)`. Below three targets
+		// the second half is true and the kick goes on cooldown; at three and up the list only wants it
+		// here to hold Tiger Power, and the unconditional kick further down catches the rest.
 		key: 'rising-sun-kick',
 		id: ID.risingSunKick,
 		chiCost: 2,
 		energyCost: 0,
-		condition: () => true,
+		condition: (state, auras) => {
+			if (state.band <= 2) return true;
+			if (!auras.present('tiger-power')) return 'unknown';
+			return auras.remainingMs('tiger-power') <= state.gcdSec * 1000;
+		},
 	},
 	{
 		// 19 — the refresh press. Tiger Power is what makes every other button hit harder, so the list
@@ -271,6 +372,42 @@ const LADDER: readonly Rule[] = [
 			if (!auras.present('tiger-power')) return 'unknown';
 			return auras.remainingMs('tiger-power') <= TIGER_POWER_REFRESH_MS;
 		},
+	},
+	{
+		// 20 — `targets >= 4 and auraRemainingTime(TigerPower) >= 2.25s`. A raw count rather than one of
+		// the three named variables, which is why this ladder bands at four and not at three: read
+		// through the variables alone this rule is invisible.
+		key: 'spinning-crane-kick-heavy',
+		id: ID.spinningCraneKick,
+		replacedBy: ID.rushingJadeWind,
+		chiCost: 0,
+		energyCost: 40,
+		bands: [4],
+		condition: (_state, auras) => {
+			if (!auras.present('tiger-power')) return 'unknown';
+			return auras.remainingMs('tiger-power') >= SCK_TIGER_POWER_MS;
+		},
+	},
+	{
+		// 21 — the unconditional kick. Unreachable below three targets, where entry 18 above has already
+		// claimed it; from three up this is what puts Rising Sun Kick back on cooldown once the list has
+		// spent the higher globals on the adds.
+		key: 'rising-sun-kick-filler',
+		id: ID.risingSunKick,
+		chiCost: 2,
+		energyCost: 0,
+		condition: () => true,
+	},
+	{
+		// 22 — the three-target filler, and the button this whole exercise exists to stop calling a
+		// mistake.
+		key: 'spinning-crane-kick',
+		id: ID.spinningCraneKick,
+		replacedBy: ID.rushingJadeWind,
+		chiCost: 0,
+		energyCost: 40,
+		bands: [3, 4],
+		condition: () => true,
 	},
 	{
 		// 23 — only while there is room in the bar for the global it costs.
@@ -348,12 +485,17 @@ const LADDER: readonly Rule[] = [
 	},
 	{
 		// 32 — the dump. Spend chi on a Blackout Kick only when the energy banked by the time Rising Sun
-		// Kick returns still clears the generator's cost, so the dump never starves the next kick.
+		// Kick returns still clears the generator's cost, so the dump never starves the next kick. The
+		// bar it has to clear is three times higher above two targets, because that chi is worth more
+		// through Spinning Crane Kick than through a single-target dump.
 		key: 'blackout-kick',
 		id: ID.blackoutKick,
 		chiCost: 2,
 		energyCost: 0,
-		condition: (state) => state.energy + state.regenPerSec * state.rskReadyInSec >= DUMP_ENERGY,
+		condition: (state) => {
+			const banked = state.energy + state.regenPerSec * state.rskReadyInSec;
+			return banked >= (state.band <= 2 ? DUMP_ENERGY.few : DUMP_ENERGY.many);
+		},
 	},
 ];
 
@@ -419,6 +561,9 @@ function stateAt(t: number, inputs: AplInputs, lastCast: ReadonlyMap<number, num
 		rskReadyInSec: lastRsk === undefined ? 0 : Math.max(0, lastRsk + rskCooldown - t) / 1000,
 		fofChannelSec: inputs.fofChannelSec,
 		regenPerSec: inputs.regenPerSec,
+		// The reader's override wins outright when there is one: it answers a question the log cannot,
+		// namely that ignoring the adds was a decision rather than an oversight.
+		band: inputs.forceBand ?? bandOf(inputs.targetsAt(t)),
 	};
 }
 
@@ -456,6 +601,12 @@ function judge(
 	lastCast: ReadonlyMap<number, number>,
 ): AplPress {
 	for (const rule of LADDER) {
+		// Not in the list at this target count, so it is not a button the press passed over. Checked
+		// before the talent gate and before the cooldown, because an entry outside its band is absent
+		// rather than unavailable.
+		if (rule.bands !== undefined && !rule.bands.includes(state.band)) continue;
+		// Replaced on the character's bars, so it is not a button that could have been pressed.
+		if (rule.replacedBy !== undefined && seen.has(rule.replacedBy)) continue;
 		// A talent row is only demanded of a player the log shows chose it. Baseline buttons carry no
 		// such gate, so never pressing one is a fault this ladder can still name.
 		if (rule.talent === true && !seen.has(rule.id)) continue;
@@ -485,12 +636,12 @@ function judge(
 /**
  * Walk the pull, press by press, and ask the list what it wanted.
  *
- * Returns `null` — not an empty audit — when the pull cannot be judged: an add fight, or a log with
- * no resource readings. Those are different from "no mistakes", and the section has to be able to
- * tell them apart.
+ * Returns `null` — not an empty audit — only when the log carried no resource readings to walk. An
+ * add fight used to return `null` here too, on the grounds that the ladder was the single-target
+ * list; it is not any more. The list bands on target count and this walk reads the band at each
+ * press, so a wave fight is judged against what the list actually wanted during the waves.
  */
 export function aplAudit(inputs: AplInputs): AplAudit | null {
-	if (!inputs.singleTarget) return null;
 	if (inputs.energy.points.length === 0 || inputs.chi.points.length === 0) return null;
 
 	const reduction = inputs.chiCostReduction ?? 0;

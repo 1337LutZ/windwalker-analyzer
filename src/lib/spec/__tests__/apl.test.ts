@@ -41,14 +41,21 @@ function inputs(over: Partial<AplInputs> = {}): AplInputs {
 		// unknown — the tests that want the unknown ask for it explicitly.
 		auras: { 'tiger-power': throughout },
 		fofChannelSec: 4,
-		singleTarget: true,
+		// One target throughout unless a test says otherwise, which keeps every existing case reading
+		// against the same list it was written for.
+		targetsAt: () => 1,
 		...over,
 	};
 }
 
 describe('the priority ladder', () => {
-	it('refuses an add fight rather than grading it against the single-target list', () => {
-		expect(aplAudit(inputs({ singleTarget: false, casts: [press(1000, ID.jab)] }))).toBeNull();
+	it('grades an add fight against the list the adds were in, rather than refusing it', () => {
+		// This used to return null on the grounds that the ladder was the single-target list. It is not:
+		// the APL bands on target count, so a wave fight gets judged against what the list wanted during
+		// the waves. Refusing it meant a Galakras pull got no priority section at all.
+		const audit = aplAudit(inputs({ targetsAt: () => 4, casts: [press(1000, ID.jab)] }));
+		expect(audit).not.toBeNull();
+		expect(audit?.presses).toHaveLength(1);
 	});
 
 	it('refuses a log with no resource readings', () => {

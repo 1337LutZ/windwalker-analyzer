@@ -92,6 +92,7 @@ import {
 	SELF_EVENT_MS,
 	snapshotWindowEnd,
 	targetCounts,
+	countAt,
 	intervalsAtLeast,
 	toIntervals,
 	trackStackBank,
@@ -3437,7 +3438,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// Measured from this pull rather than assumed: the channel is hasted, and the list's condition
 		// is written in units of how long it actually runs.
 		fofChannelSec: fofCasts.length > 0 ? channelledMs / fofCasts.length / 1000 : (FOF_CHANNEL.baseMs ?? 4000) / 1000,
-		singleTarget,
+		// The same step function the target-count section draws, read at each press rather than summarised
+		// over the pull. `singleTarget` is deliberately no longer passed: it is a damage-concentration
+		// boolean, and what the list needs is a live count.
+		targetsAt: countAt(targetPoints),
 	});
 
 	// --------------------------------------------------------------- assembly

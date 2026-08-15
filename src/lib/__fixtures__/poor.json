@@ -7984,13 +7984,13 @@
       {
         "t": 151682,
         "pressed": 100787,
-        "wanted": "chi-wave",
+        "wanted": "spinning-crane-kick-heavy",
         "verdict": "skipped"
       },
       {
         "t": 152691,
         "pressed": 100780,
-        "wanted": "chi-wave",
+        "wanted": "spinning-crane-kick-heavy",
         "verdict": "skipped"
       },
       {
@@ -8002,7 +8002,7 @@
       {
         "t": 155027,
         "pressed": 100784,
-        "wanted": "chi-wave",
+        "wanted": "spinning-crane-kick-heavy",
         "verdict": "skipped"
       },
       {
@@ -8026,7 +8026,7 @@
       {
         "t": 162705,
         "pressed": 100780,
-        "wanted": "combo-breaker-kick",
+        "wanted": "spinning-crane-kick-heavy",
         "verdict": "skipped"
       },
       {
@@ -8524,7 +8524,7 @@
       {
         "key": "chi-wave",
         "id": 115098,
-        "count": 36
+        "count": 33
       },
       {
         "key": "jab",
@@ -8539,7 +8539,7 @@
       {
         "key": "combo-breaker-kick",
         "id": 100784,
-        "count": 16
+        "count": 15
       },
       {
         "key": "blackout-kick",
@@ -8550,6 +8550,11 @@
         "key": "tiger-palm-refresh",
         "id": 100787,
         "count": 5
+      },
+      {
+        "key": "spinning-crane-kick-heavy",
+        "id": 101546,
+        "count": 4
       },
       {
         "key": "combo-breaker-palm",
