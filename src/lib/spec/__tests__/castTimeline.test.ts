@@ -381,3 +381,113 @@ describe('the item procs a Windwalker carries', () => {
 		expect(named.filter((name) => name.startsWith('#'))).toEqual([]);
 	});
 });
+
+/**
+ * Focus of Xuen, which is the one aura on this chart that is *spent* rather than waited out.
+ *
+ * The tier-16 four-piece hands it over for every ten Tigereye Brew stacks spent and the next Blackout
+ * Kick, Fists of Fury or Rising Sun Kick cashes it in — so a window that was pressed away and a window
+ * that ran out draw the identical bar, and the press that took it is the only thing separating them.
+ *
+ * The tolerance below is a measurement rather than a convention. Across 276 windows on every
+ * Windwalker boss pull in both anonymous reports, 270 removals carry a chi spender within four
+ * milliseconds and the next-nearest spender is never closer than 981ms, so the pairing is not close to
+ * ambiguous — which is exactly why the cases worth pinning here are the six that are not the modal
+ * one. Synthetic for that reason: a real pull is 97% the easy case.
+ */
+describe('what spent each Focus of Xuen', () => {
+	const FOCUS = 145_024;
+	const BLACKOUT_KICK = 100_784;
+	const spends = (extra: WclEvent[]) =>
+		analyse({
+			...dataset,
+			events: [...events, ...extra].sort((a, b) => a.timestamp - b.timestamp),
+		}).timeline?.lanes.find((l) => l.key === 'focus-of-xuen')?.spent;
+
+	/** The modal case: the press and the removal share a millisecond, because they are one event. */
+	it('names the press stamped on the removal', () => {
+		expect(
+			spends([
+				e(60_000, 'applybuff', FOCUS),
+				e(61_500, 'cast', BLACKOUT_KICK, { targetID: BOSS }),
+				e(61_500, 'removebuff', FOCUS),
+			]),
+		).toEqual([{ start: 60_000, id: BLACKOUT_KICK, name: 'Blackout Kick' }]);
+	});
+
+	/**
+	 * And the other half of that population: the press lands a millisecond *before* the removal. Both
+	 * orderings occur — 131 of the 270 on the same stamp, 137 one before — so a rule that demanded
+	 * simultaneity would have missed half of them.
+	 */
+	it('names a press stamped a millisecond before the removal', () => {
+		expect(
+			spends([
+				e(65_000, 'applybuff', FOCUS),
+				e(66_999, 'cast', 107_428, { targetID: BOSS }),
+				e(67_000, 'removebuff', FOCUS),
+			]),
+		).toEqual([{ start: 65_000, id: 107_428, name: 'Rising Sun Kick' }]);
+	});
+
+	/**
+	 * The outcome the whole thing exists to keep honest. Ten seconds is easily missed, and both windows
+	 * that ran out on the reference pulls have a Rising Sun Kick a little over a second *after* the
+	 * removal — the press that would have spent it, had it come in time. A symmetric window would have
+	 * named that press as the consumer of a buff it never got.
+	 */
+	it('says a window ran out rather than naming the press that came too late', () => {
+		expect(
+			spends([
+				e(70_000, 'applybuff', FOCUS),
+				e(80_000, 'removebuff', FOCUS),
+				e(81_200, 'cast', BLACKOUT_KICK, { targetID: BOSS }),
+			]),
+		).toEqual([{ start: 70_000, id: null, name: null, fate: 'expired' }]);
+	});
+
+	/**
+	 * A window that came off early with no press behind it, which is the third answer and not the
+	 * second. On the reference pulls it is the player dying and every buff leaving at once — the clock
+	 * had not run out, so calling it an expiry would be inventing one.
+	 */
+	it('claims nothing for a window that came off early with no press near it', () => {
+		expect(
+			spends([
+				e(85_000, 'applybuff', FOCUS),
+				e(86_000, 'cast', BLACKOUT_KICK, { targetID: BOSS }),
+				e(87_800, 'removebuff', FOCUS),
+			]),
+		).toEqual([{ start: 85_000, id: null, name: null }]);
+	});
+
+	/** Still up when the last event landed: the pull ended first, which is not a window anyone wasted. */
+	it('says the pull ended first for a window that never closed', () => {
+		expect(spends([e(115_000, 'applybuff', FOCUS)])).toEqual([
+			{ start: 115_000, id: null, name: null, fate: 'truncated' },
+		]);
+	});
+
+	/** A button that cannot spend it never claims it, however close to the removal it lands. */
+	it('ignores a press that is not one of the three that spend it', () => {
+		expect(
+			spends([
+				e(90_000, 'applybuff', FOCUS),
+				e(91_000, 'cast', 100_787, { targetID: BOSS }),
+				e(91_000, 'removebuff', FOCUS),
+			]),
+		).toEqual([{ start: 90_000, id: null, name: null }]);
+	});
+
+	/** Every other lane is a window and nothing more, and carries no verdict to be read off it. */
+	it('leaves the auras nothing spends without a verdict', () => {
+		const other = analyse({
+			...dataset,
+			events: [...events, e(9000, 'applybuff', 148_903), e(19_000, 'removebuff', 148_903)].sort(
+				(a, b) => a.timestamp - b.timestamp,
+			),
+		}).timeline?.lanes;
+		expect(other?.find((l) => l.key === 'vicious')?.windows).toHaveLength(1);
+		expect(other?.find((l) => l.key === 'vicious')?.spent).toBeUndefined();
+	});
+});

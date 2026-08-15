@@ -15,9 +15,10 @@
 // want is zero rather than merely invisible. The grid is a repeating gradient on the track, which is
 // a whole axis for no nodes at all.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import type { AuraWindow } from '~/lib/analysis/auras';
 import { complementOf } from '~/lib/analysis/intervals';
 import type {
 	AbilityDamage,
@@ -26,6 +27,7 @@ import type {
 	CastMark,
 	DeathMark,
 	LaneGroup,
+	LaneSpend,
 	LaneStacks,
 	LaneTarget,
 	ResourceCurve,
@@ -40,7 +42,7 @@ import { formatGap } from '~/lib/format';
 
 import { fmt, n } from '../format';
 import { jumpToHeading } from '../jump';
-import { readTheme, tip, type ChartTheme } from './apex';
+import { readTheme, tip, type ChartTheme, type TipRow } from './apex';
 import ChartEmpty from './ChartEmpty';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
 import ResourceTrack, { type ShadeWindow } from './ResourceTrack';
@@ -182,6 +184,8 @@ const TIP_OFFSET_PX = 14;
 const NO_CASTS: CastMark[] = [];
 const NO_LANES: AuraLane[] = [];
 const NO_DEATHS: DeathMark[] = [];
+/** The same, for the haste windows, which arrive from an audit rather than from the timeline. */
+const NO_HASTE: AuraWindow[] = [];
 
 /**
  * How the reader has overridden the per-enemy grouping, if at all.
@@ -541,11 +545,27 @@ function castLanesOf(casts: readonly CastMark[], pxPerSec: number, damaging: Rea
 		);
 }
 
-function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMark, number>) {
+/**
+ * `sentTo` turns a press's target into the sentence the tooltip shows, or into nothing.
+ *
+ * A function rather than a string on the mark because the wording is copy and this file is not where
+ * copy lives — the component owns the `t` and hands the formatting down, exactly as the death marks
+ * resolve their killer's name before it reaches an attribute.
+ */
+function castNodesOf(
+	casts: readonly CastMark[],
+	span: number,
+	rowOf: Map<CastMark, number>,
+	sentTo: (c: CastMark) => string | undefined,
+) {
 	return casts.map((c) => {
 		const url = spellIconUrl(c.id);
 		const size = GCD_ICON_PX;
-		const title = `${c.name} · ${fmt(c.t)}`;
+		// The enemy a press aimed at, where the press is one that aims. On the `title` as well as in the
+		// tooltip: the attribute is the fallback for a reader whose pointer never fires, and a press whose
+		// whole point is *which* enemy would otherwise say less to them than it does to everyone else.
+		const target = sentTo(c);
+		const title = `${c.name} · ${fmt(c.t)}${target === undefined ? '' : ` · ${target}`}`;
 		const key = `${c.t}-${c.id}`;
 		// The icon's *left* edge is its moment, not its centre.
 		//
@@ -570,6 +590,7 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 					data-tip-tone={GROUP_TONE.casts}
 					data-tip-at={fmt(c.t)}
 					data-tip-auto={c.id === MELEE_ID ? '' : undefined}
+					data-tip-target={target}
 					style={{ left, top, height: size }}
 					className="absolute w-[3px] -translate-y-1/2 rounded-[1px] bg-muted"
 				/>
@@ -592,6 +613,8 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 				// Auto-attacks are not pressed, so the tooltip must not say they were. Marked on the mark
 				// rather than decided in the tooltip, which has no business knowing which id is melee.
 				data-tip-auto={c.id === MELEE_ID ? '' : undefined}
+				// Which enemy this press aimed at, on the one button whose whole point is the answer.
+				data-tip-target={target}
 				width={size}
 				height={size}
 				loading="lazy"
@@ -687,40 +710,65 @@ function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
  * `notes` labels a bar with a number when the lane has one worth carrying — the stacks a Tigereye
  * Brew spent, which is what separates a brew worth pressing from one that was not, and is invisible
  * from the bar's length alone.
+ *
+ * `spentAs` does the same job for a lane the engine handed a verdict per window: an aura that is
+ * cashed in rather than waited out draws the same bar whether a press took it or the clock did, and
+ * naming the press is the only thing that separates the two. It formats rather than decides — the
+ * pairing is the engine's, and this turns its answer into the copy for it — and it answers
+ * `undefined` for every lane and every window that has none, which is all of them but one.
  */
-function barNodesOf(lane: AuraLane, span: number, notes: Map<number, number> | null) {
-	return lane.windows.map((w: Window) => (
-		<span
-			// Both ends, not just the start: an aura logged under several ids — Re-Origination is one —
-			// can open two windows on the same millisecond, and React would then see a duplicate key.
-			key={`${w.start}-${w.end}`}
-			title={`${lane.name} · ${fmt(w.start)} → ${fmt(w.end)}`}
-			// The aura's own name, which is the half of a merged row's label that the gutter may have
-			// truncated — and on a row named after the button, the only place the aura is named at all.
-			data-tip={lane.name}
-			data-tip-tone={GROUP_TONE[lane.group]}
-			data-tip-from={fmt(w.start)}
-			data-tip-to={fmt(w.end)}
-			style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
-			// A floor of two pixels, because a window can be shorter than the screen can draw and a bar
-			// nobody can see is indistinguishable from an aura that never went up.
-			// The full row, top to bottom. A bar floating inside its lane reads as a smaller thing than
-			// the lane it belongs to, and the rule underneath is what separates one lane from the next —
-			// so the bar does not need to leave room for a separation that is already drawn.
-			// The 2px radius every other chart's bars carry — ApexCharts draws its rangeBars with
-			// `borderRadius: 2`, so matching it keeps the two kinds of timeline looking like one report.
-			className={`absolute inset-y-0 min-w-[2px] rounded-[2px] ${GROUP_SWATCH[lane.group]}`}
-		>
-			{notes?.get(w.start) === undefined ? null : (
-				// Larger than the chart's other incidental figures, and deliberately: this one is a verdict in
-				// miniature — a brew on ten stacks and one on five draw the same bar, and the number is the
-				// only thing separating them.
-				<span className="pointer-events-none absolute inset-y-0 left-[4px] flex items-center font-mono text-xs leading-none font-semibold text-bg">
-					{notes.get(w.start)}
-				</span>
-			)}
-		</span>
-	));
+function barNodesOf(
+	lane: AuraLane,
+	span: number,
+	notes: Map<number, number> | null,
+	spentAs: (spend: LaneSpend) => { text: string; icon: string | null },
+) {
+	// Keyed on the window's own start, which is what the engine identified each verdict by — the same
+	// key the brew notes above use, and sound for the same reason: two windows of one aura cannot open
+	// on the same millisecond unless the aura logs under several ids, and this one logs under one.
+	const spent = new Map((lane.spent ?? []).map((s) => [s.start, spentAs(s)]));
+	return lane.windows.map((w: Window) => {
+		const fate = spent.get(w.start);
+		return (
+			<span
+				// Both ends, not just the start: an aura logged under several ids — Re-Origination is one —
+				// can open two windows on the same millisecond, and React would then see a duplicate key.
+				key={`${w.start}-${w.end}`}
+				// The verdict rides on the `title` as well, so the reader whose pointer never fires is told
+				// what spent the window rather than only when it opened and closed.
+				title={`${lane.name} · ${fmt(w.start)} → ${fmt(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
+				// The aura's own name, which is the half of a merged row's label that the gutter may have
+				// truncated — and on a row named after the button, the only place the aura is named at all.
+				data-tip={lane.name}
+				data-tip-tone={GROUP_TONE[lane.group]}
+				data-tip-from={fmt(w.start)}
+				data-tip-to={fmt(w.end)}
+				// What became of this window. Two attributes rather than one, because the icon is markup and
+				// the text is not: the shared tooltip assembles them, and a mark that carried the markup would
+				// be carrying an element again — which is the objection the whole `data-*` design answers.
+				data-tip-spent={fate?.text}
+				data-tip-spent-icon={fate?.icon ?? undefined}
+				style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+				// A floor of two pixels, because a window can be shorter than the screen can draw and a bar
+				// nobody can see is indistinguishable from an aura that never went up.
+				// The full row, top to bottom. A bar floating inside its lane reads as a smaller thing than
+				// the lane it belongs to, and the rule underneath is what separates one lane from the next —
+				// so the bar does not need to leave room for a separation that is already drawn.
+				// The 2px radius every other chart's bars carry — ApexCharts draws its rangeBars with
+				// `borderRadius: 2`, so matching it keeps the two kinds of timeline looking like one report.
+				className={`absolute inset-y-0 min-w-[2px] rounded-[2px] ${GROUP_SWATCH[lane.group]}`}
+			>
+				{notes?.get(w.start) === undefined ? null : (
+					// Larger than the chart's other incidental figures, and deliberately: this one is a verdict in
+					// miniature — a brew on ten stacks and one on five draw the same bar, and the number is the
+					// only thing separating them.
+					<span className="pointer-events-none absolute inset-y-0 left-[4px] flex items-center font-mono text-xs leading-none font-semibold text-bg">
+						{notes.get(w.start)}
+					</span>
+				)}
+			</span>
+		);
+	});
 }
 
 /** One stretch the counter held a level, which is the shape a step series has to be drawn as. */
@@ -958,6 +1006,29 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const spareLanes = useMemo(() => drawnLanesOf(allSpareLanes), [allSpareLanes]);
 	const hidden = useMemo(() => hiddenNames([...allDrawnLanes, ...allSpareLanes]), [allDrawnLanes, allSpareLanes]);
 	const deaths = analysis.timeline?.deaths ?? NO_DEATHS;
+	/**
+	 * The raid's haste cooldown, read off the Energizing Brew audit rather than measured again here.
+	 *
+	 * That audit already asks the log this exact question — its whole Bloodlust clause is "was one of
+	 * these running" — so the windows exist, and measuring them a second time would be a second answer
+	 * free to disagree with the one the section beside this chart prints. Truthiness rather than a null
+	 * check, for the reason every optional field on an analysis carries: on a fixture captured before
+	 * the audit existed it arrives as `undefined`.
+	 */
+	const haste = analysis.energizing?.hasteWindows ?? NO_HASTE;
+	/**
+	 * Which of the five a window actually was.
+	 *
+	 * The spec models one aura across five ids on purpose — the rotation's condition is "any of them",
+	 * so a raid with a mage instead of a shaman must not read as having no haste cooldown — and
+	 * `variants` is the half of that which remembers the difference. Read per window rather than once
+	 * for the pull, so a night that took Drums after a Time Warp names each band for itself.
+	 *
+	 * The fallback is a word rather than a guess: an id the model does not name is still a haste
+	 * cooldown, and calling it Bloodlust because that is the commonest of the five would be the chart
+	 * inventing which class was in the raid.
+	 */
+	const lustName = (w: AuraWindow): string => w.variant ?? t('castLog.lust.unnamed');
 	const span = spanOf(analysis.durationMs);
 
 	// All four are view state and none is persisted: which rows a reader is looking at right now is not
@@ -1045,9 +1116,55 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// and not a scan of the damage table for every button the player owns.
 	const damaging = useMemo(() => damagingNames(analysis.damage.abilities), [analysis.damage.abilities]);
 	const castLanes = useMemo(() => castLanesOf(casts, pxPerSec, damaging), [casts, pxPerSec, damaging]);
+	/**
+	 * The enemy a press aimed at, in words — the Storm, Earth and Fire section's own words.
+	 *
+	 * Three answers and they are not interchangeable, which is the whole reason this is a ternary and
+	 * not a name. A target read from where a spirit *swung* is evidence of where it stood rather than
+	 * of where it was sent, so it says which one it is; an enemy the report's actor list cannot name is
+	 * still an enemy that was hit, and is labelled as one; a press that named nobody at all can only be
+	 * answered with "cannot say", which this report prefers to a plausible guess. The strings are the
+	 * ones the section beside the chart already prints, so the two never drift into two wordings.
+	 */
+	const sentTo = useCallback(
+		(c: CastMark): string | undefined =>
+			c.target === undefined
+				? undefined
+				: c.target.deduced === true
+					? t('sef.prePull.deduced', { target: c.target.name ?? t('sef.unnamedTarget') })
+					: c.target.id === null
+						? t('sef.prePull.unknown')
+						: (c.target.name ?? t('sef.unnamedTarget')),
+		[t],
+	);
 	const castNodes = useMemo(
-		() => castLanes.map((lane): CastRow => ({ lane, nodes: castNodesOf(lane.casts, span, lane.rowOf) })),
-		[castLanes, span],
+		() => castLanes.map((lane): CastRow => ({ lane, nodes: castNodesOf(lane.casts, span, lane.rowOf, sentTo) })),
+		[castLanes, span, sentTo],
+	);
+	/**
+	 * What became of one window of a spendable aura, as the row the tooltip draws.
+	 *
+	 * The press that took it comes with its icon, for the reason every mark on this chart is one: a
+	 * reader recognises a spell by its art. The three ways a window can end with nothing spending it
+	 * are three different sentences, because they are three different things — the clock ran out, the
+	 * pull ended first, or it came off early with no press behind it, which on a real log is the player
+	 * dying and every buff leaving at once. Naming a spell for any of them would be inventing one.
+	 */
+	const spentAs = useCallback(
+		(spend: LaneSpend): { text: string; icon: string | null } =>
+			spend.name === null || spend.id === null
+				? {
+						text: t(
+							spend.fate === 'expired'
+								? 'castLog.tip.spentExpired'
+								: spend.fate === 'truncated'
+									? 'castLog.tip.spentOpen'
+									: 'castLog.tip.spentNone',
+						),
+						icon: null,
+					}
+				: { text: spend.name, icon: spellIconUrl(spend.id) },
+		[t],
 	);
 	// Which of those rows an aura has claimed. Split rather than rebuilt, so the marks a merged row
 	// draws are the very element objects the memo above made and React skips them all the same.
@@ -1061,10 +1178,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// counted one, which is a question about events and not about how a row should look.
 				bars:
 					lane.stacks === undefined
-						? barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null)
+						? barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null, spentAs)
 						: chargeNodesOf(lane, lane.stacks, span),
 			})),
-		[lanes, span, brewSpend],
+		[lanes, span, brewSpend, spentAs],
 	);
 	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
 	const gcdRules = useMemo(() => gcdRulesPath(casts, span), [casts, span]);
@@ -1138,10 +1255,19 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				hide();
 				// Values on the mark, labels from the copy file: a press carries the moment it went out and
 				// a window the two ends of it, which is exactly what the `title` used to say in one line.
-				const rows: Array<[string, string]> = [];
+				const rows: TipRow[] = [];
 				const at = mark.getAttribute('data-tip-at');
 				const from = mark.getAttribute('data-tip-from');
 				const to = mark.getAttribute('data-tip-to');
+				// The enemy a press was aimed at, and what became of a window that a press could spend. Both
+				// arrive already worded, because the wording is a reading of the engine's answer rather than
+				// a reading of the mark — see `sentTo` and `spentAs`.
+				const target = mark.getAttribute('data-tip-target');
+				const spent = mark.getAttribute('data-tip-spent');
+				// The consuming spell's art, resolved on the mark and carried as a URL: the tooltip is built
+				// as a string, so an icon in it is markup rather than an element, and this is the one row on
+				// the chart whose value is a spell the reader would rather recognise than read.
+				const spentIcon = mark.getAttribute('data-tip-spent-icon');
 				// A death has a fourth thing to say — what landed the blow — and it is the one mark on the
 				// chart that names another actor's spell rather than one of the player's own.
 				const by = mark.getAttribute('data-tip-by');
@@ -1156,10 +1282,15 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				const hit = mark.getAttribute('data-tip-hit');
 				if (at !== null)
 					rows.push([t(mark.hasAttribute('data-tip-auto') ? 'castLog.tip.swing' : 'castLog.tip.at'), at]);
+				// Directly under the moment, because it is the other half of the same sentence: this press,
+				// at this time, at that enemy.
+				if (target !== null) rows.push([t('castLog.tip.sentTo'), target]);
 				if (landed !== null) rows.push([t('castLog.tip.landed'), landed]);
 				if (charges !== null) rows.push([t('castLog.tip.charges'), charges]);
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
+				// After both ends of the window, because it is what the second of them was.
+				if (spent !== null) rows.push([t('castLog.tip.spent'), spent, spentIcon ?? undefined]);
 				if (by !== null) rows.push([t('castLog.tip.by'), by]);
 				if (wait !== null) rows.push([t('castLog.tip.wait'), wait]);
 				if (hit !== null) rows.push([t('castLog.tip.hit'), hit]);
@@ -1445,6 +1576,16 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const notes = [
 		collapsed && shown.debuff ? t('castLog.target.mergedNote') : null,
 		undrawnTargets > 0 && shown.debuff ? t('castLog.hiddenTargets', { count: undrawnTargets }) : null,
+		// The three shadings in the order they are painted, bottom first, which is also the order a
+		// reader meets them: the blue behind the whole chart, the grey over it, the red rules on top.
+		//
+		// Named rather than described, because "a haste cooldown" is not what the reader saw cast: the
+		// windows carry which of the five it was and the sentence says so. Deduplicated in the lanes'
+		// own order — two Drums on one pull is one name — and the count is of windows rather than of
+		// names, so a pull with two of the same still reads as two stretches.
+		haste.length === 0
+			? null
+			: t('castLog.lust.note', { count: haste.length, names: [...new Set(haste.map(lustName))].join(', ') }),
 		intermissions.length > 0 ? t('castLog.intermission.note') : null,
 		deaths.length > 0 ? t('castLog.death.note') : null,
 		// A row drawn as a meter instead of as a bar is a different convention from every other row, and
@@ -1703,6 +1844,50 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							// which cannot be mistaken for anything else because that is exactly what they are.
 						}}
 					>
+						{/* Bloodlust — or Heroism, or Time Warp — under everything, and first in the source for
+						    that reason.
+
+						    Full height and not a row, because it is not a row's worth of claim: the haste is on
+						    every lane at once, so what it wants to be is the ground the stretch was played on
+						    rather than a bar the reader has to hold against twenty others. The same argument the
+						    intermission shading makes, with the opposite sign — one is the fight taking the
+						    pull away and this is the raid handing it over — and drawn as the same shape for it.
+
+						    **Bottom of the stack, and that is the whole of the paint order decision.** Three
+						    things now compete for this background and they rank by how much they cost a reader
+						    to lose: a death band is the loudest explanation on the chart and stays on top of
+						    everything, the intermission says the marks inside it cannot be read normally and
+						    keeps its place over this, and Bloodlust is the widest and least urgent of the three
+						    — a condition rather than an event. Being underneath also means it never hides the
+						    grid of globals, which matters because `--color-band-lust` is opaque like every other
+						    band: painted over the rules it would erase them for the length of the window.
+
+						    Order is the hit test as well as the paint, since `elementsFromPoint` answers
+						    topmost-first — so where a lust window and an intermission overlap, the tooltip is the
+						    intermission's, which is the one with something to warn about. */}
+						{haste.length === 0 ? null : (
+							<div className="pointer-events-none absolute inset-0">
+								{haste.map((w) => (
+									<span
+										// Both ends, as the bars are keyed: the group logs under five ids and two of
+										// them could in principle open on the same millisecond.
+										key={`${w.start}-${w.end}`}
+										title={`${lustName(w)} · ${fmt(w.start)} → ${fmt(w.end)}`}
+										data-tip={lustName(w)}
+										data-tip-tone="lust"
+										data-tip-from={fmt(w.start)}
+										data-tip-to={fmt(w.end)}
+										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+										// The fill is deliberately the faintest wash on the chart — everything is drawn
+										// over it — and the edges are what make the window findable: two full-strength
+										// rules where the buff went up and came off, which is the strength this needs
+										// spent on the few pixels that carry a moment rather than on the many that
+										// carry a condition.
+										className="pointer-events-auto absolute inset-y-0 border-x-2 border-lust bg-[var(--color-band-lust)]"
+									/>
+								))}
+							</div>
+						)}
 						{/* Behind every lane and across all of them, which is the point: a rule runs the full
 						    height so a press can be read against every buff and proc row at once. `inset-0`
 						    rather than a height, so it grows with the lanes as categories are toggled. */}

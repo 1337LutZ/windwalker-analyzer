@@ -45,6 +45,7 @@ import type {
 	DeathMark,
 	FightDataset,
 	LaneGroup,
+	LaneSpend,
 	LaneStacks,
 	LostCastRow,
 	Miss,
@@ -928,9 +929,13 @@ const AURAS: Aura[] = [
 	 * apply/remove pair on a real pull. Both reference reports were swept across every boss pull, and
 	 * none of these is an id that only the simulator believes in.
 	 *
-	 * No `durationMs` on any of them, deliberately. That field exists so a metric can tell "expired
-	 * unused" from "consumed early", and nothing here is graded — these are lanes, and a lane draws
-	 * the window the log recorded rather than one measured forward from an application.
+	 * No `durationMs` on these, deliberately — with one exception that proves the rule. That field
+	 * exists so a metric can tell "expired unused" from "consumed early", and nothing here is graded:
+	 * these are lanes, and a lane draws the window the log recorded rather than one measured forward
+	 * from an application. Focus of Xuen carries it anyway because it is the one aura in this block
+	 * that is *spent* rather than waited out, and its tooltip names the press that spent it — which
+	 * means it has to be able to say when no press did. Still no grade: the answer is printed, never
+	 * scored.
 	 *
 	 * Every one is a `buff` in the game's sense — none of them touches the enemy — and their *lanes*
 	 * are split further down: `proc` where the gear fires them, `buff` where the player pressed them,
@@ -990,6 +995,14 @@ const AURAS: Aura[] = [
 		// the one section of this report it lines up under.
 		ids: [145024],
 		kind: 'buff',
+		// The two fields the rest of this block does without, and the reason is that this aura is the
+		// only one here that is *spent*. The others fade on a clock and a lane is the whole story; this
+		// one is cashed in by the next chi spender, so the interesting question about a window is which
+		// button took it — and answering that needs both the list of buttons that can (`consumedBy`,
+		// `GetT16Windwalker4PCostReduction` in the sim, which the three call and nothing else does) and
+		// the full duration, so a window that simply ran out is never blamed on a press that came later.
+		durationMs: 10000,
+		consumedBy: ['blackout-kick', 'fists-of-fury', 'rising-sun-kick'],
 	},
 	{
 		key: 'vicious',
@@ -1066,6 +1079,9 @@ const SEF_AURA = registry.aura('storm-earth-and-fire');
 // Named separately from the `GEAR_PROCS` list it also belongs to, because it is the one piece of
 // gear here with a *counter* behind its window rather than an on-or-off buff — see the lane below.
 const CAPACITANCE = registry.aura('capacitance');
+// Named separately for the same shape of reason: it is the one aura in that list a press *spends*,
+// so its lane carries a verdict per window rather than only a bar — see `focusSpends` below.
+const FOCUS_OF_XUEN = registry.aura('focus-of-xuen');
 
 /**
  * The gear's own auras, as two lists because the chart groups them differently.
@@ -1110,6 +1126,17 @@ const SINGLE_TARGET_DAMAGE_IDS: ReadonlySet<number> = new Set([
 const auraId = (aura: Aura): number => aura.ids[0] ?? 0;
 /** The id an ability is reported under. Likewise. */
 const castId = (ability: Ability): number => ability.castIds[0] ?? 0;
+
+/**
+ * The canonical cast ids of the buttons that spend Focus of Xuen, read off the model.
+ *
+ * `consumedBy` is the declaration and this is only its id form, because a mark carries the canonical
+ * cast id — `castIds[0]` — rather than whichever id the log happened to use. So the set and the marks
+ * are keyed the same way by construction, and adding a fourth consumer to the spec is the whole edit.
+ */
+const FOCUS_SPENDER_IDS: ReadonlySet<number> = new Set(
+	(FOCUS_OF_XUEN.consumedBy ?? []).map((key) => castId(registry.ability(key))),
+);
 
 /**
  * The buttons the APL presses on cooldown: exactly the abilities the model gates on `cooldown`.
@@ -2140,6 +2167,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			link: link(start),
 		}))
 		.filter((w) => w.ms >= ENERGY_CAP_ROW_MS)
+		// Ties break on the clock, the way the chi overflow table already does. Two stretches of equal
+		// length are not far-fetched — these are quantised to the gaps between readings, so a pull
+		// sampled three times a second produces the same handful of durations over and over — and
+		// without the second clause both the order between them *and which of them survives the slice*
+		// would be whatever the sort happened to leave rather than the order the pull put them in.
 		.sort((a, b) => b.ms - a.ms || a.at - b.at)
 		.slice(0, 5);
 
@@ -3055,6 +3087,30 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// and every lane is a window set some metric above already had to compute. So this costs no extra
 	// pass over the events and — more importantly — cannot disagree with the numbers printed beside
 	// it, which a second reading of the same auras eventually would.
+	/**
+	 * Hands each Storm, Earth and Fire press the placement it made, once.
+	 *
+	 * Stateful on purpose: a placement may be claimed by one mark and no more, so two presses inside
+	 * a quarter-second cannot both be told they sent the same spirit. Nearest wins, which is what
+	 * keeps a press at the very start of a pull with a spirit already out from taking the pre-pull
+	 * placement's entry — that one is clocked at 0 and the press's own at the press.
+	 */
+	const sefTargetOf = (() => {
+		const unclaimed = [...sefUses];
+		return (t: number): Pick<CastMark, 'target'> => {
+			let best = -1;
+			for (const [i, use] of unclaimed.entries()) {
+				if (Math.abs(use.t - t) > SELF_EVENT_MS) continue;
+				if (best === -1 || Math.abs(use.t - t) < Math.abs((unclaimed[best]?.t ?? 0) - t)) best = i;
+			}
+			const [use] = best === -1 ? [] : unclaimed.splice(best, 1);
+			if (use === undefined) return {};
+			// `in`, because `sefUses` is a union of the entries that needed a target read off the spirit's
+			// own swings and the ones that did not — the flag is absent from the second shape, not false.
+			return { target: { id: use.target, name: use.name, ...('deduced' in use ? { deduced: use.deduced } : {}) } };
+		};
+	})();
+
 	const castMarks: CastMark[] = [...series.values()]
 		.flatMap((c) =>
 			c.times.map((t) => ({
@@ -3085,7 +3141,19 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		.filter((mark, i, all) => {
 			const prev = all[i - 1];
 			return prev === undefined || prev.name !== mark.name || prev.id === mark.id || mark.t - prev.t > SAME_PRESS_MS;
-		});
+		})
+		// The one press whose target is worth carrying onto the mark: which enemy a spirit was sent to.
+		//
+		// Copied off `sefUses` rather than read from the cast's own `targetID`, which is the same array
+		// the section's table prints — so the two cannot disagree, and the mark inherits the work that
+		// array already did, including a target read from where a pre-pull spirit *swung*.
+		//
+		// Claimed one apiece, nearest first, because a placement and its press are stamped on the same
+		// millisecond only most of the time: `sefPlacements` clocks a placement at the aura's rise and
+		// `SELF_EVENT_MS` is this file's standing answer for "the same instant, as the client wrote it".
+		// A press that matches no placement is a press that sent no spirit — it recalled one, which
+		// produces no rise — and it keeps no target rather than being handed the next spirit's.
+		.map((mark) => (mark.id === castId(STORM_EARTH_AND_FIRE) ? { ...mark, ...sefTargetOf(mark.t) } : mark));
 
 	const lane = (aura: Aura, group: LaneGroup, windows: Window[]): AuraLane => ({
 		key: aura.key,
@@ -3257,6 +3325,48 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		};
 	})();
 
+	/**
+	 * Which press spent each Focus of Xuen, and what happened when none did.
+	 *
+	 * The tier-16 four-piece grants the buff for every ten Tigereye Brew stacks spent, and the next
+	 * Blackout Kick, Fists of Fury or Rising Sun Kick cashes it in for a chi. So the removal and the
+	 * press that caused it are one event written twice, and the job here is only to pair them back up.
+	 *
+	 * **The tolerance is measured, not assumed.** Across 276 windows on every Windwalker boss pull in
+	 * both anonymous reports, 270 removals have a spender stamped within four milliseconds — 131 on
+	 * the same millisecond, 137 one before it, one at two and one at four, and never a single one
+	 * after. The next-nearest spender is never closer than 981ms. So anything from 5ms to 900ms picks
+	 * out the same press on every window in the population, and `SELF_EVENT_MS` is taken rather than a
+	 * new number invented: it is this codebase's standing answer for "the client wrote these on one
+	 * instant", it is two orders of magnitude clear of the runner-up, and the two other places that
+	 * pair an aura event to a cast already speak in it.
+	 *
+	 * Directional, and that is what keeps an expiry honest: the press must land at or before the
+	 * removal and inside the window. Both windows that ran out on those pulls have a Rising Sun Kick
+	 * about 1.2s *after* the buff came off — the press that would have spent it, had it been pressed
+	 * in time — and a symmetric window would have named it as the consumer of a buff it never got.
+	 *
+	 * The three answers when nothing matched are separated because they are three different things.
+	 * A window within `CB_EXPIRY_SLACK_MS` of the full ten seconds ran out — measured at 10.01s and
+	 * 10.02s, against a longest *consumed* window of 9.70s, so the band is not close to contested. One
+	 * still open at the last event was cut off by the pull ending. Anything else came off early with
+	 * no press behind it at all, which on these pulls is the player dying and every buff leaving at
+	 * once — and calling that "expired" would be inventing a clock that had not run out.
+	 */
+	const focusSpends = (windows: readonly Window[]): LaneSpend[] =>
+		windows.map((w) => {
+			// `findLast`, so a window that somehow held two spenders inside the tolerance is attributed to
+			// the one that actually took it off rather than to the earlier of the pair.
+			const press = castMarks.findLast(
+				(m) => FOCUS_SPENDER_IDS.has(m.id) && m.t >= w.start && m.t <= w.end && w.end - m.t <= SELF_EVENT_MS,
+			);
+			if (press !== undefined) return { start: w.start, id: press.id, name: press.name };
+			const full = FOCUS_OF_XUEN.durationMs ?? 0;
+			const fate =
+				w.truncated === true ? 'truncated' : w.end - w.start >= full - CB_EXPIRY_SLACK_MS ? 'expired' : undefined;
+			return { start: w.start, id: null, name: null, ...(fate === undefined ? {} : { fate }) };
+		});
+
 	// A lane with nothing on it is dropped rather than drawn empty: an unlit row costs a line of height
 	// and a label, and tells the reader only that the aura exists.
 	const lanes: AuraLane[] = [
@@ -3275,13 +3385,18 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// wants them: nothing in this report grades a trinket, and the reader's question — "what was my
 		// gear doing when I pressed that" — is one only the chart can answer. The empty-lane filter below
 		// is what keeps a monk who wore none of this from paying a row apiece to be told so.
-		...GEAR_PROCS.map((aura) => ({
-			...lane(aura, 'proc', auraWindows(selfEvents, aura, t0, fight.endTime)),
-			// One of these five has a counter behind it and the other four are on-or-off, so the field is
-			// attached rather than declared: a lane carrying an empty counter would be drawn as a charge
-			// that never charges.
-			...(aura === CAPACITANCE && capacitance !== null ? { stacks: capacitance } : {}),
-		})),
+		...GEAR_PROCS.map((aura) => {
+			const windows = auraWindows(selfEvents, aura, t0, fight.endTime);
+			return {
+				...lane(aura, 'proc', windows),
+				// One of these five has a counter behind it and the other four are on-or-off, so the field is
+				// attached rather than declared: a lane carrying an empty counter would be drawn as a charge
+				// that never charges.
+				...(aura === CAPACITANCE && capacitance !== null ? { stacks: capacitance } : {}),
+				// And one of them is spent rather than waited out, so its windows carry a verdict apiece.
+				...(aura === FOCUS_OF_XUEN ? { spent: focusSpends(windows) } : {}),
+			};
+		}),
 		...ITEM_USES.map((aura) => lane(aura, 'buff', auraWindows(selfEvents, aura, t0, fight.endTime))),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.

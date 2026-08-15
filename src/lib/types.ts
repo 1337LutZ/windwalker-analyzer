@@ -17,6 +17,10 @@ import type { WclEvent } from '~/lib/events';
 // produces it, and a type-only import is erased before it can become a runtime cycle. Restating the
 // shape here would give the report two definitions of one audit, free to drift apart.
 import type { AplAudit } from '~/lib/spec/apl';
+// Circular with `analysis/auras` in the same way and for the same reason: a window that remembers
+// which of an aura's ids opened it is defined beside the walk that produces it, and an audit below
+// carries those rather than a copy of the shape that could drift from them.
+import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
 
 // ---------------------------------------------------------------- WCL types
@@ -171,6 +175,28 @@ export interface CastMark {
 	 * trinket sitting in the same lane at the same weight reads as a global that was spent.
 	 */
 	onGcd: boolean;
+	/**
+	 * The enemy this press aimed at, for the one button whose whole point is *which* enemy.
+	 *
+	 * Only Storm, Earth and Fire carries it, and it is copied off `SefAudit.uses` rather than read
+	 * from the cast's `targetID` a second time — that array has already done the work, including the
+	 * pre-pull case a cast event structurally cannot answer.
+	 *
+	 * `id` and `name` fail separately and the chart says so separately. A null `name` beside an `id` is
+	 * an enemy the report's actor list cannot put a name to — the pull hit *something* and it can be
+	 * counted; a null `id` is a press that named no enemy at all, which is the one case where the only
+	 * honest answer is that this cannot be said. A button that aims at nothing carries no `target` at
+	 * all, which is what an absent field means — as it is on any analysis captured before this existed,
+	 * so read it for truthiness.
+	 *
+	 * `deduced` rides along exactly as it does on the audit: the target was read from where the spirit
+	 * *swung* rather than from where a press *sent* it. A pre-pull placement is the case that produces
+	 * it, and such a placement has no press inside the pull to sit on — so this flag reaches a mark
+	 * only where a pre-pull spirit's arrival and a press of the button coincide. It is carried anyway,
+	 * because the mark reads the audit's own entry rather than a filtered copy of it, and silently
+	 * printing a swing in a row that says "sent to" is the one outcome that would be a lie.
+	 */
+	target?: { id: number | null; name: string | null; deduced?: boolean };
 }
 
 /** The category a lane belongs to, which is the granularity the reader turns rows off at. */
@@ -227,6 +253,32 @@ export interface AuraLane {
 	 * so read it for truthiness. A lane that has it is drawn as its charge rather than as a bar.
 	 */
 	stacks?: LaneStacks;
+	/**
+	 * What became of each window, for an aura that is *spent* rather than waited out.
+	 *
+	 * One entry per window, matched back to it by `start`. Absent on every aura nothing consumes, and
+	 * absent on any analysis captured before this existed — so read it for truthiness.
+	 */
+	spent?: LaneSpend[];
+}
+
+/**
+ * How one window of a spendable aura ended.
+ *
+ * The distinction is the point: a buff that was cashed in and a buff that ran out are the same bar,
+ * and only one of them is worth pressing for. `id`/`name` name the press that spent it; both null
+ * means nothing did, and `fate` is then how it came off instead — or absent, which is the honest
+ * third answer for a window that ended with no press at the removal and no clock run out either. On
+ * the reference pulls that last case is the player dying, and every buff coming off at once.
+ */
+export interface LaneSpend {
+	/** The window this is about, identified by the moment it opened. */
+	start: number;
+	/** The press that spent it, or null when none did. */
+	id: number | null;
+	name: string | null;
+	/** Why it came off when no press spent it: the duration ran out, or the pull ended first. */
+	fate?: 'expired' | 'truncated';
 }
 
 /**
@@ -847,8 +899,13 @@ export interface EnergizingBrewAudit {
 	 *
 	 * Carried so the section can draw them behind the brews rather than only naming them per row:
 	 * whether a brew sat inside one is the condition being judged, and an overlap is a thing to see.
+	 *
+	 * `AuraWindow` rather than `Window`, which is what the engine has always put here: one effect
+	 * logged under five ids, each window carrying the one that opened it. The narrower type threw that
+	 * away at the boundary, and the cast timeline needs it — a band shading a stretch of the pull has
+	 * to be able to say it was Time Warp rather than "one of five spells".
 	 */
-	hasteWindows: Window[];
+	hasteWindows: AuraWindow[];
 	/** Fists of Fury channels that began inside one of these windows. Read from the channel audit. */
 	channelsInside: number;
 	/** Of those, the ones Rushing Jade Wind covered end to end — which is what the APL allows. */

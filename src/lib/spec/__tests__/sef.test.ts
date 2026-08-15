@@ -669,3 +669,75 @@ describe('the per-enemy lanes', () => {
 		expect((sef?.targets?.[0]?.heldMs ?? 0) > 0).toBe(true);
 	});
 });
+
+/**
+ * The press mark on the cast timeline, which is the one row of that chart where *which enemy* is the
+ * whole point of the button.
+ *
+ * The mark reads `sef.uses` rather than the cast's own `targetID`, so the timeline and the table
+ * beside it cannot disagree about where a spirit went — and so the mark inherits the work that array
+ * already did, including a target read off a spirit's own swings.
+ */
+describe('the press on the timeline', () => {
+	const markAt = (events: WclEvent[], t: number) =>
+		analyse(datasetOf(events)).timeline?.casts.find((c) => c.id === SEF_ID && c.t === t);
+
+	it('names the enemy the spirit was sent to', () => {
+		const mark = markAt(doubledUp, 10_000);
+		expect(mark?.target).toEqual({ id: ADD, name: "Kor'kron Demolisher" });
+	});
+
+	/**
+	 * A press aimed at nothing is the third answer and not the second: the log named no enemy, so the
+	 * report can say neither which one it was nor that it was one it cannot name.
+	 */
+	it('carries a null id where the press named no enemy at all', () => {
+		const aimless = doubledUp.map((ev) =>
+			ev.type === 'cast' && ev.abilityGameID === SEF_ID ? { ...ev, targetID: undefined } : ev,
+		);
+		expect(markAt(aimless, 10_000)?.target).toEqual({ id: null, name: null });
+	});
+
+	/** An enemy the roster cannot name is still an enemy that was hit, and keeps its id. */
+	it('keeps the id where the roster cannot name the enemy', () => {
+		const { timeline } = analyse(
+			datasetOf(
+				doubledUp,
+				actors.filter((a) => a.id !== ADD),
+			),
+		);
+		expect(timeline?.casts.find((c) => c.id === SEF_ID)?.target).toEqual({ id: ADD, name: null });
+	});
+
+	/**
+	 * The pre-pull placement is clocked at 0 and has no press inside the pull, so the press that *was*
+	 * made must take its own placement and not the spirit already standing somewhere else.
+	 */
+	it('gives a press its own placement rather than the pre-pull spirit’s', () => {
+		const prePulled: WclEvent[] = [
+			...brewBank,
+			...sefStack(10_000, 2, ADD),
+			summon(10_000, SUMMON_STORM, SPIRIT2),
+			e(70_000, 'removebuff', SEF_ID),
+			...stand(1_000, 70_000, SPIRIT, BOSS),
+			...stand(11_000, 40_000, SPIRIT2, ADD),
+			...stand(0, 110_000, ME, BOSS),
+		];
+		const { sef, timeline } = analyse(datasetOf(prePulled));
+		// The audit resolved the pre-pull spirit onto the boss, off its own swings.
+		expect(sef?.uses[0]?.target).toBe(BOSS);
+		// The one press on the chart is still the one that named the add — and there is exactly one,
+		// because a spirit placed before the pull spends no global inside it.
+		const marks = (timeline?.casts ?? []).filter((c) => c.id === SEF_ID);
+		expect(marks).toHaveLength(1);
+		expect(marks[0]?.target).toEqual({ id: ADD, name: "Kor'kron Demolisher" });
+	});
+
+	/** Every other button aims at nothing worth saying, and carries no target at all rather than a null. */
+	it('leaves every other press without a target', () => {
+		const withKick = [...doubledUp, e(20_000, 'cast', BLACKOUT_KICK, { targetID: BOSS })];
+		const kick = analyse(datasetOf(withKick)).timeline?.casts.find((c) => c.id === BLACKOUT_KICK);
+		expect(kick).toBeDefined();
+		expect(kick?.target).toBeUndefined();
+	});
+});

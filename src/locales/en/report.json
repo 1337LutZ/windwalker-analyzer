@@ -403,7 +403,12 @@
       "charges": "Charges",
       "landed": "Landed",
       "hit": "Hit for",
-      "wait": "Waited"
+      "wait": "Waited",
+      "sentTo": "Sent to",
+      "spent": "Spent by",
+      "spentExpired": "nothing — it ran out",
+      "spentOpen": "nothing — the pull ended first",
+      "spentNone": "nothing — it came off unspent"
     },
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",
@@ -425,6 +430,11 @@
     "hiddenTargets_other": "{{count}} more enemies carried the debuff and have no rows here. Pick them above to draw them.",
     "hiddenRows_one": "{{rows}} fired on this pull and is not drawn: it runs on its own schedule and spends itself, so there is no decision on the row to read against your presses. It is still measured, and its damage is still counted under Damage by ability.",
     "hiddenRows_other": "{{rows}} fired on this pull and are not drawn: they run on their own schedules and spend themselves, so there is no decision on those rows to read against your presses. They are still measured, and their damage is still counted under Damage by ability.",
+    "lust": {
+      "unnamed": "Haste cooldown",
+      "note_one": "The blue stretch is {{names}}, the raid’s haste cooldown — shaded across the full height rather than given a row of its own, because it is the one buff here that speeds up every row at once. Whichever class brought it, the rotation reads all of them as the same effect: your globals are shorter inside it and your energy comes back faster, so a stretch that looks busier there is the haste rather than a change of plan.",
+      "note_other": "The blue stretches are {{names}}, the raid’s haste cooldown — shaded across the full height rather than given a row of their own, because it is the one buff here that speeds up every row at once. Whichever class brought it, the rotation reads all of them as the same effect: your globals are shorter inside them and your energy comes back faster, so a stretch that looks busier there is the haste rather than a change of plan."
+    },
     "intermission": {
       "title": "Intermission",
       "note": "The shaded stretches are intermissions: the boss was out of reach, so there was nothing to press it at. That is the fight taking the target away, and none of it is counted against you."

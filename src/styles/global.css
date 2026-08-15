@@ -46,6 +46,24 @@
 	 * off, and the overshoot would shout louder than the miss it belongs to. */
 	--color-miss-soft: #783d45;
 
+	/* The raid's haste cooldown — Bloodlust, Heroism, Time Warp, Primal Rage, Drums of Rage — which
+	 * the cast timeline shades the whole of its height with. Named for the effect and not for any one
+	 * of the five, the same way the spec models it: the log names whichever spell was cast and the
+	 * report means all of them.
+	 *
+	 * A blue was asked for and a blue is the hard case here, because `rune` is already violet and the
+	 * two collapse under deuteranopia: measured, #60a5fa lands 0.3 dE from it and #38bdf8 5.2, which
+	 * is two accents that carry different meanings reading as one colour. Every blue bright enough to
+	 * sit in the band above does the same. So the hue is the darker azure the check leaves standing,
+	 * and the two numbers are measured rather than judged:
+	 *   - 5.34:1 against the ground and 4.94:1 against `surface`, which is what the tooltip title it
+	 *     tints is drawn on. Past AA, and the lowest of the five — the price of the separation below,
+	 *     and affordable because this token is a *ground* wherever it appears rather than a mark.
+	 *   - all pairs, protanopia and deuteranopia: worst 8.4 dE against `miss`, 9.5 against `rune`,
+	 *     18.7 against `kick`. The palette's own worst pair was already 8.4 (`miss` against `kick`),
+	 *     so a fifth accent leaves that number exactly where it found it. */
+	--color-lust: #0894bc;
+
 	/* A band shaded on a resource chart: the tone already mixed into the chart's own ground, and
 	 * painted opaque.
 	 *
@@ -63,6 +81,15 @@
 	--color-band-miss: color-mix(in oklch, var(--color-miss) 38%, var(--color-surface));
 	--color-band-brew: color-mix(in oklch, var(--color-brew) 32%, var(--color-surface));
 	--color-band-rune: color-mix(in oklch, var(--color-rune) 34%, var(--color-surface));
+	/* The fourth is the odd one and mixed weaker for it. The three above are drawn *inside* one lane,
+	 * over an area wash they have to win against; this one is drawn across every lane at once and is
+	 * the bottom-most thing on the cast timeline, so everything the reader came for — the presses, the
+	 * bars, the globals, and the two marks that must never be lost behind it, the intermission shading
+	 * and the death band — is painted on top of it. At 20% it lands on #1a313a: 1.28:1 against the
+	 * surface, which is plenty for a region this size, and it leaves the death band at 1.46:1 against
+	 * it and a lane label at 10.6:1. What makes the window *findable* is not the fill but the two
+	 * full-strength edges the timeline draws it with. */
+	--color-band-lust: color-mix(in oklch, var(--color-lust) 20%, var(--color-surface));
 	--color-track: #2b3833;
 
 	/* Faint row bands for grouping paired rows in dense tables. */

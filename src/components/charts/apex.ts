@@ -30,6 +30,7 @@ export interface ChartTheme {
 	kick: string;
 	miss: string;
 	missSoft: string;
+	lust: string;
 	track: string;
 	mono: string;
 	sans: string;
@@ -48,6 +49,9 @@ const TOKENS: Record<keyof ChartTheme, string> = {
 	kick: '--color-kick',
 	miss: '--color-miss',
 	missSoft: '--color-miss-soft',
+	// Here for one caller: the cast timeline tints a Bloodlust band's tooltip title with the colour the
+	// band itself is drawn in, which is the pairing rule `charts/tones.ts` exists to enforce.
+	lust: '--color-lust',
 	track: '--color-track',
 	mono: '--font-mono',
 	sans: '--font-sans',
@@ -303,13 +307,39 @@ interface TooltipContext {
 	w: { config: { series: Array<{ data: Array<{ meta?: unknown }> }> } };
 }
 
+/**
+ * One line of a tooltip: a label, its value, and optionally an icon drawn before the value.
+ *
+ * The third slot exists for the rows whose value is a *spell* — the cast timeline names the press
+ * that spent a buff, and a reader recognises a spell by its art before they read its name, exactly as
+ * they do on the chart itself. It stays a URL rather than a spell id because this module knows about
+ * drawing and not about the game, and it stays optional because every other row on every other chart
+ * is a number or a clock and has no art to carry.
+ */
+export type TipRow = [label: string, value: string, iconUrl?: string];
+
 export interface TipContent {
 	title: string;
 	tone: keyof ChartTheme;
-	rows: Array<[string, string]>;
+	rows: TipRow[];
 }
 
-const escape = (value: string): string => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const escape = (value: string): string =>
+	// The quotes matter now that one of these lands in an attribute rather than in text.
+	value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * The icon that leads a row's value, or nothing at all.
+ *
+ * Sized to the line rather than to the chart's marks: this sits inside a run of text, so it is the
+ * cap height of the font beside it and not the 24px a press is drawn at. `vertical-align` pulls it
+ * onto the baseline, which is what stops the row it is in from being a pixel taller than its siblings.
+ */
+const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
+	url === undefined
+		? ''
+		: `<img src="${escape(url)}" alt="" width="14" height="14" style="width:14px;height:14px;margin-right:6px;` +
+			`vertical-align:-3px;border-radius:2px;border:1px solid ${theme.line}">`;
 
 /**
  * Tooltip markup, built by hand because ApexCharts' own tooltip is styled from its light/dark
@@ -322,8 +352,8 @@ const escape = (value: string): string => value.replace(/&/g, '&amp;').replace(/
 export function tip(theme: ChartTheme, content: TipContent): string {
 	const rows = content.rows
 		.map(
-			([label, value]) =>
-				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="color:${theme.muted}">${escape(label)}</span><span style="color:${theme.ink};font-weight:600">${escape(value)}</span></div>`,
+			([label, value, icon]) =>
+				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="color:${theme.muted}">${escape(label)}</span><span style="color:${theme.ink};font-weight:600">${tipIcon(icon, theme)}${escape(value)}</span></div>`,
 		)
 		.join('');
 	return (

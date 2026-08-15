@@ -7,13 +7,15 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import type { Analysis, AuraLane, CastTimeline as Timeline } from '~/lib/types';
+import type { AuraWindow } from '~/lib/analysis/auras';
+import type { Analysis, AuraLane, CastMark, CastTimeline as Timeline } from '~/lib/types';
 
 import { formatClock, formatGap } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '../../sections/CastLog';
 import CastTimeline from '../CastTimeline';
+import { tip, type ChartTheme } from '../apex';
 import { collapseTargets, perTargetBlock } from '../targetLanes';
 import { HIDDEN_AURAS, HIDDEN_CASTS } from '../hidden';
 import { spellIconUrl } from '../../primitives/spellIcon';
@@ -809,6 +811,60 @@ describe('CastTimeline, intermissions and deaths', () => {
 });
 
 /**
+ * The third thing on the chart that is not a press and not an aura: the raid's haste cooldown, shaded
+ * across the full height.
+ *
+ * Read off the Energizing Brew audit, which already measures it for its own Bloodlust clause — so
+ * like the two above it costs no request, and unlike them it is one effect logged under five ids. The
+ * claim these pin is that a band names the spell that was actually cast rather than the group.
+ */
+describe('CastTimeline, the haste cooldown behind the chart', () => {
+	const haste = (windows: AuraWindow[]): Analysis => ({
+		...drawn,
+		energizing: { ...captured.energizing!, hasteWindows: windows },
+	});
+
+	it('shades the stretch it was up, and names which of the five it was', () => {
+		// The reference pull took a shaman's Heroism, which is exactly the case the group exists for: a
+		// band titled "Bloodlust" would be naming a spell nobody in that raid cast.
+		const html = render(drawn);
+		expect(html).toContain('data-tip="Heroism"');
+		expect(html).toContain(`data-tip-from="${formatClock(429424)}"`);
+		expect(html).toContain(t('castLog.lust.note', { count: 1, names: 'Heroism' }));
+	});
+
+	/** Two of them in one pull is two bands, each named for itself, and one sentence listing both. */
+	it('names each window separately when the raid brought more than one', () => {
+		const html = render(
+			haste([
+				{ start: 10000, end: 50000, id: 2825, variant: 'Bloodlust' },
+				{ start: 200000, end: 240000, id: 80353, variant: 'Time Warp' },
+			]),
+		);
+		expect(html).toContain('data-tip="Bloodlust"');
+		expect(html).toContain('data-tip="Time Warp"');
+		expect(html).toContain(t('castLog.lust.note', { count: 2, names: 'Bloodlust, Time Warp' }));
+	});
+
+	/**
+	 * An id the model does not name is still a haste cooldown. Said in words rather than guessed at,
+	 * exactly as an unnamed killing blow is — calling it Bloodlust because that is the commonest of the
+	 * five would be the chart inventing which class was in the raid.
+	 */
+	it('says so plainly when the window carries no variant', () => {
+		const html = render(haste([{ start: 10000, end: 50000, id: 2825 }]));
+		expect(html).toContain(`data-tip="${t('castLog.lust.unnamed')}"`);
+	});
+
+	/** Nothing to shade on a pull that never got one, and no sentence about shading either. */
+	it('shades nothing on a pull with no haste cooldown', () => {
+		const html = render(haste([]));
+		expect(html).not.toContain('data-tip="Heroism"');
+		expect(html).not.toContain(t('castLog.lust.note', { count: 1, names: 'Heroism' }));
+	});
+});
+
+/**
  * A stacking aura's row, drawn as a meter rather than as a bar.
  *
  * A stacking aura's *window* is the least interesting thing about it: Capacitance is up for most of a
@@ -978,5 +1034,129 @@ describe('CastTimeline, the ignore table', () => {
 	/** A pull with none of it says nothing, rather than explaining an absence nobody would notice. */
 	it('says nothing on a pull that had none of it', () => {
 		expect(render(drawn)).not.toContain(t('castLog.hiddenRows', { count: 1, rows: 'Capacitance' }));
+	});
+});
+
+/**
+ * The two tooltip rows that name something rather than restating a clock.
+ *
+ * A press mark that says *which enemy* and a buff window that says *which press spent it* are both
+ * cases of the same thing: the chart drawing a fact the bar itself cannot carry. Both travel as
+ * `data-*` attributes on the mark and are assembled by the one shared node, which is what this
+ * asserts — the marks are rendered here, the tooltip's own assembly is `tip` below.
+ */
+describe('what a mark says beyond its clock', () => {
+	const FOCUS_LANE: AuraLane = {
+		key: 'focus-of-xuen',
+		name: 'Focus of Xuen',
+		id: 145024,
+		group: 'proc',
+		windows: [
+			{ start: 10000, end: 12000 },
+			{ start: 20000, end: 30000 },
+			{ start: 40000, end: 41000 },
+		],
+		spent: [
+			{ start: 10000, id: 100784, name: 'Blackout Kick' },
+			{ start: 20000, id: null, name: null, fate: 'expired' },
+			{ start: 40000, id: null, name: null },
+		],
+	};
+	const spendable: Analysis = { ...drawn, timeline: { ...timeline, lanes: [...timeline.lanes, FOCUS_LANE] } };
+
+	/** The press, by name and by its art — which is how a reader recognises a spell on this chart. */
+	it('names the press that spent a window, with its icon', () => {
+		const html = render(spendable);
+		expect(html).toContain('data-tip-spent="Blackout Kick"');
+		expect(html).toContain(`data-tip-spent-icon="${spellIconUrl(100784)}"`);
+	});
+
+	/**
+	 * The two outcomes that are not a press, kept apart. A window that ran its full length and one
+	 * that came off early with nothing near it are different facts, and neither may borrow a spell.
+	 */
+	it('separates a window that ran out from one that simply came off', () => {
+		const html = render(spendable);
+		expect(html).toContain(`data-tip-spent="${t('castLog.tip.spentExpired')}"`);
+		expect(html).toContain(`data-tip-spent="${t('castLog.tip.spentNone')}"`);
+		// Neither carries an icon: there is no spell to draw, and drawing one would be the invention.
+		expect((html.match(/data-tip-spent-icon=/g) ?? []).length).toBe(1);
+	});
+
+	/** An analysis captured before the field existed draws the same bars and claims nothing about them. */
+	it('says nothing about a lane the engine handed no verdict', () => {
+		const html = render(drawn);
+		expect(html).not.toContain('data-tip-spent=');
+	});
+
+	/**
+	 * The press that aims. Three answers, in the Storm, Earth and Fire section's own words, because a
+	 * target read off a spirit's swings and a target named by a press are different qualities of
+	 * evidence and the tooltip may not present the second as the first.
+	 */
+	it('names the enemy a spirit was sent to, and says how it knows', () => {
+		const aimed = (target: NonNullable<CastMark['target']>) =>
+			render({
+				...drawn,
+				timeline: {
+					...timeline,
+					casts: [...timeline.casts, { t: 70000, id: 137639, name: 'Storm, Earth and Fire', onGcd: true, target }],
+				},
+			});
+		expect(aimed({ id: 21, name: "Kor'kron Demolisher" })).toContain('data-tip-target="Kor&#x27;kron Demolisher"');
+		expect(aimed({ id: 21, name: null })).toContain(`data-tip-target="${t('sef.unnamedTarget')}"`);
+		expect(aimed({ id: null, name: null })).toContain(`data-tip-target="${t('sef.prePull.unknown')}"`);
+		expect(aimed({ id: 21, name: 'Galakras', deduced: true })).toContain(
+			`data-tip-target="${t('sef.prePull.deduced', { target: 'Galakras' })}"`,
+		);
+	});
+
+	/** Every other press aims at nothing worth saying, and the row is absent rather than empty. */
+	it('leaves every other press without the row', () => {
+		expect(render(drawn)).not.toContain('data-tip-target=');
+	});
+});
+
+/**
+ * The shared node's own assembly, which is the half the server render cannot reach: the tooltip is
+ * written by a pointer handler, and effects do not run under `renderToStaticMarkup`.
+ */
+describe('the tooltip markup', () => {
+	// Written out rather than derived, because `readTheme` reads computed styles off a document and the
+	// suite runs in node — and because a theme spelled in full is what makes the assertions below say
+	// which token they expected rather than which index of a list.
+	const theme: ChartTheme = {
+		bg: 'bg',
+		surface: 'surface',
+		raised: 'raised',
+		line: 'line',
+		ink: 'ink',
+		ink2: 'ink2',
+		muted: 'muted',
+		brew: 'brew',
+		rune: 'rune',
+		kick: 'kick',
+		miss: 'miss',
+		missSoft: 'missSoft',
+		lust: 'lust',
+		track: 'track',
+		mono: 'mono',
+		sans: 'sans',
+	};
+
+	/** A row whose value is a spell draws that spell, inside the one node rather than as a new element. */
+	it('draws the icon a row carries', () => {
+		const html = tip(theme, {
+			title: 'Focus of Xuen',
+			tone: 'rune',
+			rows: [['Spent by', 'Blackout Kick', 'https://x/i.jpg']],
+		});
+		expect(html).toContain('<img src="https://x/i.jpg"');
+		expect(html).toContain('Blackout Kick');
+	});
+
+	/** And a row without one is exactly what it was before, which is every row on every other chart. */
+	it('draws no icon for a row that carries none', () => {
+		expect(tip(theme, { title: 'Up', tone: 'kick', rows: [['Up', '0:10']] })).not.toContain('<img');
 	});
 });
