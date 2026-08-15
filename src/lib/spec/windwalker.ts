@@ -1387,6 +1387,15 @@ function blowBehind(damageTaken: DamageEvent[], absorb: AbsorbedEvent): number |
 	return best === null ? null : (best.amount ?? 0) + (best.absorbed ?? 0);
 }
 
+/**
+ * How close two differently-identified presses of one ability have to be to be the same press.
+ *
+ * Measured rather than picked: Spear Hand Strike's interrupt and silence are separate spells that fire
+ * on one press, and they land 2ms apart on the reference pull. Twenty times that is still a fiftieth
+ * of a global, so it cannot swallow a real second press.
+ */
+const SAME_PRESS_MS = 50;
+
 /** A proc window this close to the full duration ran out instead of being spent. */
 export const CB_EXPIRY_SLACK_MS = 500;
 
@@ -3060,7 +3069,23 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 				onGcd: c.ability?.onGcd ?? false,
 			})),
 		)
-		.sort((a, b) => a.t - b.t);
+		.sort((a, b) => a.t - b.t)
+		// One press, one mark — even when the log writes the press twice.
+		//
+		// Spear Hand Strike is the case: its interrupt and its silence are separate spells that fire
+		// together, so a single press arrives as 116705 and 116709 two milliseconds apart. Drawn as two
+		// marks it reads as two presses, and because an icon is exactly one global wide the packer opens
+		// a second row for the lane — which says the player pressed it twice at once.
+		//
+		// The rule is deliberately narrow: same name, *different* id, near-simultaneous. Same-id repeats
+		// are left alone, and that is what protects auto-attacks — a dual-wielding monk lands main-hand
+		// and off-hand swings milliseconds apart, both under id 1, and those are two real attacks rather
+		// than one logged twice. Nothing pressed twice inside `SAME_PRESS_MS` is a second press either:
+		// the global is a thousand milliseconds and this is a fiftieth of it.
+		.filter((mark, i, all) => {
+			const prev = all[i - 1];
+			return prev === undefined || prev.name !== mark.name || prev.id === mark.id || mark.t - prev.t > SAME_PRESS_MS;
+		});
 
 	const lane = (aura: Aura, group: LaneGroup, windows: Window[]): AuraLane => ({
 		key: aura.key,
