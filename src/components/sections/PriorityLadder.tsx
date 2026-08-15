@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatInteger, formatPercentValue } from '~/lib/format';
 import type { Analysis, TargetMode } from '~/lib/types';
+import { bandForMode } from '~/lib/view/targetMode';
 
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '../primitives';
 
@@ -38,13 +39,17 @@ export default function PriorityLadder({ analysis, mode }: { analysis: Analysis;
 	 * `auto` — or a choice that agrees with the pull — reads the walk the engine already did at the live
 	 * target count. An override reads the walk forced to that count, which the engine precomputed for
 	 * exactly this: the inputs are not on `Analysis`, so the choice cannot be answered by recomputing
-	 * here. `single` forces one target; `multi` forces three, the band where the list's multi-target
-	 * entries are all live and the dump threshold has moved.
+	 * here.
+	 *
+	 * Which band each reading means is `bandForMode`'s to say, not this component's. It was a ternary
+	 * here until `Rotation` needed the same answer to decide which rungs of the list to draw, and two
+	 * copies of it could disagree — which would send a reader from a skip in this section to a reference
+	 * list that never contained the button they were told they passed over.
 	 *
 	 * Falls back to the natural audit when a report predates `aplForced`, which keeps an older analysis
 	 * rendering rather than showing a reader a refusal caused by the shape of the file they loaded.
 	 */
-	const forced = mode === 'single' ? 1 : mode === 'multi' ? 3 : null;
+	const forced = bandForMode(mode ?? null);
 	const apl = forced === null ? analysis.apl : (analysis.aplForced?.[forced] ?? analysis.apl);
 
 	const rows = useMemo<GridRow[]>(

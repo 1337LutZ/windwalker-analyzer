@@ -13,6 +13,7 @@
 // So it lives where the selection does: in the component that renders the report, for as long as that
 // report is on screen.
 
+import type { Band } from '~/lib/spec/apl';
 import type { TargetMode } from '~/lib/types';
 
 /** What the reader can ask for: the detected answer, or one of the two readings outright. */
@@ -44,4 +45,26 @@ export function resolveTargetMode(
 	const seen = detected ?? null;
 	if (choice === 'auto') return { mode: seen, detected: seen, overridden: false };
 	return { mode: choice, detected: seen, overridden: seen !== null && seen !== choice };
+}
+
+/**
+ * Which of the priority list's four bands a reading is read at.
+ *
+ * Two sections need this answer and they must give the same one: `PriorityLadder` judges every press
+ * at this band, and `Rotation` prints the rungs that exist at it. If they disagreed, a reader sent
+ * from a skip to the reference would arrive at a list that never contained the button they were told
+ * they passed over — which is the one failure the pairing exists to prevent.
+ *
+ * `multi` is three rather than two or four, because three is where the multi-target list has taken
+ * its shape: Rushing Jade Wind is above Rising Sun Kick, Spinning Crane Kick is in the list, and the
+ * chi dump's energy reserve has moved to the higher of its two numbers. Four adds exactly one more
+ * rung — the `targets >= 4` Crane Kick of entry 20 — and reading every pack as though it were four
+ * enemies would print a rung most packs never reach.
+ *
+ * Null when nothing detected a reading and the reader has not chosen one, which is the same null
+ * `resolveTargetMode` returns and means the same thing: no basis to pick, so do not pick.
+ */
+export function bandForMode(mode: TargetMode | null): Band | null {
+	if (mode === null) return null;
+	return mode === 'single' ? 1 : 3;
 }

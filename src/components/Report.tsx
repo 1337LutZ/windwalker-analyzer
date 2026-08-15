@@ -131,9 +131,11 @@ const SECTIONS: (ReportSection & {
 	// priority list wanted at each of your globals, and the one below it is the list itself. A reader
 	// told they passed a button over needs somewhere to go and read what that button was for.
 	{ id: 'priority', titleKey: 'priority.title', Component: PriorityLadder },
-	// Reference, not analysis: it says nothing about this pull and renders the same for every log. It
-	// belongs after everything that grades, because it is where a reader goes once a section above has
-	// told them a number was wrong and they want to know what right looked like.
+	// Reference, not analysis: it grades nothing and says nothing about how this pull went. It belongs
+	// after everything that does grade, because it is where a reader goes once a section above has told
+	// them a number was wrong and they want to know what right looked like. Not the same list for every
+	// log, though — the rungs it draws are the ones the priority list has at this reader's target count,
+	// minus the buttons this log proves were not on their bar.
 	{ id: 'rotation', titleKey: 'rotation.title', Component: Rotation },
 	{ id: 'method', titleKey: 'method.title', Component: Method },
 ];
@@ -201,13 +203,21 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 						<Takeaways analysis={analysis} />
 					</section>
 					{sections.map(({ id, Component }) =>
-						// Still a prop, though the mode is in context now, because the two uses differ. Every other
-						// section reads the mode *indirectly*, through the scorecard that weights its metrics; this
-						// one uses it to pick which of the precomputed audits to render. A prop says that at the call
-						// site, where reading context would hide the one place the choice selects data rather than
-						// reweighting it.
+						// Still props, though the mode is in context now, because these two uses differ from every
+						// other. Every other section reads the mode *indirectly*, through the scorecard that weights
+						// its metrics; these two use it to select what is rendered at all — which of the precomputed
+						// audits, and which rungs of the priority list exist at that count. A prop says that at the
+						// call site, where reading context would hide the two places the choice picks data rather
+						// than reweighting it.
+						//
+						// They are a pair and take the same value for that reason: `PriorityLadder` judges every
+						// press at the reader's target count and `Rotation` prints the list that count produces, and
+						// both map it through the same `bandForMode`. A reader sent from a skip to the reference has
+						// to arrive at a list that contained the button.
 						id === 'priority' ? (
 							<PriorityLadder key={id} analysis={analysis} mode={mode} />
+						) : id === 'rotation' ? (
+							<Rotation key={id} analysis={analysis} mode={mode} />
 						) : (
 							<Component key={id} analysis={analysis} />
 						),

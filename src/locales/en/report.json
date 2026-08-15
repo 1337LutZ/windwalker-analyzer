@@ -646,8 +646,10 @@
     },
     "flow": {
       "title": "The priority flow",
-      "intent": "Read down and press the first thing that is true. There is no second list for packs: the same rungs are read at one enemy and at six, and only the gates change. A chip on a rung is its gate — the list does not look at that entry at all unless the chip is true, which is why several rungs fall away entirely at a single target. Where a rung holds two or three buttons instead of one, they are alternatives, and the line above them is what chooses.",
-      "caption": "The priority list, one rung per entry, in the order the rotation checks it"
+      "intent": "Read down and press the first thing that is true. There is no second list for packs: the same rungs are read at one enemy and at six, and only which of them the list reaches changes. Where a rung holds two or three buttons instead of one, they are alternatives, and the line above them is what chooses. A chip on a rung is a gate — the list does not look at that entry at all unless the chip is true.",
+      "caption": "The priority list, one rung per entry, in the order the rotation checks it",
+      "reading_single": "This is the list at one enemy, because that is how the report above is reading the pull. The rungs the priority list only reaches from two enemies up are not drawn, and the two rungs that hold one rule below three targets and another above it show only the half that applies. The chips above still name every count at which something changes, including the ones outside this reading — the control at the top of the report switches it.",
+      "reading_multi": "This is the list at three enemies, which is the same count the section above judges every press at. The single-target half of each split rung is not drawn, and neither is the Spinning Crane Kick the list only reaches from four. The chips above still name every count at which something changes — the control at the top of the report switches the reading."
     },
     "crossover": {
       "sef": "2+ · Storm, Earth and Fire",
@@ -658,7 +660,8 @@
     "gate": {
       "stormEarthAndFire": "2+ targets",
       "rushingJadeWindMulti": "2+ targets",
-      "risingSunKick": "1–2 targets, or the debuff a global from dropping",
+      "risingSunKickCooldown": "1–2 targets",
+      "risingSunKickHold": "3+ targets",
       "craneOverKick": "4+ targets",
       "spinningCraneKick": "3+ targets",
       "tigereyeBrewRune": "Rune of Re-Origination equipped",
@@ -678,6 +681,10 @@
       "blackoutKick": {
         "title": "How much the dump has to leave behind",
         "detail": "One entry with two energy reserves written into it, and the size of the pack picks between them: how much has to stay in the bar depends on how much else there would be to spend it on."
+      },
+      "risingSunKick": {
+        "title": "Whether the pack has pushed the kick down the list",
+        "detail": "One entry with an \"or\" in it, and the target count decides which half of it is doing the work. Up to two enemies the kick is simply pressed on cooldown from here. From three there are buttons above it worth more than one kick, and the only thing that still claims this rung is the debuff it leaves running out."
       }
     },
     "entry": {
@@ -711,10 +718,15 @@
         "when": "it is ready.",
         "why": "Nothing. It is the one entry with no condition on it at all, so the only thing holding it can cost you is a summon you never fit in."
       },
-      "risingSunKick": {
+      "risingSunKickCooldown": {
         "name": "Rising Sun Kick",
         "when": "the cooldown is up. It runs 15 seconds on an 8-second cooldown, so nothing but a missed global makes it drop.",
         "why": "The debuff, not the kick — see below. It is the only button here whose cost is paid by everything else you press."
+      },
+      "risingSunKickHold": {
+        "name": "Rising Sun Kick",
+        "when": "the debuff it leaves is a global from expiring. That is the only thing that claims this rung once there are three enemies — otherwise the kick waits for its unconditional rung further down.",
+        "why": "Holding the debuff, not landing the kick. From three targets the buttons above this one hit the whole pack and are worth more than one kick, so the list lets the kick slide — but never far enough to drop the 20% it is lifting everything by."
       },
       "tigerPalmRefresh": {
         "name": "Tiger Palm",
@@ -801,7 +813,8 @@
       "snapshot": "Tigereye Brew reads your mastery once, at the moment the buff goes up, and never reads it again. That is why the list spends it in the last global of a Re-Origination proc: the proc's ten seconds of converted stats are frozen into a fifteen-second buff, and the brew carries them on after the proc has gone.",
       "channel": "Nothing else in the list is looked at while Fists of Fury channels. Not a brew, not a cooldown, not the debuff — the fourth entry in the list is an instruction to wait until the channel ends. Four seconds is long enough for a cooldown to come up, a proc to land and the debuff to fall off with nothing done about any of them.",
       "debuff": "Rising Sun Kick's debuff goes on every enemy, not only the one you kicked, and it lifts every one of your abilities by 20% for fifteen seconds. Auto-attacks are the exception. Losing it costs you a sixth of all of that, across the whole pack, for as long as it is down.",
-      "talents": "The list assumes two talent choices and quietly skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs of the flow above and not a fork: with the wind talented at a single target, neither of those rungs fires and it waits for its own one near the bottom. Chi Wave, Zen Sphere and Chi Burst share a row too, and that one is drawn as a fork, because all three are checked in the same stretch of the list and only one of them can exist.",
+      "talents": "The list assumes two talent choices and quietly skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs of the flow above and not a fork: with the wind talented at a single target, neither of those rungs fires and it waits for its own one near the bottom. Chi Wave, Zen Sphere and Chi Burst share a row too, and that one is drawn as a fork wherever this log cannot tell which of the three you brought.",
+      "inferred": "Some of those rungs are dropped from the flow above, and only ever on proof that a button was not on your bar. A log carries no talent tree, so the only thing this report knows is which buttons you pressed — and a button you never pressed is exactly the button you may have forgotten, so an unpressed rung is never taken away. What is taken away is the alternative to something you did press: one Spinning Crane Kick in the log means there was no Rushing Jade Wind to take it off your bars, one Rushing Jade Wind means there was no Spinning Crane Kick to press, and one Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
       "mastery": "One correction, because the name of the mechanic misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder — it appears in exactly one line of the whole simulator, and that is the line. There is no alternating-ability mastery here; Combo Strikes belongs to a later expansion. Pressing the same button twice in a row costs you nothing."
     }
   },

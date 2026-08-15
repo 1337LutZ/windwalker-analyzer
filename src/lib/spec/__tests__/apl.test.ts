@@ -208,4 +208,32 @@ describe('the priority ladder', () => {
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'off-list', wanted: null });
 		expect(audit?.offList).toBe(1);
 	});
+
+	it('never names the unconditional kick below three targets', () => {
+		// Entry 21 carries `bands: [3, 4]`, and those bands state a fact the walk already had rather than
+		// change it: below three targets entry 18 above is the same button at the same cost with the same
+		// cooldown and an unconditionally true condition, so the only ways past it — `!ready` and
+		// `!affordable` — are predicates entry 21 fails identically.
+		//
+		// Both of those routes are exercised here. It matters because the reference table renders off
+		// these bands: without them a single-target reader is shown Rising Sun Kick on two rungs with
+		// nothing to tell them apart, and with them no verdict may move.
+		for (const targets of [1, 2]) {
+			const onCooldown = aplAudit(
+				inputs({
+					targetsAt: () => targets,
+					chi: flat(4, 4),
+					casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)],
+				}),
+			);
+			const cannotAfford = aplAudit(
+				inputs({ targetsAt: () => targets, chi: flat(4, 0), casts: [press(5000, ID.jab)] }),
+			);
+			for (const audit of [onCooldown, cannotAfford]) {
+				for (const p of audit?.presses ?? []) {
+					expect(p.wanted, `at ${String(targets)} targets`).not.toBe('rising-sun-kick-filler');
+				}
+			}
+		}
+	});
 });
