@@ -408,6 +408,38 @@ const damagingNames = (abilities: readonly AbilityDamage[]): Set<string> =>
 	new Set(abilities.filter((a) => a.total > 0 && !a.utility).map((a) => a.name));
 
 /**
+ * Which press lanes come off an item rather than out of the spellbook, by the name their lane is
+ * keyed on: a potion, a flask, a healthstone, an on-use trinket, a glove tinker.
+ *
+ * Read out of the game model exactly as `APPLIED_BY_CAST` is, and for the same reason — `Ability.onUse`
+ * is the simulator's own division between the kit and the rotation, and the field's own doc says which
+ * sim files draw the line and why `utility` structurally cannot. So a consumable added to the spec
+ * sorts correctly the first time somebody presses it, with nothing in this file to keep in step.
+ *
+ * A module constant rather than a memo. The registry is one too, so this set is the same for every
+ * pull ever rendered — unlike `damagingNames`, which is a reading of *this* pull's damage table.
+ */
+const ON_USE_NAMES: ReadonlySet<string> = new Set(
+	registry.abilities.filter((a) => a.onUse === true).map((a) => a.name),
+);
+
+/**
+ * Which of the three tiers a press lane sits in — lower is higher up the chart.
+ *
+ * The middle tier is the reason this is a rank and not a boolean. Damage and everything-else was the
+ * first cut and it left a potion, a Synapse Springs and a Healthstone interleaved with the interrupts,
+ * the Rolls and the defensives, which is three unrelated readings in one block: the rotation, the
+ * consumables you remembered to press, and the buttons the fight asked you for. Splitting the kit out
+ * puts each of them where the reader can scan it as one thing.
+ *
+ * A cooldown whose damage lands under somebody else's name still sorts into the last tier, and that
+ * limitation is unchanged and deliberate — see `damagingNames` for why answering it needs something
+ * the model does not carry.
+ */
+const tierOf = (name: string, damaging: ReadonlySet<string>): number =>
+	damaging.has(name) ? 0 : ON_USE_NAMES.has(name) ? 1 : 2;
+
+/**
  * The presses grouped into one lane per ability, in the order the lanes are drawn.
  *
  * Packing alone put whichever press came next on whichever row happened to be free, so the same
@@ -415,13 +447,15 @@ const damagingNames = (abilities: readonly AbilityDamage[]): Set<string> =>
  * per ability makes the vertical position mean something: one row is one button, and a gap in a row
  * is that button not being pressed.
  *
- * Damage first, and then by how often the button was pressed. Press count alone is a count of
+ * Three tiers, and then by how often the button was pressed. Press count alone is a count of
  * keystrokes and not of the rotation: it put Roll, Synapse Springs and a Healthstone above Fists of
  * Fury on every reference pull, because a global spent on damage is pressed rarely and a utility
  * button is pressed whenever the fight asks for it. The reader scans this chart top-down looking for
- * their rotation, so the buttons that did something to the boss come first and the rest sink — inside
- * the player's own rows, which is a block the per-enemy sort has already settled. Ties break on the
- * first press, which keeps the order stable between two pulls that used the same kit.
+ * their rotation, so the buttons that did something to the boss come first, the kit — potions, flasks,
+ * on-use trinkets — comes next, and the interrupts, the Rolls and the defensives sink to the foot of
+ * the block. All of it inside the player's own rows, which the per-enemy sort has already settled.
+ * `tierOf` owns which tier a lane is in; press count only ever orders the lanes inside one. Ties break
+ * on the first press, which keeps the order stable between two pulls that used the same kit.
  *
  * Each lane is still packed internally: two presses of the *same* ability can land close enough to
  * overlap at the wide end of the zoom ladder, and a lane that needs two sub-rows gets two.
@@ -460,7 +494,7 @@ function castLanesOf(casts: readonly CastMark[], pxPerSec: number, damaging: Rea
 		})
 		.sort(
 			(a, b) =>
-				Number(damaging.has(b.name)) - Number(damaging.has(a.name)) ||
+				tierOf(a.name, damaging) - tierOf(b.name, damaging) ||
 				b.casts.length - a.casts.length ||
 				(a.casts[0]?.t ?? 0) - (b.casts[0]?.t ?? 0),
 		);

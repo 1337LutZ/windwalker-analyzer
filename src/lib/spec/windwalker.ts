@@ -394,6 +394,14 @@ export const RSK_TARGET_LANES = 6;
 // anything: `chi` and `energy` buttons have no cooldown to drift against, `conditional` ones are
 // judged against their conditions, and `other` is counted but never scored.
 
+/**
+ * Rising Sun Kick's cooldown, from `sim/monk/ww_rising_sun_kick.go` (`Duration: time.Second * 8`).
+ *
+ * Exported because the section prints a target built from it, and a component restating `8000` is a
+ * second copy free to drift from the ability it describes.
+ */
+export const RSK_COOLDOWN_MS = 8000;
+
 const ABILITIES: Ability[] = [
 	{
 		key: 'jab',
@@ -439,7 +447,7 @@ const ABILITIES: Ability[] = [
 		damageIds: [107428],
 		onGcd: true,
 		gate: 'cooldown',
-		cooldownMs: 8000,
+		cooldownMs: RSK_COOLDOWN_MS,
 		// The uptime metric hangs off the debuff this applies, never off the cast id.
 		applies: ['rising-sun-kick-debuff'],
 	},
@@ -659,6 +667,53 @@ const ABILITIES: Ability[] = [
 		applies: ['tigereye-brew'],
 		consumes: ['tigereye-brew-bank'],
 	},
+	/**
+	 * The kit, not the spellbook — see `Ability.onUse` for why that is a field of its own.
+	 *
+	 * These three are here for one reason: the timeline sorts its press lanes into damage, then the
+	 * kit, then everything else, and a press the model does not carry cannot be sorted. They are
+	 * scored nowhere — `gate: 'other'` — and they are the three both reference monks actually pressed,
+	 * counted across every boss pull in a:6MhZgjyAknFWrYfK and a:YBQzrcgVJnAj7NMP. A flask, a second
+	 * potion or an on-use trinket joins them the day a log has one; none of this is a guess about what
+	 * somebody might carry.
+	 */
+	{
+		key: 'synapse-springs',
+		name: 'Synapse Springs',
+		// The engineering glove tinker, registered as enchant 4898 in `sim/common/mop/enchants.go:216`
+		// — `RegisterTemporaryStatsOnUseCD(…, ActionID{SpellID: 126734})`, a 1-minute cooldown behind
+		// the shared offensive-trinket timer. The buff it puts up logs under a *different* id, which is
+		// why the aura is declared apart.
+		castIds: [126734],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+		applies: ['synapse-springs'],
+	},
+	{
+		key: 'virmens-bite',
+		name: "Virmen's Bite",
+		// The agility combat potion. wowsims keys it on the item rather than the spell —
+		// `makePotionActivationSpellInternal` in `sim/core/consumes.go:254` builds it as
+		// `ActionID{ItemID: potion.Id}` — so 105697 is the log's number and not the sim's. Measured on
+		// a:6MhZgjyAknFWrYfK and a:YBQzrcgVJnAj7NMP, where the same id is both the press and the buff.
+		castIds: [105697],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+		applies: ['virmens-bite'],
+	},
+	{
+		key: 'healthstone',
+		name: 'Healthstone',
+		// `registerConjuredCD` in `sim/core/consumes.go:372` — conjured item 5512, on the shared
+		// conjured timer. It heals and does nothing else, which is why it declares no aura: there is no
+		// buff window to draw and the press is the whole event.
+		castIds: [6262],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+	},
 ];
 
 const AURAS: Aura[] = [
@@ -829,6 +884,105 @@ const AURAS: Aura[] = [
 		kind: 'buff',
 		durationMs: RE_ORIGINATION_MS,
 	},
+	/**
+	 * The rest of the gear, which the report used to see only one piece of.
+	 *
+	 * Re-Origination was modelled because the whole snapshot analysis turns on it, and everything else
+	 * a Windwalker's kit fires was left off the chart entirely — so a reader looking at a brew asking
+	 * "what else was up" got the trinket the report happened to care about and nothing more. Every one
+	 * below is grounded twice: a simulator file that defines the effect, cited beside it, and an
+	 * apply/remove pair on a real pull. Both reference reports were swept across every boss pull, and
+	 * none of these is an id that only the simulator believes in.
+	 *
+	 * No `durationMs` on any of them, deliberately. That field exists so a metric can tell "expired
+	 * unused" from "consumed early", and nothing here is graded — these are lanes, and a lane draws
+	 * the window the log recorded rather than one measured forward from an application.
+	 *
+	 * Every one is a `buff` in the game's sense — none of them touches the enemy — and their *lanes*
+	 * are split further down: `proc` where the gear fires them, `buff` where the player pressed them,
+	 * which is what makes the chart's `Procs` toggle mean "turn the gear off". Dancing Steel is the one
+	 * absentee with an excuse: the enchant is on both weapons on the reference pull and the simulator
+	 * models it (`sim/common/mop/enchants.go:173`, agility 118334 / strength 118335), but neither id —
+	 * nor 120032, which `EXTRA_NAMES` carries — produces a single buff event in either report, so
+	 * there is nothing to draw and no id a log will vouch for.
+	 */
+	{
+		key: 'capacitance',
+		name: 'Capacitance',
+		/**
+		 * The Capacitive Primal Diamond, and the one aura here that is a counter rather than a buff.
+		 *
+		 * `sim/common/mop/metagems.go:69-79`: the meta gem (item 95346) stacks this to five and then
+		 * spends the whole stack on a Lightning Strike, which is why `maxStacks` is 5 and why the
+		 * payoff has an id of its own — 137597, already named in `EXTRA_NAMES` because it lands as
+		 * damage. It is the busiest aura a monk carries by a distance: 5,081 events across the boss
+		 * pulls in a:6MhZgjyAknFWrYfK, against 392 for Re-Origination.
+		 */
+		ids: [137596],
+		kind: 'buff',
+		maxStacks: 5,
+	},
+	{
+		key: 'flurry-of-xuen',
+		name: 'Flurry of Xuen',
+		// The legendary cloak. `sim/common/mop/cloaks_phase_4_54.go:133-136` registers this aura for
+		// Fen-Yu, Fury of Xuen (item 102248, registered at line 201) — three seconds during which the
+		// cloak throws its own strikes, which land under 147891 and are already named in `EXTRA_NAMES`.
+		ids: [146194],
+		kind: 'buff',
+	},
+	{
+		key: 'focus-of-xuen',
+		name: 'Focus of Xuen',
+		// Tier 16, four pieces — not a trinket, and worth saying so on the row. The aura is registered
+		// in `sim/monk/items.go:255-258`; what turns it on is in
+		// `sim/monk/windwalker/tigereye_brew.go:60-66`, where every tenth Tigereye Brew stack *spent*
+		// grants it for ten seconds. So this lane is a readout of how the brews were spent, which is
+		// the one section of this report it lines up under.
+		ids: [145024],
+		kind: 'buff',
+	},
+	{
+		key: 'vicious',
+		name: 'Vicious',
+		// Haromm's Talisman, the agility half of the pair of Siege multistrike trinkets:
+		// `sim/common/mop/trinkets_phase_4_54.go:363-367`. The heroic-warforged id in that version map
+		// (105527, line 359) is the exact trinket worn on a:6MhZgjyAknFWrYfK fight 10. Its other half
+		// is the Multistrike damage under 146061, named in `EXTRA_NAMES`.
+		ids: [148903],
+		kind: 'buff',
+	},
+	{
+		key: 'ferocity',
+		name: 'Ferocity',
+		// Sigil of Rampage, the agility cleave trinket: `sim/common/mop/trinkets_phase_4_54.go:739-743`.
+		// Here because the second reference monk swapped to it — it fires on four of his boss pulls in
+		// a:YBQzrcgVJnAj7NMP and Vicious on thirteen, which is the same trinket slot changing hands.
+		ids: [148896],
+		kind: 'buff',
+	},
+	{
+		key: 'synapse-springs',
+		name: 'Synapse Springs',
+		// Pressed, so it is a `buff` and not a `proc`, and it merges onto its own press row.
+		//
+		// 96228 and not the 126734 the simulator uses for both halves
+		// (`sim/common/mop/enchants.go:227-232`): the tinker's button and the buff it puts up are two
+		// different ids in a Classic log, exactly as Fortifying Brew's are. Measured on every boss pull
+		// in both reference reports — 126734 is always the cast and 96228 is always the buff.
+		ids: [96228],
+		kind: 'buff',
+		appliedBy: 'synapse-springs',
+	},
+	{
+		key: 'virmens-bite',
+		name: "Virmen's Bite",
+		// The potion buff, under the same id as the press — see the ability for why the simulator has
+		// no spell id to offer here at all.
+		ids: [105697],
+		kind: 'buff',
+		appliedBy: 'virmens-bite',
+	},
 ];
 
 export const WINDWALKER: GameData = { abilities: ABILITIES, auras: AURAS };
@@ -860,6 +1014,20 @@ const RUSHING_JADE_WIND_CAST = registry.ability('rushing-jade-wind');
 const ENERGIZING_BREW_CAST = registry.ability('energizing-brew');
 const COMBO_BREAKERS = [CB_TIGER_PALM, registry.aura('combo-breaker-blackout-kick')];
 const SEF_AURA = registry.aura('storm-earth-and-fire');
+
+/**
+ * The gear's own auras, as two lists because the chart groups them differently.
+ *
+ * Named by key here and resolved through the registry like every other aura above, so adding one to
+ * the model is the whole change — the lanes below are built by mapping these, and nothing in the
+ * timeline learns a spell id. Re-Origination is deliberately absent from both: it keeps the lane it
+ * has always had, drawn from the snapshot analysis' own windows rather than from a second reading.
+ */
+const GEAR_PROCS: Aura[] = ['capacitance', 'flurry-of-xuen', 'focus-of-xuen', 'vicious', 'ferocity'].map((key) =>
+	registry.aura(key),
+);
+/** The kit the player pressed. Same windows, drawn as buffs, because a press is not a proc. */
+const ITEM_USES: Aura[] = ['synapse-springs', 'virmens-bite'].map((key) => registry.aura(key));
 
 /**
  * The damage ids that land on exactly one enemy, which is the only evidence of where an actor stood.
@@ -902,11 +1070,15 @@ const ON_COOLDOWN: Ability[] = ABILITIES.filter((a) => a.gate === 'cooldown');
 const NEEDS_TARGET: ReadonlySet<string> = new Set(['rising-sun-kick', 'chi-wave']);
 
 /**
- * Names for the ids the model deliberately does not carry: off-GCD utility and consumables, which
- * are counted but never scored, and damage with no cast behind it. Nothing here is an Ability,
- * which is exactly what marks its damage passive — autoattacks, Tiger Strikes, trinket and enchant
- * procs and external buffs are a readout of gear rather than something to coach. WarcraftLogs' own
- * damage table fills in anything not listed; whatever is still unknown renders as `#id`.
+ * Names for the ids the model deliberately does not carry: off-GCD utility, which is counted but
+ * never scored, and damage with no cast behind it. Nothing here is an Ability, which is exactly what
+ * marks its damage passive — autoattacks, Tiger Strikes, trinket and enchant procs and external
+ * buffs are a readout of gear rather than something to coach. WarcraftLogs' own damage table fills
+ * in anything not listed; whatever is still unknown renders as `#id`.
+ *
+ * The consumables left, and they left because the model now carries them: Synapse Springs, Virmen's
+ * Bite and the Healthstone are Abilities so that the timeline can sort them as a tier of their own,
+ * and an id the registry answers for never reaches this table.
  *
  * Raid buffs are deliberately absent: `RAID_BUFF_NAMES` already carries every provider id the buff
  * section knows, so naming the Monk's own two here would be a second copy of a number that is settled
@@ -930,10 +1102,7 @@ const EXTRA_NAMES: Record<number, string> = {
 	146194: 'Flurry of Xuen',
 	147891: 'Flurry of Xuen',
 	145024: 'Focus of Xuen',
-	126734: 'Synapse Springs',
 	26297: 'Berserking',
-	6262: 'Healthstone',
-	105697: "Virmen's Bite",
 	120032: 'Dancing Steel',
 	148903: 'Vicious',
 };
@@ -2429,6 +2598,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// meant to line other presses up against — it is a bar saying "a clone of you was out" — and it
 		// earns its row because every fault the section below names happened somewhere inside it.
 		lane(SEF_AURA, 'buff', sefWindows),
+		// The gear, and the kit that was pressed. Read here rather than anywhere above because no metric
+		// wants them: nothing in this report grades a trinket, and the reader's question — "what was my
+		// gear doing when I pressed that" — is one only the chart can answer. The empty-lane filter below
+		// is what keeps a monk who wore none of this from paying a row apiece to be told so.
+		...GEAR_PROCS.map((aura) => lane(aura, 'proc', auraWindows(selfEvents, aura, t0, fight.endTime))),
+		...ITEM_USES.map((aura) => lane(aura, 'buff', auraWindows(selfEvents, aura, t0, fight.endTime))),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
 		...rskTargets.targets.map(targetLane),

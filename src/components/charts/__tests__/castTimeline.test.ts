@@ -357,11 +357,12 @@ describe('CastTimeline, presses merged into the row they open', () => {
  * Press count alone is a count of keystrokes: a utility button is pressed whenever the fight asks for
  * it and a damaging global is pressed on a cooldown, so Roll, Synapse Springs and a Healthstone all
  * sorted above Fists of Fury on the reference pulls. The reader scans this chart top-down for their
- * rotation, so damage comes first.
+ * rotation, so damage comes first, then the kit, then everything the fight asked for.
  *
  * Nothing below names a spell to the chart. Which presses did damage is read off `damage.abilities` —
- * the pull's own table, which is why the fixture is the one supplying it — so an ability the report
- * has never heard of sorts correctly the first time somebody presses it.
+ * the pull's own table, which is why the fixture is the one supplying it — and which are the kit is
+ * read off `Ability.onUse` in the spec model, so an ability the report has never heard of sorts
+ * correctly the first time somebody presses it and a consumable sorts correctly the day it is added.
  */
 describe('CastTimeline, damaging presses above the rest', () => {
 	/** Where a row's own label first appears, which is the order the gutter draws them in. */
@@ -380,6 +381,11 @@ describe('CastTimeline, damaging presses above the rest', () => {
 				// In the damage table and still not a rotation press: the model marks it `utility`, which is
 				// the distinction being read here rather than one this test re-decides.
 				{ t: 30000, id: 101545, name: 'Flying Serpent Kick', onGcd: true },
+				// The kit. Pressed once, does no damage at all, and the model marks it `onUse` — which is
+				// the whole difference between it and the Roll above. The Healthstone is the one consumable
+				// with no aura to be merged onto, so it is the one that stays a press lane whatever else the
+				// pull put up, which is what makes it the honest fixture for a tier about press lanes.
+				{ t: 8000, id: 6262, name: 'Healthstone', onGcd: false },
 			],
 			lanes: [timeline.lanes[0]!],
 		},
@@ -394,8 +400,23 @@ describe('CastTimeline, damaging presses above the rest', () => {
 	it('sinks a movement button that happens to hit', () => {
 		const html = render(scan);
 		expect(at(html, 'Flying Serpent Kick')).toBeGreaterThan(at(html, 'Fists of Fury'));
-		// And below Roll, because press count still orders the block once damage has divided it.
+		// And below Roll, because press count still orders the lanes inside one tier — both of these are
+		// in the last one, and Roll was pressed six times to the kick's once.
 		expect(at(html, 'Flying Serpent Kick')).toBeGreaterThan(at(html, 'Roll'));
+	});
+
+	/**
+	 * The middle tier, which is the whole reason the sort is a rank rather than a boolean.
+	 *
+	 * Both halves are asserted because either alone would pass with the tier missing: a Healthstone
+	 * that did no damage already sinks below Fists of Fury without it, and one pressed more often than
+	 * Roll would already sit above Roll. It is the pair — below the rotation *and* above the fight's
+	 * own buttons, while being pressed a sixth as often as one of them — that only three tiers give.
+	 */
+	it('lands the kit between the rotation and the buttons the fight asked for', () => {
+		const html = render(scan);
+		expect(at(html, 'Healthstone')).toBeGreaterThan(at(html, 'Fists of Fury'));
+		expect(at(html, 'Healthstone')).toBeLessThan(at(html, 'Roll'));
 	});
 
 	/**

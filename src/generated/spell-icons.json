@@ -23,6 +23,7 @@
 	"90355": "spell_shadow_unholyfrenzy",
 	"90363": "ability_hunter_pet_spider",
 	"93435": "ability_hunter_catlikereflexes",
+	"96228": "spell_shaman_elementaloath",
 	"100780": "ability_monk_jab",
 	"100784": "ability_monk_roundhousekick",
 	"100787": "ability_monk_tigerpalm",
@@ -103,6 +104,7 @@
 	"146555": "inv_misc_drum_05",
 	"147891": "monk_stance_whitetiger",
 	"148187": "ability_monk_rushingjadewind",
+	"148896": "inv_relics_idolofferocity",
 	"148903": "ability_racial_viciousness",
 	"1247275": "ability_monk_tigereyebrandy",
 	"1247279": "spell_brew_dark"

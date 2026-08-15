@@ -230,3 +230,75 @@ describe('the raid buffs a Monk casts on the raid', () => {
 		expect(named.filter((name) => name.startsWith('#'))).toEqual([]);
 	});
 });
+
+/**
+ * The rest of the gear, which the timeline used to see exactly one piece of.
+ *
+ * Re-Origination had a lane because the snapshot analysis needed one, and every other thing the kit
+ * did — the meta gem, the legendary cloak, the tier four-piece, the trinket, the tinker, the potion —
+ * happened off the chart. So a reader looking at a brew and asking "what else was up" was shown the
+ * one trinket this report happens to grade and nothing else.
+ *
+ * Synthetic rather than a fixture for the reason at the top of this file, plus one of its own: a real
+ * pull only contains the gear that player wore, and the case worth pinning is a monk whose kit is not
+ * the reference monk's — which is why Ferocity is asserted *absent* below rather than left unmentioned.
+ */
+describe('the item procs a Windwalker carries', () => {
+	const geared = analyse({
+		...dataset,
+		events: [
+			...events,
+			// The meta gem's charge counter, which stacks to five and spends the lot on a Lightning Strike.
+			e(2000, 'applybuff', 137596),
+			e(2200, 'applybuffstack', 137596, { stack: 5 }),
+			e(2500, 'removebuff', 137596),
+			// The legendary cloak, three seconds of it.
+			e(4000, 'applybuff', 146194),
+			e(7000, 'removebuff', 146194),
+			// Haromm's Talisman.
+			e(9000, 'applybuff', 148903),
+			e(19000, 'removebuff', 148903),
+			// The tier four-piece, which is bought with brew stacks rather than rolled for.
+			e(31000, 'applybuff', 145024),
+			e(41000, 'removebuff', 145024),
+			// The kit, pressed: the tinker's button and the buff it puts up are two different ids.
+			e(12000, 'cast', 126734),
+			e(12001, 'applybuff', 96228),
+			e(22000, 'removebuff', 96228),
+			// And one with no buff behind it at all, which is why it has no aura in the model.
+			e(50000, 'cast', 6262),
+		].sort((a, b) => a.timestamp - b.timestamp),
+	});
+	const lane = (key: string) => geared.timeline?.lanes.find((l) => l.key === key);
+	const at = (key: string) => lane(key)?.windows.map((w) => [w.start, w.end]);
+
+	it('draws what the gear fired as its own row', () => {
+		expect(at('capacitance')).toEqual([[2000, 2500]]);
+		expect(at('flurry-of-xuen')).toEqual([[4000, 7000]]);
+		expect(at('vicious')).toEqual([[9000, 19000]]);
+		expect(at('focus-of-xuen')).toEqual([[31000, 41000]]);
+	});
+
+	/** One toggle has to be able to turn the whole readout of gear off, and leave the kit you pressed. */
+	it('groups the gear as procs and the buttons you pressed as buffs', () => {
+		expect(lane('capacitance')?.group).toBe('proc');
+		expect(lane('vicious')?.group).toBe('proc');
+		expect(lane('synapse-springs')?.group).toBe('buff');
+	});
+
+	/** A monk who wore a different trinket must not pay a row to be told the one he lacks never fired. */
+	it('draws no row for gear this pull never had', () => {
+		expect(lane('ferocity')).toBeUndefined();
+	});
+
+	/**
+	 * The kit is modelled so the timeline can *sort* it, so the presses have to arrive named — a
+	 * `#126734` sorts into the right tier and still tells the reader nothing.
+	 */
+	it('names the consumables it now carries rather than drawing their spell ids', () => {
+		const named = geared.timeline?.casts.map((c) => c.name) ?? [];
+		expect(named).toContain('Synapse Springs');
+		expect(named).toContain('Healthstone');
+		expect(named.filter((name) => name.startsWith('#'))).toEqual([]);
+	});
+});

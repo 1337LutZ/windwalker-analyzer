@@ -97,6 +97,25 @@ export interface Ability {
 	 * is still counted in the totals — it happened — it is just kept out of the comparison.
 	 */
 	utility?: boolean;
+	/**
+	 * Pressed off an item rather than out of the spellbook: a potion, a flask, a healthstone, an
+	 * on-use trinket, a glove tinker.
+	 *
+	 * The simulator's own division rather than a category invented here, and it draws the line in one
+	 * place both halves agree on — the press is keyed on an **item**, not on a spell. `sim/core/
+	 * consumes.go` builds every flask, elixir, combat potion and conjured item as `ActionID{ItemID:
+	 * …}` (`registerNonCombatPotion`, `makePotionActivationSpellInternal`, `registerConjuredCD`), and
+	 * `RegisterAllOnUseCds` in `sim/common/mop/stat_bonus_cds_auto_gen.go` builds the on-use trinkets
+	 * and tinkers through `shared.ActiveStatBonusEffect`, whose own comment calls it "an on-use effect
+	 * on an item or an enchant".
+	 *
+	 * `utility` cannot carry this, in either direction. It answers "was this pressed for something
+	 * other than damage", which is equally true of an interrupt, a Roll and a Healthstone — so it
+	 * divides the damage rows from everything else and can never divide a consumable from a Leg Sweep.
+	 * And an on-use trinket that hits is pressed *for* damage while still being an item, so the two
+	 * questions are independent rather than two names for one.
+	 */
+	onUse?: boolean;
 	applies?: string[];
 	/** Aura keys this ability spends. */
 	consumes?: string[];
