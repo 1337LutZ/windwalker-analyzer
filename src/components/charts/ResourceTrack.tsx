@@ -139,6 +139,18 @@ export default function ResourceTrack({
 				role="img"
 				aria-label={label}
 			>
+				{area === '' ? null : <path d={area} fill={fill} stroke="none" />}
+				{/* Shades above the area, not behind it.
+				    
+				    Painted behind, every band was seen *through* the resource's own wash, so the same class
+				    produced a different colour on every chart: a red band under energy's teal read as a
+				    murky slate, under the bank's violet as a dull plum, and the three stacked under the
+				    Energizing Brew bar were barely there at all. Checking the class was not enough to catch
+				    that — the token was identical in all four; what differed was the 18% laid over it.
+				    
+				    The area fill is decoration under the line. A band marks the thing the chart is arguing
+				    about, so it goes on top and keeps its own colour, and consistency stops depending on
+				    what each chart happens to wash itself in. */}
 				{shades.map((shade) =>
 					shade.windows.map((w) => (
 						<rect
@@ -151,7 +163,6 @@ export default function ResourceTrack({
 						/>
 					)),
 				)}
-				{area === '' ? null : <path d={area} fill={fill} stroke="none" />}
 				{/* `non-scaling-stroke` keeps the line a hairline however wide the chart is stretched —
 			    without it the horizontal squash would thin it and the vertical stretch would fatten it. */}
 				<path d={line} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />

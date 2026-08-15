@@ -12,6 +12,11 @@
  * a class it can see written, so `fill-${tone}/25` compiles to nothing at all — which is also why
  * this is a table and not a function.
  *
+ * The band fills are opaque `--color-band-*` tokens rather than an alpha of the tone. See the note
+ * beside them in `styles/global.css`: a translucent band borrows the colour of whatever it is drawn
+ * over, and that is a different thing on each of the four charts, so one class was producing four
+ * reds.
+ *
  * Its own module rather than exports beside a component: a component module has to export nothing but
  * components for React Fast Refresh to hot-swap it, and both the legend and the track import this.
  * The colours themselves are named for the mechanic rather than the hue; see `styles/global.css`.
@@ -29,8 +34,15 @@ export const SWATCH = {
 export type Tone = keyof typeof SWATCH;
 
 /**
- * A window washed behind a bar, and the swatch that names it *at the same strength* — which is the
- * whole reason this table exists.
+ * A window washed over a bar, and the swatch that names it.
+ *
+ * The swatch is the token at **full** strength while the band is a wash, and that is a correction to
+ * an earlier rule here rather than a relapse into the bug it fixed. What was wrong before was the
+ * *token*: a band drawn in `miss` described by a chip drawn in something else. Matching the alpha as
+ * well looked like the tidy answer and is wrong at a chip's size — twelve pixels of a 30% wash on a
+ * dark ground is barely a colour, so the key stopped being legible in the course of making it
+ * accurate. A band is hundreds of pixels wide and can afford to be faint; a chip cannot. One token,
+ * two strengths, chosen for what each has to do.
  *
  * `text` is the note drawn inside such a band, and it is the full-strength token deliberately: a
  * label has to be read, and a quarter-strength glyph on a dark ground cannot be.
@@ -45,9 +57,9 @@ export type Tone = keyof typeof SWATCH;
  * `missSoft` is already `miss` mixed into the ground — washing it again would leave nothing to see.
  */
 export const BAND = {
-	brew: { fill: 'fill-brew/20', swatch: 'bg-brew/20', text: 'text-brew' },
-	rune: { fill: 'fill-rune/25', swatch: 'bg-rune/25', text: 'text-rune' },
-	miss: { fill: 'fill-miss/25', swatch: 'bg-miss/25', text: 'text-miss' },
+	brew: { fill: 'fill-[var(--color-band-brew)]', swatch: 'bg-brew', text: 'text-brew' },
+	rune: { fill: 'fill-[var(--color-band-rune)]', swatch: 'bg-rune', text: 'text-rune' },
+	miss: { fill: 'fill-[var(--color-band-miss)]', swatch: 'bg-miss', text: 'text-miss' },
 } as const satisfies Partial<Record<Tone, { fill: string; swatch: string; text: string }>>;
 
 export type BandTone = keyof typeof BAND;

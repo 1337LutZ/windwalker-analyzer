@@ -45,6 +45,24 @@
 	 * to read as the same red, weaker — a *lighter* tint would sit brighter than the bar it hangs
 	 * off, and the overshoot would shout louder than the miss it belongs to. */
 	--color-miss-soft: #783d45;
+
+	/* A band shaded on a resource chart: the tone already mixed into the chart's own ground, and
+	 * painted opaque.
+	 *
+	 * Alpha was the obvious way to draw these and it does not survive contact with four charts. A
+	 * translucent band takes its colour partly from whatever is beneath it, and beneath it is a
+	 * different thing on every chart — energy's teal wash, the bank's violet, and on the Energizing
+	 * Brew bar a second band. So one class produced four colours: the same red read as murky slate
+	 * under energy, dull plum under the bank, and almost nothing under three stacked layers. Raising
+	 * the alpha does not fix it; measured across 30-70% the four never came within forty points of
+	 * each other on a channel, because the problem is what is underneath, not how much of it shows.
+	 *
+	 * Mixed against the surface once, here, and painted at full opacity, a band is the same colour
+	 * wherever it is drawn. It hides the area wash it covers, which is the right way round: the wash
+	 * is decoration under the line and the band is the thing the chart is arguing about. */
+	--color-band-miss: color-mix(in oklch, var(--color-miss) 38%, var(--color-surface));
+	--color-band-brew: color-mix(in oklch, var(--color-brew) 32%, var(--color-surface));
+	--color-band-rune: color-mix(in oklch, var(--color-rune) 34%, var(--color-surface));
 	--color-track: #2b3833;
 
 	/* Faint row bands for grouping paired rows in dense tables. */
