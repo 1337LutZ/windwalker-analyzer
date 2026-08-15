@@ -1,5 +1,5 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatInteger, formatSeconds } from '~/lib/format';
+import { formatDecimal, formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import ChiBrewTrack from '../charts/ChiBrewTrack';
@@ -74,6 +74,11 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 					<StatTile value={formatInteger(brew.casts)} label={t('chiBrew.kpi.uses')} />
 					<StatTile value={formatInteger(netChi)} label={t('chiBrew.kpi.chi')} />
 					<StatTile value={formatSeconds(brew.cappedMs)} label={t('chiBrew.kpi.capped')} />
+					{/* Only once there is idle time to price. A tile reading "0 chi" on a pull that never let a
+					    charge sit is a fault reported where there was none. */}
+					{brew.cappedMs === 0 ? null : (
+						<StatTile value={formatDecimal(brew.chiLostToIdle)} label={t('chiBrew.kpi.lost')} />
+					)}
 				</StatTiles>
 			</div>
 
@@ -106,6 +111,7 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 						context: brew.cappedMs > 0 ? 'some' : 'none',
 						seconds: brew.cappedMs,
 						pct: brew.cappedPct,
+						chi: brew.chiLostToIdle,
 					})}
 				</Prose>
 			</div>

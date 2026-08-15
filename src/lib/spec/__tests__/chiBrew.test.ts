@@ -74,4 +74,27 @@ describe('the Chi Brew audit', () => {
 			expect(brew.possibleUses, name).toBeGreaterThanOrEqual(brew.casts);
 		}
 	});
+
+	/**
+	 * Idle seconds priced in chi, and the point of the figure is that it stays fractional.
+	 *
+	 * Rounding it to a whole press would claim the pull had room for a use it did not: twenty seconds
+	 * of a forty-five second recharge is not half a Chi Brew anyone could have pressed, it is the
+	 * share of a recharge that never ran.
+	 */
+	it('prices idle charge time in the chi the recharge would have returned', () => {
+		for (const name of ['strong', 'mixed', 'poor']) {
+			const brew = fixture(name).chiBrew;
+			if (brew === undefined) continue;
+			// Two chi a press, forty-five seconds a charge, both from the sim.
+			expect(brew.chiLostToIdle, name).toBeCloseTo((brew.cappedMs / 45_000) * 2, 5);
+			expect(brew.chiLostToIdle, name).toBeGreaterThanOrEqual(0);
+		}
+	});
+
+	it('reports nothing lost when no charge ever idled', () => {
+		const idle = ['strong', 'mixed', 'poor'].map(fixture).find((a) => (a.chiBrew?.cappedMs ?? 1) === 0);
+		if (idle?.chiBrew === undefined) return; // No such pull in the reference set.
+		expect(idle.chiBrew.chiLostToIdle).toBe(0);
+	});
 });

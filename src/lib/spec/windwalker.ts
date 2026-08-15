@@ -858,6 +858,8 @@ export const LATE_MS = 3000;
 
 /** Chi Brew: two charges, forty-five seconds each, from `sim/monk/talents.go:741-742`. */
 const CHI_BREW_CHARGES = 2;
+/** And two chi a press, from the same file's `monk.AddChi(sim, spell, 2, chiMetrics)`. */
+const CHI_BREW_CHI_PER_USE = 2;
 const CHI_BREW_RECHARGE_MS = 45_000;
 
 /**
@@ -953,6 +955,14 @@ function chiBrewAudit(
 		chiWasted: wasted,
 		cappedMs: Math.round(cappedMs),
 		cappedPct: durationMs > 0 ? (cappedMs / durationMs) * 100 : 0,
+		// What that idle time was worth, in the unit the button actually pays out.
+		//
+		// Fractional on purpose, and reported to one decimal. Seconds at the ceiling do not convert to
+		// whole presses — 20 seconds of a 45-second recharge is not "half a Chi Brew you could have
+		// pressed", it is the share of a recharge that never ran. Rounding it up to a whole press would
+		// claim the pull had room for a use it did not, and rounding down to zero would hide the fault
+		// entirely on any pull that idled less than a full recharge.
+		chiLostToIdle: (cappedMs / CHI_BREW_RECHARGE_MS) * CHI_BREW_CHI_PER_USE,
 		possibleUses: Math.floor(durationMs / CHI_BREW_RECHARGE_MS) + CHI_BREW_CHARGES,
 	};
 }

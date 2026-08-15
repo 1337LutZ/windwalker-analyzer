@@ -4810,10 +4810,33 @@
   "chiBrew": {
     "talented": true,
     "casts": 7,
+    "charges": [
+      [0, 2],
+      [3923, 1],
+      [5690, 0],
+      [48923, 1],
+      [87218, 0],
+      [93923, 1],
+      [116698, 0],
+      [138923, 1],
+      [154554, 0],
+      [183923, 1],
+      [201049, 0],
+      [228923, 1],
+      [241134, 0]
+    ],
+    "cappedWindows": [
+      {
+        "start": 0,
+        "end": 3923
+      }
+    ],
+    "maxCharges": 2,
     "chiGained": 14,
     "chiWasted": 1,
     "cappedMs": 3923,
     "cappedPct": 1.5372498001536072,
+    "chiLostToIdle": 0.17435555555555557,
     "possibleUses": 7
   },
   "channel": {

@@ -612,6 +612,15 @@ export interface ChiBrewAudit {
 	/** Time both charges sat full, which is recharge time that will never be spent. */
 	cappedMs: number;
 	cappedPct: number;
+	/**
+	 * The chi that idle time would have returned, as a fraction of a press.
+	 *
+	 * Idle seconds priced in the unit the button pays out, because "20 seconds at two charges" is a
+	 * fact about the cooldown and this is what it cost. Deliberately not rounded to a whole press: a
+	 * recharge that never ran is a share of one, and calling it a use the player missed would claim
+	 * the pull had room for something it did not.
+	 */
+	chiLostToIdle: number;
 	/** Roughly how many uses the pull had room for: the opening two charges plus one per recharge. */
 	possibleUses: number;
 }
