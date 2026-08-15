@@ -285,6 +285,70 @@ describe('the clock the section is measured against', () => {
 	});
 });
 
+/**
+ * The windows the figure is read from, and the two ways they used to be built wrong.
+ *
+ * Both were found by diffing this engine against an independently written script on the Galakras kill
+ * in `a:6MhZgjyAknFWrYfK`, where they cost 17.4 and 42.3 seconds of coverage — together taking that
+ * pull from 61.8% to 80.6%, against the other implementation's 80.7%. Neither shows up on a
+ * single-target pull, which is every committed fixture, so they are pinned here on synthetic events.
+ *
+ * The player is on the boss throughout, so contact is one unbroken 110-second window and the boss
+ * never carries the debuff. Every millisecond of coverage below therefore comes from the add.
+ */
+describe('the debuff windows the figure is read from', () => {
+	const CONTACT_MS = 110_000;
+	const bossContact = Array.from({ length: 12 }, (_, i) => hit(i * 10_000, BOSS, 5000));
+	/** A hit on one *spawn*: the same actor id every time, told apart only by the instance. */
+	const spawnHit = (at: number, instance: number): WclEvent =>
+		e(at, 'damage', JAB_ID, { targetID: ADD, targetInstance: instance, amount: 5000, hitType: 1 });
+	const debuff = (at: number, type: string, instance: number): WclEvent =>
+		e(at, type, RSK_DEBUFF_ID, { targetID: ADD, targetInstance: instance });
+
+	/**
+	 * WarcraftLogs gives one actor id to an NPC type, so two Kor'kron Ironblades are one `targetID` and
+	 * two instances. Keyed by the id alone their event streams interleave: the second apply is swallowed
+	 * because a window is already open, and the first remove closes it — so the second spawn's debuff
+	 * never existed, and the player hitting it between 36s and 40s was credited with nothing.
+	 */
+	it('keeps two spawns of one enemy apart', () => {
+		const spawns = [
+			...brewBank,
+			...bossContact,
+			debuff(20_000, 'applydebuff', 1),
+			debuff(25_000, 'applydebuff', 2),
+			debuff(35_000, 'removedebuff', 1),
+			debuff(40_000, 'removedebuff', 2),
+			// Inside spawn 2's window and outside spawn 1's, which is the whole of what is being asserted.
+			spawnHit(36_000, 2),
+			spawnHit(38_000, 2),
+		].sort((a, b) => a.timestamp - b.timestamp);
+
+		// 36s→38s and 38s→40s, where the second hit's ownership ends at the boss hit at 40s.
+		expect(analyse(datasetOf(spawns)).debuff.engagedUptimePct).toBeCloseTo((4000 / CONTACT_MS) * 100, 6);
+	});
+
+	/**
+	 * A refresh with nothing open is proof the debuff was up and the apply never reached this stream —
+	 * WarcraftLogs emits it constantly for a debuff re-applied to an enemy that already has it. Thrown
+	 * away, as it used to be, the add here carried the debuff for ten seconds and the report said none.
+	 * The window opens at the refresh rather than back-dated, so this under-states rather than invents.
+	 */
+	it('opens a window on a refresh that has no apply in front of it', () => {
+		const orphan = [
+			...brewBank,
+			...bossContact,
+			debuff(50_000, 'refreshdebuff', 1),
+			debuff(60_000, 'removedebuff', 1),
+			spawnHit(52_000, 1),
+			spawnHit(54_000, 1),
+		].sort((a, b) => a.timestamp - b.timestamp);
+
+		// 52s→54s, then 54s→60s where the boss hit at 60s takes ownership back.
+		expect(analyse(datasetOf(orphan)).debuff.engagedUptimePct).toBeCloseTo((8000 / CONTACT_MS) * 100, 6);
+	});
+});
+
 describe('the per-moment target count', () => {
 	it('carries the counts as a step series, in the shape the resource curves use', () => {
 		expect(analysis.targets?.windowMs).toBe(TARGET_WINDOW_MS);

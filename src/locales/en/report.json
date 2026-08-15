@@ -258,9 +258,9 @@
     "clean": "The bar never reached the top. Every point of energy the pull generated was there to be spent.",
     "summary": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it, filling at a measured {{regen, decimal}} energy a second.",
     "summaryNoRate": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it. Too little of the pull was quiet enough to measure a refill rate, so this is time only.",
-    "split_none": "None of that happened while you were in contact with the target. All of it fell in the run-up, an intermission or the tail, where there is nothing to spend energy on — so none of it is counted against you.",
-    "split_some": "{{engaged, duration}} of that was while you were in contact with the target — {{engagedPct, percent}} of your engaged time, and the only part that describes a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, where there is nothing to spend energy on, so none of it is counted against you.",
-    "wasted": "At the measured refill rate that is about {{wasted, integer}} energy arriving on a full bar with a target in front of you.",
+    "split_none": "None of that happened while you had something to hit. All of it fell in the run-up, an intermission or the tail, where there is nothing to spend energy on — so none of it is counted against you.",
+    "split_some": "{{engaged, duration}} of that was while you had something to hit — {{engagedPct, percent}} of that time, and the only part that describes a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, where there is nothing to spend energy on, so none of it is counted against you.",
+    "wasted": "At the measured refill rate that is about {{wasted, integer}} energy arriving on a full bar with something in front of you to spend it on.",
     "kpi": {
       "engaged": "Overcapped",
       "wasted": "Energy lost"
@@ -277,7 +277,7 @@
       "where": "during"
     },
     "where": {
-      "engaged": "on the target",
+      "engaged": "with a target up",
       "downtime": "downtime"
     },
     "noRows": "No single stretch at the cap lasted a full global, so there is nothing worth pointing at on the clock.",
@@ -511,6 +511,7 @@
     "intent": "Each press sends out a spirit that stands on an enemy of your choosing and mirrors your damaging abilities onto it, up to two at a time — and while they are out your own damage is cut, to 70% with one spirit and 55% with two. So the button is only worth pressing when there is a second thing to put a spirit on, and once they are out the one way to waste it is to stand on an enemy a spirit is already handling.",
     "summary_one": "{{count}} spirit sent out, out for {{uptime, percent}} of the pull.",
     "summary_other": "{{count}} spirits sent out, with at least one of them out for {{uptime, percent}} of the pull.",
+    "uptimeMeans": "Spirit uptime is the share of the pull — timer to kill — with at least one spirit out. It is not a target to push towards 100%, and it does not know whether one spirit or two was the right number at any moment: a stretch with one enemy calls for no spirit at all, and this figure counts none of that against you and none of it for you. What the pull actually called for is the sentence below about second targets.",
     "prePlaced_one": "One of them was already standing on something when the pull began — placed before the timer started, so it spent no global inside the pull and has no cast row of its own. That is an ordinary opener rather than a missing press, and it is counted here because the spirit was genuinely out. The press that aimed it is outside this log, so its enemy is read from where the spirit swung instead.",
     "prePlaced_other": "{{count}} of them were already standing on something when the pull began — placed before the timer started, so they spent no globals inside the pull and have no cast rows of their own. That is an ordinary opener rather than a missing press, and they are counted here because the spirits were genuinely out. The presses that aimed them are outside this log, so their enemies are read from where the spirits swung instead.",
     "prePull": {
@@ -532,7 +533,7 @@
     "caption": "Every spirit sent out, and the enemy it was aimed at",
     "kpi": {
       "casts": "Spirits sent",
-      "uptime": "Pull with a spirit out",
+      "uptime": "Spirit uptime",
       "damage": "Spirits' damage",
       "overlap": "Shared a target"
     },

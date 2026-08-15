@@ -217,6 +217,14 @@ export default function StormEarthAndFire({ analysis }: { analysis: Analysis }) 
 				    is wrong. It is also emphatically not a fault — it is how the opener is played. */}
 				{used && (sef.prePlaced ?? 0) > 0 ? <Note>{t('sef.prePlaced', { count: sef.prePlaced ?? 0 })}</Note> : null}
 
+				{/* What the uptime figure is a share of, said on the page because a reader cannot be expected
+				    to guess it — and because the natural guess is wrong twice over. It is a fraction of the
+				    whole pull, not of the time a spirit was worth having, so a fight with long single-target
+				    stretches reads low and *should*; and it counts "at least one spirit", so it cannot tell one
+				    from two. A "time at the optimal spirit count" figure was measured against the sim's own
+				    rule and refused — see the note beside `sefDoubleMs` in `lib/spec/windwalker`. */}
+				{used ? <Note>{t('sef.uptimeMeans')}</Note> : null}
+
 				{used && hasDamage ? (
 					<Prose>{t('sef.damage', { damage: sef.cloneDamage, share: sef.cloneSharePct })}</Prose>
 				) : null}

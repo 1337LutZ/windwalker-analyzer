@@ -78,6 +78,15 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 	const capped = energy.total.cappedMs > 0;
 	const wasted = energy.engaged.wasted;
 	const curve = analysis.resources?.energy;
+	/**
+	 * The clock both tiles below are fractions of: the time the player had something to hit.
+	 *
+	 * The same one the debuff section and Chi Brew's ceiling use, and the same one `energy.engaged` is
+	 * now split on — so the numerator and the denominator of each tile come from one reading of the
+	 * pull. It is published on `debuff` because that is the section that owns it; `durationMs` is the
+	 * fixture fallback, which is what those pulls were measured on.
+	 */
+	const measuredMs = analysis.debuff.contactMs || analysis.durationMs;
 
 	return (
 		<Section id="energy" title={t('energy.title')}>
@@ -117,22 +126,39 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
-							{/* Waste first and the only coloured tile, as in the chi section. Its denominator is the
-							    energy the pull generated at the measured refill rate — so a log too busy to measure
-							    a rate on gets the number with no colour rather than a colour built on a guess. */}
+							{/* Waste first, as in the chi section. Its denominator is the energy generated at the
+							    measured refill rate over the time there was something to spend it on — so a log too
+							    busy to measure a rate on gets the number with no colour rather than a colour built
+							    on a guess.
+
+							    Over contact time and not the pull's length, which is what this shipped with: the
+							    pull's length credits the player with regen through every second they could not act,
+							    and on a Galakras pull that is 117 seconds of energy nobody could ever have spent
+							    padding the denominator of their own waste. */}
 							{wasted === null ? null : (
 								<StatTile
 									value={formatInteger(wasted)}
 									label={t('energy.kpi.wasted')}
-									grade={wasteTone(wasted, (energy.regenPerSec ?? 0) * (analysis.durationMs / 1000))}
+									grade={wasteTone(wasted, (energy.regenPerSec ?? 0) * (measuredMs / 1000))}
 								/>
 							)}
 							{/* Seconds, and only seconds. This tile used to sit beside a second one showing the
 						    same quantity as a share of engaged time — two tiles, one fact, and the reader
 						    left to work out that they were the same number twice. The share moved into the
 						    sentence below, which has room to say what it is a share *of*; a bare percentage
-						    in a tile does not. */}
-							<StatTile value={formatSeconds(energy.engaged.cappedMs)} label={t('energy.kpi.engaged')} />
+						    in a tile does not.
+
+						    Coloured as that share all the same, because a bare duration is the one thing a
+						    reader cannot calibrate: eleven seconds is nothing on a nine-minute pull and most
+						    of a short one. Same reading aid and same caveat as everywhere else on this page —
+						    `lib/score` still grades no energy metric, because neither the sim nor the priority
+						    list says how many seconds at the cap are acceptable, and this number never reaches
+						    the scorecard or the headline. */}
+							<StatTile
+								value={formatSeconds(energy.engaged.cappedMs)}
+								label={t('energy.kpi.engaged')}
+								grade={wasteTone(energy.engaged.cappedMs, measuredMs)}
+							/>
 						</StatTiles>
 					</div>
 

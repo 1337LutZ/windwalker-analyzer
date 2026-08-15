@@ -1382,6 +1382,16 @@ export const ENGAGED_GAP_MS = 15000;
 export const DROP_MS = 1000;
 
 /**
+ * One enemy *spawn*, as a key: the report's actor id plus which copy of it this is.
+ *
+ * WarcraftLogs numbers NPCs by type, so ten Kor'kron Ironblades share one `targetID` and are told
+ * apart only by `targetInstance`. Anything modelling per-enemy state has to key on the pair or their
+ * event streams interleave into one. A missing instance keys as itself rather than as instance 1: a
+ * report old enough not to carry the field then behaves exactly as it used to, one bucket per id.
+ */
+const instanceKey = (target: number, instance: number | undefined): string => `${target}:${instance ?? '-'}`;
+
+/**
  * The shortest stretch at the energy cap worth naming a timestamp for.
  *
  * One Windwalker global. Below that there was no press to have made, so a row saying "you were full
@@ -1901,10 +1911,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * the wrong enemy. The sort is stable, so hits sharing a millisecond keep the order the log gave
 	 * them, which is what decides the tie an area hit creates.
 	 */
-	const landedHits: TargetHit[] = [];
+	// `key` carries the spawn as well as the actor id, because the debuff walk below has to ask about
+	// the one Ironblade in front of the player rather than about every Ironblade on the pull. The
+	// target count next to it deliberately keeps reading `target`: "how many enemies am I on" is a
+	// question about enemies, and splitting one add's id into its spawns would answer a different one.
+	const landedHits: Array<TargetHit & { key: string }> = [];
 	for (const e of damageEvents) {
 		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
-		landedHits.push({ t: e.timestamp - t0, target: e.targetID });
+		landedHits.push({ t: e.timestamp - t0, target: e.targetID, key: instanceKey(e.targetID, e.targetInstance) });
 	}
 	landedHits.sort((a, b) => a.t - b.t);
 
@@ -1935,14 +1949,17 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * at one timestamp, so which of them is "the" target is arbitrary there — but only for the sliver
 	 * until the next hit, and it is the same 15s debuff on each of them.
 	 */
-	const contactDebuffOn = new Map<number, Interval[]>();
-	const debuffOn = (target: number): Interval[] => {
-		const known = contactDebuffOn.get(target);
+	// Keyed by spawn, not by enemy: the question is whether the add being hit had the debuff, and on a
+	// pull where forty spawns share one actor id, that enemy's *union* would credit the player for a
+	// debuff sitting on an Ironblade they killed two minutes ago.
+	const contactDebuffOn = new Map<string, Interval[]>();
+	const debuffOn = (key: string): Interval[] => {
+		const known = contactDebuffOn.get(key);
 		if (known) return known;
 		// Merged because `overlapMs` sums its ranges rather than unioning them, and clipped to contact
 		// time here rather than per hit so an enemy carried through a long stretch is intersected once.
-		const windows = mergeIntervals(intersect(rskByTarget.get(target) ?? [], contact));
-		contactDebuffOn.set(target, windows);
+		const windows = mergeIntervals(intersect(rskByInstance.get(key) ?? [], contact));
+		contactDebuffOn.set(key, windows);
 		return windows;
 	};
 	let rskContactMs = 0;
@@ -1953,7 +1970,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// that enemy — and the last one owns the rest of the pull, which the intersection with contact
 		// time clips back to nothing past the final window.
 		const until = landedHits[i + 1]?.t ?? duration;
-		rskContactMs += overlapMs(hit.t, until, debuffOn(hit.target));
+		rskContactMs += overlapMs(hit.t, until, debuffOn(hit.key));
 	}
 
 	/**
@@ -2380,7 +2397,34 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const sefLevels = auraLevels(selfEvents, SEF_AURA, t0, fight.endTime);
 	const sefWindows = levelWindows(sefLevels, 1);
 	const sefUptimeMs = unionMs(toIntervals(sefWindows));
-	/** Stretches with *both* spirits out — the thing a single apply→remove pair could never say. */
+	/**
+	 * Stretches with *both* spirits out — the thing a single apply→remove pair could never say.
+	 *
+	 * **And this is as far as the log can be pushed.** The obvious next figure is "time at the *optimal*
+	 * spirit count", and the sim states the rule plainly enough to tempt it: `SEF: Use` in
+	 * `ui/monk/windwalker/apls/default.apl.json` sends one spirit at exactly two targets and two at more
+	 * than two (`Targets: More than 2` is `numberTargets >= 3`), so the target would be 1 enemy → no
+	 * spirit, 2 → one, 3+ → two. It was built, measured against both anonymous Dark Shaman pulls, and
+	 * refused. Three findings, in rising order of how fatal they are:
+	 *
+	 *   - The pulls report 36.9% and 63.3% "at optimal" — a wide spread that looks like signal.
+	 *   - It is not. The optimal count changes 23 and 25 times across those pulls, and `targetCounts`
+	 *     reads a *trailing five-second window*, so the count is stale near every one of those changes.
+	 *     Worst-case lag exposure is 115s and 125s: **over half of each pull**. The uncertainty band is
+	 *     larger than the quantity, which is the same objection that keeps the overlap figure off the
+	 *     scorecard, an order of magnitude worse.
+	 *   - Fatally, the sim is not measuring what this report can measure. `numberTargets` compiles to
+	 *     `sim.ActiveTargetCount()` — `len(env.Encounter.ActiveTargets)`, the enemies that *exist* — while
+	 *     a log can only offer "distinct enemies this player damaged in the last five seconds". An enemy
+	 *     standing untouched is active to the sim and invisible here; one killed four seconds ago is gone
+	 *     there and still counted here. There are no enemy death events in the fetched stream to close
+	 *     that gap. Mapping one onto the other is a reinterpretation of the APL, not a reading of it.
+	 *
+	 * The measured "under" time is mostly the two lags stacked — a spirit costs a global plus a ~2s
+	 * spawn, and the count decays for 5s after an add dies — so the figure would have charged players
+	 * for the seconds after a target dies, which is exactly the mistake the overlap figure avoids.
+	 * `sefDoubleMs` stays: it is what the log actually witnessed, with nothing inferred on top.
+	 */
 	const sefDoubleMs = unionMs(toIntervals(levelWindows(sefLevels, SEF_MAX_CLONES)));
 
 	/** The presses themselves — globals spent inside the pull, which is not the same as spirits sent. */

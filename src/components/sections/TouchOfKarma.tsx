@@ -47,8 +47,13 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 		() =>
 			karma.uses.map((use, i) => ({
 				key: `${use.t}-${i}`,
-				// A use that redirected nothing is the fault this section exists to show.
-				band: use.reflected === 0 ? ('warn' as const) : undefined,
+				// Both ends of the table are marked, and only the two that are facts rather than opinions.
+				// A use that redirected nothing is the fault this section exists to show. A use that drained
+				// its pool is the opposite and is the only row here that cannot be faulted — it returned
+				// everything it was worth, which is measured rather than judged against a threshold.
+				// Everything between them is unbanded on purpose: how much a Karma returns is mostly what
+				// the fight was doing to the player, and a middling row is not a middling decision.
+				band: use.reflected === 0 ? ('warn' as const) : use.exhausted ? ('ok' as const) : undefined,
 				cells: {
 					at: formatClock(use.t),
 					reflected: (

@@ -224,6 +224,13 @@ export function regenPerSecond(samples: readonly ResourceSample[]): number | nul
  * counts as contact is a question about the fight, not about the resource. Everything outside those
  * windows is downtime by construction, which includes the run-up before the first hit and the tail
  * after the last, and neither is a stretch anyone chose to sit capped through.
+ *
+ * *Which* windows is therefore the caller's judgement, and a load-bearing one. The split asks whether
+ * the player could have spent, so it wants every second they had something to hit — not the subset
+ * where one particular enemy was reachable. `analyse` passes its contact windows for that reason; it
+ * used to pass the boss's, which forgave five minutes of add waves on a Galakras pull as downtime
+ * nobody could act in. The parameter keeps the older name because `ResourceBar.engaged` is captured
+ * in committed fixtures and renaming the field would strand them.
  */
 export function trackResourceBar(
 	samples: readonly ResourceSample[],
