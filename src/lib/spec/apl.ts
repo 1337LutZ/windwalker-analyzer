@@ -42,7 +42,7 @@ import { inWindow, remainingIn } from '../analysis/auras';
  * grounds that the ladder was the single-target list. It cost those pulls their priority section
  * entirely — a Galakras kill got no verdict at all rather than a verdict about the waves.
  *
- * A rule whose condition cannot be read off this log leaves
+ * What it still refuses, press by press: a rule whose condition cannot be read off this log leaves
  * every press below it `unknown` rather than `followed` — silence, not a plausible guess, because a
  * wrong "you misplayed here" costs a reader more than a missing one.
  *
@@ -392,10 +392,18 @@ const LADDER: readonly Rule[] = [
 		// 21 — the unconditional kick. Unreachable below three targets, where entry 18 above has already
 		// claimed it; from three up this is what puts Rising Sun Kick back on cooldown once the list has
 		// spent the higher globals on the adds.
+		//
+		// The bands say out loud what "unreachable" means, and they cost the walk nothing: below three
+		// targets entry 18 is the same button at the same cost with the same cooldown and a condition
+		// that is unconditionally true, so the only ways past it are `!ready` and `!affordable` — both of
+		// which this entry fails identically. Declared rather than left implicit because the reference
+		// table renders off these bands, and a rung that can never fire is a rung that should not be
+		// drawn: without this, a single-target reader is shown Rising Sun Kick twice.
 		key: 'rising-sun-kick-filler',
 		id: ID.risingSunKick,
 		chiCost: 2,
 		energyCost: 0,
+		bands: [3, 4],
 		condition: () => true,
 	},
 	{
@@ -498,6 +506,41 @@ const LADDER: readonly Rule[] = [
 		},
 	},
 ];
+
+/** Every band, for an entry that did not name one. */
+const ALL_BANDS: readonly Band[] = [1, 2, 3, 4];
+
+/**
+ * One rung of the ladder with its conditions taken off: what a *reference* needs and nothing more.
+ *
+ * The report renders the priority list twice — once as a verdict on this pull, once as the list
+ * itself — and the second of those used to be a hand-maintained copy of this file with `// N`
+ * comments pointing back at it. Two lists drift; this one has, in both directions. So the rungs are
+ * published from here instead, and a rule added, renamed, reordered or re-banded in `LADDER` moves
+ * the reference in the same commit or fails to compile.
+ *
+ * A projection rather than `LADDER` itself, because a `Rule` carries closures. A view that could
+ * reach `condition` would sooner or later call it, and it would have to invent a `State` to do so —
+ * a second, fictional pull sitting inside a reference table.
+ */
+export interface LadderEntry {
+	key: AplRuleKey;
+	id: number;
+	/** Resolved rather than optional: an entry that named no bands exists in all four, so say all four. */
+	bands: readonly Band[];
+	talent: boolean;
+	/** The button that removes this one from the bars, when one does. */
+	replacedBy?: number;
+}
+
+/** The ladder as a reference reads it, in the order the sim evaluates it. */
+export const LADDER_ENTRIES: readonly LadderEntry[] = LADDER.map((rule) => ({
+	key: rule.key,
+	id: rule.id,
+	bands: rule.bands ?? ALL_BANDS,
+	talent: rule.talent === true,
+	...(rule.replacedBy === undefined ? {} : { replacedBy: rule.replacedBy }),
+}));
 
 /**
  * The bar's value at a moment.

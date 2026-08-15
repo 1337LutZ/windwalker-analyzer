@@ -4,12 +4,12 @@
 // defaulted, because a pull with no Re-Origination procs has not failed to snapshot them — and copy
 // that says "0 of 0 caught, poor" about a fight that never offered the chance is worse than silence.
 
-import type { Analysis } from '~/lib/types';
+import type { Analysis, TargetMode } from '~/lib/types';
 
 import type { Grade, Metric, Scorecard, SectionScore } from './model';
 import { GRADE_ORDER, gradeOf, worst } from './model';
 import type { MetricKey } from './thresholds';
-import { THRESHOLDS, WEIGHTS } from './thresholds';
+import { THRESHOLDS, weightsFor } from './thresholds';
 
 /** Percentage of `part` in `whole`, or null when there is nothing to take a share of. */
 function share(part: number, whole: number): number | null {
@@ -55,14 +55,14 @@ const POINTS: Record<Grade, number> = { good: 1, ok: 0.5, bad: 0 };
  * not a reason to call the pull bad, and `worst` would have called every pull in the test set bad.
  * Unmeasurable metrics drop out entirely — they do not silently count as half marks.
  */
-function overall(metrics: Metric[]): Grade {
+function overall(metrics: Metric[], weights: Record<MetricKey, number>): Grade {
 	const measured = metrics.filter((m) => !m.unmeasurable);
 	if (measured.length === 0) return 'ok';
 
 	let points = 0;
 	let total = 0;
 	for (const m of measured) {
-		const weight = WEIGHTS[m.key as MetricKey] ?? 1;
+		const weight = weights[m.key as MetricKey] ?? 1;
 		points += POINTS[m.grade] * weight;
 		total += weight;
 	}
@@ -80,7 +80,7 @@ function overall(metrics: Metric[]): Grade {
  * Section keys match the report's section ids, so a component asks for its own verdict by the name
  * it already has.
  */
-export function scoreAnalysis(analysis: Analysis): Scorecard {
+export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null): Scorecard {
 	const { procs, brew, debuff, filler, cpm, karma } = analysis;
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
@@ -138,7 +138,7 @@ export function scoreAnalysis(analysis: Analysis): Scorecard {
 	];
 
 	return {
-		overall: overall(all),
+		overall: overall(all, weightsFor(mode)),
 		sections: {
 			// Depth is deliberately secondary — see the note on SectionScore.
 			snapshots: section([snapshotRate], [snapshotDepth]),

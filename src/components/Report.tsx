@@ -3,6 +3,7 @@ import { useMemo, useState, type ComponentType } from 'react';
 import type { Analysis } from '~/lib/types';
 
 import SectionNav, { type ReportSection } from './report/SectionNav';
+import { TargetModeContext } from './report/targetModeContext';
 import TargetModeControl from './report/TargetModeControl';
 import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 import {
@@ -176,35 +177,43 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 	if (!analysis.isSpec) return <SpecRefusal analysis={analysis} />;
 
 	return (
-		<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
-			<SectionNav sections={nav} />
-			<article className="flex flex-col gap-10 md:gap-12">
-				{/* Above the summary rather than below it, because it qualifies everything that follows and a
+		// The reading wraps the whole report, not just the sections below the control. Every section
+		// reads its grades and its copy from the scorecard, and the scorecard is now a function of this
+		// value — so a summary rendered outside the provider would grade the pull one way while the
+		// detail underneath it graded the same pull another.
+		<TargetModeContext.Provider value={mode}>
+			<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+				<SectionNav sections={nav} />
+				<article className="flex flex-col gap-10 md:gap-12">
+					{/* Above the summary rather than below it, because it qualifies everything that follows and a
 				    control that changes a reading has to be visible before the reading is read. It sits
 				    outside the summary section so it is not announced as part of it — it is a control on the
 				    report, not one of the report's findings. */}
-				<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
-				{/* A section so the nav's observer can find it the same way it finds every other one:
+					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
+					{/* A section so the nav's observer can find it the same way it finds every other one:
 				    by the id on its heading, then the section around it. Labelled by that heading rather
 				    than by a string of its own, so there is one name for it and not two. */}
-				<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
-					<ReportHeader analysis={analysis} />
-					<KpiTiles analysis={analysis} />
-					{/* Derived from the same scorecard every section below reads, so the short list at the top
+					<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
+						<ReportHeader analysis={analysis} />
+						<KpiTiles analysis={analysis} />
+						{/* Derived from the same scorecard every section below reads, so the short list at the top
 					    cannot drift out of agreement with the detail underneath it. */}
-					<Takeaways analysis={analysis} />
-				</section>
-				{sections.map(({ id, Component }) =>
-					// The priority section reads the reader's choice rather than only the detection, threaded as
-					// a prop rather than through context: one consumer does not justify putting every section
-					// behind a provider. Kept wired for the day the section renders again.
-					id === 'priority' ? (
-						<PriorityLadder key={id} analysis={analysis} mode={mode} />
-					) : (
-						<Component key={id} analysis={analysis} />
-					),
-				)}
-			</article>
-		</div>
+						<Takeaways analysis={analysis} />
+					</section>
+					{sections.map(({ id, Component }) =>
+						// Still a prop, though the mode is in context now, because the two uses differ. Every other
+						// section reads the mode *indirectly*, through the scorecard that weights its metrics; this
+						// one uses it to pick which of the precomputed audits to render. A prop says that at the call
+						// site, where reading context would hide the one place the choice selects data rather than
+						// reweighting it.
+						id === 'priority' ? (
+							<PriorityLadder key={id} analysis={analysis} mode={mode} />
+						) : (
+							<Component key={id} analysis={analysis} />
+						),
+					)}
+				</article>
+			</div>
+		</TargetModeContext.Provider>
 	);
 }

@@ -193,3 +193,35 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	karmaEmpty: 0,
 	karmaCapShare: 0,
 };
+
+/**
+ * What changes when the pull is read as multi-target.
+ *
+ * Only two metrics move, and both because the *question* changes rather than because add fights
+ * deserve an easier mark. Everything absent from this map is mode-independent and stays where it is:
+ * snapshotting a proc and filling your globals are the same job however many enemies are in front of
+ * you.
+ *
+ * **`tigerPalmWaste` drops from 3 to 1.** Tiger Palm is the single-target filler. Above two targets
+ * the list wants Rushing Jade Wind and Spinning Crane Kick in those globals, so the button is pressed
+ * mostly to hold Tiger Power and there is far less of it to waste — across the fixtures the two
+ * multi-target pulls sit at 4.5% and 0.0% while the single-target ones reach 72% and 73%. At full
+ * weight it hands every add fight three points of credit for a habit it never had the chance to show.
+ *
+ * **`rskUptime` drops from 2 to 1, and its thresholds are deliberately left alone.** Uptime on one
+ * target is a smaller part of the story when the player is correctly spreading damage, so it should
+ * count for less. Re-banding it is the tempting second move and is not taken here: there are two
+ * multi-target pulls in the fixtures, and a threshold derived from n=2 is the kind of number the rest
+ * of this file argues against. The measured pair is 80.6% and 87.0% against a single-target
+ * 90.7/95.4/99.4, so a real band plainly sits lower — finding it needs a sweep over every add fight
+ * in the reference reports, not a guess from two.
+ */
+export const MULTI_TARGET_WEIGHTS: Partial<Record<MetricKey, number>> = {
+	tigerPalmWaste: 1,
+	rskUptime: 1,
+};
+
+/** The weights for a reading: the base set, unless the pull is being read as multi-target. */
+export function weightsFor(mode: 'single' | 'multi' | null): Record<MetricKey, number> {
+	return mode === 'multi' ? { ...WEIGHTS, ...MULTI_TARGET_WEIGHTS } : WEIGHTS;
+}
