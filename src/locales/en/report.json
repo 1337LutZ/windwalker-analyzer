@@ -95,7 +95,12 @@
       "uses": "Presses",
       "chi": "Chi kept",
       "capped": "Charges idle for"
-    }
+    },
+    "key": {
+      "charges": "Charges available",
+      "capped": "Both charges idle"
+    },
+    "chartLabel": "Chi Brew charges across the pull, holding up to {{max}}, with {{uses}} presses and {{idle, duration}} spent with both charges full."
   },
   "casts": {
     "title": "Casts per minute",
@@ -258,7 +263,10 @@
       "share": "Engaged time at cap"
     },
     "caption": "The longest stretches the bar spent full, longest first",
-    "chartCaption": "Energy over the pull, with every stretch at the cap picked out",
+    "key": {
+      "bar": "Energy over the pull",
+      "lost": "Energy lost to a full bar"
+    },
     "chartLabel": "Energy over the pull, holding up to {{max}}, capped for {{capped, duration}} of {{duration, duration}}",
     "columns": {
       "at": "at",
@@ -278,7 +286,10 @@
     "none": "This log carried no resource snapshots for the player, so there is no chi bar to read. Nothing is wrong with the pull — the report simply was not given the numbers.",
     "clean": "Nothing overflowed. Every point of chi the pull generated had somewhere to go.",
     "summary": "{{wasted}} chi went nowhere, across {{moments}} presses that returned more than the bar could hold. Each one cost a global and bought nothing.",
-    "caption": "Chi over the pull, with every overflow marked where it happened",
+    "key": {
+      "bar": "Chi over the pull",
+      "wasted": "Chi lost to a full bar"
+    },
     "chartLabel": "Chi over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
     "tableCaption": "Presses that returned more chi than the bar could hold, most wasteful first",
     "noRows": "No press returned more chi than the bar could hold.",

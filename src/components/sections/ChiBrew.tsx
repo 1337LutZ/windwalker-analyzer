@@ -2,6 +2,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
+import ChiBrewTrack from '../charts/ChiBrewTrack';
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
 
 /**
@@ -74,6 +75,12 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 					<StatTile value={formatInteger(netChi)} label={t('chiBrew.kpi.chi')} />
 					<StatTile value={formatSeconds(brew.cappedMs)} label={t('chiBrew.kpi.capped')} />
 				</StatTiles>
+			</div>
+
+			{/* The counter itself, shaded where both charges sat full. The two sentences below are the
+			    same two facts in words, and a reader who can see the shape first reads them faster. */}
+			<div className="mt-5">
+				<ChiBrewTrack analysis={analysis} />
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">

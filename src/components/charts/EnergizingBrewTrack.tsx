@@ -31,34 +31,24 @@ export default function EnergizingBrewTrack({ analysis }: { analysis: Analysis }
 	if (energizing === undefined || energy === undefined) return null;
 
 	return (
-		<figure className="m-0 flex flex-col gap-2">
-			<ScrollableTrack durationMs={durationMs}>
-				<ResourceTrack
-					curve={energy}
-					durationMs={durationMs}
-					stroke="var(--color-kick)"
-					fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
-					shades={[
-						// Painted in the order they should stack: the haste window is the widest claim, the
-						// brew sits inside it, and the cap is the thing being looked for.
-						{ windows: energizing.hasteWindows, className: 'fill-brew/15', label: 'haste' },
-						{ windows: energizing.windows, className: 'fill-rune/25', label: 'brew' },
-						{ windows: cappedOf(energy), className: 'fill-miss/25', label: 'capped' },
-					]}
-					label={t('energizingBrew.trackAria', {
-						casts: energizing.casts,
-						max: energy.max,
-						duration: fmt(durationMs),
-					})}
-				/>
-			</ScrollableTrack>
-
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone="kick">{t('energizingBrew.key.energy')}</ChartKey>
-				<ChartKey tone="rune">{t('energizingBrew.key.brew')}</ChartKey>
-				<ChartKey tone="brew">{t('energizingBrew.key.haste')}</ChartKey>
-				<ChartKey tone="miss">{t('energizingBrew.key.capped')}</ChartKey>
-			</figcaption>
-		</figure>
+		<ResourceChart
+			curve={energy}
+			durationMs={durationMs}
+			tone="kick"
+			legend={t('energizingBrew.key.energy')}
+			bands={[
+				// Painted in the order they should stack: the haste window is the widest claim, the brew sits
+				// inside it, and the cap is the thing being looked for. Order is what separates three
+				// overlapping washes now that each tone is drawn at one strength everywhere.
+				{ tone: 'brew', windows: energizing.hasteWindows, legend: t('energizingBrew.key.haste') },
+				{ tone: 'rune', windows: energizing.windows, legend: t('energizingBrew.key.brew') },
+				{ tone: 'miss', windows: cappedOf(energy), legend: t('energizingBrew.key.capped') },
+			]}
+			label={t('energizingBrew.trackAria', {
+				casts: energizing.casts,
+				max: energy.max,
+				duration: fmt(durationMs),
+			})}
+		/>
 	);
 }
