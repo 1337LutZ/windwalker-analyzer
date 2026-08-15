@@ -740,6 +740,56 @@ const ABILITIES: Ability[] = [
 		onUse: true,
 		applies: ['virmens-bite'],
 	},
+	/**
+	 * The flask and the elixirs that get swapped for it, which is one technique and not four items.
+	 *
+	 * A battle elixir cancels a flask — they share the `FlaskVsBattleElixir` exclusive category, and
+	 * `sim/core/consumes.go` deactivates the live flask aura when one goes down — so pressing an elixir
+	 * trades Spring Blossoms' agility for haste or crit. It pays because Tigereye Brew freezes mastery
+	 * at the moment it is cast, so an elixir dropped *after* the brew cannot dilute the multiplier
+	 * already snapshotted, and the next Rune of Re-Origination proc converts into the lifted stat
+	 * instead of re-serving mastery the brew is already holding. The same argument is spelled out
+	 * around the Re-Origination handling below, and the report's own copy tells the reader to do it.
+	 *
+	 * Listed here purely so the presses have names. All four are off-GCD, so they cost none of the
+	 * globals anything in this file arbitrates and no measurement moves by adding them — a weave was
+	 * already free in the log and free in the analyzer. What was wrong was the drawing: an unmodelled
+	 * press takes `#105684` as its lane name, and because the timeline picks a cast's tier by matching
+	 * that name, it sank in among the interrupts and defensives instead of sitting with the other
+	 * consumables.
+	 */
+	{
+		key: 'flask-of-spring-blossoms',
+		name: 'Flask of Spring Blossoms',
+		castIds: [105689],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+	},
+	{
+		key: 'elixir-of-the-rapids',
+		name: 'Elixir of the Rapids',
+		castIds: [105684],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+	},
+	{
+		key: 'mad-hozen-elixir',
+		name: 'Mad Hozen Elixir',
+		castIds: [105682],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+	},
+	{
+		key: 'monks-elixir',
+		name: "Monk's Elixir",
+		castIds: [105688],
+		onGcd: false,
+		gate: 'other',
+		onUse: true,
+	},
 	{
 		key: 'healthstone',
 		name: 'Healthstone',

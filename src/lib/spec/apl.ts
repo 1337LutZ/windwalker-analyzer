@@ -24,8 +24,20 @@ import { inWindow, remainingIn } from '../analysis/auras';
  *   not filler decisions, and each already has a section that judges it against the same conditions
  *   with far more room than a per-press verdict would give it. Grading them twice would double-count
  *   one mistake.
- * - **The elixir, weapon-swap, potion and trinket groups** model a sim-only optimisation, exactly as
- *   `components/sections/Rotation.tsx` records when it drops them from the reference table.
+ * - **The elixir, weapon-swap, potion and trinket groups** are off-GCD item presses, and this walk
+ *   only ever sees on-GCD ones — `aplAudit` filters on `onGcd` before `judge` runs. They cost none
+ *   of the globals the ladder is arbitrating, so there is nothing here to judge them against.
+ *
+ *   This bullet used to say they "model a sim-only optimisation", which was wrong twice over.
+ *   Elixir weaving is real technique a real player does — 33 presses across 15 pulls in one raid
+ *   night, executed to the APL's own conditions — and the sim ships it as a user-flippable toggle
+ *   rather than a simulator artefact. It is `hide: true` in the default list, which in wowsims
+ *   *gates execution* (`proto/apl.proto`: "Causes this item to be ignored"; `sim/core/apl.go`
+ *   never parses a hidden item into the priority list), so the feature ships off by default and
+ *   opts in — not the same thing as not existing. `spec/windwalker.ts` already documents why the
+ *   weave pays: Tigereye Brew snapshots mastery at cast, so an elixir dropped *after* the brew
+ *   lifts a different secondary for the next Rune of Re-Origination proc without diluting the
+ *   multiplier already frozen in. This report tells the reader to do it.
  *
  * ## The target count is read per press, not per pull
  *
