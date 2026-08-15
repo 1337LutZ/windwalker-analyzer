@@ -88,7 +88,19 @@ describe('the Touch of Karma section', () => {
 	 * report knows something it does not.
 	 */
 	it('says it cannot tell what a use was worth when no use measured the pool', () => {
-		const html = render(fixture('mixed'));
+		// The measurement is stripped rather than a fixture trusted not to have one. Every reference
+		// pull now drains a pool on at least one use, which is what re-capturing revealed — and a test
+		// that reached this branch only because the captures were old was pinning their age.
+		const captured = fixture('mixed');
+		const unmeasured: Analysis = {
+			...captured,
+			karma: {
+				...captured.karma,
+				capPerUse: null,
+				uses: captured.karma.uses.map((use) => ({ ...use, exhausted: false, capPct: null })),
+			},
+		};
+		const html = render(unmeasured);
 
 		expect(html).toContain('cannot be said on this pull');
 		// The column is absent rather than empty, and no share of any ceiling is printed.

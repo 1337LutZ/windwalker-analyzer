@@ -15,6 +15,25 @@ const fixture = (name: string): Analysis =>
  * dropped the last two ticks and under-reported a use by a fifth, which also invented a wasted press
  * on a pull that had none.
  */
+/**
+ * A pull whose Karma never demonstrated its ceiling: no use drained, so no pool can be stated.
+ *
+ * The presses and what they returned are untouched — only the measurement of the cap is removed,
+ * which is exactly the shape of a real pull where every use was cut short by the fight ending or by
+ * nothing more arriving to absorb.
+ */
+const unmeasured = (name: string): Analysis => {
+	const captured = fixture(name);
+	return {
+		...captured,
+		karma: {
+			...captured.karma,
+			capPerUse: null,
+			uses: captured.karma.uses.map((use) => ({ ...use, exhausted: false, capPct: null })),
+		},
+	};
+};
+
 describe('Touch of Karma', () => {
 	for (const name of ['strong', 'mixed', 'poor']) {
 		it(`attributes every redirect tick on the ${name} pull`, () => {
@@ -54,7 +73,10 @@ describe('Touch of Karma', () => {
 	 * before-and-after on the same three pulls, are in `lib/__fixtures__/karmacap.test.ts`.
 	 */
 	it('claims no ceiling on a pull where no use drained its pool', () => {
-		const karma = fixture('poor').karma;
+		// Built rather than borrowed. Every reference pull now drains a pool on at least one use, which
+		// re-capturing revealed — so a test that reached this branch through a fixture was pinning how
+		// old the capture was, not what the engine does.
+		const karma = unmeasured('poor').karma;
 		expect(karma.capPerUse).toBeNull();
 		expect(karma.uses.every((use) => use.capPct === null)).toBe(true);
 	});
@@ -68,7 +90,7 @@ describe('Touch of Karma', () => {
 	 * only the share of the ceiling goes quiet.
 	 */
 	it('grades what it can and stays silent on what it cannot', () => {
-		const karma = scoreAnalysis(fixture('poor')).sections.karma;
+		const karma = scoreAnalysis(unmeasured('poor')).sections.karma;
 		const capShare = karma?.metrics.find((m) => m.key === 'karmaCapShare');
 		const empty = karma?.metrics.find((m) => m.key === 'karmaEmpty');
 

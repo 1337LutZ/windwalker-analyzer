@@ -40,16 +40,19 @@ describe('the Chi Brew audit', () => {
 		}
 	});
 
-	it('keeps idle-charge time inside the pull', () => {
+	it('keeps idle-charge time inside the time the player had a choice', () => {
 		for (const name of ['strong', 'mixed', 'poor']) {
 			const analysis = fixture(name);
 			const brew = analysis.chiBrew;
 			if (brew === undefined) continue;
 			expect(brew.cappedMs, name).toBeGreaterThanOrEqual(0);
 			expect(brew.cappedMs, name).toBeLessThanOrEqual(analysis.durationMs);
-			// The percentage has to be the same fact as the milliseconds, or the two lines of copy that
-			// quote them disagree in front of the reader.
-			expect(brew.cappedPct, name).toBeCloseTo((brew.cappedMs / analysis.durationMs) * 100, 0);
+			// Contact time, not the pull: a charge sitting full while there was nothing to hit is not a
+			// mistake anybody made, so both the total and the share are measured over the stretches the
+			// player was actually fighting. The percentage has to be the same fact as the milliseconds,
+			// or the two lines of copy quoting them disagree in front of the reader.
+			const measured = analysis.debuff.contactMs ?? analysis.debuff.engagedMs;
+			expect(brew.cappedPct, name).toBeCloseTo((brew.cappedMs / measured) * 100, 0);
 		}
 	});
 

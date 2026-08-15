@@ -144,6 +144,57 @@ describe('trackStackBank', () => {
 		expect(bank.wastedAtCap).toBe(0);
 	});
 
+	/**
+	 * Gross, and the stacks the cap refused belong in it.
+	 *
+	 * They cost the same chi as the ones that landed, which is what makes them a loss rather than a
+	 * stack nobody paid for — and this is the denominator the loss is read against, so leaving them out
+	 * would shrink the total every time the overcap grew.
+	 */
+	it('counts every stack earned, including the ones the cap refused', () => {
+		const bank = trackStackBank(
+			[
+				ev(0, 'applybuff'),
+				ev(100, 'applybuffstack', { stack: BANK.maxStacks }),
+				ev(2000, 'refreshbuff'),
+				ev(2500, 'refreshbuff'),
+				ev(3000, 'removebuffstack', { stack: 10 }),
+				ev(4000, 'applybuffstack', { stack: 12 }),
+			],
+			BANK,
+			ME,
+			T0,
+		);
+
+		// 20 into an empty bank, 2 the cap sent back, 2 more after the drain.
+		expect(bank.gained).toBe(24);
+		expect(bank.wastedAtCap).toBe(2);
+	});
+
+	/**
+	 * The identity that lets a tile row add up on its face: a stack is spent, still held, or refused,
+	 * and there is nowhere else for it to go.
+	 */
+	it('accounts for every gained stack as drained, banked or refused', () => {
+		const bank = trackStackBank(
+			[
+				ev(0, 'applybuff'),
+				ev(100, 'applybuffstack', { stack: BANK.maxStacks }),
+				ev(2000, 'refreshbuff'),
+				ev(3000, 'removebuffstack', { stack: 10 }),
+				ev(4000, 'applybuffstack', { stack: 14 }),
+				ev(9000, 'removebuff'),
+				ev(9500, 'applybuff'),
+			],
+			BANK,
+			ME,
+			T0,
+		);
+
+		const drained = bank.drains.reduce((sum, d) => sum + d.consumed, 0);
+		expect(bank.gained).toBe(drained + bank.bankAtEnd + bank.wastedAtCap);
+	});
+
 	it('ignores the same aura on somebody else', () => {
 		const bank = trackStackBank(
 			[

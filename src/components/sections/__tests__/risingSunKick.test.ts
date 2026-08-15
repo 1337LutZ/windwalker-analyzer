@@ -52,11 +52,22 @@ describe('Rising Sun Kick section', () => {
 		/** React escapes apostrophes in a text node, so copy carrying one has to be escaped to match. */
 		const escaped = (copy: string) => copy.replace(/'/g, '&#x27;');
 
-		const legacy = fixture('strong');
-		expect(legacy.debuff.contactUpSegments).toBeUndefined();
+		// Built, not borrowed: the legacy caption is what an analysis captured before contact scoping
+		// renders, so the test strips those fields rather than relying on a fixture that no longer
+		// lacks them.
+		const captured = fixture('strong');
+		const legacy: Analysis = { ...captured, debuff: { ...captured.debuff } };
+		delete legacy.debuff.contactUpSegments;
+		delete legacy.debuff.contactSegments;
+		delete legacy.debuff.contactMs;
 		const legacyHtml = render(legacy);
 		expect(legacyHtml).toContain(
-			escaped(t('debuff.chartCaption', { context: 'primary', target: t('debuff.target_boss') })),
+			escaped(
+				t('debuff.chartCaption', {
+					context: 'primary',
+					target: legacy.primaryTarget.name ?? t('debuff.target_boss'),
+				}),
+			),
 		);
 		expect(legacyHtml).not.toContain(escaped(t('debuff.chartCaption')));
 
