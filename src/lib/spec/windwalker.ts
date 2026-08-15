@@ -65,6 +65,7 @@ import {
 	damageByTarget,
 	r1,
 	readRaidBuffs,
+	chiAtCasts,
 	chiWasted,
 	resourceSamples,
 	trackResourceBar,
@@ -162,6 +163,9 @@ const ENERGIZING_BREW_PER_SEC = 10;
  * measured on a real pull, 12 events, all of it — so every other generator's contribution has to be
  * inferred from the button that produced it.
  */
+/** Chi Brew reports its own return as a `resourcechange`, so the walk must not also read it here. */
+const CHI_BREW_ID = 115399;
+
 const CHI_GAIN: Record<number, number> = {
 	100780: 2, // Jab
 	108557: 2,
@@ -1400,6 +1404,17 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const chiSamples = resourceSamples(events, POWER_TYPE.chi, actor.id, t0);
 	const energyBar = trackResourceBar(energySamples, duration, engaged);
 	const chiOverflow = chiWasted(events, actor.id, t0, (id) => CHI_GAIN[id]);
+	/**
+	 * The chi the player actually held at each press, for the priority ladder.
+	 *
+	 * Not the sampled curve `resources.chi` draws. That one is the readings and nothing else, which is
+	 * right for a chart — it draws what the log said — and useless for judging a press, because the
+	 * readings land only on spenders and are a median 2.4 seconds apart.
+	 *
+	 * `CHI_BREW` is excluded from the gains handed over: it emits a `resourcechange` carrying its own
+	 * amount, which `chiAtCasts` applies, and counting it here as well would give it four chi.
+	 */
+	const chiWalk = chiAtCasts(events, actor.id, t0, (id) => (id === CHI_BREW_ID ? undefined : CHI_GAIN[id]));
 
 	/**
 	 * The readings themselves, kept for the charts.
@@ -2006,7 +2021,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const apl = aplAudit({
 		casts: castMarks,
 		energy: curveOf(energySamples),
-		chi: curveOf(chiSamples),
+		chi: { max: chiWalk.max, points: chiWalk.points },
 		regenPerSec: energyBar.regenPerSec ?? 0,
 		gcdMs: GCD_MS,
 		auras: {

@@ -132,8 +132,11 @@ export default function PriorityLadder({ analysis, mode }: { analysis: Analysis;
 				</div>
 			)}
 
-			<div className="mt-4">
+			<div className="mt-4 flex flex-col gap-2.5">
 				<Note>{t('priority.scope')}</Note>
+				{/* The measurement's own limit, beside every number it produced. A reader cannot weigh a
+				    "you passed this over" without knowing the bar behind it was reconstructed. */}
+				<Note>{t('priority.reconstructed')}</Note>
 			</div>
 		</Section>
 	);

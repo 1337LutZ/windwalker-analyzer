@@ -6495,8 +6495,8 @@
       {
         "t": 7409,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 8420,
@@ -6519,8 +6519,8 @@
       {
         "t": 11428,
         "pressed": 100780,
-        "wanted": "jab",
-        "verdict": "followed"
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
       },
       {
         "t": 12806,
@@ -6531,8 +6531,8 @@
       {
         "t": 14398,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 15355,
@@ -6639,8 +6639,8 @@
       {
         "t": 33552,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 34566,
@@ -6651,14 +6651,14 @@
       {
         "t": 35568,
         "pressed": 115098,
-        "wanted": "blackout-kick",
+        "wanted": "jab",
         "verdict": "skipped"
       },
       {
         "t": 36572,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 37586,
@@ -6687,8 +6687,8 @@
       {
         "t": 41594,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 42604,
@@ -6699,8 +6699,8 @@
       {
         "t": 46135,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 47154,
@@ -6807,7 +6807,7 @@
       {
         "t": 69640,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "chi-wave",
         "verdict": "skipped"
       },
       {
@@ -7059,7 +7059,7 @@
       {
         "t": 121790,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "combo-breaker-kick",
         "verdict": "skipped"
       },
       {
@@ -7113,7 +7113,7 @@
       {
         "t": 131693,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "chi-wave",
         "verdict": "skipped"
       },
       {
@@ -7125,7 +7125,7 @@
       {
         "t": 133712,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "chi-wave",
         "verdict": "skipped"
       },
       {
@@ -7143,8 +7143,8 @@
       {
         "t": 137605,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 138611,
@@ -7155,8 +7155,8 @@
       {
         "t": 139616,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 140625,
@@ -7293,8 +7293,8 @@
       {
         "t": 166891,
         "pressed": 100784,
-        "wanted": "combo-breaker-kick",
-        "verdict": "followed"
+        "wanted": "rising-sun-kick",
+        "verdict": "skipped"
       },
       {
         "t": 167896,
@@ -7389,8 +7389,8 @@
       {
         "t": 185267,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 186271,
@@ -7479,7 +7479,7 @@
       {
         "t": 202506,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "combo-breaker-kick",
         "verdict": "skipped"
       },
       {
@@ -7533,8 +7533,8 @@
       {
         "t": 212276,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
-        "verdict": "skipped"
+        "wanted": "jab",
+        "verdict": "followed"
       },
       {
         "t": 213282,
@@ -7563,8 +7563,8 @@
       {
         "t": 217797,
         "pressed": 100787,
-        "wanted": "fists-of-fury",
-        "verdict": "skipped"
+        "wanted": "combo-breaker-palm",
+        "verdict": "followed"
       },
       {
         "t": 218798,
@@ -7599,7 +7599,7 @@
       {
         "t": 226974,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "chi-wave",
         "verdict": "skipped"
       },
       {
@@ -7659,7 +7659,7 @@
       {
         "t": 237665,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "chi-wave",
         "verdict": "skipped"
       },
       {
@@ -7759,35 +7759,35 @@
         "verdict": "skipped"
       }
     ],
-    "followed": 95,
-    "skipped": 121,
+    "followed": 104,
+    "skipped": 112,
     "unknown": 0,
     "offList": 1,
     "skippedBy": [
       {
         "key": "chi-wave",
         "id": 115098,
-        "count": 31
-      },
-      {
-        "key": "rising-sun-kick",
-        "id": 107428,
-        "count": 25
+        "count": 36
       },
       {
         "key": "jab",
         "id": 100780,
-        "count": 24
+        "count": 25
       },
       {
-        "key": "blackout-kick",
-        "id": 100784,
-        "count": 15
+        "key": "rising-sun-kick",
+        "id": 107428,
+        "count": 17
       },
       {
         "key": "combo-breaker-kick",
         "id": 100784,
-        "count": 14
+        "count": 16
+      },
+      {
+        "key": "blackout-kick",
+        "id": 100784,
+        "count": 7
       },
       {
         "key": "tiger-palm-refresh",
@@ -7795,13 +7795,13 @@
         "count": 5
       },
       {
-        "key": "fists-of-fury",
-        "id": 113656,
-        "count": 4
-      },
-      {
         "key": "combo-breaker-palm",
         "id": 100787,
+        "count": 3
+      },
+      {
+        "key": "fists-of-fury",
+        "id": 113656,
         "count": 3
       }
     ]

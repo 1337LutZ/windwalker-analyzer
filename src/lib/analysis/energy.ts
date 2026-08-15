@@ -15,7 +15,7 @@
 // number this file produces has to be read that way — see `medianGapMs` and `p99GapMs`, which exist
 // so the report can say so rather than imply a precision it does not have.
 
-import { abilityIdOf, classResourcesOf, resourceActorOf, type WclEvent } from '~/lib/events';
+import { abilityIdOf, classResourcesOf, isResourceChange, resourceActorOf, type WclEvent } from '~/lib/events';
 
 import { median } from './format';
 import { mergeIntervals, overlapMs, unionMs, type Interval } from './intervals';
@@ -331,4 +331,87 @@ export function chiWasted(
 	}
 
 	return out;
+}
+
+/**
+ * The chi the player actually had at each press, reconstructed rather than sampled.
+ *
+ * **Why this has to exist.** WarcraftLogs stamps a chi reading onto a *spender* and onto nothing
+ * else: measured on a real pull, 178 of 1049 casts carried one, and every single one of them was a
+ * Blackout Kick, a Rising Sun Kick, a Tiger Palm or a Fists of Fury — the four buttons that pay chi.
+ * Generators carry only energy. So the chi curve has a median gap of 2.4 seconds against energy's
+ * 0.19, and reading it with a plain "last value at or before `t`" hands a caller the chi the player
+ * held two globals ago. That is not a rounding error: it made the priority ladder flag roughly half
+ * of every player's presses, because a Jab at 1 chi read as a Jab at 3.
+ *
+ * **Why it can be reconstructed exactly.** The sparse readings are the *useful* ones. A spender
+ * reports its bar before paying, and reports its own cost with it, so every spend is known precisely.
+ * Between two spends only gains happen, and those come from two places: the flat returns in the
+ * caller's table (Jab, Spinning Crane Kick, Rushing Jade Wind), and the `resourcechange` events the
+ * log emits for Chi Brew and Power Strikes — which carry the amount outright. Nothing else moves the
+ * bar. A press with no reading and no gain is a free Combo Breaker proc, which costs nothing and so
+ * changes nothing.
+ *
+ * `gainOf` must therefore *not* cover the abilities that emit a `resourcechange`, or their chi is
+ * counted twice.
+ *
+ * Returns one entry per cast, in time order, holding the chi available at the moment of that press —
+ * before it pays for itself. Entries before the first reading are omitted: until the log says what
+ * the bar held, the walk is guessing, and a guessed chi is exactly what this function exists to stop.
+ */
+export function chiAtCasts(
+	events: readonly WclEvent[],
+	actorID: number,
+	t0: number,
+	gainOf: (abilityID: number) => number | undefined,
+): { points: Array<[number, number]>; max: number; readings: number; predicted: number; exact: number } {
+	const points: Array<[number, number]> = [];
+	let chi: number | null = null;
+	let max = 0;
+	// How often the walk's prediction matched the next reading it was checked against. Carried out so a
+	// caller can state the accuracy rather than assert it — see `chiAtCasts` in the engine.
+	let predicted = 0;
+	let exact = 0;
+	let readings = 0;
+
+	for (const e of events) {
+		const side = resourceActorOf(e);
+		const owner = side === 1 ? e.sourceID : side === 2 ? e.targetID : undefined;
+		if (owner !== actorID) continue;
+
+		// A gain the log states outright — Chi Brew, Power Strikes. Applied whole; the bar's own ceiling
+		// clamps it, and `waste` on the event is what the overflow audit reads.
+		if (isResourceChange(e) && e.resourceChangeType === POWER_TYPE.chi) {
+			const gained = e.resourceChange ?? 0;
+			if (chi !== null && gained > 0) chi = Math.min(max, chi + gained);
+			continue;
+		}
+
+		if (e.type !== 'cast') continue;
+		const bar = classResourcesOf(e)?.find((r) => r.type === POWER_TYPE.chi);
+
+		if (bar !== undefined && Number.isFinite(bar.amount) && bar.max > 0) {
+			readings += 1;
+			// Score the walk before overwriting it: this is the only place the reconstruction can be
+			// checked against ground truth, and a caller that cannot state its own accuracy should not be
+			// grading presses with it.
+			if (chi !== null) {
+				predicted += 1;
+				if (chi === bar.amount) exact += 1;
+			}
+			chi = bar.amount;
+			max = bar.max;
+		}
+
+		if (chi !== null) points.push([e.timestamp - t0, chi]);
+
+		// The spend, applied after the reading it was measured before. Known only from the reading, which
+		// is fine: a press that pays chi is exactly the press that carries one.
+		if (bar !== undefined && chi !== null) chi = Math.max(0, chi - (bar.cost ?? 0));
+
+		const gain = gainOf(abilityIdOf(e) ?? 0) ?? 0;
+		if (gain > 0 && chi !== null && max > 0) chi = Math.min(max, chi + gain);
+	}
+
+	return { points, max, readings, predicted, exact };
 }

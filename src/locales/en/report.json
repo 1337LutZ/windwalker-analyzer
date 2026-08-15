@@ -744,6 +744,7 @@
       "jab": "Jab",
       "rushing-jade-wind": "Rushing Jade Wind",
       "blackout-kick": "Blackout Kick, to spend chi"
-    }
+    },
+    "reconstructed": "Nothing here is graded, and one reason is worth stating plainly. WarcraftLogs only reports your chi when you spend it — roughly one press in six — so the chi behind these judgements is reconstructed by walking the log forward through what each button gains and costs. Checked against the readings it did not use, that walk is exactly right 87–95% of the time. It is close, and it is not perfect: a press judged on a bar that is one chi out can be called a skip it was not."
   }
 }

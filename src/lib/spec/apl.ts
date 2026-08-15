@@ -40,27 +40,24 @@ import { inWindow, remainingIn } from '../analysis/auras';
  * every press below it `unknown` rather than `followed` — silence, not a plausible guess, because a
  * wrong "you misplayed here" costs a reader more than a missing one.
  *
- * ## Measured, and not yet trustworthy — read this before rendering it
+ * ## The chi it reads is reconstructed, not sampled — and that is load-bearing
  *
- * Run against the three reference pulls this ladder flags roughly **half of every player's globals**,
- * including the strongest: 208 skips in 400 judged presses on `strong`, 121 in 216 on `poor`. A model
- * that says every player misplays every other global is not measuring what it claims, and the section
- * that draws it is registered but commented out in `components/Report.tsx` until this is fixed.
+ * WarcraftLogs stamps a chi reading onto a *spender* and onto nothing else. On one reference pull 178
+ * of 1049 casts carried one, every one of them a Blackout Kick, Rising Sun Kick, Tiger Palm or Fists
+ * of Fury. So the raw chi curve has a median gap of 2.4 seconds against energy's 0.19, and reading it
+ * with "last value at or before `t`" hands each rule the chi the player held two globals ago. Run that
+ * way this ladder flagged roughly half of every player's presses and could not tell a good pull from a
+ * bad one — 208 skips in 400 on the strongest pull, against 121 in 216 on the weakest.
  *
- * The cause is measured, not guessed. **Chi is sampled far too sparsely to judge a press by.** On
- * `strong` the energy bar carries 1724 readings at a median 193ms apart, while chi carries 178 at a
- * median of 2368ms — because generators report only energy in `classResources`, so chi is stamped
- * only onto spenders. `valueAt` therefore hands a rule the chi the player held a median of *two
- * globals ago*. Of the 41 Jabs flagged as "should have been Rushing Jade Wind", 35 read chi as 3 of 4
- * — no room for Jab's two — when the press two seconds later was almost certainly made at 1 or 2.
+ * It is therefore fed `chiAtCasts` from `analysis/energy.ts`, which walks the log forward applying the
+ * known gains and costs between readings and resyncs at every spender. Checked against the readings it
+ * did not use, that walk predicts the next one exactly **87–95%** of the time across the three
+ * reference pulls, and its errors are symmetric ±1 rather than a systematic drift. With it the ladder
+ * separates the sample the right way round: 64% of judged presses followed on `strong`, 52% on
+ * `mixed`, 48% on `poor`.
  *
- * The fix is the one `chiWasted` in `analysis/energy.ts` already makes for the same reason: walk
- * forward from each reading, applying the known gains and costs of the presses in between, and resync
- * whenever a spender reports the bar. Until the ladder reads a reconstructed chi rather than a sampled
- * one, every chi condition in it — affordability, Jab's headroom, the dump's threshold — is being
- * evaluated against a stale number.
- *
- * Energy conditions are unaffected: at 193ms the energy bar is sampled several times per global.
+ * The residual matters and the section says so: a press judged on a reconstructed bar that is one chi
+ * out can be called a skip it was not, or missed as one it was. That is why nothing here is graded.
  *
  * ## Where the numbers come from
  *
