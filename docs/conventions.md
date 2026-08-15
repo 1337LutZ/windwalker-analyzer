@@ -128,11 +128,38 @@ there is nowhere to keep a secret and nothing that could hold one.
 - The token is sent to `warcraftlogs.com` and to nothing else. A production CSP enforces this rather
   than relying on the README's word.
 - **One third party is contacted: `wow.zamimg.com`, for spell icons, images only.** It is pinned to
-  `img-src` in the CSP, so no script can reach that host. Icon _names_ are resolved at build time by
-  `scripts/fetch-spell-icons.mjs` into `src/generated/spell-icons.json` — deliberately not at
+  `img-src` in the CSP, so no script can reach that host. Icon _names_ and spell names are resolved at
+  build time by `scripts/build-spell-map.mjs` into `src/generated/spells.json` — deliberately not at
   runtime, which would add a Wowhead API call per spell from every visitor. If you add a third party,
   the README's privacy section and the in-app `app.privacy` string are both claims about this and
   both have to be corrected in the same change; they were, when the icons went in.
+
+## Game data
+
+Spell names, icons and enchants come from the [wowsims-mop](https://github.com/wowsims/mop)
+simulator's `assets/database/db.json`, which is the project's source of truth for the game. Two
+scripts read it into small committed maps:
+
+- `scripts/build-spell-map.mjs` → `src/generated/spells.json` (id → name, icon)
+- `scripts/build-enchant-map.mjs` → `src/generated/enchants.json` (effect id → name, icon, spell id)
+
+**The maps are committed and the build never fetches them.** `npm run build` must not reach the
+network: the site deploys from GitHub Actions, and a build that downloaded an 8 MB database could fail
+for reasons unrelated to the change being deployed. Committing the output also makes upstream drift
+reviewable — regenerating produces a diff, so a renamed spell shows up in a pull request rather than
+silently changing what the page says.
+
+Refreshing is a deliberate act, not something a build does:
+
+```sh
+node scripts/build-spell-map.mjs --check   # is the committed map behind upstream?
+node scripts/build-spell-map.mjs           # refresh it, then review the diff
+```
+
+The database models what the _simulator_ models, which is about 40% of the ids a real log contains —
+it has no Transcendence, no Zen Meditation, no boss abilities. Wowhead's `mop-classic` tooltip
+endpoint fills those in at generation time, so it remains a build-time dependency and cannot be
+dropped. Each id is asked for exactly once, ever: entries already in the map are reused.
 
 ## The analysis engine
 

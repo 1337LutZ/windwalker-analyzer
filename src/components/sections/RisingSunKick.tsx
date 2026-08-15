@@ -15,20 +15,20 @@ import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primiti
  * everything the player and their clones put into that target, so a drop is paid for by every other
  * button in the rotation — which is exactly what a row in a cast table cannot say.
  *
- * Uptime is measured against *engaged* time, not pull length. A pull where the boss is untargetable
- * for a phase is not a pull where the player let the debuff fall off, and charging them for it would
- * be the fabricated fault this report keeps refusing to print.
+ * Uptime is measured against the time the player had something to hit, not pull length. A pull where
+ * there was nothing in range for a phase is not a pull where the player let the debuff fall off, and
+ * charging them for it would be the fabricated fault this report keeps refusing to print.
  *
- * Two scopes live in here and the copy has to keep saying which is which. The two tiles follow the
- * player — at each moment they ask whether the enemy being hit carried the debuff — and are two halves
- * of one measurement, so `uptime% + lost/engaged` is 100%. The drops, the chart and the intermission
- * are the primary target's alone, and every sentence that quotes them names that enemy. Reading them
- * as the same thing is what let a two-boss pull print 1.4s lost beside 59% uptime.
+ * The three tiles and the chart under them are now one measurement: uptime, its remainder and the cast
+ * ceiling are all fractions of contact time, and the chart's three tracks are those same stretches
+ * drawn. `uptime% + lost/contact` is 100% by construction. What is still the *primary target's* alone
+ * is the drop count, the intermission note and the miss ledger's rows, and every sentence that quotes
+ * one of them names that enemy — reading the two scopes as one is what let a two-boss pull print 1.4s
+ * lost beside 59% uptime, and what let a Galakras pull call five minutes of add waves "out of reach".
  *
- * There is no table of drops. The timeline below already plots every one of them against the clock
- * and names its length on hover, so a list underneath would be the same facts a second time, in the
- * form that shows the least — a column of timestamps cannot show that three drops were the same
- * phase transition.
+ * There is no table of drops. The miss ledger carries a linked row for each one, so a column of the
+ * same timestamps here would be the same facts twice — and the chart above deliberately no longer
+ * plots them, because they are one enemy's gaps and it is about every enemy the player touched.
  */
 export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 	const { debuff } = analysis;

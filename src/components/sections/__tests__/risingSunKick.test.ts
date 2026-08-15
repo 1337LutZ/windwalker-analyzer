@@ -27,17 +27,46 @@ describe('Rising Sun Kick section', () => {
 	});
 
 	/**
-	 * Drops are plotted, not listed. A column of timestamps cannot show that three of them were one
-	 * phase transition; the timeline can, and its tooltip carries each one's length.
+	 * Drops are listed in the miss ledger, not tabulated here — and no longer plotted here either: the
+	 * chart draws the measurement the tiles print, which is about every enemy, and the drops are one
+	 * enemy's gaps.
 	 */
-	it('plots the drops rather than tabulating them', () => {
+	it('neither tabulates the drops nor duplicates the ledger’s links', () => {
 		const analysis = fixture('strong');
 		expect(analysis.debuff.drops.length).toBeGreaterThan(0);
 		const html = render(analysis);
 		expect(html).toContain(t('debuff.track.dropped'));
-		// No table of drops, and no per-drop links duplicating the miss ledger.
 		expect(html).not.toContain('<table');
 		expect(html).not.toContain('warcraftlogs.com/reports');
+	});
+
+	/**
+	 * The chart says which measurement it is drawing, and the two answers are not interchangeable.
+	 *
+	 * A pull carrying the contact arrays gets the three tracks the tiles are fractions of; a fixture
+	 * captured before they existed falls back to the primary target's window model and says so, naming
+	 * that enemy. The failure this pins is the one a reader reported: tracks scoped to the boss under
+	 * tiles scoped to the player, which drew 380 seconds of a Galakras pull as "out of reach".
+	 */
+	it('tells the reader which measurement the chart is drawing', () => {
+		/** React escapes apostrophes in a text node, so copy carrying one has to be escaped to match. */
+		const escaped = (copy: string) => copy.replace(/'/g, '&#x27;');
+
+		const legacy = fixture('strong');
+		expect(legacy.debuff.contactUpSegments).toBeUndefined();
+		const legacyHtml = render(legacy);
+		expect(legacyHtml).toContain(
+			escaped(t('debuff.chartCaption', { context: 'primary', target: t('debuff.target_boss') })),
+		);
+		expect(legacyHtml).not.toContain(escaped(t('debuff.chartCaption')));
+
+		const scoped: Analysis = {
+			...legacy,
+			debuff: { ...legacy.debuff, contactSegments: [[0, 100_000]], contactUpSegments: [[0, 90_000]] },
+		};
+		const scopedHtml = render(scoped);
+		expect(scopedHtml).toContain(escaped(t('debuff.chartCaption')));
+		expect(scopedHtml).not.toContain(escaped(t('debuff.chartCaption', { context: 'primary', target: 'x' })));
 	});
 
 	/**

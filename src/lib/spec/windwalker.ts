@@ -27,6 +27,7 @@ import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
 import { readTalents } from '~/lib/analysis/gear';
+import SPELLS from '~/generated/spells.json';
 import { aplAudit } from './apl';
 import {
 	DEFAULT_SETTINGS,
@@ -1158,6 +1159,19 @@ const EXTRA_NAMES: Record<number, string> = {
 	148903: 'Vicious',
 };
 
+/**
+ * The generated spell map, as a name lookup.
+ *
+ * Built by `scripts/build-spell-map.mjs` from the wowsims-mop simulator database, topped up from
+ * Wowhead for the ids the simulator does not model. It is the last thing `nameOf` consults, and it
+ * exists so that an id the log itself could not name renders as a spell rather than as `#115450`.
+ *
+ * Not a substitute for `EXTRA_NAMES` above: that table says what this *report* chooses to call a
+ * thing, which is sometimes not its spell name — several ids there are deliberately collapsed onto
+ * one label so the damage table reads as one row per effect rather than one per rank.
+ */
+const SPELL_NAMES = SPELLS.spells as Record<string, { name: string; icon: string }>;
+
 // ---------------------------------------------------------------- thresholds
 
 /**
@@ -1427,7 +1441,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// structurally cannot: it names by the id the *caster* presses, and a buff the Monk casts on the
 	// raid does no damage at all — so Legacy of the Emperor and Legacy of the White Tiger reach the
 	// cast timeline as presses that nothing downstream of here could ever have named.
-	const nameOf = (id: number): string => EXTRA_NAMES[id] ?? RAID_BUFF_NAMES.get(id) ?? tableNames[id] ?? `#${id}`;
+	//
+	// The generated spell map sits last, immediately before giving up. It is a static dictionary built
+	// from the simulator's database and topped up from Wowhead, so it knows the utility buttons and
+	// boss abilities the three sources above have no reason to carry — Transcendence, Zen Meditation,
+	// Detox, Mortal Wounds. Deliberately *below* the damage table rather than above it: the table is
+	// this log's own account of what happened and is specific to it, while the map is general, so the
+	// map may only answer where the alternative was rendering a bare `#id` at the reader.
+	const nameOf = (id: number): string =>
+		EXTRA_NAMES[id] ?? RAID_BUFF_NAMES.get(id) ?? tableNames[id] ?? SPELL_NAMES[String(id)]?.name ?? `#${id}`;
 
 	const petIDs = new Set(actors.filter((a) => a.petOwner === actor.id).map((a) => a.id));
 	const mine = (id: number | undefined): boolean => id !== undefined && (id === actor.id || petIDs.has(id));
@@ -1962,7 +1984,19 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		contactDebuffOn.set(key, windows);
 		return windows;
 	};
-	let rskContactMs = 0;
+	/**
+	 * The covered stretches themselves, and not only their total.
+	 *
+	 * Kept as intervals because the chart under the tiles has to draw this exact measurement: it used to
+	 * draw the primary target's windows beside a number about every enemy, which put a picture and a
+	 * figure describing two different fights in one section. Summing this array is what produces the
+	 * figure, so the two cannot drift — the same reason the timeline's primary lane *is* the array the
+	 * old number was measured from.
+	 *
+	 * `debuffOn` returns merged, ascending windows already clipped to contact time, so the inner loop
+	 * can stop at the first window that starts after this hit's slice ends.
+	 */
+	const coveredParts: Interval[] = [];
 	for (let i = 0; i < landedHits.length; i++) {
 		const hit = landedHits[i];
 		if (hit === undefined) continue;
@@ -1970,8 +2004,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// that enemy — and the last one owns the rest of the pull, which the intersection with contact
 		// time clips back to nothing past the final window.
 		const until = landedHits[i + 1]?.t ?? duration;
-		rskContactMs += overlapMs(hit.t, until, debuffOn(hit.key));
+		for (const [start, end] of debuffOn(hit.key)) {
+			if (start >= until) break;
+			if (end > hit.t) coveredParts.push([Math.max(start, hit.t), Math.min(end, until)]);
+		}
 	}
+	/** One quantity, two shapes: the union is the figure, the array is the picture. */
+	const rskCovered = mergeIntervals(coveredParts);
+	const rskContactMs = unionMs(rskCovered);
 
 	/**
 	 * The other half of that reading: contact time whose enemy was *not* carrying the debuff.
@@ -3291,6 +3331,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			wastedProtecting,
 			maxStacks: bank.maxStacks,
 			bankAtEnd: bank.bankAtEnd,
+			// Straight off the bank walk, which counted the rises as it saw them. Not rebuilt here from
+			// `totalConsumed + bankAtEnd + wastedAtCap`: `totalConsumed` sums `uses`, which drops any drain
+			// that paired to no brew window, so the two versions would part company on exactly the pull
+			// where one of them is wrong.
+			stacksGained: bank.gained,
 			uptimePct: uptimePct(brewWindows, duration),
 			// Read from the same `combatantinfo` the gear comes from, and null on every Mists Classic
 			// report checked so far — the field is there and always zero. Null is the answer that
@@ -3339,9 +3384,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			engagedMs,
 			// Each scalar is the union of the segment array it is named after, and the pair below is
 			// measured against `contactMs` rather than `engagedMs` — the boss's clock cannot be the
-			// denominator of a numerator that follows the player. Both are published because both are
-			// read: the chart's out-of-reach track is the complement of the boss's, the section's tiles
-			// are all three fractions of this one.
+			// denominator of a numerator that follows the player. Both are still published because the
+			// pull timeline draws the primary target's own lane and labels it with that enemy's name; the
+			// section's three tiles and the chart under them are all fractions of the contact clock.
 			contactMs: inContactMs,
 			// The graded figure and its own remainder, and the two numbers here that are not about the
 			// primary target: the debuff on whichever enemy the player was hitting, across the time they
@@ -3357,6 +3402,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			windows: rskLaneWindows,
 			engagedSegments: engaged,
 			contactSegments: contact,
+			// The numerator as a picture. Its union is `engagedUptimePct`, its complement inside
+			// `contactSegments` is `secondsLost`, and the complement of those is the time nothing was
+			// being fought — which is the whole pull, in three parts, with nothing left over.
+			contactUpSegments: rskCovered,
 			primaryDamageShare,
 			singleTarget,
 		},

@@ -26,6 +26,20 @@ export interface StackBank {
 	wastedAt: number[];
 	/** Stacks still banked when the fight ended — damage never taken. */
 	bankAtEnd: number;
+	/**
+	 * Every stack the pull earned, including the ones the cap refused.
+	 *
+	 * Gross rather than net, for the same reason Chi Brew reports the chi it returned gross: this is
+	 * the denominator the losses are read against, and netting the losses out of it would be
+	 * subtracting the figure standing next to it. `gained = drained + bankAtEnd + wastedAtCap` holds
+	 * by construction, because those are the only three places a stack can end up.
+	 *
+	 * Counted here rather than reconstructed by a caller from `totalConsumed + bankAtEnd`, which is
+	 * not the same number: the brew summary's `totalConsumed` counts only drains that paired to a
+	 * buff window, so a drain that opened none would quietly vanish from a caller's total and put a
+	 * tile at odds with the chart drawn from `timeline` beside it.
+	 */
+	gained: number;
 }
 
 /**
@@ -50,14 +64,19 @@ export function trackStackBank(events: readonly WclEvent[], aura: Aura, targetID
 	const timeline: Array<[number, number]> = [];
 	let stacks = 0;
 	let maxStacks = 0;
+	let gained = 0;
 	const wastedAt: number[] = [];
 
 	for (const e of bankEvents) {
 		const t = e.timestamp - t0;
 		if (isAuraApply(e)) {
+			// A rise, never a fall: an apply onto a bank the walk already thinks is stocked is a
+			// bookkeeping artefact of the log, not a stack the player handed back.
+			gained += Math.max(0, 1 - stacks);
 			stacks = 1;
 		} else if (isStackChange(e)) {
 			if (e.type === 'applybuffstack' || e.type === 'applydebuffstack') {
+				gained += Math.max(0, e.stack - stacks);
 				stacks = e.stack;
 			} else {
 				drains.push({ t, before: stacks, consumed: stacks - e.stack });
@@ -67,7 +86,12 @@ export function trackStackBank(events: readonly WclEvent[], aura: Aura, targetID
 			// A gain that actually landed emits its own apply on the same millisecond; a lone refresh
 			// at the cap is a stack the bank had no room for.
 			const paired = bankEvents.some((x) => x.timestamp === e.timestamp && (isAuraApply(x) || isStackChange(x)));
-			if (!paired && stacks >= cap) wastedAt.push(t);
+			// It counts as earned even though it never landed. The player spent the chi for it; the cap
+			// is what took it, which is a loss and not a stack that was never paid for.
+			if (!paired && stacks >= cap) {
+				wastedAt.push(t);
+				gained += 1;
+			}
 		} else if (isAuraRemove(e)) {
 			drains.push({ t, before: stacks, consumed: stacks });
 			stacks = 0;
@@ -80,7 +104,7 @@ export function trackStackBank(events: readonly WclEvent[], aura: Aura, targetID
 		timeline.push([t, stacks]);
 	}
 
-	return { drains, timeline, maxStacks, wastedAtCap: wastedAt.length, wastedAt, bankAtEnd: stacks };
+	return { drains, timeline, maxStacks, wastedAtCap: wastedAt.length, wastedAt, bankAtEnd: stacks, gained };
 }
 
 /**

@@ -70,6 +70,11 @@
     "bankLeft_other": "{{count}} stacks were still banked when the boss died.",
     "capProtected_one": "One of those was lost while you held a brew for a Re-Origination proc, where brewing sooner would have cost more of the proc than the stack was worth. That one is not counted against you.",
     "capProtected_other": "{{count}} of those were lost while you held a brew for a Re-Origination proc, where brewing sooner would have cost more of the proc than the stacks were worth. Those are not counted against you.",
+    "kpi": {
+      "used": "Used of gained",
+      "banked": "Left banked",
+      "capped": "Overcapped"
+    },
     "key": {
       "bank": "Stacks",
       "press": "Used",
@@ -157,11 +162,13 @@
     "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this pull was fought across several. The tiles above follow you rather than the boss — at each moment they ask whether the enemy you were hitting carried the debuff, against the time you were in reach of anything at all — so keeping it on the add in front of you counts, and the minutes the boss was away are neither credited nor charged. The timeline below draws a lane per enemy.",
     "track": {
       "up": "Debuff up",
-      "dropped": "Dropped",
-      "away": "Out of reach"
+      "dropped": "Without it",
+      "away": "Nothing to hit"
     },
-    "chartCaption": "Drawn against {{target}} alone: the drops here are that enemy's own. The uptime above follows whichever enemy you were hitting, so on a pull fought across several the two are not the same measurement.",
-    "chartLabel": "Rising Sun Kick's debuff on {{target}} across the pull: {{drops}} drops totalling {{lost, seconds}}, and the stretches the fight put the enemy out of reach."
+    "chartCaption": "The same measurement as the tiles above, laid on the clock: where the enemy in front of you carried the debuff, where it did not, and where you were not fighting anything at all. The third track is the only part that is not counted against you.",
+    "chartLabel": "Rising Sun Kick across the pull, in three tracks: the debuff up on the enemy you were hitting for {{up, duration}}, off it for {{down, duration}} across {{drops}} stretches while you were still fighting, and {{away, duration}} with nothing to hit.",
+    "chartCaption_primary": "Drawn against {{target}} alone: this pull was analysed before the chart followed you rather than the boss, so its tracks are that one enemy's windows and the third is the stretches that enemy was away.",
+    "chartLabel_primary": "Rising Sun Kick's debuff on {{target}} across the pull: up for {{up, duration}}, dropped for {{down, duration}} across {{drops}} stretches, and {{away, duration}} with that enemy out of reach."
   },
   "targets": {
     "label": "Target mode",

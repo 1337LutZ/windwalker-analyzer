@@ -1,0 +1,451 @@
+{
+	"source": {
+		"repo": "wowsims/mop",
+		"commit": "00b8d1968b54240c62b2546013008d66949764e5",
+		"committed": "2026-08-14T07:11:36.000Z",
+		"fromDatabase": 44,
+		"fromWowhead": 65
+	},
+	"spells": {
+		"1": {
+			"name": "Melee",
+			"icon": "inv_sword_04"
+		},
+		"1126": {
+			"name": "Mark of the Wild",
+			"icon": "spell_nature_regeneration"
+		},
+		"1459": {
+			"name": "Arcane Brilliance",
+			"icon": "spell_holy_magicalsentry"
+		},
+		"2825": {
+			"name": "Bloodlust",
+			"icon": "spell_nature_bloodlust"
+		},
+		"6262": {
+			"name": "Healthstone",
+			"icon": "warlock_-healthstone"
+		},
+		"6673": {
+			"name": "Battle Shout",
+			"icon": "ability_warrior_battleshout"
+		},
+		"17007": {
+			"name": "Leader of the Pack",
+			"icon": "spell_nature_unyeildingstamina"
+		},
+		"19506": {
+			"name": "Trueshot Aura",
+			"icon": "ability_trueshot"
+		},
+		"19740": {
+			"name": "Blessing of Might",
+			"icon": "spell_holy_greaterblessingofkings"
+		},
+		"20217": {
+			"name": "Blessing of Kings",
+			"icon": "spell_magic_greaterblessingofkings"
+		},
+		"24604": {
+			"name": "Furious Howl",
+			"icon": "ability_hunter_pet_wolf"
+		},
+		"24907": {
+			"name": "Moonkin Aura",
+			"icon": "spell_nature_moonglow"
+		},
+		"26297": {
+			"name": "Berserking",
+			"icon": "racial_troll_berserk"
+		},
+		"30809": {
+			"name": "Unleashed Rage",
+			"icon": "spell_nature_unleashedrage"
+		},
+		"32182": {
+			"name": "Heroism",
+			"icon": "ability_shaman_heroism"
+		},
+		"49868": {
+			"name": "Mind Quickening",
+			"icon": "spell_shadow_spectralsight"
+		},
+		"51470": {
+			"name": "Elemental Oath",
+			"icon": "spell_shaman_elementaloath"
+		},
+		"55610": {
+			"name": "Unholy Aura",
+			"icon": "inv_helmet_08"
+		},
+		"57330": {
+			"name": "Horn of Winter",
+			"icon": "inv_misc_horn_02"
+		},
+		"80353": {
+			"name": "Time Warp",
+			"icon": "ability_mage_timewarp"
+		},
+		"90309": {
+			"name": "Terrifying Roar",
+			"icon": "ability_hunter_pet_devilsaur"
+		},
+		"90355": {
+			"name": "Primal Rage",
+			"icon": "spell_shadow_unholyfrenzy"
+		},
+		"90363": {
+			"name": "Embrace of the Shale Spider",
+			"icon": "ability_hunter_pet_spider"
+		},
+		"93435": {
+			"name": "Roar of Courage",
+			"icon": "ability_hunter_catlikereflexes"
+		},
+		"96228": {
+			"name": "Synapse Springs",
+			"icon": "spell_shaman_elementaloath"
+		},
+		"100780": {
+			"name": "Jab",
+			"icon": "ability_monk_jab"
+		},
+		"100784": {
+			"name": "Blackout Kick",
+			"icon": "ability_monk_roundhousekick"
+		},
+		"100787": {
+			"name": "Tiger Palm",
+			"icon": "ability_monk_tigerpalm"
+		},
+		"101545": {
+			"name": "Flying Serpent Kick",
+			"icon": "ability_monk_flyingdragonkick"
+		},
+		"101546": {
+			"name": "Spinning Crane Kick",
+			"icon": "ability_monk_cranekick_new"
+		},
+		"101643": {
+			"name": "Transcendence",
+			"icon": "monk_ability_transcendence"
+		},
+		"105697": {
+			"name": "Virmen's Bite",
+			"icon": "trade_alchemy_potiond6"
+		},
+		"107270": {
+			"name": "Spinning Crane Kick",
+			"icon": "ability_monk_cranekick_new"
+		},
+		"107428": {
+			"name": "Rising Sun Kick",
+			"icon": "ability_monk_risingsunkick"
+		},
+		"108557": {
+			"name": "Jab",
+			"icon": "ability_monk_staffstrike"
+		},
+		"109132": {
+			"name": "Roll",
+			"icon": "ability_monk_roll"
+		},
+		"113656": {
+			"name": "Fists of Fury",
+			"icon": "monk_ability_fistoffury"
+		},
+		"113742": {
+			"name": "Swiftblade's Cunning",
+			"icon": "ability_rogue_disembowel"
+		},
+		"115072": {
+			"name": "Expel Harm",
+			"icon": "ability_monk_expelharm"
+		},
+		"115080": {
+			"name": "Touch of Death",
+			"icon": "ability_monk_touchofdeath"
+		},
+		"115098": {
+			"name": "Chi Wave",
+			"icon": "ability_monk_chiwave"
+		},
+		"115129": {
+			"name": "Expel Harm",
+			"icon": "ability_monk_expelharm"
+		},
+		"115176": {
+			"name": "Zen Meditation",
+			"icon": "ability_monk_zenmeditation"
+		},
+		"115203": {
+			"name": "Fortifying Brew",
+			"icon": "ability_monk_fortifyingale_new"
+		},
+		"115288": {
+			"name": "Energizing Brew",
+			"icon": "ability_monk_energizingwine"
+		},
+		"115399": {
+			"name": "Chi Brew",
+			"icon": "ability_monk_chibrew"
+		},
+		"115450": {
+			"name": "Detox",
+			"icon": "spell_holy_dispelmagic"
+		},
+		"115460": {
+			"name": "Healing Sphere",
+			"icon": "ability_monk_healthsphere"
+		},
+		"115687": {
+			"name": "Jab",
+			"icon": "inv_axe_97"
+		},
+		"115693": {
+			"name": "Jab",
+			"icon": "inv_mace_08"
+		},
+		"115695": {
+			"name": "Jab",
+			"icon": "inv_sword_10"
+		},
+		"115698": {
+			"name": "Jab",
+			"icon": "inv_spear_03"
+		},
+		"115804": {
+			"name": "Mortal Wounds",
+			"icon": "ability_criticalstrike"
+		},
+		"115921": {
+			"name": "Legacy of the Emperor",
+			"icon": "ability_monk_legacyoftheemperor"
+		},
+		"116705": {
+			"name": "Spear Hand Strike",
+			"icon": "ability_monk_spearhand"
+		},
+		"116709": {
+			"name": "Spear Hand Strike",
+			"icon": "ability_monk_spearhand"
+		},
+		"116768": {
+			"name": "Combo Breaker: Blackout Kick",
+			"icon": "ability_monk_roundhousekick"
+		},
+		"116781": {
+			"name": "Legacy of the White Tiger",
+			"icon": "ability_monk_prideofthetiger"
+		},
+		"116841": {
+			"name": "Tiger's Lust",
+			"icon": "ability_monk_tigerslust"
+		},
+		"116847": {
+			"name": "Rushing Jade Wind",
+			"icon": "ability_monk_rushingjadewind"
+		},
+		"116956": {
+			"name": "Grace of Air",
+			"icon": "spell_nature_invisibilitytotem"
+		},
+		"117418": {
+			"name": "Fists of Fury",
+			"icon": "monk_ability_fistoffury"
+		},
+		"117666": {
+			"name": "Legacy of the Emperor",
+			"icon": "ability_monk_legacyoftheemperor"
+		},
+		"118864": {
+			"name": "Combo Breaker: Tiger Palm",
+			"icon": "ability_monk_palmstrike"
+		},
+		"119381": {
+			"name": "Leg Sweep",
+			"icon": "ability_monk_legsweep"
+		},
+		"120032": {
+			"name": "Dancing Steel",
+			"icon": "trade_archaeology_zinrokh-sword"
+		},
+		"120086": {
+			"name": "Fists of Fury",
+			"icon": "monk_ability_fistoffury"
+		},
+		"120273": {
+			"name": "Tiger Strikes",
+			"icon": "ability_ghoulfrenzy"
+		},
+		"120274": {
+			"name": "Tiger Strikes",
+			"icon": "spell_nature_cyclone"
+		},
+		"120278": {
+			"name": "Tiger Strikes",
+			"icon": "spell_nature_cyclone"
+		},
+		"120687": {
+			"name": "Stormlash",
+			"icon": "spell_lightning_lightningbolt01"
+		},
+		"120954": {
+			"name": "Fortifying Brew",
+			"icon": "ability_monk_fortifyingale"
+		},
+		"122470": {
+			"name": "Touch of Karma",
+			"icon": "ability_monk_touchofkarma"
+		},
+		"122783": {
+			"name": "Diffuse Magic",
+			"icon": "spell_monk_diffusemagic"
+		},
+		"123586": {
+			"name": "Flying Serpent Kick",
+			"icon": "priest_icon_chakra_green"
+		},
+		"123904": {
+			"name": "Invoke Xuen, the White Tiger",
+			"icon": "ability_monk_summontigerstatue"
+		},
+		"123986": {
+			"name": "Chi Burst",
+			"icon": "spell_arcane_arcanetorrent"
+		},
+		"123996": {
+			"name": "Crackling Tiger Lightning",
+			"icon": "ability_monk_cracklingjadelightning"
+		},
+		"124081": {
+			"name": "Zen Sphere",
+			"icon": "ability_monk_forcesphere"
+		},
+		"124280": {
+			"name": "Touch of Karma",
+			"icon": "ability_monk_touchofkarma"
+		},
+		"124335": {
+			"name": "Swift Reflexes",
+			"icon": "ability_hunter_displacement"
+		},
+		"125359": {
+			"name": "Tiger Power",
+			"icon": "ability_monk_tigerpalm"
+		},
+		"126309": {
+			"name": "Still Water",
+			"icon": "inv_elemental_mote_water01"
+		},
+		"126734": {
+			"name": "Synapse Springs",
+			"icon": "spell_shaman_elementaloath"
+		},
+		"128432": {
+			"name": "Cackling Howl",
+			"icon": "ability_hunter_pet_hyena"
+		},
+		"128433": {
+			"name": "Serpent's Swiftness",
+			"icon": "ability_hunter_serpentswiftness"
+		},
+		"128531": {
+			"name": "Blackout Kick",
+			"icon": "ability_monk_roundhousekick"
+		},
+		"128997": {
+			"name": "Spirit Beast Blessing",
+			"icon": "inv_pet_celestialdragon"
+		},
+		"130320": {
+			"name": "Rising Sun Kick",
+			"icon": "ability_monk_risingsunkick"
+		},
+		"132467": {
+			"name": "Chi Wave",
+			"icon": "ability_monk_chiwave"
+		},
+		"137596": {
+			"name": "Capacitance",
+			"icon": "spell_nature_purge"
+		},
+		"137597": {
+			"name": "Lightning Strike",
+			"icon": "spell_nature_lightning"
+		},
+		"137639": {
+			"name": "Storm, Earth, and Fire",
+			"icon": "spell_sandstorm"
+		},
+		"139117": {
+			"name": "Re-Origination",
+			"icon": "inv_offhand_1h_ulduarraid_d_01"
+		},
+		"139120": {
+			"name": "Re-Origination",
+			"icon": "inv_offhand_1h_ulduarraid_d_01"
+		},
+		"139121": {
+			"name": "Re-Origination",
+			"icon": "inv_offhand_1h_ulduarraid_d_01"
+		},
+		"142928": {
+			"name": "Displaced Energy",
+			"icon": "ability_warlock_haunt"
+		},
+		"144459": {
+			"name": "Laser Burn",
+			"icon": "ability_deathwing_grasping_tendrils"
+		},
+		"145024": {
+			"name": "Focus of Xuen",
+			"icon": "ability_rogue_feigndeath"
+		},
+		"146061": {
+			"name": "Multistrike",
+			"icon": "warrior_wild_strike"
+		},
+		"146075": {
+			"name": "Multistrike",
+			"icon": "ability_monk_cracklingjadelightning"
+		},
+		"146137": {
+			"name": "Cleave",
+			"icon": "warrior_wild_strike"
+		},
+		"146194": {
+			"name": "Flurry of Xuen",
+			"icon": "monk_stance_whitetiger"
+		},
+		"146555": {
+			"name": "Drums of Rage",
+			"icon": "inv_misc_drum_05"
+		},
+		"147891": {
+			"name": "Flurry of Xuen",
+			"icon": "monk_stance_whitetiger"
+		},
+		"148187": {
+			"name": "Rushing Jade Wind",
+			"icon": "ability_monk_rushingjadewind"
+		},
+		"148896": {
+			"name": "Ferocity",
+			"icon": "inv_relics_idolofferocity"
+		},
+		"148903": {
+			"name": "Vicious",
+			"icon": "ability_racial_viciousness"
+		},
+		"1247275": {
+			"name": "Tigereye Brew",
+			"icon": "ability_monk_tigereyebrandy"
+		},
+		"1247279": {
+			"name": "Tigereye Brew",
+			"icon": "spell_brew_dark"
+		}
+	}
+}

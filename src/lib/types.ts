@@ -430,6 +430,22 @@ export interface BrewSummary {
 	wastedProtecting?: number;
 	maxStacks: number;
 	bankAtEnd: number;
+	/**
+	 * Every stack the pull earned, cap losses included — `totalConsumed + bankAtEnd + wastedAtCap`.
+	 *
+	 * The denominator the two leaks are read against. It arrives from the bank walk rather than being
+	 * added up from those three fields by whoever needs it, because the identity only holds when every
+	 * drain paired to a buff window: `totalConsumed` sums `useList`, which drops any that did not, so a
+	 * caller's arithmetic and the chart drawn from `bankTimeline` could disagree by a whole brew.
+	 *
+	 * A stack the cap refused counts as gained. The chi that bought it was spent either way, which is
+	 * what makes it a loss rather than a stack that was never earned.
+	 *
+	 * Optional because the committed fixtures predate it. `undefined` there, never `0` — a pull that
+	 * earned nothing and a pull captured before this existed are different answers, and only the second
+	 * one means "cannot say".
+	 */
+	stacksGained?: number;
 	uptimePct: number;
 	/**
 	 * What one brew stack adds to damage, as a fraction — `0.05 + masteryPercent` from
@@ -648,6 +664,23 @@ export interface DebuffSummary {
 	 * they are describing.
 	 */
 	contactSegments?: Array<[number, number]>;
+	/**
+	 * The graded figure as a picture: when the enemy the player was hitting was carrying the debuff.
+	 *
+	 * `unionMs` of this **is** `engagedUptimePct`'s numerator, which is the point of publishing it — the
+	 * section's chart draws these stretches rather than the primary target's own windows, so the picture
+	 * and the tiles above it are one measurement in two shapes. Against `contactSegments` the three
+	 * tracks partition the pull exactly: up here, down elsewhere inside contact, and outside contact
+	 * nothing was being fought at all.
+	 *
+	 * What it replaced was a chart of the boss's windows sitting under tiles about every enemy, whose
+	 * third track called 380 seconds of a 434-second Galakras pull "out of reach" while the player spent
+	 * 317 of them fighting.
+	 *
+	 * Optional because the committed fixtures predate it; without it a reader has to fall back to the
+	 * primary target's window model, which is what those fixtures were measured on anyway.
+	 */
+	contactUpSegments?: Array<[number, number]>;
 	/** Percentage of the player's damage that landed on the primary target. */
 	primaryDamageShare: number;
 	/**

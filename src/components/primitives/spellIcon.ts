@@ -1,4 +1,4 @@
-import ICONS from '~/generated/spell-icons.json';
+import SPELLS from '~/generated/spells.json';
 
 /**
  * Where a spell's icon lives, kept apart from the component that draws it.
@@ -10,7 +10,7 @@ import ICONS from '~/generated/spell-icons.json';
  * whole page. `SpellIcon.tsx` exported two of these, and 36 files reach it through the primitives
  * barrel, so most edits under `primitives/` were throwing the interface away and rebuilding it.
  *
- * Names come from a map generated at build time by `scripts/fetch-spell-icons.mjs`, so the page makes
+ * Names come from a map generated at build time by `scripts/build-spell-map.mjs`, so the page makes
  * no call to Wowhead — the only third-party request is the image itself, from `wow.zamimg.com`, which
  * the content-security policy names explicitly and the README declares.
  */
@@ -22,8 +22,11 @@ import ICONS from '~/generated/spell-icons.json';
  */
 export const iconUrl = (icon: string): string => `https://wow.zamimg.com/images/wow/icons/large/${icon}.jpg`;
 
+/** The generated map's payload, keyed by id as a string because that is what JSON gives back. */
+const SPELL_BY_ID = SPELLS.spells as Record<string, { name: string; icon: string }>;
+
 export function spellIconName(id: number): string | null {
-	return (ICONS as Record<string, string>)[String(id)] ?? null;
+	return SPELL_BY_ID[String(id)]?.icon ?? null;
 }
 
 /**
