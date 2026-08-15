@@ -256,12 +256,11 @@
     "summary": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it, filling at a measured {{regen, decimal}} energy a second.",
     "summaryNoRate": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it. Too little of the pull was quiet enough to measure a refill rate, so this is time only.",
     "split_none": "None of that happened while you were in contact with the target. All of it fell in the run-up, an intermission or the tail, where there is nothing to spend energy on — so none of it is counted against you.",
-    "split_some": "{{engaged, duration}} of that was while you were in contact with the target, which is the only part that describes a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, where nothing could be spent on anything, and is not counted against you.",
+    "split_some": "{{engaged, duration}} of that was while you were in contact with the target — {{engagedPct, percent}} of your engaged time, and the only part that describes a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, where there is nothing to spend energy on, so none of it is counted against you.",
     "wasted": "At the measured refill rate that is about {{wasted, integer}} energy arriving on a full bar with a target in front of you.",
     "kpi": {
-      "engaged": "Capped, engaged",
-      "wasted": "Energy lost",
-      "share": "Engaged time at cap"
+      "engaged": "Engaged time at cap",
+      "wasted": "Energy lost"
     },
     "caption": "The longest stretches the bar spent full, longest first",
     "key": {
@@ -485,6 +484,34 @@
       "hits": "hits"
     },
     "truncated": "The last summon was cut short when the pull ended, so its window counts only the time the tiger actually had."
+  },
+  "sef": {
+    "title": "Storm, Earth and Fire",
+    "intent": "Each press sends out a spirit that stands on an enemy of your choosing and mirrors your damaging abilities onto it, up to two at a time — and while they are out your own damage is cut, to 70% with one spirit and 55% with two. So the button is only worth pressing when there is a second thing to put a spirit on, and once they are out the one way to waste it is to stand on an enemy a spirit is already handling.",
+    "summary_one": "{{count}} press, with a spirit out for {{uptime, percent}} of the pull.",
+    "summary_other": "{{count}} presses, with a spirit out for {{uptime, percent}} of the pull.",
+    "skipped": "Storm, Earth and Fire was never pressed, and this pull had a second enemy under your hands for {{justified, duration}} in stretches long enough to be worth one — the longest of them running {{longest, duration}}. That is time two spirits could have spent mirroring you onto something else.",
+    "damage": "The spirits dealt {{damage, compact}} between them, {{share, percent}} of your damage. It is already inside your total: WarcraftLogs files a pet's damage under its owner, and a spirit's Blackout Kick logs under the same spell id as yours.",
+    "overlap": "You spent {{overlap, duration}} of your {{measured, duration}} in melee with the spirits out — {{share, percent}} of it — hitting an enemy one of your own spirits was already on. A spirit copies you onto its target, so for that time you were paying the damage penalty for a clone that was duplicating you instead of spreading you.",
+    "overlapWorst": "The worst of it was {{target}}, at {{ms, duration}}.",
+    "overlapNone": "You never shared a target with your own spirits, which is exactly what the cooldown is for.",
+    "overlapUnknown": "This pull cannot say whether you shared a target with your own spirits. The log carried no separate actor for them, so there is nothing to compare your target against — and reporting that as \"never\" would be a claim the log did not make.",
+    "justified": "The pull held a second enemy for {{justified, duration}} in stretches longer than {{rule, duration}}, so pressing it was called for.",
+    "unjustified": "The pull never held a second enemy for longer than {{rule, duration}} — the longest stretch was {{longest, duration}} — so there was little for a spirit to stand on. Against one target the split is a straight loss.",
+    "notGraded": "Nothing here is graded. The sim never puts a spirit on the enemy you are hitting, so its answer to \"how much overlap is acceptable\" is zero — and a zero line would fault a pull for the seconds after your own target dies and you roll onto one a spirit is holding. The ten-second rule decides whether this section speaks, not what it scores.",
+    "unnamedTarget": "unnamed enemy",
+    "none": "Storm, Earth and Fire was never pressed in this pull.",
+    "caption": "Every press, and the enemy the spirit was sent to",
+    "kpi": {
+      "casts": "Presses",
+      "uptime": "Pull with a spirit out",
+      "damage": "Spirits' damage",
+      "overlap": "Shared a target"
+    },
+    "columns": {
+      "at": "at",
+      "target": "sent to"
+    }
   },
   "gear": {
     "title": "Gear",

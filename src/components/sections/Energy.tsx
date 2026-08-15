@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatClock, formatInteger, formatPercentValue, formatSeconds } from '~/lib/format';
+import { formatClock, formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import ResourceChart from '../charts/ResourceChart';
@@ -116,12 +116,16 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
+							{/* Seconds, and only seconds. This tile used to sit beside a second one showing the
+						    same quantity as a share of engaged time — two tiles, one fact, and the reader
+						    left to work out that they were the same number twice. The share moved into the
+						    sentence below, which has room to say what it is a share *of*; a bare percentage
+						    in a tile does not. */}
 							<StatTile value={formatSeconds(energy.engaged.cappedMs)} label={t('energy.kpi.engaged')} />
 							{/* Only shown when a refill rate could be measured: an energy figure derived from a
 							    rate nobody measured would be an invented number in a tile, which is the one
 							    place on the page a reader cannot see the caveat under. */}
 							{wasted === null ? null : <StatTile value={formatInteger(wasted)} label={t('energy.kpi.wasted')} />}
-							<StatTile value={formatPercentValue(energy.engaged.pct)} label={t('energy.kpi.share')} />
 						</StatTiles>
 					</div>
 
@@ -144,6 +148,7 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 							{t('energy.split', {
 								context: energy.engaged.cappedMs > 0 ? 'some' : 'none',
 								engaged: energy.engaged.cappedMs,
+								engagedPct: energy.engaged.pct,
 								downtime: energy.downtime.cappedMs,
 							})}{' '}
 							{wasted !== null && wasted > 0 ? t('energy.wasted', { wasted }) : null}
