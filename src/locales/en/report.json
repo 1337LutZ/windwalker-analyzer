@@ -397,6 +397,7 @@
     "tip": {
       "at": "Pressed",
       "swing": "Swung",
+      "stat": "Converted into",
       "from": "Up",
       "to": "Down",
       "by": "Killed by",

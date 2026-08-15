@@ -30,6 +30,7 @@ import type {
 	LaneSpend,
 	LaneStacks,
 	LaneTarget,
+	LaneWindow,
 	ResourceCurve,
 	Window,
 } from '~/lib/types';
@@ -179,6 +180,24 @@ const GROUP_TONE: Record<Toggle, keyof ChartTheme> = {
 
 /** How far the tip sits from the cursor: clear of the icon underneath without leaving the pointer. */
 const TIP_OFFSET_PX = 14;
+
+/**
+ * One character of a label written inside a bar, in pixels — and the room left around it.
+ *
+ * The labels are `font-mono text-xs`, so a character is a fixed advance rather than something that
+ * has to be measured per word. Measured in the browser rather than assumed: "Mastery" renders at
+ * 46.19px in the stack's `ui-monospace` at 12px, which is 6.6px a character. The constant is **7**,
+ * rounded up on purpose so the estimate errs towards calling a word too wide — the failure that
+ * costs a reader a label they could have had, rather than the one that clips a word mid-glyph.
+ * The padding is the 4px inset the label is drawn at, doubled, so a word that "fits" keeps the same
+ * breath on its right as on its left instead of running flush into the end of the bar.
+ *
+ * Deliberately an estimate and not a measurement at render time. See `labelFits`: the report is
+ * static HTML, there is no layout for the component to interrogate, and the whole point of the
+ * conservative rounding is that being wrong is cheap.
+ */
+const LABEL_CHAR_PX = 7;
+const LABEL_PAD_PX = 8;
 
 /** Stable identities for an absent timeline, so the memos below do not re-run on every render. */
 const NO_CASTS: CastMark[] = [];
@@ -705,6 +724,30 @@ function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
 }
 
 /**
+ * Whether a word written inside a bar will fit inside that bar, at this zoom.
+ *
+ * The bars are drawn as percentages of a track whose width is `max(320, span/1000 * pxPerSec)`, so a
+ * window's width in *pixels* is its length in seconds times the zoom — independent of the viewport,
+ * because the track scrolls rather than shrinking. That is what makes this answerable at render time
+ * on a page with no layout to measure: the report is static HTML, and there is no pass in which the
+ * component could ask the DOM how wide anything came out.
+ *
+ * The 320px floor is ignored on purpose. It only binds on a pull shorter than `320 / pxPerSec`
+ * seconds — under two minutes at the widest zoom, which no boss pull is — and when it does bind the
+ * real bar is *wider* than this reckons, so the error is a label withheld rather than one that
+ * spills.
+ *
+ * **Nothing is abbreviated when it does not fit.** A stat name cut to "Mas" or "H" is a mark a reader
+ * has to decode, and the three answers here — Crit, Haste, Mastery — are close enough in kind that a
+ * stub reads as a guess. The window keeps its `title` and its tooltip row either way, so the fact is
+ * never lost; it moves from the bar to the pointer. Re-Origination runs ten seconds, which clears
+ * even the longest of the three at every zoom step but the widest.
+ */
+function labelFits(label: string, ms: number, pxPerSec: number): boolean {
+	return (ms / 1000) * pxPerSec >= label.length * LABEL_CHAR_PX + LABEL_PAD_PX;
+}
+
+/**
  * One lane's windows, as bars. Width is a percentage too, so zoom never touches them.
  *
  * `notes` labels a bar with a number when the lane has one worth carrying — the stacks a Tigereye
@@ -716,31 +759,46 @@ function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
  * naming the press is the only thing that separates the two. It formats rather than decides — the
  * pairing is the engine's, and this turns its answer into the copy for it — and it answers
  * `undefined` for every lane and every window that has none, which is all of them but one.
+ *
+ * `pxPerSec` is the current zoom, and it is here for one reason: a window that carries a `variant`
+ * gets that variant written inside its bar, and whether the word fits is a question about pixels
+ * that only the zoom can answer. See `labelFits`.
  */
 function barNodesOf(
 	lane: AuraLane,
 	span: number,
 	notes: Map<number, number> | null,
 	spentAs: (spend: LaneSpend) => { text: string; icon: string | null },
+	pxPerSec: number,
 ) {
 	// Keyed on the window's own start, which is what the engine identified each verdict by — the same
 	// key the brew notes above use, and sound for the same reason: two windows of one aura cannot open
 	// on the same millisecond unless the aura logs under several ids, and this one logs under one.
 	const spent = new Map((lane.spent ?? []).map((s) => [s.start, spentAs(s)]));
-	return lane.windows.map((w: Window) => {
+	return lane.windows.map((w: LaneWindow) => {
 		const fate = spent.get(w.start);
+		// Written inside the bar when there is room for it, and never truncated to a stub — see
+		// `labelFits` for why a clipped stat name is worse than none.
+		const label = w.variant !== undefined && labelFits(w.variant, w.end - w.start, pxPerSec) ? w.variant : null;
 		return (
 			<span
 				// Both ends, not just the start: an aura logged under several ids — Re-Origination is one —
 				// can open two windows on the same millisecond, and React would then see a duplicate key.
 				key={`${w.start}-${w.end}`}
 				// The verdict rides on the `title` as well, so the reader whose pointer never fires is told
-				// what spent the window rather than only when it opened and closed.
-				title={`${lane.name} · ${fmt(w.start)} → ${fmt(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
+				// what spent the window rather than only when it opened and closed. The variant rides on it
+				// for the same reason and one more: it is the only thing the reader gets when the bar was too
+				// narrow to write it in, and that is the common case at the wide end of the zoom ladder.
+				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${fmt(w.start)} → ${fmt(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
 				// The aura's own name, which is the half of a merged row's label that the gutter may have
 				// truncated — and on a row named after the button, the only place the aura is named at all.
 				data-tip={lane.name}
 				data-tip-tone={GROUP_TONE[lane.group]}
+				// Which of the aura's ids opened this window, in words — the stat a Re-Origination proc
+				// converted into. A row of its own rather than part of the title, because the title is the
+				// aura and this is a fact about the one window under the cursor. Absent on every window that
+				// has no variant, which React handles by omitting the attribute entirely.
+				data-tip-stat={w.variant}
 				data-tip-from={fmt(w.start)}
 				data-tip-to={fmt(w.end)}
 				// What became of this window. Two attributes rather than one, because the icon is markup and
@@ -764,6 +822,22 @@ function barNodesOf(
 					// only thing separating them.
 					<span className="pointer-events-none absolute inset-y-0 left-[4px] flex items-center font-mono text-xs leading-none font-semibold text-bg">
 						{notes.get(w.start)}
+					</span>
+				)}
+				{label === null ? null : (
+					// The stat the window converted into, written on the window itself.
+					//
+					// Same treatment as the brew's stack count above and for the same argument: three
+					// Re-Origination procs draw three identical bars, and which stat came back is the entire
+					// reason the buff is worth looking at. `text-bg` on the lane's own fill rather than a new
+					// colour — the proc violet is `#a78bfa` against a `#0d1311` ground, which is 6.9:1, and a
+					// fourth accent would be a colour claiming a meaning the palette has not got.
+					//
+					// `inset-0` with `overflow-hidden` is the guarantee rather than the layout: `labelFits`
+					// has already decided the word belongs here, and this is what makes a wrong estimate clip
+					// at the bar's edge instead of spilling across the lane onto its neighbours.
+					<span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden pl-[4px] font-mono text-xs leading-none font-semibold text-bg">
+						{label}
 					</span>
 				)}
 			</span>
@@ -1178,10 +1252,12 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// counted one, which is a question about events and not about how a row should look.
 				bars:
 					lane.stacks === undefined
-						? barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null, spentAs)
+						? barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null, spentAs, pxPerSec)
 						: chargeNodesOf(lane, lane.stacks, span),
 			})),
-		[lanes, span, brewSpend, spentAs],
+		// Zoom is a dependency now, as it already is for the press lanes above: whether a window is wide
+		// enough to carry its variant is a question about pixels, so a zoom step has to rebuild these.
+		[lanes, span, brewSpend, spentAs, pxPerSec],
 	);
 	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
 	const gcdRules = useMemo(() => gcdRulesPath(casts, span), [casts, span]);
@@ -1263,6 +1339,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// arrive already worded, because the wording is a reading of the engine's answer rather than
 				// a reading of the mark — see `sentTo` and `spentAs`.
 				const target = mark.getAttribute('data-tip-target');
+				// Which of the aura's ids this window was — the stat a Re-Origination proc converted into.
+				// It is on the mark for every such window, including the many the bar was too narrow to write
+				// it inside, which is what makes the tooltip the fact's home rather than its overflow.
+				const stat = mark.getAttribute('data-tip-stat');
 				const spent = mark.getAttribute('data-tip-spent');
 				// The consuming spell's art, resolved on the mark and carried as a URL: the tooltip is built
 				// as a string, so an icon in it is markup rather than an element, and this is the one row on
@@ -1287,6 +1367,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				if (target !== null) rows.push([t('castLog.tip.sentTo'), target]);
 				if (landed !== null) rows.push([t('castLog.tip.landed'), landed]);
 				if (charges !== null) rows.push([t('castLog.tip.charges'), charges]);
+				// Above both ends of the window rather than below them, because it is what the window *was*
+				// and the clocks are when it ran — a reader hunting the stat should not have to read past
+				// two timestamps to reach it.
+				if (stat !== null) rows.push([t('castLog.tip.stat'), stat]);
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
 				// After both ends of the window, because it is what the second of them was.

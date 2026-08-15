@@ -1118,6 +1118,120 @@ describe('what a mark says beyond its clock', () => {
 });
 
 /**
+ * Which stat a Re-Origination proc handed back, written on the window that handed it back.
+ *
+ * The Rune converts a wearer's two lowest secondary stats into their highest, and logs a *different
+ * spell id per stat* — 139117 crit, 139120 mastery, 139121 haste, all three named plainly
+ * "Re-Origination" by WarcraftLogs, so the id is the only thing that separates them. The engine
+ * already resolves that to `variant` on each window; these are about the chart finally printing it,
+ * since three procs that returned three different stats were drawing three identical bars.
+ *
+ * The renders below are all at the default zoom, which is 24px per second — so a window's width in
+ * pixels is its length in seconds times 24, and the thresholds the assertions lean on are real
+ * pixels rather than a convention.
+ */
+describe('the stat a proc converted into', () => {
+	/** A proc lane at some length, carrying the id and the word the engine resolved it to. */
+	const procLane = (variant: string, id: number, ms: number): AuraLane => ({
+		key: 're-origination',
+		name: 'Re-Origination',
+		id: 139120,
+		group: 'proc',
+		windows: [{ start: 20000, end: 20000 + ms, id, variant }],
+	});
+	const withLane = (lane: AuraLane): Analysis => ({
+		...drawn,
+		timeline: { ...timeline, lanes: [lane, ...timeline.lanes.slice(1)] },
+	});
+
+	/** The whole point: the word is inside the bar, not only in a tooltip nobody hovers. */
+	it('writes the stat inside a bar with room for it', () => {
+		// Ten seconds is what the Rune actually runs, and 240px at this zoom.
+		const html = render(withLane(procLane('Mastery', 139120, 10000)));
+		expect(html).toContain('>Mastery</span>');
+		expect(html).toContain('data-tip-stat="Mastery"');
+	});
+
+	/** All three, because a chart that could only name the common one is the bug this replaces. */
+	it('names whichever of the three the proc landed on', () => {
+		for (const [variant, id] of [
+			['Crit', 139117],
+			['Mastery', 139120],
+			['Haste', 139121],
+		] as const) {
+			const html = render(withLane(procLane(variant, id, 10000)));
+			expect(html, variant).toContain(`>${variant}</span>`);
+			expect(html, variant).toContain(`data-tip-stat="${variant}"`);
+		}
+	});
+
+	/**
+	 * The narrow case, which is the one that decides whether this feature is safe to ship.
+	 *
+	 * A one-second window is 24px at this zoom and "Mastery" needs 57, so the label is *dropped* — not
+	 * clipped to a stub, not spilled across the neighbouring lanes. The fact does not disappear with
+	 * it: the mark still carries the attribute the tooltip reads and the `title` a pointerless reader
+	 * gets, which is what makes this a move rather than a loss.
+	 */
+	it('drops the label to the tooltip when the bar is too narrow to hold it', () => {
+		const html = render(withLane(procLane('Mastery', 139120, 1000)));
+		expect(html).not.toContain('>Mastery</span>');
+		expect(html).toContain('data-tip-stat="Mastery"');
+		expect(html).toContain('title="Re-Origination · Mastery ·');
+	});
+
+	/**
+	 * The threshold is the word's own length rather than one width for every stat, so the shortest of
+	 * the three survives a bar the longest cannot. Two seconds is 48px: enough for "Crit" at 36 and
+	 * for "Haste" at 43, not for "Mastery" at 57.
+	 */
+	it('measures each stat name rather than assuming one width', () => {
+		expect(render(withLane(procLane('Crit', 139117, 2000)))).toContain('>Crit</span>');
+		expect(render(withLane(procLane('Haste', 139121, 2000)))).toContain('>Haste</span>');
+		expect(render(withLane(procLane('Mastery', 139120, 2000)))).not.toContain('>Mastery</span>');
+	});
+
+	/**
+	 * The guarantee that does not depend on the estimate being right. Whatever the font turns out to
+	 * be, the label is clipped at the bar's own edge rather than drawn across the lane beside it.
+	 */
+	it('clips the label to the bar rather than letting it spill', () => {
+		const html = render(withLane(procLane('Mastery', 139120, 10000)));
+		const label = html.match(/<span class="([^"]*)">Mastery<\/span>/);
+		expect(label?.[1]).toContain('overflow-hidden');
+		expect(label?.[1]).toContain('absolute inset-0');
+	});
+
+	/** An aura with no variants, and an analysis captured before the walk recorded them: both silent. */
+	it('claims nothing about a window that carries no variant', () => {
+		const html = render(drawn);
+		expect(html).not.toContain('data-tip-stat=');
+		expect(html).toContain('title="Re-Origination · ');
+	});
+
+	/** The tooltip's own label, so a missing key fails here rather than rendering raw beside the value. */
+	it('has a word for the row', () => {
+		expect(t('castLog.tip.stat')).not.toBe('castLog.tip.stat');
+	});
+
+	/**
+	 * The same thing on a real pull rather than a hand-built lane: `weave` is fight 11 of an anonymous
+	 * report, and its five Re-Origination windows are four Mastery and one Haste. That mix is the
+	 * evidence that the log really does distinguish the stats — a single-id aura could not produce it.
+	 */
+	it('reads both stats off a captured pull', () => {
+		const weave: Analysis = JSON.parse(
+			readFileSync(resolve(import.meta.dirname, '../../../lib/__fixtures__/weave.json'), 'utf8'),
+		);
+		const lane = weave.timeline?.lanes.find((l) => l.key === 're-origination');
+		expect(lane?.windows.map((w) => w.variant)).toEqual(['Mastery', 'Mastery', 'Mastery', 'Haste', 'Mastery']);
+		const html = render(weave);
+		expect(html).toContain('data-tip-stat="Haste"');
+		expect(html).toContain('data-tip-stat="Mastery"');
+	});
+});
+
+/**
  * The shared node's own assembly, which is the half the server render cannot reach: the tooltip is
  * written by a pointer handler, and effects do not run under `renderToStaticMarkup`.
  */

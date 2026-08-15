@@ -229,6 +229,24 @@ export interface LaneTarget {
 	primary: boolean;
 }
 
+/**
+ * One window of a lane: the engine's `AuraWindow`, with both of its extras optional.
+ *
+ * The engine builds most lanes through `auraWindows`, so at the moment of measurement both fields
+ * are there — but a lane is *serialised*, and what comes back out of a captured analysis is not
+ * guaranteed to carry them. Two lanes on the current fixtures already do not: Rising Sun Kick's
+ * debuff and Storm, Earth and Fire are assembled from their own walks rather than from that one.
+ * Declaring `AuraWindow[]` here would therefore be the type claiming an `id` the data has not got,
+ * which is the direction of error this file exists to avoid.
+ *
+ * `variant` is the half the chart reads. An aura whose ids encode one — Re-Origination logs a
+ * different id per stat it converted into — carries the answer on each window, which is what lets
+ * the timeline name the stat instead of drawing three indistinguishable bars. Optional, and read for
+ * `undefined`: an aura with no variants has none, and neither has an analysis captured before the
+ * walk recorded them.
+ */
+export type LaneWindow = Window & Partial<Pick<AuraWindow, 'id' | 'variant'>>;
+
 /** One aura's windows, as a row drawn under the casts. */
 export interface AuraLane {
 	/** The aura's key in the spec's game model — stable, and what a React list keys on. */
@@ -237,7 +255,7 @@ export interface AuraLane {
 	/** The spell whose icon stands for the row. */
 	id: number;
 	group: LaneGroup;
-	windows: Window[];
+	windows: LaneWindow[];
 	/**
 	 * Which enemy these windows are on, when the aura is per-target.
 	 *
@@ -509,7 +527,7 @@ export interface BrewSummary {
 	 * log does not carry it rather than printing a plausible number.
 	 */
 	damagePerStack?: number | null;
-	windows: Window[];
+	windows: LaneWindow[];
 	useList: BrewUse[];
 	bankTimeline: Array<[number, number]>;
 }
@@ -699,7 +717,7 @@ export interface DebuffSummary {
 	intermissionSec: number;
 	/** The primary target's own gaps, longest one excluded: what the timeline plots and the ledger lists. */
 	drops: Array<{ at: number; seconds: number }>;
-	windows: Window[];
+	windows: LaneWindow[];
 	/** The primary target's windows, summed as `engagedMs`. The chart's out-of-reach track is their complement. */
 	engagedSegments: Array<[number, number]>;
 	/**
@@ -930,7 +948,7 @@ export interface EnergizingBrewAudit {
 		faults: string[];
 		link: string;
 	}>;
-	windows: Window[];
+	windows: LaneWindow[];
 }
 
 /** Time at the energy cap over one stretch of the pull, and what it cost. */
@@ -1156,7 +1174,7 @@ export interface SefTargetLane {
 	 * Stretches a spirit was demonstrably on this enemy. Empty is a real answer — the player engaged it
 	 * and no spirit ever went there — so the lane is still drawn rather than dropped.
 	 */
-	windows: Window[];
+	windows: LaneWindow[];
 	heldMs: number;
 	heldPct: number;
 	/**
@@ -1217,7 +1235,7 @@ export interface SefAudit {
 		link: string;
 	}>;
 	/** Stretches with at least one spirit out, read off the aura rather than measured from a press. */
-	windows: Window[];
+	windows: LaneWindow[];
 	uptimeMs: number;
 	uptimePct: number;
 	/** Distinct pet actors the spirits used. Three exist; at most two are out at once. */
