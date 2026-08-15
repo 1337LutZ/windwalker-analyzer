@@ -21,34 +21,41 @@ export default function FistsOfFury({ analysis }: { analysis: Analysis }) {
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			channel.castList.map((c, i) => {
-				const bad = c.faults.length > 0;
-				return {
-					key: `${c.t}-${i}`,
-					band: bad ? ('warn' as const) : undefined,
-					cells: {
-						at: <LogLink href={c.link}>{formatClock(c.t)}</LogLink>,
-						channel: <b className="font-semibold text-ink-2">{formatSeconds(c.channelMs)}</b>,
-						brew: (
-							<b className="font-semibold text-ink-2">
-								{c.brewUp ? t('fistsOfFury.cells.yes') : t('fistsOfFury.cells.no')}
-							</b>
-						),
-						rune: (
-							<span className={bad && c.procRemainingMs !== null ? 'text-brew' : undefined}>
-								{c.procRemainingMs === null ? '—' : formatSeconds(c.procRemainingMs)}
-							</span>
-						),
-						// The fault text is the engine's, not the locale's: it names the spell and the number
-						// that tripped the check, so it is data about this pull rather than copy about the spec.
-						verdict: (
-							<span className={bad ? 'text-miss' : 'text-ink-2'}>
-								{bad ? c.faults.join('; ') : t('fistsOfFury.cells.ok')}
-							</span>
-						),
-					},
-				};
-			}),
+			// The clock, and stated here rather than inherited from the engine's array. Not faults first,
+			// which is the ordering this table keeps being asked for: a misplaced channel is already
+			// banded, the sentence above counts them and the miss ledger lists them by kind, so ranking
+			// here would spend the one thing the table uniquely carries — the channels in sequence, which
+			// is what makes a run of three bad placements visible as a run rather than as three rows.
+			[...channel.castList]
+				.sort((a, b) => a.t - b.t)
+				.map((c, i) => {
+					const bad = c.faults.length > 0;
+					return {
+						key: `${c.t}-${i}`,
+						band: bad ? ('warn' as const) : undefined,
+						cells: {
+							at: <LogLink href={c.link}>{formatClock(c.t)}</LogLink>,
+							channel: <b className="font-semibold text-ink-2">{formatSeconds(c.channelMs)}</b>,
+							brew: (
+								<b className="font-semibold text-ink-2">
+									{c.brewUp ? t('fistsOfFury.cells.yes') : t('fistsOfFury.cells.no')}
+								</b>
+							),
+							rune: (
+								<span className={bad && c.procRemainingMs !== null ? 'text-brew' : undefined}>
+									{c.procRemainingMs === null ? '—' : formatSeconds(c.procRemainingMs)}
+								</span>
+							),
+							// The fault text is the engine's, not the locale's: it names the spell and the number
+							// that tripped the check, so it is data about this pull rather than copy about the spec.
+							verdict: (
+								<span className={bad ? 'text-miss' : 'text-ink-2'}>
+									{bad ? c.faults.join('; ') : t('fistsOfFury.cells.ok')}
+								</span>
+							),
+						},
+					};
+				}),
 		[channel.castList, t],
 	);
 

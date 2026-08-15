@@ -35,30 +35,37 @@ export default function StormEarthAndFire({ analysis }: { analysis: Analysis }) 
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			(sef?.uses ?? []).map((use, i) => ({
-				key: `${use.t}-${i}`,
-				cells: {
-					// A spirit placed before the pull has no clock inside it. Printing 0:00 would say it was
-					// sent at the pull, which is a different claim from "it was already out"; the row says the
-					// latter in words instead of stamping a time the log never gave.
-					at: use.prePull === true ? t('sef.prePull.at') : formatClock(use.t),
-					// The enemy the press aimed at. The log names it by id and the report's actor list is the
-					// only thing that can turn that into a name; an id it does not answer for is left unnamed
-					// rather than labelled with a neighbouring add's name.
-					//
-					// Three states, and the middle one is why this is not a plain name. A pre-pull placement's
-					// press is outside the fight window, so its enemy is read from the spirit's own first
-					// swings instead — which is evidence of where it *stood* rather than where it was *sent*,
-					// a weaker claim in a column headed "sent to", so the cell says which one it is. A spirit
-					// that never swung leaves nothing to read at all and says so.
-					target:
-						use.deduced === true
-							? t('sef.prePull.deduced', { target: use.name ?? t('sef.unnamedTarget') })
-							: use.prePull === true
-								? t('sef.prePull.unknown')
-								: (use.name ?? t('sef.unnamedTarget')),
-				},
-			})),
+			// The clock, and stated here rather than inherited from the engine's array. A pre-pull
+			// placement carries a `t` of 0 — that is where its evidence starts, not where it was pressed
+			// — so it sorts to the front, which is exactly where it belongs: it was already out when the
+			// pull began. Nothing here is ranked, because nothing here is graded; the rows are placements
+			// in the order they happened, and the lanes below are the same pull drawn on the same clock.
+			[...(sef?.uses ?? [])]
+				.sort((a, b) => a.t - b.t)
+				.map((use, i) => ({
+					key: `${use.t}-${i}`,
+					cells: {
+						// A spirit placed before the pull has no clock inside it. Printing 0:00 would say it was
+						// sent at the pull, which is a different claim from "it was already out"; the row says the
+						// latter in words instead of stamping a time the log never gave.
+						at: use.prePull === true ? t('sef.prePull.at') : formatClock(use.t),
+						// The enemy the press aimed at. The log names it by id and the report's actor list is the
+						// only thing that can turn that into a name; an id it does not answer for is left unnamed
+						// rather than labelled with a neighbouring add's name.
+						//
+						// Three states, and the middle one is why this is not a plain name. A pre-pull placement's
+						// press is outside the fight window, so its enemy is read from the spirit's own first
+						// swings instead — which is evidence of where it *stood* rather than where it was *sent*,
+						// a weaker claim in a column headed "sent to", so the cell says which one it is. A spirit
+						// that never swung leaves nothing to read at all and says so.
+						target:
+							use.deduced === true
+								? t('sef.prePull.deduced', { target: use.name ?? t('sef.unnamedTarget') })
+								: use.prePull === true
+									? t('sef.prePull.unknown')
+									: (use.name ?? t('sef.unnamedTarget')),
+					},
+				})),
 		[sef?.uses, t],
 	);
 

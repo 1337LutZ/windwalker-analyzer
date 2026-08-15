@@ -27,39 +27,48 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			(energizing?.uses ?? []).map((use, i) => {
-				const bad = use.faults.length > 0;
-				return {
-					key: `${use.t}-${i}`,
-					band: bad ? ('warn' as const) : undefined,
-					cells: {
-						at: <LogLink href={use.link}>{formatClock(use.t)}</LogLink>,
-						held: <b className="font-semibold text-ink-2">{formatSeconds(use.lengthMs)}</b>,
-						under: (
-							<span className={bad ? 'text-brew' : 'text-ink-2'}>{use.haste ?? t('energizingBrew.cells.none')}</span>
-						),
-						// The channels are the Fists of Fury section's business and are not faulted twice; this
-						// column only says where to look.
-						channels: <span className="text-ink-2">{use.channels === 0 ? '—' : use.channels}</span>,
-						// The loss this button exists to avoid: energy poured into a bar that was already full,
-						// at the brew's own rate plus the regen underneath it. Zero is the good outcome and is
-						// left quiet; a dash means the pull carried no readings, which is not the same as none.
-						wasted:
-							use.wasted === null ? (
-								<span className="text-muted">{t('energizingBrew.cells.noReadings')}</span>
-							) : (
-								<b className={`font-semibold ${use.wasted > 0 ? 'text-miss' : 'text-ink-2'}`}>{use.wasted}</b>
+			// The clock, and stated here rather than inherited from the engine's array — the table sits
+			// directly under a track drawn on the same timeline, and a row order that disagreed with the
+			// chart above it would make the two read as two pulls.
+			//
+			// Deliberately not faulted-first. The faulted presses are already banded, the summary above
+			// counts them, and the miss ledger lists them again; what only this table can give is the
+			// presses in the order they were made.
+			[...(energizing?.uses ?? [])]
+				.sort((a, b) => a.t - b.t)
+				.map((use, i) => {
+					const bad = use.faults.length > 0;
+					return {
+						key: `${use.t}-${i}`,
+						band: bad ? ('warn' as const) : undefined,
+						cells: {
+							at: <LogLink href={use.link}>{formatClock(use.t)}</LogLink>,
+							held: <b className="font-semibold text-ink-2">{formatSeconds(use.lengthMs)}</b>,
+							under: (
+								<span className={bad ? 'text-brew' : 'text-ink-2'}>{use.haste ?? t('energizingBrew.cells.none')}</span>
 							),
-						// The fault text is the engine's, not the locale's: it names the haste cooldown that was
-						// running and which half of the condition failed, so it is data about this pull.
-						verdict: (
-							<span className={bad ? 'text-miss' : 'text-ink-2'}>
-								{bad ? use.faults.join('; ') : t('energizingBrew.cells.ok')}
-							</span>
-						),
-					},
-				};
-			}),
+							// The channels are the Fists of Fury section's business and are not faulted twice; this
+							// column only says where to look.
+							channels: <span className="text-ink-2">{use.channels === 0 ? '—' : use.channels}</span>,
+							// The loss this button exists to avoid: energy poured into a bar that was already full,
+							// at the brew's own rate plus the regen underneath it. Zero is the good outcome and is
+							// left quiet; a dash means the pull carried no readings, which is not the same as none.
+							wasted:
+								use.wasted === null ? (
+									<span className="text-muted">{t('energizingBrew.cells.noReadings')}</span>
+								) : (
+									<b className={`font-semibold ${use.wasted > 0 ? 'text-miss' : 'text-ink-2'}`}>{use.wasted}</b>
+								),
+							// The fault text is the engine's, not the locale's: it names the haste cooldown that was
+							// running and which half of the condition failed, so it is data about this pull.
+							verdict: (
+								<span className={bad ? 'text-miss' : 'text-ink-2'}>
+									{bad ? use.faults.join('; ') : t('energizingBrew.cells.ok')}
+								</span>
+							),
+						},
+					};
+				}),
 		[energizing, t],
 	);
 

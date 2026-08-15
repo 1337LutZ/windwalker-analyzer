@@ -30,19 +30,25 @@ export default function Xuen({ analysis }: { analysis: Analysis }) {
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			(xuen?.uses ?? []).map((use, i) => ({
-				key: `${use.t}-${i}`,
-				cells: {
-					at: formatClock(use.t),
-					window: formatSeconds(use.windowMs),
-					...(hasDamage
-						? {
-								damage: <b className="font-semibold text-ink">{formatCompact(use.damage)}</b>,
-								hits: formatInteger(use.hits),
-							}
-						: {}),
-				},
-			})),
+			// The clock, and stated here rather than inherited from the engine's array. There is nothing
+			// to rank: the section offers no per-use verdict, because pressing it as soon as it is ready
+			// is the entire standard — so the only order these rows can carry is the one the summons
+			// happened in, and this table is what guarantees it rather than what happens to receive it.
+			[...(xuen?.uses ?? [])]
+				.sort((a, b) => a.t - b.t)
+				.map((use, i) => ({
+					key: `${use.t}-${i}`,
+					cells: {
+						at: formatClock(use.t),
+						window: formatSeconds(use.windowMs),
+						...(hasDamage
+							? {
+									damage: <b className="font-semibold text-ink">{formatCompact(use.damage)}</b>,
+									hits: formatInteger(use.hits),
+								}
+							: {}),
+					},
+				})),
 		[xuen?.uses, hasDamage],
 	);
 

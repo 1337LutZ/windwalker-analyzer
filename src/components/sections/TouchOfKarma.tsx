@@ -45,48 +45,57 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 
 	const rows = useMemo<GridRow[]>(
 		() =>
-			karma.uses.map((use, i) => ({
-				key: `${use.t}-${i}`,
-				// Both ends of the table are marked, and only the two that are facts rather than opinions.
-				// A use that redirected nothing is the fault this section exists to show. A use that drained
-				// its pool is the opposite and is the only row here that cannot be faulted — it returned
-				// everything it was worth, which is measured rather than judged against a threshold.
-				// Everything between them is unbanded on purpose: how much a Karma returns is mostly what
-				// the fight was doing to the player, and a middling row is not a middling decision.
-				band: use.reflected === 0 ? ('warn' as const) : use.exhausted ? ('ok' as const) : undefined,
-				cells: {
-					at: formatClock(use.t),
-					reflected: (
-						<b className={`font-semibold ${use.reflected === 0 ? 'text-miss' : 'text-ink'}`}>
-							{formatCompact(use.reflected)}
-						</b>
-					),
-					// Only when a ceiling is known. A dash would imply a number that could not be computed;
-					// the column simply is not there on a pull where no use drained its pool.
-					//
-					// A use that drained one is marked rather than left to be inferred from a hundred: it is
-					// the one row in the table that cannot be faulted — it returned everything it was worth —
-					// and that is the actionable half of the section for a reader skimming it.
-					...(use.capPct === null
-						? {}
-						: {
-								capPct: (
-									<span className={use.exhausted ? 'text-kick' : 'text-ink-2'}>
-										{formatPercentValue(use.capPct)}
-										{use.exhausted ? ` ${t('karma.cells.capped')}` : ''}
-									</span>
-								),
-							}),
-					hits: formatInteger(use.hits),
-					// Neutral weight on purpose: an overlap is a fact about the pull, not a fault and not
-					// an achievement, so it is neither banded nor coloured.
-					...(withFortifying === 0
-						? {}
-						: {
-								fortifying: <span className="text-ink-2">{use.fortifyingBrew ? t('karma.cells.yes') : '—'}</span>,
-							}),
-				},
-			})),
+			// The clock, and stated here rather than inherited. The engine builds these from the press
+			// times so they already arrive in order, but a table of moments must not rest on that: sorting
+			// is what stops a later change to how the uses are assembled quietly reordering the pull.
+			//
+			// Deliberately not ranked by what each press returned, which is the one alternative that
+			// suggests itself. How much a Karma redirects is mostly what the fight was doing to the
+			// player, so a table ordered by it would read as a league table of decisions it cannot judge.
+			[...karma.uses]
+				.sort((a, b) => a.t - b.t)
+				.map((use, i) => ({
+					key: `${use.t}-${i}`,
+					// Both ends of the table are marked, and only the two that are facts rather than opinions.
+					// A use that redirected nothing is the fault this section exists to show. A use that drained
+					// its pool is the opposite and is the only row here that cannot be faulted — it returned
+					// everything it was worth, which is measured rather than judged against a threshold.
+					// Everything between them is unbanded on purpose: how much a Karma returns is mostly what
+					// the fight was doing to the player, and a middling row is not a middling decision.
+					band: use.reflected === 0 ? ('warn' as const) : use.exhausted ? ('ok' as const) : undefined,
+					cells: {
+						at: formatClock(use.t),
+						reflected: (
+							<b className={`font-semibold ${use.reflected === 0 ? 'text-miss' : 'text-ink'}`}>
+								{formatCompact(use.reflected)}
+							</b>
+						),
+						// Only when a ceiling is known. A dash would imply a number that could not be computed;
+						// the column simply is not there on a pull where no use drained its pool.
+						//
+						// A use that drained one is marked rather than left to be inferred from a hundred: it is
+						// the one row in the table that cannot be faulted — it returned everything it was worth —
+						// and that is the actionable half of the section for a reader skimming it.
+						...(use.capPct === null
+							? {}
+							: {
+									capPct: (
+										<span className={use.exhausted ? 'text-kick' : 'text-ink-2'}>
+											{formatPercentValue(use.capPct)}
+											{use.exhausted ? ` ${t('karma.cells.capped')}` : ''}
+										</span>
+									),
+								}),
+						hits: formatInteger(use.hits),
+						// Neutral weight on purpose: an overlap is a fact about the pull, not a fault and not
+						// an achievement, so it is neither banded nor coloured.
+						...(withFortifying === 0
+							? {}
+							: {
+									fortifying: <span className="text-ink-2">{use.fortifyingBrew ? t('karma.cells.yes') : '—'}</span>,
+								}),
+					},
+				})),
 		[karma.uses, withFortifying, t],
 	);
 

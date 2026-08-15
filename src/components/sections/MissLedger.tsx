@@ -21,12 +21,21 @@ export default function MissLedger({ analysis }: { analysis: Analysis }) {
 	// question a reader actually has is "which mistake, and how often".
 	const groups = useMemo(() => {
 		const byKind = new Map<string, Miss[]>();
-		for (const m of analysis.misses) {
+		// The clock before the grouping, so the run of links inside a row reads left to right as the
+		// fight did. The engine already hands the ledger over sorted by `at`, and that is precisely why
+		// it is sorted again here: the ledger is assembled by concatenating a dozen per-fault lists, and
+		// a row of timestamps is the one cell on this page where losing that order is invisible until
+		// somebody reads two of them side by side.
+		for (const m of [...analysis.misses].sort((a, b) => a.at - b.at)) {
 			const list = byKind.get(m.kind);
 			if (list) list.push(m);
 			else byKind.set(m.kind, [m]);
 		}
-		return [...byKind.entries()].sort((a, b) => b[1].length - a[1].length);
+		// Most often first, with ties broken by when each kind first happened. The rows are a ranking and
+		// the timestamps inside them are not, and both halves are deliberate. Without the second clause
+		// two kinds that cost the same number of rows would order on whatever sequence the map happened
+		// to be filled in, which is a detail of the loop above rather than a fact about the pull.
+		return [...byKind.entries()].sort((a, b) => b[1].length - a[1].length || (a[1][0]?.at ?? 0) - (b[1][0]?.at ?? 0));
 	}, [analysis.misses]);
 
 	const rows = useMemo<GridRow[]>(
