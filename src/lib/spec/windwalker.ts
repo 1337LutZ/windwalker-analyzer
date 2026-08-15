@@ -863,10 +863,22 @@ export const LATE_MS = 3000;
  * recent cast before them, so a wide bound cannot steal damage from a neighbouring use, while a
  * tight one loses damage outright.
  *
- * The *cap* on what it redirects is a share of maximum health and *cannot* be measured from these
- * logs: MoP Classic reports carry no `combatantInfo` and no `maxHitPoints` on any event — checked
- * across damage-taken, healing and resource events, on an anonymous report and an ordinary one. So
- * the report says what each use returned and never claims what it could have.
+ * The *cap* on what it redirects is a share of maximum health, and the report still does not claim
+ * it — but not for the reason this comment used to give. It said MoP Classic logs carry no
+ * `combatantInfo` and no `maxHitPoints`, and both halves are false: `combatantinfo` is on every one
+ * of the reference pulls and is what `analysis/gear.ts` already reads, and `maxHitPoints` rides on
+ * roughly 4,700 events per pull beside `classResources`.
+ *
+ * The real obstacle is that for a *player* both health fields are a percentage — `maxHitPoints` is
+ * 100 on all 1,902 player-describing events of one pull, while NPCs in the same report carry
+ * absolute values. So a health pool has to be derived from absolute damage against a bar that moves
+ * in whole percent, and measured that way it is only good to about ±10%: dividing out Rallying Cry
+ * and Fortifying Brew still leaves non-overlapping bands within one fight, and no single value is
+ * consistent with all of them.
+ *
+ * A ±10% ceiling would not be harmless here. One Karma use on the Garrosh pull redirected 845,405
+ * against an estimated pool of ~790,000 — `capPct` below would print 107% of a ceiling the log never
+ * stated. So the report says what each use returned and never claims what it could have.
  */
 export const KARMA_WINDOW_MS = 20000;
 

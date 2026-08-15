@@ -14,10 +14,12 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * cast table.
  *
  * What it *could* have returned is deliberately absent. The redirect is capped at a share of maximum
- * health, and MoP Classic logs carry neither `combatantInfo` nor `maxHitPoints` on any event — I
- * checked damage-taken, healing and resource events on both an anonymous and an ordinary report.
- * Rather than print a ceiling derived from a guess at someone's health pool, the section reports
- * what each use actually returned and leaves the reader to judge the rest.
+ * health, and that share cannot be pinned down from these logs — not because the fields are missing,
+ * which is what this comment used to claim and is wrong, but because a player's `maxHitPoints` is
+ * reported as 100. Deriving the pool from absolute damage against a percentage bar lands within
+ * about ±10%, and one use on the reference pull redirected more than the derived pool. Rather than
+ * print a ceiling that can exceed itself, the section reports what each use actually returned and
+ * leaves the reader to judge the rest — see `KARMA_WINDOW_MS` in the engine for the measurements.
  *
  * The judgement it *can* support is the one that matters anyway: a Karma pressed into a quiet
  * stretch returns almost nothing, and the per-use table shows that directly.
