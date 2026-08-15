@@ -899,6 +899,25 @@ function chiBrewAudit(
 	let timer: number | null = null;
 	let cappedMs = 0;
 
+	// The same walk, recorded as it goes, so the chart draws the counter this audit reasoned about
+	// rather than a second reconstruction of it that could disagree with the number printed beside it.
+	const points: Array<[number, number]> = [[0, CHI_BREW_CHARGES]];
+	const cappedWindows: Window[] = [];
+	const mark = (at: number): void => {
+		const last = points[points.length - 1];
+		// One point per *change*: a counter that holds two for a minute is one step, not a hundred.
+		if (last !== undefined && last[1] === charges) return;
+		points.push([at, charges]);
+	};
+	const closeCap = (at: number): void => {
+		if (fullSince === null) return;
+		cappedMs += Math.max(0, at - fullSince);
+		// A window of no width is not a stretch at the ceiling — it is the instant a charge came back
+		// and was spent, which is the opposite of the fault being drawn.
+		if (at > fullSince) cappedWindows.push({ start: fullSince, end: at });
+		fullSince = null;
+	};
+
 	const advance = (to: number): void => {
 		while (timer !== null && timer <= to) {
 			// The moment this charge actually landed, which is when the ceiling starts being wasted — not
@@ -908,26 +927,28 @@ function chiBrewAudit(
 			const landed = timer;
 			charges += 1;
 			timer = charges < CHI_BREW_CHARGES ? landed + CHI_BREW_RECHARGE_MS : null;
+			mark(landed);
 			if (charges === CHI_BREW_CHARGES) fullSince = landed;
 		}
 	};
 
 	for (const at of [...casts].sort((a, b) => a - b)) {
 		advance(at);
-		if (charges === CHI_BREW_CHARGES && fullSince !== null) {
-			cappedMs += Math.max(0, at - fullSince);
-			fullSince = null;
-		}
+		if (charges === CHI_BREW_CHARGES) closeCap(at);
 		if (charges > 0) {
 			charges -= 1;
 			if (timer === null) timer = at + CHI_BREW_RECHARGE_MS;
+			mark(at);
 		}
 	}
 	advance(durationMs);
-	if (charges === CHI_BREW_CHARGES && fullSince !== null) cappedMs += Math.max(0, durationMs - fullSince);
+	if (charges === CHI_BREW_CHARGES) closeCap(durationMs);
 
 	return {
 		casts: casts.length,
+		charges: points,
+		cappedWindows,
+		maxCharges: CHI_BREW_CHARGES,
 		chiGained: gained,
 		chiWasted: wasted,
 		cappedMs: Math.round(cappedMs),

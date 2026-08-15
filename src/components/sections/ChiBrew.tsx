@@ -1,5 +1,5 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatInteger, formatPercentValue, formatSeconds } from '~/lib/format';
+import { formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
@@ -72,7 +72,7 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 				<StatTiles>
 					<StatTile value={formatInteger(brew.casts)} label={t('chiBrew.kpi.uses')} />
 					<StatTile value={formatInteger(netChi)} label={t('chiBrew.kpi.chi')} />
-					<StatTile value={formatPercentValue(brew.cappedPct)} label={t('chiBrew.kpi.capped')} />
+					<StatTile value={formatSeconds(brew.cappedMs)} label={t('chiBrew.kpi.capped')} />
 				</StatTiles>
 			</div>
 

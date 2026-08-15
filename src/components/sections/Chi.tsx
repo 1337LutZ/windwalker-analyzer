@@ -4,8 +4,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
-import ResourceTrack from '../charts/ResourceTrack';
-import ScrollableTrack from '../charts/ScrollableTrack';
+import ResourceChart from '../charts/ResourceChart';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 
 /**
@@ -81,20 +80,19 @@ export default function Chi({ analysis }: { analysis: Analysis }) {
 
 			{/* The same component the timeline draws chi with, at the same scale and in the same amber,
 			    so the row up there and the chart down here are recognisably one bar rather than two
-			    readings of it. It marks each overflow itself, which is why no annotation is passed. */}
-			<figure className="m-0 mt-5 flex flex-col gap-2">
-				<ScrollableTrack durationMs={analysis.durationMs}>
-					<ResourceTrack
-						curve={chi}
-						durationMs={analysis.durationMs}
-						mode="steps"
-						stroke="var(--color-brew)"
-						fill="color-mix(in oklch, var(--color-brew) 18%, transparent)"
-						label={t('chi.chartLabel', { max: chi.max, wasted: total })}
-					/>
-				</ScrollableTrack>
-				<figcaption className="text-sm text-muted">{t('chi.caption')}</figcaption>
-			</figure>
+			    readings of it. It marks each overflow itself, which is why no band is passed — only the
+			    line of the key that says what those marks are, and only when the pull has any. */}
+			<div className="mt-5">
+				<ResourceChart
+					curve={chi}
+					durationMs={analysis.durationMs}
+					mode="steps"
+					tone="brew"
+					legend={t('chi.key.bar')}
+					wastedLegend={t('chi.key.wasted')}
+					label={t('chi.chartLabel', { max: chi.max, wasted: total })}
+				/>
+			</div>
 
 			<div className="mt-5">
 				{total === 0 ? (

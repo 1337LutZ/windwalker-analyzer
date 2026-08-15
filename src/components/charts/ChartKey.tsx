@@ -1,24 +1,26 @@
 // One entry in a chart's legend: a swatch and what that colour means.
 //
-// The swatch classes are written out here rather than passed in, because Tailwind only ships a class
-// it can see spelled in full — and because a legend is the only thing standing between a reader and
-// a chart whose colours are its verdict.
+// The swatch classes come from `./tones`, which is where the marks themselves get their colours too.
+// They used to be written out here instead, and that is exactly how a legend fails: a chart's key is
+// the only thing standing between a reader and a chart whose colours are its verdict, and the one
+// mistake it can make is naming a colour the chart did not draw.
+//
+// `band` is the difference between a solid mark and a washed one. A shaded window is painted at a
+// fraction of its token, and the full-strength chip beside it is the same colour by name and a
+// visibly different one on the page — so which of the two a key is describing has to be said, not
+// assumed.
 
-const SWATCH = {
-	brew: 'bg-brew',
-	rune: 'bg-rune',
-	kick: 'bg-kick',
-	miss: 'bg-miss',
-	missSoft: 'bg-miss-soft',
-} as const;
+import { BAND, SWATCH, type BandTone, type Tone } from './tones';
 
-export type KeyTone = keyof typeof SWATCH;
+export default function ChartKey(
+	props: { children: string } & ({ band: true; tone: BandTone } | { band?: false; tone: Tone }),
+) {
+	const swatch = props.band === true ? BAND[props.tone].swatch : SWATCH[props.tone];
 
-export default function ChartKey({ tone, children }: { tone: KeyTone; children: string }) {
 	return (
 		<span className="flex items-center gap-2">
-			<i className={`inline-block h-3 w-3 shrink-0 rounded-sm ${SWATCH[tone]}`} aria-hidden="true" />
-			{children}
+			<i className={`inline-block h-3 w-3 shrink-0 rounded-sm ${swatch}`} aria-hidden="true" />
+			{props.children}
 		</span>
 	);
 }

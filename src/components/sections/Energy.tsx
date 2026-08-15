@@ -4,10 +4,8 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatPercentValue, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
-import ResourceTrack from '../charts/ResourceTrack';
+import ResourceChart from '../charts/ResourceChart';
 import { cappedOf } from '../charts/capped';
-import ScrollableTrack from '../charts/ScrollableTrack';
-import ChartKey from '../charts/ChartKey';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 import LogLink from './LogLink';
 
@@ -93,26 +91,24 @@ export default function Energy({ analysis }: { analysis: Analysis }) {
 			    a report captured before the events query asked for resources can carry the audit's empty
 			    state without carrying a curve to draw. */}
 			{curve === undefined || curve.points.length === 0 ? null : (
-				<figure className="m-0 mt-4.5 flex flex-col gap-2">
-					<ScrollableTrack durationMs={analysis.durationMs}>
-						<ResourceTrack
-							curve={curve}
-							durationMs={analysis.durationMs}
-							stroke="var(--color-kick)"
-							fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
-							shades={[{ windows: cappedOf(curve), className: 'fill-miss/25', label: 'capped' }]}
-							label={t('energy.chartLabel', {
-								max: curve.max,
-								capped: energy.total.cappedMs,
-								duration: analysis.durationMs,
-							})}
-						/>
-					</ScrollableTrack>
-					<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-						<ChartKey tone="kick">{t('energy.chartCaption')}</ChartKey>
-						<ChartKey tone="miss">{t('energy.columns.held')}</ChartKey>
-					</figcaption>
-				</figure>
+				<div className="mt-4.5">
+					<ResourceChart
+						curve={curve}
+						durationMs={analysis.durationMs}
+						tone="kick"
+						legend={t('energy.key.bar')}
+						// The shaded stretches are regeneration that arrived on a full bar and went nowhere, so
+						// the key says what was lost rather than what the bar was doing. It reads close enough
+						// to the table's "full for" column to have borrowed it, and that is precisely why it
+						// has its own string: one describes a colour, the other heads a column of durations.
+						bands={[{ tone: 'miss', windows: cappedOf(curve), legend: t('energy.key.lost') }]}
+						label={t('energy.chartLabel', {
+							max: curve.max,
+							capped: energy.total.cappedMs,
+							duration: analysis.durationMs,
+						})}
+					/>
+				</div>
 			)}
 
 			{capped ? (

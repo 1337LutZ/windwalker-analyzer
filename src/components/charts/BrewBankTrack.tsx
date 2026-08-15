@@ -4,10 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { TEB_CAP } from '~/lib/spec/windwalker';
 import type { Analysis, ResourceCurve } from '~/lib/types';
 
-import ChartKey from './ChartKey';
-import ResourceTrack, { type ShadeWindow } from './ResourceTrack';
+import ResourceChart from './ResourceChart';
+import type { ShadeWindow } from './ResourceTrack';
 import { cappedOf } from './capped';
-import ScrollableTrack from './ScrollableTrack';
 
 /**
  * The Tigereye Brew bank across the pull, with every brew marked by what it spent.
@@ -61,34 +60,26 @@ export default function BrewBankTrack({ analysis }: { analysis: Analysis }) {
 	if (curve === null) return null;
 
 	return (
-		<figure className="m-0 flex flex-col gap-2">
-			<ScrollableTrack durationMs={durationMs}>
-				<ResourceTrack
-					curve={curve}
-					durationMs={durationMs}
-					mode="steps"
-					stroke="var(--color-rune)"
-					fill="color-mix(in oklch, var(--color-rune) 18%, transparent)"
-					shades={[
-						// The cap first, so a brew fired to escape it is drawn on top of the stretch it escaped.
-						{ windows: cappedOf(curve), className: 'fill-miss/25', label: 'capped' },
-						{ windows: brews, className: 'fill-brew/20', label: 'brew', textClassName: 'text-brew', upright: true },
-					]}
-					label={t('brew.chartLabel', {
-						duration: durationMs,
-						peak: Math.max(0, ...curve.points.map(([, n]) => n)),
-						cap: curve.max,
-						uses: brew.uses,
-						avg: brew.avgConsumed,
-						capped: brew.wastedAtCap,
-					})}
-				/>
-			</ScrollableTrack>
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone="rune">{t('brew.key.bank')}</ChartKey>
-				<ChartKey tone="brew">{t('brew.key.press')}</ChartKey>
-				<ChartKey tone="miss">{t('brew.key.capped')}</ChartKey>
-			</figcaption>
-		</figure>
+		<ResourceChart
+			curve={curve}
+			durationMs={durationMs}
+			mode="steps"
+			tone="rune"
+			legend={t('brew.key.bank')}
+			bands={[
+				// The cap first, so a brew fired to escape it is drawn on top of the stretch it escaped. The
+				// key reads in the same order for the same reason: it is the order the chart was painted in.
+				{ tone: 'miss', windows: cappedOf(curve), legend: t('brew.key.capped') },
+				{ tone: 'brew', windows: brews, legend: t('brew.key.press'), upright: true },
+			]}
+			label={t('brew.chartLabel', {
+				duration: durationMs,
+				peak: Math.max(0, ...curve.points.map(([, n]) => n)),
+				cap: curve.max,
+				uses: brew.uses,
+				avg: brew.avgConsumed,
+				capped: brew.wastedAtCap,
+			})}
+		/>
 	);
 }

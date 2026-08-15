@@ -3,10 +3,8 @@ import { useTranslation } from 'react-i18next';
 import type { Analysis } from '~/lib/types';
 
 import { fmt } from '../format';
-import ChartKey from './ChartKey';
-import ResourceTrack from './ResourceTrack';
+import ResourceChart from './ResourceChart';
 import { cappedOf } from './capped';
-import ScrollableTrack from './ScrollableTrack';
 
 /**
  * The energy bar across the pull, with every Energizing Brew and every haste cooldown drawn under

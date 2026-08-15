@@ -599,6 +599,16 @@ export interface ChiBrewAudit {
 	chiGained: number;
 	/** Chi it returned into a bar with no room, summed from those events' own `waste`. */
 	chiWasted: number;
+	/**
+	 * The charge counter over the pull, one point per change.
+	 *
+	 * Recorded by the same walk that produces `cappedMs`, not rebuilt from the casts afterwards — a
+	 * chart drawn from a second reconstruction is free to disagree with the figure printed beside it.
+	 */
+	charges: Array<[number, number]>;
+	/** The stretches both charges sat full, for the chart to shade. Zero-width instants are excluded. */
+	cappedWindows: Window[];
+	maxCharges: number;
 	/** Time both charges sat full, which is recharge time that will never be spent. */
 	cappedMs: number;
 	cappedPct: number;
