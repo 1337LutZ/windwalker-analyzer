@@ -494,6 +494,7 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 					data-tip={c.name}
 					data-tip-tone={GROUP_TONE.casts}
 					data-tip-at={fmt(c.t)}
+					data-tip-auto={c.id === MELEE_ID ? '' : undefined}
 					style={{ left, top, height: size }}
 					className="absolute w-[3px] -translate-y-1/2 rounded-[1px] bg-muted"
 				/>
@@ -513,6 +514,9 @@ function castNodesOf(casts: readonly CastMark[], span: number, rowOf: Map<CastMa
 				data-tip={c.name}
 				data-tip-tone={GROUP_TONE.casts}
 				data-tip-at={fmt(c.t)}
+				// Auto-attacks are not pressed, so the tooltip must not say they were. Marked on the mark
+				// rather than decided in the tooltip, which has no business knowing which id is melee.
+				data-tip-auto={c.id === MELEE_ID ? '' : undefined}
 				width={size}
 				height={size}
 				loading="lazy"
@@ -851,7 +855,8 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// A death has a fourth thing to say — what landed the blow — and it is the one mark on the
 				// chart that names another actor's spell rather than one of the player's own.
 				const by = mark.getAttribute('data-tip-by');
-				if (at !== null) rows.push([t('castLog.tip.at'), at]);
+				if (at !== null)
+					rows.push([t(mark.hasAttribute('data-tip-auto') ? 'castLog.tip.swing' : 'castLog.tip.at'), at]);
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
 				if (by !== null) rows.push([t('castLog.tip.by'), by]);

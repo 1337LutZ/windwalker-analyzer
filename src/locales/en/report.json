@@ -387,6 +387,7 @@
     "mergedLane": "{{ability}} · {{aura}}",
     "tip": {
       "at": "Pressed",
+      "swing": "Swung",
       "from": "Up",
       "to": "Down",
       "by": "Killed by"

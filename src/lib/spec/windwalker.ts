@@ -66,6 +66,7 @@ import {
 	primaryTargetID,
 	damageByTarget,
 	r1,
+	RAID_BUFF_NAMES,
 	readRaidBuffs,
 	chiAtCasts,
 	chiWasted,
@@ -795,6 +796,10 @@ const NEEDS_TARGET: ReadonlySet<string> = new Set(['rising-sun-kick', 'chi-wave'
  * which is exactly what marks its damage passive — autoattacks, Tiger Strikes, trinket and enchant
  * procs and external buffs are a readout of gear rather than something to coach. WarcraftLogs' own
  * damage table fills in anything not listed; whatever is still unknown renders as `#id`.
+ *
+ * Raid buffs are deliberately absent: `RAID_BUFF_NAMES` already carries every provider id the buff
+ * section knows, so naming the Monk's own two here would be a second copy of a number that is settled
+ * over there — including the one whose cast and aura ids differ.
  */
 const EXTRA_NAMES: Record<number, string> = {
 	1: 'Melee',
@@ -1035,7 +1040,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// Only ever asked about ids the registry does not model: the primitives take an ability's own
 	// name when they have one. The residual list wins over the damage table, which names by damage
 	// id and so cannot tell a proc from the trinket that fired it.
-	const nameOf = (id: number): string => EXTRA_NAMES[id] ?? tableNames[id] ?? `#${id}`;
+	//
+	// The raid-buff roster sits between them for that same reason and answers a case the damage table
+	// structurally cannot: it names by the id the *caster* presses, and a buff the Monk casts on the
+	// raid does no damage at all — so Legacy of the Emperor and Legacy of the White Tiger reach the
+	// cast timeline as presses that nothing downstream of here could ever have named.
+	const nameOf = (id: number): string => EXTRA_NAMES[id] ?? RAID_BUFF_NAMES.get(id) ?? tableNames[id] ?? `#${id}`;
 
 	const petIDs = new Set(actors.filter((a) => a.petOwner === actor.id).map((a) => a.id));
 	const mine = (id: number | undefined): boolean => id !== undefined && (id === actor.id || petIDs.has(id));

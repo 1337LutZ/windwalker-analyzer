@@ -163,6 +163,22 @@ const EFFECTS: Effect[] = [
 	},
 ];
 
+/**
+ * Every id the roster above can name, and the spell behind it.
+ *
+ * Two of these are the Monk's own presses — Legacy of the Emperor and Legacy of the White Tiger — and
+ * the cast timeline draws presses. A raid buff does no damage, so it never reaches the damage table
+ * the engine's `nameOf` falls back to, and both rows drew as a bare `#115921` until this existed.
+ *
+ * A second *reading* of `EFFECTS` and emphatically not a second copy of it. The ids are settled above,
+ * once, beside the reasoning that settled them — which is what keeps Legacy of the Emperor's two ids
+ * (cast 115921, applied aura 117666, the one mismatch in the roster) from being restated somewhere
+ * they could drift apart. Add a provider up there and it is named everywhere by that alone.
+ */
+export const RAID_BUFF_NAMES: ReadonlyMap<number, string> = new Map(
+	EFFECTS.flatMap((effect) => effect.providers.map((provider): [number, string] => [provider.id, provider.name])),
+);
+
 /** The shortest stretch without a buff worth naming, matching the debuff section's own floor. */
 const GAP_MS = 1000;
 

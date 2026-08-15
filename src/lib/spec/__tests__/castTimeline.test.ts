@@ -203,3 +203,30 @@ describe('the cast timeline', () => {
 		expect(quiet.timeline).toEqual({ casts: [], lanes: [], hiddenTargets: 0, hiddenLanes: [], deaths: [] });
 	});
 });
+
+/**
+ * The two buttons a Monk presses for somebody else.
+ *
+ * They fell through every name the engine has. The spec model has no reason to carry them — a raid
+ * buff is not part of a damage rotation and nothing here scores it — and the damage table cannot
+ * answer either, because it names by damage id and a buff does none. So both drew on the timeline as
+ * a bare `#115921`, which is a press the reader cannot identify at all.
+ *
+ * The names come from the raid-buff roster, which already had to know these ids to report the rows —
+ * including the one id in it that is not the cast: Legacy of the Emperor lands on the raid as 117666
+ * and is pressed as 115921, and the roster carries both under one name. One source, so the timeline
+ * and the buff section can never disagree about what a Monk just pressed.
+ */
+describe('the raid buffs a Monk casts on the raid', () => {
+	const buffed = analyse({
+		...dataset,
+		events: [...events, e(2000, 'cast', 115921), e(3000, 'cast', 116781)],
+	});
+	const named = buffed.timeline?.casts.map((c) => c.name) ?? [];
+
+	it('names them rather than drawing their spell ids', () => {
+		expect(named).toContain('Legacy of the Emperor');
+		expect(named).toContain('Legacy of the White Tiger');
+		expect(named.filter((name) => name.startsWith('#'))).toEqual([]);
+	});
+});

@@ -517,7 +517,7 @@
     },
     {
       "id": 115921,
-      "name": "#115921",
+      "name": "Legacy of the Emperor",
       "count": 1,
       "onGcd": false,
       "gate": "other",
@@ -529,7 +529,7 @@
     },
     {
       "id": 116781,
-      "name": "#116781",
+      "name": "Legacy of the White Tiger",
       "count": 1,
       "onGcd": false,
       "gate": "other",
@@ -1583,13 +1583,13 @@
       {
         "t": 79537,
         "id": 115921,
-        "name": "#115921",
+        "name": "Legacy of the Emperor",
         "onGcd": false
       },
       {
         "t": 80554,
         "id": 116781,
-        "name": "#116781",
+        "name": "Legacy of the White Tiger",
         "onGcd": false
       },
       {
