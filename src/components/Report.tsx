@@ -126,13 +126,13 @@ const SECTIONS: (ReportSection & {
 	// After the pull, before the method: it is the one section about the character rather than the
 	// four minutes, so it reads as a footnote to the analysis rather than as part of it.
 	{ id: 'gear', titleKey: 'gear.title', Component: GearSetup },
-	// Reference, not analysis: it says nothing about this pull and renders the same for every log. It
-	// belongs after everything that grades, because it is where a reader goes once a section above has
-	// told them a number was wrong and they want to know what right looked like.
 	// Directly above the rotation reference, and the pair is the point: this section says what the
 	// priority list wanted at each of your globals, and the one below it is the list itself. A reader
 	// told they passed a button over needs somewhere to go and read what that button was for.
 	{ id: 'priority', titleKey: 'priority.title', Component: PriorityLadder },
+	// Reference, not analysis: it says nothing about this pull and renders the same for every log. It
+	// belongs after everything that grades, because it is where a reader goes once a section above has
+	// told them a number was wrong and they want to know what right looked like.
 	{ id: 'rotation', titleKey: 'rotation.title', Component: Rotation },
 	{ id: 'method', titleKey: 'method.title', Component: Method },
 ];

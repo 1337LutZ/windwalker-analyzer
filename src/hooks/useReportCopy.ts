@@ -32,9 +32,31 @@ export interface ReportCopy {
 	verdict: (section: string, values?: Record<string, unknown>) => string;
 }
 
+/**
+ * One scorecard per analysis, rather than one per section that asks for copy.
+ *
+ * Twenty-five components call this hook with the same `analysis`, and a `useMemo` is per component —
+ * so scoring the pull was being done twenty-five times for one report. `scoreAnalysis` is documented
+ * pure and total, and an `Analysis` is query data never mutated in place, so the object itself is a
+ * sound key. A `WeakMap` means a card is collected along with the analysis it describes, so there is
+ * nothing to evict and no way to hold a report alive after its own query has gone.
+ *
+ * It also makes `card` stable by identity across sections, which the memos keyed on it in
+ * `Takeaways` and `KpiTiles` were already written as though it were.
+ */
+const CARDS = new WeakMap<Analysis, Scorecard>();
+
+function scorecardFor(analysis: Analysis): Scorecard {
+	const known = CARDS.get(analysis);
+	if (known !== undefined) return known;
+	const card = scoreAnalysis(analysis);
+	CARDS.set(analysis, card);
+	return card;
+}
+
 export function useReportCopy(analysis: Analysis): ReportCopy {
 	const { t } = useTranslation('report');
-	const card = useMemo(() => scoreAnalysis(analysis), [analysis]);
+	const card = useMemo(() => scorecardFor(analysis), [analysis]);
 
 	const gradeOf = useCallback(
 		(section: string): CopyGrade => {

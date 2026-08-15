@@ -35,17 +35,26 @@ export const fieldClass =
 export const labelClass = 'block font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted';
 
 /**
- * One option in a pick-one list. A list of these beats a `<select>` here because the choice carries
- * two lines of context — kill or wipe, how long, which class — that a native option row cannot show.
+ * What "picked" and "not picked" look like, shared by all three pick-one controls below.
+ *
+ * They differ in shape — how many lines each holds, whether it fills its row — and agree on colour,
+ * which is the half a reader learns once and then reads everywhere. One palette rather than three
+ * copies of it, because three copies is three places for it to drift apart.
  */
 const selectionPalette = (selected: boolean): string =>
 	selected ? 'border-kick bg-raised text-ink' : 'border-line bg-bg text-ink-2 hover:border-muted hover:bg-raised';
 
+/**
+ * One option in a pick-one list. A list of these beats a `<select>` here because the choice carries
+ * two lines of context — kill or wipe, how long, which class — that a native option row cannot show.
+ */
 export const choiceClass = (selected: boolean): string =>
 	`flex min-h-11 w-full cursor-pointer flex-col items-start justify-center gap-0.5 rounded-sm border px-3 py-2 text-left transition-colors ${selectionPalette(selected)}`;
 
+/** One of a short row of switches, sharing the palette without the stacked two-line shape. */
 export const compactChoiceClass = (selected: boolean): string =>
 	`min-h-11 flex-1 cursor-pointer rounded-sm border px-3 py-2 font-mono text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${selectionPalette(selected)}`;
 
+/** A full-width row holding a single name — the player picker, where the name is the whole choice. */
 export const singleLineChoiceClass = (selected: boolean): string =>
 	`flex min-h-11 w-full cursor-pointer items-center rounded-sm border px-3 py-2 text-left font-mono text-base font-medium transition-colors ${selectionPalette(selected)}`;

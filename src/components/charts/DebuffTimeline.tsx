@@ -222,13 +222,11 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 			gap="wide"
 			caption={
 				<>
-					<span className="flex flex-wrap gap-x-4 gap-y-2">
-						<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
-						<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
-					</span>
-					<span>{t('debuff.chartCaption', { context, target })}</span>
+					<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
+					<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
 				</>
 			}
+			note={t('debuff.chartCaption', { context, target })}
 		>
 			<ApexChart
 				build={build}

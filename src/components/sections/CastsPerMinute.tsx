@@ -22,14 +22,6 @@ const gateLabel = (c: CastRow, t: ReportCopy['t']): string =>
 			: '—';
 
 /**
- * The rate this ability could have run at, in the same units as `cpm` — casts per *active* minute.
- *
- * Only a cooldown gives an ability a ceiling. A chi spender has no rate it should be hitting: it is
- * limited by resources and by what the priority list wanted at that moment, and inventing a target
- * for it would be the same fabricated indictment the Fists of Fury note warns about. Those rows get
- * no bar rather than a made-up one.
- */
-/**
  * Pressed for something other than damage, and so kept out of the rate table.
  *
  * By cast id rather than by a flag on the row, because `CastRow` carries the gate rather than the
@@ -86,6 +78,14 @@ const DEEP_DIVE: Record<number, string> = {
 	107428: 'debuff',
 };
 
+/**
+ * The rate this ability could have run at, in the same units as `cpm` — casts per *active* minute.
+ *
+ * Only a cooldown gives an ability a ceiling. A chi spender has no rate it should be hitting: it is
+ * limited by resources and by what the priority list wanted at that moment, and inventing a target
+ * for it would be the same fabricated indictment the Fists of Fury note warns about. Those rows get
+ * no bar rather than a made-up one.
+ */
 function optimalCpm(c: CastRow, budget: TigerPalmBudget): number | null {
 	// Tiger Palm is a budget, not a ceiling: it earns its global only on a Combo Breaker proc or to
 	// keep Tiger Power up, so its target is the presses that were worth making — below what was
@@ -110,9 +110,18 @@ function optimalCpm(c: CastRow, budget: TigerPalmBudget): number | null {
  * waits, so four fifths and up is "played on cooldown".
  */
 function rateTone(achieved: number): 'kick' | 'brew' | 'miss' {
-	if (achieved > 115) return 'miss';
+	if (achieved > OVERSHOT) return 'miss';
 	return achieved >= 80 ? 'kick' : achieved >= 55 ? 'brew' : 'miss';
 }
+
+/**
+ * Past this, a row is overshooting rather than merely off its target.
+ *
+ * One number, because the bar and the two numeric cells beside it are three views of one verdict.
+ * They were 115 and 130, so a row at 120% drew a red bar next to amber numbers and left the reader
+ * deciding which of the two the report meant.
+ */
+const OVERSHOT = 130;
 
 /**
  * The ability's name, linked to its own section when it has one.
@@ -156,15 +165,24 @@ function nameCell(c: CastRow) {
 function pairTone(achieved: number | null): { found: string; target: string } {
 	if (achieved === null) return { found: 'text-ink', target: 'text-muted' };
 	if (Math.abs(achieved - 100) <= 10) return { found: 'text-kick', target: 'text-kick' };
-	if (achieved < 55 || achieved > 130) return { found: 'text-miss', target: 'text-muted' };
+	if (achieved < 55 || achieved > OVERSHOT) return { found: 'text-miss', target: 'text-muted' };
 	return { found: 'text-brew', target: 'text-muted' };
 }
 
-/** What was pressed against what should have been, as a percentage, or null when there is no target. */
+/**
+ * What was pressed against what should have been, as a percentage, or null when there is no target.
+ *
+ * A target of zero is not "on target". It is Tiger Palm on a pull that earned nothing with it — no
+ * Combo Breaker proc, no Tiger Power application, no refresh — so every press was waste. Reading
+ * that as 100% painted the worst row on the table green beside a cell reading `41 / 0`. Anything
+ * pressed against a budget of nothing is unbounded overshoot, which every band below already sends
+ * to `miss`; only a row that was never pressed either is genuinely on its target of zero.
+ */
 function achievedPct(c: CastRow, budget: TigerPalmBudget): number | null {
 	const optimal = optimalCpm(c, budget);
 	if (optimal === null) return null;
-	return optimal > 0 ? (c.cpm / optimal) * 100 : 100;
+	if (optimal > 0) return (c.cpm / optimal) * 100;
+	return c.cpm > 0 ? Number.POSITIVE_INFINITY : 100;
 }
 
 /**
@@ -211,14 +229,18 @@ function barCell(c: CastRow, budget: TigerPalmBudget, t: ReportCopy['t']) {
 	if (optimal === null) {
 		return <span className="text-sm text-muted">{t('casts.noCeiling')}</span>;
 	}
-	// Not `share`, which clamps to 100 — overshooting has to stay visible as overshooting.
-	const achieved = optimal > 0 ? (c.cpm / optimal) * 100 : 100;
+	// Not `share`, which clamps to 100 — overshooting has to stay visible as overshooting. Read
+	// through `achievedPct` so the bar, the percentage beside it and the two numeric cells cannot
+	// disagree about what this row achieved.
+	const achieved = achievedPct(c, budget) ?? 100;
 	return (
 		<span className="flex items-center gap-2">
 			<span className="min-w-0 flex-1">
 				<Bar pct={Math.min(achieved, 100)} tone={rateTone(achieved)} />
 			</span>
-			<span className="tabular shrink-0 font-mono text-sm text-muted">{Math.round(achieved)}%</span>
+			<span className="tabular shrink-0 font-mono text-sm text-muted">
+				{Number.isFinite(achieved) ? `${Math.round(achieved)}%` : '—'}
+			</span>
 		</span>
 	);
 }

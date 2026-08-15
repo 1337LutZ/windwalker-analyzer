@@ -13,6 +13,34 @@
 
 import type { TokenSource } from './sessionContext';
 
+// Storage is not guaranteed to exist. `localStorage`/`sessionStorage` throw outright — not return
+// null — when site data is blocked, when the page is in a sandboxed iframe, and when a quota is
+// full. Two of the reads below run inside `SessionProvider`'s mount effect and the writes run inside
+// click handlers, and there is no error boundary in this app: an unguarded throw from either takes
+// the whole island down and leaves a blank page. A browser that will not remember a sign-in should
+// cost the *remembering*, not the app, so every access goes through these two.
+//
+// `lib/settings/storage.ts` guards the same API for the same reason.
+function read(store: () => Storage, key: string): string | null {
+	try {
+		return store().getItem(key);
+	} catch {
+		return null;
+	}
+}
+
+function write(store: () => Storage, key: string, value: string | null): void {
+	try {
+		if (value === null) store().removeItem(key);
+		else store().setItem(key, value);
+	} catch {
+		// Not remembered past this page. Whatever was just decided still holds for this render.
+	}
+}
+
+const session = (): Storage => sessionStorage;
+const local = (): Storage => localStorage;
+
 const VERIFIER_KEY = 'wcl.pkce.verifier';
 const STATE_KEY = 'wcl.pkce.state';
 const TOKEN_KEY = 'wcl.token';
@@ -31,8 +59,8 @@ export interface StoredToken {
 }
 
 export function rememberAuthorization({ verifier, state }: PendingAuthorization): void {
-	sessionStorage.setItem(VERIFIER_KEY, verifier);
-	sessionStorage.setItem(STATE_KEY, state);
+	write(session, VERIFIER_KEY, verifier);
+	write(session, STATE_KEY, state);
 }
 
 /**
@@ -40,27 +68,27 @@ export function rememberAuthorization({ verifier, state }: PendingAuthorization)
  * left behind is one a second callback could be replayed against.
  */
 export function takeAuthorization(): PendingAuthorization | null {
-	const verifier = sessionStorage.getItem(VERIFIER_KEY);
-	const state = sessionStorage.getItem(STATE_KEY);
-	sessionStorage.removeItem(VERIFIER_KEY);
-	sessionStorage.removeItem(STATE_KEY);
+	const verifier = read(session, VERIFIER_KEY);
+	const state = read(session, STATE_KEY);
+	write(session, VERIFIER_KEY, null);
+	write(session, STATE_KEY, null);
 	return verifier !== null && state !== null ? { verifier, state } : null;
 }
 
 export function readToken(): StoredToken | null {
-	const token = sessionStorage.getItem(TOKEN_KEY);
+	const token = read(session, TOKEN_KEY);
 	if (token === null) return null;
 	// Anything that is not the pasted-token marker is a sign-in: the source is a label, and guessing
 	// it wrong must never be the reason a perfectly good token is thrown away on reload.
 	return {
 		token,
-		source: sessionStorage.getItem(SOURCE_KEY) === 'manual' ? 'manual' : 'oauth',
+		source: read(session, SOURCE_KEY) === 'manual' ? 'manual' : 'oauth',
 	};
 }
 
 export function rememberToken({ token, source }: StoredToken): void {
-	sessionStorage.setItem(TOKEN_KEY, token);
-	sessionStorage.setItem(SOURCE_KEY, source);
+	write(session, TOKEN_KEY, token);
+	write(session, SOURCE_KEY, source);
 }
 
 /**
@@ -70,22 +98,22 @@ export function rememberToken({ token, source }: StoredToken): void {
  * pool every visitor's request budget into a single quota.
  */
 export function readClientID(): string | null {
-	const id = localStorage.getItem(CLIENT_ID_KEY);
+	const id = read(local, CLIENT_ID_KEY);
 	return id !== null && id.trim() !== '' ? id.trim() : null;
 }
 
 export function rememberClientID(id: string): void {
-	localStorage.setItem(CLIENT_ID_KEY, id.trim());
+	write(local, CLIENT_ID_KEY, id.trim());
 }
 
 export function forgetClientID(): void {
-	localStorage.removeItem(CLIENT_ID_KEY);
+	write(local, CLIENT_ID_KEY, null);
 }
 
 /** Signing out, and every failure path. One call has to leave nothing behind, or it is not a sign-out. */
 export function clear(): void {
-	sessionStorage.removeItem(VERIFIER_KEY);
-	sessionStorage.removeItem(STATE_KEY);
-	sessionStorage.removeItem(TOKEN_KEY);
-	sessionStorage.removeItem(SOURCE_KEY);
+	write(session, VERIFIER_KEY, null);
+	write(session, STATE_KEY, null);
+	write(session, TOKEN_KEY, null);
+	write(session, SOURCE_KEY, null);
 }

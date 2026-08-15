@@ -45,8 +45,14 @@ export function complementOf(intervals: ReadonlyArray<readonly [number, number]>
 	// Copied into mutable pairs rather than asserted: `engagedSegments` reaches this as a readonly
 	// tuple from the analysis, and `mergeIntervals` builds its own pairs to coalesce into.
 	for (const [start, end] of mergeIntervals(intervals.map(([a, b]): Interval => [a, b]))) {
-		if (start > cursor) gaps.push([cursor, start]);
+		// Clamped, because an input interval may start past the end of the pull — `targetCounts` pads
+		// its last point by a window, and a proc caught on the final global can be stamped past it. The
+		// interior gap used to be pushed with the raw `start`, so the complement ran off the end of a
+		// fight and the two charts that shade it drew a band wider than the timeline it sits in.
+		const from = Math.min(start, durationMs);
+		if (from > cursor) gaps.push([cursor, from]);
 		cursor = Math.max(cursor, end);
+		if (cursor >= durationMs) return gaps;
 	}
 	if (cursor < durationMs) gaps.push([cursor, durationMs]);
 	return gaps;

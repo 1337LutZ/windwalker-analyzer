@@ -32,3 +32,10 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      # `npm run check` type-checks; it does not build. Astro only resolves the islands, runs the
+      # integrations and prerenders the pages during `astro build`, so a change that broke the build
+      # passed CI and failed after merge, inside the deploy — which is the worst place to find out.
+      # It is the same command the deploy runs, so the two cannot disagree about what compiles.
+      - name: Build
+        run: npm run build

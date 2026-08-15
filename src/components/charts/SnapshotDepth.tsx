@@ -6,6 +6,7 @@ import type { Analysis, ProcSummary, ProcWindow } from '~/lib/types';
 import { formatGap } from '~/lib/format';
 
 import { fmt, r1, sec } from '../format';
+import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
@@ -189,7 +190,13 @@ function buildOvershoot(procs: ProcSummary, theme: ChartTheme, brackets: Map<num
 		// Not `r1`: a miss by 21ms rounds to 0.0s and the tail disappears entirely, which is the one
 		// row the reader most needs to see is a *near* miss rather than an outright one. Three decimals
 		// keeps it as a hairline, which is what a miss by a fiftieth of a second honestly looks like.
-		y: w.missedByMs === null ? 0 : Math.round(w.missedByMs) / 1000,
+		//
+		// Gated on `snapshotAt` for the same reason `narrowlyMissed` is: a proc that *was* caught can
+		// still carry a `missedByMs` from a later brew, and stacking that tail on its bar made the row
+		// read as held-plus-late — a duration nobody spent — under an axis titled "seconds held into
+		// the proc". It also drew in a tone whose key is gated on `narrowlyMissed`, so the tail could
+		// appear with nothing in the legend naming it.
+		y: w.snapshotAt !== null || w.missedByMs === null ? 0 : Math.round(w.missedByMs) / 1000,
 		fillColor: theme.missSoft,
 		meta: {
 			title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
@@ -331,35 +338,39 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 	}
 
 	return (
-		<figure className="m-0 flex flex-col gap-3.5">
+		<ChartFigure
+			gap="wide"
+			// Three colours carrying three verdicts, and nothing else on the chart says which is which.
+			// Naming them in the prose above was enough while one of them was green; it is not now.
+			caption={
+				<>
+					<ChartKey tone="kick">Held into the last global — the whole tail kept</ChartKey>
+					<ChartKey tone="brew">Brewed early, with proc left on the clock</ChartKey>
+					<ChartKey tone="miss">Never snapshotted: the full proc went past</ChartKey>
+					{/* Only when the pull actually has one — a key for an outcome nobody hit sends the reader
+					    hunting the chart for a colour that is not on it. */}
+					{procs.backToBack > 0 ? (
+						<span className="flex items-center gap-2">
+							{/* Stacked, because a bracket side by side with itself is two corner glyphs rather than
+							    a bracket — the shape is the whole point of the key. */}
+							<span aria-hidden="true" className="flex flex-col font-mono text-[10px] leading-[0.85] text-ink-2">
+								<span>┌</span>
+								<span>└</span>
+							</span>
+							Bracketed rows are one back-to-back roll: the second proc landed while the first was still being carried
+						</span>
+					) : null}
+					{procs.narrowlyMissed > 0 ? (
+						<ChartKey tone="missSoft">The tail past a bar: a brew that went out just too late</ChartKey>
+					) : null}
+				</>
+			}
+		>
 			<ApexChart
 				build={build}
 				height={height}
 				label={`How long each of the ${procs.procs} Re-Origination procs ran before Tigereye Brew snapshotted it: ${procs.lastGcd} caught on the last global, ${procs.early} brewed early, ${procs.unsnapshotted} never snapshotted`}
 			/>
-			{/* Three colours carrying three verdicts, and nothing else on the chart says which is which.
-			    Naming them in the prose above was enough while one of them was green; it is not now. */}
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone="kick">Held into the last global — the whole tail kept</ChartKey>
-				<ChartKey tone="brew">Brewed early, with proc left on the clock</ChartKey>
-				<ChartKey tone="miss">Never snapshotted: the full proc went past</ChartKey>
-				{/* Only when the pull actually has one — a key for an outcome nobody hit sends the reader
-				    hunting the chart for a colour that is not on it. */}
-				{procs.backToBack > 0 ? (
-					<span className="flex items-center gap-2">
-						{/* Stacked, because a bracket side by side with itself is two corner glyphs rather than
-						    a bracket — the shape is the whole point of the key. */}
-						<span aria-hidden="true" className="flex flex-col font-mono text-[10px] leading-[0.85] text-ink-2">
-							<span>┌</span>
-							<span>└</span>
-						</span>
-						Bracketed rows are one back-to-back roll: the second proc landed while the first was still being carried
-					</span>
-				) : null}
-				{procs.narrowlyMissed > 0 ? (
-					<ChartKey tone="missSoft">The tail past a bar: a brew that went out just too late</ChartKey>
-				) : null}
-			</figcaption>
-		</figure>
+		</ChartFigure>
 	);
 }

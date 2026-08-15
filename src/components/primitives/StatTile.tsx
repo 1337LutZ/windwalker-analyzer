@@ -3,20 +3,15 @@ import type { Grade } from '~/lib/score';
 import { gradeClass } from './grade';
 
 /**
- * How a graded headline number is coloured.
- *
- * `null` is not a fourth grade — it means this tile has no threshold behind it, or the pull could
- * not answer it, and those must look like an ordinary number rather than a silent pass. DPS is the
- * standing example: there is no target DPS, so colouring it would invent a verdict.
- */
-
-/**
  * One headline number. `suffix` is the denominator half of a figure like `7.4/10` — it is part of
  * the same number, so it lives inside the value rather than being demoted to the label.
  *
  * The colour repeats a judgement the report makes in words further down; it never carries one on its
  * own. Anything it says is also said by the graded sentence in the matching section, so a reader who
- * cannot separate the hues loses nothing.
+ * cannot separate the hues loses nothing. `null` is not a fourth grade — it means this tile has no
+ * threshold behind it, or the pull could not answer it, and `gradeClass` draws both as an ordinary
+ * number rather than a silent pass. DPS is the standing example: there is no target DPS, so
+ * colouring it would invent a verdict.
  */
 export default function StatTile({
 	value,

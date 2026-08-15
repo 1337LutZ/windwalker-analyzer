@@ -40,5 +40,8 @@
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull already loaded — it does not fetch anything from WarcraftLogs again.",
     "save": "Save",
     "reset": "Back to defaults"
+  },
+  "selection": {
+    "label": "Selected pull"
   }
 }

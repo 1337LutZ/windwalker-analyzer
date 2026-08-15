@@ -34,10 +34,24 @@ jobs:
 
       - run: npm ci
 
+      # The same gates the Cloudflare workflow runs, and for the same reason it states: a deploy that
+      # skips them publishes whatever happens to compile. This is a manual fallback deploy, which is
+      # exactly when nobody is watching a PR check.
+      - run: npm run check
+      - run: npm test
+
       # No `static_site_generator: astro` on purpose: that option injects its own site/base, and
       # they are set explicitly below. Two sources of truth for `base` produce a site whose asset
       # URLs 404.
       - uses: actions/configure-pages@v5
+
+      # `src/pages/preview.astro` is a development harness: it renders committed fixtures so charts
+      # and copy can be checked without a token. It has no place on a public site, and removing the
+      # page removes its only import of the fixture JSON, so none of that data is bundled. Both
+      # publishing paths have to do this — a fallback deploy that shipped the harness would put the
+      # three captured logs on the public site that the other path exists to keep off it.
+      - name: Drop the fixture preview harness from the published build
+        run: rm -f src/pages/preview.astro
 
       # A GitHub project site lives under `/<repo>/`. The build defaults to the domain root for
       # Cloudflare, so this path prefix has to be put back for a Pages build specifically.

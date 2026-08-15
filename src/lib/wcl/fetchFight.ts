@@ -153,8 +153,19 @@ async function fetchAllEvents(
 		});
 
 		const next = result.nextPageTimestamp;
-		// A cursor that does not move forward would page forever over the same window.
-		if (next === null || next <= cursor || next > fight.endTime) return events;
+		// `null` is the server saying that was the last page, and is the only clean way out of here.
+		if (next === null) return events;
+		// A cursor that does not move forward would page forever over the same window, and one past the
+		// fight's end is the server pointing outside it. Neither can be walked, and neither means the
+		// stream finished — so this refuses for the same reason the page cap below does: what is in
+		// hand is a prefix of the pull, and analysing a prefix prints CPM and uptime for a fight that
+		// did not happen.
+		if (next <= cursor || next > fight.endTime) {
+			throw new WclError(
+				'server',
+				`WarcraftLogs stopped advancing through the events for fight ${fight.id} after page ${page}. The data would be incomplete, so nothing is analysed.`,
+			);
+		}
 		cursor = next;
 	}
 

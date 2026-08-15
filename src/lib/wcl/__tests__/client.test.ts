@@ -353,15 +353,22 @@ describe('fetchFightDataset', () => {
 		expect(progress.map((p) => p.phase)).toEqual(['report', 'table', 'events', 'events', 'events', 'done']);
 	});
 
-	it('stops when the cursor stops moving, rather than paging forever', async () => {
+	// A cursor that will not advance cannot be walked, and what is in hand is a *prefix* of the pull —
+	// so this refuses for the same reason the page cap does. Returning the pages already fetched
+	// printed CPM, uptime and lost casts for a fight that stopped early, with nothing recording that
+	// it had.
+	it('refuses rather than analysing a prefix when the cursor stops moving', async () => {
 		const sent = stubApi([page([{ timestamp: 1000, type: 'cast', abilityGameID: 100787 }], 1000)]);
-		const dataset = await fetchFightDataset(new WclClient({ token: TOKEN }), {
-			code: 'abc123',
-			fightID: 1,
-			playerName: 'Bigdogmo',
-		});
 
-		expect(dataset.events).toHaveLength(1);
+		await expect(
+			fetchFightDataset(new WclClient({ token: TOKEN }), {
+				code: 'abc123',
+				fightID: 1,
+				playerName: 'Bigdogmo',
+			}),
+		).rejects.toThrow(/stopped advancing/);
+
+		// And it stops asking, which is the other half of the guard: it must not page forever.
 		expect(sent.filter((s) => s.query.includes('query FightEvents'))).toHaveLength(1);
 	});
 

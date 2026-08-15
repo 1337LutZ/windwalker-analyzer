@@ -35,10 +35,6 @@ const LABEL: Record<TargetModeChoice, string> = {
 	multi: 'targets.multi',
 };
 
-/**
- * One of the three, sharing the picker's palette without sharing `choiceClass` — that one stacks two
- * lines and fills its row, which is a list of pulls rather than a three-way switch.
- */
 export default function TargetModeControl({ targets, value, onChange }: Props) {
 	const { t } = useTranslation('report');
 	const { detected, overridden } = resolveTargetMode(targets?.detected, value);

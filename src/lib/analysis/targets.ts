@@ -85,7 +85,12 @@ export function intervalsAtLeast(points: readonly TargetCountPoint[], min: numbe
 	for (const [t, count] of points) {
 		if (count >= min && open === null) open = t;
 		else if (count < min && open !== null) {
-			if (t > open) out.push([open, t]);
+			// Clamped to the pull, not just the still-open stretch. `targetCounts` closes the series with
+			// a `[lastHit + windowMs, 0]` point, which is up to a window past the end of the fight — so a
+			// stretch closed by that point used to be emitted unclamped, and `contactMs` came out longer
+			// than the pull it was measured over.
+			const close = Math.min(t, endMs);
+			if (close > open) out.push([open, close]);
 			open = null;
 		}
 	}

@@ -1617,11 +1617,18 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// snapshotted a proc of the *same* stat, the player is already holding exactly those stats and
 	// re-brewing would capture nothing new — that is redundant, not a miss. A different stat is a real
 	// loss, because the running brew is holding the wrong conversion.
+	// Which window a drain opened is already known — `pairDrainsToWindows` decided it — so it is read
+	// back rather than re-derived by comparing timestamps. `snapshotAt` is the bank-drain stamp and
+	// lands ~1 ms *before* the brew's own `applybuff`, so `snapshotAt >= brew.start` never matches the
+	// window that drain actually opened. That is the same trap the back-to-back walk below documents;
+	// this loop was falling into it.
+	const windowByDrain = new Map(uses.map((u) => [u.t, u.window]));
+
 	for (const w of procs) {
 		if (w.snapshotAt !== null || !w.brewAlreadyUp) continue;
 		const brew = brewWindows.find((b) => b.start < w.end && b.end > w.start);
 		if (!brew) continue;
-		const heldBy = procs.find((p) => p.snapshotAt !== null && p.snapshotAt >= brew.start && p.snapshotAt <= brew.end);
+		const heldBy = procs.find((p) => p.snapshotAt !== null && windowByDrain.get(p.snapshotAt) === brew);
 		w.heldStat = heldBy?.stat ?? null;
 		w.redundant = !!heldBy && heldBy.stat === w.stat;
 	}
@@ -2135,8 +2142,17 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	}
 	// The single longest gap is treated as the intermission. A heuristic: on a fight with two of them
 	// it under-reports by one, which is why every window is kept in the output.
-	const longestGap = Math.max(0, ...allGaps.map((g) => g.ms));
-	const drops = allGaps.filter((g) => g.ms > DROP_MS && g.ms !== longestGap);
+	//
+	// Excluded by position rather than by value. Two gaps of identical length are not far-fetched —
+	// these are quantised to the debuff's own apply and expire stamps — and `ms !== longestGap` threw
+	// away *both* of them, forgiving a real drop because an unrelated one happened to be the same
+	// length. One gap is the intermission, so exactly one is dropped.
+	let longestAt = -1;
+	allGaps.forEach((g, i) => {
+		if (longestAt === -1 || g.ms > (allGaps[longestAt]?.ms ?? -1)) longestAt = i;
+	});
+	const longestGap = longestAt === -1 ? 0 : (allGaps[longestAt]?.ms ?? 0);
+	const drops = allGaps.filter((g, i) => g.ms > DROP_MS && i !== longestAt);
 
 	// ---------------------------------------------------------- Combo Breaker
 	const comboBreaker = COMBO_BREAKERS.map((aura) => {

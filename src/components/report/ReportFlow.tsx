@@ -181,13 +181,19 @@ export default function ReportFlow() {
 			signedIn: token !== null,
 			code,
 			fightID,
-			playerName,
+			// The name the *link* asked for, not the one the picker settled on. `playerName` has already
+			// fallen back to the first Windwalker in the pull, so handing that over asks the roster
+			// whether it contains someone it just supplied — a guard that can never fail. A link naming
+			// someone who was not in this pull has to stop here and leave the form for the reader,
+			// rather than quietly spending a full event fetch on a different player and then rewriting
+			// the URL to name them.
+			playerName: fromUrl.player ?? playerName,
 			roster: windwalkers.map((player) => player.name),
 		});
 		if (!ready || code === null || fightID === null || playerName === null) return;
 		autoRan.current = true;
 		setRequest({ code, fightID, playerName });
-	}, [fromUrl.code, token, code, fightID, playerName, windwalkers]);
+	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, windwalkers]);
 
 	const signedIn = token !== null;
 	const loaded = fights.data !== undefined;

@@ -7,6 +7,7 @@ import type { Analysis, SnapshotGrade } from '~/lib/types';
 import { formatGap } from '~/lib/format';
 
 import { fmt, sec } from '../format';
+import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
@@ -155,7 +156,13 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 			rows.push(['proc left', `${sec(w.remainingMs ?? 0)}s`]);
 			if (w.snapshotStacks !== null) rows.push(['stacks spent', `${w.snapshotStacks}/10`]);
 		}
-		rows.push(['verdict', w.missedByMs !== null ? 'read, but brewed too late' : GRADE_VERDICT[w.grade]]);
+		// The near-miss verdict belongs only to a proc that was *never* snapshotted — the same guard the
+		// engine's own `narrowlyMissed` counter uses. `missedByMs` is set independently of `snapshotAt`,
+		// and Tigereye Brew has no cooldown, so a proc caught mid-window and followed by a second brew
+		// just after it expired carries both: the tooltip printed "brewed at 2:31 · 8.4s in" and then
+		// called it "brewed too late" in the same breath.
+		const nearMiss = w.snapshotAt === null && w.missedByMs !== null;
+		rows.push(['verdict', nearMiss ? 'read, but brewed too late' : GRADE_VERDICT[w.grade]]);
 		spans.push(
 			span(
 				track.proc,
@@ -376,7 +383,18 @@ export default function FightTimeline({ analysis }: { analysis: Analysis }) {
 		.map(([key]) => ({ iconId: TRACK_ICON[key], label: names[key] }));
 
 	return (
-		<figure className="m-0 flex flex-col gap-3.5">
+		<ChartFigure
+			gap="wide"
+			// Colour is the verdict, not the track — the row labels already say which mechanic it is.
+			caption={
+				<>
+					<ChartKey tone="brew">{t('timeline.key.brew')}</ChartKey>
+					<ChartKey tone="kick">{t('timeline.key.kick')}</ChartKey>
+					<ChartKey tone="rune">{t('timeline.key.rune')}</ChartKey>
+					<ChartKey tone="miss">{t('timeline.key.miss')}</ChartKey>
+				</>
+			}
+		>
 			<div className="relative">
 				<TrackLabels tracks={tracks} width={narrow ? NARROW_LABEL_PX : LABEL_PX} />
 				<ApexChart
@@ -385,14 +403,7 @@ export default function FightTimeline({ analysis }: { analysis: Analysis }) {
 					label={`Timeline of the ${fmt(analysis.durationMs)} pull: ${analysis.procs.procs} Re-Origination procs, ${analysis.brew.windows.length} Tigereye Brew windows, ${analysis.debuff.windows.length} Rising Sun Kick debuff windows with ${analysis.debuff.drops.length} drops, and ${analysis.channel.casts} Fists of Fury channels`}
 				/>
 			</div>
-			{/* Colour is the verdict, not the track — the row labels already say which mechanic it is. */}
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone="brew">{t('timeline.key.brew')}</ChartKey>
-				<ChartKey tone="kick">{t('timeline.key.kick')}</ChartKey>
-				<ChartKey tone="rune">{t('timeline.key.rune')}</ChartKey>
-				<ChartKey tone="miss">{t('timeline.key.miss')}</ChartKey>
-			</figcaption>
-		</figure>
+		</ChartFigure>
 	);
 }
 

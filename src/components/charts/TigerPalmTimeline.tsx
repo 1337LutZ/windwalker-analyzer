@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Analysis, FillerAudit } from '~/lib/types';
 
 import { fmt, sec } from '../format';
+import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
@@ -149,7 +150,16 @@ export default function TigerPalmTimeline({ analysis }: { analysis: Analysis }) 
 	}
 
 	return (
-		<figure className="m-0 flex flex-col gap-3.5">
+		<ChartFigure
+			gap="wide"
+			caption={
+				<>
+					<ChartKey tone="rune">{t('tigerPalm.key.proc')}</ChartKey>
+					<ChartKey tone="kick">{t('tigerPalm.key.apply')}</ChartKey>
+					<ChartKey tone="miss">{t('tigerPalm.key.wasted')}</ChartKey>
+				</>
+			}
+		>
 			<ApexChart
 				build={build}
 				height={height}
@@ -161,11 +171,6 @@ export default function TigerPalmTimeline({ analysis }: { analysis: Analysis }) 
 					wasted: filler.wasted,
 				})}
 			/>
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone="rune">{t('tigerPalm.key.proc')}</ChartKey>
-				<ChartKey tone="kick">{t('tigerPalm.key.apply')}</ChartKey>
-				<ChartKey tone="miss">{t('tigerPalm.key.wasted')}</ChartKey>
-			</figcaption>
-		</figure>
+		</ChartFigure>
 	);
 }

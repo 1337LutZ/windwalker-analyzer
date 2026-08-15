@@ -154,12 +154,16 @@ export class WclClient {
 	 * one that describes the endpoint this token was meant for.
 	 */
 	async #graphql<TData, TVariables>(query: string, variables: TVariables): Promise<TData> {
+		// Read once into a local. Two queries can be in flight on one client — `listReportFights` fires
+		// two — and if the first flips `#endpoint` while the second is still waiting, computing the
+		// fallback from the field afterwards sends the retry back to the path that just refused it.
+		const tried = this.#endpoint;
 		try {
-			return await this.#send<TData, TVariables>(this.#endpoint, query, variables);
+			return await this.#send<TData, TVariables>(tried, query, variables);
 		} catch (cause) {
 			if (!(cause instanceof WclError) || cause.kind !== 'auth') throw cause;
 
-			const fallback = otherEndpoint(this.#endpoint);
+			const fallback = otherEndpoint(tried);
 			let data: TData;
 			try {
 				data = await this.#send<TData, TVariables>(fallback, query, variables);
@@ -171,10 +175,30 @@ export class WclClient {
 		}
 	}
 
+	/**
+	 * The timeout has to cover the body as well as the headers.
+	 *
+	 * Clearing it once `fetch` resolves leaves `response.json()` unguarded, and a response that
+	 * arrives with headers and then stalls mid-body never settles — which is exactly the frozen
+	 * progress bar `REQUEST_TIMEOUT_MS` exists to prevent. The controller is therefore owned here and
+	 * only released once the whole exchange is done with it.
+	 */
 	async #send<TData, TVariables>(endpoint: string, query: string, variables: TVariables): Promise<TData> {
 		const abort = new AbortController();
 		const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
+		try {
+			return await this.#exchange<TData, TVariables>(endpoint, query, variables, abort);
+		} finally {
+			clearTimeout(timer);
+		}
+	}
 
+	async #exchange<TData, TVariables>(
+		endpoint: string,
+		query: string,
+		variables: TVariables,
+		abort: AbortController,
+	): Promise<TData> {
 		let response: Response;
 		try {
 			response = await fetch(endpoint, {
@@ -193,8 +217,6 @@ export class WclClient {
 					? `WarcraftLogs did not answer within ${REQUEST_TIMEOUT_MS / 1000} seconds. Check your connection and try again.`
 					: 'Could not reach WarcraftLogs. Check your connection, and whether a content blocker is stopping the request.',
 			);
-		} finally {
-			clearTimeout(timer);
 		}
 
 		if (response.status === 401) {
@@ -230,6 +252,12 @@ export class WclClient {
 		try {
 			payload = (await response.json()) as typeof payload;
 		} catch {
+			if (abort.signal.aborted) {
+				throw new WclError(
+					'network',
+					`WarcraftLogs did not answer within ${REQUEST_TIMEOUT_MS / 1000} seconds. Check your connection and try again.`,
+				);
+			}
 			throw new WclError('server', 'WarcraftLogs returned a response that was not JSON.', response.status);
 		}
 
@@ -344,10 +372,19 @@ export class WclClient {
 	async fetchEventPage(params: FightEventsQueryVariables): Promise<EventPage> {
 		const data = await this.#graphql<FightEventsQuery, FightEventsQueryVariables>(FIGHT_EVENTS_QUERY, params);
 		const events = data.reportData?.report?.events;
+		// An absent node is a refusal, not an empty page — the report went private, or the source is not
+		// in it. Reading it as "this fight had no events" is how a pull gets analysed as zero casts and
+		// 0% uptime and printed as fact; `fetchReport` and `fetchActors` both refuse the same shape.
+		if (!events) {
+			throw new WclError(
+				'missing',
+				`Report "${params.code}" returned no event stream for fight ${params.fightID}. It may have been made private or archived while it was being read.`,
+			);
+		}
 		return {
 			// `data` is the JSON scalar, so it arrives as `unknown`: it is parsed, never asserted.
-			data: parseEvents(events?.data),
-			nextPageTimestamp: events?.nextPageTimestamp ?? null,
+			data: parseEvents(events.data),
+			nextPageTimestamp: events.nextPageTimestamp ?? null,
 		};
 	}
 }

@@ -1,10 +1,12 @@
 import { Toolbar } from '@base-ui/react/toolbar';
+import { useTranslation } from 'react-i18next';
 
-import { formatPercentValue } from '~/lib/format';
+import '~/lib/i18n';
 
 import type { SettingsState } from '~/hooks/useSettings';
 
 import { buttonClass } from '../primitives/controls';
+import { pageWidthClass } from '../primitives/pageShell';
 import SettingsDialog from './SettingsDialog';
 
 interface Props {
@@ -45,11 +47,19 @@ interface Props {
  * content to scroll through.
  */
 export default function StickySelectionBar({ encounter, kill, fightPercentage, player, onChange, settings }: Props) {
-	const result = kill ? 'kill' : fightPercentage === null ? 'wipe' : `wipe at ${formatPercentValue(fightPercentage)}`;
+	// `ui`, not `report`: this is the shell around the analysis rather than part of it. The four
+	// strings below already existed under `common.*` and were being spelled out in English here
+	// instead, which is the thing `docs/conventions.md` puts in the locale for.
+	const { t } = useTranslation('ui');
+	const result = kill
+		? t('common.kill')
+		: fightPercentage === null
+			? t('common.wipe')
+			: t('common.wipeAt', { pct: fightPercentage });
 
 	return (
 		<Toolbar.Root
-			aria-label="Selected pull"
+			aria-label={t('selection.label')}
 			// `fixed`, not `sticky`, and that is the whole trick.
 			//
 			// Sticky keeps the bar in normal flow, so it reserves its own height wherever it sits. This
@@ -66,8 +76,10 @@ export default function StickySelectionBar({ encounter, kill, fightPercentage, p
 			className="fixed inset-x-0 top-0 z-30 border-b border-line bg-surface/90 backdrop-blur-sm transition-opacity duration-150 motion-reduce:transition-none starting:opacity-0"
 		>
 			{/* The interior matches the page container exactly — same max width, same padding, same
-			    centring — so the encounter name starts on the same line as the report beneath it. */}
-			<div className="mx-auto flex w-full max-w-[1280px] items-center gap-3 px-4 py-1 sm:px-6 md:px-8 2xl:max-w-[1440px]">
+			    centring — so the encounter name starts on the same line as the report beneath it. Taken
+			    from `pageWidthClass` rather than restated, because the two must agree and a drift between
+			    two copies would go unnoticed until the bar stopped lining up with the report. */}
+			<div className={`${pageWidthClass} flex items-center gap-3 py-1`}>
 				<p className="m-0 flex min-w-0 flex-1 items-center gap-2 font-mono text-sm">
 					<span className="truncate font-semibold text-ink">{encounter}</span>
 					<span className="shrink-0 text-muted">&middot; {result}</span>
@@ -77,7 +89,7 @@ export default function StickySelectionBar({ encounter, kill, fightPercentage, p
 				<Toolbar.Separator className="h-6 w-px shrink-0 bg-line" />
 
 				<Toolbar.Button className={`${buttonClass} shrink-0`} onClick={onChange}>
-					Change
+					{t('common.change')}
 				</Toolbar.Button>
 
 				{settings === undefined ? null : (

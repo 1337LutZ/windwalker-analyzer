@@ -132,14 +132,8 @@ export default function SpiritLanes({
 	return (
 		<ChartFigure
 			gap="wide"
-			caption={
-				<>
-					<span className="flex flex-wrap gap-x-4 gap-y-2">
-						<ChartKey tone="brew">{t('sef.lanes.key')}</ChartKey>
-					</span>
-					<span>{t('sef.lanes.caption')}</span>
-				</>
-			}
+			caption={<ChartKey tone="brew">{t('sef.lanes.key')}</ChartKey>}
+			note={t('sef.lanes.caption')}
 		>
 			<ApexChart
 				build={build}

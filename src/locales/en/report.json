@@ -83,7 +83,7 @@
     "noChart": "Nothing ever went into the Tigereye Brew bank in this pull, so there is no line to draw.",
     "spentStacks_one": "{{count}} stack",
     "spentStacks_other": "{{count}} stacks",
-    "chartLabel": "Tigereye Brew bank across the {{duration, clock}} pull, peaking at {{peak}} of {{cap}} stacks, with {{uses}} brews spent averaging {{avg, decimal}} stacks, and {{capped, seconds}} spent at the cap."
+    "chartLabel": "Tigereye Brew bank across the {{duration, clock}} pull, peaking at {{peak}} of {{cap}} stacks, with {{uses}} brews spent averaging {{avg, decimal}} stacks, and {{capped, integer}} stacks lost at the cap."
   },
   "chiBrew": {
     "title": "Chi Brew",

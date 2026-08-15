@@ -19,10 +19,22 @@ export function readSettings(): AnalysisSettings {
 	}
 }
 
+// Guarded for the same reason the read is, and it matters more: the write runs inside a click
+// handler. `setItem` throws on a full quota and in an origin where storage is blocked outright, and
+// an exception out of an event handler takes the React tree down with it — so a browser that will
+// not remember a preference costs the preference, not the report.
 export function writeSettings(settings: AnalysisSettings): void {
-	localStorage.setItem(KEY, JSON.stringify(settings));
+	try {
+		localStorage.setItem(KEY, JSON.stringify(settings));
+	} catch {
+		// Not remembered between visits; still in force for this one.
+	}
 }
 
 export function clearSettings(): void {
-	localStorage.removeItem(KEY);
+	try {
+		localStorage.removeItem(KEY);
+	} catch {
+		// Nothing stored, or nothing storable. Either way there is nothing left to clear.
+	}
 }
