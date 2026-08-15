@@ -81,7 +81,7 @@ function overall(metrics: Metric[]): Grade {
  * it already has.
  */
 export function scoreAnalysis(analysis: Analysis): Scorecard {
-	const { procs, brew, debuff, filler, cpm } = analysis;
+	const { procs, brew, debuff, filler, cpm, karma } = analysis;
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 	// Against the procs the bank could actually have paid for, not every proc that fired. A pull opens
@@ -110,7 +110,32 @@ export function scoreAnalysis(analysis: Analysis): Scorecard {
 	const avoidableCapWaste = Math.max(0, brew.wastedAtCap - (brew.wastedProtecting ?? 0));
 	const brewCapWaste = metric('brewCapWaste', brew.uses > 0 || brew.maxStacks > 0 ? avoidableCapWaste : null);
 
-	const all = [gcdUtilisation, snapshotRate, snapshotDepth, rskUptime, tigerPalmWaste, brewStacks, brewCapWaste];
+	// A press that redirected nothing, over the presses taken — never over the presses the cooldown
+	// allowed. Holding Touch of Karma through a phase with nothing incoming is the correct play, and
+	// billing it as a miss would be the fabricated fault this section exists to refuse.
+	const karmaEmpty = metric('karmaEmpty', share(karma.uses.filter((use) => use.reflected === 0).length, karma.casts));
+	// Unmeasurable in two different ways, and both have to survive: no presses at all, and presses
+	// whose ceiling the pull never demonstrated. `capPerUse` is null in the second case, which is the
+	// "cannot say" the section prints rather than a share of a pool nobody measured. `absorbed` is
+	// absent on fixtures captured before it existed, and reading it as zero would score those pulls as
+	// having returned nothing — so an absent absorb is an unmeasurable metric, not a failing one.
+	const karmaCeiling = karma.capPerUse === null || karma.casts === 0 ? null : karma.capPerUse * karma.casts;
+	const karmaCapShare = metric(
+		'karmaCapShare',
+		karmaCeiling === null || karma.absorbed === undefined ? null : share(karma.absorbed, karmaCeiling),
+	);
+
+	const all = [
+		gcdUtilisation,
+		snapshotRate,
+		snapshotDepth,
+		rskUptime,
+		tigerPalmWaste,
+		brewStacks,
+		brewCapWaste,
+		karmaEmpty,
+		karmaCapShare,
+	];
 
 	return {
 		overall: overall(all),
@@ -121,6 +146,9 @@ export function scoreAnalysis(analysis: Analysis): Scorecard {
 			casts: section([gcdUtilisation]),
 			debuff: section([rskUptime]),
 			tigerPalm: section([tigerPalmWaste]),
+			// Both primary: an empty press and a press that half-filled are separate faults, and the
+			// weaker of the two should carry the section rather than be averaged away by the other.
+			karma: section([karmaEmpty, karmaCapShare]),
 		},
 	};
 }

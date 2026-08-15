@@ -50,10 +50,23 @@ describe('snapshot leeway', () => {
 		});
 	});
 
+	/**
+	 * The concrete case of the above, and the reason it is worth its own test: `maxHealth` was a real
+	 * setting, and a reader who used it still has it in `localStorage`. Touch of Karma now measures the
+	 * pool from a use that drained it, so the field is gone — and a stored one has to be dropped on
+	 * read rather than reaching the engine, or throwing on the way past.
+	 */
+	it('drops a setting that no longer exists', () => {
+		const stale = { snapshotLeewayMs: 1500, tigerPalmRefreshMs: 2000, maxHealth: 750_000 };
+		expect(normaliseSettings(stale)).toEqual({ ...DEFAULT_SETTINGS, snapshotLeewayMs: 1500 });
+		expect(normaliseSettings(stale)).not.toHaveProperty('maxHealth');
+		// And one stored alone still reads as untouched defaults rather than as a customised report.
+		expect(isDefault(normaliseSettings({ maxHealth: 750_000 }))).toBe(true);
+	});
+
 	it('knows when nothing has been changed', () => {
 		expect(isDefault(DEFAULT_SETTINGS)).toBe(true);
 		expect(isDefault({ ...DEFAULT_SETTINGS, snapshotLeewayMs: 2000 })).toBe(false);
-		expect(isDefault({ ...DEFAULT_SETTINGS, maxHealth: 750_000 })).toBe(false);
 	});
 });
 

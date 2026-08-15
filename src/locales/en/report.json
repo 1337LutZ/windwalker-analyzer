@@ -138,27 +138,30 @@
   },
   "debuff": {
     "title": "Rising Sun Kick",
-    "intent": "The debuff is a flat damage increase for everything you do to the target — your own abilities and your Storm, Earth and Fire clones, not the rest of the raid. It runs 15 seconds on an 8-second cooldown, so the only reason it drops is a global that never went out. Uptime asks, at each moment, whether the enemy you were hitting had it, and is measured against engaged time — so swapping targets and phases with nothing to hit do not count against you.",
-    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. Effectively never off the target.",
-    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts — {{lost, seconds}} of the fight without it.",
-    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. {{lost, seconds}} without the debuff is a raid-wide loss, not just yours.",
+    "intent": "The debuff is a flat damage increase for everything you do to the target — your own abilities and your Storm, Earth and Fire clones, not the rest of the raid. It runs 15 seconds on an 8-second cooldown, so the only reason it drops is a global that never went out. Uptime asks, at each moment, whether the enemy you were hitting had it, and every figure here is measured against the time you had something to hit — so target swaps, add waves and phases with nothing in reach do not count against you.",
+    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. Effectively never off the enemy in front of you.",
+    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it.",
+    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it, and everything you put into it in that time landed lighter for it.",
     "verdict_none": "Rising Sun Kick was never cast in this pull.",
-    "drops_one": "It dropped once.",
-    "drops_other": "It dropped {{count}} times.",
-    "dropsNone": "It never dropped once applied.",
-    "intermission": "{{seconds, seconds}} of intermission was excluded from the measurement.",
+    "target": "the primary target",
+    "target_boss": "the boss",
+    "drops_one": "It dropped once on {{target}}.",
+    "drops_other": "It dropped {{count}} times on {{target}}.",
+    "dropsNone": "It never dropped on {{target}} once applied.",
+    "intermission": "The longest stretch without it on {{target}} — {{seconds, seconds}} — is read as an intermission and left out of that count. The tiles above are measured separately, against the time you had something to hit, and none of them counts it.",
     "kpi": {
       "uptime": "Debuff uptime",
-      "casts": "Kicks of possible",
+      "casts": "Casts",
       "lost": "Time without it"
     },
-    "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this pull was fought across several. Uptime above follows you rather than the boss — at each moment it asks whether the enemy you were hitting carried the debuff — so keeping it on the add in front of you counts. The timeline below draws a lane per enemy.",
+    "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this pull was fought across several. The tiles above follow you rather than the boss — at each moment they ask whether the enemy you were hitting carried the debuff, against the time you were in reach of anything at all — so keeping it on the add in front of you counts, and the minutes the boss was away are neither credited nor charged. The timeline below draws a lane per enemy.",
     "track": {
       "up": "Debuff up",
       "dropped": "Dropped",
       "away": "Out of reach"
     },
-    "chartLabel": "Rising Sun Kick's debuff across the pull: {{uptime, percent}} uptime against engaged time, {{drops}} drops totalling {{lost, seconds}}."
+    "chartCaption": "Drawn against {{target}} alone: the drops here are that enemy's own. The uptime above follows whichever enemy you were hitting, so on a pull fought across several the two are not the same measurement.",
+    "chartLabel": "Rising Sun Kick's debuff on {{target}} across the pull: {{drops}} drops totalling {{lost, seconds}}, and the stretches the fight put the enemy out of reach."
   },
   "targets": {
     "label": "Target mode",
@@ -389,7 +392,10 @@
       "swing": "Swung",
       "from": "Up",
       "to": "Down",
-      "by": "Killed by"
+      "by": "Killed by",
+      "charges": "Charges",
+      "landed": "Landed",
+      "hit": "Hit for"
     },
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",
@@ -419,6 +425,9 @@
       "note": "A death is marked with a rule across every lane. Hover it for what landed the killing blow.",
       "noRes": "not resurrected"
     },
+    "charge": {
+      "note": "{{aura}} stacks, so its row is drawn as a charge rather than as a plain window: the height of each block is the number of charges the log stamped on it, against a meter of {{max}}. The meter never fills, and that is the log rather than the gem — the client records the first charge as the buff going up and the next three as stack events, and never a fifth, because by the time a fifth charge exists the buff has already spent itself. The tick that follows each block is the {{payoff}} it paid for, landing a fraction of a second later; hover one for what it hit."
+    },
     "resource": {
       "energy": "Energy",
       "chi": "Chi",
@@ -436,13 +445,19 @@
   "karma": {
     "title": "Touch of Karma",
     "intent": "Touch of Karma redirects the damage you take onto the target for 10 seconds, so it is a defensive that does damage — an unused charge is damage not done as well as damage not taken. What makes a use good is not when the cooldown came up but whether anything was hitting you while it ran.",
-    "summary": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did.",
+    "verdict_good": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Every press was pointed at damage that was actually coming in, which is the whole of what this button asks.",
+    "verdict_ok": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Part of what those presses were worth came back and part did not: the redirect only returns what hits you while it runs, so the timing is worth more than the count.",
+    "verdict_bad": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Those presses returned far less than they were worth: the redirect only returns what hits you while it runs, so it has to be timed onto the damage rather than onto the cooldown.",
+    "verdict_none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
+    "empty_one": "One press redirected nothing at all — a ninety-second cooldown and a global spent on a quiet stretch.",
+    "empty_other": "{{count}} presses redirected nothing at all — that many ninety-second cooldowns and globals spent on quiet stretches.",
     "none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "caption": "Every Touch of Karma, and what the redirect returned while it ran",
     "kpi": {
       "uses": "Uses taken",
       "reflected": "Damage returned",
       "perUse": "Per use",
+      "empty": "Returned nothing",
       "ofCap": "Of what it could"
     },
     "columns": {
@@ -452,13 +467,15 @@
       "capPct": "of cap",
       "fortifying": "fort. brew"
     },
-    "capSummary": "Against a {{health, compact}} health pool, {{casts}} uses could have returned {{possible, compact}} — this pull returned {{reflected, compact}}, or {{pct, percent}} of that.",
-    "capUnset": "Set your maximum health in the settings and this section will also show what each use could have returned: Touch of Karma redirects up to a full health pool, and the log does not record one.",
+    "capSummary_one": "One use drained its pool dry, which measures the pool: {{health, compact}} health. Touch of Karma absorbs at most that much per press, so {{casts}} uses could have absorbed {{possible, compact}} between them and these absorbed {{absorbed, compact}} — {{pct, percent}} of what they were worth.",
+    "capSummary_other": "{{count}} uses drained their pool dry, which measures the pool: {{health, compact}} health. Touch of Karma absorbs at most that much per press, so {{casts}} uses could have absorbed {{possible, compact}} between them and these absorbed {{absorbed, compact}} — {{pct, percent}} of what they were worth.",
+    "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and the only thing on a log that states a pool is a use that drains one — no use here did, and a health pool guessed from a bar that reports in whole percent would be a ceiling this report is not entitled to print.",
     "fortifying_one": "One of them ran under Fortifying Brew.",
     "fortifying_other": "{{count}} of them ran under Fortifying Brew.",
-    "fortifyingNote": "That is not extra damage. Fortifying Brew raises your maximum health by a fifth, which lifts the ceiling on what the redirect can return, and cuts the damage you take by the same fifth, which is what fills it — so only a use that was already hitting its ceiling gains anything, and this log carries no health to tell you whether one was. The cooldown Fortifying Brew does pair with for damage is Touch of Death, which rolls against your maximum health; the sim's opener casts the two back to back.",
+    "fortifyingNote": "That is not extra damage. Fortifying Brew raises your maximum health by a fifth, which lifts the ceiling on what the redirect can return, and cuts the damage you take by the same fifth, which is what fills it — so only a use that was already hitting its ceiling gains anything. The table marks the uses that were, which is the only case the pairing helps. The cooldown Fortifying Brew does pair with for damage is Touch of Death, which rolls against your maximum health; the sim's opener casts the two back to back.",
     "cells": {
-      "yes": "yes"
+      "yes": "yes",
+      "capped": "(capped)"
     }
   },
   "xuen": {
@@ -512,6 +529,28 @@
     "columns": {
       "at": "at",
       "target": "sent to"
+    },
+    "lanes": {
+      "title": "Where the spirits stood",
+      "intent": "One row per enemy you engaged, marking the stretches a spirit of yours was standing on it. The bars come from the spirits’ own single-target swings rather than from where each press was aimed, because the press cannot answer it: a spirit placed before the pull has no press inside the fight at all, and a spirit is recalled when its enemy dies and can be sent elsewhere. Area damage is left out of the reading as well — Rushing Jade Wind hits everything in range, so it says nothing about where a spirit stood.",
+      "key": "A spirit was on this enemy",
+      "caption": "An empty row is an answer rather than a gap: that enemy was up in front of you and no spirit was ever put on it.",
+      "chartLabel": "Storm, Earth and Fire spirit placement across {{lanes}} enemies of this pull, one row each, marking when a spirit was standing on that enemy.",
+      "empty": "No enemy of this pull was under your hands for long enough to draw a row for.",
+      "unnamed": "Unnamed enemy #{{id}}",
+      "gridCaption": "Time a spirit spent on each enemy",
+      "columns": {
+        "enemy": "enemy",
+        "held": "spirit on it",
+        "share": "of the pull",
+        "engaged": "you were on it"
+      },
+      "shortLived_one": "One more enemy has no row: the damage you and your spirits did to it started and stopped inside {{rule, duration}}. This log carries no enemy deaths — a report is fetched under your own name, and WarcraftLogs returns a death event only when you are the one who died — so that measures how long the enemy was under your hands and does not claim it died.",
+      "shortLived_other": "{{count}} more enemies have no rows: the damage you and your spirits did to each of them started and stopped inside {{rule, duration}}. This log carries no enemy deaths — a report is fetched under your own name, and WarcraftLogs returns a death event only when you are the one who died — so that measures how long each enemy was under your hands and does not claim any of them died.",
+      "hidden_one": "One more enemy was under your hands for longer than that and still has no row: the chart stops at the same number of rows the cast timeline’s per-enemy block does, past which it is scrolled rather than read.",
+      "hidden_other": "{{count}} more enemies were under your hands for longer than that and still have no rows: the chart stops at the same number of rows the cast timeline’s per-enemy block does, past which it is scrolled rather than read.",
+      "unresolved": "This pull cannot say where the spirits stood. The log carried no separate actor for them, so there are no swings of theirs to read a position off — and drawing empty rows would say no spirit was ever sent anywhere, which is a claim the log did not make.",
+      "doubled": "Both spirits were out at once for {{doubled, duration}} of that."
     }
   },
   "gear": {

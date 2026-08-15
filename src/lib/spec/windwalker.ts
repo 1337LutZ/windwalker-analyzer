@@ -14,6 +14,7 @@
 import {
 	abilityIdOf,
 	eventsOn,
+	isAbsorbed,
 	isCast,
 	isDamage,
 	isDeath,
@@ -21,6 +22,7 @@ import {
 	isResurrect,
 	resourceActorOf,
 } from '~/lib/events';
+import type { AbsorbedEvent, DamageEvent } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
@@ -29,7 +31,6 @@ import { aplAudit } from './apl';
 import {
 	DEFAULT_SETTINGS,
 	TIGER_PALM_REFRESH,
-	clampHealth,
 	clampLeeway,
 	clampRefreshWindow,
 	type AnalysisSettings,
@@ -43,6 +44,7 @@ import type {
 	DeathMark,
 	FightDataset,
 	LaneGroup,
+	LaneStacks,
 	LostCastRow,
 	Miss,
 	ProcWindow,
@@ -55,7 +57,9 @@ import type {
 import {
 	aggregateDamage,
 	auraTimeline,
+	auraLevels,
 	auraWindows,
+	levelWindows,
 	buildCastTable,
 	castSeries,
 	channelTickTimes,
@@ -279,6 +283,24 @@ const XUEN_DURATION_MS = 45000;
  * row it is already counted exactly once, under the name of the thing that actually dealt it.
  */
 const XUEN_NUKE_ID = 123996;
+
+/**
+ * Lightning Strike: what the Capacitive Primal Diamond pays out when Capacitance fills.
+ *
+ * `sim/common/mop/metagems.go:46-68` registers the spell and picks its id off the wearer's class —
+ * `TernaryInt32(isHunter, 141004, 137597)` on line 48 — so a monk's discharge is **137597**, and the
+ * hunter id is not a fallback to try. Both reference reports agree with the simulator here, which is
+ * worth saying out loud because the last time an id was taken on the sim's word it disagreed: 137597
+ * is the only id either monk deals "Lightning Strike" under (613 hits in a:6MhZgjyAknFWrYfK, 321 in
+ * a:YBQzrcgVJnAj7NMP), 141004 appears in both reports but only ever from the hunters, and 137595 —
+ * the `ActionID` the sim hangs its proc trigger on, `metagems.go:84` — produces no event at all.
+ *
+ * Read only to mark the discharge on the timeline. It is already counted as damage without this: the
+ * id arrives named through `EXTRA_NAMES` and lands in the passive column of the damage table on its
+ * own, at ~4% of a Windwalker's output, so a section counting it again would be a second opinion
+ * about a number that is already printed.
+ */
+const LIGHTNING_STRIKE_ID = 137597;
 
 /**
  * Spirits Storm, Earth and Fire can have out at once.
@@ -917,6 +939,21 @@ const AURAS: Aura[] = [
 		 * payoff has an id of its own — 137597, already named in `EXTRA_NAMES` because it lands as
 		 * damage. It is the busiest aura a monk carries by a distance: 5,081 events across the boss
 		 * pulls in a:6MhZgjyAknFWrYfK, against 392 for Re-Origination.
+		 *
+		 * Every charge is worth the same: the sim's trigger (`metagems.go:82-116`) adds exactly one
+		 * per proc, and what varies is the *rate* rather than the value — an RPPM of 19.27 scaled by
+		 * haste and lifted 8.7% for Windwalker specifically (`metagems.go:88`, `metagems.go:110`). So
+		 * a fuller counter means a faster pull, never a luckier charge.
+		 *
+		 * **The log counts to four, and that is not a fault.** Across 48 boss pulls in both reference
+		 * reports the aura logs exactly four event types — `applybuff`, `applybuffstack`, `refreshbuff`
+		 * and `removebuff` — and the `stack` field appears only on the stack events, taking the values
+		 * {2, 3, 4} and *never* 5 (1,895 of them in a:6MhZgjyAknFWrYfK, 1,000 in a:YBQzrcgVJnAj7NMP,
+		 * zero exceptions). `removebuffstack` never occurs at all. The first charge is the `applybuff`
+		 * and the fifth is the `removebuff`: the client never stamps the ceiling as a stack, because by
+		 * the time the fifth charge exists the aura has already spent itself. So five charges is right
+		 * and `maxStacks` stays 5 — the counter simply cannot be read for a 5, and anything looking for
+		 * one finds nothing.
 		 */
 		ids: [137596],
 		kind: 'buff',
@@ -1014,6 +1051,9 @@ const RUSHING_JADE_WIND_CAST = registry.ability('rushing-jade-wind');
 const ENERGIZING_BREW_CAST = registry.ability('energizing-brew');
 const COMBO_BREAKERS = [CB_TIGER_PALM, registry.aura('combo-breaker-blackout-kick')];
 const SEF_AURA = registry.aura('storm-earth-and-fire');
+// Named separately from the `GEAR_PROCS` list it also belongs to, because it is the one piece of
+// gear here with a *counter* behind its window rather than an on-or-off buff — see the lane below.
+const CAPACITANCE = registry.aura('capacitance');
 
 /**
  * The gear's own auras, as two lists because the chart groups them differently.
@@ -1168,6 +1208,7 @@ function chiBrewAudit(
 	t0: number,
 	casts: readonly number[],
 	durationMs: number,
+	contact: readonly Interval[],
 ): Omit<ChiBrewAudit, 'talented'> {
 	let gained = 0;
 	let wasted = 0;
@@ -1231,15 +1272,33 @@ function chiBrewAudit(
 	advance(durationMs);
 	if (charges === CHI_BREW_CHARGES) closeCap(durationMs);
 
+	/**
+	 * The same idle stretches, cut back to the time the player had something to hit.
+	 *
+	 * The walk above runs on the pull's own clock and has to: charges come back during an intermission
+	 * whether or not anybody is there to spend them, and the counter this draws is a description of the
+	 * pull rather than a judgement of it. What is a judgement is the time at the ceiling, and "both
+	 * charges sat full while you had nothing to hit" is not a mistake anybody made — it is the fight
+	 * standing between the player and the button.
+	 *
+	 * So the fault is clipped and the description is not. Clipping the *windows* rather than the total
+	 * keeps the chart drawing exactly what the number counts; totalling one and shading the other is how
+	 * a figure and the picture under it come to disagree.
+	 */
+	const idleWindows = mergeIntervals(intersect(toIntervals(cappedWindows), [...contact]));
+	const idleMs = unionMs(idleWindows);
+	// The clock every ceiling and share below is measured against: the time there was a choice to make.
+	const contactMs = unionMs([...contact]);
+
 	return {
 		casts: casts.length,
 		charges: points,
-		cappedWindows,
+		cappedWindows: idleWindows.map(([start, end]): Window => ({ start, end })),
 		maxCharges: CHI_BREW_CHARGES,
 		chiGained: gained,
 		chiWasted: wasted,
-		cappedMs: Math.round(cappedMs),
-		cappedPct: durationMs > 0 ? (cappedMs / durationMs) * 100 : 0,
+		cappedMs: Math.round(idleMs),
+		cappedPct: contactMs > 0 ? (idleMs / contactMs) * 100 : 0,
 		// What that idle time was worth, in the unit the button actually pays out.
 		//
 		// Fractional on purpose, and reported to one decimal. Seconds at the ceiling do not convert to
@@ -1247,8 +1306,12 @@ function chiBrewAudit(
 		// pressed", it is the share of a recharge that never ran. Rounding it up to a whole press would
 		// claim the pull had room for a use it did not, and rounding down to zero would hide the fault
 		// entirely on any pull that idled less than a full recharge.
-		chiLostToIdle: (cappedMs / CHI_BREW_RECHARGE_MS) * CHI_BREW_CHI_PER_USE,
-		possibleUses: Math.floor(durationMs / CHI_BREW_RECHARGE_MS) + CHI_BREW_CHARGES,
+		chiLostToIdle: (idleMs / CHI_BREW_RECHARGE_MS) * CHI_BREW_CHI_PER_USE,
+		// Contact time and not the pull's length, for the reason the debuff's cast ceiling gives: a
+		// ceiling built on minutes the player could not act in sets a target the fight made impossible.
+		// On the Galakras kill in `a:6MhZgjyAknFWrYfK` that is 117 seconds of a 434-second pull, worth
+		// two and a half recharges of a ceiling nobody could have reached.
+		possibleUses: Math.floor(contactMs / CHI_BREW_RECHARGE_MS) + CHI_BREW_CHARGES,
 	};
 }
 
@@ -1262,24 +1325,42 @@ function chiBrewAudit(
  * recent cast before them, so a wide bound cannot steal damage from a neighbouring use, while a
  * tight one loses damage outright.
  *
- * The *cap* on what it redirects is a share of maximum health, and the report still does not claim
- * it — but not for the reason this comment used to give. It said MoP Classic logs carry no
- * `combatantInfo` and no `maxHitPoints`, and both halves are false: `combatantinfo` is on every one
- * of the reference pulls and is what `analysis/gear.ts` already reads, and `maxHitPoints` rides on
- * roughly 4,700 events per pull beside `classResources`.
+ * The mechanism behind that overrun, since it is what makes the width safe rather than lucky: 124280
+ * is a six-second periodic effect that each absorbed hit *refreshes*, so the ticks run six seconds
+ * past the last blow the redirect ate rather than stopping with the ten-second aura.
  *
- * The real obstacle is that for a *player* both health fields are a percentage — `maxHitPoints` is
+ * The *cap* on what it redirects is a full health pool, and the report does now claim it — measured
+ * from the absorb rather than derived from a health bar. See `karmaCap` in `analyse`, which carries
+ * the game-database citation and the measurement. What is no longer relevant, but is worth not
+ * re-deriving: a pool estimated from absolute damage against a *percentage* bar — `maxHitPoints` is
  * 100 on all 1,902 player-describing events of one pull, while NPCs in the same report carry
- * absolute values. So a health pool has to be derived from absolute damage against a bar that moves
- * in whole percent, and measured that way it is only good to about ±10%: dividing out Rallying Cry
- * and Fortifying Brew still leaves non-overlapping bands within one fight, and no single value is
- * consistent with all of them.
- *
- * A ±10% ceiling would not be harmless here. One Karma use on the Garrosh pull redirected 845,405
- * against an estimated pool of ~790,000 — `capPct` below would print 107% of a ceiling the log never
- * stated. So the report says what each use returned and never claims what it could have.
+ * absolute values — is only good to about ±10%, and against one such estimate the Garrosh use read
+ * 107% of its own ceiling. The absorb is exact and needs no estimate at all.
  */
 export const KARMA_WINDOW_MS = 20000;
+
+/**
+ * How big the blow behind one absorb was, or null when the log did not pair them.
+ *
+ * The absorb event says what a shield paid; it does not say what it was asked for. That is on the
+ * damage event it belongs to, as `amount` (what got through) plus `absorbed` (what every shield on
+ * the player took off it together) — so a shield paying less than the sum of those two is a shield
+ * that ran out mid-blow.
+ *
+ * Paired on ability and time rather than on an id, because the two events are not stamped alike: on
+ * the reference pulls a third of the pairs sit one millisecond apart, which an equality match drops
+ * silently and which then reads as a use that never hit its ceiling.
+ */
+const ABSORB_PAIR_TOLERANCE_MS = 5;
+function blowBehind(damageTaken: DamageEvent[], absorb: AbsorbedEvent): number | null {
+	let best: DamageEvent | null = null;
+	for (const hit of damageTaken) {
+		const apart = Math.abs(hit.timestamp - absorb.timestamp);
+		if (apart > ABSORB_PAIR_TOLERANCE_MS || abilityIdOf(hit) !== absorb.extraAbilityGameID) continue;
+		if (best === null || apart < Math.abs(best.timestamp - absorb.timestamp)) best = hit;
+	}
+	return best === null ? null : (best.amount ?? 0) + (best.absorbed ?? 0);
+}
 
 /** A proc window this close to the full duration ran out instead of being spent. */
 export const CB_EXPIRY_SLACK_MS = 500;
@@ -1662,6 +1743,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	/** Whether the pull was concentrated enough on one enemy to be read as single-target. */
 	const singleTarget = primaryDamageShare >= SINGLE_TARGET_SHARE_PCT;
 	const primaryGameID = (table.fight.enemyNPCs ?? []).find((n) => n.id === primaryID)?.gameID ?? null;
+	// The report's actor list is the only thing that can name an enemy, exactly as the lane builder
+	// below says. Carried out here because the miss ledger has to name the enemy its drop rows are
+	// about: those rows are the primary target's alone, and a ledger row that does not say so sits
+	// next to a tile measured against every enemy the player touched. Null when the list cannot
+	// answer, and the row falls back to its unqualified wording rather than naming the wrong add.
+	const primaryName = actors.find((a) => a.id === primaryID)?.name ?? null;
 	// Scoped to the primary target: this is the window model — the lane the timeline draws, the drops
 	// the miss ledger lists, and the intermission. The graded figure below is a different reading of
 	// the same debuff and deliberately does not replace this one.
@@ -1702,6 +1789,29 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		return merged;
 	})();
 
+	/**
+	 * ------------------------------------------------------------------------------------------------
+	 * The two clocks, and the rule for choosing between them.
+	 *
+	 * **A figure that grades what the player chose is measured over the time they had a choice; a figure
+	 * that describes the pull is measured over the pull.** Uptime, cast ceilings and idle-charge shares
+	 * are the first kind. Fight length, total damage, the resource curves and the charge counter are the
+	 * second. Getting it backwards does not shade a number, it changes what the number is about: a
+	 * ceiling built on minutes nobody could act in sets a target the fight itself made impossible, and a
+	 * share whose numerator follows the player while its denominator follows the boss describes two
+	 * different fights at once.
+	 *
+	 * `engaged` below is the **boss's** clock — when the primary target was there to be hit. `contact`,
+	 * further down, is the **player's** — when there was anything at all in reach. They are not
+	 * interchangeable and must not be merged: on the Galakras kill in `a:6MhZgjyAknFWrYfK` the boss is
+	 * reachable for 66.6 seconds of a 434.2-second pull while the player fights for 317.2 of it across
+	 * six segments, and 117 seconds are genuine downtime that belongs to neither.
+	 *
+	 * Everything that grades a choice takes `contact`. What still takes `engaged`, and should: the energy
+	 * audit's engaged/downtime split, because "the bar filled while nothing could be hit" is a question
+	 * about the boss; and the debuff chart's out-of-reach track, which draws that same absence.
+	 * ------------------------------------------------------------------------------------------------
+	 */
 	const engaged = engagedWindows(
 		// Landed hits only. A damage-over-time tick is not contact: it lands on a boss that has gone
 		// untargetable just as happily as on one being hit, so counting ticks as engagement bridges the
@@ -1720,12 +1830,20 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * When the player was in contact with *anything*, as opposed to with the boss.
 	 *
 	 * A second, deliberately wider notion of engagement, and the timeline's shading needs this one. The
-	 * windows above are scoped to the primary target because that is what Rising Sun Kick's uptime is
-	 * measured against — but their complement is not downtime. On an add fight the player is fighting
-	 * for most of the pull and touching the boss for very little of it, and drawing that complement as
-	 * "the fight took the target away" flagged 85% of a Galakras pull as intermission. Against every
-	 * target the same pull reads six segments and 27%, which is what a reader watching add waves come
-	 * and go actually sees.
+	 * windows above are scoped to the primary target because that is what the *energy* audit splits on
+	 * — a bar that fills while the boss is away is the fight's doing — but their complement is not
+	 * downtime. On an add fight the player is fighting for most of the pull and touching the boss for
+	 * very little of it, and drawing that complement as "the fight took the target away" flagged 85% of
+	 * a Galakras pull as intermission. Against every target the same pull reads six segments and 27%,
+	 * which is what a reader watching add waves come and go actually sees.
+	 *
+	 * It is also the clock Rising Sun Kick's uptime is measured on, and the two must not be merged back
+	 * together. The debuff's numerator follows whichever enemy the player was hitting, so a denominator
+	 * scoped to the boss describes a different fight from its own numerator: on the Galakras kill in
+	 * `a:6MhZgjyAknFWrYfK` the boss is reachable for 66.6s of a 434.2s pull, and the section reported
+	 * 97.5% uptime for a player who spent 317 seconds fighting. Against contact time the same pull reads
+	 * 80.7%. Both halves of one fraction now come from here; the energy audit keeps the boss's clock,
+	 * because "the bar filled while nothing could be hit" is genuinely a question about the boss.
 	 *
 	 * Ticks are out for the same reason they are out above: a tick lands on an enemy nobody is near.
 	 */
@@ -1733,6 +1851,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		damageEvents.filter((e) => !(isDamage(e) && e.tick === true)).map((e) => e.timestamp - t0),
 		ENGAGED_GAP_MS,
 	);
+	/** Named apart from `contactMs` further down, which is the target-count audit's own, narrower clock. */
+	const inContactMs = unionMs(contact);
 
 	/**
 	 * Every hit the player landed themselves: when, and on whom.
@@ -1757,11 +1877,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	landedHits.sort((a, b) => a.t - b.t);
 
 	/**
-	 * The debuff on the enemy the player was actually hitting, across engaged time.
+	 * The debuff on the enemy the player was actually hitting, across the time they were hitting one.
 	 *
 	 * The reader's own rule: uptime counts as long as there is no downtime and a target to be hit in
 	 * melee range. So the question is asked of one enemy at every moment — the one the most recent
 	 * landed hit was on — and answered from that enemy's own windows.
+	 *
+	 * Clipped to `contact` rather than to the boss's `engaged`, and that is the whole of what makes the
+	 * fraction describe one fight: the numerator already followed the player, so a denominator that only
+	 * ran while the boss was reachable measured the numerator's minutes against somebody else's.
 	 *
 	 * Measured against a real 33-enemy pull, the three candidate definitions are not variations on a
 	 * number, they are different numbers:
@@ -1779,14 +1903,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * at one timestamp, so which of them is "the" target is arbitrary there — but only for the sliver
 	 * until the next hit, and it is the same 15s debuff on each of them.
 	 */
-	const engagedDebuffOn = new Map<number, Interval[]>();
+	const contactDebuffOn = new Map<number, Interval[]>();
 	const debuffOn = (target: number): Interval[] => {
-		const known = engagedDebuffOn.get(target);
+		const known = contactDebuffOn.get(target);
 		if (known) return known;
-		// Merged because `overlapMs` sums its ranges rather than unioning them, and clipped to engaged
+		// Merged because `overlapMs` sums its ranges rather than unioning them, and clipped to contact
 		// time here rather than per hit so an enemy carried through a long stretch is intersected once.
-		const windows = mergeIntervals(intersect(rskByTarget.get(target) ?? [], engaged));
-		engagedDebuffOn.set(target, windows);
+		const windows = mergeIntervals(intersect(rskByTarget.get(target) ?? [], contact));
+		contactDebuffOn.set(target, windows);
 		return windows;
 	};
 	let rskContactMs = 0;
@@ -1794,11 +1918,30 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		const hit = landedHits[i];
 		if (hit === undefined) continue;
 		// Each hit owns the time until the next one — that is how long the player was demonstrably on
-		// that enemy — and the last one owns the rest of the pull, which the intersection with engaged
+		// that enemy — and the last one owns the rest of the pull, which the intersection with contact
 		// time clips back to nothing past the final window.
 		const until = landedHits[i + 1]?.t ?? duration;
 		rskContactMs += overlapMs(hit.t, until, debuffOn(hit.target));
 	}
+
+	/**
+	 * The other half of that reading: contact time whose enemy was *not* carrying the debuff.
+	 *
+	 * Subtracted from the denominator rather than accumulated in a second pass, so the tile printed
+	 * beside the uptime is its exact complement by construction — `uptimePct + lost/contact` is 100%
+	 * because the two are one quantity split in two, not because two walks agreed.
+	 *
+	 * What this replaces was the primary target's dropped time, and on a fight with two bosses the two
+	 * numbers were not describing the same thing at all: the Kor'kron Dark Shaman kill in
+	 * `a:YBQzrcgVJnAj7NMP` printed 1.4s lost beside 59.0% uptime, because the one drop the boss suffered
+	 * was all a primary-scoped reading could see while the player spent 98 seconds hitting the *other*
+	 * boss without the debuff on it. The drops themselves are still the primary's — see `drops` below —
+	 * but they are a list of that enemy's gaps, not this measurement's remainder.
+	 *
+	 * Never negative: the hit windows are disjoint and each one's debuffed overlap is bounded by its
+	 * contact overlap, so the sum cannot exceed the union it was measured inside.
+	 */
+	const rskLostMs = inContactMs - rskContactMs;
 
 	// ---------------------------------------------------------- target count
 	/**
@@ -1858,7 +2001,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// A talent list the log did carry and Chi Brew is not on it is a real "not talented"; no list at
 		// all is a report that cannot say, and must not be rendered as a choice the player made.
 		talented: talents === null ? null : talents.has(CHI_BREW_ID),
-		...chiBrewAudit(events, actor.id, t0, castTimes(CHI_BREW), duration),
+		...chiBrewAudit(events, actor.id, t0, castTimes(CHI_BREW), duration, contact),
 	};
 	const chiWalk = chiAtCasts(events, actor.id, t0, (id) => (id === CHI_BREW_ID ? undefined : CHI_GAIN[id]));
 
@@ -1977,18 +2120,77 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// Each tick belongs to the most recent press before it, rather than to a window measured forward
 	// from every press. Forward windows overlap when two Karmas land inside one another's tails and
 	// double-count the tick; this cannot, and it loses nothing to a tail that runs long.
-	const karmaUses = karmaCasts.map((t) => ({ t, reflected: 0, hits: 0 }));
-	for (const event of karmaDamage) {
-		const at = event.timestamp - t0;
+	const karmaUses = karmaCasts.map((t) => ({ t, reflected: 0, absorbed: 0, exhausted: false, hits: 0 }));
+	/** The use a moment belongs to: the most recent press before it, or none at all. */
+	const karmaOwner = (at: number): (typeof karmaUses)[number] | undefined => {
 		let owner: (typeof karmaUses)[number] | undefined;
 		for (const use of karmaUses) {
 			if (use.t <= at && at - use.t <= KARMA_WINDOW_MS) owner = use;
 		}
+		return owner;
+	};
+	for (const event of karmaDamage) {
+		const owner = karmaOwner(event.timestamp - t0);
 		if (owner === undefined) continue;
 		owner.reflected += event.amount ?? 0;
 		owner.hits += 1;
 	}
 	const karmaReflected = karmaUses.reduce((sum, u) => sum + u.reflected, 0);
+
+	/**
+	 * What each use *absorbed*, which is the quantity the cap actually constrains.
+	 *
+	 * `reflected` is not it. Measured across the three reference pulls, every one of the seven uses
+	 * that took damage redirected exactly 1.05× what it absorbed — 805,148 absorbed against 845,405
+	 * redirected on Garrosh, and the same ratio to five decimals on the other six. Whatever applies
+	 * that extra twentieth lands on the damage dealt and not on the pool being drained, so dividing
+	 * `reflected` by a health pool printed 105% of a ceiling the game says cannot be exceeded. That is
+	 * the bug this replaces.
+	 *
+	 * Read from the `absorbed` *events*, which name the shield in `abilityGameID`, and never from the
+	 * `absorbed` field on the damage taken: that field is every shield's total on one hit, and
+	 * Malkorok hands the raid an absorb of its own, so on that pull it would credit Karma with what
+	 * Ancient Barrier paid for.
+	 */
+	const karmaAbsorbIds = new Set(TOUCH_OF_KARMA.castIds ?? []);
+	const damageTaken = events.filter(isDamage).filter((e) => e.targetID === actor.id);
+	for (const absorb of events.filter(isAbsorbed)) {
+		if (!karmaAbsorbIds.has(abilityIdOf(absorb) ?? -1) || absorb.targetID !== actor.id) continue;
+		const owner = karmaOwner(absorb.timestamp - t0);
+		if (owner === undefined) continue;
+		owner.absorbed += absorb.amount ?? 0;
+		// Did this absorb cover the whole blow? The pool is fixed and the aura is *not* removed when it
+		// empties — which is why `KARMA_WINDOW_MS` is what it is — so the only tell that a use reached
+		// its ceiling is the one absorb that came up short: the shield paid what was left of the pool
+		// and the rest went through, or on to another shield. It is always the last absorb of the use,
+		// verified on all eight reference uses, five of which ended this way — so the flag is simply
+		// overwritten by each absorb rather than latched.
+		const blow = blowBehind(damageTaken, absorb);
+		owner.exhausted = blow !== null && (absorb.amount ?? 0) < blow;
+	}
+	/**
+	 * The health pool, measured instead of asked for.
+	 *
+	 * The share is a *full* pool, and the source is the game database rather than the simulator —
+	 * which is itself the finding. `sim/monk/` registers no spell, no aura and no APL entry for
+	 * 122470; the only trace of Touch of Karma anywhere in wowsims-mop is a glyph enum, so the sim can
+	 * say nothing about it. `Spell.Description_lang` for 122470 in `tools/database/wowsims.db` can:
+	 * "All damage you take is redirected to the enemy target as Nature damage over $124280d instead of
+	 * you. **Damage cannot exceed your total health.**"
+	 *
+	 * So a use that drained its pool absorbed exactly one health pool, and that is a measurement with
+	 * no percentage arithmetic in it — where a ratio estimate against the health bar was also
+	 * available the two agreed to 0.03%, 0.8% and −0.7%. Null when no use drained one: a pull can
+	 * genuinely carry no information about the ceiling — one Garrosh use took no damage at all — and
+	 * the section then says so rather than deriving a pool from a bar that reports in whole percent.
+	 *
+	 * The largest absorb on the pull rather than the first drained one, because a pull spans buffs
+	 * that move a health pool: the three drained uses on the Malkorok reference read 689,443, 686,656
+	 * and 734,249. Every use's absorb is a hard lower bound on the pool it drew from — a shield cannot
+	 * pay out more than it held — so the largest of them cannot be exceeded by any other use, which is
+	 * what stops `capPct` printing above 100% for a use that did not actually cap.
+	 */
+	const karmaCap = karmaUses.some((use) => use.exhausted) ? Math.max(...karmaUses.map((use) => use.absorbed)) : null;
 
 	/**
 	 * Whether Fortifying Brew was up while the redirect ran — reported, and deliberately not praised.
@@ -2018,11 +2220,6 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		...use,
 		fortifyingBrew: fortifyingWindows.some((w) => w.start <= use.t + TOUCH_OF_KARMA_MS && w.end >= use.t),
 	}));
-	// Touch of Karma redirects up to a full health pool per use, so a health pool is the whole ceiling.
-	// The log cannot supply one — MoP Classic carries no health anywhere — so this is null unless the
-	// reader has told the settings what theirs is, and the report claims no ceiling until they do.
-	const karmaCap = clampHealth(settings.maxHealth);
-
 	// ------------------------------------------------------------ lost casts
 	const lostCasts = ON_COOLDOWN.map((ability): LostCastRow | null => {
 		const times = castTimes(ability);
@@ -2120,8 +2317,32 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// already handling has paid a global and a damage penalty for a clone that is duplicating them.
 	// The sim will not even model that case: `CastCopySpell` skips any clone whose target equals the
 	// owner's (`sim/monk/ww_storm_earth_and_fire.go`), so the copy the press bought does not happen.
-	const sefWindows = auraWindows(selfEvents, SEF_AURA, t0, fight.endTime);
+	/**
+	 * How many spirits were out, moment by moment — and read as a *level*, never as apply→remove.
+	 *
+	 * 137639 is a counter: its stack count is the spirit count, and a second spirit arrives as
+	 * `applybuffstack stack: 2` carrying no second `applybuff`. `auraWindows` classes stack events as
+	 * neither an apply nor a removal and drops them, which broke this section twice over on any pull
+	 * where the aura ever stacked. Measured on a:YBQzrcgVJnAj7NMP fight 15 — a monk who placed a spirit
+	 * before the pull, so the fight's first aura event is `applybuffstack stack: 2` at 6.1s:
+	 *
+	 *   the log:        stack 2 at 6.1s → stack 1 at 52.7s → removed at 2:43.3 → applied at 2:49.8
+	 *   the pets:       one swinging from 2.6s to 2:41.3, a second from 6.2s to 50.6s, then one again
+	 *   `auraWindows`:  a single window opening at 2:49.8 — 30.6% uptime, one spirit, the first two
+	 *                   minutes and forty-three seconds absent, and the second spirit's whole 328
+	 *                   events uncounted because `sefCloneActors` below only looks inside a window
+	 *   `auraLevels`:  2 out from 6.1s, 1 from 52.7s, none from 2:43.3, 1 from 2:49.8 — which is what
+	 *                   all three of the log's independent witnesses (the stack walk, the `summon`
+	 *                   events naming each spirit's pet actor, and the pets' own swings) agree on
+	 *
+	 * `sefWindows` is the "at least one spirit was out" bar and stays the union it always was, so
+	 * everything measured against it below is unchanged in meaning and only correct in extent.
+	 */
+	const sefLevels = auraLevels(selfEvents, SEF_AURA, t0, fight.endTime);
+	const sefWindows = levelWindows(sefLevels, 1);
 	const sefUptimeMs = unionMs(toIntervals(sefWindows));
+	/** Stretches with *both* spirits out — the thing a single apply→remove pair could never say. */
+	const sefDoubleMs = unionMs(toIntervals(levelWindows(sefLevels, SEF_MAX_CLONES)));
 
 	/**
 	 * Every press, with the enemy it was aimed at.
@@ -2192,9 +2413,32 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * about where the next press sent it, and letting a segment run across the gap put spirits on
 	 * enemies they had been recalled from forty seconds earlier.
 	 */
-	const contactIn = (hits: readonly TargetHit[], w: Window): Array<{ from: number; to: number; target: number }> => {
+	const contactIn = (
+		hits: readonly TargetHit[],
+		w: Window,
+		/**
+		 * How the *last* segment ends, and the two callers genuinely need different answers.
+		 *
+		 * The player is there for the whole window, so their last hit owns the rest of it — `'window'`.
+		 * A spirit is not: `sefWindows` is the union of "at least one spirit was out", and a spirit
+		 * recalled while its partner stays out leaves a window that is still open with nobody in it. Run
+		 * to the window's end there and the recalled spirit is drawn on an enemy it left — thirty
+		 * seconds of it in the suite below. So `'cadence'` lets its last swing own only the time until
+		 * its next swing would have landed, read from that spirit's own median gap between swings.
+		 *
+		 * With fewer than two swings there is no cadence to read and the swing owns nothing beyond
+		 * itself. That under-claims by one swing, which is the direction that cannot invent presence.
+		 */
+		tail: 'window' | 'cadence' = 'window',
+	): Array<{ from: number; to: number; target: number }> => {
 		const own = hits.filter((h) => h.t >= w.start && h.t <= w.end);
-		return own.map((h, i) => ({ from: h.t, to: own[i + 1]?.t ?? w.end, target: h.target }));
+		const last = own[own.length - 1];
+		let close = w.end;
+		if (tail === 'cadence' && last !== undefined) {
+			const gaps = own.slice(1).map((h, i) => h.t - (own[i]?.t ?? h.t));
+			close = Math.min(w.end, last.t + (gaps.length > 0 ? median(gaps) : 0));
+		}
+		return own.map((h, i) => ({ from: h.t, to: own[i + 1]?.t ?? close, target: h.target }));
 	};
 
 	const sefCloneHits = [...sefCloneActors].map(contactHits);
@@ -2202,8 +2446,29 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	let sefOverlapMs = 0;
 	let sefMeasuredMs = 0;
 	const sefOverlapByTarget = new Map<number, number>();
+	/**
+	 * Where the spirits actually stood, per enemy — the per-target lanes' only source.
+	 *
+	 * Deliberately *not* the press's `targetID`, and the reason is measured rather than argued. A spirit
+	 * placed before the pull has **no press inside the fight at all**: on a:YBQzrcgVJnAj7NMP fight 15 the
+	 * spirit that spent 232 of the pull's 245 seconds on Wavebinder Kardris was summoned pre-combat, and
+	 * the only press anywhere in that stretch named Darkfang — which is where the *other* spirit went.
+	 * Keyed to the press, Kardris's four minutes would have been drawn on Darkfang or not drawn at all.
+	 *
+	 * The single-target filter matters as much, for a different reason. Every spirit across both
+	 * reference pulls dealt damage to four or five enemies while standing on exactly one: that spread is
+	 * Rushing Jade Wind, and an area effect is not evidence of where anyone stood. `SINGLE_TARGET_DAMAGE_IDS`
+	 * is what stops a spinning spirit claiming the whole room — pet 55 above hit five enemies and swung
+	 * at one, and only the second number is a position.
+	 */
+	const sefHeldByTarget = new Map<number, Interval[]>();
 	for (const w of sefWindows) {
-		const spirits = sefCloneHits.flatMap((hits) => contactIn(hits, w));
+		const spirits = sefCloneHits.flatMap((hits) => contactIn(hits, w, 'cadence'));
+		for (const s of spirits) {
+			const bucket = sefHeldByTarget.get(s.target);
+			if (bucket === undefined) sefHeldByTarget.set(s.target, [[s.from, s.to]]);
+			else bucket.push([s.from, s.to]);
+		}
 		for (const stood of contactIn(sefPlayerHits, w)) {
 			sefMeasuredMs += stood.to - stood.from;
 			// Merged before it is measured. Two spirits can never share a target — the controller recalls
@@ -2243,6 +2508,80 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * refuse exactly the fights Storm, Earth and Fire is for.
 	 */
 	const sefSustained = multiTargetWindows.filter(([start, end]) => end - start > SEF_SECOND_TARGET_MS);
+
+	/**
+	 * One lane per enemy of this pull, saying when a spirit was standing on it.
+	 *
+	 * **On the short-lived rule, and what it really measures.** The rule asked for is "drop an enemy
+	 * that died within ten seconds of first being engaged", and the honest thing to report is that this
+	 * report cannot see a single enemy death. The event stream is fetched under a `sourceID` filter for
+	 * the player, and WarcraftLogs returns a `death` event on that filter only when the *player* is the
+	 * victim — measured on both anonymous Dark Shaman pulls, which contain 5,239 and 5,600 events and
+	 * exactly zero enemy deaths between them. So what is measured here is the **engaged span**: the time
+	 * between the first and the last damage the player's side landed on that enemy. An add killed in
+	 * four seconds has a four-second span and is dropped; nothing is claimed about *why* the damage
+	 * stopped, because the log does not say.
+	 *
+	 * An enemy that never died is therefore handled by the same rule and needs no special case, which is
+	 * the point of measuring it this way: a boss alive at the end was being hit right up to the last
+	 * event, so its span is the pull and it is kept. The rule only ever removes enemies the player was
+	 * demonstrably finished with almost as soon as they started — which is exactly the clutter it was
+	 * asked to remove, and is a weaker claim than "it died" rather than a guess dressed up as one.
+	 *
+	 * **What earns a lane.** Every enemy the player themselves damaged, plus every enemy a spirit was
+	 * measured standing on — the second half matters because a spirit sent somewhere the monk never went
+	 * is the case this whole chart exists to show. Unlike the debuff lanes, an enemy with *no* spirit
+	 * time keeps its (empty) lane: there, an empty row said only that an add existed, whereas here it
+	 * answers the reader's actual question — that enemy was up, and no spirit was ever put on it.
+	 */
+	const sefTargetsAll = (() => {
+		// First and last contact from the player's side. `damageEvents` already folds the pets in, which is
+		// what makes this the span the *player's side* was engaged rather than the monk's own attention.
+		const engaged = new Map<number, { first: number; last: number }>();
+		for (const e of damageEvents) {
+			if (e.targetID === undefined) continue;
+			const at = e.timestamp - t0;
+			const span = engaged.get(e.targetID);
+			if (span === undefined) engaged.set(e.targetID, { first: at, last: at });
+			else span.last = at;
+		}
+
+		const named = (id: number): string | null => actors.find((a) => a.id === id)?.name ?? null;
+		const damageTaken = damageByTarget(damageEvents);
+		const ids = new Set([...engaged.keys(), ...sefHeldByTarget.keys()]);
+
+		return (
+			[...ids]
+				.map((id) => {
+					const span = engaged.get(id);
+					const held = mergeIntervals(sefHeldByTarget.get(id) ?? []);
+					const heldMs = unionMs(held);
+					return {
+						id,
+						name: named(id),
+						windows: held.map(([start, end]): Window => ({ start, end })),
+						heldMs,
+						heldPct: duration > 0 ? (heldMs / duration) * 100 : 0,
+						// Zero only for an enemy that reached this list through a spirit alone, which cannot happen
+						// while the spirit is identified from damage events — but the type should not depend on that.
+						engagedMs: span === undefined ? 0 : span.last - span.first,
+						damage: damageTaken.get(id) ?? 0,
+					};
+				})
+				// Ordered by the time a spirit held the enemy, then by the damage it took. The debuff lanes sort
+				// on damage alone and that is right *there* — it is the currency their own section grades in —
+				// so the principle is reused rather than the column: this chart is about where the spirits were,
+				// so the spirits' own currency leads and damage breaks the ties among the enemies none held.
+				.sort((a, b) => b.heldMs - a.heldMs || b.damage - a.damage || a.id - b.id)
+		);
+	})();
+
+	/** Kept: enemies the player's side stayed on for longer than the reader's ten seconds. */
+	const sefTargetsLived = sefTargetsAll.filter((target) => target.engagedMs > SEF_SECOND_TARGET_MS);
+	// Capped exactly as the debuff lanes are, and by the same constant: past six rows the chart stops
+	// being read and starts being scrolled. What is dropped is counted and printed rather than silently
+	// cut — `hiddenTargets` below is what the section says out loud.
+	const sefTargets = sefTargetsLived.slice(0, RSK_TARGET_LANES);
 
 	// -------------------------------------------------------- Fists of Fury
 	// Graded against the two APL conditions a log can answer. Condition 1 (energy cap) is not
@@ -2349,8 +2688,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 
 	// ----------------------------------------------------------- miss ledger
 	const misses: Miss[] = [
+		// Deliberately still the primary target's gaps, and deliberately named after it. A ledger is a
+		// list of things that went wrong, and the contact-scoped remainder the section's tile now prints
+		// is not that list: on a pull spread across thirty adds most of it is time nobody could have kept
+		// a 15s debuff on a 8s cooldown across every enemy they touched, and listing each stretch as a
+		// linked fault would be the invented mistake this report refuses everywhere else. A drop on the
+		// enemy the pull was about is a real one — so it stays, wearing that enemy's name so a reader
+		// cannot mistake one row for the whole of the time the tile counts.
 		...drops.map((g) => ({
-			kind: 'RSK dropped',
+			kind: primaryName === null ? 'RSK dropped' : `RSK dropped (${primaryName})`,
 			at: g.t,
 			detail: `${r1(g.ms / 1000)}s without the debuff`,
 			link: link(g.t),
@@ -2584,6 +2930,42 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		})
 		.sort((a, b) => a.t - b.t);
 
+	/**
+	 * Capacitance as the counter it is, so its lane can be drawn as a charge rather than as a window.
+	 *
+	 * `trackStackBank` unchanged and unwrapped: the meta gem's counter is read by the very function the
+	 * Tigereye Brew bank is read by, because they are the same shape of thing — an aura whose `stack`
+	 * field is the number that matters. Reusing it is also what keeps the awkward cases already solved:
+	 * the `applybuff` that opens a cycle counts as charge 1, and the `refreshbuff` the client emits
+	 * beside every stack event moves nothing.
+	 *
+	 * The discharges are the **Lightning Strike damage events themselves** and not a reading of the
+	 * counter. On both reference reports the pairing is exact — every one of the 613 hits in
+	 * a:6MhZgjyAknFWrYfK and all 321 in a:YBQzrcgVJnAj7NMP follows a Capacitance removal, none precedes
+	 * one, and every discharging cycle had reached charge 4 — but they are not the same instant: the
+	 * damage lands a median of ~260ms after the aura comes off, tailing to 2.8s. Joining the two would
+	 * mean picking a tolerance to explain a gap the log does not explain, and drawing the hit where the
+	 * log put it needs no tolerance at all. It also leaves the honest gap visible: 6 and 7 ceiling
+	 * cycles respectively produced no hit, and those rows simply end with no mark after them.
+	 *
+	 * Null when the gem was not worn, which is most monks — the lane is dropped by the filter below and
+	 * this would be a counter with nothing in it.
+	 */
+	const capacitance = ((): LaneStacks | null => {
+		const counter = trackStackBank(events, CAPACITANCE, actor.id, t0);
+		if (counter.timeline.length === 0) return null;
+		return {
+			points: counter.timeline.map(([at, n]): [number, number] => [at, n]),
+			// The model's ceiling and not this pull's peak, which is the whole point: the peak a log can
+			// show is 4, and scaling to it would draw a counter that fills every cycle.
+			max: CAPACITANCE.maxStacks ?? 0,
+			payoff: nameOf(LIGHTNING_STRIKE_ID),
+			discharges: damageEvents
+				.filter((e) => abilityIdOf(e) === LIGHTNING_STRIKE_ID)
+				.map((e) => ({ t: e.timestamp - t0, amount: e.amount ?? 0 })),
+		};
+	})();
+
 	// A lane with nothing on it is dropped rather than drawn empty: an unlit row costs a line of height
 	// and a label, and tells the reader only that the aura exists.
 	const lanes: AuraLane[] = [
@@ -2602,7 +2984,13 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// wants them: nothing in this report grades a trinket, and the reader's question — "what was my
 		// gear doing when I pressed that" — is one only the chart can answer. The empty-lane filter below
 		// is what keeps a monk who wore none of this from paying a row apiece to be told so.
-		...GEAR_PROCS.map((aura) => lane(aura, 'proc', auraWindows(selfEvents, aura, t0, fight.endTime))),
+		...GEAR_PROCS.map((aura) => ({
+			...lane(aura, 'proc', auraWindows(selfEvents, aura, t0, fight.endTime)),
+			// One of these five has a counter behind it and the other four are on-or-off, so the field is
+			// attached rather than declared: a lane carrying an empty counter would be drawn as a charge
+			// that never charges.
+			...(aura === CAPACITANCE && capacitance !== null ? { stacks: capacitance } : {}),
+		})),
 		...ITEM_USES.map((aura) => lane(aura, 'buff', auraWindows(selfEvents, aura, t0, fight.endTime))),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
@@ -2661,7 +3049,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		itemLevel: entry?.itemLevel ?? null,
 		isSpec,
 		specName: 'Windwalker',
-		primaryTarget: { id: primaryID, gameID: primaryGameID },
+		primaryTarget: { id: primaryID, gameID: primaryGameID, name: primaryName },
 		damage: {
 			wclTotal: entry?.total ?? null,
 			eventTotal,
@@ -2739,10 +3127,18 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			uptimeMs: unionMs(rskMerged),
 			uptimePct: duration > 0 ? (unionMs(rskMerged) / duration) * 100 : 0,
 			engagedMs,
-			// The graded figure, and the one number here that is not about the primary target: the debuff
-			// on whichever enemy the player was hitting, across engaged time.
-			engagedUptimePct: engagedMs ? (rskContactMs / engagedMs) * 100 : 0,
-			secondsLost: r1(drops.reduce((s, g) => s + g.ms, 0) / 1000),
+			// Each scalar is the union of the segment array it is named after, and the pair below is
+			// measured against `contactMs` rather than `engagedMs` — the boss's clock cannot be the
+			// denominator of a numerator that follows the player. Both are published because both are
+			// read: the chart's out-of-reach track is the complement of the boss's, the section's tiles
+			// are all three fractions of this one.
+			contactMs: inContactMs,
+			// The graded figure and its own remainder, and the two numbers here that are not about the
+			// primary target: the debuff on whichever enemy the player was hitting, across the time they
+			// were hitting one, and the rest of that time. The section prints them side by side, so they
+			// are one reading split in two rather than two readings of two different fights.
+			engagedUptimePct: inContactMs ? (rskContactMs / inContactMs) * 100 : 0,
+			secondsLost: r1(rskLostMs / 1000),
 			intermissionSec: r1(longestGap / 1000),
 			// No link here. The section plots drops on a timeline rather than listing them, and the miss
 			// ledger already carries a linked row per drop — a second copy nothing renders is a field
@@ -2865,21 +3261,42 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			justified: sefSustained.length > 0,
 			justifiedMs: unionMs(sefSustained),
 			longestSecondTargetMs: Math.max(0, ...multiTargetWindows.map(([start, end]) => end - start)),
+			// The per-enemy lanes, and the two counts that keep the chart from lying by omission: what the
+			// short-lived rule removed, and what the lane cap did. Both are printed, neither is a silent cut.
+			doubledMs: sefDoubleMs,
+			targets: sefTargets.map(({ id, name, windows, heldMs, heldPct, engagedMs }) => ({
+				id,
+				name,
+				windows,
+				heldMs,
+				heldPct,
+				engagedMs,
+			})),
+			hiddenTargets: sefTargetsLived.length - sefTargets.length,
+			shortLivedTargets: sefTargetsAll.length - sefTargetsLived.length,
+			// Null, not zero, on a pull whose spirits left no actor to follow: an empty lane set there means
+			// "nothing could be measured", and drawing it as "no spirit was ever on anything" would be the
+			// same invented compliment `overlapMs` refuses to print.
+			targetsResolved: sefResolved,
 		},
 		karma: {
 			casts: karmaCasts.length,
 			// Uses the cooldown allowed: the opener plus one per full recharge inside the pull.
 			available: TOUCH_OF_KARMA.cooldownMs ? Math.floor(duration / TOUCH_OF_KARMA.cooldownMs) + 1 : karmaCasts.length,
 			reflected: karmaReflected,
+			absorbed: karmaUses.reduce((sum, u) => sum + u.absorbed, 0),
 			sharePct: eventTotal > 0 ? (karmaReflected / eventTotal) * 100 : 0,
 			capPerUse: karmaCap,
+			exhausted: karmaUses.filter((use) => use.exhausted).length,
 			withFortifyingBrew: karmaWithFortifying.filter((use) => use.fortifyingBrew).length,
 			uses: karmaWithFortifying.map((use) => ({
 				...use,
-				// Can exceed 100: the redirect is capped per use, but a pull spans gear and buffs that
-				// move a health pool, so a single number for the whole fight is an approximation. Showing
-				// 104% is more honest than clamping it and pretending the ceiling was exact.
-				capPct: karmaCap === null ? null : (use.reflected / karmaCap) * 100,
+				// Exactly 100 for a use that drained its pool, and not the ratio: that use *is* the
+				// measurement of the pool, so dividing it by the pull's largest one would report a use
+				// that returned everything it could as having fallen short of a moment it never saw.
+				// Every other use divides the absorb — never the redirect, which is 1.05× larger — by a
+				// pool no use on the pull exceeded, so this cannot print above 100 again.
+				capPct: karmaCap === null ? null : use.exhausted ? 100 : (use.absorbed / karmaCap) * 100,
 			})),
 		},
 		filler: {

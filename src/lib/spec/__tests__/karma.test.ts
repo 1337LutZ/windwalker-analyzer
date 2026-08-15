@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { scoreAnalysis } from '~/lib/score';
+import { WEIGHTS } from '~/lib/score/thresholds';
 import type { Analysis } from '~/lib/types';
 
 const fixture = (name: string): Analysis =>
@@ -44,12 +46,56 @@ describe('Touch of Karma', () => {
 	});
 
 	/**
-	 * The log carries no health, so without a health pool from the reader there is no ceiling — and
-	 * the report has to say what a use returned rather than guess at what it could have.
+	 * The ceiling is measured from a use that drained its pool, and claimed nowhere else.
+	 *
+	 * These fixtures are captured `analyse()` output from before the absorb was measured, so they
+	 * carry no `absorbed` and no `exhausted` and read here as the pull that could not answer it —
+	 * which is exactly the case worth pinning. **They need re-capturing.** The live numbers, and the
+	 * before-and-after on the same three pulls, are in `lib/__fixtures__/karmacap.test.ts`.
 	 */
-	it('claims no ceiling until the reader supplies a health pool', () => {
+	it('claims no ceiling on a pull where no use drained its pool', () => {
 		const karma = fixture('poor').karma;
 		expect(karma.capPerUse).toBeNull();
 		expect(karma.uses.every((use) => use.capPct === null)).toBe(true);
+	});
+
+	/**
+	 * "Cannot say" has to reach the scorecard as *unmeasurable*, not as zero.
+	 *
+	 * A pull that never demonstrated its ceiling has not failed to fill it, and a metric defaulting to
+	 * 0% would grade every such pull as the worst possible use of the cooldown — the fabricated fault
+	 * this section exists to refuse. The presses are gradable either way, so the section still speaks;
+	 * only the share of the ceiling goes quiet.
+	 */
+	it('grades what it can and stays silent on what it cannot', () => {
+		const karma = scoreAnalysis(fixture('poor')).sections.karma;
+		const capShare = karma?.metrics.find((m) => m.key === 'karmaCapShare');
+		const empty = karma?.metrics.find((m) => m.key === 'karmaEmpty');
+
+		expect(capShare?.unmeasurable).toBe(true);
+		expect(empty?.unmeasurable).toBe(false);
+		expect(karma?.unmeasurable).toBe(false);
+	});
+
+	/**
+	 * A press that returned nothing is a fault; a charge held through a quiet phase is not.
+	 *
+	 * So the empty share is taken over the presses *taken*, never over the presses the cooldown
+	 * allowed — `strong` took two of a possible six and is graded on the two.
+	 */
+	it('faults the presses taken, not the charges left on the cooldown', () => {
+		const empty = (name: string) =>
+			scoreAnalysis(fixture(name)).sections.karma?.metrics.find((m) => m.key === 'karmaEmpty');
+
+		expect(empty('strong')?.value).toBe(50);
+		expect(empty('strong')?.grade).toBe('bad');
+		expect(empty('poor')?.value).toBe(0);
+		expect(empty('poor')?.grade).toBe('good');
+	});
+
+	/** Measured, shown, and deliberately not counted: the encounter decides what a press can be worth. */
+	it('does not let the section move the whole-pull verdict', () => {
+		expect(WEIGHTS.karmaEmpty).toBe(0);
+		expect(WEIGHTS.karmaCapShare).toBe(0);
 	});
 });

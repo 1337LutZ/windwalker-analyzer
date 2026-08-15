@@ -13,16 +13,16 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * not done as well as damage not avoided — which is why it earns a section rather than a row in the
  * cast table.
  *
- * What it *could* have returned is deliberately absent. The redirect is capped at a share of maximum
- * health, and that share cannot be pinned down from these logs — not because the fields are missing,
- * which is what this comment used to claim and is wrong, but because a player's `maxHitPoints` is
- * reported as 100. Deriving the pool from absolute damage against a percentage bar lands within
- * about ±10%, and one use on the reference pull redirected more than the derived pool. Rather than
- * print a ceiling that can exceed itself, the section reports what each use actually returned and
- * leaves the reader to judge the rest — see `KARMA_WINDOW_MS` in the engine for the measurements.
+ * What it *could* have returned is shown on a pull that measured it, and only there. The redirect
+ * absorbs at most a full health pool, and a use that drained its own states that pool exactly — so
+ * on a pull with one of those the section can say how much of each press was left unspent. On a pull
+ * with none it says so in as many words instead of estimating: a player's `maxHitPoints` reads 100,
+ * and a pool derived from absolute damage against a percentage bar is good to about ±10%, which is
+ * how the old column came to print 105% of a ceiling that cannot be exceeded. See `karmaCap` in the
+ * engine for both measurements.
  *
- * The judgement it *can* support is the one that matters anyway: a Karma pressed into a quiet
- * stretch returns almost nothing, and the per-use table shows that directly.
+ * The judgement it can always support is the one that matters most: a Karma pressed into a quiet
+ * stretch returns nothing, and the per-use table shows that directly.
  *
  * The Fortifying Brew column is reported and pointedly not celebrated. It arrived as a request to
  * flag the pairing "for the extra damage done", and the sim does not support that reading — see the
@@ -31,11 +31,16 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  */
 export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 	const { karma } = analysis;
-	const { t } = useReportCopy(analysis);
+	const { t, verdict, card } = useReportCopy(analysis);
 	// Fixtures captured before this was measured carry no `fortifyingBrew` on a use and no count at
 	// all, so both read `undefined` rather than `0` — hence the truthiness guard rather than a
 	// comparison, which is the exact shape of a bug this file has already had once.
 	const withFortifying = karma.withFortifyingBrew ?? 0;
+	// Read off the metrics rather than the section, so each tile is coloured by the number it shows
+	// and stays neutral on a pull that could not answer it.
+	const empties = card.sections.karma?.metrics.find((m) => m.key === 'karmaEmpty');
+	const capShare = card.sections.karma?.metrics.find((m) => m.key === 'karmaCapShare');
+	const emptyPresses = karma.uses.filter((use) => use.reflected === 0).length;
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -51,10 +56,21 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 						</b>
 					),
 					// Only when a ceiling is known. A dash would imply a number that could not be computed;
-					// the column simply is not there until the reader supplies a health pool.
+					// the column simply is not there on a pull where no use drained its pool.
+					//
+					// A use that drained one is marked rather than left to be inferred from a hundred: it is
+					// the one row in the table that cannot be faulted — it returned everything it was worth —
+					// and that is the actionable half of the section for a reader skimming it.
 					...(use.capPct === null
 						? {}
-						: { capPct: <span className="text-ink-2">{formatPercentValue(use.capPct)}</span> }),
+						: {
+								capPct: (
+									<span className={use.exhausted ? 'text-kick' : 'text-ink-2'}>
+										{formatPercentValue(use.capPct)}
+										{use.exhausted ? ` ${t('karma.cells.capped')}` : ''}
+									</span>
+								),
+							}),
 					hits: formatInteger(use.hits),
 					// Neutral weight on purpose: an overlap is a fact about the pull, not a fault and not
 					// an achievement, so it is neither banded nor coloured.
@@ -80,12 +96,33 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
+							{/* Uses taken over uses the cooldown allowed, and pointedly ungraded: how many charges
+							    a fight offers something to redirect is the encounter's business, so a colour here
+							    would fault a player for holding a defensive through a quiet phase. */}
 							<StatTile value={`${karma.casts}`} suffix={`/${karma.available}`} label={t('karma.kpi.uses')} />
 							<StatTile value={formatCompact(karma.reflected)} label={t('karma.kpi.reflected')} />
 							<StatTile
 								value={formatCompact(karma.casts > 0 ? karma.reflected / karma.casts : 0)}
 								label={t('karma.kpi.perUse')}
 							/>
+							{/* Its own tile rather than a colour on the damage total, which is the tile it would
+							    otherwise have to borrow: 845k returned is not a bad number, and painting it red
+							    because one *other* press landed on nothing states a verdict about the wrong figure. */}
+							<StatTile
+								value={`${emptyPresses}`}
+								suffix={`/${karma.casts}`}
+								label={t('karma.kpi.empty')}
+								grade={empties && !empties.unmeasurable ? empties.grade : null}
+							/>
+							{/* Only on a pull that measured its own ceiling. Everywhere else this figure would be
+							    a share of a pool nobody stated, which is the number this section refuses to print. */}
+							{capShare && !capShare.unmeasurable ? (
+								<StatTile
+									value={formatPercentValue(capShare.value)}
+									label={t('karma.kpi.ofCap')}
+									grade={capShare.grade}
+								/>
+							) : null}
 						</StatTiles>
 					</div>
 
@@ -134,25 +171,31 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 							<span className="inline-flex items-center gap-2 align-middle">
 								<SpellIcon id={122470} size="sm" />
 							</span>{' '}
-							{t('karma.summary', {
+							{verdict('karma', {
 								casts: karma.casts,
 								available: karma.available,
 								reflected: karma.reflected,
 								share: karma.sharePct,
-							})}
+							})}{' '}
+							{/* Counted here rather than named in the verdict, because the verdict follows the
+							    section's grade and that grade can come from either metric — a sentence that
+							    asserted empty presses would be wrong on a pull graded down for half-filled ones. */}
+							{emptyPresses > 0 ? t('karma.empty', { count: emptyPresses }) : null}
 						</Prose>
-						{/* With a health pool the section can say what the pull left on the table; without one it
-						    says why it cannot, and where to change that. */}
+						{/* Two situations, and the copy has to say which one the reader is looking at. A pull
+						    where a use drained its pool states that pool and what the presses left unspent; a
+						    pull where none did says it cannot tell, rather than estimating one. */}
 						{karma.capPerUse === null ? (
-							<Note>{t('karma.capUnset')}</Note>
+							<Note>{t('karma.capUnknown')}</Note>
 						) : (
 							<Prose>
 								{t('karma.capSummary', {
 									health: karma.capPerUse,
 									casts: karma.casts,
 									possible: karma.capPerUse * karma.casts,
-									reflected: karma.reflected,
-									pct: (karma.reflected / (karma.capPerUse * karma.casts)) * 100,
+									absorbed: karma.absorbed ?? 0,
+									pct: capShare?.value ?? 0,
+									count: karma.exhausted ?? 0,
 								})}
 							</Prose>
 						)}

@@ -50,18 +50,18 @@ export const TIGER_PALM_REFRESH = {
 	step: 250,
 } as const;
 
-/**
- * Bounds on a health pool, used only to reject nonsense.
- *
- * Wide on purpose: this is a Mists-era number today, but the field exists because the log cannot
- * supply it, and a range tuned to one patch would start refusing correct values the moment gear
- * changed. Anything inside these is accepted as given.
- */
-export const MAX_HEALTH = {
-	min: 10_000,
-	max: 10_000_000,
-	step: 1000,
-} as const;
+// There was a third setting here, `maxHealth`, and it is gone rather than defaulted.
+//
+// It existed so the Touch of Karma section could state a ceiling, on the conclusion that these logs
+// carry no health pool. That conclusion still holds for the *health bar* — `maxHitPoints` is 100 on
+// every player-describing event, because player health here is a percentage — but the pool was
+// never only readable there. Touch of Karma absorbs at most a full health pool, so a use that
+// drained its own states the pool exactly; see `karmaCap` in `spec/windwalker`. A setting that asks
+// a reader for a number the log already contains is a setting that can only be wrong, so it went.
+//
+// A blob written by an older build still carries the key. `normaliseSettings` reads named fields
+// only, so it is dropped on the next read and never reaches the engine — the behaviour the
+// `removedSetting` case in `settings.test` has always pinned.
 
 export interface AnalysisSettings {
 	/**
@@ -83,31 +83,11 @@ export interface AnalysisSettings {
 	 * that grades to the sim's frame is grading latency.
 	 */
 	tigerPalmRefreshMs: number;
-	/**
-	 * The player's maximum health, or null when they have not said.
-	 *
-	 * Touch of Karma redirects up to a full health pool per use, so this is the only way to say what a
-	 * use *could* have returned.
-	 *
-	 * The conclusion — MoP Classic logs do not carry a player's health pool — still holds, but the
-	 * reason previously given here was wrong twice over and is worth correcting rather than deleting.
-	 * It claimed the search covered "the resources graph"; in fact `Report.graph(dataType: Resources)`
-	 * had been called without its `abilityID` argument, which is `100 + powerType` (103 energy, 112
-	 * chi, 1000 health) and returns nothing without one. And nothing had been checked with
-	 * `includeResources: true` at all — the flag that turned out to carry the whole energy curve.
-	 *
-	 * Both were then checked properly. `classResources` carries energy and chi and no health entry,
-	 * and `maxHitPoints` is 100 on every player-side event, because player health on these reports is
-	 * a percentage and not a pool. So null stays: the report shows what each use returned and claims
-	 * no ceiling, which is the honest default.
-	 */
-	maxHealth: number | null;
 }
 
 export const DEFAULT_SETTINGS: AnalysisSettings = {
 	snapshotLeewayMs: SNAPSHOT_LEEWAY.default,
 	tigerPalmRefreshMs: TIGER_PALM_REFRESH.default,
-	maxHealth: null,
 };
 
 /**
@@ -141,22 +121,18 @@ export function clampRefreshWindow(value: unknown): number {
 	return Math.min(TIGER_PALM_REFRESH.max, Math.max(TIGER_PALM_REFRESH.min, Math.round(ms)));
 }
 
-/** Null for anything that is not a usable health pool, so "unset" and "nonsense" behave alike. */
-export function clampHealth(value: unknown): number | null {
-	if (value === null || value === undefined || value === '') return null;
-	const hp = typeof value === 'number' ? value : Number(value);
-	if (!Number.isFinite(hp) || hp <= 0) return null;
-	return Math.min(MAX_HEALTH.max, Math.max(MAX_HEALTH.min, Math.round(hp)));
-}
-
-/** Reads whatever was stored into a settings object that is always safe to use. */
+/**
+ * Reads whatever was stored into a settings object that is always safe to use.
+ *
+ * Named fields only, which is what makes removing a setting safe: a blob still carrying `maxHealth`
+ * from an older build loses it here rather than carrying an unread key into the engine.
+ */
 export function normaliseSettings(raw: unknown): AnalysisSettings {
 	if (typeof raw !== 'object' || raw === null) return DEFAULT_SETTINGS;
 	const record = raw as Record<string, unknown>;
 	return {
 		snapshotLeewayMs: clampLeeway(record['snapshotLeewayMs']),
 		tigerPalmRefreshMs: clampRefreshWindow(record['tigerPalmRefreshMs']),
-		maxHealth: clampHealth(record['maxHealth']),
 	};
 }
 
@@ -164,7 +140,6 @@ export function normaliseSettings(raw: unknown): AnalysisSettings {
 export function isDefault(settings: AnalysisSettings): boolean {
 	return (
 		settings.snapshotLeewayMs === DEFAULT_SETTINGS.snapshotLeewayMs &&
-		settings.tigerPalmRefreshMs === DEFAULT_SETTINGS.tigerPalmRefreshMs &&
-		settings.maxHealth === DEFAULT_SETTINGS.maxHealth
+		settings.tigerPalmRefreshMs === DEFAULT_SETTINGS.tigerPalmRefreshMs
 	);
 }

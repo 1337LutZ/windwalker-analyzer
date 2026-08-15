@@ -386,8 +386,41 @@ describe('CastTimeline, damaging presses above the rest', () => {
 				// with no aura to be merged onto, so it is the one that stays a press lane whatever else the
 				// pull put up, which is what makes it the honest fixture for a tier about press lanes.
 				{ t: 8000, id: 6262, name: 'Healthstone', onGcd: false },
+				// The two merged rows, one on each side of the split. Tiger Palm is in the damage table and
+				// puts up an aura nobody ranked; Tigereye Brew does no damage at all and puts up one that is
+				// first but for Re-Origination. Between them they are the whole question of what a row that
+				// is both a press and an aura sorts on.
+				{ t: 12000, id: 100787, name: 'Tiger Palm', onGcd: true },
+				{ t: 14000, id: 1247275, name: 'Tigereye Brew', onGcd: false },
 			],
-			lanes: [timeline.lanes[0]!],
+			lanes: [
+				// Ranked, so pinned under melee — the row every assertion about the top of the chart is
+				// written against.
+				timeline.lanes[0]!,
+				{
+					key: 'tigereye-brew',
+					name: 'Tigereye Brew',
+					id: 1247275,
+					group: 'buff' as const,
+					windows: [{ start: 14000, end: 29000 }],
+				},
+				// Unranked, and both kinds of it: one with a press merged onto it and one with nothing but
+				// bars. Neither key is written into the chart, and neither is named in `LANE_ORDER`.
+				{
+					key: 'tiger-power',
+					name: 'Tiger Power',
+					id: 125359,
+					group: 'buff' as const,
+					windows: [{ start: 12000, end: 32000 }],
+				},
+				{
+					key: 'tiger-strikes',
+					name: 'Tiger Strikes',
+					id: 120273,
+					group: 'buff' as const,
+					windows: [{ start: 40000, end: 48000 }],
+				},
+			],
 		},
 	};
 
@@ -423,13 +456,142 @@ describe('CastTimeline, damaging presses above the rest', () => {
 	 * Auto-attacks were the judgement call: not a press, but damage, and the table says so. Counting
 	 * them as damaging is what keeps the aura rows where they are drawn on purpose — directly under
 	 * melee, so a buff window is read against a continuous line rather than against a lane with holes.
+	 *
+	 * Melee did not move when the aura rows split in two: it is still wherever press count put it in
+	 * the damaging tier, and the ranked rows still come to *it*. That is the half of the arrangement
+	 * that was measured, and the half this asserts.
 	 */
-	it('keeps melee at the top, with the aura rows still directly under it', () => {
+	it('keeps melee at the top, with the ranked aura rows still directly under it', () => {
 		const html = render(scan);
 		expect(at(html, 'Melee')).toBeLessThan(at(html, 'Fists of Fury'));
 		expect(at(html, 'Re-Origination')).toBeGreaterThan(at(html, 'Melee'));
 		expect(at(html, 'Re-Origination')).toBeLessThan(at(html, 'Fists of Fury'));
 	});
+
+	/**
+	 * The rows nobody ranked, which is every item proc a character happens to be wearing.
+	 *
+	 * Being an aura is not by itself a claim on the top of the chart. `LANE_ORDER` is a sequence
+	 * somebody decided — what the pull is worth, the brew that snapshots it, the procs that free a
+	 * button — and melee is the ruler that sequence is read against; a trinket proc makes no such
+	 * claim, so it is drawn where the ask puts it instead: below every damaging press and above
+	 * everything that is not one.
+	 *
+	 * Both halves again, and for the same reason the kit needed both: below the damage alone would
+	 * pass with the row simply sunk to the foot of the chart, and above the kit alone would pass with
+	 * it left where it used to be, three rows from the top.
+	 */
+	it('lands an aura nobody ranked below the damage and above the kit', () => {
+		const html = render(scan);
+		expect(at(html, 'Tiger Strikes')).toBeGreaterThan(at(html, 'Fists of Fury'));
+		expect(at(html, 'Tiger Strikes')).toBeLessThan(at(html, 'Healthstone'));
+		expect(at(html, 'Tiger Strikes')).toBeLessThan(at(html, 'Roll'));
+	});
+
+	/**
+	 * And the two blocks in one line, which is the interleaving the whole change is about: the ranked
+	 * auras, then the damage, then the auras nobody ranked. Neither block can drift past the presses
+	 * between them without this failing.
+	 */
+	it('threads the damaging presses between the two aura blocks', () => {
+		const html = render(scan);
+		expect(at(html, 'Re-Origination')).toBeLessThan(at(html, 'Fists of Fury'));
+		expect(at(html, 'Fists of Fury')).toBeLessThan(at(html, 'Tiger Strikes'));
+	});
+
+	/**
+	 * A merged row sorts on the aura it draws and never on the press that opens it, and these two are
+	 * the pair that pins it — each of them decided the wrong way by the other rule.
+	 *
+	 * Tiger Palm is in this pull's damage table and would sit in the rotation on its tier, but the
+	 * Tiger Power it puts up is unranked, so the row goes down to the boundary with the block it
+	 * belongs to. Tigereye Brew is the mirror: pressed off the global, no damage at all, and a tier
+	 * sort would drop it past the kit and the interrupts — away from the Re-Origination row the whole
+	 * snapshot argument is read against — while its key is ranked second, so it stays pinned.
+	 */
+	it('sorts a merged row by the aura it draws, not by the tier of the press', () => {
+		const html = render(scan);
+		const tigerPower = t('castLog.mergedLane', { ability: 'Tiger Palm', aura: 'Tiger Power' });
+		expect(at(html, tigerPower)).toBeGreaterThan(at(html, 'Fists of Fury'));
+		expect(at(html, tigerPower)).toBeLessThan(at(html, 'Healthstone'));
+		// The brew's row is named once, because the button and the buff share a name.
+		expect(at(html, 'Tigereye Brew')).toBeGreaterThan(at(html, 'Melee'));
+		expect(at(html, 'Tigereye Brew')).toBeLessThan(at(html, 'Fists of Fury'));
+	});
+});
+
+/**
+ * The same ordering, read off the three committed pulls rather than off a fixture built to show it.
+ *
+ * A hand-built analysis proves the rule fires; it cannot prove the rule is the one a real pull wants,
+ * because the tiers are read from the pull's own damage table and the aura lanes from what the log
+ * actually put up. So this renders the captured reports and reads the order out of the gutter — which
+ * is the column that carries exactly one label per row, and therefore *is* the order — rather than
+ * reasoning about the sort.
+ *
+ * Nothing here is regenerated and nothing is written: the three files are captured `analyse()` output
+ * and this only reads them.
+ */
+describe('CastTimeline, the lane order on the committed pulls', () => {
+	const fixture = (name: string): Analysis =>
+		JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
+
+	/**
+	 * The rows the chart drew, in order, by the name in each one's label.
+	 *
+	 * The gutter runs from its own width class to the start of the scroller beside it, and a label's
+	 * `title` is the last attribute on its element — so `">` is what separates a row's name from a
+	 * mark's, whose `title` carries a clock after it, and from a bar's, which carries two.
+	 */
+	const gutterRows = (html: string): string[] => {
+		const gutter = html.slice(html.indexOf('w-28 shrink-0'), html.indexOf('overflow-x-auto'));
+		return [...gutter.matchAll(/title="([^"]*)">/g)].map((m) => m[1] ?? '');
+	};
+
+	for (const name of ['strong', 'mixed', 'poor']) {
+		it(`draws ${name} as resources, damage, ranked auras, damage, unranked auras, kit, enemies`, () => {
+			const rows = gutterRows(render(fixture(name)));
+			// A name the chart never drew would make every comparison below vacuously true, so each one
+			// is resolved through this and fails by name rather than by an inequality against −1.
+			const row = (label: string): number => {
+				const at = rows.indexOf(label);
+				expect(at, `${name}: ${label}`).toBeGreaterThan(-1);
+				return at;
+			};
+
+			// Melee first, and the ranked block immediately under it — the five keys `LANE_ORDER` names,
+			// in that order, with nothing between them and no press interleaved.
+			expect(rows.slice(0, 6), name).toEqual([
+				'Melee',
+				'Re-Origination',
+				'Tigereye Brew',
+				'Combo Breaker: Tiger Palm',
+				'Combo Breaker: Blackout Kick',
+				'Energizing Brew',
+			]);
+
+			// Then the rest of the damage. Blackout Kick and Jab are the two biggest rotational lanes on
+			// every one of the three, so they are the honest stand-ins for "the damaging block".
+			expect(row('Blackout Kick'), name).toBeGreaterThan(row('Energizing Brew'));
+
+			// Then the auras nobody ranked, below all of that damage and above the kit. Tiger Power is the
+			// merged one — a damaging press carrying an unranked aura — and Tiger Strikes is a plain proc.
+			const tigerPower = t('castLog.mergedLane', { ability: 'Tiger Palm', aura: 'Tiger Power' });
+			for (const aura of [tigerPower, 'Tiger Strikes']) {
+				expect(row(aura), `${name}: ${aura}`).toBeGreaterThan(row('Blackout Kick'));
+				expect(row(aura), `${name}: ${aura}`).toBeGreaterThan(row('Jab'));
+				expect(row(aura), `${name}: ${aura}`).toBeLessThan(row('Synapse Springs'));
+			}
+
+			// And the per-enemy block last, which is its own rule and below every one of the above. Matched
+			// on a substring rather than on the name, because the block's rows are not all called the same
+			// thing: `mixed` has one enemy, so its debuff lane is the only one on the chart and the Rising
+			// Sun Kick press merges onto it — the row is then named for the button as well as the aura.
+			const debuffAt = rows.findIndex((label) => label.includes('Rising Sun Kick (debuff)'));
+			expect(debuffAt, name).toBeGreaterThan(row('Synapse Springs'));
+			expect(rows[rows.length - 1], name).toContain('Rising Sun Kick (debuff)');
+		});
+	}
 });
 
 /**

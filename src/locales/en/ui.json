@@ -39,11 +39,6 @@
     },
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull already loaded — it does not fetch anything from WarcraftLogs again.",
     "save": "Save",
-    "reset": "Back to defaults",
-    "health": {
-      "label": "Maximum health",
-      "placeholder": "e.g. 750000",
-      "hint": "Touch of Karma redirects up to a full health pool per use, so this is the only way to show what a use could have returned. Mists Classic logs carry no health at all, which is why it has to be typed. Leave it blank and the report shows what each use did return and claims no ceiling."
-    }
+    "reset": "Back to defaults"
   }
 }

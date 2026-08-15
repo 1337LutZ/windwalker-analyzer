@@ -61,10 +61,20 @@ interface Span {
  * intermission is not a drop the player caused, and a single up/down bar cannot tell the two apart —
  * it would show a phase transition as the same red as a missed global. Uptime is measured against
  * engaged time for exactly this reason, and the chart has to agree with the number.
+ *
+ * All three tracks are the *primary target's*, and that is a legitimate thing to draw — one enemy's
+ * windows are a picture, thirty enemies' are a smear. What it is not is the measurement the tiles
+ * above print, which follows whichever enemy the player was hitting. So the chart says whose windows
+ * these are, in its caption and in its label, and quotes only figures read off its own tracks:
+ * borrowing the tile's uptime to describe this drawing is how the section came to hold two numbers
+ * that were never about the same enemy.
  */
-export default function DebuffTimeline({ analysis }: { analysis: Analysis }) {
+export default function DebuffTimeline({ analysis, target }: { analysis: Analysis; target: string }) {
 	const { t } = useTranslation('report');
 	const { debuff } = analysis;
+	// Summed here rather than carried as a field: it is the total of the array this chart draws, and a
+	// second copy in the analysis output is a number that goes stale the moment the list is filtered.
+	const droppedSec = debuff.drops.reduce((total, drop) => total + drop.seconds, 0);
 
 	const build = useCallback(
 		({ theme, narrow, animate, touch }: ChartEnv): ApexOptions => {
@@ -159,14 +169,17 @@ export default function DebuffTimeline({ analysis }: { analysis: Analysis }) {
 				build={build}
 				height={3 * ROW_HEIGHT + CHROME}
 				label={t('debuff.chartLabel', {
-					uptime: debuff.engagedUptimePct,
+					target,
 					drops: debuff.drops.length,
-					lost: debuff.secondsLost,
+					lost: droppedSec,
 				})}
 			/>
-			<figcaption className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted">
-				<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
-				<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
+			<figcaption className="flex flex-col gap-2 text-sm text-muted">
+				<span className="flex flex-wrap gap-x-4 gap-y-2">
+					<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
+					<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
+				</span>
+				<span>{t('debuff.chartCaption', { target })}</span>
 			</figcaption>
 		</figure>
 	);

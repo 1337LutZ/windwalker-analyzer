@@ -23,6 +23,8 @@ const END = T0 + 120_000;
 const ME = 5;
 /** The spirits' actor. In a real report they are `Pet` rows owned by the monk; here, one of them. */
 const SPIRIT = 6;
+/** The second spirit's actor — a different pet of the same monk, out at the same time as the first. */
+const SPIRIT2 = 9;
 /** Xuen's actor, which must never be mistaken for a spirit — it is a pet of the monk too. */
 const TIGER = 7;
 const BOSS = 20;
@@ -63,9 +65,24 @@ const sefWindow = (from: number, to: number, target: number): WclEvent[] => [
 	e(to, 'removebuff', SEF_ID),
 ];
 
+/**
+ * A second spirit joining one already out, and coming back in again — as the log really writes it.
+ *
+ * There is no second `applybuff`. WarcraftLogs carries 137639 as a *counter*, so the arrival of a
+ * second spirit is `applybuffstack stack: 2` and the recall of one of the two is `removebuffstack
+ * stack: 1`. Reading the aura as apply→remove pairs sees neither, which is the fault the suite below
+ * pins: two spirits collapse into one window, and on a pull whose first aura event is a stack change
+ * the window is lost outright.
+ */
+const sefStack = (at: number, stack: number, target?: number): WclEvent[] => [
+	...(target === undefined ? [] : [e(at, 'cast', SEF_ID, { targetID: target })]),
+	e(at, stack > 1 ? 'applybuffstack' : 'removebuffstack', SEF_ID, { stack }),
+];
+
 const actors: Actor[] = [
 	{ id: ME, name: 'Bigdogmo', type: 'Player' },
 	{ id: SPIRIT, name: 'Storm Spirit', type: 'Pet', petOwner: ME },
+	{ id: SPIRIT2, name: 'Fire Spirit', type: 'Pet', petOwner: ME },
 	{ id: TIGER, name: 'Xuen', type: 'Pet', petOwner: ME },
 	{ id: BOSS, name: 'Galakras', type: 'NPC', subType: 'Boss' },
 	{ id: ADD, name: "Kor'kron Demolisher", type: 'NPC' },
@@ -295,5 +312,145 @@ describe('whether the press was called for', () => {
 		expect(sef?.casts).toBe(0);
 		expect(sef?.justified).toBe(false);
 		expect(sef?.uptimeMs).toBe(0);
+	});
+});
+
+/**
+ * Two spirits out at once — the case the section could not see at all, and the reason it was rebuilt.
+ *
+ * 137639 is a counter, so the second spirit's arrival is `applybuffstack stack: 2` and carries no
+ * second `applybuff`. Reading the aura as apply→remove pairs drops every stack event on the floor,
+ * which cost this section two different ways on the same pull: two simultaneous spirits collapsed into
+ * one window, and a pull whose *first* aura event is a stack change — a spirit placed before the pull,
+ * which is ordinary play — lost its opening window entirely and with it every spirit before it.
+ *
+ * Measured against a:YBQzrcgVJnAj7NMP fight 15, whose numbers these mirror: two spirits from the
+ * opening stack event, one after the recall, none after the removal, and one again after the last
+ * press. Before the fix that pull reported 30.6% uptime and one spirit; the log's stack walk, its
+ * `summon` events and its pets' own swings all three say 97.4% and two.
+ */
+describe('two spirits at once', () => {
+	/**
+	 * One spirit placed before the pull, a second sent at 10s, the second recalled at 40s, both gone at
+	 * 70s. The first spirit's own window therefore runs from the pull to 70s, and the log never writes
+	 * an `applybuff` for it at all — the only trace it leaves inside the fight is `stack: 2` at 10s
+	 * saying one was already there.
+	 */
+	const both: WclEvent[] = [
+		...brewBank,
+		...sefStack(10_000, 2, ADD),
+		...sefStack(40_000, 1),
+		e(70_000, 'removebuff', SEF_ID),
+		// The first spirit, out from before the pull, on the boss the whole time.
+		...stand(1_000, 70_000, SPIRIT, BOSS),
+		// The second, out only between the stack events, on the add it was sent to.
+		...stand(11_000, 40_000, SPIRIT2, ADD),
+		// The player, on neither of them.
+		...stand(0, 110_000, ME, BOSS),
+	];
+
+	it('opens the window at the pull when the first aura event is a stack change', () => {
+		const { sef } = analyse(datasetOf(both));
+		// Not 10s. A stack event cannot fire on an aura that is not applied, so the aura was already up
+		// when the fight began — and the pet swinging at 1s is the spirit it was up for.
+		expect(sef?.windows).toEqual([{ start: 0, end: 70_000 }]);
+		expect(sef?.uptimeMs).toBe(70_000);
+	});
+
+	it('counts both spirits rather than collapsing them into one', () => {
+		const { sef } = analyse(datasetOf(both));
+		// Two distinct pet actors, and the second one's damage is only reachable because the window it
+		// swung inside now exists: `sefCloneActors` only looks at damage landing inside a window.
+		expect(sef?.clones).toBe(2);
+		expect(sef?.doubledMs).toBe(30_000);
+	});
+
+	it('draws a lane for each enemy a spirit stood on, from the spirits’ own swings', () => {
+		const { sef } = analyse(datasetOf(both));
+		const lanes = new Map((sef?.targets ?? []).map((target) => [target.id, target]));
+
+		// The first spirit held the boss for the whole window; the second held the add between the two
+		// stack events. Each swing owns the time until that spirit's next, and the last owns the rest of
+		// the window — so the boss lane runs to the window's close at 70s.
+		expect(lanes.get(BOSS)?.heldMs).toBe(69_000);
+		expect(lanes.get(ADD)?.heldMs).toBe(29_000);
+		expect(lanes.get(ADD)?.windows).toEqual([{ start: 11_000, end: 40_000 }]);
+		expect(lanes.get(ADD)?.name).toBe("Kor'kron Demolisher");
+	});
+
+	/**
+	 * The fault suspect three would have been. Every press here names the *add*, and the spirit that was
+	 * already out spends the whole pull on the boss — so a chart keyed to the cast's target would draw
+	 * seventy seconds of spirit time on an enemy no spirit ever swung at.
+	 */
+	it('reads a spirit’s enemy from where it swung, never from where the press aimed', () => {
+		const { sef } = analyse(datasetOf(both));
+		expect(sef?.uses[0]?.target).toBe(ADD);
+		expect((sef?.targets ?? []).find((target) => target.id === BOSS)?.heldMs).toBeGreaterThan(0);
+	});
+
+	/** The old reading, kept as a regression: a pair model sees one window opening at 70s and nothing else. */
+	it('does not lose the pull to a log that only ever stacks', () => {
+		const { sef } = analyse(datasetOf(both));
+		expect(sef?.windows).not.toEqual([]);
+		expect(sef?.uptimeMs).toBeGreaterThan(0);
+	});
+});
+
+describe('the per-enemy lanes', () => {
+	/**
+	 * The reader's rule, and the honest name for what it measures. Enemy deaths are not in the fetched
+	 * stream at all — a `sourceID` filter returns a death only when the *player* is the victim, verified
+	 * across both anonymous Dark Shaman pulls — so the span between an enemy's first and last damage
+	 * from the player's side is what stands in for "how long it was there". An add hit for four seconds
+	 * is dropped; nothing claims it died.
+	 */
+	it('drops an enemy the player’s side was only briefly on, and says how many', () => {
+		const brief = [
+			...brewBank,
+			...sefWindow(10_000, 50_000, ADD),
+			...stand(12_000, 50_000, SPIRIT, ADD),
+			...stand(0, 110_000, ME, BOSS),
+			// Four seconds of contact with a third enemy, well inside the ten-second rule.
+			...stand(20_000, 24_000, ME, 22),
+		];
+		const roster: Actor[] = [...actors, { id: 22, name: 'Kor’kron Grunt', type: 'NPC' }];
+		const { sef } = analyse(datasetOf(brief, roster));
+
+		expect((sef?.targets ?? []).map((target) => target.id)).not.toContain(22);
+		expect(sef?.shortLivedTargets).toBe(1);
+	});
+
+	/**
+	 * An enemy that was never on the end of a spirit still gets its row, and that is the opposite of the
+	 * rule the debuff lanes follow. There an empty row said only that an add existed; here it answers
+	 * the question outright — the boss was up the whole pull and no spirit was ever sent to it.
+	 */
+	it('keeps a lane for an enemy no spirit was ever sent to', () => {
+		const { sef } = analyse(datasetOf(spread));
+		const boss = (sef?.targets ?? []).find((target) => target.id === BOSS);
+		expect(boss).toBeDefined();
+		expect(boss?.windows).toEqual([]);
+		expect(boss?.heldMs).toBe(0);
+		// And it is still measurably an enemy the player was on, which is what earned it the row.
+		expect(boss?.engagedMs).toBeGreaterThan(SEF_SECOND_TARGET_MS);
+	});
+
+	/**
+	 * A pull whose spirits left no actor cannot be asked where they stood, and the section has to be
+	 * able to tell that apart from "no spirit went anywhere" — the same distinction `overlapMs` carries.
+	 */
+	it('says it cannot place the spirits when they left no actor', () => {
+		const noPet = doubledUp.filter((ev) => ev.sourceID !== SPIRIT);
+		const { sef } = analyse(datasetOf(noPet));
+		expect(sef?.targetsResolved).toBe(false);
+		expect((sef?.targets ?? []).every((target) => target.windows.length === 0)).toBe(true);
+	});
+
+	/** Ordered with the enemies a spirit actually held first — this chart's own currency, not damage. */
+	it('puts the enemies a spirit held before the ones it never did', () => {
+		const { sef } = analyse(datasetOf(doubledUp));
+		expect(sef?.targets?.[0]?.id).toBe(ADD);
+		expect((sef?.targets?.[0]?.heldMs ?? 0) > 0).toBe(true);
 	});
 });

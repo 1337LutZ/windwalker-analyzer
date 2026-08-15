@@ -4,6 +4,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatCompact, formatPercentValue, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
+import SpiritLanes from '../charts/SpiritLanes';
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '../primitives';
 
 /**
@@ -44,6 +45,27 @@ export default function StormEarthAndFire({ analysis }: { analysis: Analysis }) 
 				},
 			})),
 		[sef?.uses, t],
+	);
+
+	/**
+	 * The per-enemy uptimes, beside the lanes that show when each one was held.
+	 *
+	 * The chart says *when* and this says *how much*, which is the split the rest of the report already
+	 * uses — a picture cannot be read to a tenth of a second and a number cannot show a gap. Both are
+	 * built from `sef.targets`, so they are two readings of one array rather than two measurements.
+	 */
+	const targetRows = useMemo<GridRow[]>(
+		() =>
+			(sef?.targets ?? []).map((target) => ({
+				key: `${target.id}`,
+				cells: {
+					enemy: target.name ?? t('sef.lanes.unnamed', { id: target.id }),
+					held: formatSeconds(target.heldMs),
+					share: formatPercentValue(target.heldPct),
+					engaged: formatSeconds(target.engagedMs),
+				},
+			})),
+		[sef?.targets, t],
 	);
 
 	// The committed fixtures were captured before this field existed, so it is `undefined` there rather
@@ -89,6 +111,49 @@ export default function StormEarthAndFire({ analysis }: { analysis: Analysis }) 
 							empty={t('sef.none')}
 						/>
 					</div>
+
+					{/* Where the spirits actually went. Three states again, and the middle one matters for the
+					    same reason it does above: a pull whose spirits left no actor behind cannot be asked
+					    where they stood, and rows of empty lanes would answer "nowhere" on its behalf. The
+					    third state — nothing survived the short-lived rule — is left to the chart's own empty
+					    copy, because that is a fact about the pull's adds rather than about the spirits. */}
+					<div className="mt-6 flex flex-col gap-3.5">
+						<h3 className="m-0 font-mono text-sm text-ink-2">{t('sef.lanes.title')}</h3>
+						<Prose>{t('sef.lanes.intent')}</Prose>
+						{sef.targetsResolved === false ? (
+							<Note>{t('sef.lanes.unresolved')}</Note>
+						) : (
+							<>
+								<SpiritLanes targets={sef.targets ?? []} durationMs={analysis.durationMs} />
+
+								<DataGrid
+									caption={t('sef.lanes.gridCaption')}
+									columns={[
+										{ key: 'enemy', label: t('sef.lanes.columns.enemy') },
+										{ key: 'held', label: t('sef.lanes.columns.held'), align: 'right', width: '112px' },
+										{ key: 'share', label: t('sef.lanes.columns.share'), align: 'right', width: '112px' },
+										{ key: 'engaged', label: t('sef.lanes.columns.engaged'), align: 'right', width: '128px' },
+									]}
+									rows={targetRows}
+									empty={t('sef.lanes.empty')}
+								/>
+
+								{/* Said out loud, both of them. A lane set that quietly dropped rows would be a
+								    chart claiming to show every enemy while showing some of them. */}
+								{(sef.shortLivedTargets ?? 0) > 0 ? (
+									<Note>
+										{t('sef.lanes.shortLived', {
+											count: sef.shortLivedTargets ?? 0,
+											rule: sef.secondTargetMs,
+										})}
+									</Note>
+								) : null}
+								{(sef.hiddenTargets ?? 0) > 0 ? (
+									<Note>{t('sef.lanes.hidden', { count: sef.hiddenTargets ?? 0 })}</Note>
+								) : null}
+							</>
+						)}
+					</div>
 				</>
 			) : null}
 
@@ -99,7 +164,12 @@ export default function StormEarthAndFire({ analysis }: { analysis: Analysis }) 
 					</span>{' '}
 					{used
 						? t('sef.summary', { count: sef.casts, uptime: sef.uptimePct })
-						: t('sef.skipped', { justified: sef.justifiedMs, longest: sef.longestSecondTargetMs })}
+						: t('sef.skipped', { justified: sef.justifiedMs, longest: sef.longestSecondTargetMs })}{' '}
+					{/* Only sayable at all because the aura is followed as a stack level: a second spirit arrives
+					    as a stack event carrying no second apply, so the apply→remove reading this section used
+					    to take could not distinguish one spirit from two. Zero is a measurement here, not an
+					    absence, but a sentence saying "for 0s" is noise — so it is printed only when it happened. */}
+					{used && (sef.doubledMs ?? 0) > 0 ? t('sef.lanes.doubled', { doubled: sef.doubledMs ?? 0 }) : null}
 				</Prose>
 
 				{used && hasDamage ? (

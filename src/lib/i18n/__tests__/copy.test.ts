@@ -37,7 +37,7 @@ describe('report copy', () => {
 
 	/** A key that does not resolve comes back as the key itself, which is the bug to catch. */
 	it('resolves every section verdict in every grade', () => {
-		const sections = ['snapshots', 'brew', 'casts', 'debuff', 'tigerPalm'];
+		const sections = ['snapshots', 'brew', 'casts', 'debuff', 'tigerPalm', 'karma'];
 		for (const section of sections) {
 			for (const context of ['good', 'ok', 'bad', 'none']) {
 				const text = t(`${section}.verdict`, { context, count: 2, casts: 2 });

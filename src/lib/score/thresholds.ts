@@ -125,6 +125,36 @@ export const THRESHOLDS = {
 	 * rather than a rounding error.
 	 */
 	brewCapWaste: { good: 0, ok: 5, higherIsBetter: false },
+
+	/**
+	 * Share of Touch of Karma presses that redirected nothing at all.
+	 *
+	 * The one fault this section could always support, and the reason it exists: the redirect returns
+	 * what was hitting the player, so a press into a quiet stretch is a global and a ninety-second
+	 * cooldown spent on nothing. Zero is the target because it asks only that the button goes out
+	 * while damage is coming in, not that it goes out on cooldown — how many charges a fight offers is
+	 * the encounter's business and is deliberately not graded anywhere.
+	 *
+	 * Coarse by construction: a pull carries two or three presses, so the measurable values are 0, a
+	 * third, a half. `ok` sits at a quarter, which is one empty press in four or more — a pull that
+	 * pressed it six times and mistimed one is not the same fault as a pull that mistimed one of two.
+	 */
+	karmaEmpty: { good: 0, ok: 25, higherIsBetter: false },
+
+	/**
+	 * How full the presses that *were* taken got, as a share of what they could have returned.
+	 *
+	 * Measured against a health pool the pull itself demonstrated — see `karmaCap` in `spec/windwalker`
+	 * — so it is unmeasurable, and says so, on a pull where no use drained one. That is not a
+	 * formality: it is the whole reason this section carried no ceiling for so long.
+	 *
+	 * The bands are coarse on purpose and calibrated on three pulls rather than twenty-five, which is
+	 * thin and is worth saying out loud. They read 50.0%, 64.4% and 95.8% — a press that drained its
+	 * pool against one that returned 203,636 of a possible 629,585. `good` sits above the middle of
+	 * that spread and `ok` below it, which separates the three; nothing finer is supportable, and a
+	 * band claiming to tell 72% from 78% apart would be inventing precision the sample does not have.
+	 */
+	karmaCapShare: { good: 75, ok: 40, higherIsBetter: true },
 } as const satisfies Record<string, Threshold>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
@@ -154,4 +184,12 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	snapshotDepth: 0,
 	brewStacks: 1,
 	brewCapWaste: 1,
+	// Graded in its own section and deliberately not counted in the headline, for a different reason
+	// than `snapshotDepth` above: these two are sound, but what they measure is not the player's alone.
+	// The redirect returns what the fight was doing to them, so how much a press could ever be worth is
+	// set by the encounter — a phase with nothing incoming caps a perfect press at nothing. Letting
+	// that swing the verdict would grade the pull the player was handed. Zero rather than deletion, so
+	// the section still reads a band off them and the reason lives beside the weights that do count.
+	karmaEmpty: 0,
+	karmaCapShare: 0,
 };

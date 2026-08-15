@@ -5,6 +5,7 @@
 // a type-specific field goes through one of these.
 
 import type {
+	AbsorbedEvent,
 	AuraApplyEvent,
 	AuraEvent,
 	AuraRefreshEvent,
@@ -89,6 +90,18 @@ export function isDamage(e: WclEvent): e is DamageEvent {
 
 export function isHeal(e: WclEvent): e is HealEvent {
 	return e.type === 'heal';
+}
+
+/**
+ * A shield eating a blow, under the shield's own id.
+ *
+ * Not the same question as reading `absorbed` off the damage event: that field is the total every
+ * shield on the player took off one hit, so on a fight that hands the raid its own absorb it says
+ * nothing about which shield paid. These name the shield in `abilityGameID`, which is the only way
+ * to measure one of them — see the Touch of Karma section in `spec/windwalker`.
+ */
+export function isAbsorbed(e: WclEvent): e is AbsorbedEvent {
+	return e.type === 'absorbed';
 }
 
 export function isAuraApply(e: WclEvent): e is AuraApplyEvent {

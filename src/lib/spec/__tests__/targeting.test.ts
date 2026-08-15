@@ -164,6 +164,19 @@ describe('the graded debuff uptime', () => {
 	});
 
 	/**
+	 * And the tile printed beside it, which is that same figure's remainder rather than a second
+	 * reading of anything: engaged time whose enemy was not carrying the debuff.
+	 *
+	 * It used to be the primary target's dropped windows, which on this pull is **nought** — the boss's
+	 * one window has no gap after it — against the 52 seconds the player spent hitting an enemy without
+	 * the debuff on it. That is the contradiction: a tile reading zero next to an uptime of 52.7%.
+	 */
+	it('reports the time lost as that figure’s exact complement', () => {
+		expect(analysis.debuff.secondsLost).toBeCloseTo((ENGAGED_MS - CONTACT_MS) / 1000, 1);
+		expect(analysis.debuff.engagedUptimePct + (analysis.debuff.secondsLost * 100_000) / ENGAGED_MS).toBeCloseTo(100, 1);
+	});
+
+	/**
 	 * The number is neither of the two readings it was chosen over, and the gap is not a rounding one:
 	 * 35.5% for the primary target alone, 70.9% for the debuff up on anything at all, 52.7% for the
 	 * enemy actually being hit. Asserted as an ordering rather than three constants so this keeps
@@ -178,6 +191,26 @@ describe('the graded debuff uptime', () => {
 	it('leaves the primary target’s windows exactly as they were', () => {
 		expect(analysis.debuff.windows).toEqual([{ start: 1000, end: 40_000 }]);
 		expect(analysis.debuff.uptimeMs).toBe(PRIMARY_ONLY_MS);
+	});
+
+	/**
+	 * The drops stayed behind, so the ledger row that lists one has to say whose gap it was.
+	 *
+	 * Three kicks on the boss and two gaps between them, which is the smallest shape that produces a row
+	 * at all: with one gap the drop list treats it as the intermission and leaves it out. The row names
+	 * the boss because the tile beside it counts every enemy the player touched, and a reader with only
+	 * `RSK dropped` in front of them has no way to tell the two apart.
+	 */
+	it('names the enemy a ledger drop row is about', () => {
+		const dropFight = [
+			...brewBank,
+			...Array.from({ length: 12 }, (_, i) => hit(i * 10_000, BOSS, 5000)),
+			...kick(1000, BOSS, 100_000, 20_000),
+			...kick(30_000, BOSS, 100_000, 40_000),
+			...kick(70_000, BOSS, 100_000, 90_000),
+		].sort((a, b) => a.timestamp - b.timestamp);
+
+		expect(analyse(datasetOf(dropFight)).misses.map((m) => m.kind)).toContain('RSK dropped (Galakras)');
 	});
 
 	/**

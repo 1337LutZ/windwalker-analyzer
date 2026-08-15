@@ -62,7 +62,16 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					label={t('kpi.brewStacks')}
 					grade={toneOf('brewStacks')}
 				/>
-				<StatTile value={formatPercentValue(debuff.uptimePct)} label={t('kpi.rskUptime')} grade={toneOf('rskUptime')} />
+				{/* The graded figure, not the primary target's raw uptime over pull length — which is what this
+				    showed while wearing the grade of a number it was not displaying. The two are not close on
+				    an add fight: a Galakras pull reads 97.5% one way and 80.7% the other, and the section
+				    below argues from the second. A headline that disagrees with the section it summarises
+				    sends a reader looking for which of the two is lying. */}
+				<StatTile
+					value={formatPercentValue(debuff.engagedUptimePct)}
+					label={t('kpi.rskUptime')}
+					grade={toneOf('rskUptime')}
+				/>
 				{/* Graded on depth rather than on the catch rate: this tile counts the ones held to the
 				    final global, which is the timing question, not the discipline one. */}
 				<StatTile

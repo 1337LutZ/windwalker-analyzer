@@ -26,6 +26,7 @@ import type {
 	CastMark,
 	DeathMark,
 	LaneGroup,
+	LaneStacks,
 	LaneTarget,
 	ResourceCurve,
 	Window,
@@ -35,7 +36,7 @@ import { TEB_CAP, registry } from '~/lib/spec/windwalker';
 import { SpellIcon } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 import { spellIconUrl } from '../primitives/spellIcon';
-import { fmt } from '../format';
+import { fmt, n } from '../format';
 import { jumpToHeading } from '../jump';
 import { readTheme, tip, type ChartTheme } from './apex';
 import ChartEmpty from './ChartEmpty';
@@ -212,13 +213,22 @@ const MIN_INTERMISSION_MS = 1000;
  * pointer never fires.
  */
 /**
- * The order the aura lanes are drawn in, by key.
+ * The order the aura lanes are drawn in, by key — and, since it is a list of the keys somebody chose
+ * deliberately, which of them are pinned under melee at all.
  *
  * Not the order the engine happens to build them in: the lanes are read against each other, and the
  * comparison a Windwalker actually makes runs Re-Origination first (what the pull is worth), then
  * the brew that snapshots it, then the procs that decide which button is free, then the resource
- * cooldown. Anything unlisted keeps its engine order and follows — inside its block, which
- * `perTargetBlock` below decides first.
+ * cooldown. That is the priority sequence, and it is the reason those five rows sit directly under
+ * the melee lane: melee is the pull's metronome, and these are the windows worth reading against a
+ * continuous line.
+ *
+ * Being listed here is therefore load-bearing twice over, which is what `meleeBlock` reads. An
+ * unlisted key — an item proc, a raid buff, anything the spec grows later — makes no such claim on
+ * melee, so it is not dragged up the chart to sit beside it: it keeps its engine order, as it always
+ * did, but as part of a second block drawn at the tier boundary instead, below every damaging press
+ * and above the kit. Both blocks are still inside the player's own rows, which `perTargetBlock`
+ * settles before either of these is consulted.
  */
 const LANE_ORDER = [
 	're-origination',
@@ -329,6 +339,25 @@ const laneRank = (key: string): number => {
 	const at = LANE_ORDER.indexOf(key);
 	return at === -1 ? LANE_ORDER.length : at;
 };
+
+/**
+ * Whether an aura row is one of the ones pinned directly under the melee lane.
+ *
+ * Read off `LANE_ORDER` rather than written as a second list, because the two questions have one
+ * answer: a key is listed there precisely because somebody decided where it sits in the sequence a
+ * Windwalker reads, and that sequence is the thing melee is the ruler for. So promoting a lane is
+ * one edit — add its key to `LANE_ORDER` — and there is no way to be in the priority order without
+ * being in the block, or the reverse.
+ *
+ * Everything else is drawn at the tier boundary instead. That is not a demotion of the item procs:
+ * an unlisted lane has no stated position at all, and the honest place for a row nobody has ranked
+ * is beside the presses it is actually about — under the damage, above the kit — rather than three
+ * rows from the top because it happens to be an aura.
+ *
+ * Expressed against `laneRank` rather than `LANE_ORDER.includes` so the rank and the block cannot
+ * drift: an unlisted key is exactly the one `laneRank` gives the fallback to.
+ */
+const meleeBlock = (lane: AuraLane): boolean => laneRank(lane.key) < LANE_ORDER.length;
 
 /**
  * Which row each press sits on, so that no two icons overlap.
@@ -607,6 +636,22 @@ const APPLIED_BY_CAST = ((): Map<number, string> => {
  * the press stream cannot say which enemy a given Rising Sun Kick landed on, so putting every press
  * on all six rows would claim each one hit every add; on an add pull the button keeps its own lane
  * and the debuff rows stay bars. On a single-target pull there is one lane and no doubt about it.
+ *
+ * A merged row then answers to the aura's ordering and never to the press's tier, which is the one
+ * rule that keeps it from having two places to be. It has a foot in both systems — it is a cast lane
+ * and an aura lane at once — and the tiebreak goes to the aura for a reason that is about what the
+ * row *shows*: what is drawn across its whole width is a window, and a window is only worth anything
+ * read against the other windows. Sorting it by the button instead would scatter the aura rows by
+ * something the reader cannot see on them, and would break `LANE_ORDER`'s sequence the moment a
+ * listed aura's button turned out not to be damaging — which is both brews.
+ *
+ * Both directions of that are visible on the reference pulls and both are wanted. Tigereye Brew and
+ * Energizing Brew are pressed off the global and do no damage at all, so a tier sort would sink them
+ * to the foot of the chart, away from the Re-Origination row the whole snapshot argument is read
+ * against; they stay pinned under melee because their keys are listed. Tiger Palm is the opposite —
+ * a damaging press whose Tiger Power is unlisted — and its row travels down to the tier boundary
+ * with the block it belongs to, landing directly under the damaging lanes rather than among them.
+ * That is one row's worth of movement for the button and it buys the aura rows staying one list.
  */
 function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
 	const lanesPerKey = new Map<string, number>();
@@ -664,6 +709,99 @@ function barNodesOf(lane: AuraLane, span: number, notes: Map<number, number> | n
 			)}
 		</span>
 	));
+}
+
+/** One stretch the counter held a level, which is the shape a step series has to be drawn as. */
+interface ChargeStep {
+	start: number;
+	end: number;
+	stacks: number;
+}
+
+/**
+ * A counter's readings turned into the stretches it actually held.
+ *
+ * Emitted on *change* rather than one per reading, which is not a saving but a correctness rule: the
+ * client stamps a `refreshbuff` beside every stack event, so the readings arrive in pairs holding the
+ * same number and a block per reading would draw a hairline seam through every charge. A level is one
+ * block from the moment it was reached to the moment something else was.
+ *
+ * A level of zero draws nothing. That is the counter being empty, and an empty counter is the absence
+ * of a block rather than a block of no height — which is also what keeps the stretch between one
+ * cycle's discharge and the next application honestly blank.
+ */
+function stepsOf(points: readonly (readonly [number, number])[], span: number): ChargeStep[] {
+	const out: ChargeStep[] = [];
+	let start: number | null = null;
+	let level = 0;
+	for (const [at, stacks] of points) {
+		if (stacks === level) continue;
+		if (level > 0 && start !== null && at > start) out.push({ start, end: at, stacks: level });
+		start = at;
+		level = stacks;
+	}
+	// A counter still holding something when the pull ended runs to the end of it. The log stops; the
+	// charge did not, and truncating it at the last event would draw a discharge nobody got.
+	if (level > 0 && start !== null && span > start) out.push({ start, end: span, stacks: level });
+	return out;
+}
+
+/**
+ * A stacking lane, drawn as its charge — and the discharges that emptied it, marked.
+ *
+ * This replaces the plain bars rather than sitting on top of them, because the plain bar was the
+ * problem: Capacitance is up for most of a pull and a solid row saying so is a row that says nothing.
+ * The window is still there — a block's left edge is the application and its right edge the removal —
+ * and the height is what the bar was throwing away.
+ *
+ * Height, and not colour, and not a printed number. Colour on this chart means which category a row
+ * belongs to and nothing else, so five shades of the proc violet would be five claims the palette is
+ * not making. A number per block was the brew bar's answer and is wrong here for a different reason:
+ * a brew is one number per window and a charge is four inside one, so the digits would collide at
+ * every zoom step below the widest. A meter fills, which is what a charge does.
+ *
+ * The discharge is a mark and not a block, because it is an instant and it is not part of the
+ * counter: the payoff lands after the aura has already come off. `ink` rather than a mechanic colour
+ * for exactly the reason the swatches exist — a tick in the proc's own violet, on top of blocks in
+ * the proc's own violet, is invisible, while a neutral one reads as a mark rather than as a category.
+ */
+function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
+	const max = Math.max(1, stacks.max);
+	return [
+		...stepsOf(stacks.points, span).map((step) => (
+			<span
+				key={`c${step.start}`}
+				title={`${lane.name} · ${fmt(step.start)} → ${fmt(step.end)}`}
+				data-tip={lane.name}
+				data-tip-tone={GROUP_TONE[lane.group]}
+				data-tip-charges={`${step.stacks}/${stacks.max}`}
+				data-tip-from={fmt(step.start)}
+				data-tip-to={fmt(step.end)}
+				style={{
+					left: pct(step.start, span),
+					width: pct(Math.max(step.end - step.start, 0), span),
+					height: `${(step.stacks / max) * 100}%`,
+				}}
+				// Anchored to the bottom of the row so the blocks grow upwards: a meter read against the
+				// rule under the lane, which is the line every other bar on this chart sits on.
+				className={`absolute bottom-0 min-w-[2px] rounded-t-[2px] ${GROUP_SWATCH[lane.group]}`}
+			/>
+		)),
+		...stacks.discharges.map((hit) => (
+			<span
+				key={`d${hit.t}`}
+				title={`${stacks.payoff} · ${fmt(hit.t)} · ${n(hit.amount)}`}
+				data-tip={stacks.payoff}
+				data-tip-tone="ink"
+				// `landed` and not `at`: `at` is labelled "Pressed", and nobody pressed this — it is what
+				// the gem did on its own once the counter filled.
+				data-tip-landed={fmt(hit.t)}
+				data-tip-hit={n(hit.amount)}
+				style={{ left: pct(hit.t, span) }}
+				className="absolute inset-y-0 w-[2px] -translate-x-px rounded-[1px] bg-ink"
+			/>
+		)),
+	];
 }
 
 /**
@@ -814,7 +952,16 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const pressed = useMemo(() => mergeRows(castNodes, lanes), [castNodes, lanes]);
 	const laneRows = useMemo(
 		() =>
-			lanes.map((lane) => ({ lane, bars: barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null) })),
+			lanes.map((lane) => ({
+				lane,
+				// A lane the engine handed a counter is drawn as that counter instead of as a window. The
+				// choice is the engine's, not this component's: a lane has a counter when the log actually
+				// counted one, which is a question about events and not about how a row should look.
+				bars:
+					lane.stacks === undefined
+						? barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null)
+						: chargeNodesOf(lane, lane.stacks, span),
+			})),
 		[lanes, span, brewSpend],
 	);
 	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
@@ -896,11 +1043,20 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// A death has a fourth thing to say — what landed the blow — and it is the one mark on the
 				// chart that names another actor's spell rather than one of the player's own.
 				const by = mark.getAttribute('data-tip-by');
+				// A counter's block says how full it was; the discharge that emptied it says when it landed
+				// and what it hit for. `landed` rather than `at`, because `at` is labelled "Pressed" and a
+				// gem firing on its own is the one mark here nobody pressed.
+				const charges = mark.getAttribute('data-tip-charges');
+				const landed = mark.getAttribute('data-tip-landed');
+				const hit = mark.getAttribute('data-tip-hit');
 				if (at !== null)
 					rows.push([t(mark.hasAttribute('data-tip-auto') ? 'castLog.tip.swing' : 'castLog.tip.at'), at]);
+				if (landed !== null) rows.push([t('castLog.tip.landed'), landed]);
+				if (charges !== null) rows.push([t('castLog.tip.charges'), charges]);
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
 				if (by !== null) rows.push([t('castLog.tip.by'), by]);
+				if (hit !== null) rows.push([t('castLog.tip.hit'), hit]);
 				node.innerHTML = tip(theme, {
 					title: mark.getAttribute('data-tip') ?? '',
 					tone: (mark.getAttribute('data-tip-tone') ?? GROUP_TONE.casts) as keyof ChartTheme,
@@ -975,12 +1131,13 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		);
 
 	/**
-	 * The two blocks of rows, in the order the chart reads: the player's own, then the enemies'.
+	 * The blocks of rows, in the order the chart reads: the player's own, then the enemies'.
 	 *
-	 * Split rather than merely sorted, because the cast lanes are drawn between them — the loose
-	 * presses that follow melee sit below the aura rows, and they are the player's rows too. Sorting
-	 * alone would have left the per-enemy block above them, which is exactly the interleaving the rule
-	 * exists to stop.
+	 * Split rather than merely sorted, because the cast lanes are drawn *between* them — in three runs
+	 * now, since the aura rows land in two places rather than one and each of them is a seam the
+	 * presses are threaded through. Sorting alone could never produce that: the loose presses below the
+	 * aura rows are the player's rows as much as the buffs are, and a single sort would have left the
+	 * per-enemy block above them, which is exactly the interleaving the rule exists to stop.
 	 *
 	 * A heading goes above each enemy's rows: the label in the gutter and the same row spent on nothing
 	 * in the track, because the two columns are separate elements that line up only by agreeing on a
@@ -1005,7 +1162,20 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const headTargets = grouping === 'auto' ? targetIDs.size > 1 : grouping === 'on';
 	const targetLabel = (target: LaneTarget): string => target.name ?? t('castLog.target.unnamed', { id: target.id });
 
-	const auraBlocks: Block[] = auraRows.map((row) => ({ key: row.lane.key, row }));
+	/**
+	 * The aura rows, as the two blocks they are drawn in — `meleeBlock` is the whole of the division.
+	 *
+	 * Two filters over one already-sorted list rather than two sorts, so both blocks keep the order
+	 * `laneRank` gave them and neither can disagree with it. The pinned block is a prefix of that list
+	 * by construction, because a listed key outranks every unlisted one; the split is therefore a cut
+	 * and not a reshuffle, and a lane cannot change its neighbours by changing its block.
+	 */
+	const pinnedBlocks: Block[] = auraRows
+		.filter(({ lane }) => meleeBlock(lane))
+		.map((row) => ({ key: row.lane.key, row }));
+	const looseBlocks: Block[] = auraRows
+		.filter(({ lane }) => !meleeBlock(lane))
+		.map((row) => ({ key: row.lane.key, row }));
 	const targetBlocks: Block[] = [];
 	let heading: number | null = null;
 	for (const row of targetRows) {
@@ -1036,12 +1206,20 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const collapsed = grouping === 'off' && targetLanes.filter(({ target }) => shownTargets.has(target.id)).length > 1;
 
 	/**
-	 * The auras go directly under the melee lane, not after every ability.
+	 * The priority auras go directly under the melee lane, not after every ability, and melee itself
+	 * does not move to accommodate them.
 	 *
 	 * Melee is the pull's metronome — it swings throughout, whatever else is happening — so a buff
 	 * window read against it is read against a continuous line rather than against a lane with holes
-	 * in it. Putting the auras below twenty ability lanes instead left the two things being compared
+	 * in it. Putting those auras below twenty ability lanes instead left the two things being compared
 	 * a screen apart.
+	 *
+	 * It buys that adjacency for five rows and it is only worth the price for five. The claim is about
+	 * *these* windows — the sequence `LANE_ORDER` names — and the price is that everything drawn
+	 * between melee and them is pushed down a screen; paying it again for every item proc a character
+	 * happens to be wearing would put a stack of trinket bars above the rotation the reader came to
+	 * read. So the unlisted rows are drawn at the tier boundary instead, which is far enough down to
+	 * be out of the rotation's way and close enough to the damage to still be read against it.
 	 */
 	// One definition per column, used by the block above the auras and the block below it — the two
 	// have to be identical or a lane would change height depending on where it sat.
@@ -1158,12 +1336,57 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		undrawnTargets > 0 && shown.debuff ? t('castLog.hiddenTargets', { count: undrawnTargets }) : null,
 		intermissions.length > 0 ? t('castLog.intermission.note') : null,
 		deaths.length > 0 ? t('castLog.death.note') : null,
+		// A row drawn as a meter instead of a bar is a different convention from every other row, and one
+		// whose meter never fills needs saying out loud — otherwise the missing fifth charge reads as a
+		// gap in the chart rather than as the discharge it actually is. Conditional on the row being on,
+		// like the two above it: with the procs hidden this describes a row that is not on the screen.
+		charged !== undefined && shown[charged.lane.group]
+			? t('castLog.charge.note', {
+					aura: charged.lane.name,
+					max: charged.lane.stacks?.max ?? 0,
+					payoff: charged.lane.stacks?.payoff ?? '',
+				})
+			: null,
 	].filter((note): note is string => note !== null);
 
-	// Only the lanes that kept a row of their own: the rest are drawn on the aura they apply, below.
+	/**
+	 * The press lanes cut into the three runs the two aura blocks leave between them.
+	 *
+	 * Only the lanes that kept a row of their own — the rest are drawn on the aura they apply, in
+	 * whichever block that aura sits in.
+	 *
+	 * `pressed.loose` arrives in one order and it is not re-sorted here: `castLanesOf` already sorted
+	 * it by tier and then by press count, so both cuts below are slices of that one list and a lane
+	 * cannot change its neighbours by landing in a different run. The first cut is melee, wherever
+	 * press count put it — it keeps its place in the damaging tier and the pinned auras come to it,
+	 * not the other way round. The second is the tier boundary: the last damaging lane and the first
+	 * of the kit, which is where the ask puts the rest of the auras.
+	 *
+	 * `filter` on the tier rather than a second index, because the run after melee is only a prefix of
+	 * tier 0 followed by the rest if the sort holds, and reading the tier back off each lane says what
+	 * is meant without depending on that. It is a lookup in a `Set` per lane and there are twenty.
+	 *
+	 * With no melee lane at all — a hand-built fixture, a log with no swings — `slice(0, 0)` leaves
+	 * the first run empty and every press falls into the two below, which is the honest answer: there
+	 * is no metronome to pin anything under. Where the pinned block goes then is settled below.
+	 */
 	const meleeAt = pressed.loose.findIndex(({ lane }) => lane.id === MELEE_ID);
-	const castsAbove = meleeAt === -1 ? pressed.loose : pressed.loose.slice(0, meleeAt + 1);
-	const castsBelow = meleeAt === -1 ? [] : pressed.loose.slice(meleeAt + 1);
+	const afterMelee = pressed.loose.slice(meleeAt + 1);
+	const castsAbove = pressed.loose.slice(0, meleeAt + 1);
+	const castsMid = afterMelee.filter(({ lane }) => tierOf(lane.name, damaging) === 0);
+	const castsBelow = afterMelee.filter(({ lane }) => tierOf(lane.name, damaging) !== 0);
+	/**
+	 * Where the pinned block actually lands, and what happens when there is nothing to pin it to.
+	 *
+	 * Sitting under melee is the entire claim those five rows make, so on a pull with no melee lane
+	 * the claim has no referent and the block falls to the tier boundary beside the rest rather than
+	 * to the top of a chart it was never promised. Two blocks drawn in one place are one block, and
+	 * `laneRank` has already ordered it end to end — so that case renders exactly the single aura
+	 * block this chart drew before the split, which is what makes it a fallback and not a third
+	 * layout to keep in step.
+	 */
+	const underMelee = meleeAt === -1 ? [] : pinnedBlocks;
+	const atBoundary = meleeAt === -1 ? [...pinnedBlocks, ...looseBlocks] : looseBlocks;
 	const trackPx = Math.max(320, (span / 1000) * pxPerSec);
 
 	return (
@@ -1311,8 +1534,15 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							<span className="font-mono text-xs text-muted tabular-nums">{brewBank.max}</span>
 						</div>
 					)}
+					{/* The player's own rows, in the five runs the two seams cut them into: the damage down to
+					    melee, the auras pinned under it, the rest of the damage, the auras nobody pinned, and
+					    then the kit and everything the fight asked for. The same five in the same order on the
+					    track below — the columns line up by drawing the identical sequence and by nothing
+					    else. */}
 					{showCasts ? castsAbove.map(({ lane }) => castLabel(lane)) : null}
-					{auraBlocks.map(laneLabel)}
+					{underMelee.map(laneLabel)}
+					{showCasts ? castsMid.map(({ lane }) => castLabel(lane)) : null}
+					{atBoundary.map(laneLabel)}
 					{showCasts ? castsBelow.map(({ lane }) => castLabel(lane)) : null}
 					{/* Last, and by rule rather than by accident — see `perTargetBlock`. Below the player's own
 					    rows on both columns, so the two keep agreeing about which row is which. */}
@@ -1448,8 +1678,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								/>
 							</div>
 						)}
+						{/* The same five runs the gutter draws, in the same order. */}
 						{showCasts ? castsAbove.map(castTrack) : null}
-						{auraBlocks.map(laneTrack)}
+						{underMelee.map(laneTrack)}
+						{showCasts ? castsMid.map(castTrack) : null}
+						{atBoundary.map(laneTrack)}
 						{showCasts ? castsBelow.map(castTrack) : null}
 						{targetBlocks.map(laneTrack)}
 						<div className="relative" style={{ height: AXIS_PX }}>

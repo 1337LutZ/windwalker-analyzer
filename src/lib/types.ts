@@ -220,6 +220,41 @@ export interface AuraLane {
 	 * only by target, which is why the chart composes its React key from both.
 	 */
 	target?: LaneTarget;
+	/**
+	 * The counter behind the window, when the aura stacks and the log actually counted it.
+	 *
+	 * Absent on every plain on-or-off aura, and absent on any analysis captured before this existed —
+	 * so read it for truthiness. A lane that has it is drawn as its charge rather than as a bar.
+	 */
+	stacks?: LaneStacks;
+}
+
+/**
+ * A stacking aura's charge over the pull, and what spending it paid for.
+ *
+ * Split out of `AuraLane` because a lane that carries one is a different drawing, not a bar with an
+ * extra field: the window is the *cycle* and the number inside it is the point.
+ */
+export interface LaneStacks {
+	/**
+	 * `[t, n]` after every event that moved the counter, `n` being the charge the log stamped.
+	 *
+	 * A step series, not samples: a charge holds its level until the next reading, so a slope between
+	 * two entries would draw a fraction of a charge nobody ever had.
+	 */
+	points: Array<[number, number]>;
+	/** The ceiling the aura stacks to, from the game model rather than from this pull's peak. */
+	max: number;
+	/** What reaching the ceiling paid out, by the name of the spell that landed it. */
+	payoff: string;
+	/**
+	 * Every payoff on the clock, with what it hit for.
+	 *
+	 * These are damage events and not an inference off the counter: the discharge is a thing the log
+	 * recorded, and joining it to the moment the charge emptied would be a claim about a gap the log
+	 * does not explain.
+	 */
+	discharges: Array<{ t: number; amount: number }>;
 }
 
 /**
@@ -507,34 +542,87 @@ export interface DebuffSummary {
 	/** The debuff on the primary target: the window model the timeline draws and the drops are read from. */
 	uptimeMs: number;
 	uptimePct: number;
+	/**
+	 * The **primary target's** clock: the union of `engagedSegments`, and not what this section grades.
+	 *
+	 * What still reads it: the chart's out-of-reach track, which is this array's complement, and the
+	 * energy audit, which splits its bar on the same windows for a reason of its own — a bar that filled
+	 * while the boss was gone is the fight's doing. Every fraction the debuff section prints is against
+	 * `contactMs` below. Keeping both is deliberate; merging them is how the section came to measure a
+	 * numerator that follows the player against a denominator that follows the boss.
+	 */
 	engagedMs: number;
 	/**
-	 * The graded figure: how much of engaged time the debuff was up **on the enemy being hit**.
+	 * The clock this section measures against: the union of `contactSegments`, when the player was in
+	 * contact with **anything**.
 	 *
-	 * Not the primary target's uptime, which is what this used to be and what every other field here
-	 * still is. At each moment the enemy in question is the one the player's most recent landed hit was
-	 * on, and the question is asked of that enemy's own debuff windows — the reader's own rule, that
-	 * uptime counts as long as there is no downtime and a target in melee range.
+	 * On the Galakras kill in `a:6MhZgjyAknFWrYfK` the boss is reachable for 66.6 seconds of a 434-second
+	 * pull, so `engagedMs` described 15% of the fight and the section reported 97.5% uptime for a player
+	 * who spent 317 seconds fighting. Against this the same pull reads 80.7%, and the cast ceiling goes
+	 * from 8 kicks to 39 against the 38 they actually made.
+	 *
+	 * Optional because the committed fixtures are `analyse()` output captured before it existed — read it
+	 * for truthiness and fall back to `engagedMs`, which is what those fixtures were graded on.
+	 */
+	contactMs?: number;
+	/**
+	 * The graded figure: how much of contact time the debuff was up **on the enemy being hit**.
+	 *
+	 * Not the primary target's uptime, which is what this used to be and what `uptimeMs`, `uptimePct`,
+	 * `drops` and `intermissionSec` still are. At each moment the enemy in question is the one the
+	 * player's most recent landed hit was on, and the question is asked of that enemy's own debuff
+	 * windows — the reader's own rule, that uptime counts as long as there is no downtime and a target in
+	 * melee range.
 	 *
 	 * The difference is not a rounding one. On a real 33-enemy pull the primary-only reading was 20.5%
-	 * of engaged time and this one is 69.1%; the pull was not 20% covered, it was a player kicking adds
-	 * that were carrying the debuff while a metric watched one enemy they had left. Measured against
-	 * engaged time still, so intermissions and phases with nothing to hit remain excluded.
+	 * and this one is 69.1%; the pull was not 20% covered, it was a player kicking adds that were
+	 * carrying the debuff while a metric watched one enemy they had left. Its denominator moved with it:
+	 * measuring the same numerator against the boss's clock is the same fault one level up, and read 97.5%
+	 * on a Galakras pull that is 80.7%. The name is now a half-truth — this is contact time, not the
+	 * `engagedMs` above — and it stays only because renaming it would strand the committed fixtures. It
+	 * should become `contactUptimePct` in the same commit that re-captures them.
 	 */
 	engagedUptimePct: number;
+	/**
+	 * That figure's remainder: contact seconds whose enemy was **not** carrying the debuff.
+	 *
+	 * `engagedUptimePct + secondsLost / contactMs` is 100% by construction — it is one measurement split
+	 * in two, which is the whole point of it. It used to be the primary target's dropped time, and the
+	 * section printed the two beside each other as though they answered the same question: on a two-boss
+	 * pull that read 1.4s lost next to 59% uptime, a tile claiming a fight was all but perfect against an
+	 * uptime saying it was nothing of the sort.
+	 *
+	 * So it is *not* the sum of `drops` below and must not be presented as one. Those are the primary
+	 * target's own gaps and are a shorter list than this number is made of.
+	 */
 	secondsLost: number;
+	/**
+	 * The longest gap between the primary target's debuff windows, read as the pull's intermission.
+	 *
+	 * A heuristic, and only ever load-bearing for one thing: it is the gap `drops` leaves out, on the
+	 * theory that an untargetable phase is not a drop anybody caused. It is not what keeps intermissions
+	 * out of `engagedUptimePct` — `contactSegments` does that, from the player's own damage — so copy
+	 * quoting this must say it is about the drop list and about that one enemy. On a two-boss fight it
+	 * measures the stretch spent on the other boss and calls it an intermission.
+	 */
 	intermissionSec: number;
+	/** The primary target's own gaps, longest one excluded: what the timeline plots and the ledger lists. */
 	drops: Array<{ at: number; seconds: number }>;
 	windows: Window[];
+	/** The primary target's windows, summed as `engagedMs`. The chart's out-of-reach track is their complement. */
 	engagedSegments: Array<[number, number]>;
 	/**
 	 * When the player was in contact with any enemy, not only the graded one.
 	 *
-	 * The wider of the two, and the one a chart should shade against. `engagedSegments` is scoped to the
-	 * primary target so that Rising Sun Kick's uptime means something; its complement is therefore "you
-	 * were not on the boss", which on an add fight is most of the pull and is not downtime. Optional
-	 * because the committed fixtures predate it — read it for truthiness and fall back to the narrower
-	 * one rather than to nothing.
+	 * The wider of the two, summed as `contactMs`, and the one a chart should shade against.
+	 * `engagedSegments` is scoped to the primary target, so its complement is "you were not on the boss",
+	 * which on an add fight is most of the pull and is not downtime. Optional because the committed
+	 * fixtures predate it — read it for truthiness and fall back to the narrower one rather than to
+	 * nothing.
+	 *
+	 * These are also the windows Rising Sun Kick is measured against: uptime, the time without it, and
+	 * the cast ceiling are all fractions of this one clock, so they cannot disagree about which fight
+	 * they are describing.
 	 */
 	contactSegments?: Array<[number, number]>;
 	/** Percentage of the player's damage that landed on the primary target. */
@@ -826,10 +914,13 @@ export interface FillerAudit {
 /**
  * Touch of Karma: a defensive that returns damage, so an unused charge is damage not done.
  *
- * There is no cap here on purpose. What it redirects is a share of maximum health, and MoP Classic
- * logs carry neither `combatantInfo` nor `maxHitPoints` on any event — so the report can say what a
- * use returned and how many uses the pull allowed, and must not claim what a use *could* have
- * returned.
+ * The cap *is* claimed here now, and only on a pull that measured it. What the redirect absorbs
+ * cannot exceed a full health pool, so a use that drained its pool states one outright — see
+ * `karmaCap` in `spec/windwalker` for the game-database citation and the measurement. A pull where
+ * no use drained one says "cannot say" instead: no pool is ever derived from a player's health bar,
+ * because on these logs that bar is a percentage — `maxHitPoints` is 100 on every player-describing
+ * event, while NPCs in the same report carry absolute values — and the estimate it yields is only
+ * good to about ±10%.
  */
 export interface KarmaAudit {
 	casts: number;
@@ -837,10 +928,27 @@ export interface KarmaAudit {
 	available: number;
 	/** Total damage redirected onto the target. */
 	reflected: number;
+	/**
+	 * Total damage the redirect *absorbed*, which is the quantity the cap constrains.
+	 *
+	 * Not interchangeable with `reflected`: the redirect deals a twentieth more than it took, so this
+	 * is the only one of the two a health pool divides. Optional because the committed fixtures are
+	 * captured `analyse()` output from before it existed and are cast to `Analysis` rather than
+	 * migrated — absent means "analysed by an older build", never zero.
+	 */
+	absorbed?: number;
 	/** Share of the player's whole damage that came from the redirect. */
 	sharePct: number;
-	/** A full health pool per use, from the settings — null until the reader supplies one. */
+	/**
+	 * The health pool, measured from a use that drained it — null when no use on the pull did.
+	 *
+	 * This used to come from the settings, and asking was never necessary: an exhausted use absorbs
+	 * exactly one pool. The setting is gone, so a stored `maxHealth` from an older build is now an
+	 * unknown key that `normaliseSettings` drops.
+	 */
 	capPerUse: number | null;
+	/** Uses that reached their ceiling. Absent on a fixture captured before it was measured. */
+	exhausted?: number;
 	/**
 	 * Uses that overlapped Fortifying Brew, which is *not* a damage bonus — see the engine.
 	 *
@@ -851,7 +959,16 @@ export interface KarmaAudit {
 	uses: Array<{
 		t: number;
 		reflected: number;
+		/** What this use absorbed. Absent on a fixture, for the same reason the total above is. */
+		absorbed?: number;
 		hits: number;
+		/**
+		 * This use drained its pool, so it returned everything it was worth.
+		 *
+		 * The actionable half of the section, and the half that needs no pool: a use that drained one
+		 * cannot be faulted, whatever the number beside it. Absent on a fixture, never `false`.
+		 */
+		exhausted?: boolean;
 		/** Share of the per-use ceiling this one returned, or null when no ceiling is known. */
 		capPct: number | null;
 		/** Fortifying Brew was running for part of the redirect. Absent on a fixture, never null. */
@@ -917,6 +1034,28 @@ export interface XuenAudit {
  * presses were spent well is `overlapMs`: the time the player spent hitting an enemy one of their own
  * spirits was already on, which is the one way the cooldown is wasted after it goes out.
  */
+/** One enemy of the pull, and when a Storm, Earth and Fire spirit was standing on it. */
+export interface SefTargetLane {
+	id: number;
+	/** Null when the report's actor list cannot name this id. Never guessed from a neighbour. */
+	name: string | null;
+	/**
+	 * Stretches a spirit was demonstrably on this enemy. Empty is a real answer — the player engaged it
+	 * and no spirit ever went there — so the lane is still drawn rather than dropped.
+	 */
+	windows: Window[];
+	heldMs: number;
+	heldPct: number;
+	/**
+	 * First to last damage the player's side landed on this enemy.
+	 *
+	 * The measurable stand-in for "how long it stood in front of the player". Enemy deaths are *not* in
+	 * the fetched stream — a `sourceID` filter returns a death only when the player is the victim — so
+	 * nothing here claims an enemy died, only that contact with it started and stopped.
+	 */
+	engagedMs: number;
+}
+
 export interface SefAudit {
 	casts: number;
 	/**
@@ -964,6 +1103,31 @@ export interface SefAudit {
 	justifiedMs: number;
 	/** The longest stretch with two or more enemies, whether or not it cleared the rule. */
 	longestSecondTargetMs: number;
+	/**
+	 * Time both spirits were out at once.
+	 *
+	 * Readable only because the aura is followed as a stack *level* rather than as apply→remove pairs:
+	 * a second spirit arrives as `applybuffstack stack: 2` carrying no second apply, so a pair model
+	 * cannot see it at all. Zero on a pull that only ever had one out — a measurement, not an absence.
+	 */
+	doubledMs?: number;
+	/**
+	 * One lane per enemy: when a spirit of the player's was standing on it, and for how long.
+	 *
+	 * Read from the **spirits' own single-target swings**, never from the press's target. A cast names
+	 * where a spirit was sent and stops being true the moment it moves — a spirit is recalled when its
+	 * enemy dies and can be re-sent — so keying these to the press draws a spirit on an enemy it left.
+	 * Ordered with the enemies a spirit actually held first.
+	 *
+	 * Absent on an analysis captured before this chart existed, so read it for truthiness.
+	 */
+	targets?: SefTargetLane[];
+	/** Enemies past the lane cap. Printed rather than truncated in silence. */
+	hiddenTargets?: number;
+	/** Enemies dropped for an engaged span no longer than `secondTargetMs`. Also printed. */
+	shortLivedTargets?: number;
+	/** False when the spirits left no actor to follow, so the lanes say nothing rather than nothing-happened. */
+	targetsResolved?: boolean;
 }
 
 export interface Miss {
@@ -1069,7 +1233,16 @@ export interface Analysis {
 	/** False when the player never cast the spec's signature ability; the UI must refuse to render. */
 	isSpec: boolean;
 	specName: string;
-	primaryTarget: { id: number | undefined; gameID: number | null };
+	/**
+	 * The enemy every primary-scoped number in the report is about.
+	 *
+	 * `name` is what the copy needs and the report's actor list is the only thing that can supply it:
+	 * "the boss" is enough on a pull with one, and says nothing on the Kor'kron Dark Shaman, where the
+	 * primary is whichever of the two this player spent the pull on. Null when the list cannot answer —
+	 * naming the wrong enemy is worse than naming none — and `undefined` on the committed fixtures,
+	 * which are `analyse()` output captured before the field existed.
+	 */
+	primaryTarget: { id: number | undefined; gameID: number | null; name?: string | null };
 	damage: {
 		wclTotal: number | null;
 		eventTotal: number;

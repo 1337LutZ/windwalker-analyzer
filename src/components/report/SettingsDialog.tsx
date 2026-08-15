@@ -5,22 +5,13 @@ import { useTranslation } from 'react-i18next';
 
 import type { SettingsState } from '~/hooks/useSettings';
 import type { AnalysisSettings } from '~/lib/settings';
-import {
-	MAX_HEALTH,
-	SNAPSHOT_LEEWAY,
-	TIGER_PALM_REFRESH,
-	clampHealth,
-	clampLeeway,
-	clampRefreshWindow,
-	isDefault,
-} from '~/lib/settings';
+import { SNAPSHOT_LEEWAY, TIGER_PALM_REFRESH, clampLeeway, clampRefreshWindow, isDefault } from '~/lib/settings';
 
 import { buttonClass, fieldClass, labelClass, primaryButtonClass } from '../primitives/controls';
 
 interface Values {
 	snapshotLeewayMs: number | string;
 	tigerPalmRefreshMs: number | string;
-	maxHealth: number | string;
 }
 
 /**
@@ -38,8 +29,6 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 	const hintID = useId();
 	const refreshID = useId();
 	const refreshHintID = useId();
-	const healthID = useId();
-	const healthHintID = useId();
 
 	const {
 		register,
@@ -49,8 +38,6 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 		values: {
 			snapshotLeewayMs: settings.snapshotLeewayMs,
 			tigerPalmRefreshMs: settings.tigerPalmRefreshMs,
-			// Empty rather than 0: the field being blank is what "I have not said" looks like.
-			maxHealth: settings.maxHealth ?? '',
 		},
 	});
 
@@ -58,14 +45,12 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 		const next: AnalysisSettings = {
 			snapshotLeewayMs: clampLeeway(values.snapshotLeewayMs),
 			tigerPalmRefreshMs: clampRefreshWindow(values.tigerPalmRefreshMs),
-			maxHealth: clampHealth(values.maxHealth),
 		};
 		save(next);
 		// Re-seed from the clamped values, so a refused entry does not sit in the field looking accepted.
 		resetForm({
 			snapshotLeewayMs: next.snapshotLeewayMs,
 			tigerPalmRefreshMs: next.tigerPalmRefreshMs,
-			maxHealth: next.maxHealth ?? '',
 		});
 	});
 
@@ -145,27 +130,6 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 							</p>
 						</div>
 
-						<div className="flex flex-col gap-2">
-							<label className={labelClass} htmlFor={healthID}>
-								{t('settings.health.label')}
-							</label>
-							<input
-								id={healthID}
-								type="number"
-								inputMode="numeric"
-								min={MAX_HEALTH.min}
-								max={MAX_HEALTH.max}
-								step={MAX_HEALTH.step}
-								placeholder={t('settings.health.placeholder')}
-								aria-describedby={healthHintID}
-								className={`${fieldClass} max-w-[14rem]`}
-								{...register('maxHealth')}
-							/>
-							<p id={healthHintID} className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">
-								{t('settings.health.hint')}
-							</p>
-						</div>
-
 						<p className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">{t('settings.storage')}</p>
 
 						<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -177,7 +141,6 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 									resetForm({
 										snapshotLeewayMs: SNAPSHOT_LEEWAY.default,
 										tigerPalmRefreshMs: TIGER_PALM_REFRESH.default,
-										maxHealth: '',
 									});
 								}}
 								disabled={isDefault(settings)}
