@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatCompact, formatInteger, formatPercentValue } from '~/lib/format';
+import { defensiveUseTone } from '~/lib/score/waste';
 import type { Analysis } from '~/lib/types';
 
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '../primitives';
@@ -96,22 +97,36 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
-							{/* Uses taken over uses the cooldown allowed, and pointedly ungraded: how many charges
-							    a fight offers something to redirect is the encounter's business, so a colour here
-							    would fault a player for holding a defensive through a quiet phase. */}
-							<StatTile value={`${karma.casts}`} suffix={`/${karma.available}`} label={t('karma.kpi.uses')} />
+							{/* Uses taken over uses the cooldown allowed, on `defensiveUseTone`'s deliberately wide
+							    bands rather than `usageTone`'s — see the note there. A tone and not a graded metric:
+							    how many charges a fight offers something to redirect is the encounter's business, so
+							    this hints at the size of the number and `lib/score` never counts it. */}
+							<StatTile
+								value={`${karma.casts}`}
+								suffix={`/${karma.available}`}
+								label={t('karma.kpi.uses')}
+								grade={defensiveUseTone(karma.casts, karma.available)}
+							/>
 							<StatTile value={formatCompact(karma.reflected)} label={t('karma.kpi.reflected')} />
 							<StatTile
 								value={formatCompact(karma.casts > 0 ? karma.reflected / karma.casts : 0)}
 								label={t('karma.kpi.perUse')}
 							/>
-							{/* Its own tile rather than a colour on the damage total, which is the tile it would
+							{/* Counts the presses that *landed*, not the ones that did not, while taking its colour
+							    from the empty-press metric — the two are complements, so the grade is identical.
+
+							    It was the other way round and read "0/2 Returned nothing" in green, which is the one
+							    thing a tile must never do: a label naming a fault, a zero that could be the good half
+							    or the bad half, and a colour contradicting both. Stating the good half puts the
+							    number, the label and the colour in agreement.
+
+							    A tile of its own rather than a colour on the damage total, which is what it would
 							    otherwise have to borrow: 845k returned is not a bad number, and painting it red
 							    because one *other* press landed on nothing states a verdict about the wrong figure. */}
 							<StatTile
-								value={`${emptyPresses}`}
+								value={`${karma.casts - emptyPresses}`}
 								suffix={`/${karma.casts}`}
-								label={t('karma.kpi.empty')}
+								label={t('karma.kpi.landed')}
 								grade={empties && !empties.unmeasurable ? empties.grade : null}
 							/>
 							{/* Only on a pull that measured its own ceiling. Everywhere else this figure would be

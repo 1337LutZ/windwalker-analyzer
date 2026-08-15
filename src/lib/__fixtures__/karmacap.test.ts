@@ -52,6 +52,36 @@ const PULLS = [
 	},
 ];
 
+/**
+ * The two Kor'kron Dark Shaman pulls, where no use drained its pool and the ceiling is unknowable.
+ *
+ * Neither is in the fixtures, and the shape is the one most likely to break what the three above
+ * established: two bosses, adds, and a damage profile nothing like a single-target kill. What it
+ * actually breaks is nothing — the absorbs pair cleanly, the two foreign shields on the first pull
+ * (Divine Aegis and Illuminated Healing) stay out of the reading, and every absorb covers its blow
+ * in full. So the honest answer is that these pulls cannot say, and that is what is pinned here.
+ */
+const NO_CEILING = [
+	{
+		code: 'a:6MhZgjyAknFWrYfK',
+		fightID: 16,
+		playerName: 'Player (17)',
+		absorbed: [0, 729_000],
+		reflected: [0, 765_451],
+		available: 3,
+		empty: 1,
+	},
+	{
+		code: 'a:YBQzrcgVJnAj7NMP',
+		fightID: 15,
+		playerName: 'Player (10)',
+		absorbed: [189_430, 702_578],
+		reflected: [198_901, 737_707],
+		available: 3,
+		empty: 0,
+	},
+];
+
 describe.skipIf(token === '')('Touch of Karma cap', () => {
 	for (const pull of PULLS) {
 		it(`measures the pool from ${pull.code.slice(2, 8)} #${pull.fightID}`, { timeout: 180_000 }, async () => {
@@ -78,6 +108,39 @@ describe.skipIf(token === '')('Touch of Karma cap', () => {
 				if ((use.absorbed ?? 0) === 0) continue;
 				expect(use.reflected / (use.absorbed ?? 1)).toBeCloseTo(1.05, 4);
 			}
+		});
+	}
+
+	/**
+	 * The other shape, on real data rather than on a stale fixture.
+	 *
+	 * Every pull above drained a pool at least once, and until this was checked the *only* thing
+	 * exercising the "cannot say" branch was the committed fixtures — which reach it for the wrong
+	 * reason, by predating the field. Kor'kron Dark Shaman reaches it for the right one: two bosses,
+	 * adds, and on both reports two presses that each swallowed their blow whole without ever running
+	 * out. That is genuinely no information about the ceiling, and the section has to say so rather
+	 * than take the largest absorb as a pool.
+	 *
+	 * It is also the pull the "0/2 Returned nothing, in green" report came from. The arithmetic there
+	 * was right — neither press was empty — and the tile was the thing that was wrong.
+	 */
+	for (const pull of NO_CEILING) {
+		it(`says it cannot tell on ${pull.code.slice(2, 8)} #${pull.fightID}`, { timeout: 180_000 }, async () => {
+			const dataset = await fetchFightDataset(new WclClient({ token }), pull);
+			const { karma } = analyse(dataset);
+
+			expect(karma.uses.map((use) => use.absorbed)).toEqual(pull.absorbed);
+			expect(karma.uses.map((use) => use.reflected)).toEqual(pull.reflected);
+			// Not one absorb came up short of its blow, so nothing here measures a pool.
+			expect(karma.uses.every((use) => use.exhausted === false)).toBe(true);
+			expect(karma.exhausted).toBe(0);
+			expect(karma.capPerUse).toBeNull();
+			expect(karma.uses.every((use) => use.capPct === null)).toBe(true);
+
+			// The presses are still counted and still gradable — "cannot say" is about the ceiling only.
+			expect(karma.casts).toBe(pull.absorbed.length);
+			expect(karma.available).toBe(pull.available);
+			expect(karma.uses.filter((use) => use.reflected === 0)).toHaveLength(pull.empty);
 		});
 	}
 

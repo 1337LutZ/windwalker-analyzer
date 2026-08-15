@@ -36,6 +36,8 @@ import { TEB_CAP, registry } from '~/lib/spec/windwalker';
 import { SpellIcon } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 import { spellIconUrl } from '../primitives/spellIcon';
+import { formatGap } from '~/lib/format';
+
 import { fmt, n } from '../format';
 import { jumpToHeading } from '../jump';
 import { readTheme, tip, type ChartTheme } from './apex';
@@ -43,6 +45,7 @@ import ChartEmpty from './ChartEmpty';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
 import ResourceTrack, { type ShadeWindow } from './ResourceTrack';
 import { cappedOf } from './capped';
+import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
 
 /**
@@ -69,6 +72,15 @@ const GCD_ICON_PX = 24;
 
 /** Clear air between two icons on the same row, so neighbours read as two marks rather than one. */
 const ICON_GUTTER_PX = 3;
+
+/**
+ * The icon a proc's payoff is marked with, deliberately smaller than a press.
+ *
+ * A press owns its row and fills it; a payoff shares a row with the charge that bought it, and at the
+ * full 24px it covers the blocks it is supposed to be read against. This leaves the meter visible
+ * underneath while staying big enough to recognise the spell by.
+ */
+const DISCHARGE_ICON_PX = 16;
 
 /**
  * How much two icons may overlap before they are considered to collide.
@@ -760,15 +772,43 @@ function stepsOf(points: readonly (readonly [number, number])[], span: number): 
  * a brew is one number per window and a charge is four inside one, so the digits would collide at
  * every zoom step below the widest. A meter fills, which is what a charge does.
  *
- * The discharge is a mark and not a block, because it is an instant and it is not part of the
- * counter: the payoff lands after the aura has already come off. `ink` rather than a mechanic colour
- * for exactly the reason the swatches exist — a tick in the proc's own violet, on top of blocks in
- * the proc's own violet, is invisible, while a neutral one reads as a mark rather than as a category.
+ * The discharge is the payoff's **own icon**, for the reason every press on this chart is one: a
+ * reader recognises a spell by its icon, and it is the only mark here that needs no colour to be told
+ * from the blocks around it. A neutral tick was tried first and is what a reader has to ask about.
+ * Smaller than a press, because a press owns its row and this one shares a row with the charge under
+ * it — and the icon falls back to that tick when the generated map answers for no such id, exactly as
+ * `castNodesOf` does, so a payoff without an icon is still a mark rather than a hole.
+ *
+ * Between the two goes the **wait**, drawn as the last charge block continuing in a fainter tone. The
+ * strike lands a fraction of a second *after* the counter empties — median ~260ms, tail to 2.8s — and
+ * as two separate marks that read as a counter quitting early beside a strike arriving from nowhere.
+ * The fade is a drawing and not a reading: both ends are the log's own timestamps, and neither is
+ * moved to meet the other.
+ *
+ * A discharge with no `from` gets no fade, and a fill with no discharge gets no icon. The second is a
+ * real outcome — a proc that found nobody to hit — and drawing anything for it would invent a strike
+ * the log does not have.
  */
 function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 	const max = Math.max(1, stacks.max);
+	const steps = stepsOf(stacks.points, span);
+	const url = spellIconUrl(stacks.payoffId);
+	// The payoff is a spell like any other, so the ignore table gets a say over it here as well as over
+	// the press lanes. Dropping the marks and keeping the meter is a real combination — it is what an
+	// entry for the payoff alone means — so the two are checked independently rather than together.
+	const discharges = HIDDEN_CASTS.has(stacks.payoffId) ? [] : stacks.discharges;
+	/**
+	 * The level each fill reached before it emptied, so the wait is drawn at the height of the charge
+	 * that bought it rather than at one picked here.
+	 *
+	 * Keyed on the exact timestamp and matched exactly, which is sound rather than lucky: `from` *is*
+	 * the reading that took the counter to zero, and that same reading is what closed the block before
+	 * it. A miss therefore means the two disagree, and the fade is dropped rather than guessed at.
+	 */
+	const heldAt = new Map(steps.map((step) => [step.end, step.stacks]));
+
 	return [
-		...stepsOf(stacks.points, span).map((step) => (
+		...steps.map((step) => (
 			<span
 				key={`c${step.start}`}
 				title={`${lane.name} · ${fmt(step.start)} → ${fmt(step.end)}`}
@@ -787,20 +827,72 @@ function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 				className={`absolute bottom-0 min-w-[2px] rounded-t-[2px] ${GROUP_SWATCH[lane.group]}`}
 			/>
 		)),
-		...stacks.discharges.map((hit) => (
-			<span
-				key={`d${hit.t}`}
-				title={`${stacks.payoff} · ${fmt(hit.t)} · ${n(hit.amount)}`}
-				data-tip={stacks.payoff}
-				data-tip-tone="ink"
+		// The waits, before the icons in source order so an icon sits on top of the fade that leads to it
+		// rather than under it — the same rule the cast marks follow against the bars they open.
+		...discharges.flatMap((hit) => {
+			const held = hit.from === null ? undefined : heldAt.get(hit.from);
+			if (hit.from === null || held === undefined) return [];
+			return [
+				<span
+					key={`w${hit.t}`}
+					title={`${stacks.payoff} · ${fmt(hit.from)} → ${fmt(hit.t)}`}
+					data-tip={stacks.payoff}
+					// The aura's own tone, not the mark's: this is the charge still being spent, and colour
+					// here says which category a row belongs to rather than what kind of mark it is.
+					data-tip-tone={GROUP_TONE[lane.group]}
+					data-tip-landed={fmt(hit.t)}
+					data-tip-wait={formatGap(hit.t - hit.from)}
+					data-tip-hit={n(hit.amount)}
+					style={{
+						left: pct(hit.from, span),
+						width: pct(Math.max(hit.t - hit.from, 0), span),
+						height: `${(held / max) * 100}%`,
+					}}
+					className={`absolute bottom-0 min-w-[1px] rounded-t-[2px] opacity-30 ${GROUP_SWATCH[lane.group]}`}
+				/>,
+			];
+		}),
+		...discharges.map((hit) => {
+			// Both marks say the same three things, so a reader learns nothing new by moving the pointer
+			// from the fade onto the icon — which is the point of drawing them as one event.
+			const wait = hit.from === null ? undefined : formatGap(hit.t - hit.from);
+			const shared = {
+				title: `${stacks.payoff} · ${fmt(hit.t)} · ${n(hit.amount)}`,
+				'data-tip': stacks.payoff,
 				// `landed` and not `at`: `at` is labelled "Pressed", and nobody pressed this — it is what
 				// the gem did on its own once the counter filled.
-				data-tip-landed={fmt(hit.t)}
-				data-tip-hit={n(hit.amount)}
-				style={{ left: pct(hit.t, span) }}
-				className="absolute inset-y-0 w-[2px] -translate-x-px rounded-[1px] bg-ink"
-			/>
-		)),
+				'data-tip-landed': fmt(hit.t),
+				'data-tip-wait': wait,
+				'data-tip-hit': n(hit.amount),
+			};
+			// The icon's left edge is its moment, as every other icon on this chart has it, so the fade
+			// runs into the mark it explains instead of under it.
+			const left = pct(hit.t, span);
+			return url === null ? (
+				<span
+					key={`d${hit.t}`}
+					{...shared}
+					data-tip-tone="ink"
+					style={{ left }}
+					className="absolute inset-y-0 w-[2px] rounded-[1px] bg-ink"
+				/>
+			) : (
+				<img
+					key={`d${hit.t}`}
+					src={url}
+					// Decorative: the plot as a whole carries the text alternative, and the tooltip names it.
+					alt=""
+					{...shared}
+					data-tip-tone="ink"
+					width={DISCHARGE_ICON_PX}
+					height={DISCHARGE_ICON_PX}
+					loading="lazy"
+					decoding="async"
+					style={{ left, top: '50%', width: DISCHARGE_ICON_PX, height: DISCHARGE_ICON_PX }}
+					className="absolute -translate-y-1/2 rounded-[3px] border border-line/60"
+				/>
+			);
+		}),
 	];
 }
 
@@ -849,12 +941,22 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	}, [analysis.brew.useList]);
 	// Measured from this pull's own readings, so a hasted monk is not charged at a stranger's rate.
 	const energyRegen = analysis.energy?.regenPerSec ?? null;
-	const casts = analysis.timeline?.casts ?? NO_CASTS;
+	// Everything the engine measured, before the ignore table has had its say. Kept under its own name
+	// because the caption has to be able to say what went, and it can only name what it was handed.
+	const allCasts = analysis.timeline?.casts ?? NO_CASTS;
 	// The set the engine drew by default, and the enemies it kept back behind the cap. Both truthiness
 	// guards rather than null checks: on a fixture captured before either field existed they arrive as
 	// `undefined`, which is the distinction this codebase has been bitten by twice.
-	const drawnLanes = analysis.timeline?.lanes ?? NO_LANES;
-	const spareLanes = analysis.timeline?.hiddenLanes ?? NO_LANES;
+	const allDrawnLanes = analysis.timeline?.lanes ?? NO_LANES;
+	const allSpareLanes = analysis.timeline?.hiddenLanes ?? NO_LANES;
+	// Minus the rows this report deliberately does not draw — `hidden.ts` holds which and why. Memoised
+	// on the arrays they filter rather than computed inline: these identities are what every expensive
+	// list below is keyed on, and a fresh array each render would rebuild several hundred marks on every
+	// pointer move. The picker's set is filtered too, so a hidden lane cannot be offered back either.
+	const casts = useMemo(() => drawnCastsOf(allCasts), [allCasts]);
+	const drawnLanes = useMemo(() => drawnLanesOf(allDrawnLanes), [allDrawnLanes]);
+	const spareLanes = useMemo(() => drawnLanesOf(allSpareLanes), [allSpareLanes]);
+	const hidden = useMemo(() => hiddenNames([...allDrawnLanes, ...allSpareLanes]), [allDrawnLanes, allSpareLanes]);
 	const deaths = analysis.timeline?.deaths ?? NO_DEATHS;
 	const span = spanOf(analysis.durationMs);
 
@@ -1048,6 +1150,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// gem firing on its own is the one mark here nobody pressed.
 				const charges = mark.getAttribute('data-tip-charges');
 				const landed = mark.getAttribute('data-tip-landed');
+				// How long the payoff took to arrive after the counter emptied, which is a fact about the
+				// gem rather than about the chart — and the answer to "why does the meter stop early".
+				const wait = mark.getAttribute('data-tip-wait');
 				const hit = mark.getAttribute('data-tip-hit');
 				if (at !== null)
 					rows.push([t(mark.hasAttribute('data-tip-auto') ? 'castLog.tip.swing' : 'castLog.tip.at'), at]);
@@ -1056,6 +1161,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
 				if (by !== null) rows.push([t('castLog.tip.by'), by]);
+				if (wait !== null) rows.push([t('castLog.tip.wait'), wait]);
 				if (hit !== null) rows.push([t('castLog.tip.hit'), hit]);
 				node.innerHTML = tip(theme, {
 					title: mark.getAttribute('data-tip') ?? '',
@@ -1129,6 +1235,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			(a, b) =>
 				Number(perTargetBlock(a.lane)) - Number(perTargetBlock(b.lane)) || laneRank(a.lane.key) - laneRank(b.lane.key),
 		);
+
+	// The one row drawn as a meter rather than as a bar, when the pull had one. Found by asking which
+	// lane carries a counter rather than by naming the gem: the model decides which auras stack, and
+	// nothing in this file has ever known a spell id.
+	const charged = rows.find(({ lane }) => lane.stacks !== undefined)?.lane;
 
 	/**
 	 * The blocks of rows, in the order the chart reads: the player's own, then the enemies'.
@@ -1336,17 +1447,21 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		undrawnTargets > 0 && shown.debuff ? t('castLog.hiddenTargets', { count: undrawnTargets }) : null,
 		intermissions.length > 0 ? t('castLog.intermission.note') : null,
 		deaths.length > 0 ? t('castLog.death.note') : null,
-		// A row drawn as a meter instead of a bar is a different convention from every other row, and one
-		// whose meter never fills needs saying out loud — otherwise the missing fifth charge reads as a
-		// gap in the chart rather than as the discharge it actually is. Conditional on the row being on,
-		// like the two above it: with the procs hidden this describes a row that is not on the screen.
-		charged !== undefined && shown[charged.lane.group]
-			? t('castLog.charge.note', {
-					aura: charged.lane.name,
-					max: charged.lane.stacks?.max ?? 0,
-					payoff: charged.lane.stacks?.payoff ?? '',
-				})
-			: null,
+		// A row drawn as a meter instead of as a bar is a different convention from every other row, and
+		// one whose meter never fills needs saying out loud — otherwise the missing fifth charge reads as
+		// a gap in the chart rather than as the discharge it actually is. `rows` is already the drawn
+		// set, so a pull with the procs turned off does not describe a row that is not on the screen.
+		charged?.stacks === undefined
+			? null
+			: t('castLog.charge.note', {
+					aura: charged.name,
+					max: charged.stacks.max,
+					payoff: charged.stacks.payoff,
+				}),
+		// What the ignore table took out, named. A chart that silently drops a row is a chart claiming
+		// the pull contained less than it did — the same fault the per-enemy cap is careful about, and
+		// answered the same way: said in the caption rather than left for the reader to notice.
+		hidden.length === 0 ? null : t('castLog.hiddenRows', { count: hidden.length, rows: hidden.join(', ') }),
 	].filter((note): note is string => note !== null);
 
 	/**

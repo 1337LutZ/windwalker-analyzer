@@ -125,7 +125,12 @@ const addFight: WclEvent[] = [
 
 const analysis = analyse(datasetOf(addFight));
 
-/** Engaged time is the boss contact, unbroken: hits every 10s against a 15s gap threshold. */
+/**
+ * The clock the section measures against, unbroken: hits every 10s against a 15s gap threshold.
+ *
+ * On this pull the boss is in contact for the whole of it, so the two clocks coincide and it is also
+ * `engagedMs`. The suite at the bottom of this file is the one that pulls them apart.
+ */
 const ENGAGED_MS = 110_000;
 /** The debuff on the enemy being hit: 39s on the boss less the first second, plus 19s of add contact. */
 const CONTACT_MS = 39_000 + 19_000;
@@ -160,6 +165,7 @@ describe('the enemy a pull is about', () => {
 describe('the graded debuff uptime', () => {
 	it('asks whether the enemy being hit carried the debuff', () => {
 		expect(analysis.debuff.engagedMs).toBe(ENGAGED_MS);
+		expect(analysis.debuff.contactMs).toBe(ENGAGED_MS);
 		expect(analysis.debuff.engagedUptimePct).toBeCloseTo((CONTACT_MS / ENGAGED_MS) * 100, 6);
 	});
 
@@ -219,6 +225,63 @@ describe('the graded debuff uptime', () => {
 	 */
 	it('is graded on a pull the damage was spread across', () => {
 		expect(scoreAnalysis(analysis).sections['debuff']?.unmeasurable).toBe(false);
+	});
+});
+
+/**
+ * The denominator, on a pull where the two clocks are not the same length.
+ *
+ * The boss is hit for the first 50 seconds and add waves fill the next 60, which is the shape of every
+ * add fight in the tier and of none of the committed fixtures. The debuff runs 39 seconds on the boss
+ * and 39 on the add, and the player is in contact throughout: the gaps between hits are ten seconds
+ * against a fifteen-second threshold, so contact is one unbroken window and engagement is not.
+ *
+ * What this pins is that the numerator and the denominator come from the same clock. Measured the old
+ * way — the boss's 50 seconds, and only the debuff that fell inside them — this pull reads 78.0%, a
+ * number about the first quarter of a fight, printed as though it were about the fight. It is 70.9%.
+ */
+describe('the clock the section is measured against', () => {
+	const BOSS_MS = 50_000;
+	const CONTACT_ALL_MS = 110_000;
+	/** 39s of debuff on the boss while the boss is what is being hit, and 39s on the add likewise. */
+	const COVERED_MS = 39_000 + 39_000;
+
+	const waves = [
+		...brewBank,
+		// The boss, then nothing but adds: six hits apiece, ten seconds apart, which keeps contact whole
+		// and lets engagement end with the last blow the boss took.
+		...Array.from({ length: 6 }, (_, i) => hit(i * 10_000, BOSS, 5000)),
+		...Array.from({ length: 6 }, (_, i) => hit(60_000 + i * 10_000, ADD, 5000)),
+		...kick(1000, BOSS, 100_000, 40_000),
+		...kick(61_000, ADD, 100_000, 100_000),
+	].sort((a, b) => a.timestamp - b.timestamp);
+	const spread = analyse(datasetOf(waves));
+
+	it('keeps the boss’s clock and the player’s clock apart', () => {
+		expect(spread.debuff.engagedMs).toBe(BOSS_MS);
+		expect(spread.debuff.contactMs).toBe(CONTACT_ALL_MS);
+	});
+
+	/** The add's 39 seconds count, and they are measured against a denominator that contains them. */
+	it('measures the debuff on the enemy being hit against the time anything was', () => {
+		expect(spread.debuff.engagedUptimePct).toBeCloseTo((COVERED_MS / CONTACT_ALL_MS) * 100, 6);
+		expect(spread.debuff.engagedUptimePct).toBeLessThan(78);
+	});
+
+	/** And the complement still holds, against the clock that is now the denominator. */
+	it('reports the time lost as the complement of contact time', () => {
+		expect(spread.debuff.secondsLost).toBeCloseTo((CONTACT_ALL_MS - COVERED_MS) / 1000, 1);
+		expect(spread.debuff.engagedUptimePct + (spread.debuff.secondsLost * 100_000) / CONTACT_ALL_MS).toBeCloseTo(100, 1);
+	});
+
+	/**
+	 * The cast ceiling reads the same clock. Against the boss's it was `2 / 6` on this pull — a ceiling
+	 * built out of the quarter of the fight the boss was present for, which no number of casts could
+	 * ever fill. Chi Brew's ceiling moves for the same reason and is checked with it.
+	 */
+	it('builds the cast ceiling out of the same clock', () => {
+		expect(Math.floor((spread.debuff.contactMs ?? 0) / 8000)).toBe(13);
+		expect(Math.floor(spread.debuff.engagedMs / 8000)).toBe(6);
 	});
 });
 

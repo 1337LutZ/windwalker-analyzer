@@ -43,3 +43,26 @@ export function usageTone(used: number, possible: number): Grade | null {
 	if (share >= 70) return 'ok';
 	return 'bad';
 }
+
+/**
+ * `usageTone` again, and much more forgiving, for a cooldown whose worth the *encounter* sets.
+ *
+ * Touch of Karma is the case. Its charges are counted the same way Chi Brew's are — the opener plus
+ * one per recharge inside the pull — but the two are not the same claim. A Chi Brew charge is worth
+ * pressing whenever it is up; a Karma charge is worth pressing only while something is hitting you,
+ * and a pull that offers three recharges rarely offers three stretches of incoming damage. Grading
+ * that against `usageTone`'s 90/70 calls two presses out of three a failure, which faults a player
+ * for the shape of the fight rather than for anything they did.
+ *
+ * So: nearly every charge is `good`, at least half is `ok`, and below half is worth a reader's eye
+ * rather than a verdict. Round numbers, and the same caveat as everything else in this file — a hint
+ * at the size of a number, never a judgement, and never anything `lib/score` counts. The graded
+ * question about Touch of Karma is what the presses *returned*, which is a different tile.
+ */
+export function defensiveUseTone(used: number, possible: number): Grade | null {
+	if (!(possible > 0)) return null;
+	const share = (used / possible) * 100;
+	if (share >= 80) return 'good';
+	if (share >= 50) return 'ok';
+	return 'bad';
+}

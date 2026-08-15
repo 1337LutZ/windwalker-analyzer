@@ -85,17 +85,17 @@
     "intent": "Two charges, forty-five seconds each, and two chi plus two brew stacks every press. It fails in two opposite directions: pressed onto a full bar the chi has nowhere to go, and not pressed at all the charges sit at the ceiling where they are not recharging. Those are different mistakes, so they are counted separately rather than added together.",
     "notTalented": "You did not take Chi Brew, so there is nothing to report here. Read from the talent list your log carries, not from whether the button was pressed — a talent you chose against is not a cooldown you forgot.",
     "unknownTalent": "This log carried no character snapshot for you, so the report cannot tell whether you took Chi Brew. It is not saying you did not — it is saying it does not know.",
-    "never": "You took Chi Brew and never pressed it. The pull had room for about {{possible}} uses, each worth two chi and two brew stacks.",
+    "never": "You took Chi Brew and never pressed it. The time you spent with something to hit had room for about {{possible}} uses, each worth two chi and two brew stacks.",
     "gained_clean": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi, all of which fit on the bar.",
     "gained_wasted": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi — but {{wasted}} of it arrived on a bar with no room and vanished. Chi Brew returns two at once, so pressing it above two chi throws part of it away.",
     "capped_none": "Neither charge ever sat idle at the ceiling, so no recharge time went unused.",
-    "capped_some": "Both charges sat full for {{seconds, duration}}, which is {{pct, percent}} of the pull and worth about {{chi, decimal}} chi. A charge at the ceiling is not recharging, so that is cooldown this pull was never going to get back — priced in the chi the recharge would have returned rather than in presses, because a recharge that never ran is a share of one and not a use you could have made.",
+    "capped_some": "Both charges sat full for {{seconds, duration}} of the time you had something to hit, which is {{pct, percent}} of it and worth about {{chi, decimal}} chi. Charges idling while nothing could be hit are not counted: that is the fight holding the button, not you. A charge at the ceiling is not recharging, so that is cooldown this pull was never going to get back — priced in the chi the recharge would have returned rather than in presses, because a recharge that never ran is a share of one and not a use you could have made.",
     "scope": "Nothing here is graded. The priority list presses Chi Brew when it wants chi and holds it when it does not, and it contains no number of idle seconds it calls acceptable — a threshold would be inventing one. Charges recharge every {{seconds}}.",
     "kpi": {
       "uses": "Presses of possible",
-      "chi": "Chi kept",
-      "capped": "Charges idle for",
-      "lost": "Chi lost to idle"
+      "chi": "Chi gained",
+      "overcapped": "Chi overcapped",
+      "capped": "Charges idle for"
     },
     "key": {
       "charges": "Charges available",
@@ -395,7 +395,8 @@
       "by": "Killed by",
       "charges": "Charges",
       "landed": "Landed",
-      "hit": "Hit for"
+      "hit": "Hit for",
+      "wait": "Waited"
     },
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",
@@ -415,6 +416,8 @@
     },
     "hiddenTargets_one": "One more enemy carried the debuff and has no row here. Pick it above to draw it.",
     "hiddenTargets_other": "{{count}} more enemies carried the debuff and have no rows here. Pick them above to draw them.",
+    "hiddenRows_one": "{{rows}} fired on this pull and is not drawn: it runs on its own schedule and spends itself, so there is no decision on the row to read against your presses. It is still measured, and its damage is still counted under Damage by ability.",
+    "hiddenRows_other": "{{rows}} fired on this pull and are not drawn: they run on their own schedules and spend themselves, so there is no decision on those rows to read against your presses. They are still measured, and their damage is still counted under Damage by ability.",
     "intermission": {
       "title": "Intermission",
       "note": "The shaded stretches are intermissions: the boss was out of reach, so there was nothing to press it at. That is the fight taking the target away, and none of it is counted against you."
@@ -426,7 +429,7 @@
       "noRes": "not resurrected"
     },
     "charge": {
-      "note": "{{aura}} stacks, so its row is drawn as a charge rather than as a plain window: the height of each block is the number of charges the log stamped on it, against a meter of {{max}}. The meter never fills, and that is the log rather than the gem — the client records the first charge as the buff going up and the next three as stack events, and never a fifth, because by the time a fifth charge exists the buff has already spent itself. The tick that follows each block is the {{payoff}} it paid for, landing a fraction of a second later; hover one for what it hit."
+      "note": "{{aura}} stacks, so its row is drawn as a charge rather than as a plain window: the height of each block is the number of charges the log stamped on it, against a meter of {{max}}. The meter never fills, and that is the log rather than the gem — the client records the first charge as the buff going up and the next three as stack events, and never a fifth, because by the time a fifth charge exists the buff has already spent itself. Each full charge is then followed by the {{payoff}} icon it paid for, with the faded block between the two being the wait — the strike lands a fraction of a second after the charge is spent, and that delay is the gem’s rather than a gap in the chart. Hover either for how long it waited and what it hit. A charge that ends with no icon after it discharged into nothing, having found no target to strike."
     },
     "resource": {
       "energy": "Energy",
@@ -457,8 +460,8 @@
       "uses": "Uses taken",
       "reflected": "Damage returned",
       "perUse": "Per use",
-      "empty": "Returned nothing",
-      "ofCap": "Of what it could"
+      "landed": "Presses that landed",
+      "ofCap": "Efficiency"
     },
     "columns": {
       "at": "at",
@@ -506,8 +509,15 @@
   "sef": {
     "title": "Storm, Earth and Fire",
     "intent": "Each press sends out a spirit that stands on an enemy of your choosing and mirrors your damaging abilities onto it, up to two at a time — and while they are out your own damage is cut, to 70% with one spirit and 55% with two. So the button is only worth pressing when there is a second thing to put a spirit on, and once they are out the one way to waste it is to stand on an enemy a spirit is already handling.",
-    "summary_one": "{{count}} press, with a spirit out for {{uptime, percent}} of the pull.",
-    "summary_other": "{{count}} presses, with a spirit out for {{uptime, percent}} of the pull.",
+    "summary_one": "{{count}} spirit sent out, out for {{uptime, percent}} of the pull.",
+    "summary_other": "{{count}} spirits sent out, with at least one of them out for {{uptime, percent}} of the pull.",
+    "prePlaced_one": "One of them was already standing on something when the pull began — placed before the timer started, so it spent no global inside the pull and has no cast row of its own. That is an ordinary opener rather than a missing press, and it is counted here because the spirit was genuinely out. The press that aimed it is outside this log, so its enemy is read from where the spirit swung instead.",
+    "prePlaced_other": "{{count}} of them were already standing on something when the pull began — placed before the timer started, so they spent no globals inside the pull and have no cast rows of their own. That is an ordinary opener rather than a missing press, and they are counted here because the spirits were genuinely out. The presses that aimed them are outside this log, so their enemies are read from where the spirits swung instead.",
+    "prePull": {
+      "at": "before the pull",
+      "deduced": "{{target}} — where it swung",
+      "unknown": "cannot say"
+    },
     "skipped": "Storm, Earth and Fire was never pressed, and this pull had a second enemy under your hands for {{justified, duration}} in stretches long enough to be worth one — the longest of them running {{longest, duration}}. That is time two spirits could have spent mirroring you onto something else.",
     "damage": "The spirits dealt {{damage, compact}} between them, {{share, percent}} of your damage. It is already inside your total: WarcraftLogs files a pet's damage under its owner, and a spirit's Blackout Kick logs under the same spell id as yours.",
     "overlap": "You spent {{overlap, duration}} of your {{measured, duration}} in melee with the spirits out — {{share, percent}} of it — hitting an enemy one of your own spirits was already on. A spirit copies you onto its target, so for that time you were paying the damage penalty for a clone that was duplicating you instead of spreading you.",
@@ -516,12 +526,12 @@
     "overlapUnknown": "This pull cannot say whether you shared a target with your own spirits. The log carried no separate actor for them, so there is nothing to compare your target against — and reporting that as \"never\" would be a claim the log did not make.",
     "justified": "The pull held a second enemy for {{justified, duration}} in stretches longer than {{rule, duration}}, so pressing it was called for.",
     "unjustified": "The pull never held a second enemy for longer than {{rule, duration}} — the longest stretch was {{longest, duration}} — so there was little for a spirit to stand on. Against one target the split is a straight loss.",
-    "notGraded": "Nothing here is graded. The sim never puts a spirit on the enemy you are hitting, so its answer to \"how much overlap is acceptable\" is zero — and a zero line would fault a pull for the seconds after your own target dies and you roll onto one a spirit is holding. The ten-second rule decides whether this section speaks, not what it scores.",
+    "notGraded": "Nothing here reaches your score. The colour on the shared-target tile is a reading aid and not a verdict: the sim never puts a spirit on the enemy you are hitting, so zero is the mechanic's own answer rather than a bar somebody set, and it is worth knowing whether your number is near it. It stops short of a grade because a hard zero would fault you for the seconds after your own target dies and you roll onto one a spirit is holding. The other figures carry no colour at all — there is no number of spirits a pull is supposed to send, and no share of a fight one is supposed to spend on any particular enemy. The ten-second rule decides whether this section speaks, not what it scores.",
     "unnamedTarget": "unnamed enemy",
-    "none": "Storm, Earth and Fire was never pressed in this pull.",
-    "caption": "Every press, and the enemy the spirit was sent to",
+    "none": "No spirit was sent out in this pull.",
+    "caption": "Every spirit sent out, and the enemy it was aimed at",
     "kpi": {
-      "casts": "Presses",
+      "casts": "Spirits sent",
       "uptime": "Pull with a spirit out",
       "damage": "Spirits' damage",
       "overlap": "Shared a target"
@@ -531,19 +541,18 @@
       "target": "sent to"
     },
     "lanes": {
-      "title": "Where the spirits stood",
-      "intent": "One row per enemy you engaged, marking the stretches a spirit of yours was standing on it. The bars come from the spirits’ own single-target swings rather than from where each press was aimed, because the press cannot answer it: a spirit placed before the pull has no press inside the fight at all, and a spirit is recalled when its enemy dies and can be sent elsewhere. Area damage is left out of the reading as well — Rushing Jade Wind hits everything in range, so it says nothing about where a spirit stood.",
+      "title": "Spirits, per enemy",
       "key": "A spirit was on this enemy",
       "caption": "An empty row is an answer rather than a gap: that enemy was up in front of you and no spirit was ever put on it.",
       "chartLabel": "Storm, Earth and Fire spirit placement across {{lanes}} enemies of this pull, one row each, marking when a spirit was standing on that enemy.",
       "empty": "No enemy of this pull was under your hands for long enough to draw a row for.",
       "unnamed": "Unnamed enemy #{{id}}",
-      "gridCaption": "Time a spirit spent on each enemy",
+      "gridCaption": "Per enemy: how long a spirit stood on it, that as a share of the pull, and how much of it you spent hitting the same enemy your spirit already was",
       "columns": {
         "enemy": "enemy",
-        "held": "spirit on it",
-        "share": "of the pull",
-        "engaged": "you were on it"
+        "held": "spirit",
+        "share": "share",
+        "doubled": "doubled"
       },
       "shortLived_one": "One more enemy has no row: the damage you and your spirits did to it started and stopped inside {{rule, duration}}. This log carries no enemy deaths — a report is fetched under your own name, and WarcraftLogs returns a death event only when you are the one who died — so that measures how long the enemy was under your hands and does not claim it died.",
       "shortLived_other": "{{count}} more enemies have no rows: the damage you and your spirits did to each of them started and stopped inside {{rule, duration}}. This log carries no enemy deaths — a report is fetched under your own name, and WarcraftLogs returns a death event only when you are the one who died — so that measures how long each enemy was under your hands and does not claim any of them died.",

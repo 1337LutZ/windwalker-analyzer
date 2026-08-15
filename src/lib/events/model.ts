@@ -26,6 +26,20 @@ export interface EventBase {
 	sourceID?: number;
 	targetID?: number;
 	/**
+	 * Which *copy* of that actor, when the pull contains more than one.
+	 *
+	 * WarcraftLogs gives one report actor id to an NPC *type*, not to each spawn: every Kor'kron
+	 * Ironblade on a Galakras pull shares a `targetID` and is told apart only by this. Anything that
+	 * models per-target state — a debuff's apply/remove pairs above all — has to key on both, or ten
+	 * adds' event streams interleave into one and each remove closes whichever window happens to be
+	 * open. Measured on that pull, keying by `targetID` alone lost 17.4 seconds of Rising Sun Kick
+	 * coverage outright.
+	 *
+	 * Absent on events with no target, and on reports old enough not to carry it — so a key built from
+	 * it must tolerate `undefined` rather than dropping the event.
+	 */
+	targetInstance?: number;
+	/**
 	 * The spell id, on the v2 event stream. Never read this directly — `abilityIdOf` also accepts
 	 * the older nested shape, and a `undefined === 130320` comparison answers "no" for a whole fight
 	 * without anything failing.

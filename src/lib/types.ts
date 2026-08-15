@@ -247,14 +247,37 @@ export interface LaneStacks {
 	max: number;
 	/** What reaching the ceiling paid out, by the name of the spell that landed it. */
 	payoff: string;
+	/** That spell's own id, so the chart can draw its icon without ever learning a spell id itself. */
+	payoffId: number;
 	/**
 	 * Every payoff on the clock, with what it hit for.
 	 *
-	 * These are damage events and not an inference off the counter: the discharge is a thing the log
-	 * recorded, and joining it to the moment the charge emptied would be a claim about a gap the log
-	 * does not explain.
+	 * These are damage events and not an inference off the counter: a discharge is drawn where the log
+	 * put it, never where the counter suggests it should have been.
 	 */
-	discharges: Array<{ t: number; amount: number }>;
+	discharges: Discharge[];
+}
+
+/** One payoff on the clock: when it landed, what it hit for, and the charge it spent getting there. */
+export interface Discharge {
+	t: number;
+	amount: number;
+	/**
+	 * When the counter that paid for this emptied — always at or before `t`, and null when the log
+	 * shows no emptying before it at all.
+	 *
+	 * The gap between the two is real and is the gem's, not a sampling artefact: the buff comes off,
+	 * then the strike lands a median of ~260ms later, tailing to 2.8s. It is carried so the chart can
+	 * *draw* that wait rather than leaving a reader with a counter that quits early beside a strike
+	 * that arrives from nowhere — but it moves neither timestamp, and the discharge is still placed on
+	 * its own damage event.
+	 *
+	 * Attribution is by order alone and needs no tolerance: the last emptying before this strike. A
+	 * fill cannot discharge twice, and across both reference reports every strike follows an emptying
+	 * and none precedes one. Null is the honest answer where that does not hold, and the chart then
+	 * draws the strike with no wait behind it.
+	 */
+	from: number | null;
 }
 
 /**
@@ -545,11 +568,11 @@ export interface DebuffSummary {
 	/**
 	 * The **primary target's** clock: the union of `engagedSegments`, and not what this section grades.
 	 *
-	 * What still reads it: the chart's out-of-reach track, which is this array's complement, and the
-	 * energy audit, which splits its bar on the same windows for a reason of its own — a bar that filled
-	 * while the boss was gone is the fight's doing. Every fraction the debuff section prints is against
-	 * `contactMs` below. Keeping both is deliberate; merging them is how the section came to measure a
-	 * numerator that follows the player against a denominator that follows the boss.
+	 * What still reads it: the chart's out-of-reach track, which is this array's complement and is
+	 * labelled as that one enemy's absence. Every fraction the report grades a choice by — this
+	 * section's three tiles, Chi Brew's ceiling and idle share, the energy bar's capped/downtime split —
+	 * is against `contactMs` below. Keeping both is deliberate; merging them is how the section came to
+	 * measure a numerator that follows the player against a denominator that follows the boss.
 	 */
 	engagedMs: number;
 	/**
@@ -1054,19 +1077,55 @@ export interface SefTargetLane {
 	 * nothing here claims an enemy died, only that contact with it started and stopped.
 	 */
 	engagedMs: number;
+	/**
+	 * Time the player was hitting this enemy while one of their own spirits was already on it.
+	 *
+	 * The pull-wide `SefAudit.overlapMs` kept per enemy instead of summed, and off the same loop — so
+	 * the rows add to the total by construction rather than by two passes agreeing. It is an
+	 * intersection of "a spirit was here" with "so were you", which means it can never exceed `heldMs`
+	 * or `engagedMs`; the suite asserts that rather than trusting it, because a slip in the segment
+	 * bounds would surface here first and as a figure a reader has no way to challenge.
+	 *
+	 * Absent on an analysis captured before the column existed, so read it for truthiness.
+	 */
+	overlapMs?: number;
 }
 
 export interface SefAudit {
-	casts: number;
 	/**
-	 * Every press, with the enemy it was aimed at.
+	 * Spirits sent out on this pull — **not** the number of presses, and the difference is real.
 	 *
-	 * The cast event carries a target and that target is where the spirit went — or, when the enemy
-	 * already had one, which spirit was recalled. `target`/`name` are null when the log named no target
-	 * or the report's actor list cannot name it; a lane named after the wrong add is worse than one
-	 * named after none.
+	 * A spirit placed before the pull costs no global inside it and logs no cast inside it, so counting
+	 * casts undercounts the pull by exactly those. One reference pull carries two casts and had three
+	 * spirits. See `pressed` for the press count and `prePlaced` for the gap between them.
 	 */
-	uses: Array<{ t: number; target: number | null; name: string | null; link: string }>;
+	casts: number;
+	/** Presses of the button inside the pull. What the cast table and the GCD figures count, correctly. */
+	pressed?: number;
+	/** Spirits already out when the pull began. Not a missing cast — a thing players deliberately do. */
+	prePlaced?: number;
+	/**
+	 * Every spirit sent out, with the enemy it was aimed at.
+	 *
+	 * `target`/`name` are null when the log named no target and when the actor list cannot name it.
+	 *
+	 * `deduced` marks a target read from the spirit's own first swings rather than from a press — the
+	 * pre-pull case, whose cast lies outside the fight window. It stays visibly a different quality of
+	 * evidence: a press states where a spirit was *sent*, a swing proves where it *stood*, and the two
+	 * can disagree for a spirit that was recalled and re-sent. A pre-pull spirit that never swung leaves
+	 * nothing to read and keeps its null, because "cannot say" is still an answer.
+	 *
+	 * `actorID` is the pet the `summon` event named, or null on a log carrying no summon for it.
+	 */
+	uses: Array<{
+		t: number;
+		prePull?: boolean;
+		target: number | null;
+		name: string | null;
+		deduced?: boolean;
+		actorID?: number | null;
+		link: string;
+	}>;
 	/** Stretches with at least one spirit out, read off the aura rather than measured from a press. */
 	windows: Window[];
 	uptimeMs: number;

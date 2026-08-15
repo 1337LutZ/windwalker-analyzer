@@ -313,6 +313,17 @@ const LIGHTNING_STRIKE_ID = 137597;
 const SEF_MAX_CLONES = 2;
 
 /**
+ * The three spells that put a spirit in the world, one per spirit the cooldown is named after.
+ *
+ * A `summon` event carries the *pet actor* in `targetID` and nothing about the enemy, which is why
+ * these corroborate the placement count rather than defining it — see `sefPlacements`. Measured on
+ * both anonymous Dark Shaman pulls: 138122 → the first pet, 138121 → the second, 138123 → the third,
+ * and 138122 again on a later press, so a summon id names the *spirit* and an actor id is reused
+ * across placements. Neither pull carried a summon from any other source, and Xuen's is 123904.
+ */
+const SEF_SUMMON_IDS: ReadonlySet<number> = new Set([138121, 138122, 138123]);
+
+/**
  * How long a second enemy has to be under the monk's hands before the cooldown was worth pressing.
  *
  * **The reader's rule, not the simulator's**, and written down as such. The sim does have a number
@@ -1749,45 +1760,60 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// next to a tile measured against every enemy the player touched. Null when the list cannot
 	// answer, and the row falls back to its unqualified wording rather than naming the wrong add.
 	const primaryName = actors.find((a) => a.id === primaryID)?.name ?? null;
-	// Scoped to the primary target: this is the window model — the lane the timeline draws, the drops
-	// the miss ledger lists, and the intermission. The graded figure below is a different reading of
-	// the same debuff and deliberately does not replace this one.
-	const rskWindows = auraWindows(
-		events.filter((e) => e.targetID === primaryID),
-		RSK_DEBUFF,
-		t0,
-		fight.endTime,
-	);
-	const rskMerged = mergeIntervals(toIntervals(rskWindows));
-
 	/**
-	 * The same debuff, merged, once per enemy that carried it.
+	 * The debuff, merged, once per **spawn** that carried it — and once per enemy for anything drawing.
 	 *
-	 * One pass over the events, bucketed by target, rather than a filtered pass per enemy: Spoils of
-	 * Pandaria sprays it across thirty-odd adds, and a pass apiece is thirty passes over a hundred
-	 * thousand events to answer one question.
+	 * One pass over the events, bucketed, rather than a filtered pass per enemy: Spoils of Pandaria
+	 * sprays it across thirty-odd adds, and a pass apiece is thirty passes over a hundred thousand
+	 * events to answer one question.
 	 *
-	 * The primary's entry *is* `rskMerged` rather than a second reading of the same events, so the
-	 * graded figure and the lane the reader compares it against cannot drift apart — the same reason
-	 * the timeline's primary lane is `rskLaneWindows` itself.
+	 * Keyed by `(targetID, targetInstance)` and not by `targetID`, because WarcraftLogs gives one actor
+	 * id to an NPC *type*: every Kor'kron Ironblade on a Galakras pull shares one id, and bucketing by
+	 * it alone hands `auraWindows` ten spawns' applies and removes interleaved into a single stream,
+	 * where each remove closes whichever window is open and every apply arriving while one is already
+	 * open is dropped. That is not a rounding error — on `a:6MhZgjyAknFWrYfK` #10 it discarded 17.4
+	 * seconds of coverage.
+	 *
+	 * `openOnRefresh` is the second half of the same repair and the larger one: a refresh with nothing
+	 * open is proof the debuff was up, and throwing it away cost another 42.3 seconds on that pull.
+	 * Together they take its uptime from 61.8% to 80.6%, which an independently written script puts at
+	 * 80.7%.
+	 *
+	 * Two maps out of one walk. The numerator asks about the spawn the player was hitting and must have
+	 * the instance; every lane, the drop list and the intermission are *drawn* per enemy, where one row
+	 * per Ironblade would be forty rows of the same add — so those get the union of a target's spawns,
+	 * which is the honest reading of "this enemy had it" for a row labelled with one name.
 	 */
-	const rskByTarget = (() => {
+	const { byInstance: rskByInstance, byTarget: rskByTarget } = (() => {
 		const debuffIDs = new Set(RSK_DEBUFF.ids);
-		const byTarget = new Map<number, WclEvent[]>();
+		const buckets = new Map<string, { target: number; events: WclEvent[] }>();
 		for (const e of events) {
 			const id = abilityIdOf(e);
-			if (id === null || !debuffIDs.has(id) || e.targetID === undefined || e.targetID === primaryID) continue;
-			const bucket = byTarget.get(e.targetID);
-			if (bucket) bucket.push(e);
-			else byTarget.set(e.targetID, [e]);
+			if (id === null || !debuffIDs.has(id) || e.targetID === undefined) continue;
+			const key = instanceKey(e.targetID, e.targetInstance);
+			const bucket = buckets.get(key);
+			if (bucket) bucket.events.push(e);
+			else buckets.set(key, { target: e.targetID, events: [e] });
 		}
-		const merged = new Map<number, Interval[]>();
-		for (const [id, own] of byTarget) {
-			merged.set(id, mergeIntervals(toIntervals(auraWindows(own, RSK_DEBUFF, t0, fight.endTime))));
+		const byInstance = new Map<string, Interval[]>();
+		const perTarget = new Map<number, Interval[]>();
+		for (const [key, bucket] of buckets) {
+			const merged = mergeIntervals(
+				toIntervals(auraWindows(bucket.events, RSK_DEBUFF, t0, fight.endTime, { openOnRefresh: true })),
+			);
+			byInstance.set(key, merged);
+			perTarget.set(bucket.target, [...(perTarget.get(bucket.target) ?? []), ...merged]);
 		}
-		if (primaryID !== undefined) merged.set(primaryID, rskMerged);
-		return merged;
+		const byTarget = new Map<number, Interval[]>();
+		for (const [target, all] of perTarget) byTarget.set(target, mergeIntervals(all));
+		return { byInstance, byTarget };
 	})();
+
+	// Scoped to the primary target: this is the window model — the lane the timeline draws, the drops
+	// the miss ledger lists, and the intermission. Read out of the map above rather than walked a
+	// second time, so the lane a reader compares a number against is the array it was measured from.
+	// The graded figure below is a different reading of these same windows and does not replace them.
+	const rskMerged = (primaryID === undefined ? undefined : rskByTarget.get(primaryID)) ?? [];
 
 	/**
 	 * ------------------------------------------------------------------------------------------------
@@ -1807,9 +1833,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * reachable for 66.6 seconds of a 434.2-second pull while the player fights for 317.2 of it across
 	 * six segments, and 117 seconds are genuine downtime that belongs to neither.
 	 *
-	 * Everything that grades a choice takes `contact`. What still takes `engaged`, and should: the energy
-	 * audit's engaged/downtime split, because "the bar filled while nothing could be hit" is a question
-	 * about the boss; and the debuff chart's out-of-reach track, which draws that same absence.
+	 * Everything that grades a choice takes `contact`: the debuff's uptime and its remainder, the cast
+	 * ceiling under them, Chi Brew's ceiling and its idle share, and the energy bar's capped/downtime
+	 * split. The energy split is the one that changed hands late — it reads as a question about the boss
+	 * ("the bar filled while the target was gone") and is not one: a player swinging at adds for five
+	 * minutes of a Galakras pull could have spent every point of it, and the boss's clock forgave the
+	 * lot as downtime.
+	 *
+	 * What still takes `engaged`, and should: the debuff chart's out-of-reach track and the `engagedMs`
+	 * beside it, which draw the primary target's own absence and are labelled as that enemy's.
 	 * ------------------------------------------------------------------------------------------------
 	 */
 	const engaged = engagedWindows(
@@ -1979,12 +2011,18 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 
 	// ----------------------------------------------------------------- energy
 	// Read straight off the `classResources` snapshots the events query now asks for, and split by
-	// the engaged windows computed immediately above — which is why it sits here rather than with the
-	// other resource sections. A bar that fills while the boss is untargetable is the fight's doing;
-	// only the engaged half of the number describes anything the player chose.
+	// the contact windows computed immediately above — which is why it sits here rather than with the
+	// other resource sections. A bar that fills while there is nothing to hit is the fight's doing;
+	// only the other half of the number describes anything the player chose.
+	//
+	// Contact and not `engaged`, which is what this shipped with. The split exists to separate the
+	// seconds the player could have spent energy in from the seconds they could not, and the boss being
+	// away is not the same question: on the Galakras kill in `a:6MhZgjyAknFWrYfK` the boss is reachable
+	// for 66.6s of a 434.2s pull while the player is swinging at adds for 317.2s, so a boss-scoped split
+	// forgave every capped second of five minutes of add waves as downtime nobody could act in.
 	const energySamples = resourceSamples(events, POWER_TYPE.energy, actor.id, t0);
 	const chiSamples = resourceSamples(events, POWER_TYPE.chi, actor.id, t0);
-	const energyBar = trackResourceBar(energySamples, duration, engaged);
+	const energyBar = trackResourceBar(energySamples, duration, contact);
 	const chiOverflow = chiWasted(events, actor.id, t0, (id) => CHI_GAIN[id]);
 	/**
 	 * The chi the player actually held at each press, for the priority ladder.
@@ -2021,10 +2059,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		.map(([start, end]) => ({
 			at: start,
 			ms: end - start,
-			// A stretch that straddles the edge of an engaged window is called engaged when most of it
+			// A stretch that straddles the edge of a contact window is called contact when most of it
 			// was: the reader is being told which bucket the row belongs to, and half a label is worse
-			// than a rounded one.
-			engaged: overlapMs(start, end, engaged) * 2 >= end - start,
+			// than a rounded one. The same windows the split above uses, so a row cannot be labelled
+			// downtime by one clock while its seconds are counted against the player by the other.
+			engaged: overlapMs(start, end, contact) * 2 >= end - start,
 			link: link(start),
 		}))
 		.filter((w) => w.ms >= ENERGY_CAP_ROW_MS)
@@ -2344,28 +2383,87 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	/** Stretches with *both* spirits out — the thing a single apply→remove pair could never say. */
 	const sefDoubleMs = unionMs(toIntervals(levelWindows(sefLevels, SEF_MAX_CLONES)));
 
-	/**
-	 * Every press, with the enemy it was aimed at.
-	 *
-	 * The cast event carries a `targetID` and that target is the assignment — confirmed against the
-	 * spirits' own swings on the Galakras pull, where every cast is followed between one and two and a
-	 * half seconds later by a pet actor beginning to hit exactly that enemy, which is the sim's 2–2.3s
-	 * spawn delay plus a swing timer. Read from the raw events rather than from `castTimes`, which
-	 * carries the clock and not the target.
-	 *
-	 * A press aimed at an enemy that already has a spirit *recalls* it rather than sending a second —
-	 * the sim's `PickClone` deactivates it — so a press is not always an arrival. Nothing here claims
-	 * otherwise; the aura's own windows are what say how many were actually out.
-	 */
-	const sefUses = events
+	/** The presses themselves — globals spent inside the pull, which is not the same as spirits sent. */
+	const sefCasts = events
 		.filter((e) => isCast(e) && e.sourceID === actor.id && abilityIdOf(e) === castId(STORM_EARTH_AND_FIRE))
-		.map((e) => ({
-			t: e.timestamp - t0,
-			target: e.targetID ?? null,
-			name: actors.find((a) => a.id === e.targetID)?.name ?? null,
-			link: link(e.timestamp - t0),
-		}))
+		.map((e) => ({ t: e.timestamp - t0, target: e.targetID ?? null }))
 		.sort((a, b) => a.t - b.t);
+
+	/**
+	 * Every spirit sent out — **counted from the aura, not from the presses**, and that is the fix.
+	 *
+	 * Counting in-fight casts undercounts a pull by exactly the spirits placed before the pull started.
+	 * On a:YBQzrcgVJnAj7NMP fight 15 the log carries two casts of 137639 and the pull had three spirits:
+	 * one already out at the pull (its pet swinging at 2.6s, four seconds before the first cast, and the
+	 * fight's first aura event arriving already at `stack: 2`), then Darkfang at 6.1s, then Wavebinder
+	 * Kardris at 2:49.8. The section said "2 presses" beside a chart drawing a spirit on Kardris from
+	 * 2.6s, and nothing on the page accounted for it.
+	 *
+	 * **The stack walk is primary and the `summon` events corroborate.** Three reasons for that order.
+	 * It is the same array `sefWindows` is built from, so the count and the bar drawn beside it are one
+	 * reading rather than two free to disagree. It is the only witness that can see a pre-pull placement
+	 * at all — a spirit sent before the pull has no cast *and* no summon inside the fight window, and
+	 * only the arithmetic of `stack: 2` says it was there. And the aura is the mechanic itself, where a
+	 * summon is a side effect of it.
+	 *
+	 * What the summons add is the pet actor, which the aura cannot name, and a cross-check: on both
+	 * reference pulls the two agree exactly — 4 rises and 4 summons on a:6MhZgjyAknFWrYfK fight 16, 2
+	 * rises and 2 summons plus one inferred pre-pull spirit on the pull above. A log carrying summons
+	 * but no stack events would still be counted here, because a rise from an `applybuff` is a rise; a
+	 * log carrying stacks but no summons loses only the actor, and `actorID` goes null rather than
+	 * guessing at one.
+	 *
+	 * A press that lands on an enemy that already has a spirit *recalls* it rather than sending a
+	 * second, and produces no rise — so counting rises cannot double-count a recall-and-replace. That is
+	 * reasoned from the mechanic rather than observed: neither reference pull contains such a press.
+	 */
+	const sefPlacements = (() => {
+		const summons = events.filter(
+			(e) => e.type === 'summon' && e.sourceID === actor.id && SEF_SUMMON_IDS.has(abilityIdOf(e) ?? -1),
+		);
+		// Co-timed rather than nearest: the game stamps the cast, the summon and the aura change on one
+		// millisecond, and a tolerance would let a later press claim an earlier spirit's arrival.
+		const at = <T extends { t: number }>(list: readonly T[], t: number): T | undefined =>
+			list.find((x) => Math.abs(x.t - t) <= SELF_EVENT_MS);
+
+		const rises: Array<{ t: number; prePull: boolean }> = [];
+		let held = 0;
+		let previousEnd: number | null = null;
+		for (const l of sefLevels) {
+			// `auraLevels` never emits a level of zero — a gap between two stretches *is* the aura at
+			// nothing — so a stretch that does not begin where the last one ended opens from an empty bar.
+			// Without this the four separate presses on a:6MhZgjyAknFWrYfK fight 16 counted as one: each
+			// stretch sits at level 1, and 1 is not greater than the 1 the previous stretch left behind.
+			if (previousEnd === null || previousEnd !== l.start) held = 0;
+			// Every stack the level climbed is one more spirit in the world, so a rise of two is two
+			// placements. A *fall* is a recall and adds nothing, which is what stops a press that merely
+			// moved an existing spirit from being counted as a new one.
+			//
+			// A stretch the fight began inside is a placement that happened before it. Its clock is 0
+			// because that is where the evidence starts, not because it was pressed there — `prePull` is
+			// what stops the section reading it as a global spent at the pull.
+			const prePull = l.preexisting === true;
+			for (let level = held; level < l.level; level++) rises.push({ t: prePull ? 0 : l.start, prePull });
+			held = l.level;
+			previousEnd = l.end;
+		}
+
+		return rises.map(({ t, prePull }) => {
+			const cast = prePull ? undefined : at(sefCasts, t);
+			const summon = prePull ? undefined : summons.find((s) => Math.abs(s.timestamp - t0 - t) <= SELF_EVENT_MS);
+			// The press names the enemy. A pre-pull placement has none inside the fight, and its target is
+			// filled in further down from the spirit's own first swings — see `sefUses`.
+			const target = cast?.target ?? null;
+			return {
+				t,
+				prePull,
+				target,
+				name: actors.find((a) => a.id === target)?.name ?? null,
+				actorID: summon?.targetID ?? null,
+				link: link(t),
+			};
+		});
+	})();
 
 	/**
 	 * The spirits' own actors: this player's pets that dealt damage while the aura was up, less Xuen.
@@ -2493,6 +2591,53 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const sefResolved = sefCloneActors.size > 0 && sefMeasuredMs > 0;
 
 	/**
+	 * The placements again, with the pre-pull ones' enemies read off the spirits themselves.
+	 *
+	 * "Not in this log" was too quick. The *cast* that aimed a pre-pull spirit is outside the fight
+	 * window, which is true and is why `sefPlacements` leaves its target null — but the spirit is in the
+	 * log from the first second, and the machinery that answers "which enemy is this spirit on" already
+	 * runs above for every other placement. It answers this one too: the spirit's own first swing names
+	 * the enemy it was standing on. On a:YBQzrcgVJnAj7NMP fight 15 that is Wavebinder Kardris, swung at
+	 * from 2.6s and held for 232 of the pull's 245 seconds.
+	 *
+	 * **It is deliberately marked as a different kind of answer.** A press is a statement of intent; a
+	 * swing is evidence of position, and the two can disagree — a spirit recalled and re-sent stands
+	 * somewhere its press never named. So `deduced` rides along and the section says "where it swung"
+	 * rather than silently printing it in the column headed "sent to".
+	 *
+	 * Which spirit belongs to which pre-pull placement is settled by debut order: at the pull only the
+	 * pre-pull spirits are out, so the earliest first-swings are theirs, taken in time order and one
+	 * apiece. Actor identity cannot do this job — the reference pull reuses one pet id for both its
+	 * pre-pull spirit and a later placement.
+	 *
+	 * A spirit that never swings — its enemy died before it connected, or it was recalled first — leaves
+	 * nothing to read, and that placement keeps its null. "Cannot say" survives as an answer.
+	 */
+	const sefUses = (() => {
+		// A pre-pull spirit was already swinging before the pull's first press landed one. That bound is
+		// what separates it from a spirit the pull itself sent: without it, a pre-pull spirit that never
+		// connected would silently inherit the *next* spirit's enemy — the suite covers exactly that, and
+		// the honest answer there is null. A pull with no press at all bounds nothing and takes any debut.
+		const firstPress = sefPlacements.find((p) => !p.prePull)?.t ?? Infinity;
+		const debuts = sefCloneHits
+			.map((hits) => hits[0])
+			.filter((hit): hit is TargetHit => hit !== undefined && hit.t < firstPress)
+			.sort((a, b) => a.t - b.t);
+		let next = 0;
+		return sefPlacements.map((use) => {
+			if (!use.prePull || use.target !== null) return use;
+			const debut = debuts[next++];
+			if (debut === undefined) return use;
+			return {
+				...use,
+				target: debut.target,
+				name: actors.find((a) => a.id === debut.target)?.name ?? null,
+				deduced: true,
+			};
+		});
+	})();
+
+	/**
 	 * The reader's ten-second rule, as a measurement.
 	 *
 	 * A stretch where the counts above say two or more enemies were being damaged, lasting longer than
@@ -2565,6 +2710,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 						// Zero only for an enemy that reached this list through a spirit alone, which cannot happen
 						// while the spirit is identified from damage events — but the type should not depend on that.
 						engagedMs: span === undefined ? 0 : span.last - span.first,
+						// The pull-wide overlap figure, kept per enemy instead of summed — the same intersection
+						// of "a spirit was here" with "so were you", off the same loop that produces the total.
+						// It is an intersection of two stretches, so it can never exceed either of them; the suite
+						// asserts that rather than trusting it, because a segment-bound slip would show up here
+						// first and as a number the reader would have no way to challenge.
+						overlapMs: sefOverlapByTarget.get(id) ?? 0,
 						damage: damageTaken.get(id) ?? 0,
 					};
 				})
@@ -2943,10 +3094,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * counter. On both reference reports the pairing is exact — every one of the 613 hits in
 	 * a:6MhZgjyAknFWrYfK and all 321 in a:YBQzrcgVJnAj7NMP follows a Capacitance removal, none precedes
 	 * one, and every discharging cycle had reached charge 4 — but they are not the same instant: the
-	 * damage lands a median of ~260ms after the aura comes off, tailing to 2.8s. Joining the two would
-	 * mean picking a tolerance to explain a gap the log does not explain, and drawing the hit where the
-	 * log put it needs no tolerance at all. It also leaves the honest gap visible: 6 and 7 ceiling
-	 * cycles respectively produced no hit, and those rows simply end with no mark after them.
+	 * damage lands a median of ~260ms after the aura comes off, tailing to 2.8s.
+	 *
+	 * So the strike is placed on its own damage event and the *wait* is carried beside it rather than
+	 * either end being nudged to meet the other. Which fill a strike spent is decided by order alone —
+	 * the last emptying before it — which needs no tolerance and is why a tolerance is not picked here:
+	 * one wide enough to keep the 2.8s stragglers would start claiming fills that never discharged at
+	 * all. Those exist and must keep their silence: 6 cycles here and 7 in the second report emptied
+	 * with no hit behind them, the proc having found nobody, and a row that ends with no mark is the
+	 * truthful drawing of that.
 	 *
 	 * Null when the gem was not worn, which is most monks — the lane is dropped by the filter below and
 	 * this would be a counter with nothing in it.
@@ -2954,15 +3110,25 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const capacitance = ((): LaneStacks | null => {
 		const counter = trackStackBank(events, CAPACITANCE, actor.id, t0);
 		if (counter.timeline.length === 0) return null;
+		const points = counter.timeline.map(([at, n]): [number, number] => [at, n]);
+		// Every moment the counter went to nothing, which is what a strike is attributed back to.
+		const emptied = points.filter(([, n]) => n === 0).map(([at]) => at);
 		return {
-			points: counter.timeline.map(([at, n]): [number, number] => [at, n]),
+			points,
 			// The model's ceiling and not this pull's peak, which is the whole point: the peak a log can
 			// show is 4, and scaling to it would draw a counter that fills every cycle.
 			max: CAPACITANCE.maxStacks ?? 0,
 			payoff: nameOf(LIGHTNING_STRIKE_ID),
+			payoffId: LIGHTNING_STRIKE_ID,
 			discharges: damageEvents
 				.filter((e) => abilityIdOf(e) === LIGHTNING_STRIKE_ID)
-				.map((e) => ({ t: e.timestamp - t0, amount: e.amount ?? 0 })),
+				.map((e) => {
+					const t = e.timestamp - t0;
+					// `findLast`, so a strike is paired with the fill it actually spent however long the wait
+					// ran. Null on the pathological case the reference reports never show — a strike with no
+					// emptying anywhere before it — and the chart then draws it with no wait behind it.
+					return { t, amount: e.amount ?? 0, from: emptied.findLast((at) => at <= t) ?? null };
+				}),
 		};
 	})();
 
@@ -3234,7 +3400,13 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// after a player's enemy dies and they roll onto one a spirit is holding. The ten-second rule is
 		// the reader's and is a gate on speaking, not a grade. So `lib/score` knows nothing about this.
 		sef: {
-			casts: sefUses.length,
+			// Spirits sent, not globals spent — and `pressed` keeps the second number beside it rather than
+			// replacing it. The two differ by exactly the spirits placed before the pull, and a reader
+			// comparing this section against the cast table, which counts presses and is right to, needs to
+			// be able to see why the two disagree instead of finding one of them wrong.
+			casts: sefPlacements.length,
+			pressed: sefCasts.length,
+			prePlaced: sefPlacements.filter((p) => p.prePull).length,
 			uses: sefUses,
 			windows: sefWindows.map(({ start, end, truncated }): Window => ({
 				start,
@@ -3264,13 +3436,14 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			// The per-enemy lanes, and the two counts that keep the chart from lying by omission: what the
 			// short-lived rule removed, and what the lane cap did. Both are printed, neither is a silent cut.
 			doubledMs: sefDoubleMs,
-			targets: sefTargets.map(({ id, name, windows, heldMs, heldPct, engagedMs }) => ({
+			targets: sefTargets.map(({ id, name, windows, heldMs, heldPct, engagedMs, overlapMs: doubled }) => ({
 				id,
 				name,
 				windows,
 				heldMs,
 				heldPct,
 				engagedMs,
+				overlapMs: doubled,
 			})),
 			hiddenTargets: sefTargetsLived.length - sefTargets.length,
 			shortLivedTargets: sefTargetsAll.length - sefTargetsLived.length,

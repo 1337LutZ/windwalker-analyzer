@@ -12,7 +12,10 @@ import type { Analysis } from '~/lib/types';
 
 import TouchOfKarma from '../TouchOfKarma';
 
-initI18n();
+const i18n = initI18n();
+// The label is read from the copy rather than restated, so a rename cannot break an assertion
+// whose subject is the tile existing, not the words on it.
+const t = i18n.getFixedT('en', 'report');
 
 const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
@@ -44,6 +47,40 @@ function measured(): Analysis {
 	return analysis;
 }
 
+/**
+ * `a:YBQzrcgVJnAj7NMP` #15, Kor'kron Dark Shaman — the pull the tile was reported wrong on.
+ *
+ * Two presses in a 245s pull, so three charges the cooldown allowed; both landed, and neither absorb
+ * came up short of its blow, so the ceiling is unknowable. Figures verbatim from the live assertions
+ * in `lib/__fixtures__/karmacap.test.ts`.
+ */
+function darkShaman(): Analysis {
+	const analysis = structuredClone(fixture('mixed'));
+	analysis.karma = {
+		...analysis.karma,
+		casts: 2,
+		available: 3,
+		reflected: 936_608,
+		absorbed: 892_008,
+		capPerUse: null,
+		exhausted: 0,
+		uses: [
+			{ t: 20_432, reflected: 198_901, absorbed: 189_430, exhausted: false, hits: 6, capPct: null },
+			{ t: 133_923, reflected: 737_707, absorbed: 702_578, exhausted: false, hits: 6, capPct: null },
+		],
+	};
+	return analysis;
+}
+
+/** One tile's markup, found by its label — the same shape `kpiTiles.test.ts` uses. */
+function tile(html: string, label: string): string {
+	const parts = html.split('<div class="border-l-2');
+	const needle = label.toLowerCase();
+	return parts.find((part) => part.toLowerCase().includes(needle)) ?? '';
+}
+
+const TONE = { good: 'text-kick', ok: 'text-brew', bad: 'text-miss' } as const;
+
 describe('the Touch of Karma section', () => {
 	/**
 	 * The case the section exists to handle honestly: no use drained its pool, so the ceiling is
@@ -56,7 +93,7 @@ describe('the Touch of Karma section', () => {
 		expect(html).toContain('cannot be said on this pull');
 		// The column is absent rather than empty, and no share of any ceiling is printed.
 		expect(html).not.toContain('of cap');
-		expect(html).not.toContain('Of what it could');
+		expect(html).not.toContain(t('karma.kpi.ofCap'));
 	});
 
 	/** And the case where it can: the pool is named, and named as measured rather than as supplied. */
@@ -66,7 +103,7 @@ describe('the Touch of Karma section', () => {
 		expect(html).toContain('drained its pool dry');
 		expect(html).toContain('629.6k health');
 		expect(html).toContain('of cap');
-		expect(html).toContain('Of what it could');
+		expect(html).toContain(t('karma.kpi.ofCap'));
 	});
 
 	/**
@@ -89,5 +126,48 @@ describe('the Touch of Karma section', () => {
 	it('names the presses that redirected nothing', () => {
 		expect(render(fixture('strong'))).toContain('One press redirected nothing at all');
 		expect(render(fixture('poor'))).not.toContain('redirected nothing at all');
+	});
+
+	/**
+	 * The tile that was reported wrong, on the pull it was reported from.
+	 *
+	 * It read "0/2 Returned nothing" in green: a label naming a fault, a zero a reader cannot place on
+	 * either side of it, and a colour agreeing with neither. The arithmetic was right — neither press
+	 * on that pull was empty — so the fix is the tile, which now counts the presses that landed.
+	 */
+	it('states the presses that landed rather than a zero count of a fault', () => {
+		const html = render(darkShaman());
+		const landed = tile(html, 'Presses that landed');
+
+		expect(landed).toContain('2');
+		expect(landed).toContain('/2');
+		expect(landed).toContain(TONE.good);
+		// The old label is gone entirely; a green tile must never be headed by the name of a mistake.
+		expect(html).not.toContain('Returned nothing');
+	});
+
+	/**
+	 * And the same tile when presses really were empty, so the flip did not just paint everything green.
+	 */
+	it('grades the landed count down when a press returned nothing', () => {
+		const landed = tile(render(fixture('strong')), 'Presses that landed');
+
+		expect(landed).toContain('1');
+		expect(landed).toContain('/2');
+		expect(landed).toContain(TONE.bad);
+	});
+
+	/**
+	 * Uses taken carries a tone of its own, on `defensiveUseTone`'s wide bands.
+	 *
+	 * Two of three is the ordinary shape of a Dark Shaman pull rather than a fault — the charges the
+	 * cooldown allows are not all charges the fight offers something to redirect — so it reads amber
+	 * and not red. `usageTone`'s 90/70, which the Chi Brew tile uses, would call it a failure.
+	 */
+	it('tones the uses taken by how many the pull offered', () => {
+		expect(tile(render(darkShaman()), 'Uses taken')).toContain(TONE.ok);
+		// Three of three the pull allowed, and two of six.
+		expect(tile(render(fixture('poor')), 'Uses taken')).toContain(TONE.good);
+		expect(tile(render(fixture('strong')), 'Uses taken')).toContain(TONE.bad);
 	});
 });

@@ -9,12 +9,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { Analysis, AuraLane, CastTimeline as Timeline } from '~/lib/types';
 
-import { formatClock } from '~/lib/format';
+import { formatClock, formatGap } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '../../sections/CastLog';
 import CastTimeline from '../CastTimeline';
 import { collapseTargets, perTargetBlock } from '../targetLanes';
+import { HIDDEN_AURAS, HIDDEN_CASTS } from '../hidden';
+import { spellIconUrl } from '../../primitives/spellIcon';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -803,5 +805,178 @@ describe('CastTimeline, intermissions and deaths', () => {
 		const html = render(drawn);
 		expect(html).not.toContain(`data-tip="${t('castLog.death.title')}"`);
 		expect(html).not.toContain(t('castLog.death.note'));
+	});
+});
+
+/**
+ * A stacking aura's row, drawn as a meter rather than as a bar.
+ *
+ * A stacking aura's *window* is the least interesting thing about it: Capacitance is up for most of a
+ * pull, so a solid bar saying "up" says nothing, while the height of the charge says how fast the pull
+ * was going. These pin the three claims the drawing makes — a block's height is the level the log
+ * stamped, the icon after it is the payoff that emptied it, and the fade between them is the wait —
+ * plus the sentence that has to accompany a meter which, on this aura, can never fill.
+ *
+ * Keyed to an aura the ignore table does not name, and paid out by a spell it does not name either.
+ * Both halves of the gem are hidden (see `hidden.ts`), so exercising the drawing under its own key and
+ * id would test nothing at all; under a key and an id the table leaves alone, this *is* the chart a
+ * reader gets the moment those entries are removed. The counter is the real gem's, one cycle of it,
+ * with the payoff swapped for another spell — the drawing does not care which spell it is, only that
+ * it has an icon. The suite below covers the hiding.
+ */
+describe('CastTimeline, a stacking lane drawn as its charge', () => {
+	const VISIBLE = 'capacitance-not-hidden';
+	const PAYOFF_ID = 123996;
+	const stacks = {
+		// One cycle in the shape a real client records: charge 1 is the application, then 2, 3 and 4,
+		// and the fifth charge is the removal rather than a level of its own.
+		points: [
+			[2000, 1],
+			[2200, 2],
+			[2300, 3],
+			[2400, 4],
+			[2500, 0],
+		] as Array<[number, number]>,
+		max: 5,
+		payoff: 'Crackling Tiger Lightning',
+		payoffId: PAYOFF_ID,
+		// 260ms after the counter emptied, which is the median wait measured on the reference reports.
+		discharges: [{ t: 2760, amount: 276205, from: 2500 }],
+	};
+	const charged: Analysis = {
+		...drawn,
+		timeline: {
+			...timeline,
+			lanes: [
+				...timeline.lanes,
+				{ key: VISIBLE, name: 'Capacitance', id: 137596, group: 'proc', windows: [{ start: 2000, end: 2500 }], stacks },
+			],
+		},
+	};
+
+	/** The premise of every case below: without it they would all pass against a row nobody drew. */
+	it('is testing a key and an id the ignore table leaves alone', () => {
+		expect(HIDDEN_AURAS.has(VISIBLE)).toBe(false);
+		expect(HIDDEN_CASTS.has(PAYOFF_ID)).toBe(false);
+	});
+
+	it('draws a block per level, at the height of the charge the log stamped', () => {
+		const html = render(charged);
+		// Four levels against a ceiling of five: 20/40/60/80%, and never 100 — which is the finding, not
+		// a rounding artefact. The empty stretch after the discharge draws nothing at all.
+		expect(html).toContain('height:20%');
+		expect(html).toContain('height:40%');
+		expect(html).toContain('height:60%');
+		expect(html).toContain('height:80%');
+		expect(html).not.toContain('height:100%');
+		expect(html).toContain('data-tip-charges="4/5"');
+	});
+
+	it('marks the discharge with the payoff’s own icon, named in the tooltip', () => {
+		const html = render(charged);
+		expect(html).toContain('data-tip="Crackling Tiger Lightning"');
+		expect(html).toContain(`data-tip-landed="${formatClock(2760)}"`);
+		expect(html).toContain('data-tip-hit="276,205"');
+		// The icon, and specifically the payoff's own — a tick would leave the reader asking what it is.
+		expect(html).toContain(spellIconUrl(PAYOFF_ID));
+	});
+
+	/**
+	 * The wait, which is what stops the meter looking like it quits early.
+	 *
+	 * Both ends stay where the log put them — the fade starts at the emptying and ends at the strike —
+	 * and its height is the charge that bought it, so it reads as the same event continuing.
+	 */
+	it('draws the wait between the charge emptying and the strike landing', () => {
+		const html = render(charged);
+		expect(html).toContain(`data-tip-wait="${formatGap(260)}"`);
+		expect(html).toContain('opacity-30');
+	});
+
+	/** A meter that cannot fill is a chart owing the reader an explanation, so it gives one. */
+	it('explains the meter, and only when the row is on the screen', () => {
+		const note = t('castLog.charge.note', { aura: 'Capacitance', max: 5, payoff: 'Crackling Tiger Lightning' });
+		expect(render(charged)).toContain(note);
+		expect(render(drawn)).not.toContain(note);
+	});
+
+	/** A proc that found nobody to hit gets no icon, and no wait either. Not a hole — an outcome. */
+	it('draws no payoff for a charge that discharged into nothing', () => {
+		const missed: Analysis = {
+			...charged,
+			timeline: {
+				...charged.timeline!,
+				lanes: charged.timeline!.lanes.map((lane) =>
+					lane.key === VISIBLE ? { ...lane, stacks: { ...stacks, discharges: [] } } : lane,
+				),
+			},
+		};
+		const html = render(missed);
+		expect(html).toContain('data-tip-charges="4/5"');
+		expect(html).not.toContain('data-tip="Crackling Tiger Lightning"');
+		expect(html).not.toContain('data-tip-wait=');
+	});
+
+	/** Every other lane keeps the bar it always had; the counter is not a new convention for all of them. */
+	it('leaves the lanes with no counter as full-height bars', () => {
+		const html = render(charged);
+		expect(html).toContain('data-tip="Re-Origination"');
+		// Four blocks and no more: exactly the levels of the one lane that carries a counter. The three
+		// lanes without one are still bars, which is what a lane whose aura does not stack should be.
+		expect((html.match(/data-tip-charges=/g) ?? []).length).toBe(4);
+	});
+});
+
+/**
+ * The rows this report deliberately does not draw.
+ *
+ * Hiding a row is a claim about what is worth a reader's attention, and a chart that makes it silently
+ * is a chart understating what the pull contained — the same fault the per-enemy cap is careful about.
+ * So these check both halves: that the row goes, and that the caption says it went.
+ */
+describe('CastTimeline, the ignore table', () => {
+	const gem: Analysis = {
+		...drawn,
+		timeline: {
+			...timeline,
+			casts: [...timeline.casts, { t: 2760, id: 137597, name: 'Lightning Strike', onGcd: false }],
+			lanes: [
+				...timeline.lanes,
+				{
+					key: 'capacitance',
+					name: 'Capacitance',
+					id: 137596,
+					group: 'proc',
+					windows: [{ start: 2000, end: 2500 }],
+					stacks: {
+						points: [
+							[2000, 1],
+							[2500, 0],
+						] as Array<[number, number]>,
+						max: 5,
+						payoff: 'Lightning Strike',
+						payoffId: 137597,
+						discharges: [{ t: 2760, amount: 276205, from: 2500 }],
+					},
+				},
+			],
+		},
+	};
+
+	it('draws no row for a hidden aura, and no mark for a hidden spell', () => {
+		const html = render(gem);
+		expect(html).not.toContain('data-tip="Capacitance"');
+		expect(html).not.toContain('data-tip="Lightning Strike"');
+		expect(html).not.toContain('data-tip-charges=');
+	});
+
+	/** Named, so a reader knows the pull had something the chart chose not to show them. */
+	it('says in the caption what it left out', () => {
+		expect(render(gem)).toContain(t('castLog.hiddenRows', { count: 1, rows: 'Capacitance' }));
+	});
+
+	/** A pull with none of it says nothing, rather than explaining an absence nobody would notice. */
+	it('says nothing on a pull that had none of it', () => {
+		expect(render(drawn)).not.toContain(t('castLog.hiddenRows', { count: 1, rows: 'Capacitance' }));
 	});
 });

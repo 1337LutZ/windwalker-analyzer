@@ -248,10 +248,19 @@ describe('the item procs a Windwalker carries', () => {
 		...dataset,
 		events: [
 			...events,
-			// The meta gem's charge counter, which stacks to five and spends the lot on a Lightning Strike.
+			// The meta gem's charge counter, in the exact shape both reference reports record it: the
+			// `applybuff` is charge 1, the stack events run 2 → 3 → 4, and the *fifth* charge is the
+			// removal rather than a `stack: 5` — the buff has spent itself by the time it exists. The
+			// discharge follows a fraction of a second later as Lightning Strike damage, which is the
+			// only place the payoff appears at all. Written out because this test used to assert a
+			// `stack: 5` no client has ever emitted.
 			e(2000, 'applybuff', 137596),
-			e(2200, 'applybuffstack', 137596, { stack: 5 }),
+			e(2200, 'refreshbuff', 137596),
+			e(2200, 'applybuffstack', 137596, { stack: 2 }),
+			e(2300, 'applybuffstack', 137596, { stack: 3 }),
+			e(2400, 'applybuffstack', 137596, { stack: 4 }),
 			e(2500, 'removebuff', 137596),
+			e(2760, 'damage', 137597, { targetID: BOSS, amount: 276_205, hitType: 2 }),
 			// The legendary cloak, three seconds of it.
 			e(4000, 'applybuff', 146194),
 			e(7000, 'removebuff', 146194),
@@ -289,6 +298,76 @@ describe('the item procs a Windwalker carries', () => {
 	/** A monk who wore a different trinket must not pay a row to be told the one he lacks never fired. */
 	it('draws no row for gear this pull never had', () => {
 		expect(lane('ferocity')).toBeUndefined();
+	});
+
+	/**
+	 * The meta gem's row is the one place a window is not the whole story.
+	 *
+	 * Capacitance is up for most of a pull, so a bar saying "up" is a bar saying nothing; what separates
+	 * a fast pull from a slow one is how often the counter filled. The counter therefore rides on the
+	 * lane, and the steps are the levels the log actually stamped — 1 from the application, then 2, 3
+	 * and 4 — never a 5, because the client does not emit one.
+	 */
+	it('carries the meta gem counter on its lane, at the levels the log stamped', () => {
+		const stacks = lane('capacitance')?.stacks;
+		expect(stacks?.points).toEqual([
+			[2000, 1],
+			[2200, 1],
+			[2200, 2],
+			[2300, 3],
+			[2400, 4],
+			[2500, 0],
+		]);
+		// The ceiling is the model's five and not this pull's peak of four: a counter scaled to what a
+		// log can show would draw a meter that fills on every cycle, which is the opposite of the truth.
+		expect(stacks?.max).toBe(5);
+	});
+
+	/**
+	 * The discharge is placed on the damage it dealt, not on the counter emptying.
+	 *
+	 * Those are two different instants — on the reference reports the hit lands a median of ~260ms after
+	 * the removal, tailing to 2.8s. Both are kept: `t` is where the log put the strike and `from` is
+	 * where the log put the emptying, so the chart can draw the wait between them without either end
+	 * being nudged to meet the other.
+	 */
+	it('marks the discharge from Lightning Strike itself, with what it hit and the fill it spent', () => {
+		expect(lane('capacitance')?.stacks?.discharges).toEqual([{ t: 2760, amount: 276_205, from: 2500 }]);
+		expect(lane('capacitance')?.stacks?.payoff).toBe('Lightning Strike');
+		// Carried so the chart can draw the icon without ever learning a spell id of its own.
+		expect(lane('capacitance')?.stacks?.payoffId).toBe(137597);
+	});
+
+	/**
+	 * A fill that discharged into nothing keeps its silence.
+	 *
+	 * Six cycles in one reference report and seven in the other emptied with no hit behind them, the
+	 * proc having found nobody to strike. That is an outcome rather than a hole, so nothing is drawn and
+	 * — this is the part worth pinning — no *later* strike is dragged backwards to claim the fill.
+	 */
+	it('attributes a strike to the fill it actually spent, and leaves an unspent one alone', () => {
+		const twice = analyse({
+			...dataset,
+			events: [
+				...events,
+				// A first cycle that empties with no strike after it at all.
+				e(60000, 'applybuff', 137596),
+				e(60400, 'removebuff', 137596),
+				// A second, a full ten seconds later, which does discharge.
+				e(70000, 'applybuff', 137596),
+				e(70400, 'removebuff', 137596),
+				e(70700, 'damage', 137597, { targetID: BOSS, amount: 100_000, hitType: 1 }),
+			].sort((a, b) => a.timestamp - b.timestamp),
+		});
+		const discharges = twice.timeline?.lanes.find((l) => l.key === 'capacitance')?.stacks?.discharges;
+		// One strike, paired with the *second* emptying and not the first — order alone decides it.
+		expect(discharges).toEqual([{ t: 70700, amount: 100_000, from: 70400 }]);
+	});
+
+	/** Every other proc is on-or-off, and a counter attached to one would be a meter that never moves. */
+	it('leaves the procs that do not stack without a counter', () => {
+		expect(lane('flurry-of-xuen')?.stacks).toBeUndefined();
+		expect(lane('vicious')?.stacks).toBeUndefined();
 	});
 
 	/**

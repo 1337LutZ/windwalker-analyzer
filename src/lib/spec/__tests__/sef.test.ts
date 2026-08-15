@@ -79,6 +79,17 @@ const sefStack = (at: number, stack: number, target?: number): WclEvent[] => [
 	e(at, stack > 1 ? 'applybuffstack' : 'removebuffstack', SEF_ID, { stack }),
 ];
 
+/**
+ * The log's own record of a spirit entering the world, naming the pet actor in `targetID`.
+ *
+ * One of three ids, one per spirit. They corroborate the placement count and supply the actor; they
+ * cannot define the count, because a spirit placed before the pull emits no summon inside the fight
+ * either — see the suite below.
+ */
+const summon = (at: number, id: number, pet: number): WclEvent => e(at, 'summon', id, { targetID: pet });
+const SUMMON_STORM = 138_121;
+const SUMMON_EARTH = 138_122;
+
 const actors: Actor[] = [
 	{ id: ME, name: 'Bigdogmo', type: 'Player' },
 	{ id: SPIRIT, name: 'Storm Spirit', type: 'Pet', petOwner: ME },
@@ -385,7 +396,9 @@ describe('two spirits at once', () => {
 	 */
 	it('reads a spirit’s enemy from where it swung, never from where the press aimed', () => {
 		const { sef } = analyse(datasetOf(both));
-		expect(sef?.uses[0]?.target).toBe(ADD);
+		// The only press in this pull named the add; the pre-pull spirit spent the whole window on the
+		// boss and no cast anywhere in the log says so.
+		expect(sef?.uses.find((use) => use.prePull !== true)?.target).toBe(ADD);
 		expect((sef?.targets ?? []).find((target) => target.id === BOSS)?.heldMs).toBeGreaterThan(0);
 	});
 
@@ -394,6 +407,208 @@ describe('two spirits at once', () => {
 		const { sef } = analyse(datasetOf(both));
 		expect(sef?.windows).not.toEqual([]);
 		expect(sef?.uptimeMs).toBeGreaterThan(0);
+	});
+});
+
+/**
+ * Counting spirits sent rather than buttons pressed.
+ *
+ * The second half of the same bug. Fixing the *windows* let the section see a spirit placed before the
+ * pull; the *count* was still `casts.length`, so a pull with three spirits reported two — and the lane
+ * chart drew a spirit arriving at 2.6s that no row on the page accounted for.
+ *
+ * Measured on a:YBQzrcgVJnAj7NMP fight 15: two casts of 137639, two `summon` events, one spirit
+ * already out at the pull, and the stack walk's rises agreeing with the summons exactly. Three
+ * placements. On a:6MhZgjyAknFWrYfK fight 16, four casts, four summons, four rises, nothing pre-placed
+ * — four placements, and that pull's number does not move.
+ */
+describe('the placement count', () => {
+	/** One out before the pull, one sent at 10s. Two spirits, one press, and a summon for the press. */
+	const prePulled: WclEvent[] = [
+		...brewBank,
+		...sefStack(10_000, 2, ADD),
+		summon(10_000, SUMMON_STORM, SPIRIT2),
+		...sefStack(40_000, 1),
+		e(70_000, 'removebuff', SEF_ID),
+		...stand(1_000, 70_000, SPIRIT, BOSS),
+		...stand(11_000, 40_000, SPIRIT2, ADD),
+		...stand(0, 110_000, ME, BOSS),
+	];
+
+	it('counts the spirit placed before the pull', () => {
+		const { sef } = analyse(datasetOf(prePulled));
+		// Two spirits went out; only one button was pressed inside the pull.
+		expect(sef?.casts).toBe(2);
+		expect(sef?.pressed).toBe(1);
+		expect(sef?.prePlaced).toBe(1);
+	});
+
+	/**
+	 * The pre-pull placement is a row, and its clock is 0 because that is where the evidence begins —
+	 * `prePull` is what stops the section printing that as a global spent at the pull.
+	 */
+	it('lists it as a placement with no time of its own', () => {
+		const { sef } = analyse(datasetOf(prePulled));
+		const first = sef?.uses[0];
+		expect(first?.prePull).toBe(true);
+		expect(first?.t).toBe(0);
+	});
+
+	/**
+	 * Its enemy is recoverable after all, and that was worth correcting. The *cast* is outside the fight
+	 * window, but the spirit is in the log from the first second and the report already reads every
+	 * other spirit's enemy off its own swings. Here the pre-pull spirit swings at the boss from 1s.
+	 *
+	 * `deduced` keeps it visibly a weaker claim than a press: a swing proves where a spirit *stood*,
+	 * which is not the same statement as where it was *sent*.
+	 */
+	it('reads the pre-pull spirit’s enemy from its own first swings', () => {
+		const { sef } = analyse(datasetOf(prePulled));
+		const first = sef?.uses[0];
+		expect(first?.target).toBe(BOSS);
+		expect(first?.name).toBe('Galakras');
+		expect(first?.deduced).toBe(true);
+		// The press-aimed placement is not marked: its target came from the cast, which is the stronger
+		// evidence, and conflating the two would be the whole point of the flag lost.
+		expect(sef?.uses[1]?.deduced).toBeUndefined();
+	});
+
+	/**
+	 * And it stops at the edge of the evidence. A spirit that never swung — its enemy died before it
+	 * connected, or it was recalled first — leaves nothing to read, so the target stays null rather
+	 * than borrowing the nearest enemy. "Cannot say" is still an answer.
+	 */
+	it('says nothing about a pre-pull spirit that never swung', () => {
+		const silent = prePulled.filter((ev) => ev.sourceID !== SPIRIT);
+		const { sef } = analyse(datasetOf(silent));
+		const first = sef?.uses[0];
+		expect(first?.prePull).toBe(true);
+		expect(first?.target).toBeNull();
+		expect(first?.deduced).toBeUndefined();
+	});
+
+	/** The summon names the pet; the placement it could not witness carries null rather than a guess. */
+	it('takes the actor from the summon, and null where there was none', () => {
+		const { sef } = analyse(datasetOf(prePulled));
+		expect(sef?.uses[0]?.actorID).toBeNull();
+		expect(sef?.uses[1]?.actorID).toBe(SPIRIT2);
+	});
+
+	/**
+	 * A log with no summon events at all still counts correctly. This is why the stack walk is primary
+	 * rather than the summons: the count comes off the same array the windows do, so the number and the
+	 * bar drawn beside it cannot disagree, and a summon only ever adds the actor.
+	 */
+	it('counts from the aura even when the log carries no summons', () => {
+		const noSummons = prePulled.filter((ev) => ev.type !== 'summon');
+		const { sef } = analyse(datasetOf(noSummons));
+		expect(sef?.casts).toBe(2);
+		expect(sef?.prePlaced).toBe(1);
+		expect(sef?.uses[1]?.actorID).toBeNull();
+	});
+
+	/** An ordinary pull loses nothing: no stacks, nothing pre-placed, and the count is still the presses. */
+	it('leaves a pull with nothing placed before it alone', () => {
+		const { sef } = analyse(datasetOf(doubledUp));
+		expect(sef?.casts).toBe(1);
+		expect(sef?.pressed).toBe(1);
+		expect(sef?.prePlaced).toBe(0);
+		expect(sef?.uses[0]?.prePull).toBe(false);
+	});
+
+	/**
+	 * The mirror case, and it must not inflate the count. A press that lands on an enemy that already
+	 * has a spirit recalls it instead of sending a second, so the level never rises and no placement is
+	 * recorded — two presses, one spirit. The level walk is what makes that automatic: a placement is a
+	 * *rise*, and a recall-and-replace that never returns to zero produces none.
+	 */
+	it('does not count a press that never raised the spirit count', () => {
+		const recall: WclEvent[] = [
+			...brewBank,
+			...sefWindow(10_000, 60_000, ADD),
+			// A second press inside the running window that moves no stack — the log records the cast and
+			// the aura level stays where it was.
+			e(30_000, 'cast', SEF_ID, { targetID: BOSS }),
+			...stand(12_000, 60_000, SPIRIT, ADD),
+			...stand(0, 110_000, ME, BOSS),
+		];
+		const { sef } = analyse(datasetOf(recall));
+		expect(sef?.pressed).toBe(2);
+		expect(sef?.casts).toBe(1);
+	});
+
+	/**
+	 * Separate presses, each with its own apply→remove pair — the ordinary shape, and the one the first
+	 * cut of this counter got wrong. `auraLevels` never emits a level of zero, so the gap *between* two
+	 * stretches is the aura at nothing and not a row in the array; a counter comparing each stretch's
+	 * level against the last one's saw 1 against 1 and recorded no rise. Four presses on
+	 * a:6MhZgjyAknFWrYfK fight 16 counted as one until the walk reset across the gap.
+	 */
+	it('counts every separate placement, not just the first', () => {
+		const again: WclEvent[] = [
+			...brewBank,
+			...sefWindow(10_000, 40_000, ADD),
+			summon(10_000, SUMMON_STORM, SPIRIT),
+			...sefWindow(60_000, 90_000, BOSS),
+			// A different spirit's summon id, and the same pet actor as the first — which is what a real
+			// log does, so neither the id nor the actor can stand in for a placement on its own.
+			summon(60_000, SUMMON_EARTH, SPIRIT),
+			...stand(12_000, 40_000, SPIRIT, ADD),
+			...stand(62_000, 90_000, SPIRIT, BOSS),
+			...stand(0, 110_000, ME, BOSS),
+		];
+		const { sef } = analyse(datasetOf(again));
+		expect(sef?.casts).toBe(2);
+		expect(sef?.pressed).toBe(2);
+		expect(sef?.uses.map((use) => use.target)).toEqual([ADD, BOSS]);
+		expect(sef?.uses.map((use) => use.actorID)).toEqual([SPIRIT, SPIRIT]);
+	});
+
+	/** A spirit still out when the pull ends is one placement, not one per stretch it survived. */
+	it('counts a spirit that outlives the pull once', () => {
+		const held: WclEvent[] = [
+			...brewBank,
+			e(10_000, 'cast', SEF_ID, { targetID: ADD }),
+			e(10_000, 'applybuff', SEF_ID),
+			...stand(12_000, 110_000, SPIRIT, ADD),
+			...stand(0, 110_000, ME, BOSS),
+		];
+		const { sef } = analyse(datasetOf(held));
+		expect(sef?.casts).toBe(1);
+		expect(sef?.windows[0]?.truncated).toBe(true);
+	});
+});
+
+/**
+ * The per-enemy doubled-up column, which replaced the enemy's engaged span on the grid.
+ *
+ * It is the pull-wide overlap kept per enemy rather than summed, so two things have to hold and both
+ * are asserted rather than assumed: the rows add up to the total, and no row can exceed either of the
+ * two stretches it is the intersection of. A slip in the segment bounds would show up here first, as a
+ * figure a reader has no way to challenge.
+ */
+describe('the per-enemy doubled-up time', () => {
+	it('names the enemy the doubling happened on', () => {
+		const { sef } = analyse(datasetOf(doubledUp));
+		const add = (sef?.targets ?? []).find((target) => target.id === ADD);
+		expect(add?.overlapMs).toBe(20_000);
+		expect((sef?.targets ?? []).find((target) => target.id === BOSS)?.overlapMs).toBe(0);
+	});
+
+	it('adds up to the pull-wide figure', () => {
+		const { sef } = analyse(datasetOf(doubledUp));
+		const summed = (sef?.targets ?? []).reduce((total, target) => total + (target.overlapMs ?? 0), 0);
+		expect(summed).toBe(sef?.overlapMs);
+	});
+
+	/** The invariant. An intersection cannot be larger than either stretch it intersects. */
+	it('never exceeds the spirit’s time on the enemy or the player’s', () => {
+		for (const events of [doubledUp, spread]) {
+			for (const target of analyse(datasetOf(events)).sef?.targets ?? []) {
+				expect(target.overlapMs ?? 0).toBeLessThanOrEqual(target.heldMs);
+				expect(target.overlapMs ?? 0).toBeLessThanOrEqual(target.engagedMs);
+			}
+		}
 	});
 });
 

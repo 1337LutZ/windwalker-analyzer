@@ -34,9 +34,27 @@ export interface AuraWindow extends Window {
  * the aura's continuous lifetime, which is not the same thing as the lifetime of what a buff
  * captured — see `snapshotWindowEnd`.
  *
+ * `openOnRefresh` is for the case where a refresh arrives with *nothing* open, which the default
+ * behaviour throws away. An aura cannot be refreshed unless it is already there, so such an event is
+ * proof the aura was up and the apply that started it never reached this stream — WarcraftLogs emits
+ * this constantly for a debuff re-applied to an enemy it is already on. Off by default because for a
+ * buff it would also invent a window count: `procs` and `comboBreaker` count these windows as procs,
+ * and an orphan refresh would become an extra proc nobody got. On by default is wrong; on where the
+ * caller measures *coverage* rather than counts is right. Measured on one Galakras pull, the
+ * discarded refreshes were 42.3 seconds of Rising Sun Kick uptime.
+ *
+ * The window opens at the refresh rather than back-dated to when the aura must have gone up, so it
+ * under-states rather than invents.
+ *
  * A window still open when the fight ends is closed at `fightEnd` and marked `truncated`.
  */
-export function auraWindows(events: readonly WclEvent[], aura: Aura, t0: number, fightEnd: number): AuraWindow[] {
+export function auraWindows(
+	events: readonly WclEvent[],
+	aura: Aura,
+	t0: number,
+	fightEnd: number,
+	{ openOnRefresh = false }: { openOnRefresh?: boolean } = {},
+): AuraWindow[] {
 	const ids = new Set(aura.ids);
 	const open = new Map<number, number>();
 	const out: AuraWindow[] = [];
@@ -46,7 +64,7 @@ export function auraWindows(events: readonly WclEvent[], aura: Aura, t0: number,
 		const id = abilityIdOf(e);
 		if (id === null || !ids.has(id)) continue;
 
-		if (isAuraApply(e)) {
+		if (isAuraApply(e) || (openOnRefresh && isAuraRefresh(e))) {
 			if (!open.has(id)) open.set(id, e.timestamp);
 		} else if (isAuraRemove(e)) {
 			const start = open.get(id);
@@ -82,6 +100,14 @@ export interface AuraLevel {
 	level: number;
 	/** True when the fight ended before the aura did, the same sense `Window.truncated` carries. */
 	truncated?: boolean;
+	/**
+	 * True when this stretch was already running at the pull and its opening was never logged.
+	 *
+	 * Only ever on the first stretch, and it is the difference between "applied at 0:00" and "was
+	 * already up" — which a caller counting *how many times the aura went up* has to be able to tell
+	 * apart. See the pre-fight inference in `auraLevels`.
+	 */
+	preexisting?: boolean;
 }
 
 /**
@@ -118,12 +144,17 @@ export function auraLevels(events: readonly WclEvent[], aura: Aura, t0: number, 
 	const out: AuraLevel[] = [];
 	let level = 0;
 	let since = 0;
+	// Set once, by the pre-fight inference below, and consumed by the first stretch that closes.
+	let preexisting = false;
 
 	// Closes the stretch that was running and starts the next one. Only a *change* is a boundary, so a
 	// stack event landing on the level it already held draws no seam.
 	const moveTo = (next: number, at: number) => {
 		if (next === level) return;
-		if (level > 0) out.push({ start: since, end: at, level });
+		if (level > 0) {
+			out.push({ start: since, end: at, level, ...(preexisting ? { preexisting: true } : {}) });
+			preexisting = false;
+		}
 		level = next;
 		since = at;
 	};
@@ -142,12 +173,23 @@ export function auraLevels(events: readonly WclEvent[], aura: Aura, t0: number, 
 				const gained = e.type === 'applybuffstack' || e.type === 'applydebuffstack';
 				level = Math.max(1, gained ? e.stack - 1 : e.stack + 1);
 				since = 0;
+				preexisting = true;
 			}
 			moveTo(e.stack, at);
 		}
 	}
 
-	if (level > 0) out.push({ start: since, end: fightEnd - t0, level, truncated: true });
+	// Both flags can ride on one stretch: an aura already up at the pull and still up at the kill was
+	// never seen to open *or* close, and a caller counting either end has to be told about both.
+	if (level > 0) {
+		out.push({
+			start: since,
+			end: fightEnd - t0,
+			level,
+			truncated: true,
+			...(preexisting ? { preexisting: true } : {}),
+		});
+	}
 	return out;
 }
 

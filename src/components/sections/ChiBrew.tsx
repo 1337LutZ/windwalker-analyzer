@@ -1,5 +1,5 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatDecimal, formatInteger, formatSeconds } from '~/lib/format';
+import { formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import ChiBrewTrack from '../charts/ChiBrewTrack';
@@ -65,8 +65,6 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 		);
 	}
 
-	const netChi = brew.chiGained - brew.chiWasted;
-
 	return (
 		<Section id="chi-brew" title={t('chiBrew.title')}>
 			<Prose>{t('chiBrew.intent')}</Prose>
@@ -83,24 +81,30 @@ export default function ChiBrew({ analysis }: { analysis: Analysis }) {
 						label={t('chiBrew.kpi.uses')}
 						grade={usageTone(brew.casts, brew.possibleUses)}
 					/>
-					<StatTile value={formatInteger(netChi)} label={t('chiBrew.kpi.chi')} />
-					{/* Idle time against the pull, and the chi it cost against everything the pull generated —
-					    two denominators because they answer different questions. Seconds idle says how much
-					    cooldown went unused; the chi says what that was worth next to all the chi you had. */}
+					{/* Gross, not net. This used to be `gained - wasted` under the label "Chi kept", which is
+					    two facts folded into one number a reader cannot take apart — and the overcap sits
+					    beside it now, so netting it would also be subtracting the tile next door. */}
+					<StatTile value={formatInteger(brew.chiGained)} label={t('chiBrew.kpi.chi')} />
+					{/* Directly beside what it came out of: the overcap only means anything against the total
+					    that produced it, and two chi lost reads differently on a pull that gained six than on
+					    one that gained twenty. Graded on that same denominator for the same reason. */}
+					<StatTile
+						value={formatInteger(brew.chiWasted)}
+						label={t('chiBrew.kpi.overcapped')}
+						grade={wasteTone(brew.chiWasted, brew.chiGained)}
+					/>
+					{/* Graded against the clock the figure is measured on, which is the time the player had
+					    something to hit — the same one `cappedPct` and the ceiling above are fractions of. The
+					    pull's own length was the denominator here and is the wrong one twice over: idle charges
+					    during an intermission are not a fault anybody committed, and dividing a number that no
+					    longer counts them by a span that still does colours the tile from a fraction the report
+					    prints nowhere. The clock is published on `debuff` because that is the section that owns
+					    it; `durationMs` is the fixture fallback, which is what those pulls were graded on. */}
 					<StatTile
 						value={formatSeconds(brew.cappedMs)}
 						label={t('chiBrew.kpi.capped')}
-						grade={wasteTone(brew.cappedMs, analysis.durationMs)}
+						grade={wasteTone(brew.cappedMs, analysis.debuff.contactMs || analysis.durationMs)}
 					/>
-					{/* Only once there is idle time to price. A tile reading "0 chi" on a pull that never let a
-					    charge sit is a fault reported where there was none. */}
-					{brew.cappedMs === 0 ? null : (
-						<StatTile
-							value={formatDecimal(brew.chiLostToIdle)}
-							label={t('chiBrew.kpi.lost')}
-							grade={wasteTone(brew.chiLostToIdle, analysis.resources?.chi?.gained ?? 0)}
-						/>
-					)}
 				</StatTiles>
 			</div>
 
