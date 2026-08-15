@@ -28,14 +28,23 @@ import type { AuraLane, CastMark } from '~/lib/types';
  */
 export const HIDDEN_AURAS: ReadonlySet<string> = new Set([
 	// Capacitance — the charge counter on the **Capacitive Primal Diamond**, the legendary meta gem
-	// (item 95346), and not the legendary cloak, whose proc is Flurry of Xuen and is deliberately still
-	// drawn. It fires on its own RPPM schedule, adds a charge per landed hit whatever the player does,
+	// (item 95346). Not the legendary cloak: that is Flurry of Xuen, listed separately below, and the
+	// two are easy to conflate because both came out of the same legendary chain. It fires on its own
+	// RPPM schedule, adds a charge per landed hit whatever the player does,
 	// and empties itself at five without ever being pressed — so the row carries no decision to read
 	// against the presses above it, which is the whole job of a lane here. It is also the busiest aura
 	// a monk carries by a distance (5,081 events across the boss pulls of one reference report, against
 	// 392 for Re-Origination), so it is a lane's worth of height out of an already tall chart in
 	// exchange for a shape nobody chose.
 	'capacitance',
+	// Flurry of Xuen — the legendary cloak, Fen-Yu, Fury of Xuen (item 102248,
+	// `sim/common/mop/cloaks_phase_4_54.go:133-136`). Same test as the gem above and the same answer: it
+	// procs off landed hits on its own schedule, lasts three seconds, and throws its own strikes without
+	// the player choosing anything. A row of it is a record of the cloak's luck, not of the pull.
+	//
+	// Its strikes are unaffected — they land under 147891, are named in `EXTRA_NAMES`, and keep their
+	// place in Damage by Ability. Only the lane goes.
+	'flurry-of-xuen',
 ]);
 
 /**
