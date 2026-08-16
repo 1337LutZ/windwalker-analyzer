@@ -383,7 +383,10 @@ const LADDER: readonly Rule[] = [
 		chiCost: 1,
 		energyCost: 0,
 		freeWhen: (_state, auras) => auras.active('combo-breaker-tiger-palm'),
-		condition: (state, auras) => {
+		// Underscored for the same reason as `freeWhen` above it: this rule reads the aura clock and
+		// nothing off the bars, and `Rule.condition` hands both to every entry whether it wants them or
+		// not. Kept in the signature rather than dropped so the shape stays uniform across the ladder.
+		condition: (_state, auras) => {
 			// A log that never carried the buff cannot say when it was about to fall off. Rather than
 			// reading "never up" as "always needs refreshing", the rule stands down and says so.
 			if (!auras.present('tiger-power')) return 'unknown';

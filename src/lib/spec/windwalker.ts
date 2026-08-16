@@ -1344,7 +1344,10 @@ const CHI_BREW_RECHARGE_MS = 45_000;
 function chiBrewAudit(
 	events: readonly WclEvent[],
 	actorID: number,
-	t0: number,
+	// Every audit in this file takes the pull's start stamp in the same third position; this one works
+	// entirely in the fight-relative stamps its callers already converted, so it never reads it.
+	// Underscored rather than removed to keep the audits callable the same way.
+	_t0: number,
 	casts: readonly number[],
 	durationMs: number,
 	contact: readonly Interval[],

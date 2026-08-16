@@ -10,5 +10,11 @@
     "noUncheckedIndexedAccess": true
   },
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"]
+  // `src/generated` is graphql-codegen's output, rewritten by `npm run codegen` on every build and
+  // never hand-edited — the same reason `.oxfmtrc.json` already skips it. Excluded as a *root* only:
+  // every file that imports it is still checked against these types, so the API contract is enforced
+  // exactly as before. What stops is `astro check` reporting style hints about generated code nobody
+  // can act on — the `import * as Types` the import-types preset emits whether or not the operations
+  // end up referencing a schema type.
+  "exclude": ["dist", "src/generated"]
 }
