@@ -51,11 +51,15 @@
     "oneStat": "Every proc converted into {{stat}}. The Rune turns your two lowest of crit, haste and mastery into twice the highest of the three, so {{stat}} is the one sitting on top of your sheet right now. If that is not the stat you want doubled, the ordering is what has to change — reforging, or weaving an elixir that lifts another stat above it.",
     "weaved_one": "One proc came back as {{stat}} instead of {{held}}, because you swapped an elixir immediately after the brew went out. Tigereye Brew freezes mastery at the moment it is cast, so that proc was never a snapshot to take — it is counted as the play it was, not as a chance missed, and it is left out of the total above.",
     "weaved_other": "{{count}} procs came back as a stat the running brew could not hold, because an elixir went out immediately after each brew. Tigereye Brew freezes mastery at the moment it is cast, so none of them was a snapshot to take — they are counted as the play they were, not as chances missed, and they are left out of the total above.",
+    "unholdable_one": "One proc converted into {{stat}}, which Tigereye Brew cannot freeze — the brew’s multiplier reads mastery and nothing else, so there was no snapshot on offer whether or not you went looking for one. It is left out of the total above rather than counted as a chance missed.",
+    "unholdable_other": "{{count}} procs converted into a stat Tigereye Brew cannot freeze. The brew’s multiplier reads mastery and nothing else, so none of them was a snapshot on offer, however the Rune happened to land. They are left out of the total above rather than counted as chances missed.",
     "key": {
-      "weaved": "Weaved past on purpose: the elixir swap made this proc a stat no brew can hold"
+      "weaved": "Weaved past on purpose: the elixir swap made this proc a stat no brew can hold",
+      "unholdable": "No snapshot on offer: the Rune returned a stat Tigereye Brew cannot freeze"
     },
     "tip": {
-      "weaved": "the brew was already holding {{held}}; the swap turned this proc into {{stat}}, which no brew can freeze"
+      "weaved": "the brew was already holding {{held}}; the swap turned this proc into {{stat}}, which no brew can freeze",
+      "unholdable": "the Rune returned {{stat}}, and Tigereye Brew only ever freezes mastery — there was nothing here to catch"
     }
   },
   "brew": {

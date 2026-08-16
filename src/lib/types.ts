@@ -619,6 +619,20 @@ export interface ProcWindow extends Window {
 	 * missed. `undefined` on the committed fixtures, which predate it.
 	 */
 	weaved?: boolean;
+	/**
+	 * The Rune returned a stat Tigereye Brew cannot freeze, and no brew was cast on it.
+	 *
+	 * The wider fact that `weaved` is one cause of. The brew's multiplier is `0.05 + masteryPercent`,
+	 * read once at cast — mastery and nothing else — so a proc that converted into crit or haste offers
+	 * a brew nothing to hold, whether the player engineered it with an elixir or the Rune simply landed
+	 * on a secondary that was already top of the sheet. There was no snapshot on offer either way, so
+	 * this is what the charts colour and what leaves `opportunities`.
+	 *
+	 * `weaved` survives as the *engineered* subset because the two need different words: one is a trade
+	 * the player made, the other a roll they were handed, and saying "on purpose" about the second
+	 * asserts an intent the log does not show.
+	 */
+	unholdable?: boolean;
 }
 
 export interface ProcSummary {
@@ -638,6 +652,8 @@ export interface ProcSummary {
 	 * that happened to them. Optional because the fixtures predate it.
 	 */
 	weaved?: number;
+	/** Procs the brew could not have held at all — the engineered ones above plus the unlucky rolls. */
+	unholdable?: number;
 	/** The stack floor those two were judged against, so the UI can name it. */
 	stackFloor: number;
 	lastGcd: number;

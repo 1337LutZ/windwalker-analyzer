@@ -539,19 +539,26 @@ describe('Report', () => {
 			stacksInside: 0,
 			nextStat: null,
 			weaved: true,
+			// Both flags: the engineered case is a subset of the wider one, and the chart keys its
+			// colour and its legend on the wider one.
+			unholdable: true,
 		});
 		const html = renderToStaticMarkup(
 			createElement(Report, {
-				analysis: { ...base, procs: { ...base.procs, weaved: 1, windows: [...base.procs.windows, weaved] } },
+				analysis: {
+					...base,
+					procs: { ...base.procs, weaved: 1, unholdable: 1, windows: [...base.procs.windows, weaved] },
+				},
 			}),
 		);
 		expect(html).toContain(t('snapshots.weaved', { count: 1, stat: 'Haste', held: 'Mastery' }));
-		expect(html).toContain(t('snapshots.key.weaved'));
+		// The legend names the colour, and the colour now means the wider fact.
+		expect(html).toContain(t('snapshots.key.unholdable'));
 	});
 
 	/** And a key for a colour the chart never drew sends the reader hunting for it. */
 	it('says nothing about weaving on a pull that did not weave', () => {
 		const html = renderToStaticMarkup(createElement(Report, { analysis: base }));
-		expect(html).not.toContain(t('snapshots.key.weaved'));
+		expect(html).not.toContain(t('snapshots.key.unholdable'));
 	});
 });

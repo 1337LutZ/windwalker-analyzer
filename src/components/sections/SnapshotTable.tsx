@@ -58,6 +58,16 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 					held: procs.windows.find((w) => w.weaved)?.heldStat ?? '',
 				})
 			: null,
+		// The unlucky rolls: same colour, same exclusion, different sentence. A crit or haste proc the
+		// player did not engineer is still nothing a brew could hold, and it must not be described as a
+		// trade they made — the log shows no intent behind it. Counted as the remainder so the two lines
+		// never double-count one proc.
+		(procs.unholdable ?? 0) - (procs.weaved ?? 0) > 0
+			? t('snapshots.unholdable', {
+					count: (procs.unholdable ?? 0) - (procs.weaved ?? 0),
+					stat: procs.windows.find((w) => w.unholdable && !w.weaved)?.stat ?? '',
+				})
+			: null,
 		procs.lastGcd > 0 ? t('snapshots.lastGcd', { count: procs.lastGcd }) : t('snapshots.lastGcdNone'),
 		procs.backToBack > 0 ? t('snapshots.b2b', { count: procs.backToBack }) : null,
 		procs.secondsGivenAway > 0 ? t('snapshots.givenAway', { seconds: procs.secondsGivenAway }) : null,

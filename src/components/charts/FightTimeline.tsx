@@ -136,12 +136,17 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 	// Rising Sun Kick's teal, an early one is the Rune's violet, a proc never caught is red. The
 	// legend under the chart is what makes that readable; teal and violet do not announce themselves.
 	analysis.procs.windows.forEach((w, i) => {
-		// A weaved proc is tested before the grade, and has to be: its grade is `none`, which would draw
-		// the one proc on the pull the player engineered on purpose in the same red as the ones they let
-		// go. The Snapshots section stopped calling it a miss; this chart drawing the same proc red
-		// would have left the report saying two different things about one window.
+		// Tested before the grade, and it has to be: the grade is `none`, which would draw a proc no brew
+		// could ever have held in the same red as the ones the player let go. The Snapshots section does
+		// not call these misses; this chart drawing them red left the report saying two different things
+		// about one window.
+		//
+		// `unholdable` rather than `weaved`, which is the narrower engineered case. Tigereye Brew freezes
+		// mastery and nothing else, so a crit or haste proc was never catchable whether an elixir caused
+		// it or the Rune simply landed there. Keying the colour on the engineered subset painted the
+		// unlucky rolls red and told the reader they had missed something that was never on offer.
 		const tone: keyof ChartTheme =
-			w.weaved === true ? 'rune' : w.grade === 'none' ? 'miss' : w.grade === 'early' ? 'rune' : 'kick';
+			w.unholdable === true ? 'rune' : w.grade === 'none' ? 'miss' : w.grade === 'early' ? 'rune' : 'kick';
 		const rows: Array<[string, string]> = [
 			when(w.start, w.end),
 			['stat gained', w.stat],
@@ -153,6 +158,11 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 			// reader they ignored a proc they had actually read.
 			if (w.weaved === true) {
 				rows.push(['brew', `none — the elixir swap made this ${w.stat}, which no brew can hold`]);
+			} else if (w.unholdable === true) {
+				// Same colour, different sentence. The engineered case above says what the player did; this one
+				// says what the Rune did, because claiming intent the log does not show is how a report starts
+				// congratulating people for their luck.
+				rows.push(['brew', `none — the Rune returned ${w.stat}, which no brew can hold`]);
 			} else if (w.missedByMs !== null) {
 				rows.push(['brew', `${formatGap(w.missedByMs)} after it expired`]);
 			} else {
@@ -173,7 +183,13 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 		// nonetheless the wrong verdict on it — the point is that the whole proc was *meant* to go past.
 		rows.push([
 			'verdict',
-			w.weaved === true ? 'weaved past on purpose' : nearMiss ? 'read, but brewed too late' : GRADE_VERDICT[w.grade],
+			w.weaved === true
+				? 'weaved past on purpose'
+				: w.unholdable === true
+					? 'nothing a brew could hold'
+					: nearMiss
+						? 'read, but brewed too late'
+						: GRADE_VERDICT[w.grade],
 		]);
 		spans.push(
 			span(

@@ -252,11 +252,17 @@ describe('what the rule refuses to forgive', () => {
 	 * lowers the multiplier the brew is about to freeze — a real cost, and one the report has to keep
 	 * charging or the rule becomes "press an elixir near a brew and stop being graded".
 	 */
-	it('does not forgive a swap made before the brew froze the multiplier', () => {
+	it('does not call a swap made before the brew an engineered one', () => {
 		const a = analyse(pull(110_240));
+		// Still not `weaved`: the ordering decides whether the player engineered this, and an early swap
+		// lowered the multiplier the brew was about to freeze rather than trading it for something.
 		expect(a.procs.windows[3]?.weaved).toBeUndefined();
-		expect(a.procs.opportunities).toBe(5);
-		expect(a.misses.some((m) => m.kind === 'Rune proc unsnapshotted (Haste)')).toBe(true);
+		// But it is still `unholdable`, and so still out of the denominator: the proc came back Haste, and
+		// Tigereye Brew freezes mastery whatever the player meant to happen. Forgiveness here is a fact
+		// about the brew, not a reward for intent — only the wording follows the intent.
+		expect(a.procs.windows[3]?.unholdable).toBe(true);
+		expect(a.procs.opportunities).toBe(4);
+		expect(a.misses.some((m) => m.kind === 'Rune proc unsnapshotted (Haste)')).toBe(false);
 	});
 
 	/** One millisecond either side of the drain is the log's own stamp spread, and is allowed. */
@@ -270,14 +276,19 @@ describe('what the rule refuses to forgive', () => {
 	 * at 111.0s puts Monk's Elixir — mastery — back on top before the proc at 111.328, so whatever that
 	 * proc returned, this player did not engineer it.
 	 */
-	it('does not forgive a proc that landed after the swap was reversed', () => {
+	it('does not call a proc engineered when the swap was already reversed', () => {
 		const a = analyse(pull(110_250, 111_000));
 		expect(a.procs.windows[3]?.weaved).toBeUndefined();
-		expect(a.procs.opportunities).toBe(5);
+		// Same split as above: no intent to credit, but a Haste proc is still nothing a brew could hold.
+		expect(a.procs.windows[3]?.unholdable).toBe(true);
+		expect(a.procs.opportunities).toBe(4);
 	});
 
 	/** Every other fixture takes a potion and nothing else, so none of them may acquire a free pass. */
 	it('fires on no other pull in the sample', () => {
+		// `weaved` only. `unholdable` is deliberately not asserted absent here: it is a fact about what the
+		// Rune returned rather than about anything the player did, so any pull that rolls a crit or haste
+		// proc is entitled to one, and pinning it to zero would be pinning the sample's luck.
 		for (const name of ['strong', 'mixed', 'poor', 'waves', 'cleave']) {
 			expect(fixture(name).procs.windows.some((p) => p.weaved === true)).toBe(false);
 		}

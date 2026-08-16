@@ -118,24 +118,28 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 			// measurement and red is the wrong word for it. The tooltip and the key below say the same
 			// thing in words, because a reader who cannot separate violet from red would otherwise lose
 			// the distinction entirely.
-			const weaved = w.weaved === true;
+			// The wider fact, not the engineered subset: a crit or haste proc was never catchable however it
+			// came about, and colouring only the elixir-driven ones left the unlucky rolls red.
+			const unholdable = w.unholdable === true;
 			return {
 				x: label,
 				y: r1(w.lengthMs / 1000),
-				fillColor: weaved ? theme.rune : theme.miss,
+				fillColor: unholdable ? theme.rune : theme.miss,
 				meta: {
 					title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
-					tone: weaved ? ('rune' as const) : ('miss' as const),
+					tone: unholdable ? ('rune' as const) : ('miss' as const),
 					rows: [
 						['proc at', fmt(w.start)],
 						['proc length', `${sec(w.lengthMs)}s`],
 						// "never" is wrong when a brew went out a fraction after the proc expired: the
 						// player read it and was late, which is a different thing to not going for it.
-						weaved
-							? (['weaved past', t('snapshots.tip.weaved', { held: w.heldStat ?? '', stat: w.stat })] as [
-									string,
-									string,
-								])
+						unholdable
+							? ([
+									'no snapshot on offer',
+									w.weaved === true
+										? t('snapshots.tip.weaved', { held: w.heldStat ?? '', stat: w.stat })
+										: t('snapshots.tip.unholdable', { stat: w.stat }),
+								] as [string, string])
 							: w.missedByMs !== null
 								? (['brewed', `${formatGap(w.missedByMs)} too late`] as [string, string])
 								: (['brewed at', w.redundant ? 'never — the same stat was already held' : 'never'] as [string, string]),
@@ -222,7 +226,7 @@ function buildOvershoot(procs: ProcSummary, theme: ChartTheme, brackets: Map<num
 		// Gated on `weaved` for the same reason and against the same counter: the engine stopped counting
 		// a weaved proc as a near miss, so a `missSoft` tail on its violet bar would be a mark whose key
 		// is not shown and whose meaning the section has just denied.
-		y: w.snapshotAt !== null || w.missedByMs === null || w.weaved === true ? 0 : Math.round(w.missedByMs) / 1000,
+		y: w.snapshotAt !== null || w.missedByMs === null || w.unholdable === true ? 0 : Math.round(w.missedByMs) / 1000,
 		fillColor: theme.missSoft,
 		meta: {
 			title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
@@ -250,6 +254,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 	const procs = analysis.procs;
 	// `?? 0` rather than a null check: on a captured fixture the field is `undefined`, not `0`.
 	const weaved = procs.weaved ?? 0;
+	const unholdable = procs.unholdable ?? 0;
 	const height = procs.windows.length * ROW_HEIGHT + CHROME;
 	// Every proc is nominally the same length, but the last one of a pull is cut short by the boss
 	// dying; the target band belongs to a full proc, so it is measured against the longest one.
@@ -381,7 +386,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 					    used on this chart — so it is free here, and it says "the Rune did what you asked it
 					    to" rather than borrowing a verdict from another mark. Gated on the pull having one,
 					    like every other conditional key below. */}
-					{weaved > 0 ? <ChartKey tone="rune">{t('snapshots.key.weaved')}</ChartKey> : null}
+					{unholdable > 0 ? <ChartKey tone="rune">{t('snapshots.key.unholdable')}</ChartKey> : null}
 					{/* Only when the pull actually has one — a key for an outcome nobody hit sends the reader
 					    hunting the chart for a colour that is not on it. */}
 					{procs.backToBack > 0 ? (
@@ -407,7 +412,11 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 				// The weaved count is read out here as well as drawn, because this label is the whole chart
 				// for a screen-reader listener — leaving it out would put the row back in "never
 				// snapshotted" for exactly the readers who have no colour to correct it with.
-				label={`How long each of the ${procs.procs} Re-Origination procs ran before Tigereye Brew snapshotted it: ${procs.lastGcd} caught on the last global, ${procs.early} brewed early, ${procs.unsnapshotted} never snapshotted${weaved > 0 ? `, ${weaved} weaved past on purpose` : ''}`}
+				label={`How long each of the ${procs.procs} Re-Origination procs ran before Tigereye Brew snapshotted it: ${procs.lastGcd} caught on the last global, ${procs.early} brewed early, ${procs.unsnapshotted} never snapshotted${
+					unholdable > 0
+						? `, ${unholdable} the brew could not have held${weaved > 0 ? `, ${weaved} of them weaved past on purpose` : ''}`
+						: ''
+				}`}
 			/>
 		</ChartFigure>
 	);

@@ -1822,6 +1822,21 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		w.weaved = true;
 	}
 
+	/**
+	 * The wider fact the weave is one cause of: the Rune returned a stat the brew cannot hold.
+	 *
+	 * Tigereye Brew freezes `0.05 + masteryPercent` at cast and re-reads nothing, so a proc that came
+	 * back crit or haste offers a brew no mastery to carry — the elixir that caused it is why it
+	 * happened, not whether it counts. Set for every unsnapshotted non-mastery proc, engineered or not.
+	 *
+	 * Gated on `snapshotAt === null` deliberately. A player who *did* brew on a crit proc spent a brew
+	 * on base mastery, which is a real mistake of a different kind — forgiving it here would hide it,
+	 * and it is not what this flag is about.
+	 */
+	for (const w of procs) {
+		if (w.snapshotAt === null && w.stat !== 'Mastery') w.unholdable = true;
+	}
+
 	// Back-to-back procs are the unlucky roll. You hold the brew to the end of a proc, snapshot it, and
 	// the Rune immediately fires again — so for those seconds you would have had those stats live
 	// anyway, and the snapshot you paid 10 stacks for is worth only its margin over a proc you were
@@ -1910,12 +1925,13 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// weave says the Rune did not return a stat Tigereye Brew can hold. Both are the absence of a
 		// chance rather than a chance declined, and `snapshotRate` is the heaviest weight on the card —
 		// so a proc that was never catchable must not sit in its denominator.
-		w.couldSnapshot = w.snapshotAt !== null || (w.weaved !== true && w.stacksAvailable > SNAPSHOT_STACK_FLOOR);
+		w.couldSnapshot = w.snapshotAt !== null || (w.unholdable !== true && w.stacksAvailable > SNAPSHOT_STACK_FLOOR);
 	}
 
 	const opportunities = procs.filter((w) => w.couldSnapshot);
 	const snapshotted = procs.filter((w) => w.snapshotAt !== null);
 	const weaved = procs.filter((w) => w.weaved === true);
+	const unholdable = procs.filter((w) => w.unholdable === true);
 	// Every early snapshot throws away the proc's remainder; every proc never captured throws away its
 	// whole window — unless it was redundant, which costs nothing. Same currency throughout: seconds of
 	// Re-Origination-boosted brew not taken. A weaved proc is on neither side of that ledger: its
@@ -1924,7 +1940,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const secondsGivenAway = r1(
 		(snapshotted.reduce((s, w) => s + (w.remainingMs ?? 0), 0) +
 			procs
-				.filter((w) => w.snapshotAt === null && !w.redundant && w.weaved !== true)
+				.filter((w) => w.snapshotAt === null && !w.redundant && w.unholdable !== true)
 				.reduce((s, w) => s + w.lengthMs, 0)) /
 			1000,
 	);
@@ -3160,7 +3176,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// the report's list of things that went wrong, and a proc the player deliberately traded for a
 		// live secondary is the one entry on it that would have been describing correct play.
 		...procs
-			.filter((w) => w.grade === 'none' && !w.redundant && w.weaved !== true)
+			.filter((w) => w.grade === 'none' && !w.redundant && w.unholdable !== true)
 			.map((w) => ({
 				kind: `Rune proc unsnapshotted (${w.stat})`,
 				at: w.start,
@@ -3699,7 +3715,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			 * weaved proc expiring. Counting it here would have the section call one proc a deliberate
 			 * trade and a brew a fraction too late in the same paragraph.
 			 */
-			narrowlyMissed: procs.filter((w) => w.snapshotAt === null && w.missedByMs !== null && w.weaved !== true).length,
+			narrowlyMissed: procs.filter((w) => w.snapshotAt === null && w.missedByMs !== null && w.unholdable !== true)
+				.length,
 			/** Procs the bank could actually have paid for — the honest denominator for a catch rate. */
 			opportunities: opportunities.length,
 			/**
@@ -3709,8 +3726,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			 * this count is printed under copy that says "too few stacks banked", which is the wrong
 			 * reason and a false one.
 			 */
-			unaffordable: procs.length - opportunities.length - weaved.length,
+			unaffordable: procs.length - opportunities.length - unholdable.length,
 			weaved: weaved.length,
+			unholdable: unholdable.length,
 			stackFloor: SNAPSHOT_STACK_FLOOR,
 			lastGcd: procs.filter((w) => w.grade === 'last-gcd').length,
 			late: procs.filter((w) => w.grade === 'late').length,
@@ -3719,7 +3737,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			// The weaved proc is excluded here too, and not only from the score. This count is what the
 			// chart's accessible label reads out as "never snapshotted", and a screen-reader listener has
 			// no colour to tell them the section means something else by it.
-			unsnapshotted: procs.filter((w) => w.grade === 'none' && w.weaved !== true).length,
+			unsnapshotted: procs.filter((w) => w.grade === 'none' && w.unholdable !== true).length,
 			redundant: procs.filter((w) => w.redundant).length,
 			sameAsPrevious: procs.filter((w) => w.sameAsPrevious).length,
 			backToBack: procs.filter((w) => w.backToBack).length,
