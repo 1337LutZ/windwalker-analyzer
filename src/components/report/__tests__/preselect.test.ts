@@ -42,18 +42,18 @@ const groups = groupByEncounter(FIGHTS);
 
 describe('pre-selecting a fight from a shared link', () => {
 	it('selects the fight named in a ?fight= link', () => {
-		const parsed = parseReportInput('https://classic.warcraftlogs.com/reports/aBcDeFgH12345678?fight=30');
+		const parsed = parseReportInput('https://classic.warcraftlogs.com/reports/ExampleCode12345?fight=30');
 		expect(defaultFightID(groups, parsed.fightID)).toBe(30);
 	});
 
 	it('selects it from the #fight= form too', () => {
-		const parsed = parseReportInput('https://classic.warcraftlogs.com/reports/aBcDeFgH12345678#fight=28');
+		const parsed = parseReportInput('https://classic.warcraftlogs.com/reports/ExampleCode12345#fight=28');
 		expect(defaultFightID(groups, parsed.fightID)).toBe(28);
 	});
 
 	/** Without a fight in the link, the last boss worked on, at its kill — not the shared pull. */
 	it('falls back to the last encounter when the link names no fight', () => {
-		expect(defaultFightID(groups, parseReportInput('reports/aBcDeFgH12345678').fightID)).toBe(32);
+		expect(defaultFightID(groups, parseReportInput('reports/ExampleCode12345').fightID)).toBe(32);
 	});
 
 	/** A link from a different report must not silently select an unrelated pull of the same number. */

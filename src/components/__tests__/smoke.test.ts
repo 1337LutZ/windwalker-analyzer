@@ -411,8 +411,8 @@ describe('parseReportInput', () => {
 	 * straight from the address bar pre-selected nothing, which looked like the picker ignoring it.
 	 */
 	it('reads the fight from a ?fight= query string', () => {
-		const parsed = parseReportInput('https://classic.warcraftlogs.com/reports/aBcDeFgH12345678?fight=30');
-		expect(parsed.code).toBe('aBcDeFgH12345678');
+		const parsed = parseReportInput('https://classic.warcraftlogs.com/reports/ExampleCode12345?fight=30');
+		expect(parsed.code).toBe('ExampleCode12345');
 		expect(parsed.fightID).toBe(30);
 	});
 
@@ -427,8 +427,8 @@ describe('parseReportInput', () => {
 	});
 
 	it('tolerates surrounding whitespace and a trailing slash', () => {
-		expect(parseReportInput('  https://classic.warcraftlogs.com/reports/aBcDeFgH12345678?fight=30  ')).toEqual({
-			code: 'aBcDeFgH12345678',
+		expect(parseReportInput('  https://classic.warcraftlogs.com/reports/ExampleCode12345?fight=30  ')).toEqual({
+			code: 'ExampleCode12345',
 			fightID: 30,
 			sourceID: null,
 		});

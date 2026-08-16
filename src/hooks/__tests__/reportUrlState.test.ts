@@ -6,10 +6,10 @@ const { parse } = __test;
 
 describe('report URL state', () => {
 	it('reads a full selection', () => {
-		expect(parse('?report=aBcDeFgH12345678&fight=30&player=Examplewindwalker')).toEqual({
-			code: 'aBcDeFgH12345678',
+		expect(parse('?report=ExampleCode12345&fight=30&player=Examplemonk')).toEqual({
+			code: 'ExampleCode12345',
 			fightID: 30,
-			player: 'Examplewindwalker',
+			player: 'Examplemonk',
 		});
 	});
 
