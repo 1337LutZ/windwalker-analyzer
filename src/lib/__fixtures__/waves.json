@@ -84,7 +84,7 @@
       },
       {
         "id": 148135,
-        "name": "#148135",
+        "name": "Chi Burst",
         "total": 7448183,
         "hits": 65,
         "crits": 23,
@@ -531,7 +531,7 @@
     },
     {
       "id": 119996,
-      "name": "#119996",
+      "name": "Transcendence: Transfer",
       "count": 1,
       "onGcd": false,
       "gate": "other",
@@ -1719,7 +1719,7 @@
       {
         "t": 147416,
         "id": 119996,
-        "name": "#119996",
+        "name": "Transcendence: Transfer",
         "onGcd": false
       },
       {
@@ -4860,6 +4860,19 @@
         ]
       },
       {
+        "key": "touch-of-karma",
+        "name": "Touch of Karma",
+        "id": 122470,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 389514,
+            "end": 399514,
+            "id": 122470
+          }
+        ]
+      },
+      {
         "key": "storm-earth-and-fire",
         "name": "Storm, Earth, and Fire",
         "id": 137639,
@@ -6425,6 +6438,7 @@
     "opportunities": 6,
     "unaffordable": 2,
     "weaved": 0,
+    "unholdable": 0,
     "stackFloor": 4,
     "lastGcd": 1,
     "late": 1,

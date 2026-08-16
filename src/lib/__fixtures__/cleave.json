@@ -3371,6 +3371,24 @@
         ]
       },
       {
+        "key": "touch-of-karma",
+        "name": "Touch of Karma",
+        "id": 122470,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 26942,
+            "end": 36955,
+            "id": 122470
+          },
+          {
+            "start": 117270,
+            "end": 127306,
+            "id": 122470
+          }
+        ]
+      },
+      {
         "key": "storm-earth-and-fire",
         "name": "Storm, Earth, and Fire",
         "id": 137639,
@@ -4373,6 +4391,7 @@
     "opportunities": 5,
     "unaffordable": 1,
     "weaved": 0,
+    "unholdable": 0,
     "stackFloor": 4,
     "lastGcd": 2,
     "late": 2,

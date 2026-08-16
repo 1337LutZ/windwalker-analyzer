@@ -3969,6 +3969,29 @@
         ]
       },
       {
+        "key": "touch-of-karma",
+        "name": "Touch of Karma",
+        "id": 122470,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 20390,
+            "end": 30390,
+            "id": 122470
+          },
+          {
+            "start": 110419,
+            "end": 120405,
+            "id": 122470
+          },
+          {
+            "start": 211279,
+            "end": 221293,
+            "id": 122470
+          }
+        ]
+      },
+      {
         "key": "capacitance",
         "name": "Capacitance",
         "id": 137596,
@@ -5030,6 +5053,7 @@
     "opportunities": 8,
     "unaffordable": 1,
     "weaved": 0,
+    "unholdable": 0,
     "stackFloor": 4,
     "lastGcd": 1,
     "late": 1,

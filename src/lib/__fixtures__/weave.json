@@ -443,7 +443,7 @@
     },
     {
       "id": 33697,
-      "name": "#33697",
+      "name": "Blood Fury",
       "count": 1,
       "onGcd": false,
       "gate": "other",
@@ -687,7 +687,7 @@
       {
         "t": 10433,
         "id": 33697,
-        "name": "#33697",
+        "name": "Blood Fury",
         "onGcd": false
       },
       {
@@ -2484,6 +2484,19 @@
         ]
       },
       {
+        "key": "touch-of-karma",
+        "name": "Touch of Karma",
+        "id": 122470,
+        "group": "buff",
+        "windows": [
+          {
+            "start": 44393,
+            "end": 54382,
+            "id": 122470
+          }
+        ]
+      },
+      {
         "key": "capacitance",
         "name": "Capacitance",
         "id": 137596,
@@ -3155,6 +3168,7 @@
     "opportunities": 4,
     "unaffordable": 0,
     "weaved": 1,
+    "unholdable": 1,
     "stackFloor": 4,
     "lastGcd": 2,
     "late": 1,
@@ -3345,6 +3359,7 @@
         "holdStacksLost": null,
         "protectedBrew": false,
         "weaved": true,
+        "unholdable": true,
         "overlapOfMs": 9989,
         "overlapOfIndex": 2
       },
