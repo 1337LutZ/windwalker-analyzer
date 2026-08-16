@@ -988,5 +988,66 @@
       "presses": "Presses / the clock allowed",
       "energy": "Of your energy"
     }
+  },
+  "blackoutKick": {
+    "title": "Blackout Kick",
+    "intent": "Blackout Kick is where spare chi goes. The priority list reaches it twice — free the instant a Combo Breaker proc lands, and last of all as the dump that spends what nothing above it wanted. Two chi a press, the same as Rising Sun Kick. That kick has an eight-second cooldown and this button has none, which is the whole of the risk.",
+    "none": "Blackout Kick was never pressed here. There is nothing to judge and nothing charged against it.",
+    "kpi": {
+      "casts": "Presses",
+      "followed": "Pressed as the list wanted",
+      "starved": "Rising Sun Kick left waiting"
+    },
+    "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals to spend.",
+    "ladder_all_one": "The one press the priority list could judge was the button it wanted at that global.",
+    "ladder_all_other": "Every one of the {{count}} presses the priority list could judge was the button it wanted at that global.",
+    "ladder_some_one": "The one press the priority list could judge went out while something above the kick was ready and affordable.",
+    "ladder_some_other": "{{followed}} of the {{count}} presses the priority list could judge landed on a global it wanted a Blackout Kick at; the rest went out while something above it was ready and affordable.",
+    "ladder_unjudged": "The priority list could not judge any of these presses — each sat below a rule this log cannot read — so nothing here says whether they were the right globals.",
+    "split_both": "{{free}} of those spent a Combo Breaker proc, which is free and never the wrong press; {{dump}} were the dump, with the bar the list asks for behind them.",
+    "split_free": "All of them spent a Combo Breaker proc, which is free and never the wrong press.",
+    "split_dump": "All of them were the dump, with the bar the list asks for behind them.",
+    "procs_one": "Combo Breaker made one kick free, and it was spent.",
+    "procs_other": "Combo Breaker made {{count}} kicks free, and every one was spent.",
+    "procsWasted_one": "Combo Breaker made one kick free and it expired unspent.",
+    "procsWasted_other": "Combo Breaker made {{count}} kicks free; {{wasted}} of them expired unspent.",
+    "procsNone": "Combo Breaker never fired here, so every one of these was paid for.",
+    "wantedCaption": "What the list wanted at the globals you kicked instead, most often first",
+    "wantedNone": "Nothing was passed over: every Blackout Kick the list could judge was the button it wanted right then.",
+    "columns": {
+      "button": "Button",
+      "count": "Globals"
+    },
+    "starveMissing": "This pull was analysed before the bar behind this was reconstructed, so nothing here says whether a press cost you a kick.",
+    "starveClean": "Rising Sun Kick was never left waiting on this pull, so there is nothing for this button to have cost it.",
+    "starveNone": "No Rising Sun Kick waited on a bar a Blackout Kick had emptied. Where the kick was late, this button is not why.",
+    "starveSummary": "Rising Sun Kick sat ready and unpressed for {{drift, seconds}}, and {{starved, seconds}} of that was time the bar could not have paid for it.",
+    "starveCharged_one": "One Blackout Kick is answerable for {{seconds, seconds}} of it: pressed while the cooldown was still running, it took the two chi the kick then needed.",
+    "starveCharged_other": "{{count}} Blackout Kicks are answerable for {{seconds, seconds}} of it, each pressed while the cooldown was still running and each taking the two chi the kick then needed.",
+    "starveKicks_one": "That is a Rising Sun Kick's worth of cooldown given away.",
+    "starveKicks_other": "That is {{count}} Rising Sun Kicks' worth of cooldown given away.",
+    "starveDebuff_one": "On one of those waits the debuff was actually off the target.",
+    "starveDebuff_other": "On {{count}} of those waits the debuff was actually off the target.",
+    "starveDebuffNone": "None of them let the debuff drop — it outlasts the cooldown by seven seconds, so a wait has to be a long one before it costs uptime.",
+    "starveFollowed_one": "One of those presses was one the list itself wanted. Its dump rule guards with an energy reserve, and the shortfall it misses is a chi one.",
+    "starveFollowed_other": "{{count}} of those presses were ones the list itself wanted. Its dump rule guards with an energy reserve, and the shortfall it misses is a chi one — so following the list is not on its own enough to avoid this.",
+    "starveCaption": "Every kick that came up on a bar this button had emptied",
+    "starveColumns": {
+      "at": "Kick ready",
+      "waited": "Waited",
+      "bar": "Chi held",
+      "press": "Kicked at",
+      "debuff": "Debuff"
+    },
+    "cells": {
+      "dropped": "Dropped",
+      "held": "Held"
+    },
+    "forced_single": "You are reading this pull as one target, where the dump asks for 35 energy banked by the kick's return. The presses above are judged against that.",
+    "forced_multi": "You are reading this pull as three targets, where the dump asks for 105 energy banked by the kick's return and Spinning Crane Kick wants those globals instead. Far fewer presses read as wanted.",
+    "starveUnbanded": "The waits below do not move with that reading — they are a fact about the chi bar, and the bar does not care how many enemies were in front of you. Only how many of those presses the list wanted is read at the count you picked.",
+    "reconstructed": "The chi behind all of this is reconstructed: WarcraftLogs only reports your chi when you spend it. On this pull the walk predicted the next reading exactly {{accuracy, percent}} of the time — close, not perfect, and a bar one point out is the difference between could not and chose not to.",
+    "tierCaveat": "This report does not read set bonuses, and the tier-16 four-piece knocks a chi off both kicks. On a monk wearing four pieces, every row above that reads 1 chi is a kick that could have gone out anyway; the rows reading 0 stand either way.",
+    "notGraded": "None of this is graded, and the refusal is measured rather than asserted. Across 52 pulls, how many of these presses the list wanted moves by a median of 23 points depending on whether you read the pull as one target or three — the same presses, a different answer, picked by a control at the top of this page. The bar both halves rest on is right about four times in five. And the list's own dump rule does not reach zero: a quarter of the presses charged above are presses it wanted."
   }
 }

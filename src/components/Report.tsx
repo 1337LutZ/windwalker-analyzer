@@ -6,6 +6,7 @@ import SectionNav, { type ReportSection } from './report/SectionNav';
 import { TargetModeContext } from './report/targetModeContext';
 import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 import {
+	BlackoutKick,
 	BrewBankTimeline,
 	CastLog,
 	CastsPerMinute,
@@ -155,11 +156,15 @@ const SECTIONS: (ReportSection & {
 	// after them.
 	// The presses, ordered as the priority list reaches them rather than by how much damage each one
 	// does: Tiger Palm holds the buff the rest hit through, Rising Sun Kick holds the debuff, and the
-	// spenders follow. Blackout Kick belongs between the kick and Fists of Fury when it gets a section
-	// of its own — it is the chi dump the ladder falls through to, and the only press here with no
-	// section arguing it.
+	// spenders follow.
 	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', group: 'abilities', Component: TigerPalm },
 	{ id: 'debuff', titleKey: 'debuff.title', group: 'abilities', Component: RisingSunKick },
+	// Directly under the kick, and the adjacency is the argument. This is the chi dump the ladder falls
+	// through to, and the one thing it can cost that the ladder cannot see is the section above it: both
+	// buttons cost two chi, the kick has an eight-second cooldown and the dump has none, so a press here
+	// can empty the bar the kick is about to need. A reader who has just been shown the kick's uptime is
+	// the reader who needs that next.
+	{ id: 'blackout-kick', titleKey: 'blackoutKick.title', group: 'abilities', Component: BlackoutKick },
 	{ id: 'fof', titleKey: 'fistsOfFury.title', group: 'abilities', Component: FistsOfFury },
 	// The third side of a triangle whose other corner is a group away. The priority list's one rule
 	// that weighs these buttons against each other is the channel's — Fists of Fury may not be spent
@@ -274,16 +279,18 @@ export default function Report({ analysis, targetChoice }: { analysis: Analysis;
 						//
 						// They take the same value for that reason: `PriorityLadder` judges every press at the
 						// reader's target count, `Rotation` prints the list that count produces, and
-						// `RushingJadeWind` quotes the ladder's verdict on one button's presses — and all three map
-						// it through the same `bandForMode`. A reader sent from a skip to the reference has to
-						// arrive at a list that contained the button, and the button's own section has to agree with
-						// the ladder about whether the list wanted it.
+						// `RushingJadeWind` and `BlackoutKick` quote the ladder's verdict on one button's presses —
+						// and all four map it through the same `bandForMode`. A reader sent from a skip to the
+						// reference has to arrive at a list that contained the button, and the button's own section
+						// has to agree with the ladder about whether the list wanted it.
 						id === 'priority' ? (
 							<PriorityLadder key={id} analysis={analysis} mode={mode} />
 						) : id === 'rotation' ? (
 							<Rotation key={id} analysis={analysis} mode={mode} />
 						) : id === 'jade-wind' ? (
 							<RushingJadeWind key={id} analysis={analysis} mode={mode} />
+						) : id === 'blackout-kick' ? (
+							<BlackoutKick key={id} analysis={analysis} mode={mode} />
 						) : (
 							<Component key={id} analysis={analysis} />
 						),

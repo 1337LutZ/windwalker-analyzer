@@ -1089,6 +1089,84 @@ export interface FillerAudit {
 	}>;
 }
 
+/** One stretch Rising Sun Kick sat ready on a bar a Blackout Kick had emptied. */
+export interface StarvedKick {
+	/** When the kick came off cooldown, fight-relative. */
+	at: number;
+	/** How long it then waited on a bar too thin to pay for it, on the same clock the drift uses. */
+	ms: number;
+	/**
+	 * What the reconstructed bar read at the first global after the kick came up.
+	 *
+	 * The evidence, carried rather than summarised, and it settles a caveat that would otherwise have to
+	 * be stated as a doubt: the tier-16 four-piece knocks a chi off both kicks and nothing in this
+	 * report reads set bonuses, so a row that read 1 would be a row a tiered player could have kicked
+	 * through. A row that read 0 could not have been kicked through at any cost the game offers.
+	 */
+	chi: number;
+	/** The Blackout Kick answerable for it — the last one pressed while the kick was coming back. */
+	pressAt: number;
+	/** Whether the debuff was actually off the primary target for part of that wait. */
+	debuffDown: boolean;
+	link: string;
+}
+
+/**
+ * Blackout Kick: the chi dump, and the one cost it carries that is not its own.
+ *
+ * The presses themselves are judged by the priority list and nowhere else — `apl.presses` already
+ * carries a verdict per global and the section reads them there, so nothing in this audit re-decides
+ * whether a press was wanted. What the ladder cannot say is what a press cost *later*: both kicks
+ * cost two chi, Rising Sun Kick has an eight-second cooldown and this one has none, so a dump can
+ * empty the bar the kick is about to need. The sim's own dump rule is written against exactly that —
+ * APL 32 fires only when the energy banked by the kick's return still covers the generator — so this
+ * measures the failure the list exists to avoid rather than a standard invented here.
+ *
+ * Every figure is about the *bar*, never about the list, which is why none of it moves with the
+ * reader's target count: how many enemies were in front of the player does not change whether they
+ * had two chi.
+ */
+export interface BlackoutKickAudit {
+	casts: number;
+	/**
+	 * Time Rising Sun Kick sat ready and unpressed — the same drift the lost-cast row prints for it,
+	 * from the same function over the same engaged clock, so the two can never disagree.
+	 */
+	driftMs: number;
+	/**
+	 * The part of that drift the reconstructed chi bar could not have paid for a kick through.
+	 *
+	 * The remainder is a priority mistake rather than a chi one: the kick was affordable and something
+	 * else was pressed, which is the ladder's business and not this audit's.
+	 */
+	starvedMs: number;
+	/**
+	 * How many separate waits that starved time was, so the section can say what share of them this
+	 * button is answerable for rather than implying it is answerable for all of them.
+	 */
+	starvedWaits: number;
+	/**
+	 * The part of the starved time a specific Blackout Kick is answerable for, and the presses.
+	 *
+	 * Answerable is a deliberately narrow test — see `starvedKicks` in the engine. A wait is charged to
+	 * a press only when holding that press would demonstrably have covered the shortfall, so starved
+	 * time with no press behind it stays in `starvedMs` and is never blamed on this button.
+	 */
+	chargedMs: number;
+	charged: StarvedKick[];
+	/**
+	 * How the reconstructed bar scored itself: readings the walk predicted, and how many it got right.
+	 *
+	 * Carried because every judgement above rests on it. WarcraftLogs stamps chi onto a spender and
+	 * nothing else, so the bar between readings is walked forward through what each button gains and
+	 * costs; a press judged on a bar one point out is exactly the error that turns "could not afford
+	 * it" into "chose not to". A section that cannot state its own accuracy should not be printing
+	 * these numbers, so it is handed the means to.
+	 */
+	chiExact: number;
+	chiPredicted: number;
+}
+
 /**
  * Touch of Karma: a defensive that returns damage, so an unused charge is damage not done.
  *
@@ -1538,6 +1616,13 @@ export interface Analysis {
 	 * guard on truthiness.
 	 */
 	targets?: TargetSummary;
+	/**
+	 * Optional for the same reason every audit below it is: a report captured before this existed
+	 * carries `undefined` here, not a `null` and not an audit reading zero — and zero is the one thing
+	 * it must never be mistaken for, since "no kick was ever starved" and "nobody looked" are opposite
+	 * facts about the same button. `analyse()` always fills it in. Anything reading it has to guard.
+	 */
+	blackoutKick?: BlackoutKickAudit;
 	channel: ChannelAudit;
 	/** Optional only because the committed fixtures predate it; `analyse()` always fills it in. */
 	chiBrew?: ChiBrewAudit;

@@ -6998,6 +6998,41 @@
     "chiLostToIdle": 0.08675555555555556,
     "possibleUses": 9
   },
+  "blackoutKick": {
+    "casts": 63,
+    "driftMs": 6445,
+    "starvedMs": 4395,
+    "starvedWaits": 3,
+    "chargedMs": 4395,
+    "charged": [
+      {
+        "at": 373131,
+        "ms": 1286,
+        "chi": 0,
+        "pressAt": 372415,
+        "debuffDown": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=10&type=damage-done&view=events&source=17&start=3013199&end=3019199"
+      },
+      {
+        "at": 382417,
+        "ms": 1065,
+        "chi": 1,
+        "pressAt": 381481,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=10&type=damage-done&view=events&source=17&start=3022485&end=3028485"
+      },
+      {
+        "at": 417623,
+        "ms": 2044,
+        "chi": 0,
+        "pressAt": 416666,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=10&type=damage-done&view=events&source=17&start=3057691&end=3063691"
+      }
+    ],
+    "chiExact": 77,
+    "chiPredicted": 100
+  },
   "channel": {
     "casts": 1,
     "channelSec": 3.3,

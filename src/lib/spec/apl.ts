@@ -234,6 +234,17 @@ export const RJW_COOLDOWN_MS = 6000;
  */
 export const RJW_ENERGY_COST = 40;
 
+/**
+ * What the two kicks cost in chi, from `sim/monk/ww_rising_sun_kick.go` and `sim/monk/blackout_kick.go`.
+ *
+ * The same number twice, and that identity is the point rather than a coincidence: one Blackout Kick
+ * is exactly one Rising Sun Kick's worth of chi, which is why the dump can starve the kick at all and
+ * why a single held press always covers the shortfall. Exported because the Blackout Kick section
+ * measures one starving the other, and a section restating `2` would be a copy free to drift from the
+ * ladder that spends every press judging against it.
+ */
+export const CHI_COST = { risingSunKick: 2, blackoutKick: 2 } as const;
+
 /** Cooldowns, in ms, from the sim's spell configs. */
 const COOLDOWN_MS: Partial<Record<AplRuleKey, number>> = {
 	'rising-sun-kick': 8000,
@@ -381,7 +392,7 @@ const LADDER: readonly Rule[] = [
 		// here to hold Tiger Power, and the unconditional kick further down catches the rest.
 		key: 'rising-sun-kick',
 		id: ID.risingSunKick,
-		chiCost: 2,
+		chiCost: CHI_COST.risingSunKick,
 		energyCost: 0,
 		condition: (state, auras) => {
 			if (state.band <= 2) return true;
@@ -445,7 +456,7 @@ const LADDER: readonly Rule[] = [
 		// drawn: without this, a single-target reader is shown Rising Sun Kick twice.
 		key: 'rising-sun-kick-filler',
 		id: ID.risingSunKick,
-		chiCost: 2,
+		chiCost: CHI_COST.risingSunKick,
 		energyCost: 0,
 		bands: [3, 4],
 		condition: () => true,
@@ -542,7 +553,7 @@ const LADDER: readonly Rule[] = [
 		// through Spinning Crane Kick than through a single-target dump.
 		key: 'blackout-kick',
 		id: ID.blackoutKick,
-		chiCost: 2,
+		chiCost: CHI_COST.blackoutKick,
 		energyCost: 0,
 		condition: (state) => {
 			const banked = state.energy + state.regenPerSec * state.rskReadyInSec;

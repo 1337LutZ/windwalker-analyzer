@@ -3475,6 +3475,49 @@
     "chiLostToIdle": 0.19062222222222222,
     "possibleUses": 4
   },
+  "blackoutKick": {
+    "casts": 34,
+    "driftMs": 10875,
+    "starvedMs": 7684,
+    "starvedWaits": 5,
+    "chargedMs": 4497,
+    "charged": [
+      {
+        "at": 9949,
+        "ms": 1067,
+        "chi": 1,
+        "pressAt": 8995,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2084915&end=2090915"
+      },
+      {
+        "at": 27263,
+        "ms": 1056,
+        "chi": 1,
+        "pressAt": 26305,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2102229&end=2108229"
+      },
+      {
+        "at": 53388,
+        "ms": 1048,
+        "chi": 1,
+        "pressAt": 52430,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2128354&end=2134354"
+      },
+      {
+        "at": 62436,
+        "ms": 1326,
+        "chi": 1,
+        "pressAt": 61758,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2137402&end=2143402"
+      }
+    ],
+    "chiExact": 46,
+    "chiPredicted": 51
+  },
   "channel": {
     "casts": 4,
     "channelSec": 13.2,

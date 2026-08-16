@@ -4816,6 +4816,73 @@
     "chiLostToIdle": 0.10657777777777777,
     "possibleUses": 6
   },
+  "blackoutKick": {
+    "casts": 35,
+    "driftMs": 49690,
+    "starvedMs": 13939,
+    "starvedWaits": 7,
+    "chargedMs": 13939,
+    "charged": [
+      {
+        "at": 38023,
+        "ms": 1449,
+        "chi": 0,
+        "pressAt": 36591,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3706930&end=3712930"
+      },
+      {
+        "at": 47472,
+        "ms": 3367,
+        "chi": 1,
+        "pressAt": 46758,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3716379&end=3722379"
+      },
+      {
+        "at": 75458,
+        "ms": 1064,
+        "chi": 0,
+        "pressAt": 74506,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3744365&end=3750365"
+      },
+      {
+        "at": 84522,
+        "ms": 1869,
+        "chi": 1,
+        "pressAt": 78872,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3753429&end=3759429"
+      },
+      {
+        "at": 119252,
+        "ms": 1732,
+        "chi": 1,
+        "pressAt": 114536,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3788159&end=3794159"
+      },
+      {
+        "at": 155760,
+        "ms": 1942,
+        "chi": 0,
+        "pressAt": 155677,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3824667&end=3830667"
+      },
+      {
+        "at": 175611,
+        "ms": 2516,
+        "chi": 1,
+        "pressAt": 174761,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3844518&end=3850518"
+      }
+    ],
+    "chiExact": 40,
+    "chiPredicted": 59
+  },
   "channel": {
     "casts": 0,
     "channelSec": 0,

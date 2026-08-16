@@ -10401,6 +10401,153 @@
     "chiLostToIdle": 0,
     "possibleUses": 13
   },
+  "blackoutKick": {
+    "casts": 114,
+    "driftMs": 67683,
+    "starvedMs": 49090,
+    "starvedWaits": 20,
+    "chargedMs": 43572,
+    "charged": [
+      {
+        "at": 9722,
+        "ms": 1766,
+        "chi": 0,
+        "pressAt": 9478,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14135018&end=14141018"
+      },
+      {
+        "at": 54007,
+        "ms": 2286,
+        "chi": 1,
+        "pressAt": 50173,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14179303&end=14185303"
+      },
+      {
+        "at": 72424,
+        "ms": 3049,
+        "chi": 1,
+        "pressAt": 70446,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14197720&end=14203720"
+      },
+      {
+        "at": 129922,
+        "ms": 2269,
+        "chi": 1,
+        "pressAt": 129118,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14255218&end=14261218"
+      },
+      {
+        "at": 166756,
+        "ms": 1016,
+        "chi": 1,
+        "pressAt": 161188,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14292052&end=14298052"
+      },
+      {
+        "at": 211124,
+        "ms": 5199,
+        "chi": 0,
+        "pressAt": 209140,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14336420&end=14342420"
+      },
+      {
+        "at": 241724,
+        "ms": 1816,
+        "chi": 0,
+        "pressAt": 240761,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14367020&end=14373020"
+      },
+      {
+        "at": 251540,
+        "ms": 1534,
+        "chi": 0,
+        "pressAt": 249924,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14376836&end=14382836"
+      },
+      {
+        "at": 287072,
+        "ms": 1507,
+        "chi": 0,
+        "pressAt": 285456,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14412368&end=14418368"
+      },
+      {
+        "at": 296579,
+        "ms": 1727,
+        "chi": 1,
+        "pressAt": 295290,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14421875&end=14427875"
+      },
+      {
+        "at": 332923,
+        "ms": 1050,
+        "chi": 1,
+        "pressAt": 331956,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14458219&end=14464219"
+      },
+      {
+        "at": 341973,
+        "ms": 7035,
+        "chi": 1,
+        "pressAt": 336274,
+        "debuffDown": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14467269&end=14473269"
+      },
+      {
+        "at": 375641,
+        "ms": 1131,
+        "chi": 1,
+        "pressAt": 374756,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14500937&end=14506937"
+      },
+      {
+        "at": 433790,
+        "ms": 1033,
+        "chi": 1,
+        "pressAt": 432807,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14559086&end=14565086"
+      },
+      {
+        "at": 458824,
+        "ms": 1048,
+        "chi": 1,
+        "pressAt": 456840,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14584120&end=14590120"
+      },
+      {
+        "at": 475906,
+        "ms": 7333,
+        "chi": 1,
+        "pressAt": 471907,
+        "debuffDown": true,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14601202&end=14607202"
+      },
+      {
+        "at": 522778,
+        "ms": 2773,
+        "chi": 1,
+        "pressAt": 521507,
+        "debuffDown": false,
+        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=57&type=damage-done&view=events&source=17&start=14648074&end=14654074"
+      }
+    ],
+    "chiExact": 154,
+    "chiPredicted": 177
+  },
   "channel": {
     "casts": 8,
     "channelSec": 33.1,

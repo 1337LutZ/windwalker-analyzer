@@ -1,3 +1,4 @@
+export { default as BlackoutKick } from './BlackoutKick';
 export { default as BrewBankTimeline } from './BrewBankTimeline';
 export { default as CastLog } from './CastLog';
 export { default as CastsPerMinute } from './CastsPerMinute';

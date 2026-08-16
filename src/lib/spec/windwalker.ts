@@ -28,7 +28,7 @@ import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
 import { readTalents } from '~/lib/analysis/gear';
 import SPELLS from '~/generated/spells.json';
-import { aplAudit } from './apl';
+import { aplAudit, CHI_COST } from './apl';
 import type { AplAudit, Band } from './apl';
 import {
 	DEFAULT_SETTINGS,
@@ -41,8 +41,10 @@ import type {
 	ChiBrewAudit,
 	Analysis,
 	AuraLane,
+	BlackoutKickAudit,
 	BrewUse,
 	CastMark,
+	StarvedKick,
 	DeathMark,
 	FightDataset,
 	LaneGroup,
@@ -1176,6 +1178,7 @@ export const registry = createRegistry(WINDWALKER);
 const RISING_SUN_KICK = registry.ability('rising-sun-kick');
 const FISTS_OF_FURY = registry.ability('fists-of-fury');
 const TIGER_PALM = registry.ability('tiger-palm');
+const BLACKOUT_KICK = registry.ability('blackout-kick');
 const TOUCH_OF_KARMA = registry.ability('touch-of-karma');
 const CHI_BREW = registry.ability('chi-brew');
 const TIGEREYE_BREW = registry.ability('tigereye-brew');
@@ -3886,6 +3889,131 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// chart draws, and these are what it may be asked to draw instead.
 	const hiddenLanes: AuraLane[] = rskTargets.rest.map(targetLane);
 
+	// ----------------------------------------------------------- Blackout Kick
+	/**
+	 * Rising Sun Kick coming off cooldown onto a bar that could not pay for it, and whether a Blackout
+	 * Kick is why.
+	 *
+	 * Down here rather than beside the Combo Breaker block it belongs with, because it needs the press
+	 * marks and the reconstructed bar and those are the last two things this pass builds — the same
+	 * reason the priority list is assembled below it.
+	 *
+	 * **Nothing here judges a press.** Whether a global should have gone to this button is the ladder's
+	 * question and the section reads `apl.presses` for it. This measures the one thing a per-press
+	 * verdict structurally cannot: a cost that lands on a *later* global. Both kicks cost two chi, one
+	 * has an eight-second cooldown and the other has none, so a dump can empty the bar the kick is about
+	 * to need — and the sim's own dump rule is written against exactly that, firing only when the energy
+	 * banked by the kick's return still covers the generator.
+	 *
+	 * **The attribution is deliberately narrow, because a wrong finger-point costs more than a missing
+	 * one.** Tiger Palm, a Jab that never happened, Fists of Fury and Chi Brew all move the same bar, so
+	 * a wait is charged to a Blackout Kick only when three things hold at once: the bar could not pay for
+	 * the kick at the first global after it came up, a Blackout Kick was pressed while that cooldown was
+	 * running, and holding that press would have covered the shortfall. The third is the load-bearing
+	 * one and it is checked rather than assumed — see the counterfactual below. Starved time with no
+	 * press that survives all three stays in `starvedMs` and is never blamed on this button.
+	 */
+	const blackoutKick = ((): BlackoutKickAudit => {
+		const bkTimes = castTimes(BLACKOUT_KICK);
+		// The same clock and the same function the lost-cast row uses for this button, so every second
+		// charged here is a second that row has already counted. Rising Sun Kick is in `NEEDS_TARGET`, so
+		// `engaged` is what it passes, and the fallback is the one it makes for a log that measured none.
+		const live: Interval[] = engaged.length ? engaged : [[0, duration]];
+		const drift = cooldownDrift(castTimes(RISING_SUN_KICK), RISING_SUN_KICK, live, duration);
+
+		// Presses that cost a global. An off-GCD trinket is not a global spent instead of the kick, so a
+		// wait that ran through one was not waiting on a decision.
+		const globals = castMarks.filter((m) => m.onGcd);
+		/**
+		 * The reconstructed bar at a press, keyed by the press.
+		 *
+		 * A map rather than a search backwards, and the difference is the honesty of the answer: the walk
+		 * emits a point for every cast it has a bar for and *none at all* before the first reading, so a
+		 * miss here means "the bar was never seen", which is not the same fact as "the bar was empty".
+		 * Reading the last value at or before the press would quietly hand that case a zero.
+		 */
+		const chiAtPress = new Map(chiWalk.points);
+		// Read once, and on the same clock as `waitMs` below, so "the debuff was down" and "the kick was
+		// waiting" are stretches of one timeline rather than two. The primary target's windows, exactly as
+		// `debuff.drops` is scoped — these are that enemy's gaps.
+		const debuffUp = intersect(rskMerged, live);
+
+		const charged: StarvedKick[] = [];
+		let starvedMs = 0;
+		let starvedWaits = 0;
+
+		for (const window of drift.windows) {
+			// Globals spent while the kick sat ready. None means nothing was pressed at all through the
+			// stretch, which is not a choice this audit can read anything into.
+			const spent = globals.filter((g) => g.t >= window.start && g.t < window.end);
+			const first = spent[0];
+			if (first === undefined) continue;
+			const chi = chiAtPress.get(first.t);
+			if (chi === undefined) continue;
+			// The bar could have paid and something else was pressed anyway. That is a priority mistake and
+			// the ladder already counts it by name; it is not a chi one and not this button's.
+			if (chi >= CHI_COST.risingSunKick) continue;
+
+			// How long the shortfall lasted: to the first global the bar could have paid a kick at, or to
+			// the end of the wait when it never could.
+			const recovered = spent.find((g) => (chiAtPress.get(g.t) ?? 0) >= CHI_COST.risingSunKick)?.t ?? window.end;
+			const waitMs = overlapMs(window.start, recovered, live);
+			if (waitMs <= 0) continue;
+			starvedMs += waitMs;
+			starvedWaits += 1;
+
+			// The only press that can be answerable: the last Blackout Kick pressed while the kick was
+			// coming back. `window.start` is the moment it came up, so that cooldown runs back exactly one
+			// cooldown from there.
+			const pressAt = bkTimes.findLast((t) => t > window.start - RSK_COOLDOWN_MS && t <= window.start);
+			if (pressAt === undefined) continue;
+
+			/**
+			 * The counterfactual, and the whole of what lets this name a press.
+			 *
+			 * Hold that Blackout Kick and its two chi ride along to here — unless the fuller bar would have
+			 * hit the ceiling in between, which is what this walk subtracts point by point. Two chi is
+			 * exactly one Rising Sun Kick, and the bar was short by at most that, so one held press always
+			 * covers a shortfall it did not overflow away.
+			 *
+			 * The counterfactual is *hold the press*, not *press something else*, and that is the narrow
+			 * claim on purpose. What the list wants in a global it does not want dumped is Jab, which
+			 * returns two chi and would leave the bar fuller than this test assumes; the one alternative
+			 * that would leave it thinner is a Tiger Palm, which still gives back one of the two. So this
+			 * clears a press only when the chi it spent was demonstrably the difference.
+			 */
+			let surplus: number = CHI_COST.blackoutKick;
+			for (const [t, held] of chiWalk.points) {
+				if (t <= pressAt) continue;
+				if (t > first.t) break;
+				surplus = Math.min(surplus, chiWalk.max - held);
+			}
+			if (chi + surplus < CHI_COST.risingSunKick) continue;
+
+			charged.push({
+				at: window.start,
+				ms: waitMs,
+				chi,
+				pressAt,
+				debuffDown: overlapMs(window.start, recovered, debuffUp) < waitMs,
+				link: link(window.start),
+			});
+		}
+
+		return {
+			casts: castCount(BLACKOUT_KICK),
+			driftMs: drift.driftMs,
+			starvedMs,
+			starvedWaits,
+			chargedMs: charged.reduce((sum, c) => sum + c.ms, 0),
+			// In clock order, not worst first: `cooldownDrift` hands its windows over sorted by length and
+			// a ledger of presses is read against the pull, not against each other.
+			charged: charged.sort((a, b) => a.at - b.at),
+			chiExact: chiWalk.exact,
+			chiPredicted: chiWalk.predicted,
+		};
+	})();
+
 	/**
 	 * The priority list run against every global of this pull.
 	 *
@@ -4097,6 +4225,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			detected: detectedMode,
 		},
 		chiBrew,
+		blackoutKick,
 		channel: {
 			casts: fofCasts.length,
 			channelSec: r1(channelledMs / 1000),
