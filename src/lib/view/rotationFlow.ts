@@ -244,8 +244,14 @@ const EXCLUSIVE: readonly (readonly number[])[] = [
  * a Spinning Crane Kick logged for a monk who has Rushing Jade Wind, or a level-89 character. Then a
  * rung the player does have is hidden. That is a narrower and rarer failure than the one the naive
  * rule guarantees, and unlike it, it cannot be caused by playing badly.
+ *
+ * Exported because the flow is no longer its only reader. A section about a talented button has the
+ * same three states this answers — taken, proven absent, cannot say — and the middle one is the
+ * dangerous one: printing "0% uptime" against a monk who never had the button on their bar is the
+ * fabricated fault this rule exists to refuse. A second copy of it would be free to disagree with the
+ * reference list about whether the button existed at all.
  */
-function excluded(pressed: ReadonlySet<number>): ReadonlySet<number> {
+export function excludedButtons(pressed: ReadonlySet<number>): ReadonlySet<number> {
 	const out = new Set<number>();
 	for (const row of EXCLUSIVE) {
 		const taken = row.filter((id) => pressed.has(id));
@@ -323,7 +329,7 @@ export interface RotationFlowInput {
  * frame, and "which of the three you took" above a single answer reads as a bug.
  */
 export function rotationFlow({ band, pressed }: RotationFlowInput): readonly FlowSlot[] {
-	const hidden = excluded(pressed);
+	const hidden = excludedButtons(pressed);
 	const slots: FlowSlot[] = [];
 
 	for (const rung of RUNGS) {

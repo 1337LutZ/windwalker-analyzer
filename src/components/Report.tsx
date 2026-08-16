@@ -26,6 +26,7 @@ import {
 	RisingSunKick,
 	ReportHeader,
 	Rotation,
+	RushingJadeWind,
 	SnapshotTable,
 	SpecRefusal,
 	StormEarthAndFire,
@@ -49,6 +50,13 @@ import {
  * address and no id to jump to — and a contents list whose first entry is the thing already on
  * screen is a wasted line.
  *
+ * `group` is which part of the contents list the section is filed under, and it is here rather than
+ * in a table inside the nav for the same reason the rest of this list is: a table of ids would be a
+ * second copy, free to name a section that has gone and to miss one that arrived. Being required
+ * means a section added below cannot silently fail to appear in a group — it fails the type check
+ * instead. `SectionNav` folds the list into groups itself, so a group only exists when a section is
+ * in it and an emptied one is never rendered.
+ *
  * `when` is what lets a section decline to appear on a pull it has nothing to say about, and it has
  * to live here rather than inside the section: the nav is built from this same list, so a component
  * that quietly returned null would leave a link pointing at a heading that was never rendered.
@@ -63,23 +71,23 @@ const SECTIONS: (ReportSection & {
 	// reader who has just been handed a verdict wants to see what actually happened before they are
 	// shown any argument about it, and every section below this one is an argument about some slice of
 	// this chart.
-	{ id: 'cast-log', titleKey: 'castLog.title', Component: CastLog },
+	{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
 	// The same four minutes at a coarser grain: the timeline above shows the buttons, this shows the
 	// windows they were pressed inside. Reading them the other way round — windows first — meant
 	// naming a mechanic before the reader had seen a single press.
-	{ id: 'timeline', titleKey: 'timeline.title', Component: PullTimeline },
-	{ id: 'snapshots', titleKey: 'snapshots.title', Component: SnapshotTable },
+	{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: PullTimeline },
+	{ id: 'snapshots', titleKey: 'snapshots.title', group: 'core', Component: SnapshotTable },
 
 	// How the globals were spent, then what paid for them. Together these two are the whole economy of
 	// the pull: the rate says whether the buttons were pressed, the bars say whether there was anything
 	// to press them with — and a low cast rate means something different depending on which.
-	{ id: 'cpm', titleKey: 'casts.title', Component: CastsPerMinute },
-	{ id: 'energy', titleKey: 'energy.title', Component: Energy },
+	{ id: 'cpm', titleKey: 'casts.title', group: 'core', Component: CastsPerMinute },
+	{ id: 'energy', titleKey: 'energy.title', group: 'core', Component: Energy },
 	// Beside energy, because the two are one economy read from opposite ends: energy is a pool that
 	// refills on a clock and wastes by the second, chi arrives in whole points from a press and wastes
 	// by the point. Split apart they read as two unrelated bars; together the reader can see that a
 	// full energy bar and an overflowing chi bar are the same global going missing.
-	{ id: 'chi', titleKey: 'chi.title', Component: Chi },
+	{ id: 'chi', titleKey: 'chi.title', group: 'core', Component: Chi },
 
 	// ---------------------------------------------------------------- the buttons, one section each
 	//
@@ -89,21 +97,35 @@ const SECTIONS: (ReportSection & {
 	//
 	// Tigereye Brew first: it multiplies everything else in the list, so a mistake here is the only one
 	// that costs damage the other sections have already counted.
-	{ id: 'bank', titleKey: 'brew.title', Component: BrewBankTimeline },
+	{ id: 'bank', titleKey: 'brew.title', group: 'cooldowns', Component: BrewBankTimeline },
 	// Directly under the bank it feeds: Chi Brew's two stacks a press are the only source of brew that
 	// is not chi spent, so a reader looking at a bank that filled slowly wants this row next.
-	{ id: 'chi-brew', titleKey: 'chiBrew.title', Component: ChiBrew },
-	{ id: 'debuff', titleKey: 'debuff.title', Component: RisingSunKick },
-	{ id: 'fof', titleKey: 'fistsOfFury.title', Component: FistsOfFury },
+	{ id: 'chi-brew', titleKey: 'chiBrew.title', group: 'cooldowns', Component: ChiBrew },
+	{ id: 'debuff', titleKey: 'debuff.title', group: 'abilities', Component: RisingSunKick },
+	{ id: 'fof', titleKey: 'fistsOfFury.title', group: 'abilities', Component: FistsOfFury },
 	// Directly under the channel, because the two share a condition: the priority list will not
 	// channel Fists of Fury through an Energizing Brew unless Rushing Jade Wind covers it, and each
 	// section counts the same overlap from its own side. Reading them apart loses that.
-	{ id: 'energizing', titleKey: 'energizingBrew.title', Component: EnergizingBrew },
-	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', Component: TigerPalm },
+	{ id: 'energizing', titleKey: 'energizingBrew.title', group: 'cooldowns', Component: EnergizingBrew },
+	// The third side of that triangle, and placed here for it. The priority list's one rule that weighs
+	// these buttons against each other is the channel's — Fists of Fury may not be spent through an
+	// Energizing Brew *unless Rushing Jade Wind covers it* — and the two sections above each read that
+	// rule from their own end, as a per-channel boolean and as a talent the build either has or has not.
+	// Neither of them has a clock for the button, which is what this one is.
+	//
+	// No `when`, unlike Storm, Earth and Fire above. That section may decline because pressing nothing
+	// at one target is correct play and there is no verdict to give; here there is one either way. A
+	// monk who took the wind is owed the uptime and what it cost, and a monk who did not is owed the
+	// sentence saying so — the button shares a talent row with Invoke Xuen, so on a report where the
+	// Xuen section is populated an absent heading here would read as a section that failed rather than
+	// as the other half of one choice. What it must never do is print that absence as a zero, and that
+	// is the section's own job rather than a gate's.
+	{ id: 'jade-wind', titleKey: 'jadeWind.title', group: 'abilities', Component: RushingJadeWind },
+	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', group: 'abilities', Component: TigerPalm },
 	// Last of the damage cooldowns, because it is the one with no placement to judge: the sim fires it
 	// from an unconditional autocast, so it follows the sections that do grade placement rather than
 	// sitting among them.
-	{ id: 'xuen', titleKey: 'xuen.title', Component: Xuen },
+	{ id: 'xuen', titleKey: 'xuen.title', group: 'abilities', Component: Xuen },
 	// Beside the other summon, and the only section in the list that can decline to appear. Storm,
 	// Earth and Fire is a multi-target button: on a single-target pull it is correct never to press it,
 	// so a heading saying "not pressed, and rightly" on every Garrosh kill would be a line of noise on
@@ -112,32 +134,36 @@ const SECTIONS: (ReportSection & {
 	{
 		id: 'sef',
 		titleKey: 'sef.title',
+		group: 'abilities',
 		Component: StormEarthAndFire,
 		when: (analysis) => Boolean(analysis.sef && (analysis.sef.casts > 0 || analysis.sef.justified)),
 	},
 	// The defensive, and so the last button: it is the only one here that is not trying to do damage.
-	{ id: 'karma', titleKey: 'karma.title', Component: TouchOfKarma },
-	{ id: 'damage', titleKey: 'damage.title', Component: DamageByAbility },
-	{ id: 'misses', titleKey: 'misses.title', Component: MissLedger },
+	{ id: 'karma', titleKey: 'karma.title', group: 'abilities', Component: TouchOfKarma },
+	// Both are indexed by button: the table breaks the pull's damage down by ability and the ledger
+	// names the abilities that missed, so they sit with the sections that grade a button rather than
+	// starting a group of their own for two tables that answer the same question the others do.
+	{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
+	{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
 	// Beside the gear, and immediately before it, because the two answer the same kind of question:
 	// what the character walked into the pull carrying. Nothing in either is a rotation decision, and
 	// most of this one is not even the player's — which is why it sits after everything that grades
 	// them rather than among it.
-	{ id: 'raid-buffs', titleKey: 'raidBuffs.title', Component: RaidBuffs },
+	{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
 	// After the pull, before the method: it is the one section about the character rather than the
 	// four minutes, so it reads as a footnote to the analysis rather than as part of it.
-	{ id: 'gear', titleKey: 'gear.title', Component: GearSetup },
+	{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
 	// Directly above the rotation reference, and the pair is the point: this section says what the
 	// priority list wanted at each of your globals, and the one below it is the list itself. A reader
 	// told they passed a button over needs somewhere to go and read what that button was for.
-	{ id: 'priority', titleKey: 'priority.title', Component: PriorityLadder },
+	{ id: 'priority', titleKey: 'priority.title', group: 'reference', Component: PriorityLadder },
 	// Reference, not analysis: it grades nothing and says nothing about how this pull went. It belongs
 	// after everything that does grade, because it is where a reader goes once a section above has told
 	// them a number was wrong and they want to know what right looked like. Not the same list for every
 	// log, though — the rungs it draws are the ones the priority list has at this reader's target count,
 	// minus the buttons this log proves were not on their bar.
-	{ id: 'rotation', titleKey: 'rotation.title', Component: Rotation },
-	{ id: 'method', titleKey: 'method.title', Component: Method },
+	{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: Rotation },
+	{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 ];
 
 /**
@@ -146,8 +172,11 @@ const SECTIONS: (ReportSection & {
  * It has no `Component` because it is not a `Section` — it is the header and the tiles, which have no
  * heading of their own and are rendered directly below. It still needs to be reachable, though;
  * landing back at the top of a long report is exactly what a contents list is for.
+ *
+ * Which is also why its group is `null`: it is listed above the groups and never inside one. A way
+ * back to the top that a reader has to open a disclosure to reach is not a way back to the top.
  */
-const SUMMARY_NAV: ReportSection = { id: 'summary', titleKey: 'summary.title' };
+const SUMMARY_NAV: ReportSection = { id: 'summary', titleKey: 'summary.title', group: null };
 
 /**
  * The report: headline figures, then the sections above, with a contents list beside them from `lg`
@@ -203,21 +232,25 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 						<Takeaways analysis={analysis} />
 					</section>
 					{sections.map(({ id, Component }) =>
-						// Still props, though the mode is in context now, because these two uses differ from every
-						// other. Every other section reads the mode *indirectly*, through the scorecard that weights
-						// its metrics; these two use it to select what is rendered at all — which of the precomputed
-						// audits, and which rungs of the priority list exist at that count. A prop says that at the
-						// call site, where reading context would hide the two places the choice picks data rather
-						// than reweighting it.
+						// Still props, though the mode is in context now, because these three uses differ from
+						// every other. Every other section reads the mode *indirectly*, through the scorecard that
+						// weights its metrics; these three use it to select what is rendered at all — which of the
+						// precomputed audits, and which rungs of the priority list exist at that count. A prop says
+						// that at the call site, where reading context would hide the places the choice picks data
+						// rather than reweighting it.
 						//
-						// They are a pair and take the same value for that reason: `PriorityLadder` judges every
-						// press at the reader's target count and `Rotation` prints the list that count produces, and
-						// both map it through the same `bandForMode`. A reader sent from a skip to the reference has
-						// to arrive at a list that contained the button.
+						// They take the same value for that reason: `PriorityLadder` judges every press at the
+						// reader's target count, `Rotation` prints the list that count produces, and
+						// `RushingJadeWind` quotes the ladder's verdict on one button's presses — and all three map
+						// it through the same `bandForMode`. A reader sent from a skip to the reference has to
+						// arrive at a list that contained the button, and the button's own section has to agree with
+						// the ladder about whether the list wanted it.
 						id === 'priority' ? (
 							<PriorityLadder key={id} analysis={analysis} mode={mode} />
 						) : id === 'rotation' ? (
 							<Rotation key={id} analysis={analysis} mode={mode} />
+						) : id === 'jade-wind' ? (
+							<RushingJadeWind key={id} analysis={analysis} mode={mode} />
 						) : (
 							<Component key={id} analysis={analysis} />
 						),

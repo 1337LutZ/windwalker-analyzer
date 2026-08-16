@@ -473,7 +473,13 @@
     }
   },
   "nav": {
-    "label": "Report sections"
+    "label": "Report sections",
+    "groups": {
+      "core": "Core",
+      "cooldowns": "Cooldowns",
+      "abilities": "Abilities",
+      "reference": "Reference"
+    }
   },
   "karma": {
     "title": "Touch of Karma",
@@ -935,8 +941,37 @@
       "combo-breaker-palm": "Tiger Palm, free from Combo Breaker",
       "jab": "Jab",
       "rushing-jade-wind": "Rushing Jade Wind",
+      "rushing-jade-wind-open": "Rushing Jade Wind, above Rising Sun Kick",
       "blackout-kick": "Blackout Kick, to spend chi"
     },
     "reconstructed": "Nothing here is graded, and one reason is worth stating plainly. WarcraftLogs only reports your chi when you spend it — roughly one press in six — so the chi behind these judgements is reconstructed by walking the log forward through what each button gains and costs. Checked against the readings it did not use, that walk is exactly right 87–95% of the time. It is close, and it is not perfect: a press judged on a bar that is one chi out can be called a skip it was not."
+  },
+  "jadeWind": {
+    "title": "Rushing Jade Wind",
+    "intent": "Rushing Jade Wind spins a six-second dot on the enemies around you for 40 energy, and hands one chi back — half of what the same 40 energy buys through a Jab. Taking the talent also removes Spinning Crane Kick from your bars entirely, so this button is the whole of your area damage. The question it raises is never whether it was up. It is what holding it up cost the rest of the rotation, and whether the priority list wanted the globals you spent on it.",
+    "summary": "The wind was up for {{uptime, percent}} of the time you spent in contact with something, off {{presses}} presses against the {{possible}} that stretch had room for.",
+    "ceiling": "There is no interesting ceiling above that. The dot lasts six seconds, the cooldown is six seconds, and the cooldown is re-armed to whatever is left of the dot — so the button was either spinning or ready at every instant of the pull, and 100% was arithmetically available the whole way through. Nobody falls short of that by accident, which is why it is not printed here as a target. What actually rations the button is the energy bar.",
+    "price": "Covering the whole of that stretch would have taken those {{possible}} presses at 40 energy each: {{ceilingEnergy, integer}} energy, against the {{income, integer}} your own measured regen produced over the same time — {{ceilingShare, percent}} of every point you earned, and each of those points is a Jab, a Tiger Palm or a chi spender that does not happen. The {{presses}} presses you made took {{spentEnergy, integer}} of it, or {{spentShare, percent}}.",
+    "priceUnmeasured": "What closing that gap would have cost cannot be said on this pull. The price is 40 energy a press against the rate your bar refilled at, and this log carried too few resource readings to measure a rate — one taken from memory would turn an unknown into a confident number.",
+    "ladder_all_one": "The one press the priority list could judge was the button it wanted at that global.",
+    "ladder_all_other": "Every one of the {{count}} presses the priority list could judge was the button it wanted at that global.",
+    "ladder_some_one": "The one press the priority list could judge went out while something above the wind was ready and waiting.",
+    "ladder_some_other": "{{followed}} of the {{count}} presses the priority list could judge landed on a global it wanted the wind at; the rest went out while something above the wind was ready and waiting.",
+    "ladder_unjudged": "The priority list could not judge any of these presses — each sat below a rule this log cannot read — so nothing here says whether they were the right globals to spend.",
+    "wanted_one": "It also wanted the wind at one global you spent on another button.",
+    "wanted_other": "It also wanted the wind at {{count}} globals you spent on another button.",
+    "wantedNone": "There was no global where the list wanted the wind and you pressed something else.",
+    "ladderMissing": "The priority list was not walked on this pull. It reconstructs both bars from the log's resource readings and this log carried none, so nothing here says whether these were the globals the list wanted.",
+    "singleTarget": "You are reading this pull as single-target, which is where this button sits lowest. The entry that lifts it above Rising Sun Kick needs a second enemy; below that the only rung left is the unconditional one near the bottom of the list, under Jab, under Fists of Fury and under both Combo Breaker presses. Spinning it at one target is not obviously right, and the presses above are judged against that order.",
+    "regenCaveat": "The rate behind those shares is this pull's own median, measured from the log's resource readings rather than assumed — energy regen scales with haste, so no constant describes it. It deliberately leaves out the extra energy an Energizing Brew pours in, which a median resists by design, so on a pull with brews the two shares are a shade high.",
+    "notGraded": "None of this is graded. There is no share of the bar that is the right one to spend here: the trade is against the generator and the chi spenders, and where it falls moves with the target count from second to second. The priority list carries no energy condition on this button at all, so there is no threshold in the sim to borrow — and none is invented. The only judgement above is the list's own.",
+    "absent_invokeXuen": "Rushing Jade Wind was not on this bar. It shares the level-90 talent row with Invoke Xuen, and this log has Invoke Xuen in it — so there is no uptime here to have been short of, and nothing is being counted against a button you never had.",
+    "absent_spinningCraneKick": "Rushing Jade Wind was not on this bar. Taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it — so there is no uptime here to have been short of, and nothing is being counted against a button you never had.",
+    "absent_unknown": "Rushing Jade Wind was never pressed here, and this log cannot say whether it was on the bar. A log carries no talent tree, so the only proof of a talent is a button that cannot share a row with it — and neither an Invoke Xuen nor a Spinning Crane Kick appears in this pull. That makes this a question the events cannot answer rather than a missing press, and calling it 0% uptime would be an accusation instead of a measurement.",
+    "kpi": {
+      "uptime": "Contact time with it up",
+      "presses": "Presses / the clock allowed",
+      "energy": "Of your energy, spent here"
+    }
   }
 }

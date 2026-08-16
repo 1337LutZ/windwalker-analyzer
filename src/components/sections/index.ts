@@ -18,6 +18,7 @@ export { default as RaidBuffs } from './RaidBuffs';
 export { default as RisingSunKick } from './RisingSunKick';
 export { default as ReportHeader } from './ReportHeader';
 export { default as Rotation } from './Rotation';
+export { default as RushingJadeWind } from './RushingJadeWind';
 export { default as SnapshotTable } from './SnapshotTable';
 export { default as SpecRefusal } from './SpecRefusal';
 export { default as StormEarthAndFire } from './StormEarthAndFire';

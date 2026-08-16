@@ -124,6 +124,29 @@
 			transform: translateY(0);
 		}
 	}
+
+	/* A group of the contents list opening.
+	 *
+	 * The same shape as the rung above and deliberately smaller — half the travel and two thirds the
+	 * time — because this one plays beside the text a reader is reading rather than inside a chart
+	 * they just changed. It is declared on the panel permanently and runs whenever the panel comes
+	 * back from `display: none`, which is exactly the moment worth marking: the shut state has no
+	 * animation to give it because there is nothing left on screen to animate.
+	 *
+	 * No guard of its own, for the same reason `rung-in` has none: the global
+	 * `prefers-reduced-motion` rule below cuts every animation in the app to 0.01ms. */
+	--animate-panel-in: panel-in 140ms ease-out;
+
+	@keyframes panel-in {
+		from {
+			opacity: 0;
+			transform: translateY(-6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
 }
 
 /* The viewer's own theme must not bleed through: paint the ground explicitly. */

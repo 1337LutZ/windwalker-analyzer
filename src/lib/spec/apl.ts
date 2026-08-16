@@ -215,6 +215,25 @@ const ID = {
 	spinningCraneKick: 101546,
 } as const;
 
+/**
+ * Rushing Jade Wind's cooldown, which is also its dot's duration — the two are the same six seconds
+ * and that identity is the whole of why the button behaves as it does.
+ *
+ * Exported for the same reason `RSK_COOLDOWN_MS` in `spec/windwalker.ts` is: a section prints a
+ * ceiling built from it, and a component restating `6000` would be a second copy free to drift from
+ * the ladder that judges the same button against it.
+ */
+export const RJW_COOLDOWN_MS = 6000;
+
+/**
+ * What one press costs, from `registerRushingJadeWind` in `sim/monk/talents.go`.
+ *
+ * Exported alongside the cooldown because the two only mean anything together: 40 energy every six
+ * seconds is a *rate*, and it is the rate rather than either number that decides how much of a
+ * Windwalker's bar this button can take.
+ */
+export const RJW_ENERGY_COST = 40;
+
 /** Cooldowns, in ms, from the sim's spell configs. */
 const COOLDOWN_MS: Partial<Record<AplRuleKey, number>> = {
 	'rising-sun-kick': 8000,
@@ -232,8 +251,8 @@ const COOLDOWN_MS: Partial<Record<AplRuleKey, number>> = {
 	 * every global from the second target onwards — which on the Galakras pull invented 95 skips out of
 	 * 148, all of them for a button that was already spinning.
 	 */
-	'rushing-jade-wind-open': 6000,
-	'rushing-jade-wind': 6000,
+	'rushing-jade-wind-open': RJW_COOLDOWN_MS,
+	'rushing-jade-wind': RJW_COOLDOWN_MS,
 };
 
 /**
@@ -351,7 +370,7 @@ const LADDER: readonly Rule[] = [
 		key: 'rushing-jade-wind-open',
 		id: ID.rushingJadeWind,
 		chiCost: 0,
-		energyCost: 40,
+		energyCost: RJW_ENERGY_COST,
 		talent: true,
 		bands: [2, 3, 4],
 		condition: () => true,
@@ -512,7 +531,7 @@ const LADDER: readonly Rule[] = [
 		key: 'rushing-jade-wind',
 		id: ID.rushingJadeWind,
 		chiCost: 0,
-		energyCost: 40,
+		energyCost: RJW_ENERGY_COST,
 		talent: true,
 		condition: () => true,
 	},
