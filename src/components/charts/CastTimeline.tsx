@@ -248,29 +248,59 @@ const MIN_INTERMISSION_MS = 1000;
  * pointer never fires.
  */
 /**
- * The order the aura lanes are drawn in, by key — and, since it is a list of the keys somebody chose
- * deliberately, which of them are pinned under melee at all.
+ * The rows this chart leads with, top to bottom. One declared list, and the only place the order of
+ * the leading rows is decided.
  *
- * Not the order the engine happens to build them in: the lanes are read against each other, and the
- * comparison a Windwalker actually makes runs Re-Origination first (what the pull is worth), then
- * the brew that snapshots it, then the procs that decide which button is free, then the resource
- * cooldown. That is the priority sequence, and it is the reason those five rows sit directly under
- * the melee lane: melee is the pull's metronome, and these are the windows worth reading against a
- * continuous line.
+ * **Why these, in this order.** It is the sequence a Windwalker reads a pull in, and it groups by the
+ * question being asked rather than by what kind of row happens to answer it:
  *
- * Being listed here is therefore load-bearing twice over, which is what `meleeBlock` reads. An
- * unlisted key — an item proc, a raid buff, anything the spec grows later — makes no such claim on
- * melee, so it is not dragged up the chart to sit beside it: it keeps its engine order, as it always
- * did, but as part of a second block drawn at the tier boundary instead, below every damaging press
- * and above the kit. Both blocks are still inside the player's own rows, which `perTargetBlock`
- * settles before either of these is consulted.
+ * - **Melee** first, because it is the pull's metronome. It swings throughout, whatever else is
+ *   happening, so every window below it is read against a continuous line rather than against a lane
+ *   with holes in it.
+ * - **Re-Origination** next — what the pull was worth — then the four cooldowns that are pressed
+ *   against it: the brew that snapshots it, the energy cooldown, the chi cooldown, and the cloak proc
+ *   that pays for a spender.
+ * - Then **the rotation in priority order**: the kick and its debuff, then each generator beside the
+ *   proc it hands out, then the two spenders, then the defensive that is also damage, then the talent
+ *   row and the filler. A press and the proc it frees are adjacent on purpose — Tiger Palm above
+ *   Combo Breaker: Tiger Palm — because that pairing is the one a reader checks press by press.
+ *
+ * **How a row answers to a name here.** By the label the gutter writes on it: the aura's own name, or
+ * the name of the button drawn on it once a press has merged in. That is why "Rising Sun Kick" finds
+ * the merged debuff row on a single-target pull and the bare press lane on an add pull, and why
+ * "Tiger Palm" finds the row its Tiger Power draws — the reader is naming what they can see, and one
+ * entry covers both shapes of the row rather than needing a spelling for each. Names rather than keys
+ * for the same reason `damagingNames` and `ON_USE_NAMES` are keyed on names: the button is the thing,
+ * and both of those tables already resolve it through the registry that supplies these strings.
+ *
+ * **It is a priority and not an enumeration.** An entry the pull has no row for contributes nothing —
+ * which is how one talent-row-three slot serves all three of Chi Wave, Zen Sphere and Chi Burst
+ * without the chart ever asking which was taken — and a row nobody named here keeps exactly the order
+ * it already had, drawn after all of these: the rest of the damage, then the auras nobody ranked, then
+ * the kit and the buttons the fight asked for. `tierOf` still owns that tail; this list only owns its
+ * own head.
  */
-const LANE_ORDER = [
-	're-origination',
-	'tigereye-brew',
-	'combo-breaker-tiger-palm',
-	'combo-breaker-blackout-kick',
-	'energizing-brew',
+const ROW_ORDER: readonly string[] = [
+	'Melee',
+	'Re-Origination',
+	'Tigereye Brew',
+	'Energizing Brew',
+	'Chi Brew',
+	'Focus of Xuen',
+	'Rising Sun Kick',
+	'Tiger Palm',
+	'Combo Breaker: Tiger Palm',
+	'Blackout Kick',
+	'Combo Breaker: Blackout Kick',
+	'Rushing Jade Wind',
+	'Fists of Fury',
+	'Touch of Karma',
+	// Talent row three, which is one button of the three and never two. Listing all three costs
+	// nothing and asks the log nothing: only the one that was actually taken has a row to find.
+	'Chi Wave',
+	'Zen Sphere',
+	'Chi Burst',
+	'Expel Harm',
 ];
 
 /**
@@ -370,29 +400,21 @@ function gcdRulesPath(casts: readonly CastMark[], span: number): string {
 	return d;
 }
 
-const laneRank = (key: string): number => {
-	const at = LANE_ORDER.indexOf(key);
-	return at === -1 ? LANE_ORDER.length : at;
+/**
+ * Where a row sits in the declared order — the earliest entry any of its names answers to — or the
+ * length of the list when it answers to none of them. See `ROW_ORDER` for what a row's names are.
+ */
+const rowRank = (names: readonly string[]): number => {
+	let best = ROW_ORDER.length;
+	for (const name of names) {
+		const at = ROW_ORDER.indexOf(name);
+		if (at !== -1 && at < best) best = at;
+	}
+	return best;
 };
 
-/**
- * Whether an aura row is one of the ones pinned directly under the melee lane.
- *
- * Read off `LANE_ORDER` rather than written as a second list, because the two questions have one
- * answer: a key is listed there precisely because somebody decided where it sits in the sequence a
- * Windwalker reads, and that sequence is the thing melee is the ruler for. So promoting a lane is
- * one edit — add its key to `LANE_ORDER` — and there is no way to be in the priority order without
- * being in the block, or the reverse.
- *
- * Everything else is drawn at the tier boundary instead. That is not a demotion of the item procs:
- * an unlisted lane has no stated position at all, and the honest place for a row nobody has ranked
- * is beside the presses it is actually about — under the damage, above the kit — rather than three
- * rows from the top because it happens to be an aura.
- *
- * Expressed against `laneRank` rather than `LANE_ORDER.includes` so the rank and the block cannot
- * drift: an unlisted key is exactly the one `laneRank` gives the fallback to.
- */
-const meleeBlock = (lane: AuraLane): boolean => laneRank(lane.key) < LANE_ORDER.length;
+/** Whether the declared order names this row at all — everything else keeps the order it had. */
+const led = (names: readonly string[]): boolean => rowRank(names) < ROW_ORDER.length;
 
 /**
  * Which row each press sits on, so that no two icons overlap.
@@ -405,9 +427,26 @@ const meleeBlock = (lane: AuraLane): boolean => laneRank(lane.key) < LANE_ORDER.
  * Greedy, in time order, first row that has room — which gives simultaneous presses their own rows
  * (the case that is not a matter of degree: two casts on the same timestamp can never share a row)
  * while keeping a quiet stretch of the pull on a single line.
+ *
+ * **A lane whose presses cost no global never stacks.** An icon is drawn one global wide, so the
+ * packer charges every mark a global's worth of track — and that width is a claim about a *press*,
+ * which occupies the global it starts. A swing occupies nothing: auto-attacks land on the weapon's
+ * own timer, right through the globals the player is spending, and a dual-wielding monk lands two of
+ * them in the same millisecond. Measured on the committed pulls, melee arrives every ~800ms against
+ * an icon that covers ~960ms at the default zoom, so *every consecutive pair collides* and the greedy
+ * fit opened a new row for each — four rows on `weave`, three on `mixed` and `waves`, and five at the
+ * two widest rungs of the ladder on all six. A monk carries one two-hander or two one-handers, so
+ * four melee rows is not a thing that can happen, and the reader was being shown one.
+ *
+ * Overlapping icons is the right failure here and stacking was the wrong one. A second row says two
+ * separate things were going on; overlap says the marks are closer together than the zoom can draw,
+ * which is exactly true and is what the ladder is for. Read off `onGcd` rather than off melee's id,
+ * because the argument is about globals rather than about auto-attacks: it settles a Chi Brew's two
+ * charges and a burst of Healing Spheres the same way, and neither of those is two rows either.
  */
 
 function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number; rowOf: Map<CastMark, number> } {
+	if (casts.every((c) => !c.onGcd)) return { rows: 1, rowOf: new Map(casts.map((c) => [c, 0])) };
 	const msPerPx = 1000 / pxPerSec;
 	const rowOf = new Map<CastMark, number>();
 	// The moment each row is free again, in fight time.
@@ -691,21 +730,21 @@ const APPLIED_BY_CAST = ((): Map<number, string> => {
  * on all six rows would claim each one hit every add; on an add pull the button keeps its own lane
  * and the debuff rows stay bars. On a single-target pull there is one lane and no doubt about it.
  *
- * A merged row then answers to the aura's ordering and never to the press's tier, which is the one
- * rule that keeps it from having two places to be. It has a foot in both systems — it is a cast lane
- * and an aura lane at once — and the tiebreak goes to the aura for a reason that is about what the
- * row *shows*: what is drawn across its whole width is a window, and a window is only worth anything
- * read against the other windows. Sorting it by the button instead would scatter the aura rows by
- * something the reader cannot see on them, and would break `LANE_ORDER`'s sequence the moment a
- * listed aura's button turned out not to be damaging — which is both brews.
+ * A merged row is one row and never two, which is the whole of what this settles. Where it then sits
+ * is `ROW_ORDER`'s answer where the order names it — by the aura's name or by the button's, so either
+ * spelling finds it — and the aura block's answer where it does not: it has a foot in both systems, it
+ * is a cast lane and an aura lane at once, and the tiebreak goes to the aura for a reason about what
+ * the row *shows*. What is drawn across its whole width is a window, and a window is only worth
+ * anything read against the other windows, so sorting an unnamed one by its button's tier would
+ * scatter the aura rows by something the reader cannot see on them.
  *
  * Both directions of that are visible on the reference pulls and both are wanted. Tigereye Brew and
  * Energizing Brew are pressed off the global and do no damage at all, so a tier sort would sink them
  * to the foot of the chart, away from the Re-Origination row the whole snapshot argument is read
- * against; they stay pinned under melee because their keys are listed. Tiger Palm is the opposite —
- * a damaging press whose Tiger Power is unlisted — and its row travels down to the tier boundary
- * with the block it belongs to, landing directly under the damaging lanes rather than among them.
- * That is one row's worth of movement for the button and it buys the aura rows staying one list.
+ * against; the order names them instead. Synapse Springs is the opposite — a kit press whose buff
+ * nobody named — and its row stays with the aura block at the tier boundary rather than sinking to
+ * the consumables. That is one row's worth of movement for the button and it buys the aura rows
+ * staying one list.
  */
 function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
 	const lanesPerKey = new Map<string, number>();
@@ -720,7 +759,10 @@ function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
 		if (key !== undefined && lanesPerKey.get(key) === 1 && !into.has(key)) into.set(key, press);
 		else loose.push(press);
 	}
-	return { into, loose };
+	// `lanesPerKey` travels out with the split rather than being counted again beside it. "Exactly one
+	// lane carries this key" is the question the merge turns on, and it is the same question the
+	// single-target debuff row turns on below — two counts of it would be two answers free to disagree.
+	return { into, loose, lanesPerKey };
 }
 
 /**
@@ -1440,16 +1482,13 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// Sorted here rather than in the engine: the order is a reading decision about this chart, and the
 	// same lanes are consumed elsewhere by components that want them grouped their own way.
 	//
-	// The per-enemy block sinks first and by rule — see `perTargetBlock` — and `laneRank` orders what
-	// is left inside each block. A stable sort, which is load-bearing now that several lanes share one
-	// key: the engine emits the debuff's lanes primary-first by damage taken, and equal ranks have to
-	// keep that order.
+	// One key, and it is the per-enemy block sinking by rule — see `perTargetBlock`. Everything else
+	// keeps engine order, which a stable sort is what guarantees: `ROW_ORDER` lifts the rows it names
+	// out of this list by walking its own sequence, so nothing here has to rank them, and the rows it
+	// does not name are exactly the ones whose order was never anybody's decision to make.
 	const rows = laneRows
 		.filter(({ lane }) => shownRow(lane))
-		.sort(
-			(a, b) =>
-				Number(perTargetBlock(a.lane)) - Number(perTargetBlock(b.lane)) || laneRank(a.lane.key) - laneRank(b.lane.key),
-		);
+		.sort((a, b) => Number(perTargetBlock(a.lane)) - Number(perTargetBlock(b.lane)));
 
 	// The one row drawn as a meter rather than as a bar, when the pull had one. Found by asking which
 	// lane carries a counter rather than by naming the gem: the model decides which auras stack, and
@@ -1459,21 +1498,49 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	/**
 	 * The blocks of rows, in the order the chart reads: the player's own, then the enemies'.
 	 *
-	 * Split rather than merely sorted, because the cast lanes are drawn *between* them — in three runs
-	 * now, since the aura rows land in two places rather than one and each of them is a seam the
-	 * presses are threaded through. Sorting alone could never produce that: the loose presses below the
-	 * aura rows are the player's rows as much as the buffs are, and a single sort would have left the
-	 * per-enemy block above them, which is exactly the interleaving the rule exists to stop.
+	 * Split rather than merely sorted, because the cast lanes are drawn *between* them — in several
+	 * runs, since the declared order interleaves press rows and aura rows and each seam between them is
+	 * a place presses are threaded through. Sorting alone could never produce that: the loose presses
+	 * below the aura rows are the player's rows as much as the buffs are, and a single sort would have
+	 * left the per-enemy block above them, which is exactly the interleaving the rule exists to stop.
 	 *
 	 * A heading goes above each enemy's rows: the label in the gutter and the same row spent on nothing
 	 * in the track, because the two columns are separate elements that line up only by agreeing on a
-	 * height per row.
+	 * height per row. A press keeps its own kind of block so that the two columns can draw the identical
+	 * sequence from one list — the declared order puts presses among the aura rows, and a second list
+	 * for them is how a gutter and a track stop agreeing about which row is which.
 	 */
 	type Block =
-		| { key: string; head: LaneTarget; row?: never }
-		| { key: string; head?: never; row: (typeof rows)[number] };
-	const auraRows = rows.filter(({ lane }) => !perTargetBlock(lane));
-	const targetRows = rows.filter(({ lane }) => perTargetBlock(lane));
+		| { key: string; head: LaneTarget; row?: never; press?: never }
+		| { key: string; head?: never; row: (typeof rows)[number]; press?: never }
+		| { key: string; head?: never; row?: never; press: CastRow };
+
+	/**
+	 * The debuff row that is not really a per-enemy row, because the pull had one enemy.
+	 *
+	 * `perTargetBlock` sinks the debuff by rule and that rule stands: on an add pull those rows are the
+	 * only ones on the chart whose meaning depends on *which* enemy, and a reader scanning their own
+	 * rotation should meet the per-enemy accounting once, at the end. With one enemy there is no such
+	 * accounting to reach — there is one row, the press stream has already merged onto it because there
+	 * is no doubt which enemy a kick landed on, and it is Rising Sun Kick's row rather than an enemy's.
+	 * So it is drawn where the declared order puts the kick, near the top, and nothing about the add
+	 * pull changes.
+	 *
+	 * "One lane carries this key" is the whole test, and it is the merge's own test rather than a second
+	 * reading of the target count. The two have to agree: a row the press merged into is labelled for
+	 * the button, and a row labelled for a button that sat in the enemies' block would be the one place
+	 * on this chart where the label and the position disagree about what the row is.
+	 *
+	 * Not while the reader has asked for the enemy grouping outright. `on` means "name the enemy even on
+	 * a single-target pull", and a hoisted row has no enemy block left to be named under — so that one
+	 * override keeps the row where the heading can go above it. `off` has already given the collapsed
+	 * row a key and a name of its own, which the declared order does not name and therefore does not
+	 * lift.
+	 */
+	const soleDebuffRow = (lane: AuraLane): boolean =>
+		perTargetBlock(lane) && grouping !== 'on' && pressed.lanesPerKey.get(lane.key) === 1;
+	const auraRows = rows.filter(({ lane }) => !perTargetBlock(lane) || soleDebuffRow(lane));
+	const targetRows = rows.filter(({ lane }) => perTargetBlock(lane) && !soleDebuffRow(lane));
 
 	/**
 	 * When an enemy is named above its rows.
@@ -1489,19 +1556,51 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const targetLabel = (target: LaneTarget): string => target.name ?? t('castLog.target.unnamed', { id: target.id });
 
 	/**
-	 * The aura rows, as the two blocks they are drawn in — `meleeBlock` is the whole of the division.
+	 * What a row is called for the purposes of the declared order: the aura's own name, and the name of
+	 * the button that merged onto it.
 	 *
-	 * Two filters over one already-sorted list rather than two sorts, so both blocks keep the order
-	 * `laneRank` gave them and neither can disagree with it. The pinned block is a prefix of that list
-	 * by construction, because a listed key outranks every unlisted one; the split is therefore a cut
-	 * and not a reshuffle, and a lane cannot change its neighbours by changing its block.
+	 * Both, because a merged row is two things at once and the reader may be scanning for either. The
+	 * gutter already labels it with both — `rowLabel` writes "Tiger Palm · Tiger Power" — so answering to
+	 * both is answering to what is on the screen, and it is what lets one entry cover a row whether or
+	 * not the pull happened to put the aura up.
 	 */
-	const pinnedBlocks: Block[] = auraRows
-		.filter(({ lane }) => meleeBlock(lane))
-		.map((row) => ({ key: row.lane.key, row }));
-	const looseBlocks: Block[] = auraRows
-		.filter(({ lane }) => !meleeBlock(lane))
-		.map((row) => ({ key: row.lane.key, row }));
+	const namesOf = (row: (typeof rows)[number]): string[] => {
+		const press = pressed.into.get(row.lane.key);
+		return press === undefined ? [row.lane.name] : [row.lane.name, press.lane.name];
+	};
+
+	/**
+	 * The rows the declared order names, in that order — press rows and aura rows in one sequence.
+	 *
+	 * Ranked and sorted rather than assembled by walking `ROW_ORDER`, so a row can be in the list at
+	 * most once however many names it answers to, and both columns draw one array rather than two that
+	 * have to agree. The rank is the row's own, so nothing here re-decides it.
+	 *
+	 * The presses are gated on `showCasts` here rather than at the point they are drawn, because they
+	 * are interleaved with aura rows now: a run of blocks that had to be skipped in the middle would be
+	 * a second rule for the gutter and the track to keep in step over.
+	 */
+	const lead: Block[] = [
+		...auraRows.map((row) => ({ rank: rowRank(namesOf(row)), block: { key: row.lane.key, row } as Block })),
+		...(showCasts ? pressed.loose : []).map((press) => ({
+			rank: rowRank([press.lane.name]),
+			block: { key: press.lane.name, press } as Block,
+		})),
+	]
+		.filter(({ rank }) => rank < ROW_ORDER.length)
+		.sort((a, b) => a.rank - b.rank)
+		.map(({ block }) => block);
+
+	/**
+	 * The aura rows nobody named, which is every item proc a character happens to be wearing.
+	 *
+	 * Being an aura is not by itself a claim on the top of the chart. `ROW_ORDER` is a sequence somebody
+	 * decided; a trinket proc makes no such claim, so it is drawn at the tier boundary instead — below
+	 * every damaging press and above the kit — which is far enough down to be out of the rotation's way
+	 * and close enough to the damage to still be read against it. A filter over the already-sorted list
+	 * rather than a second sort, so the block keeps engine order exactly as it had it.
+	 */
+	const restBlocks: Block[] = auraRows.filter((row) => !led(namesOf(row))).map((row) => ({ key: row.lane.key, row }));
 	const targetBlocks: Block[] = [];
 	let heading: number | null = null;
 	for (const row of targetRows) {
@@ -1531,24 +1630,8 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// Whether the collapse actually merged anything, which is when its caption has something to explain.
 	const collapsed = grouping === 'off' && targetLanes.filter(({ target }) => shownTargets.has(target.id)).length > 1;
 
-	/**
-	 * The priority auras go directly under the melee lane, not after every ability, and melee itself
-	 * does not move to accommodate them.
-	 *
-	 * Melee is the pull's metronome — it swings throughout, whatever else is happening — so a buff
-	 * window read against it is read against a continuous line rather than against a lane with holes
-	 * in it. Putting those auras below twenty ability lanes instead left the two things being compared
-	 * a screen apart.
-	 *
-	 * It buys that adjacency for five rows and it is only worth the price for five. The claim is about
-	 * *these* windows — the sequence `LANE_ORDER` names — and the price is that everything drawn
-	 * between melee and them is pushed down a screen; paying it again for every item proc a character
-	 * happens to be wearing would put a stack of trinket bars above the rotation the reader came to
-	 * read. So the unlisted rows are drawn at the tier boundary instead, which is far enough down to
-	 * be out of the rotation's way and close enough to the damage to still be read against it.
-	 */
-	// One definition per column, used by the block above the auras and the block below it — the two
-	// have to be identical or a lane would change height depending on where it sat.
+	// One definition per column, used by every block that draws a press — the two columns have to be
+	// identical or a lane would change height depending on where it sat.
 	const laneHeight = (lane: CastLane) => Math.max(ROW_PX, lane.rows * CAST_ROW_PITCH_PX);
 	const castLabel = (lane: CastLane) => (
 		<div key={lane.name} className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: laneHeight(lane) }}>
@@ -1580,10 +1663,15 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			? lane.name
 			: t('castLog.mergedLane', { ability: press.lane.name, aura: lane.name });
 
-	// One renderer per column, called for both blocks. Written out once because the aura block and the
-	// per-enemy block below the casts have to be identical in every respect but where they sit — two
-	// copies of this is how the gutter and the track stop agreeing about a row's height.
+	// One renderer per column, called for every block. Written out once because the leading rows, the
+	// rows nobody ranked and the per-enemy block have to be identical in every respect but where they
+	// sit — two copies of this is how the gutter and the track stop agreeing about a row's height.
+	//
+	// A press block is handed straight to the two functions that already draw a press lane, because a
+	// press in the declared order is the same row it was when it followed melee — only its position has
+	// changed, and a second way to draw it would be a second row height to keep in step.
 	const laneLabel = (block: Block) => {
+		if (block.press !== undefined) return castLabel(block.press.lane);
 		// The press that opens this row's windows, when one merged into it. Looked up in both columns
 		// rather than carried on the block, because the two have to agree on the height and a row taking
 		// its height from anywhere else is how the gutter drifts off the track.
@@ -1618,6 +1706,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		);
 	};
 	const laneTrack = (block: Block) => {
+		if (block.press !== undefined) return castTrack(block.press);
 		const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
 		return block.head === undefined ? (
 			<div key={block.key} className={`relative ${LANE_RULE}`} style={{ height: rowHeight(press) }}>
@@ -1690,43 +1779,23 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	].filter((note): note is string => note !== null);
 
 	/**
-	 * The press lanes cut into the three runs the two aura blocks leave between them.
+	 * The press lanes the declared order did not name, cut at the tier boundary.
 	 *
-	 * Only the lanes that kept a row of their own — the rest are drawn on the aura they apply, in
-	 * whichever block that aura sits in.
+	 * Only the lanes that kept a row of their own — the rest are drawn on the aura they apply, and
+	 * whichever of those the order named have already been lifted into `lead`.
 	 *
-	 * `pressed.loose` arrives in one order and it is not re-sorted here: `castLanesOf` already sorted
-	 * it by tier and then by press count, so both cuts below are slices of that one list and a lane
-	 * cannot change its neighbours by landing in a different run. The first cut is melee, wherever
-	 * press count put it — it keeps its place in the damaging tier and the pinned auras come to it,
-	 * not the other way round. The second is the tier boundary: the last damaging lane and the first
-	 * of the kit, which is where the ask puts the rest of the auras.
+	 * `pressed.loose` arrives in one order and it is not re-sorted here: `castLanesOf` already sorted it
+	 * by tier and then by press count, so both runs below are subsequences of that one list and a lane
+	 * cannot change its neighbours by landing in a different run. The one cut is the tier boundary — the
+	 * last damaging lane and the first of the kit — which is where the auras nobody ranked go.
 	 *
-	 * `filter` on the tier rather than a second index, because the run after melee is only a prefix of
-	 * tier 0 followed by the rest if the sort holds, and reading the tier back off each lane says what
-	 * is meant without depending on that. It is a lookup in a `Set` per lane and there are twenty.
-	 *
-	 * With no melee lane at all — a hand-built fixture, a log with no swings — `slice(0, 0)` leaves
-	 * the first run empty and every press falls into the two below, which is the honest answer: there
-	 * is no metronome to pin anything under. Where the pinned block goes then is settled below.
+	 * `filter` on the tier rather than an index, because reading the tier back off each lane says what
+	 * is meant without depending on the sort having held. It is a lookup in a `Set` per lane and there
+	 * are twenty.
 	 */
-	const meleeAt = pressed.loose.findIndex(({ lane }) => lane.id === MELEE_ID);
-	const afterMelee = pressed.loose.slice(meleeAt + 1);
-	const castsAbove = pressed.loose.slice(0, meleeAt + 1);
-	const castsMid = afterMelee.filter(({ lane }) => tierOf(lane.name, damaging) === 0);
-	const castsBelow = afterMelee.filter(({ lane }) => tierOf(lane.name, damaging) !== 0);
-	/**
-	 * Where the pinned block actually lands, and what happens when there is nothing to pin it to.
-	 *
-	 * Sitting under melee is the entire claim those five rows make, so on a pull with no melee lane
-	 * the claim has no referent and the block falls to the tier boundary beside the rest rather than
-	 * to the top of a chart it was never promised. Two blocks drawn in one place are one block, and
-	 * `laneRank` has already ordered it end to end — so that case renders exactly the single aura
-	 * block this chart drew before the split, which is what makes it a fallback and not a third
-	 * layout to keep in step.
-	 */
-	const underMelee = meleeAt === -1 ? [] : pinnedBlocks;
-	const atBoundary = meleeAt === -1 ? [...pinnedBlocks, ...looseBlocks] : looseBlocks;
+	const restPresses = pressed.loose.filter(({ lane }) => !led([lane.name]));
+	const castsMid = restPresses.filter(({ lane }) => tierOf(lane.name, damaging) === 0);
+	const castsBelow = restPresses.filter(({ lane }) => tierOf(lane.name, damaging) !== 0);
 	const trackPx = Math.max(320, (span / 1000) * pxPerSec);
 
 	return (
@@ -1874,15 +1943,13 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							<span className="tabular font-mono text-xs text-muted">{brewBank.max}</span>
 						</div>
 					)}
-					{/* The player's own rows, in the five runs the two seams cut them into: the damage down to
-					    melee, the auras pinned under it, the rest of the damage, the auras nobody pinned, and
-					    then the kit and everything the fight asked for. The same five in the same order on the
-					    track below — the columns line up by drawing the identical sequence and by nothing
-					    else. */}
-					{showCasts ? castsAbove.map(({ lane }) => castLabel(lane)) : null}
-					{underMelee.map(laneLabel)}
+					{/* The player's own rows, in the four runs they are cut into: the rows the declared order
+					    names, then the rest of the damage, then the auras nobody ranked, then the kit and
+					    everything the fight asked for. The same four in the same order on the track below —
+					    the columns line up by drawing the identical sequence and by nothing else. */}
+					{lead.map(laneLabel)}
 					{showCasts ? castsMid.map(({ lane }) => castLabel(lane)) : null}
-					{atBoundary.map(laneLabel)}
+					{restBlocks.map(laneLabel)}
 					{showCasts ? castsBelow.map(({ lane }) => castLabel(lane)) : null}
 					{/* Last, and by rule rather than by accident — see `perTargetBlock`. Below the player's own
 					    rows on both columns, so the two keep agreeing about which row is which. */}
@@ -2062,11 +2129,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								/>
 							</div>
 						)}
-						{/* The same five runs the gutter draws, in the same order. */}
-						{showCasts ? castsAbove.map(castTrack) : null}
-						{underMelee.map(laneTrack)}
+						{/* The same four runs the gutter draws, in the same order. */}
+						{lead.map(laneTrack)}
 						{showCasts ? castsMid.map(castTrack) : null}
-						{atBoundary.map(laneTrack)}
+						{restBlocks.map(laneTrack)}
 						{showCasts ? castsBelow.map(castTrack) : null}
 						{targetBlocks.map(laneTrack)}
 						<div className="relative" style={{ height: AXIS_PX }}>

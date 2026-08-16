@@ -865,6 +865,28 @@ const AURAS: Aura[] = [
 		appliedBy: 'blackout-kick',
 	},
 	{
+		/**
+		 * The shield the press puts on the monk, so the timeline can draw the ten seconds rather than
+		 * only the instant they were bought at.
+		 *
+		 * Modelled for the row and for nothing else: the section beside the chart measures what a Karma
+		 * returned from the reflect and the absorb, and neither figure is read from here. What the chart
+		 * could not say before is *how long* each press ran, which is the only thing that makes a press
+		 * into a window a reader can line other presses up against.
+		 *
+		 * The same id as the cast, which is not an assumption — `karmaUses` already matches the log's
+		 * `absorbed` events against `TOUCH_OF_KARMA.castIds`, and those events name the *shield* in
+		 * `abilityGameID`. So 122470 is the id the absorb is booked under on this player, measured on
+		 * the committed pulls rather than taken from a database.
+		 */
+		key: 'touch-of-karma',
+		name: 'Touch of Karma',
+		ids: [122470],
+		kind: 'buff',
+		durationMs: TOUCH_OF_KARMA_MS,
+		appliedBy: 'touch-of-karma',
+	},
+	{
 		key: 'energizing-brew',
 		name: 'Energizing Brew',
 		ids: [115288],
@@ -1124,6 +1146,7 @@ const FORTIFYING_BREW = registry.aura('fortifying-brew');
 const BLOODLUST = registry.aura('bloodlust');
 const RUSHING_JADE_WIND = registry.aura('rushing-jade-wind');
 const TIGER_STRIKES = registry.aura('tiger-strikes');
+const TOUCH_OF_KARMA_AURA = registry.aura('touch-of-karma');
 const RUSHING_JADE_WIND_CAST = registry.ability('rushing-jade-wind');
 const ENERGIZING_BREW_CAST = registry.ability('energizing-brew');
 const COMBO_BREAKERS = [CB_TIGER_PALM, registry.aura('combo-breaker-blackout-kick')];
@@ -3559,6 +3582,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		lane(ENERGIZING_BREW, 'buff', ebWindows),
 		lane(RUSHING_JADE_WIND, 'buff', rjwWindows),
 		lane(TIGER_STRIKES, 'buff', tigerStrikesWindows),
+		// The defensive, as the window it actually ran for. Nothing above reads these windows — the
+		// section's figures come from the reflect and the absorb — so this is measured here and used
+		// only for the row, which is what turns a press mark into ten seconds a reader can line the
+		// rest of the pull up against.
+		lane(TOUCH_OF_KARMA_AURA, 'buff', auraWindows(selfEvents, TOUCH_OF_KARMA_AURA, t0, fight.endTime)),
 		// The spirits' own lane. It is the one buff here that is not a damage modifier the reader is
 		// meant to line other presses up against — it is a bar saying "a clone of you was out" — and it
 		// earns its row because every fault the section below names happened somewhere inside it.

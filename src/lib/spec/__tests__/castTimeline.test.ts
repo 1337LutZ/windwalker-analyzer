@@ -205,6 +205,40 @@ describe('the cast timeline', () => {
 });
 
 /**
+ * Touch of Karma as a window rather than as an instant.
+ *
+ * The press was already on the chart and the ten seconds it bought were not, so a reader could see
+ * that a Karma went out and not what it overlapped — which is the only question the row is for. The
+ * shield is modelled for that and for nothing else: what a Karma *returned* is measured from the
+ * reflect and the absorb in the section beside the chart, and neither figure is read from this lane.
+ *
+ * The id is the cast's own, which is a reading rather than a guess — the log's `absorbed` events name
+ * the shield in `abilityGameID` and `karmaUses` already matches them against `TOUCH_OF_KARMA.castIds`.
+ */
+describe('the defensive that is also damage', () => {
+	const karma = analyse({
+		...dataset,
+		events: [
+			...events,
+			e(50_000, 'cast', 122470, { targetID: BOSS }),
+			e(50_000, 'applybuff', 122470),
+			e(60_000, 'removebuff', 122470),
+		].sort((a, b) => a.timestamp - b.timestamp),
+	});
+	const lane = karma.timeline?.lanes.find((l) => l.key === 'touch-of-karma');
+
+	it('draws the ten seconds it ran, not only the press', () => {
+		expect(lane?.windows.map((w) => [w.start, w.end])).toEqual([[50_000, 60_000]]);
+		expect(lane?.group).toBe('buff');
+	});
+
+	/** A pull nobody pressed it on pays no row to be told so. */
+	it('draws no row on a pull it was never pressed', () => {
+		expect(timeline?.lanes.find((l) => l.key === 'touch-of-karma')).toBeUndefined();
+	});
+});
+
+/**
  * The two buttons a Monk presses for somebody else.
  *
  * They fell through every name the engine has. The spec model has no reason to carry them — a raid
