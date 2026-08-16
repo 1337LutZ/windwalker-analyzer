@@ -64,7 +64,7 @@ const { title, description } = Astro.props;
 			import.meta.env.PROD && (
 				<meta
 					http-equiv="Content-Security-Policy"
-					content="default-src 'none'; script-src 'self' 'unsafe-inline' https://wow.zamimg.com; style-src 'self' 'unsafe-inline' https://wow.zamimg.com; img-src 'self' data: https://wow.zamimg.com; connect-src 'self' https://classic.warcraftlogs.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+					content="default-src 'none'; script-src 'self' 'unsafe-inline' https://wow.zamimg.com; style-src 'self' 'unsafe-inline' https://wow.zamimg.com; img-src 'self' data: https://wow.zamimg.com; connect-src 'self' https://classic.warcraftlogs.com https://nether.wowhead.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
 				/>
 			)
 		}

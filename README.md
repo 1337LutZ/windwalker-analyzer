@@ -49,11 +49,20 @@ This is the part worth being precise about, because you are pasting a credential
     a bare id, so what a piece actually _is_ can only come from Wowhead.
 
   This is the only third-party script on the page. It is deferred, so it never delays the report,
-  and hovering an item tells Wowhead that someone looked at that item. What it does not see: your
-  token, which lives in `sessionStorage` and never enters the DOM, and your report code, which is in
-  the address bar but is never passed to them. If you would rather not contact them at all, an ad
-  blocker will drop both the icons and the tooltips, and the report is fully readable without them —
-  every number the report argues from is rendered by us, not by them.
+  and hovering an item tells Wowhead that someone looked at that item.
+
+  **We do not hand them your token or your report code — but we cannot stop them taking either.**
+  That distinction used to be missing here, and it is the one that matters. `power.js` is injected by
+  us and runs as first-party script in this origin, which means `sessionStorage` is exactly as
+  readable to it as to our own code; the token not appearing in the page's HTML was never what
+  protected it, because reading it was never a DOM operation. The Content-Security-Policy does not
+  help, either: it _names_ Wowhead's host so the widget can load at all, and a policy cannot un-trust
+  a script it has been told to trust. What is true is that nothing in our code passes them either
+  value, and our code is short enough to check.
+
+  If you would rather not extend that trust, an ad blocker will drop both the icons and the tooltips,
+  and the report is fully readable without them — every number the report argues from is rendered by
+  us, not by them.
 
 - **The token goes to exactly one place.** It is used only as an `Authorization: Bearer` header on
   requests to `https://classic.warcraftlogs.com/api/v2/user`. It is never written into a URL, never
@@ -79,12 +88,27 @@ You do not have to take that on faith. In descending order of effort:
    label saying where it came from; `localStorage` holds `wcl.clientId` and nothing else. There are
    no cookies, and closing the tab empties the session half.
 3. **Check the policy.** View source on the deployed page: it ships a Content-Security-Policy meta
-   tag whose `connect-src` is `'self' https://classic.warcraftlogs.com`. That is the claim that
-   matters and it is enforced by your browser, not by our code: the token travels over `connect-src`
-   requests, and there are exactly two hosts it can be sent to — ourselves, and WarcraftLogs. Any
-   other destination is blocked whether the JavaScript intends it or not. `wow.zamimg.com` is
-   allowed for images and for the tooltip widget, and is not in `connect-src`. (The policy is
-   production-only; `astro dev` needs its own websocket.)
+   tag that denies everything by default and then names a host per directive. `connect-src` is
+   `'self' https://classic.warcraftlogs.com https://nether.wowhead.com` — three hosts, and the third
+   is there because Wowhead's tooltip widget fetches item data from it. Without it the widget loads,
+   binds and then reports "No response from server", which is what it did here until it was noticed.
+
+   Be clear about what that policy does and does not buy you, because the honest version is narrower
+   than the one this section used to give. It stops a request going to a host that is not on the
+   list, and your browser enforces that rather than our code. It does **not** stop the tooltip widget
+   reading your token. `wow.zamimg.com/widgets/power.js` is loaded by us and runs as first-party
+   script in this origin, so `sessionStorage` is as readable to it as to anything we wrote — being
+   absent from the page's HTML was never the thing protecting it. A policy cannot un-trust a script
+   it has been told to trust, and no arrangement of directives changes that while the widget is on
+   the page.
+
+   So the accurate claim is: we never hand Wowhead the token or the report code, the code that talks
+   to WarcraftLogs is one short method you can read, and the host list is short enough to check. What
+   is not claimed is that a third party is prevented from looking. If you would rather not extend
+   that trust, the widget only supplies item _names_ on hover — blocking `wow.zamimg.com` in your own
+   browser costs you those and nothing else. (The policy is production-only; `astro dev` needs its
+   own websocket.)
+
 4. **Read it.** This repo is the site. Every network call in the app goes through one method,
    `#graphql` in `src/lib/wcl/client.ts` — that is the only place a request leaves the page, and it
    is short enough to read in a minute. The build that publishes it is `.github/workflows/deploy.yml`,

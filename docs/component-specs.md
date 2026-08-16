@@ -216,7 +216,7 @@ What is stable enough to write down is the shape:
 - **Order is editorial, not alphabetical or mechanical.** Each entry carries a comment saying why it
   sits where it does, and several adjacencies are load-bearing — Energizing Brew under Fists of Fury
   because the priority list weighs the two against each other, Chi Brew under the bank it feeds.
-- **Grouping is separate from order.** `group` files a section in the sidebar by what a button *is*
+- **Grouping is separate from order.** `group` files a section in the sidebar by what a button _is_
   to the player — core, cooldowns, abilities, reference — while the array's order stays the reading
   order the report argues in. The two are allowed to disagree and in places do.
 - **A section may decline to appear**, via `when`, and that gate belongs in the array rather than in
