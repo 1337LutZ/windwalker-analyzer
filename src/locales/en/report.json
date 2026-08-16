@@ -880,7 +880,8 @@
   "summary": {
     "title": "Summary",
     "takeaways": {
-      "intent": "The three things that would move this pull the most, taken from whichever numbers actually scored worst below.",
+      "title": "Key improvements",
+      "title_good": "Key refinements",
       "clean": "Nothing came out below its target. Every graded number on this pull is where it should be, so there is no short list to give you — the sections below are the detail rather than the fix.",
       "jump": "See the detail",
       "metric": {

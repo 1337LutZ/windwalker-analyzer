@@ -18,10 +18,18 @@ initI18n();
 const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
 
-/** The card headings, which are the only part of the block that names a metric. */
+/**
+ * The card headings, which are the only part of the block that names a metric.
+ *
+ * Anchored to the list item rather than to the label's classes. It matched `uppercase text-muted`
+ * anywhere in the markup until the block gained a heading of its own wearing the same two utilities,
+ * at which point the heading counted as a fourth card and the cap test failed for a reason that had
+ * nothing to do with the cap. A card is a card because it is one of the `<li>`s, not because of how
+ * its label is styled.
+ */
 function cards(analysis: Analysis): string[] {
 	const html = renderToStaticMarkup(createElement(Takeaways, { analysis }));
-	return [...html.matchAll(/uppercase text-muted">([^<]+)</g)].map((m) => m[1] ?? '');
+	return [...html.matchAll(/<li\b[^>]*>.*?<span[^>]*uppercase text-muted">([^<]+)</gs)].map((m) => m[1] ?? '');
 }
 
 /**

@@ -6,7 +6,7 @@ import { GRADE_ORDER, type Metric } from '~/lib/score';
 import { WEIGHTS, type MetricKey } from '~/lib/score/thresholds';
 import type { Analysis } from '~/lib/types';
 
-import { Note, Prose } from '../primitives';
+import { Note } from '../primitives';
 import { secondaryButtonClass } from '../primitives/controls';
 
 /**
@@ -95,7 +95,9 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 	if (takeaways.length === 0) {
 		return (
 			<div className="flex flex-col gap-3.5">
-				<Prose>{t('summary.takeaways.intent')}</Prose>
+				<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
+					{t('summary.takeaways.title', { context: card.overall })}
+				</h3>
 				<Note>{t('summary.takeaways.clean')}</Note>
 			</div>
 		);
@@ -103,7 +105,9 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 
 	return (
 		<div className="flex flex-col gap-3.5">
-			<Prose>{t('summary.takeaways.intent')}</Prose>
+			<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
+				{t('summary.takeaways.title', { context: card.overall })}
+			</h3>
 			<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-3">
 				{takeaways.map(({ metric, section }) => {
 					const anchor = SECTION_ANCHOR[section];
