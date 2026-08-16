@@ -290,10 +290,13 @@ const ROW_ORDER: readonly string[] = [
 	'Jab',
 	'Focus of Xuen',
 	'Rising Sun Kick',
-	'Tiger Palm',
+	// The proc above the button it makes free, both times. The buff is what explains the press
+	// underneath it — a Tiger Palm on a Combo Breaker is a different press from one that cost a chi —
+	// so it reads downward as cause then effect rather than the other way about.
 	'Combo Breaker: Tiger Palm',
-	'Blackout Kick',
+	'Tiger Palm',
 	'Combo Breaker: Blackout Kick',
+	'Blackout Kick',
 	'Rushing Jade Wind',
 	'Fists of Fury',
 	'Touch of Karma',

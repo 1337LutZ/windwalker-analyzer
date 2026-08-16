@@ -44,9 +44,6 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 			>
 				{t(`overall.${card.overall}`)}
 			</p>
-			<p className="mt-4 mb-0 max-w-[64ch] leading-relaxed text-ink-2">
-				{t('header.intent')} {t('header.source')}
-			</p>
 		</header>
 	);
 }

@@ -12,8 +12,6 @@
     "none": "This pull was too short or too quiet to grade."
   },
   "header": {
-    "intent": "One pull, read through what decides Windwalker damage: brew stacks at the moment they were spent, whether those brews landed on a Re-Origination proc, and whether Rising Sun Kick's debuff ever left the target.",
-    "source": "Every number below comes from this fight's own event stream.",
     "kill": "kill",
     "wipe": "wipe"
   },
@@ -56,10 +54,6 @@
     "key": {
       "weaved": "Weaved past on purpose: the elixir swap made this proc a stat no brew can hold",
       "unholdable": "No snapshot on offer: the Rune returned a stat Tigereye Brew cannot freeze"
-    },
-    "tip": {
-      "weaved": "the brew was already holding {{held}}; the swap turned this proc into {{stat}}, which no brew can freeze",
-      "unholdable": "the Rune returned {{stat}}, and Tigereye Brew only ever freezes mastery — there was nothing here to catch"
     }
   },
   "brew": {

@@ -37,14 +37,6 @@ interface Bar {
 }
 
 /**
- * The translator, threaded down rather than reached for.
- *
- * `buildBars` is a plain function called from inside `useCallback`, so it cannot hold a hook. Only
- * the rows this change added read from it — every other string in this file is still written inline,
- * and converting them is a separate job from marking a weaved proc.
- */
-type Translate = ReturnType<typeof useTranslation>['t'];
-
 /**
  * A back-to-back roll is a pair, so both halves say so: the snapshot that lost time to a later proc,
  * and the proc that took it. Nothing else in the report shows which two procs were involved.
@@ -103,7 +95,7 @@ const rowLabel = (w: ProcWindow, i: number, brackets: Map<number, string>): stri
 	return `${gutter}${String(i + 1).padStart(2, '0')} · ${fmt(w.start)}`;
 };
 
-function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, string>, t: Translate): Bar[] {
+function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, string>): Bar[] {
 	return procs.windows.map((w, i) => {
 		const label = rowLabel(w, i, brackets);
 		// A proc that was never caught is drawn full width: the whole thing went past.
@@ -131,18 +123,19 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 					rows: [
 						['proc at', formatStamp(w.start)],
 						['proc length', `${sec(w.lengthMs)}s`],
-						// "never" is wrong when a brew went out a fraction after the proc expired: the
-						// player read it and was late, which is a different thing to not going for it.
-						unholdable
-							? ([
-									'no snapshot on offer',
-									w.weaved === true
-										? t('snapshots.tip.weaved', { held: w.heldStat ?? '', stat: w.stat })
-										: t('snapshots.tip.unholdable', { stat: w.stat }),
-								] as [string, string])
+						// An unholdable proc gets no brew row at all. The title above already names the stat, the
+						// bar is already violet, and the key already says what violet means — a row explaining
+						// that a Haste proc offered no snapshot is the third telling of something the reader has
+						// worked out from the first. The two other branches stay: "never" is wrong when a brew
+						// went out a fraction after the proc expired, because the player read it and was late,
+						// which is a different thing from not going for it.
+						...(unholdable
+							? []
 							: w.missedByMs !== null
-								? (['brewed', `${formatGap(w.missedByMs)} too late`] as [string, string])
-								: (['brewed at', w.redundant ? 'never — the same stat was already held' : 'never'] as [string, string]),
+								? [['brewed', `${formatGap(w.missedByMs)} too late`] as [string, string]]
+								: [
+										['brewed at', w.redundant ? 'never — the same stat was already held' : 'never'] as [string, string],
+									]),
 						...backToBack(w),
 					],
 				},
@@ -277,7 +270,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 				stacked: true,
 			},
 			series: [
-				{ name: 'held', data: buildBars(procs, theme, brackets, t) },
+				{ name: 'held', data: buildBars(procs, theme, brackets) },
 				{ name: 'late', data: buildOvershoot(procs, theme, brackets) },
 			],
 			plotOptions: {
