@@ -17,7 +17,7 @@
   },
   "snapshots": {
     "title": "Snapshots",
-    "intent": "A Re-Origination proc converts your stats for 10 seconds. A Tigereye Brew spent during it holds those converted stats for the brew's full 15 seconds — so the brew carries the proc well past its own end. Catching procs is the payoff; catching them late is the refinement.",
+    "intent": "A Re-Origination proc converts your stats for 10 seconds. A Tigereye Brew spent inside it holds those stats for the brew's full 15 seconds, carrying the proc well past its own end. Catching procs is the payoff; catching them late is the refinement.",
     "verdict_good": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). You are playing the pairing.",
     "verdict_ok": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). The procs you missed cost more than how late you brewed on the ones you took.",
     "verdict_bad": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). This is the spec's biggest single lever, and you are mostly not pulling it.",
@@ -31,11 +31,11 @@
     "b2b_one": "{{count}} proc arrived while a snapshotted brew was still running, so part of it could not be used.",
     "b2b_other": "{{count}} procs arrived while a snapshotted brew was still running, so part of each could not be used.",
     "givenAway": "About {{seconds, seconds}} of proc time went unused across the pull.",
-    "depthCaveat": "Depth is averaged over caught procs only, so it describes the procs you took rather than the pull. It is shown and not graded: on the pulls this report was calibrated against, catching two procs and nailing both scored better here than catching twelve.",
-    "protected_one": "One of the early brews went out with the bank close to full. Holding it to the last global would have pushed {{stacks}} more stacks past the cap, which is worth more than the tail the brew gave up — so it is counted as a decision rather than a mistake.",
-    "protected_other": "{{count}} of the early brews went out with the bank close to full. Holding them to the last global would have pushed stacks past the cap for more than the tails they gave up, so they are counted as decisions rather than mistakes.",
-    "tradeMethod": "The comparison is in stacks and seconds, both ways. Brewing with the proc still running gives up that many seconds of a fifteen-second buff carrying the proc's stats; waiting gives up whatever the bank overflows in the meantime, and each lost stack would have amplified a later brew for its whole fifteen seconds. Whichever is larger is the one this report calls the mistake.",
-    "tradeNoMastery": "What either side is worth in damage depends on your mastery, and WarcraftLogs does not report a mastery rating on Mists logs — the field is there and always reads zero. So the trade is weighed in stacks and seconds, which the log does carry, and no damage figure is put on it.",
+    "depthCaveat": "Depth averages the procs you caught, not the pull, so it is shown and never graded — on the pulls this was calibrated against, catching two and nailing both scored better than catching twelve.",
+    "protected_one": "One early brew went out with the bank close to full. Holding it to the last global would have pushed {{stacks}} more stacks past the cap, which is worth more than the tail it gave up — so it counts as a decision, not a mistake.",
+    "protected_other": "{{count}} early brews went out with the bank close to full. Holding them to the last global would have pushed more stacks past the cap than the tails were worth, so they count as decisions, not mistakes.",
+    "tradeMethod": "The comparison is in stacks and seconds, both ways. Brewing early gives up seconds of a fifteen-second buff carrying the proc's stats; waiting gives up whatever the bank overflows meanwhile, and each lost stack would have amplified a later brew for its whole fifteen seconds. The larger of the two is what this report calls the mistake.",
+    "tradeNoMastery": "What either side is worth in damage depends on your mastery, and WarcraftLogs does not report one on Mists logs — the field is there and always reads zero. So the trade is weighed in stacks and seconds, and no damage figure is put on it.",
     "pill": {
       "b2b_one": "{{count}} back-to-back pair",
       "b2b_other": "{{count}} back-to-back pairs",
@@ -46,11 +46,11 @@
     "unaffordable_other": "{{count}} more procs arrived with too few stacks banked to be worth a brew, so they are not counted as chances missed.",
     "narrowlyMissed_one": "One of the misses was a brew {{ms, gap}} too late — the proc was read, not ignored.",
     "narrowlyMissed_other": "{{count}} of the misses were brews that went out just after the proc expired rather than just before, which is a timing problem and not a habit.",
-    "oneStat": "Every proc converted into {{stat}}. The Rune turns your two lowest of crit, haste and mastery into twice the highest of the three, so {{stat}} is the one sitting on top of your sheet right now. If that is not the stat you want doubled, the ordering is what has to change — reforging, or weaving an elixir that lifts another stat above it.",
-    "weaved_one": "One proc came back as {{stat}} instead of {{held}}, because you swapped an elixir immediately after the brew went out. Tigereye Brew freezes mastery at the moment it is cast, so that proc was never a snapshot to take — it is counted as the play it was, not as a chance missed, and it is left out of the total above.",
-    "weaved_other": "{{count}} procs came back as a stat the running brew could not hold, because an elixir went out immediately after each brew. Tigereye Brew freezes mastery at the moment it is cast, so none of them was a snapshot to take — they are counted as the play they were, not as chances missed, and they are left out of the total above.",
-    "unholdable_one": "One proc converted into {{stat}}, which Tigereye Brew cannot freeze — the brew’s multiplier reads mastery and nothing else, so there was no snapshot on offer whether or not you went looking for one. It is left out of the total above rather than counted as a chance missed.",
-    "unholdable_other": "{{count}} procs converted into a stat Tigereye Brew cannot freeze. The brew’s multiplier reads mastery and nothing else, so none of them was a snapshot on offer, however the Rune happened to land. They are left out of the total above rather than counted as chances missed.",
+    "oneStat": "Every proc converted into {{stat}}. The Rune turns your two lowest of crit, haste and mastery into twice the highest, so {{stat}} is what sits on top of your sheet. If that is not the stat you want doubled, change the ordering — reforge, or weave an elixir that lifts another above it.",
+    "weaved_one": "One proc came back as {{stat}} instead of {{held}}, because you swapped an elixir right after the brew went out. Tigereye Brew freezes mastery at the moment it is cast, so that proc was never a snapshot to take. It counts as the play it was, not a chance missed, and is left out of the total above.",
+    "weaved_other": "{{count}} procs came back as a stat the running brew could not hold, because an elixir went out right after each brew. Tigereye Brew freezes mastery at the moment it is cast, so none of them was a snapshot to take. They count as the play they were, not chances missed, and are left out of the total above.",
+    "unholdable_one": "One proc converted into {{stat}}, which Tigereye Brew cannot freeze: the brew’s multiplier reads mastery and nothing else, so there was no snapshot on offer. It is left out of the total above rather than counted as a chance missed.",
+    "unholdable_other": "{{count}} procs converted into a stat Tigereye Brew cannot freeze. Its multiplier reads mastery and nothing else, so none of them was a snapshot on offer. They are left out of the total above rather than counted as chances missed.",
     "key": {
       "weaved": "Weaved past on purpose: the elixir swap made this proc a stat no brew can hold",
       "unholdable": "No snapshot on offer: the Rune returned a stat Tigereye Brew cannot freeze"
@@ -74,8 +74,8 @@
     "cap_bad_other": "{{count}} stacks were gained at the cap and never existed — a brew going out earlier would have kept them.",
     "bankLeft_one": "One stack was still banked when the boss died.",
     "bankLeft_other": "{{count}} stacks were still banked when the boss died.",
-    "capProtected_one": "One of those was lost while you held a brew for a Re-Origination proc, where brewing sooner would have cost more of the proc than the stack was worth. That one is not counted against you.",
-    "capProtected_other": "{{count}} of those were lost while you held a brew for a Re-Origination proc, where brewing sooner would have cost more of the proc than the stacks were worth. Those are not counted against you.",
+    "capProtected_one": "One of those was lost while you held a brew for a Re-Origination proc — brewing sooner would have cost more of the proc than the stack was worth, so it is not counted against you.",
+    "capProtected_other": "{{count}} of those were lost while you held a brew for a Re-Origination proc — brewing sooner would have cost more of the proc than the stacks were worth, so they are not counted against you.",
     "kpi": {
       "used": "Used of gained",
       "banked": "Left banked",
@@ -93,15 +93,15 @@
   },
   "chiBrew": {
     "title": "Chi Brew",
-    "intent": "Two charges, forty-five seconds each, and two chi plus two brew stacks every press. It fails in two opposite directions: pressed onto a full bar the chi has nowhere to go, and not pressed at all the charges sit at the ceiling where they are not recharging. Those are different mistakes, so they are counted separately rather than added together.",
-    "notTalented": "You did not take Chi Brew, so there is nothing to report here. Read from the talent list your log carries, not from whether the button was pressed — a talent you chose against is not a cooldown you forgot.",
-    "unknownTalent": "This log carried no character snapshot for you, so the report cannot tell whether you took Chi Brew. It is not saying you did not — it is saying it does not know.",
+    "intent": "Two charges, forty-five seconds each, and two chi plus two brew stacks a press. It fails in two opposite directions: pressed onto a full bar the chi has nowhere to go; never pressed, the charges sit at the ceiling not recharging. Different mistakes, counted separately.",
+    "notTalented": "You did not take Chi Brew, so there is nothing to report. That is read from the talent list your log carries, not from whether the button was pressed — a talent you chose against is not a cooldown you forgot.",
+    "unknownTalent": "This log carried no character snapshot, so the report cannot tell whether you took Chi Brew. It is not saying you did not — it is saying it does not know.",
     "never": "You took Chi Brew and never pressed it. The time you spent with something to hit had room for about {{possible}} uses, each worth two chi and two brew stacks.",
     "gained_clean": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi, all of which fit on the bar.",
-    "gained_wasted": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi — but {{wasted}} of it arrived on a bar with no room and vanished. Chi Brew returns two at once, so pressing it above two chi throws part of it away.",
+    "gained_wasted": "{{uses}} presses of a possible {{possible}}, returning {{gained}} chi — but {{wasted}} of it landed on a full bar and vanished. Chi Brew returns two at once, so pressing above two chi throws part of it away.",
     "capped_none": "Neither charge ever sat idle at the ceiling, so no recharge time went unused.",
-    "capped_some": "Both charges sat full for {{seconds, duration}} of the time you had something to hit, which is {{pct, percent}} of it and worth about {{chi, decimal}} chi. Charges idling while nothing could be hit are not counted: that is the fight holding the button, not you. A charge at the ceiling is not recharging, so that is cooldown this pull was never going to get back — priced in the chi the recharge would have returned rather than in presses, because a recharge that never ran is a share of one and not a use you could have made.",
-    "scope": "Nothing here is graded. The priority list presses Chi Brew when it wants chi and holds it when it does not, and it contains no number of idle seconds it calls acceptable — a threshold would be inventing one. Charges recharge every {{seconds}}.",
+    "capped_some": "Both charges sat full for {{seconds, duration}} of the time you had something to hit — {{pct, percent}} of it, worth about {{chi, decimal}} chi. Charges idling while nothing could be hit are not counted: that is the fight holding the button, not you. The cost is priced in chi rather than presses, because a recharge that never ran is a share of one.",
+    "scope": "Nothing here is graded: the priority list presses Chi Brew when it wants chi and holds it when it does not, and it names no number of idle seconds as acceptable. Charges recharge every {{seconds}}.",
     "kpi": {
       "uses": "Presses of possible",
       "chi": "Chi gained",
@@ -116,20 +116,20 @@
   },
   "casts": {
     "title": "Casts per minute",
-    "intent": "How much of the pull was spent pressing something that bought something. Windwalker is energy-gated with real downtime, so the ceiling is not 100% — but the gap between this and the ceiling is globals the fight took from you or you gave away.",
+    "intent": "How much of the pull went on a press that bought something. Windwalker is energy-gated with real downtime, so the ceiling is not 100% — but the gap is globals the fight took from you or you gave away.",
     "verdict_good": "You spent {{used, percent}} of the globals the pull allowed on a press that bought something, at {{cpm, decimal}} casts per minute. Little was left on the table.",
     "verdict_ok": "You spent {{used, percent}} of the globals the pull allowed on a press that bought something, at {{cpm, decimal}} casts per minute. The rest is worth chasing.",
-    "verdict_bad": "You spent {{used, percent}} of the globals the pull allowed on a press that bought something, at {{cpm, decimal}} casts per minute — close to a third of the pull spent pressing nothing, or nothing useful.",
+    "verdict_bad": "You spent {{used, percent}} of the globals the pull allowed on a press that bought something, at {{cpm, decimal}} casts per minute. Close to a third of the pull went on nothing useful.",
     "verdict_none": "Too few globals passed to measure a rate.",
     "activeTime": "You were active for {{active, percent}} of the pull.",
-    "wastedGcds_one": "One global went to a Tiger Palm that bought nothing, and is not counted above. Pressing Jab or Blackout Kick there costs the same global and does count — the figure is not asking you to press less.",
-    "wastedGcds_other": "{{count}} globals went to Tiger Palms that bought nothing, and are not counted above. Pressing Jab or Blackout Kick there costs the same globals and does count — the figure is not asking you to press less.",
+    "wastedGcds_one": "One global went to a Tiger Palm that bought nothing, and is not counted above. Jab or Blackout Kick there costs the same global and does count — this figure is not asking you to press less.",
+    "wastedGcds_other": "{{count}} globals went to Tiger Palms that bought nothing, and are not counted above. Jab or Blackout Kick there costs the same globals and does count — this figure is not asking you to press less.",
     "channel": "{{seconds, seconds}} of that was spent channelling, which does not consume globals.",
     "caption": "Cast rate per ability, with what limits each button",
     "unit": "cpm",
     "empty": "No ability was cast more than once in this pull.",
     "presses": "{{onGcd}} on-GCD casts plus {{offGcd}} off-GCD presses, over {{active, clock}} of a {{total, clock}} pull.",
-    "caveat": "There is no \"of possible\" figure for the pull as a whole: it would have to assume the boss was always targetable and every condition on a button was always met. Each row's own target is the honest version of that question.",
+    "caveat": "There is no \"of possible\" figure for the pull as a whole — it would have to assume the boss was always targetable and every condition always met. Each row's own target is the honest version of that question.",
     "columns": {
       "name": "ability",
       "bar": "of its own ceiling",
@@ -145,35 +145,35 @@
       "energy": "energy"
     },
     "noCeiling": "no cooldown",
-    "barCaveat": "The target is each ability's own, not a comparison between rows. A cooldown's target is the rate it allows, so falling short means casts never pressed. Tiger Palm's is the opposite: its target is the presses that bought something, so going over it means globals given away. Chi spenders have no target and are left blank rather than given an invented one."
+    "barCaveat": "Each target is that ability's own, not a comparison between rows. A cooldown's target is the rate it allows, so falling short means casts never pressed. Tiger Palm's is the reverse: its target is the presses that bought something, so going over means globals given away. Chi spenders have no target and are left blank."
   },
   "debuff": {
     "title": "Rising Sun Kick",
-    "intent": "The debuff is a flat damage increase for everything you do to the target — your own abilities and your Storm, Earth and Fire clones, not the rest of the raid. It runs 15 seconds on an 8-second cooldown, so the only reason it drops is a global that never went out. Uptime asks, at each moment, whether the enemy you were hitting had it, and every figure here is measured against the time you had something to hit — so target swaps, add waves and phases with nothing in reach do not count against you.",
+    "intent": "The debuff is a flat damage increase on everything you and your Storm, Earth and Fire clones do to that target — not the rest of the raid. It runs 15 seconds on an 8-second cooldown, so only a missed global drops it. Uptime asks whether the enemy you were hitting had it, measured against the time you had something to hit — so add waves and phases with nothing in reach never count against you.",
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. Effectively never off the enemy in front of you.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it.",
-    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it, and everything you put into it in that time landed lighter for it.",
+    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it — and everything you did in that time landed lighter.",
     "verdict_none": "Rising Sun Kick was never cast in this pull.",
     "target": "the primary target",
     "target_boss": "the boss",
     "drops_one": "It dropped once on {{target}}.",
     "drops_other": "It dropped {{count}} times on {{target}}.",
     "dropsNone": "It never dropped on {{target}} once applied.",
-    "intermission": "The longest stretch without it on {{target}} — {{seconds, seconds}} — is read as an intermission and left out of that count. The tiles above are measured separately, against the time you had something to hit, and none of them counts it.",
+    "intermission": "The longest stretch without it on {{target}}, {{seconds, seconds}}, is read as an intermission and left out of that count. The tiles above never counted it either.",
     "kpi": {
       "uptime": "Debuff uptime",
       "casts": "Casts",
       "lost": "Time without it"
     },
-    "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this pull was fought across several. The tiles above follow you rather than the boss — at each moment they ask whether the enemy you were hitting carried the debuff, against the time you were in reach of anything at all — so keeping it on the add in front of you counts, and the minutes the boss was away are neither credited nor charged. The timeline below draws a lane per enemy.",
+    "multiTarget": "Only {{share, percent}} of your damage went to one enemy, so this pull was fought across several. The tiles above follow you, not the boss: they ask whether the enemy you were hitting carried the debuff, against the time you were in reach of anything at all. Keeping it on the add in front of you counts, and the minutes the boss was away are neither credited nor charged.",
     "track": {
       "up": "Debuff up",
       "dropped": "Without it",
       "away": "Nothing to hit"
     },
-    "chartCaption": "The same measurement as the tiles above, laid on the clock: where the enemy in front of you carried the debuff, where it did not, and where you were not fighting anything at all. The third track is the only part that is not counted against you.",
-    "chartLabel": "Rising Sun Kick across the pull, in three tracks: the debuff up on the enemy you were hitting for {{up, duration}}, off it for {{down, duration}} across {{drops}} stretches while you were still fighting, and {{away, duration}} with nothing to hit.",
-    "chartCaption_primary": "Drawn against {{target}} alone: this pull was analysed before the chart followed you rather than the boss, so its tracks are that one enemy's windows and the third is the stretches that enemy was away.",
+    "chartCaption": "The tiles above, laid on the clock: where the enemy in front of you carried the debuff, where it did not, and where you had nothing to hit. Only the third track is uncounted.",
+    "chartLabel": "Rising Sun Kick across the pull in three tracks: the debuff up on the enemy you were hitting for {{up, duration}}, off it for {{down, duration}} across {{drops}} stretches while you were still fighting, and {{away, duration}} with nothing to hit.",
+    "chartCaption_primary": "Drawn against {{target}} alone: this pull was analysed before the chart learned to follow you, so its tracks are that one enemy's windows.",
     "chartLabel_primary": "Rising Sun Kick's debuff on {{target}} across the pull: up for {{up, duration}}, dropped for {{down, duration}} across {{drops}} stretches, and {{away, duration}} with that enemy out of reach."
   },
   "targets": {
@@ -182,6 +182,9 @@
     "auto": "Auto",
     "single": "Single target",
     "multi": "Multi-target",
+    "shortAuto": "Auto",
+    "shortSingle": "1T",
+    "shortMulti": "AoE",
     "detected_single": "Detected single target: {{share, percent}} of the time you were hitting anything, you were hitting more than one thing.",
     "detected_multi": "Detected multi-target: {{share, percent}} of the time you were hitting anything, you were hitting more than one thing.",
     "detectedNone": "This pull was analysed before target counts existed, so there is nothing detected to compare against.",
@@ -190,7 +193,7 @@
   },
   "tigerPalm": {
     "title": "Tiger Palm",
-    "intent": "Tiger Palm earns its global two ways: spending a free Combo Breaker proc, or refreshing Tiger Power before it falls off. Anything else clips a healthy buff and takes a global that Jab or Blackout Kick wanted.",
+    "intent": "Tiger Palm earns its global two ways: spending a free Combo Breaker proc, or refreshing Tiger Power before it drops. Anything else clips a healthy buff and takes a global Jab or Blackout Kick wanted.",
     "verdict_good": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Every press bought something.",
     "verdict_ok": "{{casts}} presses: {{onProc}} on a proc, {{applied}} applying Tiger Power, {{refresh}} refreshing it, {{wasted}} wasted — globals with nothing to show for them.",
     "verdict_bad": "{{casts}} presses and {{wasted}} of them bought nothing: only {{onProc}} spent a proc, {{applied}} put Tiger Power up and {{refresh}} refreshed it. That is a habit rather than a slip.",
@@ -214,7 +217,7 @@
     "clean_ok": "{{faulted}} of {{casts}} went out in the wrong place.",
     "clean_bad": "{{faulted}} of {{casts}} were placed badly.",
     "none": "Fists of Fury was never channelled in this pull.",
-    "energyCaveat": "The rotation's energy clause is not checked here — this section grades placement against what was running, not against the bar — so a channel marked clean may still have started on a full one. The Energy section reads the bar on its own.",
+    "energyCaveat": "The rotation's energy clause is not checked here: this section grades placement against what was running, not against the bar. A channel marked clean may still have started on a full one.",
     "withBrew_all": "Every one of them had a brew running.",
     "withBrew_some": "{{withBrew}} of {{casts}} had a brew running.",
     "caption": "Every Fists of Fury channel and what, if anything, was wrong with its placement",
@@ -240,7 +243,7 @@
     "haste_bad": "{{faulted}} of {{casts}} went out under a haste cooldown the rotation would have held them through.",
     "channels_one": "One Fists of Fury channel started inside a window; the Fists of Fury section says whether Rushing Jade Wind covered it.",
     "channels_other": "{{count}} Fists of Fury channels started inside a window; the Fists of Fury section says which of them Rushing Jade Wind covered.",
-    "energyCaveat": "The other half of the condition — that energy was at least five seconds from filling — is not checked here: the verdict column speaks to the haste clause and to nothing else. A use marked clean may still have gone out on a nearly full bar. The Energy section reads the bar across the pull rather than at these presses.",
+    "energyCaveat": "The other half of the condition — energy at least five seconds from filling — is not checked here. The verdict column speaks to the haste clause and nothing else, so a use marked clean may still have gone out on a nearly full bar.",
     "caption": "Every Energizing Brew, what was running when it went out, and what the rotation says about it",
     "columns": {
       "at": "at",
@@ -262,17 +265,17 @@
       "haste": "Bloodlust or another haste cooldown",
       "capped": "Energy sitting at the cap"
     },
-    "resolution": "The line is drawn from the readings the log happened to carry — about three a second — so it is a reconstruction between those points, not a measurement of every moment."
+    "resolution": "The line is drawn from the readings the log carried, about three a second, so what happens between two of them is not measured."
   },
   "energy": {
     "title": "Energy",
-    "intent": "Energy fills whether or not you are spending it, and everything that arrives on a full bar is gone. This is the bar itself, read from the resource snapshot WarcraftLogs stamps onto your casts and hits rather than inferred from what you pressed.",
-    "none": "This log carried no resource snapshots for the player, so there is no energy bar to read. Nothing is wrong with the pull — the report simply was not given the numbers.",
+    "intent": "Energy fills whether or not you spend it, and everything that arrives on a full bar is gone. This is the bar itself, read from the snapshots WarcraftLogs stamps onto your casts and hits.",
+    "none": "This log carried no resource snapshots, so there is no energy bar to read. Nothing is wrong with the pull — the report was simply not given the numbers.",
     "clean": "The bar never reached the top. Every point of energy the pull generated was there to be spent.",
     "summary": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it, filling at a measured {{regen, decimal}} energy a second.",
     "summaryNoRate": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it. Too little of the pull was quiet enough to measure a refill rate, so this is time only.",
-    "split_none": "None of that happened while you had something to hit. All of it fell in the run-up, an intermission or the tail, where there is nothing to spend energy on — so none of it is counted against you.",
-    "split_some": "{{engaged, duration}} of that was while you had something to hit — {{engagedPct, percent}} of that time, and the only part that describes a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, where there is nothing to spend energy on, so none of it is counted against you.",
+    "split_none": "None of that happened while you had something to hit. All of it fell in the run-up, an intermission or the tail, so none of it is counted against you.",
+    "split_some": "{{engaged, duration}} of that was while you had something to hit — {{engagedPct, percent}} of that time, and the only part that describes a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, and is not counted against you.",
     "wasted": "At the measured refill rate that is about {{wasted, integer}} energy arriving on a full bar with something in front of you to spend it on.",
     "kpi": {
       "engaged": "Overcapped",
@@ -294,12 +297,12 @@
       "downtime": "downtime"
     },
     "noRows": "No single stretch at the cap lasted a full global, so there is nothing worth pointing at on the clock.",
-    "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto ordinary events rather than onto a clock — {{samples}} of them here, a median of {{median, gap}} apart and 99% of them within {{p99, gap}} — so nothing between two readings is measured. A cap that opened and closed inside one gap is missed entirely, and a stretch counts only when the readings at both ends show a full bar and the first of them spent nothing, which under-reports rather than over-reports."
+    "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto events rather than onto a clock — {{samples}} here, a median of {{median, gap}} apart and 99% within {{p99, gap}} — so nothing between two readings is measured. A cap that opened and closed inside one gap is missed entirely, so these figures under-report rather than over-report."
   },
   "chi": {
     "title": "Chi",
-    "intent": "Chi arrives in whole points from a button you pressed, which makes its waste a different kind of mistake from energy’s. Energy overflows on a clock whether you are there or not; chi only overflows because a generator went off into a bar that had no room for what it returned. Every point below was paid for with a global.",
-    "none": "This log carried no resource snapshots for the player, so there is no chi bar to read. Nothing is wrong with the pull — the report simply was not given the numbers.",
+    "intent": "Chi waste is a different mistake from energy waste. Energy overflows on a clock whether you are there or not; chi only overflows because you pressed a generator into a bar with no room for what it returned. Every point below cost you a global.",
+    "none": "This log carried no resource snapshots, so there is no chi bar to read. Nothing is wrong with the pull — the report was simply not given the numbers.",
     "clean": "Nothing overflowed. Every point of chi the pull generated had somewhere to go.",
     "summary": "{{wasted}} chi went nowhere, across {{moments}} presses that returned more than the bar could hold. Each one cost a global and bought nothing.",
     "key": {
@@ -309,7 +312,7 @@
     "chartLabel": "Chi over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
     "tableCaption": "Every press that returned more chi than the bar could hold, in the order they happened",
     "noRows": "No press returned more chi than the bar could hold.",
-    "resolution": "This is a sampled bar, not a continuous one — the same caveat the energy section carries. WarcraftLogs only reports your chi when you spend it, so the figures above come from walking the log forward through what each button gains and costs. Two consequences worth knowing: a point gained and spent between two readings is invisible, so treat the waste as a floor rather than a total; and spent can exceed gained, because chi you were already holding when the log first reported the bar was paid out here without ever being counted in.",
+    "resolution": "This bar is reconstructed, not read: WarcraftLogs only reports your chi when you spend it, so the figures come from walking the log forward through what each button gains and costs. Two consequences. A point gained and spent between two readings is invisible, so treat the waste as a floor rather than a total. And spent can exceed gained, because chi you were holding before the log started is paid out here but never counted in.",
     "kpi": {
       "wasted": "Chi wasted",
       "spent": "Chi spent",
@@ -345,7 +348,7 @@
     "title": "Method",
     "intent": "What was measured and what could not be.",
     "engaged": "Uptime is measured against engaged time — the pull minus intermissions and time with no target — rather than the raw fight length.",
-    "energy": "Energy is read from the `classResources` snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from `resourcechange` events, of which a pull carries around twenty. It is used for time at the cap and for nothing else: no button here is graded against an energy condition.",
+    "energy": "Energy is read from the `classResources` snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from `resourcechange` events, of which a pull carries around twenty. It is used for time at the cap and nothing else.",
     "spec": "Classic logs report spec as 0, so the spec is taken from the report's own player list and confirmed by a Tigereye Brew cast.",
     "source": "One event fetch for report {{code}}, fight {{fightID}}, actor {{actorID}}, straight from your browser to WarcraftLogs.",
     "brewStacks": "Tigereye Brew stacks are read off the bank aura's removal event, never off the cast — WarcraftLogs logs the drain about a millisecond before the cast, so sampling at the cast reads a bank that has already been spent.",
@@ -365,7 +368,7 @@
   },
   "timeline": {
     "title": "The pull, end to end",
-    "intent": "Every brew, every Re-Origination proc, the Rising Sun Kick debuff on {{target}} and every Fists of Fury channel on one clock. Whether the brews landed where the procs were can be read off the shape. Drag to scrub, zoom to open a stretch, hover a span for what it was.",
+    "intent": "Every brew, every Re-Origination proc, the Rising Sun Kick debuff on {{target}} and every Fists of Fury channel on one clock — so you can see whether the brews landed where the procs were. Drag to scrub, zoom in, hover for detail.",
     "target": "the primary target",
     "target_boss": "the boss",
     "none": "Nothing was recorded on any track for this pull, so there is no timeline to draw.",
@@ -385,14 +388,14 @@
   },
   "castLog": {
     "title": "Timeline",
-    "intent": "Each press as its own icon at the moment it went out, with the buffs, the procs and the Rising Sun Kick debuff drawn as bars underneath. A button that puts an aura up is drawn on that aura's row rather than on one of its own, so one ability is one row. The debuff is per enemy, so it gets a row under each target that carried it rather than one row for the boss. Read down from a button to see what was up when you pressed it. Turn off what you are not looking at, zoom in to separate one global from the next, and scroll sideways to move through the pull.",
+    "intent": "Every press as its own icon at the moment it went out, with buffs, procs and the Rising Sun Kick debuff drawn as bars underneath. Read down from a button to see what was up when you pressed it. Turn off what you are not looking at, zoom to separate one global from the next, and scroll sideways through the pull.",
     "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to lay on a clock.",
     "caption": "Colour marks the category, not a verdict — nothing here is graded. A press that cost a global is drawn at full size; an off-global press, like a brew or a trinket, is drawn smaller so it never reads as a global you spent.",
     "expand": "Open full width",
     "close": "Close",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
-    "aria": "Cast timeline for the {{duration}} pull: {{casts}} presses across {{abilities}} buttons on one clock, with {{lanes}} buff, proc and debuff rows drawn underneath. Scroll sideways to read through the fight.",
+    "aria": "Cast timeline for the {{duration}} pull: {{casts}} presses across {{abilities}} buttons, with {{lanes}} buff, proc and debuff rows underneath. Scroll sideways to read through the fight.",
     "groups": {
       "casts": "Casts",
       "buffs": "Buffs",
@@ -420,7 +423,7 @@
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",
       "primary": "boss",
-      "primaryTitle": "The encounter’s boss, taken from the log’s own actor list rather than from who took the most damage. Its rows are the ones the Rising Sun Kick section charts. Uptime itself is no longer measured against this enemy alone — it follows whichever enemy you were hitting at the time — so on an add fight these rows can look sparse while the uptime beside the chart reads high.",
+      "primaryTitle": "The encounter’s boss, from the log’s own actor list rather than whoever took the most damage. Uptime follows the enemy you were hitting, not this one, so these rows can look sparse while the uptime reads high.",
       "grouping": "Target rows",
       "auto": "Auto",
       "autoTitle": "Name the enemy above its rows only when the debuff was on more than one of them.",
@@ -429,22 +432,22 @@
       "off": "Combined",
       "offTitle": "Collapse the per-enemy rows into a single row covering every enemy drawn.",
       "mergedLane": "{{aura}} · any enemy",
-      "mergedNote": "The per-enemy rows are collapsed into one. That bar marks where the debuff was on at least one of the enemies drawn here, which is coverage and not uptime: it says nothing about how long any single enemy carried it. The graded figure is measured differently again — against whichever enemy you were hitting at each moment.",
+      "mergedNote": "The per-enemy rows are collapsed into one, so that bar marks where the debuff was on at least one enemy drawn here. That is coverage, not uptime — and the graded figure is different again, measured against whichever enemy you were hitting.",
       "pick": "Enemies · {{drawn}} of {{total}}",
-      "pickHint": "Pick the enemies you want rows for. Up to {{max}} at once: past that the debuff block is taller than everything above it, and the pull stops being readable against it."
+      "pickHint": "Pick the enemies you want rows for, up to {{max}} at once — past that the debuff block is taller than the rest of the chart."
     },
     "hiddenTargets_one": "One more enemy carried the debuff and has no row here. Pick it above to draw it.",
     "hiddenTargets_other": "{{count}} more enemies carried the debuff and have no rows here. Pick them above to draw them.",
-    "hiddenRows_one": "{{rows}} fired on this pull and is not drawn: it runs on its own schedule and spends itself, so there is no decision on the row to read against your presses. It is still measured, and its damage is still counted under Damage by ability.",
-    "hiddenRows_other": "{{rows}} fired on this pull and are not drawn: they run on their own schedules and spend themselves, so there is no decision on those rows to read against your presses. They are still measured, and their damage is still counted under Damage by ability.",
+    "hiddenRows_one": "{{rows}} fired on this pull and is not drawn: it runs on its own schedule, so there is no decision to read against your presses. It is still measured, and its damage still counts under Damage by ability.",
+    "hiddenRows_other": "{{rows}} fired on this pull and are not drawn: they run on their own schedules, so there is no decision to read against your presses. They are still measured, and their damage still counts under Damage by ability.",
     "lust": {
       "unnamed": "Haste cooldown",
-      "note_one": "The blue stretch is {{names}}, the raid’s haste cooldown — shaded across the full height rather than given a row of its own, because it is the one buff here that speeds up every row at once. Whichever class brought it, the rotation reads all of them as the same effect: your globals are shorter inside it and your energy comes back faster, so a stretch that looks busier there is the haste rather than a change of plan.",
-      "note_other": "The blue stretches are {{names}}, the raid’s haste cooldown — shaded across the full height rather than given a row of their own, because it is the one buff here that speeds up every row at once. Whichever class brought it, the rotation reads all of them as the same effect: your globals are shorter inside them and your energy comes back faster, so a stretch that looks busier there is the haste rather than a change of plan."
+      "note_one": "The blue stretch is {{names}}, the raid’s haste cooldown. Your globals are shorter inside it and your energy comes back faster, so a stretch that looks busier there is the haste rather than a change of plan.",
+      "note_other": "The blue stretches are {{names}}, the raid’s haste cooldown. Your globals are shorter inside them and your energy comes back faster, so a stretch that looks busier there is the haste rather than a change of plan."
     },
     "intermission": {
       "title": "Intermission",
-      "note": "The shaded stretches are intermissions: the boss was out of reach, so there was nothing to press it at. That is the fight taking the target away, and none of it is counted against you."
+      "note": "The shaded stretches are intermissions — the boss was out of reach, so there was nothing to press anything at. That is the fight taking the target away, and none of it counts against you."
     },
     "death": {
       "title": "Death",
@@ -453,7 +456,7 @@
       "noRes": "not resurrected"
     },
     "charge": {
-      "note": "{{aura}} stacks, so its row is drawn as a charge rather than as a plain window: the height of each block is the number of charges the log stamped on it, against a meter of {{max}}. The meter never fills, and that is the log rather than the gem — the client records the first charge as the buff going up and the next three as stack events, and never a fifth, because by the time a fifth charge exists the buff has already spent itself. Each full charge is then followed by the {{payoff}} icon it paid for, with the faded block between the two being the wait — the strike lands a fraction of a second after the charge is spent, and that delay is the gem’s rather than a gap in the chart. Hover either for how long it waited and what it hit. A charge that ends with no icon after it discharged into nothing, having found no target to strike."
+      "note": "{{aura}} stacks, so its row is a charge meter of {{max}} rather than a plain window. It never fills, and that is the log rather than the gem: the client never records a fifth charge, because by then the buff has already spent itself. Each full charge is followed by the {{payoff}} icon it paid for, and the faded block between them is the gem’s own delay, not a gap in the chart. Hover either for the wait and what it hit. A charge with no icon after it found no target and discharged into nothing."
     },
     "resource": {
       "energy": "Energy",
@@ -477,10 +480,10 @@
   },
   "karma": {
     "title": "Touch of Karma",
-    "intent": "Touch of Karma redirects the damage you take onto the target for 10 seconds, so it is a defensive that does damage — an unused charge is damage not done as well as damage not taken. What makes a use good is not when the cooldown came up but whether anything was hitting you while it ran.",
-    "verdict_good": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Every press was pointed at damage that was actually coming in, which is the whole of what this button asks.",
-    "verdict_ok": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Part of what those presses were worth came back and part did not: the redirect only returns what hits you while it runs, so the timing is worth more than the count.",
-    "verdict_bad": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Those presses returned far less than they were worth: the redirect only returns what hits you while it runs, so it has to be timed onto the damage rather than onto the cooldown.",
+    "intent": "Touch of Karma redirects the damage you take onto the target for 10 seconds — a defensive that does damage, so an unused charge costs you both. What makes a use good is not when the cooldown came up but whether anything was hitting you while it ran.",
+    "verdict_good": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Every press was pointed at damage that was actually coming in, which is all this button asks.",
+    "verdict_ok": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Some of what those presses were worth came back and some did not: the redirect only returns what hits you while it runs, so timing beats count.",
+    "verdict_bad": "{{casts}} of {{available}} uses taken, returning {{reflected, compact}} damage — {{share, percent}} of everything you did. Those presses returned far less than they were worth: the redirect only returns what hits you while it runs, so time it onto the damage, not the cooldown.",
     "verdict_none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "empty_one": "One press redirected nothing at all — a ninety-second cooldown and a global spent on a quiet stretch.",
     "empty_other": "{{count}} presses redirected nothing at all — that many ninety-second cooldowns and globals spent on quiet stretches.",
@@ -500,12 +503,12 @@
       "capPct": "of cap",
       "fortifying": "fort. brew"
     },
-    "capSummary_one": "One use drained its pool dry, which measures the pool: {{health, compact}} health. Touch of Karma absorbs at most that much per press, so {{casts}} uses could have absorbed {{possible, compact}} between them and these absorbed {{absorbed, compact}} — {{pct, percent}} of what they were worth.",
-    "capSummary_other": "{{count}} uses drained their pool dry, which measures the pool: {{health, compact}} health. Touch of Karma absorbs at most that much per press, so {{casts}} uses could have absorbed {{possible, compact}} between them and these absorbed {{absorbed, compact}} — {{pct, percent}} of what they were worth.",
-    "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and the only thing on a log that states a pool is a use that drains one — no use here did, and a health pool guessed from a bar that reports in whole percent would be a ceiling this report is not entitled to print.",
+    "capSummary_one": "One use drained its pool dry, which measures the pool: {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses were worth {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
+    "capSummary_other": "{{count}} uses drained their pool dry, which measures the pool: {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses were worth {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
+    "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and the only thing that states your pool is a use that drains it — none here did. Guessing one off a bar that reports in whole percent would print a ceiling this report cannot stand behind.",
     "fortifying_one": "One of them ran under Fortifying Brew.",
     "fortifying_other": "{{count}} of them ran under Fortifying Brew.",
-    "fortifyingNote": "That is not extra damage. Fortifying Brew raises your maximum health by a fifth, which lifts the ceiling on what the redirect can return, and cuts the damage you take by the same fifth, which is what fills it — so only a use that was already hitting its ceiling gains anything. The table marks the uses that were, which is the only case the pairing helps. The cooldown Fortifying Brew does pair with for damage is Touch of Death, which rolls against your maximum health; the sim's opener casts the two back to back.",
+    "fortifyingNote": "That is not extra damage. Fortifying Brew raises your maximum health by a fifth, lifting the ceiling on what the redirect can return, and cuts the damage you take by the same fifth, which is what fills it — so only a use already at its ceiling gains anything. The brew does pair with Touch of Death, which rolls against your maximum health; the sim's opener casts those two back to back.",
     "cells": {
       "yes": "yes",
       "capped": "(capped)"
@@ -513,14 +516,14 @@
   },
   "xuen": {
     "title": "Invoke Xuen",
-    "intent": "Xuen fights alongside you for 45 seconds on a three-minute cooldown, and the sim's rotation presses it the moment it is ready — it is gated on nothing else at all. So the only question this pull can answer is whether the tiger went out as often as there was room for, and how much of the fight it spent out.",
+    "intent": "Xuen fights alongside you for 45 seconds on a three-minute cooldown, and the rotation presses it the moment it is ready — nothing else gates it. So the only questions here are how often the tiger went out and how much of the fight it spent out.",
     "summary_one": "{{count}} summon, with the tiger out for {{uptime, percent}} of the pull.",
     "summary_other": "{{count}} summons, with the tiger out for {{uptime, percent}} of the pull.",
     "onCooldown": "Every summon the pull had room for went out.",
     "held_one": "One more would have fitted: the cooldown sat ready and unused for {{drift, seconds}}.",
     "held_other": "{{count}} more would have fitted: the cooldown sat ready and unused for {{drift, seconds}}.",
-    "apl": "There is nothing to line it up with. The sim casts it from an unconditional autocast rather than from a condition, so pressing it as soon as it comes up is the whole standard.",
-    "petDamage": "The tiger's own Crackling Tiger Lightning dealt {{damage, compact}}, {{share, percent}} of your damage. Its melee swings share a spell id with yours, so they are counted in your total but cannot be shown here separately.",
+    "apl": "There is nothing to line it up with: the sim casts it on cooldown with no condition at all, so pressing it as soon as it comes up is the whole standard.",
+    "petDamage": "The tiger's Crackling Tiger Lightning dealt {{damage, compact}}, {{share, percent}} of your damage. Its melee swings share a spell id with yours, so they are in your total but cannot be split out here.",
     "none": "Invoke Xuen was never pressed in this pull. It is a level-90 talent, so this may simply not be the one you took.",
     "caption": "Every summon, how long the tiger was out for, and what it dealt while it was",
     "kpi": {
@@ -538,26 +541,26 @@
   },
   "sef": {
     "title": "Storm, Earth and Fire",
-    "intent": "Each press sends out a spirit that stands on an enemy of your choosing and mirrors your damaging abilities onto it, up to two at a time — and while they are out your own damage is cut, to 70% with one spirit and 55% with two. So the button is only worth pressing when there is a second thing to put a spirit on, and once they are out the one way to waste it is to stand on an enemy a spirit is already handling.",
+    "intent": "Each press sends a spirit onto an enemy of your choosing, up to two at a time, and it mirrors your damaging abilities onto that enemy. While they are out your own damage is cut — to 60% with one spirit, 45% with two. So it is only worth pressing when there is a second thing to put a spirit on, and once they are out the one way to waste it is to stand on an enemy a spirit already has.",
     "summary_one": "{{count}} spirit sent out, out for {{uptime, percent}} of the pull.",
     "summary_other": "{{count}} spirits sent out, with at least one of them out for {{uptime, percent}} of the pull.",
-    "uptimeMeans": "Spirit uptime is the share of the pull — timer to kill — with at least one spirit out. It is not a target to push towards 100%, and it does not know whether one spirit or two was the right number at any moment: a stretch with one enemy calls for no spirit at all, and this figure counts none of that against you and none of it for you. What the pull actually called for is the sentence below about second targets.",
-    "prePlaced_one": "One of them was already standing on something when the pull began — placed before the timer started, so it spent no global inside the pull and has no cast row of its own. That is an ordinary opener rather than a missing press, and it is counted here because the spirit was genuinely out. The press that aimed it is outside this log, so its enemy is read from where the spirit swung instead.",
-    "prePlaced_other": "{{count}} of them were already standing on something when the pull began — placed before the timer started, so they spent no globals inside the pull and have no cast rows of their own. That is an ordinary opener rather than a missing press, and they are counted here because the spirits were genuinely out. The presses that aimed them are outside this log, so their enemies are read from where the spirits swung instead.",
+    "uptimeMeans": "Spirit uptime is the share of the pull, timer to kill, with at least one spirit out. It is not a target to push to 100%, and it cannot tell one spirit from two. A stretch with one enemy calls for no spirit at all, and this figure counts none of that either way. What the pull actually called for is the sentence below about second targets.",
+    "prePlaced_one": "One spirit was already out when the pull began, placed before the timer started, so it spent no global inside the pull and has no cast row. That is an ordinary opener, not a missing press, and it counts here because the spirit was genuinely out. The press that aimed it is outside this log, so its enemy is read from where it swung.",
+    "prePlaced_other": "{{count}} spirits were already out when the pull began, placed before the timer started, so they spent no globals inside the pull and have no cast rows. That is an ordinary opener, not missing presses, and they count here because the spirits were genuinely out. The presses that aimed them are outside this log, so their enemies are read from where they swung.",
     "prePull": {
       "at": "before the pull",
       "deduced": "{{target}} — where it swung",
       "unknown": "cannot say"
     },
-    "skipped": "Storm, Earth and Fire was never pressed, and this pull had a second enemy under your hands for {{justified, duration}} in stretches long enough to be worth one — the longest of them running {{longest, duration}}. That is time two spirits could have spent mirroring you onto something else.",
-    "damage": "The spirits dealt {{damage, compact}} between them, {{share, percent}} of your damage. It is already inside your total: WarcraftLogs files a pet's damage under its owner, and a spirit's Blackout Kick logs under the same spell id as yours.",
-    "overlap": "You spent {{overlap, duration}} of your {{measured, duration}} in melee with the spirits out — {{share, percent}} of it — hitting an enemy one of your own spirits was already on. A spirit copies you onto its target, so for that time you were paying the damage penalty for a clone that was duplicating you instead of spreading you.",
+    "skipped": "Storm, Earth and Fire was never pressed, and this pull held a second enemy for {{justified, duration}} in stretches long enough to be worth one — the longest running {{longest, duration}}. That is time two spirits could have spent mirroring you onto something else.",
+    "damage": "The spirits dealt {{damage, compact}} between them, {{share, percent}} of your damage — already inside your total, because WarcraftLogs files a pet's damage under its owner.",
+    "overlap": "For {{overlap, duration}} of your {{measured, duration}} in melee with the spirits out — {{share, percent}} — you were hitting an enemy one of your own spirits already had. That is the damage penalty paid for a clone duplicating you instead of spreading you.",
     "overlapWorst": "The worst of it was {{target}}, at {{ms, duration}}.",
     "overlapNone": "You never shared a target with your own spirits, which is exactly what the cooldown is for.",
-    "overlapUnknown": "This pull cannot say whether you shared a target with your own spirits. The log carried no separate actor for them, so there is nothing to compare your target against — and reporting that as \"never\" would be a claim the log did not make.",
+    "overlapUnknown": "This pull cannot say whether you shared a target with your own spirits: the log carried no separate actor for them, so there is nothing to compare against. Calling that \"never\" would be a claim the log did not make.",
     "justified": "The pull held a second enemy for {{justified, duration}} in stretches longer than {{rule, duration}}, so pressing it was called for.",
-    "unjustified": "The pull never held a second enemy for longer than {{rule, duration}} — the longest stretch was {{longest, duration}} — so there was little for a spirit to stand on. Against one target the split is a straight loss.",
-    "notGraded": "Nothing here reaches your score. The colour on the shared-target tile is a reading aid and not a verdict: the sim never puts a spirit on the enemy you are hitting, so zero is the mechanic's own answer rather than a bar somebody set, and it is worth knowing whether your number is near it. It stops short of a grade because a hard zero would fault you for the seconds after your own target dies and you roll onto one a spirit is holding. The other figures carry no colour at all — there is no number of spirits a pull is supposed to send, and no share of a fight one is supposed to spend on any particular enemy. The ten-second rule decides whether this section speaks, not what it scores.",
+    "unjustified": "The pull never held a second enemy for longer than {{rule, duration}}; the longest stretch was {{longest, duration}}. Against one target the split is a straight loss.",
+    "notGraded": "Nothing here reaches your score, and the tiles carry no colour except one. The shared-target tile is a reading aid rather than a verdict: the sim never puts a spirit on the enemy you are hitting, so zero is the mechanic's own answer rather than a bar somebody set. It stops short of a grade because a hard zero would fault the seconds after your target dies and you roll onto one a spirit is holding.",
     "unnamedTarget": "unnamed enemy",
     "none": "No spirit was sent out in this pull.",
     "caption": "Every spirit sent out, and the enemy it was aimed at",
@@ -574,29 +577,29 @@
     "lanes": {
       "title": "Spirits, per enemy",
       "key": "A spirit was on this enemy",
-      "caption": "An empty row is an answer rather than a gap: that enemy was up in front of you and no spirit was ever put on it.",
+      "caption": "An empty row is an answer, not a gap: that enemy was up and no spirit was ever put on it.",
       "chartLabel": "Storm, Earth and Fire spirit placement across {{lanes}} enemies of this pull, one row each, marking when a spirit was standing on that enemy.",
       "empty": "No enemy of this pull was under your hands for long enough to draw a row for.",
       "unnamed": "Unnamed enemy #{{id}}",
-      "gridCaption": "Per enemy: how long a spirit stood on it, that as a share of the pull, and how much of it you spent hitting the same enemy your spirit already was",
+      "gridCaption": "Per enemy: how long a spirit stood on it, that as a share of the pull, and how long you spent hitting it too",
       "columns": {
         "enemy": "enemy",
         "held": "spirit",
         "share": "share",
         "doubled": "doubled"
       },
-      "shortLived_one": "One more enemy has no row: the damage you and your spirits did to it started and stopped inside {{rule, duration}}. This log carries no enemy deaths — a report is fetched under your own name, and WarcraftLogs returns a death event only when you are the one who died — so that measures how long the enemy was under your hands and does not claim it died.",
-      "shortLived_other": "{{count}} more enemies have no rows: the damage you and your spirits did to each of them started and stopped inside {{rule, duration}}. This log carries no enemy deaths — a report is fetched under your own name, and WarcraftLogs returns a death event only when you are the one who died — so that measures how long each enemy was under your hands and does not claim any of them died.",
-      "hidden_one": "One more enemy was under your hands for longer than that and still has no row: the chart stops at the same number of rows the cast timeline’s per-enemy block does, past which it is scrolled rather than read.",
-      "hidden_other": "{{count}} more enemies were under your hands for longer than that and still have no rows: the chart stops at the same number of rows the cast timeline’s per-enemy block does, past which it is scrolled rather than read.",
-      "unresolved": "This pull cannot say where the spirits stood. The log carried no separate actor for them, so there are no swings of theirs to read a position off — and drawing empty rows would say no spirit was ever sent anywhere, which is a claim the log did not make.",
+      "shortLived_one": "One more enemy has no row: everything you and your spirits did to it started and stopped inside {{rule, duration}}. That measures how long it was under your hands, not how long it lived — this log carries no enemy deaths.",
+      "shortLived_other": "{{count}} more enemies have no rows: everything you and your spirits did to each of them started and stopped inside {{rule, duration}}. That measures how long each was under your hands, not how long it lived — this log carries no enemy deaths.",
+      "hidden_one": "One more enemy lasted longer than that and still has no row — the chart stops at the same row count the cast timeline does, past which it is scrolled rather than read.",
+      "hidden_other": "{{count}} more enemies lasted longer than that and still have no rows — the chart stops at the same row count the cast timeline does, past which it is scrolled rather than read.",
+      "unresolved": "This pull cannot say where the spirits stood: the log carried no separate actor for them, so there are no swings to read a position off. Empty rows would claim no spirit was ever sent anywhere, which the log does not.",
       "doubled": "Both spirits were out at once for {{doubled, duration}} of that."
     }
   },
   "gear": {
     "title": "Gear",
-    "intent": "What the character was wearing for this pull, straight from the log. Item level is here to be read, not judged — it is a function of how long someone has been raiding. The enchants are the part worth acting on: an empty slot costs damage on every pull until it is filled.",
-    "none": "This log carried no equipment record for the player, so there is nothing to show. Nothing is wrong with the pull — the report simply was not told.",
+    "intent": "What you were wearing, straight from the log. Item level is here to be read, not judged. The enchants are the part worth acting on: an empty slot costs damage on every pull until it is filled.",
+    "none": "This log carried no equipment record, so there is nothing to show. Nothing is wrong with the pull — the report was simply not told.",
     "missing_one": "{{slots}} is carrying no enchant. That is a flat loss on every pull, and the cheapest damage on this page to recover.",
     "missing_other": "{{count}} slots are carrying no enchant — {{slots}}. That is a flat loss on every pull, and the cheapest damage on this page to recover.",
     "pill": {
@@ -609,7 +612,7 @@
   },
   "raidBuffs": {
     "title": "Raid buffs",
-    "intent": "The buffs that move a Windwalker's damage, one row per effect rather than one per spell. Five classes bring the same attack power and four bring the same critical strike, and they do not stack — so what matters is whether the effect was on you, not who supplied it. Uptime is measured against the whole pull, unlike the Rising Sun Kick section above: a buff stays up perfectly well while the boss is untargetable, so every second of the fight is a second it could have been running.",
+    "intent": "The buffs that move a Windwalker's damage, one row per effect rather than one per spell — five classes bring the same attack power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Rising Sun Kick above: a buff stays up perfectly well while the boss is untargetable.",
     "none": "This report was produced before raid buffs were read, so there is nothing to show here. Nothing is wrong with the pull.",
     "caption": "Raid buffs affecting this Windwalker, by effect",
     "columns": {
@@ -630,7 +633,7 @@
       "stats": "Agility is attack power and critical strike at once, which makes this the broadest of the six.",
       "attackPower": "A flat multiplier on everything you hit with. Ten percent, not the five it is often quoted as.",
       "meleeHaste": "Auto-attack speed only. It does not feed your energy bar, whatever the tooltip suggests.",
-      "spellHaste": "It shortens the Fists of Fury channel and hands that time back to the priority list. It does not move energy regeneration — that runs off haste rating from gear.",
+      "spellHaste": "It shortens the Fists of Fury channel and hands that time back to the list. It does not move energy regen — that runs off haste rating from gear.",
       "crit": "Flat critical strike chance, and the one most likely to be missing without anyone noticing.",
       "mastery": "Flat rating, so what it is worth to you depends on how you have reforged."
     },
@@ -640,34 +643,34 @@
     "gaps_one": "Off you once, for {{seconds, seconds}}.",
     "gaps_other": "Off you {{count}} times, for {{seconds, seconds}} in total.",
     "notReported": "Not reported",
-    "notReportedNote": "{{buffs}} produced no entry in this log at all. That is not the same as missing, and this report will not print it as nought: a buff applied before the pull that never drops emits no event for the whole fight, and the snapshot the log takes at the pull is not a complete list — one buff on a checked pull was provably up and absent from it. So the honest answer is that the log did not say, and the raid's own buff list is the place to settle it.",
+    "notReportedNote": "{{buffs}} produced no entry in this log at all. That is not the same as missing, so it is not printed as nought: a buff applied before the pull that never drops emits no event all fight, and the log's own snapshot at the pull is not a complete list. The honest answer is that the log did not say — your raid's buff list is the place to settle it.",
     "yours": "Yours to fix",
     "self_one": "{{buffs}} is one you supply yourself, and it was not up for the whole pull. That is the one row on this page you can fix alone.",
     "self_other": "{{buffs}} are yours to supply, and they were not up for the whole pull. Those are the rows on this page you can fix alone.",
-    "deaths_one": "You died once in this pull. A corpse holds no buffs, so the gaps that line up with it are the death rather than anyone forgetting to buff.",
-    "deaths_other": "You died {{count}} times in this pull. A corpse holds no buffs, so the gaps that line up with those are the deaths rather than anyone forgetting to buff.",
-    "excluded": "Stamina and spell power are deliberately absent. Both are real raid buffs and neither adds a point of Windwalker damage — stamina is a health pool and your damage is physical — so listing them here would pad a damage report with rows nobody can act on.",
-    "debuffs": "The two target debuffs a melee cares about — weakened armour and physical vulnerability — are not on this page, and not because they were missing. The event fetch is scoped to you, so it carries what was cast on you and what you cast; a debuff another raider puts on the boss is in neither, and none appeared in any pull checked. Measuring them would take a second query, which is a cost this report will not spend uninvited."
+    "deaths_one": "You died once in this pull. A corpse holds no buffs, so a gap that lines up with it is the death rather than anyone forgetting to buff.",
+    "deaths_other": "You died {{count}} times in this pull. A corpse holds no buffs, so gaps that line up with those are the deaths rather than anyone forgetting to buff.",
+    "excluded": "Stamina and spell power are left out on purpose. Both are real raid buffs and neither adds a point of Windwalker damage, so a row for either would be one nobody can act on.",
+    "debuffs": "The two target debuffs a melee cares about — weakened armour and physical vulnerability — are not on this page, and not because they were missing in the raid. The fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading them would take a second query this report does not make uninvited."
   },
   "rotation": {
     "title": "The rotation",
-    "intent": "The priority list every section above is measured against, written out. Nothing here is graded and none of it describes this pull — it is here so a number that came back wrong has somewhere to send you.",
-    "economy": "Two things give the list its shape. Your global cooldown is a flat second and haste never shortens it, because none of these buttons is a spell cast — haste buys you energy instead. And chi arrives slower than globals do: Jab costs 40 energy for 2 chi, and energy refills at about ten a second, so you earn roughly two thirds of a chi for every global you spend. Two presses in three have to be something that does not cost chi. The rest of the list is about ceilings. Energy caps at 100 and the brew bank at 20, and nine separate entries do nothing but check that the bar is not about to touch its top. A full bar regenerates nothing.",
+    "intent": "The priority list every section above judges you against. Nothing here is graded and none of it is about your pull — it is the reference for when a number comes back wrong.",
+    "economy": "Two things shape the list. Your global cooldown is a flat second — haste never shortens it, because none of these is a spell; haste buys energy instead. And chi comes slower than globals: Jab costs 40 energy for 2 chi, and energy refills at about ten a second, so a global earns you two thirds of a chi. Two presses in three have to be chi-free. The rest is ceilings. Energy caps at 100 and the bank at 20, and nine entries do nothing but check the bar is not about to overflow. A full bar regenerates nothing.",
     "field": {
       "when": "press it when",
       "why": "what the condition is for"
     },
     "flow": {
       "title": "The priority flow",
-      "intent": "Read down and press the first thing that is true. There is no second list for packs: the same rungs are read at one enemy and at six, and only which of them the list reaches changes. Where a rung holds two or three buttons instead of one, they are alternatives, and the line above them is what chooses. A chip on a rung is a gate — the list does not look at that entry at all unless the chip is true.",
-      "caption": "The priority list, one rung per entry, in the order the rotation checks it",
-      "reading_single": "This is the list at one enemy, because that is how the report above is reading the pull. The rungs the priority list only reaches from two enemies up are not drawn, and the two rungs that hold one rule below three targets and another above it show only the half that applies. The chips above still name every count at which something changes, including the ones outside this reading — the control at the top of the report switches it.",
-      "reading_multi": "This is the list at three enemies, which is the same count the section above judges every press at. The single-target half of each split rung is not drawn, and neither is the Spinning Crane Kick the list only reaches from four. The chips above still name every count at which something changes — the control at the top of the report switches the reading.",
+      "intent": "Read down and press the first thing that is true. There is no second list for packs — the same rungs are read at one enemy and at six, and only how far down you get changes.",
+      "caption": "The priority list, in the order the rotation checks it",
+      "reading_single": "This is the list at one enemy, which is how the report is reading your pull. Rungs that need two or more enemies are not drawn, and split rungs show only the half that applies. The chips above still name every count where something changes — the control at the top switches the reading.",
+      "reading_multi": "This is the list at three enemies, the count every press above is judged at. The single-target half of each split rung is not drawn, and neither is the Spinning Crane Kick that needs four. The chips above still name every count where something changes — the control at the top switches the reading.",
       "legend": {
         "title": "How to read it",
-        "spine": "Every rung is one question. Answer yes and you press the button beside it and the list stops there; answer no and the line carries you down to the next question.",
-        "gate": "A chip laid across the line is a gate: below the count written on it the list does not ask the question underneath at all.",
-        "fork": "A dashed box is one question with two or three answers. Only one of them is ever yours, and the line above it says what decides."
+        "spine": "Every rung is one question. Yes: press the button beside it and stop there. No: follow the line down to the next question.",
+        "gate": "A chip across the line is a gate: below the count on it, the question underneath is never asked.",
+        "fork": "A dashed box is one question with two or three answers. Only one is ever yours, and the line above says what decides."
       },
       "yes": "yes",
       "no": "no",
@@ -700,19 +703,19 @@
     "fork": {
       "tigereyeBrew": {
         "title": "Do you have the Rune of Re-Origination?",
-        "detail": "One button under two rule sets that share almost nothing, and the trinket in your bag decides which. You earn one stack per three chi spent and a brew spends ten, so the bank fills slowly and is expensive to waste — what the two branches disagree about is whether there is anything worth waiting for."
+        "detail": "One button, two rule sets, and the trinket in your bag picks between them. A stack costs three chi and a brew spends ten, so the bank fills slowly — the branches disagree only about whether anything is worth waiting for."
       },
       "talent": {
         "title": "Which of the three you took",
-        "detail": "One talent row, so exactly one of these is ever on your bar and the list carries a rung for each. All three do the same job here: a global that costs neither chi nor energy, taken only when the energy bar has room to spare. Their order against each other never comes up, because you can only have brought one."
+        "detail": "One talent row, so only one of these is ever on your bar. All three do the same job: a global that costs neither chi nor energy, taken only when the bar has room to spare. Their order never comes up, because you can only have brought one."
       },
       "blackoutKick": {
         "title": "How much the dump has to leave behind",
-        "detail": "One entry with two energy reserves written into it, and the size of the pack picks between them: how much has to stay in the bar depends on how much else there would be to spend it on."
+        "detail": "One entry with two energy reserves in it, and the size of the pack picks between them: how much has to stay in the bar depends on what else there is to spend it on."
       },
       "risingSunKick": {
         "title": "Whether the pack has pushed the kick down the list",
-        "detail": "One entry with an \"or\" in it, and the target count decides which half of it is doing the work. Up to two enemies the kick is simply pressed on cooldown from here. From three there are buttons above it worth more than one kick, and the only thing that still claims this rung is the debuff it leaves running out."
+        "detail": "One entry with an \"or\" in it, and the target count decides which half applies. Up to two enemies the kick is pressed on cooldown. From three, the buttons above it beat one kick, and only the debuff running out still claims this rung."
       }
     },
     "entry": {
@@ -720,25 +723,25 @@
         "name": "Touch of Death",
         "test": "the target's health drops below yours",
         "when": "the target's health falls below yours.",
-        "why": "It deals a lump equal to your own maximum health for one global. The list presses Fortifying Brew in the same breath, because that raises the number it rolls against."
+        "why": "It deals a lump equal to your own maximum health, for one global. The list presses Fortifying Brew in the same breath, because that raises the number it rolls against."
       },
       "chiBrew": {
         "name": "Chi Brew",
         "test": "2 chi below cap, in the opener or under a brew",
         "when": "you are two chi below the cap, during the opener or with a brew running and energy at least four seconds from full.",
-        "why": "Two chi for no global. Those two chi save you a Jab, and a Jab you do not press is 40 energy left sitting in a bar that was already close to full."
+        "why": "Two chi for no global. Those two chi save you a Jab, and a Jab you skip is 40 energy left in a bar that was already close to full."
       },
       "tigereyeBrewRune": {
         "name": "Tigereye Brew",
         "test": "a proc is a global from ending and the bank beats it",
         "when": "the Re-Origination proc is a global from ending and the bank holds more than the buff you are already wearing. Failing that: at a full 20 stacks, above 15 with no proc running, or with the fight ending inside the buff.",
-        "why": "With the Rune on, the brew is a snapshot tool and almost nothing else. It reads your mastery once and carries it fifteen seconds, so spending it on the proc's last global is what makes the proc's stats outlive the proc — see below. Every other condition here exists to stop the bank overflowing while it waits."
+        "why": "With the Rune on, the brew is a snapshot tool and little else. It reads your mastery once and holds it fifteen seconds, so spending it on the proc's last global is what makes the proc's stats outlive the proc — see below. Every other condition stops the bank overflowing while it waits."
       },
       "tigereyeBrewBank": {
         "name": "Tigereye Brew",
         "test": "no brew running and the bank is at 19",
         "when": "no brew is already running and the bank is at 19. Below that it wants two chi in hand as well: from 15, from 8 under an agility trinket, from 7 in the opener, or at any size with under 30 seconds left.",
-        "why": "With nothing to snapshot there is nothing to hold it for, so the only failure left is overflow: 20 is the ceiling and every stack earned past it is three chi spent for nothing. The two chi is a floor on the state you spend it in — fifteen seconds of buff are worth less starting from an empty bar."
+        "why": "With nothing to snapshot, the only failure left is overflow: 20 is the ceiling, and every stack earned past it is three chi spent for nothing. The two chi is a floor on the state you spend it in — fifteen seconds of buff are worth less off an empty bar."
       },
       "energizingBrew": {
         "name": "Energizing Brew",
@@ -750,25 +753,25 @@
         "name": "Invoke Xuen",
         "test": "it is ready",
         "when": "it is ready.",
-        "why": "Nothing. It is the one entry with no condition on it at all, so the only thing holding it can cost you is a summon you never fit in."
+        "why": "Nothing. It is the one entry with no condition at all, so the only thing holding it can cost you is a summon you never fit in."
       },
       "risingSunKickCooldown": {
         "name": "Rising Sun Kick",
         "test": "the cooldown is up",
         "when": "the cooldown is up. It runs 15 seconds on an 8-second cooldown, so nothing but a missed global makes it drop.",
-        "why": "The debuff, not the kick — see below. It is the only button here whose cost is paid by everything else you press."
+        "why": "The debuff, not the kick — see below. It is the only button here that makes everything else you press hit harder."
       },
       "risingSunKickHold": {
         "name": "Rising Sun Kick",
         "test": "its debuff is a global from expiring",
-        "when": "the debuff it leaves is a global from expiring. That is the only thing that claims this rung once there are three enemies — otherwise the kick waits for its unconditional rung further down.",
-        "why": "Holding the debuff, not landing the kick. From three targets the buttons above this one hit the whole pack and are worth more than one kick, so the list lets the kick slide — but never far enough to drop the 20% it is lifting everything by."
+        "when": "the debuff it leaves is a global from expiring. From three enemies that is the only thing that claims this rung; otherwise the kick waits for its unconditional rung further down.",
+        "why": "Holding the debuff, not landing the kick. From three targets the buttons above hit the whole pack and beat one kick, so the list lets it slide — but never far enough to drop the 20% it is lifting everything by."
       },
       "tigerPalmRefresh": {
         "name": "Tiger Palm",
         "test": "Tiger Power has a second or less left",
         "when": "Tiger Power has a second or less left on it.",
-        "why": "Tiger Power ignores 30% of the target's armour for 20 seconds. It does not stack and it cannot be banked, so a press with a healthy buff still up throws the rest of it away and takes a global Jab wanted."
+        "why": "Tiger Power ignores 30% of the target's armour for 20 seconds. It does not stack, so pressing with a healthy buff up throws the rest of it away and takes a global Jab wanted."
       },
       "chiWave": {
         "name": "Chi Wave",
@@ -779,14 +782,14 @@
       "zenSphere": {
         "name": "Zen Sphere",
         "test": "cooldown up, energy spare, under two spheres",
-        "when": "the 10-second cooldown is up, energy is more than two seconds from full, and fewer than two spheres are out. Past two targets that rung is skipped and it is picked up again below Jab, where only the two-sphere limit is left.",
-        "why": "Two spheres is the cap, and a third press replaces one that is still ticking. Its energy check is twice Chi Wave's — two seconds of headroom rather than one — which is what buys it the lower rung."
+        "when": "the 10-second cooldown is up, energy is more than two seconds from full, and fewer than two spheres are out. Past two targets it is skipped here and picked up again below Jab, where only the two-sphere limit is left.",
+        "why": "Two spheres is the cap, so a third press replaces one still ticking. Its energy check is twice Chi Wave's — two seconds of headroom, not one — which is what buys it the lower rung."
       },
       "chiBurst": {
         "name": "Chi Burst",
         "test": "cooldown up, energy a global from full",
         "when": "the 30-second cooldown is up and energy is more than a global from full.",
-        "why": "The same check as Chi Wave and the same reason for it, on twice the cooldown: half as many presses over a pull, so half as much of it there is to lose by holding one."
+        "why": "The same check as Chi Wave and the same reason for it, on twice the cooldown: half as many presses over a pull, so half as much to lose by holding one."
       },
       "comboBreakerKick": {
         "name": "Blackout Kick",
@@ -798,7 +801,7 @@
         "name": "Fists of Fury",
         "test": "energy will not cap, and no brew or proc says hold",
         "when": "energy will not cap during the channel, you are not inside an Energizing Brew unless Rushing Jade Wind covers the whole of it, and — if a Re-Origination proc is running — the proc outlasts the channel and a brew is already up.",
-        "why": "The most damage you can buy with chi, and four seconds spent doing nothing else: your auto-attacks are held for the whole channel too. All three conditions are there to stop those four seconds swallowing something."
+        "why": "The most damage chi can buy, and four seconds doing nothing else — your auto-attacks are held for the whole channel too. All three conditions exist to stop those four seconds swallowing something."
       },
       "tigerPalmProc": {
         "name": "Tiger Palm",
@@ -810,43 +813,43 @@
         "name": "Jab",
         "test": "two or more chi below the cap",
         "when": "you are two or more chi below the cap.",
-        "why": "Two below, not one. Jab returns two chi, so pressing it one short of the cap throws the second one away. Everything above it is spending what this generated."
+        "why": "Two below, not one. Jab returns two chi, so pressing it one short of the cap throws the second away. Everything above it spends what this generated."
       },
       "rushingJadeWind": {
         "name": "Rushing Jade Wind",
         "test": "nothing above it fired, and the dot is not spinning",
         "when": "nothing above it fired.",
-        "why": "40 energy on a six-second cooldown. Down here it is a filler for a global with nothing better in it; at two targets it moves near the top of the list instead."
+        "why": "40 energy on a six-second cooldown. Down here it is filler for a global with nothing better in it; at two targets it moves near the top of the list instead."
       },
       "blackoutKick": {
         "name": "Blackout Kick",
         "test": "35 energy still banked when the kick returns",
         "when": "you will still have 35 energy banked by the time Rising Sun Kick comes back.",
-        "why": "The chi dump, and the only entry that looks ahead. Spending chi here is right only if what is left over still covers the Jabs the next Rising Sun Kick needs."
+        "why": "The chi dump, and the only entry that looks ahead. Spending chi here is right only if what is left still covers the Jabs the next Rising Sun Kick needs."
       },
       "stormEarthAndFire": {
         "name": "Storm, Earth and Fire",
         "test": "one clone at 2 targets, two at 3+",
         "when": "two targets, for one clone. Three or more, for two.",
-        "why": "A clone cuts everyone's damage, yours included: to 60% each with one out, 45% each with two. One clone across two enemies is 120% of your damage and two across three is 135%. At one enemy there is nowhere to put a clone, so it is pure loss and the list never casts it."
+        "why": "A clone cuts everyone's damage, yours included: to 60% each with one out, 45% each with two. One clone across two enemies is 120% of your damage, two across three is 135%. At one enemy there is nowhere to put a clone, so it is pure loss and the list never casts it."
       },
       "rushingJadeWindMulti": {
         "name": "Rushing Jade Wind",
         "test": "the dot is not already spinning",
         "when": "two targets and up.",
-        "why": "It moves above Rising Sun Kick. It hits everything for as long as it spins and the kick hits one, so the second enemy is roughly where the two cross. From three targets it starts returning a chi as well."
+        "why": "It moves above Rising Sun Kick. The wind hits everything for as long as it spins and the kick hits one, so the second enemy is roughly where they cross. From three it returns a chi as well."
       },
       "spinningCraneKick": {
         "name": "Spinning Crane Kick",
         "test": "nothing above it fired",
         "when": "three targets and up.",
-        "why": "It moves above Fists of Fury. Fists of Fury splits one lump of damage evenly across everything in front of you, so its total never grows with the pack; this one's does. Three is where the growing one passes the fixed one."
+        "why": "It moves above Fists of Fury. Fists splits one lump evenly across everything in front of you, so its total never grows with the pack; this one's does. Three is where the growing one passes the fixed one."
       },
       "blackoutKickDump": {
         "name": "Blackout Kick",
         "test": "105 energy still banked when the kick returns",
         "when": "105 energy will still be banked by the time Rising Sun Kick comes back, rather than 35.",
-        "why": "With Spinning Crane Kick in the list there is far more worth spending energy on, so the chi dump has to leave three times as much behind before it will fire."
+        "why": "With Spinning Crane Kick in the list there is far more worth spending energy on, so the chi dump has to leave three times as much behind before it fires."
       },
       "craneOverKick": {
         "name": "Spinning Crane Kick",
@@ -857,18 +860,18 @@
       "risingSunKickMulti": {
         "name": "Rising Sun Kick",
         "test": "nothing above it fired",
-        "when": "nothing above it fired. There is no condition at all on this rung — it is where the kick lands once a pack has pushed it off the one above, after Tiger Palm and, from four targets, after Spinning Crane Kick.",
+        "when": "nothing above it fired. No condition at all — this is where the kick lands once a pack has pushed it off the rung above, after Tiger Palm and, from four targets, after Spinning Crane Kick.",
         "why": "It never leaves the list, because the debuff lands on every enemy. One kick amplifies the whole pack, so a pack delays the kick rather than dropping it."
       }
     },
     "notes": {
-      "snapshot": "Tigereye Brew reads your mastery once, at the moment the buff goes up, and never reads it again. That is why the list spends it in the last global of a Re-Origination proc: the proc's ten seconds of converted stats are frozen into a fifteen-second buff, and the brew carries them on after the proc has gone.",
-      "channel": "Nothing else in the list is looked at while Fists of Fury channels. Not a brew, not a cooldown, not the debuff — the fourth entry in the list is an instruction to wait until the channel ends. Four seconds is long enough for a cooldown to come up, a proc to land and the debuff to fall off with nothing done about any of them.",
-      "debuff": "Rising Sun Kick's debuff goes on every enemy, not only the one you kicked, and it lifts every one of your abilities by 20% for fifteen seconds. Auto-attacks are the exception. Losing it costs you a sixth of all of that, across the whole pack, for as long as it is down.",
-      "talents": "The list assumes two talent choices and quietly skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs of the flow above and not a fork: with the wind talented at a single target, neither of those rungs fires and it waits for its own one near the bottom. Chi Wave, Zen Sphere and Chi Burst share a row too, and that one is drawn as a fork wherever this log cannot tell which of the three you brought.",
-      "inferred": "Some of those rungs are dropped from the flow above, and only ever on proof that a button was not on your bar. A log carries no talent tree, so the only thing this report knows is which buttons you pressed — and a button you never pressed is exactly the button you may have forgotten, so an unpressed rung is never taken away. What is taken away is the alternative to something you did press: one Spinning Crane Kick in the log means there was no Rushing Jade Wind to take it off your bars, one Rushing Jade Wind means there was no Spinning Crane Kick to press, and one Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
-      "mastery": "One correction, because the name of the mechanic misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder — it appears in exactly one line of the whole simulator, and that is the line. There is no alternating-ability mastery here; Combo Strikes belongs to a later expansion. Pressing the same button twice in a row costs you nothing.",
-      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick the moment there is a second enemy; entry 31 leaves it unconditional near the bottom, which is where it sits on a single target. Neither entry tests energy at all. It costs 40 — the same as a Jab — and returns one chi where Jab returns two, so from two enemies up the list is knowingly spending the generator's energy on a spinning dot. What keeps that from being every global is the spell's own six-second cooldown, re-armed to whatever is left on the dot, so the entry needs no “already running” clause. The one place the list weighs the two against each other is the Fists of Fury rule, which will not channel through an Energizing Brew unless the wind is up to spend the energy the brew is pouring in."
+      "snapshot": "Tigereye Brew reads your mastery once, when the buff goes up, and never again. That is why the list spends it on the last global of a Re-Origination proc: the proc's ten seconds of converted stats are frozen into a fifteen-second buff and carried on after the proc has gone.",
+      "channel": "Nothing else in the list is read while Fists of Fury channels — not a brew, not a cooldown, not the debuff. Four seconds is long enough for a cooldown to come up, a proc to land and the debuff to fall off with nothing done about any of them.",
+      "debuff": "Rising Sun Kick's debuff goes on every enemy, not just the one you kicked, and lifts all your abilities by 20% for fifteen seconds — auto-attacks aside. Losing it costs a sixth of that, across the whole pack, for as long as it is down.",
+      "talents": "The list assumes two talent choices and skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs above rather than a fork. Chi Wave, Zen Sphere and Chi Burst share a row too, drawn as a fork wherever this log cannot tell which you brought.",
+      "inferred": "A rung only leaves the flow above on proof that the button was not on your bar. A log carries no talent tree, so a button you never pressed is exactly the one you may have forgotten — an unpressed rung is never removed. What is removed is the alternative to something you did press: a Spinning Crane Kick rules out Rushing Jade Wind, and a Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
+      "mastery": "One correction, because the name misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder. There is no alternating-ability mastery here — Combo Strikes belongs to a later expansion — so pressing the same button twice in a row costs you nothing.",
+      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy; entry 31 leaves it unconditional near the bottom, where it sits at one target. Neither tests energy. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so from two enemies up the list knowingly spends the generator's energy on a spinning dot. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global."
     }
   },
   "summary": {
@@ -876,48 +879,48 @@
     "takeaways": {
       "title": "Key improvements",
       "title_good": "Key refinements",
-      "clean": "Nothing came out below its target. Every graded number on this pull is where it should be, so there is no short list to give you — the sections below are the detail rather than the fix.",
+      "clean": "Nothing came out below its target, so there is no short list to give you. The sections below are the detail rather than the fix.",
       "jump": "See the detail",
       "metric": {
         "snapshotRate": {
           "label": "Catch the procs",
-          "fix": "You brewed on the last global of {{value, percent}} of your Re-Origination windows. Aim for {{target, percent}}. This is the single biggest number on the page — a brew fired a global early gives away the strongest seconds the trinket had."
+          "fix": "You brewed on the last global of {{value, percent}} of your Re-Origination windows. Aim for {{target, percent}} — a brew a global early gives away the trinket's best seconds."
         },
         "tigerPalmWaste": {
           "label": "Stop overwriting Tiger Power",
-          "fix": "{{value, percent}} of your Tiger Palms went out with the buff still comfortably up, so they bought nothing. Keep it under {{target, percent}}: those globals are free damage elsewhere."
+          "fix": "{{value, percent}} of your Tiger Palms went out with the buff still up, so they bought nothing. Keep it under {{target, percent}} — those globals are free damage elsewhere."
         },
         "gcdUtilisation": {
           "label": "Fill the globals",
-          "fix": "You spent {{value, percent}} of your available globals on a press that bought something, against a target of {{target, percent}}. The gap is time the rotation was simply not running."
+          "fix": "You spent {{value, percent}} of your globals on a press that bought something, against {{target, percent}}. The gap is the rotation not running."
         },
         "rskUptime": {
           "label": "Keep the kick rolling",
-          "fix": "Rising Sun Kick’s debuff was up for {{value, percent}} of the time you could reach a target, against {{target, percent}}. It raises everything else you do, so a gap here costs more than the kick itself."
+          "fix": "The debuff was up for {{value, percent}} of the time you could reach a target, against {{target, percent}}. It raises everything else you do, so a gap costs more than the kick itself."
         },
         "brewStacks": {
           "label": "Spend fuller brews",
-          "fix": "Your brews averaged {{value, decimal}} stacks. Ten is a full one, and {{target, decimal}} is the mark worth holding for — every stack short is damage the brew could have carried and did not."
+          "fix": "Your brews averaged {{value, decimal}} stacks. Ten is full, {{target, decimal}} is the mark worth holding for, and every stack short is damage the brew never carried."
         },
         "brewCapWaste": {
           "label": "Stop overflowing the bank",
-          "fix": "{{value, integer}} stacks were earned into a bank that was already full, so they vanished. The bank holds twenty; spending a brew before you reach it costs nothing and keeps them."
+          "fix": "{{value, integer}} stacks were earned into a full bank and vanished. The bank holds twenty; brewing before you reach it costs nothing and keeps them."
         }
       }
     }
   },
   "priority": {
     "title": "Priority list",
-    "intent": "Every other section here measures one thing on its own. This one walks the simulator’s priority list alongside your pull and asks a different question at each global you spent: was there a better button available right then? The list, its conditions and its costs are read out of wowsims rather than remembered.",
+    "intent": "Every other section measures one thing on its own. This one walks the sim's priority list alongside your pull and asks, at each global you spent: was there a better button available right then? The list and its costs come out of wowsims, not from memory.",
     "summary": "You pressed what the list wanted on {{followed}} of {{judged}} globals it could judge, leaving {{skipped}} where something higher up was available and affordable.",
-    "unjudged": "{{unknown}} presses could not be judged — a rule above them depends on something this log does not carry — and {{offList}} were buttons the list has no opinion about, like a cooldown or a defensive. Neither counts against you.",
+    "unjudged": "{{unknown}} presses could not be judged, because a rule above them needs something this log does not carry. Another {{offList}} were buttons the list has no opinion about — a cooldown, a defensive. Neither counts against you.",
     "clean": "Nothing was ever passed over. On every global the list could judge, the button you pressed was the one it wanted.",
-    "noResources": "This log carried no energy or chi readings, so there is no bar to reconstruct and no way to tell which buttons you could afford at each global. Nothing is judged here.",
+    "noResources": "This log carried no energy or chi readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing is judged here.",
     "forced_single": "You are reading this pull as one target, so every press below is judged against the single-target order — including the stretches where the log counted more enemies.",
-    "forced_multi": "You are reading this pull as multi-target, so every press below is judged against the list’s three-target order: Rushing Jade Wind and Spinning Crane Kick move up, and Blackout Kick needs a much fuller bar before it is worth a global.",
+    "forced_multi": "You are reading this pull as multi-target, so every press below is judged at three targets: Rushing Jade Wind and Spinning Crane Kick move up, and Blackout Kick needs a much fuller bar.",
     "caption": "Buttons that were available and passed over, most often first",
     "noRows": "Nothing was passed over.",
-    "scope": "The ladder covers the filler priorities — Rising Sun Kick downwards, the entries that decide what a global is spent on. Touch of Death is left out because its condition is the target’s health, which this report does not fetch; the cooldowns are left out because each already has its own section judging it against the same conditions. A button you could not afford is never counted as passed over.",
+    "scope": "The ladder covers the filler priorities — Rising Sun Kick downwards, the entries that decide what a global is spent on. Touch of Death is out because its condition is the target's health, which this report does not fetch; the cooldowns are out because each has its own section. A button you could not afford is never counted as passed over.",
     "kpi": {
       "followed": "Followed the list",
       "skipped": "Passed over",
@@ -942,15 +945,15 @@
       "spinning-crane-kick-heavy": "Spinning Crane Kick, at four or more",
       "blackout-kick": "Blackout Kick, to spend chi"
     },
-    "reconstructed": "Nothing here is graded, and one reason is worth stating plainly. WarcraftLogs only reports your chi when you spend it — roughly one press in six — so the chi behind these judgements is reconstructed by walking the log forward through what each button gains and costs. Checked against the readings it did not use, that walk is exactly right 87–95% of the time. It is close, and it is not perfect: a press judged on a bar that is one chi out can be called a skip it was not."
+    "reconstructed": "Nothing here is graded, and this is why. WarcraftLogs only reports your chi when you spend it — about one press in six — so the chi behind these judgements is reconstructed by walking the log forward through what each button gains and costs. Against the readings it did not use, that walk is right 87–95% of the time. Close, not perfect: a press judged on a bar one chi out can be called a skip it was not."
   },
   "jadeWind": {
     "title": "Rushing Jade Wind",
-    "intent": "Rushing Jade Wind spins a six-second dot on the enemies around you for 40 energy, and hands one chi back — half of what the same 40 energy buys through a Jab. Taking the talent also removes Spinning Crane Kick from your bars entirely, so this button is the whole of your area damage. The question it raises is never whether it was up. It is what holding it up cost the rest of the rotation, and whether the priority list wanted the globals you spent on it.",
+    "intent": "Rushing Jade Wind spins a six-second dot on everything around you for 40 energy and hands back one chi — half of what the same 40 buys through a Jab. Taking it also removes Spinning Crane Kick from your bars, so this is the whole of your area damage. The question is never whether it was up. It is what holding it up cost the rest of the rotation.",
     "summary": "The wind was up for {{uptime, percent}} of the time you spent in contact with something, off {{presses}} presses against the {{possible}} that stretch had room for.",
-    "ceiling": "There is no interesting ceiling above that. The dot lasts six seconds, the cooldown is six seconds, and the cooldown is re-armed to whatever is left of the dot — so the button was either spinning or ready at every instant of the pull, and 100% was arithmetically available the whole way through. Nobody falls short of that by accident, which is why it is not printed here as a target. What actually rations the button is the energy bar.",
-    "price": "Covering the whole of that stretch would have taken those {{possible}} presses at 40 energy each: {{ceilingEnergy, integer}} energy, against the {{income, integer}} your own measured regen produced over the same time — {{ceilingShare, percent}} of every point you earned, and each of those points is a Jab, a Tiger Palm or a chi spender that does not happen. The {{presses}} presses you made took {{spentEnergy, integer}} of it, or {{spentShare, percent}}.",
-    "priceUnmeasured": "What closing that gap would have cost cannot be said on this pull. The price is 40 energy a press against the rate your bar refilled at, and this log carried too few resource readings to measure a rate — one taken from memory would turn an unknown into a confident number.",
+    "ceiling": "There is no interesting ceiling above that. The dot lasts six seconds and so does the cooldown, re-armed to whatever is left of the dot, so 100% was available the whole way through — which is why it is not printed as a target. What rations the button is the energy bar.",
+    "price": "Covering all of it would have taken those {{possible}} presses at 40 energy each — {{ceilingEnergy, integer}} energy against the {{income, integer}} your measured regen produced in the same time, or {{ceilingShare, percent}} of every point you earned. Each of those points is a Jab or a chi spender that does not happen. Your {{presses}} presses took {{spentEnergy, integer}}, or {{spentShare, percent}}.",
+    "priceUnmeasured": "What closing that gap would have cost cannot be said on this pull. The price is 40 energy a press against the rate your bar refilled at, and this log carried too few resource readings to measure that rate.",
     "ladder_all_one": "The one press the priority list could judge was the button it wanted at that global.",
     "ladder_all_other": "Every one of the {{count}} presses the priority list could judge was the button it wanted at that global.",
     "ladder_some_one": "The one press the priority list could judge went out while something above the wind was ready and waiting.",
@@ -959,17 +962,17 @@
     "wanted_one": "It also wanted the wind at one global you spent on another button.",
     "wanted_other": "It also wanted the wind at {{count}} globals you spent on another button.",
     "wantedNone": "There was no global where the list wanted the wind and you pressed something else.",
-    "ladderMissing": "The priority list was not walked on this pull. It reconstructs both bars from the log's resource readings and this log carried none, so nothing here says whether these were the globals the list wanted.",
-    "singleTarget": "You are reading this pull as single-target, which is where this button sits lowest. The entry that lifts it above Rising Sun Kick needs a second enemy; below that the only rung left is the unconditional one near the bottom of the list, under Jab, under Fists of Fury and under both Combo Breaker presses. Spinning it at one target is not obviously right, and the presses above are judged against that order.",
-    "regenCaveat": "The rate behind those shares is this pull's own median, measured from the log's resource readings rather than assumed — energy regen scales with haste, so no constant describes it. It deliberately leaves out the extra energy an Energizing Brew pours in, which a median resists by design, so on a pull with brews the two shares are a shade high.",
-    "notGraded": "None of this is graded. There is no share of the bar that is the right one to spend here: the trade is against the generator and the chi spenders, and where it falls moves with the target count from second to second. The priority list carries no energy condition on this button at all, so there is no threshold in the sim to borrow — and none is invented. The only judgement above is the list's own.",
-    "absent_invokeXuen": "Rushing Jade Wind was not on this bar. It shares the level-90 talent row with Invoke Xuen, and this log has Invoke Xuen in it — so there is no uptime here to have been short of, and nothing is being counted against a button you never had.",
-    "absent_spinningCraneKick": "Rushing Jade Wind was not on this bar. Taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it — so there is no uptime here to have been short of, and nothing is being counted against a button you never had.",
-    "absent_unknown": "Rushing Jade Wind was never pressed here, and this log cannot say whether it was on the bar. A log carries no talent tree, so the only proof of a talent is a button that cannot share a row with it — and neither an Invoke Xuen nor a Spinning Crane Kick appears in this pull. That makes this a question the events cannot answer rather than a missing press, and calling it 0% uptime would be an accusation instead of a measurement.",
+    "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals it wanted.",
+    "singleTarget": "You are reading this pull as single-target, which is where this button sits lowest. The rung that lifts it above Rising Sun Kick needs a second enemy, so all that is left is the unconditional one near the bottom — under Jab, under Fists of Fury, under both Combo Breaker presses. The presses above are judged against that order.",
+    "regenCaveat": "The rate behind those shares is this pull's own median, measured from the log rather than assumed — regen scales with haste, so no constant describes it. It leaves out the extra energy an Energizing Brew pours in, so on a pull with brews the two shares read a shade high.",
+    "notGraded": "None of this is graded. There is no right share of the bar to spend here — the trade is against the generator and the chi spenders, and it moves with the target count second by second. The priority list carries no energy condition on this button, so there is no threshold to borrow and none is invented. The only judgement above is the list's own.",
+    "absent_invokeXuen": "Rushing Jade Wind was not on your bar: it shares the level-90 row with Invoke Xuen, and this log has Invoke Xuen in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
+    "absent_spinningCraneKick": "Rushing Jade Wind was not on your bar: taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
+    "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would rule it out — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press. Calling it 0% uptime would be an accusation rather than a measurement.",
     "kpi": {
       "uptime": "Contact time with it up",
       "presses": "Presses / the clock allowed",
-      "energy": "Of your energy, spent here"
+      "energy": "Of your energy"
     }
   }
 }
