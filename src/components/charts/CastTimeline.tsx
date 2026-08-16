@@ -39,7 +39,7 @@ import { TEB_CAP, registry } from '~/lib/spec/windwalker';
 import { SpellIcon } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 import { spellIconUrl } from '../primitives/spellIcon';
-import { formatGap } from '~/lib/format';
+import { formatGap, formatStamp } from '~/lib/format';
 
 import { fmt, n } from '../format';
 import { jumpToHeading } from '../jump';
@@ -259,7 +259,8 @@ const MIN_INTERMISSION_MS = 1000;
  *   with holes in it.
  * - **Re-Origination** next — what the pull was worth — then the four cooldowns that are pressed
  *   against it: the brew that snapshots it, the energy cooldown, the chi cooldown, and the cloak proc
- *   that pays for a spender.
+ *   that pays for a spender. **Jab** sits inside that run, between the chi cooldown and the cloak
+ *   proc, rather than down in the tail with the rest of the damage.
  * - Then **the rotation in priority order**: the kick and its debuff, then each generator beside the
  *   proc it hands out, then the two spenders, then the defensive that is also damage, then the talent
  *   row and the filler. A press and the proc it frees are adjacent on purpose — Tiger Palm above
@@ -286,6 +287,7 @@ const ROW_ORDER: readonly string[] = [
 	'Tigereye Brew',
 	'Energizing Brew',
 	'Chi Brew',
+	'Jab',
 	'Focus of Xuen',
 	'Rising Sun Kick',
 	'Tiger Palm',
@@ -623,7 +625,7 @@ function castNodesOf(
 		// tooltip: the attribute is the fallback for a reader whose pointer never fires, and a press whose
 		// whole point is *which* enemy would otherwise say less to them than it does to everyone else.
 		const target = sentTo(c);
-		const title = `${c.name} · ${fmt(c.t)}${target === undefined ? '' : ` · ${target}`}`;
+		const title = `${c.name} · ${formatStamp(c.t)}${target === undefined ? '' : ` · ${target}`}`;
 		const key = `${c.t}-${c.id}`;
 		// The icon's *left* edge is its moment, not its centre.
 		//
@@ -646,7 +648,7 @@ function castNodesOf(
 					title={title}
 					data-tip={c.name}
 					data-tip-tone={GROUP_TONE.casts}
-					data-tip-at={fmt(c.t)}
+					data-tip-at={formatStamp(c.t)}
 					data-tip-auto={c.id === MELEE_ID ? '' : undefined}
 					data-tip-target={target}
 					style={{ left, top, height: size }}
@@ -667,7 +669,7 @@ function castNodesOf(
 				// rendered tooltip: they cost no node at all, which is what the objection above was about.
 				data-tip={c.name}
 				data-tip-tone={GROUP_TONE.casts}
-				data-tip-at={fmt(c.t)}
+				data-tip-at={formatStamp(c.t)}
 				// Auto-attacks are not pressed, so the tooltip must not say they were. Marked on the mark
 				// rather than decided in the tooltip, which has no business knowing which id is melee.
 				data-tip-auto={c.id === MELEE_ID ? '' : undefined}
@@ -831,7 +833,7 @@ function barNodesOf(
 				// what spent the window rather than only when it opened and closed. The variant rides on it
 				// for the same reason and one more: it is the only thing the reader gets when the bar was too
 				// narrow to write it in, and that is the common case at the wide end of the zoom ladder.
-				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${fmt(w.start)} → ${fmt(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
+				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${formatStamp(w.start)} → ${formatStamp(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
 				// The aura's own name, which is the half of a merged row's label that the gutter may have
 				// truncated — and on a row named after the button, the only place the aura is named at all.
 				data-tip={lane.name}
@@ -841,8 +843,8 @@ function barNodesOf(
 				// aura and this is a fact about the one window under the cursor. Absent on every window that
 				// has no variant, which React handles by omitting the attribute entirely.
 				data-tip-stat={w.variant}
-				data-tip-from={fmt(w.start)}
-				data-tip-to={fmt(w.end)}
+				data-tip-from={formatStamp(w.start)}
+				data-tip-to={formatStamp(w.end)}
 				// What became of this window. Two attributes rather than one, because the icon is markup and
 				// the text is not: the shared tooltip assembles them, and a mark that carried the markup would
 				// be carrying an element again — which is the objection the whole `data-*` design answers.
@@ -975,12 +977,12 @@ function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 		...steps.map((step) => (
 			<span
 				key={`c${step.start}`}
-				title={`${lane.name} · ${fmt(step.start)} → ${fmt(step.end)}`}
+				title={`${lane.name} · ${formatStamp(step.start)} → ${formatStamp(step.end)}`}
 				data-tip={lane.name}
 				data-tip-tone={GROUP_TONE[lane.group]}
 				data-tip-charges={`${step.stacks}/${stacks.max}`}
-				data-tip-from={fmt(step.start)}
-				data-tip-to={fmt(step.end)}
+				data-tip-from={formatStamp(step.start)}
+				data-tip-to={formatStamp(step.end)}
 				style={{
 					left: pct(step.start, span),
 					width: pct(Math.max(step.end - step.start, 0), span),
@@ -999,12 +1001,12 @@ function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 			return [
 				<span
 					key={`w${hit.t}`}
-					title={`${stacks.payoff} · ${fmt(hit.from)} → ${fmt(hit.t)}`}
+					title={`${stacks.payoff} · ${formatStamp(hit.from)} → ${formatStamp(hit.t)}`}
 					data-tip={stacks.payoff}
 					// The aura's own tone, not the mark's: this is the charge still being spent, and colour
 					// here says which category a row belongs to rather than what kind of mark it is.
 					data-tip-tone={GROUP_TONE[lane.group]}
-					data-tip-landed={fmt(hit.t)}
+					data-tip-landed={formatStamp(hit.t)}
 					data-tip-wait={formatGap(hit.t - hit.from)}
 					data-tip-hit={n(hit.amount)}
 					style={{
@@ -1021,11 +1023,11 @@ function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 			// from the fade onto the icon — which is the point of drawing them as one event.
 			const wait = hit.from === null ? undefined : formatGap(hit.t - hit.from);
 			const shared = {
-				title: `${stacks.payoff} · ${fmt(hit.t)} · ${n(hit.amount)}`,
+				title: `${stacks.payoff} · ${formatStamp(hit.t)} · ${n(hit.amount)}`,
 				'data-tip': stacks.payoff,
 				// `landed` and not `at`: `at` is labelled "Pressed", and nobody pressed this — it is what
 				// the gem did on its own once the counter filled.
-				'data-tip-landed': fmt(hit.t),
+				'data-tip-landed': formatStamp(hit.t),
 				'data-tip-wait': wait,
 				'data-tip-hit': n(hit.amount),
 			};
@@ -2023,11 +2025,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 										// Both ends, as the bars are keyed: the group logs under five ids and two of
 										// them could in principle open on the same millisecond.
 										key={`${w.start}-${w.end}`}
-										title={`${lustName(w)} · ${fmt(w.start)} → ${fmt(w.end)}`}
+										title={`${lustName(w)} · ${formatStamp(w.start)} → ${formatStamp(w.end)}`}
 										data-tip={lustName(w)}
 										data-tip-tone="lust"
-										data-tip-from={fmt(w.start)}
-										data-tip-to={fmt(w.end)}
+										data-tip-from={formatStamp(w.start)}
+										data-tip-to={formatStamp(w.end)}
 										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
 										// The fill is deliberately the faintest wash on the chart — everything is drawn
 										// over it — and the edges are what make the window findable: two full-strength
@@ -2071,11 +2073,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								{intermissions.map(([start, end]) => (
 									<span
 										key={start}
-										title={`${t('castLog.intermission.title')} · ${fmt(start)} → ${fmt(end)}`}
+										title={`${t('castLog.intermission.title')} · ${formatStamp(start)} → ${formatStamp(end)}`}
 										data-tip={t('castLog.intermission.title')}
 										data-tip-tone="muted"
-										data-tip-from={fmt(start)}
-										data-tip-to={fmt(end)}
+										data-tip-from={formatStamp(start)}
+										data-tip-to={formatStamp(end)}
 										style={{ left: pct(start, span), width: pct(end - start, span) }}
 										className="pointer-events-auto absolute inset-y-0 border-x border-line bg-muted/10"
 									/>
@@ -2159,11 +2161,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 							return (
 								<span
 									key={death.t}
-									title={`${t('castLog.death.title')} · ${fmt(death.t)} · ${by}`}
+									title={`${t('castLog.death.title')} · ${formatStamp(death.t)} · ${by}`}
 									data-tip={t('castLog.death.title')}
 									data-tip-tone="miss"
-									data-tip-at={fmt(death.t)}
-									data-tip-to={death.resurrected ? fmt(death.until) : t('castLog.death.noRes')}
+									data-tip-at={formatStamp(death.t)}
+									data-tip-to={death.resurrected ? formatStamp(death.until) : t('castLog.death.noRes')}
 									data-tip-by={by}
 									style={{ left: pct(death.t, span), width: pct(width, span) }}
 									className="absolute inset-y-0 border-l-2 border-miss bg-[var(--color-band-miss)]"
@@ -2190,8 +2192,25 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			{/* The chart's one tooltip, filled and moved by the effect above. `fixed` so the scroller's
 			    own overflow cannot clip it, and `aria-hidden` because every mark still carries the same
 			    sentence as a `title` — this is the pointer's copy of what is already there, not a second
-			    source of it. */}
-			<div ref={tipRef} aria-hidden="true" className="pointer-events-none fixed top-0 left-0 z-50" />
+			    source of it.
+
+			    `w-max` is what stops the tip's width depending on where the tip is. A positioned box with
+			    `width:auto` is shrink-to-fit against *the viewport minus its own `left`*, and `left` is
+			    computed from the width the previous mark's content had — so the pair chase each other, the
+			    tip ends up pinned against the right edge, and a value one character too long for whatever
+			    room was left over wraps mid-phrase. Measured at 390px: "Spent by · nothing — it came off
+			    unspent" was squeezed to 238px and broken across two lines with 362px of screen going spare.
+			    At its natural width the measurement is stable, so the placement below is right first time.
+
+			    `max-w` is the other half: growing is the right answer until the value is wider than the
+			    screen, and then wrapping is — never truncation, because a reader who cannot finish reading
+			    an ability's name has lost the row. 28px is the two `TIP_OFFSET_PX` gutters the placement
+			    keeps. */}
+			<div
+				ref={tipRef}
+				aria-hidden="true"
+				className="pointer-events-none fixed top-0 left-0 z-50 w-max max-w-[calc(100vw-28px)]"
+			/>
 		</figure>
 	);
 }

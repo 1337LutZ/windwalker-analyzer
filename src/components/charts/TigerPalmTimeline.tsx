@@ -2,9 +2,10 @@ import { useCallback } from 'react';
 import type { ApexOptions } from 'apexcharts';
 import { useTranslation } from 'react-i18next';
 
+import { formatStamp } from '~/lib/format';
 import type { Analysis, FillerAudit } from '~/lib/types';
 
-import { fmt, sec } from '../format';
+import { sec } from '../format';
 import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
@@ -108,7 +109,7 @@ export default function TigerPalmTimeline({ analysis }: { analysis: Analysis }) 
 								title: label[cast.reason],
 								tone: TONE[cast.reason],
 								rows: [
-									['at', fmt(cast.t)],
+									['at', formatStamp(cast.t)],
 									// The number that decides the verdict: a press with a lot of buff left
 									// clipped a healthy Tiger Power.
 									['tiger power left', cast.buffLeftMs > 0 ? `${sec(cast.buffLeftMs)}s` : 'not up'],

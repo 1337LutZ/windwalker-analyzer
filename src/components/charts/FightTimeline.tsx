@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { Analysis, SnapshotGrade } from '~/lib/types';
 
-import { formatGap } from '~/lib/format';
+import { formatGap, formatStamp } from '~/lib/format';
 
 import { fmt, sec } from '../format';
 import { ChartFigure } from '../primitives';
@@ -125,7 +125,22 @@ const span = (
 	count,
 });
 
-const when = (start: number, end: number): [string, string] => ['when', `${fmt(start)} → ${fmt(end)}`];
+/**
+ * The two ends of a window, as two rows rather than as one.
+ *
+ * They used to be a single `when` row reading `0:12.340 → 0:22.350`. That value is twice as wide as
+ * it was before the stamps carried milliseconds, and a two-column monospace tooltip aligns on the
+ * column, not inside a value — so one long arrow-joined string was the only thing on the card that
+ * did not line up with anything. Two labelled rows put both stamps in the value column with every
+ * other number, and the arrow was never carrying meaning the labels do not.
+ *
+ * Returns the rows rather than a row, so every call site spreads it. A single row slot holding an
+ * array would still render — as `from,0:12.340` — which is the failure worth designing out.
+ */
+const when = (start: number, end: number): Array<[string, string]> => [
+	['from', formatStamp(start)],
+	['to', formatStamp(end)],
+];
 
 function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Span[] {
 	const track = narrow ? TRACK_NARROW : TRACK;
@@ -148,7 +163,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 		const tone: keyof ChartTheme =
 			w.unholdable === true ? 'rune' : w.grade === 'none' ? 'miss' : w.grade === 'early' ? 'rune' : 'kick';
 		const rows: Array<[string, string]> = [
-			when(w.start, w.end),
+			...when(w.start, w.end),
 			['stat gained', w.stat],
 			['proc length', `${sec(w.lengthMs)}s`],
 		];
@@ -169,7 +184,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 				rows.push(['brew', w.redundant ? 'none — the same stat was already held' : 'none']);
 			}
 		} else {
-			rows.push(['brewed at', `${fmt(w.snapshotAt)} · ${sec(w.snapshotAt - w.start)}s in`]);
+			rows.push(['brewed at', `${formatStamp(w.snapshotAt)} · ${sec(w.snapshotAt - w.start)}s in`]);
 			rows.push(['proc left', `${sec(w.remainingMs ?? 0)}s`]);
 			if (w.snapshotStacks !== null) rows.push(['stacks spent', `${w.snapshotStacks}/10`]);
 		}
@@ -227,7 +242,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 					title: 'Tigereye Brew',
 					tone: 'brew',
 					rows: [
-						when(w.start, w.end),
+						...when(w.start, w.end),
 						['held for', `${sec(w.end - w.start)}s`],
 						['presses', `${uses.length}`],
 						['stacks spent', `${consumed}`],
@@ -244,7 +259,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 			span(track.debuff, w.start, w.end, floor, theme.kick, {
 				title: 'Rising Sun Kick debuff',
 				tone: 'kick',
-				rows: [when(w.start, w.end), ['up for', `${sec(w.end - w.start)}s`]],
+				rows: [...when(w.start, w.end), ['up for', `${sec(w.end - w.start)}s`]],
 			}),
 		);
 	}
@@ -254,7 +269,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 				title: 'Rising Sun Kick dropped',
 				tone: 'miss',
 				rows: [
-					['at', fmt(drop.at)],
+					['at', formatStamp(drop.at)],
 					['off the target for', `${drop.seconds}s`],
 				],
 			}),
@@ -276,7 +291,7 @@ function buildSpans(analysis: Analysis, theme: ChartTheme, narrow: boolean): Spa
 					title: 'Fists of Fury',
 					tone,
 					rows: [
-						['at', fmt(c.t)],
+						['at', formatStamp(c.t)],
 						['channelled', `${sec(c.channelMs)}s`],
 						['brew running', c.brewUp ? 'yes' : 'no'],
 						['rune left', c.procRemainingMs === null ? '—' : `${sec(c.procRemainingMs)}s`],

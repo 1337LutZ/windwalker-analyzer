@@ -3,10 +3,11 @@ import type { ApexOptions } from 'apexcharts';
 import { useTranslation } from 'react-i18next';
 
 import { complementOf, intersect, type Interval } from '~/lib/analysis/intervals';
+import { formatStamp } from '~/lib/format';
 import { DROP_MS } from '~/lib/spec/windwalker';
 import type { Analysis } from '~/lib/types';
 
-import { fmt, sec } from '../format';
+import { sec } from '../format';
 import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
@@ -146,7 +147,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 						title: rows.up,
 						tone: 'kick',
 						rows: [
-							['from', fmt(start)],
+							['from', formatStamp(start)],
 							['held for', `${sec(end - start)}s`],
 						],
 					}),
@@ -156,7 +157,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 						title: rows.dropped,
 						tone: 'miss',
 						rows: [
-							['from', fmt(start)],
+							['from', formatStamp(start)],
 							['without it for', `${sec(end - start)}s`],
 						],
 					}),
@@ -166,7 +167,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 						title: rows.away,
 						tone: 'muted',
 						rows: [
-							['from', fmt(start)],
+							['from', formatStamp(start)],
 							['for', `${sec(end - start)}s`],
 						],
 					}),

@@ -28,6 +28,36 @@ export function formatClock(ms: number): string {
 	return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+/**
+ * The same clock to the millisecond — `83456` → `1:23.456`. What a tooltip prints for the *moment*
+ * something happened.
+ *
+ * **Why this is a sibling of `formatClock` rather than an option on it, and why the two must not be
+ * merged later.** They are read in different places and answer different questions. `formatClock`
+ * labels axis ticks, table columns and sentences in prose, where the reader is being pointed at
+ * roughly when something was: three extra digits are noise on every one of a hundred table rows, and
+ * on an axis they are wide enough to collide with the next tick. A tooltip is the opposite case — one
+ * reading of one thing the reader deliberately pointed at, and the reason they pointed at it is to
+ * find out exactly when it was.
+ *
+ * **Why three digits and not one.** The log's own resolution is a millisecond, and this report keeps
+ * turning on facts at that scale: the two halves of a Spear Hand Strike landing 2ms apart, a weave
+ * whose ordering is decided inside a 1ms band, off-GCD presses packed inside a single global. One
+ * decimal rounds every one of those to the same number, and the ordering the reader came for is gone.
+ *
+ * **Why always, rather than only where the fraction is interesting.** These are two-column monospace
+ * tooltips. A fraction that appears on some rows and not others, or that is one digit here and three
+ * there, leaves the value column ragged and makes precision look like a property of the event rather
+ * than of the clock. A fixed three digits keeps every stamp the same width.
+ *
+ * Floors rather than rounds, on the same value `formatClock` floors, so the two can never disagree
+ * about which second a moment fell in — rounding would print `83999` as `1:24.000`.
+ */
+export function formatStamp(ms: number): string {
+	const total = Math.max(0, ms);
+	return `${formatClock(total)}.${String(Math.floor(total % 1000)).padStart(3, '0')}`;
+}
+
 /** Milliseconds as seconds with its unit, one decimal: `4200` → `4.2s`. */
 export function formatSeconds(ms: number): string {
 	return secondsFormat.format(ms / 1000);

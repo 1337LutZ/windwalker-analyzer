@@ -4,7 +4,7 @@ import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis, ProcSummary, ProcWindow } from '~/lib/types';
 
-import { formatGap } from '~/lib/format';
+import { formatGap, formatStamp } from '~/lib/format';
 
 import { fmt, r1, sec } from '../format';
 import { ChartFigure } from '../primitives';
@@ -129,7 +129,7 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 					title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
 					tone: unholdable ? ('rune' as const) : ('miss' as const),
 					rows: [
-						['proc at', fmt(w.start)],
+						['proc at', formatStamp(w.start)],
 						['proc length', `${sec(w.lengthMs)}s`],
 						// "never" is wrong when a brew went out a fraction after the proc expired: the
 						// player read it and was late, which is a different thing to not going for it.
@@ -162,8 +162,8 @@ function buildBars(procs: ProcSummary, theme: ChartTheme, brackets: Map<number, 
 				title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
 				tone,
 				rows: [
-					['proc at', fmt(w.start)],
-					['brewed at', fmt(w.snapshotAt)],
+					['proc at', formatStamp(w.start)],
+					['brewed at', formatStamp(w.snapshotAt)],
 					['held for', `${sec(waited)}s of the proc`],
 					['proc left', `${sec(w.remainingMs ?? 0)}s`],
 					['stacks spent', w.snapshotStacks === null ? '—' : `${w.snapshotStacks}/10`],
@@ -232,7 +232,7 @@ function buildOvershoot(procs: ProcSummary, theme: ChartTheme, brackets: Map<num
 			title: `Proc ${String(i + 1).padStart(2, '0')} · ${w.stat}`,
 			tone: 'miss' as const,
 			rows: [
-				['proc at', fmt(w.start)],
+				['proc at', formatStamp(w.start)],
 				['proc length', `${sec(w.lengthMs)}s`],
 				['brewed', `${formatGap(w.missedByMs ?? 0)} too late`],
 			],

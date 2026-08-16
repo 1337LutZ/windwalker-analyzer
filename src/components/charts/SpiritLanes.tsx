@@ -2,9 +2,10 @@ import { useCallback } from 'react';
 import type { ApexOptions } from 'apexcharts';
 import { useTranslation } from 'react-i18next';
 
+import { formatStamp } from '~/lib/format';
 import type { SefTargetLane } from '~/lib/types';
 
-import { fmt, sec } from '../format';
+import { sec } from '../format';
 import { ChartFigure } from '../primitives';
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
@@ -87,7 +88,7 @@ export default function SpiritLanes({
 							title: rowOf(target),
 							tone: 'brew',
 							rows: [
-								['from', fmt(w.start)],
+								['from', formatStamp(w.start)],
 								['held for', `${sec(w.end - w.start)}s`],
 							],
 						},

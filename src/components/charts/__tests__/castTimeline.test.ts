@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Analysis, AuraLane, CastMark, CastTimeline as Timeline } from '~/lib/types';
 
-import { formatClock, formatGap } from '~/lib/format';
+import { formatClock, formatGap, formatStamp } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '../../sections/CastLog';
@@ -140,12 +140,12 @@ describe('CastTimeline', () => {
 	it('carries each mark’s tooltip as attributes, and keeps the title beside it', () => {
 		const html = render(drawn);
 		expect(html).toContain('data-tip="Tiger Palm"');
-		expect(html).toContain(`data-tip-at="${formatClock(5000)}"`);
-		expect(html).toContain(`title="Tiger Palm · ${formatClock(5000)}"`);
+		expect(html).toContain(`data-tip-at="${formatStamp(5000)}"`);
+		expect(html).toContain(`title="Tiger Palm · ${formatStamp(5000)}"`);
 		// A window carries both its ends, which is what the bar's own `title` has always said.
 		expect(html).toContain('data-tip="Re-Origination"');
-		expect(html).toContain(`data-tip-from="${formatClock(20000)}"`);
-		expect(html).toContain(`data-tip-to="${formatClock(30000)}"`);
+		expect(html).toContain(`data-tip-from="${formatStamp(20000)}"`);
+		expect(html).toContain(`data-tip-to="${formatStamp(30000)}"`);
 	});
 
 	it('names every lane beside its row', () => {
@@ -370,8 +370,8 @@ describe('CastTimeline, presses merged into the row they open', () => {
 	it('draws the defensive as the window it ran for, with the press on it', () => {
 		const html = render(merged);
 		expect(labelled(html, 'Touch of Karma')).toBe(1);
-		expect(html).toContain(`data-tip-from="${formatClock(20000)}"`);
-		expect(html).toContain(`title="Touch of Karma · ${formatClock(20000)}"`);
+		expect(html).toContain(`data-tip-from="${formatStamp(20000)}"`);
+		expect(html).toContain(`title="Touch of Karma · ${formatStamp(20000)}"`);
 	});
 });
 
@@ -695,6 +695,7 @@ describe('CastTimeline, the lane order on the committed pulls', () => {
 		'Tigereye Brew',
 		'Energizing Brew',
 		'Chi Brew',
+		'Jab',
 		'Focus of Xuen',
 		'Rising Sun Kick',
 		'Tiger Palm',
@@ -745,22 +746,27 @@ describe('CastTimeline, the lane order on the committed pulls', () => {
 			expect(headLength, name).toBeGreaterThan(10);
 		});
 
-		it(`draws ${name}'s unnamed rows after the head, damage then auras then kit`, () => {
+		it(`draws ${name}'s unnamed rows after the head, auras then kit`, () => {
 			const rows = gutterRows(render(fixture(name)));
 			const row = (label: string): number => {
 				const at = rows.indexOf(label);
 				expect(at, `${name}: ${label}`).toBeGreaterThan(-1);
 				return at;
 			};
-			// Jab is the biggest rotational lane the order does not name, on every one of the six, so it
-			// is the honest stand-in for "the rest of the damage". Below Blackout Kick, which is the whole
-			// difference the order makes here: Jab is pressed more often and press count put it above.
-			expect(row('Jab'), name).toBeGreaterThan(row('Blackout Kick'));
-			// Then the auras nobody named, below that damage and above the kit. Tiger Strikes is a plain
-			// proc and Synapse Springs is the harder case — a merged row whose button is the kit, which
-			// sorts here as the aura it also is rather than at its press's tier.
+			// The last row the order names, which is what "after the head" is measured from rather than
+			// from any one entry: the six pulls did not all take the same talent, so the row that ends the
+			// head is a different one on each of them.
+			//
+			// There is no damage tier left to check between the head and the auras. Jab was the stand-in
+			// for it — the biggest rotational lane the order did not name — and the order names it now, so
+			// on all six of these pulls every press that generates or spends chi is in the head and the
+			// first unnamed row below it is an aura.
+			const headEnd = Math.max(...rows.map((label, i) => (declaredAt(label) === -1 ? -1 : i)));
+			// The auras nobody named, below the head and above the kit. Tiger Strikes is a plain proc and
+			// Synapse Springs is the harder case — a merged row whose button is the kit, which sorts here
+			// as the aura it also is rather than at its press's tier.
 			for (const aura of ['Tiger Strikes', 'Synapse Springs']) {
-				expect(row(aura), `${name}: ${aura}`).toBeGreaterThan(row('Jab'));
+				expect(row(aura), `${name}: ${aura}`).toBeGreaterThan(headEnd);
 			}
 			// And the kit below them. Named per pull rather than once, because the six did not press the
 			// same consumables — what matters is that whichever one they did press sits under the auras.
@@ -993,7 +999,7 @@ describe('CastTimeline, intermissions and deaths', () => {
 	it('marks each death, and names what landed the blow', () => {
 		const html = render(died);
 		expect(html).toContain(`data-tip="${t('castLog.death.title')}"`);
-		expect(html).toContain(`data-tip-at="${formatClock(61000)}"`);
+		expect(html).toContain(`data-tip-at="${formatStamp(61000)}"`);
 		expect(html).toContain('data-tip-by="Iron Star"');
 		expect(html).toContain(t('castLog.death.note'));
 	});
@@ -1030,7 +1036,7 @@ describe('CastTimeline, the haste cooldown behind the chart', () => {
 		// band titled "Bloodlust" would be naming a spell nobody in that raid cast.
 		const html = render(drawn);
 		expect(html).toContain('data-tip="Heroism"');
-		expect(html).toContain(`data-tip-from="${formatClock(429424)}"`);
+		expect(html).toContain(`data-tip-from="${formatStamp(429424)}"`);
 		expect(html).toContain(t('castLog.lust.note', { count: 1, names: 'Heroism' }));
 	});
 
@@ -1132,7 +1138,7 @@ describe('CastTimeline, a stacking lane drawn as its charge', () => {
 	it('marks the discharge with the payoff’s own icon, named in the tooltip', () => {
 		const html = render(charged);
 		expect(html).toContain('data-tip="Crackling Tiger Lightning"');
-		expect(html).toContain(`data-tip-landed="${formatClock(2760)}"`);
+		expect(html).toContain(`data-tip-landed="${formatStamp(2760)}"`);
 		expect(html).toContain('data-tip-hit="276,205"');
 		// The icon, and specifically the payoff's own — a tick would leave the reader asking what it is.
 		expect(html).toContain(spellIconUrl(PAYOFF_ID));

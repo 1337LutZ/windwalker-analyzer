@@ -331,15 +331,24 @@ const escape = (value: string): string =>
 /**
  * The icon that leads a row's value, or nothing at all.
  *
- * Sized to the line rather than to the chart's marks: this sits inside a run of text, so it is the
- * cap height of the font beside it and not the 24px a press is drawn at. `vertical-align` pulls it
- * onto the baseline, which is what stops the row it is in from being a pixel taller than its siblings.
+ * Sized to the line rather than to the chart's marks: this sits beside a run of text, so it is the
+ * cap height of the font next to it and not the 24px a press is drawn at.
+ *
+ * It carries no `vertical-align` and no `margin`, because it is a flex item — see the row below. It
+ * used to carry both, and both were dead: Tailwind's preflight sets `img { display: block }`, which
+ * put the icon on a line of its own and dropped the ability name underneath it. `vertical-align` does
+ * nothing to a block box, so the row that was meant to read "icon, then name" read as two lines with
+ * nothing tying them together. Making the value a flex line is what fixes that, and inside one the
+ * icon's own `display` no longer matters — every flex item is blockified anyway.
+ *
+ * `flex:none` so the icon is never the thing that gives way when the row is wider than the tooltip:
+ * a squeezed spell icon is unrecognisable, which is the entire reason the row carries art at all.
  */
 const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
 	url === undefined
 		? ''
-		: `<img src="${escape(url)}" alt="" width="14" height="14" style="width:14px;height:14px;margin-right:6px;` +
-			`vertical-align:-3px;border-radius:2px;border:1px solid ${theme.line}">`;
+		: `<img src="${escape(url)}" alt="" width="14" height="14" style="flex:none;width:14px;height:14px;` +
+			`border-radius:2px;border:1px solid ${theme.line}">`;
 
 /**
  * Tooltip markup, built by hand because ApexCharts' own tooltip is styled from its light/dark
@@ -350,10 +359,16 @@ const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
  * designs on one page is exactly what a second implementation there would have produced.
  */
 export function tip(theme: ChartTheme, content: TipContent): string {
+	// The value is a flex line of its own, not a run of inline content, and that is the fix for a whole
+	// *kind* of row rather than for the one caller that hit it. A value made of parts — an icon and the
+	// name of the press it stands for — is one thing the reader is meant to read as one thing, and flex
+	// items on a line cannot be split across two of them. Written for every row rather than only for the
+	// rows that carry art today, because the next row to carry it should not have to rediscover this.
 	const rows = content.rows
 		.map(
 			([label, value, icon]) =>
-				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="color:${theme.muted}">${escape(label)}</span><span style="color:${theme.ink};font-weight:600">${tipIcon(icon, theme)}${escape(value)}</span></div>`,
+				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="color:${theme.muted}">${escape(label)}</span>` +
+				`<span style="display:flex;align-items:center;gap:6px;color:${theme.ink};font-weight:600">${tipIcon(icon, theme)}${escape(value)}</span></div>`,
 		)
 		.join('');
 	return (
