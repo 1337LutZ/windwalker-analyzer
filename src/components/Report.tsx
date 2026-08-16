@@ -125,7 +125,11 @@ const SECTIONS: (ReportSection & {
 	// Last of the damage cooldowns, because it is the one with no placement to judge: the sim fires it
 	// from an unconditional autocast, so it follows the sections that do grade placement rather than
 	// sitting among them.
-	{ id: 'xuen', titleKey: 'xuen.title', group: 'abilities', Component: Xuen },
+	// Filed under cooldowns rather than abilities, along with Touch of Karma below. The nav groups by
+	// what a button *is* to the player pressing it — something on a long timer you spend, not a
+	// rotational press — while this list's order stays the reading order the report argues in. The two
+	// do not have to agree, and here they do not: both sections keep their place on the page.
+	{ id: 'xuen', titleKey: 'xuen.title', group: 'cooldowns', Component: Xuen },
 	// Beside the other summon, and the only section in the list that can decline to appear. Storm,
 	// Earth and Fire is a multi-target button: on a single-target pull it is correct never to press it,
 	// so a heading saying "not pressed, and rightly" on every Garrosh kill would be a line of noise on
@@ -139,7 +143,7 @@ const SECTIONS: (ReportSection & {
 		when: (analysis) => Boolean(analysis.sef && (analysis.sef.casts > 0 || analysis.sef.justified)),
 	},
 	// The defensive, and so the last button: it is the only one here that is not trying to do damage.
-	{ id: 'karma', titleKey: 'karma.title', group: 'abilities', Component: TouchOfKarma },
+	{ id: 'karma', titleKey: 'karma.title', group: 'cooldowns', Component: TouchOfKarma },
 	// Both are indexed by button: the table breaks the pull's damage down by ability and the ledger
 	// names the abilities that missed, so they sit with the sections that grade a button rather than
 	// starting a group of their own for two tables that answer the same question the others do.
