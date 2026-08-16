@@ -170,6 +170,14 @@ export function boundsWithin(durationMs: number) {
  */
 const cursorPoint = { seriesIndex: -1, dataPointIndex: -1 };
 
+/**
+ * Where the pointer last was down the window, which is the anchor a tooltip with no room above it is
+ * flipped to. Recorded beside the point above because the same pointer move establishes both, and
+ * separate from it because this one is a pixel rather than an index — a line chart resolves no mark
+ * and still has a cursor.
+ */
+let pointerY = 0;
+
 const forget = () => {
 	cursorPoint.seriesIndex = -1;
 	cursorPoint.dataPointIndex = -1;
@@ -190,6 +198,7 @@ const forget = () => {
  */
 export function trackCursor(root: HTMLElement): () => void {
 	const move = (event: PointerEvent) => {
+		pointerY = event.clientY;
 		// The whole stack at that pixel, not just the topmost element: ApexCharts' own tooltip follows
 		// the cursor closely enough to sit over the mark it is describing, and a single-element hit test
 		// finds the tooltip and reports nothing under the cursor.
@@ -211,6 +220,89 @@ export function trackCursor(root: HTMLElement): () => void {
 		root.removeEventListener('pointerleave', forget);
 		forget();
 	};
+}
+
+/** How close to the edge of the window a tooltip may come before it is pulled back inside. */
+const TIP_EDGE_PX = 8;
+
+/**
+ * How far below the pointer a flipped tooltip lands. The rows these charts draw are 36px tall and the
+ * pointer is usually somewhere near the middle of one, so this clears the mark being described rather
+ * than lying across it.
+ */
+const TIP_FLIP_PX = 20;
+
+/**
+ * Holds a chart's tooltip inside the window: flipped below the pointer when there is no room above
+ * it, and pulled back from either side edge when the plot it is placed inside runs past one.
+ *
+ * ApexCharts already flips a horizontal bar's tooltip — see `placeHorizontalSharedTooltip` — but it
+ * flips *within the plot box*, and these timelines are four 36px rows. A 232px card has no room above
+ * or below inside 144px of grid, so the library keeps its first answer and writes a negative `top`.
+ * Measured on the pull timeline with the hovered row scrolled to the top of the window: the proc
+ * card landed at y = -199, i.e. 199px of it above the window, and every card on every row was cut off
+ * the same way. Nothing in the library's options reaches this: `tooltip.fixed` pins the card to a
+ * corner of the *chart*, which is off-screen in exactly the case that needs fixing.
+ *
+ * So the library's answer is corrected rather than replaced, and three things keep that from becoming
+ * a fight over the same property on every mouse move:
+ *
+ *  - it runs from a `MutationObserver` on the tooltip's `style`, so it is a reaction to a placement
+ *    rather than a second placement racing it, and it does no work when the pointer moves without
+ *    moving the card;
+ *  - it reads the position out of the inline style — the value ApexCharts just asked for — and never
+ *    out of the rendered box, so it cannot read back its own correction and correct it again;
+ *  - it writes `transform`, which the library neither reads nor sets, so `left` and `top` stay the
+ *    library's to own.
+ *
+ * `takeRecords` closes the last of it: our own write queues a record, and dropping it is what keeps
+ * one correction from calling itself back.
+ */
+export function keepTooltipInView(root: HTMLElement): () => void {
+	const card = root.querySelector<HTMLElement>('.apexcharts-tooltip');
+	if (card === null) return () => {};
+
+	const place = () => {
+		// The chart canvas, which is what `left` and `top` are measured from.
+		const canvas = card.offsetParent;
+		const left = Number.parseFloat(card.style.left);
+		const top = Number.parseFloat(card.style.top);
+		// Before the first placement there is nothing to correct, and nothing to read.
+		if (canvas === null || Number.isNaN(left) || Number.isNaN(top)) return;
+
+		const origin = canvas.getBoundingClientRect();
+		const width = card.offsetWidth;
+		const height = card.offsetHeight;
+		const wantX = origin.left + left;
+		const wantY = origin.top + top;
+
+		let y = wantY;
+		if (y < TIP_EDGE_PX) {
+			const below = pointerY + TIP_FLIP_PX;
+			// Below the pointer when the card fits there, and hard against the top of the window when it
+			// fits in neither place — a card taller than the window is clipped at one end whatever we do,
+			// and clipped at the bottom is the end whose first line the reader still gets.
+			y = below + height <= window.innerHeight - TIP_EDGE_PX ? below : TIP_EDGE_PX;
+		} else if (y + height > window.innerHeight - TIP_EDGE_PX) {
+			y = Math.max(TIP_EDGE_PX, window.innerHeight - TIP_EDGE_PX - height);
+		}
+
+		// The left edge is applied second so that a card still wider than the window sits flush with the
+		// side the reading starts on.
+		let x = wantX;
+		if (x + width > window.innerWidth - TIP_EDGE_PX) x = window.innerWidth - TIP_EDGE_PX - width;
+		if (x < TIP_EDGE_PX) x = TIP_EDGE_PX;
+
+		const shift = x === wantX && y === wantY ? '' : `translate(${x - wantX}px, ${y - wantY}px)`;
+		if (card.style.transform !== shift) card.style.transform = shift;
+	};
+
+	const watch = new MutationObserver(() => {
+		place();
+		watch.takeRecords();
+	});
+	watch.observe(card, { attributeFilter: ['style'] });
+	return () => watch.disconnect();
 }
 
 export function baseChart(args: BaseChartArgs): NonNullable<ApexOptions['chart']> {
@@ -318,6 +410,24 @@ interface TooltipContext {
  */
 export type TipRow = [label: string, value: string, iconUrl?: string];
 
+/**
+ * The widest a tooltip card may draw, and therefore the point at which a long value stops making the
+ * card wider and starts wrapping inside it.
+ *
+ * Every value on these charts is a number or a clock and fits in the 210px floor below — except the
+ * verdicts, which are sentences. `channelled through Energizing Brew with no Rushing Jade Wind
+ * covering it` measured the Fists of Fury card at 648px against a 210–330px family, because
+ * ApexCharts' own `.apexcharts-tooltip` is `white-space: nowrap` and a card with a floor and no
+ * ceiling simply grows to whatever it is handed. Wrapping rather than truncating, because the
+ * sentence is the explanation — a reader who cannot finish it has lost the row.
+ *
+ * The viewport term is the same rule the cast timeline's tip node already keeps (`max-w-[calc(100vw
+ * -28px)]`), stated once here for both: a card that has to shrink is one being read on a phone, and
+ * the 28px is the two gutters that timeline's placement leaves. Written as one `min()` rather than as
+ * a second mechanism on top of that one.
+ */
+const TIP_MAX_WIDTH = 'min(380px, calc(100vw - 28px))';
+
 export interface TipContent {
 	title: string;
 	tone: keyof ChartTheme;
@@ -364,17 +474,24 @@ export function tip(theme: ChartTheme, content: TipContent): string {
 	// name of the press it stands for — is one thing the reader is meant to read as one thing, and flex
 	// items on a line cannot be split across two of them. Written for every row rather than only for the
 	// rows that carry art today, because the next row to carry it should not have to rediscover this.
+	// The label never wraps and the value does. Both are flex items on a row that is now allowed to be
+	// narrower than its content, and without this the two share the shortfall in proportion — which
+	// breaks "brewed at" across two lines to buy four characters for a sentence that needs forty.
 	const rows = content.rows
 		.map(
 			([label, value, icon]) =>
-				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="color:${theme.muted}">${escape(label)}</span>` +
+				`<div style="display:flex;gap:14px;justify-content:space-between"><span style="white-space:nowrap;color:${theme.muted}">${escape(label)}</span>` +
 				`<span style="display:flex;align-items:center;gap:6px;color:${theme.ink};font-weight:600">${tipIcon(icon, theme)}${escape(value)}</span></div>`,
 		)
 		.join('');
 	return (
 		// `pointer-events:none` so the tooltip cannot become the element a hit test finds: it follows
 		// the cursor closely enough to sit under it, and would then hide the mark it is describing.
-		`<div style="pointer-events:none;min-width:210px;padding:10px 12px;background:${theme.surface};border:1px solid ${theme.line};` +
+		//
+		// `white-space:normal` is not the default it looks like: on the ApexCharts charts this card is
+		// written into `.apexcharts-tooltip`, which the library styles `nowrap`, and a ceiling with
+		// nothing allowed to wrap under it is a box the sentence simply runs out of.
+		`<div style="pointer-events:none;min-width:210px;max-width:${TIP_MAX_WIDTH};white-space:normal;padding:10px 12px;background:${theme.surface};border:1px solid ${theme.line};` +
 		`border-radius:3px;font-family:${theme.mono};font-size:${LABEL_FONT_SIZE};line-height:1.6">` +
 		`<div style="margin-bottom:5px;font-weight:600;color:${theme[content.tone]}">${escape(content.title)}</div>` +
 		rows +

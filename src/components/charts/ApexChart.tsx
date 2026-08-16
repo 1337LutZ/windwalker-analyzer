@@ -7,7 +7,14 @@ import '~/lib/i18n';
 
 import { Skeleton } from '../primitives';
 import type { ChartTheme } from './apex';
-import { COARSE_POINTER_QUERY, NARROW_QUERY, REDUCED_MOTION_QUERY, readTheme, trackCursor } from './apex';
+import {
+	COARSE_POINTER_QUERY,
+	NARROW_QUERY,
+	REDUCED_MOTION_QUERY,
+	keepTooltipInView,
+	readTheme,
+	trackCursor,
+} from './apex';
 
 /**
  * Everything the caller needs to know about the machine it is drawing on. Passed in rather than
@@ -94,6 +101,9 @@ export default function ApexChart({
 
 		let chart: ApexChartsInstance | null = null;
 		let untrack: (() => void) | null = null;
+		// Both of these attach to nodes ApexCharts creates during `render`, so both are torn down
+		// wherever the instance is.
+		let unpin: (() => void) | null = null;
 		let dropped = false;
 
 		const narrowQuery = window.matchMedia(NARROW_QUERY);
@@ -115,6 +125,7 @@ export default function ApexChart({
 			await chart.render();
 			if (dropped) return;
 			untrack = trackCursor(element);
+			unpin = keepTooltipInView(element);
 			setReady(true);
 		};
 
@@ -125,6 +136,8 @@ export default function ApexChart({
 		const rebuild = () => {
 			untrack?.();
 			untrack = null;
+			unpin?.();
+			unpin = null;
 			chart?.destroy();
 			chart = null;
 			setReady(false);
@@ -136,6 +149,7 @@ export default function ApexChart({
 			dropped = true;
 			narrowQuery.removeEventListener('change', rebuild);
 			untrack?.();
+			unpin?.();
 			chart?.destroy();
 		};
 	}, [build]);
