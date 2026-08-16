@@ -459,7 +459,7 @@ describe('parseReportInput', () => {
 
 describe('Report', () => {
 	it('renders every section', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: base }));
+		const html = renderToStaticMarkup(createElement(Report, { analysis: base, targetChoice: 'auto' }));
 		// Asserted through the locale rather than as literal headings. Section titles are copy now, so
 		// spelling them out here would mean every wording change breaks a test that is really about
 		// whether all the sections mounted — and the obvious "fix" would be to paste the new wording
@@ -483,7 +483,9 @@ describe('Report', () => {
 	});
 
 	it('refuses to render for the wrong spec', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: { ...base, isSpec: false } }));
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: { ...base, isSpec: false }, targetChoice: 'auto' }),
+		);
 		expect(html).toContain('was not Windwalker');
 		expect(html).not.toContain('Miss ledger');
 	});
@@ -510,7 +512,7 @@ describe('Report', () => {
 			filler: { ...base.filler, castList: [] },
 			comboBreaker: [],
 		};
-		expect(() => renderToStaticMarkup(createElement(Report, { analysis: empty }))).not.toThrow();
+		expect(() => renderToStaticMarkup(createElement(Report, { analysis: empty, targetChoice: 'auto' }))).not.toThrow();
 	});
 
 	/**
@@ -549,6 +551,7 @@ describe('Report', () => {
 					...base,
 					procs: { ...base.procs, weaved: 1, unholdable: 1, windows: [...base.procs.windows, weaved] },
 				},
+				targetChoice: 'auto',
 			}),
 		);
 		expect(html).toContain(t('snapshots.weaved', { count: 1, stat: 'Haste', held: 'Mastery' }));
@@ -558,7 +561,7 @@ describe('Report', () => {
 
 	/** And a key for a colour the chart never drew sends the reader hunting for it. */
 	it('says nothing about weaving on a pull that did not weave', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: base }));
+		const html = renderToStaticMarkup(createElement(Report, { analysis: base, targetChoice: 'auto' }));
 		expect(html).not.toContain(t('snapshots.key.unholdable'));
 	});
 });

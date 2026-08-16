@@ -10,6 +10,8 @@ import { shouldAutoRun, useInitialUrlSelection, useUrlSelectionWriter } from '~/
 import { useFightPlayers } from '~/hooks/useFightPlayers';
 import { useReportFights } from '~/hooks/useReportFights';
 
+import type { TargetModeChoice } from '~/lib/view/targetMode';
+
 import { useSession } from '../auth';
 import Report from '../Report';
 import { Callout, Skeleton, Step } from '../primitives';
@@ -21,6 +23,7 @@ import PlayerSelector from './PlayerSelector';
 import ReportInput from './ReportInput';
 import ReportSkeleton from './ReportSkeleton';
 import StickySelectionBar from './StickySelectionBar';
+import TargetModeControl from './TargetModeControl';
 import { defaultFightID, groupByEncounter } from './encounterGroups';
 import { describeFailure } from './describeFailure';
 import type { ResolvedReportInput } from './parseReportInput';
@@ -62,6 +65,18 @@ export default function ReportFlow() {
 	const [request, setRequest] = useState<AnalysisRequest | null>(null);
 	const [selectionOffScreen, setSelectionOffScreen] = useState(false);
 	/**
+	 * Which reading the report is graded at.
+	 *
+	 * It lives here rather than in `Report` because the control that sets it is in the sticky bar, and
+	 * the bar and the report are siblings — this is the nearest thing they share. It is still view
+	 * state, and everything `lib/view/targetMode` says about not making it a setting still holds: it
+	 * is not persisted, it is not an input to `analyse()`, and `requestPull` below puts it back to
+	 * `auto` on every new pull so a reading forced on one fight cannot follow the reader to the next.
+	 * That reset used to be free — `Report` unmounts when the analysis it is showing is dropped, and
+	 * took the state with it — and lifting the state is what made it something to do on purpose.
+	 */
+	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
+	/**
 	 * Whether the selection carried in the URL has already been run.
 	 *
 	 * A ref rather than state: it must not cause a render, and it must flip *before* the effect that
@@ -74,6 +89,20 @@ export default function ReportFlow() {
 	const playerStepRef = useRef<HTMLElement | null>(null);
 	const selectionRef = useRef<HTMLDivElement | null>(null);
 	const selectionEndRef = useRef<HTMLDivElement | null>(null);
+
+	/**
+	 * Every change of what is being read, in one place — including dropping it.
+	 *
+	 * The reading goes back to `auto` with the pull, and that is the whole reason this exists rather
+	 * than three bare `setRequest` calls: a reader who forced single target on Immerseus and then
+	 * analysed Galakras would otherwise have Galakras silently graded against the single-target list.
+	 * `lib/view/targetMode` names that exact failure as the reason this is not an `AnalysisSettings`;
+	 * it would have arrived anyway once the state outlived the report it belongs to.
+	 */
+	const requestPull = useCallback((next: AnalysisRequest | null) => {
+		setRequest(next);
+		setTargetChoice('auto');
+	}, []);
 
 	// A link with a report in it should land on that report rather than an empty form. The URL is read
 	// once on mount and then only written to; after the first render the app's state is the truth.
@@ -120,8 +149,8 @@ export default function ReportFlow() {
 		setInput(null);
 		setChosenFightID(null);
 		setChosenPlayer(null);
-		setRequest(null);
-	}, [token, queryClient]);
+		requestPull(null);
+	}, [token, queryClient, requestPull]);
 
 	// Picking a pull is the moment the player step becomes answerable, and on a phone it sits below
 	// the whole fight list. Scroll it into view rather than leaving the reader to find it.
@@ -192,12 +221,17 @@ export default function ReportFlow() {
 		});
 		if (!ready || code === null || fightID === null || playerName === null) return;
 		autoRan.current = true;
-		setRequest({ code, fightID, playerName });
-	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, windwalkers]);
+		requestPull({ code, fightID, playerName });
+	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, windwalkers, requestPull]);
 
 	const signedIn = token !== null;
 	const loaded = fights.data !== undefined;
 	const hasFights = groups.length > 0;
+	// Whether there is a reading to choose between: a report that was graded. Not the skeleton, which is
+	// not a report yet, and not the wrong-spec refusal, which has nothing to grade either way. One
+	// condition and two consumers below — the block above the sentinel and the bar's switches — because
+	// the two must never disagree about whether the control exists at all.
+	const gradeable = analysis !== null && analysis.isSpec;
 
 	/**
 	 * Drops everything that belonged to the previous report: the two picks and the analysis itself.
@@ -209,12 +243,12 @@ export default function ReportFlow() {
 	const clearBelow = useCallback(() => {
 		setChosenFightID(null);
 		setChosenPlayer(null);
-		setRequest(null);
-	}, []);
+		requestPull(null);
+	}, [requestPull]);
 
 	const analyse = () => {
 		if (code === null || fightID === null || playerName === null) return;
-		setRequest({ code, fightID, playerName });
+		requestPull({ code, fightID, playerName });
 	};
 
 	// Focus follows the scroll, or the sticky bar's Change button leaves a keyboard user at the bottom
@@ -360,6 +394,24 @@ export default function ReportFlow() {
 				</Step>
 			</div>
 
+			{/* The target-mode control's other home, and the one the reader sees before the bar exists.
+			    The switches themselves are on the bar; this block is the same control with the sentence
+			    the bar has no line for — what the pull detected, and what overriding it means.
+
+			    Directly *above* the sentinel, and that placement is the whole handoff. The bar appears
+			    the moment the sentinel crosses the top of the viewport, and this sits immediately above
+			    it, so it has left the screen at exactly the instant the bar's copy arrives: never two
+			    controls at once, never a stretch of scrolling with none, and nothing unmounting inside
+			    the viewport to jerk the page. Below the sentinel it would spend the handoff sitting
+			    under a translucent bar showing a second copy of itself.
+
+			    Gated on `gradeable`, the same condition the bar's own switches take. */}
+			{gradeable && analysis !== null ? (
+				<div className="mt-4 sm:mt-5">
+					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
+				</div>
+			) : null}
+
 			{/* Rendered unconditionally and never inside a branch, so the observer always has it to
 			    watch. It sits above the bar in the document, which is what stops the bar's own height
 			    from moving the thing that decides whether the bar exists. */}
@@ -376,6 +428,11 @@ export default function ReportFlow() {
 					fightPercentage={fight.fightPercentage ?? null}
 					player={windwalkers.length > 1 ? playerName : null}
 					onChange={changeSelection}
+					targetMode={
+						gradeable && analysis !== null
+							? { targets: analysis.targets, value: targetChoice, onChange: setTargetChoice }
+							: undefined
+					}
 				/>
 			) : null}
 
@@ -384,7 +441,7 @@ export default function ReportFlow() {
 			<div ref={resultRef} className="scroll-mt-14 [&_h1]:scroll-mt-14 [&_h2]:scroll-mt-14">
 				{analysis !== null ? (
 					<div className="pt-6 md:pt-10">
-						<Report analysis={analysis} />
+						<Report analysis={analysis} targetChoice={targetChoice} />
 					</div>
 				) : isFetching ? (
 					// A fetch with no analysis behind it is the first read of a pull *or* the read of a

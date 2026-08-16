@@ -112,7 +112,7 @@ describe('Rising Sun Kick section', () => {
 describe('report shape after the restructure', () => {
 	it('has a Rising Sun Kick section and no Lost Casts section', async () => {
 		const Report = (await import('../../Report')).default;
-		const html = renderToStaticMarkup(createElement(Report, { analysis: fixture('strong') }));
+		const html = renderToStaticMarkup(createElement(Report, { analysis: fixture('strong'), targetChoice: 'auto' }));
 		expect(html).toContain('id="debuff-heading"');
 		expect(html).not.toContain('id="lost-heading"');
 	});

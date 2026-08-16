@@ -55,6 +55,27 @@ export const choiceClass = (selected: boolean): string =>
 export const compactChoiceClass = (selected: boolean): string =>
 	`min-h-11 flex-1 cursor-pointer rounded-sm border px-3 py-2 font-mono text-sm font-semibold tracking-[0.1em] uppercase transition-colors ${selectionPalette(selected)}`;
 
+/**
+ * One of a short row of switches on the sticky toolbar's single line.
+ *
+ * `compactChoiceClass` cannot be used there: it is `flex-1`, so in a toolbar it would eat the width
+ * the encounter name needs. This is the same palette at the same height with the padding cut to what
+ * a 390px bar can spare, which is what makes three switches fit beside the pull's name.
+ *
+ * `min-w-11` as well as `min-h-11`, which the other pick-one classes get for free from `flex-1` or
+ * `w-full`. Nothing stretches these, and without it the two short labels measure 29px and 37px wide
+ * — a 44px-tall target you still cannot hit with a thumb.
+ *
+ * The third state is the one the full control spells out in prose and this row has no line for: an
+ * `overridden` switch is the reader's choice contradicting what the pull detected, and it is amber
+ * rather than green so that disagreement is visible from the bar rather than only from the block
+ * above the report.
+ */
+export const toolbarChoiceClass = (selected: boolean, overridden: boolean): string =>
+	`min-h-11 min-w-11 shrink-0 cursor-pointer rounded-sm border px-1.5 font-mono text-sm font-semibold uppercase transition-colors ${
+		selected && overridden ? 'border-brew bg-raised text-brew' : selectionPalette(selected)
+	}`;
+
 /** A full-width row holding a single name — the player picker, where the name is the whole choice. */
 export const singleLineChoiceClass = (selected: boolean): string =>
 	`flex min-h-11 w-full cursor-pointer items-center rounded-sm border px-3 py-2 text-left font-mono text-base font-medium transition-colors ${selectionPalette(selected)}`;
