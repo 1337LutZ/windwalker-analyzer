@@ -26,7 +26,7 @@ const analysis: Analysis = JSON.parse(
 	readFileSync(resolve(import.meta.dirname, '../../../lib/__fixtures__/strong.json'), 'utf8'),
 );
 
-const html = renderToStaticMarkup(createElement(Report, { analysis }));
+const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice: 'auto' }));
 const nav = /<nav[^>]*>[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
 
 const all = (source: string, pattern: RegExp): string[] => [...source.matchAll(pattern)].map((match) => match[1] ?? '');
@@ -63,13 +63,14 @@ describe('SectionNav', () => {
 
 	/**
 	 * A link with no heading is a jump to nowhere and a heading with no link is a section the reader
-	 * cannot reach, so this stays an equality. It is compared as a set rather than as a sequence
-	 * because the nav now orders by group and the report by argument, and those disagree on exactly
-	 * one section — Energizing Brew is filed with the other brews and printed under the channel it is
-	 * spent on. What the order still has to be is checked below, group by group, rather than dropped.
+	 * cannot reach, so this stays an equality — and it is a sequence rather than a set now that
+	 * document order follows the sidebar's grouping. The nav reaches the sections in exactly the order
+	 * the report renders them, so the two lists differing anywhere, in membership or in order, is the
+	 * bug this catches. It used to be compared unordered because the two deliberately disagreed about
+	 * one section; they no longer disagree about any.
 	 */
-	it('lists every section that rendered, and nothing else', () => {
-		expect([...targets].sort()).toEqual([...headings].sort());
+	it('lists every section that rendered, in the order the report renders them', () => {
+		expect(targets).toEqual(headings);
 	});
 
 	/** Nothing is listed twice — a section folded into two groups would still pass the set above. */
@@ -100,6 +101,21 @@ describe('SectionNav', () => {
 	it('lists the groups in the order the report reaches them', () => {
 		const starts = groups.map((group) => Math.min(...group.targets.map((target) => headings.indexOf(target))));
 		expect(starts).toEqual([...starts].sort((a, b) => a - b));
+	});
+
+	/**
+	 * Each group is one unbroken run of the report, which is the invariant the two above only imply
+	 * halves of: a group could be in document order and start in the right place while still having
+	 * another group's sections printed through the middle of it. `foldIntoGroups` copes with that
+	 * silently — it lists the scattered group once, at its first section — so nothing else would fail,
+	 * and the page and the sidebar would quietly stop reading in the same order.
+	 */
+	it('keeps each group contiguous in the report', () => {
+		for (const group of groups) {
+			const positions = group.targets.map((target) => headings.indexOf(target));
+			const first = Math.min(...positions);
+			expect(positions, group.key).toEqual(positions.map((_, index) => first + index));
+		}
 	});
 
 	/**

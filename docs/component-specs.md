@@ -213,12 +213,15 @@ pointer, because it reads as current.
 
 What is stable enough to write down is the shape:
 
-- **Order is editorial, not alphabetical or mechanical.** Each entry carries a comment saying why it
-  sits where it does, and several adjacencies are load-bearing — Energizing Brew under Fists of Fury
-  because the priority list weighs the two against each other, Chi Brew under the bank it feeds.
-- **Grouping is separate from order.** `group` files a section in the sidebar by what a button _is_
-  to the player — core, cooldowns, abilities, reference — while the array's order stays the reading
-  order the report argues in. The two are allowed to disagree and in places do.
+- **Grouping leads the order.** `group` files a section in the sidebar by what a button _is_ to the
+  player — core, cooldowns, abilities, reference — and the array reads down in that same order, one
+  unbroken run per group, so the page and the contents list reach every section at the same point.
+  They used to be allowed to disagree; they are not any more, and `sectionNav.test.ts` holds them
+  together.
+- **Within a group the order is editorial, not alphabetical or mechanical.** Each entry carries a
+  comment saying why it sits where it does, and some adjacencies are load-bearing — Chi Brew under
+  the bank it feeds, Rushing Jade Wind under the channel whose rule it decides. Where the grouping
+  cost an adjacency the comment says so rather than claiming a neighbour the section no longer has.
 - **A section may decline to appear**, via `when`, and that gate belongs in the array rather than in
   the component: the sidebar is built from the same list, so a component quietly returning `null`
   would leave a link pointing at a heading that was never rendered.

@@ -1,10 +1,9 @@
-import { useMemo, useState, type ComponentType } from 'react';
+import { useMemo, type ComponentType } from 'react';
 
 import type { Analysis } from '~/lib/types';
 
 import SectionNav, { type ReportSection } from './report/SectionNav';
 import { TargetModeContext } from './report/targetModeContext';
-import TargetModeControl from './report/TargetModeControl';
 import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 import {
 	BrewBankTimeline,
@@ -37,9 +36,18 @@ import {
 } from './sections';
 
 /**
- * The report's titled sections, in the order docs/component-specs.md sets: the snapshot the whole
- * spec turns on, then the two clocks that show it happening, then the rotation, then the ledger of
- * what went wrong.
+ * The report's titled sections, in the order docs/component-specs.md sets: the pull itself, then the
+ * economy that paid for it, then the buttons one at a time, then the reference a reader lands on once
+ * a section above has told them a number was wrong.
+ *
+ * **Document order follows the groups.** The list reads down `core`, then `cooldowns`, then
+ * `abilities`, then `reference`, each of them one unbroken run. The sidebar's grouping is what leads:
+ * the page and the contents list beside it reach every section in the same order, so a reader who has
+ * found a heading in one can find it in the other by counting, and neither list has to be read as a
+ * translation of the other. This is not the order the list grew in — four sections used to sit away
+ * from their group so the page could argue in one order while the nav filed in another — so do not
+ * sort it back into an editorial order. Where the grouping cost an adjacency the entry below says
+ * which neighbour it lost and what was kept instead.
  *
  * One list, read twice — rendered below and listed by `SectionNav` — because a nav written out by
  * hand is a nav that goes stale the first time a section is added, moved or renamed, and nothing
@@ -89,11 +97,12 @@ const SECTIONS: (ReportSection & {
 	// full energy bar and an overflowing chi bar are the same global going missing.
 	{ id: 'chi', titleKey: 'chi.title', group: 'core', Component: Chi },
 
-	// ---------------------------------------------------------------- the buttons, one section each
+	// -------------------------------------------------------------- the cooldowns, one section each
 	//
-	// Everything below here judges a single ability, ordered by how much a Windwalker's damage moves
-	// when it goes wrong rather than by when it is pressed. Grouped rather than scattered because a
-	// reader arrives at this part of the report holding a button, not a moment.
+	// Everything from here to the reference judges a single button, and the page takes them in the
+	// sidebar's two button groups: the long timers you spend, then the rotational presses. A reader
+	// arrives at this part of the report holding a button rather than a moment, so what they need is to
+	// find its heading — and one order across the page and the contents list is how they find it.
 	//
 	// Tigereye Brew first: it multiplies everything else in the list, so a mistake here is the only one
 	// that costs damage the other sections have already counted.
@@ -101,17 +110,58 @@ const SECTIONS: (ReportSection & {
 	// Directly under the bank it feeds: Chi Brew's two stacks a press are the only source of brew that
 	// is not chi spent, so a reader looking at a bank that filled slowly wants this row next.
 	{ id: 'chi-brew', titleKey: 'chiBrew.title', group: 'cooldowns', Component: ChiBrew },
+	// The third brew, beside the other two, and the one adjacency the grouping cost outright. This sat
+	// directly under Fists of Fury, because the priority list will not channel Fists through an
+	// Energizing Brew unless Rushing Jade Wind covers it and each of those sections counts that same
+	// overlap from its own side. Both are a group below now and neither is this section's neighbour any
+	// more. The trade was taken because those two still read that rule from their own ends and are
+	// still beside *each other* — see Rushing Jade Wind — while a reader who comes looking for this
+	// heading is holding a brew, and the three brews are worth finding in one place.
+	{ id: 'energizing', titleKey: 'energizingBrew.title', group: 'cooldowns', Component: EnergizingBrew },
+	// The first of the three long timers that are not brews, and filed under cooldowns rather than
+	// abilities: the nav groups by what a button *is* to the player pressing it — something on a long
+	// timer you spend, not a rotational press — and document order follows the nav, so that filing is
+	// also what puts it here rather than among the sections that grade placement. Xuen leads the three
+	// because it is the one with no placement to judge at all: the sim fires it from an unconditional
+	// autocast, so the section grades the clock and nothing else.
+	{ id: 'xuen', titleKey: 'xuen.title', group: 'cooldowns', Component: Xuen },
+	// Beside the other summon, and the only section in the list that can decline to appear. Storm,
+	// Earth and Fire is a multi-target button: on a single-target pull it is correct never to press it,
+	// so a heading saying "not pressed, and rightly" on every Garrosh kill would be a line of noise on
+	// most reports. It renders when the spirits went out, and when they did not but the pull held a
+	// second enemy long enough that they should have.
+	{
+		id: 'sef',
+		titleKey: 'sef.title',
+		// Cooldowns with the other summon, by the same reading as Xuen above and Touch of Karma below: a
+		// two-minute button you spend is not a rotational press. It is also the one section that can
+		// decline to appear, so this group is the only one whose membership varies by pull — which
+		// `SectionNav` already copes with, since it folds groups out of the sections it is handed.
+		group: 'cooldowns',
+		Component: StormEarthAndFire,
+		when: (analysis) => Boolean(analysis.sef && (analysis.sef.casts > 0 || analysis.sef.justified)),
+	},
+	// The defensive, and so the last of the cooldowns: it is the only button in this group that is not
+	// trying to do damage. Not the last button on the page any more — the rotational presses below are
+	// still to come — but it is the end of the run of things you spend.
+	{ id: 'karma', titleKey: 'karma.title', group: 'cooldowns', Component: TouchOfKarma },
+
+	// ---------------------------------------------------------------- the presses, one section each
+	//
+	// The rotational buttons: the ones a Windwalker spends chi and globals on rather than spends off a
+	// long timer, which is what the sidebar files them under and so what the page reads them in. The
+	// four of them keep the order they had before the grouping — by how much a Windwalker's damage
+	// moves when the button goes wrong, not by when it is pressed — with the two by-ability tables
+	// after them.
 	{ id: 'debuff', titleKey: 'debuff.title', group: 'abilities', Component: RisingSunKick },
 	{ id: 'fof', titleKey: 'fistsOfFury.title', group: 'abilities', Component: FistsOfFury },
-	// Directly under the channel, because the two share a condition: the priority list will not
-	// channel Fists of Fury through an Energizing Brew unless Rushing Jade Wind covers it, and each
-	// section counts the same overlap from its own side. Reading them apart loses that.
-	{ id: 'energizing', titleKey: 'energizingBrew.title', group: 'cooldowns', Component: EnergizingBrew },
-	// The third side of that triangle, and placed here for it. The priority list's one rule that weighs
-	// these buttons against each other is the channel's — Fists of Fury may not be spent through an
-	// Energizing Brew *unless Rushing Jade Wind covers it* — and the two sections above each read that
-	// rule from their own end, as a per-channel boolean and as a talent the build either has or has not.
-	// Neither of them has a clock for the button, which is what this one is.
+	// The third side of a triangle whose other corner is now a group away. The priority list's one rule
+	// that weighs these buttons against each other is the channel's — Fists of Fury may not be spent
+	// through an Energizing Brew *unless Rushing Jade Wind covers it* — and each of the three reads it
+	// from its own end: Fists as a per-channel boolean, Energizing Brew as a brew that was or was not
+	// covered, and this section as the clock for the button doing the covering, which neither of the
+	// others has. Energizing Brew is filed with the brews above and says so; Fists is the half of the
+	// pair the grouping could keep, and this sits directly under it.
 	//
 	// No `when`, unlike Storm, Earth and Fire above. That section may decline because pressing nothing
 	// at one target is correct play and there is no verdict to give; here there is one either way. A
@@ -122,37 +172,12 @@ const SECTIONS: (ReportSection & {
 	// is the section's own job rather than a gate's.
 	{ id: 'jade-wind', titleKey: 'jadeWind.title', group: 'abilities', Component: RushingJadeWind },
 	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', group: 'abilities', Component: TigerPalm },
-	// Last of the damage cooldowns, because it is the one with no placement to judge: the sim fires it
-	// from an unconditional autocast, so it follows the sections that do grade placement rather than
-	// sitting among them.
-	// Filed under cooldowns rather than abilities, along with Touch of Karma below. The nav groups by
-	// what a button *is* to the player pressing it — something on a long timer you spend, not a
-	// rotational press — while this list's order stays the reading order the report argues in. The two
-	// do not have to agree, and here they do not: both sections keep their place on the page.
-	{ id: 'xuen', titleKey: 'xuen.title', group: 'cooldowns', Component: Xuen },
-	// Beside the other summon, and the only section in the list that can decline to appear. Storm,
-	// Earth and Fire is a multi-target button: on a single-target pull it is correct never to press it,
-	// so a heading saying "not pressed, and rightly" on every Garrosh kill would be a line of noise on
-	// most reports. It renders when the spirits went out, and when they did not but the pull held a
-	// second enemy long enough that they should have.
-	{
-		id: 'sef',
-		titleKey: 'sef.title',
-		// Cooldowns with the other summon, by the same reading as Xuen and Touch of Karma above: a
-		// two-minute button you spend is not a rotational press. It is also the one section that can
-		// decline to appear, so this group is the only one whose membership varies by pull — which
-		// `SectionNav` already copes with, since it folds groups out of the sections it is handed.
-		group: 'cooldowns',
-		Component: StormEarthAndFire,
-		when: (analysis) => Boolean(analysis.sef && (analysis.sef.casts > 0 || analysis.sef.justified)),
-	},
-	// The defensive, and so the last button: it is the only one here that is not trying to do damage.
-	{ id: 'karma', titleKey: 'karma.title', group: 'cooldowns', Component: TouchOfKarma },
 	// Both are indexed by button: the table breaks the pull's damage down by ability and the ledger
 	// names the abilities that missed, so they sit with the sections that grade a button rather than
 	// starting a group of their own for two tables that answer the same question the others do.
 	{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
 	{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
+
 	// Beside the gear, and immediately before it, because the two answer the same kind of question:
 	// what the character walked into the pull carrying. Nothing in either is a rotation decision, and
 	// most of this one is not even the player's — which is why it sits after everything that grades
@@ -198,13 +223,16 @@ const SUMMARY_NAV: ReportSection = { id: 'summary', titleKey: 'summary.title', g
  * rendered, and the article is laid out exactly as it was. The page's own container — its max width
  * and its centring — is `Analyzer`'s and is not touched here; all the grid does is spend part of the
  * width the report already had.
+ *
+ * `targetChoice` arrives as a prop and is still resolved and provided here. The control that sets it
+ * moved to the sticky toolbar, which is a sibling of this component rather than a child, so the state
+ * had to rise to their common parent — but the provider did not follow it there. Every section reads
+ * its grades through this context, so the provider belongs where the sections are.
  */
-export default function Report({ analysis }: { analysis: Analysis }) {
-	// View state, per the argument in `lib/view/targetMode`: it changes which reading the report argues
-	// from, never anything the engine measured, so it lives for as long as this report is on screen and
-	// no longer. `useState` before the refusal below would be a conditional hook, so the refusal moved
-	// above it rather than the hook below.
-	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
+export default function Report({ analysis, targetChoice }: { analysis: Analysis; targetChoice: TargetModeChoice }) {
+	// Resolved rather than taken as given, per the argument in `lib/view/targetMode`: the choice is what
+	// the reader asked for and the mode is what that means for this pull, and only the pull knows what
+	// `auto` resolves to.
 	const { mode } = resolveTargetMode(analysis.targets?.detected, targetChoice);
 	// The sections this pull actually renders, and the list the nav is built from — one array, so a
 	// section that declines to appear cannot leave a link behind pointing at a heading that is not
@@ -224,11 +252,6 @@ export default function Report({ analysis }: { analysis: Analysis }) {
 			<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
 				<SectionNav sections={nav} />
 				<article className="flex flex-col gap-10 md:gap-12">
-					{/* Above the summary rather than below it, because it qualifies everything that follows and a
-				    control that changes a reading has to be visible before the reading is read. It sits
-				    outside the summary section so it is not announced as part of it — it is a control on the
-				    report, not one of the report's findings. */}
-					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
 					{/* A section so the nav's observer can find it the same way it finds every other one:
 				    by the id on its heading, then the section around it. Labelled by that heading rather
 				    than by a string of its own, so there is one name for it and not two. */}

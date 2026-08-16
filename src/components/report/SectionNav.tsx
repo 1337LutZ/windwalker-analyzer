@@ -73,9 +73,10 @@ const panelId = (group: SectionGroup) => `nav-group-${group}`;
  * the nav reads down in the order the report argues.
  *
  * A group whose sections are not contiguous in the report is folded together anyway, at the position
- * of its first. That happens once, deliberately: Energizing Brew is a brew and belongs beside the
- * other two, while in the report it sits under the channel it is spent on. Grouping by kind and
- * ordering by page cannot both be exactly true, and the contents list is where kind wins.
+ * of its first. Nothing exercises that now — `SECTIONS` reads down in group order, one unbroken run
+ * each, and `sectionNav.test.ts` holds it there — so the fold is insurance rather than a feature: if
+ * a section is ever filed away from its run, the nav lists its group once, where the report first
+ * reaches it, instead of opening the same heading twice.
  */
 function foldIntoGroups(sections: readonly ReportSection[]): NavItem[] {
 	const items: NavItem[] = [];
