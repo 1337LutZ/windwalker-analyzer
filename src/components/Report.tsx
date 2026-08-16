@@ -138,7 +138,11 @@ const SECTIONS: (ReportSection & {
 	{
 		id: 'sef',
 		titleKey: 'sef.title',
-		group: 'abilities',
+		// Cooldowns with the other summon, by the same reading as Xuen and Touch of Karma above: a
+		// two-minute button you spend is not a rotational press. It is also the one section that can
+		// decline to appear, so this group is the only one whose membership varies by pull — which
+		// `SectionNav` already copes with, since it folds groups out of the sections it is handed.
+		group: 'cooldowns',
 		Component: StormEarthAndFire,
 		when: (analysis) => Boolean(analysis.sef && (analysis.sef.casts > 0 || analysis.sef.justified)),
 	},

@@ -204,11 +204,25 @@ example, as body text.
 
 ## Report sections
 
-Order, matching the analysis: KPI tiles, snapshot table, brew-bank timeline, casts per minute, lost
-casts, Fists of Fury audit, Tiger Palm audit, damage by ability, miss ledger.
+**The list lives in `SECTIONS` in `src/components/Report.tsx`, and this page deliberately does not
+repeat it.** That array is already read twice — rendered as the report and folded into the sidebar —
+and its docstring explains why one list rather than two. Enumerating it here made a third copy: it
+was written when there were nine sections, and by the time anyone noticed it was missing nineteen of
+the twenty-four, including every ability section. A list that goes stale silently is worse than a
+pointer, because it reads as current.
 
-Every section that reports a fault must be able to say "nothing to report" without looking broken. A
-clean pull is a real outcome, not an empty state.
+What is stable enough to write down is the shape:
 
-Timestamps in the miss ledger deep-link into WarcraftLogs at that moment, so a claim can be checked
-rather than trusted.
+- **Order is editorial, not alphabetical or mechanical.** Each entry carries a comment saying why it
+  sits where it does, and several adjacencies are load-bearing — Energizing Brew under Fists of Fury
+  because the priority list weighs the two against each other, Chi Brew under the bank it feeds.
+- **Grouping is separate from order.** `group` files a section in the sidebar by what a button *is*
+  to the player — core, cooldowns, abilities, reference — while the array's order stays the reading
+  order the report argues in. The two are allowed to disagree and in places do.
+- **A section may decline to appear**, via `when`, and that gate belongs in the array rather than in
+  the component: the sidebar is built from the same list, so a component quietly returning `null`
+  would leave a link pointing at a heading that was never rendered.
+- **Every section that reports a fault must be able to say "nothing to report" without looking
+  broken.** A clean pull is a real outcome, not an empty state.
+- **Timestamps deep-link into WarcraftLogs at that moment**, so a claim can be checked rather than
+  trusted.
