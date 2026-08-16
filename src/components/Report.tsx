@@ -153,9 +153,15 @@ const SECTIONS: (ReportSection & {
 	// four of them keep the order they had before the grouping — by how much a Windwalker's damage
 	// moves when the button goes wrong, not by when it is pressed — with the two by-ability tables
 	// after them.
+	// The presses, ordered as the priority list reaches them rather than by how much damage each one
+	// does: Tiger Palm holds the buff the rest hit through, Rising Sun Kick holds the debuff, and the
+	// spenders follow. Blackout Kick belongs between the kick and Fists of Fury when it gets a section
+	// of its own — it is the chi dump the ladder falls through to, and the only press here with no
+	// section arguing it.
+	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', group: 'abilities', Component: TigerPalm },
 	{ id: 'debuff', titleKey: 'debuff.title', group: 'abilities', Component: RisingSunKick },
 	{ id: 'fof', titleKey: 'fistsOfFury.title', group: 'abilities', Component: FistsOfFury },
-	// The third side of a triangle whose other corner is now a group away. The priority list's one rule
+	// The third side of a triangle whose other corner is a group away. The priority list's one rule
 	// that weighs these buttons against each other is the channel's — Fists of Fury may not be spent
 	// through an Energizing Brew *unless Rushing Jade Wind covers it* — and each of the three reads it
 	// from its own end: Fists as a per-channel boolean, Energizing Brew as a brew that was or was not
@@ -171,10 +177,6 @@ const SECTIONS: (ReportSection & {
 	// as the other half of one choice. What it must never do is print that absence as a zero, and that
 	// is the section's own job rather than a gate's.
 	{ id: 'jade-wind', titleKey: 'jadeWind.title', group: 'abilities', Component: RushingJadeWind },
-	{ id: 'tiger-palm', titleKey: 'tigerPalm.title', group: 'abilities', Component: TigerPalm },
-	// Both are indexed by button: the table breaks the pull's damage down by ability and the ledger
-	// names the abilities that missed, so they sit with the sections that grade a button rather than
-	// starting a group of their own for two tables that answer the same question the others do.
 	{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
 	{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
 
