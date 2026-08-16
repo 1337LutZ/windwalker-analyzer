@@ -42,6 +42,17 @@ export interface Metric extends Threshold {
 	 * A missing metric is not a failing one, and the difference has to survive into the copy.
 	 */
 	unmeasurable: boolean;
+	/**
+	 * Which variant of this metric's wording the pull calls for, as an i18next context.
+	 *
+	 * For the metrics whose number is the same on two pulls that need different advice. `potionsUsed`
+	 * is the case it exists for: one of two potions is one fault when the pre-pull one was skipped and
+	 * a different one when the in-combat one was, the value cannot tell them apart, and "drink the
+	 * other one" is not advice. Absent on every metric whose number says everything, which is most of
+	 * them, and absent on any scorecard built before it existed — so it is passed straight to `t()`,
+	 * where `undefined` selects the base key.
+	 */
+	context?: string;
 }
 
 /**

@@ -4,9 +4,9 @@ import type { Analysis } from '~/lib/types';
 
 import { StatTile, StatTiles } from '../primitives';
 
-/** The six numbers the rest of the report explains. */
+/** The headline numbers the rest of the report explains. */
 export default function KpiTiles({ analysis }: { analysis: Analysis }) {
-	const { brew, cpm, damage, debuff, procs } = analysis;
+	const { brew, cpm, damage, debuff, procs, potions } = analysis;
 	const { t, card } = useReportCopy(analysis);
 
 	/**
@@ -79,6 +79,26 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					suffix={`/${procs.procs}`}
 					label={t('kpi.snapshots')}
 					grade={toneOf('snapshotDepth')}
+				/>
+				{/* A tile rather than a sentence somewhere, and a tile that appears whatever the answer is.
+				    Drinking both potions is correct play and has to read as a fact — a figure that only
+				    surfaced when it was missing would make the report silent on everyone who got it right,
+				    and would turn the summary's short list into the only place it was ever mentioned.
+
+				    `value` + `suffix` and the count in the label, which is the shape every ratio on this page
+				    already takes — the brew tile above reads `7.4/10 avg brew stacks` by exactly this route.
+				    So the figure reads `2/2 potions used`, and the summary card says the same five words.
+
+				    An em dash, not a zero, when the pull could not say, and a label of its own to go with it:
+				    a fight that ended before both slots were on offer has no count, and `0/2 potions used`
+				    over it would be the invented fault the metric's own `measurable` flag exists to prevent.
+				    `toneOf` already returns null there, so the tile is uncoloured either way. Fixtures
+				    captured before the audit existed take the same branch. */}
+				<StatTile
+					value={potions?.measurable === true ? `${potions.used}` : '—'}
+					suffix={potions?.measurable === true ? `/${potions.slots}` : undefined}
+					label={t('kpi.potions', { context: potions?.measurable === true ? undefined : 'unknown' })}
+					grade={toneOf('potionsUsed')}
 				/>
 			</StatTiles>
 		</section>

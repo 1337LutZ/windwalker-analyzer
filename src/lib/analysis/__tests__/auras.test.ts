@@ -118,6 +118,95 @@ describe('auraWindows', () => {
 			expect(auraWindows(events, RE_ORIGINATION, T0, T0 + 60000).map((w) => w.variant)).toEqual(['Mastery', 'Haste']);
 		});
 	});
+
+	/**
+	 * The aura that was already running when the fight began.
+	 *
+	 * Shaped on the case it was written for: a pre-pull potion on a:6MhZgjyAknFWrYfK fight 16, where
+	 * the whole of it inside the fight is a `removebuff` at 24706ms and the potion runs 25s — so it
+	 * went down 294ms before the pull. The default walk throws that event away, which is why the
+	 * `cleave` fixture carried only the in-fight potion for as long as it did.
+	 */
+	describe('an aura that was already up at the pull', () => {
+		const POTION: Aura = { key: 'virmens-bite', name: "Virmen's Bite", ids: [105697], kind: 'buff', durationMs: 25000 };
+
+		it('drops the orphan removal unless asked', () => {
+			expect(auraWindows([ev(24706, 'removebuff', 105697)], POTION, T0, T0 + 200000)).toEqual([]);
+		});
+
+		it('opens the window at the pull and marks it', () => {
+			expect(auraWindows([ev(24706, 'removebuff', 105697)], POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([
+				{ start: 0, end: 24706, preexisting: true, id: 105697, variant: undefined },
+			]);
+		});
+
+		it('leaves an ordinary pair alone and does not mark it', () => {
+			// The other potion in that same pull, drunk inside the fight. Both windows on one lane, and only
+			// the first of them is an inference.
+			const events = [
+				ev(24706, 'removebuff', 105697),
+				ev(60134, 'applybuff', 105697),
+				ev(60135, 'cast', 105697),
+				ev(85140, 'removebuff', 105697),
+			];
+			expect(auraWindows(events, POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([
+				{ start: 0, end: 24706, preexisting: true, id: 105697, variant: undefined },
+				{ start: 60134, end: 85140, id: 105697, variant: undefined },
+			]);
+		});
+
+		it('refuses a removal the aura could not still have been running for', () => {
+			// One millisecond past its own duration. A buff up at the pull cannot outlive `t0 + durationMs`,
+			// so this is something else — and the bound is the whole reason the inference is arithmetic.
+			expect(auraWindows([ev(25000, 'removebuff', 105697)], POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([]);
+		});
+
+		it('refuses an aura with no declared duration, because the bound cannot be checked', () => {
+			const unbounded: Aura = { ...POTION, durationMs: undefined };
+			expect(auraWindows([ev(1000, 'removebuff', 105697)], unbounded, T0, T0 + 200000, { openAtPull: true })).toEqual(
+				[],
+			);
+		});
+
+		it('refuses a removal that follows a press of the same id', () => {
+			// The `poor` fixture's monk, who drank at +92ms rather than before the bell: the apply and the
+			// cast are both in the fight, so the removal 25s later pairs with them and infers nothing.
+			const events = [ev(88, 'applybuff', 105697), ev(92, 'cast', 105697), ev(25094, 'removebuff', 105697)];
+			expect(auraWindows(events, POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([
+				{ start: 88, end: 25094, id: 105697, variant: undefined },
+			]);
+		});
+
+		it('refuses a second orphan removal on the same id', () => {
+			// A pull cannot start twice, so only the leading orphan can be the pull's own.
+			const events = [ev(1000, 'removebuff', 105697), ev(2000, 'removebuff', 105697)];
+			expect(auraWindows(events, POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([
+				{ start: 0, end: 1000, preexisting: true, id: 105697, variant: undefined },
+			]);
+		});
+
+		/**
+		 * Why this is opt-in, in the one shape that shows why it has to be.
+		 *
+		 * A battle elixir runs an hour, so its own duration bounds nothing and the recovered application
+		 * time comes back in negative minutes. Measured: the `weave` fixture's monk cancels Monk's Elixir
+		 * at 10.2s by drinking Elixir of the Rapids in the same millisecond, and reading that as a
+		 * pre-pull consumable would date it 59.8 minutes before the pull.
+		 */
+		it('would date an hour-long elixir before the pull, which is why a flask is not asked', () => {
+			const elixir: Aura = {
+				key: 'monks-elixir',
+				name: "Monk's Elixir",
+				ids: [105688],
+				kind: 'buff',
+				durationMs: 3_600_000,
+			};
+			const [window] = auraWindows([ev(10230, 'removebuff', 105688)], elixir, T0, T0 + 129531, { openAtPull: true });
+			expect(window).toMatchObject({ start: 0, end: 10230, preexisting: true });
+			// The number that reading would produce, and the reason nothing asks for it.
+			expect(10230 - (elixir.durationMs ?? 0)).toBe(-3_589_770);
+		});
+	});
 });
 
 describe('remainingIn / uptimePct', () => {

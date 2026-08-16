@@ -16,7 +16,7 @@ function share(part: number, whole: number): number | null {
 	return whole > 0 ? (part / whole) * 100 : null;
 }
 
-function metric(key: MetricKey, value: number | null): Metric {
+function metric(key: MetricKey, value: number | null, context?: string): Metric {
 	const threshold = THRESHOLDS[key];
 	// An unmeasurable metric is parked at `ok` so it neither flatters nor punishes the overall
 	// verdict; `unmeasurable` is what the copy keys off to say nothing at all about it.
@@ -26,6 +26,9 @@ function metric(key: MetricKey, value: number | null): Metric {
 		value: value ?? 0,
 		unmeasurable: value === null,
 		grade: value === null ? 'ok' : gradeOf(threshold, value),
+		// Omitted rather than set to undefined, so a metric with no variant carries no key at all and the
+		// scorecards in the fixtures stay the shape they were captured in.
+		...(context === undefined ? {} : { context }),
 	};
 }
 
@@ -81,7 +84,7 @@ function overall(metrics: Metric[], weights: Record<MetricKey, number>): Grade {
  * it already has.
  */
 export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null): Scorecard {
-	const { procs, brew, debuff, filler, cpm, karma } = analysis;
+	const { procs, brew, debuff, filler, cpm, karma, potions } = analysis;
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 	// Against the procs the bank could actually have paid for, not every proc that fired. A pull opens
@@ -125,6 +128,23 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		karmaCeiling === null || karma.absorbed === undefined ? null : share(karma.absorbed, karmaCeiling),
 	);
 
+	/**
+	 * Potions drunk out of the two the pull allowed.
+	 *
+	 * Two separate reasons to answer null, and both have to survive as "cannot say" rather than as
+	 * zero. `potions` is absent on every committed fixture captured before the audit existed — reading
+	 * that as none drunk would score six real pulls as having brought nothing — and `measurable` is
+	 * false on a pull too short to have offered both slots, which is the audit's own refusal to answer.
+	 */
+	const potionsUsed = metric(
+		'potionsUsed',
+		potions?.measurable === true ? potions.used : null,
+		// Which slot to point at, when exactly one went unfilled and the number cannot say which. A pull
+		// that drank neither needs no variant — the base wording covers both — and one that drank two
+		// never reaches a card at all.
+		potions?.measurable === true && potions.used === 1 ? (potions.prePull === null ? 'prepull' : 'combat') : undefined,
+	);
+
 	const all = [
 		gcdUtilisation,
 		snapshotRate,
@@ -135,6 +155,7 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		brewCapWaste,
 		karmaEmpty,
 		karmaCapShare,
+		potionsUsed,
 	];
 
 	return {
@@ -149,6 +170,12 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 			// Both primary: an empty press and a press that half-filled are separate faults, and the
 			// weaker of the two should carry the section rather than be averaged away by the other.
 			karma: section([karmaEmpty, karmaCapShare]),
+			// A section with one metric and no section of its own on the page. It is here because the
+			// scorecard is the only route into the summary — `Takeaways` walks these sections — and a
+			// potion nobody drank is worth a card. The report deliberately grows no section to argue it:
+			// the count is a headline tile and its evidence is a bar on the timeline, which is where the
+			// card points.
+			potions: section([potionsUsed]),
 		},
 	};
 }

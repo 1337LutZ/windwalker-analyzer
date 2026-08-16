@@ -810,6 +810,14 @@ function labelFits(label: string, ms: number, pxPerSec: number): boolean {
  * `pxPerSec` is the current zoom, and it is here for one reason: a window that carries a `variant`
  * gets that variant written inside its bar, and whether the word fits is a question about pixels
  * that only the zoom can answer. See `labelFits`.
+ *
+ * `preexisting` is the one window flag that changes what a bar *says* rather than only how long it
+ * is. It means the aura was already running when the pull started, so the bar's left edge is the
+ * fight's zero and not an event — a pre-pull potion is the case, and there is no press icon above it
+ * because the press happened before this fight's event stream begins. Left as an ordinary bar in
+ * every other respect: colour on this chart marks the category and a fourth treatment here would be
+ * a new visual grammar for one row. The correction is made where the bar makes its claim, which is
+ * the clock in the tooltip, and the missing icon is explained once in the caption.
  */
 function barNodesOf(
 	lane: AuraLane,
@@ -817,6 +825,7 @@ function barNodesOf(
 	notes: Map<number, number> | null,
 	spentAs: (spend: LaneSpend) => { text: string; icon: string | null },
 	pxPerSec: number,
+	prePullLabel: string,
 ) {
 	// Keyed on the window's own start, which is what the engine identified each verdict by — the same
 	// key the brew notes above use, and sound for the same reason: two windows of one aura cannot open
@@ -827,6 +836,10 @@ function barNodesOf(
 		// Written inside the bar when there is room for it, and never truncated to a stub — see
 		// `labelFits` for why a clipped stat name is worse than none.
 		const label = w.variant !== undefined && labelFits(w.variant, w.end - w.start, pxPerSec) ? w.variant : null;
+		// What the bar's left edge means. `0:00.000` is the one stamp on this chart that can be a lie:
+		// on a window the aura brought into the fight it is where the drawing had to start, not where
+		// anything happened, and the words say so instead.
+		const from = w.preexisting === true ? prePullLabel : formatStamp(w.start);
 		return (
 			<span
 				// Both ends, not just the start: an aura logged under several ids — Re-Origination is one —
@@ -836,7 +849,7 @@ function barNodesOf(
 				// what spent the window rather than only when it opened and closed. The variant rides on it
 				// for the same reason and one more: it is the only thing the reader gets when the bar was too
 				// narrow to write it in, and that is the common case at the wide end of the zoom ladder.
-				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${formatStamp(w.start)} → ${formatStamp(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
+				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${from} → ${formatStamp(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
 				// The aura's own name, which is the half of a merged row's label that the gutter may have
 				// truncated — and on a row named after the button, the only place the aura is named at all.
 				data-tip={lane.name}
@@ -846,7 +859,7 @@ function barNodesOf(
 				// aura and this is a fact about the one window under the cursor. Absent on every window that
 				// has no variant, which React handles by omitting the attribute entirely.
 				data-tip-stat={w.variant}
-				data-tip-from={formatStamp(w.start)}
+				data-tip-from={from}
 				data-tip-to={formatStamp(w.end)}
 				// What became of this window. Two attributes rather than one, because the icon is markup and
 				// the text is not: the shared tooltip assembles them, and a mark that carried the markup would
@@ -1299,12 +1312,19 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// counted one, which is a question about events and not about how a row should look.
 				bars:
 					lane.stacks === undefined
-						? barNodesOf(lane, span, lane.key === 'tigereye-brew' ? brewSpend : null, spentAs, pxPerSec)
+						? barNodesOf(
+								lane,
+								span,
+								lane.key === 'tigereye-brew' ? brewSpend : null,
+								spentAs,
+								pxPerSec,
+								t('castLog.tip.prePull'),
+							)
 						: chargeNodesOf(lane, lane.stacks, span),
 			})),
 		// Zoom is a dependency now, as it already is for the press lanes above: whether a window is wide
 		// enough to carry its variant is a question about pixels, so a zoom step has to rebuild these.
-		[lanes, span, brewSpend, spentAs, pxPerSec],
+		[lanes, span, brewSpend, spentAs, pxPerSec, t],
 	);
 	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
 	const gcdRules = useMemo(() => gcdRulesPath(casts, span), [casts, span]);
@@ -1499,6 +1519,14 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// lane carries a counter rather than by naming the gem: the model decides which auras stack, and
 	// nothing in this file has ever known a spell id.
 	const charged = rows.find(({ lane }) => lane.stacks !== undefined)?.lane;
+
+	// The row, if there is one, that brought an aura into the fight with it. Found the same way
+	// `charged` is — by asking the drawn windows, never by naming a spell — so it describes whatever the
+	// engine recovered rather than the one consumable that motivated it. `rows` is the drawn set, so a
+	// caption never explains a bar the reader has toggled off.
+	const prePull = rows
+		.flatMap(({ lane }) => lane.windows.map((w) => ({ lane, window: w })))
+		.find(({ window }) => window.preexisting === true);
 
 	/**
 	 * The blocks of rows, in the order the chart reads: the player's own, then the enemies'.
@@ -1776,6 +1804,24 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					aura: charged.name,
 					max: charged.stacks.max,
 					payoff: charged.stacks.payoff,
+				}),
+		// A bar with no icon over it. Every other window on this chart can be traced up to the press that
+		// opened it, and a reader who cannot find that press has no way to tell a pre-pull buff from a
+		// press the chart failed to draw — so the one case where there is genuinely nothing to point at
+		// is said out loud.
+		//
+		// The timing rides on the same sentence through i18next's context rather than as a second line,
+		// and only when the analysis can supply it: how early the potion went down is the difference
+		// between a press that overlapped the pull and one that spent seconds of its own duration
+		// waiting for it. Matched by the lane's id against the audit's, so the number is never attached
+		// to some other aura that happened to be running at the bell.
+		prePull === undefined
+			? null
+			: t('castLog.prePull.note', {
+					aura: prePull.lane.name,
+					...(analysis.potions?.prePull != null && analysis.potions.id === prePull.lane.id
+						? { context: 'timed', drunk: formatGap(Math.abs(analysis.potions.prePull.drunkMs)) }
+						: {}),
 				}),
 		// What the ignore table took out, named. A chart that silently drops a row is a chart claiming
 		// the pull contained less than it did — the same fault the per-enemy cap is careful about, and

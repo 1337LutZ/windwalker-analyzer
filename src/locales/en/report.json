@@ -361,6 +361,8 @@
     "brewStacks": "Avg brew stacks",
     "rskUptime": "RSK uptime",
     "snapshots": "Snapshots on the last GCD",
+    "potions": "Potions used",
+    "potions_unknown": "Potions · cannot say",
     "label": "Headline figures"
   },
   "empty": {
@@ -418,7 +420,8 @@
       "spent": "Spent by",
       "spentExpired": "nothing — it ran out",
       "spentOpen": "nothing — the pull ended first",
-      "spentNone": "nothing — it came off unspent"
+      "spentNone": "nothing — it came off unspent",
+      "prePull": "before the pull"
     },
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",
@@ -454,6 +457,10 @@
       "unnamed": "Nothing the log named",
       "note": "A death is marked with a rule across every lane. Hover it for what landed the killing blow.",
       "noRes": "not resurrected"
+    },
+    "prePull": {
+      "note": "{{aura}} was already running when the pull began, so its bar starts at zero and has no press above it — that press happened before this fight.",
+      "note_timed": "{{aura}} was already running when the pull began, drunk {{drunk}} before it, so its bar starts at zero and has no press above it — that press happened before this fight."
     },
     "charge": {
       "note": "{{aura}} stacks, so its row is a charge meter of {{max}} rather than a plain window. It never fills, and that is the log rather than the gem: the client never records a fifth charge, because by then the buff has already spent itself. Each full charge is followed by the {{payoff}} icon it paid for, and the faded block between them is the gem’s own delay, not a gap in the chart. Hover either for the wait and what it hit. A charge with no icon after it found no target and discharged into nothing."
@@ -905,6 +912,12 @@
         "brewCapWaste": {
           "label": "Stop overflowing the bank",
           "fix": "{{value, integer}} stacks were earned into a full bank and vanished. The bank holds twenty; brewing before you reach it costs nothing and keeps them."
+        },
+        "potionsUsed": {
+          "label": "Drink both potions",
+          "fix": "{{value, integer}}/{{target, integer}} potions used. One goes down in the last second before the pull, the next a minute in when it comes off cooldown.",
+          "fix_prepull": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the pre-pull one — drink it in the last second before the bell and it is running through your opener.",
+          "fix_combat": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the in-combat one, which comes off cooldown a minute after the pre-pull potion."
         }
       }
     }

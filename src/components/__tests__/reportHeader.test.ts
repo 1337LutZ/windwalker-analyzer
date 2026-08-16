@@ -39,8 +39,18 @@ describe('report header difficulty', () => {
  * this value. Prop drilling looks equivalent to local state right up until a provider ends up on the
  * wrong side of it, so this is asserted rather than assumed.
  *
- * `waves` because it is the fixture the engine detected as multi-target, which is what gives `auto`
- * an answer to be right about and `single` something to contradict.
+ * **`strong`, and the fixture matters — this used to be `waves` and passed by accident.** What reaches
+ * the summary from the reading is the mode's weights, and they arrive two ways. One is the headline
+ * verdict, a weighted mean, which only moves the markup when a pull's mean happens to straddle a band
+ * edge; `waves` did, at 73.1% read single and exactly 75.0% read multi, so the two renders differed by
+ * one word and the guarantee rested on that coincidence. Adding a single measurable metric anywhere in
+ * the model moved both readings into the same band and the test went out — with nothing broken.
+ *
+ * The other way is the short list's own ranking, which is structural: `MULTI_TARGET_WEIGHTS` drops
+ * Rising Sun Kick uptime from 2 to 1, so a pull whose cards are separated by weight rather than by
+ * grade deals them in a different order under the two readings. `strong` is that pull — three cards,
+ * all `ok`, and the kick trades places with the globals — so this now fails only if the chain actually
+ * breaks. It is detected `single`, which is why `auto` agrees with `single` here rather than `multi`.
  */
 describe('target mode reaches the summary', () => {
 	/**
@@ -58,15 +68,15 @@ describe('target mode reaches the summary', () => {
 	};
 
 	it('re-grades the summary when the reader forces the other reading', () => {
-		const waves = fx('waves');
-		expect(summary(waves, 'single')).not.toBe(summary(waves, 'multi'));
+		const strong = fx('strong');
+		expect(summary(strong, 'single')).not.toBe(summary(strong, 'multi'));
 	});
 
 	it('leaves auto reading the pull the way the pull was detected', () => {
-		const waves = fx('waves');
-		expect(waves.targets?.detected).toBe('multi');
-		expect(summary(waves, 'auto')).toBe(summary(waves, 'multi'));
-		expect(summary(waves, 'auto')).not.toBe(summary(waves, 'single'));
+		const strong = fx('strong');
+		expect(strong.targets?.detected).toBe('single');
+		expect(summary(strong, 'auto')).toBe(summary(strong, 'single'));
+		expect(summary(strong, 'auto')).not.toBe(summary(strong, 'multi'));
 	});
 
 	/** And the report no longer renders the control, which is the half of the move that could rot. */

@@ -50,6 +50,7 @@ import type {
 	LaneStacks,
 	LostCastRow,
 	Miss,
+	PotionAudit,
 	ProcWindow,
 	ResourceCurve,
 	SnapshotGrade,
@@ -326,6 +327,40 @@ const SEF_MAX_CLONES = 2;
  * across placements. Neither pull carried a summon from any other source, and Xuen's is 123904.
  */
 const SEF_SUMMON_IDS: ReadonlySet<number> = new Set([138121, 138122, 138123]);
+
+/**
+ * How many potions one pull is worth: one before the pull and one inside it.
+ *
+ * **The simulator's rule, not a band cut from a sample**, which is what makes this the one figure in
+ * this report gradeable on six fixtures. `sim/core/consumes.go:169-198` registers the two out of two
+ * separate configured items — `consumes.PrepotId` takes `SpellFlagPrepullPotion`, `consumes.PotId`
+ * takes `SpellFlagCombatPotion` (`sim/core/flags.go:184-185`) — and both are built through
+ * `makePotionActivationSpellInternal`, which puts them on one shared timer:
+ *
+ *     SharedCD: Cooldown{ Timer: character.GetPotionCD(), Duration: time.Minute * 60 }
+ *
+ * Sixty minutes is "once per encounter". The second slot exists because `makePotionActivationSpell`
+ * overrides that lock for a press taken before the bell — `if sim.CurrentTime < 0 { spell.SharedCD.
+ * Set(sim.CurrentTime + categoryCooldownDuration) }` — so a pre-pull potion costs only
+ * `POTION_CATEGORY_CD_MS` rather than the hour. Two, and the sim will not model a third.
+ */
+const POTION_SLOTS = 2;
+
+/**
+ * How long a pre-pull potion locks the potion category for, which is when the combat one comes up.
+ *
+ * Virmen's Bite's own `categoryCooldownDuration`, 60 seconds, from the same consumable table its
+ * duration comes from (`assets/database/db.json`, `"categoryCooldownDuration": 60`). Used for one
+ * thing only: deciding whether a pull was long enough to have *offered* the second slot, so a wipe
+ * is not billed for a potion it never had the chance to drink.
+ *
+ * Confirmed against the log rather than taken on the sim's word. Across 192 player-pulls in the three
+ * anonymous reports that show both a pre-pull potion and an in-fight press, the earliest in-fight
+ * press lands 60.126s after the pre-pull one went down, and not one of the 192 comes in under sixty
+ * seconds. Where there was no pre-pull potion the category was never locked, and presses turn up 7ms
+ * into the fight — which is why the guard below is conditional on the pre-pull slot rather than flat.
+ */
+const POTION_CATEGORY_CD_MS = 60_000;
 
 /**
  * How long a second enemy has to be under the monk's hands before the cooldown was worth pressing.
@@ -1117,6 +1152,18 @@ const AURAS: Aura[] = [
 		// no spell id to offer here at all.
 		ids: [105697],
 		kind: 'buff',
+		// 25 seconds, and it is load-bearing rather than decorative: it is the bound that lets a bare
+		// `removebuff` be read as a potion drunk before the pull — see `auraWindows`' `openAtPull`.
+		//
+		// Taken from the simulator's own consumable table, which keys on the item for the reason the
+		// ability above gives: `assets/database/db.json` carries `{"id": 76089, "name": "Virmen's Bite",
+		// "buffDuration": 25, "categoryCooldownDuration": 60}`, built from
+		// `assets/db_inputs/dbc/consumables.json`'s `"Duration": 25000` by the divide-by-1000 in
+		// `tools/database/dbc/consumable.go:50`, and handed to the aura at `sim/core/consumes.go:265` as
+		// `NewTemporaryStatsAura(potion.Name, actionID, potion.Stats, potion.BuffDuration)`. The log
+		// agrees to the millisecond: every one of the 365 in-fight potions across the three anonymous
+		// reports removes 24.9–25.0s after it applies.
+		durationMs: 25_000,
 		appliedBy: 'virmens-bite',
 	},
 ];
@@ -1171,6 +1218,34 @@ const GEAR_PROCS: Aura[] = ['capacitance', 'flurry-of-xuen', 'focus-of-xuen', 'v
 );
 /** The kit the player pressed. Same windows, drawn as buffs, because a press is not a proc. */
 const ITEM_USES: Aura[] = ['synapse-springs', 'virmens-bite'].map((key) => registry.aura(key));
+
+/**
+ * The combat potion, named apart from the list above because it is the only one of the kit with a
+ * *rule* behind it rather than only a window — see `potionAudit`.
+ *
+ * The flask and the three elixirs are deliberately not here, and the reason is the simulator's own
+ * filing rather than a judgement about which consumables matter. They are registered by
+ * `registerNonCombatPotions` (`sim/core/consumes.go:43`), carry `SpellFlagNonCombatPotion`, and sit on
+ * `character.GetNonCombatPotionCD()` — spell category 79, a three-second timer — while the potion sits
+ * on `GetPotionCD()`, category 4. Neither of the two slot flags is ever set on them. The two-potion
+ * rule is a rule about potions, and a flask is not in it.
+ *
+ * Two independent reasons say the same thing, which is why this is a boundary rather than a taste:
+ *
+ *   - A flask is not a decision taken in the seconds before a pull. As the character's default flask
+ *     the sim makes it permanent outright — `MakePermanent(spell.RelatedSelfBuff)` at `consumes.go:51`
+ *     sets `Duration = NeverExpires` — so "it was up at the bell" is true of every pull anyone brought
+ *     one to and says nothing about this one.
+ *   - The recovery the pre-pull reading depends on degenerates on an hour-long buff. Its bound is the
+ *     aura's own duration, which for 3,600,000ms covers nearly any fight, and `end - durationMs` then
+ *     answers in negative minutes. Measured: six bare removals of Mad Hozen Elixir across the three
+ *     anonymous reports land 42.6s to 166.0s into their fights and read as drunk 57.2 to 59.3 minutes
+ *     before them. In the `weave` fixture Monk's Elixir shows a bare removal at 10.2s — an elixir the
+ *     player cancelled by drinking Elixir of the Rapids in the same millisecond, which the reading
+ *     would have reported as a pre-pull consumable drunk 59.8 minutes early.
+ */
+const POTION = registry.aura('virmens-bite');
+const POTION_CAST = registry.ability('virmens-bite');
 
 /**
  * The damage ids that land on exactly one enemy, which is the only evidence of where an actor stood.
@@ -3572,6 +3647,95 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			return { start: w.start, id: null, name: null, ...(fate === undefined ? {} : { fate }) };
 		});
 
+	// ----------------------------------------------- Potions
+	/**
+	 * The pull's potion windows, including the one that was already running when the bell went.
+	 *
+	 * `openAtPull` is what recovers it, and the argument for the recovery is in `auraWindows`. The
+	 * short version: a fight-scoped query returns only what happened inside the fight, so a potion
+	 * drunk before the pull leaves no apply and no cast — the whole of it in the stream is the
+	 * `removebuff` where it ran out, which the default walk drops for having nothing to pair with.
+	 * That is the same class of miss that twice cost this report real data: a `refreshdebuff` with
+	 * nothing open was 42.3 seconds of Rising Sun Kick uptime, and a stack event with nothing open was
+	 * a Storm, Earth and Fire spirit placed before a pull and two minutes and forty-three seconds of it.
+	 *
+	 * Read once, here, and handed to both the count below and the lane the chart draws, so the row a
+	 * reader looks at is the array the number was taken from.
+	 */
+	const potionWindows = auraWindows(selfEvents, POTION, t0, fight.endTime, { openAtPull: true });
+
+	/**
+	 * Potions used, out of the two the game allows.
+	 *
+	 * **A count of potions, not of slots**, and the difference is not academic — it is the `poor`
+	 * fixture. That monk pressed Virmen's Bite 92ms *after* the pull and again at 2:34.9: two potions,
+	 * and no pre-pull window at all, because at the fight's own zero no buff was running. Counting
+	 * filled slots would read that as one of two and print a fault at a player who drank everything
+	 * they had. Counting potions reads it as two of two, which is what happened.
+	 *
+	 * The two slots are still kept apart on the audit, because only one of them is a press a reader can
+	 * see: the combat potion is an ordinary `cast`, and the pre-pull one exists solely as the expiry
+	 * `potionWindows` just recovered. `prePull.drunkMs` is negative and is the fact worth reporting on
+	 * its own — a potion drunk three seconds early spends three seconds of its twenty-five outside the
+	 * fight. It is reported and deliberately not graded: six fixtures cannot cut a band, and the spread
+	 * that matters is a second and a half wide.
+	 *
+	 * Capped at `POTION_SLOTS` because that is the ceiling the number is printed against. The cap fires
+	 * on one player-pull in the 365 across the three anonymous reports — a Garrosh kill with a pre-pull
+	 * potion and two in-fight presses — so the log is very slightly more permissive than the sim, and
+	 * `2 of 2` remains the honest reading of a player who used everything the rule offers.
+	 *
+	 * **Only Virmen's Bite is counted**, because it is the only potion in the model. A monk who drank
+	 * something else reads as having drunk nothing, which is the false-negative direction: the count
+	 * can under-report, never over-report. It is the potion both reference monks press, on every boss
+	 * pull in both reports, and another joins it the day a log carries one.
+	 */
+	const potions = ((): PotionAudit => {
+		const prePullWindow = potionWindows.find((w) => w.preexisting === true);
+		const prePull =
+			prePullWindow === undefined
+				? null
+				: // Negative, and arithmetic rather than a guess: a buff that was running at the pull and came
+					// off at `end` went down one full duration before that.
+					{ drunkMs: prePullWindow.end - (POTION.durationMs ?? 0), expiredMs: prePullWindow.end };
+		const combat = events
+			.filter((e) => isCast(e) && e.sourceID === actor.id && abilityIdOf(e) === castId(POTION_CAST))
+			.map((e) => e.timestamp - t0)
+			.sort((a, b) => a - b);
+
+		/**
+		 * Whether this pull could answer at all — which is not the same as answering zero.
+		 *
+		 * Both slots have to have been on offer, and the two fail in different ways. A pre-pull potion is
+		 * only visible because it expires inside the fight, so on a pull shorter than its own duration it
+		 * would still have been up at the last event and leaves nothing at all behind: "no pre-pull
+		 * potion" and "cannot tell" are the same stream, and the second is the truth. The combat slot is
+		 * locked by a pre-pull press for `POTION_CATEGORY_CD_MS`, so a pull that ended inside that never
+		 * offered it; with no pre-pull press nothing was locked and it was available from the first
+		 * global, which is why the guard is conditional rather than a flat floor.
+		 *
+		 * The asymmetry that falls out is deliberate and worth naming: on a forty-second pull a player
+		 * who pre-potted parks as unmeasurable, while one who drank nothing reads 0 of 2. That is not a
+		 * player being punished for the pull being short — it is the second one genuinely having had both
+		 * slots available and taken neither. Where the pull cannot say, it says nothing, which is the
+		 * direction this report errs in everywhere else.
+		 *
+		 * All six fixtures run 129s or longer, so every one of them grades.
+		 */
+		const prePullReadable = duration >= (POTION.durationMs ?? 0);
+		const combatReadable = prePull === null || duration >= prePull.drunkMs + POTION_CATEGORY_CD_MS;
+
+		return {
+			name: POTION.name,
+			id: auraId(POTION),
+			used: Math.min((prePull === null ? 0 : 1) + combat.length, POTION_SLOTS),
+			slots: POTION_SLOTS,
+			prePull,
+			combat,
+			measurable: prePullReadable && combatReadable,
+		};
+	})();
+
 	// A lane with nothing on it is dropped rather than drawn empty: an unlit row costs a line of height
 	// and a label, and tells the reader only that the aura exists.
 	const lanes: AuraLane[] = [
@@ -3607,7 +3771,13 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 				...(aura === FOCUS_OF_XUEN ? { spent: focusSpends(windows) } : {}),
 			};
 		}),
-		...ITEM_USES.map((aura) => lane(aura, 'buff', auraWindows(selfEvents, aura, t0, fight.endTime))),
+		// The potion's row is `potionWindows` itself rather than a second walk, for the reason the debuff's
+		// primary lane is the graded array: the bar the reader checks the count against has to be the very
+		// windows the count was taken from. It is also the only one of these that can carry a `preexisting`
+		// window — a bar that starts at the pull because the buff did not.
+		...ITEM_USES.map((aura) =>
+			lane(aura, 'buff', aura === POTION ? potionWindows : auraWindows(selfEvents, aura, t0, fight.endTime)),
+		),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
 		...rskTargets.targets.map(targetLane),
@@ -3989,6 +4159,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		})),
 		gear,
 		raidBuffs,
+		potions,
 		// Absent rather than empty when the log carried no readings: the charts branch on "not reported"
 		// and would otherwise draw a flat line at zero, which is a claim the log never made.
 		...(energySamples.length === 0 && chiSamples.length === 0

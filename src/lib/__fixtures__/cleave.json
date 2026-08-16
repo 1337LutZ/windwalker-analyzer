@@ -3960,6 +3960,12 @@
         "group": "buff",
         "windows": [
           {
+            "start": 0,
+            "end": 24706,
+            "preexisting": true,
+            "id": 105697
+          },
+          {
             "start": 60134,
             "end": 85140,
             "id": 105697
@@ -5599,6 +5605,18 @@
     "deaths": 0,
     "notReported": 0,
     "selfGaps": 0
+  },
+  "potions": {
+    "name": "Virmen's Bite",
+    "id": 105697,
+    "used": 2,
+    "slots": 2,
+    "prePull": {
+      "drunkMs": -294,
+      "expiredMs": 24706
+    },
+    "combat": [60135],
+    "measurable": true
   },
   "resources": {
     "energy": {

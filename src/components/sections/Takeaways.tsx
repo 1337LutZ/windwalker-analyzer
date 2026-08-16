@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 
 import { jumpToHeading } from '../jump';
+import { TargetModeContext } from '../report/targetModeContext';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { GRADE_ORDER, type Metric } from '~/lib/score';
-import { WEIGHTS, type MetricKey } from '~/lib/score/thresholds';
+import { weightsFor, type MetricKey } from '~/lib/score/thresholds';
 import type { Analysis } from '~/lib/types';
 
 import { Note } from '../primitives';
@@ -23,6 +24,10 @@ const SECTION_ANCHOR: Record<string, string> = {
 	casts: 'cpm',
 	debuff: 'debuff',
 	tigerPalm: 'tiger-palm',
+	// The one card whose section is not a section. Nothing on the page argues the potion count in prose
+	// — the evidence is the potion's own row on the timeline, including the bar that starts at the pull
+	// because the buff did — so that is where the reader is sent.
+	potions: 'timeline',
 };
 
 /** How many cards is a summary rather than a second report. */
@@ -64,18 +69,32 @@ function shortfall(metric: Metric): number {
  * a summary — snapshot depth carries zero weight because it is inverted in practice, and a card
  * telling someone to fix it would be advice to catch fewer procs.
  *
+ * **The weights are the reading's, not the base set**, and that is the same map `overall` is averaged
+ * over rather than a second one. It used to read `WEIGHTS` directly, which made the summary the one
+ * part of the report blind to how the pull was being read — and blind in the direction that hurts,
+ * because the two metrics `MULTI_TARGET_WEIGHTS` discounts are discounted for a reason the summary
+ * repeats verbatim. `tigerPalmWaste` drops to a third on an add fight because at full weight it
+ * "hands every add fight three points of credit for a habit it never had the chance to show"; a card
+ * telling that player to stop overwriting Tiger Power is exactly that credit spent as advice. The
+ * headline and the short list under it now rank on one set of weights, which is what stops them
+ * disagreeing about what mattered on the pull.
+ *
  * Nothing unmeasurable appears. A pull with no procs to snapshot has not failed to snapshot them,
  * and "cannot say" is not a takeaway.
  */
 export default function Takeaways({ analysis }: { analysis: Analysis }) {
 	const { t, card } = useReportCopy(analysis);
+	// Read the same way every graded section reads it, and for the same reason `useReportCopy` does:
+	// the reading is context rather than a prop, so this arrives without a signature having to carry it.
+	const mode = useContext(TargetModeContext);
 
 	const takeaways = useMemo<Takeaway[]>(() => {
+		const weights = weightsFor(mode);
 		const all: Takeaway[] = [];
 		for (const [section, score] of Object.entries(card.sections)) {
 			for (const metric of score.metrics) {
 				if (metric.unmeasurable || metric.grade === 'good') continue;
-				const weight = WEIGHTS[metric.key as MetricKey] ?? 0;
+				const weight = weights[metric.key as MetricKey] ?? 0;
 				// A metric the model does not count cannot lead the summary either. Zero weight is a
 				// statement that the number should not move a verdict, and a card is a verdict.
 				if (weight === 0) continue;
@@ -90,7 +109,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 					shortfall(b.metric) - shortfall(a.metric),
 			)
 			.slice(0, CARDS);
-	}, [card]);
+	}, [card, mode]);
 
 	if (takeaways.length === 0) {
 		return (
@@ -127,6 +146,10 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 								{t(`summary.takeaways.metric.${metric.key}.fix`, {
 									value: metric.value,
 									target: metric.good,
+									// The metric's own wording variant, for the few whose number is the same on two pulls
+									// that need different advice. `undefined` on almost all of them, which selects the base
+									// key — see `Metric.context`.
+									context: metric.context,
 								})}
 							</span>
 							{anchor === undefined ? null : (

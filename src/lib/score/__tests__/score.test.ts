@@ -167,6 +167,12 @@ describe('scoreAnalysis', () => {
 			debuff: { ...analysis.debuff, casts: 0 },
 			filler: { ...analysis.filler, casts: 0, wasted: 0 },
 			cpm: { ...analysis.cpm, gcdSlots: 0 },
+			// The potion count's own way of having nothing to say: a pull that ended before both slots
+			// were ever on offer. Taken away like every other input above rather than left standing,
+			// because the fixture's real 2 of 2 would otherwise be the single measurable metric the model
+			// counts on a pull this test builds precisely to have none — and the verdict would come back
+			// `good` off it.
+			...(analysis.potions === undefined ? {} : { potions: { ...analysis.potions, measurable: false } }),
 		};
 		expect(() => scoreAnalysis(empty)).not.toThrow();
 		expect(scoreAnalysis(empty).overall).toBe('ok');

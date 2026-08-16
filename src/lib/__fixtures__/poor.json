@@ -6514,6 +6514,15 @@
     "notReported": 1,
     "selfGaps": 0
   },
+  "potions": {
+    "name": "Virmen's Bite",
+    "id": 105697,
+    "used": 2,
+    "slots": 2,
+    "prePull": null,
+    "combat": [92, 154887],
+    "measurable": true
+  },
   "resources": {
     "energy": {
       "max": 100,

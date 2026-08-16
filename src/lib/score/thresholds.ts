@@ -185,6 +185,32 @@ export const THRESHOLDS = {
 	 * band claiming to tell 72% from 78% apart would be inventing precision the sample does not have.
 	 */
 	karmaCapShare: { good: 75, ok: 40, higherIsBetter: true },
+
+	/**
+	 * Potions drunk, out of the two a pull allows.
+	 *
+	 * **The one threshold in this file that is not cut from a sample, and the only one that does not
+	 * need to be.** Every band above is an argument about where real pulls sit; this is the game's own
+	 * ceiling, so the bands are the arithmetic and six fixtures never enter into it. Two is both, one is
+	 * half, none is none.
+	 *
+	 * The ceiling is the simulator's: `sim/core/consumes.go:169-198` registers a pre-pull potion and a
+	 * combat potion as two separately configured items carrying `SpellFlagPrepullPotion` and
+	 * `SpellFlagCombatPotion`, both on one 60-minute shared timer, with the pre-pull press overriding
+	 * that lock down to the item's own minute so exactly one more fits. See `POTION_SLOTS` in
+	 * `spec/windwalker` for the code and the log measurement that agrees with it.
+	 *
+	 * `bad` here means "drank neither", never "the pull could not say". A fight shorter than the
+	 * potion's own duration hides a pre-pull one entirely, and one that ended inside the potion
+	 * cooldown never offered the second slot — both arrive as an unmeasurable metric rather than as a
+	 * zero, which is the whole reason `Metric.unmeasurable` exists.
+	 *
+	 * Nothing else about the potions is graded. When it was drunk relative to the pull is measured and
+	 * printed — a potion three seconds early spends three of its twenty-five outside the fight — and no
+	 * band is cut for it, because the six fixtures spread over a second and a half and a line drawn
+	 * across that would be invented precision.
+	 */
+	potionsUsed: { good: 2, ok: 1, higherIsBetter: true },
 } as const satisfies Record<string, Threshold>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
@@ -214,6 +240,11 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	snapshotDepth: 0,
 	brewStacks: 1,
 	brewCapWaste: 1,
+	// Real damage and genuinely free — nobody misses a potion for want of skill — but it is a thing you
+	// bring rather than a thing you play, and this report is about the four minutes. At the same weight
+	// as the brew economy it can put a card in the summary of a pull that skipped both potions without
+	// ever outranking the two habits that actually separate Windwalkers.
+	potionsUsed: 1,
 	// Graded in its own section and deliberately not counted in the headline, for a different reason
 	// than `snapshotDepth` above: these two are sound, but what they measure is not the player's alone.
 	// The redirect returns what the fight was doing to them, so how much a press could ever be worth is
