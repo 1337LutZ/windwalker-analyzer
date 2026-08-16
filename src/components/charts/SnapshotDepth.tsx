@@ -358,7 +358,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 			},
 			tooltip: baseTooltip(theme),
 		}),
-		[procs, height, fullLengthMs, longestOvershootMs, brackets, t],
+		[procs, height, fullLengthMs, longestOvershootMs, brackets],
 	);
 
 	if (procs.windows.length === 0) {

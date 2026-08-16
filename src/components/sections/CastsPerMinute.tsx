@@ -72,7 +72,9 @@ function tigerPalmBudget(analysis: Analysis): TigerPalmBudget {
  * here has no deeper page and stays plain text rather than becoming a link to nowhere.
  */
 const DEEP_DIVE: Record<number, string> = {
-	113656: 'fists-of-fury',
+	// `fof`, not `fists-of-fury`: this is the section's id, and the heading it addresses is
+	// `fof-heading`. The other three in this map were right and this one silently linked nowhere.
+	113656: 'fof',
 	100787: 'tiger-palm',
 	122470: 'karma',
 	107428: 'debuff',
