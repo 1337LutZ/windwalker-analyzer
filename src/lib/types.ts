@@ -124,6 +124,16 @@ export interface Window {
 	start: number;
 	end: number;
 	truncated?: boolean;
+	/**
+	 * True when the aura was already running at the pull, so `start` is the fight's own zero rather
+	 * than the moment it was applied.
+	 *
+	 * `truncated`'s opposite number — that one says the fight ended before the aura did, this one says
+	 * the aura began before the fight did — and read the same way, for truthiness, because it is absent
+	 * on every ordinary window and on any analysis captured before it existed. Only `auraWindows` with
+	 * `openAtPull` sets it; see there for what makes the inference sound and why it is opt-in.
+	 */
+	preexisting?: boolean;
 }
 
 export interface AbilityDamage {
@@ -1383,6 +1393,45 @@ export interface GearSummary {
 	masteryRating?: number | null;
 }
 
+/**
+ * The pull's potions, against the two the game allows: one before the pull and one inside it.
+ *
+ * The two slots are separate facts and are kept separate here, because only one of them is visible
+ * as a press. A combat potion logs the ordinary way — `applybuff`, `cast`, `removebuff` — while a
+ * pre-pull one happened before the fight's event window opened and survives only as the bare
+ * `removebuff` where it expired. See `potionAudit` in `spec/windwalker` for the reading and the
+ * ceiling, and `auraWindows`' `openAtPull` for the recovery.
+ */
+export interface PotionAudit {
+	/** The potion this is about, so copy naming it does not hardcode a name the model already holds. */
+	name: string;
+	/** Its spell id, for an icon or a link. */
+	id: number;
+	/** Potions the log witnessed, capped at `slots`. */
+	used: number;
+	/** The ceiling. The simulator's rule rather than a number cut from a sample. */
+	slots: number;
+	/**
+	 * The potion that was already running at the pull, or null when there was none.
+	 *
+	 * `drunkMs` is negative and is the whole point of reporting it: it is how long before the pull the
+	 * potion went down, so a reader can see the seconds of its own duration that a too-early press
+	 * spent outside the fight. `expiredMs` is the removal it was recovered from, fight-relative.
+	 */
+	prePull: { drunkMs: number; expiredMs: number } | null;
+	/** Every press inside the fight, fight-relative and in order. */
+	combat: number[];
+	/**
+	 * False when this pull cannot answer the question, which is not the same as answering zero.
+	 *
+	 * A fight shorter than the potion's own duration hides a pre-pull one completely — it would still
+	 * have been running at the last event — and a fight that ended before the potion came back off
+	 * cooldown never offered the second slot at all. Either way the count must not be graded, and the
+	 * copy must say nothing rather than print `0 of 2` about a pull that was over too soon to ask.
+	 */
+	measurable: boolean;
+}
+
 /** One raid-buff *effect* — not one spell. Several classes supply each, and they do not stack. */
 export interface RaidBuffRow {
 	/** Effect key: `stats`, `attackPower`, `meleeHaste`, `spellHaste`, `crit`, `mastery`. */
@@ -1534,6 +1583,16 @@ export interface Analysis {
 	 * `analyse()` always fills it in. Anything reading it has to guard on truthiness.
 	 */
 	raidBuffs?: RaidBuffSummary;
+	/**
+	 * Which of the pull's two potion slots were filled.
+	 *
+	 * Optional for the same reason every field above it is: the committed fixtures are captured
+	 * `analyse()` output from before this field existed and are cast to `Analysis` rather than
+	 * migrated, so on a fixture it arrives as `undefined` — not `null`, not an audit reading zero,
+	 * which is the one thing it must never be mistaken for. `analyse()` always fills it in. Anything
+	 * reading it has to guard on truthiness.
+	 */
+	potions?: PotionAudit;
 	/**
 	 * The energy and chi bars over the pull, for the charts that draw them.
 	 *

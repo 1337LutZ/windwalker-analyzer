@@ -1,4 +1,12 @@
-import { abilityIdOf, isAuraApply, isAuraRefresh, isAuraRemove, isStackChange, type WclEvent } from '~/lib/events';
+import {
+	abilityIdOf,
+	isAuraApply,
+	isAuraRefresh,
+	isAuraRemove,
+	isCast,
+	isStackChange,
+	type WclEvent,
+} from '~/lib/events';
 import type { Aura } from '~/lib/game/model';
 import type { Window } from '~/lib/types';
 import { unionMs, type Interval } from './intervals';
@@ -46,6 +54,40 @@ export interface AuraWindow extends Window {
  * The window opens at the refresh rather than back-dated to when the aura must have gone up, so it
  * under-states rather than invents.
  *
+ * `openAtPull` is the mirror image, for the aura that was **already running when the fight began**.
+ * A fight-scoped event query returns only what happened inside the fight, so a buff applied before
+ * the pull leaves nothing behind but its own `removebuff` — no apply, no cast, nothing to pair it
+ * with — and the default behaviour throws that away exactly as it throws away an orphan refresh. The
+ * standing example is a pre-pull potion, which is ordinary play: measured on a:6MhZgjyAknFWrYfK
+ * fight 16, six of the raid's players show a bare `removebuff` of Virmen's Bite between 21.9s and
+ * 24.8s and no apply of it at all, while every potion drunk *inside* those same fights carries the
+ * full apply + cast + remove triple.
+ *
+ * Two things make that an inference rather than a guess, and both are enforced here:
+ *
+ *   - **Nothing may have opened the aura earlier in the stream.** An apply, a refresh or a `cast`
+ *     under one of the aura's own ids all prove the opening was logged, so a later unpaired removal
+ *     is something else and is dropped as before. `cast` is included because it is the event the
+ *     rule is actually written against and because it costs nothing to be independent of WarcraftLogs
+ *     always emitting the apply beside it.
+ *   - **The removal must land inside the aura's own duration.** An aura running at `t0` cannot
+ *     survive past `t0 + durationMs`, so a bare removal after that was never a pre-pull application.
+ *     An aura with no declared duration therefore never qualifies — the bound cannot be checked, and
+ *     an unbounded version of this rule would fire on any orphan removal anywhere in a pull. Across
+ *     the three anonymous reports 288 bare removals of Virmen's Bite (25s) all land between 18.5s and
+ *     25.0s, and not one falls outside the bound.
+ *
+ * The window runs from `t0` to the removal and is marked `preexisting`, which is `truncated`'s
+ * opposite number: the *start* is the pull rather than an event. Clamping rather than back-dating is
+ * the same under-stating direction the refresh case takes — `end - durationMs` recovers when it was
+ * really applied, and that belongs to the caller that knows what it is looking at.
+ *
+ * Off by default, and for a sharper reason than `openOnRefresh` is. This only means anything for an
+ * aura short enough that "it was up at the pull" is a fact about the pull. A flask runs an hour, so
+ * the bound never bites and the recovered application time comes back at fifty-odd minutes before the
+ * bell — a true statement about nothing. Measured: six bare removals of Mad Hozen Elixir in the same
+ * reports land 42.6s to 166.0s *into* their fights and read as drunk 57 to 59 minutes before them.
+ *
  * A window still open when the fight ends is closed at `fightEnd` and marked `truncated`.
  */
 export function auraWindows(
@@ -53,12 +95,17 @@ export function auraWindows(
 	aura: Aura,
 	t0: number,
 	fightEnd: number,
-	{ openOnRefresh = false }: { openOnRefresh?: boolean } = {},
+	{ openOnRefresh = false, openAtPull = false }: { openOnRefresh?: boolean; openAtPull?: boolean } = {},
 ): AuraWindow[] {
 	const ids = new Set(aura.ids);
 	const open = new Map<number, number>();
 	const out: AuraWindow[] = [];
 	const variantOf = (id: number): string | undefined => aura.variants?.[id];
+	// Ids whose opening this stream has already witnessed, in any form. Only `openAtPull` reads it,
+	// and it is what keeps the inference to the *leading* orphan: a pull cannot have started twice.
+	const opened = new Set<number>();
+	// Zero when the aura declares none, which makes the bound below refuse every candidate.
+	const durationMs = aura.durationMs ?? 0;
 
 	for (const e of events) {
 		const id = abilityIdOf(e);
@@ -66,6 +113,7 @@ export function auraWindows(
 
 		if (isAuraApply(e) || (openOnRefresh && isAuraRefresh(e))) {
 			if (!open.has(id)) open.set(id, e.timestamp);
+			opened.add(id);
 		} else if (isAuraRemove(e)) {
 			const start = open.get(id);
 			if (start !== undefined) {
@@ -76,7 +124,21 @@ export function auraWindows(
 					variant: variantOf(id),
 				});
 				open.delete(id);
+			} else if (openAtPull && !opened.has(id) && e.timestamp - t0 < durationMs) {
+				out.push({
+					start: 0,
+					end: e.timestamp - t0,
+					preexisting: true,
+					id,
+					variant: variantOf(id),
+				});
+				opened.add(id);
 			}
+		} else if (isAuraRefresh(e) || isCast(e)) {
+			// Neither opens a window — a refresh moves nothing, and a cast is a press rather than an aura
+			// event — but both are proof that this aura's opening happened inside the fight, which is the
+			// one thing the pre-pull inference above must not be allowed to contradict.
+			opened.add(id);
 		}
 	}
 
