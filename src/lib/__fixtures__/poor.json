@@ -6519,8 +6519,12 @@
     "id": 105697,
     "used": 2,
     "slots": 2,
-    "prePull": null,
-    "combat": [92, 154887],
+    "prePull": {
+      "drunkMs": 92,
+      "expiredMs": 25094,
+      "preexisting": false
+    },
+    "combat": [154887],
     "measurable": true
   },
   "resources": {

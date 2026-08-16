@@ -63,6 +63,29 @@ describe('report copy', () => {
 		expect(t('casts.verdict', { context: 'good', used: 83.6, cpm: 31.59 })).toContain('31.6');
 	});
 
+	/**
+	 * The potion copy, whose whole job is to name the slot that went unfilled.
+	 *
+	 * The two variants have to resolve and have to be different sentences: the metric's value is `1 of
+	 * 2` either way, and pointing a player who missed the in-combat potion at the pre-pull one is worse
+	 * advice than none at all. `note_early` is the caption for that same slot filled from inside the
+	 * fight, and the one thing it must not say is the base sentence's "no press above it" — that bar
+	 * has a press above it.
+	 */
+	it('names each potion slot with its own sentence', () => {
+		const both = { value: 1, target: 2 };
+		const prepull = t('summary.takeaways.metric.potionsUsed.fix', { context: 'prepull', ...both });
+		const combat = t('summary.takeaways.metric.potionsUsed.fix', { context: 'combat', ...both });
+		expect(prepull).not.toBe(combat);
+		expect(prepull).toContain('pre-pull one');
+		expect(combat).toContain('in-combat one');
+
+		const early = t('castLog.prePull.note', { context: 'early', aura: "Virmen's Bite", drunk: '92ms' });
+		expect(early).toContain('92ms');
+		expect(early).not.toContain('no press above it');
+		expect(early).not.toBe(t('castLog.prePull.note', { aura: "Virmen's Bite" }));
+	});
+
 	it('agrees in number', () => {
 		expect(t('snapshots.lastGcd', { count: 1 })).toContain('its proc');
 		expect(t('snapshots.lastGcd', { count: 6 })).toContain('theirs');

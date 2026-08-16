@@ -3665,20 +3665,76 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const potionWindows = auraWindows(selfEvents, POTION, t0, fight.endTime, { openAtPull: true });
 
 	/**
+	 * When *this player* joined the fight, which is not when the fight started.
+	 *
+	 * WarcraftLogs starts the clock the moment the boss is engaged — by anyone — so a monk still
+	 * running in is already inside the fight window while being out of combat themselves. A potion
+	 * drunk in that gap is a pre-pull potion that happens to carry a positive timestamp, and it leaves
+	 * the full `applybuff` + `cast` + `removebuff` triple an in-combat press leaves. Nothing about the
+	 * events tells the two apart, so the separation has to come from what the player was doing around
+	 * them, and this is that instant.
+	 *
+	 * **The earliest thing in the log that is this player fighting**, taken as the earlier of two,
+	 * because each covers a case the other misses:
+	 *
+	 *   - **A cast of an ability that deals damage.** Combat starts at the press, not where the damage
+	 *     lands, and for a Windwalker those are routinely different: Chi Wave travels. On
+	 *     a:6MhZgjyAknFWrYfK fight 23 the monk drinks at 105ms, casts at 164ms, and lands nothing until
+	 *     1.32s — reading the boundary off the damage would hand that press 1.2 seconds of slack it has
+	 *     not earned. `damageIds` is what "deals damage" means here, so the model answers the question
+	 *     rather than a list of ids repeated in this file.
+	 *   - **A damage event sourced by the player or one of their pets.** An auto-attack logs no cast at
+	 *     all, and Xuen's first swing puts its owner in combat without the monk having pressed anything
+	 *     since the summon — which is why the summon itself is not in this list and the tiger's teeth
+	 *     are.
+	 *
+	 * Taking the earlier of the two makes this the *earliest* evidence of engagement, which is the
+	 * conservative direction for a rule that hands a potion to the pre-pull slot on the strength of
+	 * coming before it. Being conservative costs nothing here: across the 92 Windwalker player-pulls in
+	 * the three anonymous reports, this boundary, "first damage dealt", "first damage dealt excluding
+	 * ticks" and "first damage dealt by the monk alone" classify every potion press identically. The
+	 * tightest margin in that sample is the 59ms on fight 23; the widest is a Siegecrafter pull where
+	 * the monk drinks at 491ms and first acts at 13.2s. (Ninety-two rather than the 365 quoted below,
+	 * which counts every raider's pulls: a bare removal is a signature any class leaves, while this
+	 * rule needs the monk's own kit to answer and can only be measured on the Windwalker pulls.)
+	 *
+	 * Damage *taken* is deliberately not in it. Being hit is the fight acting on the player rather than
+	 * the player acting on the fight, and a rule that counted it would make the slot depend on whether
+	 * somebody stood in something. Measured rather than assumed: the first hit taken precedes this
+	 * boundary on four of the 92 pulls, and on none of the four does a potion press fall in the gap, so
+	 * folding it in would move no verdict either way.
+	 *
+	 * Null when the log shows this player neither casting anything damaging nor damaging anything,
+	 * which no pull in that sample does. Null is the honest answer rather than a fallback: with no
+	 * instant to be before, *every* press would qualify, and a potion drunk three minutes into a pull
+	 * would file as pre-pull. `potions` below simply does not take that path when this is null.
+	 */
+	const engagedAt = ((): number | null => {
+		const strikes = (e: WclEvent): boolean => {
+			if (!isCast(e) || e.sourceID !== actor.id) return false;
+			const id = abilityIdOf(e);
+			return id !== null && (registry.abilityByCastId(id)?.damageIds?.length ?? 0) > 0;
+		};
+		// `damageEvents` is already this player's and their pets', in time order.
+		const times = [events.find(strikes), damageEvents[0]].filter((e) => e !== undefined).map((e) => e.timestamp - t0);
+		return times.length === 0 ? null : Math.min(...times);
+	})();
+
+	/**
 	 * Potions used, out of the two the game allows.
 	 *
-	 * **A count of potions, not of slots**, and the difference is not academic — it is the `poor`
-	 * fixture. That monk pressed Virmen's Bite 92ms *after* the pull and again at 2:34.9: two potions,
-	 * and no pre-pull window at all, because at the fight's own zero no buff was running. Counting
-	 * filled slots would read that as one of two and print a fault at a player who drank everything
-	 * they had. Counting potions reads it as two of two, which is what happened.
+	 * **A count of potions, not of slots**, and the two can only disagree in one direction: a player
+	 * who drank twice after engaging has two potions and one filled slot, and reading that as one of
+	 * two would print a fault at somebody who drank everything they had. Counting potions can never do
+	 * that. No pull in the three anonymous reports is that shape — every second press in them follows a
+	 * first that filled the pre-pull slot — so the two readings agree throughout, and the count is
+	 * still of potions because that is the side an unmodelled case would be wrong on.
 	 *
-	 * The two slots are still kept apart on the audit, because only one of them is a press a reader can
-	 * see: the combat potion is an ordinary `cast`, and the pre-pull one exists solely as the expiry
-	 * `potionWindows` just recovered. `prePull.drunkMs` is negative and is the fact worth reporting on
-	 * its own — a potion drunk three seconds early spends three seconds of its twenty-five outside the
-	 * fight. It is reported and deliberately not graded: six fixtures cannot cut a band, and the spread
-	 * that matters is a second and a half wide.
+	 * The two slots are kept apart on the audit because which one went unfilled is the whole of the
+	 * advice and the count cannot say it. A press reaches the pre-pull slot by either of the two routes
+	 * `prePull` sets out, and every other press is a combat one. `drunkMs` is reported and deliberately
+	 * not graded: six fixtures cannot cut a band, and the spread that matters is a second and a half
+	 * wide.
 	 *
 	 * Capped at `POTION_SLOTS` because that is the ceiling the number is printed against. The cap fires
 	 * on one player-pull in the 365 across the three anonymous reports — a Garrosh kill with a pre-pull
@@ -3691,17 +3747,53 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * pull in both reports, and another joins it the day a log carries one.
 	 */
 	const potions = ((): PotionAudit => {
-		const prePullWindow = potionWindows.find((w) => w.preexisting === true);
-		const prePull =
-			prePullWindow === undefined
-				? null
-				: // Negative, and arithmetic rather than a guess: a buff that was running at the pull and came
-					// off at `end` went down one full duration before that.
-					{ drunkMs: prePullWindow.end - (POTION.durationMs ?? 0), expiredMs: prePullWindow.end };
-		const combat = events
+		const presses = events
 			.filter((e) => isCast(e) && e.sourceID === actor.id && abilityIdOf(e) === castId(POTION_CAST))
 			.map((e) => e.timestamp - t0)
 			.sort((a, b) => a - b);
+		const prePullWindow = potionWindows.find((w) => w.preexisting === true);
+
+		/**
+		 * The press that filled the pre-pull slot from inside the fight window.
+		 *
+		 * A potion drunk before this player entered the fight is a pre-pull potion in the only sense the
+		 * two slots are about: it went down out of combat, so it started the category cooldown without
+		 * spending the one press combat allows, and the second slot came up a minute later exactly as it
+		 * does after a press taken before the bell. **The log says as much on its own.** Of the five
+		 * pulls in the 92 that carry two presses, every one opens with a press of this shape, and the
+		 * gaps between the two run 60.5s to 212.3s — a second press is only possible at all because the
+		 * first did not count as the combat one.
+		 *
+		 * **Second in line, never a replacement.** A buff already running at the pull is direct evidence
+		 * and this is an inference from timing, so `prePullWindow` takes the slot wherever it exists and
+		 * an early press then stays an ordinary combat press. The two have never both fired — the
+		 * category cooldown makes it near-impossible, a press at +92ms having to follow a potion drunk a
+		 * second before the pull — and none of the 92 pulls shows both. A slot that can be filled once
+		 * still needs an order rather than a coincidence.
+		 *
+		 * Strictly before, because a press in the same millisecond as the player's first strike is
+		 * evidence of nothing, and this rule only ever claims the slot on a press that came first.
+		 */
+		const earlyPress =
+			prePullWindow !== undefined || engagedAt === null ? undefined : presses.find((at) => at < engagedAt);
+
+		const prePull =
+			prePullWindow !== undefined
+				? // Negative, and arithmetic rather than a guess: a buff that was running at the pull and came
+					// off at `end` went down one full duration before that.
+					{ drunkMs: prePullWindow.end - (POTION.durationMs ?? 0), expiredMs: prePullWindow.end, preexisting: true }
+				: earlyPress === undefined
+					? null
+					: {
+							drunkMs: earlyPress,
+							// Read off the press's own window, which is in the stream because an in-fight potion logs
+							// the whole triple. The arithmetic behind it covers a log that dropped the removal, which
+							// none of the 365 in-fight potions in these reports did.
+							expiredMs: potionWindows.find((w) => w.end >= earlyPress)?.end ?? earlyPress + (POTION.durationMs ?? 0),
+							preexisting: false,
+						};
+
+		const combat = presses.filter((at) => at !== earlyPress);
 
 		/**
 		 * Whether this pull could answer at all — which is not the same as answering zero.
@@ -3719,6 +3811,13 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		 * player being punished for the pull being short — it is the second one genuinely having had both
 		 * slots available and taken neither. Where the pull cannot say, it says nothing, which is the
 		 * direction this report errs in everywhere else.
+		 *
+		 * `drunkMs` being signed is what lets the combat guard stand unchanged across both shapes of
+		 * pre-pull press: the lock starts where the potion went down, whether that is 1.0s before the
+		 * bell or 0.5s after it. It bites for the first time on a:6MhZgjyAknFWrYfK fight 32 — a
+		 * fifty-second Thok wipe whose monk drank at 527ms, so the second slot was still eighteen
+		 * seconds away when the pull ended. That pull used to read a graded `1 of 2` against a slot it
+		 * never had.
 		 *
 		 * All six fixtures run 129s or longer, so every one of them grades.
 		 */

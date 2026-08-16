@@ -460,7 +460,8 @@
     },
     "prePull": {
       "note": "{{aura}} was already running when the pull began, so its bar starts at zero and has no press above it — that press happened before this fight.",
-      "note_timed": "{{aura}} was already running when the pull began, drunk {{drunk}} before it, so its bar starts at zero and has no press above it — that press happened before this fight."
+      "note_timed": "{{aura}} was already running when the pull began, drunk {{drunk}} before it, so its bar starts at zero and has no press above it — that press happened before this fight.",
+      "note_early": "{{aura}} went down {{drunk}} into the pull but before you first struck anything, so it counts as the pre-pull potion rather than the in-combat one."
     },
     "charge": {
       "note": "{{aura}} stacks, so its row is a charge meter of {{max}} rather than a plain window. It never fills, and that is the log rather than the gem: the client never records a fifth charge, because by then the buff has already spent itself. Each full charge is followed by the {{payoff}} icon it paid for, and the faded block between them is the gem’s own delay, not a gap in the chart. Hover either for the wait and what it hit. A charge with no icon after it found no target and discharged into nothing."

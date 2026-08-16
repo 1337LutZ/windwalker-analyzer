@@ -1528,6 +1528,18 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		.flatMap(({ lane }) => lane.windows.map((w) => ({ lane, window: w })))
 		.find(({ window }) => window.preexisting === true);
 
+	// The same slot filled the other way round: a potion the chart *does* draw a press for, taken
+	// before the player joined a fight that had already started without them. It needs the opposite
+	// sentence to `prePull` above — that one explains a bar with no icon over it, this one explains an
+	// icon a reader would otherwise count as the in-combat potion. Keyed off the audit because there is
+	// nothing about the window to key off, and still guarded on the lane being drawn, so a caption
+	// never explains a row the reader has toggled away.
+	const earlyPotion = ((): { aura: string; drunkMs: number } | null => {
+		const audit = analysis.potions;
+		if (audit?.prePull == null || audit.prePull.preexisting) return null;
+		return rows.some(({ lane }) => lane.id === audit.id) ? { aura: audit.name, drunkMs: audit.prePull.drunkMs } : null;
+	})();
+
 	/**
 	 * The blocks of rows, in the order the chart reads: the player's own, then the enemies'.
 	 *
@@ -1822,6 +1834,16 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					...(analysis.potions?.prePull != null && analysis.potions.id === prePull.lane.id
 						? { context: 'timed', drunk: formatGap(Math.abs(analysis.potions.prePull.drunkMs)) }
 						: {}),
+				}),
+		// And the press that filled the same slot from inside the fight, which is the one thing on this
+		// chart whose meaning is not in the picture: the icon is drawn where it happened, and only the
+		// clock the player's own opener keeps says it was drunk out of combat.
+		earlyPotion === null
+			? null
+			: t('castLog.prePull.note', {
+					context: 'early',
+					aura: earlyPotion.aura,
+					drunk: formatGap(earlyPotion.drunkMs),
 				}),
 		// What the ignore table took out, named. A chart that silently drops a row is a chart claiming
 		// the pull contained less than it did — the same fault the per-enemy cap is careful about, and

@@ -1396,11 +1396,13 @@ export interface GearSummary {
 /**
  * The pull's potions, against the two the game allows: one before the pull and one inside it.
  *
- * The two slots are separate facts and are kept separate here, because only one of them is visible
- * as a press. A combat potion logs the ordinary way — `applybuff`, `cast`, `removebuff` — while a
- * pre-pull one happened before the fight's event window opened and survives only as the bare
- * `removebuff` where it expired. See `potionAudit` in `spec/windwalker` for the reading and the
- * ceiling, and `auraWindows`' `openAtPull` for the recovery.
+ * The two slots are separate facts and are kept separate here, because which one a press filled is
+ * not a question the count can answer and is the whole of the advice. A pre-pull potion reaches this
+ * by either of two routes: drunk before the fight's event window opened, where it survives only as
+ * the bare `removebuff` where it expired, or drunk inside that window but before the player joined
+ * the fight, where it logs the ordinary way and is told apart by *when* rather than by *what*. See
+ * `potions` in `spec/windwalker` for both readings and the ceiling, `engagedAt` beside it for the
+ * boundary the second turns on, and `auraWindows`' `openAtPull` for the first's recovery.
  */
 export interface PotionAudit {
 	/** The potion this is about, so copy naming it does not hardcode a name the model already holds. */
@@ -1412,14 +1414,23 @@ export interface PotionAudit {
 	/** The ceiling. The simulator's rule rather than a number cut from a sample. */
 	slots: number;
 	/**
-	 * The potion that was already running at the pull, or null when there was none.
+	 * The potion that filled the pre-pull slot, or null when nothing did.
 	 *
-	 * `drunkMs` is negative and is the whole point of reporting it: it is how long before the pull the
-	 * potion went down, so a reader can see the seconds of its own duration that a too-early press
-	 * spent outside the fight. `expiredMs` is the removal it was recovered from, fight-relative.
+	 * **Two shapes, and `preexisting` is which.** The slot is about combat rather than about the
+	 * clock, and WarcraftLogs starts the clock when the boss is engaged by *anyone* — so a player who
+	 * has not joined the fight yet can drink inside the fight window and fill this slot with an
+	 * ordinary, fully logged press. `preexisting` is true for the potion that was already running at
+	 * the pull and survives only as its own expiry, and false for the press the stream witnessed
+	 * before the player themselves entered the fight.
+	 *
+	 * `drunkMs` is **signed and fight-relative**, so one field covers both: negative on the preexisting
+	 * shape, where it is how long before the pull the potion went down and a reader can see the seconds
+	 * of its own duration the press spent outside the fight; positive on the other, where it is simply
+	 * when the press happened. `expiredMs` is when the potion ran out, fight-relative — the removal it
+	 * was recovered from on the first shape, and the end of the press's own window on the second.
 	 */
-	prePull: { drunkMs: number; expiredMs: number } | null;
-	/** Every press inside the fight, fight-relative and in order. */
+	prePull: { drunkMs: number; expiredMs: number; preexisting: boolean } | null;
+	/** Every press inside the fight that was not the one above, fight-relative and in order. */
 	combat: number[];
 	/**
 	 * False when this pull cannot answer the question, which is not the same as answering zero.

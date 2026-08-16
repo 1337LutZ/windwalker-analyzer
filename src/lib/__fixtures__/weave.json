@@ -4177,7 +4177,8 @@
     "slots": 2,
     "prePull": {
       "drunkMs": -983,
-      "expiredMs": 24017
+      "expiredMs": 24017,
+      "preexisting": true
     },
     "combat": [90541],
     "measurable": true
