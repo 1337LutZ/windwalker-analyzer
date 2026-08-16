@@ -28,12 +28,43 @@ const { title, description } = Astro.props;
 			It names the single MoP host rather than a wildcard, because that is the only host this app
 			has any business reaching. Production-only, because `astro dev` talks to an HMR websocket
 			this would block.
+
+			The rest of the policy exists so that `connect-src` is not the only line in it. Read top to
+			bottom:
+
+			  default-src 'none'  nothing that is not named below may load at all. That covers workers,
+			                      frames, media and manifests, none of which this app has.
+			  script-src          'self' is the bundled islands; wow.zamimg.com is the tooltip widget.
+			  style-src           the same two, plus inline — see below, it is not a choice.
+			  img-src             every icon is Wowhead's; data: is the inline SVG spinner.
+			  font-src            there are no webfonts. 'self' keeps a future one from being a third
+			                      party's, rather than pretending the slot does not exist.
+			  object-src          nothing to embed. Redundant under default-src and kept anyway, because
+			                      it is the directive people look for when they audit one of these.
+			  base-uri            a stray base element would silently repoint every relative URL here.
+			  form-action         there is no form here that should ever submit anywhere.
+
+			What `script-src` buys, stated exactly, because a policy that overstates itself is worse than
+			none: it bounds the *hosts* a script may be fetched from, and it withholds 'unsafe-eval'. It
+			does not stop injected inline script, because 'unsafe-inline' is present and cannot be
+			removed from here. Astro emits three inline bootstrap scripts — the island custom element,
+			its loader, and the widget module below, which Astro inlines because it is small — and their
+			content is build output, so hashes written by hand would be wrong after the next Astro
+			upgrade, in the loudest possible way. `security.csp` in astro.config.mjs generates those
+			hashes correctly, but it also hashes styles, and that is fatal here: ApexCharts ships its
+			stylesheet as a string and injects a style element per chart at runtime, and a hash in a
+			directive makes the browser ignore 'unsafe-inline' in that same directive. Enabling it was
+			measured, not guessed: six of the seven style elements on the page stop applying, which is
+			all of ApexCharts.
+
+			frame-ancestors is missing on purpose: a meta-tag policy ignores it. It is in public/_headers,
+			which Cloudflare Pages serves as a real header, and which is the only place it can work.
 		*/}
 		{
 			import.meta.env.PROD && (
 				<meta
 					http-equiv="Content-Security-Policy"
-					content="connect-src 'self' https://classic.warcraftlogs.com; img-src 'self' data: https://wow.zamimg.com; form-action 'none'; base-uri 'none'"
+					content="default-src 'none'; script-src 'self' 'unsafe-inline' https://wow.zamimg.com; style-src 'self' 'unsafe-inline' https://wow.zamimg.com; img-src 'self' data: https://wow.zamimg.com; connect-src 'self' https://classic.warcraftlogs.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
 				/>
 			)
 		}
@@ -47,14 +78,32 @@ const { title, description } = Astro.props;
 			only way to say what a piece *is* comes from Wowhead, and their widget is how they publish
 			it. It attaches to any link pointing at one of their item or spell pages.
 
-			What this costs, stated plainly because the README makes a promise about it: hovering an
-			item tells wowhead.com that someone looked at that item. It is loaded from the same image
-			host the icons already come from, it is deferred so it never blocks the report, and it sees
-			nothing else on the page — no token, which lives in sessionStorage and is never in the DOM,
-			and no report code, which is in the URL but not passed to them.
+			What this costs, stated plainly because the README makes a promise about it: hovering an item
+			tells wowhead.com that someone looked at that item. It is loaded from the same image host the
+			icons already come from, and it is deferred so it never blocks the report.
 
-			Injected from a bundled module rather than written inline so the policy below can name
-			'self' instead of 'unsafe-inline'.
+			What it can reach is everything this page can reach, and the previous version of this comment
+			was wrong about that in the one way that matters. It claimed the widget sees no token because
+			the token is in sessionStorage and never enters the DOM. Not being in the DOM is not a
+			barrier: `power.js` is executed by us, in our origin, as first-party script, so
+			`sessionStorage.getItem('wcl.token')` returns the token to it exactly as it does to our own
+			code. Reading the token was never a DOM operation, so keeping it out of the DOM protects it
+			from nothing that runs here.
+
+			The policy above does not narrow that either — it *names* wow.zamimg.com in script-src, which
+			is the opposite of blocking it — and because Wowhead's own asset host is also in img-src and
+			style-src, a URL with the token in its query string is a way out of here as well. A CSP
+			cannot un-trust a script it has been told to trust. Loading this widget is a decision the
+			page makes about Wowhead, and the honest form of it is: we do not hand them the token or the
+			report code, and we believe they do not go looking; nothing enforces the second half.
+
+			Written as a processed script element so it is TypeScript and bundled, but note that
+			Astro inlines it into the HTML because it is small — so this is one of the inline scripts
+			that 'unsafe-inline' above is paying for, not an external file.
+
+			Tag names are spelled out rather than angle-bracketed throughout these comments on purpose:
+			oxlint slices .astro files by scanning for a script open tag, and a literal one inside a
+			comment sends it off parsing JavaScript from the middle of a sentence.
 		*/}
 		<script>
 			// The widget reads this before it initialises. Left plain: recolouring and renaming the

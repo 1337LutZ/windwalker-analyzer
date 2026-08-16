@@ -16,3 +16,7 @@ public/_devtoken.json
 # the three committed fixtures are made by renaming it. Left tracked it gets swept into whatever
 # commit is open when a capture runs, which is how a 25k-line orphan reached the history once.
 src/lib/__fixtures__/analysis.json
+
+# `wrangler pages dev dist` writes temp JavaScript here while exercising `public/_headers`, and
+# oxlint then fails on files nobody wrote.
+.wrangler/

@@ -1,0 +1,18 @@
+# Response headers for Cloudflare Pages. Astro copies public/ verbatim into dist/, and Pages reads
+# this file from the root of what it serves. It does nothing under `astro dev` or `astro preview`,
+# which serve static files and no header rules — use `wrangler pages dev dist` to exercise it.
+#
+# One directive lives here, and only because it cannot live anywhere else. The page's real policy is
+# the Content-Security-Policy <meta> tag in src/layouts/Base.astro, kept there so that "view source
+# and read the policy" stays the way a visitor checks the claim the README makes. But a meta-tag
+# policy ignores `frame-ancestors` outright — the browser parses the tag and drops that directive —
+# so the one rule that says "do not put this page inside someone else's frame" has to be a real
+# header or it is decoration.
+#
+# The two policies do not conflict and are not duplicates: a page under several policies must satisfy
+# all of them, so directives can be split across them, and none of them can be relaxed by a later
+# one. That is also why the rest of the policy is not repeated here — a second copy is a second thing
+# to forget, and a header that drifted from the meta tag would be enforced as the intersection of the
+# two, which fails looking like a bug in the app rather than like a stale header.
+/*
+  Content-Security-Policy: frame-ancestors 'none'
