@@ -3,8 +3,8 @@
 		"repo": "wowsims/mop",
 		"commit": "00b8d1968b54240c62b2546013008d66949764e5",
 		"committed": "2026-08-14T07:11:36.000Z",
-		"fromDatabase": 44,
-		"fromWowhead": 65
+		"fromDatabase": 46,
+		"fromWowhead": 72
 	},
 	"spells": {
 		"1": {
@@ -66,6 +66,10 @@
 		"32182": {
 			"name": "Heroism",
 			"icon": "ability_shaman_heroism"
+		},
+		"33697": {
+			"name": "Blood Fury",
+			"icon": "racial_orc_berserkerstrength"
 		},
 		"49868": {
 			"name": "Mind Quickening",
@@ -130,6 +134,22 @@
 		"101643": {
 			"name": "Transcendence",
 			"icon": "monk_ability_transcendence"
+		},
+		"105682": {
+			"name": "Mad Hozen Elixir",
+			"icon": "trade_alchemy_potionb1"
+		},
+		"105684": {
+			"name": "Elixir of the Rapids",
+			"icon": "trade_alchemy_potionb3"
+		},
+		"105688": {
+			"name": "Monk's Elixir",
+			"icon": "trade_alchemy_potionc1"
+		},
+		"105689": {
+			"name": "Flask of Spring Blossoms",
+			"icon": "trade_alchemy_potione3"
 		},
 		"105697": {
 			"name": "Virmen's Bite",
@@ -267,6 +287,10 @@
 			"name": "Leg Sweep",
 			"icon": "ability_monk_legsweep"
 		},
+		"119996": {
+			"name": "Transcendence: Transfer",
+			"icon": "spell_shaman_spectraltransformation"
+		},
 		"120032": {
 			"name": "Dancing Steel",
 			"icon": "trade_archaeology_zinrokh-sword"
@@ -294,6 +318,14 @@
 		"120954": {
 			"name": "Fortifying Brew",
 			"icon": "ability_monk_fortifyingale"
+		},
+		"121279": {
+			"name": "Lifeblood",
+			"icon": "spell_nature_wispsplodegreen"
+		},
+		"122278": {
+			"name": "Dampen Harm",
+			"icon": "ability_monk_dampenharm"
 		},
 		"122470": {
 			"name": "Touch of Karma",
@@ -426,6 +458,10 @@
 		"147891": {
 			"name": "Flurry of Xuen",
 			"icon": "monk_stance_whitetiger"
+		},
+		"148135": {
+			"name": "Chi Burst",
+			"icon": "spell_arcane_arcanetorrent"
 		},
 		"148187": {
 			"name": "Rushing Jade Wind",

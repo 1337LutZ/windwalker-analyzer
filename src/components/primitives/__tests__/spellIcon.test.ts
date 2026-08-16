@@ -53,4 +53,19 @@ describe('SpellIcon', () => {
 			expect(spellIconName(id), `no icon for ${id}`).not.toBeNull();
 		}
 	});
+
+	/**
+	 * The presses that are not abilities — a flask, a battle elixir, a potion, a profession on-use, a
+	 * racial — which are the ones the map keeps losing, because none of them is discovered the way a
+	 * spell in the rotation is. All four elixir ids reached `ABILITIES` and not one of them reached
+	 * this map, so the timeline drew a bare tick beside a press it could already name.
+	 *
+	 * Written out rather than derived from the generator's own sources: a test that read the list the
+	 * generator reads could only ever agree with it, and agreeing was never the failure.
+	 */
+	it('covers the off-GCD kit and the presses only a live log carries', () => {
+		for (const id of [6262, 33697, 105682, 105684, 105688, 105689, 105697, 121279, 122278, 126734]) {
+			expect(spellIconName(id), `no icon for ${id}`).not.toBeNull();
+		}
+	});
 });

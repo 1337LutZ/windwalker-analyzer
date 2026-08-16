@@ -27,7 +27,7 @@
 // the derived map also makes upstream drift *reviewable* — regenerating produces a diff, so a renamed
 // spell or a dropped id shows up in a pull request instead of silently changing what the page says.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -64,14 +64,27 @@ function idsFromSpec() {
 	return ids;
 }
 
-/** Whatever the captured fixtures actually contain, so real logs are covered as well as the model. */
+/**
+ * Whatever the captured fixtures actually contain, so real logs are covered as well as the model.
+ *
+ * Every `.json` in the fixture directory, read rather than a list of three names written out here.
+ * The list was the three fixtures that existed when this was written, and `waves`, `cleave` and
+ * `weave` were captured later without anyone thinking to extend it — so three real logs' worth of ids
+ * were being discovered from nowhere, and Blood Fury and the weaved elixirs drew no icon because of
+ * it. Reading the directory is what the docstring already promised, and it cannot go stale again.
+ *
+ * A file that is not an analysis simply contributes nothing: the `catch` skips anything unparseable
+ * and the field reads below skip anything shaped differently.
+ */
 function idsFromFixtures() {
 	const ids = new Set();
-	for (const name of ['strong', 'mixed', 'poor']) {
-		const path = resolve(ROOT, `src/lib/__fixtures__/${name}.json`);
+	const dir = resolve(ROOT, 'src/lib/__fixtures__');
+	for (const file of readdirSync(dir)
+		.filter((f) => f.endsWith('.json'))
+		.sort()) {
 		let analysis;
 		try {
-			analysis = JSON.parse(readFileSync(path, 'utf8'));
+			analysis = JSON.parse(readFileSync(resolve(dir, file), 'utf8'));
 		} catch {
 			continue;
 		}
@@ -93,11 +106,21 @@ function idsFromFixtures() {
  * model has no reason to know and no captured log ever contains. Without them listed here the two
  * branches beside Chi Wave would be the only cards on the page with no icon.
  *
+ * Lifeblood (121279) and Dampen Harm (122278) are here for the opposite reason: a monk presses both,
+ * the cast timeline draws both, and neither is anything the spec model has cause to carry — Lifeblood
+ * is the herbalism on-use and Dampen Harm is a defensive talent, so neither is scored and neither is
+ * kit the rotation arbitrates. No captured fixture holds them either, which is the whole difficulty:
+ * they are ordinary buttons that simply did not happen in the six pulls that got captured. Both are
+ * in the reference logs, counted from the monk's own casts and nobody else's: 34 Lifeblood and 12
+ * Dampen Harm across a:LhYtyq8xFR9pG6mg, and 8 Dampen Harm across a:YBQzrcgVJnAj7NMP. So this is a
+ * measurement rather than a guess about what someone might press. Listing them costs two entries and
+ * stops the timeline drawing a bare tick where a real press went out.
+ *
  * These are seeds, not answers: they only add the id to the work list, and the sources below resolve
- * it like any other. Both happen to be modelled in `db.spellIcons`, so the database supplies the name
- * and icon that used to be hardcoded.
+ * it like any other. All four happen to be modelled in `db.spellIcons`, so the database supplies the
+ * name and icon that used to be hardcoded.
  */
-const SEED_IDS = [123986, 124081];
+const SEED_IDS = [121279, 122278, 123986, 124081];
 
 /**
  * Ids no source can answer correctly, with the answer to use instead.
