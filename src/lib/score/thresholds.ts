@@ -94,9 +94,39 @@ export const THRESHOLDS = {
 	 *
 	 * So they are deliberately left alone. Re-cutting them here would be tuning a new measurement to
 	 * the sample that produced the old one, and doing it silently is how a threshold stops being
-	 * arguable. The honest fix is mode-aware — `Analysis.targets.detected` now says which kind of pull
-	 * it was — and that is a decision to take deliberately, with a population per mode, rather than a
-	 * side effect of changing what is measured.
+	 * arguable.
+	 *
+	 * **The mode-aware fix this note used to propose has since been measured, and the sample refuses
+	 * it.** 92 Windwalker pulls across three anonymous reports, 81 of them long enough to grade — 60
+	 * seconds of contact and eight kicks or more — read:
+	 *
+	 *     detected single   n=41   min 59.2  q25 88.5  median 94.0  q75 96.6  max 100.0
+	 *     detected multi    n=40   min 56.2  q25 70.4  median 87.0  q75 93.3  max  98.8
+	 *
+	 * Seven points apart at the median, which looks like the band this note went looking for and is
+	 * not one. The gap is composition rather than mode. Which *encounter* a pull was explains 80.0% of
+	 * the variance in uptime across the fourteen encounters in it; the detected mode explains 12.6%,
+	 * and adding mode on top of encounter moves 80.0% to 80.6%. In the five encounters that produced both
+	 * readings the single pulls beat the multi ones by 1.4 points on average and two of the five run
+	 * the other way; centre each encounter on its own mean and the two residual medians are 1.0 and
+	 * 0.9. So `multi` is not a second mode — it is the same distribution with a handful of specific
+	 * fights hanging off the bottom of it. Spoils of Pandaria medians 64.5, Galakras 69.3 and Fallen
+	 * Protectors 79.0, while Kor'kron Dark Shaman (90.8), Siegecrafter Blackfuse (90.6) and General
+	 * Nazgrim (95.6) are read multi too and sit exactly where the single-target pulls sit. 28 of the
+	 * 40 multi pulls are at or above 80%, spread over nine encounters.
+	 *
+	 * And the worst-grading fight in the sample is read `single`: Immerseus, three pulls at
+	 * 56.2/59.2/59.7, a contact-weighted mean of 1.1 enemies. Its puddles die inside the cooldown one
+	 * at a time — the fault this note blamed on add fights — and no multi-target band would reach it.
+	 *
+	 * A band cut from the multi group's own quartiles would be 93.3/70.4. It grades that group good
+	 * 10 / ok 21 / bad 9: a floor 31 of the 40 clear, which is exactly the `gcdUtilisation` failure
+	 * three entries up — a line nothing reaches only ever flatters. And it still could not tell an
+	 * 81.4% General Nazgrim, the *worst* pull on an encounter whose median is 95.6, from an 80.6%
+	 * Galakras, the *best* pull on one whose median is 69.3. A point apart, opposite ends of their own
+	 * fights, and identical under any band keyed on the mode. So the bands stay at 95/88 for every
+	 * reading, and the split they would have keyed on is recorded here as measured and rejected rather
+	 * than left standing as an open invitation.
 	 */
 	rskUptime: { good: 95, ok: 88, higherIsBetter: true },
 
@@ -210,11 +240,15 @@ export const WEIGHTS: Record<MetricKey, number> = {
  *
  * **`rskUptime` drops from 2 to 1, and its thresholds are deliberately left alone.** Uptime on one
  * target is a smaller part of the story when the player is correctly spreading damage, so it should
- * count for less. Re-banding it is the tempting second move and is not taken here: there are two
- * multi-target pulls in the fixtures, and a threshold derived from n=2 is the kind of number the rest
- * of this file argues against. The measured pair is 80.6% and 87.0% against a single-target
- * 90.7/95.4/99.4, so a real band plainly sits lower — finding it needs a sweep over every add fight
- * in the reference reports, not a guess from two.
+ * count for less. Re-banding it is the tempting second move and is still not taken — no longer for
+ * want of a sample. The sweep this note asked for has been run, over 92 pulls in three anonymous
+ * reports, and it says the mode is not the axis; the derivation is above `rskUptime`. The two
+ * fixtures that made the case for a lower band turn out to have been drawn from opposite ends of
+ * their own encounters: 80.6% is the *best* of four Galakras pulls (63.2/68.3/70.4/80.6) and 87.0% is
+ * below the median of four Dark Shaman ones (61.7/87.0/94.5/95.3), so the pair bracketed a line that
+ * neither fight's own distribution supports. The weight stays at 1 regardless — it is a claim about
+ * how much a one-target number should matter when the job is spreading, not a claim about where add
+ * fights land, and nothing in the sweep touches it.
  */
 export const MULTI_TARGET_WEIGHTS: Partial<Record<MetricKey, number>> = {
 	tigerPalmWaste: 1,
