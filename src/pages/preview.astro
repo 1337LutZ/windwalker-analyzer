@@ -9,8 +9,12 @@ import Base from '~/layouts/Base.astro';
 import mixed from '~/lib/__fixtures__/mixed.json';
 import poor from '~/lib/__fixtures__/poor.json';
 import strong from '~/lib/__fixtures__/strong.json';
+// The only captured pull that weaves an elixir behind a brew, and therefore the only one on which
+// the Re-Origination weave renders at all. Without it the harness cannot show the case, which is how
+// a weave bug stays invisible to everyone checking the preview.
+import weave from '~/lib/__fixtures__/weave.json';
 
-const fixtures = { poor, mixed, strong } as never;
+const fixtures = { poor, mixed, strong, weave } as never;
 ---
 
 <Base title="Report preview" description="Fixture-driven render for chart and copy validation.">
