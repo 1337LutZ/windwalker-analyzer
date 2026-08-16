@@ -112,8 +112,14 @@ export default function FlowNode({
 				{/* The question. `rotation.field.when` labels it — the same three words that label the long
 				    version of the same condition inside the panel, so the short line and the paragraph are
 				    visibly two lengths of one thing rather than two different claims. */}
+				{/* `basis-0` on both halves, so the row splits evenly rather than letting the question take
+				    whatever the button did not want. With the question on `flex-1` against a fixed `w-72`
+				    button, a 1040px article gave the question about 710px and the button 288 — two and a half
+				    to one, with the widest box being the one that is only a label and the narrowest the one
+				    the reader is meant to press. The `test` strings are capped at 64 characters, so half a row
+				    is already more than any of them needs. */}
 				<div
-					className={`flex min-w-0 flex-1 items-start gap-2.5 rounded-sm border border-line bg-bg px-3 py-2.5 ${horizontal ? 'lg:items-center' : ''}`}
+					className={`flex min-w-0 flex-1 items-start gap-2.5 rounded-sm border border-line bg-bg px-3 py-2.5 ${horizontal ? 'lg:basis-0 lg:items-center' : ''}`}
 				>
 					<span aria-hidden="true" className="mt-1.5 h-2 w-2 shrink-0 rotate-45 border border-muted" />
 					<span className="flex min-w-0 flex-col gap-0.5">
@@ -129,7 +135,7 @@ export default function FlowNode({
 				{/* The button the answer presses. It is the interactive half of the rung, so it is the one
 				    that discloses the prose: a reader who wants to know why presses the thing they were
 				    being told to press. */}
-				<Heading className={`m-0 ${horizontal ? 'lg:w-72 lg:shrink-0' : ''}`}>
+				<Heading className={`m-0 ${horizontal ? 'lg:min-w-72 lg:flex-1 lg:basis-0' : ''}`}>
 					<button
 						type="button"
 						id={buttonId}
