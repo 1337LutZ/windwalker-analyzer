@@ -19,7 +19,7 @@ const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
 
 const render = (analysis: Analysis, mode: TargetMode | null = null) =>
-	renderToStaticMarkup(createElement(RushingJadeWind, { analysis, mode }));
+	renderToStaticMarkup(createElement(RushingJadeWind, { analysis, mode, forcedMode: mode }));
 
 /** React escapes apostrophes in a text node, so copy carrying one has to be escaped to match. */
 const escaped = (copy: string) => copy.replace(/'/g, '&#x27;');
@@ -31,6 +31,7 @@ describe('Rushing Jade Wind section', () => {
 		expect(html).toContain(t('jadeWind.kpi.opportunities'));
 		expect(html).toContain('>32<');
 		expect(html).toContain(escaped(t('jadeWind.summaryNoTargets', { presses: 32 })));
+		expect(html).toContain(t('jadeWind.decisions.caption'));
 	});
 
 	/**

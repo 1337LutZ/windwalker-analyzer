@@ -251,6 +251,7 @@ export default function Report({ analysis, targetChoice }: { analysis: Analysis;
 	// the reader asked for and the mode is what that means for this pull, and only the pull knows what
 	// `auto` resolves to.
 	const { mode } = resolveTargetMode(analysis.targets?.detected, targetChoice);
+	const forcedMode = targetChoice === 'auto' ? null : mode;
 	// The sections this pull actually renders, and the list the nav is built from — one array, so a
 	// section that declines to appear cannot leave a link behind pointing at a heading that is not
 	// there. Memoised because `SectionNav` observes whatever it is handed and rebuilds its observer
@@ -294,13 +295,13 @@ export default function Report({ analysis, targetChoice }: { analysis: Analysis;
 						// reference has to arrive at a list that contained the button, and the button's own section
 						// has to agree with the ladder about whether the list wanted it.
 						id === 'priority' ? (
-							<PriorityLadder key={id} analysis={analysis} mode={mode} />
+							<PriorityLadder key={id} analysis={analysis} forcedMode={forcedMode} />
 						) : id === 'rotation' ? (
 							<Rotation key={id} analysis={analysis} mode={mode} />
 						) : id === 'jade-wind' ? (
-							<RushingJadeWind key={id} analysis={analysis} mode={mode} />
+							<RushingJadeWind key={id} analysis={analysis} mode={mode} forcedMode={forcedMode} />
 						) : id === 'blackout-kick' ? (
-							<BlackoutKick key={id} analysis={analysis} mode={mode} />
+							<BlackoutKick key={id} analysis={analysis} forcedMode={forcedMode} />
 						) : (
 							<Component key={id} analysis={analysis} />
 						),

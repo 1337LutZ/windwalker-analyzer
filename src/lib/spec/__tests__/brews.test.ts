@@ -142,7 +142,9 @@ describe('Energizing Brew', () => {
 				...timeWarp(5000, 45000),
 				...energizingBrew(10000),
 				e(2000, 'cast', 116847),
-				// An even split, so the pull reads as multi-target rather than as one enemy plus strays.
+				// Direct hits establish the live target count; RJW's own damage must not create that evidence.
+				e(7000, 'damage', 1, { targetID: BOSS, amount: 10000, hitType: 1 }),
+				e(7000, 'damage', 1, { targetID: 21, amount: 10000, hitType: 1 }),
 				e(3000, 'damage', 148187, { targetID: BOSS, amount: 20000, hitType: 1 }),
 				e(3000, 'damage', 148187, { targetID: 21, amount: 20000, hitType: 1 }),
 			]),
@@ -150,6 +152,8 @@ describe('Energizing Brew', () => {
 
 		expect(a.debuff.singleTarget).toBe(false);
 		expect(a.energizing?.rushingJadeWind).toBe(true);
+		expect(a.energizing?.hasteRjwEligible).toBe(true);
+		expect(a.energizing?.hasteRjwUses).toBe(1);
 		expect(a.energizing?.duringHaste).toBe(1);
 		expect(a.energizing?.faulted).toBe(0);
 	});
@@ -160,6 +164,8 @@ describe('Energizing Brew', () => {
 
 		expect(a.debuff.singleTarget).toBe(true);
 		expect(a.energizing?.rushingJadeWind).toBe(true);
+		expect(a.energizing?.hasteRjwEligible).toBe(false);
+		expect(a.energizing?.hasteRjwUses).toBe(0);
 		expect(a.energizing?.faulted).toBe(1);
 		expect(a.energizing?.uses[0]?.faults[0]).toContain('more than one');
 	});

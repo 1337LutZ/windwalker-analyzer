@@ -31,7 +31,13 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * out-of-order presses are acceptable, and neither the sim nor the priority list contains such a
  * number — the ladder is a description of what the list wanted, not a target to hit.
  */
-export default function PriorityLadder({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
+export default function PriorityLadder({
+	analysis,
+	forcedMode,
+}: {
+	analysis: Analysis;
+	forcedMode?: TargetMode | null;
+}) {
 	const { t } = useReportCopy(analysis);
 	/**
 	 * The audit this reading calls for.
@@ -49,7 +55,7 @@ export default function PriorityLadder({ analysis, mode }: { analysis: Analysis;
 	 * Falls back to the natural audit when a report predates `aplForced`, which keeps an older analysis
 	 * rendering rather than showing a reader a refusal caused by the shape of the file they loaded.
 	 */
-	const forced = bandForMode(mode ?? null);
+	const forced = bandForMode(forcedMode ?? null);
 	const apl = forced === null ? analysis.apl : (analysis.aplForced?.[forced] ?? analysis.apl);
 
 	const rows = useMemo<GridRow[]>(
@@ -112,9 +118,9 @@ export default function PriorityLadder({ analysis, mode }: { analysis: Analysis;
 			    without knowing which list produced them. Attributed to the reader's choice — "you are
 			    reading this pull as" — because that is what it is. The copy this replaced asserted a
 			    property of the pull instead, and said it even when the reader had picked the mode. */}
-			{forced === null ? null : (
+			{forcedMode === null || forcedMode === undefined ? null : (
 				<div className="mt-5">
-					<Note>{t(mode === 'single' ? 'priority.forced_single' : 'priority.forced_multi')}</Note>
+					<Note>{t(forcedMode === 'single' ? 'priority.forced_single' : 'priority.forced_multi')}</Note>
 				</div>
 			)}
 

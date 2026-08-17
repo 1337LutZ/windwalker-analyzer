@@ -19,7 +19,7 @@ const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
 
 const render = (analysis: Analysis, mode: TargetMode | null = null) =>
-	renderToStaticMarkup(createElement(BlackoutKick, { analysis, mode }));
+	renderToStaticMarkup(createElement(BlackoutKick, { analysis, forcedMode: mode }));
 
 /** React escapes apostrophes in a text node, so copy carrying one has to be escaped to match. */
 const escaped = (copy: string) => copy.replace(/'/g, '&#x27;');

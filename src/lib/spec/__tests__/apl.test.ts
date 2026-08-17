@@ -276,10 +276,14 @@ describe('the priority ladder', () => {
 		expect(long?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'blackout-kick' });
 
 		const short = aplAudit(inputs({ ...base, pullMs: 60_000 }));
-		expect(short?.presses[1]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind' });
+		expect(short?.presses[1]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind', reason: 'short-pull' });
 
 		// The same long pull half a second from the cap: the wind is what the list spends the overflow on.
 		const capping = aplAudit(inputs({ ...base, energy: flat(100, 95) }));
-		expect(capping?.presses[1]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind' });
+		expect(capping?.presses[1]).toMatchObject({
+			verdict: 'followed',
+			wanted: 'rushing-jade-wind',
+			reason: 'energy-cap',
+		});
 	});
 });

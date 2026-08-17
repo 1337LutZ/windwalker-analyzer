@@ -10,8 +10,9 @@
 // section's press count.
 
 import { intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
+import { makeLinker } from '~/lib/analysis/links';
 import { gradeOf, type Grade } from '~/lib/score';
-import type { AplAudit } from '~/lib/spec/apl';
+import type { AplAudit, AplRuleKey, AplRuleReason } from '~/lib/spec/apl';
 import type { Analysis } from '~/lib/types';
 
 import { excludedButtons, pressedButtons } from './rotationFlow';
@@ -19,6 +20,7 @@ import { excludedButtons, pressedButtons } from './rotationFlow';
 /** The button's cast id, which is also the buff's — the lane key and the ladder both key on it. */
 export const RJW_CAST_ID = 116_847;
 const RJW_DAMAGE_ID = 148_187;
+const RJW_RULES = new Set<AplRuleKey>(['rushing-jade-wind-open', 'rushing-jade-wind']);
 
 /** Invoke Xuen: the other half of the level-90 talent row, and the usual proof the wind was not taken. */
 const INVOKE_XUEN_ID = 123_904;
@@ -75,6 +77,18 @@ export interface JadeWindLadder {
 	choiceRate: number | null;
 	/** Grade for the decision adherence card. */
 	choiceGrade: Grade | null;
+	actualPresses: number;
+	netOveruse: number;
+	decisions: JadeWindDecision[];
+}
+
+export interface JadeWindDecision {
+	at: number;
+	link: string | null;
+	kind: 'press' | 'missed';
+	verdict: 'followed' | 'skipped' | 'off-list' | 'unknown' | 'missed';
+	wanted: AplRuleKey | null;
+	reason: AplRuleReason | null;
 }
 
 export interface JadeWindReading {
@@ -139,7 +153,7 @@ function measure(analysis: Analysis): JadeWindMeasurement | null {
  * second copy of the ladder's own rule set, free to fall out of step with it the day a third entry
  * appears. `skippedBy` publishes the id for exactly this kind of reader.
  */
-function ladderOf(apl: AplAudit | null | undefined): JadeWindLadder | null {
+function ladderOf(analysis: Analysis, apl: AplAudit | null | undefined): JadeWindLadder | null {
 	if (apl === null || apl === undefined) return null;
 	const own = apl.presses.filter((p) => p.pressed === RJW_CAST_ID);
 	const followed = own.filter((p) => p.verdict === 'followed').length;
@@ -149,6 +163,41 @@ function ladderOf(apl: AplAudit | null | undefined): JadeWindLadder | null {
 	const wanted = apl.skippedBy.filter((s) => s.id === RJW_CAST_ID).reduce((sum, s) => sum + s.count, 0);
 	const scored = followed + skipped + offList + wanted;
 	const choiceRate = unknown > 0 || scored === 0 ? null : (followed / scored) * 100;
+	const link =
+		analysis.fightStartMs === undefined
+			? null
+			: makeLinker({
+					code: analysis.code,
+					fightID: analysis.fightID,
+					sourceID: analysis.actorID,
+					fightStart: analysis.fightStartMs,
+				});
+	const decisions: JadeWindDecision[] = apl.presses
+		.flatMap((press) => {
+			const rows: JadeWindDecision[] = [];
+			if (press.pressed === RJW_CAST_ID) {
+				rows.push({
+					at: press.t,
+					link: link?.(press.t) ?? null,
+					kind: 'press',
+					verdict: press.verdict,
+					wanted: press.wanted,
+					reason: press.reason ?? null,
+				});
+			}
+			if (press.verdict === 'skipped' && press.wanted !== null && RJW_RULES.has(press.wanted)) {
+				rows.push({
+					at: press.t,
+					link: link?.(press.t) ?? null,
+					kind: 'missed',
+					verdict: 'missed',
+					wanted: press.wanted,
+					reason: press.reason ?? null,
+				});
+			}
+			return rows;
+		})
+		.sort((a, b) => a.at - b.at || (a.kind === 'press' ? -1 : 1));
 	return {
 		followed,
 		skipped,
@@ -159,6 +208,9 @@ function ladderOf(apl: AplAudit | null | undefined): JadeWindLadder | null {
 		offList,
 		choiceRate,
 		choiceGrade: choiceRate === null ? null : gradeOf(RJW_CHOICE_THRESHOLD, choiceRate),
+		actualPresses: own.length,
+		netOveruse: own.length - (followed + wanted),
+		decisions,
 	};
 }
 
@@ -176,6 +228,6 @@ export function readJadeWind(analysis: Analysis, apl: AplAudit | null | undefine
 		// Only measured for a monk who had the button. Running the arithmetic on a pull that proves the
 		// talent was not taken would produce a truthful 0% that reads as a fault.
 		measured: talent.state === 'taken' ? measure(analysis) : null,
-		ladder: ladderOf(apl),
+		ladder: ladderOf(analysis, apl),
 	};
 }

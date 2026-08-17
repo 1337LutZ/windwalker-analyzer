@@ -24,6 +24,7 @@ const SECTION_ANCHOR: Record<string, string> = {
 	casts: 'cpm',
 	debuff: 'debuff',
 	tigerPalm: 'tiger-palm',
+	energizingBrew: 'energizing',
 	// The one card whose section is not a section. Nothing on the page argues the potion count in prose
 	// — the evidence is the potion's own row on the timeline, including the bar that starts at the pull
 	// because the buff did — so that is where the reader is sent.
@@ -33,11 +34,20 @@ const SECTION_ANCHOR: Record<string, string> = {
 /** How many cards is a summary rather than a second report. */
 const CARDS = 3;
 
-interface Takeaway {
+interface MetricTakeaway {
+	kind: 'metric';
 	metric: Metric;
 	section: string;
 	weight: number;
 }
+
+interface AdviceTakeaway {
+	kind: 'advice';
+	key: 'energizingBrewRjw';
+	section: 'energizingBrew';
+}
+
+type Takeaway = MetricTakeaway | AdviceTakeaway;
 
 /**
  * How far past its threshold a metric sits, as a share of the band it missed.
@@ -90,7 +100,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 
 	const takeaways = useMemo<Takeaway[]>(() => {
 		const weights = weightsFor(mode);
-		const all: Takeaway[] = [];
+		const all: MetricTakeaway[] = [];
 		for (const [section, score] of Object.entries(card.sections)) {
 			for (const metric of score.metrics) {
 				if (metric.unmeasurable || metric.grade === 'good') continue;
@@ -98,10 +108,10 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 				// A metric the model does not count cannot lead the summary either. Zero weight is a
 				// statement that the number should not move a verdict, and a card is a verdict.
 				if (weight === 0) continue;
-				all.push({ metric, section, weight });
+				all.push({ kind: 'metric', metric, section, weight });
 			}
 		}
-		return all
+		const metricTakeaways = all
 			.sort(
 				(a, b) =>
 					GRADE_ORDER.indexOf(a.metric.grade) - GRADE_ORDER.indexOf(b.metric.grade) ||
@@ -109,7 +119,17 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 					shortfall(b.metric) - shortfall(a.metric),
 			)
 			.slice(0, CARDS);
-	}, [card, mode]);
+		const energizing = analysis.energizing;
+		const energizingAdvice =
+			energizing?.rushingJadeWind === true &&
+			energizing.hasteWindows.length > 0 &&
+			energizing.duringHaste === 0 &&
+			energizing.hasteRjwEligible === true &&
+			energizing.hasteRjwUses === 0
+				? [{ kind: 'advice' as const, key: 'energizingBrewRjw' as const, section: 'energizingBrew' as const }]
+				: [];
+		return [...energizingAdvice, ...metricTakeaways].slice(0, CARDS);
+	}, [analysis.energizing, card, mode]);
 
 	if (takeaways.length === 0) {
 		return (
@@ -128,29 +148,36 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 				{t('summary.takeaways.title', { context: card.overall })}
 			</h3>
 			<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-3">
-				{takeaways.map(({ metric, section }) => {
+				{takeaways.map((takeaway) => {
+					const section = takeaway.section;
 					const anchor = SECTION_ANCHOR[section];
 					return (
 						<li
-							key={metric.key}
+							key={takeaway.kind === 'metric' ? takeaway.metric.key : takeaway.key}
 							// Bordered on the side by the grade rather than filled with it: three filled cards at
 							// the top of the report read as an error state, and two of these are usually amber.
 							className={`flex flex-col gap-2 rounded-sm border border-line ${
-								metric.grade === 'bad' ? 'border-l-2 border-l-miss' : 'border-l-2 border-l-brew'
+								takeaway.kind === 'metric' && takeaway.metric.grade === 'bad'
+									? 'border-l-2 border-l-miss'
+									: 'border-l-2 border-l-brew'
 							} bg-surface p-3.5`}
 						>
 							<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
-								{t(`summary.takeaways.metric.${metric.key}.label`)}
+								{takeaway.kind === 'metric'
+									? t(`summary.takeaways.metric.${takeaway.metric.key}.label`)
+									: t('summary.takeaways.metric.energizingBrewRjw.label')}
 							</span>
 							<span className="text-sm text-ink-2">
-								{t(`summary.takeaways.metric.${metric.key}.fix`, {
-									value: metric.value,
-									target: metric.good,
-									// The metric's own wording variant, for the few whose number is the same on two pulls
-									// that need different advice. `undefined` on almost all of them, which selects the base
-									// key — see `Metric.context`.
-									context: metric.context,
-								})}
+								{takeaway.kind === 'metric'
+									? t(`summary.takeaways.metric.${takeaway.metric.key}.fix`, {
+											value: takeaway.metric.value,
+											target: takeaway.metric.good,
+											// The metric's own wording variant, for the few whose number is the same on two pulls
+											// that need different advice. `undefined` on almost all of them, which selects the base
+											// key — see `Metric.context`.
+											context: takeaway.metric.context,
+										})
+									: t('summary.takeaways.metric.energizingBrewRjw.fix')}
 							</span>
 							{anchor === undefined ? null : (
 								<a

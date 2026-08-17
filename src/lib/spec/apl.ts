@@ -139,6 +139,9 @@ export type AplVerdict =
 	/** Not a rotational button — a cooldown, a defensive, a taunt. Never a fault. */
 	| 'off-list';
 
+/** The concrete conditions that can make Rushing Jade Wind the selected rule. */
+export type AplRuleReason = 'multi-target' | 'short-pull' | 'energy-cap';
+
 export interface AplPress {
 	/** Fight-relative ms, like every other timestamp in this report. */
 	t: number;
@@ -146,6 +149,8 @@ export interface AplPress {
 	pressed: number;
 	/** What the list wanted instead, when the press was a skip. */
 	wanted: AplRuleKey | null;
+	/** The concrete reason for the selected rule, when this is an RJW rule. */
+	reason?: AplRuleReason | null;
 	verdict: AplVerdict;
 }
 
@@ -726,6 +731,12 @@ function affordable(rule: Rule, state: State, auras: AuraReader, reduction: numb
 	return state.chi >= chi && state.energy >= rule.energyCost;
 }
 
+function reasonFor(rule: Rule, state: State): AplRuleReason | null {
+	if (rule.key === 'rushing-jade-wind-open') return 'multi-target';
+	if (rule.key !== 'rushing-jade-wind') return null;
+	return state.pullMs < SHORT_PULL_MS ? 'short-pull' : 'energy-cap';
+}
+
 /**
  * What the list wanted at this press, and whether the press was it.
  *
@@ -758,21 +769,22 @@ function judge(
 		if (wants === 'unknown') {
 			// A rule the press itself satisfies is not worth stopping for: pressing the button the list
 			// might have wanted cannot be the mistake the unknown is hiding.
-			if (rule.id === cast.id) return { t: state.t, pressed: cast.id, wanted: rule.key, verdict: 'followed' };
-			return { t: state.t, pressed: cast.id, wanted: null, verdict: 'unknown' };
+			if (rule.id === cast.id)
+				return { t: state.t, pressed: cast.id, wanted: rule.key, reason: reasonFor(rule, state), verdict: 'followed' };
+			return { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'unknown' };
 		}
 		if (!wants) continue;
 		if (!affordable(rule, state, auras, reduction)) continue;
 
 		return rule.id === cast.id
-			? { t: state.t, pressed: cast.id, wanted: rule.key, verdict: 'followed' }
-			: { t: state.t, pressed: cast.id, wanted: rule.key, verdict: 'skipped' };
+			? { t: state.t, pressed: cast.id, wanted: rule.key, reason: reasonFor(rule, state), verdict: 'followed' }
+			: { t: state.t, pressed: cast.id, wanted: rule.key, reason: reasonFor(rule, state), verdict: 'skipped' };
 	}
 
 	// Nothing on the ladder wanted the global. A cooldown, a defensive, a taunt — or a rotational
 	// button the player could not afford, which is a resource problem the energy and chi sections
 	// already argue about rather than a priority mistake.
-	return { t: state.t, pressed: cast.id, wanted: null, verdict: 'off-list' };
+	return { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'off-list' };
 }
 
 /**

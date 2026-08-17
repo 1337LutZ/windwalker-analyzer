@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatDecimal } from '~/lib/format';
+import { formatClock, formatDecimal } from '~/lib/format';
 import type { Analysis, TargetMode } from '~/lib/types';
 import { readJadeWind } from '~/lib/view/jadeWind';
 import { bandForMode } from '~/lib/view/targetMode';
 
-import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primitives';
+import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '../primitives';
+import LogLink from './LogLink';
 
 /**
  * Rushing Jade Wind: the target fan-out and the priority-list opportunities for the button.
@@ -18,7 +19,15 @@ import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primiti
  * and how often the priority list offered it. The ladder is quoted rather than recomputed so this
  * section and the priority section cannot disagree.
  */
-export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
+export default function RushingJadeWind({
+	analysis,
+	mode,
+	forcedMode,
+}: {
+	analysis: Analysis;
+	mode?: TargetMode | null;
+	forcedMode?: TargetMode | null;
+}) {
 	const { t } = useReportCopy(analysis);
 
 	/**
@@ -29,9 +38,49 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 	 * two — so a section that picked its own band would contradict the section that counts the skips.
 	 * `bandForMode` is the single answer both of them ask for.
 	 */
-	const forced = bandForMode(mode ?? null);
+	const readingBand = bandForMode(mode ?? null);
+	const forced = bandForMode(forcedMode ?? null);
 	const apl = forced === null ? analysis.apl : (analysis.aplForced?.[forced] ?? analysis.apl);
 	const { talent, measured, ladder } = useMemo(() => readJadeWind(analysis, apl), [analysis, apl]);
+	const decisionRows = useMemo<GridRow[]>(
+		() =>
+			(ladder?.decisions ?? []).map((decision, index) => ({
+				key: `${decision.at}-${decision.kind}-${index}`,
+				band: decision.verdict === 'followed' ? undefined : ('warn' as const),
+				cells: {
+					at: decision.link ? (
+						<LogLink href={decision.link}>{formatClock(decision.at)}</LogLink>
+					) : (
+						formatClock(decision.at)
+					),
+					event:
+						decision.kind === 'missed'
+							? t('jadeWind.decisions.cells.missed')
+							: decision.verdict === 'followed'
+								? t('jadeWind.decisions.cells.used')
+								: decision.verdict === 'unknown'
+									? t('jadeWind.decisions.cells.unknown')
+									: t('jadeWind.decisions.cells.overused'),
+					reason:
+						decision.kind === 'missed'
+							? decision.reason === 'multi-target'
+								? t('jadeWind.decisions.cells.multiTarget')
+								: decision.reason === 'short-pull'
+									? t('jadeWind.decisions.cells.shortPull')
+									: decision.reason === 'energy-cap'
+										? t('jadeWind.decisions.cells.energyCap')
+										: t('jadeWind.decisions.cells.missedReason')
+							: decision.verdict === 'skipped' && decision.wanted !== null
+								? t(`priority.rule.${decision.wanted}`)
+								: decision.verdict === 'off-list'
+									? t('jadeWind.decisions.cells.noOpportunity')
+									: decision.verdict === 'unknown'
+										? t('jadeWind.decisions.cells.unknownReason')
+										: t('jadeWind.decisions.cells.usedReason'),
+				},
+			})),
+		[ladder, t],
+	);
 
 	return (
 		<Section id="jade-wind" title={t('jadeWind.title')}>
@@ -55,7 +104,7 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
-							{forced === 1 ? (
+							{readingBand === 1 ? (
 								<StatTile value={t('jadeWind.choice.value')} label={t('jadeWind.choice.label')} grade="bad" />
 							) : null}
 							<StatTile
@@ -88,6 +137,9 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 										used: ladder.followed,
 										opportunities: ladder.opportunities,
 									})}
+							{ladder !== null && ladder.netOveruse > 0
+								? ` ${t('jadeWind.overuse', { extra: ladder.netOveruse })}`
+								: null}
 						</Prose>
 
 						{/* The opportunity counts come from the same ladder as the priority section. */}
@@ -107,10 +159,23 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 							</Prose>
 						)}
 
+						{decisionRows.length === 0 ? null : (
+							<DataGrid
+								caption={t('jadeWind.decisions.caption')}
+								minWidth="520px"
+								columns={[
+									{ key: 'at', label: t('jadeWind.decisions.columns.at'), width: '90px' },
+									{ key: 'event', label: t('jadeWind.decisions.columns.event'), width: '190px' },
+									{ key: 'reason', label: t('jadeWind.decisions.columns.reason'), card: 'wide' },
+								]}
+								rows={decisionRows}
+							/>
+						)}
+
 						{/* Said where the verdicts are, not only at the control at the top of the page: by the
 						    time a reader reaches this section the toggle is off screen, and at one target this
 						    button's whole position in the list changes. */}
-						{forced === 1 ? <Note>{t('jadeWind.singleTarget')}</Note> : null}
+						{readingBand === 1 ? <Note>{t('jadeWind.singleTarget')}</Note> : null}
 						<Note>{t('jadeWind.notGraded')}</Note>
 					</div>
 				</>

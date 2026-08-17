@@ -5,7 +5,7 @@ import { formatClock, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import { EnergizingBrewTrack } from '../charts';
-import { DataGrid, Note, Prose, Section, type GridRow } from '../primitives';
+import { Callout, DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 import LogLink from './LogLink';
 
 /**
@@ -85,7 +85,14 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 
 	// Faulted first: a single press the rotation would have held is the thing worth saying, and it
 	// outranks the fact that others went out under a haste cooldown legitimately.
-	const hasteContext = energizing.faulted > 0 ? 'bad' : energizing.duringHaste > 0 ? 'ok' : 'good';
+	const hasteContext =
+		energizing.faulted > 0
+			? energizing.rushingJadeWind
+				? 'bad_rjw'
+				: 'bad'
+			: energizing.duringHaste > 0
+				? 'ok'
+				: 'good';
 
 	return (
 		<Section id="energizing" title={t('energizingBrew.title')}>
@@ -109,6 +116,24 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 					</Prose>
 				) : null}
 			</div>
+
+			<div className="mt-4.5">
+				<StatTiles>
+					<StatTile
+						value={`${energizing.casts}`}
+						suffix={` / ${energizing.available}`}
+						label={t('energizingBrew.kpi.uses')}
+					/>
+				</StatTiles>
+			</div>
+
+			{energizing.hasteRjwEligible && energizing.hasteRjwUses === 0 ? (
+				<div className="mt-4">
+					<Callout tone="brew" title={t('energizingBrew.recommendation.title')}>
+						<p className="m-0">{t('energizingBrew.recommendation.body')}</p>
+					</Callout>
+				</div>
+			) : null}
 
 			{energizing.casts === 0 ? (
 				<div className="mt-5">

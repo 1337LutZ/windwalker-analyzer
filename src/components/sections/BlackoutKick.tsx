@@ -28,7 +28,7 @@ import LogLink from './LogLink';
  * pulls. And encounter alone explains 30.7% of the variance, with single fights spreading as wide as
  * the sample. Starvation has no target either: following the list does not produce zero.
  */
-export default function BlackoutKick({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
+export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analysis; forcedMode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);
 
 	/**
@@ -39,7 +39,7 @@ export default function BlackoutKick({ analysis, mode }: { analysis: Analysis; m
 	 * Only the *ladder* half of the reading uses it. The starved kicks are computed off the chi bar in
 	 * the engine and are the same at every band, which the note beside them says out loud.
 	 */
-	const forced = bandForMode(mode ?? null);
+	const forced = bandForMode(forcedMode ?? null);
 	const apl = forced === null ? analysis.apl : (analysis.aplForced?.[forced] ?? analysis.apl);
 	const { casts, procs, ladder, starve } = useMemo(() => readBlackoutKick(analysis, apl), [analysis, apl]);
 
@@ -244,9 +244,9 @@ export default function BlackoutKick({ analysis, mode }: { analysis: Analysis; m
 				{/* Said here as well as at the control, because by this point in the page the toggle is off
 				    screen — and immediately followed by the half of the section it does *not* touch, which
 				    is the one thing a reader would otherwise assume it did. */}
-				{forced === null ? null : (
+				{forcedMode === null || forcedMode === undefined ? null : (
 					<>
-						<Note>{t(forced === 1 ? 'blackoutKick.forced_single' : 'blackoutKick.forced_multi')}</Note>
+						<Note>{t(forcedMode === 'single' ? 'blackoutKick.forced_single' : 'blackoutKick.forced_multi')}</Note>
 						<Note>{t('blackoutKick.starveUnbanded')}</Note>
 					</>
 				)}

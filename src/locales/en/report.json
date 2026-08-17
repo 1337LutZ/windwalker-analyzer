@@ -237,10 +237,15 @@
   "energizingBrew": {
     "title": "Energizing Brew",
     "summary": "{{casts}} of {{available}} possible uses, with the buff up for {{uptime, percent}} of the pull.",
+    "recommendation": {
+      "title": "Pair Energizing Brew with RJW",
+      "body": "Bloodlust or Time Warp overlapped a period with Rushing Jade Wind and at least two targets, but Energizing Brew was not used there. The rotation allows this combination, and the extra energy is valuable for area damage."
+    },
     "none": "Energizing Brew was never pressed, and the cooldown allowed {{available}} uses.",
     "haste_good": "None of them were used under a haste cooldown — the rotation holds Energizing Brew through those.",
     "haste_ok": "{{duringHaste}} of them went out under one, which is allowed here: you have Rushing Jade Wind and the damage was spread across more than one target.",
     "haste_bad": "{{faulted}} of {{casts}} were used under a haste cooldown that the rotation would have waited out.",
+    "haste_bad_rjw": "{{faulted}} of {{casts}} were used under a haste cooldown while fewer than two targets were active. With Rushing Jade Wind, use Energizing Brew during Bloodlust or Time Warp when at least two targets are active.",
     "channels_one": "One Fists of Fury channel started inside a window; the Fists of Fury section says whether Rushing Jade Wind covered it.",
     "channels_other": "{{count}} Fists of Fury channels started inside a window; the Fists of Fury section says which of them Rushing Jade Wind covered.",
     "energyCaveat": "The other half of the condition — energy at least five seconds from filling — is not checked here. The verdict column covers the haste clause and nothing else, so a use marked clean may still have gone out on a nearly full bar.",
@@ -257,6 +262,9 @@
       "none": "nothing",
       "ok": "ok",
       "noReadings": "—"
+    },
+    "kpi": {
+      "uses": "Uses / possible"
     },
     "trackAria": "Energy across the {{duration}} pull against a ceiling of {{max}}, with {{casts}} Energizing Brew windows and any haste cooldowns marked behind it",
     "key": {
@@ -919,6 +927,10 @@
           "fix": "{{value, integer}}/{{target, integer}} potions used. One goes down in the last second before the pull, the next a minute in when it comes off cooldown.",
           "fix_prepull": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the pre-pull one — drink it in the last second before the bell and it is running through your opener.",
           "fix_combat": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the in-combat one, which comes off cooldown a minute after the pre-pull potion."
+        },
+        "energizingBrewRjw": {
+          "label": "Use Energizing Brew with RJW",
+          "fix": "Bloodlust or Time Warp was present while RJW was selected, but Energizing Brew was not used during it. When at least two targets are active, the priority list allows this combination and the extra energy is especially valuable for area damage."
         }
       }
     }
@@ -967,6 +979,28 @@
     "summary": "Rushing Jade Wind hit an average of {{targets}} targets per damage tick across {{presses}} presses.",
     "summaryNoTargets": "Rushing Jade Wind was pressed {{presses}} times, but this analysis has no target-level damage data.",
     "opportunities": "The priority list identified {{opportunities}} opportunities; {{used}} were used correctly.",
+    "overuse": "You made {{extra}} more RJW presses than opportunities.",
+    "decisions": {
+      "caption": "Every RJW press and every priority-list opportunity, in time order",
+      "columns": {
+        "at": "At",
+        "event": "Event",
+        "reason": "What the priority list said"
+      },
+      "cells": {
+        "used": "RJW used",
+        "usedReason": "RJW was the available choice",
+        "overused": "RJW used without an opportunity",
+        "noOpportunity": "No RJW opportunity",
+        "missed": "RJW opportunity missed",
+        "missedReason": "Another button was used",
+        "unknown": "Could not judge",
+        "unknownReason": "A higher-priority condition was unavailable",
+        "multiTarget": "At least two targets were active",
+        "shortPull": "The pull was shorter than 75 seconds",
+        "energyCap": "Energy would cap within 1 second"
+      }
+    },
     "ladder_all_one": "At the one press the priority list could judge, no higher-priority ability was ready.",
     "ladder_all_other": "At all {{count}} presses the priority list could judge, no higher-priority ability was ready.",
     "ladder_some_one": "The one press the priority list could judge was used while a higher-priority ability was ready and affordable.",

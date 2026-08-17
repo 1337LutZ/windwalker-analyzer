@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { scoreAnalysis } from '~/lib/score';
 import type { Actor, FightDataset, WclEvent } from '~/lib/types';
 
-import { TARGET_WINDOW_MS, analyse } from '../windwalker';
+import { IGNORED_MULTI_TARGET_ACTORS, TARGET_WINDOW_MS, analyse } from '../windwalker';
 
 const T0 = 100_000;
 const DURATION = 120_000;
@@ -350,6 +350,35 @@ describe('the debuff windows the figure is read from', () => {
 });
 
 describe('the per-moment target count', () => {
+	it('ignores encounter-specific non-tank actors in the APL target count', () => {
+		const base = datasetOf(addFight);
+		const rule = IGNORED_MULTI_TARGET_ACTORS.find((candidate) => candidate.encounterID === 51601)!;
+		const siege = {
+			...base,
+			fight: {
+				...base.fight,
+				encounterID: rule.encounterID,
+				enemyNPCs: [
+					{ id: BOSS, gameID: 71504 },
+					{ id: ADD, gameID: rule.gameID },
+				],
+			},
+			table: {
+				...base.table,
+				fight: {
+					...base.table.fight,
+					encounterID: rule.encounterID,
+					enemyNPCs: [
+						{ id: BOSS, gameID: 71504 },
+						{ id: ADD, gameID: rule.gameID },
+					],
+				},
+			},
+		};
+
+		expect(analyse(siege).targets?.counts.max).toBe(1);
+	});
+
 	it('carries the counts as a step series, in the shape the resource curves use', () => {
 		expect(analysis.targets?.windowMs).toBe(TARGET_WINDOW_MS);
 		expect(analysis.targets?.counts.max).toBe(2);

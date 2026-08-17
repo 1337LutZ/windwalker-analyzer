@@ -420,6 +420,16 @@ export const SINGLE_TARGET_SHARE_PCT = 66;
  */
 export const TARGET_WINDOW_MS = 5000;
 
+/** NPCs that should not count as useful multi-target damage for this spec in a specific encounter. */
+export const IGNORED_MULTI_TARGET_ACTORS = [
+	{
+		encounterID: 51601,
+		gameID: 71591,
+		name: 'Automated Shredder',
+		reason: '90% damage reduction for non-tanks',
+	},
+] as const;
+
 /**
  * How much of the time a player was hitting *anything* has to be spent hitting more than one thing
  * before the pull reads as multi-target.
@@ -2260,10 +2270,15 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// the one Ironblade in front of the player rather than about every Ironblade on the pull. The
 	// target count next to it deliberately keeps reading `target`: "how many enemies am I on" is a
 	// question about enemies, and splitting one add's id into its spawns would answer a different one.
-	const landedHits: Array<TargetHit & { key: string }> = [];
+	const landedHits: Array<TargetHit & { key: string; abilityID: number | null }> = [];
 	for (const e of damageEvents) {
 		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
-		landedHits.push({ t: e.timestamp - t0, target: e.targetID, key: instanceKey(e.targetID, e.targetInstance) });
+		landedHits.push({
+			t: e.timestamp - t0,
+			target: e.targetID,
+			key: instanceKey(e.targetID, e.targetInstance),
+			abilityID: abilityIdOf(e),
+		});
 	}
 	landedHits.sort((a, b) => a.t - b.t);
 
@@ -2365,12 +2380,30 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * for four minutes and the other for one, and the ladder in `lib/spec/apl.ts` refuses whole pulls at
 	 * a time because nothing could tell it which minute it was in.
 	 */
-	const targetPoints = targetCounts(landedHits, TARGET_WINDOW_MS);
+	const ignoredMultiTargetIDs = new Set(
+		(table.fight.enemyNPCs ?? [])
+			.filter((npc) =>
+				IGNORED_MULTI_TARGET_ACTORS.some(
+					(rule) => rule.encounterID === fight.encounterID && rule.gameID === npc.gameID,
+				),
+			)
+			.map((npc) => npc.id),
+	);
+	const multiTargetHits = landedHits.filter((hit) => !ignoredMultiTargetIDs.has(hit.target));
+	const targetPoints = targetCounts(multiTargetHits, TARGET_WINDOW_MS);
+	// Do not let RJW establish its own multi-target evidence for the APL. This matters when WarcraftLogs
+	// omits the periodic `tick` flag: one short-lived add hit by the wind would otherwise keep the APL in
+	// its multi-target branch and recommend more wind after the add was gone.
+	const targetCountExcludedDamageIDs = new Set(registry.ability('rushing-jade-wind').damageIds ?? []);
+	const aplTargetHits = multiTargetHits.filter((hit) => !targetCountExcludedDamageIDs.has(hit.abilityID ?? -1));
+	const aplTargetPoints = targetCounts(aplTargetHits, TARGET_WINDOW_MS);
+	const aplTargetCountAt = countAt(aplTargetPoints);
 	// The stretches themselves and not only their total, because Storm, Earth and Fire asks a question
 	// the total cannot answer: whether any *one* of them ran long enough to be worth a spirit. Named
 	// here rather than counted twice, so the mode below and the cooldown further down are two readings
 	// of one array.
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
+	const aplMultiTargetWindows = intervalsAtLeast(aplTargetPoints, 2, duration);
 	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
 	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
@@ -3217,6 +3250,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// and reports a six-second buff as never having gone up.
 		const window = ebWindows.find((w) => t >= w.start - SELF_EVENT_MS && t <= w.end) ?? null;
 		const haste = hasteAt(t);
+		const targets = aplTargetCountAt(t);
 		// Channels that began inside this window. Counted from the channel audit's own rows rather
 		// than recomputed, so the two sections cannot disagree about which channel was where — and
 		// deliberately *not* raised as a fault here, because that audit already raises it and the miss
@@ -3225,7 +3259,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		const faults: string[] = [];
 		if (haste !== null && !rjwKnown) {
 			faults.push(`used under ${haste} without Rushing Jade Wind, which is what would allow it`);
-		} else if (haste !== null && singleTarget) {
+		} else if (haste !== null && targets < 2) {
 			faults.push(`used under ${haste} against one target — the exception requires more than one`);
 		}
 		/**
@@ -3257,6 +3291,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			link: link(t),
 		};
 	});
+	const hasteRjwEligible =
+		rjwKnown && hasteWindows.some((window) => overlapMs(window.start, window.end, aplMultiTargetWindows) > 0);
+	const hasteRjwUses = ebUses.filter((use) => use.haste !== null && aplTargetCountAt(use.t) >= 2).length;
 
 	// ----------------------------------------------------------- miss ledger
 	const misses: Miss[] = [
@@ -4056,7 +4093,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// The same step function the target-count section draws, read at each press rather than summarised
 		// over the pull. `singleTarget` is deliberately no longer passed: it is a damage-concentration
 		// boolean, and what the list needs is a live count.
-		targetsAt: countAt(targetPoints),
+		targetsAt: aplTargetCountAt,
 	};
 	const apl = aplAudit(aplInputs);
 	/**
@@ -4077,6 +4114,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		player: actor.name,
 		code,
 		fightID: fight.id,
+		fightStartMs: t0,
 		actorID: actor.id,
 		encounter: fight.name,
 		difficulty: fight.difficulty,
@@ -4255,6 +4293,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			duringHaste: ebUses.filter((u) => u.haste !== null).length,
 			faulted: ebUses.filter((u) => u.faults.length).length,
 			rushingJadeWind: rjwKnown,
+			hasteRjwEligible,
+			hasteRjwUses,
 			channelsInside: fofCasts.filter((c) => c.energizingBrew).length,
 			channelsCovered: fofCasts.filter((c) => c.energizingBrew && c.rjwCovers).length,
 			energyCheckable: false,

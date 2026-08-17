@@ -961,6 +961,10 @@ export interface EnergizingBrewAudit {
 	faulted: number;
 	/** True when Rushing Jade Wind was pressed at all, which is half of the APL's Bloodlust exception. */
 	rushingJadeWind: boolean;
+	/** True when a haste window overlapped at least two live targets while Rushing Jade Wind was active. */
+	hasteRjwEligible: boolean;
+	/** Energizing Brew uses made during an eligible haste/RJW window. */
+	hasteRjwUses: number;
 	/**
 	 * The haste cooldowns running over the pull — Bloodlust, Time Warp and the rest of that group.
 	 *
@@ -1564,6 +1568,8 @@ export interface Analysis {
 	player: string;
 	code: string;
 	fightID: number;
+	/** Report-relative fight start, used to build event links from fight-relative timestamps. */
+	fightStartMs?: number;
 	actorID: number;
 	encounter: string;
 	difficulty: number;
