@@ -12,49 +12,21 @@ import LogLink from './LogLink';
 /**
  * Blackout Kick: what the list wanted at the globals it took, and what those globals cost elsewhere.
  *
- * It is the last press in the rotation to get a heading of its own, and the two halves below are why
- * it needed one rather than a paragraph inside the priority section. That section counts skips *by
- * button* — how often Tiger Palm was passed over, across every press — which is a fact about Tiger
- * Palm. Turned around, the same audit answers a question about this button that nothing else asks: of
- * the globals you spent on a Blackout Kick, what did the list want instead? Every skipped press lands
- * in exactly one row of that table, so it is exhaustive where a pair of hand-picked comparisons would
- * not be.
+ * The priority section counts skips *by button* — how often Tiger Palm was passed over, across every
+ * press. Turned around, the same audit answers a question nothing else asks: of the globals spent on
+ * a Blackout Kick, what did the list want instead? Exhaustive, where a pair of hand-picked
+ * comparisons would not be.
  *
- * ## Two claims, and they are never added together
+ * **Two claims, never added together.** The table says *the list wanted another button here*; the
+ * ledger says *this press cost you a kick later*. Different faults, different clocks — one press can
+ * be in both or neither. The first moves with the reader's target count; the second does not, because
+ * enemy count does not change whether you had two chi.
  *
- * The table above says *the list wanted another button at this global*. The ledger below says *this
- * press cost you a kick later*. They are different faults with different clocks, and one press can be
- * in both or neither. The first is the ladder's verdict and moves with the reader's target count; the
- * second is arithmetic on the chi bar and moves with nothing, because how many enemies were in front
- * of the player does not change whether they had two chi.
- *
- * ## Nothing is graded, and the reasons were measured rather than assumed
- *
- * The obvious candidate was adherence — the share of judged presses the list agreed with. Swept over
- * 52 Windwalker pulls in the three anonymous reports it fails three separate ways, and the first is
- * fatal on its own:
- *
- * - **It moves with a control the reader sets.** Read at one target the sample runs 4.2–64.7% with a
- *   median of 38.9; read at three it runs 0.0–40.6% with a median of 10.0. Per pull the gap has a
- *   median of 22.8 points and reaches 64.7. A grade that changes by twenty points on a toggle is
- *   grading the reading, not the player — and unlike `MULTI_TARGET_WEIGHTS`, which reweights a metric
- *   that keeps its value, this is the value itself changing.
- * - **The bar underneath it is thinner than the ladder's own note claims.** `spec/apl.ts` cites
- *   87–95% off three reference pulls; over 52 the walk scores 56.8–94.5% with a median of 80.0. The
- *   verdict on a Blackout Kick turns on whether the rules above it were *affordable*, which is exactly
- *   what a reconstructed chi bar is least sure of.
- * - **The sample has no line in it.** Encounter alone explains 30.7% of the variance, and within a
- *   single fight the pulls spread as widely as the sample does — Malkorok 15/35/44/56, Immerseus
- *   4/20/39. That is the `rskUptime` finding again: a band cut here would bake the fight into the
- *   grade.
- *
- * The starvation half has no threshold either, and the reason is sharper. Zero would be the target if
- * following the priority list produced zero — but it does not. Of 175 charged presses across those 52
- * pulls, 43 are presses the ladder judged `followed`: the sim's dump rule guards with an *energy*
- * reserve and the failure is a *chi* one, so a press can satisfy the condition and still starve the
- * kick. There is no rule in the sim to take a number from, and a quartile band from 52 mixed pulls is
- * what `score/thresholds.ts` refuses on every page. So this section reports thoroughly and grades
- * nothing, exactly as Rushing Jade Wind does.
+ * **Nothing is graded**, and adherence was the candidate that failed. Over 52 pulls it moves by a
+ * median of 22.8 points with the target-count toggle — grading the reading, not the player. The chi
+ * walk it rests on scores 56.8–94.5% (median 80.0), not the 87–95% `spec/apl.ts` claims from three
+ * pulls. And encounter alone explains 30.7% of the variance, with single fights spreading as wide as
+ * the sample. Starvation has no target either: following the list does not produce zero.
  */
 export default function BlackoutKick({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);

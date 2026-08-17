@@ -985,13 +985,13 @@
     "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would rule it out — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press. Calling it 0% uptime would be an accusation rather than a measurement.",
     "kpi": {
       "uptime": "Contact time with it up",
-      "presses": "Presses / the clock allowed",
+      "presses": "Presses / cooldown allowed",
       "energy": "Of your energy"
     }
   },
   "blackoutKick": {
     "title": "Blackout Kick",
-    "intent": "Blackout Kick is where spare chi goes. The priority list reaches it twice — free the instant a Combo Breaker proc lands, and last of all as the dump that spends what nothing above it wanted. Two chi a press, the same as Rising Sun Kick. That kick has an eight-second cooldown and this button has none, which is the whole of the risk.",
+    "intent": "Blackout Kick is where spare chi goes. The list reaches it twice: free the moment Combo Breaker procs, and last of all as the dump. Two chi a press — the same as Rising Sun Kick, which has an eight-second cooldown. This has none. That is the risk.",
     "none": "Blackout Kick was never pressed here. There is nothing to judge and nothing charged against it.",
     "kpi": {
       "casts": "Presses",
@@ -1030,7 +1030,7 @@
     "starveDebuff_other": "On {{count}} of those waits the debuff was actually off the target.",
     "starveDebuffNone": "None of them let the debuff drop — it outlasts the cooldown by seven seconds, so a wait has to be a long one before it costs uptime.",
     "starveFollowed_one": "One of those presses was one the list itself wanted. Its dump rule guards with an energy reserve, and the shortfall it misses is a chi one.",
-    "starveFollowed_other": "{{count}} of those presses were ones the list itself wanted. Its dump rule guards with an energy reserve, and the shortfall it misses is a chi one — so following the list is not on its own enough to avoid this.",
+    "starveFollowed_other": "{{count}} of them were presses the list wanted. Its dump rule guards with energy and the shortfall is chi, so following the list is not enough on its own.",
     "starveCaption": "Every kick that came up on a bar this button had emptied",
     "starveColumns": {
       "at": "Kick ready",
@@ -1045,9 +1045,9 @@
     },
     "forced_single": "You are reading this pull as one target, where the dump asks for 35 energy banked by the kick's return. The presses above are judged against that.",
     "forced_multi": "You are reading this pull as three targets, where the dump asks for 105 energy banked by the kick's return and Spinning Crane Kick wants those globals instead. Far fewer presses read as wanted.",
-    "starveUnbanded": "The waits below do not move with that reading — they are a fact about the chi bar, and the bar does not care how many enemies were in front of you. Only how many of those presses the list wanted is read at the count you picked.",
-    "reconstructed": "The chi behind all of this is reconstructed: WarcraftLogs only reports your chi when you spend it. On this pull the walk predicted the next reading exactly {{accuracy, percent}} of the time — close, not perfect, and a bar one point out is the difference between could not and chose not to.",
-    "tierCaveat": "This report does not read set bonuses, and the tier-16 four-piece knocks a chi off both kicks. On a monk wearing four pieces, every row above that reads 1 chi is a kick that could have gone out anyway; the rows reading 0 stand either way.",
-    "notGraded": "None of this is graded, and the refusal is measured rather than asserted. Across 52 pulls, how many of these presses the list wanted moves by a median of 23 points depending on whether you read the pull as one target or three — the same presses, a different answer, picked by a control at the top of this page. The bar both halves rest on is right about four times in five. And the list's own dump rule does not reach zero: a quarter of the presses charged above are presses it wanted."
+    "starveUnbanded": "These waits do not move with that reading. They are a fact about the chi bar, not about how many enemies were in front of you — only the figure above follows the count you picked.",
+    "reconstructed": "Chi is reconstructed: WarcraftLogs only reports it when you spend it. On this pull the walk was exact {{accuracy, percent}} of the time. A bar one point out is the difference between could not and did not.",
+    "tierCaveat": "This report does not read set bonuses, and the tier-16 four-piece takes a chi off both kicks. Rows above reading 1 chi could have gone out anyway; rows reading 0 stand either way.",
+    "notGraded": "Nothing here is graded, and that is measured rather than asserted. Read the pull as one target or three and the same presses score 23 points apart. The chi bar underneath is right about four times in five. And the list's own dump rule does not reach zero — a quarter of the presses charged above are ones it wanted."
   }
 }

@@ -1,35 +1,21 @@
 // Blackout Kick, read off a finished analysis.
 //
-// A view module rather than an engine audit, for the same reason `jadeWind` is one: everything here
-// is arithmetic over measurements `analyse()` already published. The per-press verdicts are the
-// priority list's own, the starved kicks are `analysis.blackoutKick`, and the proc count is the
-// Combo Breaker row the Tiger Palm section already prints beside its twin. Nothing is a second
-// reading of the event stream, so nothing here can disagree with the section it borrows from.
+// A view module, not an engine audit: everything here is arithmetic over things `analyse()` already
+// published, so nothing can disagree with the sections it borrows from.
 //
-// ## The button is judged twice, and the two are different decisions
+// The list carries the button at two rungs, and they are different decisions. Entry 24 is the free
+// press from a Combo Breaker proc; entry 32 is the chi dump, gated on the energy banked by the time
+// Rising Sun Kick returns. `AplPress.wanted` names the rule even on a press that followed it, so the
+// split is read rather than re-derived.
 //
-// The priority list carries Blackout Kick at two rungs. Entry 24 is the free press from a Combo
-// Breaker proc — no cost, no cooldown, no condition beyond the proc — and entry 32 is the chi dump,
-// gated on the energy banked by the time Rising Sun Kick returns. A press that followed the list
-// followed *one* of them, and which one is worth knowing: the free kick is a proc caught, the dump is
-// a judgement about the bar. `AplPress.wanted` names the rule even on a press that followed it, so
-// the split is read off the audit rather than re-derived.
+// That shape is also why the free kick needs no special case: `combo-breaker-kick` can never be the
+// button a Blackout Kick press *skipped*, because a rule the press itself satisfies returns
+// `followed`. Zero occurrences across all six fixtures.
 //
-// A consequence of that shape, and it is why this module never has to special-case the free kick:
-// `combo-breaker-kick` can never appear as the button a Blackout Kick press *skipped*. The ladder
-// stops at the first rule that wants the global, and a rule the press itself satisfies returns
-// `followed` — so the list wanting a free kick while a paid one was pressed is recorded as a press
-// that followed the list, never as a fault against some other button. Checked against all six
-// fixtures: it appears zero times.
-//
-// ## Two claims, kept apart on purpose
-//
-// "The list wanted something else at this global" and "this press cost you a kick later" are
-// different faults and are never added together. The first is the ladder's, is a property of the
-// global the press was made at, and moves with the reader's target count. The second is about the
-// chi bar, lands on a *later* global, and moves with nothing — how many enemies were in front of the
-// player does not change whether they had two chi. A single number folding both would be answering
-// neither question.
+// **Two claims, never added together.** "The list wanted something else here" is the ladder's, and
+// moves with the reader's target count. "This press cost you a kick later" is about the chi bar,
+// lands on a later global, and moves with nothing — enemy count does not change whether you had two
+// chi. One number folding both would answer neither.
 
 import { LADDER_ENTRIES, type AplAudit, type AplRuleKey } from '~/lib/spec/apl';
 import { RSK_COOLDOWN_MS } from '~/lib/spec/windwalker';
@@ -86,26 +72,18 @@ export interface BlackoutKickStarve {
 	/** Charged waits where the debuff was actually off the primary target for part of it. */
 	debuffDrops: number;
 	/**
-	 * Charged presses the priority list itself wanted at that global.
+	 * Charged presses the list itself wanted — the number saying "follow the list" is not the whole fix.
+	 * Entry 32 guards the dump with an *energy* reserve; the failure is a *chi* one, so a press can clear
+	 * the condition and starve the kick anyway. 43 of 175 charged presses did, across 52 pulls.
 	 *
-	 * The number that says fixing this is not simply "follow the list". Entry 32 guards the dump with an
-	 * *energy* reserve — enough banked by the kick's return to cover the generator — and the failure it
-	 * is guarding against is a *chi* one, so a press can clear the condition and starve the kick anyway.
-	 * Across 52 pulls in the three anonymous reports, 43 of 175 charged presses did exactly that.
-	 *
-	 * The one figure in this half that *does* move with the reader's band, and correctly: which presses
-	 * the list wanted is the ladder's claim and is read at the count the rest of the section is read at.
-	 * The waits, the seconds and the rows they are counted over do not move, because none of them asks
-	 * the list anything.
+	 * The only figure in this half that moves with the reader's band, and correctly — it asks the ladder
+	 * a question. The waits and seconds do not, because they ask the chi bar.
 	 */
 	followedList: number;
 	/**
-	 * How often the reconstructed chi bar predicted the next reading exactly, as a percentage — null
-	 * when the pull carried too few readings to score it.
-	 *
-	 * Printed rather than quoted from the ladder's note, which cites 87–95% off three reference pulls.
-	 * Over 52 it runs 56.8–94.5% with a median of 80.0, so the range is a property of the pull and each
-	 * one has to state its own.
+	 * How often the reconstructed chi bar predicted the next reading exactly; null when too few readings
+	 * to score. Printed per pull rather than quoted from the ladder's 87–95%, which came off three pulls
+	 * — over 52 it runs 56.8–94.5%, so each pull states its own.
 	 */
 	chiAccuracyPct: number | null;
 }
@@ -147,8 +125,8 @@ function ladderOf(apl: AplAudit | null | undefined): BlackoutKickLadder | null {
 		offList: mine.filter((p) => p.verdict === 'off-list').length,
 		wantedInstead: [...counts]
 			.map(([key, count]) => ({ key, id: idOf(key), count }))
-			// Ties break on the rule's own order, which is the list's order, so two buttons passed over
-			// equally often are shown in the order the list would have reached them.
+			// Ties break on the list's own order, so two buttons passed over equally often appear in the
+			// order the list would have reached them.
 			.sort(
 				(a, b) =>
 					b.count - a.count ||
