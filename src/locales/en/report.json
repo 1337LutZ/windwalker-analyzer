@@ -360,7 +360,7 @@
     "gcd": "GCD used",
     "brewStacks": "Avg brew stacks",
     "rskUptime": "RSK uptime",
-    "snapshots": "Snapshots on the last GCD",
+    "snapshots": "RoRo snapshots on the {{leeway}} leeway",
     "potions": "Potions used",
     "potions_unknown": "Potions · cannot say",
     "label": "Headline figures"

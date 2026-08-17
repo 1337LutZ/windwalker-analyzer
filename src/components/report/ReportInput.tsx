@@ -11,6 +11,14 @@ interface Values {
 
 interface Props {
 	busy: boolean;
+	/**
+	 * The code a shared link carried in, to prefill the field with.
+	 *
+	 * The fights below were loaded from the URL rather than from a submit here, so it also seeds the
+	 * `loaded` ref: without that, editing the prefilled field would never count as diverging from
+	 * the report on screen, and everything under this step would go stale unchallenged.
+	 */
+	initialReport?: string | null;
 	onSubmit: (parsed: ResolvedReportInput) => void;
 	/**
 	 * Fired when the field stops matching what is loaded below it.
@@ -30,17 +38,17 @@ const REFUSAL =
  * Where a report comes in. One field, because a report URL already carries the fight and the player
  * in its fragment and re-typing them is work nobody should be asked to do twice.
  */
-export default function ReportInput({ busy, onSubmit, onDiverge }: Props) {
+export default function ReportInput({ busy, initialReport = null, onSubmit, onDiverge }: Props) {
 	const inputID = useId();
 	const {
 		register,
 		handleSubmit,
 		watch,
 		formState: { errors },
-	} = useForm<Values>({ defaultValues: { report: '' } });
+	} = useForm<Values>({ defaultValues: { report: initialReport ?? '' } });
 
 	// The code the results below currently belong to.
-	const loaded = useRef<string | null>(null);
+	const loaded = useRef<string | null>(initialReport);
 
 	const submit = handleSubmit(({ report }) => {
 		const parsed = parseReportInput(report);

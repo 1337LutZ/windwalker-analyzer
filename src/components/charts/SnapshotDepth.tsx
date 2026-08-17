@@ -4,7 +4,7 @@ import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis, ProcSummary, ProcWindow } from '~/lib/types';
 
-import { formatGap, formatStamp } from '~/lib/format';
+import { formatGap, formatSeconds, formatStamp } from '~/lib/format';
 
 import { fmt, r1, sec } from '../format';
 import { ChartFigure } from '../primitives';
@@ -296,7 +296,11 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 							? {}
 							: {
 									label: {
-										text: 'last GCD',
+										// The band's width *is* the snapshot-leeway setting, so the label names
+										// it and carries the value that was used — "last GCD" was only the truth
+										// at the default 1000ms. `formatSeconds`, so the tile and the chart spell
+										// the same window the same way.
+										text: `snapshot leeway ${formatSeconds(procs.lastGcdMs)}`,
 										borderColor: 'transparent',
 										// ApexCharts rotates annotation labels vertically by default, which here stands
 										// the text on its end inside the band and across the first rows' bars.

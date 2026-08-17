@@ -1,5 +1,5 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatCompact, formatDecimal, formatPercentValue } from '~/lib/format';
+import { formatCompact, formatDecimal, formatPercentValue, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import { StatTile, StatTiles } from '../primitives';
@@ -72,12 +72,14 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					label={t('kpi.rskUptime')}
 					grade={toneOf('rskUptime')}
 				/>
-				{/* Graded on depth rather than on the catch rate: this tile counts the ones held to the
-				    final global, which is the timing question, not the discipline one. */}
+				{/* Graded on depth rather than on the catch rate: this tile counts the ones held inside
+				    the leeway window, which is the timing question, not the discipline one. The label
+				    carries the leeway actually used, because "last GCD" is only its name at the
+				    default — the same reason the depth chart's band is labelled the way it is. */}
 				<StatTile
 					value={`${procs.lastGcd}`}
 					suffix={`/${procs.procs}`}
-					label={t('kpi.snapshots')}
+					label={t('kpi.snapshots', { leeway: formatSeconds(procs.lastGcdMs) })}
 					grade={toneOf('snapshotDepth')}
 				/>
 				{/* A tile rather than a sentence somewhere, and a tile that appears whatever the answer is.
