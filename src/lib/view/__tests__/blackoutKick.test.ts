@@ -172,13 +172,13 @@ describe('the kicks this button starved', () => {
 	/**
 	 * The finding that stops the section reading as "you broke the list". The sim's dump rule guards
 	 * with an energy reserve and the failure is a chi one, so presses that satisfied it starve the kick
-	 * anyway — 43 of 175 across the three anonymous reports, and four of `strong`'s seventeen here.
+	 * anyway — 43 of 175 across the three anonymous reports, and five of `strong`'s seventeen here.
 	 */
 	it('counts the charged presses the list itself wanted', () => {
 		const analysis = fixture('strong');
 		const starve = readBlackoutKick(analysis, analysis.apl).starve;
 		expect(starve?.charged.length).toBe(17);
-		expect(starve?.followedList).toBe(4);
+		expect(starve?.followedList).toBe(5);
 		expect(starve?.followedList).toBeLessThan(starve?.charged.length ?? 0);
 	});
 

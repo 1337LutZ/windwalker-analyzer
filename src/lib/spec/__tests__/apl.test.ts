@@ -18,6 +18,7 @@ const ID = {
 	jab: 100780,
 	chiWave: 115098,
 	fistsOfFury: 113656,
+	rushingJadeWind: 116847,
 } as const;
 
 const press = (t: number, id: number, onGcd = true): CastMark => ({ t, id, name: `#${id}`, onGcd });
@@ -37,6 +38,11 @@ function inputs(over: Partial<AplInputs> = {}): AplInputs {
 		chi: flat(4, 0),
 		regenPerSec: 10,
 		gcdMs: 1000,
+		// Five minutes, which is on the long side of entry 31's 75-second line rather than near it. Only
+		// that rule reads the length, and it reads it as a switch: under the line the wind is wanted from
+		// the bottom rung unconditionally, over it only when the bar is about to overflow. Every case here
+		// but the one that names it wants the over-the-line reading, which is also what a raid pull is.
+		pullMs: 300_000,
 		// Tiger Power up and not expiring, so the refresh rule is decidably *not* wanted rather than
 		// unknown — the tests that want the unknown ask for it explicitly.
 		auras: { 'tiger-power': throughout },
@@ -64,43 +70,56 @@ describe('the priority ladder', () => {
 		expect(aplAudit(inputs({ chi: { max: 4, points: [] }, casts: [press(1000, ID.jab)] }))).toBeNull();
 	});
 
+	/**
+	 * At one target the kick's rung is entry 21, not entry 18.
+	 *
+	 * Entry 18 carries a leading `Targets: More than 1` and so does not exist at a single enemy; the
+	 * kick is claimed instead by the unconditional entry 21 below Tiger Palm's refresh. Same button,
+	 * same cost, same cooldown, a different rule key — which is why these cases name the filler.
+	 */
 	it('names Rising Sun Kick when a lower button was pressed with the chi to afford it', () => {
 		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.jab)] }));
-		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick' });
-		expect(audit?.skippedBy).toEqual([{ key: 'rising-sun-kick', id: ID.risingSunKick, count: 1 }]);
+		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick-filler' });
+		expect(audit?.skippedBy).toEqual([{ key: 'rising-sun-kick-filler', id: ID.risingSunKick, count: 1 }]);
 	});
 
 	it('counts the same press as followed when it is the button the list wanted', () => {
 		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.risingSunKick)] }));
-		expect(audit?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'rising-sun-kick' });
+		expect(audit?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'rising-sun-kick-filler' });
 		expect(audit?.followed).toBe(1);
 		expect(audit?.skipped).toBe(0);
+	});
+
+	it('names entry 18 instead once there is a second target', () => {
+		// The other side of that gate, and the only difference between the two readings of this press.
+		const audit = aplAudit(inputs({ targetsAt: () => 2, chi: flat(4, 2), casts: [press(5000, ID.risingSunKick)] }));
+		expect(audit?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'rising-sun-kick' });
 	});
 
 	it('stops demanding Rising Sun Kick while it is on cooldown', () => {
 		// Eight seconds, from the sim's own spell config. The second press is inside it.
 		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)] }));
-		expect(audit?.presses[1]?.wanted).not.toBe('rising-sun-kick');
+		expect(audit?.presses[1]?.wanted).not.toBe('rising-sun-kick-filler');
 	});
 
 	it('demands it again once the cooldown is up', () => {
 		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(1000, ID.risingSunKick), press(9500, ID.jab)] }));
-		expect(audit?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick' });
+		expect(audit?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick-filler' });
 	});
 
 	it('never demands a button the player could not pay for', () => {
 		// One chi is not two. A kick that could not be cast is a resource problem, not a priority
 		// mistake, and the sections that argue about energy and chi are where it belongs.
 		const audit = aplAudit(inputs({ chi: flat(4, 1), casts: [press(5000, ID.jab)] }));
-		expect(audit?.presses[0]?.wanted).not.toBe('rising-sun-kick');
+		expect(audit?.presses[0]?.wanted).not.toBe('rising-sun-kick-filler');
 	});
 
 	it('knocks a point off the cost when the tier-16 four-piece is worn', () => {
 		const one = { chi: flat(4, 1), casts: [press(5000, ID.jab)] };
-		expect(aplAudit(inputs(one))?.presses[0]?.wanted).not.toBe('rising-sun-kick');
+		expect(aplAudit(inputs(one))?.presses[0]?.wanted).not.toBe('rising-sun-kick-filler');
 		expect(aplAudit(inputs({ ...one, chiCostReduction: 1 }))?.presses[0]).toMatchObject({
 			verdict: 'skipped',
-			wanted: 'rising-sun-kick',
+			wanted: 'rising-sun-kick-filler',
 		});
 	});
 
@@ -209,31 +228,58 @@ describe('the priority ladder', () => {
 		expect(audit?.offList).toBe(1);
 	});
 
-	it('never names the unconditional kick below three targets', () => {
-		// Entry 21 carries `bands: [3, 4]`, and those bands state a fact the walk already had rather than
-		// change it: below three targets entry 18 above is the same button at the same cost with the same
-		// cooldown and an unconditionally true condition, so the only ways past it — `!ready` and
+	it('never names the unconditional kick at exactly two targets', () => {
+		// Entry 21 carries `bands: [1, 3, 4]`, and the missing 2 states a fact the walk already had rather
+		// than changing it: at exactly two targets entry 18 above is the same button at the same cost with
+		// the same cooldown and an unconditionally true condition, so the only ways past it — `!ready` and
 		// `!affordable` — are predicates entry 21 fails identically.
 		//
+		// One target used to be the same story and is not any more: entry 18's leading `Targets: More than
+		// 1` takes it off the list there, so entry 21 is the kick's only rung and the cases above name it.
+		//
 		// Both of those routes are exercised here. It matters because the reference table renders off
-		// these bands: without them a single-target reader is shown Rising Sun Kick on two rungs with
-		// nothing to tell them apart, and with them no verdict may move.
-		for (const targets of [1, 2]) {
-			const onCooldown = aplAudit(
-				inputs({
-					targetsAt: () => targets,
-					chi: flat(4, 4),
-					casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)],
-				}),
-			);
-			const cannotAfford = aplAudit(
-				inputs({ targetsAt: () => targets, chi: flat(4, 0), casts: [press(5000, ID.jab)] }),
-			);
-			for (const audit of [onCooldown, cannotAfford]) {
-				for (const p of audit?.presses ?? []) {
-					expect(p.wanted, `at ${String(targets)} targets`).not.toBe('rising-sun-kick-filler');
-				}
-			}
+		// these bands: without them a two-target reader is shown Rising Sun Kick on two rungs with nothing
+		// to tell them apart, and with them no verdict may move.
+		const onCooldown = aplAudit(
+			inputs({
+				targetsAt: () => 2,
+				chi: flat(4, 4),
+				casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)],
+			}),
+		);
+		const cannotAfford = aplAudit(inputs({ targetsAt: () => 2, chi: flat(4, 0), casts: [press(5000, ID.jab)] }));
+		for (const audit of [onCooldown, cannotAfford]) {
+			for (const p of audit?.presses ?? []) expect(p.wanted).not.toBe('rising-sun-kick-filler');
 		}
+	});
+
+	/**
+	 * Entry 31, which used to be a free fallthrough and is now a gate.
+	 *
+	 * `(currentTime + remainingTime) < 75s or energyTimeToCap <= 1s`, and the first half is a fact about
+	 * the pull rather than the press — the two terms sum to the whole fight's length. So a long pull
+	 * leaves this rung with the overflow check alone, which is the reading a raid log is always under.
+	 *
+	 * Each case puts Rising Sun Kick on cooldown and holds three chi, so every rung above the wind is
+	 * either unaffordable or unwanted and this one is the first that could claim the global.
+	 */
+	it('wants the bottom Rushing Jade Wind rung only on a short pull or a filling bar', () => {
+		const base = {
+			chi: flat(4, 3),
+			// Half a bar: five seconds from the cap at this regen, which is well clear of the rule's one.
+			energy: flat(100, 50),
+			// Longer than those five seconds, so Fists of Fury above stands down rather than claiming this.
+			fofChannelSec: 6,
+			casts: [press(1000, ID.risingSunKick), press(3000, ID.rushingJadeWind)],
+		};
+		const long = aplAudit(inputs(base));
+		expect(long?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'blackout-kick' });
+
+		const short = aplAudit(inputs({ ...base, pullMs: 60_000 }));
+		expect(short?.presses[1]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind' });
+
+		// The same long pull half a second from the cap: the wind is what the list spends the overflow on.
+		const capping = aplAudit(inputs({ ...base, energy: flat(100, 95) }));
+		expect(capping?.presses[1]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind' });
 	});
 });

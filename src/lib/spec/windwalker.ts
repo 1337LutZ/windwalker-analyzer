@@ -4032,6 +4032,10 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		chi: { max: chiWalk.max, points: chiWalk.points },
 		regenPerSec: energyBar.regenPerSec ?? 0,
 		gcdMs: GCD_MS,
+		// The pull's whole length, which is what the list's `currentTime + remainingTime` sums to. Entry
+		// 31 reads it and nothing else does; the fight's own boundaries rather than the first and last
+		// press, because a pull that ends twenty seconds after its final global is still that long.
+		pullMs: duration,
 		auras: {
 			'tiger-power': tigerPowerWindows,
 			'combo-breaker-tiger-palm': cbTigerPalmWindows,

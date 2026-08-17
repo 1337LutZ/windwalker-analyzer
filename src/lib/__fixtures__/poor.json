@@ -7317,8 +7317,8 @@
       {
         "t": 3385,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
-        "verdict": "followed"
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
       },
       {
         "t": 4400,
@@ -7365,13 +7365,13 @@
       {
         "t": 11428,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 12806,
         "pressed": 113656,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
@@ -7383,7 +7383,7 @@
       {
         "t": 15355,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7425,7 +7425,7 @@
       {
         "t": 23531,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7473,13 +7473,13 @@
       {
         "t": 31557,
         "pressed": 100784,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 32555,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7527,7 +7527,7 @@
       {
         "t": 40589,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7563,8 +7563,8 @@
       {
         "t": 49163,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
-        "verdict": "followed"
+        "wanted": "tiger-palm-refresh",
+        "verdict": "skipped"
       },
       {
         "t": 50161,
@@ -7617,7 +7617,7 @@
       {
         "t": 60211,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7659,7 +7659,7 @@
       {
         "t": 70648,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7707,13 +7707,13 @@
       {
         "t": 79353,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 80356,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7761,7 +7761,7 @@
       {
         "t": 88392,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7809,7 +7809,7 @@
       {
         "t": 96751,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7869,7 +7869,7 @@
       {
         "t": 113617,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7911,7 +7911,7 @@
       {
         "t": 122799,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -7977,7 +7977,7 @@
       {
         "t": 134717,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8025,37 +8025,37 @@
       {
         "t": 143643,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 144671,
         "pressed": 100787,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 145865,
         "pressed": 100784,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 146668,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 147678,
         "pressed": 100787,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 148682,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8103,13 +8103,13 @@
       {
         "t": 157025,
         "pressed": 100787,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 158022,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8139,13 +8139,13 @@
       {
         "t": 166891,
         "pressed": 100784,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 167896,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8193,13 +8193,13 @@
       {
         "t": 175923,
         "pressed": 100787,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 176924,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8277,7 +8277,7 @@
       {
         "t": 194450,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8331,7 +8331,7 @@
       {
         "t": 203520,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8385,7 +8385,7 @@
       {
         "t": 213282,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8433,13 +8433,13 @@
       {
         "t": 221817,
         "pressed": 100780,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
         "t": 222817,
         "pressed": 113656,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
@@ -8451,7 +8451,7 @@
       {
         "t": 228001,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8511,7 +8511,7 @@
       {
         "t": 238695,
         "pressed": 100787,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "skipped"
       },
       {
@@ -8523,7 +8523,7 @@
       {
         "t": 241349,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8571,7 +8571,7 @@
       {
         "t": 249389,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
         "verdict": "followed"
       },
       {
@@ -8605,8 +8605,8 @@
         "verdict": "skipped"
       }
     ],
-    "followed": 104,
-    "skipped": 112,
+    "followed": 102,
+    "skipped": 114,
     "unknown": 0,
     "offList": 1,
     "skippedBy": [
@@ -8621,9 +8621,9 @@
         "count": 25
       },
       {
-        "key": "rising-sun-kick",
+        "key": "rising-sun-kick-filler",
         "id": 107428,
-        "count": 17
+        "count": 15
       },
       {
         "key": "combo-breaker-kick",
@@ -8631,14 +8631,14 @@
         "count": 15
       },
       {
-        "key": "blackout-kick",
-        "id": 100784,
+        "key": "tiger-palm-refresh",
+        "id": 100787,
         "count": 7
       },
       {
-        "key": "tiger-palm-refresh",
-        "id": 100787,
-        "count": 5
+        "key": "blackout-kick",
+        "id": 100784,
+        "count": 7
       },
       {
         "key": "spinning-crane-kick-heavy",
@@ -8654,6 +8654,11 @@
         "key": "fists-of-fury",
         "id": 113656,
         "count": 3
+      },
+      {
+        "key": "rising-sun-kick",
+        "id": 107428,
+        "count": 2
       }
     ]
   },
@@ -8675,8 +8680,8 @@
         {
           "t": 3385,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 4400,
@@ -8723,13 +8728,13 @@
         {
           "t": 11428,
           "pressed": 100780,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 12806,
           "pressed": 113656,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
@@ -8741,7 +8746,7 @@
         {
           "t": 15355,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -8783,7 +8788,7 @@
         {
           "t": 23531,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -8831,13 +8836,13 @@
         {
           "t": 31557,
           "pressed": 100784,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 32555,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -8885,7 +8890,7 @@
         {
           "t": 40589,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -8921,8 +8926,8 @@
         {
           "t": 49163,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
-          "verdict": "followed"
+          "wanted": "tiger-palm-refresh",
+          "verdict": "skipped"
         },
         {
           "t": 50161,
@@ -8975,7 +8980,7 @@
         {
           "t": 60211,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9017,7 +9022,7 @@
         {
           "t": 70648,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9065,13 +9070,13 @@
         {
           "t": 79353,
           "pressed": 100780,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 80356,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9119,7 +9124,7 @@
         {
           "t": 88392,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9167,7 +9172,7 @@
         {
           "t": 96751,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9197,7 +9202,7 @@
         {
           "t": 104777,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9227,7 +9232,7 @@
         {
           "t": 113617,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9269,7 +9274,7 @@
         {
           "t": 122799,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9323,7 +9328,7 @@
         {
           "t": 132696,
           "pressed": 100784,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
@@ -9335,7 +9340,7 @@
         {
           "t": 134717,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9383,37 +9388,37 @@
         {
           "t": 143643,
           "pressed": 100780,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 144671,
           "pressed": 100787,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 145865,
           "pressed": 100784,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 146668,
           "pressed": 100780,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 147678,
           "pressed": 100787,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 148682,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9461,13 +9466,13 @@
         {
           "t": 157025,
           "pressed": 100787,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 158022,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9497,13 +9502,13 @@
         {
           "t": 166891,
           "pressed": 100784,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 167896,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9551,13 +9556,13 @@
         {
           "t": 175923,
           "pressed": 100787,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 176924,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9599,7 +9604,7 @@
         {
           "t": 186271,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9635,7 +9640,7 @@
         {
           "t": 194450,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9689,7 +9694,7 @@
         {
           "t": 203520,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9743,7 +9748,7 @@
         {
           "t": 213282,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9791,13 +9796,13 @@
         {
           "t": 221817,
           "pressed": 100780,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
           "t": 222817,
           "pressed": 113656,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
@@ -9809,7 +9814,7 @@
         {
           "t": 228001,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9857,7 +9862,7 @@
         {
           "t": 236663,
           "pressed": 100784,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
@@ -9869,7 +9874,7 @@
         {
           "t": 238695,
           "pressed": 100787,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "skipped"
         },
         {
@@ -9881,7 +9886,7 @@
         {
           "t": 241349,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9929,7 +9934,7 @@
         {
           "t": 249389,
           "pressed": 107428,
-          "wanted": "rising-sun-kick",
+          "wanted": "rising-sun-kick-filler",
           "verdict": "followed"
         },
         {
@@ -9963,8 +9968,8 @@
           "verdict": "skipped"
         }
       ],
-      "followed": 104,
-      "skipped": 112,
+      "followed": 102,
+      "skipped": 114,
       "unknown": 0,
       "offList": 1,
       "skippedBy": [
@@ -9979,7 +9984,7 @@
           "count": 25
         },
         {
-          "key": "rising-sun-kick",
+          "key": "rising-sun-kick-filler",
           "id": 107428,
           "count": 17
         },
@@ -9989,14 +9994,14 @@
           "count": 16
         },
         {
-          "key": "blackout-kick",
-          "id": 100784,
+          "key": "tiger-palm-refresh",
+          "id": 100787,
           "count": 7
         },
         {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
-          "count": 5
+          "key": "blackout-kick",
+          "id": 100784,
+          "count": 7
         },
         {
           "key": "combo-breaker-palm",

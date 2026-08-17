@@ -57,7 +57,7 @@ describe('Blackout Kick section', () => {
 	 */
 	it('says when the presses it charges are presses the list wanted', () => {
 		const html = render(fixture('strong'), 'single');
-		expect(html).toContain(escaped(t('blackoutKick.starveFollowed', { count: 5 })));
+		expect(html).toContain(escaped(t('blackoutKick.starveFollowed', { count: 6 })));
 		// And says nothing at a reading where the list wanted none of them, rather than printing a zero.
 		// The same seventeen presses: read at three targets the list wanted none of them dumped at all,
 		// which is exactly why the sentence is the one figure in this half that follows the band.
@@ -73,7 +73,7 @@ describe('Blackout Kick section', () => {
 		const analysis = fixture('strong');
 		const single = render(analysis, 'single');
 		const multi = render(analysis, 'multi');
-		expect(single).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 109, followed: 47 })));
+		expect(single).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 109, followed: 56 })));
 		expect(multi).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 73, followed: 7 })));
 		// The same seconds under both readings, and the note that promises it.
 		expect(single).toContain('43.6s');

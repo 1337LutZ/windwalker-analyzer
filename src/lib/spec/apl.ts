@@ -71,8 +71,8 @@ import { inWindow, remainingIn } from '../analysis/auras';
  * known gains and costs between readings and resyncs at every spender. Checked against the readings it
  * did not use, that walk predicts the next one exactly **87–95%** of the time across the three
  * reference pulls, and its errors are symmetric ±1 rather than a systematic drift. With it the ladder
- * separates the sample the right way round: 64% of judged presses followed on `strong`, 52% on
- * `mixed`, 48% on `poor`.
+ * separates the sample the right way round: 62% of judged presses followed on `strong`, 49% on
+ * `mixed`, 47% on `poor`.
  *
  * The residual matters and the section says so: a press judged on a reconstructed bar that is one chi
  * out can be called a skip it was not, or missed as one it was. That is why nothing here is graded.
@@ -174,6 +174,19 @@ export interface AplInputs {
 	regenPerSec: number;
 	/** The player's actual global, measured. Several conditions are written in units of it. */
 	gcdMs: number;
+	/**
+	 * How long the whole pull ran.
+	 *
+	 * The list's `currentTime + remainingTime`, which is not a clock reading despite looking like one:
+	 * `GetRemainingDuration` in `sim/core/sim.go` returns `Duration - CurrentTime`, so the two terms
+	 * cancel and what is left is the iteration's total length. Entry 31 is the only rule that reads it,
+	 * and reads it as a fact about the pull rather than about the press.
+	 *
+	 * Passed in rather than inferred from the last cast on the ladder's own list. The threshold is 75
+	 * seconds, which is close enough to a real pull length that a pull whose final global lands twenty
+	 * seconds before the kill would be measured onto the wrong side of it.
+	 */
+	pullMs: number;
 	/** Aura windows by the spec's own key, so this module never has to know a spell id for a buff. */
 	auras: Readonly<Partial<Record<string, readonly Window[]>>>;
 	/** How long a Fists of Fury channel ran, measured. The APL writes this as four ticks plus input delay. */
@@ -294,6 +307,16 @@ const DUMP_ENERGY = { few: 35, many: 105 } as const;
 /** Debuff a heavy Spinning Crane Kick needs left on the target, from APL 20. */
 const SCK_DEBUFF_MS = 2250;
 
+/**
+ * The pull length under which the list still wants Rushing Jade Wind from the bottom rung.
+ *
+ * APL 31's `(currentTime + remainingTime) < 75s`. Both terms are the sim's and they cancel to the
+ * whole fight's length, so this is a switch thrown once per pull rather than a condition that comes
+ * and goes: under 75 seconds the rung is effectively unconditional, over it the rung is left with
+ * nothing but its energy-cap clause for every global of the pull.
+ */
+const SHORT_PULL_MS = 75_000;
+
 interface State {
 	t: number;
 	chi: number;
@@ -302,6 +325,8 @@ interface State {
 	energyMax: number;
 	/** Seconds until the energy bar is full. The unit almost every condition in this list is written in. */
 	timeToEnergyCapSec: number;
+	/** How long the whole pull ran. The same number at every press — entry 31's short-fight clause reads it. */
+	pullMs: number;
 	gcdSec: number;
 	/** Seconds until Rising Sun Kick is castable again; zero when it is ready now. */
 	rskReadyInSec: number;
@@ -387,13 +412,22 @@ const LADDER: readonly Rule[] = [
 		condition: () => true,
 	},
 	{
-		// 18 — `auraRemainingTime(TigerPower) <= GCD or not(Targets: More than 2)`. Below three targets
-		// the second half is true and the kick goes on cooldown; at three and up the list only wants it
-		// here to hold Tiger Power, and the unconditional kick further down catches the rest.
+		// 18 — `targets >= 2 and (auraRemainingTime(RSK debuff) <= GCD or not(Targets: More than 2))`.
+		//
+		// The target gate is the load-bearing half at low counts, because it removes the rung rather than
+		// falsifying it: at one target this entry does not exist, and Rising Sun Kick is claimed instead
+		// by entry 21 below — which sits *under* Tiger Palm's refresh and the heavy Spinning Crane Kick.
+		// A single-target pull therefore spends its kick two rungs lower than it used to, and a global
+		// that once read as a skipped kick now reads as a followed refresh.
+		//
+		// At exactly two targets the second half is true (`not(targets >= 3)`) and the kick goes on
+		// cooldown; at three and up the list only wants this global to hold the debuff, and the
+		// unconditional kick further down catches the rest.
 		key: 'rising-sun-kick',
 		id: ID.risingSunKick,
 		chiCost: CHI_COST.risingSunKick,
 		energyCost: 0,
+		bands: [2, 3, 4],
 		condition: (state, auras) => {
 			if (state.band <= 2) return true;
 			// Rising Sun Kick's own debuff, not Tiger Power. The APL reads
@@ -444,21 +478,22 @@ const LADDER: readonly Rule[] = [
 		},
 	},
 	{
-		// 21 — the unconditional kick. Unreachable below three targets, where entry 18 above has already
-		// claimed it; from three up this is what puts Rising Sun Kick back on cooldown once the list has
-		// spent the higher globals on the adds.
+		// 21 — the unconditional kick. No target gate of its own, so with entry 18 above now demanding a
+		// second target this is the *only* rung Rising Sun Kick has at one; from three up it is what puts
+		// the kick back on cooldown once the list has spent the higher globals on the adds.
 		//
-		// The bands say out loud what "unreachable" means, and they cost the walk nothing: below three
-		// targets entry 18 is the same button at the same cost with the same cooldown and a condition
-		// that is unconditionally true, so the only ways past it are `!ready` and `!affordable` — both of
-		// which this entry fails identically. Declared rather than left implicit because the reference
-		// table renders off these bands, and a rung that can never fire is a rung that should not be
-		// drawn: without this, a single-target reader is shown Rising Sun Kick twice.
+		// The one missing band is 2, and it says out loud what "unreachable" means rather than changing
+		// anything: at exactly two targets entry 18 is the same button at the same cost with the same
+		// cooldown and a condition that is unconditionally true, so the only ways past it are `!ready`
+		// and `!affordable` — both of which this entry fails identically. Declared rather than left
+		// implicit because the reference table renders off these bands, and a rung that can never fire is
+		// a rung that should not be drawn: without this, a two-target reader is shown Rising Sun Kick
+		// twice.
 		key: 'rising-sun-kick-filler',
 		id: ID.risingSunKick,
 		chiCost: CHI_COST.risingSunKick,
 		energyCost: 0,
-		bands: [3, 4],
+		bands: [1, 3, 4],
 		condition: () => true,
 	},
 	{
@@ -538,13 +573,21 @@ const LADDER: readonly Rule[] = [
 		condition: (state) => state.chiMax - state.chi >= 2,
 	},
 	{
-		// 31 — unconditional in the list. Talent-gated in practice, which `known` handles.
+		// 31 — `(currentTime + remainingTime) < 75s or energyTimeToCap <= 1s`, and it is a gate now rather
+		// than the unconditional press it used to be. The first half is a fact about the pull, not the
+		// press: the two terms sum to the whole fight's length, so on anything longer than 75 seconds it
+		// is false from the first global to the last and this rung is left with the energy clause alone.
+		//
+		// Which is what the rung is for down here. Entry 17 has already put the wind out at two targets
+		// and above; by the time the walk reaches the bottom of the ladder the only reason left to spend
+		// a global on it is a bar about to overflow anyway. Talent-gated in practice, which `known`
+		// handles.
 		key: 'rushing-jade-wind',
 		id: ID.rushingJadeWind,
 		chiCost: 0,
 		energyCost: RJW_ENERGY_COST,
 		talent: true,
-		condition: () => true,
+		condition: (state) => state.pullMs < SHORT_PULL_MS || state.timeToEnergyCapSec <= 1,
 	},
 	{
 		// 32 — the dump. Spend chi on a Blackout Kick only when the energy banked by the time Rising Sun
@@ -655,6 +698,7 @@ function stateAt(t: number, inputs: AplInputs, lastCast: ReadonlyMap<number, num
 		// Guarded against a log that reported no regen at all: an infinite time-to-cap would silently
 		// satisfy every "there is room in the bar" condition on the ladder.
 		timeToEnergyCapSec: inputs.regenPerSec > 0 ? Math.max(0, energyMax - energy) / inputs.regenPerSec : 0,
+		pullMs: inputs.pullMs,
 		gcdSec: inputs.gcdMs / 1000,
 		rskReadyInSec: lastRsk === undefined ? 0 : Math.max(0, lastRsk + rskCooldown - t) / 1000,
 		fofChannelSec: inputs.fofChannelSec,
