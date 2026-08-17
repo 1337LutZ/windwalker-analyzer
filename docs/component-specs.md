@@ -41,7 +41,7 @@ has no Windwalker and let them pick a different pull.
 **Detect the spec before fetching events.** `Report.playerDetails(fightIDs: [n])` returns players
 already grouped into `tanks` / `healers` / `dps`, each with `type` (class) and `specs[].spec`.
 Filter to `type === 'Monk' && specs[].spec === 'Windwalker'`. Verified against a real report: it
-returns `a Windwalker` under `dps` and `a Brewmaster` under `tanks`,
+returns the Windwalker under `dps` and the Brewmaster under `tanks`,
 so it separates monk specs correctly.
 
 This matters because it is **one cheap query, before the expensive part**. The event fetch is several

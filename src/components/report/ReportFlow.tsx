@@ -1,40 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
-import "~/lib/i18n";
+import '~/lib/i18n';
 
-import {
-	useFightAnalysis,
-	type AnalysisRequest,
-} from "~/hooks/useFightAnalysis";
-import { useSettings } from "~/hooks/useSettings";
-import {
-	shouldAutoRun,
-	useInitialUrlSelection,
-	useUrlSelectionWriter,
-} from "~/hooks/useReportUrlState";
-import { useFightPlayers } from "~/hooks/useFightPlayers";
-import { useReportFights } from "~/hooks/useReportFights";
+import { useFightAnalysis, type AnalysisRequest } from '~/hooks/useFightAnalysis';
+import { useSettings } from '~/hooks/useSettings';
+import { shouldAutoRun, useInitialUrlSelection, useUrlSelectionWriter } from '~/hooks/useReportUrlState';
+import { useFightPlayers } from '~/hooks/useFightPlayers';
+import { useReportFights } from '~/hooks/useReportFights';
 
-import type { TargetModeChoice } from "~/lib/view/targetMode";
+import type { TargetModeChoice } from '~/lib/view/targetMode';
 
-import { useSession } from "../auth";
-import Report from "../Report";
-import { Callout, Skeleton, Step } from "../primitives";
-import { buttonClass, primaryButtonClass } from "../primitives/controls";
+import { useSession } from '../auth';
+import Report from '../Report';
+import { Callout, Skeleton, Step } from '../primitives';
+import { buttonClass, primaryButtonClass } from '../primitives/controls';
 
-import FetchProgress from "./FetchProgress";
-import FightSelector from "./FightSelector";
-import PlayerSelector from "./PlayerSelector";
-import ReportInput from "./ReportInput";
-import ReportSkeleton from "./ReportSkeleton";
-import SettingsDialog from "./SettingsDialog";
-import StickySelectionBar from "./StickySelectionBar";
-import TargetModeControl from "./TargetModeControl";
-import { defaultFightID, groupByEncounter } from "./encounterGroups";
-import { describeFailure } from "./describeFailure";
-import type { ResolvedReportInput } from "./parseReportInput";
+import FetchProgress from './FetchProgress';
+import FightSelector from './FightSelector';
+import PlayerSelector from './PlayerSelector';
+import ReportInput from './ReportInput';
+import ReportSkeleton from './ReportSkeleton';
+import SettingsDialog from './SettingsDialog';
+import StickySelectionBar from './StickySelectionBar';
+import TargetModeControl from './TargetModeControl';
+import { defaultFightID, groupByEncounter } from './encounterGroups';
+import { describeFailure } from './describeFailure';
+import type { ResolvedReportInput } from './parseReportInput';
 
 /**
  * Steps two to four, and the report they produce. Step one is the sign-in above it.
@@ -52,7 +45,7 @@ import type { ResolvedReportInput } from "./parseReportInput";
  */
 export default function ReportFlow() {
 	// Step labels are shell copy, so they come from the `ui` namespace, not the report's.
-	const { t } = useTranslation("ui");
+	const { t } = useTranslation('ui');
 	const { token, signOut } = useSession();
 	// The thresholds the reader owns. Held here because this is where the analysis is derived.
 	const settingsState = useSettings();
@@ -83,7 +76,7 @@ export default function ReportFlow() {
 	 * That reset used to be free — `Report` unmounts when the analysis it is showing is dropped, and
 	 * took the state with it — and lifting the state is what made it something to do on purpose.
 	 */
-	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>("auto");
+	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
 	/**
 	 * Whether the selection carried in the URL has already been run.
 	 *
@@ -109,7 +102,7 @@ export default function ReportFlow() {
 	 */
 	const requestPull = useCallback((next: AnalysisRequest | null) => {
 		setRequest(next);
-		setTargetChoice("auto");
+		setTargetChoice('auto');
 	}, []);
 
 	// A link with a report in it should land on that report rather than an empty form. The URL is read
@@ -130,16 +123,10 @@ export default function ReportFlow() {
 
 	const code = input?.code ?? null;
 	const fights = useReportFights(token, code);
-	const groups = useMemo(
-		() => groupByEncounter(fights.data?.fights ?? []),
-		[fights.data],
-	);
+	const groups = useMemo(() => groupByEncounter(fights.data?.fights ?? []), [fights.data]);
 
-	const fightID =
-		chosenFightID ?? defaultFightID(groups, input?.fightID ?? null);
-	const fight =
-		fights.data?.fights.find((candidate) => candidate.id === fightID) ??
-		null;
+	const fightID = chosenFightID ?? defaultFightID(groups, input?.fightID ?? null);
+	const fight = fights.data?.fights.find((candidate) => candidate.id === fightID) ?? null;
 
 	const players = useFightPlayers(token, code, fightID);
 	// Memoised for the auto-run effect below, which depends on it. `players.data ?? []` hands back a
@@ -177,24 +164,20 @@ export default function ReportFlow() {
 		setFightJustChosen(false);
 		const step = playerStepRef.current;
 		if (step === null) return;
-		const reduced = window.matchMedia(
-			"(prefers-reduced-motion: reduce)",
-		).matches;
+		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		step.scrollIntoView({
-			behavior: reduced ? "auto" : "smooth",
-			block: "start",
+			behavior: reduced ? 'auto' : 'smooth',
+			block: 'start',
 		});
 	}, [fightJustChosen]);
 
 	// The report lands below four steps of form, which on a phone is well past the fold.
 	useEffect(() => {
 		if (analysis === null) return;
-		const reduced = window.matchMedia(
-			"(prefers-reduced-motion: reduce)",
-		).matches;
+		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		resultRef.current?.scrollIntoView({
-			behavior: reduced ? "auto" : "smooth",
-			block: "start",
+			behavior: reduced ? 'auto' : 'smooth',
+			block: 'start',
 		});
 	}, [analysis]);
 
@@ -212,9 +195,7 @@ export default function ReportFlow() {
 		const observer = new IntersectionObserver((entries) => {
 			const entry = entries[entries.length - 1];
 			if (entry === undefined) return;
-			setSelectionOffScreen(
-				!entry.isIntersecting && entry.boundingClientRect.top <= 0,
-			);
+			setSelectionOffScreen(!entry.isIntersecting && entry.boundingClientRect.top <= 0);
 		});
 		observer.observe(sentinel);
 		return () => observer.disconnect();
@@ -235,7 +216,7 @@ export default function ReportFlow() {
 	// either. `fight` is the resolved pull behind `fightID`, so a stale id that matches nothing
 	// leaves the title alone rather than naming a fight that is not on screen.
 	useEffect(() => {
-		const base = "Windwalker analyzer";
+		const base = 'Windwalker analyzer';
 		if (fight === null || playerName === null) {
 			document.title = base;
 			return;
@@ -262,20 +243,10 @@ export default function ReportFlow() {
 			playerName: fromUrl.player ?? playerName,
 			roster: windwalkers.map((player) => player.name),
 		});
-		if (!ready || code === null || fightID === null || playerName === null)
-			return;
+		if (!ready || code === null || fightID === null || playerName === null) return;
 		autoRan.current = true;
 		requestPull({ code, fightID, playerName });
-	}, [
-		fromUrl.code,
-		fromUrl.player,
-		token,
-		code,
-		fightID,
-		playerName,
-		windwalkers,
-		requestPull,
-	]);
+	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, windwalkers, requestPull]);
 
 	const signedIn = token !== null;
 	const loaded = fights.data !== undefined;
@@ -309,12 +280,10 @@ export default function ReportFlow() {
 	const changeSelection = () => {
 		const block = selectionRef.current;
 		if (block === null) return;
-		const reduced = window.matchMedia(
-			"(prefers-reduced-motion: reduce)",
-		).matches;
+		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		block.scrollIntoView({
-			behavior: reduced ? "auto" : "smooth",
-			block: "start",
+			behavior: reduced ? 'auto' : 'smooth',
+			block: 'start',
 		});
 		block.focus({ preventScroll: true });
 	};
@@ -327,11 +296,7 @@ export default function ReportFlow() {
 					title={failure.title}
 					action={
 						failure.tokenAtFault ? (
-							<button
-								type="button"
-								className={buttonClass}
-								onClick={signOut}
-							>
+							<button type="button" className={buttonClass} onClick={signOut}>
 								Sign out and try again
 							</button>
 						) : null
@@ -348,16 +313,12 @@ export default function ReportFlow() {
 			{/* The three steps are one selection, so they are one block: what the sticky bar stands in
 			    for, what its Change button returns to, and what takes focus when it does. The gaps
 			    repeat the page container's, so wrapping them changes nothing on screen. */}
-			<div
-				ref={selectionRef}
-				tabIndex={-1}
-				className="flex scroll-mt-4 flex-col gap-4 sm:gap-5"
-			>
+			<div ref={selectionRef} tabIndex={-1} className="flex scroll-mt-4 flex-col gap-4 sm:gap-5">
 				<Step
 					index={2}
-					title={t("steps.report")}
+					title={t('steps.report')}
 					hint="report URL or code"
-					state={!signedIn ? "pending" : loaded ? "done" : "active"}
+					state={!signedIn ? 'pending' : loaded ? 'done' : 'active'}
 				>
 					{signedIn ? (
 						<>
@@ -376,37 +337,27 @@ export default function ReportFlow() {
 							{fights.data ? (
 								<p className="mt-3 mb-0 truncate text-sm text-muted">
 									{fights.data.title}
-									{fights.data.zoneName
-										? ` · ${fights.data.zoneName}`
-										: ""}{" "}
-									· {fights.data.fights.length} boss pull
-									{fights.data.fights.length === 1 ? "" : "s"}
+									{fights.data.zoneName ? ` · ${fights.data.zoneName}` : ''} · {fights.data.fights.length} boss pull
+									{fights.data.fights.length === 1 ? '' : 's'}
 								</p>
 							) : null}
 							{fights.error ? problem(fights.error) : null}
 						</>
 					) : (
 						<p className="m-0 leading-relaxed text-muted">
-							Once you are signed in: paste a report URL or code,
-							pick the pull, pick the player, read the report.
+							Once you are signed in: paste a report URL or code, pick the pull, pick the player, read the report.
 						</p>
 					)}
 				</Step>
 
-				<Step
-					index={3}
-					title={t("steps.fight")}
-					state={loaded ? "active" : "pending"}
-				>
+				<Step index={3} title={t('steps.fight')} state={loaded ? 'active' : 'pending'}>
 					{/* The fetch comes first, because the step is otherwise a single line of copy that the
 					    arriving list expands to several hundred pixels — the largest jump above the fold,
 					    and one that happens while the reader is still looking at this step. */}
 					{fights.isFetching ? (
 						<FightListSkeleton />
 					) : !fights.data ? (
-						<p className="m-0 leading-relaxed text-muted">
-							Load a report above and its boss pulls appear here.
-						</p>
+						<p className="m-0 leading-relaxed text-muted">Load a report above and its boss pulls appear here.</p>
 					) : hasFights ? (
 						<FightSelector
 							fights={fights.data.fights}
@@ -420,29 +371,25 @@ export default function ReportFlow() {
 						/>
 					) : (
 						<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-							That report loaded, but it has no boss encounters in
-							it — only trash, or nothing at all.
+							That report loaded, but it has no boss encounters in it — only trash, or nothing at all.
 						</p>
 					)}
 				</Step>
 
 				<Step
 					index={4}
-					title={t("steps.player")}
-					state={loaded && hasFights ? "active" : "pending"}
+					title={t('steps.player')}
+					state={loaded && hasFights ? 'active' : 'pending'}
 					ref={playerStepRef}
 				>
 					{!loaded || !hasFights ? (
 						<p className="m-0 leading-relaxed text-muted">
-							Then pick whose pull to read. Only Windwalkers who
-							were in that fight are listed.
+							Then pick whose pull to read. Only Windwalkers who were in that fight are listed.
 						</p>
 					) : (
 						<div className="flex flex-col gap-4">
 							{players.isLoading ? (
-								<p className="m-0 leading-relaxed text-muted">
-									Checking who was in that pull…
-								</p>
+								<p className="m-0 leading-relaxed text-muted">Checking who was in that pull…</p>
 							) : players.error ? (
 								problem(players.error)
 							) : (
@@ -450,7 +397,7 @@ export default function ReportFlow() {
 									players={windwalkers}
 									value={playerName}
 									onChange={setChosenPlayer}
-									fightName={fight?.name ?? "this pull"}
+									fightName={fight?.name ?? 'this pull'}
 								/>
 							)}
 
@@ -461,9 +408,7 @@ export default function ReportFlow() {
 									onClick={analyse}
 									disabled={isFetching || playerName === null}
 								>
-									{isFetching
-										? "Reading the fight…"
-										: "Analyse this pull"}
+									{isFetching ? 'Reading the fight…' : 'Analyse this pull'}
 								</button>
 								{/* The same settings button the sticky bar carries, for the reader who is still
 							    here and has not scrolled past anything. Two triggers, one dialog each — a
@@ -471,9 +416,7 @@ export default function ReportFlow() {
 								<SettingsDialog {...settingsState} />
 							</div>
 
-							{progress ? (
-								<FetchProgress progress={progress} />
-							) : null}
+							{progress ? <FetchProgress progress={progress} /> : null}
 							{analysisError ? problem(analysisError) : null}
 						</div>
 					)}
@@ -494,11 +437,7 @@ export default function ReportFlow() {
 			    Gated on `gradeable`, the same condition the bar's own switches take. */}
 			{gradeable && analysis !== null ? (
 				<div className="mt-4 sm:mt-5">
-					<TargetModeControl
-						targets={analysis.targets}
-						value={targetChoice}
-						onChange={setTargetChoice}
-					/>
+					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
 				</div>
 			) : null}
 
@@ -532,16 +471,10 @@ export default function ReportFlow() {
 
 			{/* The scroll margins are the sticky bar's height: an in-page jump that lands under the bar
 			    hides the heading it was aimed at. */}
-			<div
-				ref={resultRef}
-				className="scroll-mt-14 [&_h1]:scroll-mt-14 [&_h2]:scroll-mt-14"
-			>
+			<div ref={resultRef} className="scroll-mt-14 [&_h1]:scroll-mt-14 [&_h2]:scroll-mt-14">
 				{analysis !== null ? (
 					<div className="pt-6 md:pt-10">
-						<Report
-							analysis={analysis}
-							targetChoice={targetChoice}
-						/>
+						<Report analysis={analysis} targetChoice={targetChoice} />
 					</div>
 				) : isFetching ? (
 					// A fetch with no analysis behind it is the first read of a pull *or* the read of a
@@ -575,10 +508,7 @@ const FIGHT_ROWS = [1, 2, 3, 4, 5];
  */
 function FightListSkeleton() {
 	return (
-		<div
-			aria-hidden="true"
-			className="flex flex-col gap-2 motion-safe:animate-pulse"
-		>
+		<div aria-hidden="true" className="flex flex-col gap-2 motion-safe:animate-pulse">
 			{FIGHT_ROWS.map((row) => (
 				<Skeleton key={row} className="h-[68px]" />
 			))}

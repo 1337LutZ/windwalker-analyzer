@@ -1,0 +1,34 @@
+{
+  // oxc is this project's formatter and linter (`.oxfmtrc.json` / `.oxlintrc.json`); prettier is
+  // not installed here, and a default-editor prettier run is what reformatted files behind the
+  // repo's back in the past.
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
+  // oxfmt formats the whole file, so the save must not be limited to modified lines.
+  "editor.formatOnSaveMode": "file",
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  // Fix on save via the same extension's lint fixes, so `npm run lint` stays a no-op after an
+  // editing session.
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit"
+  },
+  "[astro]": {
+    // oxc does not format .astro; keep the Astro extension's formatter so frontmatter is not
+    // left to whatever formatter was last used.
+    "editor.defaultFormatter": "astro-build.astro-vscode"
+  }
+}
