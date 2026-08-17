@@ -5,6 +5,7 @@ import type { Analysis } from '~/lib/types';
 import SectionNav, { type ReportSection } from './report/SectionNav';
 import { TargetModeContext } from './report/targetModeContext';
 import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
+import { excludedButtons, pressedButtons } from '~/lib/view/rotationFlow';
 import {
 	BlackoutKick,
 	BrewBankTimeline,
@@ -125,7 +126,15 @@ const SECTIONS: (ReportSection & {
 	// also what puts it here rather than among the sections that grade placement. Xuen leads the three
 	// because it is the one with no placement to judge at all: the sim fires it from an unconditional
 	// autocast, so the section grades the clock and nothing else.
-	{ id: 'xuen', titleKey: 'xuen.title', group: 'cooldowns', Component: Xuen },
+	// The two level-90 choices are mutually exclusive. Hide the section when the log proves its talent
+	// was not taken; keep it when the log cannot tell, so silence is not mistaken for a forgotten button.
+	{
+		id: 'xuen',
+		titleKey: 'xuen.title',
+		group: 'cooldowns',
+		Component: Xuen,
+		when: (analysis) => !excludedButtons(pressedButtons(analysis.casts)).has(123_904),
+	},
 	// Beside the other summon, and the only section in the list that can decline to appear. Storm,
 	// Earth and Fire is a multi-target button: on a single-target pull it is correct never to press it,
 	// so a heading saying "not pressed, and rightly" on every Garrosh kill would be a line of noise on
@@ -174,14 +183,15 @@ const SECTIONS: (ReportSection & {
 	// others has. Energizing Brew is filed with the brews above and says so; Fists is the half of the
 	// pair the grouping could keep, and this sits directly under it.
 	//
-	// No `when`, unlike Storm, Earth and Fire above. That section may decline because pressing nothing
-	// at one target is correct play and there is no verdict to give; here there is one either way. A
-	// monk who took the wind is owed the uptime and what it cost, and a monk who did not is owed the
-	// sentence saying so — the button shares a talent row with Invoke Xuen, so on a report where the
-	// Xuen section is populated an absent heading here would read as a section that failed rather than
-	// as the other half of one choice. What it must never do is print that absence as a zero, and that
-	// is the section's own job rather than a gate's.
-	{ id: 'jade-wind', titleKey: 'jadeWind.title', group: 'abilities', Component: RushingJadeWind },
+	// The level-90 sibling is handled the same way as Xuen above. Unknown talent selection keeps the
+	// section visible; positive evidence for Invoke Xuen or Spinning Crane Kick removes it.
+	{
+		id: 'jade-wind',
+		titleKey: 'jadeWind.title',
+		group: 'abilities',
+		Component: RushingJadeWind,
+		when: (analysis) => !excludedButtons(pressedButtons(analysis.casts)).has(116_847),
+	},
 	{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
 	{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
 

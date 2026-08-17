@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatPercentValue } from '~/lib/format';
+import { formatDecimal } from '~/lib/format';
 import type { Analysis, TargetMode } from '~/lib/types';
 import { readJadeWind } from '~/lib/view/jadeWind';
 import { bandForMode } from '~/lib/view/targetMode';
@@ -9,35 +9,14 @@ import { bandForMode } from '~/lib/view/targetMode';
 import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primitives';
 
 /**
- * Rushing Jade Wind: how much of the pull it was spinning, and what that cost.
+ * Rushing Jade Wind: the target fan-out and the priority-list opportunities for the button.
  *
  * It earns a heading of its own rather than a paragraph inside one of the two sections that already
  * cite it. Fists of Fury asks a boolean of it — did the wind cover this channel — and Energizing Brew
  * asks a second one — is it in the build at all, which is what excuses a press under Bloodlust.
- * Neither has a clock for the button, and the question here is a clock: an uptime, the ceiling above
- * it, and the price of closing the gap. Folding that into either would put one button's uptime under a
- * heading about another button's placement.
- *
- * ## The ceiling is 100% and that is why it is not printed as a target
- *
- * The dot lasts six seconds, the cooldown is six seconds, and the cooldown is re-armed to whatever is
- * left of the dot — so the button is spinning or ready at every instant of every pull, and "possible
- * uptime" by the cooldown is 100% of any stretch. A tile reading "53% of a possible 100%" is true and
- * says nothing. What rations the button is the bar: 40 energy every six seconds is 6.67 a second,
- * against a measured 12.3–13.5 across the committed fixtures, so covering a pull end to end takes
- * roughly half of every point of energy it produces — and every one of those points is one Jab, Tiger
- * Palm and the chi spenders do not get. So the section prints the uptime, the presses the cooldown
- * allowed, and what both ends of that range cost as a share of the pull's own measured income. The
- * argument and the numbers behind it are in `lib/view/jadeWind`.
- *
- * ## Nothing here is graded
- *
- * There is no share of the bar that is the right one to spend on the wind. The trade is against the
- * generator and the spenders and it moves with the target count from second to second; the priority
- * list's one energy test on this button is an overflow guard on the bottom rung rather than a budget,
- * so there is still no threshold in the sim to take one from — and six fixtures is exactly the sample
- * `score/thresholds.ts` argues against inventing one out of. The tiles therefore carry no grade, and
- * the only judgement in the section is the ladder's, quoted rather than recomputed.
+ * Neither has a clock for the button, and the question here is how many targets the wind actually hit
+ * and how often the priority list offered it. The ladder is quoted rather than recomputed so this
+ * section and the priority section cannot disagree.
  */
 export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);
@@ -76,25 +55,18 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 				<>
 					<div className="mt-4.5">
 						<StatTiles>
-							{/* Contact time, like every other fraction this report grades a choice by — and the
-							    numerator is that same set of segments intersected with the buff's windows, so the
-							    two cannot describe different fights. */}
-							<StatTile value={formatPercentValue(measured.uptimePct)} label={t('jadeWind.kpi.uptime')} />
-							{/* `presses / what the cooldown had room for`, both counted inside contact. The same
-							    shape as Rising Sun Kick's cast tile and floored for the same reason — but
-							    deliberately ungraded, because unlike a kick on an eight-second cooldown this
-							    denominator is not a target. Closing it is what the sentence below prices. */}
+							{forced === 1 ? (
+								<StatTile value={t('jadeWind.choice.value')} label={t('jadeWind.choice.label')} grade="bad" />
+							) : null}
 							<StatTile
-								value={`${measured.presses}`}
-								suffix={` / ${measured.possiblePresses}`}
-								label={t('jadeWind.kpi.presses')}
+								value={measured.averageTargetsHit === null ? '—' : formatDecimal(measured.averageTargetsHit)}
+								label={t('jadeWind.kpi.targets')}
 							/>
-							{/* The figure the ceiling actually turns on. A dash rather than a zero when the pull
-							    carried too few resource readings to measure a regen rate: an unmeasured price is
-							    not a free one. */}
 							<StatTile
-								value={measured.spentSharePct === null ? '—' : formatPercentValue(measured.spentSharePct)}
-								label={t('jadeWind.kpi.energy')}
+								value={ladder === null ? '—' : `${measured.presses}`}
+								suffix={ladder === null ? undefined : ` / ${ladder.opportunities}`}
+								label={t('jadeWind.kpi.opportunities')}
+								grade={ladder?.choiceGrade ?? null}
 							/>
 						</StatTiles>
 					</div>
@@ -104,34 +76,21 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 							<span className="inline-flex items-center gap-2 align-middle">
 								<SpellIcon id={116847} size="sm" />
 							</span>{' '}
-							{t('jadeWind.summary', {
-								uptime: measured.uptimePct,
-								presses: measured.presses,
-								possible: measured.possiblePresses,
-							})}{' '}
-							{t('jadeWind.ceiling')}
-						</Prose>
-
-						{/* The elaboration the section exists for: what the ceiling would have cost, in the
-						    currency that is actually scarce, computed from this pull's own measured regen. */}
-						<Prose>
-							{measured.ceilingSharePct === null || measured.spentSharePct === null || measured.incomeEnergy === null
-								? t('jadeWind.priceUnmeasured')
-								: t('jadeWind.price', {
-										possible: measured.possiblePresses,
-										ceilingEnergy: measured.ceilingEnergy,
-										income: measured.incomeEnergy,
-										ceilingShare: measured.ceilingSharePct,
+							{measured.averageTargetsHit === null
+								? t('jadeWind.summaryNoTargets', { presses: measured.presses })
+								: t('jadeWind.summary', {
+										targets: formatDecimal(measured.averageTargetsHit),
 										presses: measured.presses,
-										spentEnergy: measured.spentEnergy,
-										spentShare: measured.spentSharePct,
+									})}{' '}
+							{ladder === null
+								? null
+								: t('jadeWind.opportunities', {
+										used: ladder.followed,
+										opportunities: ladder.opportunities,
 									})}
 						</Prose>
 
-						{/* The only judgement in the section, and it is the ladder's. Both directions of it: the
-						    presses the list did not want, and the globals it wanted the wind at. Recomputing
-						    either here would be a second opinion free to disagree with the section that lists
-						    them by button. */}
+						{/* The opportunity counts come from the same ladder as the priority section. */}
 						{ladder === null ? (
 							<Note>{t('jadeWind.ladderMissing')}</Note>
 						) : (
@@ -152,7 +111,6 @@ export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis
 						    time a reader reaches this section the toggle is off screen, and at one target this
 						    button's whole position in the list changes. */}
 						{forced === 1 ? <Note>{t('jadeWind.singleTarget')}</Note> : null}
-						{measured.incomeEnergy === null ? null : <Note>{t('jadeWind.regenCaveat')}</Note>}
 						<Note>{t('jadeWind.notGraded')}</Note>
 					</div>
 				</>

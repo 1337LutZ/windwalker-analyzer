@@ -25,28 +25,12 @@ const render = (analysis: Analysis, mode: TargetMode | null = null) =>
 const escaped = (copy: string) => copy.replace(/'/g, '&#x27;');
 
 describe('Rushing Jade Wind section', () => {
-	/**
-	 * The section's whole reason for existing. A cooldown equal to the dot's duration makes 100%
-	 * always reachable, so the number that means something is what reaching it would have cost — and
-	 * the section has to say both, in that order.
-	 */
-	it('prints the uptime and then prices the ceiling instead of quoting it', () => {
+	it('prints target fan-out and priority-list opportunities', () => {
 		const html = render(fixture('waves'), 'multi');
-		expect(html).toContain(t('jadeWind.kpi.uptime'));
-		expect(html).toContain(escaped(t('jadeWind.ceiling')));
-		// The measured share, in the currency that is actually scarce. Two decimals, through the shared
-		// formatter, so the sentence and the tile above it print the same figure.
-		expect(html).toContain('52.46%');
-		expect(html).toContain('32.28%');
-	});
-
-	/** An unmeasured price is withheld rather than printed as free. */
-	it('withholds the price when the pull measured no regen', () => {
-		const analysis = fixture('waves');
-		const unmeasured: Analysis = { ...analysis, energy: { ...analysis.energy!, regenPerSec: null } };
-		const html = render(unmeasured, 'multi');
-		expect(html).toContain(escaped(t('jadeWind.priceUnmeasured')));
-		expect(html).not.toContain(t('jadeWind.price', { possible: 0 }).slice(0, 30));
+		expect(html).toContain(t('jadeWind.kpi.targets'));
+		expect(html).toContain(t('jadeWind.kpi.opportunities'));
+		expect(html).toContain('>32<');
+		expect(html).toContain(escaped(t('jadeWind.summaryNoTargets', { presses: 32 })));
 	});
 
 	/**
@@ -55,7 +39,9 @@ describe('Rushing Jade Wind section', () => {
 	 * verdicts as an endorsement of spinning it on a boss.
 	 */
 	it('warns that the list does not promote the button at one target', () => {
-		expect(render(fixture('strong'), 'single')).toContain(escaped(t('jadeWind.singleTarget')));
+		const single = render(fixture('strong'), 'single');
+		expect(single).toContain(escaped(t('jadeWind.singleTarget')));
+		expect(single).toContain(t('jadeWind.choice.value'));
 		expect(render(fixture('waves'), 'multi')).not.toContain(escaped(t('jadeWind.singleTarget')));
 	});
 
@@ -76,9 +62,8 @@ describe('Rushing Jade Wind section', () => {
 		const html = render(fixture('mixed'), 'single');
 		expect(html).toContain(escaped(t('jadeWind.absent', { context: 'invokeXuen' })));
 		// No tiles at all: the figures are what would read as the accusation.
-		expect(html).not.toContain(t('jadeWind.kpi.uptime'));
-		expect(html).not.toContain(t('jadeWind.kpi.presses'));
-		expect(html).not.toContain(t('jadeWind.kpi.energy'));
+		expect(html).not.toContain(t('jadeWind.kpi.targets'));
+		expect(html).not.toContain(t('jadeWind.kpi.opportunities'));
 	});
 
 	/** And when the log proves nothing either way, it says that instead of guessing in either direction. */
@@ -87,7 +72,7 @@ describe('Rushing Jade Wind section', () => {
 		const silent: Analysis = { ...analysis, casts: analysis.casts.filter((c) => c.id !== 123_904) };
 		const html = render(silent, 'single');
 		expect(html).toContain(escaped(t('jadeWind.absent', { context: 'unknown' })));
-		expect(html).not.toContain(t('jadeWind.kpi.uptime'));
+		expect(html).not.toContain(t('jadeWind.kpi.targets'));
 	});
 
 	/** The heading renders whatever the pull held, because the nav is built from the same list. */

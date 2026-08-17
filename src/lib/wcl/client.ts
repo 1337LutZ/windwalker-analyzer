@@ -34,6 +34,7 @@ import REPORT_FIGHTS_QUERY from './reportFights.graphql?raw';
 
 /** A stuck request would otherwise leave the UI's progress indicator frozen with no way out. */
 const REQUEST_TIMEOUT_MS = 60_000;
+const ACTOR_LIST_RETRY_DELAY_MS = 150;
 
 export type WclErrorKind =
 	/** The token is expired, malformed, or lacks the scope for this report. Overwhelmingly the common case. */
@@ -312,8 +313,18 @@ export class WclClient {
 	}
 
 	async fetchActors(code: string): Promise<Actor[]> {
-		const data = await this.#graphql<ReportActorsQuery, ReportActorsQueryVariables>(REPORT_ACTORS_QUERY, { code });
-		const actors = data.reportData?.report?.masterData?.actors;
+		const read = async () =>
+			this.#graphql<ReportActorsQuery, ReportActorsQueryVariables>(REPORT_ACTORS_QUERY, { code });
+		let data = await read();
+		let actors = data.reportData?.report?.masterData?.actors;
+		if (!actors && data.reportData?.report !== null && data.reportData?.report !== undefined) {
+			// WarcraftLogs can briefly return the report without masterData while another report request is
+			// settling. This is the same transient state a refresh used to hide, so retry only this partial
+			// response rather than enabling retries for every API failure.
+			await new Promise((resolve) => setTimeout(resolve, ACTOR_LIST_RETRY_DELAY_MS));
+			data = await read();
+			actors = data.reportData?.report?.masterData?.actors;
+		}
 		if (!actors) throw new WclError('missing', `Report "${code}" has no actor list, so nothing in it can be named.`);
 
 		// An actor with no report id cannot be matched to an event, so it is dropped rather than

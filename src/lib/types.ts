@@ -141,6 +141,8 @@ export interface AbilityDamage {
 	name: string;
 	total: number;
 	hits: number;
+	/** Average number of distinct targets hit in one damage timestamp, when target data is available. */
+	averageTargetsHit?: number;
 	crits: number;
 	share: number;
 	critPct: number;

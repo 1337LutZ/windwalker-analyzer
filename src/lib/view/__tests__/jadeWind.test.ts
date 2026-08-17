@@ -1,19 +1,11 @@
-// What holds the Rushing Jade Wind section's three claims up.
+// What holds the Rushing Jade Wind section's claims up.
 //
-// The section makes an argument rather than reporting a field, and an argument is exactly the kind of
-// thing that quietly stops being true. Three claims, one group of assertions each:
+// The section reports three distinct facts:
 //
-//   1. **One clock.** The uptime's numerator and its denominator are the same set of contact
-//      segments, and the press count and the press ceiling are counted over that same set. Reading a
-//      numerator on one clock against a denominator on another has produced a wrong number in this
-//      report repeatedly, and here it is structural rather than remembered.
-//   2. **The ceiling is priced, not asserted.** The cooldown ceiling is 100% and useless; the figure
-//      the section prints beside the uptime is what that ceiling would cost as a share of the pull's
-//      *own measured* energy income. So it has to move with the pull's rate rather than being a
-//      constant this file could have written down.
-//   3. **A talent that was not taken is not a zero.** Three states, and the middle one — proven
-//      absent — has to come from the same rule the reference list uses, or the two could disagree
-//      about whether the button existed.
+//   1. **One clock.** Uptime and press counts use the same contact segments.
+//   2. **Priority opportunities.** The denominator comes from the APL audit, not the cooldown.
+//   3. **A talent that was not taken is not a zero.** Three states distinguish absent evidence from
+//      a button that was taken and never pressed.
 //
 // Read against the committed fixtures wherever a fixture can answer, because they are real pulls and
 // a synthetic analysis can only ever confirm the arithmetic this file already wrote.
@@ -23,7 +15,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { unionMs } from '~/lib/analysis/intervals';
-import { RJW_COOLDOWN_MS, RJW_ENERGY_COST } from '~/lib/spec/apl';
+import type { AplAudit } from '~/lib/spec/apl';
 import type { Analysis } from '~/lib/types';
 
 import { readJadeWind, RJW_CAST_ID } from '../jadeWind';
@@ -62,21 +54,12 @@ describe('one clock', () => {
 		expect(measured?.uptimePct).toBeLessThanOrEqual(100);
 	});
 
-	/**
-	 * The specific mismatch this guards. `waves` presses the wind 35 times and three of those land
-	 * between add packs, outside contact — so a press count taken off the cast row would be measured on
-	 * the pull's clock while the ceiling beside it was measured on the contact clock.
-	 */
+	/** The specific mismatch this guards: presses outside contact do not belong to this clock. */
 	it('counts only the presses made inside the clock', () => {
 		const { analysis, reading } = read('waves');
 		const rowCount = analysis.casts.find((c) => c.id === RJW_CAST_ID)?.count ?? 0;
 		expect(rowCount).toBe(35);
 		expect(reading.measured?.presses).toBe(32);
-	});
-
-	it.each(TALENTED)('floors %s press ceiling to the cooldowns that clock had room for', (name) => {
-		const measured = read(name).reading.measured;
-		expect(measured?.possiblePresses).toBe(Math.floor((measured?.measuredMs ?? 0) / RJW_COOLDOWN_MS));
 	});
 
 	/** An analysis from before contact segments existed falls back to the pull for *both* halves. */
@@ -90,59 +73,36 @@ describe('one clock', () => {
 	});
 });
 
-describe('the ceiling, priced rather than asserted', () => {
-	/**
-	 * The claim the section is built on: covering a pull end to end takes about half of everything the
-	 * bar earns. 40 energy every six seconds is 6.67 a second against a measured 12–13, and these are
-	 * the three real pulls that answer it.
-	 */
-	it.each(TALENTED)('prices full coverage on %s at about half the pull income', (name) => {
-		const share = read(name).reading.measured?.ceilingSharePct ?? 0;
-		expect(share).toBeGreaterThan(45);
-		expect(share).toBeLessThan(60);
+describe('the ladder opportunities, quoted rather than re-judged', () => {
+	it('grades unnecessary presses as bad when there were no opportunities', () => {
+		const analysis = fixture('strong');
+		const audit: AplAudit = {
+			presses: Array.from({ length: 9 }, (_, i) => ({
+				t: i * 1000,
+				pressed: RJW_CAST_ID,
+				wanted: null,
+				verdict: 'skipped' as const,
+			})),
+			followed: 0,
+			skipped: 9,
+			unknown: 0,
+			offList: 0,
+			skippedBy: [],
+		};
+		const ladder = readJadeWind(analysis, audit).ladder;
+
+		expect(ladder?.opportunities).toBe(0);
+		expect(ladder?.choiceRate).toBe(0);
+		expect(ladder?.choiceGrade).toBe('bad');
 	});
 
-	it.each(TALENTED)('derives %s share from that pull own measured regen', (name) => {
-		const { analysis, reading } = read(name);
-		const measured = reading.measured;
-		const regen = analysis.energy?.regenPerSec ?? 0;
-		expect(regen).toBeGreaterThan(0);
-		// Stated as the identity rather than as a number, so a changed rate has to move the share.
-		expect(measured?.incomeEnergy).toBeCloseTo((regen * (measured?.measuredMs ?? 0)) / 1000, 6);
-		expect(measured?.ceilingEnergy).toBe((measured?.possiblePresses ?? 0) * RJW_ENERGY_COST);
-		expect(measured?.spentEnergy).toBe((measured?.presses ?? 0) * RJW_ENERGY_COST);
-	});
-
-	/** Not a constant: halve the pull's measured regen and the price of the same ceiling doubles. */
-	it('moves with the rate rather than being written down here', () => {
-		const analysis = fixture('cleave');
-		const regen = analysis.energy?.regenPerSec ?? 0;
-		const halved: Analysis = { ...analysis, energy: { ...analysis.energy!, regenPerSec: regen / 2 } };
-		const base = readJadeWind(analysis, analysis.apl).measured?.ceilingSharePct ?? 0;
-		const slower = readJadeWind(halved, halved.apl).measured?.ceilingSharePct ?? 0;
-		expect(slower).toBeCloseTo(base * 2, 6);
-	});
-
-	/** An unmeasured price is not a free one: nulls, never zeroes, so the section can print a dash. */
-	it('refuses to price a pull that measured no regen', () => {
-		const analysis = fixture('cleave');
-		const unmeasured: Analysis = { ...analysis, energy: { ...analysis.energy!, regenPerSec: null } };
-		const measured = readJadeWind(unmeasured, unmeasured.apl).measured;
-		expect(measured?.incomeEnergy).toBeNull();
-		expect(measured?.spentSharePct).toBeNull();
-		expect(measured?.ceilingSharePct).toBeNull();
-		// The rest of the measurement still stands; only the price is withheld.
-		expect(measured?.uptimePct).toBeGreaterThan(0);
-	});
-});
-
-describe('the ladder, quoted rather than re-judged', () => {
 	it.each(TALENTED)('takes %s verdicts from the audit it was handed', (name) => {
 		const { analysis, reading } = read(name);
 		const own = (analysis.apl?.presses ?? []).filter((p) => p.pressed === RJW_CAST_ID);
 		expect(reading.ladder?.followed).toBe(own.filter((p) => p.verdict === 'followed').length);
 		expect(reading.ladder?.skipped).toBe(own.filter((p) => p.verdict === 'skipped').length);
 		expect(reading.ladder?.judged).toBe((reading.ladder?.followed ?? 0) + (reading.ladder?.skipped ?? 0));
+		expect(reading.ladder?.opportunities).toBe((reading.ladder?.followed ?? 0) + (reading.ladder?.wanted ?? 0));
 	});
 
 	/**

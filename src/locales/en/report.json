@@ -954,7 +954,7 @@
       "jab": "Jab",
       "rushing-jade-wind": "Rushing Jade Wind",
       "rushing-jade-wind-open": "Rushing Jade Wind, above Rising Sun Kick",
-      "rising-sun-kick-filler": "Rising Sun Kick, on the rung with no condition",
+      "rising-sun-kick-filler": "Rising Sun Kick, when no higher-priority rule applies",
       "spinning-crane-kick": "Spinning Crane Kick",
       "spinning-crane-kick-heavy": "Spinning Crane Kick, at four or more",
       "blackout-kick": "Blackout Kick, to spend chi"
@@ -963,11 +963,10 @@
   },
   "jadeWind": {
     "title": "Rushing Jade Wind",
-    "intent": "Rushing Jade Wind spins a six-second dot on everything around you for 40 energy and gives back one chi — half of what the same 40 energy buys through a Jab. Taking it also removes Spinning Crane Kick from your bars, so this is the whole of your area damage. Uptime is not the concern here; the concern is how much energy keeping it up used.",
-    "summary": "The wind was up for {{uptime, percent}} of the time you spent in contact with something, off {{presses}} presses against the {{possible}} that combat time had room for.",
-    "ceiling": "There is no meaningful ceiling above that. The dot lasts six seconds and so does the cooldown, re-armed to whatever is left of the dot, so 100% was available the whole way through — which is why it is not printed as a target. The limit is the energy bar.",
-    "price": "Covering all of it would have taken those {{possible}} presses at 40 energy each — {{ceilingEnergy, integer}} energy against the {{income, integer}} your measured regen produced in the same time, or {{ceilingShare, percent}} of every point you earned. Each of those energy points is a Jab or chi spender that never happens. Your {{presses}} presses took {{spentEnergy, integer}}, or {{spentShare, percent}}.",
-    "priceUnmeasured": "What closing that gap would have cost cannot be said on this pull. The price is 40 energy a press against the rate your bar refilled at, and this log carried too few resource readings to measure that rate.",
+    "intent": "At one target, Invoke Xuen is the better level-90 choice and Rushing Jade Wind is a damage loss: its 40 energy buys one chi where a Jab buys two. It is worth a single-target press only when that energy would otherwise hit the cap and be lost, or on a pull shorter than 75 seconds. From two enemies up, it is your area damage and should be kept spinning — taking it removes Spinning Crane Kick from your bars.",
+    "summary": "Rushing Jade Wind hit an average of {{targets}} targets per damage tick across {{presses}} presses.",
+    "summaryNoTargets": "Rushing Jade Wind was pressed {{presses}} times, but this analysis has no target-level damage data.",
+    "opportunities": "The priority list identified {{opportunities}} opportunities; {{used}} were used correctly.",
     "ladder_all_one": "At the one press the priority list could judge, no higher-priority ability was ready.",
     "ladder_all_other": "At all {{count}} presses the priority list could judge, no higher-priority ability was ready.",
     "ladder_some_one": "The one press the priority list could judge was used while a higher-priority ability was ready and affordable.",
@@ -977,16 +976,18 @@
     "wanted_other": "On {{count}} globals you spent on another button, Rushing Jade Wind was the highest-priority ability ready.",
     "wantedNone": "You never pressed something lower-priority while Rushing Jade Wind was ready.",
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals it wanted.",
-    "singleTarget": "You are reading this pull as single-target, which is where this button sits lowest. The rung that lifts it above Rising Sun Kick needs a second enemy, so all that is left is the one near the bottom — under Jab, under Fists of Fury, under both Combo Breaker presses — and down there it only fires with energy a second from capping, or on a pull under 75 seconds. The presses above are judged against that order.",
-    "regenCaveat": "The rate behind those shares is this pull's own median, measured from the log rather than assumed — regen scales with haste, so no constant describes it. It leaves out the extra energy an Energizing Brew pours in, so on a pull with brews the two shares read slightly high.",
-    "notGraded": "None of this is graded. There is no right share of the bar to spend here — the trade is against the generator and the chi spenders, and it moves with the target count second by second. The one energy condition the list puts on this button guards the bottom rung against overflow; it is not a budget, so there is still no threshold to borrow and none is invented. The only judgement above is the priority list's own.",
+    "singleTarget": "Single-target: Invoke Xuen is the better level-90 choice. RJW is only a priority when energy is about to cap or the pull is shorter than 75 seconds.",
+    "notGraded": "The single-target choice is a talent recommendation, not a pull grade. Opportunities come from the priority list; this section does not set an uptime target.",
     "absent_invokeXuen": "Rushing Jade Wind was not on your bar: it shares the level-90 row with Invoke Xuen, and this log has Invoke Xuen in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_spinningCraneKick": "Rushing Jade Wind was not on your bar: taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would rule it out — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press. There is not enough data to report an uptime figure.",
     "kpi": {
-      "uptime": "Contact time with it up",
-      "presses": "Presses / cooldown allowed",
-      "energy": "Of your energy"
+      "targets": "Average targets hit",
+      "opportunities": "Presses / opportunities"
+    },
+    "choice": {
+      "value": "Non-optimal",
+      "label": "Single-target choice"
     }
   },
   "blackoutKick": {

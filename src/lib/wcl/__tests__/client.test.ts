@@ -254,6 +254,28 @@ describe('WclClient', () => {
 		expect(new WclClient({ token: TOKEN }).endpoint).toBe(WCL_USER_ENDPOINT);
 	});
 
+	it('retries a partial actor response before reporting that the list is missing', async () => {
+		let actorCalls = 0;
+		vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+			const body = JSON.parse(init.body) as { query: string };
+			if (!body.query.includes('query ReportActors')) return reportResponse();
+			actorCalls++;
+			return new Response(
+				JSON.stringify({
+					data: {
+						reportData: {
+							report: actorCalls === 1 ? { masterData: null } : { masterData: { actors: ACTORS } },
+						},
+					},
+				}),
+				{ status: 200 },
+			);
+		});
+
+		await expect(new WclClient({ token: TOKEN }).fetchActors('abc123')).resolves.toHaveLength(2);
+		expect(actorCalls).toBe(2);
+	});
+
 	it('retries once on the other endpoint when the chosen one rejects the token, and stays there', async () => {
 		// Scope names can change, so the decode's answer has to be survivable: this token routes to
 		// /client and WarcraftLogs disagrees.

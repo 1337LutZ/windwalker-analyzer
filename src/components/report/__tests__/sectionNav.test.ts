@@ -27,6 +27,10 @@ const analysis: Analysis = JSON.parse(
 );
 
 const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice: 'auto' }));
+const xuenTalent = JSON.parse(
+	readFileSync(resolve(import.meta.dirname, '../../../lib/__fixtures__/mixed.json'), 'utf8'),
+) as Analysis;
+const xuenHtml = renderToStaticMarkup(createElement(Report, { analysis: xuenTalent, targetChoice: 'auto' }));
 const nav = /<nav[^>]*>[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
 
 const all = (source: string, pattern: RegExp): string[] => [...source.matchAll(pattern)].map((match) => match[1] ?? '');
@@ -171,6 +175,15 @@ describe('SectionNav', () => {
 	/** No group renders as a heading with nothing under it. */
 	it('renders no empty group', () => {
 		expect(groups.filter((group) => group.targets.length === 0)).toEqual([]);
+	});
+
+	it('hides the level-90 section whose talent was not taken', () => {
+		expect(targets).toContain('jade-wind-heading');
+		expect(targets).not.toContain('xuen-heading');
+
+		const xuenTargets = all(xuenHtml, /<h[12] id="([^"]+)"/g);
+		expect(xuenTargets).toContain('xuen-heading');
+		expect(xuenTargets).not.toContain('jade-wind-heading');
 	});
 
 	/**

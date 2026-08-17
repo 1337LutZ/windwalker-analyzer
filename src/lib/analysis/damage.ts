@@ -41,6 +41,7 @@ export function aggregateDamage(
 			total: number;
 			hits: number;
 			crits: number;
+			targetsByTimestamp: Map<number, Set<string>>;
 		}
 	>();
 	let eventTotal = 0;
@@ -58,27 +59,41 @@ export function aggregateDamage(
 			total: 0,
 			hits: 0,
 			crits: 0,
+			targetsByTimestamp: new Map(),
 		};
 		rec.total += e.amount ?? 0;
 		rec.hits++;
 		if (e.hitType === CRIT) rec.crits++;
+		if (e.targetID !== undefined) {
+			const targets = rec.targetsByTimestamp.get(e.timestamp) ?? new Set<string>();
+			targets.add(`${e.targetID}:${e.targetInstance ?? ''}`);
+			rec.targetsByTimestamp.set(e.timestamp, targets);
+		}
 		rows.set(key, rec);
 		eventTotal += e.amount ?? 0;
 	}
 
 	const abilities = [...rows.values()]
-		.map((a) => ({
-			id: a.id,
-			name: a.name,
-			total: a.total,
-			hits: a.hits,
-			crits: a.crits,
-			share: eventTotal > 0 ? (a.total / eventTotal) * 100 : 0,
-			critPct: (a.crits / a.hits) * 100,
-			avgHit: a.total / a.hits,
-			passive: a.passive,
-			utility: a.utility,
-		}))
+		.map((a) => {
+			const targetGroups = [...a.targetsByTimestamp.values()];
+			const averageTargetsHit =
+				targetGroups.length === 0
+					? undefined
+					: targetGroups.reduce((total, targets) => total + targets.size, 0) / targetGroups.length;
+			return {
+				id: a.id,
+				name: a.name,
+				total: a.total,
+				hits: a.hits,
+				...(averageTargetsHit === undefined ? {} : { averageTargetsHit }),
+				crits: a.crits,
+				share: eventTotal > 0 ? (a.total / eventTotal) * 100 : 0,
+				critPct: (a.crits / a.hits) * 100,
+				avgHit: a.total / a.hits,
+				passive: a.passive,
+				utility: a.utility,
+			};
+		})
 		.sort((a, b) => b.total - a.total);
 
 	return { abilities, eventTotal };
