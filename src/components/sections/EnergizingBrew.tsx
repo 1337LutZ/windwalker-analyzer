@@ -13,9 +13,9 @@ import LogLink from './LogLink';
  *
  * The section grades one thing and declines to grade the other, which is the whole shape of it. The
  * sim's priority list wants the brew when energy is at least five seconds from filling *and* either
- * no haste cooldown is running or Rushing Jade Wind covers a second target — and a WarcraftLogs
- * event stream can answer the second clause and not the first. So the verdict column speaks only to
- * the haste condition, and the caveat under the table says why there is no second column beside it.
+ * no haste cooldown is running or Rushing Jade Wind is selected — and a WarcraftLogs event stream can
+ * answer the haste clause and not the energy clause. So the verdict column speaks only to haste, and
+ * the caveat under the table says why there is no second column beside it.
  *
  * `lib/score` grades no `energizingBrew` section, so there is no `verdict()` to ask: this button is
  * gated on conditions rather than played off its cooldown, which leaves no rate for a threshold to
@@ -85,14 +85,7 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 
 	// Faulted first: a single press the rotation would have held is the thing worth saying, and it
 	// outranks the fact that others went out under a haste cooldown legitimately.
-	const hasteContext =
-		energizing.faulted > 0
-			? energizing.rushingJadeWind
-				? 'bad_rjw'
-				: 'bad'
-			: energizing.duringHaste > 0
-				? 'ok'
-				: 'good';
+	const hasteContext = energizing.faulted > 0 ? 'bad' : energizing.duringHaste > 0 ? 'ok' : 'good';
 
 	return (
 		<Section id="energizing" title={t('energizingBrew.title')}>
@@ -124,6 +117,15 @@ export default function EnergizingBrew({ analysis }: { analysis: Analysis }) {
 						suffix={` / ${energizing.available}`}
 						label={t('energizingBrew.kpi.uses')}
 					/>
+					{energizing.hasteRjwEligible ? (
+						<StatTile
+							value={
+								energizing.hasteRjwUses > 0 ? t('energizingBrew.pairing.used') : t('energizingBrew.pairing.missed')
+							}
+							label={t('energizingBrew.pairing.label')}
+							grade={energizing.hasteRjwUses > 0 ? 'good' : 'bad'}
+						/>
+					) : null}
 				</StatTiles>
 			</div>
 

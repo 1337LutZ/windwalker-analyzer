@@ -946,7 +946,7 @@ export interface ChannelAudit {
  * not ask. Not because the bar is unreadable, which is what this comment used to claim and what
  * `EnergyAudit` disproves, but because "five seconds from filling" is a condition about one instant
  * and the bar is sampled about three times a second: judging a press against the nearest reading
- * would grade the sampling grid. What is graded here is the Bloodlust clause, which is an aura and
+ * would grade the sampling grid. What is graded here is the haste clause, which is an aura and
  * therefore exact, and the overlap with the channel, which the channel audit already reads.
  */
 export interface EnergizingBrewAudit {

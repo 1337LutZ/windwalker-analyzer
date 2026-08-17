@@ -286,4 +286,26 @@ describe('the priority ladder', () => {
 			reason: 'energy-cap',
 		});
 	});
+
+	it('wants the bottom Rushing Jade Wind rung during Bloodlust and Energizing Brew', () => {
+		const audit = aplAudit(
+			inputs({
+				energy: flat(100, 50),
+				chi: flat(4, 3),
+				fofChannelSec: 6,
+				auras: {
+					'tiger-power': throughout,
+					bloodlust: throughout,
+					'energizing-brew': throughout,
+				},
+				casts: [press(0, ID.risingSunKick), press(1000, ID.rushingJadeWind)],
+			}),
+		);
+
+		expect(audit?.presses[1]).toMatchObject({
+			verdict: 'followed',
+			wanted: 'rushing-jade-wind',
+			reason: 'haste-window',
+		});
+	});
 });

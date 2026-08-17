@@ -2403,7 +2403,6 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	// here rather than counted twice, so the mode below and the cooldown further down are two readings
 	// of one array.
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
-	const aplMultiTargetWindows = intervalsAtLeast(aplTargetPoints, 2, duration);
 	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
 	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
@@ -3233,10 +3232,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	//      channel's own energy clause is not: WarcraftLogs emits a handful of resource events per
 	//      fight, nowhere near enough to rebuild the bar. `energyCheckable: false` says so, and the
 	//      section prints the caveat rather than implying a use was well timed.
-	//   2. `Bloodlust inactive OR (Rushing Jade Wind known AND numberTargets >= 2)` — checkable. The
-	//      haste cooldown is an aura on the player whoever cast it, having Rushing Jade Wind in the
-	//      build is a cast somewhere in the pull, and the multi-target half is the same concentration
-	//      read the debuff already declines to grade below.
+	//   2. `Bloodlust inactive OR Rushing Jade Wind known` — checkable. The haste cooldown is an aura on
+	//      the player whoever cast it, and having Rushing Jade Wind in the build is a cast somewhere in
+	//      the pull.
 	const hasteWindows = auraWindows(selfEvents, BLOODLUST, t0, fight.endTime);
 	const hasteAt = (t: number): string | null => hasteWindows.find((w) => t >= w.start && t <= w.end)?.variant ?? null;
 	// Both halves of the APL's exception, and it is only ever used to *excuse* a press. With Rushing
@@ -3250,7 +3248,6 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// and reports a six-second buff as never having gone up.
 		const window = ebWindows.find((w) => t >= w.start - SELF_EVENT_MS && t <= w.end) ?? null;
 		const haste = hasteAt(t);
-		const targets = aplTargetCountAt(t);
 		// Channels that began inside this window. Counted from the channel audit's own rows rather
 		// than recomputed, so the two sections cannot disagree about which channel was where — and
 		// deliberately *not* raised as a fault here, because that audit already raises it and the miss
@@ -3259,8 +3256,6 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		const faults: string[] = [];
 		if (haste !== null && !rjwKnown) {
 			faults.push(`used under ${haste} without Rushing Jade Wind, which is what would allow it`);
-		} else if (haste !== null && targets < 2) {
-			faults.push(`used under ${haste} against one target — the exception requires more than one`);
 		}
 		/**
 		 * Energy the brew poured into a bar that was already full.
@@ -3291,9 +3286,8 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			link: link(t),
 		};
 	});
-	const hasteRjwEligible =
-		rjwKnown && hasteWindows.some((window) => overlapMs(window.start, window.end, aplMultiTargetWindows) > 0);
-	const hasteRjwUses = ebUses.filter((use) => use.haste !== null && aplTargetCountAt(use.t) >= 2).length;
+	const hasteRjwEligible = rjwKnown && hasteWindows.length > 0;
+	const hasteRjwUses = ebUses.filter((use) => use.haste !== null).length;
 
 	// ----------------------------------------------------------- miss ledger
 	const misses: Miss[] = [

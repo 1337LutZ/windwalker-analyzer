@@ -239,13 +239,12 @@
     "summary": "{{casts}} of {{available}} possible uses, with the buff up for {{uptime, percent}} of the pull.",
     "recommendation": {
       "title": "Pair Energizing Brew with RJW",
-      "body": "Bloodlust or Time Warp overlapped a period with Rushing Jade Wind and at least two targets, but Energizing Brew was not used there. The rotation allows this combination, and the extra energy is valuable for area damage."
+      "body": "Bloodlust or Time Warp was active while Rushing Jade Wind was selected, but Energizing Brew was not used there. The rotation allows this combination, and the extra energy is valuable for area damage."
     },
     "none": "Energizing Brew was never pressed, and the cooldown allowed {{available}} uses.",
     "haste_good": "None of them were used under a haste cooldown — the rotation holds Energizing Brew through those.",
-    "haste_ok": "{{duringHaste}} of them went out under one, which is allowed here: you have Rushing Jade Wind and the damage was spread across more than one target.",
+    "haste_ok": "{{duringHaste}} of them went out under one, which is allowed here because Rushing Jade Wind was selected.",
     "haste_bad": "{{faulted}} of {{casts}} were used under a haste cooldown that the rotation would have waited out.",
-    "haste_bad_rjw": "{{faulted}} of {{casts}} were used under a haste cooldown while fewer than two targets were active. With Rushing Jade Wind, use Energizing Brew during Bloodlust or Time Warp when at least two targets are active.",
     "channels_one": "One Fists of Fury channel started inside a window; the Fists of Fury section says whether Rushing Jade Wind covered it.",
     "channels_other": "{{count}} Fists of Fury channels started inside a window; the Fists of Fury section says which of them Rushing Jade Wind covered.",
     "energyCaveat": "The other half of the condition — energy at least five seconds from filling — is not checked here. The verdict column covers the haste clause and nothing else, so a use marked clean may still have gone out on a nearly full bar.",
@@ -265,6 +264,11 @@
     },
     "kpi": {
       "uses": "Uses / possible"
+    },
+    "pairing": {
+      "label": "Bloodlust + RJW",
+      "used": "Used",
+      "missed": "Missed"
     },
     "trackAria": "Energy across the {{duration}} pull against a ceiling of {{max}}, with {{casts}} Energizing Brew windows and any haste cooldowns marked behind it",
     "key": {
@@ -762,7 +766,7 @@
       "energizingBrew": {
         "name": "Energizing Brew",
         "test": "energy is 5+ seconds from full",
-        "when": "energy is at least five seconds from full. Held through Bloodlust, unless you have Rushing Jade Wind and more than one target.",
+        "when": "energy is at least five seconds from full. Held through Bloodlust, unless Rushing Jade Wind is selected.",
         "why": "Sixty energy poured into a nearly full bar is sixty energy gone. Bloodlust already refills the bar faster than a flat one-second global can empty it, so the two overlap into waste."
       },
       "invokeXuen": {
@@ -834,7 +838,7 @@
       "rushingJadeWind": {
         "name": "Rushing Jade Wind",
         "test": "energy is a second from capping, or the pull is under 75s",
-        "when": "energy is a second or less from capping. The other half of the condition compares the whole pull's length against 75 seconds rather than the time elapsed, so on any longer pull it is false from the first global to the last, and only the energy check remains.",
+        "when": "energy is a second or less from capping, the pull is under 75 seconds, or Bloodlust and Energizing Brew are both active.",
         "why": "40 energy on a six-second cooldown, and down here it is no longer free filler. Past 75 seconds this rung fires only to stop the bar overflowing, so the 40 it costs is energy that was about to be thrown away. At two targets the rung near the top takes over instead."
       },
       "blackoutKick": {
@@ -887,7 +891,7 @@
       "talents": "The list assumes two talent choices and skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs above rather than a fork. Chi Wave, Zen Sphere and Chi Burst share a row too, drawn as a fork wherever this log cannot tell which you brought.",
       "inferred": "A rung only leaves the flow above on proof that the button was not on your bar. A log carries no talent tree, so a button you never pressed is exactly the one you may have forgotten — an unpressed rung is never removed. What is removed is the alternative to something you did press: a Spinning Crane Kick rules out Rushing Jade Wind, and a Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
       "mastery": "One correction, because the name misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder. There is no alternating-ability mastery here — Combo Strikes belongs to a later expansion — so pressing the same button twice in a row costs you nothing.",
-      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy and tests nothing else. Entry 31 keeps it near the bottom, where it sits at one target, and there it fires only with energy a second from capping or on a pull under 75 seconds. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so the higher rung deliberately spends generator energy on the spinning area damage, while the lower one only fires when that energy was about to overflow anyway. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global."
+      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy and tests nothing else. Entry 31 keeps it near the bottom and fires when energy is a second from capping, the pull is under 75 seconds, or Bloodlust and Energizing Brew are both active. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so the higher rung spends generator energy on area damage, while the lower rung uses overflow or the haste window. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global."
     }
   },
   "summary": {
@@ -975,7 +979,7 @@
   },
   "jadeWind": {
     "title": "Rushing Jade Wind",
-    "intent": "At one target, Invoke Xuen is the better level-90 choice and Rushing Jade Wind is a damage loss: its 40 energy buys one chi where a Jab buys two. It is worth a single-target press only when that energy would otherwise hit the cap and be lost, or on a pull shorter than 75 seconds. From two enemies up, it is your area damage and should be kept spinning — taking it removes Spinning Crane Kick from your bars.",
+    "intent": "At one target, Invoke Xuen is the better level-90 choice and Rushing Jade Wind is a damage loss: its 40 energy buys one chi where a Jab buys two. It is worth a single-target press when that energy would otherwise hit the cap, on a pull shorter than 75 seconds, or while Bloodlust and Energizing Brew are both active. From two enemies up, it is your area damage and should be kept spinning — taking it removes Spinning Crane Kick from your bars.",
     "summary": "Rushing Jade Wind hit an average of {{targets}} targets per damage tick across {{presses}} presses.",
     "summaryNoTargets": "Rushing Jade Wind was pressed {{presses}} times, but this analysis has no target-level damage data.",
     "opportunities": "The priority list identified {{opportunities}} opportunities; {{used}} were used correctly.",
@@ -985,7 +989,7 @@
       "columns": {
         "at": "At",
         "event": "Event",
-        "reason": "What the priority list said"
+        "reason": "Why"
       },
       "cells": {
         "used": "RJW used",
@@ -998,7 +1002,8 @@
         "unknownReason": "A higher-priority condition was unavailable",
         "multiTarget": "At least two targets were active",
         "shortPull": "The pull was shorter than 75 seconds",
-        "energyCap": "Energy would cap within 1 second"
+        "energyCap": "Energy would cap within 1 second",
+        "hasteWindow": "Bloodlust and Energizing Brew were both active"
       }
     },
     "ladder_all_one": "At the one press the priority list could judge, no higher-priority ability was ready.",
@@ -1010,7 +1015,7 @@
     "wanted_other": "On {{count}} globals you spent on another button, Rushing Jade Wind was the highest-priority ability ready.",
     "wantedNone": "You never pressed something lower-priority while Rushing Jade Wind was ready.",
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals it wanted.",
-    "singleTarget": "Single-target: Invoke Xuen is the better level-90 choice. RJW is only a priority when energy is about to cap or the pull is shorter than 75 seconds.",
+    "singleTarget": "Single-target: Invoke Xuen is the better level-90 choice. RJW is a priority for overflow, short pulls, or Bloodlust plus Energizing Brew.",
     "notGraded": "The single-target choice is a talent recommendation, not a pull grade. Opportunities come from the priority list; this section does not set an uptime target.",
     "absent_invokeXuen": "Rushing Jade Wind was not on your bar: it shares the level-90 row with Invoke Xuen, and this log has Invoke Xuen in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_spinningCraneKick": "Rushing Jade Wind was not on your bar: taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",

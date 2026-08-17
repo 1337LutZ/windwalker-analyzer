@@ -121,11 +121,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 			.slice(0, CARDS);
 		const energizing = analysis.energizing;
 		const energizingAdvice =
-			energizing?.rushingJadeWind === true &&
-			energizing.hasteWindows.length > 0 &&
-			energizing.duringHaste === 0 &&
-			energizing.hasteRjwEligible === true &&
-			energizing.hasteRjwUses === 0
+			energizing?.rushingJadeWind === true && energizing.hasteWindows.length > 0 && energizing.hasteRjwUses === 0
 				? [{ kind: 'advice' as const, key: 'energizingBrewRjw' as const, section: 'energizingBrew' as const }]
 				: [];
 		return [...energizingAdvice, ...metricTakeaways].slice(0, CARDS);

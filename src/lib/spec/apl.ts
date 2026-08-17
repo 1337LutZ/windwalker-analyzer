@@ -140,7 +140,7 @@ export type AplVerdict =
 	| 'off-list';
 
 /** The concrete conditions that can make Rushing Jade Wind the selected rule. */
-export type AplRuleReason = 'multi-target' | 'short-pull' | 'energy-cap';
+export type AplRuleReason = 'multi-target' | 'short-pull' | 'energy-cap' | 'haste-window';
 
 export interface AplPress {
 	/** Fight-relative ms, like every other timestamp in this report. */
@@ -578,21 +578,23 @@ const LADDER: readonly Rule[] = [
 		condition: (state) => state.chiMax - state.chi >= 2,
 	},
 	{
-		// 31 — `(currentTime + remainingTime) < 75s or energyTimeToCap <= 1s`, and it is a gate now rather
-		// than the unconditional press it used to be. The first half is a fact about the pull, not the
-		// press: the two terms sum to the whole fight's length, so on anything longer than 75 seconds it
-		// is false from the first global to the last and this rung is left with the energy clause alone.
+		// 31 — `(currentTime + remainingTime) < 75s or energyTimeToCap <= 1s or (Bloodlust active and
+		// Energizing Brew active)`. The short-pull half is a fact about the pull, not the press: the two
+		// terms sum to the whole fight's length, so on anything longer than 75 seconds it is false from the
+		// first global to the last.
 		//
-		// Which is what the rung is for down here. Entry 17 has already put the wind out at two targets
-		// and above; by the time the walk reaches the bottom of the ladder the only reason left to spend
-		// a global on it is a bar about to overflow anyway. Talent-gated in practice, which `known`
+		// Entry 17 has already put the wind out at two targets and above; the bottom rung additionally
+		// spends it on overflow, short pulls and the haste window. Talent-gated in practice, which `known`
 		// handles.
 		key: 'rushing-jade-wind',
 		id: ID.rushingJadeWind,
 		chiCost: 0,
 		energyCost: RJW_ENERGY_COST,
 		talent: true,
-		condition: (state) => state.pullMs < SHORT_PULL_MS || state.timeToEnergyCapSec <= 1,
+		condition: (state, auras) =>
+			state.pullMs < SHORT_PULL_MS ||
+			state.timeToEnergyCapSec <= 1 ||
+			(auras.active('bloodlust') && auras.active('energizing-brew')),
 	},
 	{
 		// 32 — the dump. Spend chi on a Blackout Kick only when the energy banked by the time Rising Sun
@@ -734,7 +736,7 @@ function affordable(rule: Rule, state: State, auras: AuraReader, reduction: numb
 function reasonFor(rule: Rule, state: State): AplRuleReason | null {
 	if (rule.key === 'rushing-jade-wind-open') return 'multi-target';
 	if (rule.key !== 'rushing-jade-wind') return null;
-	return state.pullMs < SHORT_PULL_MS ? 'short-pull' : 'energy-cap';
+	return state.pullMs < SHORT_PULL_MS ? 'short-pull' : state.timeToEnergyCapSec <= 1 ? 'energy-cap' : 'haste-window';
 }
 
 /**

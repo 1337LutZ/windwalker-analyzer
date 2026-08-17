@@ -69,7 +69,9 @@ export default function RushingJadeWind({
 									? t('jadeWind.decisions.cells.shortPull')
 									: decision.reason === 'energy-cap'
 										? t('jadeWind.decisions.cells.energyCap')
-										: t('jadeWind.decisions.cells.missedReason')
+										: decision.reason === 'haste-window'
+											? t('jadeWind.decisions.cells.hasteWindow')
+											: t('jadeWind.decisions.cells.missedReason')
 							: decision.verdict === 'skipped' && decision.wanted !== null
 								? t(`priority.rule.${decision.wanted}`)
 								: decision.verdict === 'off-list'

@@ -135,7 +135,7 @@ describe('Energizing Brew', () => {
 		expect(a.misses.some((m) => m.kind === 'Energizing Brew held through')).toBe(true);
 	});
 
-	/** The exception in full: Rushing Jade Wind in the build and the damage spread across enemies. */
+	/** The exception in full: Rushing Jade Wind in the build is enough for the updated APL. */
 	it('allows a press under a haste cooldown when both halves of the exception hold', () => {
 		const a = analyse(
 			dataset([
@@ -158,16 +158,15 @@ describe('Energizing Brew', () => {
 		expect(a.energizing?.faulted).toBe(0);
 	});
 
-	/** Half the exception is not the exception: on one target the APL holds the brew regardless. */
-	it('still faults it on a single target even with Rushing Jade Wind in the build', () => {
+	/** The updated APL exception depends on the RJW talent, not on the whole-pull target count. */
+	it('allows it on a single target when Rushing Jade Wind is in the build', () => {
 		const a = analyse(dataset([...timeWarp(5000, 45000), ...energizingBrew(10000), e(2000, 'cast', 116847)]));
 
 		expect(a.debuff.singleTarget).toBe(true);
 		expect(a.energizing?.rushingJadeWind).toBe(true);
-		expect(a.energizing?.hasteRjwEligible).toBe(false);
-		expect(a.energizing?.hasteRjwUses).toBe(0);
-		expect(a.energizing?.faulted).toBe(1);
-		expect(a.energizing?.uses[0]?.faults[0]).toContain('more than one');
+		expect(a.energizing?.hasteRjwEligible).toBe(true);
+		expect(a.energizing?.hasteRjwUses).toBe(1);
+		expect(a.energizing?.faulted).toBe(0);
 	});
 
 	it('says nothing about a press with no haste cooldown running', () => {
