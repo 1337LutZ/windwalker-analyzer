@@ -112,7 +112,7 @@ describe('the Touch of Karma section', () => {
 	it('states the pool a use demonstrated, and what the presses left in them', () => {
 		const html = render(measured());
 
-		expect(html).toContain('drained its pool dry');
+		expect(html).toContain('drained its pool completely');
 		expect(html).toContain('629.6k health');
 		expect(html).toContain('of cap');
 		expect(html).toContain(t('karma.kpi.ofCap'));

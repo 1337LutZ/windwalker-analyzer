@@ -2,8 +2,8 @@
   "app": {
     "eyebrow": "Mists of Pandaria · Windwalker",
     "title": "Windwalker analyzer",
-    "intro": "Read one Mists of Pandaria pull the way the spec is actually played: how full the Tigereye Brew bank was when it got spent, whether those brews landed on a Re-Origination proc, where the rotation leaked, and every mistake with a link back into the replay. It runs entirely in this tab.",
-    "privacy": "No server, no cookies, no analytics, nothing stored but your token and only until this tab closes. Open DevTools → Network while it runs: this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host — which are sent no token, no report code, and nothing else."
+    "intro": "Analyse a single Mists of Pandaria pull: how full your Tigereye Brew bank was when you spent it, whether your brews lined up with Re-Origination procs, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
+    "privacy": "There is no server, no cookies and no analytics. Nothing is stored except your token, and only until this tab closes. If you open DevTools → Network while it runs, you will see this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host — the icon requests carry no token, no report code and nothing else."
   },
   "steps": {
     "signIn": "Sign in to WarcraftLogs",
@@ -26,18 +26,18 @@
     "open": "Analysis settings",
     "short": "Settings",
     "title": "Analysis settings",
-    "intent": "Most of what this report judges is the spec's business and not yours to change. These are the exceptions — the thresholds that depend on you, or that the log cannot tell us.",
+    "intent": "Most of what this report checks is fixed by the spec and not something you can change. These settings are the exceptions — thresholds that depend on you, or that the log cannot tell us.",
     "leeway": {
       "label": "Snapshot leeway",
       "unit": "ms",
-      "hint": "How much of a Re-Origination proc's tail still counts as brewing on the last global. The default of {{default}}ms is one global, which is what the rotation asks for — raise it if your latency means the log records you later than you acted, or if you deliberately brew with a cushion. Between {{min}} and {{max}}ms."
+      "hint": "How much of a Re-Origination proc can be left over for a brew to still count as catching it on the last global. The default of {{default}}ms is one global, which is what the rotation asks for. Raise it if your latency means the log records you later than you acted, or if you deliberately brew with a safety cushion. Between {{min}} and {{max}}ms."
     },
     "tigerPalm": {
       "label": "Tiger Palm refresh window",
       "unit": "ms",
-      "hint": "How much Tiger Power may be left for a Tiger Palm to count as refreshing it rather than clipping a healthy buff. The sim's rotation refreshes at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
+      "hint": "How much Tiger Power can be left before a Tiger Palm counts as refreshing the buff instead of overwriting a buff that was still fine. The rotation refreshes it at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
     },
-    "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull already loaded — it does not fetch anything from WarcraftLogs again.",
+    "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
     "save": "Save",
     "reset": "Back to defaults"
   },

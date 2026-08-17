@@ -1,8 +1,10 @@
 node_modules/
 dist/
+.history/
 .astro/
 .DS_Store
 *.local
+.playwright-mcp
 
 # Never commit credentials. This app is designed so a token never reaches a server, and the repo is
 # public — an API token that lands here is exposed to everyone, permanently, even if later deleted.

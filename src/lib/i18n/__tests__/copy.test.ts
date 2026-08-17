@@ -88,7 +88,7 @@ describe('report copy', () => {
 
 	it('agrees in number', () => {
 		expect(t('snapshots.lastGcd', { count: 1 })).toContain('its proc');
-		expect(t('snapshots.lastGcd', { count: 6 })).toContain('theirs');
+		expect(t('snapshots.lastGcd', { count: 6 })).toContain('their procs');
 		expect(t('misses.summary', { count: 1 })).toContain('thing');
 		expect(t('misses.summary', { count: 30 })).toContain('things');
 	});

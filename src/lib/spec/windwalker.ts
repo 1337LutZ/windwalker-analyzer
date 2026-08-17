@@ -3224,9 +3224,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		const channels = fofCasts.filter((c) => window !== null && c.t >= window.start && c.t <= window.end);
 		const faults: string[] = [];
 		if (haste !== null && !rjwKnown) {
-			faults.push(`pressed under ${haste} with no Rushing Jade Wind in the build, which is what would allow it`);
+			faults.push(`used under ${haste} without Rushing Jade Wind, which is what would allow it`);
 		} else if (haste !== null && singleTarget) {
-			faults.push(`pressed under ${haste} against one target, and the exception to that needs more than one`);
+			faults.push(`used under ${haste} against one target — the exception requires more than one`);
 		}
 		/**
 		 * Energy the brew poured into a bar that was already full.
@@ -3283,7 +3283,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 				at: w.start,
 				detail:
 					w.missedByMs !== null
-						? `brewed ${formatGap(w.missedByMs)} after the proc expired — read, but late`
+						? `brewed ${formatGap(w.missedByMs)} after the proc ended — you saw the proc, but were late`
 						: w.brewAlreadyUp
 							? `a brew was already running, holding ${w.heldStat ?? 'no proc at all'} instead of ${w.stat}`
 							: 'proc expired with no brew cast at all',
@@ -3302,12 +3302,12 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 				// spilled a little still spilled less than the tail was worth. Neither is asserted on a
 				// captured fixture, where the counterfactual was never run and the field is `undefined`.
 				detail:
-					`brewed with ${r1((w.remainingMs ?? 0) / 1000)}s of proc still on the clock` +
+					`brewed with ${r1((w.remainingMs ?? 0) / 1000)}s of the proc still remaining` +
 					(w.holdStacksLost === null || w.holdStacksLost === undefined
 						? ''
 						: w.holdStacksLost === 0
-							? ', and the bank had room to hold it'
-							: `, and holding would have cost only ${w.holdStacksLost} stack${w.holdStacksLost === 1 ? '' : 's'}`),
+							? ', and the bank had room, so waiting was possible'
+							: `, and waiting would have cost only ${w.holdStacksLost} stack${w.holdStacksLost === 1 ? '' : 's'}`),
 				link: link(w.snapshotAt ?? w.start),
 			})),
 		...lostCasts.flatMap((l) =>
