@@ -673,7 +673,7 @@
       "intent": "Read down and press the first thing that is true. There is no second list for packs — the same rungs are read at one enemy and at six, and only how far down you get changes.",
       "caption": "The priority list, in the order the rotation checks it",
       "reading_single": "This is the list at one enemy, which is how the report is reading your pull. Rungs that need two or more enemies are not drawn, and split rungs show only the half that applies. The chips above still name every count where something changes — the control at the top switches the reading.",
-      "reading_multi": "This is the list at three enemies, the count every press above is judged at. The single-target half of each split rung is not drawn, and neither is the Spinning Crane Kick that needs four. The chips above still name every count where something changes — the control at the top switches the reading.",
+      "reading_multi": "This is the list at three enemies, the count every press above is judged at. The low-count half of each split rung is not drawn, and neither is the Spinning Crane Kick that needs four. The chips above still name every count where something changes — the control at the top switches the reading.",
       "legend": {
         "title": "How to read it",
         "spine": "Every rung is one question. Yes: press the button beside it and stop there. No: follow the line down to the next question.",
@@ -699,7 +699,7 @@
     "gate": {
       "stormEarthAndFire": "2+ targets",
       "rushingJadeWindMulti": "2+ targets",
-      "risingSunKickCooldown": "1–2 targets",
+      "risingSunKickCooldown": "2 targets",
       "risingSunKickHold": "3+ targets",
       "craneOverKick": "4+ targets",
       "spinningCraneKick": "3+ targets",
@@ -723,7 +723,7 @@
       },
       "risingSunKick": {
         "title": "Whether the pack has pushed the kick down the list",
-        "detail": "One entry with an \"or\" in it, and the target count decides which half applies. Up to two enemies the kick is pressed on cooldown. From three, the buttons above it beat one kick, and only the debuff running out still claims this rung."
+        "detail": "One entry with an \"or\" in it, and the target count decides which half applies — but only from two enemies up. At one the entry is skipped outright and the kick drops to its unconditional rung further down. At two it is pressed on cooldown. From three, the buttons above it beat one kick, and only the debuff running out still claims this rung."
       }
     },
     "entry": {
@@ -765,9 +765,9 @@
       },
       "risingSunKickCooldown": {
         "name": "Rising Sun Kick",
-        "test": "the cooldown is up",
-        "when": "the cooldown is up. It runs 15 seconds on an 8-second cooldown, so nothing but a missed global makes it drop.",
-        "why": "The debuff, not the kick — see below. It is the only button here that makes everything else you press hit harder."
+        "test": "there is a second enemy, and the cooldown is up",
+        "when": "there is exactly one other enemy. Then the rung has no further condition: press it off cooldown. At one enemy the entry is not read at all and the kick waits for its unconditional rung further down.",
+        "why": "The debuff, not the kick — see below. It is the only button here that makes everything else you press hit harder, and a second enemy is what makes it worth a rung this high."
       },
       "risingSunKickHold": {
         "name": "Rising Sun Kick",
@@ -825,9 +825,9 @@
       },
       "rushingJadeWind": {
         "name": "Rushing Jade Wind",
-        "test": "nothing above it fired, and the dot is not spinning",
-        "when": "nothing above it fired.",
-        "why": "40 energy on a six-second cooldown. Down here it is filler for a global with nothing better in it; at two targets it moves near the top of the list instead."
+        "test": "energy is a second from capping, or the pull is under 75s",
+        "when": "energy is a second or less from capping. The other half of the condition measures the whole pull's length against 75 seconds rather than the time elapsed, so on anything longer it is false from the first global to the last and the energy check is all that is left.",
+        "why": "40 energy on a six-second cooldown, and down here it is no longer free filler. Past 75 seconds this rung fires only to stop the bar overflowing, so the 40 it costs is energy that was about to be thrown away. At two targets the rung near the top takes over instead."
       },
       "blackoutKick": {
         "name": "Blackout Kick",
@@ -868,8 +868,8 @@
       "risingSunKickMulti": {
         "name": "Rising Sun Kick",
         "test": "nothing above it fired",
-        "when": "nothing above it fired. No condition at all — this is where the kick lands once a pack has pushed it off the rung above, after Tiger Palm and, from four targets, after Spinning Crane Kick.",
-        "why": "It never leaves the list, because the debuff lands on every enemy. One kick amplifies the whole pack, so a pack delays the kick rather than dropping it."
+        "when": "nothing above it fired. No condition at all, and at one enemy this is the kick's only rung — the one above it needs a second target — so it lands here, after Tiger Palm's refresh. From three it is where the kick lands once the pack has pushed it off that rung, and from four after Spinning Crane Kick as well.",
+        "why": "It never leaves the list, because the debuff lifts everything else you press. Nothing drops the kick — the refresh above it, and from three the pack buttons, only delay it."
       }
     },
     "notes": {
@@ -879,7 +879,7 @@
       "talents": "The list assumes two talent choices and skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs above rather than a fork. Chi Wave, Zen Sphere and Chi Burst share a row too, drawn as a fork wherever this log cannot tell which you brought.",
       "inferred": "A rung only leaves the flow above on proof that the button was not on your bar. A log carries no talent tree, so a button you never pressed is exactly the one you may have forgotten — an unpressed rung is never removed. What is removed is the alternative to something you did press: a Spinning Crane Kick rules out Rushing Jade Wind, and a Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
       "mastery": "One correction, because the name misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder. There is no alternating-ability mastery here — Combo Strikes belongs to a later expansion — so pressing the same button twice in a row costs you nothing.",
-      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy; entry 31 leaves it unconditional near the bottom, where it sits at one target. Neither tests energy. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so from two enemies up the list knowingly spends the generator's energy on a spinning dot. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global."
+      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy and tests nothing else. Entry 31 keeps it near the bottom, where it sits at one target, and there it fires only with energy a second from capping or on a pull under 75 seconds. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so the rung up top knowingly spends the generator's energy on a spinning dot, while the one at the bottom waits until that energy was going to overflow anyway. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global."
     }
   },
   "summary": {
@@ -931,7 +931,7 @@
     "clean": "Nothing was ever passed over. On every global the list could judge, the button you pressed was the one it wanted.",
     "noResources": "This log carried no energy or chi readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing is judged here.",
     "forced_single": "You are reading this pull as one target, so every press below is judged against the single-target order — including the stretches where the log counted more enemies.",
-    "forced_multi": "You are reading this pull as multi-target, so every press below is judged at three targets: Rushing Jade Wind and Spinning Crane Kick move up, and Blackout Kick needs a much fuller bar.",
+    "forced_multi": "You are reading this pull as multi-target, so every press below is judged at three targets: Rushing Jade Wind and Spinning Crane Kick move up, Rising Sun Kick gains a rung above Tiger Palm, and Blackout Kick needs a much fuller bar.",
     "caption": "Buttons that were available and passed over, most often first",
     "noRows": "Nothing was passed over.",
     "scope": "The ladder covers the filler priorities — Rising Sun Kick downwards, the entries that decide what a global is spent on. Touch of Death is out because its condition is the target's health, which this report does not fetch; the cooldowns are out because each has its own section. A button you could not afford is never counted as passed over.",
@@ -954,7 +954,7 @@
       "jab": "Jab",
       "rushing-jade-wind": "Rushing Jade Wind",
       "rushing-jade-wind-open": "Rushing Jade Wind, above Rising Sun Kick",
-      "rising-sun-kick-filler": "Rising Sun Kick, once the pack is handled",
+      "rising-sun-kick-filler": "Rising Sun Kick, on the rung with no condition",
       "spinning-crane-kick": "Spinning Crane Kick",
       "spinning-crane-kick-heavy": "Spinning Crane Kick, at four or more",
       "blackout-kick": "Blackout Kick, to spend chi"
@@ -977,9 +977,9 @@
     "wanted_other": "It also wanted the wind at {{count}} globals you spent on another button.",
     "wantedNone": "There was no global where the list wanted the wind and you pressed something else.",
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals it wanted.",
-    "singleTarget": "You are reading this pull as single-target, which is where this button sits lowest. The rung that lifts it above Rising Sun Kick needs a second enemy, so all that is left is the unconditional one near the bottom — under Jab, under Fists of Fury, under both Combo Breaker presses. The presses above are judged against that order.",
+    "singleTarget": "You are reading this pull as single-target, which is where this button sits lowest. The rung that lifts it above Rising Sun Kick needs a second enemy, so all that is left is the one near the bottom — under Jab, under Fists of Fury, under both Combo Breaker presses — and down there it only fires with energy a second from capping, or on a pull under 75 seconds. The presses above are judged against that order.",
     "regenCaveat": "The rate behind those shares is this pull's own median, measured from the log rather than assumed — regen scales with haste, so no constant describes it. It leaves out the extra energy an Energizing Brew pours in, so on a pull with brews the two shares read a shade high.",
-    "notGraded": "None of this is graded. There is no right share of the bar to spend here — the trade is against the generator and the chi spenders, and it moves with the target count second by second. The priority list carries no energy condition on this button, so there is no threshold to borrow and none is invented. The only judgement above is the list's own.",
+    "notGraded": "None of this is graded. There is no right share of the bar to spend here — the trade is against the generator and the chi spenders, and it moves with the target count second by second. The one energy condition the list puts on this button guards the bottom rung against overflow; it is not a budget, so there is still no threshold to borrow and none is invented. The only judgement above is the list's own.",
     "absent_invokeXuen": "Rushing Jade Wind was not on your bar: it shares the level-90 row with Invoke Xuen, and this log has Invoke Xuen in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_spinningCraneKick": "Rushing Jade Wind was not on your bar: taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would rule it out — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press. Calling it 0% uptime would be an accusation rather than a measurement.",

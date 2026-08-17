@@ -113,21 +113,26 @@ describe('reading the flow at a target count', () => {
 	it('drops the rungs the list only reaches above one target', () => {
 		const single = ids(rotationFlow({ band: 1, pressed: nothing }));
 		// Rushing Jade Wind's *opener* rung (17) and both Spinning Crane Kick rungs (20, 22) are gone; the
-		// wind's own unconditional rung (31) is not, because it exists at every count.
+		// wind's own rung at the bottom (31) is not, because it exists at every count — its condition is
+		// the pull's length and the energy bar, neither of which is a band.
 		expect(single).not.toContain(SPINNING_CRANE_KICK);
 		expect(single).toContain(RUSHING_JADE_WIND);
 		expect(keys(rotationFlow({ band: 1, pressed: nothing }))).not.toContain('rushingJadeWindMulti');
 		expect(keys(rotationFlow({ band: 1, pressed: nothing }))).not.toContain('stormEarthAndFire');
+		// Entry 18 opens with `Targets: More than 1`, so both of its branches are gone at one enemy too.
+		expect(keys(rotationFlow({ band: 1, pressed: nothing }))).not.toContain('risingSunKickCooldown');
+		expect(keys(rotationFlow({ band: 1, pressed: nothing }))).not.toContain('risingSunKickHold');
 	});
 
-	it('draws Rising Sun Kick once at one target, not twice', () => {
-		// Entry 21 is unreachable below three targets — entry 18 above it is the same button at the same
-		// cost with an unconditionally true condition — and the ladder now says so with `bands`. Before
-		// it did, a single-target reader was shown the same kick on two rungs with nothing to tell them
-		// apart.
+	it('draws Rising Sun Kick once at one target, on the unconditional rung', () => {
+		// Still once, but it is now the *other* rung. Entry 18 acquired a leading `Targets: More than 1`
+		// and no longer exists at one enemy, so the kick falls through to entry 21 — which the ladder has
+		// to admit to band 1 for it to be drawn at all. Both halves matter and neither is safe alone: two
+		// rungs would show the same kick twice with nothing to tell them apart, and zero would take a
+		// baseline button off a single-target reader's list entirely.
 		const single = ids(rotationFlow({ band: 1, pressed: nothing }));
 		expect(single.filter((id) => id === RISING_SUN_KICK)).toHaveLength(1);
-		expect(keys(rotationFlow({ band: 1, pressed: nothing }))).toContain('risingSunKickCooldown');
+		expect(keys(rotationFlow({ band: 1, pressed: nothing }))).toContain('risingSunKickMulti');
 	});
 
 	it('drops the single-target half of a split rung when read as multi', () => {

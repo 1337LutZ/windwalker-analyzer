@@ -122,20 +122,24 @@ const PRELUDE: readonly Rung[] = [
  */
 const DISPLAY: Record<AplRuleKey, Rung> = {
 	'rushing-jade-wind-open': { entry: { key: 'rushingJadeWindMulti', id: 116847, gate: 'targets' } },
-	// 18: `auraRemainingTime(CurrentTarget, 130320) <= GCD or not(Targets: More than 2)`, read out of
-	// `default.apl.json` rather than out of `apl.ts` — 130320 is Rising Sun Kick's own debuff, and the
-	// ladder's transcription of this entry reads Tiger Power (125359) instead. The copy below states
-	// the sim's condition; see the note on this in the report accompanying the change.
+	// 18: `Targets: More than 1 and (auraRemainingTime(CurrentTarget, 130320) <= GCD or
+	// not(Targets: More than 2))`, read out of `default.apl.json`. 130320 is Rising Sun Kick's own
+	// debuff, not Tiger Power (125359), which belongs to entry 19 below.
 	//
-	// One entry, two rule sets, and the target count is the whole of what picks between them: below
-	// three enemies the second half is true and the kick simply goes on cooldown, and at three and up
-	// only the expiring debuff claims this rung, with the unconditional one further down catching the
-	// rest. Drawn as a fork for the same reason entry 32 is — a single rung cannot say both without
-	// saying neither.
+	// The leading `Targets: More than 1` takes the entry off the list altogether at one enemy, where the
+	// kick now falls through to the unconditional entry 21 — below Tiger Palm's refresh. What is left is
+	// one entry with two rule sets and the target count picking between them: at exactly two the second
+	// half of the `or` is true and the kick simply goes on cooldown, and from three only the expiring
+	// debuff claims this rung. Drawn as a fork for the same reason entry 32 is — a single rung cannot
+	// say both without saying neither.
+	//
+	// The cooldown branch is `[2]` and not `[1, 2]` for that reason. It is intersected with the ladder's
+	// own bands either way and neither list can widen the other, so writing it here is a second reader
+	// of the gate rather than the authority on it.
 	'rising-sun-kick': {
 		fork: 'risingSunKick',
 		branches: [
-			{ key: 'risingSunKickCooldown', id: 107428, gate: 'targets', bands: [1, 2] },
+			{ key: 'risingSunKickCooldown', id: 107428, gate: 'targets', bands: [2] },
 			{ key: 'risingSunKickHold', id: 107428, gate: 'targets', bands: [3, 4] },
 		],
 	},
@@ -159,6 +163,11 @@ const DISPLAY: Record<AplRuleKey, Rung> = {
 	'fists-of-fury': { entry: { key: 'fistsOfFury', id: 113656 } },
 	'combo-breaker-palm': { entry: { key: 'tigerPalmProc', id: 100787 } },
 	jab: { entry: { key: 'jab', id: 100780 } },
+	// 31: no longer the free fallthrough it was — `(currentTime + remainingTime) < 75s or
+	// Energy: Time to Cap <= 1s`. The first half is the whole fight's length rather than the time
+	// elapsed, so on a pull over 75 seconds it is false throughout and only the overflow check is left.
+	// Neither half is a target count, so there is nothing here for a band or a gate chip to carry and
+	// the condition lives entirely in this rung's copy.
 	'rushing-jade-wind': { entry: { key: 'rushingJadeWind', id: 116847 } },
 	// 32: a single entry whose condition is one energy reserve or the other, with the target count
 	// picking between them. Two branches of one `or`, drawn as two branches.

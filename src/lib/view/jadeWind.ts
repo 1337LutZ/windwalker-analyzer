@@ -31,9 +31,11 @@
 //
 // It is deliberately *not* folded into the uptime as a corrected ceiling. Doing that would mean
 // deciding how much of the bar Jab, Tiger Palm and the chi spenders are entitled to, and no such
-// budget exists in the sim or in the priority list — the list contains no energy gate on this button
-// at all. An invented budget dressed as a ceiling is exactly the fabricated standard this report
-// refuses everywhere else, so the price is stated and the judgement is left to the priority list.
+// budget exists in the sim or in the priority list. The list's one energy test on this button —
+// `Energy: Time to Cap <= 1s` on entry 31 — is an overflow guard on the bottom rung and not a share
+// of the bar, so there is still nothing here to borrow a ceiling from. An invented budget dressed as
+// a ceiling is exactly the fabricated standard this report refuses everywhere else, so the price is
+// stated and the judgement is left to the priority list.
 //
 // ## One clock
 //
@@ -178,7 +180,7 @@ function measure(analysis: Analysis): JadeWindMeasurement | null {
  * The ladder's two counts, filtered to this button by cast id rather than by rule key.
  *
  * By id deliberately: the list carries the wind twice — entry 17 promoted above Rising Sun Kick from
- * two enemies up, entry 31 unconditional near the bottom — and naming both keys here would be a
+ * two enemies up, entry 31 near the bottom on an overflow guard — and naming both keys here would be a
  * second copy of the ladder's own rule set, free to fall out of step with it the day a third entry
  * appears. `skippedBy` publishes the id for exactly this kind of reader.
  */

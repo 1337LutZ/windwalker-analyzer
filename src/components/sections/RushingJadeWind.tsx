@@ -34,10 +34,10 @@ import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primiti
  *
  * There is no share of the bar that is the right one to spend on the wind. The trade is against the
  * generator and the spenders and it moves with the target count from second to second; the priority
- * list contains no energy gate on this button at all, so there is no threshold in the sim to take one
- * from — and six fixtures is exactly the sample `score/thresholds.ts` argues against inventing one
- * out of. The tiles therefore carry no grade, and the only judgement in the section is the ladder's,
- * quoted rather than recomputed.
+ * list's one energy test on this button is an overflow guard on the bottom rung rather than a budget,
+ * so there is still no threshold in the sim to take one from — and six fixtures is exactly the sample
+ * `score/thresholds.ts` argues against inventing one out of. The tiles therefore carry no grade, and
+ * the only judgement in the section is the ladder's, quoted rather than recomputed.
  */
 export default function RushingJadeWind({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);
