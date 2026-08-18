@@ -12,6 +12,13 @@
 # in client.ts and nowhere else.
 
 query FightPlayerDetails($code: String!, $fightID: Int!) {
+	# The hourly point budget, riding along for free: measured, this document costs the same with the
+	# field as without it, while asking for it alone costs a point. See rateLimit.ts.
+	rateLimitData {
+		limitPerHour
+		pointsSpentThisHour
+		pointsResetIn
+	}
 	reportData {
 		report(code: $code) {
 			playerDetails(fightIDs: [$fightID])

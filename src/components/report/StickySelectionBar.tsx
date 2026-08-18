@@ -7,6 +7,7 @@ import type { SettingsState } from '~/hooks/useSettings';
 import type { TargetSummary } from '~/lib/types';
 import type { TargetModeChoice } from '~/lib/view/targetMode';
 
+import { ApiCreditsToolbar } from '../ApiCredits';
 import { buttonClass } from '../primitives/controls';
 import { pageWidthClass } from '../primitives/pageShell';
 import SettingsDialog from './SettingsDialog';
@@ -106,19 +107,27 @@ export default function StickySelectionBar({
 			    from `pageWidthClass` rather than restated, because the two must agree and a drift between
 			    two copies would go unnoticed until the bar stopped lining up with the report. */}
 			<div className={`${pageWidthClass} flex items-center gap-2 py-1 sm:gap-3`}>
-				{/* The name first and the two suffixes by how much width there is for them, which is what the
-				    switches beside them cost. Measured at 390px: the row has 358px to spend, the three
-				    controls and their gaps take 281, and the 77 left over holds the encounter *or* it holds
-				    the outcome — not both. The docstring above already names the encounter as the part a
-				    reader recognises, so the suffixes are what yield: the outcome returns at `md` and the
-				    player at `lg`, which is where the measurements say each stops costing the name more
-				    than it is worth — `sm` is the narrowest width the settings button spells its own label
-				    out at, so it is the one width where adding anything else here starves the encounter. Neither is lost while hidden — both are on the pull's own row in the picker the
+				{/* The name first and the two suffixes by how much width there is for them, which is what
+				    everything beside them costs. Re-measured once the credits readout joined the row, at
+				    the four widths that decide it:
+
+				      390  row 358, controls 276 (Change 72, Mode 78, settings 49, credits 47, gaps 32)
+				           -> 82 for the name, ~10 of 20 characters
+				      640  row 592, controls 440 (the switches replace Mode at `md`, so still Mode here)
+				           -> 152 for the name, which is nearly all of it
+				      768  row 704, controls 504 (switches 140 now, credits still compact)
+				           -> 201, the whole name
+				     1024  row 960, controls 550 -> 414, the name and both suffixes with room over
+
+				    The docstring above names the encounter as the part a reader recognises, so the suffixes
+				    are what yield, and both now yield to `lg`. The outcome used to return at `md`, where
+				    its 131px left the name 26 — three characters — the moment anything else joined the
+				    row. Neither is lost while hidden: both are on the pull's own row in the picker the
 				    Change button goes back to. `shrink-0` on both, so what is shown is shown whole and only
 				    the name truncates. */}
 				<p className="m-0 flex min-w-0 flex-1 items-center gap-2 font-mono text-sm">
 					<span className="truncate font-semibold text-ink">{encounter}</span>
-					<span className="hidden shrink-0 text-muted md:inline">&middot; {result}</span>
+					<span className="hidden shrink-0 text-muted lg:inline">&middot; {result}</span>
 					{player !== null ? <span className="hidden shrink-0 text-ink-2 lg:inline">&middot; {player}</span> : null}
 				</p>
 
@@ -150,6 +159,16 @@ export default function StickySelectionBar({
 						<SettingsDialog {...settings} />
 					</>
 				)}
+
+				{/* Last, because it is the only thing here that is neither the pull nor a control on it —
+				    it is what reading another one will cost, which is a status corner rather than a step
+				    in the row.
+
+				    It brings its own separator, unlike the two blocks above. Theirs are gated on a prop
+				    this bar was handed, so the bar knows whether they exist; whether there is a budget to
+				    report is known only inside the component, and a separator left out here would dangle
+				    at the end of the row for everyone signed out. */}
+				<ApiCreditsToolbar />
 			</div>
 		</Toolbar.Root>
 	);

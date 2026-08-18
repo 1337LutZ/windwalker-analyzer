@@ -2,6 +2,13 @@
 # turn a sourceID or targetID into a name, and the only way to tell a player's pets from the player.
 
 query ReportActors($code: String!) {
+	# The hourly point budget, riding along for free: measured, this document costs the same with the
+	# field as without it, while asking for it alone costs a point. See rateLimit.ts.
+	rateLimitData {
+		limitPerHour
+		pointsSpentThisHour
+		pointsResetIn
+	}
 	reportData {
 		report(code: $code) {
 			masterData {

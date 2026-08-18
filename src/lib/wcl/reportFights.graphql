@@ -5,6 +5,13 @@
 # report's own startTime/endTime, which are epoch.
 
 query ReportFights($code: String!) {
+	# The hourly point budget, riding along for free: measured, this document costs the same with the
+	# field as without it, while asking for it alone costs a point. See rateLimit.ts.
+	rateLimitData {
+		limitPerHour
+		pointsSpentThisHour
+		pointsResetIn
+	}
 	reportData {
 		report(code: $code) {
 			title

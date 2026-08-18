@@ -7,12 +7,12 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { WclClient, listReportFights, type ReportFightList } from '~/lib/wcl';
+import { WclClient, listReportFights, recordCredits, type ReportFightList } from '~/lib/wcl';
 
 export function useReportFights(token: string | null, code: string | null) {
 	return useQuery<ReportFightList>({
 		queryKey: ['wcl', 'report-fights', code],
-		queryFn: () => listReportFights(new WclClient({ token: token! }), code!),
+		queryFn: () => listReportFights(new WclClient({ token: token!, onCredits: recordCredits }), code!),
 		enabled: token !== null && code !== null,
 		// A report that has been uploaded does not change, so a code typed twice costs one fetch.
 		staleTime: Infinity,

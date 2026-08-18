@@ -11,10 +11,6 @@
     "bad": "Several core habits of the spec are missing here. The sections marked below are the best place to start.",
     "none": "This pull was too short or too quiet to grade."
   },
-  "header": {
-    "kill": "kill",
-    "wipe": "wipe"
-  },
   "snapshots": {
     "title": "Snapshots",
     "intent": "A Re-Origination proc converts your stats for 10 seconds. A Tigereye Brew spent inside the proc keeps those stats for the brew's full 15 seconds, so they last well past the proc itself. Catching the procs matters most; catching them late matters less.",
@@ -185,6 +181,7 @@
     "shortAuto": "Auto",
     "shortSingle": "1T",
     "shortMulti": "AoE",
+    "mode": "Mode",
     "detected_single": "Detected single target: {{share, percent}} of the time you were hitting anything, you were hitting more than one enemy.",
     "detected_multi": "Detected multi-target: {{share, percent}} of the time you were hitting anything, you were hitting more than one enemy.",
     "detectedNone": "This pull was analysed before target counts existed, so there is nothing detected to compare against.",

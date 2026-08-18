@@ -1,3 +1,4 @@
+import { Menu } from '@base-ui/react/menu';
 import { Toolbar } from '@base-ui/react/toolbar';
 import { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -5,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { TargetSummary } from '~/lib/types';
 import { TARGET_MODE_CHOICES, resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 
-import { compactChoiceClass, labelClass, toolbarChoiceClass } from '../primitives/controls';
+import { compactChoiceClass, labelClass, toolbarChoiceClass, toolbarMenuClass } from '../primitives/controls';
 import { Note } from '../primitives';
 
 /**
@@ -120,28 +121,123 @@ export default function TargetModeControl({ targets, value, onChange }: Props) {
 export function TargetModeToolbar({ targets, value, onChange }: Props) {
 	const { t } = useTranslation('report');
 	const { overridden } = resolveTargetMode(targets?.detected, value);
+	const detected = detection(t, targets, value);
 
 	return (
-		<Toolbar.Group
-			role="radiogroup"
-			aria-label={t('targets.label')}
-			// `title` and not an `aria-describedby` on a hidden node: with no description of its own the
-			// group's title is what a screen reader announces as one, so this is a single string doing
-			// both jobs rather than the same sentence written into the tree twice.
-			title={detection(t, targets, value)}
-			className="flex shrink-0 gap-0.5 sm:gap-1"
-		>
-			{TARGET_MODE_CHOICES.map((choice) => (
-				<Toolbar.Button
-					key={choice}
-					role="radio"
-					aria-checked={choice === value}
-					className={toolbarChoiceClass(choice === value, overridden)}
-					onClick={() => onChange(choice)}
-				>
-					{t(SHORT_LABEL[choice])}
-				</Toolbar.Button>
-			))}
-		</Toolbar.Group>
+		<>
+			<TargetModeMenu targets={targets} value={value} onChange={onChange} />
+
+			<Toolbar.Group
+				role="radiogroup"
+				aria-label={t('targets.label')}
+				// `title` and not an `aria-describedby` on a hidden node: with no description of its own the
+				// group's title is what a screen reader announces as one, so this is a single string doing
+				// both jobs rather than the same sentence written into the tree twice.
+				title={detected}
+				className="hidden shrink-0 gap-0.5 md:flex md:gap-1"
+			>
+				{TARGET_MODE_CHOICES.map((choice) => (
+					<Toolbar.Button
+						key={choice}
+						role="radio"
+						aria-checked={choice === value}
+						className={toolbarChoiceClass(choice === value, overridden)}
+						onClick={() => onChange(choice)}
+					>
+						{t(SHORT_LABEL[choice])}
+					</Toolbar.Button>
+				))}
+			</Toolbar.Group>
+		</>
+	);
+}
+
+/**
+ * The same three choices as one button, for the width that cannot hold three.
+ *
+ * Three switches measure 140px on this row and this button 78px, so collapsing them buys back 62px
+ * for the encounter name — most of what the credits readout beside them costs. The switches are the
+ * better control where there is room, one press instead of two, so both exist and each is hidden at
+ * the width the other one owns.
+ *
+ * `md` and not `sm`, which is where this was first drawn, because the measurement disagreed. At 640px
+ * the settings button has just begun spelling its own label out, and the switches at that width left
+ * the encounter name 45px — five characters, worse than it gets at 390px. Swapping them for this
+ * takes the name back to 152px, which is nearly the whole of it. `md` is the first width where the
+ * switches cost the name nothing worth having.
+ *
+ * Rendering both costs nothing in keyboard terms: Base UI's composite treats a `display: none` item
+ * as disabled and skips it, so whichever of the two is hidden is not in the bar's arrow-key order.
+ *
+ * `Menu.RadioGroup` / `Menu.RadioItem` rather than three `Menu.Item`s, because exactly one of these
+ * is chosen and a list of buttons with one highlighted is not that to a screen reader. The full
+ * labels are used in here — the popup has the room that the bar does not, which is the whole reason
+ * the short ones exist.
+ *
+ * **The detection survives the collapse.** The trigger carries the same sentence the switches carry
+ * as its `title`, and the popup states it above the choices where it can be read rather than hovered
+ * — this control's docstring above insists the pull's own reading stays visible even when it is being
+ * overridden, and a trigger that hid it would have quietly dropped that on phones. The trigger also
+ * names the current mode, so the state is on the bar and not only inside the popup.
+ */
+function TargetModeMenu({ targets, value, onChange }: Props) {
+	const { t } = useTranslation('report');
+	const { overridden } = resolveTargetMode(targets?.detected, value);
+	const detected = detection(t, targets, value);
+
+	return (
+		<Menu.Root>
+			<Toolbar.Button
+				render={<Menu.Trigger />}
+				title={detected}
+				aria-label={`${t('targets.label')}: ${t(LABEL[value])}`}
+				className={`${toolbarMenuClass(overridden)} md:hidden`}
+			>
+				<span aria-hidden="true">{t('targets.mode')}</span>
+				{/* The chosen mode on the trigger, not only inside the popup. A control that hid the state
+				    it sets would be worse than the switches it replaces — and teal is the same "this one
+				    is active" the switches use, dropped when amber is already saying something louder. */}
+				<span aria-hidden="true" className={overridden ? undefined : 'text-kick'}>
+					{t(SHORT_LABEL[value])}
+				</span>
+			</Toolbar.Button>
+
+			<Menu.Portal>
+				{/* Above the bar's own `z-30`, and inset from the viewport edge by the gap the bar keeps. */}
+				<Menu.Positioner className="z-40" side="bottom" sideOffset={8} align="end" collisionPadding={12}>
+					<Menu.Popup className="flex min-w-[14rem] flex-col gap-2 rounded-sm border border-line bg-surface p-3 text-ink">
+						<p className="m-0 max-w-[36ch] text-sm leading-relaxed text-muted">{detected}</p>
+						<Menu.RadioGroup
+							value={value}
+							onValueChange={(next) => onChange(next as TargetModeChoice)}
+							aria-label={t('targets.label')}
+							className="flex flex-col gap-1"
+						>
+							{TARGET_MODE_CHOICES.map((choice) => (
+								<Menu.RadioItem
+									key={choice}
+									value={choice}
+									// Base UI leaves a radio item's menu open by default, which suits a menu of several
+									// settings and not this one: these three are the whole popup, so staying open after
+									// a choice leaves the reader covering the report with a menu they are done with.
+									closeOnClick
+									className="flex min-h-11 cursor-pointer items-center gap-2 rounded-sm px-2 font-mono text-sm font-semibold tracking-[0.1em] text-ink-2 uppercase transition-colors data-highlighted:bg-raised data-highlighted:text-ink"
+								>
+									<Menu.RadioItemIndicator
+										// A reserved column rather than a conditional glyph, so the labels sit on one
+										// left edge whichever of them is the chosen one.
+										keepMounted
+										className="w-3 shrink-0 text-kick data-unchecked:invisible"
+									>
+										&bull;
+									</Menu.RadioItemIndicator>
+									{t(LABEL[choice])}
+								</Menu.RadioItem>
+							))}
+						</Menu.RadioGroup>
+					</Menu.Popup>
+				</Menu.Positioner>
+			</Menu.Portal>
+		</Menu.Root>
 	);
 }

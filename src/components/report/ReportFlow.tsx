@@ -11,6 +11,7 @@ import { useFightPlayers } from '~/hooks/useFightPlayers';
 import { useReportFights } from '~/hooks/useReportFights';
 
 import type { TargetModeChoice } from '~/lib/view/targetMode';
+import { forgetCredits } from '~/lib/wcl';
 
 import { useSession } from '../auth';
 import Report from '../Report';
@@ -147,10 +148,12 @@ export default function ReportFlow() {
 	} = useFightAnalysis(token, request, settingsState.settings);
 
 	// Signing out drops the report with it. The analysis was fetched with that credential, and leaving
-	// it on screen would make "sign out" look like less than it is.
+	// it on screen would make "sign out" look like less than it is. The budget goes for the same
+	// reason and is not part of the query cache: it is a fact about the token that just left.
 	useEffect(() => {
 		if (token !== null) return;
 		queryClient.clear();
+		forgetCredits();
 		setInput(null);
 		setChosenFightID(null);
 		setChosenPlayer(null);

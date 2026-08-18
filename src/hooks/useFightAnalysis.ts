@@ -15,7 +15,14 @@ import { useQuery } from '@tanstack/react-query';
 import type { AnalysisSettings } from '~/lib/settings';
 import { analyse } from '~/lib/spec/windwalker';
 import type { Analysis, FightDataset } from '~/lib/types';
-import { WclClient, fetchFightDataset, type FetchProgress } from '~/lib/wcl';
+import {
+	WclClient,
+	fetchFightDataset,
+	readCredits,
+	recordAnalysisCost,
+	recordCredits,
+	type FetchProgress,
+} from '~/lib/wcl';
 
 export interface AnalysisRequest {
 	code: string;
@@ -61,12 +68,23 @@ export function useFightAnalysis(
 				key,
 				value: { phase: 'report', message: 'Loading the report…' },
 			});
-			const dataset = await fetchFightDataset(new WclClient({ token: token! }), {
+			// What this pull costs, watched rather than assumed. Every request the fetch makes reports
+			// `pointsSpentThisHour` back, so the figure before the first one and the figure after the
+			// last one bracket the whole run — and their difference is what an analysis of *this* fight
+			// cost, which is the only honest divisor for "how many more pulls fit". A constant cannot be
+			// right for both: the event stream pages, so a nine-minute pull costs more than a short one.
+			//
+			// Null before means nothing has been fetched yet on this token, so there is nothing to
+			// subtract from and the run goes unmeasured rather than measured wrongly.
+			const before = readCredits().credits?.spent ?? null;
+			const dataset = await fetchFightDataset(new WclClient({ token: token!, onCredits: recordCredits }), {
 				code: request!.code,
 				fightID: request!.fightID,
 				playerName: request!.playerName,
 				onProgress: (value) => setProgress({ key, value }),
 			});
+			const after = readCredits().credits?.spent ?? null;
+			if (before !== null && after !== null) recordAnalysisCost(after - before);
 
 			// Reading the fight is synchronous and takes long enough to be felt, so yield once and let
 			// the bar reach its last step before the main thread is blocked.

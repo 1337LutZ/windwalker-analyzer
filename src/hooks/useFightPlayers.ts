@@ -7,7 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { WclClient, type FightPlayer } from '~/lib/wcl';
+import { WclClient, recordCredits, type FightPlayer } from '~/lib/wcl';
 
 /**
  * WarcraftLogs' own spelling for the one class and spec this app reads. They are the strings the
@@ -22,6 +22,7 @@ export function useFightPlayers(token: string | null, code: string | null, fight
 		queryFn: async () => {
 			const players = await new WclClient({
 				token: token!,
+				onCredits: recordCredits,
 			}).fetchPlayerDetails(code!, fightID!);
 			return players.filter((player) => player.playerClass === CLASS && player.specs.includes(SPEC));
 		},

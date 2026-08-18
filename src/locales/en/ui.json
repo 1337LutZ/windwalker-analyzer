@@ -18,9 +18,9 @@
   },
   "common": {
     "change": "Change",
-    "kill": "kill",
-    "wipe": "wipe",
-    "wipeAt": "wipe at {{pct, percent}}"
+    "kill": "Kill",
+    "wipe": "Wipe",
+    "wipeAt": "Wipe at {{pct, percent}}"
   },
   "settings": {
     "open": "Analysis settings",
@@ -43,5 +43,15 @@
   },
   "selection": {
     "label": "Selected pull"
+  },
+  "credits": {
+    "label": "API credits",
+    "signedOut": "WarcraftLogs gives every API client its own hourly budget, so the one you register is yours alone to spend. What is left of it shows here once you are signed in.",
+    "unit_one": "pull",
+    "unit_other": "pulls",
+    "summary_one": "{{percent, percent}} of this hour's WarcraftLogs budget left, which is about {{count, compact}} more pull.",
+    "summary_other": "{{percent, percent}} of this hour's WarcraftLogs budget left, which is about {{count, compact}} more pulls.",
+    "used": "{{spent, integer}} of {{limit, integer}} points spent this hour.",
+    "resets": "The budget resets in {{when}}."
   }
 }

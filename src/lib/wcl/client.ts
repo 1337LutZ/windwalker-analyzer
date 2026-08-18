@@ -19,6 +19,8 @@ import type {
 	FightEventsQueryVariables,
 	FightPlayerDetailsQuery,
 	FightPlayerDetailsQueryVariables,
+	RateLimitQuery,
+	RateLimitQueryVariables,
 	ReportActorsQuery,
 	ReportActorsQueryVariables,
 	ReportFightsQuery,
@@ -29,8 +31,10 @@ import { WCL_CLIENT_ENDPOINT, WCL_HOST, endpointFor, otherEndpoint } from './end
 import FIGHT_DAMAGE_TABLE_QUERY from './fightDamageTable.graphql?raw';
 import FIGHT_EVENTS_QUERY from './fightEvents.graphql?raw';
 import PLAYER_DETAILS_QUERY from './playerDetails.graphql?raw';
+import RATE_LIMIT_QUERY from './rateLimit.graphql?raw';
 import REPORT_ACTORS_QUERY from './reportActors.graphql?raw';
 import REPORT_FIGHTS_QUERY from './reportFights.graphql?raw';
+import { readRateLimit, type ApiCredits } from './rateLimit';
 
 /** A stuck request would otherwise leave the UI's progress indicator frozen with no way out. */
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -112,6 +116,13 @@ export interface EventPage {
 
 export interface WclClientOptions {
 	token: string;
+	/**
+	 * Called with the hourly budget every response reports one, which is every response: each document
+	 * in this folder carries `rateLimitData`, and it is free to ask for alongside work already being
+	 * done. Injected rather than written to a module the transport reaches for, so this class keeps
+	 * having exactly one outward effect — the request in `#send`.
+	 */
+	onCredits?: (credits: ApiCredits) => void;
 }
 
 // The generated query types nest everything under nullable parents, so pick the two rows out of them
@@ -128,12 +139,14 @@ type QueriedActor = NonNullable<
 export class WclClient {
 	#endpoint: string;
 	readonly #token: string;
+	readonly #onCredits: ((credits: ApiCredits) => void) | undefined;
 
-	constructor({ token }: WclClientOptions) {
+	constructor({ token, onCredits }: WclClientOptions) {
 		// People paste the whole "Bearer eyJ0…" line out of the docs as often as they paste the token.
 		const cleaned = cleanToken(token);
 		if (!cleaned) throw new WclError('auth', 'No WarcraftLogs API token was given.');
 		this.#token = cleaned;
+		this.#onCredits = onCredits;
 		// Reading the payload picks the path this token most likely works on. It is a guess and never
 		// a verification — `#graphql` tries the other path if WarcraftLogs disagrees.
 		this.#endpoint = endpointFor(inspectToken(cleaned).kind);
@@ -249,7 +262,10 @@ export class WclClient {
 			);
 		}
 
-		let payload: { data?: TData; errors?: Array<{ message?: string }> };
+		let payload: {
+			data?: TData;
+			errors?: Array<{ message?: string; path?: ReadonlyArray<string | number> }>;
+		};
 		try {
 			payload = (await response.json()) as typeof payload;
 		} catch {
@@ -264,8 +280,15 @@ export class WclClient {
 
 		// WCL answers HTTP 200 with a populated `errors` array for archived reports, permission
 		// failures and bad arguments, so status alone never proves success.
-		if (payload.errors?.length) {
-			const detail = payload.errors
+		//
+		// `rateLimitData` is the one field whose failure must not fail the request. It is bolted onto
+		// every document here for a display, not for the answer the caller asked for, and a token that
+		// could read a report but not the budget would otherwise take the whole app down for the sake
+		// of a number in the corner. GraphQL reports which field failed in `path`, so an error that is
+		// only about that one is dropped and the report is handed over without a budget reading.
+		const errors = payload.errors?.filter((error) => error.path?.[0] !== 'rateLimitData');
+		if (errors?.length) {
+			const detail = errors
 				.map((error) => error.message)
 				.filter((message): message is string => Boolean(message))
 				.join('; ');
@@ -279,7 +302,30 @@ export class WclClient {
 		}
 		if (!payload.data) throw new WclError('graphql', 'WarcraftLogs returned an empty response.');
 
+		// After the failure checks, so a budget is only ever read off a response that was accepted.
+		// `readRateLimit` answers null for anything it does not recognise, which is what a document
+		// without the field, or a null one, arrives as.
+		const credits = readRateLimit(payload.data);
+		if (credits !== null) this.#onCredits?.(credits);
+
 		return payload.data;
+	}
+
+	/**
+	 * The budget on its own, for the one moment nothing else has been asked for.
+	 *
+	 * This is the only query here that costs a point without answering a question about a report, and
+	 * it exists so the sign-in step can show a real figure the moment there is a token rather than a
+	 * promise that one will appear later. It is asked once per session and never on a timer — every
+	 * other request carries the same field for free.
+	 */
+	async fetchRateLimit(): Promise<ApiCredits> {
+		const data = await this.#graphql<RateLimitQuery, RateLimitQueryVariables>(RATE_LIMIT_QUERY, {});
+		const credits = readRateLimit(data);
+		if (credits === null) {
+			throw new WclError('missing', 'WarcraftLogs did not report the hourly point budget for this token.');
+		}
+		return credits;
 	}
 
 	async fetchReport(code: string): Promise<ReportSummary> {

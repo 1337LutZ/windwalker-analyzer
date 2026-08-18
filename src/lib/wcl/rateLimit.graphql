@@ -1,0 +1,14 @@
+# The hourly point budget on its own, and the only query in this folder whose answer is not a report.
+#
+# It costs a point, which is why it is asked exactly once: the moment a session has a token and
+# nothing has been fetched yet, so the sign-in step can show a real figure instead of a promise.
+# Every request after this one carries the same field for free — see the note in each of the other
+# documents — so nothing here ever polls.
+
+query RateLimit {
+	rateLimitData {
+		limitPerHour
+		pointsSpentThisHour
+		pointsResetIn
+	}
+}

@@ -76,6 +76,25 @@ export const toolbarChoiceClass = (selected: boolean, overridden: boolean): stri
 		selected && overridden ? 'border-brew bg-raised text-brew' : selectionPalette(selected)
 	}`;
 
+/**
+ * The one button that stands in for that row of switches where the row will not fit.
+ *
+ * Neutral rather than picked, unlike `toolbarChoiceClass` above: it sits beside the Change and
+ * settings buttons and is a way in to a choice rather than the choice itself, so colouring it as
+ * selected would have it shouting louder than either of its neighbours. It keeps only the amber,
+ * which is not decoration — a reading that contradicts what the pull detected has to be visible from
+ * the bar, and collapsing three switches into one button is exactly where that could have been lost.
+ *
+ * Written as one string per state rather than as overrides appended to `buttonClass`, for the reason
+ * `max-sm:px-2` exists on the Change button: two classes setting the same property resolve by
+ * stylesheet order, not by the order they were concatenated in, so an override tacked onto the end
+ * is a coin toss.
+ */
+export const toolbarMenuClass = (overridden: boolean): string =>
+	`inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-sm border px-2 font-mono text-sm font-semibold uppercase transition-colors ${
+		overridden ? 'border-brew bg-raised text-brew' : 'border-line bg-bg text-ink-2 hover:border-muted hover:bg-raised'
+	}`;
+
 /** A full-width row holding a single name — the player picker, where the name is the whole choice. */
 export const singleLineChoiceClass = (selected: boolean): string =>
 	`flex min-h-11 w-full cursor-pointer items-center rounded-sm border px-3 py-2 text-left font-mono text-base font-medium transition-colors ${selectionPalette(selected)}`;

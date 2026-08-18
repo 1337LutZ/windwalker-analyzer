@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { inspectToken, useSession } from '~/lib/auth';
 
+import ApiCredits from '../ApiCredits';
 import { Callout } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 
@@ -42,6 +43,11 @@ export default function SignInPanel() {
 					</button>
 				</div>
 
+				{/* What the token can still spend. Beneath the line that says a session exists, because it
+				    is a fact about that session — and it appears here rather than only on the report's
+				    toolbar so that the budget is visible before anything has been spent against it. */}
+				<ApiCredits />
+
 				{publicOnly ? (
 					<Callout tone="brew" title="This token reads public logs only">
 						<p className="m-0">
@@ -79,6 +85,10 @@ export default function SignInPanel() {
 				<SignInButton />
 				<TokenHelp />
 			</div>
+
+			{/* Signed out this says only that a budget exists and where it will appear, which is the one
+			    honest thing to say: the figure is a property of a token nobody has yet. */}
+			<ApiCredits />
 
 			<ManualTokenForm />
 		</div>

@@ -26,6 +26,13 @@
 # types it `unknown` and it is narrowed through ~/lib/events.
 
 query FightEvents($code: String!, $fightID: Int!, $sourceID: Int!, $startTime: Float!, $endTime: Float!) {
+	# The hourly point budget, riding along for free: measured, this document costs the same with the
+	# field as without it, while asking for it alone costs a point. See rateLimit.ts.
+	rateLimitData {
+		limitPerHour
+		pointsSpentThisHour
+		pointsResetIn
+	}
 	reportData {
 		report(code: $code) {
 			events(
