@@ -18,7 +18,7 @@
 // chi. One number folding both would answer neither.
 
 import { LADDER_ENTRIES, type AplAudit, type AplRuleKey } from '~/lib/spec/apl';
-import { RSK_COOLDOWN_MS } from '~/lib/spec/windwalker';
+import { abilityCooldownMs } from '~/lib/spec/windwalker';
 import type { Analysis, StarvedKick } from '~/lib/types';
 
 /** The button's cast id, which the ladder, the cast table and the icon all key on. */
@@ -145,7 +145,7 @@ function starveOf(analysis: Analysis, apl: AplAudit | null | undefined): Blackou
 		starvedWaits: audit.starvedWaits,
 		chargedMs: audit.chargedMs,
 		charged: audit.charged,
-		chargedKicks: Math.floor(audit.chargedMs / RSK_COOLDOWN_MS),
+		chargedKicks: Math.floor(audit.chargedMs / abilityCooldownMs('rising-sun-kick')),
 		debuffDrops: audit.charged.filter((c) => c.debuffDown).length,
 		followedList: audit.charged.filter((c) => verdictAt(c.pressAt) === 'followed').length,
 		chiAccuracyPct: audit.chiPredicted > 0 ? (audit.chiExact / audit.chiPredicted) * 100 : null,

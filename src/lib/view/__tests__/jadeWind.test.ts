@@ -74,6 +74,24 @@ describe('one clock', () => {
 });
 
 describe('the ladder opportunities, quoted rather than re-judged', () => {
+	it('adds a missed Bloodlust/RJW window when Energizing Brew was available but unused', () => {
+		const analysis = fixture('strong');
+		const withMissedHaste = {
+			...analysis,
+			energizing: {
+				...analysis.energizing!,
+				rushingJadeWind: true,
+				hasteWindows: [{ start: 0, end: 5000, id: 2825, variant: 'Bloodlust' }],
+				uses: analysis.energizing!.uses.map((use) => ({ ...use, t: 10_000 })),
+			},
+		};
+		const ladder = readJadeWind(withMissedHaste, withMissedHaste.apl).ladder;
+
+		expect(ladder?.decisions.some((row) => row.kind === 'missed' && row.reason === 'haste-window-available')).toBe(
+			true,
+		);
+	});
+
 	it('grades unnecessary presses as bad when there were no opportunities', () => {
 		const analysis = fixture('strong');
 		const audit: AplAudit = {

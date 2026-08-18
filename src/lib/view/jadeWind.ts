@@ -13,6 +13,7 @@ import { intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { makeLinker } from '~/lib/analysis/links';
 import { gradeOf, type Grade } from '~/lib/score';
 import type { AplAudit, AplRuleKey, AplRuleReason } from '~/lib/spec/apl';
+import { abilityCooldownMs } from '~/lib/spec/windwalker';
 import type { Analysis } from '~/lib/types';
 
 import { excludedButtons, pressedButtons } from './rotationFlow';
@@ -88,7 +89,7 @@ export interface JadeWindDecision {
 	kind: 'press' | 'missed';
 	verdict: 'followed' | 'skipped' | 'off-list' | 'unknown' | 'missed';
 	wanted: AplRuleKey | null;
-	reason: AplRuleReason | null;
+	reason: AplRuleReason | 'haste-window-available' | null;
 }
 
 export interface JadeWindReading {
@@ -161,7 +162,8 @@ function ladderOf(analysis: Analysis, apl: AplAudit | null | undefined): JadeWin
 	const unknown = own.filter((p) => p.verdict === 'unknown').length;
 	const offList = own.filter((p) => p.verdict === 'off-list').length;
 	const wanted = apl.skippedBy.filter((s) => s.id === RJW_CAST_ID).reduce((sum, s) => sum + s.count, 0);
-	const scored = followed + skipped + offList + wanted;
+	const hasteMissedWindows = missedHasteWindows(analysis);
+	const scored = followed + skipped + offList + wanted + hasteMissedWindows.length;
 	const choiceRate = unknown > 0 || scored === 0 ? null : (followed / scored) * 100;
 	const link =
 		analysis.fightStartMs === undefined
@@ -197,13 +199,23 @@ function ladderOf(analysis: Analysis, apl: AplAudit | null | undefined): JadeWin
 			}
 			return rows;
 		})
+		.concat(
+			hasteMissedWindows.map((window) => ({
+				at: window.start,
+				link: link?.(window.start) ?? null,
+				kind: 'missed' as const,
+				verdict: 'missed' as const,
+				wanted: 'rushing-jade-wind' as const,
+				reason: 'haste-window-available' as const,
+			})),
+		)
 		.sort((a, b) => a.at - b.at || (a.kind === 'press' ? -1 : 1));
 	return {
 		followed,
 		skipped,
 		judged: followed + skipped,
 		wanted,
-		opportunities: followed + wanted,
+		opportunities: followed + wanted + hasteMissedWindows.length,
 		unknown,
 		offList,
 		choiceRate,
@@ -212,6 +224,21 @@ function ladderOf(analysis: Analysis, apl: AplAudit | null | undefined): JadeWin
 		netOveruse: own.length - (followed + wanted),
 		decisions,
 	};
+}
+
+/** Haste windows where RJW was selected, Energizing Brew was ready, and the brew was never used. */
+function missedHasteWindows(analysis: Analysis): Array<{ start: number; end: number }> {
+	const energizing = analysis.energizing;
+	if (!energizing?.rushingJadeWind) return [];
+	return energizing.hasteWindows.filter((window) => {
+		const usedInside = energizing.uses.some((use) => use.t >= window.start && use.t <= window.end);
+		if (usedInside) return false;
+		const lastUse = energizing.uses
+			.filter((use) => use.t <= window.end)
+			.reduce<number | null>((latest, use) => (latest === null || use.t > latest ? use.t : latest), null);
+		const readyAt = lastUse === null ? 0 : lastUse + abilityCooldownMs('energizing-brew');
+		return readyAt <= window.end;
+	});
 }
 
 /**

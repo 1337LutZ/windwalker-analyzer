@@ -478,14 +478,6 @@ export const RSK_TARGET_LANES = 6;
 // anything: `chi` and `energy` buttons have no cooldown to drift against, `conditional` ones are
 // judged against their conditions, and `other` is counted but never scored.
 
-/**
- * Rising Sun Kick's cooldown, from `sim/monk/ww_rising_sun_kick.go` (`Duration: time.Second * 8`).
- *
- * Exported because the section prints a target built from it, and a component restating `8000` is a
- * second copy free to drift from the ability it describes.
- */
-export const RSK_COOLDOWN_MS = 8000;
-
 const ABILITIES: Ability[] = [
 	{
 		key: 'jab',
@@ -531,7 +523,7 @@ const ABILITIES: Ability[] = [
 		damageIds: [107428],
 		onGcd: true,
 		gate: 'cooldown',
-		cooldownMs: RSK_COOLDOWN_MS,
+		cooldownMs: 8000,
 		// The uptime metric hangs off the debuff this applies, never off the cast id.
 		applies: ['rising-sun-kick-debuff'],
 	},
@@ -566,6 +558,7 @@ const ABILITIES: Ability[] = [
 		onGcd: true,
 		// 40 energy, and it generates chi (`sim/monk/talents.go`, `registerRushingJadeWind`).
 		gate: 'energy',
+		cooldownMs: 6000,
 		applies: ['rushing-jade-wind'],
 	},
 	{
@@ -647,13 +640,14 @@ const ABILITIES: Ability[] = [
 		 *   AND(
 		 *     energyTimeToTarget(maxEnergy) > 5s,
 		 *     OR(
+		 *       auraIsUnknown(2825 [Bloodlust], tag -1),
 		 *       auraIsInactive(2825 [Bloodlust], tag -1, includeReactionTime),
-		 *       AND(spellIsKnown(116847 [Rushing Jade Wind]), numberTargets >= 2)
+		 *       spellIsKnown(116847 [Rushing Jade Wind])
 		 *     )
 		 *   )  ->  castSpell(115288)
 		 *
 		 * So: press it when the bar is at least five seconds from capping, and hold it through
-		 * Bloodlust unless Rushing Jade Wind is in the build *and* there is more than one target.
+		 * Bloodlust unless Rushing Jade Wind is in the build.
 		 * Scored as a cooldown instead, it produced "lost casts" for doing exactly that.
 		 *
 		 * The audit checks the second clause and declines the first, the same division the Fists of
@@ -1184,6 +1178,11 @@ export const WINDWALKER: GameData = { abilities: ABILITIES, auras: AURAS };
 
 /** The one way to ask what a spell id means. Construction validates the links between the two lists. */
 export const registry = createRegistry(WINDWALKER);
+
+/** Reads a cooldown from the ability spec instead of duplicating its duration at a call site. */
+export function abilityCooldownMs(key: string): number {
+	return registry.ability(key).cooldownMs ?? 0;
+}
 
 const RISING_SUN_KICK = registry.ability('rising-sun-kick');
 const FISTS_OF_FURY = registry.ability('fists-of-fury');
@@ -3996,7 +3995,9 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			// The only press that can be answerable: the last Blackout Kick pressed while the kick was
 			// coming back. `window.start` is the moment it came up, so that cooldown runs back exactly one
 			// cooldown from there.
-			const pressAt = bkTimes.findLast((t) => t > window.start - RSK_COOLDOWN_MS && t <= window.start);
+			const pressAt = bkTimes.findLast(
+				(t) => t > window.start - abilityCooldownMs('rising-sun-kick') && t <= window.start,
+			);
 			if (pressAt === undefined) continue;
 
 			/**

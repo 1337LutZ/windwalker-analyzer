@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import { DEFAULT_SETTINGS, TIGER_PALM_REFRESH } from '~/lib/settings';
 import type { FightDataset } from '~/lib/types';
-import { analyse, registry } from '../windwalker';
+import { abilityCooldownMs, analyse, registry } from '../windwalker';
 
 const T0 = 100000;
 const END = T0 + 120000;
@@ -119,6 +119,12 @@ describe('the Windwalker registry', () => {
 		expect(registry.consumedBy('blackout-kick').map((a) => a.key)).toEqual(['combo-breaker-blackout-kick']);
 		expect(registry.aura('tigereye-brew-bank').maxStacks).toBe(20);
 		expect(registry.aura('tigereye-brew').refreshRestarts).toBe(true);
+	});
+
+	it('derives the shared cooldowns from the ability definitions', () => {
+		expect(abilityCooldownMs('rising-sun-kick')).toBe(8000);
+		expect(abilityCooldownMs('rushing-jade-wind')).toBe(6000);
+		expect(abilityCooldownMs('energizing-brew')).toBe(60000);
 	});
 
 	it('finds the ability behind a damage id that is not its cast id', () => {

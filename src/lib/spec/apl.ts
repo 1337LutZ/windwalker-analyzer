@@ -234,16 +234,6 @@ const ID = {
 } as const;
 
 /**
- * Rushing Jade Wind's cooldown, which is also its dot's duration — the two are the same six seconds
- * and that identity is the whole of why the button behaves as it does.
- *
- * Exported for the same reason `RSK_COOLDOWN_MS` in `spec/windwalker.ts` is: a section prints a
- * ceiling built from it, and a component restating `6000` would be a second copy free to drift from
- * the ladder that judges the same button against it.
- */
-export const RJW_COOLDOWN_MS = 6000;
-
-/**
  * What one press costs, from `registerRushingJadeWind` in `sim/monk/talents.go`.
  *
  * Exported alongside the cooldown because the two only mean anything together: 40 energy every six
@@ -280,8 +270,8 @@ const COOLDOWN_MS: Partial<Record<AplRuleKey, number>> = {
 	 * every global from the second target onwards — which on the Galakras pull invented 95 skips out of
 	 * 148, all of them for a button that was already spinning.
 	 */
-	'rushing-jade-wind-open': RJW_COOLDOWN_MS,
-	'rushing-jade-wind': RJW_COOLDOWN_MS,
+	'rushing-jade-wind-open': 6000,
+	'rushing-jade-wind': 6000,
 };
 
 /**

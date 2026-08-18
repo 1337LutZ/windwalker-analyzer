@@ -19,7 +19,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { CHI_COST } from '~/lib/spec/apl';
-import { RSK_COOLDOWN_MS } from '~/lib/spec/windwalker';
+import { abilityCooldownMs } from '~/lib/spec/windwalker';
 import type { Analysis } from '~/lib/types';
 
 import { readBlackoutKick, BLACKOUT_KICK_CAST_ID } from '../blackoutKick';
@@ -158,7 +158,7 @@ describe('the kicks this button starved', () => {
 			expect(row.chi).toBeGreaterThanOrEqual(0);
 			// Pressed while the kick was on its way back, never after it had already come up.
 			expect(row.pressAt).toBeLessThanOrEqual(row.at);
-			expect(row.pressAt).toBeGreaterThan(row.at - RSK_COOLDOWN_MS);
+			expect(row.pressAt).toBeGreaterThan(row.at - abilityCooldownMs('rising-sun-kick'));
 			expect(row.ms).toBeGreaterThan(0);
 		}
 	});
@@ -166,7 +166,7 @@ describe('the kicks this button starved', () => {
 	/** Floored to whole cooldowns, which is the unit the rest of the report loses casts in. */
 	it.each(FIXTURES)('converts %s charged time to whole kicks', (name) => {
 		const starve = read(name).reading.starve;
-		expect(starve?.chargedKicks).toBe(Math.floor((starve?.chargedMs ?? 0) / RSK_COOLDOWN_MS));
+		expect(starve?.chargedKicks).toBe(Math.floor((starve?.chargedMs ?? 0) / abilityCooldownMs('rising-sun-kick')));
 	});
 
 	/**

@@ -1003,7 +1003,8 @@
         "multiTarget": "At least two targets were active",
         "shortPull": "The pull was shorter than 75 seconds",
         "energyCap": "Energy would cap within 1 second",
-        "hasteWindow": "Bloodlust and Energizing Brew were both active"
+        "hasteWindow": "Bloodlust and Energizing Brew were both active",
+        "hasteWindowAvailable": "Bloodlust was active and Energizing Brew was available"
       }
     },
     "ladder_all_one": "At the one press the priority list could judge, no higher-priority ability was ready.",

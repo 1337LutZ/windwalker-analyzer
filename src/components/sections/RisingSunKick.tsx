@@ -3,7 +3,7 @@ import { formatPercentValue, formatSecondsValue } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
 import { DebuffTimeline } from '../charts';
-import { RSK_COOLDOWN_MS } from '~/lib/spec/windwalker';
+import { abilityCooldownMs } from '~/lib/spec/windwalker';
 import { usageTone } from '~/lib/score/waste';
 
 import { Note, Prose, Section, SpellIcon, StatTile, StatTiles } from '../primitives';
@@ -51,7 +51,7 @@ export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 	const measuredMs = debuff.contactMs || debuff.engagedMs;
 	// The cooldown is the sim's own eight seconds, cited where it is declared. Rounded down: a ceiling of
 	// 27.6 casts is one nobody can hit, and asking for 28 is asking for a kick the pull had no room for.
-	const possibleKicks = Math.floor(measuredMs / RSK_COOLDOWN_MS);
+	const possibleKicks = Math.floor(measuredMs / abilityCooldownMs('rising-sun-kick'));
 
 	/**
 	 * Which enemy the primary-scoped halves of this section are about — the drops, the chart, the
