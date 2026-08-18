@@ -7,6 +7,22 @@ import { rememberToken, takeAuthorization } from './storage';
 const CALLBACK_PARAMS = ['code', 'state', 'error', 'error_description', 'error_uri'] as const;
 
 /**
+ * Fired once, on `window`, when a sign-in has put the visitor's original query back in the address
+ * bar.
+ *
+ * The selection in the URL is read on mount and then never again — `useInitialUrlSelection` explains
+ * why, and that rule is right for every other page load. A callback is the one load where the query
+ * arrives *after* the read: effects run child-first, so the flow below the provider has already
+ * looked at the address bar by the time the provider gets to restore it, and what it saw was the
+ * bare callback URL. So the restore says so rather than leaving anyone to poll for it.
+ *
+ * Listening is optional in both directions — a listener that registered too late has nothing to miss,
+ * because `replaceState` has already happened and a fresh read of the address bar answers the same
+ * question. That is what makes this safe regardless of which effect runs first.
+ */
+export const URL_RESTORED_EVENT = 'wcl:url-restored';
+
+/**
  * True when this page load is a return from the authorize screen.
  *
  * Separate from `completeSignIn` because the answer is needed synchronously: the UI has to show
@@ -43,6 +59,9 @@ function stripCallbackParams(restore?: string): void {
 	}
 	const query = url.searchParams.toString();
 	window.history.replaceState(window.history.state, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
+	// Only when something was actually put back. A sign-in started from a bare page changes nothing
+	// anyone needs to re-read, and announcing it would ask the flow to re-parse a URL it already has.
+	if (restore !== undefined && restore !== '') window.dispatchEvent(new Event(URL_RESTORED_EVENT));
 }
 
 /**
@@ -91,3 +110,5 @@ export async function completeSignIn(): Promise<string | null> {
 	rememberToken({ token, source: 'oauth' });
 	return token;
 }
+
+export const __test = { stripCallbackParams };

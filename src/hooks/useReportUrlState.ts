@@ -12,6 +12,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { URL_RESTORED_EVENT } from '~/lib/auth';
+
 export interface UrlSelection {
 	code: string | null;
 	fightID: number | null;
@@ -35,16 +37,34 @@ function parse(search: string): UrlSelection {
 }
 
 /**
- * Reads the selection out of the address bar once, on mount.
+ * Reads the selection out of the address bar once, on mount — and once more if a sign-in puts one
+ * there.
  *
  * Once, deliberately: after the first render the app's own state is the truth and the URL is a
  * mirror of it. Watching the URL as well would let a write race the read and fight the user's next
  * click.
+ *
+ * The sign-in is the one exception, and it is not watching — it is a single announcement from
+ * `stripCallbackParams`, made only when there was something to put back. It exists because the
+ * ordering is fixed and unhelpful: effects run child-first, so this read happens *before* the
+ * provider above it restores the query, and what it sees on a callback is the bare `?code=` URL.
+ * Someone who followed a shared link and signed in got their report code, fight and player back in
+ * the address bar and an empty form under it.
+ *
+ * Neither order can miss it. Restore first and the mount read already sees the finished URL; mount
+ * first and the announcement brings the second read. Both land before the token does, so the form
+ * below — which only renders once signed in — is built from the right value rather than corrected
+ * into it.
  */
 export function useInitialUrlSelection(): UrlSelection {
 	// `window` does not exist during Astro's prerender, so this cannot be a lazy initialiser.
 	const [initial, setInitial] = useState<UrlSelection>(EMPTY);
-	useEffect(() => setInitial(parse(window.location.search)), []);
+	useEffect(() => {
+		const read = () => setInitial(parse(window.location.search));
+		read();
+		window.addEventListener(URL_RESTORED_EVENT, read);
+		return () => window.removeEventListener(URL_RESTORED_EVENT, read);
+	}, []);
 	return initial;
 }
 
