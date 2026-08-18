@@ -9,11 +9,16 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { initI18n } from '~/lib/i18n/config';
 import type { FightWithRoster } from '~/lib/wcl';
 
 import FightSelector from '../FightSelector';
 import { defaultFightID, groupByEncounter } from '../encounterGroups';
 import { parseReportInput } from '../parseReportInput';
+
+// `FightSelector` reads its outcome words from `ui.common`, so the picker and the report header
+// cannot disagree about what a wipe is called. Without this the translator returns the key.
+initI18n();
 
 const fight = (over: Partial<FightWithRoster> & { id: number; encounterID: number }): FightWithRoster => ({
 	name: 'Malkorok',
@@ -69,7 +74,9 @@ describe('pre-selecting a fight from a shared link', () => {
 		const html = renderToStaticMarkup(
 			createElement(FightSelector, { fights: FIGHTS, difficultyNames: NAMES, value: 30, onChange: () => {} }),
 		);
-		expect(html).toContain('wipe at 12.3%');
+		// Sentence case, and from `ui.common.wipeAt` rather than a string built in the component — the
+		// picker and the report header now print the same three outcome words.
+		expect(html).toContain('Wipe at 12.3%');
 		expect(html).toContain('10 Heroic');
 		// `aria-pressed` is what tells a screen-reader user which pull is live.
 		expect(html).toContain('aria-pressed="true"');

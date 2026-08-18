@@ -1,8 +1,9 @@
 import { Collapsible } from '@base-ui/react/collapsible';
+import { useTranslation } from 'react-i18next';
 
 import type { FightWithRoster } from '~/lib/wcl';
 
-import { difficultyLabel, fmt, r1 } from '../format';
+import { difficultyLabel, fmt } from '../format';
 import { groupByEncounter } from './encounterGroups';
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
  * never moves the selection out from under you.
  */
 export default function FightSelector({ fights, difficultyNames, value, onChange }: Props) {
+	const { t } = useTranslation('ui');
 	const groups = groupByEncounter(fights);
 
 	return (
@@ -54,7 +56,7 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
 									<span className={`font-mono text-base font-semibold ${selected ? 'text-ink' : 'text-ink-2'}`}>
 										{group.name}
 									</span>
-									<span className="font-mono text-sm text-muted">{attemptSummary(shown, difficultyNames)}</span>
+									<span className="font-mono text-sm text-muted">{attemptSummary(shown, difficultyNames, t)}</span>
 								</button>
 
 								{group.attempts.length > 1 ? (
@@ -91,7 +93,7 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
 												>
 													<span className="font-mono text-base font-medium">Pull {index + 1}</span>
 													<span className="font-mono text-sm text-muted">
-														{attemptSummary(attempt, difficultyNames)}
+														{attemptSummary(attempt, difficultyNames, t)}
 													</span>
 												</button>
 											</li>
@@ -113,11 +115,23 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
  * A wipe carries the percentage the encounter had left, because "wiped at 3%" and "wiped at 80%" are
  * different pulls to look at and the duration alone does not separate them.
  */
-function attemptSummary(fight: FightWithRoster, difficultyNames: Record<number, string>): string {
+/**
+ * One attempt, in a line: how it ended, how long it ran, and which mode.
+ *
+ * `t` is threaded in rather than reached for, because this is a plain function called from inside the
+ * render and cannot hold a hook. The outcome words come from `ui.common` — the same three the report
+ * header prints once a pull is open, so the picker and the header cannot disagree about what a wipe
+ * is called.
+ */
+function attemptSummary(
+	fight: FightWithRoster,
+	difficultyNames: Record<number, string>,
+	t: ReturnType<typeof useTranslation>['t'],
+): string {
 	const result = fight.kill
-		? 'kill'
+		? t('common.kill')
 		: typeof fight.fightPercentage === 'number'
-			? `wipe at ${r1(fight.fightPercentage)}%`
-			: 'wipe';
+			? t('common.wipeAt', { pct: fight.fightPercentage })
+			: t('common.wipe');
 	return `${result} · ${fmt(fight.endTime - fight.startTime)} · ${difficultyLabel(fight.difficulty, fight.size, difficultyNames)}`;
 }

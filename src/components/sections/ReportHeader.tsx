@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
@@ -17,6 +19,9 @@ import { difficultyLabel } from '../format';
 /** Which pull this is, who it belongs to, how it went, and what the report is about to argue. */
 export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 	const { t, card } = useReportCopy(analysis);
+	// The outcome words live in `ui`, not `report`: the fight picker shows the same three strings
+	// before a report exists, and two copies drifted apart once already.
+	const { t: tUi } = useTranslation('ui');
 	// The analysis already carries the mode's name as the zone gave it, so the header needs no table
 	// and no second query — just the one entry, keyed by the id it belongs to.
 	const difficultyNames = analysis.difficultyName === null ? {} : { [analysis.difficulty]: analysis.difficultyName };
@@ -25,7 +30,7 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 		<header>
 			<p className="m-0 mb-3 font-mono text-sm font-medium tracking-[0.16em] uppercase text-muted">
 				{analysis.encounter} &middot; {difficultyLabel(analysis.difficulty, analysis.size, difficultyNames)} &middot;{' '}
-				{analysis.kill ? 'kill' : 'wipe'} &middot; {formatClock(analysis.durationMs)}
+				{tUi(analysis.kill ? 'common.kill' : 'common.wipe')} &middot; {formatClock(analysis.durationMs)}
 			</p>
 			{/* The anchor the contents list jumps to. The summary has no heading of its own — the report
 			    title *is* its heading — so it borrows this one rather than growing a second, redundant
