@@ -71,6 +71,76 @@ describe('the priority ladder', () => {
 	});
 
 	/**
+	 * The same refusal, applied to the part of a pull the curve does not cover.
+	 *
+	 * A bar opens at its first reading, and chi's first reading lands on the first press that carries
+	 * one — up to 7.9 seconds into a pull on the reference logs. Before it the reader answered zero,
+	 * which is not the absence of an answer but a specific claim: with no chi every spender on the list
+	 * is unaffordable, so the walk falls past six rungs and hands the press a confident verdict against
+	 * whatever it lands on. On the six committed fixtures that is between one and four presses each.
+	 *
+	 * The press here is a Blackout Kick made before any reading, with a full energy bar and a Rising Sun
+	 * Kick sitting above it. Whether the kick was the button the list wanted turns entirely on chi that
+	 * this log does not have, so the answer is silence.
+	 */
+	it('says nothing about a press made before the bars were ever read', () => {
+		const audit = aplAudit(
+			inputs({
+				chi: { max: 4, points: [[5000, 3]] },
+				casts: [press(1000, ID.blackoutKick)],
+			}),
+		);
+
+		expect(audit?.presses[0]).toMatchObject({ verdict: 'unknown', wanted: null });
+		expect(audit?.unknown).toBe(1);
+	});
+
+	/** And the same press once the curve covers it: a reading turns the silence back into a verdict. */
+	it('judges the same press once a reading covers it', () => {
+		const audit = aplAudit(
+			inputs({
+				chi: { max: 4, points: [[0, 3]] },
+				casts: [press(1000, ID.blackoutKick)],
+			}),
+		);
+
+		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick-filler' });
+		expect(audit?.unknown).toBe(0);
+	});
+
+	/**
+	 * A regen rate the log could not measure used to read as zero seconds from the cap.
+	 *
+	 * Which is not "no data" — it is the claim that the bar is overflowing at this instant, and entry 31
+	 * spends exactly that on Rushing Jade Wind. So every global of such a pull was handed a wanted wind
+	 * it had no evidence for, while the three rungs above it that ask for *room* in the bar were all
+	 * falsified by the same number.
+	 */
+	it('does not hand Rushing Jade Wind a global on a pull whose regen was never measured', () => {
+		const base = {
+			// Three of four, so the generator's "room for two chi" is false and the walk reaches the bottom
+			// rungs. Rising Sun Kick is put on its cooldown by the press at zero, and the wind is pressed
+			// once late in the pull so the talent gate opens without putting the rung on cooldown.
+			chi: flat(4, 3),
+			energy: flat(100, 99),
+			casts: [press(0, ID.risingSunKick), press(5000, ID.jab), press(60_000, ID.rushingJadeWind)],
+		};
+
+		// A measured rate: a tenth of a second from the cap, which is the overflow entry 31 spends.
+		const measured = aplAudit(inputs({ ...base, regenPerSec: 10 }));
+		expect(measured?.presses[1]).toMatchObject({
+			verdict: 'skipped',
+			wanted: 'rushing-jade-wind',
+			reason: 'energy-cap',
+		});
+
+		// The same pull with nothing to measure the rate from. It used to read as zero seconds to cap,
+		// which is the strongest possible form of the same claim, and named the wind at that global too.
+		const unmeasured = aplAudit(inputs({ ...base, regenPerSec: 0 }));
+		expect(unmeasured?.presses[1]).toMatchObject({ verdict: 'unknown', wanted: null });
+	});
+
+	/**
 	 * At one target the kick's rung is entry 21, not entry 18.
 	 *
 	 * Entry 18 carries a leading `Targets: More than 1` and so does not exist at a single enemy; the

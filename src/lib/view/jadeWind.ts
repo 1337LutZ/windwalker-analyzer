@@ -13,7 +13,7 @@ import { intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { makeLinker } from '~/lib/analysis/links';
 import { gradeOf, type Grade } from '~/lib/score';
 import type { AplAudit, AplRuleKey, AplRuleReason } from '~/lib/spec/apl';
-import { abilityCooldownMs } from '~/lib/spec/windwalker';
+import { energizingBrewPressable } from '~/lib/spec/windwalker';
 import type { Analysis } from '~/lib/types';
 
 import { excludedButtons, pressedButtons } from './rotationFlow';
@@ -226,18 +226,21 @@ function ladderOf(analysis: Analysis, apl: AplAudit | null | undefined): JadeWin
 	};
 }
 
-/** Haste windows where RJW was selected, Energizing Brew was ready, and the brew was never used. */
+/**
+ * Haste windows where RJW was selected, Energizing Brew was ready, and the brew was never used.
+ *
+ * The readiness half is `energizingBrewPressable`'s rather than this module's. It was written here
+ * first and the engine's own pairing card never got a copy, so the two disagreed about the same pull:
+ * this list correctly passed over a window the brew could not have been pressed in, while the card
+ * beside it called that window a miss.
+ */
 function missedHasteWindows(analysis: Analysis): Array<{ start: number; end: number }> {
 	const energizing = analysis.energizing;
 	if (!energizing?.rushingJadeWind) return [];
 	return energizing.hasteWindows.filter((window) => {
 		const usedInside = energizing.uses.some((use) => use.t >= window.start && use.t <= window.end);
 		if (usedInside) return false;
-		const lastUse = energizing.uses
-			.filter((use) => use.t <= window.end)
-			.reduce<number | null>((latest, use) => (latest === null || use.t > latest ? use.t : latest), null);
-		const readyAt = lastUse === null ? 0 : lastUse + abilityCooldownMs('energizing-brew');
-		return readyAt <= window.end;
+		return energizingBrewPressable(window, energizing.uses);
 	});
 }
 

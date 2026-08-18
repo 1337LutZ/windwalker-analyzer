@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import { DEFAULT_SETTINGS, TIGER_PALM_REFRESH } from '~/lib/settings';
 import type { FightDataset } from '~/lib/types';
-import { abilityCooldownMs, analyse, registry } from '../windwalker';
+import {
+	abilityCooldownMs,
+	analyse,
+	energizingBrewPressable,
+	ignoredMultiTargetActorIDs,
+	registry,
+} from '../windwalker';
 
 const T0 = 100000;
 const END = T0 + 120000;
@@ -132,6 +138,58 @@ describe('the Windwalker registry', () => {
 		expect(registry.abilityByDamageId(148187)?.key).toBe('rushing-jade-wind');
 		// Autoattacks are claimed by nothing, which is what marks their damage passive.
 		expect(registry.abilityByDamageId(1)).toBeUndefined();
+	});
+});
+
+/**
+ * A chance that never existed is not a chance declined, and this is the button that was getting away
+ * without it: the Bloodlust pairing card read `hasteWindows.length > 0` and never asked the cooldown.
+ */
+describe('whether Energizing Brew could have been pressed at all', () => {
+	it('refuses a window the brew was still on cooldown for', () => {
+		// The Galakras kill in `a:6MhZgjyAknFWrYfK`, to the millisecond. The brew goes at 6:11.7, Primal
+		// Rage opens 2.6 seconds later and closes forty seconds after that, and the 60-second cooldown
+		// does not return until seventeen seconds past the end of the window. The card said "Missed".
+		expect(energizingBrewPressable({ start: 374_300, end: 414_298 }, [{ t: 371_714 }])).toBe(false);
+	});
+
+	it('accepts a window the cooldown returns inside', () => {
+		expect(energizingBrewPressable({ start: 374_300, end: 414_298 }, [{ t: 340_000 }])).toBe(true);
+	});
+
+	/** A use inside the window is its own proof that the button was there to press. */
+	it('accepts a window the brew was actually used in', () => {
+		expect(energizingBrewPressable({ start: 0, end: 40_000 }, [{ t: 8199 }, { t: 69_227 }])).toBe(true);
+	});
+
+	/**
+	 * No use before the window means ready from the pull. The log cannot see a pre-pull press, and
+	 * inventing one would take this back to refusing chances that did exist.
+	 */
+	it('treats a brew never pressed before the window as ready from the pull', () => {
+		expect(energizingBrewPressable({ start: 88, end: 40_074 }, [{ t: 63_954 }])).toBe(true);
+	});
+});
+
+/**
+ * The ignore list resolved once, for both readers of it. `analyse` used to inline this filter beside
+ * the target count, and the damage table's fan-out never got a copy — see `analysis/damage.test.ts`.
+ */
+describe('the ignored multi-target actors', () => {
+	const npcs = [
+		{ id: 40, gameID: 71591 },
+		{ id: 41, gameID: 71591 },
+		{ id: 42, gameID: 71504 },
+	];
+
+	it('resolves the listed NPC to every actor id carrying its game id', () => {
+		expect([...ignoredMultiTargetActorIDs(51601, npcs)]).toEqual([40, 41]);
+	});
+
+	it('ignores nothing on an encounter the list does not name', () => {
+		expect(ignoredMultiTargetActorIDs(51600, npcs).size).toBe(0);
+		expect(ignoredMultiTargetActorIDs(undefined, npcs).size).toBe(0);
+		expect(ignoredMultiTargetActorIDs(51601, undefined).size).toBe(0);
 	});
 });
 

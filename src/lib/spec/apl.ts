@@ -312,14 +312,33 @@ const SCK_DEBUFF_MS = 2250;
  */
 const SHORT_PULL_MS = 75_000;
 
+/**
+ * The bars and the clock at one press, where `null` on a bar means the log did not say.
+ *
+ * Three fields here are nullable, and it is the same three-valued discipline `Truth` above exists for.
+ * A curve opens at its first reading, and a press before that reading has no bar behind it — the
+ * reader used to answer `0` there, which is not a cautious guess but a specific and usually wrong one:
+ * zero chi makes every spender on this list unaffordable, so the walk falls past six rungs and names
+ * whatever it lands on as the button the list wanted. On the six reference pulls that is between one
+ * and four presses each, every one given a confident verdict built on a bar nobody read.
+ *
+ * So a rule that needs a bar this log cannot supply returns `'unknown'` and the press says nothing,
+ * exactly as a rule that needs an aura the log never carried already does.
+ */
 interface State {
 	t: number;
-	chi: number;
+	chi: number | null;
 	chiMax: number;
-	energy: number;
+	energy: number | null;
 	energyMax: number;
-	/** Seconds until the energy bar is full. The unit almost every condition in this list is written in. */
-	timeToEnergyCapSec: number;
+	/**
+	 * Seconds until the energy bar is full. The unit almost every condition in this list is written in.
+	 *
+	 * Null when the bar is unread, and null when the regen rate is. An unmeasured rate used to read as
+	 * zero seconds to cap, which is not "no data" — it is "the bar is overflowing right now", and it
+	 * made entry 31 want Rushing Jade Wind at every global of the pull.
+	 */
+	timeToEnergyCapSec: number | null;
 	/** How long the whole pull ran. The same number at every press — entry 31's short-fight clause reads it. */
 	pullMs: number;
 	gcdSec: number;
@@ -509,7 +528,7 @@ const LADDER: readonly Rule[] = [
 		chiCost: 0,
 		energyCost: 0,
 		talent: true,
-		condition: (state) => state.timeToEnergyCapSec >= 1,
+		condition: (state) => (state.timeToEnergyCapSec === null ? 'unknown' : state.timeToEnergyCapSec >= 1),
 	},
 	{
 		// 24 — a free Blackout Kick. No cost, no cooldown, and the proc is short: the list takes it the
@@ -530,6 +549,7 @@ const LADDER: readonly Rule[] = [
 		chiCost: 3,
 		energyCost: 0,
 		condition: (state, auras) => {
+			if (state.timeToEnergyCapSec === null) return 'unknown';
 			if (state.timeToEnergyCapSec <= state.fofChannelSec) return false;
 			const energizing = auras.active('energizing-brew');
 			const jadeWind = auras.remainingMs('rushing-jade-wind') >= state.fofChannelSec * 1000;
@@ -554,8 +574,12 @@ const LADDER: readonly Rule[] = [
 			if (state.t <= COMBO_BREAKER_PALM_AFTER_MS) return false;
 			if (auras.active('energizing-brew')) return false;
 			if (!auras.active('combo-breaker-tiger-palm')) return false;
+			// The expiring half is answerable off the aura clock alone, so it is asked first: a proc about
+			// to fall off is wanted whatever the bar says, and only the other half needs a reading.
 			const expiring = auras.remainingMs('combo-breaker-tiger-palm') <= state.gcdSec * 1000;
-			return expiring || state.timeToEnergyCapSec >= state.gcdSec * 2;
+			if (expiring) return true;
+			if (state.timeToEnergyCapSec === null) return 'unknown';
+			return state.timeToEnergyCapSec >= state.gcdSec * 2;
 		},
 	},
 	{
@@ -565,7 +589,7 @@ const LADDER: readonly Rule[] = [
 		id: ID.jab,
 		chiCost: 0,
 		energyCost: 40,
-		condition: (state) => state.chiMax - state.chi >= 2,
+		condition: (state) => (state.chi === null ? 'unknown' : state.chiMax - state.chi >= 2),
 	},
 	{
 		// 31 — `(currentTime + remainingTime) < 75s or energyTimeToCap <= 1s or (Bloodlust active and
@@ -581,10 +605,14 @@ const LADDER: readonly Rule[] = [
 		chiCost: 0,
 		energyCost: RJW_ENERGY_COST,
 		talent: true,
-		condition: (state, auras) =>
-			state.pullMs < SHORT_PULL_MS ||
-			state.timeToEnergyCapSec <= 1 ||
-			(auras.active('bloodlust') && auras.active('energizing-brew')),
+		// The two clauses a log can answer without a bar are asked first, so an unread bar only silences
+		// the rung on the presses where the overflow clause was the deciding one.
+		condition: (state, auras) => {
+			if (state.pullMs < SHORT_PULL_MS) return true;
+			if (auras.active('bloodlust') && auras.active('energizing-brew')) return true;
+			if (state.timeToEnergyCapSec === null) return 'unknown';
+			return state.timeToEnergyCapSec <= 1;
+		},
 	},
 	{
 		// 32 — the dump. Spend chi on a Blackout Kick only when the energy banked by the time Rising Sun
@@ -596,6 +624,7 @@ const LADDER: readonly Rule[] = [
 		chiCost: CHI_COST.blackoutKick,
 		energyCost: 0,
 		condition: (state) => {
+			if (state.energy === null) return 'unknown';
 			const banked = state.energy + state.regenPerSec * state.rskReadyInSec;
 			return banked >= (state.band <= 2 ? DUMP_ENERGY.few : DUMP_ENERGY.many);
 		},
@@ -645,8 +674,13 @@ export const LADDER_ENTRIES: readonly LadderEntry[] = LADDER.map((rule) => ({
  * on — so the reading carried by a press is exactly the resource the player had when they chose it.
  * Interpolating between two readings would invent a value nobody held and, at a press, would blend in
  * the cost of the press being judged.
+ *
+ * Null before the first reading, and that is the whole of the difference from `countAt` in
+ * `analysis/targets.ts`, which returns zero there. Zero is the *right* answer for a target count —
+ * before the first landed hit the player was demonstrably fighting nothing — and the wrong one for a
+ * bar, where "no reading yet" and "empty" are different facts about the pull.
  */
-function valueAt(curve: ResourceCurve, t: number): number {
+function valueAt(curve: ResourceCurve, t: number): number | null {
 	const points = curve.points;
 	let lo = 0;
 	let hi = points.length - 1;
@@ -660,7 +694,7 @@ function valueAt(curve: ResourceCurve, t: number): number {
 			lo = mid + 1;
 		} else hi = mid - 1;
 	}
-	return points[found]?.[1] ?? 0;
+	return points[found]?.[1] ?? null;
 }
 
 /** Aura state frozen at one moment, so a rule cannot accidentally read a different `t` than its neighbours. */
@@ -692,9 +726,13 @@ function stateAt(t: number, inputs: AplInputs, lastCast: ReadonlyMap<number, num
 		chiMax: inputs.chi.max,
 		energy,
 		energyMax,
-		// Guarded against a log that reported no regen at all: an infinite time-to-cap would silently
-		// satisfy every "there is room in the bar" condition on the ladder.
-		timeToEnergyCapSec: inputs.regenPerSec > 0 ? Math.max(0, energyMax - energy) / inputs.regenPerSec : 0,
+		// Null rather than zero for a log that reported no regen at all, and null rather than zero for a
+		// press ahead of the first reading. Zero seconds to cap is not the absence of an answer, it is
+		// the specific claim that the bar is overflowing — it silently satisfied entry 31's clause at
+		// every press of a pull whose regen could not be measured, and falsified every "there is room in
+		// the bar" condition above it.
+		timeToEnergyCapSec:
+			energy === null || !(inputs.regenPerSec > 0) ? null : Math.max(0, energyMax - energy) / inputs.regenPerSec,
 		pullMs: inputs.pullMs,
 		gcdSec: inputs.gcdMs / 1000,
 		rskReadyInSec: lastRsk === undefined ? 0 : Math.max(0, lastRsk + rskCooldown - t) / 1000,
@@ -714,19 +752,28 @@ function ready(rule: Rule, t: number, lastCast: ReadonlyMap<number, number>): bo
 	return last === undefined || t - last >= cooldown;
 }
 
-/** Whether the player could pay for a rule's button, counting the aura that sometimes waives the cost. */
-function affordable(rule: Rule, state: State, auras: AuraReader, reduction: number): boolean {
+/**
+ * Whether the player could pay for a rule's button, counting the aura that sometimes waives the cost.
+ *
+ * Three-valued for the same reason a condition is: a cost this log cannot check is not a cost the
+ * player failed to meet. Only a cost that is actually charged consults its bar, so a free button stays
+ * decidable on a pull whose bars open late.
+ */
+function affordable(rule: Rule, state: State, auras: AuraReader, reduction: number): Truth {
 	if (rule.freeWhen?.(state, auras) === true) return true;
 	// The tier reduction applies to the three chi spenders the sim applies it to, and never takes a
 	// cost below zero.
 	const chi = Math.max(0, rule.chiCost - (rule.chiCost > 0 ? reduction : 0));
-	return state.chi >= chi && state.energy >= rule.energyCost;
+	if (chi > 0 && state.chi === null) return 'unknown';
+	if (rule.energyCost > 0 && state.energy === null) return 'unknown';
+	return (state.chi ?? 0) >= chi && (state.energy ?? 0) >= rule.energyCost;
 }
 
 function reasonFor(rule: Rule, state: State): AplRuleReason | null {
 	if (rule.key === 'rushing-jade-wind-open') return 'multi-target';
 	if (rule.key !== 'rushing-jade-wind') return null;
-	return state.pullMs < SHORT_PULL_MS ? 'short-pull' : state.timeToEnergyCapSec <= 1 ? 'energy-cap' : 'haste-window';
+	if (state.pullMs < SHORT_PULL_MS) return 'short-pull';
+	return state.timeToEnergyCapSec !== null && state.timeToEnergyCapSec <= 1 ? 'energy-cap' : 'haste-window';
 }
 
 /**
@@ -757,16 +804,22 @@ function judge(
 		if (rule.talent === true && !seen.has(rule.id)) continue;
 		if (!ready(rule, state.t, lastCast)) continue;
 
+		// A rule the press itself satisfies is not worth stopping for: pressing the button the list might
+		// have wanted cannot be the mistake the unknown is hiding.
+		const unreadable = (): AplPress =>
+			rule.id === cast.id
+				? { t: state.t, pressed: cast.id, wanted: rule.key, reason: reasonFor(rule, state), verdict: 'followed' }
+				: { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'unknown' };
+
 		const wants = rule.condition(state, auras);
-		if (wants === 'unknown') {
-			// A rule the press itself satisfies is not worth stopping for: pressing the button the list
-			// might have wanted cannot be the mistake the unknown is hiding.
-			if (rule.id === cast.id)
-				return { t: state.t, pressed: cast.id, wanted: rule.key, reason: reasonFor(rule, state), verdict: 'followed' };
-			return { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'unknown' };
-		}
+		if (wants === 'unknown') return unreadable();
 		if (!wants) continue;
-		if (!affordable(rule, state, auras, reduction)) continue;
+		// The same short-circuit as an unreadable condition, because it is the same failure: a bar the
+		// log never carried cannot say whether the player could pay, and a rung that might have been
+		// wanted and might have been affordable is not one a lower press can be graded against.
+		const canPay = affordable(rule, state, auras, reduction);
+		if (canPay === 'unknown') return unreadable();
+		if (!canPay) continue;
 
 		return rule.id === cast.id
 			? { t: state.t, pressed: cast.id, wanted: rule.key, reason: reasonFor(rule, state), verdict: 'followed' }

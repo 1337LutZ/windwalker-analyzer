@@ -50,7 +50,7 @@ describe('narrowly missed snapshots', () => {
 	/** The ledger has to describe what happened, not the generic version of it. */
 	it('tells the ledger what actually happened', () => {
 		const entries = fixture('mixed').misses.filter((m) => m.kind.startsWith('Rune proc unsnapshotted'));
-		const late = entries.filter((m) => m.detail.includes('after the proc expired'));
+		const late = entries.filter((m) => m.detail.includes('after the proc ended'));
 		expect(late).toHaveLength(1);
 		expect(late[0]?.detail).toContain('0.7s');
 		expect(late[0]?.detail).not.toContain('no brew cast at all');

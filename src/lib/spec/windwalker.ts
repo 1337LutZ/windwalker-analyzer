@@ -431,6 +431,32 @@ export const IGNORED_MULTI_TARGET_ACTORS = [
 ] as const;
 
 /**
+ * The list above resolved to this report's actor ids.
+ *
+ * One function rather than one filter per reader, because the report has more than one number about
+ * "how many enemies was this" and they have to agree. The per-moment target count applied the list;
+ * Rushing Jade Wind's fan-out — a *different* count, over the same damage events — did not, so on a
+ * pull full of Automated Shredders the report could call the wind a four-target button in one section
+ * while the section beside it said the pull was single-target. Both readers take this set now.
+ *
+ * `gameID` is the NPC's own id in the game's data and is stable across reports; `id` is the report's
+ * local actor number and is not, which is why the list is written in the first and matched into the
+ * second here.
+ */
+export function ignoredMultiTargetActorIDs(
+	encounterID: number | undefined,
+	enemyNPCs: readonly { id: number; gameID?: number | null }[] | undefined,
+): Set<number> {
+	return new Set(
+		(enemyNPCs ?? [])
+			.filter((npc) =>
+				IGNORED_MULTI_TARGET_ACTORS.some((rule) => rule.encounterID === encounterID && rule.gameID === npc.gameID),
+			)
+			.map((npc) => npc.id),
+	);
+}
+
+/**
  * How much of the time a player was hitting *anything* has to be spent hitting more than one thing
  * before the pull reads as multi-target.
  *
@@ -1184,6 +1210,35 @@ export function abilityCooldownMs(key: string): number {
 	return registry.ability(key).cooldownMs ?? 0;
 }
 
+/**
+ * Whether Energizing Brew could have been pressed at any point inside a window.
+ *
+ * The report's standing rule, applied to the one button that was getting away without it: **a chance
+ * that never existed is not a chance declined.** The haste-window pairing used to be decided by
+ * `hasteWindows.length > 0` alone, so a pull that spent the brew moments before the raid's cooldown
+ * went out was told it had missed the pairing — on the Galakras kill in `a:6MhZgjyAknFWrYfK` the brew
+ * goes at 6:11.7, Primal Rage opens 2.6 seconds later at 6:14.3 and closes at 6:54.3, and the brew's
+ * 60-second cooldown does not return until 7:11.7, seventeen seconds after the window is gone. There
+ * was no press to make and the card called it a miss.
+ *
+ * A use *inside* the window is its own proof of readiness and answers yes outright; otherwise the last
+ * use before the window sets the return, and it counts if it lands anywhere at or before the window's
+ * end. No use at all means ready from the pull — the log cannot see a pre-pull press, and inventing
+ * one would take the report back to refusing chances that did exist.
+ *
+ * Exported because `lib/view/jadeWind` asks the same question about the same windows, and two copies
+ * of this rule is exactly how one of them came to be missing.
+ */
+export function energizingBrewPressable(
+	window: { start: number; end: number },
+	uses: readonly { t: number }[],
+): boolean {
+	if (uses.some((use) => use.t >= window.start && use.t <= window.end)) return true;
+	const before = uses.filter((use) => use.t < window.start).map((use) => use.t);
+	const readyAt = before.length === 0 ? 0 : Math.max(...before) + abilityCooldownMs('energizing-brew');
+	return readyAt <= window.end;
+}
+
 const RISING_SUN_KICK = registry.ability('rising-sun-kick');
 const FISTS_OF_FURY = registry.ability('fists-of-fury');
 const TIGER_PALM = registry.ability('tiger-palm');
@@ -1709,8 +1764,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	const fofChannelMs = fofChannels.reduce((s, c) => s + c.channelMs, 0);
 
 	// ----------------------------------------------------------------- damage
+	// Resolved here rather than beside the target count further down, because both readers need it and
+	// the damage table is the earlier of the two. See `ignoredMultiTargetActorIDs`.
+	const ignoredMultiTargetIDs = ignoredMultiTargetActorIDs(fight.encounterID, table.fight.enemyNPCs);
 	const damageEvents = events.filter(isDamage).filter((e) => mine(e.sourceID));
-	const { abilities, eventTotal } = aggregateDamage(damageEvents, registry, nameOf);
+	const { abilities, eventTotal } = aggregateDamage(damageEvents, registry, nameOf, ignoredMultiTargetIDs);
 
 	const onGcdCasts = castList.filter((c) => c.onGcd).reduce((s, c) => s + c.count, 0);
 	const offGcdCasts = castList.filter((c) => !c.onGcd).reduce((s, c) => s + c.count, 0);
@@ -2265,16 +2323,18 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * the wrong enemy. The sort is stable, so hits sharing a millisecond keep the order the log gave
 	 * them, which is what decides the tie an area hit creates.
 	 */
-	// `key` carries the spawn as well as the actor id, because the debuff walk below has to ask about
-	// the one Ironblade in front of the player rather than about every Ironblade on the pull. The
-	// target count next to it deliberately keeps reading `target`: "how many enemies am I on" is a
-	// question about enemies, and splitting one add's id into its spawns would answer a different one.
+	// `target` and `instance` are both carried, and both are load-bearing. The debuff walk below asks
+	// about the one Ironblade in front of the player, so it needs the spawn; the ignore list further
+	// down is written against an NPC *type*, so it needs the id; and the count itself needs the spawn,
+	// because WarcraftLogs hands ten simultaneous Ironblades one `targetID` and counting on that alone
+	// calls all ten of them one enemy. `key` is the same pair as a string, for the maps that bucket on it.
 	const landedHits: Array<TargetHit & { key: string; abilityID: number | null }> = [];
 	for (const e of damageEvents) {
 		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
 		landedHits.push({
 			t: e.timestamp - t0,
 			target: e.targetID,
+			...(e.targetInstance === undefined ? {} : { instance: e.targetInstance }),
 			key: instanceKey(e.targetID, e.targetInstance),
 			abilityID: abilityIdOf(e),
 		});
@@ -2379,15 +2439,6 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 	 * for four minutes and the other for one, and the ladder in `lib/spec/apl.ts` refuses whole pulls at
 	 * a time because nothing could tell it which minute it was in.
 	 */
-	const ignoredMultiTargetIDs = new Set(
-		(table.fight.enemyNPCs ?? [])
-			.filter((npc) =>
-				IGNORED_MULTI_TARGET_ACTORS.some(
-					(rule) => rule.encounterID === fight.encounterID && rule.gameID === npc.gameID,
-				),
-			)
-			.map((npc) => npc.id),
-	);
 	const multiTargetHits = landedHits.filter((hit) => !ignoredMultiTargetIDs.has(hit.target));
 	const targetPoints = targetCounts(multiTargetHits, TARGET_WINDOW_MS);
 	// Do not let RJW establish its own multi-target evidence for the APL. This matters when WarcraftLogs
@@ -3285,7 +3336,11 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 			link: link(t),
 		};
 	});
-	const hasteRjwEligible = rjwKnown && hasteWindows.length > 0;
+	// Only the windows the brew could actually have been pressed in. Without the second clause this is
+	// the card that says "Missed" at a player who had nothing to press — see `energizingBrewPressable`.
+	// `hasteWindows` itself is published unfiltered, because the section draws the raid cooldown's real
+	// extent beside the uses and a window trimmed to this question would be the wrong picture.
+	const hasteRjwEligible = rjwKnown && hasteWindows.some((w) => energizingBrewPressable(w, ebUses));
 	const hasteRjwUses = ebUses.filter((use) => use.haste !== null).length;
 
 	// ----------------------------------------------------------- miss ledger

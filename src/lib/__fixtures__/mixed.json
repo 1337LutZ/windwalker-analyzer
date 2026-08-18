@@ -2,6 +2,7 @@
   "player": "Player (10)",
   "code": "a:YBQzrcgVJnAj7NMP",
   "fightID": 10,
+  "fightStartMs": 3376617,
   "actorID": 10,
   "encounter": "Iron Juggernaut",
   "difficulty": 4,
@@ -27,6 +28,7 @@
         "name": "Blackout Kick",
         "total": 17795587,
         "hits": 216,
+        "averageTargetsHit": 1,
         "crits": 24,
         "share": 23.85897303561088,
         "critPct": 11.11111111111111,
@@ -39,6 +41,7 @@
         "name": "Melee",
         "total": 15037311,
         "hits": 234,
+        "averageTargetsHit": 1,
         "crits": 133,
         "share": 20.16088582394584,
         "critPct": 56.837606837606835,
@@ -51,6 +54,7 @@
         "name": "Rising Sun Kick",
         "total": 9771921,
         "hits": 24,
+        "averageTargetsHit": 1,
         "crits": 11,
         "share": 13.101450356491174,
         "critPct": 45.83333333333333,
@@ -63,6 +67,7 @@
         "name": "Chi Wave",
         "total": 5506233,
         "hits": 51,
+        "averageTargetsHit": 1,
         "crits": 10,
         "share": 7.382339490953055,
         "critPct": 19.607843137254903,
@@ -75,6 +80,7 @@
         "name": "Jab",
         "total": 4044582,
         "hits": 74,
+        "averageTargetsHit": 1,
         "crits": 37,
         "share": 5.422668714345704,
         "critPct": 50,
@@ -87,6 +93,7 @@
         "name": "Flurry of Xuen",
         "total": 3898363,
         "hits": 164,
+        "averageTargetsHit": 1.0512820512820513,
         "crits": 72,
         "share": 5.226629371653947,
         "critPct": 43.90243902439025,
@@ -99,6 +106,7 @@
         "name": "Fists of Fury",
         "total": 3283127,
         "hits": 15,
+        "averageTargetsHit": 1,
         "crits": 10,
         "share": 4.401767616066053,
         "critPct": 66.66666666666666,
@@ -111,6 +119,7 @@
         "name": "Crackling Tiger Lightning",
         "total": 3062812,
         "hits": 114,
+        "averageTargetsHit": 1.14,
         "crits": 38,
         "share": 4.106385977666566,
         "critPct": 33.33333333333333,
@@ -123,6 +132,7 @@
         "name": "Lightning Strike",
         "total": 3018700,
         "hits": 20,
+        "averageTargetsHit": 1,
         "crits": 7,
         "share": 4.047243954503921,
         "critPct": 35,
@@ -135,6 +145,7 @@
         "name": "Tiger Palm",
         "total": 2666522,
         "hits": 25,
+        "averageTargetsHit": 1,
         "crits": 13,
         "share": 3.5750704091336347,
         "critPct": 52,
@@ -147,6 +158,7 @@
         "name": "Tiger Strikes",
         "total": 2291692,
         "hits": 28,
+        "averageTargetsHit": 1,
         "crits": 15,
         "share": 3.0725267805959513,
         "critPct": 53.57142857142857,
@@ -159,6 +171,7 @@
         "name": "Tiger Strikes",
         "total": 1332277,
         "hits": 29,
+        "averageTargetsHit": 1,
         "crits": 16,
         "share": 1.786215932015311,
         "critPct": 55.172413793103445,
@@ -171,6 +184,7 @@
         "name": "Touch of Karma",
         "total": 1276734,
         "hits": 35,
+        "averageTargetsHit": 1,
         "crits": 0,
         "share": 1.711748091234508,
         "critPct": 0,
@@ -183,6 +197,7 @@
         "name": "#-8",
         "total": 932913,
         "hits": 144,
+        "averageTargetsHit": 1,
         "crits": 73,
         "share": 1.2507789774830609,
         "critPct": 50.69444444444444,
@@ -195,6 +210,7 @@
         "name": "Stormlash",
         "total": 478140,
         "hits": 16,
+        "averageTargetsHit": 1,
         "crits": 7,
         "share": 0.6410538392044605,
         "critPct": 43.75,
@@ -207,6 +223,7 @@
         "name": "Expel Harm",
         "total": 157948,
         "hits": 2,
+        "averageTargetsHit": 1,
         "crits": 0,
         "share": 0.21176469610295337,
         "critPct": 0,
@@ -219,6 +236,7 @@
         "name": "Flying Serpent Kick",
         "total": 31697,
         "hits": 1,
+        "averageTargetsHit": 1,
         "crits": 0,
         "share": 0.04249693299298068,
         "critPct": 0,
@@ -231,6 +249,7 @@
         "name": "Fists of Fury",
         "total": 0,
         "hits": 15,
+        "averageTargetsHit": 1,
         "crits": 0,
         "share": 0,
         "critPct": 0,
@@ -243,6 +262,7 @@
         "name": "Rising Sun Kick",
         "total": 0,
         "hits": 3,
+        "averageTargetsHit": 1.5,
         "crits": 0,
         "share": 0,
         "critPct": 0,
@@ -255,6 +275,7 @@
         "name": "Cleave",
         "total": 0,
         "hits": 3,
+        "averageTargetsHit": 3,
         "crits": 0,
         "share": 0,
         "critPct": 0,
@@ -5199,7 +5220,7 @@
   "targets": {
     "windowMs": 5000,
     "counts": {
-      "max": 2,
+      "max": 4,
       "points": [
         [1212, 1],
         [77272, 0],
@@ -5207,10 +5228,15 @@
         [152738, 0],
         [186768, 1],
         [188276, 2],
+        [188869, 3],
+        [194183, 2],
         [194481, 1],
-        [217762, 2],
+        [217762, 3],
+        [217766, 4],
+        [222762, 2],
         [222766, 1],
         [246289, 2],
+        [246290, 4],
         [252208, 1],
         [284308, 0]
       ]
@@ -5392,6 +5418,8 @@
     "duringHaste": 1,
     "faulted": 1,
     "rushingJadeWind": false,
+    "hasteRjwEligible": false,
+    "hasteRjwUses": 1,
     "channelsInside": 1,
     "channelsCovered": 0,
     "energyCheckable": false,
@@ -5403,7 +5431,7 @@
         "channels": 0,
         "cappedMs": 562,
         "wasted": 13,
-        "faults": ["pressed under Time Warp with no Rushing Jade Wind in the build, which is what would allow it"],
+        "faults": ["used under Time Warp without Rushing Jade Wind, which is what would allow it"],
         "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3381816&end=3387816"
       },
       {
@@ -7146,1218 +7174,1418 @@
       {
         "t": 1206,
         "pressed": 100780,
-        "wanted": "jab",
-        "verdict": "followed"
+        "wanted": null,
+        "reason": null,
+        "verdict": "unknown"
       },
       {
         "t": 1857,
         "pressed": 107428,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 3244,
         "pressed": 100780,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 4036,
         "pressed": 100787,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 4787,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 5808,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 6819,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 7815,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 8821,
         "pressed": 100787,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 9811,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 10831,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 11854,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 12857,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 13869,
         "pressed": 100780,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 14860,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 15863,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 16889,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 18829,
         "pressed": 107428,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 19839,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 21078,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 21854,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 22850,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 23861,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 24857,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 25888,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 26864,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 27878,
         "pressed": 107428,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 28889,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 29878,
         "pressed": 100784,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 30885,
         "pressed": 122470,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 31922,
         "pressed": 100780,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 32904,
         "pressed": 100787,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 33924,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 34923,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 35917,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 36927,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 37948,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 38964,
         "pressed": 100784,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 39924,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 40961,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 41965,
         "pressed": 100784,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 42945,
         "pressed": 100780,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 43937,
         "pressed": 100784,
         "wanted": "fists-of-fury",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 44937,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 45946,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 46966,
         "pressed": 100787,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 47959,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 48990,
         "pressed": 100784,
         "wanted": "fists-of-fury",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 50677,
         "pressed": 100780,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 51579,
         "pressed": 113656,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 54720,
         "pressed": 100780,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 55731,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 57092,
         "pressed": 100780,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 58090,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 59101,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 60197,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 62511,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 63503,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 64519,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 67400,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 68424,
         "pressed": 100787,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 71107,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 72215,
         "pressed": 100780,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 81558,
         "pressed": 100780,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 82552,
         "pressed": 107428,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 83554,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 84572,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 85566,
         "pressed": 100784,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 86580,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 87577,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 88577,
         "pressed": 113656,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 91746,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 92737,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 93740,
         "pressed": 100784,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 94741,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 95763,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 96754,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 97753,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 98756,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 99768,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 100777,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 101784,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 102778,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 103851,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 104860,
         "pressed": 100787,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 105875,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 106872,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 107877,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 108884,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 110339,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 111352,
         "pressed": 100787,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 112355,
         "pressed": 100784,
         "wanted": null,
+        "reason": null,
         "verdict": "off-list"
       },
       {
         "t": 114396,
         "pressed": 100780,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 116106,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 117111,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 118124,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 119129,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 120147,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 121145,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 123136,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 124146,
         "pressed": 122470,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 125145,
         "pressed": 100787,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 126443,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 127435,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 128439,
         "pressed": 100784,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 129441,
         "pressed": 100787,
         "wanted": null,
+        "reason": null,
         "verdict": "off-list"
       },
       {
         "t": 130440,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 131457,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 132479,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 133471,
         "pressed": 100780,
         "wanted": "combo-breaker-palm",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 134474,
         "pressed": 100784,
         "wanted": "combo-breaker-palm",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 135481,
         "pressed": 100787,
         "wanted": "combo-breaker-palm",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 136476,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 145748,
         "pressed": 115072,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 159918,
         "pressed": 115098,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 161900,
         "pressed": 115072,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 180936,
         "pressed": 115072,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 185281,
         "pressed": 115098,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 186767,
         "pressed": 100780,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 187763,
         "pressed": 107428,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 188776,
         "pressed": 100784,
         "wanted": "tiger-palm-refresh",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 189783,
         "pressed": 100780,
-        "wanted": "jab",
-        "verdict": "followed"
+        "wanted": "spinning-crane-kick",
+        "reason": null,
+        "verdict": "skipped"
       },
       {
         "t": 190962,
         "pressed": 100787,
-        "wanted": "jab",
+        "wanted": "spinning-crane-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 191929,
         "pressed": 100784,
-        "wanted": "jab",
+        "wanted": "spinning-crane-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 194038,
         "pressed": 100780,
-        "wanted": "combo-breaker-kick",
+        "wanted": "spinning-crane-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 195034,
         "pressed": 100787,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 196306,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 197304,
         "pressed": 100787,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 198303,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 199320,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 200320,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 201337,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 202328,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 203330,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 204735,
         "pressed": 100787,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 205731,
         "pressed": 100784,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 206732,
         "pressed": 115098,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 207733,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 208731,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 209725,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 210743,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 211749,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 212757,
         "pressed": 100780,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 213748,
         "pressed": 100784,
         "wanted": "combo-breaker-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 214749,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 215751,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 216757,
         "pressed": 100784,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 217769,
         "pressed": 107428,
-        "wanted": "rising-sun-kick",
+        "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 218774,
         "pressed": 100780,
-        "wanted": "blackout-kick",
-        "verdict": "skipped"
+        "wanted": null,
+        "reason": null,
+        "verdict": "off-list"
       },
       {
         "t": 219776,
         "pressed": 100784,
-        "wanted": "blackout-kick",
-        "verdict": "followed"
+        "wanted": null,
+        "reason": null,
+        "verdict": "off-list"
       },
       {
         "t": 220779,
         "pressed": 122470,
-        "wanted": "jab",
+        "wanted": "spinning-crane-kick-heavy",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 221788,
         "pressed": 100780,
-        "wanted": "chi-wave",
+        "wanted": "spinning-crane-kick-heavy",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 223899,
         "pressed": 100780,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 224904,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 225895,
         "pressed": 100787,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 226913,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 227902,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 228913,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 229913,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 230922,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 231926,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 232926,
         "pressed": 100787,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 234465,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 235528,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 236694,
         "pressed": 101545,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 237695,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 238697,
         "pressed": 115072,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 239893,
         "pressed": 115098,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 240904,
         "pressed": 100787,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 241920,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 242927,
         "pressed": 100784,
         "wanted": "fists-of-fury",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 244181,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 245173,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 246184,
         "pressed": 100784,
         "wanted": "fists-of-fury",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 247185,
         "pressed": 100787,
         "wanted": null,
+        "reason": null,
         "verdict": "off-list"
       },
       {
         "t": 248185,
         "pressed": 100780,
-        "wanted": "jab",
-        "verdict": "followed"
+        "wanted": "spinning-crane-kick-heavy",
+        "reason": null,
+        "verdict": "skipped"
       },
       {
         "t": 249218,
         "pressed": 100784,
-        "wanted": "blackout-kick",
-        "verdict": "followed"
+        "wanted": null,
+        "reason": null,
+        "verdict": "off-list"
       },
       {
         "t": 250510,
         "pressed": 100780,
-        "wanted": "jab",
-        "verdict": "followed"
+        "wanted": "spinning-crane-kick-heavy",
+        "reason": null,
+        "verdict": "skipped"
       },
       {
         "t": 252350,
         "pressed": 100784,
         "wanted": null,
+        "reason": null,
         "verdict": "off-list"
       },
       {
         "t": 253356,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 254368,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 255367,
         "pressed": 100780,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 256370,
         "pressed": 113656,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 259514,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 260522,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 261546,
         "pressed": 115072,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 262548,
         "pressed": 100787,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 263541,
         "pressed": 107428,
         "wanted": "rising-sun-kick-filler",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 264541,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 265554,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 266559,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 267561,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 268556,
         "pressed": 100784,
         "wanted": "jab",
+        "reason": null,
         "verdict": "skipped"
       },
       {
         "t": 269860,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 271539,
         "pressed": 107428,
         "wanted": null,
+        "reason": null,
         "verdict": "off-list"
       },
       {
         "t": 273537,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 274542,
         "pressed": 100784,
         "wanted": "blackout-kick",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 275547,
         "pressed": 115098,
         "wanted": "chi-wave",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 276732,
         "pressed": 100780,
         "wanted": "jab",
+        "reason": null,
         "verdict": "followed"
       },
       {
         "t": 278383,
         "pressed": 100784,
         "wanted": null,
+        "reason": null,
         "verdict": "off-list"
       }
     ],
-    "followed": 96,
-    "skipped": 98,
-    "unknown": 0,
-    "offList": 6,
+    "followed": 90,
+    "skipped": 100,
+    "unknown": 1,
+    "offList": 9,
     "skippedBy": [
       {
         "key": "chi-wave",
         "id": 115098,
-        "count": 23
+        "count": 22
       },
       {
         "key": "jab",
         "id": 100780,
-        "count": 21
+        "count": 18
       },
       {
         "key": "tiger-palm-refresh",
@@ -8367,12 +8595,12 @@
       {
         "key": "blackout-kick",
         "id": 100784,
-        "count": 15
+        "count": 14
       },
       {
         "key": "combo-breaker-kick",
         "id": 100784,
-        "count": 12
+        "count": 11
       },
       {
         "key": "rising-sun-kick-filler",
@@ -8382,6 +8610,16 @@
       {
         "key": "fists-of-fury",
         "id": 113656,
+        "count": 4
+      },
+      {
+        "key": "spinning-crane-kick",
+        "id": 101546,
+        "count": 4
+      },
+      {
+        "key": "spinning-crane-kick-heavy",
+        "id": 101546,
         "count": 4
       },
       {
@@ -8397,1207 +8635,1407 @@
         {
           "t": 1206,
           "pressed": 100780,
-          "wanted": "jab",
-          "verdict": "followed"
+          "wanted": null,
+          "reason": null,
+          "verdict": "unknown"
         },
         {
           "t": 1857,
           "pressed": 107428,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 3244,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4036,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4787,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 5808,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 6819,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 7815,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 8821,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 9811,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 10831,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 11854,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 12857,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 13869,
           "pressed": 100780,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 14860,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 15863,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 16889,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 18829,
           "pressed": 107428,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 19839,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 21078,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 21854,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 22850,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 23861,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 24857,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 25888,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 26864,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 27878,
           "pressed": 107428,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 28889,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 29878,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 30885,
           "pressed": 122470,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 31922,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 32904,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 33924,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 34923,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 35917,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 36927,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 37948,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 38964,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 39924,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 40961,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 41965,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 42945,
           "pressed": 100780,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 43937,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 44937,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 45946,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 46966,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 47959,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 48990,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 50677,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 51579,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 54720,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 55731,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 57092,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 58090,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 59101,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 60197,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 62511,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 63503,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 64519,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 67400,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 68424,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 71107,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 72215,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 81558,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 82552,
           "pressed": 107428,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 83554,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 84572,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 85566,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 86580,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 87577,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 88577,
           "pressed": 113656,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 91746,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 92737,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 93740,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 94741,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 95763,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 96754,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 97753,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 98756,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 99768,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 100777,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 101784,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 102778,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 103851,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 104860,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 105875,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 106872,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 107877,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 108884,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 110339,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 111352,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 112355,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 114396,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 116106,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 117111,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 118124,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 119129,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 120147,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 121145,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 123136,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 124146,
           "pressed": 122470,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 125145,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 126443,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 127435,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 128439,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 129441,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 130440,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 131457,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 132479,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 133471,
           "pressed": 100780,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 134474,
           "pressed": 100784,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 135481,
           "pressed": 100787,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 136476,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 145748,
           "pressed": 115072,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 159918,
           "pressed": 115098,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 161900,
           "pressed": 115072,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 180936,
           "pressed": 115072,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 185281,
           "pressed": 115098,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 186767,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 187763,
           "pressed": 107428,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 188776,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 189783,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 190962,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 191929,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 194038,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 195034,
           "pressed": 100787,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 196306,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 197304,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 198303,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 199320,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 200320,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 201337,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 202328,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 203330,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 204735,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 205731,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 206732,
           "pressed": 115098,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 207733,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 208731,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 209725,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 210743,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 211749,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 212757,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 213748,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 214749,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 215751,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 216757,
           "pressed": 100784,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 217769,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 218774,
           "pressed": 100780,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 219776,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 220779,
           "pressed": 122470,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 221788,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 223899,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 224904,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 225895,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 226913,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 227902,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 228913,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 229913,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 230922,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 231926,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 232926,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 234465,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 235528,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 236694,
           "pressed": 101545,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 237695,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 238697,
           "pressed": 115072,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 239893,
           "pressed": 115098,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 240904,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 241920,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 242927,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 244181,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 245173,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 246184,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 247185,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 248185,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 249218,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 250510,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 252350,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 253356,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 254368,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 255367,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 256370,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 259514,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 260522,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 261546,
           "pressed": 115072,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 262548,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 263541,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 264541,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 265554,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 266559,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 267561,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 268556,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 269860,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 271539,
           "pressed": 107428,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 273537,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 274542,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 275547,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 276732,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 278383,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         }
       ],
-      "followed": 96,
+      "followed": 95,
       "skipped": 98,
-      "unknown": 0,
+      "unknown": 1,
       "offList": 6,
       "skippedBy": [
         {
@@ -9647,1207 +10085,1407 @@
         {
           "t": 1206,
           "pressed": 100780,
-          "wanted": "jab",
-          "verdict": "followed"
+          "wanted": null,
+          "reason": null,
+          "verdict": "unknown"
         },
         {
           "t": 1857,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 3244,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4036,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4787,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 5808,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 6819,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 7815,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 8821,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 9811,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 10831,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 11854,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 12857,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 13869,
           "pressed": 100780,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 14860,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 15863,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 16889,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 18829,
           "pressed": 107428,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 19839,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 21078,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 21854,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 22850,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 23861,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 24857,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 25888,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 26864,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 27878,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 28889,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 29878,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 30885,
           "pressed": 122470,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 31922,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 32904,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 33924,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 34923,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 35917,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 36927,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 37948,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 38964,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 39924,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 40961,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 41965,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 42945,
           "pressed": 100780,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 43937,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 44937,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 45946,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 46966,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 47959,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 48990,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 50677,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 51579,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 54720,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 55731,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 57092,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 58090,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 59101,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 60197,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 62511,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 63503,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 64519,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 67400,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 68424,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 71107,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 72215,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 81558,
           "pressed": 100780,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 82552,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 83554,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 84572,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 85566,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 86580,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 87577,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 88577,
           "pressed": 113656,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 91746,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 92737,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 93740,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 94741,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 95763,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 96754,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 97753,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 98756,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 99768,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 100777,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 101784,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 102778,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 103851,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 104860,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 105875,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 106872,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 107877,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 108884,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 110339,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 111352,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 112355,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 114396,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 116106,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 117111,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 118124,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 119129,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 120147,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 121145,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 123136,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 124146,
           "pressed": 122470,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 125145,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 126443,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 127435,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 128439,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 129441,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 130440,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 131457,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 132479,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 133471,
           "pressed": 100780,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 134474,
           "pressed": 100784,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 135481,
           "pressed": 100787,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 136476,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 145748,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 159918,
           "pressed": 115098,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 161900,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 180936,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 185281,
           "pressed": 115098,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 186767,
           "pressed": 100780,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 187763,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 188776,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 189783,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 190962,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 191929,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 194038,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 195034,
           "pressed": 100787,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 196306,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 197304,
           "pressed": 100787,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 198303,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 199320,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 200320,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 201337,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 202328,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 203330,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 204735,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 205731,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 206732,
           "pressed": 115098,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 207733,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 208731,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 209725,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 210743,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 211749,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 212757,
           "pressed": 100780,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 213748,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 214749,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 215751,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 216757,
           "pressed": 100784,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 217769,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 218774,
           "pressed": 100780,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 219776,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 220779,
           "pressed": 122470,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 221788,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 223899,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 224904,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 225895,
           "pressed": 100787,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 226913,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 227902,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 228913,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 229913,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 230922,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 231926,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 232926,
           "pressed": 100787,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 234465,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 235528,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 236694,
           "pressed": 101545,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 237695,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 238697,
           "pressed": 115072,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 239893,
           "pressed": 115098,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 240904,
           "pressed": 100787,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 241920,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 242927,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 244181,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 245173,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 246184,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 247185,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 248185,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 249218,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 250510,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 252350,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 253356,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 254368,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 255367,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 256370,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 259514,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 260522,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 261546,
           "pressed": 115072,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 262548,
           "pressed": 100787,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 263541,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 264541,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 265554,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 266559,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 267561,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 268556,
           "pressed": 100784,
           "wanted": "jab",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 269860,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 271539,
           "pressed": 107428,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 273537,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 274542,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 275547,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 276732,
           "pressed": 100780,
           "wanted": "jab",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 278383,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         }
       ],
-      "followed": 100,
+      "followed": 99,
       "skipped": 94,
-      "unknown": 0,
+      "unknown": 1,
       "offList": 6,
       "skippedBy": [
         {
@@ -10897,1213 +11535,1413 @@
         {
           "t": 1206,
           "pressed": 100780,
-          "wanted": "spinning-crane-kick",
-          "verdict": "skipped"
+          "wanted": null,
+          "reason": null,
+          "verdict": "unknown"
         },
         {
           "t": 1857,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 3244,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4036,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4787,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 5808,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 6819,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 7815,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 8821,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 9811,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 10831,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 11854,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 12857,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 13869,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 14860,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 15863,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 16889,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 18829,
           "pressed": 107428,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 19839,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 21078,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 21854,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 22850,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 23861,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 24857,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 25888,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 26864,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 27878,
           "pressed": 107428,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 28889,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 29878,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 30885,
           "pressed": 122470,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 31922,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 32904,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 33924,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 34923,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 35917,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 36927,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 37948,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 38964,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 39924,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 40961,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 41965,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 42945,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 43937,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 44937,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 45946,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 46966,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 47959,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 48990,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 50677,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 51579,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 54720,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 55731,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 57092,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 58090,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 59101,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 60197,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 62511,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 63503,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 64519,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 67400,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 68424,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 71107,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 72215,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 81558,
           "pressed": 100780,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 82552,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 83554,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 84572,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 85566,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 86580,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 87577,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 88577,
           "pressed": 113656,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 91746,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 92737,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 93740,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 94741,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 95763,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 96754,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 97753,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 98756,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 99768,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 100777,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 101784,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 102778,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 103851,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 104860,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 105875,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 106872,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 107877,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 108884,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 110339,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 111352,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 112355,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 114396,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 116106,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 117111,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 118124,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 119129,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 120147,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 121145,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 123136,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 124146,
           "pressed": 122470,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 125145,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 126443,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 127435,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 128439,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 129441,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 130440,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 131457,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 132479,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 133471,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 134474,
           "pressed": 100784,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 135481,
           "pressed": 100787,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 136476,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 145748,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 159918,
           "pressed": 115098,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 161900,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 180936,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 185281,
           "pressed": 115098,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 186767,
           "pressed": 100780,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 187763,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 188776,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 189783,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 190962,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 191929,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 194038,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 195034,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 196306,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 197304,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 198303,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 199320,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 200320,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 201337,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 202328,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 203330,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 204735,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 205731,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 206732,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 207733,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 208731,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 209725,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 210743,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 211749,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 212757,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 213748,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 214749,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 215751,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 216757,
           "pressed": 100784,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 217769,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 218774,
           "pressed": 100780,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 219776,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 220779,
           "pressed": 122470,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 221788,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 223899,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 224904,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 225895,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 226913,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 227902,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 228913,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 229913,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 230922,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 231926,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 232926,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 234465,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 235528,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 236694,
           "pressed": 101545,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 237695,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 238697,
           "pressed": 115072,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 239893,
           "pressed": 115098,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 240904,
           "pressed": 100787,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 241920,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 242927,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 244181,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 245173,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 246184,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 247185,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 248185,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 249218,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 250510,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 252350,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 253356,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 254368,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 255367,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 256370,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 259514,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 260522,
           "pressed": 115098,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 261546,
           "pressed": 115072,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 262548,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 263541,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 264541,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 265554,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 266559,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 267561,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 268556,
           "pressed": 100784,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 269860,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 271539,
           "pressed": 107428,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 273537,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 274542,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 275547,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 276732,
           "pressed": 100780,
           "wanted": "spinning-crane-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 278383,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         }
       ],
       "followed": 28,
-      "skipped": 150,
-      "unknown": 0,
+      "skipped": 149,
+      "unknown": 1,
       "offList": 22,
       "skippedBy": [
         {
           "key": "spinning-crane-kick",
           "id": 101546,
-          "count": 122
+          "count": 121
         },
         {
           "key": "tiger-palm-refresh",
@@ -12147,1207 +12985,1407 @@
         {
           "t": 1206,
           "pressed": 100780,
-          "wanted": "spinning-crane-kick",
-          "verdict": "skipped"
+          "wanted": null,
+          "reason": null,
+          "verdict": "unknown"
         },
         {
           "t": 1857,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 3244,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4036,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 4787,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 5808,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 6819,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 7815,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 8821,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 9811,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 10831,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 11854,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 12857,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 13869,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 14860,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 15863,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 16889,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 18829,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 19839,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 21078,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 21854,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 22850,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 23861,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 24857,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 25888,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 26864,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 27878,
           "pressed": 107428,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 28889,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 29878,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 30885,
           "pressed": 122470,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 31922,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 32904,
           "pressed": 100787,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 33924,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 34923,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 35917,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 36927,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 37948,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 38964,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 39924,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 40961,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 41965,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 42945,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 43937,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 44937,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 45946,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 46966,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 47959,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 48990,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 50677,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 51579,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 54720,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 55731,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 57092,
           "pressed": 100780,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 58090,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 59101,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 60197,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 62511,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 63503,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 64519,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 67400,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 68424,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 71107,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 72215,
           "pressed": 100780,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 81558,
           "pressed": 100780,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 82552,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 83554,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 84572,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 85566,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 86580,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 87577,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 88577,
           "pressed": 113656,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 91746,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 92737,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 93740,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 94741,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 95763,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 96754,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 97753,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 98756,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 99768,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 100777,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 101784,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 102778,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 103851,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 104860,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 105875,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 106872,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 107877,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 108884,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 110339,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 111352,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 112355,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 114396,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 116106,
           "pressed": 100784,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 117111,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 118124,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 119129,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 120147,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 121145,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 123136,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 124146,
           "pressed": 122470,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 125145,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 126443,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 127435,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 128439,
           "pressed": 100784,
           "wanted": "combo-breaker-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 129441,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 130440,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 131457,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 132479,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 133471,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 134474,
           "pressed": 100784,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 135481,
           "pressed": 100787,
           "wanted": "combo-breaker-palm",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 136476,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 145748,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 159918,
           "pressed": 115098,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 161900,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 180936,
           "pressed": 115072,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 185281,
           "pressed": 115098,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 186767,
           "pressed": 100780,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 187763,
           "pressed": 107428,
           "wanted": "rising-sun-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 188776,
           "pressed": 100784,
           "wanted": "tiger-palm-refresh",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 189783,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 190962,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 191929,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 194038,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 195034,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 196306,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 197304,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 198303,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 199320,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 200320,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 201337,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 202328,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 203330,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 204735,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 205731,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 206732,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 207733,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 208731,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 209725,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 210743,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 211749,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 212757,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 213748,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 214749,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 215751,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 216757,
           "pressed": 100784,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 217769,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 218774,
           "pressed": 100780,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 219776,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 220779,
           "pressed": 122470,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 221788,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 223899,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 224904,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 225895,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 226913,
           "pressed": 107428,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 227902,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 228913,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 229913,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 230922,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 231926,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 232926,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 234465,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 235528,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 236694,
           "pressed": 101545,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 237695,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 238697,
           "pressed": 115072,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 239893,
           "pressed": 115098,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 240904,
           "pressed": 100787,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 241920,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 242927,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 244181,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 245173,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 246184,
           "pressed": 100784,
           "wanted": "fists-of-fury",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 247185,
           "pressed": 100787,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 248185,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 249218,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 250510,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 252350,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 253356,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 254368,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 255367,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 256370,
           "pressed": 113656,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 259514,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 260522,
           "pressed": 115098,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 261546,
           "pressed": 115072,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 262548,
           "pressed": 100787,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 263541,
           "pressed": 107428,
           "wanted": "rising-sun-kick-filler",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 264541,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 265554,
           "pressed": 100784,
           "wanted": "blackout-kick",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 266559,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 267561,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 268556,
           "pressed": 100784,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 269860,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 271539,
           "pressed": 107428,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 273537,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 274542,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         },
         {
           "t": 275547,
           "pressed": 115098,
           "wanted": "chi-wave",
+          "reason": null,
           "verdict": "followed"
         },
         {
           "t": 276732,
           "pressed": 100780,
           "wanted": "spinning-crane-kick-heavy",
+          "reason": null,
           "verdict": "skipped"
         },
         {
           "t": 278383,
           "pressed": 100784,
           "wanted": null,
+          "reason": null,
           "verdict": "off-list"
         }
       ],
       "followed": 20,
-      "skipped": 158,
-      "unknown": 0,
+      "skipped": 157,
+      "unknown": 1,
       "offList": 22,
       "skippedBy": [
         {
@@ -13381,11 +14419,6 @@
           "count": 2
         },
         {
-          "key": "spinning-crane-kick",
-          "id": 101546,
-          "count": 1
-        },
-        {
           "key": "combo-breaker-palm",
           "id": 100787,
           "count": 1
@@ -13402,13 +14435,13 @@
     {
       "kind": "Rune proc unsnapshotted (Mastery)",
       "at": 1237,
-      "detail": "brewed 0.7s after the proc expired — read, but late",
+      "detail": "brewed 0.7s after the proc ended — you saw the proc, but were late",
       "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3374854&end=3380854"
     },
     {
       "kind": "Energizing Brew held through",
       "at": 8199,
-      "detail": "pressed under Time Warp with no Rushing Jade Wind in the build, which is what would allow it",
+      "detail": "used under Time Warp without Rushing Jade Wind, which is what would allow it",
       "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3381816&end=3387816"
     },
     {
@@ -13492,7 +14525,7 @@
     {
       "kind": "Snapshot too early (Mastery)",
       "at": 191767,
-      "detail": "brewed with 5s of proc still on the clock, and the bank had room to hold it",
+      "detail": "brewed with 5s of the proc still remaining, and the bank had room, so waiting was possible",
       "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3565384&end=3571384"
     },
     {
@@ -13528,7 +14561,7 @@
     {
       "kind": "Snapshot too early (Mastery)",
       "at": 215835,
-      "detail": "brewed with 3.9s of proc still on the clock, and the bank had room to hold it",
+      "detail": "brewed with 3.9s of the proc still remaining, and the bank had room, so waiting was possible",
       "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3589452&end=3595452"
     },
     {
@@ -13570,7 +14603,7 @@
     {
       "kind": "Snapshot too early (Mastery)",
       "at": 265112,
-      "detail": "brewed with 6.5s of proc still on the clock, and the bank had room to hold it",
+      "detail": "brewed with 6.5s of the proc still remaining, and the bank had room, so waiting was possible",
       "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3638729&end=3644729"
     }
   ]

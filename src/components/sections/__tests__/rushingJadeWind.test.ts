@@ -7,6 +7,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { formatDecimal } from '~/lib/format/number';
 import i18n, { initI18n } from '~/lib/i18n/config';
 import type { Analysis, TargetMode } from '~/lib/types';
 
@@ -26,11 +27,17 @@ const escaped = (copy: string) => copy.replace(/'/g, '&#x27;');
 
 describe('Rushing Jade Wind section', () => {
 	it('prints target fan-out and priority-list opportunities', () => {
-		const html = render(fixture('waves'), 'multi');
+		const analysis = fixture('waves');
+		const html = render(analysis, 'multi');
+		const targets = analysis.damage.abilities.find((ability) => ability.id === 148_187)?.averageTargetsHit;
 		expect(html).toContain(t('jadeWind.kpi.targets'));
 		expect(html).toContain(t('jadeWind.kpi.opportunities'));
 		expect(html).toContain('>32<');
-		expect(html).toContain(escaped(t('jadeWind.summaryNoTargets', { presses: 32 })));
+		// The fan-out sentence, read off the fixture's own number rather than written out here. The
+		// section only falls back to `summaryNoTargets` for an analysis captured before the damage table
+		// carried per-target counts, which no committed fixture is any more.
+		expect(targets).toBeDefined();
+		expect(html).toContain(escaped(t('jadeWind.summary', { targets: formatDecimal(targets ?? 0), presses: 32 })));
 		expect(html).toContain(t('jadeWind.decisions.caption'));
 	});
 

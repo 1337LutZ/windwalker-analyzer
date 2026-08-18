@@ -25,11 +25,19 @@ export interface DamageAggregate {
  * That same lookup is what splits the table into pressed and passive. An id no ability claims had no
  * cast behind it — autoattacks, Tiger Strikes, trinket and enchant procs, external buffs — and those
  * are a readout of gear rather than something to coach.
+ *
+ * `ignoredTargets` are actors the spec has decided do not count as useful multi-target damage — see
+ * `ignoredMultiTargetActorIDs` in `spec/windwalker.ts`, which is where the list lives and the only
+ * place it is resolved. They are dropped from the fan-out count and **only** from it: the damage was
+ * dealt and belongs in the table, but a swing that spread across four enemies the spec does not count
+ * is not evidence that an area button had four targets. Without this the per-moment target count and
+ * the fan-out disagreed about the same pull, one applying the list and the other not.
  */
 export function aggregateDamage(
 	damageEvents: readonly DamageEvent[],
 	registry: Registry,
 	nameOf: (id: number) => string,
+	ignoredTargets: ReadonlySet<number> = new Set(),
 ): DamageAggregate {
 	const rows = new Map<
 		string,
@@ -64,7 +72,7 @@ export function aggregateDamage(
 		rec.total += e.amount ?? 0;
 		rec.hits++;
 		if (e.hitType === CRIT) rec.crits++;
-		if (e.targetID !== undefined) {
+		if (e.targetID !== undefined && !ignoredTargets.has(e.targetID)) {
 			const targets = rec.targetsByTimestamp.get(e.timestamp) ?? new Set<string>();
 			targets.add(`${e.targetID}:${e.targetInstance ?? ''}`);
 			rec.targetsByTimestamp.set(e.timestamp, targets);

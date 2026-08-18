@@ -56,6 +56,70 @@ describe('targetCounts', () => {
 		]);
 	});
 
+	/**
+	 * The one that survived longest, because nothing here was asking it.
+	 *
+	 * WarcraftLogs gives one actor id to an NPC *type*, so every Kor'kron Ironblade standing on a monk
+	 * arrives as the same `target` and they are told apart only by `targetInstance`. Counting on the id
+	 * alone therefore counts enemy *kinds* and calls all ten of them one enemy — measured on the
+	 * Galakras kill in `a:6MhZgjyAknFWrYfK`, 13 ids against the 45 spawns the player actually hit.
+	 * Everything reading this series inherited the smaller number: the multi-target share, the detected
+	 * mode, and the band the priority ladder judges every press at.
+	 */
+	it('counts two live copies of one NPC as two enemies, not one', () => {
+		expect(
+			targetCounts(
+				[
+					{ t: 0, target: 1, instance: 1 },
+					{ t: 1000, target: 1, instance: 2 },
+				],
+				WINDOW,
+			),
+		).toEqual([
+			[0, 1],
+			[1000, 2],
+			[5000, 1],
+			[6000, 0],
+		]);
+	});
+
+	/** The other half of it: one spawn hit twice is one enemy, however many copies share its id. */
+	it('does not count one spawn twice because a sibling shares its id', () => {
+		expect(
+			targetCounts(
+				[
+					{ t: 0, target: 1, instance: 3 },
+					{ t: 1000, target: 1, instance: 3 },
+				],
+				WINDOW,
+			),
+		).toEqual([
+			[0, 1],
+			[6000, 0],
+		]);
+	});
+
+	/**
+	 * A caller with no instance to give — an old report, or the Storm, Earth and Fire audit, which wants
+	 * the actor id its per-target lanes are labelled with — gets one bucket per id, exactly as before
+	 * the field existed. Checked against real logs: no target in the reference reports ever mixes an
+	 * absent instance with a numbered one, so the two forms never describe the same spawn.
+	 */
+	it('buckets a hit with no instance on its id alone', () => {
+		expect(
+			targetCounts(
+				[
+					{ t: 0, target: 1 },
+					{ t: 1000, target: 1 },
+				],
+				WINDOW,
+			),
+		).toEqual([
+			[0, 1],
+			[6000, 0],
+		]);
+	});
+
 	it('has nothing to say about a pull with no hits', () => {
 		expect(targetCounts([], WINDOW)).toEqual([]);
 	});

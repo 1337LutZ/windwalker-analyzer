@@ -11,7 +11,25 @@ import type { Interval } from './intervals';
 export interface TargetHit {
 	t: number;
 	target: number;
+	/**
+	 * Which *copy* of that actor, when the log says.
+	 *
+	 * WarcraftLogs gives one actor id to an NPC *type*, so every Kor'kron Ironblade stood in front of a
+	 * monk on Galakras arrives as the same `target` and they are told apart only by this. Counting on
+	 * `target` alone therefore does not count enemies, it counts enemy *kinds*: on the Galakras kill in
+	 * `a:6MhZgjyAknFWrYfK` that is 13 against the 45 spawns the player actually landed a hit on, and
+	 * every read of "how many things am I fighting" downstream inherited the smaller number.
+	 *
+	 * Optional because not every caller has one to give — a report old enough not to carry the field,
+	 * and the Storm, Earth and Fire audit's `contactHits`, which asks *which* enemy an actor stood on
+	 * and wants the id its per-target lanes are labelled with. A hit with no instance buckets as
+	 * itself, which is exactly what this did before the field existed.
+	 */
+	instance?: number;
 }
+
+/** One enemy spawn, as a map key: the actor id plus which copy of it this is. */
+const spawnOf = (hit: TargetHit): string => `${hit.target}:${hit.instance ?? '-'}`;
 
 /**
  * A step in the count series: from `t` until the next point, this many distinct enemies were being
@@ -42,9 +60,13 @@ export function targetCounts(hits: readonly TargetHit[], windowMs: number): Targ
 	// Every moment the answer can change: a hit entering the window, or the oldest one leaving it.
 	const moments = [...new Set(sorted.flatMap((h) => [h.t, h.t + windowMs]))].sort((a, b) => a - b);
 
-	// Counted rather than a set of ids: the same enemy hit twice inside one window is one target, and
+	// Counted rather than a set of keys: the same enemy hit twice inside one window is one target, and
 	// the second hit must not remove it when the first ages out.
-	const live = new Map<number, number>();
+	//
+	// Keyed by spawn and not by actor id — see `TargetHit.instance`. This is the map the whole count
+	// hangs off, so keying it on the id alone was not a rounding error: it collapsed every add of one
+	// kind into a single enemy, and the band the priority ladder judges each press at is read off here.
+	const live = new Map<string, number>();
 	let entered = 0;
 	let left = 0;
 	const out: TargetCountPoint[] = [];
@@ -53,7 +75,8 @@ export function targetCounts(hits: readonly TargetHit[], windowMs: number): Targ
 		while (entered < sorted.length) {
 			const hit = sorted[entered];
 			if (hit === undefined || hit.t > t) break;
-			live.set(hit.target, (live.get(hit.target) ?? 0) + 1);
+			const spawn = spawnOf(hit);
+			live.set(spawn, (live.get(spawn) ?? 0) + 1);
 			entered++;
 		}
 		while (left < entered) {
@@ -61,9 +84,10 @@ export function targetCounts(hits: readonly TargetHit[], windowMs: number): Targ
 			// Half-open on the old side: a hit exactly `windowMs` back has stopped counting, which is what
 			// makes the series fall to zero at the end of a pull rather than one hit short of it.
 			if (hit === undefined || hit.t > t - windowMs) break;
-			const seen = (live.get(hit.target) ?? 0) - 1;
-			if (seen > 0) live.set(hit.target, seen);
-			else live.delete(hit.target);
+			const spawn = spawnOf(hit);
+			const seen = (live.get(spawn) ?? 0) - 1;
+			if (seen > 0) live.set(spawn, seen);
+			else live.delete(spawn);
 			left++;
 		}
 		const count = live.size;
