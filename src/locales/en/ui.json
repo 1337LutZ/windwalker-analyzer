@@ -2,6 +2,8 @@
   "app": {
     "eyebrow": "Mists of Pandaria · Windwalker",
     "title": "Windwalker analyzer",
+    "stage": "Alpha",
+    "stageNote": "Alpha: the measurements are real, but the thresholds and the wording are still moving.",
     "intro": "Analyse a single Mists of Pandaria pull: how full your Tigereye Brew bank was when you spent it, whether your brews lined up with Re-Origination procs, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
     "privacy": "There is no server, no cookies and no analytics. Nothing is stored except your token, and only until this tab closes. If you open DevTools → Network while it runs, you will see this page's own assets, POSTs to warcraftlogs.com, and spell icons from Wowhead's image host — the icon requests carry no token, no report code and nothing else."
   },
