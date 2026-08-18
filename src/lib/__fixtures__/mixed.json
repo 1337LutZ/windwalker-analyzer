@@ -4500,8 +4500,8 @@
       "name": "Rising Sun Kick",
       "cooldownSec": 8,
       "casts": 24,
-      "driftSec": 43.8,
-      "lostCasts": 5,
+      "driftSec": 37.2,
+      "lostCasts": 4,
       "openerSec": 0.6,
       "tailSec": 0,
       "worst": [
@@ -5284,27 +5284,11 @@
   },
   "blackoutKick": {
     "casts": 51,
-    "driftMs": 43816,
-    "starvedMs": 26444,
-    "starvedWaits": 10,
-    "chargedMs": 21465,
+    "driftMs": 37168,
+    "starvedMs": 23151,
+    "starvedWaits": 7,
+    "chargedMs": 18172,
     "charged": [
-      {
-        "at": 26829,
-        "ms": 1049,
-        "chi": 0,
-        "pressAt": 25888,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3400446&end=3406446"
-      },
-      {
-        "at": 35878,
-        "ms": 1049,
-        "chi": 0,
-        "pressAt": 33924,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3409495&end=3415495"
-      },
       {
         "at": 116884,
         "ms": 2245,
@@ -5344,14 +5328,6 @@
         "pressAt": 242927,
         "debuffDown": false,
         "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3617145&end=3623145"
-      },
-      {
-        "at": 253173,
-        "ms": 1195,
-        "chi": 0,
-        "pressAt": 252350,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:YBQzrcgVJnAj7NMP#fight=10&type=damage-done&view=events&source=10&start=3626790&end=3632790"
       }
     ],
     "chiExact": 86,

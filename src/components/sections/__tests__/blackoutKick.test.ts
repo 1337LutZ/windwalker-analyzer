@@ -40,14 +40,14 @@ describe('Blackout Kick section', () => {
 
 	/**
 	 * The starvation half, in the currency the rest of the report already loses casts in. `strong` gives
-	 * away 43.6 seconds of a button on an eight-second cooldown, which is five kicks — the single
+	 * away 38.3 seconds of a button on an eight-second cooldown, which is four kicks — the single
 	 * biggest thing this pull does wrong, and invisible to every other section.
 	 */
 	it('charges the kick it starved to the press that starved it', () => {
 		const html = render(fixture('strong'), 'single');
 		expect(html).toContain(t('blackoutKick.kpi.starved'));
-		expect(html).toContain('43.6s');
-		expect(html).toContain(escaped(t('blackoutKick.starveKicks', { count: 5 })));
+		expect(html).toContain('38.3s');
+		expect(html).toContain(escaped(t('blackoutKick.starveKicks', { count: 4 })));
 		expect(html).toContain(t('blackoutKick.starveCaption'));
 	});
 
@@ -57,9 +57,9 @@ describe('Blackout Kick section', () => {
 	 */
 	it('says when the presses it charges are presses the list wanted', () => {
 		const html = render(fixture('strong'), 'single');
-		expect(html).toContain(escaped(t('blackoutKick.starveFollowed', { count: 6 })));
+		expect(html).toContain(escaped(t('blackoutKick.starveFollowed', { count: 3 })));
 		// And says nothing at a reading where the list wanted none of them, rather than printing a zero.
-		// The same seventeen presses: read at three targets the list wanted none of them dumped at all,
+		// The same twelve presses: read at three targets the list wanted none of them dumped at all,
 		// which is exactly why the sentence is the one figure in this half that follows the band.
 		expect(render(fixture('strong'), 'multi')).not.toContain(escaped(t('blackoutKick.starveFollowed', { count: 0 })));
 	});
@@ -76,8 +76,8 @@ describe('Blackout Kick section', () => {
 		expect(single).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 109, followed: 56 })));
 		expect(multi).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 73, followed: 7 })));
 		// The same seconds under both readings, and the note that promises it.
-		expect(single).toContain('43.6s');
-		expect(multi).toContain('43.6s');
+		expect(single).toContain('38.3s');
+		expect(multi).toContain('38.3s');
 		expect(single).toContain(escaped(t('blackoutKick.starveUnbanded')));
 	});
 

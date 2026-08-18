@@ -33,6 +33,7 @@ import type { AplAudit, Band } from './apl';
 import {
 	DEFAULT_SETTINGS,
 	TIGER_PALM_REFRESH,
+	clampCooldownLeeway,
 	clampLeeway,
 	clampRefreshWindow,
 	type AnalysisSettings,
@@ -1710,10 +1711,15 @@ export const ENERGY_CAP_ROW_MS = 1000;
 
 /** The full analysis of one fight for one Windwalker. */
 export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFAULT_SETTINGS): Analysis {
-	// The two thresholds the reader owns. Everything else here is the spec's; these are theirs,
+	// The three thresholds the reader owns. Everything else here is the spec's; these are theirs,
 	// because they describe their latency and their hands rather than the rotation.
 	const snapshotLeewayMs = clampLeeway(settings.snapshotLeewayMs);
 	const tpRefreshWindowMs = clampRefreshWindow(settings.tigerPalmRefreshMs);
+	// Passed to every `cooldownDrift` call this pass makes, and there are two: the lost-cast row below
+	// and the Blackout Kick audit, which measures starvation inside the drift windows that row reports.
+	// One value threaded through both is what keeps "the kick sat ready for 12s" and "9s of that was
+	// chi" two readings of one clock rather than two clocks.
+	const cooldownLeewayMs = clampCooldownLeeway(settings.cooldownLeewayMs);
 	const { code, fight, actor, events, table, actors } = dataset;
 	const t0 = fight.startTime;
 	const duration = fight.endTime - fight.startTime;
@@ -2740,7 +2746,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		const times = castTimes(ability);
 		if (!times.length) return null;
 		const live: Interval[] = NEEDS_TARGET.has(ability.key) && engaged.length ? engaged : [[0, duration]];
-		const drift = cooldownDrift(times, ability, live, duration);
+		const drift = cooldownDrift(times, ability, live, duration, cooldownLeewayMs);
 		return {
 			id: castId(ability),
 			name: ability.name,
@@ -4004,7 +4010,7 @@ export function analyse(dataset: FightDataset, settings: AnalysisSettings = DEFA
 		// charged here is a second that row has already counted. Rising Sun Kick is in `NEEDS_TARGET`, so
 		// `engaged` is what it passes, and the fallback is the one it makes for a log that measured none.
 		const live: Interval[] = engaged.length ? engaged : [[0, duration]];
-		const drift = cooldownDrift(castTimes(RISING_SUN_KICK), RISING_SUN_KICK, live, duration);
+		const drift = cooldownDrift(castTimes(RISING_SUN_KICK), RISING_SUN_KICK, live, duration, cooldownLeewayMs);
 
 		// Presses that cost a global. An off-GCD trinket is not a global spent instead of the kick, so a
 		// wait that ran through one was not waiting on a decision.

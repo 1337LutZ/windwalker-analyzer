@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
-import { DEFAULT_SETTINGS, TIGER_PALM_REFRESH } from '~/lib/settings';
+import { COOLDOWN_LEEWAY, DEFAULT_SETTINGS, TIGER_PALM_REFRESH } from '~/lib/settings';
 import type { FightDataset } from '~/lib/types';
 import {
 	abilityCooldownMs,
@@ -262,6 +262,37 @@ describe('analyse', () => {
 		// And the number the report prints follows the setting, or the section would explain itself
 		// against a threshold it did not use.
 		expect(analyse(late, { ...DEFAULT_SETTINGS, tigerPalmRefreshMs: 3000 }).filler.refreshWindowSec).toBe(3);
+	});
+
+	/**
+	 * The window is the reader's here too, and it has to reach both places a drift window is measured:
+	 * the lost-cast row and the Blackout Kick audit, which reads chi starvation *inside* those same
+	 * windows. Passing it to one call and not the other would print "the kick sat ready for 13s" above
+	 * a section that had measured 11.8s of the same waiting.
+	 */
+	it('reads the cooldown leeway from the settings, everywhere a wait is measured', () => {
+		const held: FightDataset = {
+			...dataset,
+			events: [
+				...events,
+				// Damage on the boss throughout, so none of the waiting below is excluded as an intermission.
+				e(15000, 'damage', 1, { targetID: 20, amount: 1000, hitType: 1 }),
+				e(29000, 'damage', 1, { targetID: 20, amount: 1000, hitType: 1 }),
+				e(31000, 'damage', 1, { targetID: 20, amount: 1000, hitType: 1 }),
+				// Ready again at 9s and pressed at 10.2s: 1.2s late, which is a late press under the default
+				// and a held cooldown under the floor. Ready at 18.2s and pressed at 30s: held either way.
+				e(10200, 'cast', 107428, { targetID: 20 }),
+				e(30000, 'cast', 107428, { targetID: 20 }),
+			],
+		};
+		const at = (ms: number) => analyse(held, { ...DEFAULT_SETTINGS, cooldownLeewayMs: ms });
+		const kickRow = (a: ReturnType<typeof at>) => a.lostCasts.find((row) => row.id === 107428);
+
+		// Forgiven whole, never shortened: the 11.8s wait is charged in full at both settings.
+		expect(kickRow(at(COOLDOWN_LEEWAY.min))?.driftSec).toBe(13);
+		expect(kickRow(at(COOLDOWN_LEEWAY.default))?.driftSec).toBe(11.8);
+		expect(at(COOLDOWN_LEEWAY.min).blackoutKick?.driftMs).toBe(13000);
+		expect(at(COOLDOWN_LEEWAY.default).blackoutKick?.driftMs).toBe(11800);
 	});
 
 	it('links every miss back into the report', () => {

@@ -39,6 +39,11 @@
       "unit": "ms",
       "hint": "How much Tiger Power can be left before a Tiger Palm counts as refreshing the buff instead of overwriting a buff that was still fine. The rotation refreshes it at {{min}}ms; the default of {{default}}ms is one global wider, because a person has to finish the global they are in before they can press. Between {{min}} and {{max}}ms."
     },
+    "cooldown": {
+      "label": "Cooldown leeway",
+      "unit": "ms",
+      "hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown — Rising Sun Kick, Chi Wave, Xuen and the potion."
+    },
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
     "save": "Save",
     "reset": "Back to defaults"

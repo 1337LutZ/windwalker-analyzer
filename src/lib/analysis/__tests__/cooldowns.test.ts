@@ -155,6 +155,19 @@ describe('cooldownDrift', () => {
 		expect(drift.driftMs).toBe(0);
 	});
 
+	/**
+	 * The window forgives a wait whole and never shortens one, which is the shape the reader's setting
+	 * inherits: a press 1.4s late costs nothing, and one 2s late is charged for both seconds rather
+	 * than for the half past the window. So widening it can only ever drop short waits — it cannot
+	 * quietly discount a long one.
+	 */
+	it('drops a wait inside the window whole and charges a longer one in full', () => {
+		expect(cooldownDrift([0, 9400], RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS).driftMs).toBe(0);
+		expect(cooldownDrift([0, 10000], RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS).driftMs).toBe(2000);
+		// And a caller may tighten it back to the one-global reading the report shipped with.
+		expect(cooldownDrift([0, 9400], RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS, 1000).driftMs).toBe(1400);
+	});
+
 	it('orders the windows worst first, so the report can take the top three', () => {
 		const drift = cooldownDrift([0, 20000, 24000, 60000], RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS);
 		expect(drift.windows.map((w) => w.ms)).toEqual([28000, 12000]);

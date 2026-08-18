@@ -5,7 +5,15 @@ import { useTranslation } from 'react-i18next';
 
 import type { SettingsState } from '~/hooks/useSettings';
 import type { AnalysisSettings } from '~/lib/settings';
-import { SNAPSHOT_LEEWAY, TIGER_PALM_REFRESH, clampLeeway, clampRefreshWindow, isDefault } from '~/lib/settings';
+import {
+	COOLDOWN_LEEWAY,
+	SNAPSHOT_LEEWAY,
+	TIGER_PALM_REFRESH,
+	clampCooldownLeeway,
+	clampLeeway,
+	clampRefreshWindow,
+	isDefault,
+} from '~/lib/settings';
 
 import { DialogShell } from '../primitives';
 import { buttonClass, fieldClass, labelClass, primaryButtonClass } from '../primitives/controls';
@@ -13,6 +21,7 @@ import { buttonClass, fieldClass, labelClass, primaryButtonClass } from '../prim
 interface Values {
 	snapshotLeewayMs: number | string;
 	tigerPalmRefreshMs: number | string;
+	cooldownLeewayMs: number | string;
 }
 
 /**
@@ -30,6 +39,8 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 	const hintID = useId();
 	const refreshID = useId();
 	const refreshHintID = useId();
+	const cooldownID = useId();
+	const cooldownHintID = useId();
 
 	const {
 		register,
@@ -39,6 +50,7 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 		values: {
 			snapshotLeewayMs: settings.snapshotLeewayMs,
 			tigerPalmRefreshMs: settings.tigerPalmRefreshMs,
+			cooldownLeewayMs: settings.cooldownLeewayMs,
 		},
 	});
 
@@ -46,12 +58,14 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 		const next: AnalysisSettings = {
 			snapshotLeewayMs: clampLeeway(values.snapshotLeewayMs),
 			tigerPalmRefreshMs: clampRefreshWindow(values.tigerPalmRefreshMs),
+			cooldownLeewayMs: clampCooldownLeeway(values.cooldownLeewayMs),
 		};
 		save(next);
 		// Re-seed from the clamped values, so a refused entry does not sit in the field looking accepted.
 		resetForm({
 			snapshotLeewayMs: next.snapshotLeewayMs,
 			tigerPalmRefreshMs: next.tigerPalmRefreshMs,
+			cooldownLeewayMs: next.cooldownLeewayMs,
 		});
 	});
 
@@ -128,6 +142,33 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 					</p>
 				</div>
 
+				<div className="flex flex-col gap-2">
+					<label className={labelClass} htmlFor={cooldownID}>
+						{t('settings.cooldown.label')}
+					</label>
+					<div className="flex items-center gap-2">
+						<input
+							id={cooldownID}
+							type="number"
+							inputMode="numeric"
+							min={COOLDOWN_LEEWAY.min}
+							max={COOLDOWN_LEEWAY.max}
+							step={COOLDOWN_LEEWAY.step}
+							aria-describedby={cooldownHintID}
+							className={`${fieldClass} max-w-[10rem]`}
+							{...register('cooldownLeewayMs')}
+						/>
+						<span className="font-mono text-sm text-muted">{t('settings.cooldown.unit')}</span>
+					</div>
+					<p id={cooldownHintID} className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">
+						{t('settings.cooldown.hint', {
+							min: COOLDOWN_LEEWAY.min,
+							max: COOLDOWN_LEEWAY.max,
+							default: COOLDOWN_LEEWAY.default,
+						})}
+					</p>
+				</div>
+
 				<p className="m-0 max-w-[52ch] text-sm leading-relaxed text-muted">{t('settings.storage')}</p>
 
 				<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
@@ -139,6 +180,7 @@ export default function SettingsDialog({ settings, save, reset }: SettingsState)
 							resetForm({
 								snapshotLeewayMs: SNAPSHOT_LEEWAY.default,
 								tigerPalmRefreshMs: TIGER_PALM_REFRESH.default,
+								cooldownLeewayMs: COOLDOWN_LEEWAY.default,
 							});
 						}}
 						disabled={isDefault(settings)}

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	COOLDOWN_LEEWAY,
 	DEFAULT_SETTINGS,
 	SNAPSHOT_LEEWAY,
 	TIGER_PALM_REFRESH,
+	clampCooldownLeeway,
 	clampLeeway,
 	clampRefreshWindow,
 	isDefault,
@@ -115,6 +117,58 @@ describe('Tiger Palm refresh window', () => {
 			TIGER_PALM_REFRESH.default,
 		);
 		expect(isDefault({ ...DEFAULT_SETTINGS, tigerPalmRefreshMs: 3000 })).toBe(false);
+	});
+});
+
+describe('cooldown leeway', () => {
+	/**
+	 * A global and a half, and the floor is the one global it replaces. A cooldown that comes back
+	 * inside a global cannot be pressed until that global ends however well the pull is played, so
+	 * anything under 1000ms charges a press that could not have been made — and the report's old
+	 * reading stays reachable at the floor, as the APL's number does for the Tiger Palm window.
+	 */
+	it('defaults half a global wider than the press the player was already committed to', () => {
+		expect(DEFAULT_SETTINGS.cooldownLeewayMs).toBe(1500);
+		expect(COOLDOWN_LEEWAY.min).toBe(1000);
+		expect(clampCooldownLeeway(1000)).toBe(1000);
+	});
+
+	it('forces anything into range rather than refusing it', () => {
+		expect(clampCooldownLeeway('1750')).toBe(1750);
+		expect(clampCooldownLeeway(50)).toBe(COOLDOWN_LEEWAY.min);
+		expect(clampCooldownLeeway(99_999)).toBe(COOLDOWN_LEEWAY.max);
+		expect(clampCooldownLeeway('nonsense')).toBe(COOLDOWN_LEEWAY.default);
+		expect(clampCooldownLeeway(Number.NaN)).toBe(COOLDOWN_LEEWAY.default);
+		// The trap both the others fall into: `Number(null)` and `Number('')` are both 0, which is finite
+		// and clamps to the floor, so an emptied field would put the report back on the one-global window
+		// this setting exists to widen without ever saying so.
+		expect(clampCooldownLeeway(null)).toBe(COOLDOWN_LEEWAY.default);
+		expect(clampCooldownLeeway(undefined)).toBe(COOLDOWN_LEEWAY.default);
+		expect(clampCooldownLeeway('')).toBe(COOLDOWN_LEEWAY.default);
+	});
+
+	/**
+	 * A quarter of Rising Sun Kick's 8s, the shortest cooldown the drift audit covers. Each wait is
+	 * forgiven in full and a pull can hold any number of them, so at a quarter of the cooldown four
+	 * late presses are a lost cast that has stopped being counted — and a player a beat late on every
+	 * kick, which is exactly what the drift row exists to show, would read as flawless.
+	 */
+	it('never lets the window forgive a whole cast', () => {
+		expect(COOLDOWN_LEEWAY.max * 4).toBeLessThanOrEqual(8000);
+	});
+
+	it('is stored and restored like the rest', () => {
+		expect(normaliseSettings({ cooldownLeewayMs: 2000 })).toEqual({
+			...DEFAULT_SETTINGS,
+			cooldownLeewayMs: 2000,
+		});
+		// A settings blob written before this field existed reads back as the default, not as 0 — which
+		// is every reader who saved a threshold under the build before this one.
+		expect(normaliseSettings({ snapshotLeewayMs: 1000, tigerPalmRefreshMs: 2000 }).cooldownLeewayMs).toBe(
+			COOLDOWN_LEEWAY.default,
+		);
+		expect(isDefault(normaliseSettings({ snapshotLeewayMs: 1000, tigerPalmRefreshMs: 2000 }))).toBe(true);
+		expect(isDefault({ ...DEFAULT_SETTINGS, cooldownLeewayMs: 2000 })).toBe(false);
 	});
 });
 

@@ -4133,8 +4133,8 @@
       "name": "Rising Sun Kick",
       "cooldownSec": 8,
       "casts": 20,
-      "driftSec": 49.7,
-      "lostCasts": 6,
+      "driftSec": 45.7,
+      "lostCasts": 5,
       "openerSec": 2,
       "tailSec": 0,
       "worst": [
@@ -4160,7 +4160,7 @@
       "name": "Chi Wave",
       "cooldownSec": 15,
       "casts": 13,
-      "driftSec": 17.7,
+      "driftSec": 16.7,
       "lostCasts": 1,
       "openerSec": 1,
       "tailSec": 0,
@@ -4862,19 +4862,11 @@
   },
   "blackoutKick": {
     "casts": 35,
-    "driftMs": 49690,
-    "starvedMs": 13939,
-    "starvedWaits": 7,
-    "chargedMs": 13939,
+    "driftMs": 45724,
+    "starvedMs": 11426,
+    "starvedWaits": 5,
+    "chargedMs": 11426,
     "charged": [
-      {
-        "at": 38023,
-        "ms": 1449,
-        "chi": 0,
-        "pressAt": 36591,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3706930&end=3712930"
-      },
       {
         "at": 47472,
         "ms": 3367,
@@ -4882,14 +4874,6 @@
         "pressAt": 46758,
         "debuffDown": false,
         "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3716379&end=3722379"
-      },
-      {
-        "at": 75458,
-        "ms": 1064,
-        "chi": 0,
-        "pressAt": 74506,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:6MhZgjyAknFWrYfK#fight=16&type=damage-done&view=events&source=17&start=3744365&end=3750365"
       },
       {
         "at": 84522,

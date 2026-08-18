@@ -2924,8 +2924,8 @@
       "name": "Rising Sun Kick",
       "cooldownSec": 8,
       "casts": 15,
-      "driftSec": 10.9,
-      "lostCasts": 1,
+      "driftSec": 3.2,
+      "lostCasts": 0,
       "openerSec": 1.1,
       "tailSec": 0,
       "worst": [
@@ -2933,16 +2933,6 @@
           "at": 87883,
           "seconds": 3.2,
           "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2162849&end=2168849"
-        },
-        {
-          "at": 62436,
-          "seconds": 1.3,
-          "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2137402&end=2143402"
-        },
-        {
-          "at": 124680,
-          "seconds": 1.1,
-          "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2199646&end=2205646"
         }
       ]
     },
@@ -2951,7 +2941,7 @@
       "name": "Chi Wave",
       "cooldownSec": 15,
       "casts": 6,
-      "driftSec": 12.9,
+      "driftSec": 10.7,
       "lostCasts": 0,
       "openerSec": 20.4,
       "tailSec": 5.3,
@@ -3496,44 +3486,11 @@
   },
   "blackoutKick": {
     "casts": 34,
-    "driftMs": 10875,
-    "starvedMs": 7684,
-    "starvedWaits": 5,
-    "chargedMs": 4497,
-    "charged": [
-      {
-        "at": 9949,
-        "ms": 1067,
-        "chi": 1,
-        "pressAt": 8995,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2084915&end=2090915"
-      },
-      {
-        "at": 27263,
-        "ms": 1056,
-        "chi": 1,
-        "pressAt": 26305,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2102229&end=2108229"
-      },
-      {
-        "at": 53388,
-        "ms": 1048,
-        "chi": 1,
-        "pressAt": 52430,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2128354&end=2134354"
-      },
-      {
-        "at": 62436,
-        "ms": 1326,
-        "chi": 1,
-        "pressAt": 61758,
-        "debuffDown": false,
-        "link": "https://classic.warcraftlogs.com/reports/a:LhYtyq8xFR9pG6mg#fight=11&type=damage-done&view=events&source=25&start=2137402&end=2143402"
-      }
-    ],
+    "driftMs": 3187,
+    "starvedMs": 3187,
+    "starvedWaits": 1,
+    "chargedMs": 0,
+    "charged": [],
     "chiExact": 46,
     "chiPredicted": 51
   },

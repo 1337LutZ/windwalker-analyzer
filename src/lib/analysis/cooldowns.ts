@@ -38,13 +38,20 @@ export interface CooldownDrift {
  *   casts, running in, the pull timer) and the stretch after the last one is the boss dying on a
  *   cooldown that was coming back anyway. Charging either invents mistakes: on one log the tail
  *   alone was a phantom 39s of Chi Brew.
+ *
+ * A third exclusion is `minWindowMs`, and it is the reader's rather than this function's: a wait no
+ * longer than it is a press that landed late, not a cooldown that was held, and it is dropped whole.
+ * Whole, and not shortened — a longer wait is still charged from the moment the button came back, so
+ * widening the window forgives short waits without ever discounting a long one. The report passes the
+ * clamped setting on every call; the default here is `COOLDOWN_LEEWAY.default` restated so that a
+ * direct caller gets the behaviour the report ships rather than a stricter one nothing uses.
  */
 export function cooldownDrift(
 	times: readonly number[],
 	ability: Ability,
 	live: readonly Interval[],
 	durationMs: number,
-	minWindowMs = 1000,
+	minWindowMs = 1500,
 ): CooldownDrift {
 	const nothing: CooldownDrift = {
 		driftMs: 0,
