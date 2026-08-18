@@ -872,7 +872,7 @@
     "warning": {
       "runeMissing": {
         "title": "Rune of Re-Origination not detected",
-        "body": "You did wear detect Rune of Re-Origination during this pul. Please be aware the this trinket is a key of this spec's viability."
+        "body": "No Rune of Re-Origination in the gear this pull reported. It drives most of what this spec does, so the rotation below shows the non-Rune Tigereye Brew rules instead."
       },
       "runeNoMastery": {
         "title": "Check your gems and reforges",
