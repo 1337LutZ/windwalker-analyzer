@@ -89,11 +89,10 @@ describe('the reference flow against the ladder', () => {
 				}
 			}
 			for (const entry of entries) {
-				// `test` is the one-line condition the chart's node holds; `when` and `why` are the two
-				// paragraphs it discloses. All three are required of every rung, because the chart shows the
-				// first and a reader opening the box expects the other two — a rung with a node and no prose
-				// behind it is the one failure mode the drawing could introduce that the old list could not.
-				for (const field of ['name', 'test', 'when', 'why']) {
+				// `test` is the one-line condition the chart's node holds; `why` is the paragraph it discloses.
+				// Both are required of every rung, because a node without its explanation is the one failure
+				// mode the drawing could introduce that the old list could not.
+				for (const field of ['name', 'test', 'why']) {
 					const key = `rotation.entry.${entry.key}.${field}`;
 					expect(t(key), key).not.toBe(key);
 				}

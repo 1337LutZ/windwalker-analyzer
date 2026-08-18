@@ -24,12 +24,12 @@ import { Pill, SpellIcon } from '../primitives';
  * ## The node is a label; the prose is a disclosure
  *
  * This is the design problem of drawing this list, and it is a content problem rather than a drawing
- * one. Every rung carries a `when` and a `why` averaging 282 characters together and reaching 528 on
- * the Tigereye Brew branches. Nothing that holds 282 characters is a node — it is a card, and a
- * column of cards is what this section used to be.
+ * one. Every rung carries a short `test` and a longer `why`; the Tigereye Brew explanations still run
+ * several hundred characters. Nothing that holds that much text is a node — it is a card, and a column
+ * of cards is what this section used to be.
  *
- * So the decision box holds a one-line `test` naming the condition, and the `when`/`why` pair moves
- * into a panel the action box discloses, unchanged, in the same words, under the same two labels.
+ * So the decision box holds a one-line `test` naming the condition, and the `why` moves into a panel
+ * the action box discloses.
  *
  * **The prose is never lost, and that is the constraint the rest of this file is arranged around.**
  * The chart cannot be a picture that replaced the reference; it has to be a picture that *indexes*
@@ -39,9 +39,9 @@ import { Pill, SpellIcon } from '../primitives';
  * control above the chart, so the wall of text is one press away and the browser's own find-in-page
  * can reach every word of it.
  *
- * The short `test` is a third string beside `when` and `why` rather than a truncation of `when`:
- * clipping a sentence at sixty characters produces "energy will not cap during the channel, you are
- * not inside an Ener…", which is a lie by omission on the one rung that has three conditions.
+ * The short `test` is separate from `why` rather than a truncation of the explanation: clipping a
+ * sentence at sixty characters produces "energy will not cap during the channel, you are not inside an
+ * Ener…", which is a lie by omission on the one rung that has three conditions.
  *
  * ## What a screen reader gets
  *
@@ -109,9 +109,7 @@ export default function FlowNode({
 	return (
 		<div className="flex flex-col">
 			<div className={`flex flex-col items-stretch ${horizontal ? 'lg:flex-row lg:items-stretch lg:gap-1' : ''}`}>
-				{/* The question. `rotation.field.when` labels it — the same three words that label the long
-				    version of the same condition inside the panel, so the short line and the paragraph are
-				    visibly two lengths of one thing rather than two different claims. */}
+				{/* The question. `rotation.field.when` labels the condition that determines whether this rung fires. */}
 				{/* `basis-0` on both halves, so the row splits evenly rather than letting the question take
 				    whatever the button did not want. With the question on `flex-1` against a fixed `w-72`
 				    button, a 1040px article gave the question about 710px and the button 288 — two and a half
@@ -182,18 +180,9 @@ export default function FlowNode({
 			</div>
 
 			{/* `hidden` rather than unmounted, so the panel keeps one identity for `aria-controls` to point
-			    at whether it is showing or not. Labels sit above their values rather than opposite them:
-			    "what the condition is for" is wider than any label column worth giving up on a phone. */}
+				    at whether it is showing or not. */}
 			<div id={panelId} hidden={!open} className="mt-2 rounded-sm border border-line bg-bg p-3">
 				<dl className="m-0 flex flex-col gap-2.5">
-					<div className="flex flex-col gap-0.5">
-						<dt className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
-							{t('rotation.field.when')}
-						</dt>
-						<dd className="m-0 max-w-[70ch] text-base leading-relaxed text-ink-2">
-							{t(`rotation.entry.${entry.key}.when`)}
-						</dd>
-					</div>
 					<div className="flex flex-col gap-0.5">
 						<dt className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
 							{t('rotation.field.why')}
