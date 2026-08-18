@@ -23,6 +23,7 @@ export { default as RushingJadeWind } from './RushingJadeWind';
 export { default as SnapshotTable } from './SnapshotTable';
 export { default as SpecRefusal } from './SpecRefusal';
 export { default as StormEarthAndFire } from './StormEarthAndFire';
+export { default as SummaryWarning } from './SummaryWarning';
 export { default as Takeaways } from './Takeaways';
 export { default as TigerPalm } from './TigerPalm';
 export { default as TouchOfKarma } from './TouchOfKarma';

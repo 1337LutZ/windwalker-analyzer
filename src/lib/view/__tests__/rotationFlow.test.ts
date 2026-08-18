@@ -1,4 +1,4 @@
-// What holds the reference table to the ladder, and the talent filter to its one safe rule.
+// What holds the reference table to the ladder, and the talent/equipment filters to their safe rules.
 //
 // The failure this file exists to catch is silent by construction: `Rotation.tsx` used to keep its
 // own copy of the priority list with `// N` comments pointing at `apl.ts`, and nothing broke when the
@@ -9,7 +9,14 @@ import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
 import { LADDER_ENTRIES } from '~/lib/spec/apl';
-import { CROSSOVERS, flowKeys, pressedButtons, rotationFlow, type FlowSlot } from '../rotationFlow';
+import {
+	CROSSOVERS,
+	flowKeys,
+	pressedButtons,
+	rotationFlow,
+	runeOfReOriginationEquipped,
+	type FlowSlot,
+} from '../rotationFlow';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -20,6 +27,7 @@ const INVOKE_XUEN = 123904;
 const CHI_WAVE = 115098;
 const ZEN_SPHERE = 124081;
 const RISING_SUN_KICK = 107428;
+const RUNE_OF_REORIGINATION = 96546;
 
 /** Every button drawn, forks flattened — the question most of these tests are really asking. */
 function ids(flow: readonly FlowSlot[]): number[] {
@@ -260,6 +268,35 @@ describe('the talent filter', () => {
 		]);
 		const drawn = new Set(ids(rotationFlow({ band: null, pressed: everything })));
 		for (const id of baseline) expect(drawn.has(id), `baseline ${String(id)} was filtered out`).toBe(true);
+	});
+});
+
+describe('the Rune filter', () => {
+	it('keeps only the Rune branch when the gear shows the Rune equipped', () => {
+		const flow = rotationFlow({ band: null, pressed: nothing, rune: true });
+		expect(keys(flow)).toContain('tigereyeBrewRune');
+		expect(keys(flow)).not.toContain('tigereyeBrewBank');
+		expect(flow.some((s) => 'fork' in s && s.fork === 'tigereyeBrew')).toBe(false);
+	});
+
+	it('keeps only the bank branch when the gear shows no Rune', () => {
+		const flow = rotationFlow({ band: null, pressed: nothing, rune: false });
+		expect(keys(flow)).not.toContain('tigereyeBrewRune');
+		expect(keys(flow)).toContain('tigereyeBrewBank');
+		expect(flow.some((s) => 'fork' in s && s.fork === 'tigereyeBrew')).toBe(false);
+	});
+
+	it('keeps both branches when gear was not reported', () => {
+		const flow = rotationFlow({ band: null, pressed: nothing, rune: null });
+		expect(keys(flow)).toContain('tigereyeBrewRune');
+		expect(keys(flow)).toContain('tigereyeBrewBank');
+		expect(flow.some((s) => 'fork' in s && s.fork === 'tigereyeBrew')).toBe(true);
+	});
+
+	it('recognises the Rune item versions and preserves an unknown gear state', () => {
+		expect(runeOfReOriginationEquipped([{ id: RUNE_OF_REORIGINATION }])).toBe(true);
+		expect(runeOfReOriginationEquipped([{ id: 12345 }])).toBe(false);
+		expect(runeOfReOriginationEquipped([])).toBeNull();
 	});
 });
 

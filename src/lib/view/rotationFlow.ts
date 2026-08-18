@@ -12,7 +12,7 @@
 // Rushing Jade Wind without mounting it.
 
 import { LADDER_ENTRIES, type AplRuleKey, type Band } from '~/lib/spec/apl';
-import type { CastRow } from '~/lib/types';
+import type { CastRow, GearSlot } from '~/lib/types';
 
 /**
  * One button on a rung.
@@ -44,6 +44,8 @@ interface Branch {
 	key: string;
 	id: number;
 	gate?: 'targets' | 'always';
+	/** Whether this branch requires the Rune of Re-Origination. */
+	rune?: boolean;
 	/** The bands this branch is the one that fires in. Omitted means all four. */
 	bands?: readonly Band[];
 }
@@ -100,8 +102,8 @@ const PRELUDE: readonly Rung[] = [
 		// branch on it. The one fork on this page the whole report turns on.
 		fork: 'tigereyeBrew',
 		branches: [
-			{ key: 'tigereyeBrewRune', id: 1247275, gate: 'always' },
-			{ key: 'tigereyeBrewBank', id: 1247275, gate: 'always' },
+			{ key: 'tigereyeBrewRune', id: 1247275, gate: 'always', rune: true },
+			{ key: 'tigereyeBrewBank', id: 1247275, gate: 'always', rune: false },
 		],
 	},
 	{ entry: { key: 'energizingBrew', id: 115288 } }, // 15
@@ -213,6 +215,15 @@ const TALENT_ROWS: readonly (readonly number[])[] = [
 	[115098, 124081, 123986], // 30: Chi Wave / Zen Sphere / Chi Burst
 	[116847, 123904], // 90: Rushing Jade Wind / Invoke Xuen
 ];
+
+/** Every item version that supplies the Rune of Re-Origination in Mists Classic. */
+const RUNE_OF_REORIGINATION_ITEMS = new Set([95802, 94532, 96546, 96174, 96918]);
+
+/** Whether the reported gear contains the Rune, or null when gear was not reported at all. */
+export function runeOfReOriginationEquipped(slots: readonly Pick<GearSlot, 'id'>[]): boolean | null {
+	if (slots.length === 0) return null;
+	return slots.some((slot) => RUNE_OF_REORIGINATION_ITEMS.has(slot.id));
+}
 
 /**
  * Buttons that cannot be on one bar, and therefore the only evidence this section will act on.
@@ -328,6 +339,8 @@ export interface RotationFlowInput {
 	 */
 	band: Band | null;
 	pressed: ReadonlySet<number>;
+	/** Whether the Rune is equipped; null or omitted keeps both branches when gear cannot say. */
+	rune?: boolean | null;
 }
 
 /**
@@ -337,13 +350,18 @@ export interface RotationFlowInput {
  * once the band or the talent row has decided between the alternatives there is no longer a choice to
  * frame, and "which of the three you took" above a single answer reads as a bug.
  */
-export function rotationFlow({ band, pressed }: RotationFlowInput): readonly FlowSlot[] {
+export function rotationFlow({ band, pressed, rune = null }: RotationFlowInput): readonly FlowSlot[] {
 	const hidden = excludedButtons(pressed);
 	const slots: FlowSlot[] = [];
 
 	for (const rung of RUNGS) {
 		const branches = 'entry' in rung ? [rung.entry] : rung.branches;
-		const live = branches.filter((b) => !hidden.has(b.id) && (band === null || (b.bands ?? ALL_BANDS).includes(band)));
+		const live = branches.filter(
+			(b) =>
+				!hidden.has(b.id) &&
+				(band === null || (b.bands ?? ALL_BANDS).includes(band)) &&
+				(b.rune === undefined || rune === null || b.rune === rune),
+		);
 		// A `targets` chip is dropped once the reader has fixed a count: the note above the flow already
 		// says which one, and repeating it on nine rungs buries the two chips that still mean something.
 		const entries = live.map((b) => ({

@@ -31,6 +31,7 @@ import {
 	SnapshotTable,
 	SpecRefusal,
 	StormEarthAndFire,
+	SummaryWarning,
 	Takeaways,
 	TigerPalm,
 	TouchOfKarma,
@@ -275,6 +276,7 @@ export default function Report({ analysis, targetChoice }: { analysis: Analysis;
 				    than by a string of its own, so there is one name for it and not two. */}
 					<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
 						<ReportHeader analysis={analysis} />
+						<SummaryWarning analysis={analysis} />
 						<KpiTiles analysis={analysis} />
 						{/* Derived from the same scorecard every section below reads, so the short list at the top
 					    cannot drift out of agreement with the detail underneath it. */}

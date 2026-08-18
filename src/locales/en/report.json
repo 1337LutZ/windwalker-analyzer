@@ -872,6 +872,16 @@
   },
   "summary": {
     "title": "Summary",
+    "warning": {
+      "runeMissing": {
+        "title": "Rune of Re-Origination not detected",
+        "body": "You did wear detect Rune of Re-Origination during this pul. Please be aware the this trinket is a key of this spec's viability."
+      },
+      "runeNoMastery": {
+        "title": "Check your gems and reforges",
+        "body": "All {{count}} Re-Origination procs converted into {{stat}} instead of Mastery. Check your gems and reforges so Mastery is your highest secondary stat."
+      }
+    },
     "takeaways": {
       "title": "Key improvements",
       "title_good": "Key refinements",

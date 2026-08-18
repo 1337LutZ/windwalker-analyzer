@@ -3,7 +3,13 @@ import { useMemo } from 'react';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import type { Analysis, TargetMode } from '~/lib/types';
 import { bandForMode } from '~/lib/view/targetMode';
-import { CROSSOVERS, flowKeys, pressedButtons, rotationFlow } from '~/lib/view/rotationFlow';
+import {
+	CROSSOVERS,
+	flowKeys,
+	pressedButtons,
+	rotationFlow,
+	runeOfReOriginationEquipped,
+} from '~/lib/view/rotationFlow';
 
 import { Note, Prose, Section } from '../primitives';
 import { FlowChart } from '../rotation';
@@ -23,22 +29,21 @@ import { FlowChart } from '../rotation';
  *
  * It used to render identically for every log, and that was two separate lies. It listed the rungs
  * the priority list only reaches from two enemies up to a reader on a single-target kill, where they
- * cannot fire; and it listed talents as buttons to press at a reader who did not bring them. Both are
- * now filtered, and neither filter is this component's decision — the bands come off `LADDER` through
- * `lib/view/rotationFlow`, and the talent evidence is the mutual exclusion the sim declares.
+ * cannot fire; and it listed talents or Rune-specific branches that did not apply to the reader. All
+ * are now filtered, and neither filter is this component's decision — the bands and equipment evidence
+ * come off `lib/view/rotationFlow`, while talent evidence is the mutual exclusion the sim declares.
  *
  * ## The rungs are a drawing, and the paragraphs are still there
  *
  * A fallthrough chain is a graph and it is now drawn as one — `components/rotation/FlowChart` — which
  * is a reversal of what this file used to argue, so both halves are worth writing down.
  *
- * What was right in the old argument was the obstacle: every rung carries two paragraphs, the
- * condition the list tests and what that condition is protecting, and they average 282 characters
- * together and reach 528 on the Tigereye Brew branches. Nothing that holds 282 characters is a node.
- * What was wrong was the conclusion drawn from it — that the chain therefore has to be a column of
- * cards. The paragraphs do not have to be *in* the node. Each rung now carries a one-line `test`
- * beside its `when` and `why`, the box holds that, and the two paragraphs move a keypress away into a
- * disclosure the box owns. Nothing was cut; `FlowNode` documents the trade in full.
+ * What was right in the old argument was the obstacle: every rung carries a condition and an
+ * explanation, and the longer explanations reach several hundred characters on the Tigereye Brew
+ * branches. Nothing that holds that much text is a node. What was wrong was the conclusion drawn from
+ * it — that the chain therefore has to be a column of cards. The explanation does not have to be *in*
+ * the node. Each rung carries a one-line `test` beside its `when`, and the explanation moves a keypress
+ * away into a disclosure the box owns. Nothing was cut; `FlowNode` documents the trade in full.
  *
  * The mechanical half of the old note survives intact and is why the chart is borders rather than
  * SVG: `charts/ResourceTrack.tsx` records that under `preserveAspectRatio="none"` an SVG `<text>`
@@ -61,16 +66,20 @@ export default function Rotation({ analysis, mode }: { analysis: Analysis; mode?
 	 * null and shows every band, because no basis to choose is not a reason to choose.
 	 */
 	const pressed = useMemo(() => pressedButtons(analysis.casts), [analysis.casts]);
-	const flow = useMemo(() => rotationFlow({ band: bandForMode(mode ?? null), pressed }), [pressed, mode]);
+	const rune = useMemo(() => {
+		const fromGear = runeOfReOriginationEquipped(analysis.gear.slots);
+		return fromGear ?? (analysis.procs.procs > 0 ? true : null);
+	}, [analysis.gear.slots, analysis.procs.procs]);
+	const flow = useMemo(() => rotationFlow({ band: bandForMode(mode ?? null), pressed, rune }), [pressed, rune, mode]);
 
 	/**
 	 * The same list with no reading applied, which is what the index of crossovers is measured against.
 	 *
-	 * Same talent evidence, so the denominator is this reader's list rather than an abstract nineteen —
-	 * a monk the log proves took Rushing Jade Wind has no Spinning Crane Kick rungs at any count, and
-	 * counting them would print a total they can never reach.
+	 * Same talent and equipment evidence, so the denominator is this reader's list rather than an abstract
+	 * nineteen — a monk the log proves took Rushing Jade Wind has no Spinning Crane Kick rungs at any
+	 * count, and a monk without the Rune has no Rune branch to reach.
 	 */
-	const unfiltered = useMemo(() => rotationFlow({ band: null, pressed }), [pressed]);
+	const unfiltered = useMemo(() => rotationFlow({ band: null, pressed, rune }), [pressed, rune]);
 	const drawn = useMemo(() => new Set(flowKeys(flow)), [flow]);
 
 	return (
@@ -146,7 +155,7 @@ export default function Rotation({ analysis, mode }: { analysis: Analysis; mode?
 			    anything, and a reader who has just read why the channel has three conditions is holding
 			    the half of it that makes the other half mean something. */}
 			<div className="mt-6 flex flex-col gap-2.5">
-				<Note>{t('rotation.notes.snapshot')}</Note>
+				{rune === true ? <Note>{t('rotation.notes.snapshot')}</Note> : null}
 				<Note>{t('rotation.notes.channel')}</Note>
 				<Note>{t('rotation.notes.jadeWind')}</Note>
 				<Note>{t('rotation.notes.debuff')}</Note>
