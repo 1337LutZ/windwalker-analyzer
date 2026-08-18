@@ -24,9 +24,23 @@ export function hasCallbackParams(): boolean {
  * in the address bar is one that gets copied into a bug report or a chat message along with the URL.
  * `replaceState` rather than `pushState` so the back button does not walk into a spent code either.
  */
-function stripCallbackParams(): void {
+function stripCallbackParams(restore?: string): void {
 	const url = new URL(window.location.href);
 	for (const key of CALLBACK_PARAMS) url.searchParams.delete(key);
+	// Whatever the visitor arrived with, put back. A shared link carries the report, the fight and
+	// the player, and none of it can travel through `redirect_uri` because WarcraftLogs matches that
+	// byte for byte — so it was stashed before the tab navigated away and is restored here.
+	//
+	// The remembered query is applied first and the surviving ones written over it, so a parameter
+	// that is somehow in both takes the value this page load actually has. Callback keys are stripped
+	// from the remembered copy too: a visitor who hits sign-in while still on a callback URL must not
+	// have a spent code handed back to them.
+	if (restore !== undefined && restore !== '') {
+		const merged = new URLSearchParams(restore);
+		for (const key of CALLBACK_PARAMS) merged.delete(key);
+		for (const [key, value] of url.searchParams) merged.set(key, value);
+		url.search = merged.toString();
+	}
 	const query = url.searchParams.toString();
 	window.history.replaceState(window.history.state, '', `${url.pathname}${query ? `?${query}` : ''}${url.hash}`);
 }
@@ -51,12 +65,12 @@ export async function completeSignIn(): Promise<string | null> {
 	// Before the code is spent and before anything else is read: the state is the only thing standing
 	// between this and a callback URL someone else constructed and got clicked.
 	if (pending === null || returnedState === null || returnedState !== pending.state) {
-		stripCallbackParams();
+		stripCallbackParams(pending?.search);
 		throw new Error('That sign-in did not start in this tab, so it was refused. Start it again from this page.');
 	}
 
 	if (refusal !== null) {
-		stripCallbackParams();
+		stripCallbackParams(pending?.search);
 		throw new Error(
 			refusal === 'access_denied'
 				? 'You cancelled the sign-in at WarcraftLogs. Nothing was shared.'
@@ -64,14 +78,14 @@ export async function completeSignIn(): Promise<string | null> {
 		);
 	}
 	if (code === null) {
-		stripCallbackParams();
+		stripCallbackParams(pending?.search);
 		throw new Error('WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.');
 	}
 
 	// Stripped before the exchange, not after: the exchange is a network round trip, and for its whole
 	// length the code would otherwise be sitting in the address bar of a page the visitor can see,
 	// copy and share.
-	stripCallbackParams();
+	stripCallbackParams(pending?.search);
 
 	const token = await exchangeCode({ code, verifier: pending.verifier });
 	rememberToken({ token, source: 'oauth' });

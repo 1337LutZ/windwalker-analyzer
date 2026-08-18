@@ -43,6 +43,15 @@ const local = (): Storage => localStorage;
 
 const VERIFIER_KEY = 'wcl.pkce.verifier';
 const STATE_KEY = 'wcl.pkce.state';
+/**
+ * The selection the visitor arrived with, carried across the sign-in.
+ *
+ * WarcraftLogs matches `redirect_uri` byte for byte, so the report and fight cannot ride back in
+ * the URL — see the note in `config.redirectUri`. They are stashed here instead, for the same
+ * reason the verifier is: once the tab navigates to the consent screen there is no JavaScript
+ * left alive to remember anything.
+ */
+const RETURN_KEY = 'wcl.pkce.return';
 const TOKEN_KEY = 'wcl.token';
 const SOURCE_KEY = 'wcl.token.source';
 const CLIENT_ID_KEY = 'wcl.clientId';
@@ -50,6 +59,8 @@ const CLIENT_ID_KEY = 'wcl.clientId';
 export interface PendingAuthorization {
 	verifier: string;
 	state: string;
+	/** The query the visitor arrived with, so a shared report link survives the round trip. */
+	search?: string;
 }
 
 /** A token and where it came from, which is what a reload has to restore to describe itself right. */
@@ -58,9 +69,11 @@ export interface StoredToken {
 	source: TokenSource;
 }
 
-export function rememberAuthorization({ verifier, state }: PendingAuthorization): void {
+export function rememberAuthorization({ verifier, state, search }: PendingAuthorization): void {
 	write(session, VERIFIER_KEY, verifier);
 	write(session, STATE_KEY, state);
+	// Only when there is something to carry, so a plain sign-in leaves no key behind.
+	if (search !== undefined && search !== '') write(session, RETURN_KEY, search);
 }
 
 /**
@@ -70,9 +83,12 @@ export function rememberAuthorization({ verifier, state }: PendingAuthorization)
 export function takeAuthorization(): PendingAuthorization | null {
 	const verifier = read(session, VERIFIER_KEY);
 	const state = read(session, STATE_KEY);
+	const search = read(session, RETURN_KEY);
 	write(session, VERIFIER_KEY, null);
 	write(session, STATE_KEY, null);
-	return verifier !== null && state !== null ? { verifier, state } : null;
+	write(session, RETURN_KEY, null);
+	if (verifier === null || state === null) return null;
+	return search === null ? { verifier, state } : { verifier, state, search };
 }
 
 export function readToken(): StoredToken | null {
