@@ -21,13 +21,11 @@
 // primary target, Lightning Shield's stack counter, and Ascendance's cooldown clock (via the
 // engine's `offLadderCooldowns`, because Ascendance is off-GCD and off the ladder).
 
-import { cooldownDrift } from '~/lib/analysis/cooldowns';
 import { auraLevels, auraWindows, inWindow, levelWindows, remainingIn, toIntervals } from '~/lib/analysis/auras';
 import { mergeIntervals, type Interval } from '~/lib/analysis/intervals';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
 import type { Analysis, AuraLane, ElementalAuditResult, FightDataset, Miss, WclEvent, Window } from '~/lib/types';
-import { clampSettings } from '~/lib/settings';
 import { abilityIdOf, isAuraEvent } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
@@ -35,7 +33,6 @@ import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
 import type { Ability, Aura, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
-import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
@@ -88,7 +85,6 @@ const FS_REFRESH_MAX_MS = 7500;
 
 /** The sim's own thresholds, written where the audit reads them: rules 12, 13 and 18 of the p5 list. */
 const FS_ASC_PREP_MS = 16_000;
-const FS_LB_GATE_MS = 2000;
 const ES_FS_MIN_MS = 6000;
 const ES_ASC_HOLD_SEC = 6;
 
@@ -402,7 +398,6 @@ export const ELEMENTAL: GameData = { abilities: ABILITIES, auras: AURAS };
 export const registry = createRegistry(ELEMENTAL);
 
 const FLAME_SHOCK = registry.ability('flame-shock');
-const LAVA_BURST = registry.ability('lava-burst');
 const EARTH_SHOCK = registry.ability('earth-shock');
 const SEARING_TOTEM = registry.ability('searing-totem');
 const ASCENDANCE = registry.ability('ascendance');
@@ -584,10 +579,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		link,
 		selfEvents,
 		castTimes,
-		castCount,
 		primaryID,
 		primaryName,
-		engaged,
 		engagedMs,
 		marks,
 		aplTargetCountAt,
