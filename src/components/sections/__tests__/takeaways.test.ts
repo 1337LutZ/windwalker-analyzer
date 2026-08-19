@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { initI18n } from '~/lib/i18n/config';
-import { scoreAnalysis } from '~/lib/score';
+import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
 import Takeaways from '../Takeaways';
@@ -16,7 +16,7 @@ import Takeaways from '../Takeaways';
 initI18n();
 
 const fixture = (name: string): Analysis =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
+	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
 
 /**
  * The card headings, which are the only part of the block that names a metric.

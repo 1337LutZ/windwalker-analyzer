@@ -43,8 +43,9 @@ export interface CooldownDrift {
  * longer than it is a press that landed late, not a cooldown that was held, and it is dropped whole.
  * Whole, and not shortened — a longer wait is still charged from the moment the button came back, so
  * widening the window forgives short waits without ever discounting a long one. The report passes the
- * clamped setting on every call; the default here is `COOLDOWN_LEEWAY.default` restated so that a
- * direct caller gets the behaviour the report ships rather than a stricter one nothing uses.
+ * clamped setting on every call; the default here is the `cooldownLeewayMs` entry of `WW_SETTINGS`
+ * restated so that a direct caller gets the behaviour the report ships rather than a stricter one
+ * nothing uses.
  */
 export function cooldownDrift(
 	times: readonly number[],

@@ -10,6 +10,7 @@ describe('report URL state', () => {
 			code: 'ExampleCode12345',
 			fightID: 30,
 			player: 'Examplemonk',
+			spec: null,
 		});
 	});
 
@@ -22,8 +23,17 @@ describe('report URL state', () => {
 	});
 
 	it('treats missing and empty params as unset', () => {
-		expect(parse('')).toEqual({ code: null, fightID: null, player: null });
-		expect(parse('?report=&fight=&player=')).toEqual({ code: null, fightID: null, player: null });
+		expect(parse('')).toEqual({ code: null, fightID: null, player: null, spec: null });
+		expect(parse('?report=&fight=&player=&spec=')).toEqual({
+			code: null,
+			fightID: null,
+			player: null,
+			spec: null,
+		});
+	});
+
+	it('reads the spec key the registry owns', () => {
+		expect(parse('?report=abc&spec=windwalker').spec).toBe('windwalker');
 	});
 
 	it('ignores a non-numeric fight rather than passing NaN downstream', () => {
@@ -37,7 +47,7 @@ describe('report URL state', () => {
 	it('has no notion of a token', () => {
 		const parsed = parse('?report=abc&token=SECRET&access_token=SECRET');
 		expect(JSON.stringify(parsed)).not.toContain('SECRET');
-		expect(Object.keys(parsed)).toEqual(['code', 'fightID', 'player']);
+		expect(Object.keys(parsed)).toEqual(['code', 'fightID', 'player', 'spec']);
 	});
 });
 

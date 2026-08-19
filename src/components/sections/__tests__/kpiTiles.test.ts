@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Analysis } from '~/lib/types';
 
-import { scoreAnalysis } from '~/lib/score';
+import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 
 import KpiTiles from '../KpiTiles';
 
@@ -22,7 +22,7 @@ function gradeOf(analysis: Analysis, key: string) {
 }
 
 const fixture = (name: string): Analysis =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
+	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
 
 const render = (analysis: Analysis) => renderToStaticMarkup(createElement(KpiTiles, { analysis }));
 

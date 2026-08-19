@@ -1,5 +1,5 @@
-// There is exactly one spec: Windwalker Monk, MoP Classic. No registry of specs, no plug-in
-// interface — a second one would be a second file exporting its own `analyse`, and the indirection
-// that used to sit here bought nothing but a level of misdirection between the UI and the engine.
+// The specs this app can analyse. The registry is the only list: a new spec is one entry here plus
+// its own module in its own folder beside `windwalker/`.
 
-export { analyse, registry, WINDWALKER } from './windwalker';
+export * from './registry';
+export { analyse, registry, WINDWALKER } from '~/specs/windwalker';

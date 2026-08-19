@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { Analysis } from '~/lib/types';
 import type { TargetModeChoice } from '~/lib/view/targetMode';
+import { DEFAULT_SPEC } from '~/lib/spec';
 
 import Report from './Report';
 import TargetModeControl from './report/TargetModeControl';
@@ -37,7 +38,7 @@ export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string,
 			{analysis ? (
 				<>
 					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
-					<Report key={name} analysis={analysis} targetChoice={targetChoice} />
+					<Report key={name} analysis={analysis} targetChoice={targetChoice} spec={DEFAULT_SPEC} />
 				</>
 			) : null}
 		</div>

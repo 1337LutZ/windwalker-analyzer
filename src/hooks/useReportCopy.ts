@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 import '~/lib/i18n';
 import type { Grade, Scorecard } from '~/lib/score';
-import { scoreAnalysis } from '~/lib/score';
+import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Analysis, TargetMode } from '~/lib/types';
 
 import { TargetModeContext } from '~/components/report/targetModeContext';

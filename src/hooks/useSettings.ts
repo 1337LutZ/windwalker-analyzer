@@ -6,21 +6,23 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import type { AnalysisSettings } from '~/lib/settings';
-import { DEFAULT_SETTINGS, readSettings, writeSettings } from '~/lib/settings';
+import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
+import { defaultSettings, readSettings, writeSettings } from '~/lib/settings';
 
 export interface SettingsState {
 	settings: AnalysisSettings;
 	save: (next: AnalysisSettings) => void;
 	reset: () => void;
+	/** The spec's declared thresholds, for the panel to render. */
+	schema: SettingSchema[];
 }
 
-export function useSettings(): SettingsState {
+export function useSettings(schema: SettingSchema[]): SettingsState {
 	// Not a lazy initialiser: `localStorage` does not exist while Astro prerenders this island, and
 	// the first client render has to match the server's or React discards the tree.
-	const [settings, setSettings] = useState<AnalysisSettings>(DEFAULT_SETTINGS);
+	const [settings, setSettings] = useState<AnalysisSettings>(() => defaultSettings(schema));
 
-	useEffect(() => setSettings(readSettings()), []);
+	useEffect(() => setSettings(readSettings(schema)), [schema]);
 
 	const save = useCallback((next: AnalysisSettings) => {
 		writeSettings(next);
@@ -28,9 +30,9 @@ export function useSettings(): SettingsState {
 	}, []);
 
 	const reset = useCallback(() => {
-		writeSettings(DEFAULT_SETTINGS);
-		setSettings(DEFAULT_SETTINGS);
-	}, []);
+		writeSettings(defaultSettings(schema));
+		setSettings(defaultSettings(schema));
+	}, [schema]);
 
-	return { settings, save, reset };
+	return { settings, save, reset, schema };
 }

@@ -55,11 +55,14 @@ export default function ResourceChart({
 	mode,
 	smooth,
 	wastedLegend,
+	color,
 }: {
 	curve: ResourceCurve;
 	durationMs: number;
 	/** The bar's own colour: its stroke, the wash under it, and the solid swatch that names it. */
 	tone: Tone;
+	/** The spec's own bar colour, drawn inline over the tone when given — the reports' bars are their spec's. */
+	color?: string;
 	/** What the bar is, in the key. */
 	legend: string;
 	/** The whole chart in a sentence, for a reader who cannot see it. */
@@ -77,11 +80,14 @@ export default function ResourceChart({
 	 */
 	wastedLegend?: string;
 }) {
+	const stroke = color ?? VAR[tone];
 	return (
 		<ChartFigure
 			caption={
 				<>
-					<ChartKey tone={tone}>{legend}</ChartKey>
+					<ChartKey tone={tone} color={color}>
+						{legend}
+					</ChartKey>
 					{bands.map((band) => (
 						<ChartKey key={band.tone} tone={band.tone} band>
 							{band.legend}
@@ -99,10 +105,10 @@ export default function ResourceChart({
 					durationMs={durationMs}
 					mode={mode}
 					smooth={smooth}
-					stroke={VAR[tone]}
+					stroke={stroke}
 					// The area under the line, at the strength every one of these charts already washed it:
 					// enough to read the shape off, faint enough that a band shaded behind it still shows.
-					fill={`color-mix(in oklch, ${VAR[tone]} 18%, transparent)`}
+					fill={`color-mix(in oklch, ${stroke} 18%, transparent)`}
 					// The tone doubles as the shade's identity, which `ResourceTrack` uses to key its rects.
 					// A chart never draws two bands in one colour — that would be two meanings claiming the
 					// same swatch, which is the failure this whole module is about.

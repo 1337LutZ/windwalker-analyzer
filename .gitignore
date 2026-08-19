@@ -22,3 +22,6 @@ src/lib/__fixtures__/analysis.json
 # `wrangler pages dev dist` writes temp JavaScript here while exercising `public/_headers`, and
 # oxlint then fails on files nobody wrote.
 .wrangler/
+
+# Claude Code worktrees live under .claude/worktrees/ and must never be tracked.
+.claude/worktrees/

@@ -6,8 +6,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
+import { RESOURCE_TYPE } from '~/lib/game/resources';
 
-import { POWER_TYPE, cappedIntervals, regenPerSecond, resourceSamples, trackResourceBar } from '../energy';
+import { cappedIntervals, regenPerSecond, resourceSamples, trackResourceBar, wclPowerTypeOf } from '../energy';
 import type { ResourceSample } from '../energy';
 
 const T0 = 100_000;
@@ -35,14 +36,14 @@ const sampled = (
 		resourceActor: 1,
 		classResources: [
 			{
-				type: POWER_TYPE.energy,
+				type: wclPowerTypeOf(RESOURCE_TYPE.energy),
 				amount,
 				max: over.max ?? 100,
 				...(over.cost === undefined ? {} : { cost: over.cost }),
 			},
 			// Chi rides along on the same array, which is the shape that would let a careless read
 			// answer with the wrong bar.
-			{ type: POWER_TYPE.chi, amount: over.chi ?? 2, max: 4 },
+			{ type: wclPowerTypeOf(RESOURCE_TYPE.chi), amount: over.chi ?? 2, max: 4 },
 		],
 	}) as unknown as WclEvent;
 
@@ -51,19 +52,19 @@ const s = (t: number, amount: number, cost = 0, max = 100): ResourceSample => ({
 
 describe('resourceSamples', () => {
 	it('reads the asked-for bar and not whichever came first in the array', () => {
-		const out = resourceSamples([sampled(0, 73, { chi: 3 })], POWER_TYPE.energy, ME, T0);
+		const out = resourceSamples([sampled(0, 73, { chi: 3 })], wclPowerTypeOf(RESOURCE_TYPE.energy), ME, T0);
 		expect(out).toEqual([{ t: 0, amount: 73, max: 100, cost: 0 }]);
-		expect(resourceSamples([sampled(0, 73, { chi: 3 })], POWER_TYPE.chi, ME, T0)[0]?.amount).toBe(3);
+		expect(resourceSamples([sampled(0, 73, { chi: 3 })], wclPowerTypeOf(RESOURCE_TYPE.chi), ME, T0)[0]?.amount).toBe(3);
 	});
 
 	it('makes timestamps fight-relative', () => {
-		expect(resourceSamples([sampled(4200, 40)], POWER_TYPE.energy, ME, T0)[0]?.t).toBe(4200);
+		expect(resourceSamples([sampled(4200, 40)], wclPowerTypeOf(RESOURCE_TYPE.energy), ME, T0)[0]?.t).toBe(4200);
 	});
 
 	/** A pet's bar is not the player's, and `sourceID` is not the field that says whose it is. */
 	it('takes the bar belonging to the actor asked about', () => {
 		const events = [sampled(0, 10, { actor: 99 }), sampled(1000, 60)];
-		expect(resourceSamples(events, POWER_TYPE.energy, ME, T0).map((x) => x.amount)).toEqual([60]);
+		expect(resourceSamples(events, wclPowerTypeOf(RESOURCE_TYPE.energy), ME, T0).map((x) => x.amount)).toEqual([60]);
 	});
 
 	/**
@@ -72,11 +73,13 @@ describe('resourceSamples', () => {
 	 */
 	it('comes back empty when the events carry no resources at all', () => {
 		const bare = { timestamp: T0, type: 'cast', sourceID: ME, abilityGameID: 100787 } as WclEvent;
-		expect(resourceSamples([bare], POWER_TYPE.energy, ME, T0)).toEqual([]);
+		expect(resourceSamples([bare], wclPowerTypeOf(RESOURCE_TYPE.energy), ME, T0)).toEqual([]);
 	});
 
 	it('keeps the cost, which is what makes the reading pre-spend', () => {
-		expect(resourceSamples([sampled(0, 100, { cost: 40 })], POWER_TYPE.energy, ME, T0)[0]?.cost).toBe(40);
+		expect(
+			resourceSamples([sampled(0, 100, { cost: 40 })], wclPowerTypeOf(RESOURCE_TYPE.energy), ME, T0)[0]?.cost,
+		).toBe(40);
 	});
 });
 

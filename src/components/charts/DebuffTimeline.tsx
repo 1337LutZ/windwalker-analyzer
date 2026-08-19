@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { complementOf, intersect, type Interval } from '~/lib/analysis/intervals';
 import { formatStamp } from '~/lib/format';
-import { DROP_MS } from '~/lib/spec/windwalker';
+import { DROP_MS } from '~/specs/windwalker/lib';
 import type { Analysis } from '~/lib/types';
 
 import { sec } from '../format';

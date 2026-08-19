@@ -188,6 +188,19 @@ npm run preview  # serve dist/ as it will be served in production
 The dev server serves under the `/windwalker-analyzer` base path, same as production, so links and
 asset URLs behave identically in both.
 
+### Environment
+
+Environment is read two ways, and only one of them reads `.env`:
+
+- **`PUBLIC_SPEC`** — the registry key of the spec a build defaults to — is read by the app as
+  `import.meta.env.PUBLIC_SPEC`, Astro's `.env`-loaded channel. A local `.env` re-points
+  `npm run dev` at another spec (today `windwalker` is the only registered key).
+- **`SITE_URL` and `BASE_PATH`** are read by `astro.config.mjs` from the real process environment
+  (`process.env`), **not** from `.env` — export them in the shell instead (`SITE_URL=… npm run build`).
+
+Copy `.env.example` to `.env` for the documented templates. `.env` is gitignored, so none of this
+reaches CI — the deploy reads its environment from the workflow files, not from here.
+
 ## Deployment
 
 Pushing to `main` runs `.github/workflows/cloudflare.yml`: `npm ci`, `npm run check`, `npm test`,
@@ -221,12 +234,21 @@ The workflow deletes `src/pages/preview.astro` before building. That page is a d
 that renders committed fixtures, and removing it also removes the only import of that data, so none
 of it is bundled into the published site. It stays available in `npm run dev`.
 
+The spec a deployment serves is set by `PUBLIC_SPEC` in the workflow, and the registry's
+`DEFAULT_SPEC` reads it: the settings schema, the sections and the page branding all follow the
+pinned spec. The URL's own `?spec=` still wins at runtime, so a build that ships every spec keeps
+route-based selection. To serve one spec from its own host, deploy with `PUBLIC_SPEC` set and a
+matching `SITE_URL`.
+
 `site` and `base` come from the `SITE_URL` and `BASE_PATH` environment variables, defaulting to the
 Cloudflare Pages domain at its root. `.github/workflows/deploy.yml` publishes to GitHub Pages
 instead and sets both, because a project site there is served under `/<repo>/` and an unprefixed
 build 404s every asset. It is manual-only (`workflow_dispatch`): two hosts publishing the same
 commit means two live copies, and only one of them can hold the redirect URI registered with
 WarcraftLogs.
+
+These are read from the workflow's own environment — a `.env` file never reaches the CI build
+(see _Running it locally → Environment_).
 
 **Moving the site means re-registering the redirect URI.** OAuth redirects back to
 `window.location`, and WarcraftLogs matches it byte for byte; a URL that is not registered fails as

@@ -9,6 +9,7 @@ import type { Analysis, ProcWindow } from '~/lib/types';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
 
+import { DEFAULT_SPEC } from '~/lib/spec';
 import Report from '../Report';
 import { parseReportInput } from '../report/parseReportInput';
 
@@ -459,7 +460,9 @@ describe('parseReportInput', () => {
 
 describe('Report', () => {
 	it('renders every section', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: base, targetChoice: 'auto' }));
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: base, targetChoice: 'auto', spec: DEFAULT_SPEC }),
+		);
 		// Asserted through the locale rather than as literal headings. Section titles are copy now, so
 		// spelling them out here would mean every wording change breaks a test that is really about
 		// whether all the sections mounted — and the obvious "fix" would be to paste the new wording
@@ -484,7 +487,7 @@ describe('Report', () => {
 
 	it('refuses to render for the wrong spec', () => {
 		const html = renderToStaticMarkup(
-			createElement(Report, { analysis: { ...base, isSpec: false }, targetChoice: 'auto' }),
+			createElement(Report, { analysis: { ...base, isSpec: false }, targetChoice: 'auto', spec: DEFAULT_SPEC }),
 		);
 		expect(html).toContain('was not Windwalker');
 		expect(html).not.toContain('Miss ledger');
@@ -512,7 +515,9 @@ describe('Report', () => {
 			filler: { ...base.filler, castList: [] },
 			comboBreaker: [],
 		};
-		expect(() => renderToStaticMarkup(createElement(Report, { analysis: empty, targetChoice: 'auto' }))).not.toThrow();
+		expect(() =>
+			renderToStaticMarkup(createElement(Report, { analysis: empty, targetChoice: 'auto', spec: DEFAULT_SPEC })),
+		).not.toThrow();
 	});
 
 	/**
@@ -552,6 +557,7 @@ describe('Report', () => {
 					procs: { ...base.procs, weaved: 1, unholdable: 1, windows: [...base.procs.windows, weaved] },
 				},
 				targetChoice: 'auto',
+				spec: DEFAULT_SPEC,
 			}),
 		);
 		expect(html).toContain(t('snapshots.weaved', { count: 1, stat: 'Haste', held: 'Mastery' }));
@@ -561,7 +567,9 @@ describe('Report', () => {
 
 	/** And a key for a colour the chart never drew sends the reader hunting for it. */
 	it('says nothing about weaving on a pull that did not weave', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: base, targetChoice: 'auto' }));
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: base, targetChoice: 'auto', spec: DEFAULT_SPEC }),
+		);
 		expect(html).not.toContain(t('snapshots.key.unholdable'));
 	});
 });

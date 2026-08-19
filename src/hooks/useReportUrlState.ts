@@ -18,21 +18,25 @@ export interface UrlSelection {
 	code: string | null;
 	fightID: number | null;
 	player: string | null;
+	/** The registry's own key — what `getSpec` reads. Absent means the default spec. */
+	spec: string | null;
 }
 
-const EMPTY: UrlSelection = { code: null, fightID: null, player: null };
+const EMPTY: UrlSelection = { code: null, fightID: null, player: null, spec: null };
 
-const PARAM = { code: 'report', fight: 'fight', player: 'player' } as const;
+const PARAM = { code: 'report', fight: 'fight', player: 'player', spec: 'spec' } as const;
 
 function parse(search: string): UrlSelection {
 	const params = new URLSearchParams(search);
 	const code = params.get(PARAM.code);
 	const fight = params.get(PARAM.fight);
 	const player = params.get(PARAM.player);
+	const spec = params.get(PARAM.spec);
 	return {
 		code: code !== null && code !== '' ? code : null,
 		fightID: fight !== null && /^\d+$/.test(fight) ? Number(fight) : null,
 		player: player !== null && player !== '' ? player : null,
+		spec: spec !== null && spec !== '' ? spec : null,
 	};
 }
 
@@ -79,6 +83,7 @@ export function useUrlSelectionWriter(): (selection: UrlSelection) => void {
 		set(PARAM.code, selection.code);
 		set(PARAM.fight, selection.fightID === null ? null : String(selection.fightID));
 		set(PARAM.player, selection.player);
+		set(PARAM.spec, selection.spec);
 		// `URL` percent-encodes for us, which matters: anonymous reports name players `Player (17)`,
 		// and the parentheses and space have to survive the round trip.
 		window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
