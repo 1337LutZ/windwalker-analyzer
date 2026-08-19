@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { scoreAnalysis } from '~/lib/score';
+import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
 import i18n, { initI18n } from '../config';
@@ -10,7 +10,9 @@ import i18n, { initI18n } from '../config';
 initI18n();
 
 function fixture(name: string): Analysis {
-	return JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'));
+	return JSON.parse(
+		readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'),
+	);
 }
 
 const t = i18n.getFixedT('en', 'report');

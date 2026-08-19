@@ -19,6 +19,11 @@ env:
   # Named once. It has to match the Cloudflare project and the `site` the build was made for, and
   # `windwalker-analyzer.pages.dev` is derived from it.
   PROJECT_NAME: windwalker-analyzer
+  # The spec this deployment serves. Astro inlines `PUBLIC_SPEC` at build time and the registry's
+  # `DEFAULT_SPEC` reads it, so every default in the page follows it. A spec-specific deployment
+  # sets it here (or overrides it in the step's `env:`); the URL's own `?spec=` still wins at
+  # runtime, which is how a multi-spec build keeps working.
+  PUBLIC_SPEC: windwalker
 
 jobs:
   deploy:

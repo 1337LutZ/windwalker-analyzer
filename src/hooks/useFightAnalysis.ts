@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import type { AnalysisSettings } from '~/lib/settings';
-import { analyse } from '~/lib/spec/windwalker';
+import type { SpecDefinition } from '~/lib/spec';
 import type { Analysis, FightDataset } from '~/lib/types';
 import {
 	WclClient,
@@ -50,6 +50,7 @@ export function useFightAnalysis(
 	token: string | null,
 	request: AnalysisRequest | null,
 	settings: AnalysisSettings,
+	spec: SpecDefinition,
 ): FightAnalysisResult {
 	const queryKey = ['wcl', 'fight-analysis', request?.code, request?.fightID, request?.playerName];
 	const key = queryKey.join('|');
@@ -108,10 +109,11 @@ export function useFightAnalysis(
 	});
 
 	// Re-read when the fight changes or a threshold does, and at no other time: reading a long pull is
-	// synchronous and blocks the main thread, so it must not run on every unrelated render.
+	// synchronous and blocks the main thread, so it must not run on every unrelated render. The spec
+	// owns the reading — `analyse` is the engine's entry point in the registry.
 	const analysis = useMemo(
-		() => (query.data === undefined ? null : analyse(query.data, settings)),
-		[query.data, settings],
+		() => (query.data === undefined ? null : spec.analyse(query.data, settings)),
+		[query.data, settings, spec],
 	);
 
 	return {

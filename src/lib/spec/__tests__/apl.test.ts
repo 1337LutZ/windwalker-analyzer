@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CastMark, ResourceCurve, Window } from '~/lib/types';
 
 import { aplAudit, type AplInputs } from '../apl';
+import { LADDER } from '~/specs/windwalker/lib/apl';
 
 /**
  * The ladder is the one part of this report that can call a specific press a mistake, so what it
@@ -59,7 +60,7 @@ describe('the priority ladder', () => {
 		// This used to return null on the grounds that the ladder was the single-target list. It is not:
 		// the APL bands on target count, so a wave fight gets judged against what the list wanted during
 		// the waves. Refusing it meant a Galakras pull got no priority section at all.
-		const audit = aplAudit(inputs({ targetsAt: () => 4, casts: [press(1000, ID.jab)] }));
+		const audit = aplAudit(inputs({ targetsAt: () => 4, casts: [press(1000, ID.jab)] }), LADDER);
 		expect(audit).not.toBeNull();
 		expect(audit?.presses).toHaveLength(1);
 	});
@@ -67,7 +68,7 @@ describe('the priority ladder', () => {
 	it('refuses a log with no resource readings', () => {
 		// Not an empty audit: "no mistakes" and "could not tell" are different answers, and a pull
 		// fetched without `includeResources` has to produce the second one.
-		expect(aplAudit(inputs({ chi: { max: 4, points: [] }, casts: [press(1000, ID.jab)] }))).toBeNull();
+		expect(aplAudit(inputs({ chi: { max: 4, points: [] }, casts: [press(1000, ID.jab)] }), LADDER)).toBeNull();
 	});
 
 	/**
@@ -89,6 +90,7 @@ describe('the priority ladder', () => {
 				chi: { max: 4, points: [[5000, 3]] },
 				casts: [press(1000, ID.blackoutKick)],
 			}),
+			LADDER,
 		);
 
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'unknown', wanted: null });
@@ -102,6 +104,7 @@ describe('the priority ladder', () => {
 				chi: { max: 4, points: [[0, 3]] },
 				casts: [press(1000, ID.blackoutKick)],
 			}),
+			LADDER,
 		);
 
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick-filler' });
@@ -127,7 +130,7 @@ describe('the priority ladder', () => {
 		};
 
 		// A measured rate: a tenth of a second from the cap, which is the overflow entry 31 spends.
-		const measured = aplAudit(inputs({ ...base, regenPerSec: 10 }));
+		const measured = aplAudit(inputs({ ...base, regenPerSec: 10 }), LADDER);
 		expect(measured?.presses[1]).toMatchObject({
 			verdict: 'skipped',
 			wanted: 'rushing-jade-wind',
@@ -136,7 +139,7 @@ describe('the priority ladder', () => {
 
 		// The same pull with nothing to measure the rate from. It used to read as zero seconds to cap,
 		// which is the strongest possible form of the same claim, and named the wind at that global too.
-		const unmeasured = aplAudit(inputs({ ...base, regenPerSec: 0 }));
+		const unmeasured = aplAudit(inputs({ ...base, regenPerSec: 0 }), LADDER);
 		expect(unmeasured?.presses[1]).toMatchObject({ verdict: 'unknown', wanted: null });
 	});
 
@@ -148,13 +151,13 @@ describe('the priority ladder', () => {
 	 * same cost, same cooldown, a different rule key — which is why these cases name the filler.
 	 */
 	it('names Rising Sun Kick when a lower button was pressed with the chi to afford it', () => {
-		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.jab)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.jab)] }), LADDER);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick-filler' });
 		expect(audit?.skippedBy).toEqual([{ key: 'rising-sun-kick-filler', id: ID.risingSunKick, count: 1 }]);
 	});
 
 	it('counts the same press as followed when it is the button the list wanted', () => {
-		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.risingSunKick)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.risingSunKick)] }), LADDER);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'rising-sun-kick-filler' });
 		expect(audit?.followed).toBe(1);
 		expect(audit?.skipped).toBe(0);
@@ -162,32 +165,41 @@ describe('the priority ladder', () => {
 
 	it('names entry 18 instead once there is a second target', () => {
 		// The other side of that gate, and the only difference between the two readings of this press.
-		const audit = aplAudit(inputs({ targetsAt: () => 2, chi: flat(4, 2), casts: [press(5000, ID.risingSunKick)] }));
+		const audit = aplAudit(
+			inputs({ targetsAt: () => 2, chi: flat(4, 2), casts: [press(5000, ID.risingSunKick)] }),
+			LADDER,
+		);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'rising-sun-kick' });
 	});
 
 	it('stops demanding Rising Sun Kick while it is on cooldown', () => {
 		// Eight seconds, from the sim's own spell config. The second press is inside it.
-		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)] }));
+		const audit = aplAudit(
+			inputs({ chi: flat(4, 2), casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)] }),
+			LADDER,
+		);
 		expect(audit?.presses[1]?.wanted).not.toBe('rising-sun-kick-filler');
 	});
 
 	it('demands it again once the cooldown is up', () => {
-		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(1000, ID.risingSunKick), press(9500, ID.jab)] }));
+		const audit = aplAudit(
+			inputs({ chi: flat(4, 2), casts: [press(1000, ID.risingSunKick), press(9500, ID.jab)] }),
+			LADDER,
+		);
 		expect(audit?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'rising-sun-kick-filler' });
 	});
 
 	it('never demands a button the player could not pay for', () => {
 		// One chi is not two. A kick that could not be cast is a resource problem, not a priority
 		// mistake, and the sections that argue about energy and chi are where it belongs.
-		const audit = aplAudit(inputs({ chi: flat(4, 1), casts: [press(5000, ID.jab)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 1), casts: [press(5000, ID.jab)] }), LADDER);
 		expect(audit?.presses[0]?.wanted).not.toBe('rising-sun-kick-filler');
 	});
 
 	it('knocks a point off the cost when the tier-16 four-piece is worn', () => {
 		const one = { chi: flat(4, 1), casts: [press(5000, ID.jab)] };
-		expect(aplAudit(inputs(one))?.presses[0]?.wanted).not.toBe('rising-sun-kick-filler');
-		expect(aplAudit(inputs({ ...one, chiCostReduction: 1 }))?.presses[0]).toMatchObject({
+		expect(aplAudit(inputs(one), LADDER)?.presses[0]?.wanted).not.toBe('rising-sun-kick-filler');
+		expect(aplAudit(inputs({ ...one, chiCostReduction: 1 }), LADDER)?.presses[0]).toMatchObject({
 			verdict: 'skipped',
 			wanted: 'rising-sun-kick-filler',
 		});
@@ -200,7 +212,7 @@ describe('the priority ladder', () => {
 	 * "never up, therefore always needs refreshing" would flag a correct press on every global.
 	 */
 	it('says nothing at all when Tiger Power is missing from the log', () => {
-		const audit = aplAudit(inputs({ chi: flat(4, 1), auras: {}, casts: [press(5000, ID.jab)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 1), auras: {}, casts: [press(5000, ID.jab)] }), LADDER);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'unknown', wanted: null });
 		expect(audit?.unknown).toBe(1);
 	});
@@ -208,7 +220,7 @@ describe('the priority ladder', () => {
 	it('does not hold an unknown against the very button it is unsure about', () => {
 		// The refresh rule cannot be evaluated, but the press *is* Tiger Palm — whatever the answer was,
 		// pressing it cannot have been the mistake the unknown is hiding.
-		const audit = aplAudit(inputs({ chi: flat(4, 1), auras: {}, casts: [press(5000, ID.tigerPalm)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 1), auras: {}, casts: [press(5000, ID.tigerPalm)] }), LADDER);
 		expect(audit?.presses[0]?.verdict).toBe('followed');
 	});
 
@@ -220,6 +232,7 @@ describe('the priority ladder', () => {
 				auras: { 'tiger-power': [{ start: 0, end: 5500 }] },
 				casts: [press(5000, ID.jab)],
 			}),
+			LADDER,
 		);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'tiger-palm-refresh' });
 	});
@@ -231,6 +244,7 @@ describe('the priority ladder', () => {
 				auras: { 'tiger-power': throughout, 'combo-breaker-blackout-kick': throughout },
 				casts: [press(5000, ID.jab)],
 			}),
+			LADDER,
 		);
 		// No chi at all, and the proc still wins: the press costs nothing, which is the whole point of it.
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'combo-breaker-kick' });
@@ -240,23 +254,23 @@ describe('the priority ladder', () => {
 		// Chi Wave sits above Jab, and its condition is satisfied here — but a player who did not take
 		// it cannot press it, and this report cannot read a talent tree.
 		const withRoom = { energy: flat(100, 0), chi: flat(4, 0), casts: [press(5000, ID.jab)] };
-		expect(aplAudit(inputs(withRoom))?.presses[0]?.wanted).not.toBe('chi-wave');
+		expect(aplAudit(inputs(withRoom), LADDER)?.presses[0]?.wanted).not.toBe('chi-wave');
 
-		const took = aplAudit(inputs({ ...withRoom, casts: [press(2000, ID.chiWave), press(20_000, ID.jab)] }));
+		const took = aplAudit(inputs({ ...withRoom, casts: [press(2000, ID.chiWave), press(20_000, ID.jab)] }), LADDER);
 		expect(took?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'chi-wave' });
 	});
 
 	/** Jab is gated by the room for the chi it returns and by energy — never by a chi cost it does not have. */
 	it('gates Jab on headroom and energy, not on chi in hand', () => {
-		const full = aplAudit(inputs({ chi: flat(4, 3), casts: [press(5000, ID.jab)] }));
+		const full = aplAudit(inputs({ chi: flat(4, 3), casts: [press(5000, ID.jab)] }), LADDER);
 		// Three of four chi: Jab would return two and throw one away, so the list does not want it.
 		expect(full?.presses[0]?.wanted).not.toBe('jab');
 
-		const broke = aplAudit(inputs({ energy: flat(100, 30), chi: flat(4, 0), casts: [press(5000, ID.jab)] }));
+		const broke = aplAudit(inputs({ energy: flat(100, 30), chi: flat(4, 0), casts: [press(5000, ID.jab)] }), LADDER);
 		// Room for the chi, but thirty energy does not pay for a forty-energy button.
 		expect(broke?.presses[0]?.wanted).not.toBe('jab');
 
-		const ready = aplAudit(inputs({ energy: flat(100, 100), chi: flat(4, 0), casts: [press(5000, ID.jab)] }));
+		const ready = aplAudit(inputs({ energy: flat(100, 100), chi: flat(4, 0), casts: [press(5000, ID.jab)] }), LADDER);
 		expect(ready?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'jab' });
 	});
 
@@ -266,10 +280,10 @@ describe('the priority ladder', () => {
 		// the clock is the only thing left deciding. On a full bar this rule is false for a reason the
 		// test is not about, and the first assertion would pass while proving nothing.
 		const room = { chi: flat(4, 0), energy: flat(100, 0), auras: proc };
-		const opener = aplAudit(inputs({ ...room, casts: [press(20_000, ID.jab)] }));
+		const opener = aplAudit(inputs({ ...room, casts: [press(20_000, ID.jab)] }), LADDER);
 		expect(opener?.presses[0]?.wanted).not.toBe('combo-breaker-palm');
 
-		const later = aplAudit(inputs({ ...room, casts: [press(30_000, ID.jab)] }));
+		const later = aplAudit(inputs({ ...room, casts: [press(30_000, ID.jab)] }), LADDER);
 		expect(later?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'combo-breaker-palm' });
 	});
 
@@ -282,18 +296,19 @@ describe('the priority ladder', () => {
 				auras: { 'tiger-power': throughout, 'combo-breaker-tiger-palm': [{ start: 0, end: 30_500 }] },
 				casts: [press(30_000, ID.jab)],
 			}),
+			LADDER,
 		);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'skipped', wanted: 'combo-breaker-palm' });
 	});
 
 	it('ignores presses that cost no global', () => {
-		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.risingSunKick, false)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: [press(5000, ID.risingSunKick, false)] }), LADDER);
 		expect(audit?.presses).toEqual([]);
 	});
 
 	it('calls a press nothing on the ladder wanted off-list rather than a mistake', () => {
 		// No chi, full energy, no procs: every rule is either unaffordable or unwanted.
-		const audit = aplAudit(inputs({ chi: flat(4, 0), energy: flat(100, 0), casts: [press(5000, 115203)] }));
+		const audit = aplAudit(inputs({ chi: flat(4, 0), energy: flat(100, 0), casts: [press(5000, 115203)] }), LADDER);
 		expect(audit?.presses[0]).toMatchObject({ verdict: 'off-list', wanted: null });
 		expect(audit?.offList).toBe(1);
 	});
@@ -316,8 +331,12 @@ describe('the priority ladder', () => {
 				chi: flat(4, 4),
 				casts: [press(1000, ID.risingSunKick), press(3000, ID.jab)],
 			}),
+			LADDER,
 		);
-		const cannotAfford = aplAudit(inputs({ targetsAt: () => 2, chi: flat(4, 0), casts: [press(5000, ID.jab)] }));
+		const cannotAfford = aplAudit(
+			inputs({ targetsAt: () => 2, chi: flat(4, 0), casts: [press(5000, ID.jab)] }),
+			LADDER,
+		);
 		for (const audit of [onCooldown, cannotAfford]) {
 			for (const p of audit?.presses ?? []) expect(p.wanted).not.toBe('rising-sun-kick-filler');
 		}
@@ -342,14 +361,14 @@ describe('the priority ladder', () => {
 			fofChannelSec: 6,
 			casts: [press(1000, ID.risingSunKick), press(3000, ID.rushingJadeWind)],
 		};
-		const long = aplAudit(inputs(base));
+		const long = aplAudit(inputs(base), LADDER);
 		expect(long?.presses[1]).toMatchObject({ verdict: 'skipped', wanted: 'blackout-kick' });
 
-		const short = aplAudit(inputs({ ...base, pullMs: 60_000 }));
+		const short = aplAudit(inputs({ ...base, pullMs: 60_000 }), LADDER);
 		expect(short?.presses[1]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind', reason: 'short-pull' });
 
 		// The same long pull half a second from the cap: the wind is what the list spends the overflow on.
-		const capping = aplAudit(inputs({ ...base, energy: flat(100, 95) }));
+		const capping = aplAudit(inputs({ ...base, energy: flat(100, 95) }), LADDER);
 		expect(capping?.presses[1]).toMatchObject({
 			verdict: 'followed',
 			wanted: 'rushing-jade-wind',
@@ -370,6 +389,7 @@ describe('the priority ladder', () => {
 				},
 				casts: [press(0, ID.risingSunKick), press(1000, ID.rushingJadeWind)],
 			}),
+			LADDER,
 		);
 
 		expect(audit?.presses[1]).toMatchObject({

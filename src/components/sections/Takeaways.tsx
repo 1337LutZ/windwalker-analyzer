@@ -4,7 +4,7 @@ import { jumpToHeading } from '../jump';
 import { TargetModeContext } from '../report/targetModeContext';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { GRADE_ORDER, type Metric } from '~/lib/score';
-import { weightsFor, type MetricKey } from '~/lib/score/thresholds';
+import { weightsFor, type MetricKey } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
 import { Note } from '../primitives';

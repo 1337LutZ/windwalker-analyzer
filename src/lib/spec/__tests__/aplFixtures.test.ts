@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { Analysis } from '~/lib/types';
 
 const fixture = (name: string): Analysis =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'));
+	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
 
 /** What share of the presses it was willing to judge the ladder found in the list's order. */
 function adherence(analysis: Analysis): number {

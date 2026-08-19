@@ -1,4 +1,7 @@
 // @ts-check
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
@@ -16,6 +19,12 @@ import tailwindcss from '@tailwindcss/vite';
 const site = process.env.SITE_URL ?? 'https://windwalker-analyzer.pages.dev';
 const base = process.env.BASE_PATH ?? '';
 
+// A worktree links its `node_modules` to the main checkout's, which sits outside the worktree root —
+// and Vite's dev-server allow-list is scoped to the project root, so every dependency resolves to a
+// path it refuses to serve. Vite resolves the symlink, so the list has to name the *real* location;
+// resolving it here keeps the config portable instead of hardcoding a machine path.
+const nodeModules = realpathSync(fileURLToPath(new URL('./node_modules', import.meta.url)));
+
 export default defineConfig({
 	site,
 	...(base === '' ? {} : { base }),
@@ -23,5 +32,8 @@ export default defineConfig({
 	// stays in the visitor's browser and is sent straight to warcraftlogs.com, never to us.
 	output: 'static',
 	integrations: [react()],
-	vite: { plugins: [tailwindcss()] },
+	vite: {
+		plugins: [tailwindcss()],
+		server: { fs: { allow: ['.', nodeModules] } },
+	},
 });

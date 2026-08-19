@@ -20,17 +20,20 @@ import { describe, expect, it } from 'vitest';
 
 import type { Analysis } from '~/lib/types';
 
+import { DEFAULT_SPEC } from '~/lib/spec';
 import Report from '../../Report';
 
 const analysis: Analysis = JSON.parse(
-	readFileSync(resolve(import.meta.dirname, '../../../lib/__fixtures__/strong.json'), 'utf8'),
+	readFileSync(resolve(import.meta.dirname, '../../../specs/windwalker/__fixtures__/strong.json'), 'utf8'),
 );
 
-const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice: 'auto' }));
+const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice: 'auto', spec: DEFAULT_SPEC }));
 const xuenTalent = JSON.parse(
-	readFileSync(resolve(import.meta.dirname, '../../../lib/__fixtures__/mixed.json'), 'utf8'),
+	readFileSync(resolve(import.meta.dirname, '../../../specs/windwalker/__fixtures__/mixed.json'), 'utf8'),
 ) as Analysis;
-const xuenHtml = renderToStaticMarkup(createElement(Report, { analysis: xuenTalent, targetChoice: 'auto' }));
+const xuenHtml = renderToStaticMarkup(
+	createElement(Report, { analysis: xuenTalent, targetChoice: 'auto', spec: DEFAULT_SPEC }),
+);
 const nav = /<nav[^>]*>[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
 
 const all = (source: string, pattern: RegExp): string[] => [...source.matchAll(pattern)].map((match) => match[1] ?? '');

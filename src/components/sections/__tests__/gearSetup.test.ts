@@ -15,7 +15,7 @@ import GearSetup from '../GearSetup';
 initI18n();
 
 const fx = (name: string): Analysis =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../lib/__fixtures__/${name}.json`), 'utf8'));
+	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
 
 const slot = (over: Partial<GearSlot>): GearSlot => ({
 	slot: 'Head',

@@ -1,7 +1,12 @@
 // A resource bar, reconstructed from the samples WarcraftLogs staples onto ordinary events.
 //
-// Named for energy because that is what this report reads, but nothing below knows what energy is:
-// every function takes a power type and answers about that bar. Chi (12) reads the same way.
+// Nothing below knows what a bar *is*: every function takes the `classResources.type` it should read
+// and answers about that bar, so a pool (energy, mana) and a points bar (chi) read the same way.
+// The spec's config names its bars in the sim's own vocabulary (`~/lib/game/resources`) and this
+// module holds the mapping to the values the log reports, because the two numberings disagree —
+// the sim calls energy 2 and chi 14, the log reports the game's own power enum (energy 3, and chi
+// 12 as the log reports it). Only energy and chi have been verified against real pulls; the mapping
+// refuses a type it has not seen rather than guessing one.
 //
 // The whole file rests on one fact that took a long time to find. `resourcechange` events are NOT
 // the curve — MoP logs one only when something other than passive regen moves a bar, which on a
@@ -16,17 +21,46 @@
 // so the report can say so rather than imply a precision it does not have.
 
 import { abilityIdOf, classResourcesOf, isResourceChange, resourceActorOf, type WclEvent } from '~/lib/events';
+import type { ResourceTypeValue } from '~/lib/game/resources';
+import { RESOURCE_TYPE } from '~/lib/game/resources';
+import type { PointsResourceAudit, PoolResourceAudit, ResourceCurve } from '~/lib/types';
 
-import { median } from './format';
+import { median, r1 } from './format';
 import { mergeIntervals, overlapMs, unionMs, type Interval } from './intervals';
 
 /**
- * WoW's power types, as `ClassResource.type` reports them.
+ * The sim's `spell.proto` `ResourceType` → the `type` WarcraftLogs staples onto `classResources`.
  *
- * Game-wide numbering rather than spec knowledge — a rogue's energy is 3 as well — so it lives with
- * the reader rather than in a spec file, next to the code that would otherwise carry a bare `3`.
+ * Two numberings and no rule joining them, so nothing here is derived. Energy is 3 in the log's
+ * reporting and 2 in the sim's; chi is 12 in the log's and 14 in the sim's — a verified value that
+ * also shows the log does not simply follow the game client's enum, which puts chi at 14. The two
+ * rows that are exercised are the two measured against real pulls; the map deliberately refuses the
+ * rest, because a guessed power type would silently sample nothing on a bar somebody was relying on.
  */
-export const POWER_TYPE = { energy: 3, chi: 12 } as const;
+const WCL_POWER_TYPE: Readonly<Partial<Record<ResourceTypeValue, number>>> = {
+	[RESOURCE_TYPE.energy]: 3,
+	[RESOURCE_TYPE.chi]: 12,
+};
+
+/** `wclPowerTypeOf(RESOURCE_TYPE.chi)` — the value to sample chi with, verified against real pulls. */
+export const WCL_CHI = WCL_POWER_TYPE[RESOURCE_TYPE.chi] as number;
+
+/**
+ * The `classResources.type` a declared bar is sampled with, or a refusal to guess.
+ *
+ * Only the power types this report has measured against real logs are mapped; anything else is a
+ * config error and fails loudly — "no readings" is already the honest answer for a log fetched
+ * without resources, and an unverified type must not smuggle itself in as one.
+ */
+export function wclPowerTypeOf(type: ResourceTypeValue): number {
+	const mapped = WCL_POWER_TYPE[type];
+	if (mapped === undefined) {
+		throw new Error(
+			`unverified resource type ${type}: add the value WarcraftLogs reports for it to WCL_POWER_TYPE, checked against a real pull`,
+		);
+	}
+	return mapped;
+}
 
 /**
  * How long a stretch the regen rate is measured over.
@@ -288,6 +322,124 @@ function percentile(sorted: readonly number[], p: number): number {
 }
 
 /**
+ * The readings themselves, as the charts draw them.
+ *
+ * `max` is taken from the samples rather than from a constant: an Ascension monk carries a wider
+ * bar and the log says so, so nothing here has to know which talents were taken.
+ */
+export function resourceCurveOf(samples: readonly ResourceSample[]): ResourceCurve {
+	return {
+		max: samples.reduce((widest, s) => Math.max(widest, s.max), 0),
+		points: samples.map((s): [number, number] => [s.t, s.amount]),
+	};
+}
+
+/** Below this long a stretch at the cap is not worth a row of its own in the ledger. */
+const CAP_ROW_MS = 1000;
+/** How many of the longest stretches the ledger keeps. */
+const CAP_ROWS = 5;
+
+/**
+ * The whole audit of a pool bar: how long it sat full, split by whether anything could have been
+ * spent on it, and the stretches worth linking.
+ *
+ * A pool is a bar that refills on a clock, so its fault is a duration at the ceiling with the tap
+ * still running — measured and split exactly as the caller's contact windows say, because what
+ * counts as "something to spend it on" is a question about the fight rather than about the bar.
+ *
+ * `link` is the caller's, which is why this is a builder rather than a field on `trackResourceBar`:
+ * the audit only exists to point at a moment in a report.
+ */
+export function poolResourceAudit(
+	type: ResourceTypeValue,
+	samples: readonly ResourceSample[],
+	durationMs: number,
+	contact: readonly Interval[],
+	link: (t: number) => string,
+): PoolResourceAudit {
+	const bar = trackResourceBar(samples, durationMs, contact);
+	// Longest first, and only the handful worth linking: a list of every sub-second gap would bury
+	// the stretches that cost something. Ties break on the clock, the way the chi overflow table
+	// does — these are quantised to the gaps between readings, so a pull sampled three times a
+	// second produces the same handful of durations over and over, and without the second clause
+	// which stretches survive the cut would be up to the sort's own mood.
+	const worst = bar.capped
+		.map(([start, end]) => ({
+			at: start,
+			ms: end - start,
+			// A stretch that straddles the edge of a contact window is called contact when most of it
+			// was: the reader is being told which bucket the row belongs to, and half a label is worse
+			// than a rounded one. The same windows the split above uses, so a row cannot be labelled
+			// downtime by one clock while its seconds are counted against the player by the other.
+			engaged: overlapMs(start, end, contact) * 2 >= end - start,
+			link: link(start),
+		}))
+		.filter((w) => w.ms >= CAP_ROW_MS)
+		.sort((a, b) => b.ms - a.ms || a.at - b.at)
+		.slice(0, CAP_ROWS);
+	return {
+		kind: 'pool',
+		type,
+		curve: resourceCurveOf(samples),
+		max: bar.max,
+		samples: bar.sampleCount,
+		regenPerSec: bar.regenPerSec === null ? null : r1(bar.regenPerSec),
+		medianGapMs: bar.medianGapMs,
+		p99GapMs: bar.p99GapMs,
+		capped: bar.capped,
+		total: bar.whole,
+		engaged: bar.engaged,
+		downtime: bar.downtime,
+		worst,
+	};
+}
+
+/**
+ * The whole audit of a points bar: the readings for the charts, the reconstructed bar for the
+ * ladder, and the presses the cap refused.
+ *
+ * A points bar arrives in whole units from a button, so its fault is a count — and the count has to
+ * be *walked* rather than read off, because the log reports a spender's bar and says nothing about
+ * a generator's. `gainOf` names the presses that put whole units on it (the config's `gains`,
+ * resolved through the registry), with one exception derived from the log itself: an ability that
+ * reports its own gain as a `resourcechange` event is applied from that event and must not be
+ * credited twice, so its presses are cut out of the walk's table wherever the events prove it.
+ */
+export function pointsResourceAudit(
+	type: ResourceTypeValue,
+	events: readonly WclEvent[],
+	actorID: number,
+	t0: number,
+	gainOf: (abilityID: number) => number | undefined,
+	samples: readonly ResourceSample[],
+	powerType: number = WCL_CHI,
+): PointsResourceAudit {
+	const resourceChangeIDs = new Set<number>();
+	for (const e of events) {
+		if (isResourceChange(e) && e.resourceChangeType === powerType) {
+			const id = abilityIdOf(e);
+			if (id !== null) resourceChangeIDs.add(id);
+		}
+	}
+	// The walk applies `resourcechange` gains itself, so the table must not also credit them. Chi
+	// Brew is the case this report knows (its 4-point return arrives as an event, not as a press);
+	// the exclusion is read off the log rather than hardcoded, so a second spec's brew works too.
+	const walk = chiAtCasts(events, actorID, t0, (id) => (resourceChangeIDs.has(id) ? undefined : gainOf(id)), powerType);
+	// The overflow audit has no event path — it reads gains off presses only — so it takes the
+	// whole table, resourcechange-emitters included: their whole points are the point.
+	const overflow = chiWasted(events, actorID, t0, gainOf, powerType);
+	return {
+		kind: 'points',
+		type,
+		curve: { ...resourceCurveOf(samples), wasted: overflow, gained: walk.gained, spent: walk.spent },
+		walk: { max: walk.max, points: walk.points },
+		readings: walk.readings,
+		predicted: walk.predicted,
+		exact: walk.exact,
+	};
+}
+
+/**
  * Chi thrown away, press by press.
  *
  * Chi has to be tracked forward rather than read off, because the log reports it asymmetrically:
@@ -308,6 +460,7 @@ export function chiWasted(
 	actorID: number,
 	t0: number,
 	gainOf: (abilityID: number) => number | undefined,
+	powerType: number = WCL_CHI,
 ): Array<{ t: number; wasted: number }> {
 	const out: Array<{ t: number; wasted: number }> = [];
 	let chi: number | null = null;
@@ -319,7 +472,7 @@ export function chiWasted(
 		const owner = side === 1 ? e.sourceID : side === 2 ? e.targetID : undefined;
 		if (owner !== actorID) continue;
 
-		const bar = classResourcesOf(e)?.find((r) => r.type === POWER_TYPE.chi);
+		const bar = classResourcesOf(e)?.find((r) => r.type === powerType);
 		// A reading is the truth, whatever the walk believed a moment ago.
 		if (bar !== undefined && Number.isFinite(bar.amount) && bar.max > 0) {
 			chi = bar.amount;
@@ -371,6 +524,7 @@ export function chiAtCasts(
 	actorID: number,
 	t0: number,
 	gainOf: (abilityID: number) => number | undefined,
+	powerType: number = WCL_CHI,
 ): {
 	points: Array<[number, number]>;
 	max: number;
@@ -400,7 +554,7 @@ export function chiAtCasts(
 
 		// A gain the log states outright — Chi Brew, Power Strikes. Applied whole; the bar's own ceiling
 		// clamps it, and `waste` on the event is what the overflow audit reads.
-		if (isResourceChange(e) && e.resourceChangeType === POWER_TYPE.chi) {
+		if (isResourceChange(e) && e.resourceChangeType === powerType) {
 			const amount = e.resourceChange ?? 0;
 			if (chi !== null && amount > 0) {
 				// What fitted, not what was offered: the ceiling is the point of the overflow audit, and
@@ -413,7 +567,7 @@ export function chiAtCasts(
 		}
 
 		if (e.type !== 'cast') continue;
-		const bar = classResourcesOf(e)?.find((r) => r.type === POWER_TYPE.chi);
+		const bar = classResourcesOf(e)?.find((r) => r.type === powerType);
 
 		if (bar !== undefined && Number.isFinite(bar.amount) && bar.max > 0) {
 			readings += 1;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DamageEvent } from '~/lib/events';
-import { registry } from '~/lib/spec/windwalker';
+import { registry } from '~/specs/windwalker/lib';
 
 import { aggregateDamage } from '../damage';
 

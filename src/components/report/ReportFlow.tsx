@@ -11,6 +11,7 @@ import { useFightPlayers } from '~/hooks/useFightPlayers';
 import { useReportFights } from '~/hooks/useReportFights';
 
 import type { TargetModeChoice } from '~/lib/view/targetMode';
+import { DEFAULT_SPEC, getSpec } from '~/lib/spec';
 import { forgetCredits } from '~/lib/wcl';
 
 import { useSession } from '../auth';
@@ -48,8 +49,16 @@ export default function ReportFlow() {
 	// Step labels are shell copy, so they come from the `ui` namespace, not the report's.
 	const { t } = useTranslation('ui');
 	const { token, signOut } = useSession();
-	// The thresholds the reader owns. Held here because this is where the analysis is derived.
-	const settingsState = useSettings();
+	// A link with a report in it should land on that report rather than an empty form. The URL is read
+	// once on mount and then only written to; after the first render the app's state is the truth.
+	const fromUrl = useInitialUrlSelection();
+	const writeUrl = useUrlSelectionWriter();
+	// The spec the URL names, or the registered default when it names none. `getSpec` returns the
+	// registry's own stable reference, so the identity is safe for the memos and queries below.
+	const spec = getSpec(fromUrl.spec ?? '') ?? DEFAULT_SPEC;
+	// The thresholds the reader owns. Held here because this is where the analysis is derived. The
+	// spec's schema drives the panel; the default is the registered spec until the URL names one.
+	const settingsState = useSettings(spec.settings);
 	const queryClient = useQueryClient();
 
 	const [input, setInput] = useState<ResolvedReportInput | null>(null);
@@ -106,11 +115,6 @@ export default function ReportFlow() {
 		setTargetChoice('auto');
 	}, []);
 
-	// A link with a report in it should land on that report rather than an empty form. The URL is read
-	// once on mount and then only written to; after the first render the app's state is the truth.
-	const fromUrl = useInitialUrlSelection();
-	const writeUrl = useUrlSelectionWriter();
-
 	useEffect(() => {
 		if (fromUrl.code === null) return;
 		setInput({
@@ -129,15 +133,15 @@ export default function ReportFlow() {
 	const fightID = chosenFightID ?? defaultFightID(groups, input?.fightID ?? null);
 	const fight = fights.data?.fights.find((candidate) => candidate.id === fightID) ?? null;
 
-	const players = useFightPlayers(token, code, fightID);
+	const players = useFightPlayers(token, code, fightID, spec.classKey, spec.specName);
 	// Memoised for the auto-run effect below, which depends on it. `players.data ?? []` hands back a
 	// fresh array on every render while the query is in flight, so that effect woke on every render
 	// until the roster arrived — harmless only because a ref stops it from firing twice.
-	const windwalkers = useMemo(() => players.data ?? [], [players.data]);
+	const roster = useMemo(() => players.data ?? [], [players.data]);
 	const playerName =
-		windwalkers.find((player) => player.name === chosenPlayer)?.name ??
-		windwalkers.find((player) => player.id === input?.sourceID)?.name ??
-		windwalkers[0]?.name ??
+		roster.find((player) => player.name === chosenPlayer)?.name ??
+		roster.find((player) => player.id === input?.sourceID)?.name ??
+		roster[0]?.name ??
 		null;
 
 	const {
@@ -145,7 +149,7 @@ export default function ReportFlow() {
 		error: analysisError,
 		isFetching,
 		progress,
-	} = useFightAnalysis(token, request, settingsState.settings);
+	} = useFightAnalysis(token, request, settingsState.settings, spec);
 
 	// Signing out drops the report with it. The analysis was fetched with that credential, and leaving
 	// it on screen would make "sign out" look like less than it is. The budget goes for the same
@@ -208,24 +212,24 @@ export default function ReportFlow() {
 	// so a link copied without touching anything still reproduces what is on screen.
 	useEffect(() => {
 		if (code === null) return;
-		writeUrl({ code, fightID, player: playerName });
-	}, [code, fightID, playerName, writeUrl]);
+		writeUrl({ code, fightID, player: playerName, spec: spec.key });
+	}, [code, fightID, playerName, spec, writeUrl]);
 
 	// The tab title follows the same selection the URL does, for the same reason: several tabs are
-	// how several pulls get compared, and "Windwalker analyzer" times four in a tab strip names none
-	// of them. Only named things go in — a pull or a player that has not resolved yet would put a
-	// flash of " - Windwalker analyzer" ahead of the answer, and the fallbacks (the last boss, the
-	// first Windwalker) are the reader's, not the link's, so they are not asserted in the title
-	// either. `fight` is the resolved pull behind `fightID`, so a stale id that matches nothing
+	// how several pulls get compared, and the spec's name times four in a tab strip names none of
+	// them. Only named things go in — a pull or a player that has not resolved yet would put a
+	// flash of " - <spec> analyzer" ahead of the answer, and the fallbacks (the last boss, the
+	// first player of the spec) are the reader's, not the link's, so they are not asserted in the
+	// title either. `fight` is the resolved pull behind `fightID`, so a stale id that matches nothing
 	// leaves the title alone rather than naming a fight that is not on screen.
 	useEffect(() => {
-		const base = 'Windwalker analyzer';
+		const base = `${spec.displayName} analyzer`;
 		if (fight === null || playerName === null) {
 			document.title = base;
 			return;
 		}
 		document.title = `${playerName} - ${fight.name} - ${base}`;
-	}, [fight, playerName]);
+	}, [fight, playerName, spec]);
 
 	// A link that names a report, a pull and a player is a request for that report, so run it. Once,
 	// and only for the selection the URL supplied: after that the reader is driving, and re-running on
@@ -238,18 +242,18 @@ export default function ReportFlow() {
 			code,
 			fightID,
 			// The name the *link* asked for, not the one the picker settled on. `playerName` has already
-			// fallen back to the first Windwalker in the pull, so handing that over asks the roster
-			// whether it contains someone it just supplied — a guard that can never fail. A link naming
-			// someone who was not in this pull has to stop here and leave the form for the reader,
-			// rather than quietly spending a full event fetch on a different player and then rewriting
-			// the URL to name them.
+			// fallen back to the first player of the spec in the pull, so handing that over asks the
+			// roster whether it contains someone it just supplied — a guard that can never fail. A link
+			// naming someone who was not in this pull has to stop here and leave the form for the
+			// reader, rather than quietly spending a full event fetch on a different player and then
+			// rewriting the URL to name them.
 			playerName: fromUrl.player ?? playerName,
-			roster: windwalkers.map((player) => player.name),
+			roster: roster.map((player) => player.name),
 		});
 		if (!ready || code === null || fightID === null || playerName === null) return;
 		autoRan.current = true;
 		requestPull({ code, fightID, playerName });
-	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, windwalkers, requestPull]);
+	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, roster, requestPull]);
 
 	const signedIn = token !== null;
 	const loaded = fights.data !== undefined;
@@ -397,7 +401,7 @@ export default function ReportFlow() {
 								problem(players.error)
 							) : (
 								<PlayerSelector
-									players={windwalkers}
+									players={roster}
 									value={playerName}
 									onChange={setChosenPlayer}
 									fightName={fight?.name ?? 'this pull'}
@@ -458,7 +462,7 @@ export default function ReportFlow() {
 					encounter={fight.name}
 					kill={fight.kill}
 					fightPercentage={fight.fightPercentage ?? null}
-					player={windwalkers.length > 1 ? playerName : null}
+					player={roster.length > 1 ? playerName : null}
 					onChange={changeSelection}
 					targetMode={
 						gradeable && analysis !== null
@@ -477,7 +481,7 @@ export default function ReportFlow() {
 			<div ref={resultRef} className="scroll-mt-14 [&_h1]:scroll-mt-14 [&_h2]:scroll-mt-14">
 				{analysis !== null ? (
 					<div className="pt-6 md:pt-10">
-						<Report analysis={analysis} targetChoice={targetChoice} />
+						<Report analysis={analysis} targetChoice={targetChoice} spec={spec} />
 					</div>
 				) : isFetching ? (
 					// A fetch with no analysis behind it is the first read of a pull *or* the read of a

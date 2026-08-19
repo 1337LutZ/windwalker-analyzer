@@ -22,6 +22,7 @@ import type { AplAudit, Band } from '~/lib/spec/apl';
 // carries those rather than a copy of the shape that could drift from them.
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
+import type { ResourceTypeValue } from '~/lib/game/resources';
 
 // ---------------------------------------------------------------- WCL types
 
@@ -1004,17 +1005,18 @@ export interface EnergizingBrewAudit {
 	windows: Window[];
 }
 
-/** Time at the energy cap over one stretch of the pull, and what it cost. */
-export interface EnergyCapSplit {
+/** Time at a resource bar's cap over one stretch of the pull, and what it cost. */
+export interface ResourceCapSplit {
 	cappedMs: number;
 	/** Against the length of the stretch this describes, not of the whole pull. */
 	pct: number;
-	/** Energy that arrived on a full bar and evaporated. Null when no regen rate could be measured. */
+	/** Points that arrived on a full bar and evaporated. Null when no regen rate could be measured. */
 	wasted: number | null;
 }
 
 /**
- * The energy bar over the pull, and what topping it out cost.
+ * The audit of a pool bar — one that refills on a clock (energy, mana, rage) — and what topping it
+ * out cost.
  *
  * Reconstructed rather than assumed, and the correction to a claim this report used to make in
  * three places. `resourcechange` events really are useless as a curve — around twenty on a
@@ -1023,28 +1025,88 @@ export interface EnergyCapSplit {
  * events query passes `includeResources: true`, at about three readings a second, and that flag
  * costs no API points at all.
  *
- * The split is the point of the whole audit. Raw time at the cap is not a fault: energy fills while
+ * The split is the point of the whole audit. Raw time at the cap is not a fault: a pool fills while
  * a boss is untargetable exactly as it does while you are hitting one, and a metric that charged a
  * player for an intermission would be inventing a mistake out of the fight's own script. Only
  * `engaged` describes a decision.
+ *
+ * Computed once per configured pool bar by the engine (`~/lib/analysis/energy`), so a second spec
+ * that spends a pool gets the same audit without writing any of it.
  */
-export interface EnergyAudit {
+export interface PoolResourceAudit {
+	/** Which half of the generic resource section this is. */
+	kind: 'pool';
+	/**
+	 * Which bar this is, in the sim's own vocabulary — so the view can colour it from the sim's
+	 * palette rather than the spec's.
+	 */
+	type: ResourceTypeValue;
+	/** The readings themselves, for the charts. */
+	curve: ResourceCurve;
 	/** The bar's ceiling, straight off the samples — so a talent that widens it needs no inference. */
 	max: number;
 	/** Readings the curve was built from. Zero means the log carried none, which is a caveat not a zero. */
 	samples: number;
-	/** Energy per second, measured from the samples. Null when the pull was too quiet to measure one. */
+	/** Points per second, measured from the samples. Null when the pull was too quiet to measure one. */
 	regenPerSec: number | null;
 	/** Median gap between readings: the shortest cap this can see at all. */
 	medianGapMs: number;
 	/** 99th percentile gap. A cap that opened and closed inside one of these is invisible here. */
 	p99GapMs: number;
-	total: EnergyCapSplit;
-	engaged: EnergyCapSplit;
-	downtime: EnergyCapSplit;
+	/** The stretches the bar was provably full, merged and in time order. */
+	capped: Array<[number, number]>;
+	total: ResourceCapSplit;
+	engaged: ResourceCapSplit;
+	downtime: ResourceCapSplit;
 	/** The longest stretches spent full, longest first, each with a link into the log. */
 	worst: Array<{ at: number; ms: number; engaged: boolean; link: string }>;
 }
+
+/**
+ * The audit of a points bar — one that arrives in whole units from a button (chi, holy power) —
+ * and every point of it that went nowhere.
+ *
+ * The complement to `PoolResourceAudit`, deliberately. A pool's fault is a *duration* at the ceiling
+ * with the tap still running, and it has to be split into engaged and downtime before it can be
+ * judged. A points bar's fault is a *count*: a press that returned two into a bar with room for one
+ * threw one away, and it did so whether or not there was a boss in front of you. Nothing to split.
+ *
+ * The curve's `wasted`/`gained`/`spent` ride on the readings because the chart draws both: the walk
+ * that reconstructs the bar clamps each gain at the ceiling, so the three are one accounting rather
+ * than three numbers that need not add up.
+ */
+export interface PointsResourceAudit {
+	/** Which half of the generic resource section this is. */
+	kind: 'points';
+	/**
+	 * Which bar this is, in the sim's own vocabulary — so the view can colour it from the sim's
+	 * palette rather than the spec's.
+	 */
+	type: ResourceTypeValue;
+	/**
+	 * The readings themselves, for drawing, carrying the bar's accounting — the moments it
+	 * overflowed and by how much (`wasted`), what the pull generated (`gained`) and paid out
+	 * (`spent`).
+	 */
+	curve: ResourceCurve;
+	/**
+	 * The reconstructed bar, for the ladder and the audits that judge presses.
+	 *
+	 * Not the sampled curve, deliberately. The readings land only on spenders and are a median 2.4
+	 * seconds apart on a real pull, which makes them useless for judging a press; the walk fills the
+	 * gaps, and its accuracy is measured (`predicted`/`exact`) rather than asserted.
+	 */
+	walk: { max: number; points: Array<[number, number]> };
+	/** How many of the walk's steps the log's own readings checked. */
+	readings: number;
+	/** Of those, how many the walk had predicted to the point. */
+	predicted: number;
+	/** And how many of those predictions were exactly right. */
+	exact: number;
+}
+
+/** One declared bar's full audit — which half the generic resource section renders. */
+export type ResourceBarAudit = PoolResourceAudit | PointsResourceAudit;
 
 /**
  * One resource bar over the pull, for drawing.
@@ -1289,7 +1351,7 @@ export interface XuenAudit {
  *
  * The spell is 137639 in a Mists Classic log — both the press and the aura whose stacks count the
  * spirits — and not the 138228 the simulator registers; see `castIds` on the ability in
- * `lib/spec/windwalker`, which carries the evidence.
+ * `~/specs/windwalker/lib`, which carries the evidence.
  *
  * Two things are worth knowing about a pull, and this carries both without grading either. Whether
  * the button was worth pressing is `justified`, decided by the reader's ten-second rule. Whether the
@@ -1564,7 +1626,12 @@ export interface RaidBuffSummary {
 	selfGaps: number;
 }
 
-export interface Analysis {
+/**
+ * The half of an `Analysis` the engine's core produces: the shape every spec's log shares, computed
+ * from the fight and the spec's `SpecConfig` alone. The other half — every figure that needs the
+ * spec's own model in hand — is `SpecAuditResult`, and `Analysis` is the two intersected.
+ */
+export interface AnalysisCore {
 	player: string;
 	code: string;
 	fightID: number;
@@ -1584,6 +1651,16 @@ export interface Analysis {
 	isSpec: boolean;
 	specName: string;
 	/**
+	 * The bars the spec declared, each fully audited.
+	 *
+	 * One entry per key in the spec's `resources` config, so a pool and a points bar are both here
+	 * and the generic resource section renders whichever half the `kind` names. Optional because a
+	 * report captured before the engine sampled resources carries none, and because a log that
+	 * answers without them is a real case rather than an error — the analysis above still stands, it
+	 * simply cannot draw the bar. Anything reading it has to guard on truthiness.
+	 */
+	resources?: Record<string, ResourceBarAudit>;
+	/**
 	 * The enemy every primary-scoped number in the report is about.
 	 *
 	 * `name` is what the copy needs and the report's actor list is the only thing that can supply it:
@@ -1602,18 +1679,21 @@ export interface Analysis {
 	cpm: CpmSummary;
 	casts: CastRow[];
 	/**
-	 * Every press on one clock, with the auras that were up underneath it.
+	 * The player's own deaths — the core's half of the timeline.
 	 *
-	 * Optional for the same reason `energizing` below is: the committed fixtures are `analyse()` output
-	 * captured before this field existed and are cast to `Analysis` rather than migrated, so on a
-	 * fixture it arrives as `undefined` — not `null`, not an empty timeline. `analyse()` always fills it
-	 * in; anything reading it has to guard on truthiness.
+	 * The presses are the spec's half of the picture: the audit decorates them (Storm, Earth and Fire
+	 * carries the enemy it sent a spirit to) and returns them as `SpecAuditResult.timeline`; the two
+	 * merge back into a `CastTimeline` in `analyseCore`. Optional here because a merged `CastTimeline`
+	 * may carry no deaths — the field is optional there, so it must be optional in both halves for the
+	 * intersection to stay assignable.
+	 *
+	 * The whole field is optional for the same reason `energizing` below is: the committed fixtures are
+	 * `analyse()` output captured before this existed and are cast to `Analysis` rather than migrated,
+	 * so on a fixture it arrives as `undefined` — not `null`, not an empty timeline. `analyse()` always
+	 * fills it in; anything reading it has to guard on truthiness.
 	 */
-	timeline?: CastTimeline;
+	timeline?: { deaths?: DeathMark[] };
 	lostCasts: LostCastRow[];
-	brew: BrewSummary;
-	procs: ProcSummary;
-	debuff: DebuffSummary;
 	/**
 	 * How many enemies were being damaged, moment by moment.
 	 *
@@ -1624,6 +1704,42 @@ export interface Analysis {
 	 * guard on truthiness.
 	 */
 	targets?: TargetSummary;
+	/**
+	 * What the player was wearing. Empty when the log carried no `combatantinfo` for them, which the
+	 * UI has to treat as "not reported" rather than as "nothing equipped".
+	 */
+	gear: GearSummary;
+	/**
+	 * The raid buffs that move this spec's damage, one row per effect.
+	 *
+	 * Optional for the same reason every field above it is: the committed fixtures are captured
+	 * `analyse()` output from before this field existed and are cast to `Analysis` rather than
+	 * migrated, so on a fixture it arrives as `undefined` — not `null`, not an empty summary.
+	 * `analyse()` always fills it in. Anything reading it has to guard on truthiness.
+	 */
+	raidBuffs?: RaidBuffSummary;
+	/**
+	 * Which of the pull's two potion slots were filled.
+	 *
+	 * Optional for the same reason every field above it is: the committed fixtures are captured
+	 * `analyse()` output from before this field existed and are cast to `Analysis` rather than
+	 * migrated, so on a fixture it arrives as `undefined` — not `null`, not an audit reading zero,
+	 * which is the one thing it must never be mistaken for. `analyse()` always fills it in. Anything
+	 * reading it has to guard on truthiness.
+	 */
+	potions?: PotionAudit;
+}
+
+/**
+ * The half of an `Analysis` the spec's own audit produces: every figure a log can only answer with
+ * the spec's model in hand — its cooldowns, its auras, its priority list. Computed by the spec's
+ * `audit` hook, which sees the engine's `Handles` and nothing else, and merged over `AnalysisCore`
+ * by `analyseCore`.
+ */
+export interface SpecAuditResult {
+	brew: BrewSummary;
+	procs: ProcSummary;
+	debuff: DebuffSummary;
 	/**
 	 * Optional for the same reason every audit below it is: a report captured before this existed
 	 * carries `undefined` here, not a `null` and not an audit reading zero — and zero is the one thing
@@ -1641,14 +1757,6 @@ export interface Analysis {
 	 * always fills it in. Anything reading it has to guard on truthiness.
 	 */
 	energizing?: EnergizingBrewAudit;
-	/**
-	 * Optional for the same reason every field above it is: the committed fixtures are `analyse()`
-	 * output captured before the events query asked for resources, and they are cast to `Analysis`
-	 * rather than migrated — so on a fixture this is `undefined`, not `null` and not an empty audit.
-	 * `analyse()` always fills it in, and fills it in with zero samples when a log genuinely carried
-	 * none. Anything reading it has to guard on truthiness.
-	 */
-	energy?: EnergyAudit;
 	filler: FillerAudit;
 	karma: KarmaAudit;
 	/**
@@ -1674,38 +1782,6 @@ export interface Analysis {
 		wasted: number;
 	}>;
 	/**
-	 * What the player was wearing. Empty when the log carried no `combatantinfo` for them, which the
-	 * UI has to treat as "not reported" rather than as "nothing equipped".
-	 */
-	gear: GearSummary;
-	/**
-	 * The raid buffs that move a Windwalker's damage, one row per effect.
-	 *
-	 * Optional for the same reason every field above it is: the committed fixtures are captured
-	 * `analyse()` output from before this field existed and are cast to `Analysis` rather than
-	 * migrated, so on a fixture it arrives as `undefined` — not `null`, not an empty summary.
-	 * `analyse()` always fills it in. Anything reading it has to guard on truthiness.
-	 */
-	raidBuffs?: RaidBuffSummary;
-	/**
-	 * Which of the pull's two potion slots were filled.
-	 *
-	 * Optional for the same reason every field above it is: the committed fixtures are captured
-	 * `analyse()` output from before this field existed and are cast to `Analysis` rather than
-	 * migrated, so on a fixture it arrives as `undefined` — not `null`, not an audit reading zero,
-	 * which is the one thing it must never be mistaken for. `analyse()` always fills it in. Anything
-	 * reading it has to guard on truthiness.
-	 */
-	potions?: PotionAudit;
-	/**
-	 * The energy and chi bars over the pull, for the charts that draw them.
-	 *
-	 * Optional because a report captured before the events query asked for resources carries none,
-	 * and because a log that answers without them is a real case rather than an error — the analysis
-	 * above still stands, it simply cannot draw the bar.
-	 */
-	resources?: { energy: ResourceCurve; chi: ResourceCurve };
-	/**
 	 * The priority list run against the pull, press by press.
 	 *
 	 * Three states, all distinct and none collapsible into the others. `undefined` is an analysis
@@ -1730,4 +1806,164 @@ export interface Analysis {
 	 */
 	aplForced?: Partial<Record<Band, AplAudit | null>>;
 	misses: Miss[];
+	/**
+	 * The spec's contribution to `cpm`: the globals its own audit found spent on a press that bought
+	 * nothing, and the seconds its channels really occupied. `analyseCore` merges these into the
+	 * summary it computes, so the two halves of the figure cannot disagree about the pull.
+	 */
+	cpm: Pick<CpmSummary, 'wastedGcds' | 'channelSec'>;
+	/**
+	 * The spec's half of the timeline: every press on one clock, decorated — Storm, Earth and Fire
+	 * carries the enemy it sent a spirit to — and the auras that were up underneath them. Merged with
+	 * the core's `deaths` into a `CastTimeline`.
+	 *
+	 * The casts live here rather than in `AnalysisCore` because the decoration is the audit's work:
+	 * only the spec's own audit can say which press sent a spirit to which enemy, and the core's marks
+	 * are the undecorated input to that.
+	 *
+	 * `hiddenTargets` and `hiddenLanes` are optional for the same reason they are on `CastTimeline`:
+	 * a merged timeline may be the chart's full set with nothing capped. The whole field is optional
+	 * because an analysis captured before the timeline existed arrives without it.
+	 */
+	timeline?: {
+		casts: CastMark[];
+		lanes: AuraLane[];
+		hiddenTargets?: number;
+		hiddenLanes?: AuraLane[];
+	};
+}
+
+/** The full analysis of one fight — what the renderer consumes. */
+export type Analysis = AnalysisCore & SpecAuditResult;
+
+// ---------------------------------------------------------------- Elemental
+
+/**
+ * The Elemental audit's own shape, alongside `SpecAuditResult` rather than inside it.
+ *
+ * `SpecAuditResult` is the Windwalker's shape — brew, chi, energy, karma — and nothing in it could
+ * hold a Flame Shock audit without lying about the pull. The engine's merge is typed `Analysis`
+ * either way (`analyseCore` casts the spread), so the Elemental module returns this shape, casts it
+ * at the `SpecConfig` boundary, and the Elemental sections cast it back: the same bounded, stated
+ * cast the Windwalker views already make for their rule keys.
+ */
+
+/** One Flame Shock press on the primary target: an apply or a refresh. */
+export interface FlameShockPress {
+	/** When the press landed. */
+	t: number;
+	/** The dot's remaining time at the press; null when the dot was down and this was a fresh apply. */
+	remainingMs: number | null;
+	/** Whether the press was the reader's own keep-it-up window (`flameShockRefreshMs`). */
+	windowed: boolean;
+	/** Whether the press was the sim's Ascendance prep (rule 12): dot under 16s with Ascendance ready inside 2s. */
+	ascPrep: boolean;
+}
+
+export interface FlameShockAudit {
+	/** The dot's up-windows on the primary target, one per application, refresh-open. */
+	windows: Window[];
+	/** Uptime over the time the primary target was engaged. */
+	uptimeMs: number;
+	uptimePct: number;
+	/** Presses made while the dot was down — the count of fresh applies. */
+	applies: number;
+	/** Presses made while the dot was up. */
+	refreshes: number;
+	/** Refreshes that were the reader's own keep-it-up window. */
+	windowed: number;
+	/** Refreshes that were the sim's Ascendance prep — never "wasted". */
+	ascPrep: number;
+	/** Every press with the dot state at it, for the section's table. */
+	presses: FlameShockPress[];
+}
+
+/** One Earth Shock press, with everything the sim's rule reads, at the press. */
+export interface EarthShockPress {
+	t: number;
+	/** Lightning Shield's stacks at the press; null when the log never carried the aura. */
+	lsStacks: number | null;
+	/** The dot's remaining time at the press, in ms. */
+	fsRemainingMs: number;
+	/** Seconds until Ascendance is back at the press. */
+	ascReadyInSec: number;
+	/** Whether the tier-16 two-piece proc was up under the press. */
+	twoPiece: boolean;
+	/** Whether the sim's rule (stacks at the ceiling, dot up, Ascendance held, no two-piece) wanted it. */
+	good: boolean;
+}
+
+export interface EarthShockAudit {
+	presses: EarthShockPress[];
+	good: number;
+	early: number;
+}
+
+export interface SearingTotemAudit {
+	/** The totem's up-windows, one per press plus its duration, merged. */
+	windows: Window[];
+	uptimeMs: number;
+	uptimePct: number;
+	/** Presses made while a totem was already up. */
+	refreshes: number;
+	/** The dot-time thrown away by those refreshes. */
+	wastedMs: number;
+}
+
+/** A stretch the sim's Flame Shock rule (priority 7) would have claimed a refresh. */
+export interface ElementalSnapshotWindow {
+	start: number;
+	end: number;
+	/** Which of the three triggers opened it: the UVLS buff, the UVLS counter, or Black Blood of Y'Shaarj. */
+	source: 'unerring-vision' | 'uvls-stacks' | 'black-blood';
+}
+
+export interface SnapshotsAudit {
+	windows: ElementalSnapshotWindow[];
+	/** Flame Shock refreshes that landed inside a window. */
+	refreshed: number;
+	/** Windows the dot was up through with no refresh inside. */
+	missed: number;
+}
+
+/** One Ascendance press and the dot it found, for the cooldowns section. */
+export interface AscendancePress {
+	t: number;
+	/** The dot's remaining time at the press; null when the dot was down. */
+	fsRemainingMs: number | null;
+	/** Whether the press was the opener rule (first five seconds). */
+	opener: boolean;
+	/** Whether the press was the two-piece rule (the debuff on the target with 10s+ left). */
+	twoPiece: boolean;
+}
+
+export interface AscendanceAudit {
+	presses: AscendancePress[];
+}
+
+/** The Elemental half of the analysis. See the `SpecAuditResult` fields for the shared half. */
+export interface ElementalAuditResult {
+	flameShock: FlameShockAudit;
+	earthShock: EarthShockAudit;
+	searingTotem: SearingTotemAudit;
+	snapshots: SnapshotsAudit;
+	ascendance: AscendanceAudit;
+	/**
+	 * The priority list run against the pull, press by press. The same three-state field as the
+	 * Windwalker audit's: `undefined` is an analysis captured before the ladder existed, `null` is
+	 * the ladder having nothing to say, an audit is an answer.
+	 */
+	apl?: AplAudit | null;
+	/** The same walk, forced to one target count, keyed by band. */
+	aplForced?: Partial<Record<Band, AplAudit | null>>;
+	misses: Miss[];
+	/** The spec's contribution to `cpm`, as in the Windwalker audit. */
+	cpm: Pick<CpmSummary, 'wastedGcds' | 'channelSec'>;
+	/** The spec's half of the timeline, as in the Windwalker audit. */
+	timeline?: {
+		casts: CastMark[];
+		lanes: AuraLane[];
+		hiddenTargets?: number;
+		hiddenLanes?: AuraLane[];
+	};
 }

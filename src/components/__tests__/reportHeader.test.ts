@@ -5,10 +5,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { Analysis } from '~/lib/types';
 
+import { DEFAULT_SPEC } from '~/lib/spec';
 import Report from '../Report';
 
 const fx = (n: string): Analysis =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../lib/__fixtures__/${n}.json`), 'utf8'));
+	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../specs/windwalker/__fixtures__/${n}.json`), 'utf8'));
 
 /**
  * The reported bug, end to end: a 10 Heroic pull was labelled "25 Normal".
@@ -19,12 +20,16 @@ const fx = (n: string): Analysis =>
  */
 describe('report header difficulty', () => {
 	it('labels a 10 Heroic pull as 10 Heroic', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: fx('poor'), targetChoice: 'auto' }));
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: fx('poor'), targetChoice: 'auto', spec: DEFAULT_SPEC }),
+		);
 		expect(html).toContain('10 Heroic');
 		expect(html).not.toContain('25 Normal');
 	});
 	it('labels a 25 Heroic pull as 25 Heroic', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: fx('strong'), targetChoice: 'auto' }));
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: fx('strong'), targetChoice: 'auto', spec: DEFAULT_SPEC }),
+		);
 		expect(html).toContain('25 Heroic');
 	});
 });
@@ -59,7 +64,7 @@ describe('target mode reaches the summary', () => {
 	 * — a slice taken from those would be two nav links and would compare equal whatever the reading.
 	 */
 	const summary = (analysis: Analysis, targetChoice: 'auto' | 'single' | 'multi'): string => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice }));
+		const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice, spec: DEFAULT_SPEC }));
 		const from = html.indexOf('aria-labelledby="summary-heading"');
 		const to = html.indexOf('id="cast-log-heading"');
 		expect(from, 'no summary section in the report').toBeGreaterThan(-1);
@@ -81,7 +86,9 @@ describe('target mode reaches the summary', () => {
 
 	/** And the report no longer renders the control, which is the half of the move that could rot. */
 	it('does not render the control it used to own', () => {
-		const html = renderToStaticMarkup(createElement(Report, { analysis: fx('waves'), targetChoice: 'auto' }));
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: fx('waves'), targetChoice: 'auto', spec: DEFAULT_SPEC }),
+		);
 		expect(html).not.toContain('radiogroup');
 	});
 });

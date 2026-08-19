@@ -13,13 +13,20 @@
 import { BAND, SWATCH, type BandTone, type Tone } from './tones';
 
 export default function ChartKey(
-	props: { children: string } & ({ band: true; tone: BandTone } | { band?: false; tone: Tone }),
+	props: { children: string } & ({ band: true; tone: BandTone } | { band?: false; tone: Tone }) & {
+			/** The spec's own colour, drawn inline when the bar it names is not a token colour. */
+			color?: string;
+		},
 ) {
 	const swatch = props.band === true ? BAND[props.tone].swatch : SWATCH[props.tone];
 
 	return (
 		<span className="flex items-center gap-2">
-			<i className={`inline-block h-3 w-3 shrink-0 rounded-sm ${swatch}`} aria-hidden="true" />
+			<i
+				className={`inline-block h-3 w-3 shrink-0 rounded-sm ${swatch}`}
+				style={props.color === undefined ? undefined : { backgroundColor: props.color }}
+				aria-hidden="true"
+			/>
 			{props.children}
 		</span>
 	);

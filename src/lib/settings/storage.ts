@@ -4,18 +4,18 @@
 // and asking someone to re-enter their own latency every tab would be absurd. Nothing here is sent
 // anywhere — the settings only ever reach the analysis engine running in this tab.
 
-import { DEFAULT_SETTINGS, normaliseSettings, type AnalysisSettings } from './model';
+import { defaultSettings, normaliseSettings, type AnalysisSettings, type SettingSchema } from './model';
 
 const KEY = 'wcl.settings';
 
-export function readSettings(): AnalysisSettings {
+export function readSettings(schema: SettingSchema[]): AnalysisSettings {
 	try {
 		const raw = localStorage.getItem(KEY);
-		return raw === null ? DEFAULT_SETTINGS : normaliseSettings(JSON.parse(raw));
+		return raw === null ? defaultSettings(schema) : normaliseSettings(JSON.parse(raw), schema);
 	} catch {
 		// A malformed or unreadable entry is not worth failing a report over; the defaults are correct
 		// for most people and the settings panel will show what is actually in force.
-		return DEFAULT_SETTINGS;
+		return defaultSettings(schema);
 	}
 }
 
