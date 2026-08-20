@@ -41,7 +41,15 @@ import type {
 	Window,
 } from '~/lib/types';
 import { type AuraWindow, auraWindows } from './auras';
-import { buildCastTable, castSeries, channelTickTimes, measureChannels, type CastSeries, type Channel } from './casts';
+import {
+	buildCastTable,
+	castSeries,
+	channelTickTimes,
+	measureChannels,
+	type CastPress,
+	type CastSeries,
+	type Channel,
+} from './casts';
 import { cooldownDrift } from './cooldowns';
 import { aggregateDamage, damageByTarget, primaryTargetID } from './damage';
 import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf } from './energy';
@@ -81,6 +89,15 @@ export interface Handles {
 	series: Map<string, CastSeries>;
 	castList: CastRow[];
 	castTimes(ability: Ability): number[];
+	/**
+	 * The same presses carrying the enemy spawn each was *aimed at*.
+	 *
+	 * For a button that can be aimed — a dot, a spirit, a taunt — the target of the press and the enemy
+	 * the player happened to be hitting around it are different claims, and only the press's own event
+	 * can answer the first. An audit grading a deliberate second dot on an add against the boss it was
+	 * standing next to is grading the wrong enemy.
+	 */
+	castPresses(ability: Ability): CastPress[];
 	castCount(ability: Ability): number;
 	/** The measured channels, keyed by ability key — one entry per ability with a `channel` in the model. */
 	channels: ReadonlyMap<string, Channel[]>;
@@ -278,6 +295,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const castList = buildCastTable(series.values(), { activeMs, nameOf });
 
 	const castTimes = (ability: Ability): number[] => series.get(ability.key)?.times ?? [];
+	const castPresses = (ability: Ability): CastPress[] => series.get(ability.key)?.presses ?? [];
 	const castCount = (ability: Ability): number => series.get(ability.key)?.count ?? 0;
 
 	// ----------------------------------------------------------------- channels
@@ -878,6 +896,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		series,
 		castList,
 		castTimes,
+		castPresses,
 		castCount,
 		channels,
 		damageEvents,

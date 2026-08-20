@@ -676,12 +676,24 @@ function dotWindowsOnTarget(
 	t0: number,
 	fightEnd: number,
 	targetID: number | undefined,
+	sourceID: number,
 ): DotWindows {
 	if (targetID === undefined) return { byInstance: new Map(), merged: [] };
 	const ids = new Set(aura.ids);
 	const buckets = new Map<string, WclEvent[]>();
 	for (const e of events) {
 		if (e.targetID !== targetID) continue;
+		// **This player's dot, not the debuff.** Two Elemental shamans both keep Flame Shock on the boss,
+		// and the log carries both — so a walk over every source interleaves two dots into one stream and
+		// credits this player with the other's coverage. `sourceID` is required rather than defaulted so a
+		// third caller has to decide whose aura it is asking about.
+		//
+		// The removes are filtered too, and that is the deliberate half. A remove sourced to someone else
+		// is the *other* shaman's dot ending, and letting it through would close this player's window
+		// early. The known cost is a dispel: if a log ever attributes the removal of this dot to the
+		// dispeller rather than the caster, the window here runs on past it. No MoP encounter dispels
+		// Flame Shock, and the alternative — accepting foreign removes — is the two-shaman bug back again.
+		if (e.sourceID !== sourceID) continue;
 		const id = abilityIdOf(e);
 		if (id === null || !ids.has(id) || !isAuraEvent(e)) continue;
 		const key = instanceKey(e.targetID, e.targetInstance);
@@ -726,6 +738,8 @@ function ascendanceReadyInSec(ascCasts: readonly number[], t: number): number {
  */
 export function elementalAudit(h: Handles): ElementalAuditResult {
 	const {
+		actor,
+		castPresses,
 		events,
 		t0,
 		duration,
@@ -836,7 +850,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// question none of them asked: an Earth Shock pressed while a *different* spawn carried the dot
 	// read as "dot up" when the enemy in front of the player had nothing on it. This is the split the
 	// Windwalker already draws — `rskByInstance` for a graded press, `rskByTarget` for anything drawn.
-	const fsDot = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, primaryID);
+	const fsDot = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, primaryID, actor.id);
 	const fsMerged: Window[] = fsDot.merged.map(([start, end]) => ({ start, end }));
 	const fsUptimeMs = unionMs(toIntervals(fsMerged));
 	/** The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none. */
@@ -866,8 +880,24 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		}
 		for (const [key, bucket] of bySpawn) fsTimelines.set(key, auraTimeline(bucket, FS_DEBUFF, t0));
 	}
+	/**
+	 * The spawn a Flame Shock press was **aimed at**, from the cast's own event.
+	 *
+	 * Not `spawnAt(t)`, which answers a different question: the enemy the player was *hitting* around
+	 * then. For every other rule in this audit those coincide closely enough, because a rule about
+	 * Earth Shock is a rule about the enemy in front of you. A Flame Shock press is the one case where
+	 * they genuinely diverge, and diverge by design — the cleave rule's whole point is a *second* dot
+	 * on an add while every hit either side of it lands on the boss. Graded against the hit enemy, that
+	 * deliberate multi-dot reads as a refresh of a dot that was already up, and is charged as a wasted
+	 * global for doing exactly what the priority list asked.
+	 *
+	 * Falls back to the hit spawn when the cast event named no target at all. That is not a guess about
+	 * aim: it is the same enemy every other rule at that instant is judged against, so a press with no
+	 * target reads consistently with its neighbours instead of dropping out of the audit.
+	 */
+	const fsAimedAt = new Map(castPresses(FLAME_SHOCK).map((press) => [press.t, press.spawn]));
 	const fsPresses = fsCasts.map((t) => {
-		const spawn = spawnAt(t);
+		const spawn = fsAimedAt.get(t) ?? spawnAt(t);
 		// An empty timeline needs no separate arm: `remainingAtCast` reads nothing as 0, and 0 is already
 		// the "no dot was up, so this press applied one" case below.
 		const remaining = remainingAtCast(spawn === null ? [] : (fsTimelines.get(spawn) ?? []), t, FS_DEBUFF);
@@ -893,7 +923,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const secondaryID = [...hitCounts.entries()].filter(([id]) => id !== primaryID).sort((a, b) => b[1] - a[1])[0]?.[0];
 	// The union across the secondary's own spawns, for the same reason the primary's figure is: this is
 	// a percentage labelled with one enemy, not a verdict on one press.
-	const fsSecondaryWindows = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID).merged;
+	const fsSecondaryWindows = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID, actor.id).merged;
 	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, multiTargetWindows));
 	const multiDotUptimePct = multiTargetMs > 0 ? (multiDotUptimeMs / multiTargetMs) * 100 : 0;
 
@@ -1127,7 +1157,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// ------------------------------------------------------------ Ascendance
 	// The two-piece debuff's union: it is drawn as a lane, and the two-piece read below is a check on
 	// this player's own proc rather than on which add they were facing.
-	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID).merged;
+	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
 	const ascPresses = ascCasts.map((t) => ({
 		t,
 		// Per spawn: "Ascendance pressed without a fresh Flame Shock" is a claim about the enemy the
