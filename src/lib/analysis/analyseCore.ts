@@ -147,8 +147,18 @@ export interface Handles {
 	multiTargetMs: number;
 	/** The time with at least one enemy in the count window — the target mode's denominator. */
 	contactMs: number;
-	/** The live enemy count read at each press, with the spec's own multi-target evidence excluded. */
+	/**
+	 * The live enemy count read at each press, with the spec's own multi-target evidence excluded.
+	 *
+	 * The **damage** count: units that actually took damage. What almost every ladder rule wants, because
+	 * almost every rule is about damage dealt.
+	 */
 	aplTargetCountAt(t: number): number;
+	/**
+	 * The same reading counting every unit the player *hit*, damage or not — what a hit-count trigger
+	 * fires on. Only a rule whose ability declares `multiTargetBenefit: 'trigger'` should band on it.
+	 */
+	triggerTargetCountAt(t: number): number;
 	/**
 	 * The declared bars, fully audited: a pool bar (cap time, regen rate) or a points bar (the
 	 * reconstructed walk, the overflow) under the key the spec named it with. The engine computed
@@ -532,18 +542,10 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * NPC *type*, so it needs the id; and the count itself needs the spawn, because WarcraftLogs hands
 	 * ten simultaneous adds one `targetID` and counting on that alone calls all ten of them one enemy.
 	 */
-	const landedHits: Array<TargetHit & { key: string; abilityID: number | null }> = [];
+	const hitsOnAnything: Array<TargetHit & { key: string; abilityID: number | null }> = [];
 	for (const e of damageEvents) {
 		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
-		// A hit on a unit nothing can damage did not land on anything. Filtered here, at the one place
-		// the hit list is built, rather than by each of the six readers of it — the target count and the
-		// APL's band, the Windwalker's Rising Sun Kick coverage walk, the Elemental's "which enemy was
-		// the player on" and its second-dot pick. Every one of them was reading a Crawler Mine on Iron
-		// Juggernaut as an enemy in front of the player: it padded the fan-out count that decides
-		// Rushing Jade Wind's three-target chi refund, and it charged a stretch of contact time as
-		// uncovered by a debuff no debuff could ever have been on.
-		if (!isJudgeableTarget(spawnLifeByKey.get(instanceKey(e.targetID, e.targetInstance)))) continue;
-		landedHits.push({
+		hitsOnAnything.push({
 			t: e.timestamp - t0,
 			target: e.targetID,
 			...(e.targetInstance === undefined ? {} : { instance: e.targetInstance }),
@@ -551,7 +553,21 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			abilityID: abilityIdOf(e),
 		});
 	}
-	landedHits.sort((a, b) => a.t - b.t);
+	hitsOnAnything.sort((a, b) => a.t - b.t);
+	/**
+	 * The same hits with the units nothing can damage taken out — which is the list every reader of
+	 * "the enemy in front of the player" wants.
+	 *
+	 * Filtered here, at the one place the hit list is built, rather than by each of the readers of it:
+	 * the damage-side target count, the Windwalker's Rising Sun Kick coverage walk, the Elemental's
+	 * "which spawn was the player on" and its second-dot pick. Every one of them was reading a Crawler
+	 * Mine on Iron Juggernaut as an enemy in front of the player, and charging a stretch of contact time
+	 * as uncovered by a debuff no debuff could ever have been on.
+	 *
+	 * `hitsOnAnything` above is deliberately kept: a **hit-count trigger** fires on a unit it could not
+	 * damage, so the two counts below are two different questions and neither list can answer both.
+	 */
+	const landedHits = hitsOnAnything.filter((hit) => isJudgeableTarget(spawnLifeByKey.get(hit.key)));
 
 	// ---------------------------------------------------------- target count
 	/**
@@ -570,9 +586,28 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const targetCountExcludedDamageIDs = new Set(
 		(spec.aplTargetCountExclude ?? []).flatMap((key) => spec.registry.ability(key).damageIds ?? []),
 	);
-	const aplTargetHits = multiTargetHits.filter((hit) => !targetCountExcludedDamageIDs.has(hit.abilityID ?? -1));
+	const notOwnAreaDamage = (hit: { abilityID: number | null }): boolean =>
+		!targetCountExcludedDamageIDs.has(hit.abilityID ?? -1);
+	const aplTargetHits = multiTargetHits.filter(notOwnAreaDamage);
 	const aplTargetPoints = targetCounts(aplTargetHits, spec.thresholds.targetWindowMs);
 	const aplTargetCountAt = countAt(aplTargetPoints);
+	/**
+	 * The other reading of the same moment: how many units the player *hit*, damage or not.
+	 *
+	 * The count a hit-count trigger fires on. Built off `hitsOnAnything` rather than `landedHits`, which
+	 * is the entire difference between the two — Rushing Jade Wind's chi refund fires on three units hit
+	 * whether or not any damage lands, so a monk who put the wind into three Crawler Mines got the chi
+	 * and pressed correctly, and a ladder banded on the damage count calls that a fault.
+	 *
+	 * Everything else about it is identical to the damage count above, deliberately: the same spec ignore
+	 * list, the same own-area-damage exclusion, the same window. Only the immunity question differs, so
+	 * the two series cannot drift apart for any other reason.
+	 */
+	const triggerTargetPoints = targetCounts(
+		hitsOnAnything.filter((hit) => !ignoredMultiTargetIDs.has(hit.target)).filter(notOwnAreaDamage),
+		spec.thresholds.targetWindowMs,
+	);
+	const triggerTargetCountAt = countAt(triggerTargetPoints);
 	// The stretches themselves and not only their total: some audits ask whether any *one* of them
 	// ran long enough to be worth something. Named here rather than counted twice.
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
@@ -963,6 +998,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		multiTargetMs,
 		contactMs,
 		aplTargetCountAt,
+		triggerTargetCountAt,
 		resourceAudits,
 		lostCasts,
 		marks,

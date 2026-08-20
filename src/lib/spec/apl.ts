@@ -1,3 +1,4 @@
+import type { MultiTargetBenefit } from '~/lib/game/model';
 import type { CastMark, ResourceCurve, Window } from '~/lib/types';
 
 import { levelAt, type AuraLevel } from '../analysis/auras';
@@ -26,6 +27,12 @@ import { valueAtOrBefore } from '../analysis/search';
  * than a missing one.
  *
  * ## The target count is read per press, not per pull
+ *
+ * And "how many targets" is two questions, not one. An immune unit takes no damage but is still a unit
+ * that was *hit*, so a rule about damage and a rule about a hit-count trigger have to band on different
+ * counts — see `MultiTargetBenefit` in `lib/game/model`. The walk computes both bands and gives each
+ * rule the one its own ability calls for; `benefitOf` is how it finds out, and a spec that supplies
+ * neither it nor `triggerTargetsAt` bands everything on damage, which is the right default.
  *
  * The sim's lists branch on `numberTargets`, so rules carry `bands` and the walk reads the live
  * count at each press through `targetsAt`. Per press rather than per pull, and that distinction is
@@ -170,6 +177,23 @@ export interface AplInputs {
 	 * sim evaluates `numberTargets` at each action, so this does too.
 	 */
 	targetsAt: (t: number) => number;
+	/**
+	 * The same count over every unit the player *hit*, damage or not — what a hit-count trigger fires on.
+	 *
+	 * Optional, and absent is not a gap: a spec with no hit-count trigger has nothing to read it, and
+	 * every rule then bands on `targetsAt` exactly as it did before this existed. Supplying it without
+	 * `benefitOf` also changes nothing, because nothing would claim to want it.
+	 */
+	triggerTargetsAt?: (t: number) => number;
+	/**
+	 * Which of the two counts a button is banded on, by cast id.
+	 *
+	 * Resolved by the spec through its own registry — `abilityByCastId(id)?.multiTargetBenefit` — rather
+	 * than declared per ladder entry. That is deliberate: the fact is a property of the *ability*, so
+	 * writing it per rule would let two rules for one button disagree, and would make the next spec with
+	 * a hit-count trigger rediscover it in its ladder instead of reading it off its ability model.
+	 */
+	benefitOf?: (id: number) => MultiTargetBenefit;
 	/**
 	 * A reader's override, forcing every press to be judged at one band.
 	 *
@@ -347,7 +371,14 @@ export interface State {
 	/** Carried on the state rather than closed over, so a rule reads every number it needs from one place. */
 	fofChannelSec: number;
 	regenPerSec: number;
-	/** Enemies engaged at this press, banded as the list bands them. */
+	/**
+	 * Enemies engaged at this press, banded as the list bands them.
+	 *
+	 * **The band for the rule being evaluated**, which is not the same number for every rule at one
+	 * press: a rule whose ability's benefit is a hit-count trigger is banded on the units it hit, and
+	 * every other rule on the units that took damage. A condition reading `state.band` therefore reads
+	 * its own rule's count, which is the only one it could mean.
+	 */
 	band: Band;
 }
 
@@ -422,8 +453,29 @@ function stateAt(t: number, inputs: AplInputs): State {
 		regenPerSec: inputs.regenPerSec,
 		// The reader's override wins outright when there is one: it answers a question the log cannot,
 		// namely that ignoring the adds was a decision rather than an oversight.
+		//
+		// The damage band. `bandFor` below swaps in the trigger band for the rules that want it — this is
+		// the base state, so a spec that declares no hit-count trigger never sees a second number.
 		band: inputs.forceBand ?? bandOf(inputs.targetsAt(t)),
 	};
+}
+
+/**
+ * The band a single rule is judged at.
+ *
+ * Damage unless the rule's own ability says its benefit is a hit-count trigger, in which case the count
+ * of units *hit* is the one that decides whether the list wanted the button. The reader's forced band
+ * still wins over both: it is an answer about the player's intent, and intent does not split by ability.
+ *
+ * Falls through to the damage band whenever the spec supplied no trigger count, so the two-count split
+ * costs a spec that has no such ability nothing at all — not a branch, not a second series.
+ */
+function bandFor(rule: AplRule, state: State, inputs: AplInputs): Band {
+	if (inputs.forceBand !== undefined) return state.band;
+	const triggerTargetsAt = inputs.triggerTargetsAt;
+	if (triggerTargetsAt === undefined) return state.band;
+	if (inputs.benefitOf?.(rule.id) !== 'trigger') return state.band;
+	return bandOf(triggerTargetsAt(state.t));
 }
 
 /**
@@ -518,12 +570,19 @@ function judge(
 	reduction: number,
 	lastCast: ReadonlyMap<number, number>,
 	ladder: readonly AplRule[],
+	inputs: AplInputs,
 ): AplPress {
 	for (const rule of ladder) {
+		// The band *this rule* is judged at, which is not one number per press: a hit-count trigger bands
+		// on the units hit and everything else on the units damaged. Resolved per rule and substituted
+		// into the state the rule then reads, so a condition testing `state.band` cannot pick up the
+		// other count by accident. Identity-checked so the common case allocates nothing.
+		const band = bandFor(rule, state, inputs);
+		const ruleState: State = band === state.band ? state : { ...state, band };
 		// Not in the list at this target count, so it is not a button the press passed over. Checked
 		// before the talent gate and before the cooldown, because an entry outside its band is absent
 		// rather than unavailable.
-		if (rule.bands !== undefined && !rule.bands.includes(state.band)) continue;
+		if (rule.bands !== undefined && !rule.bands.includes(band)) continue;
 		// Replaced on the character's bars, so it is not a button that could have been pressed.
 		if (rule.replacedBy !== undefined && seen.has(rule.replacedBy)) continue;
 		// A talent row is only demanded of a player the log shows chose it. Baseline buttons carry no
@@ -535,22 +594,40 @@ function judge(
 		// have wanted cannot be the mistake the unknown is hiding.
 		const unreadable = (): AplPress =>
 			rule.id === cast.id
-				? { t: state.t, pressed: cast.id, wanted: rule.key, reason: rule.reason?.(state) ?? null, verdict: 'followed' }
+				? {
+						t: state.t,
+						pressed: cast.id,
+						wanted: rule.key,
+						reason: rule.reason?.(ruleState) ?? null,
+						verdict: 'followed',
+					}
 				: { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'unknown' };
 
-		const wants = rule.condition(state, auras, cooldowns);
+		const wants = rule.condition(ruleState, auras, cooldowns);
 		if (wants === 'unknown') return unreadable();
 		if (!wants) continue;
 		// The same short-circuit as an unreadable condition, because it is the same failure: a bar the
 		// log never carried cannot say whether the player could pay, and a rung that might have been
 		// wanted and might have been affordable is not one a lower press can be graded against.
-		const canPay = affordable(rule, state, auras, reduction);
+		const canPay = affordable(rule, ruleState, auras, reduction);
 		if (canPay === 'unknown') return unreadable();
 		if (!canPay) continue;
 
 		return rule.id === cast.id
-			? { t: state.t, pressed: cast.id, wanted: rule.key, reason: rule.reason?.(state) ?? null, verdict: 'followed' }
-			: { t: state.t, pressed: cast.id, wanted: rule.key, reason: rule.reason?.(state) ?? null, verdict: 'skipped' };
+			? {
+					t: state.t,
+					pressed: cast.id,
+					wanted: rule.key,
+					reason: rule.reason?.(ruleState) ?? null,
+					verdict: 'followed',
+				}
+			: {
+					t: state.t,
+					pressed: cast.id,
+					wanted: rule.key,
+					reason: rule.reason?.(ruleState) ?? null,
+					verdict: 'skipped',
+				};
 	}
 
 	// Nothing on the ladder wanted the global. A cooldown, a defensive, a taunt — or a rotational
@@ -586,7 +663,7 @@ export function aplAudit(inputs: AplInputs, ladder: readonly AplRule[]): AplAudi
 		const state = stateAt(cast.t, inputs);
 		const auras = readerAt(cast.t, inputs);
 		const cooldowns = cooldownsAt(cast.t, ladder, lastCast, inputs.offLadderCooldowns);
-		const verdict = judge(cast, state, auras, cooldowns, seen, reduction, lastCast, ladder);
+		const verdict = judge(cast, state, auras, cooldowns, seen, reduction, lastCast, ladder, inputs);
 		presses.push(verdict);
 		if (verdict.verdict === 'skipped' && verdict.wanted !== null) {
 			skips.set(verdict.wanted, (skips.get(verdict.wanted) ?? 0) + 1);

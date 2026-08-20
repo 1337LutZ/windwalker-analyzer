@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { CastMark, ResourceCurve, Window } from '~/lib/types';
 
+import type { MultiTargetBenefit } from '~/lib/game/model';
+
 import { aplAudit, type AplInputs } from '../apl';
 import { LADDER } from '~/specs/windwalker/lib/apl';
+import { registry as windwalkerRegistry } from '~/specs/windwalker/lib';
 
 /**
  * The ladder is the one part of this report that can call a specific press a mistake, so what it
@@ -397,5 +400,106 @@ describe('the priority ladder', () => {
 			wanted: 'rushing-jade-wind',
 			reason: 'haste-window',
 		});
+	});
+});
+
+/**
+ * The two target counts, and the one rung that bands on the second of them.
+ *
+ * An immune unit takes no damage but is still a unit that was *hit*, and Rushing Jade Wind's chi refund
+ * fires on units hit. So a monk who put the wind into three Crawler Mines on Iron Juggernaut got the chi
+ * and pressed correctly, while every damage-side reading of that same moment sees one target. A single
+ * count cannot serve both, and the ladder banded on the damage count calls that press a fault.
+ *
+ * `benefitOf` reads the real Windwalker registry rather than a stub, so these cases fail if the ability
+ * model stops declaring the wind a trigger — which is the half of this that a hand-written flavour per
+ * ladder entry would not have caught.
+ */
+describe('the two target counts', () => {
+	const benefitOf = (id: number): MultiTargetBenefit =>
+		windwalkerRegistry.abilityByCastId(id)?.multiTargetBenefit ?? 'damage';
+
+	/** One enemy taking damage, three being hit: a boss flanked by two immune mines. */
+	const immunePack = {
+		targetsAt: () => 1,
+		triggerTargetsAt: () => 3,
+		benefitOf,
+	} as const;
+
+	it('scores a wind pressed into three immune units as correct', () => {
+		const audit = aplAudit(
+			inputs({ ...immunePack, energy: flat(100, 50), chi: flat(4, 3), casts: [press(1000, ID.rushingJadeWind)] }),
+			LADDER,
+		);
+		expect(audit?.presses[0]).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind-open' });
+	});
+
+	/**
+	 * The same press with nothing else in the room. Entry 17 does not exist at one target, so the wind
+	 * falls to the bottom rung and this is not the multi-target rule firing — which is what makes the
+	 * case above a statement about the trigger count rather than about the wind always being wanted.
+	 */
+	it('does not reach the multi-target rung when only one unit was hit', () => {
+		const audit = aplAudit(
+			inputs({
+				targetsAt: () => 1,
+				triggerTargetsAt: () => 1,
+				benefitOf,
+				energy: flat(100, 50),
+				chi: flat(4, 3),
+				casts: [press(1000, ID.rushingJadeWind)],
+			}),
+			LADDER,
+		);
+		expect(audit?.presses[0]?.wanted).not.toBe('rushing-jade-wind-open');
+	});
+
+	/**
+	 * And the split is confined to the ability that declared it. Rising Sun Kick's entry 18 also bands at
+	 * two and up, and its benefit is damage — so the same immune pack must leave it out of the list
+	 * entirely, exactly as a one-target pull does. If this fires, the trigger count has leaked into the
+	 * damage rules and every cleave verdict on an immune pack is wrong in the other direction.
+	 */
+	it('leaves a damage rule banded on the damage count', () => {
+		const audit = aplAudit(
+			inputs({ ...immunePack, energy: flat(100, 50), chi: flat(4, 3), casts: [press(1000, ID.jab)] }),
+			LADDER,
+		);
+		expect(audit?.presses[0]?.wanted).not.toBe('rising-sun-kick');
+	});
+
+	/**
+	 * A spec that supplies no trigger count is unaffected, which is what keeps the Elemental — and any
+	 * future spec with no hit-count trigger — from paying for this at all.
+	 */
+	it('bands everything on damage when no trigger count is supplied', () => {
+		const withTrigger = aplAudit(
+			inputs({ ...immunePack, energy: flat(100, 50), chi: flat(4, 3), casts: [press(1000, ID.rushingJadeWind)] }),
+			LADDER,
+		);
+		const without = aplAudit(
+			inputs({ targetsAt: () => 1, energy: flat(100, 50), chi: flat(4, 3), casts: [press(1000, ID.rushingJadeWind)] }),
+			LADDER,
+		);
+		expect(withTrigger?.presses[0]?.wanted).toBe('rushing-jade-wind-open');
+		expect(without?.presses[0]?.wanted).not.toBe('rushing-jade-wind-open');
+	});
+
+	/**
+	 * The reader's forced band still wins over both counts. It answers a question no count can — that
+	 * ignoring the adds was a decision — so it cannot be allowed to leak past one ability's flavour.
+	 */
+	it('lets the reader override both counts at once', () => {
+		const audit = aplAudit(
+			inputs({
+				...immunePack,
+				forceBand: 1,
+				energy: flat(100, 50),
+				chi: flat(4, 3),
+				casts: [press(1000, ID.rushingJadeWind)],
+			}),
+			LADDER,
+		);
+		expect(audit?.presses[0]?.wanted).not.toBe('rushing-jade-wind-open');
 	});
 });

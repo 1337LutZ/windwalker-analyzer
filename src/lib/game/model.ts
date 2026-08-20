@@ -30,6 +30,36 @@ export type Gate =
 	/** Utility, defensives, consumables: counted, not scored. */
 	| 'other';
 
+/**
+ * What an ability gets out of there being more enemies in front of it.
+ *
+ * The distinction exists because an **immune** unit is a target for one of these and not for the other,
+ * and collapsing them into a single "was this a target" answer is wrong in one direction whichever way
+ * it is collapsed. The Crawler Mines on Iron Juggernaut are the case that proves it: every hit on one
+ * comes back `hitType: 10` for zero damage, so
+ *
+ *  - anything measured for **damage** — a fan-out average, a cleave verdict, the multi-target damage
+ *    share — gains exactly nothing from a mine being there, and counting it invents targets; while
+ *  - Rushing Jade Wind's chi refund fires on three units **hit**, damage or no damage, and that refund
+ *    is the entire reason the wind beats Jab into a pack. A player who pressed it into three mines
+ *    played correctly and the report has to say so.
+ *
+ * So it is a property of the ability rather than of the unit or of the reader. Rushing Jade Wind is not
+ * the only button in the game with a hit-count trigger, and the next spec that has one must not have to
+ * rediscover this.
+ */
+export type MultiTargetBenefit =
+	/**
+	 * The benefit is the damage dealt, so only an enemy that actually took damage counts. The default,
+	 * and correct for almost every ability — a button that hits four things for nothing hit nothing.
+	 */
+	| 'damage'
+	/**
+	 * The benefit is a trigger that fires on the *number of units hit*, whether or not damage landed.
+	 * An immune unit still counts, because the trigger still fires.
+	 */
+	| 'trigger';
+
 export type AuraKind = 'buff' | 'debuff';
 
 export interface Aura {
@@ -72,6 +102,63 @@ export interface Channel {
 	baseMs?: number;
 }
 
+/**
+ * A damage-over-time effect's tick schedule: the base numbers, and the two facts about the mechanic
+ * that decide how a log may be read against them.
+ *
+ * This exists because a dot in this expansion is **affected by haste without being affected by
+ * duration**. Haste shortens the interval between ticks and leaves the duration where it is, so what
+ * moves at a haste breakpoint is the *number of ticks*. Flame Shock is ten three-second ticks over
+ * thirty seconds unhasted (`sim/shaman/shocks.go`), and on the committed `phased` fixture the
+ * application at 2 631 ran to 32 291 with **22** ticks 1 348ms apart. Twelve ticks the declaration
+ * cannot know about.
+ *
+ * So everything here is the *base*, and the count a pull actually got is derived from that pull's own
+ * tick stream — `lib/analysis/ticks.ts`. That is also why a talent or a glyph that adds a tick needs
+ * no entry here: it arrives in the cadence, already measured.
+ */
+export interface Dot {
+	/** Base duration, before haste — and haste does not move it, which is the whole point. */
+	durationMs: number;
+	/** Base interval between ticks, before haste: the sim's own tick period. */
+	tickMs: number;
+	/**
+	 * Base tick count.
+	 *
+	 * Redundant with `durationMs / tickMs` deliberately. `createRegistry` refuses a declaration where
+	 * the three disagree, so a mistyped period cannot pass unnoticed as a dot with a different shape —
+	 * the same reason the registry refuses two objects claiming one spell id.
+	 */
+	ticks: number;
+	/**
+	 * True when haste shortens the tick *interval* and leaves the duration alone, so the tick count is
+	 * what moves — the mechanic described above.
+	 *
+	 * False would mean the other kind: haste shortens the duration and the tick count is fixed. Nothing
+	 * in this app declares one, and the distinction is not cosmetic — backing a tick count out of a
+	 * measured cadence is only valid for the first kind, so `tickWindowAt` refuses the second rather
+	 * than reporting a count the dot never had.
+	 */
+	hastedTicks: boolean;
+	/**
+	 * True when reapplying the dot inside its **last tick window** rolls the pending tick over instead
+	 * of losing it — which is what makes the last tick window the thing a player aims at, and the basis
+	 * this report scores a refresh on.
+	 *
+	 * Measured, not assumed: on the `phased` fixture the refresh at 59 530 landed with a tick pending at
+	 * 60 368; that tick fired, and the dot then ran a further seventeen periods to 90 171 — eighteen
+	 * ticks out of a seventeen-tick application. The pending tick survived the reapplication.
+	 *
+	 * **False for Warlock, which is the only exception in this expansion.** A Warlock dot is judged on
+	 * what it snapshotted rather than on where in its tick schedule the refresh landed, so scoring one
+	 * on its tick window answers a question nobody asked and a miss reads as a fault. It is recorded
+	 * here, on the model, rather than inside a spec's audit because there is no Warlock spec in this
+	 * repository yet — and the next person to add one must not have to rediscover it. The rule is
+	 * enforced rather than commented: `inLastTickWindow` throws for a dot that does not roll over.
+	 */
+	rollsOver: boolean;
+}
+
 export interface Ability {
 	key: string;
 	name: string;
@@ -93,9 +180,23 @@ export interface Ability {
 	castTimeMs?: number;
 	onGcd: boolean;
 	gate: Gate;
+	/**
+	 * What this button gets out of extra enemies — see `MultiTargetBenefit`.
+	 *
+	 * Absent means `'damage'`, which is the honest default: an ability that says nothing about a
+	 * hit-count trigger does not have one, and a button that hit four things for no damage hit nothing.
+	 * Declaring it wrong is the failure mode to watch, in one direction only — marking a damage ability
+	 * `'trigger'` puts immune units back into its fan-out and its ladder band.
+	 */
+	multiTargetBenefit?: MultiTargetBenefit;
 	cooldownMs?: number;
 	/** Present when pressing it locks out every other button for a while. */
 	channel?: Channel;
+	/**
+	 * Present when the press leaves a dot behind. Alongside `channel` because it answers the same kind
+	 * of question — how the press unfolds over time rather than what it hits.
+	 */
+	dot?: Dot;
 	/** Aura keys this ability applies. */
 	/**
 	 * Pressed for something other than damage.

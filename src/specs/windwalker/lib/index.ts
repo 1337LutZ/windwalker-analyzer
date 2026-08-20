@@ -552,6 +552,18 @@ const ABILITIES: Ability[] = [
 		onGcd: true,
 		// 40 energy, and it generates chi (`sim/monk/talents.go`, `registerRushingJadeWind`).
 		gate: 'energy',
+		/**
+		 * The one ability in this spec whose benefit is a trigger on units *hit* rather than damage dealt.
+		 *
+		 * The refund fires on the number of units the wind hits, and it does not ask whether any damage
+		 * landed — so on Iron Juggernaut a wind spinning through a pack of Crawler Mines pays its chi back
+		 * even though every one of those hits comes back `Immune` for zero. That chi is the whole reason
+		 * the wind beats Jab into a pack, so a monk who pressed it there played correctly, and a ladder
+		 * banded on the damage count would call it a fault. Everything else in this list — Spinning Crane
+		 * Kick's flat chi, Rising Sun Kick's cleave, the fan-out averages — is about damage and gains
+		 * nothing from a unit that cannot take any.
+		 */
+		multiTargetBenefit: 'trigger',
 		cooldownMs: 6000,
 		applies: ['rushing-jade-wind'],
 	},
@@ -1632,6 +1644,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		landedHits,
 		multiTargetWindows,
 		aplTargetCountAt,
+		triggerTargetCountAt,
 		resourceAudits,
 		lostCasts,
 		marks,
@@ -3496,6 +3509,13 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		// over the pull. `singleTarget` is deliberately no longer passed: it is a damage-concentration
 		// boolean, and what the list needs is a live count.
 		targetsAt: aplTargetCountAt,
+		// The second count, for the one rung pair that fires on units hit rather than units damaged.
+		triggerTargetsAt: triggerTargetCountAt,
+		// Read off the ability model through the registry rather than declared per ladder entry: the wind
+		// has two rungs (17 and 31) and hand-writing the flavour on each is how the two would come to
+		// disagree. An id no ability claims bands on damage, which is the safe direction — it can only
+		// under-count, never invent a target.
+		benefitOf: (id) => registry.abilityByCastId(id)?.multiTargetBenefit ?? 'damage',
 	};
 	const apl = aplAudit(aplInputs, LADDER);
 	/**

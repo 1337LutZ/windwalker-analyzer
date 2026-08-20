@@ -371,3 +371,187 @@ describe('a unit that was immune for one phase stays a target', () => {
 		expect(inside).toEqual([]);
 	});
 });
+
+// ---------------------------------------------------------------------------------------------------
+// The other half of the answer: an immune unit IS a target for a trigger.
+//
+// Rushing Jade Wind's chi refund fires on the number of units it *hit*, and it does not ask whether any
+// damage landed — so a wind spinning through a pack of Crawler Mines pays its chi back, and that chi is
+// the whole reason the wind beats Jab into a pack. The damage readings above and this one are two
+// questions about the same moment, and the ability model is what says which a given button is asking.
+//
+// The Iron Juggernaut fixture cannot show this: the monk on that pull did not talent the wind, which is
+// exactly why collapsing the two counts did not surface as a failing test. So a synthetic pull does.
+
+const WW_T0 = 300_000;
+const WW_DURATION = 60_000;
+const MONK = 5;
+const WW_BOSS = 20;
+const MINE = 30;
+
+const RJW_CAST = 116_847;
+const RJW_DAMAGE = 148_187;
+const SCK_CAST = 101_546;
+const SCK_DAMAGE = 107_270;
+const RSK_CAST = 107_428;
+const TEB_BANK = 1_247_279;
+
+/**
+ * Energy and chi on every event, which is what makes the priority ladder run at all.
+ *
+ * `aplAudit` returns null rather than an empty audit for a log with no resource readings — "no mistakes"
+ * and "could not tell" being different answers — so a synthetic pull that wants a verdict has to carry
+ * the bars. WarcraftLogs' own power-type numbering: energy 3, chi 12.
+ *
+ * `resourceActor: 1` means "the source's bars" and is **not** an actor id — 1 is the source, 2 is the
+ * target, and anything else is dropped as a shape the reader does not understand. Writing the monk's own
+ * id there silently produced a pull with zero samples and a null priority audit.
+ */
+const bars = (energy: number, chi: number): Record<string, unknown> => ({
+	resourceActor: 1,
+	classResources: [
+		{ amount: energy, max: 100, type: 3 },
+		{ amount: chi, max: 4, type: 12 },
+	],
+});
+
+const wwEvent = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
+	timestamp: WW_T0 + t,
+	type,
+	abilityGameID: id,
+	sourceID: MONK,
+	targetID: MONK,
+	...extra,
+});
+
+/** One area tick landing on the boss and on three mines at a single instant, as an area hit does. */
+const areaTick = (t: number, damageID: number): WclEvent[] => [
+	wwEvent(t, 'damage', damageID, { targetID: WW_BOSS, amount: 5000, hitType: 1 }),
+	...[1, 2, 3].map((instance) =>
+		wwEvent(t, 'damage', damageID, { targetID: MINE, targetInstance: instance, amount: 0, hitType: 10 }),
+	),
+];
+
+/**
+ * The wind pressed at `t`, with the bars it was pressed on.
+ *
+ * Full energy and three chi, so entry 17 is affordable and nothing above it on the ladder — there is
+ * nothing above it — can claim the global instead.
+ */
+const windPress = (t: number): WclEvent => wwEvent(t, 'cast', RJW_CAST, bars(100, 3));
+
+const wwFight = {
+	id: 3,
+	name: 'Iron Juggernaut',
+	encounterID: 51_600,
+	kill: true,
+	difficulty: 4,
+	size: 25,
+	startTime: WW_T0,
+	endTime: WW_T0 + WW_DURATION,
+};
+
+const wwDataset: FightDataset = {
+	code: 'ww-trigger',
+	fight: wwFight,
+	actor: { id: MONK, name: 'Bigdogmo', type: 'Player' },
+	actors: [
+		{ id: MONK, name: 'Bigdogmo', type: 'Player' },
+		{ id: WW_BOSS, name: 'Iron Juggernaut', type: 'NPC', subType: 'Boss' },
+		{ id: MINE, name: 'Crawler Mine', type: 'NPC', subType: 'NPC' },
+	],
+	events: [
+		// The Tigereye Brew bank, which is what `identify` reads to call this a Windwalker at all — the
+		// buff is earned by spending chi and no other spec has it.
+		wwEvent(500, 'applybuffstack', TEB_BANK, { stack: 1 }),
+		wwEvent(1500, 'applybuffstack', TEB_BANK, { stack: 2 }),
+		wwEvent(1000, 'cast', RSK_CAST, { targetID: WW_BOSS, ...bars(100, 2) }),
+		wwEvent(1000, 'damage', RSK_CAST, { targetID: WW_BOSS, amount: 9000, hitType: 1, ...bars(100, 2) }),
+		// Spinning Crane Kick, into the boss and three immune mines: a damage ability with the same
+		// fan-out as the wind, so the two rows sit side by side over identical events.
+		//
+		// It is also what puts the mines into the trailing count window *before* the wind is pressed. The
+		// wind's own ticks cannot do that job: `aplTargetCountExclude` keeps a spec's own area damage from
+		// establishing its own multi-target evidence, so both counts drop RJW's 148187 and a pull whose
+		// only fan-out is the wind reads as one target at every press of it.
+		wwEvent(2000, 'cast', SCK_CAST, bars(100, 2)),
+		...areaTick(2000, SCK_DAMAGE),
+		// The press under test: the wind, one global later, with three immune mines in the window.
+		windPress(3000),
+		...areaTick(3000, RJW_DAMAGE),
+		...areaTick(4000, RJW_DAMAGE),
+		...areaTick(7000, SCK_DAMAGE),
+		...areaTick(8000, SCK_DAMAGE),
+		// A late press, so the energy curve has more than one reading and a regen rate can be measured.
+		wwEvent(30_000, 'cast', RSK_CAST, { targetID: WW_BOSS, ...bars(100, 2) }),
+		wwEvent(30_000, 'damage', RSK_CAST, { targetID: WW_BOSS, amount: 9000, hitType: 1, ...bars(100, 2) }),
+	],
+	table: {
+		fight: {
+			...wwFight,
+			enemyNPCs: [
+				{ id: WW_BOSS, gameID: 71_466 },
+				{ id: MINE, gameID: 72_050 },
+			],
+		},
+		damageDone: {
+			entries: [
+				{
+					name: 'Bigdogmo',
+					id: MONK,
+					type: 'Monk',
+					itemLevel: 553,
+					total: 29_000,
+					activeTime: WW_DURATION,
+					abilities: [{ guid: RJW_DAMAGE, name: 'Rushing Jade Wind', total: 10_000 }],
+				},
+			],
+		},
+	},
+};
+
+describe('an immune unit is a target for a trigger', () => {
+	const a = analyseWindwalker(wwDataset);
+	const rowFor = (id: number): number | undefined => a.damage.abilities.find((x) => x.id === id)?.averageTargetsHit;
+
+	it('is read as a Windwalker pull at all', () => {
+		expect(a.isSpec).toBe(true);
+	});
+
+	/**
+	 * Four units hit, one of them able to take damage. The wind counts all four because its refund does;
+	 * the kick counts one because its benefit is the damage it dealt. Same events, same instants, same
+	 * pull — the only thing that differs is which question the ability is asking.
+	 */
+	it('counts every unit the wind hit and only the one the kick damaged', () => {
+		expect(rowFor(RJW_DAMAGE)).toBe(4);
+		expect(rowFor(SCK_DAMAGE)).toBe(1);
+	});
+
+	/**
+	 * And the pull's own damage character is unmoved by the mines, which is the reading step 26 fixed.
+	 * The two numbers sitting side by side — a fan-out of four and a damage count of one — are the whole
+	 * point: neither is wrong, and one series could not have said both.
+	 */
+	it('still reads the pull as one damage target', () => {
+		expect(targetsOf(a).counts.max).toBe(1);
+		expect(targetsOf(a).multiTargetMs).toBe(0);
+	});
+});
+
+/**
+ * The whole chain, end to end: immune hits → the trigger count → the ladder's band → a correct verdict.
+ *
+ * This is the assertion that closes the gap the engine-level test in `lib/spec/__tests__/apl.test.ts`
+ * cannot: that one supplies `triggerTargetsAt` directly, so it proves the *engine* reads the second
+ * count and says nothing about whether the core ever builds one. Rebuilding the trigger series off the
+ * damage-filtered hit list leaves every other test in this repository green.
+ */
+describe('the trigger count reaches the ladder', () => {
+	const a = analyseWindwalker(wwDataset);
+
+	it('grades the wind into a pack of immune mines as the multi-target rung followed', () => {
+		const press = a.apl?.presses.find((p) => p.pressed === RJW_CAST);
+		expect(press).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind-open' });
+	});
+});

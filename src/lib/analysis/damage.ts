@@ -33,19 +33,26 @@ export interface DamageAggregate {
  * is not evidence that an area button had four targets. Without this the per-moment target count and
  * the fan-out disagreed about the same pull, one applying the list and the other not.
  *
- * `ignoredSpawns` is the same exclusion arrived at from the other direction: spawns the log itself says
- * were never targets, because every hit on them came back immune — `spawnLives` in `./targets`, which
+ * `immuneSpawns` is the same exclusion arrived at from the other direction: spawns the log itself says
+ * nothing can damage, because every hit on them came back immune — `spawnLives` in `./targets`, which
  * is where that verdict is reached and the only place it is reached. It is a set of `instanceKey`s
  * rather than actor ids because immunity is a property of a unit and WarcraftLogs numbers NPCs by type.
  * Passed in for exactly the reason `ignoredTargets` is: the fan-out and the per-moment count are two
  * numbers about "how many enemies was this" and they have to agree.
+ *
+ * **And it is applied per ability, not per event, because the two rows are asking different questions.**
+ * An ability whose benefit is the damage it deals did not hit an immune unit in any sense that matters,
+ * so the mines come out of its average. An ability whose benefit is a hit-count *trigger* — Rushing
+ * Jade Wind, whose chi refund fires on three units hit whether or not damage lands — really did hit
+ * them, and its average is the number a reader checks that refund against. The ability model says
+ * which (`multiTargetBenefit`), so the answer is the same everywhere it is asked.
  */
 export function aggregateDamage(
 	damageEvents: readonly DamageEvent[],
 	registry: Registry,
 	nameOf: (id: number) => string,
 	ignoredTargets: ReadonlySet<number> = new Set(),
-	ignoredSpawns: ReadonlySet<string> = new Set(),
+	immuneSpawns: ReadonlySet<string> = new Set(),
 ): DamageAggregate {
 	const rows = new Map<
 		string,
@@ -81,9 +88,16 @@ export function aggregateDamage(
 		rec.hits++;
 		if (e.hitType === CRIT) rec.crits++;
 		// `instanceKey` rather than a fourth hand-written spelling of the same key, so the spawns named in
-		// `ignoredSpawns` and the spawns counted here are keyed identically by construction.
+		// `immuneSpawns` and the spawns counted here are keyed identically by construction.
 		const spawn = e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance);
-		if (e.targetID !== undefined && spawn !== null && !ignoredTargets.has(e.targetID) && !ignoredSpawns.has(spawn)) {
+		// A hit-count trigger counts a unit it could not damage; damage does not. Absent means damage.
+		const countsImmune = ability?.multiTargetBenefit === 'trigger';
+		if (
+			e.targetID !== undefined &&
+			spawn !== null &&
+			!ignoredTargets.has(e.targetID) &&
+			(countsImmune || !immuneSpawns.has(spawn))
+		) {
 			const targets = rec.targetsByTimestamp.get(e.timestamp) ?? new Set<string>();
 			targets.add(spawn);
 			rec.targetsByTimestamp.set(e.timestamp, targets);
