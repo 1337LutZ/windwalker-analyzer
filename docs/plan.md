@@ -401,6 +401,27 @@ unconditionally but is _not_ a bug today, because both its entries are shared it
 misfiled rather than wrong; then the move. ~1 new `SpecDefinition` member and ~40 lines, but it touches
 `CastTimeline.tsx`, a shared chart path and the registry at once, so it wants its own serialized step.
 
+## 21b — The two residual looslinesses in the Flame Shock split
+
+- [x] **Grade a press by what it was aimed at.** `castSeries` kept only timestamps, so the press's own
+      target was unavailable and `fsPresses` fell back to the enemy the player was _hitting_. `CastSeries`
+      now records `presses: CastPress[]` beside `times`, `Handles` exposes `castPresses(ability)`, and a
+      press with no named target falls back to the hit spawn so it reads consistently with its neighbours.
+      The case this fixes: a deliberate cleave dot on an add, graded against the boss it stood beside, read
+      as an early refresh and was charged as a wasted global for following the priority list.
+- [x] **Count only this player's dot.** `dotWindowsOnTarget` takes a required `sourceID`. A second
+      Elemental's Flame Shock on the same boss used to fold in. The removes are filtered too, deliberately
+      — a foreign remove is the other shaman's dot ending, and honouring it closes this player's window
+      early. Known cost named in the comment: a dispel credited to the dispeller would leave the window
+      running.
+- [x] Both are **inert on the committed fixtures**, which the event data predicts rather than excuses:
+      every Flame Shock cast there names the boss, and every dot event is already sourced to the player.
+- [x] **The first version of both tests was vacuous** — they passed against the old behaviour. Two design
+      faults worth remembering: `remainingAtCast` reads the aura's _declared_ duration forward from the last
+      event, so a `removedebuff` placed later than 30s does not keep a dot live and a real refresh is needed;
+      and a foreign dot that _overlaps_ this player's interleaves into one window, so it has to be a stretch
+      that exists only because of the other source. Each change was then re-verified by reverting it alone.
+
 ## 22 — Show the intermission on every uptime graph
 
 A reader currently sees a _gap_ where the fight took the target away, and has no way to tell it apart
