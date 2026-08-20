@@ -47,10 +47,15 @@ on:
 permissions:
   contents: read
 
+# `PROJECT_NAME` only. The two build inputs are deliberately *not* hoisted here: a workflow-level
+# `env:` reaches every step, `PUBLIC_SPEC` included, and the gates below read it too. Vitest puts the
+# whole process environment on `import.meta.env`, so a job-wide pin made `DEFAULT_SPEC` the deployed
+# spec *inside the test run* — the suite renders Windwalker fixtures through it, and the Elemental
+# deploy failed 96 tests in 18 files while the Windwalker one passed only because Windwalker happens
+# to be `SPECS[0]`, the same value the fallback would have chosen anyway. The build's two inputs are
+# scoped to the build step instead, which is what `deploy.yml` already does.
 env:
   PROJECT_NAME: ${{ inputs.project_name }}
-  PUBLIC_SPEC: ${{ inputs.spec }}
-  SITE_URL: ${{ inputs.site_url }}
 
 jobs:
   deploy:
@@ -87,11 +92,15 @@ jobs:
       - name: Drop the fixture preview harness from the published build
         run: rm -f src/pages/preview.astro
 
-      # `PUBLIC_SPEC` and `SITE_URL` reach this through the job's `env:` above. They are two
-      # different channels into the build and both have to be set: Astro reads `PUBLIC_SPEC` from the
-      # environment and inlines it into the client bundle, while `astro.config.mjs` reads `SITE_URL`
-      # from `process.env` to decide every asset URL.
+      # `PUBLIC_SPEC` and `SITE_URL` are set here, on the one step that needs them, rather than on the
+      # job. They are two different channels into the build and both have to be set: Astro reads
+      # `PUBLIC_SPEC` from the environment and inlines it into the client bundle, while
+      # `astro.config.mjs` reads `SITE_URL` from `process.env` to decide every asset URL. Scoped to
+      # this step because the gates above must not see the spec pin — see the `env:` block's note.
       - run: npm run build
+        env:
+          PUBLIC_SPEC: ${{ inputs.spec }}
+          SITE_URL: ${{ inputs.site_url }}
 
       # Wrangler is run directly rather than through `cloudflare/wrangler-action`. The action looks
       # for a local wrangler, does not find one it accepts, and installs its own — measured: it
