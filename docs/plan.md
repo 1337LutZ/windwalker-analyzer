@@ -237,13 +237,8 @@ my verification claims was hollow. Both are fixed; the rest are small.
 - [x] `LIGHTNING_SHIELD.maxStacks ?? LIGHTNING_SHIELD_MAX_STACKS` was unreachable code implying the two
       could disagree, in a line whose comment claimed one definition. Fallback dropped.
 - [x] A docstring in my own test said 70s where the assertion said 80s.
-- [ ] **Deferred, deliberately: `fsMerged` is the union across spawns, and feeds per-press rules.** Right
-      for the uptime figure and the lane; loose for the Earth Shock `fsLow` reason and the ladder, where an
-      Earth Shock pressed while a _different_ spawn carries the dot reads as "dot up". The Windwalker
-      splits these (`rskByInstance` vs `rskByTarget`); the Elemental has only the union. Tightening it
-      needs a "which spawn was the player on at `t`" walk over the core's `landedHits` keys and moves Earth
-      Shock's grade and the ladder's verdicts — a behaviour change with its own verification, not a review
-      fix. Documented in place so nobody reads it as intended. **Its own step when you want it.**
+- [x] **`fsMerged` was the union across spawns and fed the per-press rules.** Done — see step 21b. Split
+      into `merged` + `byInstance`, with every graded press pointed at the spawn it was aimed at.
 
 ### Real fixtures, and the guards that need them
 
@@ -504,8 +499,13 @@ right — the question no single step could answer.
 - [ ] **Read the diff.** `git diff HEAD` is large and almost none of it has been reviewed by a second pair of eyes. Start with `src/lib/` — the core the two specs now share — and ask of every generalisation whether the Windwalker's behaviour is genuinely unchanged.
 - [ ] **A real Windwalker pull, end to end.** The whole point of the shared core is that the Windwalker report did not change. Run one report through the app and compare it against `main`'s output for the same log: the same DPS, the same CPM, the same brew grades, the same miss ledger. Any difference is either a bug or a deliberate improvement that has to be named.
 - [ ] **A real Elemental pull, end to end.** `rpM9JRABYcvPFbjL` f16 renders with no console errors, every section drawing, and the numbers sane against WarcraftLogs' own tables. Check the Searing Totem graph in particular: the Fire Elemental row where the elemental was out, and no "down" band under it.
-- [ ] **The Elemental audit has almost no tests.** `searingTotem.test.ts` is the only one, added by step 14. Flame Shock, Earth Shock, Lava Burst, Lightning Shield, the snapshots and the two elementals are all unverified by anything but eyes on a report. Decide whether that ships.
-- [ ] **`docs/conventions.md` is now wrong.** Its "Scope" section says one spec, one API host, and "do not add a `SpecDefinition` indirection" — which is precisely what this branch did. Rewrite it to describe the seam that now exists, or the next person will follow it back out.
+- [ ] **The Elemental audit's coverage is uneven rather than absent.** Five test files now — `pulls`
+      (two real pulls, end to end), `searingTotem`, and three on the Flame Shock dot. Still untested:
+      Lava Burst / Lava Surge, the snapshot windows, Lightning Shield's own walk, Stormlash, and the two
+      elementals. Decide whether that ships.
+- [x] **`docs/conventions.md` was wrong** — its Scope section forbade the `SpecDefinition` indirection
+      this branch is built on. Rewritten to keep the rule that wording was protecting, plus three path
+      references that no longer resolved.
 - [ ] **Narrow viewports.** Every new Elemental section and chart at ~390px, per `docs/conventions.md`: measure `scrollWidth` against `clientWidth` in a 390px iframe rather than trusting a headless screenshot.
 - [ ] **The two deploys, once.** Run `cloudflare-elemental.yml` from the Actions tab and confirm it creates the `elemental-analyzer` project, publishes, and that sign-in works there — which needs `https://elemental-analyzer.pages.dev` registered with WarcraftLogs as a redirect URI first. The workflows are asserted to be well-formed; nothing has proved they run.
 - [ ] Validate: `npm run check` + `npm test` + `npm run build` from a clean `npm ci`, on Node 24 — the version CI uses, and not the one on the PATH here by default.
