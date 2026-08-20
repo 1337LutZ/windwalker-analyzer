@@ -1234,6 +1234,7 @@
       "applies": "Fresh applies",
       "refreshes": "Refreshes",
       "windowed": "In the last tick",
+      "ticks": "Ticks per dot",
       "multiDot": "Second target uptime"
     },
     "columns": {

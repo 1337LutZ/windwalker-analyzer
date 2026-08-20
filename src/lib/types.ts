@@ -1957,7 +1957,7 @@ export interface FlameShockPress {
 	 *
 	 * On the record per press rather than once per pull, because it genuinely differs press to press —
 	 * `phased` grades its refreshes against 1 349ms, 1 748ms and 2 275ms as the raid's haste cooldowns
-	 * fall off. `FlameShockAudit.refreshMs` is the median of these, for a chart that can only draw one
+	 * fall off. `FlameShockAudit.tickMs` is the median of these, for a chart that can only draw one
 	 * band.
 	 */
 	tickMs: number;
@@ -1987,11 +1987,12 @@ export interface FlameShockAudit {
 	 * The tick window the refreshes were read against, so the chart can draw the same band — the median
 	 * of the per-press `tickMs`, since a pull whose haste moved has no single one.
 	 *
-	 * Still named `refreshMs` because the chart and its copy read it by that name; what it holds is no
-	 * longer the retired `flameShockRefreshMs` setting but the dot's measured tick period. Both want
-	 * renaming to `tickMs` in the same change that renames the copy.
+	 * A median and not a constant, which is why the band it draws carries no number: on one committed
+	 * pull the period ran at three plateaus, ~1 348, ~1 752 and ~2 281 ms, as Bloodlust and Elemental
+	 * Mastery fell off one after the other. Each press is judged against **its own** `tickMs`; this
+	 * exists only for a chart with a single x-axis to shade against.
 	 */
-	refreshMs: number;
+	tickMs: number;
 	/**
 	 * The tick count the pull's cadence backs out of the dot's duration — the answer to how many ticks
 	 * the dot actually got, which is 10 only at zero haste. 13, 17 or 22 on the committed fixtures.

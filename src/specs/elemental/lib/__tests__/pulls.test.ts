@@ -158,7 +158,7 @@ describe('a phased pull', () => {
 	it('measures the dot’s tick window off the pull rather than taking it from a setting', () => {
 		const windows = el.flameShock.presses.filter((p) => p.remainingMs !== null).map((p) => Math.round(p.tickMs));
 		expect(windows).toEqual([1349, 1748, 2275, 2278]);
-		expect(Math.round(el.flameShock.refreshMs)).toBe(2275);
+		expect(Math.round(el.flameShock.tickMs)).toBe(2275);
 		expect(el.flameShock.ticks).toBe(13);
 	});
 
@@ -248,7 +248,7 @@ describe('an unbroken pull', () => {
 	it('measures the dot’s tick window off the pull rather than taking it from a setting', () => {
 		const windows = el.flameShock.presses.filter((p) => p.remainingMs !== null).map((p) => Math.round(p.tickMs));
 		expect(windows).toEqual([1724, 1726, 2246, 1715, 2255, 1724]);
-		expect(Math.round(el.flameShock.refreshMs)).toBe(1726);
+		expect(Math.round(el.flameShock.tickMs)).toBe(1726);
 		expect(el.flameShock.ticks).toBe(17);
 	});
 

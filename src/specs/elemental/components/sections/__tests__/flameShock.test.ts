@@ -143,3 +143,20 @@ describe('Flame Shock verdict', () => {
 		expect(render(never)).toContain(t('flameShock.verdict', { context: 'none' }));
 	});
 });
+
+/**
+ * The derived tick count reaches the page.
+ *
+ * It is the deliverable of measuring the cadence rather than trusting the spell: haste shortens the
+ * interval and leaves the duration alone, so the *count* is what moves, and this pull's dot ran
+ * seventeen ticks against the ten Flame Shock declares. Nothing else in the report tells a reader that,
+ * and without it the tile beside it is ambiguous — "in the last tick" is a different number of seconds
+ * on every pull.
+ */
+describe('the tick count', () => {
+	it('is rendered, and is the measured count rather than the declared one', () => {
+		expect(unbroken.flameShock.ticks).toBe(17);
+		expect(unbroken.flameShock.durationMs / 3000).toBe(10);
+		expect(render(unbroken)).toContain(t('flameShock.kpi.ticks'));
+	});
+});

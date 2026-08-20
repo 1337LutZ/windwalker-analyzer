@@ -1752,7 +1752,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			refreshes,
 			windowed: fsPresses.filter((p) => p.windowed).length,
 			ascPrep: fsPresses.filter((p) => p.ascPrep).length,
-			refreshMs: fsTickMs,
+			tickMs: fsTickMs,
 			ticks: Math.round(FLAME_SHOCK_DURATION_MS / fsTickMs),
 			durationMs: FLAME_SHOCK_DURATION_MS,
 			presses: fsPresses,

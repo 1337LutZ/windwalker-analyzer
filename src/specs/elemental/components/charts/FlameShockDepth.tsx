@@ -96,7 +96,7 @@ export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 						 *
 						 * The last tick window is the tail of the dot's duration, so the band belongs at the right
 						 * end; but its width moved three times inside `phased` alone (1 349 / 1 748 / 2 275ms) and
-						 * this chart has one x-axis to draw it on. `flameShock.refreshMs` is the median of the
+						 * this chart has one x-axis to draw it on. `flameShock.tickMs` is the median of the
 						 * windows the refreshes were actually judged against, so the band is an **average** of them
 						 * and no press is graded against it — a bar's tone comes from that press's own `tickMs`. The
 						 * label says "last tick" and quotes no number for exactly that reason: it used to read
@@ -106,7 +106,7 @@ export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 						 * be — it spans the plot. The per-press truth is in the tone and in the tooltip's "dot left"
 						 * instead. If this ever becomes a per-row band, take the number back off the median.
 						 */
-						x: r1((flameShock.durationMs - flameShock.refreshMs) / 1000),
+						x: r1((flameShock.durationMs - flameShock.tickMs) / 1000),
 						x2: r1(flameShock.durationMs / 1000),
 						fillColor: theme.kick,
 						borderColor: 'transparent',
