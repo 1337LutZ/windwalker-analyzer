@@ -29,6 +29,21 @@ export const SWATCH = {
 	kick: 'bg-kick',
 	miss: 'bg-miss',
 	missSoft: 'bg-miss-soft',
+	/**
+	 * The rail, and the one tone here that is not a judgement.
+	 *
+	 * A chart sometimes has to draw a stretch it deliberately did not grade — the Fire Elemental
+	 * holding the one Fire totem slot, so the Searing Totem could not have been up and its absence is
+	 * not a drop. Every other tone in this table means something about how the pull went, and painting
+	 * that stretch in one of them would say the player got it wrong. `track` is the resource charts'
+	 * own rail: structural, present, uncoloured by an opinion.
+	 *
+	 * It is far darker than the four above and that is the point rather than an oversight — the tone
+	 * is a *ground*, drawn as a wide region, and the note beside `--color-band-lust` in
+	 * `styles/global.css` sets out why a region that size can afford a contrast a mark could not. The
+	 * legend chip is the same token at full strength, which is the rule the rest of this table follows.
+	 */
+	track: 'bg-track',
 } as const;
 
 export type Tone = keyof typeof SWATCH;
@@ -75,4 +90,5 @@ export const VAR: Record<Tone, string> = {
 	kick: 'var(--color-kick)',
 	miss: 'var(--color-miss)',
 	missSoft: 'var(--color-miss-soft)',
+	track: 'var(--color-track)',
 };

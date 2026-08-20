@@ -1,14 +1,30 @@
 name: Deploy to GitHub Pages
 
-# Manual only. Cloudflare Pages is what publishes this site on a push (see `cloudflare.yml`); two
-# workflows deploying the same commit to two hosts means two live copies that drift apart, and only
-# one of them can hold the redirect URI registered with WarcraftLogs — the other's sign-in fails.
+# Manual only. Cloudflare Pages is what publishes on a push — `cloudflare-windwalker.yml` for
+# Windwalker, `cloudflare-elemental.yml` for Elemental; two workflows deploying the same commit to
+# two hosts means two live copies that drift apart, and only one of them can hold the redirect URI
+# registered with WarcraftLogs — the other's sign-in fails.
 #
 # Kept rather than deleted because it still works: it is the fallback if Cloudflare is ever the
 # wrong answer, and it sets `BASE_PATH` below because a GitHub project site is served under a path
 # prefix while the Cloudflare default is the domain root.
+#
+# **One site, whichever spec you pick.** Cloudflare gets a project per spec; a GitHub project site is
+# `/<repo>/` and there is one repo, so this path cannot serve both at once — running it for Elemental
+# replaces whatever it published last. The `spec` input is what makes it a choice rather than a
+# Windwalker-only escape hatch, and it defaults to Windwalker because that is the site this fallback
+# was written for.
 on:
   workflow_dispatch:
+    inputs:
+      spec:
+        description: Which spec to pin this fallback build to.
+        required: true
+        default: windwalker
+        type: choice
+        options:
+          - windwalker
+          - elemental
 
 permissions:
   contents: read
@@ -54,11 +70,15 @@ jobs:
         run: rm -f src/pages/preview.astro
 
       # A GitHub project site lives under `/<repo>/`. The build defaults to the domain root for
-      # Cloudflare, so this path prefix has to be put back for a Pages build specifically.
+      # Cloudflare, so this path prefix has to be put back for a Pages build specifically — and it is
+      # the *repository's* name, not the spec's, which is why it does not follow the input below.
       - run: npm run build
         env:
           SITE_URL: https://1337lutz.github.io
           BASE_PATH: /windwalker-analyzer
+          # The spec the build is pinned to, from the dispatch input. Same channel the Cloudflare
+          # deploys use: Astro inlines `PUBLIC_SPEC` and `DEFAULT_SPEC` reads it.
+          PUBLIC_SPEC: ${{ inputs.spec }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

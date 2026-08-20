@@ -242,6 +242,39 @@ describe('analyse', () => {
 		expect(fof?.passive).toBe(false);
 	});
 
+	/**
+	 * The section and the band drawn under it read one walk of the aura.
+	 *
+	 * `hasteWindows` used to be derived twice — once by the core for the timeline every spec shades,
+	 * once privately inside this audit — and two walks over one aura are two definitions of when the
+	 * raid cooldown was up. A reader cannot see them drift: what they see is a press the Energizing
+	 * Brew section faults sitting inside a band the timeline draws as clean. So the audit takes the
+	 * windows off the handles, and this asserts the two are the same object's contents rather than
+	 * two answers that happen to agree today.
+	 */
+	it("grades Energizing Brew against the timeline's own Bloodlust windows", () => {
+		const lusted = analyse({
+			...dataset,
+			events: [
+				...events,
+				// A shaman's Bloodlust, and a brew pressed two seconds into it with no Rushing Jade Wind
+				// anywhere in the pull — priority 14's one checkable clause, failed.
+				e(50000, 'applybuff', 2825),
+				e(90000, 'removebuff', 2825),
+				e(52000, 'cast', 115288),
+				e(52000, 'applybuff', 115288),
+				e(58000, 'removebuff', 115288),
+			],
+		});
+
+		expect(lusted.energizing?.hasteWindows).toEqual(lusted.timeline?.hasteWindows);
+		expect(lusted.energizing?.hasteWindows).toEqual([{ start: 50000, end: 90000, id: 2825, variant: 'Bloodlust' }]);
+		// And the grade comes off that band: the press is inside it, so it carries the fault.
+		const use = lusted.energizing?.uses.find((u) => u.t === 52000);
+		expect(use?.haste).toBe('Bloodlust');
+		expect(use?.faults).toHaveLength(1);
+	});
+
 	it('ignores the buff a cast applied to itself when auditing Tiger Palm', () => {
 		expect(a.filler.casts).toBe(2);
 		expect(a.filler.refresh).toBe(1);

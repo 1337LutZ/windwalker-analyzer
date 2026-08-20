@@ -8,6 +8,8 @@
 // Event narrowing lives in ~/lib/events, not here — parsing an event is not analysis.
 
 export * from './auras';
+export * from './counters';
+export * from './search';
 export * from './analyseCore';
 export * from './casts';
 export * from './cooldowns';

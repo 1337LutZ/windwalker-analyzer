@@ -12,33 +12,42 @@
  *   miss  a mistake or a drop  trk   an empty track
  */
 @theme {
-	--color-bg: #0d1311;
-	--color-surface: #141c19;
-	--color-raised: #1a2420;
-	--color-line: #2b3833;
+	/* The spec's identity colour, set at runtime from the spec's own `colors.primary` — a Windwalker
+	 * report is tinted green, an Elemental one blue. The structural colours below are all derived
+	 * from it, so one value recolours the whole dark theme. The default is the monk's green; the page
+	 * sets the build's spec before first paint (index.astro) and the URL's spec after hydration
+	 * (ReportFlow), so an Elemental deployment never flashes green. */
+	--spec-primary: #00ff98;
+
+	/* The dark ground, tinted by the spec rather than fixed. Each mixes a little of the primary into a
+	 * near-neutral base, so the surfaces stay dark and legible while the hue follows the class, and
+	 * the percentages keep the lightness steps the fixed palette had. */
+	--color-bg: color-mix(in oklch, var(--spec-primary) 7%, #0a0d0c);
+	--color-surface: color-mix(in oklch, var(--spec-primary) 10%, #0e1210);
+	--color-raised: color-mix(in oklch, var(--spec-primary) 13%, #131815);
+	--color-line: color-mix(in oklch, var(--spec-primary) 18%, #19201d);
 
 	/* Body text is pure white. Everything readable sits at 8:1 or better against the ground — the
 	 * earlier palette technically passed AA but sat just over the line at ~5:1, which reads as washed
-	 * out rather than as contrast. */
+	 * out rather than as contrast. The two dim text colours carry a faint hint of the spec hue for the
+	 * same reason the ground does. */
 	--color-ink: #ffffff;
-	--color-ink-2: #dbe6e1;
-	--color-muted: #a3b5ad;
+	--color-ink-2: color-mix(in oklch, var(--spec-primary) 16%, #dde4e0);
+	--color-muted: color-mix(in oklch, var(--spec-primary) 12%, #a1a9a4);
 
 	/* Accents, named for the mechanic they mean rather than the hue they are.
 	 *
-	 * These are brighter than the palette they replace and were re-checked, not eyeballed. Two
-	 * numbers matter and both were measured:
-	 *   - contrast against the ground: all >= 6.7:1, so they are legible as text, not just as marks
-	 *   - colour-blind separation: worst pair 8.4 dE under deuteranopia, all pairs, which clears the
-	 *     floor. The obvious brightening (a vivid green + a vivid red) collapsed to 4.6 dE and was
-	 *     rejected: it is the classic red/green collision, and here those two carry opposite
-	 *     meanings. `kick` is therefore teal rather than green, which is what buys the separation.
-	 *
-	 * They deliberately sit above the lightness band a chart-mark palette would use. That band
-	 * optimises marks on a dark ground; these double as text, and legibility won. */
+	 * `brew`, `rune` and `miss` are fixed categorical hues — amber, violet, rose — validated against
+	 * each other for colour-blind separation and against the ground for text contrast, which is why
+	 * they are not re-derived from the spec. `kick` is the exception: it is the app's one *accent* —
+	 * the good grade, the active selection, the primary button, the focus ring — and it follows the
+	 * spec, so a Windwalker report accents green and an Elemental one accents blue. It is a bright lift
+	 * of the spec's own primary toward white, which is what keeps it legible as text on the dark
+	 * ground; the primary alone (the monk's neon green, the shaman's deep blue) is a bar colour, not
+	 * a text colour. */
 	--color-brew: #fbbf24;
 	--color-rune: #a78bfa;
-	--color-kick: #2dd4bf;
+	--color-kick: color-mix(in oklch, var(--spec-primary) 65%, white);
 	--color-miss: #fb7185;
 	/* `miss` mixed 45% into the ground. Not a category of its own and not part of the pairing above:
 	 * it decorates a `miss` bar, marking the part of it that runs past where the proc ended. It has
@@ -190,6 +199,13 @@ label[for],
 :focus-visible {
 	outline: 2px solid var(--color-kick);
 	outline-offset: 2px;
+}
+
+/* The spec's identity, drawn on every section heading. The ground carries the faint tint; this is
+ * where the primary shows strongly enough to read as a colour rather than as a cast, so a report is
+ * recognisable as its spec at a glance — the same job the chart bars do, for a spec with none. */
+.section-heading {
+	border-bottom-color: color-mix(in oklch, var(--spec-primary) 50%, var(--color-line));
 }
 
 @media (prefers-reduced-motion: reduce) {

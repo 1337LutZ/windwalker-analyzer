@@ -353,6 +353,19 @@
       "when": "when"
     }
   },
+  "mana": {
+    "title": "Mana",
+    "intent": "Mana refills on a clock and is spent by everything you cast, so a full bar is exactly where it should be. Its only fault is the floor: running out, which is the one thing no other bar in this report can do.",
+    "none": "This log carried no resource snapshots, so there is no mana bar to read. Nothing is wrong with the pull — the report was simply not given the numbers.",
+    "clean": "Mana never ran out. Every cast the pull asked for was affordable.",
+    "summary": "Mana sat empty for {{empty, duration}} of the {{duration, clock}} pull, so for that long the next cast simply could not go out.",
+    "key": {
+      "bar": "Mana over the pull",
+      "empty": "Out of mana"
+    },
+    "chartLabel": "Mana over the pull, holding up to {{max}}, empty for {{empty, duration}} of {{duration, duration}}",
+    "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto events rather than onto a clock — {{samples}} here, a median of {{median, gap}} apart and 99% within {{p99, gap}} — so nothing between two readings is measured. A stretch at zero that opened and closed inside one gap is missed entirely, so these figures under-report rather than over-report."
+  },
   "method": {
     "title": "Method",
     "intent": "What was measured and what could not be.",
@@ -372,7 +385,10 @@
     "snapshots": "RoRo snapshots on the {{leeway}} leeway",
     "potions": "Potions used",
     "potions_unknown": "Potions · cannot say",
-    "label": "Headline figures"
+    "label": "Headline figures",
+    "flameShock": "Flame Shock uptime",
+    "snapshotRate": "Proc windows caught",
+    "earthShock": "Good Earth Shocks"
   },
   "empty": {
     "section": "Nothing to report here for this pull."
@@ -395,6 +411,16 @@
       "kick": "Debuff up, or a proc snapshotted late",
       "rune": "A proc snapshotted early, a proc weaved past on purpose, or a clean channel",
       "miss": "A drop, a proc left unsnapshotted, or a misplaced channel"
+    },
+    "eleIntent": "The pull at a glance: the Lightning Shield counter, the two cooldowns, the Flame Shock dot, the Searing Totem and the two-piece on one clock — so the lining-up reads off the shape before the numbers.",
+    "lanes": {
+      "key": {
+        "buff": "A buff you pressed",
+        "proc": "A proc",
+        "debuff": "A debuff on the target",
+        "press": "A press or a dot"
+      },
+      "empty": "No auras in this pull, so there is nothing to lay on a clock."
     }
   },
   "castLog": {
@@ -417,6 +443,8 @@
     "tip": {
       "at": "Pressed",
       "swing": "Swung",
+      "cancelledAt": "Cancelled at",
+      "cast": "Cast for",
       "stat": "Converted into",
       "from": "Up",
       "to": "Down",
@@ -478,12 +506,16 @@
     "resource": {
       "energy": "Energy",
       "chi": "Chi",
-      "brew": "Brew bank"
+      "brew": "Brew bank",
+      "mana": "Mana",
+      "lightningShield": "Lightning Shield"
     },
     "resourceAria": {
       "energy": "Energy over the pull, against a ceiling of {{max}}",
       "chi": "Chi over the pull, against a ceiling of {{max}}",
-      "brew": "Tigereye Brew stacks banked over the pull, against a cap of {{max}}"
+      "brew": "Tigereye Brew stacks banked over the pull, against a cap of {{max}}",
+      "mana": "Mana over the pull, against a ceiling of {{max}}",
+      "lightningShield": "Lightning Shield charges over the pull, against a ceiling of {{max}}"
     }
   },
   "nav": {
@@ -864,7 +896,73 @@
       "talents": "The list assumes two talent choices and skips the entries you did not take. Rushing Jade Wind and Invoke Xuen share a row, so you can never have both — which is why they are two rungs above rather than a fork. Chi Wave, Zen Sphere and Chi Burst share a row too, drawn as a fork wherever this log cannot tell which you brought.",
       "inferred": "A rung only leaves the flow above on proof that the button was not on your bar. A log carries no talent tree, so a button you never pressed is exactly the one you may have forgotten — an unpressed rung is never removed. What is removed is the alternative to something you did press: a Spinning Crane Kick rules out Rushing Jade Wind, and a Chi Wave settles the row it shares with Zen Sphere and Chi Burst.",
       "mastery": "One correction, because the name misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder. There is no alternating-ability mastery here — Combo Strikes belongs to a later expansion — so pressing the same button twice in a row costs you nothing.",
-      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy and tests nothing else. Entry 31 keeps it near the bottom and fires when energy is a second from capping, the pull is under 75 seconds, or Bloodlust and Energizing Brew are both active. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so the higher rung spends generator energy on area damage, while the lower rung uses overflow or the haste window. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global."
+      "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy and tests nothing else. Entry 31 keeps it near the bottom and fires when energy is a second from capping, the pull is under 75 seconds, or Bloodlust and Energizing Brew are both active. It costs 40, the same as a Jab, and returns one chi where Jab returns two — so the higher rung spends generator energy on area damage, while the lower rung uses overflow or the haste window. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global.",
+      "cooldowns": "Elemental Mastery and Ascendance are off the global, so the ladder never walks them — each still has its own section.",
+      "raid": "Skull Banner, Stormlash Totem, Bloodlust and the racials are left off the list: they are raid calls or once-a-fight buttons, not a decision about your next global."
+    },
+    "group": {
+      "cooldown": "Cooldowns",
+      "dot": "Flame Shock",
+      "filler": "Fillers"
+    },
+    "talent": "Talent",
+    "rule": {
+      "unleash-elements": {
+        "name": "Unleash Elements",
+        "condition": "Talent. On cooldown, except during Ascendance."
+      },
+      "flame-shock-snapshot": {
+        "name": "Flame Shock",
+        "condition": "Reapply inside a proc window with an intellect proc up, or on the opener."
+      },
+      "elemental-mastery": {
+        "name": "Elemental Mastery",
+        "condition": "Off the global. Synced with Ascendance, or on the opener."
+      },
+      "jade-serpent-potion": {
+        "name": "Jade Serpent Potion",
+        "condition": "Pre-pot, then on cooldown."
+      },
+      "flame-shock-asc-prep": {
+        "name": "Flame Shock",
+        "condition": "Refresh just before Ascendance — the dot under 16s with Ascendance ready in 2s."
+      },
+      "lava-burst": {
+        "name": "Lava Burst",
+        "condition": "On cooldown, or a Lava Surge reset, while the dot outlives the cast."
+      },
+      "ascendance": {
+        "name": "Ascendance",
+        "condition": "Off the global. The opener (dot up, first five seconds) or the two-piece window (the debuff with 10s left)."
+      },
+      "flame-shock-multidot": {
+        "name": "Flame Shock",
+        "condition": "On a second target whose dot has less than a tick left."
+      },
+      "elemental-blast": {
+        "name": "Elemental Blast",
+        "condition": "Talent. On cooldown."
+      },
+      "earth-shock": {
+        "name": "Earth Shock",
+        "condition": "When the shield is full, the dot has 6s or more, Ascendance is 6s or more away, and no two-piece proc is up."
+      },
+      "fire-elemental": {
+        "name": "Fire Elemental",
+        "condition": "On cooldown, synced with Ascendance."
+      },
+      "searing-totem": {
+        "name": "Searing Totem",
+        "condition": "When no Fire Elemental and no totem are up."
+      },
+      "earth-elemental": {
+        "name": "Earth Elemental",
+        "condition": "Near the end — 62s or less remaining."
+      },
+      "lightning-bolt": {
+        "name": "Lightning Bolt",
+        "condition": "Filler. Always available."
+      }
     }
   },
   "summary": {
@@ -918,6 +1016,42 @@
         "energizingBrewRjw": {
           "label": "Use Energizing Brew with RJW",
           "fix": "Bloodlust or Time Warp was present while RJW was selected, but Energizing Brew was not used during it. When at least two targets are active, the priority list allows this combination and the extra energy is especially valuable for area damage."
+        },
+        "flameShockUptime": {
+          "label": "Keep the dot up",
+          "fix": "Flame Shock was up for {{value, percent}} of the time you had something to hit, against {{target, percent}}. Everything the spec does is gated on that dot."
+        },
+        "flameShockWaste": {
+          "label": "Stop overwriting the dot",
+          "fix": "{{value, percent}} of your Flame Shock refreshes bought nothing. Keep it under {{target, percent}} — those globals could have been Lightning Bolts."
+        },
+        "flameShockMultiDot": {
+          "label": "Dot the second target",
+          "fix": "The dot was up on the secondary target for {{value, percent}} of the time two enemies were up, against {{target, percent}}. A second target that stays undotted is free damage left on the table."
+        },
+        "earthShockGood": {
+          "label": "Spend the shocks right",
+          "fix": "{{value, percent}} of your Earth Shocks matched the sim’s rule, against {{target, percent}}. An early shock spends the shield the next proc wants."
+        },
+        "searingTotemUptime": {
+          "label": "Keep the totem ticking",
+          "fix": "Searing Totem was up for {{value, percent}} of the time it could have been, against {{target, percent}}. It is one global for a minute of damage."
+        },
+        "searingTotemOverlaps": {
+          "label": "Keep the summons apart",
+          "fix": "Searing Totem was placed under the Fire Elemental {{value, integer}} times. The Fire Elemental replaces the totem, so those globals bought a totem that was already superseded."
+        },
+        "flameShockSnapshots": {
+          "label": "Catch the proc windows",
+          "fix": "You refreshed Flame Shock inside {{value, percent}} of your proc windows, against {{target, percent}}. A missed window is a snapshot that never got its spellpower."
+        },
+        "lightningShieldOvercap": {
+          "label": "Spend the shield",
+          "fix": "The shield sat at seven for {{value, duration}} past the grace. A shield at seven is a shock not taken, and every Lightning Bolt after that is Rolling Thunder with nowhere to put its charge."
+        },
+        "lightningShieldFellOff": {
+          "label": "Keep the shield up",
+          "fix": "The shield came all the way off {{value, integer}} times. A full removal throws the whole counter away and the shield has to be rebuilt from one."
         }
       }
     }
@@ -928,12 +1062,12 @@
     "summary": "On {{followed}} of {{judged}} globals the priority list could judge, you pressed the highest-priority ability available. On {{skipped}} of them, a higher-priority ability was available and affordable.",
     "unjudged": "{{unknown}} presses could not be judged, because a rule above them needs something this log does not carry. Another {{offList}} were buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
     "clean": "On every global the priority list could judge, no higher-priority ability was available.",
-    "noResources": "This log carried no energy or chi readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing is judged here.",
+    "noResources": "This log carried no resource readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing is judged here.",
     "forced_single": "You are reading this pull as one target, so every press below is judged against the single-target order — including the stretches where the log counted more enemies.",
-    "forced_multi": "You are reading this pull as multi-target, so every press below is judged at three targets: Rushing Jade Wind and Spinning Crane Kick move up, Rising Sun Kick gains a rung above Tiger Palm, and Blackout Kick needs a much fuller bar.",
+    "forced_multi": "You are reading this pull as multi-target, so every press below is judged against the multi-target order — including the stretches where the log counted one enemy.",
     "caption": "Buttons that were available and passed over, most often first",
     "noRows": "Nothing was passed over.",
-    "scope": "The ladder covers the filler priorities — Rising Sun Kick downwards, the entries that decide what a global is spent on. Touch of Death is out because its condition is the target's health, which this report does not fetch; the cooldowns are out because each has its own section. A button you could not afford is never counted as passed over.",
+    "scope": "The ladder covers the filler priorities — the entries that decide what a global is spent on. The cooldowns are out because each has its own section. A button you could not afford is never counted as passed over.",
     "kpi": {
       "followed": "Followed the priority list",
       "skipped": "Passed over",
@@ -956,9 +1090,16 @@
       "rising-sun-kick-filler": "Rising Sun Kick, when no higher-priority rule applies",
       "spinning-crane-kick": "Spinning Crane Kick",
       "spinning-crane-kick-heavy": "Spinning Crane Kick, at four or more",
-      "blackout-kick": "Blackout Kick, to spend chi"
+      "blackout-kick": "Blackout Kick, to spend chi",
+      "unleash-elements": "Unleash Elements",
+      "flame-shock": "Flame Shock",
+      "lava-burst": "Lava Burst",
+      "elemental-blast": "Elemental Blast",
+      "earth-shock": "Earth Shock",
+      "searing-totem": "Searing Totem",
+      "lightning-bolt": "Lightning Bolt"
     },
-    "reconstructed": "Nothing here is graded, and this is why. WarcraftLogs only reports your chi when you spend it — about one press in six — so the chi behind these judgements is reconstructed by walking the log forward through what each button gains and costs. Against the readings it did not use, that walk is right 87–95% of the time. It is close but not perfect: a press judged against a bar that is off by one chi can be called a miss when it was not."
+    "reconstructed": "Nothing here is graded, and this is why. The conditions behind these judgements are read off the log’s auras and cooldowns, which are only stamped when an event happened to move them — close, but a press judged against a state that is off by a moment can be called a miss when it was not."
   },
   "jadeWind": {
     "title": "Rushing Jade Wind",
@@ -1073,5 +1214,285 @@
     "reconstructed": "Chi is reconstructed: WarcraftLogs only reports it when you spend it. On this pull the walk was exact {{accuracy, percent}} of the time. A bar that is off by one point can make a press you could not afford look like one you chose not to make.",
     "tierCaveat": "This report does not read set bonuses, and the tier-16 four-piece takes a chi off both kicks. Rows above showing 1 chi may still have been affordable with the bonus; rows showing 0 are unaffected.",
     "notGraded": "Nothing here is graded, and that is measured rather than asserted. Read the pull as one target or three and the same presses score 23 points apart. The chi bar underneath is right about four times in five. And the list's own dump rule does not reach zero — a quarter of the presses charged above had no higher-priority ability ready."
+  },
+  "flameShock": {
+    "title": "Flame Shock",
+    "intent": "A thirty-second snapshot dot with no cooldown and no cast time. Its remaining time gates Lava Burst, and its refresh timing is what the snapshot section grades — so a dropped Flame Shock is not one global but a cascade.",
+    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and no refresh bought nothing.",
+    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes went out with the dot still healthy, buying nothing.",
+    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot spent much of the pull down. {{wasted, integer}} refreshes also went out with it still healthy.",
+    "verdict_none": "Flame Shock was never cast in this pull.",
+    "kpi": {
+      "uptime": "Dot uptime",
+      "applies": "Fresh applies",
+      "refreshes": "Refreshes",
+      "windowed": "In keep-up window",
+      "multiDot": "Second target uptime"
+    },
+    "columns": {
+      "at": "at",
+      "remaining": "dot left",
+      "state": "what it was"
+    },
+    "state": {
+      "late": "Late refresh",
+      "duringAscendance": "Refresh during Ascendance",
+      "ascPrep": "Ascendance prep",
+      "windowed": "Keep-up refresh",
+      "early": "Early refresh"
+    },
+    "caption": "Every Flame Shock press, what the dot still had on it, and what the press bought",
+    "none": "Flame Shock was never pressed in this pull.",
+    "snapshotNote": "The proc-window reapplies are graded in the Snapshots section; the count above is the keep-it-up half of the story only.",
+    "chart": {
+      "band": "refresh window {{window}}s",
+      "key": {
+        "windowed": "In the keep-it-up window",
+        "wasted": "Clipped a healthy dot"
+      },
+      "label": "How much of the Flame Shock dot was left at each refresh, against the keep-it-up window",
+      "empty": "Flame Shock was never refreshed in this pull.",
+      "uptimeLabel": "Flame Shock uptime over the pull, with the stretches the dot was down"
+    },
+    "track": {
+      "up": "Dot up",
+      "dropped": "Dot down"
+    }
+  },
+  "earthShock": {
+    "title": "Earth Shock",
+    "intent": "Earth Shock spends the Lightning Shield. Press it when the shield is full, the Flame Shock dot has time left, Ascendance is not about to need the shock, and no two-piece proc is up — anything else is a shock spent early.",
+    "verdict_good": "{{good, integer}} of {{casts, integer}} shocks lined up all four conditions.",
+    "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks lined up all four conditions; the rest went out early.",
+    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks lined up all four conditions — most were spent before they were right.",
+    "verdict_none": "Earth Shock was never cast in this pull.",
+    "kpi": {
+      "good": "Good shocks",
+      "belowFull": "Below full stacks"
+    },
+    "columns": {
+      "at": "at",
+      "stacks": "shield stacks",
+      "dotLeft": "dot left",
+      "state": "what it was"
+    },
+    "state": {
+      "belowFull": "Below 7 stacks",
+      "fsLow": "Flame Shock under 6s",
+      "ascReady": "Ascendance ready within 6s",
+      "twoPiece": "T16 2P Proc up"
+    },
+    "caption": "Every Earth Shock the sim's rule refused, and which of its four conditions failed",
+    "none": "Every Earth Shock matched the sim's rule.",
+    "fulmination": "A stack spent early is a stack of the shield’s Fulmination the shield must rebuild before the next shock."
+  },
+  "searingTotem": {
+    "title": "Searing Totem",
+    "intent": "One global buys a minute of ticks. Only one Fire totem stands at a time, so the section is uptime against the engaged time the Fire Elemental was not holding the slot, the dot-time a re-press threw away, and the placements that came too late to matter.",
+    "verdict_good": "{{uptime, percent}} uptime, and no press landed over a live totem.",
+    "verdict_ok": "{{uptime, percent}} uptime. {{clipped, integer}} presses clipped a healthy totem, throwing away {{wasted, duration}} of its dot.",
+    "verdict_bad": "{{uptime, percent}} uptime, and {{clipped, integer}} presses clipped a healthy totem — {{wasted, duration}} of ticks the earlier press had already bought.",
+    "verdict_none": "Searing Totem was never cast in this pull.",
+    "kpi": {
+      "uptime": "Totem uptime",
+      "clipped": "Clipped presses",
+      "wasted": "Ticks thrown away",
+      "overlaps": "Fire Elemental overlaps",
+      "late": "Late placements"
+    },
+    "columns": {
+      "at": "at",
+      "remaining": "totem left",
+      "state": "what it was"
+    },
+    "state": {
+      "fresh": "Fresh placement",
+      "clip": "Clipped a totem",
+      "refresh": "Early refresh",
+      "feOverlap": "Under Fire Elemental",
+      "late": "Late placement"
+    },
+    "caption": "Every Searing Totem placement, what the previous totem still had on it, and what the press bought",
+    "none": "Searing Totem was never cast in this pull.",
+    "chart": {
+      "uptimeLabel": "Searing Totem uptime over the pull, with the stretches it was down"
+    },
+    "track": {
+      "up": "Totem up",
+      "dropped": "Totem down",
+      "elemental": "Fire Elemental out"
+    },
+    "gate": "The Fire Elemental takes the one Fire totem slot while it is out, destroying the totem — so that stretch is left out of both the graph and the percentage rather than counted as a totem dropped. A placement under the elemental is the one case the list forbids outright: it kills the elemental to buy a totem."
+  },
+  "flameShockSnapshots": {
+    "title": "Snapshots",
+    "intent": "When a trigger proc (UVLS, its counter, or Black Blood) overlaps an intellect proc, the sim wants Flame Shock reapplied inside it so the snapshot freezes the proc’s spellpower. A window the dot was up through with no refresh inside is a missed snapshot.",
+    "verdict_good": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
+    "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
+    "verdict_bad": "Only {{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh — the rest let the proc pass without a snapshot.",
+    "verdict_none": "No proc window was offered in this pull.",
+    "kpi": {
+      "refreshed": "Windows caught",
+      "missed": "Windows missed"
+    },
+    "columns": {
+      "window": "window",
+      "source": "trigger"
+    },
+    "source": {
+      "unerring-vision": "Unerring Vision",
+      "uvls-stacks": "UVLS at ten stacks",
+      "black-blood": "Black Blood at ten stacks"
+    },
+    "caption": "Every proc window the sim would have claimed a refresh in, and what opened it",
+    "none": "No proc window was offered in this pull.",
+    "measurable": "The \"dot grew by 10%\" half of the sim’s rule cannot be read off a log; the intellect-proc requirement is its readable stand-in."
+  },
+  "cooldowns": {
+    "title": "Cooldowns",
+    "intent": "Ascendance is pressed on the opener or the two-piece window, Elemental Mastery is synced with Ascendance — neither is judged against a bare clock. The two summons keep their own sections. Unleash Elements and Elemental Blast are plain press-when-ready, and their idle time is the drift table below.",
+    "kpi": {
+      "ascendance": "Ascendance presses",
+      "lost": "Cooldowns held"
+    },
+    "columns": {
+      "at": "at",
+      "dotLeft": "dot left",
+      "state": "rule",
+      "button": "button",
+      "casts": "casts",
+      "lost": "held",
+      "drift": "idle"
+    },
+    "state": {
+      "opener": "Opener",
+      "twoPiece": "Two-piece window",
+      "plain": "No rule",
+      "sync": "Synced with Ascendance",
+      "t15": "Tier-15 four-piece",
+      "off": "Ascendance far away",
+      "near-end": "Near the end",
+      "early": "Early"
+    },
+    "ascCaption": "Every Ascendance press and which rule it was",
+    "ascNone": "Ascendance was never pressed in this pull.",
+    "driftCaption": "The other cooldowns and how long each sat ready",
+    "driftNone": "No cooldown-gated buttons in this pull.",
+    "pe": "Fire Elemental is measured against a five-minute cooldown; a Primal Elementalist build presses it on three, so its drift row reads low when the log’s own windows run three.",
+    "emCaption": "Every Elemental Mastery press and whether it was the sync",
+    "feCaption": "Every Fire Elemental press and whether it was synced with Ascendance",
+    "emNone": "Elemental Mastery was never pressed in this pull.",
+    "feNone": "Fire Elemental was never pressed in this pull."
+  },
+  "fireElemental": {
+    "title": "Fire Elemental",
+    "intent": "The five-minute summon. The p5 list presses it prepull when Heroism is going up on the pull, synced with Ascendance, or in the pull's last minute — a press anywhere else is a summon the pull's best window never got.",
+    "kpi": {
+      "used": "Summons",
+      "inWindow": "In a window"
+    },
+    "columns": {
+      "at": "at",
+      "state": "rule"
+    },
+    "state": {
+      "near-end": "Near the end",
+      "sync": "Synced with Ascendance",
+      "early": "Early",
+      "plain": "No rule"
+    },
+    "caption": "Every Fire Elemental press and which window it was",
+    "none": "Fire Elemental was never pressed in this pull.",
+    "prepullYes": "It was already out when the bell went — the prepull press the list makes under Heroism.",
+    "prepullNo": "It was not out at the bell; its first press inside the pull is listed above."
+  },
+  "earthElemental": {
+    "title": "Earth Elemental",
+    "intent": "The end-of-fight summon. The p5 list presses it almost entirely in end-of-fight terms — the last sixty-two seconds — so a press with a minute and a half left is a summon the pull's last stretch never got.",
+    "kpi": {
+      "used": "Summons",
+      "nearEnd": "In the window"
+    },
+    "columns": {
+      "at": "at",
+      "state": "rule"
+    },
+    "state": {
+      "nearEnd": "Near the end",
+      "early": "Too early"
+    },
+    "caption": "Every Earth Elemental press and whether it was the end-of-fight window",
+    "none": "Earth Elemental was never pressed in this pull."
+  },
+  "lightningShield": {
+    "title": "Lightning Shield",
+    "intent": "A seven-charge counter that builds on Rolling Thunder and is spent whole by Earth Shock’s Fulmination. The section draws the counter and marks its two faults: sitting at seven so long the Rolling Thunder has nowhere to put its charge, and coming all the way off. Only the bad spends are listed — a spend at seven is the whole game.",
+    "verdict_good": "The shield never sat at seven past the leeway and never fell off.",
+    "verdict_ok": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times.",
+    "verdict_bad": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times — both are charges the next spend lost.",
+    "verdict_none": "Lightning Shield was never up in this pull.",
+    "kpi": {
+      "overcap": "Overcapped",
+      "fellOff": "Fell off",
+      "badSpends": "Bad spends"
+    },
+    "columns": {
+      "at": "at",
+      "stacks": "spent at"
+    },
+    "caption": "Every Earth Shock spent below the ceiling — a spend that threw Fulmination away",
+    "none": "Lightning Shield was never up in this pull.",
+    "leeway": "Overcap is measured past a {{leeway}} grace, so a shock being finished is never charged.",
+    "chart": "Lightning Shield charges over the pull, with overcapping and fell-off stretches in red",
+    "key": {
+      "shield": "Charges",
+      "fault": "Fell off, overcapped, or spent early"
+    },
+    "noBadSpends": "No Earth Shock was spent below the ceiling in this pull."
+  },
+  "stormlash": {
+    "title": "Stormlash Totem",
+    "intent": "A raid cooldown the buff of which does not stack. With several shamans the assignment is to stagger the totems — first, then second, then third — so a totem laid on top of a running one is a totem wasted.",
+    "kpi": {
+      "totems": "Totems placed",
+      "overlaps": "Overlapping stretches"
+    },
+    "track": {
+      "overlap": "Overlap"
+    },
+    "key": {
+      "totem": "Placed",
+      "overlap": "Two totems at once"
+    },
+    "chart": {
+      "label": "The raid's Stormlash Totems on the pull clock, a row per shaman, with the stretches where two totems ran at once"
+    },
+    "empty": "No Stormlash Totem was placed in this pull.",
+    "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the chart only shows where the raid left a totem on the table."
+  },
+  "lavaBurst": {
+    "title": "Lava Burst",
+    "intent": "Lava Surge makes one Lava Burst free, and Ascendance resets its cooldown — those two are the whole way the button comes off cooldown early. The section is about the free cast a cast count cannot see: a surge that expired with no Lava Burst inside was a free cast thrown away.",
+    "kpi": {
+      "casts": "Lava Bursts",
+      "procs": "Lava Surge procs",
+      "wasted": "Surges wasted"
+    },
+    "columns": {
+      "at": "at",
+      "state": "what it was"
+    },
+    "state": {
+      "consumed": "Consumed",
+      "wasted": "Expired unused",
+      "surge": "Lava Surge",
+      "ascendance": "Ascendance reset",
+      "cooldown": "On cooldown"
+    },
+    "procCaption": "Every Lava Surge proc, and whether a Lava Burst consumed it before it expired",
+    "pressCaption": "Every Lava Burst press, and what made it free",
+    "none": "Lava Surge never procced in this pull.",
+    "noPresses": "Lava Burst was never cast in this pull.",
+    "note": "A surge is a free cast only while the dot is up — Lava Burst needs the Flame Shock dot to outlive its cast, which is why the ladder’s rule reads the dot rather than the proc alone."
   }
 }

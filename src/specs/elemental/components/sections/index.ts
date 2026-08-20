@@ -1,0 +1,18 @@
+// The Elemental sections, as the report's section list hands them to the page.
+//
+// The same spec-root rule the Windwalker sections keep: everything about one spec lives under
+// `~/specs/<key>`, and the generic barrels stay generic.
+
+export { default as Cooldowns } from './Cooldowns';
+export { default as EarthElemental } from './EarthElemental';
+export { default as EarthShock } from './EarthShock';
+export { default as FireElemental } from './FireElemental';
+export { default as FlameShock } from './FlameShock';
+export { default as KpiTiles } from './KpiTiles';
+export { default as LavaBurst } from './LavaBurst';
+export { default as LightningShield } from './LightningShield';
+export { default as PullTimeline } from './PullTimeline';
+export { default as Rotation } from './Rotation';
+export { default as SearingTotem } from './SearingTotem';
+export { default as Snapshots } from './Snapshots';
+export { default as Stormlash } from './Stormlash';

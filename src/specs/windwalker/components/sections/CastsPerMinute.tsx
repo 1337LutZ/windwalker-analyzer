@@ -5,7 +5,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatDecimal } from '~/lib/format';
 import type { Analysis, CastRow } from '~/lib/types';
 
-import { Bar, DataGrid, Prose, Section, SpellIcon, type GridRow } from '../primitives';
+import { Bar, DataGrid, Prose, Section, SpellIcon, type GridRow } from '~/components/primitives';
 
 const gateLabel = (c: CastRow, t: ReportCopy['t']): string =>
 	c.gate === 'cooldown'

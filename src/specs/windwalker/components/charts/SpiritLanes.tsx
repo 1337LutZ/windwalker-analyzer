@@ -16,7 +16,7 @@ import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip, timeAxis } from '~/c
 
 /**
  * 24, not the 36 the pull timeline and the debuff chart use: those two carry a spell icon beside every
- * row and this one carries an enemy's name. See the note on the same constant in `DebuffTimeline`,
+ * row and this one carries an enemy's name. See the note on the same constant in `WindowTracks`,
  * which owns the grid both numbers come from.
  */
 const ROW_HEIGHT = 24;

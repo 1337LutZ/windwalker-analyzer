@@ -46,7 +46,24 @@
     },
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
     "save": "Save",
-    "reset": "Back to defaults"
+    "reset": "Back to defaults",
+    "ele": {
+      "flameShock": {
+        "label": "Flame Shock refresh window",
+        "unit": "ms",
+        "hint": "How much of the Flame Shock dot can be left before a re-press counts as keeping it up rather than overwriting a healthy dot. The default of {{default}}ms is the sim’s own Lava Burst gate, and {{max}}ms is a quarter of the 30s dot — past that a press throws away more of the dot than it renews. Between {{min}} and {{max}}ms."
+      },
+      "lightningShieldOvercap": {
+        "label": "Lightning Shield overcap grace",
+        "unit": "ms",
+        "hint": "How long the shield may sit at seven before the time past that is called overcapping. One press’s worth of grace is forgiven, like the cooldown leeway, because the shock that should spend the shield has to be finished and the reaction has to land. Between {{min}} and {{max}}ms."
+      },
+      "searingTotemRefresh": {
+        "label": "Searing Totem refresh leeway",
+        "unit": "ms",
+        "hint": "How much of the totem’s minute can be left before a re-press counts as clipping a healthy totem rather than placing the next one early. The default of {{default}}ms is one press’s worth of grace, like the cooldown leeway. Between {{min}} and {{max}}ms."
+      }
+    }
   },
   "selection": {
     "label": "Selected pull"

@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { Aura } from '~/lib/game/model';
-import { SELF_EVENT_MS, auraTimeline, auraWindows, remainingAtCast, remainingIn, uptimePct } from '../auras';
+import type { Interval } from '../intervals';
+import {
+	DROP_MS,
+	SELF_EVENT_MS,
+	auraDrops,
+	auraLevels,
+	auraTimeline,
+	auraWindows,
+	levelAt,
+	remainingAtCast,
+	remainingIn,
+	uptimePct,
+} from '../auras';
 
 const T0 = 500;
 
@@ -296,5 +308,132 @@ describe('remainingAtCast', () => {
 			T0,
 		);
 		expect(remainingAtCast(line, 5000, undated)).toBe(0);
+	});
+});
+
+describe('levelAt', () => {
+	const LIGHTNING_SHIELD: Aura = {
+		key: 'lightning-shield',
+		name: 'Lightning Shield',
+		ids: [324],
+		kind: 'buff',
+		maxStacks: 7,
+	};
+
+	function stack(t: number, type: string, n: number): WclEvent {
+		return { timestamp: T0 + t, type, abilityGameID: 324, sourceID: 1, targetID: 1, stack: n };
+	}
+
+	it('reads the shield before a drain the press itself caused', () => {
+		// Earth Shock logs its Fulmination drain one millisecond *before* the cast that caused it, so
+		// sampling the counter at the cast reads a shield that has already been emptied — 1 instead of
+		// the 7 the press actually spent.
+		const levels = auraLevels(
+			[stack(35534, 'applybuffstack', 7), stack(36622, 'removebuffstack', 1)],
+			LIGHTNING_SHIELD,
+			T0,
+			T0 + 40000,
+		);
+		expect(levelAt(levels, 36623)).toBe(7);
+	});
+
+	it('reads the shield before a drain that shares the cast timestamp', () => {
+		const levels = auraLevels(
+			[stack(22628, 'applybuffstack', 7), stack(22998, 'removebuffstack', 1)],
+			LIGHTNING_SHIELD,
+			T0,
+			T0 + 40000,
+		);
+		expect(levelAt(levels, 22998)).toBe(7);
+	});
+
+	it('reads the level that actually held away from any press', () => {
+		const levels = auraLevels([stack(1000, 'applybuffstack', 3)], LIGHTNING_SHIELD, T0, T0 + 40000);
+		expect(levelAt(levels, 2000)).toBe(3);
+	});
+
+	it('returns null when the aura was down at the press', () => {
+		const levels = auraLevels(
+			[stack(1000, 'applybuffstack', 2), { timestamp: T0 + 2000, type: 'removebuff', abilityGameID: 324, targetID: 1 }],
+			LIGHTNING_SHIELD,
+			T0,
+			T0 + 40000,
+		);
+		expect(levelAt(levels, 5000)).toBeNull();
+	});
+});
+
+/**
+ * The gap ledger both specs' dot sections are built on.
+ *
+ * It has two modes and the difference between them is not cosmetic: without a contact clock it
+ * forgives the *largest* gap unconditionally, which on a single-phase pull is the one real drop the
+ * player made. That is a live hazard, so both modes are pinned here.
+ */
+describe('auraDrops', () => {
+	const iv = (...pairs: Array<[number, number]>): Interval[] => pairs;
+
+	describe('without a contact clock — the longest-gap heuristic', () => {
+		it('has nothing to say about an empty or single window', () => {
+			expect(auraDrops(iv())).toEqual({ drops: [], intermissionMs: 0 });
+			expect(auraDrops(iv([0, 10_000]))).toEqual({ drops: [], intermissionMs: 0 });
+		});
+
+		it('forgives the longest gap and reports the rest', () => {
+			const { drops, intermissionMs } = auraDrops(iv([0, 10_000], [40_000, 50_000], [55_000, 60_000]));
+			// Gaps are 30s and 5s: the 30s is written off, the 5s is reported.
+			expect(intermissionMs).toBe(30_000);
+			expect(drops).toEqual([{ t: 50_000, ms: 5000 }]);
+		});
+
+		/** The hazard, stated as a test: one drop on a one-phase pull is the longest gap there is. */
+		it('reports nothing at all when the only gap is the longest one', () => {
+			expect(auraDrops(iv([0, 30_000], [50_000, 120_000]))).toEqual({ drops: [], intermissionMs: 20_000 });
+		});
+
+		it('drops exactly one of two gaps of identical length, not both', () => {
+			const { drops } = auraDrops(iv([0, 1000], [6000, 7000], [12_000, 13_000]));
+			// Both gaps are 5s. Excluding by value would forgive both; excluding by position forgives one.
+			expect(drops).toHaveLength(1);
+			expect(drops[0]?.ms).toBe(5000);
+		});
+
+		it('ignores sub-threshold jitter', () => {
+			// Gaps of 900ms and 800ms: the longer is forgiven as the "intermission", the other is jitter.
+			expect(auraDrops(iv([0, 1000], [1900, 3000], [3800, 5000])).drops).toEqual([]);
+		});
+	});
+
+	describe('with a contact clock — evidence-based', () => {
+		/**
+		 * The reference pull, `a:qHRAFwdGzaB6MPYC` #14. Four gaps — 36ms, 888ms, 643ms and 41 914ms —
+		 * against contact of `[[1012, 142282], [192534, 257821]]`. Three are jitter; the long one carries
+		 * 529ms of contact against 41.4s of absence, and is the boss submerging.
+		 */
+		it('forgives a gap the player was away for, and says how much it forgave', () => {
+			const windows = iv([2631, 32_291], [32_327, 90_171], [91_059, 120_869], [121_512, 151_149], [193_063, 258_263]);
+			const away = iv([0, 1012], [142_282, 192_534], [257_821, 258_304]);
+			const { drops, intermissionMs } = auraDrops(windows, DROP_MS, away);
+			expect(drops).toEqual([]);
+			expect(intermissionMs).toBe(41_385);
+		});
+
+		/** And the case the heuristic hid: the same 20s hole, taken with the boss in reach. */
+		it('reports a gap the player was present for, however large', () => {
+			const { drops, intermissionMs } = auraDrops(iv([0, 30_000], [50_000, 120_000]), DROP_MS, iv());
+			expect(drops).toEqual([{ t: 30_000, ms: 20_000 }]);
+			expect(intermissionMs).toBe(0);
+		});
+
+		it('charges only the exposed part of a partly-covered gap', () => {
+			// A 20s gap with 15s of it spent out of contact leaves 5s of fault.
+			const { drops, intermissionMs } = auraDrops(iv([0, 10_000], [30_000, 40_000]), DROP_MS, iv([10_000, 25_000]));
+			expect(drops).toEqual([{ t: 10_000, ms: 5000 }]);
+			expect(intermissionMs).toBe(15_000);
+		});
+
+		it('still ignores jitter that happened in full contact', () => {
+			expect(auraDrops(iv([0, 10_000], [10_900, 20_000]), DROP_MS, iv()).drops).toEqual([]);
+		});
 	});
 });

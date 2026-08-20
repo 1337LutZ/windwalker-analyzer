@@ -38,6 +38,7 @@ import { mergeIntervals, overlapMs, unionMs, type Interval } from './intervals';
  * rest, because a guessed power type would silently sample nothing on a bar somebody was relying on.
  */
 const WCL_POWER_TYPE: Readonly<Partial<Record<ResourceTypeValue, number>>> = {
+	[RESOURCE_TYPE.mana]: 0,
 	[RESOURCE_TYPE.energy]: 3,
 	[RESOURCE_TYPE.chi]: 12,
 };

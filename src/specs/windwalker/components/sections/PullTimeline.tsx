@@ -1,7 +1,7 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
 import type { Analysis } from '~/lib/types';
 
-import { FightTimeline } from '~/components/charts';
+import { FightTimeline } from '../charts';
 import { Prose, Section } from '~/components/primitives';
 
 /**

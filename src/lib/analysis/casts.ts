@@ -1,8 +1,29 @@
-import { abilityIdOf, isCast, type WclEvent } from '~/lib/events';
+import { abilityIdOf, isCast, type WclEvent, instanceKey } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { CastRow } from '~/lib/types';
 import { median, r1 } from './format';
+
+/**
+ * One press: when it happened, and the enemy spawn it was *aimed at*.
+ *
+ * The target is separate from "the enemy the player was hitting around then", and for a button that
+ * can be aimed the difference is the whole question. A deliberate second dot on an add is aimed at the
+ * add while every hit either side of it lands on the boss, so a press graded against the *hit* enemy
+ * is graded against the wrong one. `spawn` is `instanceKey`-shaped for that reason: WarcraftLogs gives
+ * one actor id to an NPC type, so the id alone cannot tell two adds apart.
+ *
+ * Both fields are optional because a cast event need not name a target — a self-buff names none, and
+ * a press whose target the log omits must read as "cannot say" rather than as the player's current
+ * enemy.
+ */
+export interface CastPress {
+	t: number;
+	target?: number;
+	instance?: number;
+	/** `instanceKey(target, instance)`, or null where the event named no target. */
+	spawn: string | null;
+}
 
 export interface CastSeries {
 	/** The button pressed, when the registry models the id behind these events. */
@@ -14,6 +35,13 @@ export interface CastSeries {
 	count: number;
 	/** Fight-relative cast times, in log order. */
 	times: number[];
+	/**
+	 * The same presses with their aimed target, in the same order as `times`.
+	 *
+	 * Parallel to `times` rather than replacing it: `times` has many readers that want nothing but the
+	 * clock, and widening them all to reach `.t` would be churn for no gain.
+	 */
+	presses: CastPress[];
 }
 
 /**
@@ -42,9 +70,16 @@ export function castSeries(
 
 		const ability = registry.abilityByCastId(id) ?? null;
 		const key = ability?.key ?? `#${id}`;
-		const rec = out.get(key) ?? { ability, key, id, count: 0, times: [] };
+		const rec = out.get(key) ?? { ability, key, id, count: 0, times: [], presses: [] };
 		rec.count++;
-		rec.times.push(e.timestamp - t0);
+		const t = e.timestamp - t0;
+		rec.times.push(t);
+		rec.presses.push({
+			t,
+			...(e.targetID === undefined ? {} : { target: e.targetID }),
+			...(e.targetInstance === undefined ? {} : { instance: e.targetInstance }),
+			spawn: e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance),
+		});
 		out.set(key, rec);
 	}
 	return out;

@@ -1,15 +1,39 @@
 {
 	"source": {
 		"repo": "wowsims/mop",
-		"commit": "00b8d1968b54240c62b2546013008d66949764e5",
-		"committed": "2026-08-14T07:11:36.000Z",
-		"fromDatabase": 46,
-		"fromWowhead": 72
+		"commit": "c48908022e2a896a7da2f2cd486a5aeefe546fa5",
+		"committed": "2026-08-18T08:48:42.000Z",
+		"fromDatabase": 85,
+		"fromWowhead": 166
 	},
 	"spells": {
 		"1": {
 			"name": "Melee",
 			"icon": "inv_sword_04"
+		},
+		"324": {
+			"name": "Lightning Shield",
+			"icon": "spell_nature_lightningshield"
+		},
+		"403": {
+			"name": "Lightning Bolt",
+			"icon": "spell_nature_lightning"
+		},
+		"421": {
+			"name": "Chain Lightning",
+			"icon": "spell_nature_chainlightning"
+		},
+		"774": {
+			"name": "Rejuvenation",
+			"icon": "spell_nature_rejuvenation"
+		},
+		"974": {
+			"name": "Earth Shield",
+			"icon": "spell_nature_skinofearth"
+		},
+		"1064": {
+			"name": "Chain Heal",
+			"icon": "spell_nature_healingwavegreater"
 		},
 		"1126": {
 			"name": "Mark of the Wild",
@@ -19,9 +43,33 @@
 			"name": "Arcane Brilliance",
 			"icon": "spell_holy_magicalsentry"
 		},
+		"2062": {
+			"name": "Earth Elemental Totem",
+			"icon": "spell_nature_earthelemental_totem"
+		},
+		"2645": {
+			"name": "Ghost Wolf",
+			"icon": "spell_nature_spiritwolf"
+		},
 		"2825": {
 			"name": "Bloodlust",
 			"icon": "spell_nature_bloodlust"
+		},
+		"2894": {
+			"name": "Fire Elemental Totem",
+			"icon": "spell_fire_elemental_totem"
+		},
+		"3599": {
+			"name": "Searing Totem",
+			"icon": "spell_fire_searingtotem"
+		},
+		"3606": {
+			"name": "Searing Bolt",
+			"icon": "spell_fire_searingtotem"
+		},
+		"5394": {
+			"name": "Healing Stream Totem",
+			"icon": "inv_spear_04"
 		},
 		"6262": {
 			"name": "Healthstone",
@@ -30,6 +78,42 @@
 		"6673": {
 			"name": "Battle Shout",
 			"icon": "ability_warrior_battleshout"
+		},
+		"8004": {
+			"name": "Healing Surge",
+			"icon": "classic_spell_nature_healingway"
+		},
+		"8042": {
+			"name": "Earth Shock",
+			"icon": "spell_nature_earthshock"
+		},
+		"8050": {
+			"name": "Flame Shock",
+			"icon": "spell_fire_flameshock"
+		},
+		"8177": {
+			"name": "Grounding Totem",
+			"icon": "spell_nature_groundingtotem"
+		},
+		"8190": {
+			"name": "Magma Totem",
+			"icon": "spell_fire_selfdestruct"
+		},
+		"16166": {
+			"name": "Elemental Mastery",
+			"icon": "spell_nature_wispheal"
+		},
+		"16190": {
+			"name": "Mana Tide Totem",
+			"icon": "spell_frost_summonwaterelemental"
+		},
+		"16246": {
+			"name": "Clearcasting",
+			"icon": "spell_shadow_manaburn"
+		},
+		"16886": {
+			"name": "Nature's Grace",
+			"icon": "spell_nature_naturesblessing"
 		},
 		"17007": {
 			"name": "Leader of the Pack",
@@ -47,6 +131,10 @@
 			"name": "Blessing of Kings",
 			"icon": "spell_magic_greaterblessingofkings"
 		},
+		"21562": {
+			"name": "Power Word: Fortitude",
+			"icon": "spell_holy_wordfortitude"
+		},
 		"24604": {
 			"name": "Furious Howl",
 			"icon": "ability_hunter_pet_wolf"
@@ -55,13 +143,33 @@
 			"name": "Moonkin Aura",
 			"icon": "spell_nature_moonglow"
 		},
+		"25046": {
+			"name": "Arcane Torrent",
+			"icon": "spell_shadow_teleport"
+		},
 		"26297": {
 			"name": "Berserking",
 			"icon": "racial_troll_berserk"
 		},
+		"26364": {
+			"name": "Lightning Shield",
+			"icon": "spell_nature_lightning"
+		},
+		"28730": {
+			"name": "Arcane Torrent",
+			"icon": "spell_shadow_teleport"
+		},
 		"30809": {
 			"name": "Unleashed Rage",
 			"icon": "spell_nature_unleashedrage"
+		},
+		"30823": {
+			"name": "Shamanistic Rage",
+			"icon": "spell_nature_shamanrage"
+		},
+		"31821": {
+			"name": "Devotion Aura",
+			"icon": "spell_holy_auramastery"
 		},
 		"32182": {
 			"name": "Heroism",
@@ -71,13 +179,73 @@
 			"name": "Blood Fury",
 			"icon": "racial_orc_berserkerstrength"
 		},
+		"44203": {
+			"name": "Tranquility",
+			"icon": "spell_nature_tranquility"
+		},
+		"45284": {
+			"name": "Elemental Overload (Lightning Bolt)",
+			"icon": "spell_nature_lightning"
+		},
+		"45294": {
+			"name": "Elemental Overload (Flame Shock)",
+			"icon": "spell_fire_flameshock"
+		},
+		"45296": {
+			"name": "Elemental Overload (Earth Shock)",
+			"icon": "spell_nature_earthshock"
+		},
+		"45297": {
+			"name": "Elemental Overload (Chain Lightning)",
+			"icon": "spell_nature_chainlightning"
+		},
+		"47753": {
+			"name": "Divine Aegis",
+			"icon": "spell_holy_devineaegis"
+		},
+		"48438": {
+			"name": "Wild Growth",
+			"icon": "ability_druid_flourish"
+		},
 		"49868": {
 			"name": "Mind Quickening",
 			"icon": "spell_shadow_spectralsight"
 		},
+		"50613": {
+			"name": "Arcane Torrent",
+			"icon": "spell_shadow_teleport"
+		},
 		"51470": {
 			"name": "Elemental Oath",
 			"icon": "spell_shaman_elementaloath"
+		},
+		"51485": {
+			"name": "Earthgrab Totem",
+			"icon": "spell_nature_stranglevines"
+		},
+		"51490": {
+			"name": "Thunderstorm",
+			"icon": "spell_shaman_thunderstorm"
+		},
+		"51505": {
+			"name": "Lava Burst",
+			"icon": "spell_shaman_lavaburst"
+		},
+		"52042": {
+			"name": "Healing Stream Totem",
+			"icon": "inv_spear_04"
+		},
+		"52127": {
+			"name": "Water Shield",
+			"icon": "ability_shaman_watershield"
+		},
+		"52752": {
+			"name": "Ancestral Awakening",
+			"icon": "spell_shaman_ancestralawakening"
+		},
+		"54861": {
+			"name": "Nitro Boosts",
+			"icon": "spell_fire_burningspeed"
 		},
 		"55610": {
 			"name": "Unholy Aura",
@@ -87,9 +255,93 @@
 			"name": "Horn of Winter",
 			"icon": "inv_misc_horn_02"
 		},
+		"57984": {
+			"name": "Fire Blast",
+			"icon": "spell_fire_fireball"
+		},
+		"61295": {
+			"name": "Riptide",
+			"icon": "spell_nature_riptide"
+		},
+		"69179": {
+			"name": "Arcane Torrent",
+			"icon": "spell_shadow_teleport"
+		},
+		"73680": {
+			"name": "Unleash Elements",
+			"icon": "spell_shaman_improvedstormstrike"
+		},
+		"73683": {
+			"name": "Unleash Flame",
+			"icon": "spell_shaman_unleashweapon_flame"
+		},
+		"73920": {
+			"name": "Healing Rain",
+			"icon": "spell_nature_giftofthewaterspirit"
+		},
+		"73921": {
+			"name": "Healing Rain",
+			"icon": "spell_nature_giftofthewaterspirit"
+		},
+		"76577": {
+			"name": "Smoke Bomb",
+			"icon": "ability_rogue_smoke"
+		},
+		"77451": {
+			"name": "Lava Burst",
+			"icon": "spell_shaman_lavaburst"
+		},
+		"77472": {
+			"name": "Greater Healing Wave",
+			"icon": "spell_nature_healingwavelesser"
+		},
+		"77762": {
+			"name": "Lava Surge",
+			"icon": "spell_shaman_lavasurge"
+		},
+		"79206": {
+			"name": "Spiritwalker's Grace",
+			"icon": "spell_shaman_spiritwalkersgrace"
+		},
 		"80353": {
 			"name": "Time Warp",
 			"icon": "ability_mage_timewarp"
+		},
+		"80354": {
+			"name": "Temporal Displacement",
+			"icon": "ability_mage_timewarp"
+		},
+		"80483": {
+			"name": "Arcane Torrent",
+			"icon": "spell_shadow_teleport"
+		},
+		"81269": {
+			"name": "Efflorescence",
+			"icon": "inv_misc_herb_talandrasrose"
+		},
+		"81751": {
+			"name": "Atonement",
+			"icon": "spell_holy_circleofrenewal"
+		},
+		"81782": {
+			"name": "Power Word: Barrier",
+			"icon": "spell_holy_powerwordbarrier"
+		},
+		"82327": {
+			"name": "Holy Radiance",
+			"icon": "spell_paladin_divinecircle"
+		},
+		"86273": {
+			"name": "Illuminated Healing",
+			"icon": "spell_holy_absolution"
+		},
+		"88765": {
+			"name": "Rolling Thunder",
+			"icon": "spell_nature_callstorm"
+		},
+		"88767": {
+			"name": "Fulmination",
+			"icon": "spell_nature_unrelentingstorm"
 		},
 		"90309": {
 			"name": "Terrifying Roar",
@@ -107,9 +359,21 @@
 			"name": "Roar of Courage",
 			"icon": "ability_hunter_catlikereflexes"
 		},
+		"94472": {
+			"name": "Atonement",
+			"icon": "spell_holy_circleofrenewal"
+		},
 		"96228": {
 			"name": "Synapse Springs",
 			"icon": "spell_shaman_elementaloath"
+		},
+		"96230": {
+			"name": "Synapse Springs",
+			"icon": "spell_shaman_elementaloath"
+		},
+		"97463": {
+			"name": "Rallying Cry",
+			"icon": "ability_toughness"
 		},
 		"100780": {
 			"name": "Jab",
@@ -135,6 +399,14 @@
 			"name": "Transcendence",
 			"icon": "monk_ability_transcendence"
 		},
+		"104993": {
+			"name": "Jade Spirit",
+			"icon": "spell_shaman_spiritlink"
+		},
+		"105284": {
+			"name": "Ancestral Vigor",
+			"icon": "spell_shaman_blessingoftheeternals"
+		},
 		"105682": {
 			"name": "Mad Hozen Elixir",
 			"icon": "trade_alchemy_potionb1"
@@ -155,6 +427,10 @@
 			"name": "Virmen's Bite",
 			"icon": "trade_alchemy_potiond6"
 		},
+		"105702": {
+			"name": "Potion of the Jade Serpent",
+			"icon": "trade_alchemy_potiond4"
+		},
 		"107270": {
 			"name": "Spinning Crane Kick",
 			"icon": "ability_monk_cranekick_new"
@@ -162,6 +438,26 @@
 		"107428": {
 			"name": "Rising Sun Kick",
 			"icon": "ability_monk_risingsunkick"
+		},
+		"108271": {
+			"name": "Astral Shift",
+			"icon": "ability_shaman_astralshift"
+		},
+		"108273": {
+			"name": "Windwalk Totem",
+			"icon": "ability_shaman_windwalktotem"
+		},
+		"108280": {
+			"name": "Healing Tide Totem",
+			"icon": "ability_shaman_healingtide"
+		},
+		"108281": {
+			"name": "Ancestral Guidance",
+			"icon": "ability_shaman_ancestralguidance"
+		},
+		"108287": {
+			"name": "Totemic Projection",
+			"icon": "ability_shaman_totemrelocation"
 		},
 		"108557": {
 			"name": "Jab",
@@ -171,6 +467,10 @@
 			"name": "Roll",
 			"icon": "ability_monk_roll"
 		},
+		"110745": {
+			"name": "Divine Star",
+			"icon": "spell_priest_divinestar"
+		},
 		"113656": {
 			"name": "Fists of Fury",
 			"icon": "monk_ability_fistoffury"
@@ -178,6 +478,50 @@
 		"113742": {
 			"name": "Swiftblade's Cunning",
 			"icon": "ability_rogue_disembowel"
+		},
+		"114049": {
+			"name": "Ascendance",
+			"icon": "spell_fire_elementaldevastation"
+		},
+		"114050": {
+			"name": "Ascendance",
+			"icon": "classic_spell_fire_elementaldevastation"
+		},
+		"114074": {
+			"name": "Lava Beam",
+			"icon": "spell_fire_soulburn"
+		},
+		"114083": {
+			"name": "Restorative Mists",
+			"icon": "spell_shaman_tidalwaves"
+		},
+		"114163": {
+			"name": "Eternal Flame",
+			"icon": "inv_torch_thrown"
+		},
+		"114206": {
+			"name": "Skull Banner",
+			"icon": "warrior_skullbanner"
+		},
+		"114738": {
+			"name": "Lava Beam",
+			"icon": "spell_fire_soulburn"
+		},
+		"114908": {
+			"name": "Spirit Shell",
+			"icon": "ability_shaman_astralshift"
+		},
+		"114911": {
+			"name": "Ancestral Guidance",
+			"icon": "ability_shaman_ancestralguidance"
+		},
+		"114942": {
+			"name": "Healing Tide",
+			"icon": "ability_shaman_healingtide"
+		},
+		"114991": {
+			"name": "Elemental Overload (Lava Beam)",
+			"icon": "spell_fire_soulburn"
 		},
 		"115072": {
 			"name": "Expel Harm",
@@ -235,6 +579,10 @@
 			"name": "Jab",
 			"icon": "inv_spear_03"
 		},
+		"115798": {
+			"name": "Weakened Blows",
+			"icon": "inv_relics_totemofrage"
+		},
 		"115804": {
 			"name": "Mortal Wounds",
 			"icon": "ability_criticalstrike"
@@ -271,13 +619,53 @@
 			"name": "Grace of Air",
 			"icon": "spell_nature_invisibilitytotem"
 		},
+		"117012": {
+			"name": "Unleashed Fury",
+			"icon": "shaman_talent_unleashedfury"
+		},
+		"117013": {
+			"name": "Primal Elementalist",
+			"icon": "shaman_talent_primalelementalist"
+		},
+		"117014": {
+			"name": "Elemental Blast",
+			"icon": "shaman_talent_elementalblast"
+		},
 		"117418": {
 			"name": "Fists of Fury",
 			"icon": "monk_ability_fistoffury"
 		},
+		"117588": {
+			"name": "Fire Nova",
+			"icon": "spell_fire_sealoffire"
+		},
 		"117666": {
 			"name": "Legacy of the Emperor",
 			"icon": "ability_monk_legacyoftheemperor"
+		},
+		"118291": {
+			"name": "Fire Elemental Totem",
+			"icon": "spell_fire_elemental_totem"
+		},
+		"118297": {
+			"name": "Immolate",
+			"icon": "spell_fire_immolation"
+		},
+		"118345": {
+			"name": "Pulverize",
+			"icon": "item_earthenmight"
+		},
+		"118350": {
+			"name": "Empower",
+			"icon": "spell_fire_lavaspawn"
+		},
+		"118522": {
+			"name": "Elemental Blast",
+			"icon": "shaman_talent_elementalblast"
+		},
+		"118523": {
+			"name": "Elemental Overload (Elemental Blast)",
+			"icon": "shaman_talent_elementalblast"
 		},
 		"118864": {
 			"name": "Combo Breaker: Tiger Palm",
@@ -286,6 +674,14 @@
 		"119381": {
 			"name": "Leg Sweep",
 			"icon": "ability_monk_legsweep"
+		},
+		"119523": {
+			"name": "Healing Stream Totem",
+			"icon": "inv_spear_04"
+		},
+		"119952": {
+			"name": "Arcing Light",
+			"icon": "spell_paladin_lightshammer"
 		},
 		"119996": {
 			"name": "Transcendence: Transfer",
@@ -311,6 +707,14 @@
 			"name": "Tiger Strikes",
 			"icon": "spell_nature_cyclone"
 		},
+		"120668": {
+			"name": "Stormlash Totem",
+			"icon": "ability_shaman_tranquilmindtotem"
+		},
+		"120676": {
+			"name": "Stormlash Totem",
+			"icon": "ability_shaman_tranquilmindtotem"
+		},
 		"120687": {
 			"name": "Stormlash",
 			"icon": "spell_lightning_lightningbolt01"
@@ -318,6 +722,10 @@
 		"120954": {
 			"name": "Fortifying Brew",
 			"icon": "ability_monk_fortifyingale"
+		},
+		"121129": {
+			"name": "Daybreak",
+			"icon": "inv_qirajidol_sun"
 		},
 		"121279": {
 			"name": "Lifeblood",
@@ -363,13 +771,25 @@
 			"name": "Swift Reflexes",
 			"icon": "ability_hunter_displacement"
 		},
+		"124988": {
+			"name": "Nature's Vigil",
+			"icon": "achievement_zone_feralas"
+		},
 		"125359": {
 			"name": "Tiger Power",
 			"icon": "ability_monk_tigerpalm"
 		},
+		"125487": {
+			"name": "Lightweave",
+			"icon": "spell_arcane_prismaticcloak"
+		},
 		"126309": {
 			"name": "Still Water",
 			"icon": "inv_elemental_mote_water01"
+		},
+		"126389": {
+			"name": "Goblin Glider",
+			"icon": "inv_misc_clothscrap_01"
 		},
 		"126734": {
 			"name": "Synapse Springs",
@@ -391,6 +811,10 @@
 			"name": "Spirit Beast Blessing",
 			"icon": "inv_pet_celestialdragon"
 		},
+		"129597": {
+			"name": "Arcane Torrent",
+			"icon": "spell_shadow_teleport"
+		},
 		"130320": {
 			"name": "Rising Sun Kick",
 			"icon": "ability_monk_risingsunkick"
@@ -398,6 +822,10 @@
 		"132467": {
 			"name": "Chi Wave",
 			"icon": "ability_monk_chiwave"
+		},
+		"137590": {
+			"name": "Tempus Repit",
+			"icon": "spell_nature_invisibilty"
 		},
 		"137596": {
 			"name": "Capacitance",
@@ -411,6 +839,22 @@
 			"name": "Storm, Earth, and Fire",
 			"icon": "spell_sandstorm"
 		},
+		"138144": {
+			"name": "Item - Shaman T15 Elemental 4P Bonus",
+			"icon": "trade_engineering"
+		},
+		"138786": {
+			"name": "Wushoolay's Lightning",
+			"icon": "spell_nature_chainlightning"
+		},
+		"138898": {
+			"name": "Breath of Many Minds",
+			"icon": "spell_shadow_mindflay"
+		},
+		"138963": {
+			"name": "Perfect Aim",
+			"icon": "ability_hunter_focusedaim"
+		},
 		"139117": {
 			"name": "Re-Origination",
 			"icon": "inv_offhand_1h_ulduarraid_d_01"
@@ -423,21 +867,101 @@
 			"name": "Re-Origination",
 			"icon": "inv_offhand_1h_ulduarraid_d_01"
 		},
+		"139133": {
+			"name": "Mastermind",
+			"icon": "spell_holy_mindsooth"
+		},
+		"142912": {
+			"name": "Glyph of Lightning Shield",
+			"icon": "inv_shield_06"
+		},
 		"142928": {
 			"name": "Displaced Energy",
 			"icon": "ability_warlock_haunt"
+		},
+		"143023": {
+			"name": "Corrupted Brew",
+			"icon": "sha_inv_elemental_primal_shadow"
+		},
+		"143198": {
+			"name": "Garrote",
+			"icon": "ability_rogue_garrote"
+		},
+		"143423": {
+			"name": "Sha Sear",
+			"icon": "spell_shadow_mindshear"
+		},
+		"143424": {
+			"name": "Sha Sear",
+			"icon": "spell_shadow_mindshear"
+		},
+		"143493": {
+			"name": "Calamity",
+			"icon": "ability_priest_halo_shadow"
+		},
+		"143559": {
+			"name": "Dark Meditation",
+			"icon": "ability_druid_typhoon"
+		},
+		"143564": {
+			"name": "Meditative Field",
+			"icon": "spell_shadow_sealofkings"
+		},
+		"143962": {
+			"name": "Inferno Strike",
+			"icon": "inv_summerfest_firespirit"
+		},
+		"144176": {
+			"name": "Shadow Weakness",
+			"icon": "sha_inv_misc_slime_01"
+		},
+		"144397": {
+			"name": "Vengeful Strikes",
+			"icon": "sha_spell_fire_bluerainoffire"
 		},
 		"144459": {
 			"name": "Laser Burn",
 			"icon": "ability_deathwing_grasping_tendrils"
 		},
+		"144876": {
+			"name": "Spark of Life",
+			"icon": "talentspec_druid_restoration"
+		},
+		"144998": {
+			"name": "Item - Shaman T16 Elemental 2P Bonus",
+			"icon": "ability_rogue_feigndeath"
+		},
+		"144999": {
+			"name": "Elemental Discharge",
+			"icon": "spell_frostfire-orb"
+		},
+		"145000": {
+			"name": "Summon Lightning Elemental",
+			"icon": "spell_nature_giftofthewaterspirit"
+		},
+		"145002": {
+			"name": "Lightning Blast",
+			"icon": "spell_nature_lightning"
+		},
 		"145024": {
 			"name": "Focus of Xuen",
 			"icon": "ability_rogue_feigndeath"
 		},
+		"145110": {
+			"name": "Ysera's Gift",
+			"icon": "spell_nature_healingtouch"
+		},
+		"146046": {
+			"name": "Expanded Mind",
+			"icon": "inv_misc_gem_bloodstone_01"
+		},
 		"146061": {
 			"name": "Multistrike",
 			"icon": "warrior_wild_strike"
+		},
+		"146071": {
+			"name": "Multistrike",
+			"icon": "spell_nature_lightning"
 		},
 		"146075": {
 			"name": "Multistrike",
@@ -447,9 +971,25 @@
 			"name": "Cleave",
 			"icon": "warrior_wild_strike"
 		},
+		"146177": {
+			"name": "Multistrike",
+			"icon": "spell_holy_heal"
+		},
+		"146184": {
+			"name": "Wrath of the Darkspear",
+			"icon": "inv_legendary_sigilofpower"
+		},
 		"146194": {
 			"name": "Flurry of Xuen",
 			"icon": "monk_stance_whitetiger"
+		},
+		"146198": {
+			"name": "Essence of Yu'lon",
+			"icon": "monk_stance_wiseserpent"
+		},
+		"146364": {
+			"name": "Throw Bomb",
+			"icon": "inv_misc_bomb_05"
 		},
 		"146555": {
 			"name": "Drums of Rage",
@@ -459,6 +999,14 @@
 			"name": "Flurry of Xuen",
 			"icon": "monk_stance_whitetiger"
 		},
+		"148008": {
+			"name": "Essence of Yu'lon",
+			"icon": "monk_stance_wiseserpent"
+		},
+		"148009": {
+			"name": "Spirit of Chi-Ji",
+			"icon": "ability_mount_cranemountpurple"
+		},
 		"148135": {
 			"name": "Chi Burst",
 			"icon": "spell_arcane_arcanetorrent"
@@ -467,6 +1015,10 @@
 			"name": "Rushing Jade Wind",
 			"icon": "ability_monk_rushingjadewind"
 		},
+		"148235": {
+			"name": "Cleave",
+			"icon": "spell_nature_resistnature"
+		},
 		"148896": {
 			"name": "Ferocity",
 			"icon": "inv_relics_idolofferocity"
@@ -474,6 +1026,10 @@
 		"148903": {
 			"name": "Vicious",
 			"icon": "ability_racial_viciousness"
+		},
+		"148906": {
+			"name": "Toxic Power",
+			"icon": "ability_creature_poison_06"
 		},
 		"1247275": {
 			"name": "Tigereye Brew",

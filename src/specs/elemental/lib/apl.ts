@@ -1,4 +1,4 @@
-import { ALL_BANDS, type Band, type AplRule } from '~/lib/spec/apl';
+import { type AplRule, ladderEntries } from '~/lib/spec/apl';
 
 /**
  * The Elemental priority list, declared for the audit engine.
@@ -223,18 +223,44 @@ export const LADDER: readonly ELE_AplRule[] = [
  * `condition` would sooner or later call it, and it would have to invent a `State` to do so — a
  * second, fictional pull sitting inside a reference table.
  */
-export const LADDER_ENTRIES: ReadonlyArray<{
-	key: ELE_AplRuleKey;
+export const LADDER_ENTRIES = ladderEntries(LADDER);
+
+/**
+ * The whole priority list, as the reference reads it — the ladder above plus the off-GCD cooldowns
+ * and the Flame Shock rules the ladder deliberately leaves to their own sections.
+ *
+ * `LADDER` is the on-GCD filler chain the engine walks; the reference has to show the list a player
+ * actually follows, which reaches the cooldowns *between* the fillers. Each entry is a row in the
+ * Rotation section, in the p5 file's own order, and the condition text is the i18n copy beside it —
+ * the same one-line `test` the Windwalker's reference carries.
+ */
+export interface RotationEntry {
+	/** The i18n key stem under `rotation.rule` — `rotation.rule.<key>.name` / `.condition`. */
+	key: string;
+	/** The spell whose icon stands for the row. */
 	id: number;
-	/** Resolved rather than optional: an entry that named no bands exists in all four, so say all four. */
-	bands: readonly Band[];
-	talent: boolean;
-	/** The button that removes this one from the bars, when one does. */
-	replacedBy?: number;
-}> = LADDER.map((rule) => ({
-	key: rule.key,
-	id: rule.id,
-	bands: rule.bands ?? ALL_BANDS,
-	talent: rule.talent === true,
-	...(rule.replacedBy === undefined ? {} : { replacedBy: rule.replacedBy }),
-}));
+	/** Which group the reference files the row under, so the list is scannable. */
+	group: 'cooldown' | 'dot' | 'filler';
+	/** False for the off-GCD cooldowns, which the ladder never sees but the list still names. */
+	onGcd: boolean;
+	/** Whether the row is talent-gated, so the reference can say so rather than assume it. */
+	talent?: boolean;
+}
+
+export const ROTATION: readonly RotationEntry[] = [
+	// The off-GCD cooldowns come first in the p5 list, before the fillers they gate.
+	{ key: 'unleash-elements', id: 73680, group: 'filler', onGcd: true, talent: true },
+	{ key: 'flame-shock-snapshot', id: 8050, group: 'dot', onGcd: true },
+	{ key: 'elemental-mastery', id: 16166, group: 'cooldown', onGcd: false },
+	{ key: 'jade-serpent-potion', id: 105696, group: 'cooldown', onGcd: false },
+	{ key: 'flame-shock-asc-prep', id: 8050, group: 'dot', onGcd: true },
+	{ key: 'lava-burst', id: 51505, group: 'filler', onGcd: true },
+	{ key: 'ascendance', id: 114049, group: 'cooldown', onGcd: false },
+	{ key: 'flame-shock-multidot', id: 8050, group: 'dot', onGcd: true },
+	{ key: 'elemental-blast', id: 117014, group: 'filler', onGcd: true, talent: true },
+	{ key: 'earth-shock', id: 8042, group: 'filler', onGcd: true },
+	{ key: 'fire-elemental', id: 2894, group: 'cooldown', onGcd: true },
+	{ key: 'searing-totem', id: 3599, group: 'filler', onGcd: true },
+	{ key: 'earth-elemental', id: 2062, group: 'cooldown', onGcd: true },
+	{ key: 'lightning-bolt', id: 403, group: 'filler', onGcd: true },
+];

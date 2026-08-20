@@ -1,8 +1,6 @@
 export { default as CastLog } from './CastLog';
-export { default as CastsPerMinute } from './CastsPerMinute';
 export { default as DamageByAbility } from './DamageByAbility';
 export { default as GearSetup } from './GearSetup';
-export { default as KpiTiles } from './KpiTiles';
 export { default as LogLink } from './LogLink';
 export { default as Method } from './Method';
 export { default as MissLedger } from './MissLedger';

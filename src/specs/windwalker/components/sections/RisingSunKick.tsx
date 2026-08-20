@@ -2,7 +2,7 @@ import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatPercentValue, formatSecondsValue } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
-import { DebuffTimeline } from '~/components/charts';
+import DebuffTimeline from '../charts/DebuffTimeline';
 import { abilityCooldownMs } from '~/specs/windwalker/lib';
 import { usageTone } from '~/specs/windwalker/lib/score';
 

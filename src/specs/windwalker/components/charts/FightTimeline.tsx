@@ -6,15 +6,15 @@ import type { Analysis, SnapshotGrade } from '~/lib/types';
 
 import { formatGap, formatStamp } from '~/lib/format';
 
-import { fmt, sec } from '../format';
-import { ChartFigure } from '../primitives';
-import type { ChartEnv } from './ApexChart';
-import ApexChart from './ApexChart';
-import ChartEmpty from './ChartEmpty';
-import ChartKey from './ChartKey';
-import TrackLabels, { type Track } from './TrackLabels';
-import type { ChartTheme, TipContent } from './apex';
-import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
+import { fmt, sec } from '~/components/format';
+import { ChartFigure } from '~/components/primitives';
+import type { ChartEnv } from '~/components/charts/ApexChart';
+import ApexChart from '~/components/charts/ApexChart';
+import ChartEmpty from '~/components/charts/ChartEmpty';
+import ChartKey from '~/components/charts/ChartKey';
+import TrackLabels, { type Track } from '~/components/charts/TrackLabels';
+import type { ChartTheme, TipContent } from '~/components/charts/apex';
+import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from '~/components/charts/apex';
 
 /** Charts in this group share their zoom, pan and crosshair. */
 const FIGHT_GROUP = 'ww-fight';

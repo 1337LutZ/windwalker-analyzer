@@ -56,6 +56,13 @@ export default function ReportFlow() {
 	// The spec the URL names, or the registered default when it names none. `getSpec` returns the
 	// registry's own stable reference, so the identity is safe for the memos and queries below.
 	const spec = getSpec(fromUrl.spec ?? '') ?? DEFAULT_SPEC;
+	// The whole page's theme follows the spec: every structural colour in `global.css` is derived from
+	// `--spec-primary`, so setting it recolours the page to whatever the URL named (or the build's
+	// default). The build's spec is painted before first paint in `index.astro`; this is the
+	// hydration-time correction for a URL that names a different one.
+	useEffect(() => {
+		document.documentElement.style.setProperty('--spec-primary', spec.colors.primary);
+	}, [spec]);
 	// The thresholds the reader owns. Held here because this is where the analysis is derived. The
 	// spec's schema drives the panel; the default is the registered spec until the URL names one.
 	const settingsState = useSettings(spec.settings);
@@ -391,7 +398,7 @@ export default function ReportFlow() {
 				>
 					{!loaded || !hasFights ? (
 						<p className="m-0 leading-relaxed text-muted">
-							Then pick whose pull to read. Only Windwalkers who were in that fight are listed.
+							Then pick whose pull to read. Only {spec.displayName}s who were in that fight are listed.
 						</p>
 					) : (
 						<div className="flex flex-col gap-4">
@@ -405,6 +412,7 @@ export default function ReportFlow() {
 									value={playerName}
 									onChange={setChosenPlayer}
 									fightName={fight?.name ?? 'this pull'}
+									specName={spec.displayName}
 								/>
 							)}
 

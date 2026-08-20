@@ -1,7 +1,7 @@
 // What the timeline deliberately does not draw, and why.
 //
 // A curated table rather than a reader toggle, and that is a judgement worth defending. The rows here
-// are not a matter of taste — they are things a Windwalker makes no decision about, so a control for
+// are not a matter of taste — they are things nobody playing makes a decision about, so a control for
 // them would be a control whose two positions are "correct" and "a taller chart". This app has just
 // *lost* a setting for a weaker version of the same reason (the Touch of Karma ceiling, which the
 // report turned out to be able to measure), so the bar for adding one is a reader who would genuinely
@@ -9,7 +9,18 @@
 // chart reads these two sets in one place each, and a toggle would only have to supply a different
 // set — nothing else in the file would move.
 //
-// **Hidden, not un-modelled.** Nothing here is removed from the spec or from the analysis. The auras
+// **One table for every spec, not one per spec.** Both entries are *item* effects — the Capacitive
+// Primal Diamond and the legendary cloak — so the answer does not vary by who is wearing them, which
+// is why this is not keyed by `spec.key` the way `timelineOrder.ts` is. Keying it would duplicate both
+// rows and invite a future edit to one copy. It lived under `specs/windwalker/` while the chart did,
+// and its wording claimed to be about Windwalkers; it was misfiled rather than wrong.
+//
+// What is true today and worth saying rather than implying: only the Windwalker's game model declares
+// these two auras (`GEAR_PROCS` in `specs/windwalker/lib/index.ts`), so on an Elemental pull the table
+// matches nothing and filters nothing. It is inert there, not overreaching, and it would start
+// applying unchanged the day that spec models the same gear.
+//
+// **Hidden, not un-modelled.** Nothing here is removed from any spec or from the analysis. The auras
 // are still measured, the counters still built, and the damage still counted — Lightning Strike is
 // 4–5% of a Windwalker's output on both reference reports and keeps its place in Damage by Ability.
 // It is the *row* that goes, and only from this chart.
@@ -21,10 +32,12 @@
 import type { AuraLane, CastMark } from '~/lib/types';
 
 /**
- * Aura lanes the chart does not draw, by their key in the spec's game model.
+ * Aura lanes the chart does not draw, by their key in the drawing spec's game model.
  *
  * Keys and not ids, because the model already owns which ids an aura logs under — Re-Origination has
- * three, and a table of ids would have to be kept in step with a list that is allowed to grow.
+ * three, and a table of ids would have to be kept in step with a list that is allowed to grow. Both
+ * keys below happen to be spelled the same way in any model that declares them, since both name an
+ * item rather than an ability.
  */
 export const HIDDEN_AURAS: ReadonlySet<string> = new Set([
 	// Capacitance — the charge counter on the **Capacitive Primal Diamond**, the legendary meta gem

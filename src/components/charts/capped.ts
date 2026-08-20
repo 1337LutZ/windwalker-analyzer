@@ -30,3 +30,26 @@ export function cappedOf(curve: ResourceCurve): Window[] {
 	}
 	return out;
 }
+
+/**
+ * The stretches a bar spent empty, as the mirror of `cappedOf`.
+ *
+ * For a pool that being full is no fault (mana), emptiness is the fault that matters: at zero the
+ * player cannot cast, and every second there is a button they wanted and could not afford. Drawn
+ * where the capped shade would be, in the same red, so "out" reads as the opposite of the ceiling
+ * bands every other bar carries.
+ */
+export function emptiedOf(curve: ResourceCurve): Window[] {
+	const out: Window[] = [];
+	const points = curve.points;
+	for (let i = 1; i < points.length; i += 1) {
+		const prev = points[i - 1];
+		const cur = points[i];
+		if (prev === undefined || cur === undefined) continue;
+		if (prev[1] > 0 || cur[1] > 0) continue;
+		const last = out[out.length - 1];
+		if (last !== undefined && last.end === prev[0]) last.end = cur[0];
+		else out.push({ start: prev[0], end: cur[0] });
+	}
+	return out;
+}

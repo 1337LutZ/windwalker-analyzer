@@ -43,6 +43,20 @@ const STACK_CHANGE: ReadonlySet<string> = new Set([
  * handed. Returns null for the events that carry no ability at all (`combatantinfo`, most deaths)
  * rather than a zero, which would compare equal to nothing and silently match nothing.
  */
+/**
+ * One enemy *spawn*, as a key: the report's actor id plus which copy of it this is.
+ *
+ * WarcraftLogs numbers NPCs by type, so ten Kor'kron Ironblades share one `targetID` and are told
+ * apart only by `targetInstance`. Anything modelling per-enemy state has to key on the pair or their
+ * event streams interleave into one. A missing instance keys as itself rather than as instance 1: a
+ * report old enough not to carry the field then behaves exactly as it used to, one bucket per id.
+ *
+ * Here rather than in a spec, and rather than in `analyseCore`, because it was written out three
+ * times: the core, the Windwalker audit, and the Elemental audit — which is the copy that dropped
+ * `targetInstance` and re-introduced the bug the Windwalker's comment exists to record.
+ */
+export const instanceKey = (target: number, instance: number | undefined): string => `${target}:${instance ?? '-'}`;
+
 export function abilityIdOf(e: WclEvent): number | null {
 	if (typeof e.abilityGameID === 'number') return e.abilityGameID;
 	return typeof e.ability?.guid === 'number' ? e.ability.guid : null;

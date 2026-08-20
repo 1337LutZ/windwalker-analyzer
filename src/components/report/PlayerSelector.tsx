@@ -4,27 +4,28 @@ import { Prose } from '../primitives';
 import { singleLineChoiceClass } from '../primitives/controls';
 
 interface Props {
-	/** Already narrowed to the Windwalkers in this pull. */
+	/** Already narrowed to this spec's players in the pull. */
 	players: FightPlayer[];
 	value: string | null;
 	onChange: (name: string) => void;
 	fightName: string;
+	/** The spec's display name, so the copy names it instead of hardcoding a class. */
+	specName: string;
 }
 
 /**
- * Which Windwalker to read — and usually not a control at all.
+ * Which player of this spec to read — and usually not a control at all.
  *
- * One Windwalker is the ordinary case, and asking someone to pick from a list of one is a step that
- * only exists to be clicked through, so it is shown as a sentence instead. None means the pull is
- * the wrong pull, which is worth saying plainly rather than rendering an empty picker that looks
- * broken.
+ * One player is the ordinary case, and asking someone to pick from a list of one is a step that only
+ * exists to be clicked through, so it is shown as a sentence instead. None means the pull is the
+ * wrong pull, which is worth saying plainly rather than rendering an empty picker that looks broken.
  */
-export default function PlayerSelector({ players, value, onChange, fightName }: Props) {
+export default function PlayerSelector({ players, value, onChange, fightName, specName }: Props) {
 	if (players.length === 0) {
 		return (
 			<Prose>
-				No Windwalker monk was in {fightName}. Pick another pull above — this reads one spec, and there is nothing in
-				this fight for it to read.
+				No {specName} was in {fightName}. Pick another pull above — this reads one spec, and there is nothing in this
+				fight for it to read.
 			</Prose>
 		);
 	}
@@ -32,7 +33,7 @@ export default function PlayerSelector({ players, value, onChange, fightName }: 
 	if (players.length === 1) {
 		return (
 			<Prose>
-				<span className="font-mono font-semibold text-ink">{players[0]!.name}</span> was the only Windwalker in{' '}
+				<span className="font-mono font-semibold text-ink">{players[0]!.name}</span> was the only {specName} in{' '}
 				{fightName}.
 			</Prose>
 		);
@@ -40,7 +41,7 @@ export default function PlayerSelector({ players, value, onChange, fightName }: 
 
 	return (
 		<ul
-			aria-label={`Windwalkers in ${fightName}`}
+			aria-label={`${specName}s in ${fightName}`}
 			className="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2 lg:grid-cols-3"
 		>
 			{players.map((player) => {

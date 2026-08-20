@@ -5,7 +5,7 @@
 
 export { default as BrewBankTrack } from './BrewBankTrack';
 export { default as ChiBrewTrack } from './ChiBrewTrack';
-export { default as CastTimeline } from './CastTimeline';
 export { default as EnergizingBrewTrack } from './EnergizingBrewTrack';
+export { default as FightTimeline } from './FightTimeline';
 export { default as SnapshotDepth } from './SnapshotDepth';
 export { default as TigerPalmTimeline } from './TigerPalmTimeline';

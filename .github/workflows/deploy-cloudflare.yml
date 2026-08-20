@@ -1,0 +1,128 @@
+name: Deploy a spec to Cloudflare Pages
+
+# The deploy itself, written once, for whichever spec the caller names.
+#
+# Two live sites are built out of this one repository — `windwalker-analyzer` and
+# `elemental-analyzer` — and only three things differ between them: the Cloudflare project, the
+# canonical URL, and which spec the build is pinned to. Everything else, the gates above all, has to
+# be identical or one site is published to a standard the other is not. That is the whole argument
+# for a reusable workflow rather than a second copy of this file: a copy is where the two drift.
+#
+# Not a matrix over the two specs, deliberately. A matrix is one workflow run publishing both sites,
+# so a re-run from the Actions tab re-publishes both, one deploy failing marks the other's run red,
+# and the two share a concurrency group — which is the queueing behaviour this repo went out of its
+# way to get right for a single site. Two callers, two runs, two queues.
+on:
+  workflow_call:
+    inputs:
+      project_name:
+        description: >-
+          The Cloudflare Pages project to publish to. Its `.pages.dev` host is derived from this.
+        required: true
+        type: string
+      spec:
+        description: >-
+          The spec this deployment serves, by registry key (`getSpec`). Astro inlines `PUBLIC_SPEC`
+          at build time and `DEFAULT_SPEC` reads it, so every default in the page follows it — the
+          title, the accent colour, the analyser the report flow reaches for. The URL's own
+          `?spec=` still wins at runtime, which is how a single-spec build keeps working for a
+          visitor who was handed the other spec's link.
+        required: true
+        type: string
+      site_url:
+        description: >-
+          Astro's `site` — the host this build is made for. Passed rather than left to default,
+          because `astro.config.mjs` defaults to the Windwalker domain and the Elemental build would
+          otherwise carry it. Today that is latent: `base` is empty on Pages so every asset URL is
+          root-relative and nothing in the emitted HTML names the host, so a wrong value publishes a
+          working site. It stops being latent the moment anything canonical is emitted — a `<link
+          rel="canonical">`, an `og:url`, a sitemap — which is why it is a required input rather than
+          a default worth trusting. Note that the host also has to be registered with WarcraftLogs as
+          a redirect URI in its own right: OAuth redirects back to `window.location` and the match is
+          byte for byte, so sign-in on an unregistered host fails with a message that blames the
+          client id.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_NAME: ${{ inputs.project_name }}
+  PUBLIC_SPEC: ${{ inputs.spec }}
+  SITE_URL: ${{ inputs.site_url }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # The gates that decide whether this build deserves to be published. A deploy that skips them
+      # publishes whatever happens to compile.
+      #
+      # Spec-independent on purpose: `npm run check` and `npm test` cover every registered spec in
+      # one pass, so both sites are held to the whole suite rather than to the half that is theirs.
+      # A change that breaks the Elemental audit therefore blocks the Windwalker deploy too, which is
+      # the right way round — they are one codebase and one report engine.
+      #
+      # Through `npm run`, not `npx <tool>`. `npx` falls back to *downloading* a tool that is not a
+      # declared dependency, so CI silently ran a different version from the one on this machine —
+      # which is exactly how the first deploy failed: a formatter build newer than the local one
+      # disagreed about a JSON file that was, locally, correctly formatted.
+      - run: npm run check
+      - run: npm test
+
+      # `src/pages/preview.astro` is a development harness: it renders committed fixtures so charts
+      # and copy can be checked without a token. It has no place on the public site, and removing
+      # the page removes its only import of the fixture JSON, so none of that data is bundled.
+      # Deleted here rather than from the repo so the harness stays available in `npm run dev`.
+      - name: Drop the fixture preview harness from the published build
+        run: rm -f src/pages/preview.astro
+
+      # `PUBLIC_SPEC` and `SITE_URL` reach this through the job's `env:` above. They are two
+      # different channels into the build and both have to be set: Astro reads `PUBLIC_SPEC` from the
+      # environment and inlines it into the client bundle, while `astro.config.mjs` reads `SITE_URL`
+      # from `process.env` to decide every asset URL.
+      - run: npm run build
+
+      # Wrangler is run directly rather than through `cloudflare/wrangler-action`. The action looks
+      # for a local wrangler, does not find one it accepts, and installs its own — measured: it
+      # pulled 3.90.0 while current is 4.x. Wrangler is a declared, pinned dependency here for the
+      # same reason every other tool is, so the version that deploys is the version in the lockfile.
+      - name: Create the Pages project if it does not exist
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Idempotent, so a spec's first deploy needs no dashboard visit and later ones cost one API
+        # call. `project list` failing is a real error — a bad token, or one without the Pages
+        # permission — and is left to fail the job rather than being swallowed by `|| true`.
+        #
+        # `grep -qw` against the whole list, which is why the project names must not be substrings of
+        # each other under word boundaries: `windwalker-analyzer` and `elemental-analyzer` are not.
+        run: |
+          if npx --no-install wrangler pages project list | grep -qw "$PROJECT_NAME"; then
+            echo "Project $PROJECT_NAME already exists."
+          else
+            echo "Project $PROJECT_NAME not found; creating it."
+            npx --no-install wrangler pages project create "$PROJECT_NAME" --production-branch=main
+          fi
+
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # `--branch=main` marks this a production deployment; without it Cloudflare treats the upload
+        # as a preview and the production URL never moves.
+        #
+        # `--commit-dirty=true` because the tree deliberately *is* dirty: the preview harness was
+        # deleted a few steps above. Without it wrangler warns on every single deploy about a change
+        # this workflow made on purpose.
+        run: npx --no-install wrangler pages deploy dist --project-name="$PROJECT_NAME" --branch=main --commit-dirty=true

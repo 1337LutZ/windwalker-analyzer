@@ -56,6 +56,8 @@ export default function ResourceChart({
 	smooth,
 	wastedLegend,
 	color,
+	showStepLabels,
+	labelDecreases,
 }: {
 	curve: ResourceCurve;
 	durationMs: number;
@@ -79,6 +81,10 @@ export default function ResourceChart({
 	 * nothing rather than pointing at a colour the chart never used.
 	 */
 	wastedLegend?: string;
+	/** Whether to draw the value at each step. False when the caller marks its moments another way. */
+	showStepLabels?: boolean;
+	/** Label only the decreases, with the level that was unloaded. */
+	labelDecreases?: boolean;
 }) {
 	const stroke = color ?? VAR[tone];
 	return (
@@ -88,8 +94,16 @@ export default function ResourceChart({
 					<ChartKey tone={tone} color={color}>
 						{legend}
 					</ChartKey>
+					{/* Keyed by the legend, not by the tone.
+					    `key={band.tone}` made band granularity a lie: two bands of one tone collided on the
+					    React key, so a caller that wanted to name two different faults in the same red had to
+					    merge them into one band and one legend line instead. The Elemental's Lightning Shield
+					    did exactly that — "fell off", "overcapped" and "spent early" became one entry reading
+					    "the shield went wrong" — and it read as a deliberate editorial choice rather than a
+					    workaround for this line. The legend is what distinguishes one key entry from another,
+					    so it is what identifies it. */}
 					{bands.map((band) => (
-						<ChartKey key={band.tone} tone={band.tone} band>
+						<ChartKey key={band.legend} tone={band.tone} band>
 							{band.legend}
 						</ChartKey>
 					))}
@@ -120,6 +134,8 @@ export default function ResourceChart({
 						upright: band.upright,
 					}))}
 					label={label}
+					showStepLabels={showStepLabels}
+					labelDecreases={labelDecreases}
 				/>
 			</ScrollableTrack>
 		</ChartFigure>

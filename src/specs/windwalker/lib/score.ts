@@ -8,8 +8,8 @@
 // this one; the registry points each at its own.
 
 import type { Analysis, TargetMode } from '~/lib/types';
-import { GRADE_ORDER, gradeOf, worst } from '~/lib/score';
-import type { Grade, Metric, Scorecard, SectionScore, Threshold } from '~/lib/score';
+import { GRADE_ORDER, gradeOf, metricOf, overall, section, sharePct } from '~/lib/score';
+import type { Grade, Metric, Scorecard, Threshold } from '~/lib/score';
 
 /**
  * How a share of wasted resource reads as a colour.
@@ -99,71 +99,11 @@ export function defensiveUseTone(used: number, possible: number): Grade | null {
 // defaulted, because a pull with no Re-Origination procs has not failed to snapshot them — and copy
 // that says "0 of 0 caught, poor" about a fight that never offered the chance is worse than silence.
 
-/** Percentage of `part` in `whole`, or null when there is nothing to take a share of. */
-function sharePct(part: number, whole: number): number | null {
-	return whole > 0 ? (part / whole) * 100 : null;
-}
-
-function metric(key: MetricKey, value: number | null, context?: string): Metric {
-	const threshold = THRESHOLDS[key];
-	// An unmeasurable metric is parked at `ok` so it neither flatters nor punishes the overall
-	// verdict; `unmeasurable` is what the copy keys off to say nothing at all about it.
-	return {
-		key,
-		...threshold,
-		value: value ?? 0,
-		unmeasurable: value === null,
-		grade: value === null ? 'ok' : gradeOf(threshold, value),
-		// Omitted rather than set to undefined, so a metric with no variant carries no key at all and the
-		// scorecards in the fixtures stay the shape they were captured in.
-		...(context === undefined ? {} : { context }),
-	};
-}
-
-/**
- * Builds a section from the metrics that decide it and the ones that merely describe it.
- *
- * A section is as good as its weakest *primary* metric — several weak signals on the same
- * behaviour should not average each other into looking acceptable.
- */
-function section(primary: Metric[], secondary: Metric[] = []): SectionScore {
-	const metrics = [...primary, ...secondary];
-	const decided = primary.filter((m) => !m.unmeasurable);
-	return {
-		metrics,
-		primary,
-		unmeasurable: metrics.every((m) => m.unmeasurable),
-		grade: decided.length === 0 ? 'ok' : worst(decided.map((m) => m.grade)),
-	};
-}
-
-const POINTS: Record<Grade, number> = { good: 1, ok: 0.5, bad: 0 };
-
-/**
- * The whole-pull verdict.
- *
- * A weighted mean rather than the worst grade: one weak metric out of seven is a thing to mention,
- * not a reason to call the pull bad, and `worst` would have called every pull in the test set bad.
- * Unmeasurable metrics drop out entirely — they do not silently count as half marks.
- */
-function overall(metrics: Metric[], weights: Record<MetricKey, number>): Grade {
-	const measured = metrics.filter((m) => !m.unmeasurable);
-	if (measured.length === 0) return 'ok';
-
-	let points = 0;
-	let total = 0;
-	for (const m of measured) {
-		const weight = weights[m.key as MetricKey] ?? 1;
-		points += POINTS[m.grade] * weight;
-		total += weight;
-	}
-	// A metric can carry weight zero — see `snapshotDepth` in `thresholds` — so a pull whose only
-	// measurable metric is one of those has nothing to average and must say so rather than divide by
-	// nothing.
-	if (total === 0) return 'ok';
-	const pct = (points / total) * 100;
-	return pct >= 75 ? 'good' : pct >= 45 ? 'ok' : 'bad';
-}
+// `sharePct`, `section` and `overall` come from `~/lib/score` — they were identical to the Elemental
+// module's copies once the comments were stripped. `metric` is bound to this spec's own thresholds
+// here, which is the only part of the four that was ever spec-specific.
+const metric = (key: MetricKey, value: number | null, context?: string): Metric =>
+	metricOf(THRESHOLDS, key, value, context);
 
 /**
  * Grades one pull.

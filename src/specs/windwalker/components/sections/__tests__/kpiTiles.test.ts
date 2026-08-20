@@ -22,7 +22,7 @@ function gradeOf(analysis: Analysis, key: string) {
 }
 
 const fixture = (name: string): Analysis =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
+	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'));
 
 const render = (analysis: Analysis) => renderToStaticMarkup(createElement(KpiTiles, { analysis }));
 

@@ -6,6 +6,7 @@
 // they know nothing about which spec is asking: a hit is a time and an enemy.
 
 import type { Interval } from './intervals';
+import { valueAtOrBefore } from './search';
 
 /** One landed hit: when it landed, and on whom. */
 export interface TargetHit {
@@ -108,21 +109,43 @@ export function targetCounts(hits: readonly TargetHit[], windowMs: number): Targ
  * landed hit, and before it the player was fighting nothing.
  */
 export function countAt(points: readonly TargetCountPoint[]): (t: number) => number {
-	return (t) => {
-		let lo = 0;
-		let hi = points.length - 1;
-		let found = -1;
-		while (lo <= hi) {
-			const mid = (lo + hi) >> 1;
-			const point = points[mid];
-			if (point === undefined) break;
-			if (point[0] <= t) {
-				found = mid;
-				lo = mid + 1;
-			} else hi = mid - 1;
-		}
-		return points[found]?.[1] ?? 0;
-	};
+	// Zero rather than null before the first reading: nothing counted yet is a count of zero, unlike a
+	// resource curve where "not sampled" is not "empty".
+	return (t) => valueAtOrBefore(points, t) ?? 0;
+}
+
+/**
+ * The running count of how many of `windows` were open, as a step series.
+ *
+ * Feeds `intervalsAtLeast` so "where were at least N of these up at once" is one call rather than a
+ * hand-written boundary sweep. The Elemental's Stormlash audit wrote that sweep out longhand, and it
+ * got two things wrong that `intervalsAtLeast` already handles: an overlap still open when the pull
+ * ended was emitted with the window's own expiry rather than clamped to the fight, reporting a
+ * stretch longer than the pull it was measured over; and two windows sharing one instant produced a
+ * zero-length overlap, which the section then drew as a band.
+ *
+ * Closes are ordered before opens at the same instant, so two windows that merely touch — one ending
+ * where the next begins — never read as overlapping.
+ */
+export function overlapPoints(windows: readonly Interval[]): TargetCountPoint[] {
+	const edges: Array<[number, number]> = [];
+	for (const [start, end] of windows) {
+		if (end <= start) continue;
+		edges.push([start, 1], [end, -1]);
+	}
+	edges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+	const out: TargetCountPoint[] = [];
+	let count = 0;
+	for (const [at, delta] of edges) {
+		count += delta;
+		// One point per instant: several edges can share a millisecond, and the series has to carry the
+		// count *after* all of them or a momentary dip appears that nothing was ever at.
+		const last = out[out.length - 1];
+		if (last !== undefined && last[0] === at) last[1] = count;
+		else out.push([at, count]);
+	}
+	return out;
 }
 
 /**

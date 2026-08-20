@@ -117,6 +117,8 @@ export default function ResourceTrack({
 	mode = 'line',
 	smooth = false,
 	minLabelGapMs = 0,
+	showStepLabels = true,
+	labelDecreases = false,
 }: {
 	curve: ResourceCurve;
 	durationMs: number;
@@ -153,6 +155,21 @@ export default function ResourceTrack({
 	 * which is right for a bar that changes a handful of times.
 	 */
 	minLabelGapMs?: number;
+	/**
+	 * Whether to draw the value at each step on the floor of the row.
+	 *
+	 * True for a bar the reader counts — chi, the brew bank. False for one whose steps are noise and
+	 * whose moments of interest are already marked another way, so the auto-labels would just be a
+	 * run of numbers beside the mark that matters.
+	 */
+	showStepLabels?: boolean;
+	/**
+	 * Label only the decreases, with the level that was *unloaded* rather than the one that remained.
+	 *
+	 * For a counter the player spends — Lightning Shield, unloaded whole by Earth Shock. The gains are
+	 * noise; the spends are the moments worth a number, and that number is what the spend threw away.
+	 */
+	labelDecreases?: boolean;
 }) {
 	const span = Math.max(1, durationMs);
 	const max = Math.max(1, curve.max);
@@ -171,14 +188,26 @@ export default function ResourceTrack({
 	// into a grey band. Dropping the ones with no room is what keeps the rest readable.
 	const steps: Array<[number, number]> = [];
 	if (mode === 'steps') {
-		let lastLabelled = Number.NEGATIVE_INFINITY;
-		for (let i = 0; i < points.length; i += 1) {
-			const point = points[i];
-			if (point === undefined) continue;
-			if (i > 0 && point[1] === points[i - 1]?.[1]) continue;
-			if (point[0] - lastLabelled < minLabelGapMs) continue;
-			steps.push(point);
-			lastLabelled = point[0];
+		if (labelDecreases === true) {
+			// Only the spends, labelled with the level they unloaded. A decrease means a spend for a
+			// counter the player cashes in whole, so the label is the level *before* the drop — the count
+			// the spend threw away — placed at the moment the drop happened.
+			for (let i = 1; i < points.length; i += 1) {
+				const prev = points[i - 1];
+				const cur = points[i];
+				if (prev === undefined || cur === undefined || cur[1] >= prev[1]) continue;
+				steps.push([cur[0], prev[1]]);
+			}
+		} else {
+			let lastLabelled = Number.NEGATIVE_INFINITY;
+			for (let i = 0; i < points.length; i += 1) {
+				const point = points[i];
+				if (point === undefined) continue;
+				if (i > 0 && point[1] === points[i - 1]?.[1]) continue;
+				if (point[0] - lastLabelled < minLabelGapMs) continue;
+				steps.push(point);
+				lastLabelled = point[0];
+			}
 		}
 	}
 	// Built once as points so a smooth path and a straight one read the same data.
@@ -271,7 +300,7 @@ export default function ResourceTrack({
 			{/* The value at each step, on the floor of the row. Only for a bar small enough to count —
 			    nobody counts a hundred energy — and never for zero, which is the absence of the resource
 			    rather than a quantity worth labelling. */}
-			{mode === 'steps'
+			{mode === 'steps' && showStepLabels
 				? steps.map(([at, amount], i) =>
 						amount === 0 ? null : (
 							<span

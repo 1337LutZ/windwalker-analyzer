@@ -11,10 +11,19 @@
 //
 // Ids are verified against qDZ2J7v4CP98aQmV #57 and KvCazMYkqZxfjRBg #48 (Garrosh HC 25).
 
-import { abilityIdOf, isAbsorbed, isCast, isDamage, isResourceChange, resourceActorOf } from '~/lib/events';
+import {
+	abilityIdOf,
+	instanceKey,
+	isAbsorbed,
+	isCast,
+	isDamage,
+	isResourceChange,
+	resourceActorOf,
+} from '~/lib/events';
 import type { AbsorbedEvent, DamageEvent } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
+import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
@@ -59,7 +68,11 @@ import {
 	r1,
 	remainingAtCast,
 	remainingIn,
+	atCapWindows,
+	auraDrops,
+	DROP_MS,
 	SELF_EVENT_MS,
+	stretchesFromPoints,
 	snapshotWindowEnd,
 	toIntervals,
 	trackStackBank,
@@ -172,8 +185,6 @@ const FORTIFYING_BREW_MS = 20000;
  * however wide the attribution window is.
  */
 const TOUCH_OF_KARMA_MS = 10000;
-/** The Rune's proc is shorter than the brew that snapshots it, and that gap is the whole game. */
-const RE_ORIGINATION_MS = 10000;
 
 /**
  * Stacks the bank must hold before a proc counts as a chance the player passed up.
@@ -729,101 +740,45 @@ const ABILITIES: Ability[] = [
 		consumes: ['tigereye-brew-bank'],
 	},
 	/**
-	 * The kit, not the spellbook — see `Ability.onUse` for why that is a field of its own.
+	 * The agility combat potion, the one kit press that is this spec's own — the flask, the elixirs,
+	 * the tinker, the healthstone and the racials live in `~/lib/game/shared` because any class wears
+	 * them. Virmen's Bite stays here because its stat is the Windwalker's.
 	 *
-	 * These three are here for one reason: the timeline sorts its press lanes into damage, then the
-	 * kit, then everything else, and a press the model does not carry cannot be sorted. They are
-	 * scored nowhere — `gate: 'other'` — and they are the three both reference monks actually pressed,
-	 * counted across every boss pull in a:6MhZgjyAknFWrYfK and a:YBQzrcgVJnAj7NMP. A flask, a second
-	 * potion or an on-use trinket joins them the day a log has one; none of this is a guess about what
-	 * somebody might carry.
+	 * wowsims keys it on the item rather than the spell — `makePotionActivationSpellInternal` in
+	 * `sim/core/consumes.go:254` builds it as `ActionID{ItemID: potion.Id}` — so 105697 is the log's
+	 * number and not the sim's. Measured on a:6MhZgjyAknFWrYfK and a:YBQzrcgVJnAj7NMP, where the same
+	 * id is both the press and the buff.
 	 */
-	{
-		key: 'synapse-springs',
-		name: 'Synapse Springs',
-		// The engineering glove tinker, registered as enchant 4898 in `sim/common/mop/enchants.go:216`
-		// — `RegisterTemporaryStatsOnUseCD(…, ActionID{SpellID: 126734})`, a 1-minute cooldown behind
-		// the shared offensive-trinket timer. The buff it puts up logs under a *different* id, which is
-		// why the aura is declared apart.
-		castIds: [126734],
-		onGcd: false,
-		gate: 'other',
-		onUse: true,
-		applies: ['synapse-springs'],
-	},
 	{
 		key: 'virmens-bite',
 		name: "Virmen's Bite",
-		// The agility combat potion. wowsims keys it on the item rather than the spell —
-		// `makePotionActivationSpellInternal` in `sim/core/consumes.go:254` builds it as
-		// `ActionID{ItemID: potion.Id}` — so 105697 is the log's number and not the sim's. Measured on
-		// a:6MhZgjyAknFWrYfK and a:YBQzrcgVJnAj7NMP, where the same id is both the press and the buff.
 		castIds: [105697],
 		onGcd: false,
 		gate: 'other',
 		onUse: true,
 		applies: ['virmens-bite'],
 	},
-	/**
-	 * The flask and the elixirs that get swapped for it, which is one technique and not four items.
-	 *
-	 * A battle elixir cancels a flask — they share the `FlaskVsBattleElixir` exclusive category, and
-	 * `sim/core/consumes.go` deactivates the live flask aura when one goes down — so pressing an elixir
-	 * trades Spring Blossoms' agility for haste or crit. It pays because Tigereye Brew freezes mastery
-	 * at the moment it is cast, so an elixir dropped *after* the brew cannot dilute the multiplier
-	 * already snapshotted, and the next Rune of Re-Origination proc converts into the lifted stat
-	 * instead of re-serving mastery the brew is already holding. The same argument is spelled out
-	 * around the Re-Origination handling below, and the report's own copy tells the reader to do it.
-	 *
-	 * Listed here purely so the presses have names. All four are off-GCD, so they cost none of the
-	 * globals anything in this file arbitrates and no measurement moves by adding them — a weave was
-	 * already free in the log and free in the analyzer. What was wrong was the drawing: an unmodelled
-	 * press takes `#105684` as its lane name, and because the timeline picks a cast's tier by matching
-	 * that name, it sank in among the interrupts and defensives instead of sitting with the other
-	 * consumables.
-	 */
+	// The active defensives that put a buff on the monk: not rotation, so `gate: 'other'` and never
+	// scored — but the buff window is worth drawing, so the press carries its aura.
 	{
-		key: 'flask-of-spring-blossoms',
-		name: 'Flask of Spring Blossoms',
-		castIds: [105689],
+		key: 'dampen-harm',
+		name: 'Dampen Harm',
+		// Halves the next three big hits for up to 45s — `sim/monk/talents.go:763`.
+		castIds: [122278],
 		onGcd: false,
 		gate: 'other',
-		onUse: true,
+		cooldownMs: 90_000,
+		applies: ['dampen-harm'],
 	},
 	{
-		key: 'elixir-of-the-rapids',
-		name: 'Elixir of the Rapids',
-		castIds: [105684],
+		key: 'diffuse-magic',
+		name: 'Diffuse Magic',
+		// 90% magic damage reduction for 6s — `sim/monk/talents.go:812`.
+		castIds: [122783],
 		onGcd: false,
 		gate: 'other',
-		onUse: true,
-	},
-	{
-		key: 'mad-hozen-elixir',
-		name: 'Mad Hozen Elixir',
-		castIds: [105682],
-		onGcd: false,
-		gate: 'other',
-		onUse: true,
-	},
-	{
-		key: 'monks-elixir',
-		name: "Monk's Elixir",
-		castIds: [105688],
-		onGcd: false,
-		gate: 'other',
-		onUse: true,
-	},
-	{
-		key: 'healthstone',
-		name: 'Healthstone',
-		// `registerConjuredCD` in `sim/core/consumes.go:372` — conjured item 5512, on the shared
-		// conjured timer. It heals and does nothing else, which is why it declares no aura: there is no
-		// buff window to draw and the press is the whole event.
-		castIds: [6262],
-		onGcd: false,
-		gate: 'other',
-		onUse: true,
+		cooldownMs: 90_000,
+		applies: ['diffuse-magic'],
 	},
 ];
 
@@ -930,30 +885,6 @@ const AURAS: Aura[] = [
 		appliedBy: 'fortifying-brew',
 	},
 	{
-		key: 'bloodlust',
-		// Named for the effect rather than for any one spell: the log names whichever was cast and the
-		// rotation's condition does not care which. `variants` is what says which it actually was.
-		name: 'Bloodlust',
-		/**
-		 * The raid's haste cooldown, whichever class brought it.
-		 *
-		 * The APL writes this condition as `auraIsInactive(2825, tag: -1)`, and in wowsims a tag of -1
-		 * means "any source" rather than "Bloodlust specifically" — the whole shared-exclusion group is
-		 * one effect as far as the rotation is concerned. A log names whichever spell was cast, so all
-		 * five ids have to be here or a raid with a mage instead of a shaman reads as having no haste
-		 * cooldown at all. Names confirmed against the 5.4 client data the sim ships.
-		 */
-		ids: [2825, 32182, 80353, 90355, 146555],
-		variants: {
-			2825: 'Bloodlust',
-			32182: 'Heroism',
-			80353: 'Time Warp',
-			90355: 'Primal Rage',
-			146555: 'Drums of Rage',
-		},
-		kind: 'buff',
-	},
-	{
 		key: 'rushing-jade-wind',
 		name: 'Rushing Jade Wind',
 		ids: [116847],
@@ -1002,87 +933,9 @@ const AURAS: Aura[] = [
 		maxStacks: SEF_MAX_CLONES,
 		appliedBy: 'storm-earth-and-fire',
 	},
-	{
-		key: 're-origination',
-		name: 'Re-Origination',
-		/**
-		 * Rune of Re-Origination converts your two lowest secondary stats into twice as much of your
-		 * highest, and logs a *different aura per stat gained*. Which one you get depends on what else
-		 * was up at the proc, so a single fight can mix all three — reading only Mastery undercounted
-		 * one monk by 3 of his 15 procs. Mapping confirmed two ways: the DBC effect order (index 0 is
-		 * the rating gained) and the sim's own sim/common/mop/trinkets_phase_3_52.go.
-		 */
-		ids: [139117, 139120, 139121],
-		variants: { 139117: 'Crit', 139120: 'Mastery', 139121: 'Haste' },
-		kind: 'buff',
-		durationMs: RE_ORIGINATION_MS,
-	},
-	/**
-	 * The rest of the gear, which the report used to see only one piece of.
-	 *
-	 * Re-Origination was modelled because the whole snapshot analysis turns on it, and everything else
-	 * a Windwalker's kit fires was left off the chart entirely — so a reader looking at a brew asking
-	 * "what else was up" got the trinket the report happened to care about and nothing more. Every one
-	 * below is grounded twice: a simulator file that defines the effect, cited beside it, and an
-	 * apply/remove pair on a real pull. Both reference reports were swept across every boss pull, and
-	 * none of these is an id that only the simulator believes in.
-	 *
-	 * No `durationMs` on these, deliberately — with one exception that proves the rule. That field
-	 * exists so a metric can tell "expired unused" from "consumed early", and nothing here is graded:
-	 * these are lanes, and a lane draws the window the log recorded rather than one measured forward
-	 * from an application. Focus of Xuen carries it anyway because it is the one aura in this block
-	 * that is *spent* rather than waited out, and its tooltip names the press that spent it — which
-	 * means it has to be able to say when no press did. Still no grade: the answer is printed, never
-	 * scored.
-	 *
-	 * Every one is a `buff` in the game's sense — none of them touches the enemy — and their *lanes*
-	 * are split further down: `proc` where the gear fires them, `buff` where the player pressed them,
-	 * which is what makes the chart's `Procs` toggle mean "turn the gear off". Dancing Steel is the one
-	 * absentee with an excuse: the enchant is on both weapons on the reference pull and the simulator
-	 * models it (`sim/common/mop/enchants.go:173`, agility 118334 / strength 118335), but neither id —
-	 * nor 120032, which `EXTRA_NAMES` carries — produces a single buff event in either report, so
-	 * there is nothing to draw and no id a log will vouch for.
-	 */
-	{
-		key: 'capacitance',
-		name: 'Capacitance',
-		/**
-		 * The Capacitive Primal Diamond, and the one aura here that is a counter rather than a buff.
-		 *
-		 * `sim/common/mop/metagems.go:69-79`: the meta gem (item 95346) stacks this to five and then
-		 * spends the whole stack on a Lightning Strike, which is why `maxStacks` is 5 and why the
-		 * payoff has an id of its own — 137597, already named in `EXTRA_NAMES` because it lands as
-		 * damage. It is the busiest aura a monk carries by a distance: 5,081 events across the boss
-		 * pulls in a:6MhZgjyAknFWrYfK, against 392 for Re-Origination.
-		 *
-		 * Every charge is worth the same: the sim's trigger (`metagems.go:82-116`) adds exactly one
-		 * per proc, and what varies is the *rate* rather than the value — an RPPM of 19.27 scaled by
-		 * haste and lifted 8.7% for Windwalker specifically (`metagems.go:88`, `metagems.go:110`). So
-		 * a fuller counter means a faster pull, never a luckier charge.
-		 *
-		 * **The log counts to four, and that is not a fault.** Across 48 boss pulls in both reference
-		 * reports the aura logs exactly four event types — `applybuff`, `applybuffstack`, `refreshbuff`
-		 * and `removebuff` — and the `stack` field appears only on the stack events, taking the values
-		 * {2, 3, 4} and *never* 5 (1,895 of them in a:6MhZgjyAknFWrYfK, 1,000 in a:YBQzrcgVJnAj7NMP,
-		 * zero exceptions). `removebuffstack` never occurs at all. The first charge is the `applybuff`
-		 * and the fifth is the `removebuff`: the client never stamps the ceiling as a stack, because by
-		 * the time the fifth charge exists the aura has already spent itself. So five charges is right
-		 * and `maxStacks` stays 5 — the counter simply cannot be read for a 5, and anything looking for
-		 * one finds nothing.
-		 */
-		ids: [137596],
-		kind: 'buff',
-		maxStacks: 5,
-	},
-	{
-		key: 'flurry-of-xuen',
-		name: 'Flurry of Xuen',
-		// The legendary cloak. `sim/common/mop/cloaks_phase_4_54.go:133-136` registers this aura for
-		// Fen-Yu, Fury of Xuen (item 102248, registered at line 201) — three seconds during which the
-		// cloak throws its own strikes, which land under 147891 and are already named in `EXTRA_NAMES`.
-		ids: [146194],
-		kind: 'buff',
-	},
+	// The item-effect auras — trinkets, the meta gem, the legendary cloak, the tinker — live in
+	// `~/lib/game/shared` now, because any class wears them. What stays here are the two with a
+	// Windwalker tie: the tier-16 four-piece, which a chi spender cashes in, and the agility potion.
 	{
 		key: 'focus-of-xuen',
 		name: 'Focus of Xuen',
@@ -1093,46 +946,14 @@ const AURAS: Aura[] = [
 		// the one section of this report it lines up under.
 		ids: [145024],
 		kind: 'buff',
-		// The two fields the rest of this block does without, and the reason is that this aura is the
-		// only one here that is *spent*. The others fade on a clock and a lane is the whole story; this
-		// one is cashed in by the next chi spender, so the interesting question about a window is which
-		// button took it — and answering that needs both the list of buttons that can (`consumedBy`,
+		// The two fields the rest of the gear block does without, and the reason is that this aura is the
+		// only one that is *spent*. The others fade on a clock and a lane is the whole story; this one is
+		// cashed in by the next chi spender, so the interesting question about a window is which button
+		// took it — and answering that needs both the list of buttons that can (`consumedBy`,
 		// `GetT16Windwalker4PCostReduction` in the sim, which the three call and nothing else does) and
 		// the full duration, so a window that simply ran out is never blamed on a press that came later.
 		durationMs: 10000,
 		consumedBy: ['blackout-kick', 'fists-of-fury', 'rising-sun-kick'],
-	},
-	{
-		key: 'vicious',
-		name: 'Vicious',
-		// Haromm's Talisman, the agility half of the pair of Siege multistrike trinkets:
-		// `sim/common/mop/trinkets_phase_4_54.go:363-367`. The heroic-warforged id in that version map
-		// (105527, line 359) is the exact trinket worn on a:6MhZgjyAknFWrYfK fight 10. Its other half
-		// is the Multistrike damage under 146061, named in `EXTRA_NAMES`.
-		ids: [148903],
-		kind: 'buff',
-	},
-	{
-		key: 'ferocity',
-		name: 'Ferocity',
-		// Sigil of Rampage, the agility cleave trinket: `sim/common/mop/trinkets_phase_4_54.go:739-743`.
-		// Here because the second reference monk swapped to it — it fires on four of his boss pulls in
-		// a:YBQzrcgVJnAj7NMP and Vicious on thirteen, which is the same trinket slot changing hands.
-		ids: [148896],
-		kind: 'buff',
-	},
-	{
-		key: 'synapse-springs',
-		name: 'Synapse Springs',
-		// Pressed, so it is a `buff` and not a `proc`, and it merges onto its own press row.
-		//
-		// 96228 and not the 126734 the simulator uses for both halves
-		// (`sim/common/mop/enchants.go:227-232`): the tinker's button and the buff it puts up are two
-		// different ids in a Classic log, exactly as Fortifying Brew's are. Measured on every boss pull
-		// in both reference reports — 126734 is always the cast and 96228 is always the buff.
-		ids: [96228],
-		kind: 'buff',
-		appliedBy: 'synapse-springs',
 	},
 	{
 		key: 'virmens-bite',
@@ -1155,9 +976,28 @@ const AURAS: Aura[] = [
 		durationMs: 25_000,
 		appliedBy: 'virmens-bite',
 	},
+	{
+		key: 'dampen-harm',
+		name: 'Dampen Harm',
+		ids: [122278],
+		kind: 'buff',
+		durationMs: 45_000,
+		appliedBy: 'dampen-harm',
+	},
+	{
+		key: 'diffuse-magic',
+		name: 'Diffuse Magic',
+		ids: [122783],
+		kind: 'buff',
+		durationMs: 6000,
+		appliedBy: 'diffuse-magic',
+	},
 ];
 
-export const WINDWALKER: GameData = { abilities: ABILITIES, auras: AURAS };
+export const WINDWALKER: GameData = {
+	abilities: [...SHARED_ABILITIES, ...ABILITIES],
+	auras: [...SHARED_AURAS, ...AURAS],
+};
 
 /** The one way to ask what a spell id means. Construction validates the links between the two lists. */
 export const registry = createRegistry(WINDWALKER);
@@ -1213,7 +1053,6 @@ const TIGER_POWER = registry.aura('tiger-power');
 const CB_TIGER_PALM = registry.aura('combo-breaker-tiger-palm');
 const ENERGIZING_BREW = registry.aura('energizing-brew');
 const FORTIFYING_BREW = registry.aura('fortifying-brew');
-const BLOODLUST = registry.aura('bloodlust');
 const RUSHING_JADE_WIND = registry.aura('rushing-jade-wind');
 const TIGER_STRIKES = registry.aura('tiger-strikes');
 const TOUCH_OF_KARMA_AURA = registry.aura('touch-of-karma');
@@ -1517,27 +1356,16 @@ function chiBrewAudit(
 	}
 
 	let charges = CHI_BREW_CHARGES;
-	let fullSince: number | null = 0;
 	let timer: number | null = null;
-	let cappedMs = 0;
 
 	// The same walk, recorded as it goes, so the chart draws the counter this audit reasoned about
 	// rather than a second reconstruction of it that could disagree with the number printed beside it.
 	const points: Array<[number, number]> = [[0, CHI_BREW_CHARGES]];
-	const cappedWindows: Window[] = [];
 	const mark = (at: number): void => {
 		const last = points[points.length - 1];
 		// One point per *change*: a counter that holds two for a minute is one step, not a hundred.
 		if (last !== undefined && last[1] === charges) return;
 		points.push([at, charges]);
-	};
-	const closeCap = (at: number): void => {
-		if (fullSince === null) return;
-		cappedMs += Math.max(0, at - fullSince);
-		// A window of no width is not a stretch at the ceiling — it is the instant a charge came back
-		// and was spent, which is the opposite of the fault being drawn.
-		if (at > fullSince) cappedWindows.push({ start: fullSince, end: at });
-		fullSince = null;
 	};
 
 	const advance = (to: number): void => {
@@ -1550,13 +1378,11 @@ function chiBrewAudit(
 			charges += 1;
 			timer = charges < CHI_BREW_CHARGES ? landed + CHI_BREW_RECHARGE_MS : null;
 			mark(landed);
-			if (charges === CHI_BREW_CHARGES) fullSince = landed;
 		}
 	};
 
 	for (const at of [...casts].sort((a, b) => a - b)) {
 		advance(at);
-		if (charges === CHI_BREW_CHARGES) closeCap(at);
 		if (charges > 0) {
 			charges -= 1;
 			if (timer === null) timer = at + CHI_BREW_RECHARGE_MS;
@@ -1564,7 +1390,25 @@ function chiBrewAudit(
 		}
 	}
 	advance(durationMs);
-	if (charges === CHI_BREW_CHARGES) closeCap(durationMs);
+
+	/**
+	 * The stretches the counter sat at its ceiling, derived from the series above rather than tracked
+	 * inside the walk.
+	 *
+	 * This used to be a `fullSince`/`closeCap` pair threaded through the simulation, which made it the
+	 * fourth hand-written answer to "when was this counter full" in the codebase. It comes off
+	 * `atCapWindows` now, over the very series the chart draws — so the band, the figure and the picture
+	 * cannot disagree, because there is only one of them. `stretchesFromPoints` is safe here and not on
+	 * an aura's levels: a charge counter always holds *some* level, so the series has no gaps for a
+	 * stretch to run across.
+	 *
+	 * Only the *windows* are kept. The raw millisecond total was dead before this change too — the
+	 * section publishes `Math.round(idleMs)`, the contact-cut figure below — but it was a `let` with a
+	 * `+=`, which the linter tolerates, so nothing said so. Deriving it as a `const` made the deadness
+	 * visible, which is the honest state: there is one at-ceiling number and it is the one a reader
+	 * could have acted on.
+	 */
+	const cappedWindows = atCapWindows(stretchesFromPoints(points, durationMs), CHI_BREW_CHARGES);
 
 	/**
 	 * The same idle stretches, cut back to the time the player had something to hit.
@@ -1670,19 +1514,6 @@ export const CB_EXPIRY_SLACK_MS = 500;
 
 /** A gap this long in damage to the primary target means it went untargetable. */
 export const ENGAGED_GAP_MS = 15000;
-/** Debuff gaps shorter than this are refresh jitter, not drops. */
-export const DROP_MS = 1000;
-
-/**
- * One enemy *spawn*, as a key: the report's actor id plus which copy of it this is.
- *
- * WarcraftLogs numbers NPCs by type, so ten Kor'kron Ironblades share one `targetID` and are told
- * apart only by `targetInstance`. Anything modelling per-enemy state has to key on the pair or their
- * event streams interleave into one. A missing instance keys as itself rather than as instance 1: a
- * report old enough not to carry the field then behaves exactly as it used to, one bucket per id.
- */
-const instanceKey = (target: number, instance: number | undefined): string => `${target}:${instance ?? '-'}`;
-
 /**
  * The shortest stretch at the energy cap worth naming a timestamp for.
  *
@@ -1805,6 +1636,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		lostCasts,
 		marks,
 		potionWindows,
+		hasteWindows,
 		settings,
 	} = h;
 	const { snapshotLeewayMs, cooldownLeewayMs } = settings;
@@ -2315,26 +2147,9 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	const rskLostMs = inContactMs - rskContactMs;
 
 	// The primary target's gaps, and the intermission: the same reading that has always been here, now
-	// off the same windows the graded figure was measured from.
-	const allGaps: Array<{ t: number; ms: number }> = [];
-	for (let i = 1; i < rskMerged.length; i++) {
-		const prev = rskMerged[i - 1];
-		const cur = rskMerged[i];
-		if (prev && cur) allGaps.push({ t: prev[1], ms: cur[0] - prev[1] });
-	}
-	// The single longest gap is treated as the intermission. A heuristic: on a fight with two of them
-	// it under-reports by one, which is why every window is kept in the output.
-	//
-	// Excluded by position rather than by value. Two gaps of identical length are not far-fetched —
-	// these are quantised to the debuff's own apply and expire stamps — and `ms !== longestGap` threw
-	// away *both* of them, forgiving a real drop because an unrelated one happened to be the same
-	// length. One gap is the intermission, so exactly one is dropped.
-	let longestAt = -1;
-	allGaps.forEach((g, i) => {
-		if (longestAt === -1 || g.ms > (allGaps[longestAt]?.ms ?? -1)) longestAt = i;
-	});
-	const longestGap = longestAt === -1 ? 0 : (allGaps[longestAt]?.ms ?? 0);
-	const drops = allGaps.filter((g, i) => g.ms > DROP_MS && i !== longestAt);
+	// off the same windows the graded figure was measured from — and through `auraDrops`, which is where
+	// both rules (drop the longest gap, ignore sub-`DROP_MS` jitter) now live for both specs.
+	const { drops, intermissionMs: longestGap } = auraDrops(rskMerged, DROP_MS);
 
 	// ----------------------------------------------------------------- energy
 	// The bars were built by the core (`h.resourceAudits`), read straight off the `classResources`
@@ -3074,7 +2889,11 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	//   2. `Bloodlust inactive OR Rushing Jade Wind known` — checkable. The haste cooldown is an aura on
 	//      the player whoever cast it, and having Rushing Jade Wind in the build is a cast somewhere in
 	//      the pull.
-	const hasteWindows = auraWindows(selfEvents, BLOODLUST, t0, fight.endTime);
+	// `hasteWindows` off the handles, not a second walk of its own. The core reads the Bloodlust group
+	// once for the timeline band every spec shades, and this audit grades presses against that same
+	// band — a private walk here would be a second definition of when the raid cooldown was up, and
+	// the two drifting apart would show as a press the section faults sitting inside a band the
+	// timeline draws as clean.
 	const hasteAt = (t: number): string | null => hasteWindows.find((w) => t >= w.start && t <= w.end)?.variant ?? null;
 	// Both halves of the APL's exception, and it is only ever used to *excuse* a press. With Rushing
 	// Jade Wind in the build and the damage spread across enemies the priority list genuinely does
