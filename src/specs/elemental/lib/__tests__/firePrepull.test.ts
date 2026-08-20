@@ -30,6 +30,15 @@ const BOSS = 15;
 const LIGHTNING_BOLT = 403;
 const LAVA_BURST = 51_505;
 const FIRE_ELEMENTAL = 2894;
+/**
+ * The buff a Fire Elemental press applies, which is **not** the id it is cast under.
+ *
+ * One press emits `applybuff 118291` + `summon 118291` (the Primal Fire Elemental) alongside
+ * `cast 2894` + `summon 2894` (the totem object), so a summon made before the bell leaves exactly one
+ * thing inside the fight window: a bare `removebuff` of 118291. Every synthetic pre-pull below is
+ * written in that shape rather than in 2894's, because 2894 is a shape no log emits as a buff.
+ */
+const FIRE_ELEMENTAL_BUFF = 118_291;
 const SEARING_TOTEM = 3599;
 
 const e = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
@@ -96,7 +105,7 @@ const run = (dataset: FightDataset): Analysis & ElementalAuditResult =>
 	analyse(dataset) as Analysis & ElementalAuditResult;
 
 /** The bare expiry a pre-pull summon leaves behind, 40s into a 200s pull. */
-const PREPULL_EXPIRY = e(40_000, 'removebuff', FIRE_ELEMENTAL);
+const PREPULL_EXPIRY = e(40_000, 'removebuff', FIRE_ELEMENTAL_BUFF);
 
 describe('the Fire totem slot a pre-pull elemental was standing in', () => {
 	/**
@@ -193,13 +202,68 @@ describe('what the summary is willing to say about the pre-pull', () => {
 	});
 
 	/**
-	 * Both committed pulls, which are the same case: neither shaman summoned the elemental at all, on a
-	 * 258.3s and a 184.4s fight. Long enough to have shown a pre-pull summon, and in contact from the
-	 * first second, so both are graded — and both are graded `ok`, which is this metric's whole point.
+	 * All three committed pulls, and every one of them is the opposite of what this file first claimed.
+	 *
+	 * It asserted that neither shaman summoned the elemental at all and that both were therefore graded
+	 * `ok` — and so did plan step 24's note, and so did `elementals.test.ts`'s header. All of it was
+	 * this bug reading back its own output: the aura declared only 2894, no log applies 2894 as a buff,
+	 * so the recovery had nothing to find and every pre-pull in the test set read as an absence. Plan
+	 * step 48. Each pull carries one bare `removebuff` of 118291 on the audited player and no apply of
+	 * it anywhere, at the millisecond below, and the window recovered from it is `[0, that]`.
 	 */
-	it.each(['phased', 'unbroken'])('grades %s on the evidence it has and no more', (name) => {
+	it.each([
+		['phased', 57_259],
+		['unbroken', 58_014],
+		['cleave', 58_298],
+	])('reads the pre-pull summon %s left behind at %d', (name, expiry) => {
 		const el = fx(name);
-		expect(el.fireElemental).toEqual({ presses: [], prepull: false });
-		expect(metricOn(el)).toMatchObject({ value: 0, grade: 'ok', unmeasurable: false });
+		expect(el.fireElemental.prepull).toBe(true);
+		// No press inside the pull: the summon happened before the bell, which is what the window says.
+		expect(el.fireElemental.presses).toEqual([]);
+		expect(el.searingTotem.feWindows).toEqual([{ start: 0, end: expiry }]);
+		expect(metricOn(el)).toMatchObject({ value: 1, grade: 'good', unmeasurable: false });
+	});
+
+	/**
+	 * The other side of that, and the guard that matters more than the grade.
+	 *
+	 * Handing the slot walk a longer window than the elemental really held would charge a totem placed
+	 * after it as a placement made *under* the elemental — a fault the player did not commit. On the
+	 * reported pull the trap is concrete: the elemental's buff came off at 57.204s, its Immolate went on
+	 * ticking until 68.361s, and the player placed a Searing Totem at 59.256s. A window drawn to the
+	 * last event the pet appears in rather than to the expiry would have invented an overlap there. So
+	 * every placement on all three pulls has to sit clear of the recovered window, and the overlap count
+	 * has to stay at zero.
+	 */
+	it.each(['phased', 'unbroken', 'cleave'])('charges %s no overlap for the slot the elemental held', (name) => {
+		const el = fx(name);
+		const held = el.searingTotem.feWindows[0]!.end;
+		expect(el.searingTotem.presses.map((p) => p.t).every((t) => t > held)).toBe(true);
+		expect(el.searingTotem.feOverlaps).toBe(0);
+	});
+
+	/**
+	 * A press the stream witnessed is not a pre-pull, even when its `applybuff` is missing.
+	 *
+	 * `auraWindows` refuses a recovery once it has seen the aura opened, but that test is per id, and
+	 * this aura's press is a different id from its buff — so the cast cannot vouch for the buff. A page
+	 * boundary between two events sharing a millisecond is enough to produce this stream, and without
+	 * the guard beside the recovery the pull would be credited with a pre-pull summon it actually made
+	 * five seconds late, and the elemental's stretch would be drawn from `00:00`.
+	 *
+	 * **The removal has to land inside the summon's own minute for any of this to be reachable**, and
+	 * the first version of this test missed that: it put the press at 10s and the removal at 65s, where
+	 * `auraWindows`' own duration bound refuses the recovery whatever the guard does, so dropping the
+	 * guard left it green. An elemental that dies early is the shape that gets past the bound — killed
+	 * by the fight, or dropped when its owner did — so this is a press at 5s and an expiry at 30s.
+	 */
+	it('does not read an in-fight press with no applybuff as a pre-pull one', () => {
+		const el = run(
+			make(200_000, [e(5000, 'cast', FIRE_ELEMENTAL, { targetID: -1 }), e(30_000, 'removebuff', FIRE_ELEMENTAL_BUFF)]),
+		);
+		expect(el.fireElemental.presses).toEqual([{ t: 5000, reason: 'early' }]);
+		expect(el.fireElemental.prepull).toBe(false);
+		// The press's own window off the slot walk, and nothing before it.
+		expect(el.searingTotem.feWindows).toEqual([{ start: 5000, end: 65_000 }]);
 	});
 });

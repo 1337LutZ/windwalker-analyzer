@@ -64,7 +64,10 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 						{ key: 'state', label: t('fireElemental.columns.state') },
 					]}
 					rows={rows}
-					empty={t('fireElemental.none')}
+					// A pull whose only summon predates the bell has no press to list, and "never pressed in
+					// this pull" beside a note saying it was already out reads as the report contradicting
+					// itself — which is how the missed detection behind plan step 48 was reported.
+					empty={prepullTone === 'good' ? t('fireElemental.nonePrepull') : t('fireElemental.none')}
 				/>
 			</div>
 

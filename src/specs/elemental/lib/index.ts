@@ -479,7 +479,32 @@ const AURAS: Aura[] = [
 	{
 		key: 'fire-elemental',
 		name: 'Fire Elemental',
-		ids: [2894],
+		/**
+		 * **Two ids, and the second one is the whole of the buff on most logs.**
+		 *
+		 * One press emits four events, measured on `XVtHDFb7njPr2KA1` fight 10 at 298.221s where this
+		 * shaman summoned it inside the pull:
+		 *
+		 * ```
+		 * applybuff 118291  player -> player     the buff that says the elemental is out
+		 * summon    118291  player -> the pet    Primal Fire Elemental, the Primal Elementalist body
+		 * cast      2894    player               the press
+		 * summon    2894    player -> the totem  Fire Elemental Totem, the totem object
+		 * ```
+		 *
+		 * So 2894 is the *cast* and 118291 is the *aura*, and declaring only 2894 here meant the aura
+		 * had no id that any log ever applies. Nothing noticed while every window came off the cast
+		 * list — but a summon made before the bell logs none of those four events, and its only trace
+		 * inside the fight window is a bare `removebuff 118291` where it expired. That is exactly the
+		 * shape `auraWindows`' `openAtPull` recovers, and with 118291 absent from this list it had
+		 * nothing to recover: a pre-pulled elemental read as never summoned at all.
+		 *
+		 * Not inferred — every Elemental log this project holds carries it, one bare `removebuff 118291`
+		 * on the audited player and no apply of it anywhere: `phased` at 57.259s, `unbroken` at 58.014s,
+		 * `cleave` at 58.298s, and the reported pull at 57.204s. All four inside the minute below, which
+		 * is what makes each of them a summon that predates the bell.
+		 */
+		ids: [2894, 118291],
 		kind: 'buff',
 		durationMs: FIRE_ELEMENTAL_DURATION_MS,
 		appliedBy: 'fire-elemental',
@@ -1267,11 +1292,20 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// Searing Totem denominator, and charged the player for seconds the elemental was standing in the
 	// one slot a totem could have gone in. That is precisely the fault-fabrication the paragraph above
 	// exists to prevent, one summon short of being caught.
-	const fePrepullWindow = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
-		(w) => w.preexisting === true,
-	);
+	//
+	// The cast guard is *here* rather than inside `auraWindows` because this aura logs its press under a
+	// different id from its buff — 2894 against 118291 — and that function's "nothing may have opened
+	// this aura earlier in the stream" test is per id. Its own comment counts a cast under one of the
+	// aura's ids as proof the opening was logged, which is the rule wanted; with the press on one id and
+	// the buff on another, the buff's recovery cannot see the press. So a stream that carried the cast
+	// but lost the `applybuff` beside it — they share a millisecond, and pages are cut on timestamps —
+	// would have its ordinary in-fight summon recovered as a pre-pull one. A press at or before the
+	// recovered expiry can only be that, since no shaman presses this twice inside one minute.
 	const stCasts = castTimes(SEARING_TOTEM);
 	const feCasts = castTimes(FIRE_ELEMENTAL);
+	const fePrepullWindow = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
+		(w) => w.preexisting === true && !feCasts.some((t) => t <= w.end),
+	);
 	type FireTotem = 'searing' | 'elemental';
 	const placements: Array<{ t: number; kind: FireTotem }> = [
 		...stCasts.map((t): { t: number; kind: FireTotem } => ({ t, kind: 'searing' })),
@@ -1454,10 +1488,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// the one branch the p5 list actually uses, the Skull Banner and no-Primal-Elementalist edges aside.
 	const eePresses = castTimes(EARTH_ELEMENTAL).map((t) => ({ t, nearEnd: duration - t <= EE_END_MS }));
 	// Whether the Fire Elemental was already out when the bell went — the prepull press the list makes
-	// when Heroism is going up on the pull.
-	const fePrepull = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).some(
-		(w) => w.preexisting === true,
-	);
+	// when Heroism is going up on the pull. The window itself is recovered up at the Fire totem slot
+	// walk, which needs it to seed the slot; asking `auraWindows` a second time here would be a second
+	// answer to one question, and the two could drift apart on the id list alone.
 
 	// ------------------------------------------------------------ Stormlash
 	// The raid's totems, one window per placement, grouped by the shaman who laid it. The buff does not
@@ -1732,7 +1765,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		},
 		ascendance: { presses: ascPresses },
 		elementalMastery: { presses: emPresses },
-		fireElemental: { presses: fePresses, prepull: fePrepull },
+		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined },
 		earthElemental: { presses: eePresses },
 		stormlash: { shamans: stormlashShamans, overlaps: stormlashOverlaps, totems: stormlashTotems },
 		lightningShield: {

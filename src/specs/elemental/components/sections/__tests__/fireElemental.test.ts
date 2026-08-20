@@ -30,7 +30,8 @@ const ME = 7;
 const BOSS = 15;
 const LIGHTNING_BOLT = 403;
 const LAVA_BURST = 51_505;
-const FIRE_ELEMENTAL = 2894;
+/** The buff the press applies — see `firePrepull.test.ts` for why this is not 2894. */
+const FIRE_ELEMENTAL_BUFF = 118_291;
 
 const e = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
 	timestamp: T0 + t,
@@ -97,12 +98,17 @@ const render = (dataset: FightDataset) =>
 
 describe('the Fire Elemental pre-pull note', () => {
 	it('says it was out when the bell went', () => {
-		const html = render(make(200_000, [e(40_000, 'removebuff', FIRE_ELEMENTAL)]));
+		const html = render(make(200_000, [e(40_000, 'removebuff', FIRE_ELEMENTAL_BUFF)]));
 		expect(html).toContain(t('fireElemental.prepullYes'));
+		// And the empty press table says the same thing rather than "never pressed in this pull", which
+		// beside that note is the report arguing with itself — plan step 48's own bug report.
+		expect(html).toContain(t('fireElemental.nonePrepull'));
+		expect(html).not.toContain(t('fireElemental.none'));
 	});
 
 	it('says it was not, and that the cooldown it may have been on is unreadable', () => {
 		const html = render(make(200_000, []));
+		expect(html).toContain(t('fireElemental.none'));
 		expect(html).toContain(t('fireElemental.prepullNo'));
 		expect(t('fireElemental.prepullNo')).toContain('not something this log can see');
 	});

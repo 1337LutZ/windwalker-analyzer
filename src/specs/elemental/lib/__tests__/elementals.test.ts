@@ -6,8 +6,14 @@
 // are tried in is part of the rule, because a press can satisfy two of them at once.
 //
 // The Earth Elemental is checked on the committed pulls, which happen to carry one press each and one on
-// either side of the threshold. The Fire Elemental cannot be: neither shaman pressed it, so `presses` is
-// empty and `prepull` false on both. Its branches are synthetic.
+// either side of the threshold. The Fire Elemental cannot be: every shaman in the test set summoned it
+// *before* the bell, so `presses` is empty on all of them and there is no in-fight press to judge. Its
+// branches are synthetic.
+//
+// That sentence used to end "and `prepull` false on both", which was this file reading back a bug —
+// plan step 48. The aura declared only the id the press is cast under and none that a log ever applies
+// as a buff, so the pre-pull recovery had nothing to find. All three pulls carry it; see
+// `firePrepull.test.ts` for the expiry each one left behind.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
