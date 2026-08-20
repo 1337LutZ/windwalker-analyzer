@@ -15,6 +15,8 @@
 // clamp inside `uptimePct` alone, because a clamped overflow and a correct share are both 100. The
 // second overruns the same clock while also leaving a real gap, so it is under 100 either way and only
 // the arithmetic can tell the two answers apart.
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
@@ -199,4 +201,42 @@ describe('a dot that outlives the last hit and dropped once besides', () => {
 		);
 		expect(el.flameShock.uptimePct).toBeLessThan(72.7);
 	});
+});
+
+/**
+ * The ratio is a ratio, on both real pulls.
+ *
+ * This is the check the audit could not express until `scoredMs` was published. `uptimeMs` and
+ * `uptimePct` were both readable and neither could be derived from the other, so a numerator and a
+ * denominator measured over different spans produced 100.21% and no test could have noticed.
+ *
+ * `uptimeMs` is deliberately *not* what the percentage divides — it is the dot's whole life, which the
+ * timeline draws and the drop ledger reads, while the share clips it to the engaged clock first. So the
+ * assertion is the one that holds either way: recover the numerator from the share and it cannot exceed
+ * the dot's whole life.
+ *
+ * What this catches, precisely: a `scoredMs` naming the wrong span. Wire it to `duration` instead of the
+ * engaged clock and all three pulls fail, because the recovered numerator then exceeds `uptimeMs` by the
+ * time the boss was away. What it does **not** catch is the numerator and denominator being measured
+ * over different spans — the bug that produced 100.21% — because neither committed pull tips over. The
+ * synthetic pulls above are what hold that, and they are two rather than one for exactly this reason: a
+ * clamped overflow and a correct share are both 100, so the second pull drops the dot as well and lands
+ * mid-range where no clamp can make the two readings agree.
+ */
+const fx = (name: string): Analysis & ElementalAuditResult =>
+	analyse(
+		JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset,
+	) as Analysis & ElementalAuditResult;
+
+describe('the published denominator', () => {
+	for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+		it(`${name} reports a share of a span it names`, () => {
+			const fs = fx(name).flameShock;
+			expect(fs.scoredMs).toBeGreaterThan(0);
+			expect(fs.uptimePct).toBeLessThanOrEqual(100);
+			// The clipped numerator, recovered from the share, cannot exceed the dot's whole life.
+			const clippedMs = (fs.uptimePct / 100) * fs.scoredMs;
+			expect(clippedMs).toBeLessThanOrEqual(fs.uptimeMs + 1);
+		});
+	}
 });

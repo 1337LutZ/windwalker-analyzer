@@ -1759,6 +1759,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			multiDotUptimeMs,
 			multiDotUptimePct,
 			multiTargetMs: multiDotMs,
+			scoredMs: engagedMs,
 		},
 		lavaBurst: {
 			procs: lavaSurgeProcs,

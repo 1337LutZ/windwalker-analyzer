@@ -2017,6 +2017,16 @@ export interface FlameShockAudit {
 	 * given a 0% it could not have beaten.
 	 */
 	multiTargetMs: number;
+	/**
+	 * What `uptimePct` is a share of: the engaged clock, the pull minus the time the boss was away.
+	 *
+	 * Published for the reason `searingTotem.scoredMs` is. Without it a reader can see `uptimeMs` and
+	 * `uptimePct` and derive neither from the other, so they cannot tell a dropped dot from a boss that
+	 * was untargetable — the distinction the chart above spends a whole exempt band making, still
+	 * unanswerable from the data. It is also the only way to assert that the ratio is a ratio, which is
+	 * what let the numerator and denominator be measured over different spans for as long as they were.
+	 */
+	scoredMs: number;
 }
 
 /** Why an Earth Shock failed the sim's rule, in the order the section reads them. */
