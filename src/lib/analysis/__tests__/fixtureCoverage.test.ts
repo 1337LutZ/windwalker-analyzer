@@ -100,3 +100,111 @@ describe('every cast id a committed fixture presses is modelled or declared', ()
 		}
 	}
 });
+
+/**
+ * The same question asked of auras, which is where it was asked too late.
+ *
+ * The T16 two-piece proc was declared as id 144998. That number is real, but it is the *simulator's*
+ * `ExposeToAPL` handle — WarcraftLogs never writes it. So `twoPieceWindows` was permanently empty, and
+ * with it a chart lane and an APL gate, on pulls where the player demonstrably had the set: the id the
+ * log actually carries is 144999, which appears twenty times on one committed fixture and eighteen on
+ * another. Nothing failed. Nothing could.
+ *
+ * A declared aura that never fires cannot simply be an error, though, and that is what makes this
+ * harder than the cast-id guard above: most of these are trinkets and set bonuses that nobody in four
+ * pulls happened to wear, and absence is not evidence against them. So the guard is a **ledger** rather
+ * than a prohibition. The list below is every declared aura id that appears in no committed fixture,
+ * recorded as fact. Adding an aura that never fires grows the list and fails this test, which is the
+ * moment to ask which kind it is — an item these pulls do not cover, or a number the game does not use.
+ *
+ * Neither answer is "delete the entry". An id nobody wore belongs on the list; an id the game never
+ * writes belongs nowhere.
+ */
+function auraIdsIn(dataset: FightDataset): Set<number> {
+	const seen = new Set<number>();
+	for (const event of dataset.events) {
+		const id = (event as { abilityGameID?: number }).abilityGameID;
+		if (typeof id === 'number') seen.add(id);
+	}
+	return seen;
+}
+
+describe('every aura a spec declares either fires in a committed fixture or is on the ledger', () => {
+	for (const spec of SPECS) {
+		it(`${spec.dir}`, () => {
+			const fixtures = rawFixtures(spec.dir);
+			expect(fixtures.length).toBeGreaterThan(0);
+
+			const fired = new Set<number>();
+			for (const { dataset } of fixtures) for (const id of auraIdsIn(dataset)) fired.add(id);
+
+			const silent: string[] = [];
+			for (const aura of spec.config.registry.auras) {
+				if (aura.ids.some((id) => fired.has(id))) continue;
+				silent.push(`${aura.key} [${aura.ids.join(', ')}]`);
+			}
+			expect(silent.sort()).toEqual(SILENT_AURAS[spec.dir]);
+		});
+	}
+});
+
+/**
+ * Declared, and absent from every committed pull. Read the note above before editing this.
+ *
+ * Most of these are the honest kind: trinkets, racials and set bonuses that none of the four players in
+ * the raw fixtures happened to be wearing. `re-origination` is a Windwalker trinket and is silent on the
+ * Elemental side for the obvious reason.
+ *
+ * Two entries are worth knowing about rather than scrolling past:
+ *
+ *   `t16-2pc-proc [144998]` is **not** an item nobody wore — it is the number the game does not use. It
+ *   is the simulator's `ExposeToAPL` handle for the two-piece; the log writes 144999, which is declared
+ *   separately as `t16-2pc-debuff` and fires on both Elemental pulls. This entry is dead weight and
+ *   whatever reads `twoPieceWindows` reads an empty array. It stays listed rather than quietly deleted
+ *   because removing it touches a chart lane and an APL gate, which is a change that deserves its own
+ *   look — but it does not belong here permanently, and it is the reason this guard exists at all.
+ *
+ *   `capacitance [137596]` is the legendary meta gem. It is also referenced by bare key in shared chart
+ *   code, which `docs/conventions.md` would rather it were not.
+ *
+ * The Windwalker list is short on core abilities — `rushing-jade-wind`, `storm-earth-and-fire`,
+ * `fortifying-brew`, `dampen-harm` — because that spec has exactly one raw-event fixture and its monk
+ * talented none of them. That is a statement about the fixture set, not about the model, and it is a
+ * decent argument for a second Windwalker dataset.
+ */
+const SILENT_AURAS: Record<string, string[]> = {
+	elemental: [
+		'blood-fury [33697]',
+		'breath-of-hydra [138898]',
+		'capacitance [137596]',
+		'chayes [139133]',
+		'elemental-mastery [16166]',
+		'ferocity [148896]',
+		'flurry-of-xuen [146194]',
+		'primal-elementalist [117013]',
+		're-origination [139117, 139120, 139121]',
+		'synapse-springs [96228]',
+		't15-4pc [138144]',
+		't16-2pc-proc [144998]',
+		'unerring-vision [138963]',
+		'unerring-vision-stacks [138786]',
+		'unleashed-fury [117012]',
+		'vicious [148903]',
+		'wrath-of-darkspear [146184]',
+	],
+	windwalker: [
+		'berserking [26297]',
+		'blood-fury [33697]',
+		'breath-of-hydra [138898]',
+		'chayes [139133]',
+		'dampen-harm [122278]',
+		'ferocity [148896]',
+		'fortifying-brew [120954]',
+		'rushing-jade-wind [116847]',
+		'storm-earth-and-fire [137639]',
+		'tempus-repit [137590]',
+		'unerring-vision [138963]',
+		'unerring-vision-stacks [138786]',
+		'wrath-of-darkspear [146184]',
+	],
+};
