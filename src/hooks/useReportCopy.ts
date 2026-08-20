@@ -13,7 +13,7 @@ import type { Grade, Scorecard } from '~/lib/score';
 import type { SpecDefinition } from '~/lib/spec';
 import type { Analysis, TargetMode } from '~/lib/types';
 
-import { SpecContext } from '~/components/report/specContext';
+import { useSpec } from '~/components/report/specContext';
 import { TargetModeContext } from '~/components/report/targetModeContext';
 
 /** `none` is not a grade — it means the pull could not answer the question at all. */
@@ -90,7 +90,7 @@ export function useReportCopy(analysis: Analysis): ReportCopy {
 	const { t } = useTranslation('report');
 	// Read rather than passed: every section already calls this hook, so the spec and the reading
 	// arrive without thirty signatures having to carry them.
-	const spec = useContext(SpecContext);
+	const spec = useSpec();
 	const mode = useContext(TargetModeContext);
 	const card = useMemo(() => scorecardFor(analysis, spec, mode), [analysis, spec, mode]);
 

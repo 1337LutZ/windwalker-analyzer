@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ApexOptions } from 'apexcharts';
 
@@ -16,7 +16,7 @@ import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
 import type { ChartTheme, TipContent } from './apex';
 import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
-import { SpecContext } from '~/components/report/specContext';
+import { useSpec } from '~/components/report/specContext';
 import { rowRank } from './timelineOrder';
 
 /**
@@ -205,7 +205,7 @@ function buildSpans(rows: readonly Row[], durationMs: number, theme: ChartTheme)
  */
 export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
-	const spec = useContext(SpecContext);
+	const spec = useSpec();
 	const rowOrder = spec.timelineRowOrder;
 	const summaryKeys = spec.summaryLaneKeys;
 	// Memoised on its own, not read inline: a spec that has a counter builds a fresh array per call, and

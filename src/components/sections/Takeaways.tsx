@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 
 import { jumpToHeading } from '../jump';
-import { SpecContext } from '../report/specContext';
+import { useSpec } from '../report/specContext';
 import { SPEC_TAKEAWAYS, type AdviceTakeaway } from '../report/specSections';
 import { TargetModeContext } from '../report/targetModeContext';
 import { useReportCopy } from '~/hooks/useReportCopy';
@@ -77,7 +77,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 	const { t, card } = useReportCopy(analysis);
 	// Read the same way every graded section reads it, and for the same reason `useReportCopy` does:
 	// the spec and the reading are context rather than a prop, so neither arrives through a signature.
-	const spec = useContext(SpecContext);
+	const spec = useSpec();
 	const mode = useContext(TargetModeContext);
 
 	const takeaways = useMemo<Takeaway[]>(() => {

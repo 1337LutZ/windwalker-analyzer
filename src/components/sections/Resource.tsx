@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatSeconds } from '~/lib/format';
@@ -6,7 +6,7 @@ import { resourceColorOf, RESOURCE_TYPE } from '~/lib/game/resources';
 import type { SpecDefinition } from '~/lib/spec';
 import type { Analysis, PointsResourceAudit, PoolResourceAudit } from '~/lib/types';
 
-import { SpecContext } from '../report/specContext';
+import { useSpec } from '../report/specContext';
 import ResourceChart from '../charts/ResourceChart';
 import { cappedOf, emptiedOf } from '../charts/capped';
 import type { Tone } from '../charts/tones';
@@ -39,7 +39,7 @@ export default function Resource({ analysis, id, barKey, copyPrefix, tone, color
 	// bar's own props say what to draw, and what a share of waste *means* is the spec's to say. Handed
 	// in, the generic section list had to name one spec's module to build any spec's bars — which is
 	// how every bar came to be coloured by the monk's bands and the Elemental's by a stub.
-	const { wasteTone } = useContext(SpecContext);
+	const { wasteTone } = useSpec();
 
 	// A report captured before the engine sampled resources carries no bar at all, and one captured
 	// between the events query and the audits carries the bare curve without its `kind` — either way

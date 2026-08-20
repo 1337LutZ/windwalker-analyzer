@@ -15,7 +15,7 @@
 // want is zero rather than merely invisible. The grid is a repeating gradient on the track, which is
 // a whole axis for no nodes at all.
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { AuraWindow } from '~/lib/analysis/auras';
@@ -53,7 +53,7 @@ import { cappedOf, emptiedOf } from './capped';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
-import { SpecContext } from '~/components/report/specContext';
+import { useSpec } from '~/components/report/specContext';
 import { led, rowRank } from './timelineOrder';
 import type { Registry } from '~/lib/game/registry';
 
@@ -1143,7 +1143,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	// The spec's own game model, for the tier sort and the aura-merge table. A Windwalker and an
 	// Elemental pull name different buttons, and both read through their own registry.
-	const spec = useContext(SpecContext);
+	const spec = useSpec();
 	const registry = spec.registry;
 	const rowOrder = spec.timelineRowOrder;
 	const onUseNames = useMemo(() => onUseNamesOf(registry), [registry]);
