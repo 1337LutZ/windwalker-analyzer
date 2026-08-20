@@ -295,9 +295,13 @@ one of those derivations, so doing them apart would have meant writing the same 
       pinned in `pulls.test.ts`, so the derivation cannot drift back out.
 - [x] Trimmed to what is used: `atZeroWindows` and `stretchesFromPoints` were written, found to have no
       caller, and deleted rather than left as speculative exports.
-- [ ] Chi Brew's own `cappedMs`/`cappedWindows` walk (`windwalker/lib/index.ts`) is a third instance of
-      this shape. Left alone: it is on the sampled-bar side of the split above, so folding it in needs the
-      same before/after proof and would move Windwalker numbers if it came out even slightly different.
+- [x] Chi Brew's ceiling tracking folded onto `atCapWindows` — the fourth hand-written answer to "when
+      was this counter full". It did not look like a copy because it was _fused into_ the charge-recharge
+      simulation as a `fullSince`/`closeCap` pair rather than standing beside it. `stretchesFromPoints` is
+      reinstated for it, now that it has the caller that was the condition for keeping it. Verified: the
+      whole `chiBrew` block captured from `a:6MhZgjyAknFWrYfK` #12 before and after, byte-identical, and
+      now asserted in `pull.test.ts` — which had no Chi Brew coverage at all, so the refactor would
+      otherwise have gone unguarded.
 
 ## 19 — `stackCounterSection` — **not built, deliberately**
 
