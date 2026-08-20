@@ -10,6 +10,8 @@ import type { Analysis, ElementalAuditResult, TargetMode } from '~/lib/types';
 import { GRADE_ORDER, gradeOf, metricOf, overall, section, sharePct } from '~/lib/score';
 import type { Grade, Metric, Scorecard, Threshold } from '~/lib/score';
 
+import { registry } from './index';
+
 /**
  * The Elemental audit's fields, named for the type that holds them.
  *
@@ -63,7 +65,7 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
  */
 export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null): Scorecard {
 	const el = analysis as ElementalAnalysis;
-	const { flameShock, earthShock, searingTotem, snapshots, lightningShield, cpm } = el;
+	const { flameShock, earthShock, searingTotem, snapshots, lightningShield, fireElemental, cpm } = el;
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 
@@ -101,6 +103,33 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		searingTotem.windows.length > 0 ? searingTotem.feOverlaps : null,
 	);
 
+	/**
+	 * Whether the Fire Elemental was already out when the bell rang.
+	 *
+	 * Two states, and the second one is deliberately not a fault — see the threshold for the whole of
+	 * that argument. What is decided here is only whether this pull may be asked the question at all,
+	 * and both halves of the gate are the elemental's own minute rather than a number invented for it:
+	 *
+	 *   - **The pull has to be at least as long as the summon lasts.** A pre-pull elemental is visible
+	 *     only as the bare expiry it leaves behind — `auraWindows`' `openAtPull` recovers the window
+	 *     from that removal and from nothing else — so on a shorter fight it would still have been
+	 *     standing at the last event and leaves no trace at all. "Not out at the bell" and "cannot
+	 *     tell" are the same event stream there, and the second one is the truth. The same refusal the
+	 *     Windwalker's pre-pull potion slot makes, for the same reason.
+	 *   - **This player has to have been in the fight for the stretch a pre-pull summon would have
+	 *     covered.** A pull the player entered late is not a pull whose opening was theirs to fill,
+	 *     and judging its first minute would charge them for a fight they were not in. Contact is
+	 *     asked for *somewhere* inside that minute rather than at the bell itself: the first landed hit
+	 *     is a cast plus its travel time behind the pull on every real log — 1.0s on `phased`, 1.6s on
+	 *     `unbroken` — so a stricter reading would refuse both committed pulls.
+	 */
+	const elementalMinuteMs = registry.aura('fire-elemental').durationMs ?? 0;
+	const inFightForTheOpening = (el.timeline?.contactSegments ?? []).some(([start]) => start < elementalMinuteMs);
+	const fireElementalPrepull = metric(
+		'fireElementalPrepull',
+		el.durationMs >= elementalMinuteMs && inFightForTheOpening ? (fireElemental.prepull ? 1 : 0) : null,
+	);
+
 	// Against the windows the pull could actually have claimed, not every proc window that fired. A
 	// window the dot was down through was never a chance to refresh it. Named `flameShockSnapshots`
 	// rather than the Windwalker's `snapshotRate` so the two specs' takeaway copy does not collide:
@@ -129,6 +158,7 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		earthShockGood,
 		searingTotemUptime,
 		searingTotemOverlaps,
+		fireElementalPrepull,
 		snapshotRate,
 		lightningShieldOvercap,
 		lightningShieldFellOff,
@@ -140,6 +170,12 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 			flameShock: section([flameShockUptime, flameShockWaste], [flameShockMultiDot]),
 			earthShock: section([earthShockGood]),
 			searingTotem: section([searingTotemUptime, searingTotemOverlaps]),
+			// The summon's own section, which carries one metric and gets no card link: the anchors map in
+			// `specSections.tsx` has no entry for it, so the takeaway renders without a jump the way the
+			// `casts` card already does. It is a section here because the scorecard is the only route into
+			// the summary — `Takeaways` walks these sections — and the page's Fire Elemental section reads
+			// the same metric back through `toneOf` for its own note.
+			fireElemental: section([fireElementalPrepull]),
 			flameShockSnapshots: section([snapshotRate]),
 			// The shield's section carries both of its faults; neither is primary-weighted enough to
 			// carry a headline, but the section still reads a verdict off them for its own copy.
@@ -227,6 +263,35 @@ export const THRESHOLDS = {
 	searingTotemOverlaps: { good: 0, ok: 1, higherIsBetter: false },
 
 	/**
+	 * Whether the Fire Elemental was out when the bell rang — 1 for yes, 0 for no.
+	 *
+	 * Pre-pulling it is free and pays twice: the elemental works from the first second, and its
+	 * five-minute cooldown starts turning that much earlier, which on a long pull is the difference
+	 * between one summon and two. So the pull that had it out at the bell is `good`, and the report
+	 * should say so.
+	 *
+	 * **`bad` is unreachable, and that is the point of this entry.** `ok` is the worst this can grade,
+	 * because calling the absence a fault would require the log to prove the player *could* have
+	 * pressed it, and one fight's events cannot:
+	 *
+	 *   - **The cooldown is longer than a pull.** Five minutes, or three with Primal Elementalist. A
+	 *     shaman who spent it on the attempt before this one and re-pulled two minutes later entered
+	 *     this fight with no summon to make, and the log holds nothing from before its own first event
+	 *     to tell that apart from a player who had it in hand and did not press it. A press inside the
+	 *     pull does not settle it either: it proves the cooldown was ready *then*, and bounds what was
+	 *     left at the bell from above, never at zero.
+	 *   - **Nothing says this player was at the bell.** The measurability gate refuses the pull the
+	 *     player demonstrably was not in for the opening minute, but a late join it cannot see stays
+	 *     unseen.
+	 *
+	 * So the number is reported, it costs the headline the difference between a full mark and a half
+	 * one at the lightest weight the table has, and it is never called a mistake. Three of this audit's
+	 * bugs so far — plan steps 26, 31a and 31b — were faults invented by charging a player for
+	 * something they could not have done, and a `bad` band here would have been the fourth.
+	 */
+	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true },
+
+	/**
 	 * Share of proc-window Flame Shock refreshes caught.
 	 *
 	 * The Elemental's whole payoff: the p5 list's Flame Shock rule (priority 7) wants the dot
@@ -275,6 +340,10 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	earthShockGood: 1,
 	searingTotemUptime: 1,
 	searingTotemOverlaps: 1,
+	// The lightest weight there is, and it cannot grade worse than `ok` — so the most this can take off
+	// a headline is half of one part in thirteen. Deliberate: what it measures is real, and what it can
+	// prove about whose fault it was is nothing.
+	fireElementalPrepull: 1,
 	lightningShieldOvercap: 1,
 	lightningShieldFellOff: 1,
 };

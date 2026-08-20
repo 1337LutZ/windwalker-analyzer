@@ -16,7 +16,11 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function FireElemental({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { fireElemental } = el;
-	const { t } = useReportCopy(analysis);
+	const { t, toneOf } = useReportCopy(analysis);
+	// `good` is the elemental out at the bell, `ok` is it not, and null is the pull being unable to say
+	// — the three the notes below answer to. Read off the metric rather than off `fireElemental.prepull`
+	// so the note and the summary card cannot end up making different claims about one pull.
+	const prepullTone = toneOf('fireElementalPrepull');
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -65,7 +69,17 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">
-				<Note>{fireElemental.prepull ? t('fireElemental.prepullYes') : t('fireElemental.prepullNo')}</Note>
+				{/* Three notes, not two, and which one shows is `lib/score`'s call rather than this
+				    component's. `toneOf` returns null on an unmeasurable metric — see the hook — and that is
+				    the case the old two-way read had no wording for: it printed "it was not out at the bell"
+				    at a pull too short for a pre-pull summon to have left any trace of itself either way. */}
+				<Note>
+					{prepullTone === null
+						? t('fireElemental.prepullUnknown')
+						: prepullTone === 'good'
+							? t('fireElemental.prepullYes')
+							: t('fireElemental.prepullNo')}
+				</Note>
 			</div>
 		</Section>
 	);
