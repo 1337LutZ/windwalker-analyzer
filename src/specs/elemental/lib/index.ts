@@ -65,7 +65,6 @@ import type { Ability, Aura, GameData } from '~/lib/game/model';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
-import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
@@ -751,7 +750,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		castTimes,
 		primaryID,
 		primaryName,
-		engaged,
 		engagedMs,
 		marks,
 		aplTargetCountAt,
