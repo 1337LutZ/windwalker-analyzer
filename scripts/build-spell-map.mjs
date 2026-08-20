@@ -49,18 +49,39 @@ const RAW_DB = (sha) => `https://raw.githubusercontent.com/${REPO}/${sha}/${DB_P
 
 /** Every numeric id the spec model names, however it names it. */
 function idsFromSpec() {
-	const source = readFileSync(resolve(ROOT, 'src/lib/spec/windwalker.ts'), 'utf8');
 	const ids = new Set();
-	for (const block of source.matchAll(/(?:castIds|damageIds|ids):\s*\[([^\]]*)\]/g)) {
-		for (const n of block[1].matchAll(/\d+/g)) ids.add(Number(n[0]));
+	// The spec models live one directory per spec (`src/specs/<key>/lib`); every one is read, so a
+	// new spec gets its icons without a hand-edited list. `readdirSync` on the spec root rather than a
+	// fixed pair of files — the two current specs already drifted apart once when the monk moved out of
+	// `lib/spec` and this collector kept pointing at the old path.
+	for (const spec of readdirSync(resolve(ROOT, 'src/specs')).filter((d) => !d.startsWith('.'))) {
+		const lib = resolve(ROOT, 'src/specs', spec, 'lib');
+		let files;
+		try {
+			files = readdirSync(lib).filter((f) => f.endsWith('.ts'));
+		} catch {
+			continue;
+		}
+		for (const file of files) {
+			const source = readFileSync(resolve(lib, file), 'utf8');
+			for (const block of source.matchAll(/(?:castIds|damageIds|ids):\s*\[([^\]]*)\]/g)) {
+				for (const n of block[1].matchAll(/\d+/g)) ids.add(Number(n[0]));
+			}
+			// `EXTRA_NAMES` is a flat id → name map of the passives and trinket procs the report lists.
+			const extras = source.match(/const EXTRA_NAMES[^{]*\{([\s\S]*?)\n\};/);
+			if (extras) for (const n of extras[1].matchAll(/^\s*(\d+):/gm)) ids.add(Number(n[1]));
+		}
 	}
-	// `EXTRA_NAMES` is a flat id → name map of the passives and trinket procs the report lists.
-	const extras = source.match(/const EXTRA_NAMES[^{]*\{([\s\S]*?)\n\};/);
-	if (extras) for (const n of extras[1].matchAll(/^\s*(\d+):/gm)) ids.add(Number(n[1]));
 	// The raid-buff roster lives outside the spec model — it is other classes' spells, not the monk's
 	// — and its rows draw an icon like every other, so its provider ids have to be resolved too.
 	const raidBuffs = readFileSync(resolve(ROOT, 'src/lib/analysis/raidBuffs.ts'), 'utf8');
 	for (const n of raidBuffs.matchAll(/\b(?:id|iconId):\s*(\d+)/g)) ids.add(Number(n[1]));
+	// The shared game objects (flasks, elixirs, racials, item-effect trinkets) also live outside the
+	// spec directory, in `src/lib/game/shared.ts` — their cast/buff ids draw icons like any other.
+	const shared = readFileSync(resolve(ROOT, 'src/lib/game/shared.ts'), 'utf8');
+	for (const block of shared.matchAll(/(?:castIds|ids):\s*\[([^\]]*)\]/g)) {
+		for (const n of block[1].matchAll(/\d+/g)) ids.add(Number(n[0]));
+	}
 	return ids;
 }
 
@@ -78,23 +99,29 @@ function idsFromSpec() {
  */
 function idsFromFixtures() {
 	const ids = new Set();
-	const dir = resolve(ROOT, 'src/lib/__fixtures__');
-	for (const file of readdirSync(dir)
-		.filter((f) => f.endsWith('.json'))
-		.sort()) {
-		let analysis;
+	// Fixtures live per spec now (`src/specs/<key>/__fixtures__`), not in one shared directory.
+	for (const spec of readdirSync(resolve(ROOT, 'src/specs')).filter((d) => !d.startsWith('.'))) {
+		const dir = resolve(ROOT, 'src/specs', spec, '__fixtures__');
+		let files;
 		try {
-			analysis = JSON.parse(readFileSync(resolve(dir, file), 'utf8'));
+			files = readdirSync(dir)
+				.filter((f) => f.endsWith('.json'))
+				.sort();
 		} catch {
 			continue;
 		}
-		for (const row of analysis.damage?.abilities ?? []) ids.add(row.id);
-		for (const row of analysis.casts ?? []) ids.add(row.id);
-		// Deaths name the boss ability that landed the killing blow, and `nameOf` is what renders it.
-		// Added because the two tables above cannot reach it — a boss ability is not the monk's damage
-		// and not the monk's cast — so the death line read `#144459` where it should say "Laser Burn".
-		// This is the one place id discovery grew; the two collectors above are untouched.
-		for (const death of analysis.timeline?.deaths ?? []) if (death.abilityId) ids.add(death.abilityId);
+		for (const file of files) {
+			let analysis;
+			try {
+				analysis = JSON.parse(readFileSync(resolve(dir, file), 'utf8'));
+			} catch {
+				continue;
+			}
+			for (const row of analysis.damage?.abilities ?? []) ids.add(row.id);
+			for (const row of analysis.casts ?? []) ids.add(row.id);
+			// Deaths name the boss ability that landed the killing blow, and `nameOf` is what renders it.
+			for (const death of analysis.timeline?.deaths ?? []) if (death.abilityId) ids.add(death.abilityId);
+		}
 	}
 	return ids;
 }
@@ -123,14 +150,58 @@ function idsFromFixtures() {
 const SEED_IDS = [121279, 122278, 123986, 124081];
 
 /**
+ * Ids the Elemental spec sees on a real pull that its own model does not carry: other classes' raid
+ * buffs and trinket procs, the player's own trinkets and tier bonuses, and the boss abilities that
+ * land the killing blow. Captured from a:9XYKBd34HLVqQA8D fight 4 source 26 — the calibration pull
+ * — so this is a measurement of what actually appears, not a guess. Until the Elemental spec commits
+ * its own fixtures (which `idsFromFixtures` would then pick up), this list is what gives those rows a
+ * name and an icon.
+ */
+const ELEMENTAL_LOG_IDS = [
+	421, 774, 974, 21562, 30823, 31821, 44203, 47753, 48438, 52042, 52752, 54861, 73683, 73921, 76577, 77451, 79206,
+	80354, 81269, 81751, 81782, 82327, 86273, 94472, 96230, 97463, 104993, 105284, 108281, 110745, 114050, 114074, 114083,
+	114163, 114738, 114908, 114911, 114942, 115798, 118291, 119523, 119952, 120676, 121129, 124988, 125487, 142912,
+	143023, 143198, 143423, 143424, 143493, 143559, 143564, 143962, 144176, 144397, 144876, 145000, 145002, 145110,
+	146046, 146071, 146177, 146198, 148008, 148009, 148235, 148906,
+];
+
+/**
+ * The shaman's own utility and healing buttons, pressed on a real pull but never modelled.
+ *
+ * The sim is a DPS sim: it carries no heal, no travel form, no defensive, no totem that does not
+ * deal damage. They are not rotation, so the spec model has no cause to carry them — but a reader
+ * who cast Chain Heal through a transition still expects the timeline to name and icon it rather
+ * than print a bare `#1064`. Captured from rpM9JRABYcvPFbjL and KdCjcnAZm8wrqXGk, the two reports the
+ * Elemental timeline has been read against, so this is a measurement, not a guess. The database
+ * answers for the totems it does model (Astral Shift, Windwalk, Magma, Mana Tide, Earthgrab); the
+ * heals, the shields, the travel form and the engineering toy fall to Wowhead.
+ */
+const ELEMENTAL_UTILITY_IDS = [
+	1064, 2645, 5394, 8004, 8177, 8190, 16190, 51485, 52127, 61295, 73920, 77472, 108271, 108273, 108280, 108287, 126389,
+	146364,
+];
+
+/**
  * Ids no source can answer correctly, with the answer to use instead.
  *
  * `1` is melee: WarcraftLogs logs every auto-attack under it, but it is not a spell anyone can look
  * up — Wowhead's spell 1 is an unrelated engineering entry, and the lookup below dutifully returned
  * its icon. An override rather than a hand-edit of the generated file, so a regeneration keeps it.
+ *
+ * Elemental Overload casts the same spell a second time at reduced damage, and the duplicate carries
+ * its own spell id. Three of those ids (45294, 45296, 114991) Wowhead cannot answer at all, and one
+ * (118523) it answers wrongly — the lookup returned Siphoning Shield, an engineering trinket, where
+ * the Elemental Blast overload was asked for. The overload *is* the base spell, so it wears the base
+ * spell's icon; the name here matches `EXTRA_NAMES`, which is what the report actually prints.
  */
 const OVERRIDES = {
 	1: { name: 'Melee', icon: 'inv_sword_04' },
+	45284: { name: 'Elemental Overload (Lightning Bolt)', icon: 'spell_nature_lightning' },
+	45294: { name: 'Elemental Overload (Flame Shock)', icon: 'spell_fire_flameshock' },
+	45296: { name: 'Elemental Overload (Earth Shock)', icon: 'spell_nature_earthshock' },
+	45297: { name: 'Elemental Overload (Chain Lightning)', icon: 'spell_nature_chainlightning' },
+	114991: { name: 'Elemental Overload (Lava Beam)', icon: 'spell_fire_soulburn' },
+	118523: { name: 'Elemental Overload (Elemental Blast)', icon: 'shaman_talent_elementalblast' },
 };
 
 // ------------------------------------------------------------------ the simulator database
@@ -232,7 +303,16 @@ if (process.argv.includes('--check')) {
 
 // ------------------------------------------------------------------ build
 
-const ids = [...new Set([...idsFromSpec(), ...idsFromFixtures(), ...SEED_IDS, ...Object.keys(OVERRIDES).map(Number)])]
+const ids = [
+	...new Set([
+		...idsFromSpec(),
+		...idsFromFixtures(),
+		...SEED_IDS,
+		...ELEMENTAL_LOG_IDS,
+		...ELEMENTAL_UTILITY_IDS,
+		...Object.keys(OVERRIDES).map(Number),
+	]),
+]
 	.filter((id) => id > 0)
 	.sort((a, b) => a - b);
 console.log(`resolving ${ids.length} spell ids`);

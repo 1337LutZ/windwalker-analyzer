@@ -1,10 +1,11 @@
 import { useContext, useMemo } from 'react';
 
 import { jumpToHeading } from '../jump';
+import { SpecContext } from '../report/specContext';
+import { SPEC_TAKEAWAYS, type AdviceTakeaway } from '../report/specSections';
 import { TargetModeContext } from '../report/targetModeContext';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { GRADE_ORDER, type Metric } from '~/lib/score';
-import { weightsFor, type MetricKey } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
 import { Note } from '../primitives';
@@ -14,22 +15,8 @@ import { secondaryButtonClass } from '../primitives/controls';
  * Where each graded section actually lives on the page.
  *
  * The scorecard names its sections for the thing they measure; the page names them for the id a
- * reader jumps to. The two lists were never going to be the same — `tigerPalm` is `#tiger-palm`,
- * `brew` is `#bank` — and a card that cannot take you to the section arguing its case is a card that
- * has to be taken on trust.
+ * reader jumps to. That map is the spec's own — see `SPEC_TAKEAWAYS` — because the section ids are.
  */
-const SECTION_ANCHOR: Record<string, string> = {
-	snapshots: 'snapshots',
-	brew: 'bank',
-	casts: 'cpm',
-	debuff: 'debuff',
-	tigerPalm: 'tiger-palm',
-	energizingBrew: 'energizing',
-	// The one card whose section is not a section. Nothing on the page argues the potion count in prose
-	// — the evidence is the potion's own row on the timeline, including the bar that starts at the pull
-	// because the buff did — so that is where the reader is sent.
-	potions: 'timeline',
-};
 
 /** How many cards is a summary rather than a second report. */
 const CARDS = 3;
@@ -39,12 +26,6 @@ interface MetricTakeaway {
 	metric: Metric;
 	section: string;
 	weight: number;
-}
-
-interface AdviceTakeaway {
-	kind: 'advice';
-	key: 'energizingBrewRjw';
-	section: 'energizingBrew';
 }
 
 type Takeaway = MetricTakeaway | AdviceTakeaway;
@@ -95,16 +76,18 @@ function shortfall(metric: Metric): number {
 export default function Takeaways({ analysis }: { analysis: Analysis }) {
 	const { t, card } = useReportCopy(analysis);
 	// Read the same way every graded section reads it, and for the same reason `useReportCopy` does:
-	// the reading is context rather than a prop, so this arrives without a signature having to carry it.
+	// the spec and the reading are context rather than a prop, so neither arrives through a signature.
+	const spec = useContext(SpecContext);
 	const mode = useContext(TargetModeContext);
 
 	const takeaways = useMemo<Takeaway[]>(() => {
-		const weights = weightsFor(mode);
+		const takeawayConfig = SPEC_TAKEAWAYS[spec.key];
+		const weights = spec.weightsFor(mode);
 		const all: MetricTakeaway[] = [];
 		for (const [section, score] of Object.entries(card.sections)) {
 			for (const metric of score.metrics) {
 				if (metric.unmeasurable || metric.grade === 'good') continue;
-				const weight = weights[metric.key as MetricKey] ?? 0;
+				const weight = weights[metric.key] ?? 0;
 				// A metric the model does not count cannot lead the summary either. Zero weight is a
 				// statement that the number should not move a verdict, and a card is a verdict.
 				if (weight === 0) continue;
@@ -119,13 +102,9 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 					shortfall(b.metric) - shortfall(a.metric),
 			)
 			.slice(0, CARDS);
-		const energizing = analysis.energizing;
-		const energizingAdvice =
-			energizing?.rushingJadeWind === true && energizing.hasteWindows.length > 0 && energizing.hasteRjwUses === 0
-				? [{ kind: 'advice' as const, key: 'energizingBrewRjw' as const, section: 'energizingBrew' as const }]
-				: [];
-		return [...energizingAdvice, ...metricTakeaways].slice(0, CARDS);
-	}, [analysis.energizing, card, mode]);
+		const advice = takeawayConfig?.advice?.(analysis) ?? [];
+		return [...advice, ...metricTakeaways].slice(0, CARDS);
+	}, [analysis, card, mode, spec]);
 
 	if (takeaways.length === 0) {
 		return (
@@ -146,7 +125,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 			<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-3">
 				{takeaways.map((takeaway) => {
 					const section = takeaway.section;
-					const anchor = SECTION_ANCHOR[section];
+					const anchor = SPEC_TAKEAWAYS[spec.key]?.anchors[section];
 					return (
 						<li
 							key={takeaway.kind === 'metric' ? takeaway.metric.key : takeaway.key}

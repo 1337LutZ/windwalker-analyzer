@@ -11,7 +11,7 @@ export default function Section({ id, title, children }: { id: string; title: st
 		<section aria-labelledby={`${id}-heading`} className="flex flex-col">
 			<h2
 				id={`${id}-heading`}
-				className="m-0 mb-4 border-b border-line pb-2.5 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted"
+				className="section-heading m-0 mb-4 border-b pb-2.5 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted"
 			>
 				{title}
 			</h2>

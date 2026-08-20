@@ -83,6 +83,14 @@ export interface Ability {
 	castIds: number[];
 	/** Ids that log damage for it, which are frequently not the cast id. */
 	damageIds?: number[];
+	/**
+	 * The base cast time, before haste — from the sim's `BaseCastTime`/`CastTime`, not from a log.
+	 *
+	 * Absent on an instant press, which is most of them. Present so the engine can price a cast-time
+	 * spell's occupancy at its cast length rather than at a global: a Lightning Bolt takes 2.5s and a
+	 * Shock takes none, and counting both as one GCD invents a number neither of them is.
+	 */
+	castTimeMs?: number;
 	onGcd: boolean;
 	gate: Gate;
 	cooldownMs?: number;

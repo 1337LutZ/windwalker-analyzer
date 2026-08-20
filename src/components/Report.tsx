@@ -4,11 +4,11 @@ import type { SpecDefinition } from '~/lib/spec';
 import type { Analysis } from '~/lib/types';
 
 import SectionNav, { type ReportSection } from './report/SectionNav';
+import { SpecContext } from './report/specContext';
 import { TargetModeContext } from './report/targetModeContext';
-import { SPEC_SECTIONS } from './report/specSections';
+import { SPEC_SECTIONS, SPEC_SUMMARY } from './report/specSections';
 import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
-import { KpiTiles, ReportHeader, SpecRefusal, Takeaways } from './sections';
-import { SummaryWarning } from '~/specs/windwalker/components/sections';
+import { ReportHeader, SpecRefusal, Takeaways } from './sections';
 
 /**
  * The summary entry, which is nav-only.
@@ -67,57 +67,60 @@ export default function Report({
 		[analysis, spec],
 	);
 	const nav = useMemo<ReportSection[]>(() => [SUMMARY_NAV, ...sections], [sections]);
+	const summary = SPEC_SUMMARY[spec.key];
 
 	if (!analysis.isSpec) return <SpecRefusal analysis={analysis} spec={spec} />;
 
 	return (
-		// The reading wraps the whole report, not just the sections below the control. Every section
-		// reads its grades and its copy from the scorecard, and the scorecard is now a function of this
-		// value — so a summary rendered outside the provider would grade the pull one way while the
-		// detail underneath it graded the same pull another.
-		<TargetModeContext.Provider value={mode}>
-			<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
-				<SectionNav sections={nav} />
-				<article className="flex flex-col gap-10 md:gap-12">
-					{/* A section so the nav's observer can find it the same way it finds every other one:
+		// The spec wraps everything, because every section scores and reads its copy through it; the
+		// reading nests inside it, because the scorecard is also a function of that value — so a
+		// summary rendered outside either provider would grade the pull differently from the detail
+		// underneath it.
+		<SpecContext.Provider value={spec}>
+			<TargetModeContext.Provider value={mode}>
+				<div className="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
+					<SectionNav sections={nav} />
+					<article className="flex flex-col gap-10 md:gap-12">
+						{/* A section so the nav's observer can find it the same way it finds every other one:
 				    by the id on its heading, then the section around it. Labelled by that heading rather
 				    than by a string of its own, so there is one name for it and not two. */}
-					<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
-						<ReportHeader analysis={analysis} />
-						<SummaryWarning analysis={analysis} />
-						<KpiTiles analysis={analysis} />
-						{/* Derived from the same scorecard every section below reads, so the short list at the top
+						<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
+							<ReportHeader analysis={analysis} />
+							{summary?.warning ? <summary.warning analysis={analysis} /> : null}
+							{summary ? <summary.kpi analysis={analysis} /> : null}
+							{/* Derived from the same scorecard every section below reads, so the short list at the top
 					    cannot drift out of agreement with the detail underneath it. */}
-						<Takeaways analysis={analysis} />
-					</section>
-					{sections.map((section) =>
-						// Still props, though the mode is in context now, because these sections differ from
-						// every other. Every other section reads the mode *indirectly*, through the scorecard
-						// that weights its metrics; `modeProps` marks the ones that use it to select what is
-						// rendered at all — which of the precomputed audits, and which rungs of the priority
-						// list exist at that count. A prop says that at the call site, where reading context
-						// would hide the places the choice picks data rather than reweighting it.
-						//
-						// They take the same value for that reason: the priority list is judged at the reader's
-						// target count, the rotation reference prints the list that count produces, and the
-						// verdict-quoting sections have to agree with the ladder about whether the list wanted
-						// their button — so a reader sent from a skip to the reference arrives at a list that
-						// contained the button. `modeProps` is which of the two readings the section needs:
-						// `'live'` (the resolved mode), `'forced'` (only when the reader chose one, null under
-						// auto), or `'both'`. Narrowed through the section object rather than destructured, so
-						// the discriminator stays correlated with its `Component`'s props.
-						section.modeProps === undefined ? (
-							<section.Component key={section.id} analysis={analysis} />
-						) : section.modeProps === 'live' ? (
-							<section.Component key={section.id} analysis={analysis} mode={mode} />
-						) : section.modeProps === 'forced' ? (
-							<section.Component key={section.id} analysis={analysis} forcedMode={forcedMode} />
-						) : (
-							<section.Component key={section.id} analysis={analysis} mode={mode} forcedMode={forcedMode} />
-						),
-					)}
-				</article>
-			</div>
-		</TargetModeContext.Provider>
+							<Takeaways analysis={analysis} />
+						</section>
+						{sections.map((section) =>
+							// Still props, though the mode is in context now, because these sections differ from
+							// every other. Every other section reads the mode *indirectly*, through the scorecard
+							// that weights its metrics; `modeProps` marks the ones that use it to select what is
+							// rendered at all — which of the precomputed audits, and which rungs of the priority
+							// list exist at that count. A prop says that at the call site, where reading context
+							// would hide the places the choice picks data rather than reweighting it.
+							//
+							// They take the same value for that reason: the priority list is judged at the reader's
+							// target count, the rotation reference prints the list that count produces, and the
+							// verdict-quoting sections have to agree with the ladder about whether the list wanted
+							// their button — so a reader sent from a skip to the reference arrives at a list that
+							// contained the button. `modeProps` is which of the two readings the section needs:
+							// `'live'` (the resolved mode), `'forced'` (only when the reader chose one, null under
+							// auto), or `'both'`. Narrowed through the section object rather than destructured, so
+							// the discriminator stays correlated with its `Component`'s props.
+							section.modeProps === undefined ? (
+								<section.Component key={section.id} analysis={analysis} />
+							) : section.modeProps === 'live' ? (
+								<section.Component key={section.id} analysis={analysis} mode={mode} />
+							) : section.modeProps === 'forced' ? (
+								<section.Component key={section.id} analysis={analysis} forcedMode={forcedMode} />
+							) : (
+								<section.Component key={section.id} analysis={analysis} mode={mode} forcedMode={forcedMode} />
+							),
+						)}
+					</article>
+				</div>
+			</TargetModeContext.Provider>
+		</SpecContext.Provider>
 	);
 }

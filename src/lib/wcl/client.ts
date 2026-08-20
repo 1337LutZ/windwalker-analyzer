@@ -19,6 +19,8 @@ import type {
 	FightEventsQueryVariables,
 	FightPlayerDetailsQuery,
 	FightPlayerDetailsQueryVariables,
+	RaidStormlashQuery,
+	RaidStormlashQueryVariables,
 	RateLimitQuery,
 	RateLimitQueryVariables,
 	ReportActorsQuery,
@@ -31,6 +33,7 @@ import { WCL_CLIENT_ENDPOINT, WCL_HOST, endpointFor, otherEndpoint } from './end
 import FIGHT_DAMAGE_TABLE_QUERY from './fightDamageTable.graphql?raw';
 import FIGHT_EVENTS_QUERY from './fightEvents.graphql?raw';
 import PLAYER_DETAILS_QUERY from './playerDetails.graphql?raw';
+import RAID_STORMLASH_QUERY from './raidStormlash.graphql?raw';
 import RATE_LIMIT_QUERY from './rateLimit.graphql?raw';
 import REPORT_ACTORS_QUERY from './reportActors.graphql?raw';
 import REPORT_FIGHTS_QUERY from './reportFights.graphql?raw';
@@ -443,6 +446,19 @@ export class WclClient {
 			data: parseEvents(events.data),
 			nextPageTimestamp: events.nextPageTimestamp ?? null,
 		};
+	}
+
+	/** Every Stormlash Totem placement in the fight, from every shaman in the raid. */
+	async fetchRaidStormlash(code: string, fightID: number, startTime: number, endTime: number): Promise<WclEvent[]> {
+		const data = await this.#graphql<RaidStormlashQuery, RaidStormlashQueryVariables>(RAID_STORMLASH_QUERY, {
+			code,
+			fightID,
+			startTime,
+			endTime,
+		});
+		// A raid with no Stormlash is a normal night, not a refusal — an empty list, not an error.
+		const events = data.reportData?.report?.events;
+		return events === null || events === undefined ? [] : parseEvents(events.data);
 	}
 }
 

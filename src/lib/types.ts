@@ -117,6 +117,11 @@ export interface FightDataset {
 	events: WclEvent[];
 	table: FightTable;
 	actors: Actor[];
+	/**
+	 * Every Stormlash Totem placement in the fight, from every shaman — the raid-wide view the
+	 * Stormlash section needs, since the player's own stream hides the other shamans' totems.
+	 */
+	raidStormlash?: WclEvent[];
 }
 
 // ----------------------------------------------------- analysis result types
@@ -188,6 +193,20 @@ export interface CastMark {
 	 * trinket sitting in the same lane at the same weight reads as a global that was spent.
 	 */
 	onGcd: boolean;
+	/**
+	 * How long the press took to cast — the `begincast` to the `cast` — in milliseconds.
+	 *
+	 * Absent on an instant press, which is most of them: a Windwalker's whole bar is instant, which is
+	 * why the cast bar did not exist until the Elemental's Lightning Bolt and Chain Heal needed it. A
+	 * cancelled cast carries the cast time it *would have* needed, so the red bar it draws is the cast
+	 * the reader lost rather than a marker of unknown width.
+	 */
+	castTimeMs?: number;
+	/**
+	 * A `begincast` no `cast` ever completed — the press was interrupted. Only ever true on a mark in
+	 * `timeline.cancels`, which is what makes it a red bar instead of an icon on the chart.
+	 */
+	cancelled?: boolean;
 	/**
 	 * The enemy this press aimed at, for the one button whose whole point is *which* enemy.
 	 *
@@ -1692,7 +1711,30 @@ export interface AnalysisCore {
 	 * so on a fixture it arrives as `undefined` — not `null`, not an empty timeline. `analyse()` always
 	 * fills it in; anything reading it has to guard on truthiness.
 	 */
-	timeline?: { deaths?: DeathMark[] };
+	timeline?: {
+		deaths?: DeathMark[];
+		/**
+		 * When the player was in contact with *any* enemy — the clock the timeline shades intermissions
+		 * against. Optional for the reason `deaths` is, and read for truthiness: a fixture captured
+		 * before this existed arrives without it, and the chart falls back to the spec's own segments.
+		 */
+		contactSegments?: Array<[number, number]>;
+		/**
+		 * Casts that were started and never finished — a `begincast` with no `cast` after it. Drawn as a
+		 * red bar at the moment the cast began, at the length the cast would have needed, so the reader
+		 * sees the global a cancelled cast threw away. The player's own actions, so the core computes them
+		 * alongside the marks rather than the spec's audit.
+		 */
+		cancels?: CastMark[];
+		/**
+		 * The raid's haste cooldown — Bloodlust, Heroism, Time Warp, Primal Rage or Drums of Rage —
+		 * whichever class brought it, with each window named for the spell that opened it. Detected by
+		 * the core so every spec shades it without writing its own audit.
+		 */
+		hasteWindows?: AuraWindow[];
+		/** The Troll racial's 10s haste burst, detected alongside `hasteWindows` for the same reason. */
+		berserkingWindows?: AuraWindow[];
+	};
 	lostCasts: LostCastRow[];
 	/**
 	 * How many enemies were being damaged, moment by moment.
@@ -1858,6 +1900,8 @@ export interface FlameShockPress {
 	windowed: boolean;
 	/** Whether the press was the sim's Ascendance prep (rule 12): dot under 16s with Ascendance ready inside 2s. */
 	ascPrep: boolean;
+	/** Whether Ascendance was up under the press — a refresh thrown away while Lava Burst wanted the global. */
+	duringAscendance: boolean;
 }
 
 export interface FlameShockAudit {
@@ -1874,9 +1918,25 @@ export interface FlameShockAudit {
 	windowed: number;
 	/** Refreshes that were the sim's Ascendance prep — never "wasted". */
 	ascPrep: number;
+	/** The keep-it-up window the refreshes were read against, so the chart can draw the same band. */
+	refreshMs: number;
+	/** The dot's full duration, so the chart can scale its bars against it. */
+	durationMs: number;
 	/** Every press with the dot state at it, for the section's table. */
 	presses: FlameShockPress[];
+	/**
+	 * The cleave preset's multi-dot rule ("keep Flame Shock on both targets"): the dot's uptime on the
+	 * secondary target over the time two or more enemies were up. Zero on a pull that never went
+	 * multi-target.
+	 */
+	multiDotUptimeMs: number;
+	multiDotUptimePct: number;
+	/** The denominator `multiDotUptimePct` is against — the time two or more enemies were up. */
+	multiTargetMs: number;
 }
+
+/** Why an Earth Shock failed the sim's rule, in the order the section reads them. */
+export type EarthShockReason = 'belowFull' | 'fsLow' | 'ascReady' | 'twoPiece';
 
 /** One Earth Shock press, with everything the sim's rule reads, at the press. */
 export interface EarthShockPress {
@@ -1891,23 +1951,60 @@ export interface EarthShockPress {
 	twoPiece: boolean;
 	/** Whether the sim's rule (stacks at the ceiling, dot up, Ascendance held, no two-piece) wanted it. */
 	good: boolean;
+	/** Which of the four conditions failed, in the order the section reads them; empty when good. */
+	reasons: EarthShockReason[];
 }
 
 export interface EarthShockAudit {
 	presses: EarthShockPress[];
 	good: number;
-	early: number;
+	/** Shocks spent below the ceiling — the whole Fulmination the player left on the table. */
+	belowFull: number;
 }
 
 export interface SearingTotemAudit {
-	/** The totem's up-windows, one per press plus its duration, merged. */
+	/**
+	 * The totem's up-windows, cut short wherever the Fire Elemental took the slot.
+	 *
+	 * One Fire totem stands at a time — the sim's own summons disable each other — so these never
+	 * overlap `feWindows`, and a window is a placement's minute only if nothing displaced it.
+	 */
 	windows: Window[];
+	/** How much of `scoredMs` the totem was up for. */
 	uptimeMs: number;
+	/**
+	 * The clock `uptimePct` is taken against: engaged time, less every Fire Elemental window.
+	 *
+	 * The elemental owns the slot while it is out, so that time was never a totem the player could
+	 * have had up — scoring it would fault correct play.
+	 */
+	scoredMs: number;
 	uptimePct: number;
-	/** Presses made while a totem was already up. */
-	refreshes: number;
-	/** The dot-time thrown away by those refreshes. */
+	/** The stretches the Fire Elemental held the slot, so the graph can exclude the same time. */
+	feWindows: Window[];
+	/** Every placement, with the totem it overwrote and the two faults a placement can carry. */
+	presses: SearingTotemPress[];
+	/** Re-presses that clipped a healthy totem — more than the leeway left on it. */
+	clipped: number;
+	/** The dot-time those clips threw away. */
 	wastedMs: number;
+	/** Placements made while the Fire Elemental was out, which the list forbids. */
+	feOverlaps: number;
+	/** Placements made with less than ten seconds of fight left. */
+	latePlacements: number;
+}
+
+/** One Searing Totem placement and the faults it can carry. */
+export interface SearingTotemPress {
+	t: number;
+	/** Time left on the totem this press overwrote; null when none was up. */
+	remainingMs: number | null;
+	/** Whether the press clipped a healthy totem — more than the leeway left on it. */
+	clipped: boolean;
+	/** Whether the Fire Elemental was out when this was placed. */
+	feOverlap: boolean;
+	/** Whether this was placed with less than ten seconds of fight left. */
+	late: boolean;
 }
 
 /** A stretch the sim's Flame Shock rule (priority 7) would have claimed a refresh. */
@@ -1941,6 +2038,106 @@ export interface AscendanceAudit {
 	presses: AscendancePress[];
 }
 
+/** One Elemental Mastery press and the branch of the list's rule it hit. */
+export interface ElementalMasteryPress {
+	t: number;
+	/** The first branch this press satisfied, or null when none did — a press the list would not have made. */
+	reason: 'opener' | 'sync' | 't15' | 'off' | null;
+}
+
+/** One Fire Elemental press and the branch of the list's rule it hit. */
+export interface FireElementalPress {
+	t: number;
+	/** The first branch this press satisfied, or null when none did — a press the list would not have made. */
+	reason: 'near-end' | 'sync' | 'early' | null;
+}
+
+/** One Earth Elemental press and whether it was the list's own end-of-fight rule. */
+export interface EarthElementalPress {
+	t: number;
+	/** The p5 list presses it almost entirely in end-of-fight terms (`remainingTime <= 62s`). */
+	nearEnd: boolean;
+}
+
+/** One Earth Shock that spent the shield below its ceiling — a spend that threw Fulmination away. */
+export interface LightningShieldBadSpend {
+	t: number;
+	/** The stacks the press actually spent; null when the log never carried the shield. */
+	stacks: number | null;
+}
+
+/** One Lava Surge proc window, and whether a Lava Burst consumed it before it expired. */
+export interface LavaSurgeProc {
+	start: number;
+	end: number;
+	consumed: boolean;
+	/**
+	 * A surge that expired with no Lava Burst inside *while the player could act* — one that ran out
+	 * during an intermission is the fight taking the free cast back, not a cast the player threw away.
+	 */
+	wasted: boolean;
+}
+
+/** One Lava Burst press, and what made it free. */
+export interface LavaBurstPress {
+	t: number;
+	/** Free from a Lava Surge proc. */
+	surge: boolean;
+	/** Free from Ascendance's reset. */
+	ascendance: boolean;
+}
+
+/** Lava Burst and its two resets — the free casts, and the surges that expired with no press. */
+export interface LavaBurstAudit {
+	procs: LavaSurgeProc[];
+	presses: LavaBurstPress[];
+	/** Surges that expired with no Lava Burst inside — a free cast thrown away. */
+	wasted: number;
+}
+
+/** One shaman's Stormlash placements, so the raid's coordination can be read per player. */
+export interface StormlashShaman {
+	id: number;
+	/** The shaman's name, or null when the actor list did not name this id. */
+	name: string | null;
+	windows: Window[];
+}
+
+/**
+ * The raid's Stormlash Totems, read together — the buff does not stack, so two totems up at once is
+ * a totem wasted, and the section exists to show where that happened.
+ */
+export interface StormlashAudit {
+	shamans: StormlashShaman[];
+	/** The stretches two or more totems were up at once. */
+	overlaps: Window[];
+	/** Total placements across the raid. */
+	totems: number;
+}
+
+/**
+ * Lightning Shield's counter, audited for the questions a counter aura raises: did it sit at the
+ * ceiling too long, did it come off, and were the spends taken at the ceiling.
+ */
+export interface LightningShieldAudit {
+	/** The charge over time, one point per stack change — the step series the section draws. */
+	points: Array<[number, number]>;
+	/** The ceiling, from the game model rather than from this pull's peak. */
+	maxStacks: number;
+	/** Time spent at the ceiling past the reader's leeway, summed across the pull. */
+	overcapMs: number;
+	/** The leeway the overcap was measured beyond, so the section can name the number it used. */
+	leewayMs: number;
+	/** The overcap stretches, for drawing red. */
+	overcapWindows: Window[];
+	/** How many times the shield came all the way off. */
+	fellOff: number;
+	/** The stretches the shield was down, for drawing red. */
+	downWindows: Window[];
+	/** The Earth Shock presses that spent fewer than the ceiling. */
+	badSpends: LightningShieldBadSpend[];
+}
+
 /** The Elemental half of the analysis. See the `SpecAuditResult` fields for the shared half. */
 export interface ElementalAuditResult {
 	flameShock: FlameShockAudit;
@@ -1948,6 +2145,19 @@ export interface ElementalAuditResult {
 	searingTotem: SearingTotemAudit;
 	snapshots: SnapshotsAudit;
 	ascendance: AscendanceAudit;
+	lavaBurst: LavaBurstAudit;
+	/** Elemental Mastery's presses, judged against the sync-with-Ascendance rule rather than drift. */
+	elementalMastery: { presses: ElementalMasteryPress[] };
+	/** Fire Elemental's presses, judged against the sync-with-Ascendance rule rather than drift. */
+	fireElemental: {
+		presses: FireElementalPress[];
+		/** Whether it was already out when the bell went. */ prepull: boolean;
+	};
+	/** Earth Elemental's presses, judged against the end-of-fight rule rather than drift. */
+	earthElemental: { presses: EarthElementalPress[] };
+	/** The raid's Stormlash placements, for the coordination section. */
+	stormlash: StormlashAudit;
+	lightningShield: LightningShieldAudit;
 	/**
 	 * The priority list run against the pull, press by press. The same three-state field as the
 	 * Windwalker audit's: `undefined` is an analysis captured before the ladder existed, `null` is

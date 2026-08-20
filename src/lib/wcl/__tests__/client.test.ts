@@ -115,6 +115,15 @@ function stubApi(pages: Array<{ data: unknown; nextPageTimestamp: number | null 
 				},
 			});
 		}
+		if (body.query.includes('query RaidStormlash')) {
+			return answer({
+				reportData: {
+					report: {
+						events: { data: [], nextPageTimestamp: null },
+					},
+				},
+			});
+		}
 		throw new Error(`unexpected query: ${body.query}`);
 	});
 

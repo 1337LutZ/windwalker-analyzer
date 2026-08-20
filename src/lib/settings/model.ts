@@ -51,6 +51,25 @@ export interface AnalysisSettings {
 	 * grading latency.
 	 */
 	flameShockRefreshMs: number;
+	/**
+	 * How long Lightning Shield may sit at its ceiling before the time past that counts as
+	 * overcapping. Elemental.
+	 *
+	 * The shield is spent by Earth Shock's Fulmination, so a shield at seven stacks is a shock not
+	 * taken — and every Lightning Bolt after that is Rolling Thunder with nowhere to put its charge.
+	 * One press's worth of grace is forgiven, like the cooldown leeway; past it, each second at seven
+	 * is a second of overcapping.
+	 */
+	lightningShieldOvercapMs: number;
+	/**
+	 * How much Searing Totem may still be running for a re-press to be read as a plain refresh.
+	 * Elemental.
+	 *
+	 * The totem lasts a minute, so re-pressing it with half of that left throws the other half away.
+	 * But a re-press with a second and a half left is just placing the next totem early, and grading it
+	 * as a clip is grading the reaction time, not the decision. Same reasoning as the cooldown leeway.
+	 */
+	searingTotemRefreshMs: number;
 }
 
 // There was a fourth setting here, `maxHealth`, and it is gone rather than defaulted.

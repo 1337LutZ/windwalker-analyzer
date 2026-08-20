@@ -9,6 +9,7 @@ import { DEFAULT_SPEC } from '~/lib/spec';
 <Base
 	title={`${DEFAULT_SPEC.displayName} analyzer (alpha)`}
 	description={`Read a Mists of Pandaria ${DEFAULT_SPEC.displayName} pull from its own event stream: economy discipline, buff snapshots, lost casts and a timestamped miss ledger. Runs entirely in your browser.`}
+	specColor={DEFAULT_SPEC.colors.primary}
 >
 	{/* client:load, not client:visible: the island is the entire page, so there is nothing to defer. */}
 	<App client:load />

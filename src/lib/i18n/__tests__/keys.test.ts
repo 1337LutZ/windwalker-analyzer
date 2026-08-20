@@ -84,7 +84,11 @@ function namespaceOf(source: string): Namespace {
 }
 
 describe('translation keys', () => {
-	const files = walk(join(SRC, 'components')).concat(walk(join(SRC, 'hooks')));
+	// `specs` as well as `components`, because that is where most of a report's sections now live: a
+	// spec's own sections and charts sit under `src/specs/<key>/components`, and while this walked only
+	// the two generic folders every key they ask for went unchecked — which is the whole failure this
+	// test exists to catch, in the half of the tree that grew after it was written.
+	const files = walk(join(SRC, 'components')).concat(walk(join(SRC, 'hooks')), walk(join(SRC, 'specs')));
 
 	it('finds the components to check', () => {
 		expect(files.length).toBeGreaterThan(10);

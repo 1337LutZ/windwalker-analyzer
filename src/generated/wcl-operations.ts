@@ -31,6 +31,16 @@ export type FightPlayerDetailsQueryVariables = Exact<{
 
 export type FightPlayerDetailsQuery = { rateLimitData: { limitPerHour: number, pointsSpentThisHour: number, pointsResetIn: number } | null, reportData: { report: { playerDetails: unknown } | null } | null };
 
+export type RaidStormlashQueryVariables = Exact<{
+  code: string;
+  fightID: number;
+  startTime: number;
+  endTime: number;
+}>;
+
+
+export type RaidStormlashQuery = { rateLimitData: { limitPerHour: number, pointsSpentThisHour: number, pointsResetIn: number } | null, reportData: { report: { events: { data: unknown, nextPageTimestamp: number | null } | null } | null } | null };
+
 export type RateLimitQueryVariables = Exact<{ [key: string]: never; }>;
 
 

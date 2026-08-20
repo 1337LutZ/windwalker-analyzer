@@ -17,14 +17,13 @@
 import type { ComponentType } from 'react';
 
 import type { Analysis, TargetMode } from '~/lib/types';
-import { specColorsOf } from '~/lib/view/specColors';
-import { wasteTone } from '~/specs/windwalker/lib/score';
+import { WW_SPEC } from '~/specs/windwalker';
+import { ELEMENTAL_SPEC } from '~/specs/elemental';
 
 import type { ReportSection } from './SectionNav';
 import { excludedButtons, pressedButtons } from '~/specs/windwalker/lib/view/rotationFlow';
 import {
 	CastLog,
-	CastsPerMinute,
 	DamageByAbility,
 	GearSetup,
 	Method,
@@ -37,19 +36,37 @@ import type { ResourceProps } from '../sections';
 import {
 	BlackoutKick,
 	BrewBankTimeline,
+	CastsPerMinute,
 	EnergizingBrew,
 	ChiBrew,
 	FistsOfFury,
+	KpiTiles,
 	PullTimeline,
 	RisingSunKick,
 	Rotation,
 	RushingJadeWind,
 	SnapshotTable,
 	StormEarthAndFire,
+	SummaryWarning,
 	TigerPalm,
 	TouchOfKarma,
 	Xuen,
 } from '~/specs/windwalker/components/sections';
+import {
+	Cooldowns,
+	EarthElemental,
+	EarthShock,
+	FireElemental,
+	FlameShock,
+	KpiTiles as ElementalKpiTiles,
+	LavaBurst,
+	LightningShield,
+	PullTimeline as ElementalPullTimeline,
+	Rotation as ElementalRotation,
+	SearingTotem,
+	Snapshots,
+	Stormlash,
+} from '~/specs/elemental/components/sections';
 
 /**
  * One of the spec's resource bars, as a titled section.
@@ -59,8 +76,9 @@ import {
  * identity — `SPEC_SECTIONS` is built once at module load, so an inline arrow here would unmount
  * and remount the section's chart state on every report render. The config is the whole of what
  * distinguishes the bars: which to draw, which half of the copy to read, which tone and colour to
- * draw it in. The tone function is the spec's own reading aid, passed in so the generic section
- * never has to know which spec it is drawing.
+ * draw it in. How a share of waste reads as a colour is *not* in it — that is the spec's own reading
+ * aid, and `Resource` takes it off the spec it is drawing for, so this list never has to name one
+ * spec's scoring module in order to build another spec's bars.
  */
 function resourceSection(config: Omit<ResourceProps, 'analysis'>): ComponentType<{ analysis: Analysis }> {
 	return function ResourceSection({ analysis }: { analysis: Analysis }) {
@@ -151,8 +169,7 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 				barKey: 'energy',
 				copyPrefix: 'energy',
 				tone: 'kick',
-				color: specColorsOf('Windwalker').primary,
-				wasteTone,
+				color: WW_SPEC.colors.primary,
 			}),
 		},
 		// Beside energy, because the two are one economy read from opposite ends: energy is a pool that
@@ -168,8 +185,7 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 				barKey: 'chi',
 				copyPrefix: 'chi',
 				tone: 'brew',
-				color: specColorsOf('Windwalker').primary,
-				wasteTone,
+				color: WW_SPEC.colors.primary,
 			}),
 		},
 
@@ -296,4 +312,138 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: Rotation, modeProps: 'live' },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 	],
+	elemental: [
+		// First after the summary, because it is the pull itself: every press, every buff, one clock.
+		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// The same pull at a coarser grain: the auras without the presses, read against each other.
+		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: ElementalPullTimeline },
+		// The dot's payoff, directly under it: the proc-window reapplies are the whole reason the dot is
+		// snapshotted rather than merely kept up.
+		{ id: 'snapshots', titleKey: 'flameShockSnapshots.title', group: 'core', Component: Snapshots },
+		// The pool the casts are paid from, beside the dot it gates — the one bar an Elemental has, and
+		// the one that is never overcap but is sometimes empty.
+		{
+			id: 'mana',
+			titleKey: 'mana.title',
+			group: 'core',
+			Component: resourceSection({
+				id: 'mana',
+				barKey: 'mana',
+				copyPrefix: 'mana',
+				tone: 'kick',
+				color: ELEMENTAL_SPEC.colors.primary,
+			}),
+		},
+
+		// The rotational presses, one section each: Flame Shock is the dot everything else is gated
+		// on, Earth Shock spends the Lightning Shield counter, Searing Totem is the fire-and-forget,
+		// and the cooldowns section holds Ascendance and the other long timers.
+		{ id: 'flame-shock', titleKey: 'flameShock.title', group: 'abilities', Component: FlameShock },
+		// Lava Burst is the dot's spender — the proc that makes it free is the section's own argument.
+		{ id: 'lava-burst', titleKey: 'lavaBurst.title', group: 'abilities', Component: LavaBurst },
+		{ id: 'earth-shock', titleKey: 'earthShock.title', group: 'abilities', Component: EarthShock },
+		// The counter Earth Shock spends from, beside the shock it feeds. Together they are one economy:
+		// the shield builds on Rolling Thunder and is spent whole by Fulmination, and the two sections
+		// grade the two halves of that loop.
+		{ id: 'lightning-shield', titleKey: 'lightningShield.title', group: 'abilities', Component: LightningShield },
+		{ id: 'searing-totem', titleKey: 'searingTotem.title', group: 'abilities', Component: SearingTotem },
+		{ id: 'cooldowns', titleKey: 'cooldowns.title', group: 'cooldowns', Component: Cooldowns },
+		// The two summons beside the cooldowns: Fire Elemental synced with Ascendance (or prepull under
+		// Heroism), Earth Elemental in the pull's last minute.
+		{ id: 'fire-elemental', titleKey: 'fireElemental.title', group: 'cooldowns', Component: FireElemental },
+		{ id: 'earth-elemental', titleKey: 'earthElemental.title', group: 'cooldowns', Component: EarthElemental },
+		// The raid cooldown beside the personal ones: Stormlash is assigned across the raid's shamans,
+		// and the overlap row is the section's whole point.
+		{ id: 'stormlash', titleKey: 'stormlash.title', group: 'cooldowns', Component: Stormlash },
+
+		// The generic tables: what dealt the damage, and every mistake with a link back to the replay.
+		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
+		{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
+
+		// Reference: what the character walked in carrying, and how the report reached its numbers.
+		{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
+		{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
+		{ id: 'priority', titleKey: 'priority.title', group: 'reference', Component: PriorityLadder, modeProps: 'forced' },
+		{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: ElementalRotation },
+		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
+	],
+};
+
+// ---------------------------------------------------------------- the summary
+//
+// The summary block — the KPI tiles and the optional warning above them — is the spec's own, for the
+// same reason the sections are: a Windwalker's headline is brew stacks and Rising Sun Kick uptime, an
+// Elemental's is Flame Shock uptime and snapshot catches, and there is no generic tile between them.
+// `Report` renders whichever the spec names here, keyed by the registry's own key.
+
+/** One spec's headline block: the KPI tiles and the optional warning above them. */
+export interface SpecSummary {
+	kpi: ComponentType<{ analysis: Analysis }>;
+	warning?: ComponentType<{ analysis: Analysis }>;
+}
+
+export const SPEC_SUMMARY: Record<string, SpecSummary | undefined> = {
+	windwalker: { kpi: KpiTiles, warning: SummaryWarning },
+	elemental: { kpi: ElementalKpiTiles },
+};
+
+/**
+ * A spec-specific advice card, folded into the summary's short list ahead of the metric cards.
+ *
+ * The metric cards are derived from the scorecard and so are the same for every spec; advice is the
+ * one card a spec writes by hand, for the case its own model can see that no metric expresses — the
+ * Windwalker's "Energizing Brew through Bloodlust with Rushing Jade Wind, but never used to cover
+ * it" is a play the ladder condones, so no threshold catches it, and a hand-written card is the only
+ * route to a reader's eye.
+ */
+export interface AdviceTakeaway {
+	kind: 'advice';
+	key: string;
+	section: string;
+}
+
+/** The spec-scoped half of `Takeaways`: where its sections live, and its hand-written advice. */
+export interface SpecTakeaways {
+	/** Scorecard section name → page anchor id, for the takeaway card's jump link. */
+	anchors: Record<string, string>;
+	advice?: (analysis: Analysis) => AdviceTakeaway[];
+}
+
+export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
+	windwalker: {
+		// The scorecard names its sections for the thing they measure; the page names them for the id
+		// a reader jumps to. The two lists were never going to be the same — `tigerPalm` is
+		// `#tiger-palm`, `brew` is `#bank` — and a card that cannot take you to the section arguing its
+		// case is a card that has to be taken on trust.
+		anchors: {
+			snapshots: 'snapshots',
+			brew: 'bank',
+			casts: 'cpm',
+			debuff: 'debuff',
+			tigerPalm: 'tiger-palm',
+			energizingBrew: 'energizing',
+			// The one card whose section is not a section. Nothing on the page argues the potion count in
+			// prose — the evidence is the potion's own row on the timeline — so that is where the reader
+			// is sent.
+			potions: 'timeline',
+		},
+		advice: (analysis) => {
+			const energizing = analysis.energizing;
+			return energizing?.rushingJadeWind === true && energizing.hasteWindows.length > 0 && energizing.hasteRjwUses === 0
+				? [{ kind: 'advice', key: 'energizingBrewRjw', section: 'energizingBrew' }]
+				: [];
+		},
+	},
+	elemental: {
+		// The same join the Windwalker map makes, in the Elemental's own section ids. `casts` is absent
+		// on purpose: the Elemental report draws no cast-rate section of its own yet, so the gcd card
+		// has no heading to jump to and its takeaway renders without a link rather than being sent
+		// somewhere that argues a different number.
+		anchors: {
+			flameShock: 'flame-shock',
+			earthShock: 'earth-shock',
+			searingTotem: 'searing-totem',
+			flameShockSnapshots: 'snapshots',
+		},
+	},
 };

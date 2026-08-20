@@ -1,13 +1,14 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatSeconds } from '~/lib/format';
-import { resourceColorOf } from '~/lib/game/resources';
-import type { Grade } from '~/lib/score';
+import { resourceColorOf, RESOURCE_TYPE } from '~/lib/game/resources';
+import type { SpecDefinition } from '~/lib/spec';
 import type { Analysis, PointsResourceAudit, PoolResourceAudit } from '~/lib/types';
 
+import { SpecContext } from '../report/specContext';
 import ResourceChart from '../charts/ResourceChart';
-import { cappedOf } from '../charts/capped';
+import { cappedOf, emptiedOf } from '../charts/capped';
 import type { Tone } from '../charts/tones';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 import LogLink from './LogLink';
@@ -31,8 +32,14 @@ import LogLink from './LogLink';
  * reader cannot calibrate hints at its own size; the copy beside it never says good or bad. It
  * states the number.
  */
-export default function Resource({ analysis, id, barKey, copyPrefix, tone, color, wasteTone }: ResourceProps) {
+export default function Resource({ analysis, id, barKey, copyPrefix, tone, color }: ResourceProps) {
 	const bar = analysis.resources?.[barKey];
+	// The reading aid the tiles are coloured by, read off the spec this report argues from rather than
+	// passed in beside the bar's config. The same route `useReportCopy` takes to the spec's scoring: a
+	// bar's own props say what to draw, and what a share of waste *means* is the spec's to say. Handed
+	// in, the generic section list had to name one spec's module to build any spec's bars — which is
+	// how every bar came to be coloured by the monk's bands and the Elemental's by a stub.
+	const { wasteTone } = useContext(SpecContext);
 
 	// A report captured before the engine sampled resources carries no bar at all, and one captured
 	// between the events query and the audits carries the bare curve without its `kind` — either way
@@ -81,8 +88,6 @@ export interface ResourceProps {
 	tone: Tone;
 	/** The spec's primary, as the fallback for a bar the sim has not coloured. */
 	color: string;
-	/** How a share of waste reads as a colour — the spec's own reading aid, passed in. */
-	wasteTone: (wasted: number, generated: number) => Grade | null;
 }
 
 /**
@@ -123,7 +128,7 @@ function PoolBar({
 	copyPrefix: string;
 	tone: Tone;
 	color: string;
-	wasteTone: ResourceProps['wasteTone'];
+	wasteTone: SpecDefinition['wasteTone'];
 	bar: PoolResourceAudit;
 }) {
 	const { t } = useReportCopy(analysis);
@@ -161,6 +166,52 @@ function PoolBar({
 	// "the bar never reached the top" about one would be a claim made out of missing data.
 	if (bar.samples === 0) {
 		return <EmptyBar analysis={analysis} id={id} copyPrefix={copyPrefix} />;
+	}
+
+	// Mana is the one pool whose being full is not a fault — it sits at the ceiling until cast, and a
+	// full bar is exactly where it should be. Its fault is the floor: running out, which no other bar
+	// can do. So the mana half of a pool section shades the empty stretches in red instead of the
+	// capped ones, and reads the empty duration instead of a cap table.
+	if (bar.type === RESOURCE_TYPE.mana) {
+		const emptied = emptiedOf(bar.curve);
+		const emptiedMs = emptied.reduce((s, w) => s + w.end - w.start, 0);
+		return (
+			<Section id={id} title={t(`${copyPrefix}.title`)}>
+				<Prose>{t(`${copyPrefix}.intent`)}</Prose>
+				<div className="mt-4.5">
+					<ResourceChart
+						curve={bar.curve}
+						durationMs={analysis.durationMs}
+						tone={tone}
+						color={color}
+						smooth
+						legend={t(`${copyPrefix}.key.bar`)}
+						bands={[{ tone: 'miss', windows: emptied, legend: t(`${copyPrefix}.key.empty`) }]}
+						label={t(`${copyPrefix}.chartLabel`, {
+							max: bar.curve.max,
+							empty: emptiedMs,
+							duration: analysis.durationMs,
+						})}
+					/>
+				</div>
+				<div className="mt-5">
+					<Prose>
+						{emptiedMs === 0
+							? t(`${copyPrefix}.clean`)
+							: t(`${copyPrefix}.summary`, { empty: emptiedMs, duration: analysis.durationMs })}
+					</Prose>
+				</div>
+				<div className="mt-4">
+					<Note>
+						{t(`${copyPrefix}.resolution`, {
+							samples: formatInteger(bar.samples),
+							median: bar.medianGapMs,
+							p99: bar.p99GapMs,
+						})}
+					</Note>
+				</div>
+			</Section>
+		);
 	}
 
 	const capped = bar.total.cappedMs > 0;
@@ -327,7 +378,7 @@ function PointsBar({
 	copyPrefix: string;
 	tone: Tone;
 	color: string;
-	wasteTone: ResourceProps['wasteTone'];
+	wasteTone: SpecDefinition['wasteTone'];
 	bar: PointsResourceAudit;
 }) {
 	const { t } = useReportCopy(analysis);

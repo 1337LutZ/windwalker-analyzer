@@ -2,11 +2,15 @@ import { useState } from 'react';
 
 import type { Analysis } from '~/lib/types';
 import type { TargetModeChoice } from '~/lib/view/targetMode';
-import { DEFAULT_SPEC } from '~/lib/spec';
+import { DEFAULT_SPEC, getSpec } from '~/lib/spec';
 
 import Report from './Report';
 import TargetModeControl from './report/TargetModeControl';
 import { compactChoiceClass } from './primitives/controls';
+
+/** The fixtures this harness renders are all Windwalker, so it pins that spec regardless of the
+ * build's `PUBLIC_SPEC`. */
+const SPEC = getSpec('windwalker') ?? DEFAULT_SPEC;
 
 /** TEMPORARY dev harness — delete before shipping, along with src/pages/preview.astro. */
 export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string, Analysis> }) {
@@ -38,7 +42,7 @@ export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string,
 			{analysis ? (
 				<>
 					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
-					<Report key={name} analysis={analysis} targetChoice={targetChoice} spec={DEFAULT_SPEC} />
+					<Report key={name} analysis={analysis} targetChoice={targetChoice} spec={SPEC} />
 				</>
 			) : null}
 		</div>

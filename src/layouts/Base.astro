@@ -2,13 +2,15 @@
 interface Props {
 	title: string;
 	description: string;
+	/** The spec's identity colour, painted before first paint so the theme never flashes the default. */
+	specColor?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, specColor } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" style={specColor ? `--spec-primary: ${specColor}` : undefined}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,10 +19,11 @@ const { title, description } = Astro.props;
 		<meta name="description" content={description} />
 		<meta name="color-scheme" content="dark" />
 		{/*
-			Mirrors --color-bg in src/styles/global.css. A meta tag cannot read a CSS custom property,
-			and without it a phone browser paints its own light chrome above a dark page.
+			Mirrors the neutral base that --color-bg in src/styles/global.css is mixed from. A meta tag
+			cannot read a CSS custom property (or run the color-mix that tints it), so this stays the
+			untinted ground and the spec hue is left to the page itself.
 		*/}
-		<meta name="theme-color" content="#0d1311" />
+		<meta name="theme-color" content="#0a0d0c" />
 		{/*
 			The whole privacy claim of this app is "your token only ever goes to
 			classic.warcraftlogs.com". A connect-src policy is the only version of that claim a visitor

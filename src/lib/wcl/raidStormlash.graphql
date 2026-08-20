@@ -1,0 +1,34 @@
+# Every Stormlash Totem placement in the fight, from every shaman in the raid.
+#
+# The player's own event stream is fetched with `sourceID` set, which hides the other shamans' totems
+# — but Stormlash is a raid cooldown whose whole question is *coordination*: three shamans stagger
+# their totems because the buff does not stack, and a totem laid on top of a running one is a totem
+# wasted. The section therefore reads the raid's placements, not the player's alone, which is why this
+# query drops the source filter and narrows on the one ability instead.
+#
+# `abilityID` keeps it to the one spell, so it costs one point per page and never pulls the whole
+# fight's cast stream for the raid.
+
+query RaidStormlash($code: String!, $fightID: Int!, $startTime: Float!, $endTime: Float!) {
+	# The hourly point budget, riding along for free — see rateLimit.ts.
+	rateLimitData {
+		limitPerHour
+		pointsSpentThisHour
+		pointsResetIn
+	}
+	reportData {
+		report(code: $code) {
+			events(
+				fightIDs: [$fightID]
+				dataType: Casts
+				abilityID: 120668
+				startTime: $startTime
+				endTime: $endTime
+				limit: 10000
+			) {
+				data
+				nextPageTimestamp
+			}
+		}
+	}
+}

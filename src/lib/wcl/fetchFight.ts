@@ -102,6 +102,8 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 	const damageDone = await client.fetchDamageTable(code, fightID);
 
 	const events = await fetchAllEvents(client, code, fight, actor.id, onProgress);
+	// The raid's Stormlash placements ride alongside the player's own stream, for the Stormlash section.
+	const raidStormlash = await client.fetchRaidStormlash(code, fightID, fight.startTime, fight.endTime);
 	onProgress?.({
 		phase: 'done',
 		events: events.length,
@@ -116,6 +118,7 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 		events,
 		table: { fight, damageDone },
 		actors,
+		raidStormlash,
 	};
 }
 
