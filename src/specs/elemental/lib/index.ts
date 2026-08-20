@@ -68,6 +68,7 @@ import { CLASS_COLOR } from '~/lib/game/classes';
 import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
+import { RESOURCE_TYPE } from '~/lib/game/resources';
 
 // ------------------------------------------------------------------- constants
 
@@ -750,6 +751,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		castTimes,
 		primaryID,
 		primaryName,
+		engaged,
 		engagedMs,
 		marks,
 		aplTargetCountAt,
