@@ -253,7 +253,15 @@ export function buildCastTable(series: Iterable<CastSeries>, opts: CastTableOpti
 			gate: c.ability?.gate ?? 'other',
 			cpm: activeMin > 0 ? c.count / activeMin : 0,
 			cooldownSec: c.ability?.cooldownMs ? c.ability.cooldownMs / 1000 : null,
-			...gapStats(c.times),
+			// Cadence off the commit instants, not the landings: "how often did they press this" is a
+			// question about presses. Landing-to-landing folds each press's own cast bar into the gap
+			// before it, and because a cast bar shortens with haste it folds in haste too — so the same
+			// rotation read a different cadence under Bloodlust than outside it. Commit-to-commit is the
+			// interval the player actually chose. Identical on an instant button.
+			...gapStats(c.beginTimes),
+			// Left as the landing instants deliberately. This array is published on `Analysis`, and
+			// `CastTimeline` back-computes the bar's left edge from it as `t - castTimeMs`; re-pointing it
+			// would shift every icon on the chart by a cast bar and reinterpret every stored analysis.
 			times: c.times,
 		}))
 		.sort((a, b) => b.count - a.count);

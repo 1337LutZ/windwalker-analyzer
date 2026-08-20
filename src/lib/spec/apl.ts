@@ -97,8 +97,23 @@ export type AplVerdict =
 	| 'off-list';
 
 export interface AplPress {
-	/** Fight-relative ms, like every other timestamp in this report. */
+	/**
+	 * Fight-relative ms — the instant the press **landed**, and deliberately still that.
+	 *
+	 * This field is a join key, not just a label: `view/blackoutKick.ts` finds a press's verdict with
+	 * `apl.presses.find((p) => p.t === t)` against a cast list that is landing-stamped. Re-pointing it
+	 * to the decision instant would make every such lookup miss for a cast-time spell and quietly
+	 * report nothing rather than fail. `decidedAt` is the instant the *judgement* was made at.
+	 */
 	t: number;
+	/**
+	 * The instant this press was judged at — its commit, which for a cast-time spell is up to ~2.5s
+	 * before `t`.
+	 *
+	 * Carried so the verdict can be read back against the state it was actually formed from. Equal to
+	 * `t` for an instant press.
+	 */
+	decidedAt: number;
 	/** The cast id that was pressed. */
 	pressed: number;
 	/** What the list wanted instead, when the press was a skip. */
@@ -430,13 +445,30 @@ function readerAt(t: number, inputs: AplInputs): AuraReader {
 	};
 }
 
-/** The bars and the clock at one press, reconstructed from the curves and the presses that came before. */
-function stateAt(t: number, inputs: AplInputs): State {
-	const energy = valueAt(inputs.energy, t);
+/**
+ * The bars and the clock at one press, reconstructed from the curves and the presses that came before.
+ *
+ * Two instants, because the honest answer needs both. `decidedAt` is when the player committed and is
+ * what everything about the *choice* is read at — the target band here, and the auras and cooldowns in
+ * `readerAt` and `cooldownsAt` beside it. `landedAt` is when the press completed, and the bars are read
+ * there for a mechanical reason rather than a principled one: a resource reading exists only on the
+ * `cast` event, so the pre-spend value this function's own doc relies on is stamped at the landing. A
+ * bar probed at `decidedAt` would return the *previous* press's post-spend reading instead, which is a
+ * different press's number and worse than the one it replaced.
+ *
+ * The two are equal for every instant press, and Elemental — the only spec with cast times — declares
+ * `barsRequired: false` and hands over empty curves, so no shipped figure depends on the split today.
+ * It is written down because the next cast-time spec that reads a bar will, and interpolating a
+ * reading that nobody held is not the answer.
+ */
+function stateAt(decidedAt: number, landedAt: number, inputs: AplInputs): State {
+	const energy = valueAt(inputs.energy, landedAt);
 	const energyMax = inputs.energy.max;
 	return {
-		t,
-		chi: valueAt(inputs.chi, t),
+		// The state's own clock is the decision instant, so every rule reading `state.t` — `bandFor`,
+		// `ready`, each rule's own `condition` — is judged at the commit without having to know it.
+		t: decidedAt,
+		chi: valueAt(inputs.chi, landedAt),
 		chiMax: inputs.chi.max,
 		energy,
 		energyMax,
@@ -456,7 +488,7 @@ function stateAt(t: number, inputs: AplInputs): State {
 		//
 		// The damage band. `bandFor` below swaps in the trigger band for the rules that want it — this is
 		// the base state, so a spec that declares no hit-count trigger never sees a second number.
-		band: inputs.forceBand ?? bandOf(inputs.targetsAt(t)),
+		band: inputs.forceBand ?? bandOf(inputs.targetsAt(decidedAt)),
 	};
 }
 
@@ -484,6 +516,9 @@ function bandFor(rule: AplRule, state: State, inputs: AplInputs): Band {
  * `readyWhen` answers first: it is the button's own clock being reset from outside, and a reset
  * cannot be late — the press the player just made is the reset having landed.
  */
+// `t` is the decision instant and `lastCast` holds landing instants, and the asymmetry is deliberate:
+// the question is "was it off cooldown when I chose", and a spell's cooldown starts when the cast
+// *completes*. Reading both off the same clock would be wrong in one direction or the other.
 function ready(rule: AplRule, t: number, lastCast: ReadonlyMap<number, number>, auras: AuraReader): boolean {
 	if (rule.cooldownMs === undefined) return true;
 	if (rule.readyWhen !== undefined && rule.readyWhen(auras)) return true;
@@ -595,13 +630,14 @@ function judge(
 		const unreadable = (): AplPress =>
 			rule.id === cast.id
 				? {
-						t: state.t,
+						t: cast.t,
+						decidedAt: state.t,
 						pressed: cast.id,
 						wanted: rule.key,
 						reason: rule.reason?.(ruleState) ?? null,
 						verdict: 'followed',
 					}
-				: { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'unknown' };
+				: { t: cast.t, decidedAt: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'unknown' };
 
 		const wants = rule.condition(ruleState, auras, cooldowns);
 		if (wants === 'unknown') return unreadable();
@@ -615,14 +651,16 @@ function judge(
 
 		return rule.id === cast.id
 			? {
-					t: state.t,
+					t: cast.t,
+					decidedAt: state.t,
 					pressed: cast.id,
 					wanted: rule.key,
 					reason: rule.reason?.(ruleState) ?? null,
 					verdict: 'followed',
 				}
 			: {
-					t: state.t,
+					t: cast.t,
+					decidedAt: state.t,
 					pressed: cast.id,
 					wanted: rule.key,
 					reason: rule.reason?.(ruleState) ?? null,
@@ -633,7 +671,7 @@ function judge(
 	// Nothing on the ladder wanted the global. A cooldown, a defensive, a taunt — or a rotational
 	// button the player could not afford, which is a resource problem the energy and chi sections
 	// already argue about rather than a priority mistake.
-	return { t: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'off-list' };
+	return { t: cast.t, decidedAt: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'off-list' };
 }
 
 /**
@@ -649,7 +687,20 @@ export function aplAudit(inputs: AplInputs, ladder: readonly AplRule[]): AplAudi
 		return null;
 
 	const reduction = inputs.chiCostReduction ?? 0;
-	const onGcd = inputs.casts.filter((c) => c.onGcd);
+	/**
+	 * The presses that cost a global, in the order they were **decided**.
+	 *
+	 * Re-sorted, and it has to be. `marks` arrives sorted by landing, and once cast times differ the two
+	 * orders are different permutations: an instant pressed 200ms after a 2.5s Lightning Bolt landed was
+	 * committed 2.3s *before* it. This walk builds `lastCast` forward as it goes, so a walk in landing
+	 * order judging at the commit instant would check a cooldown against a press that had not been made
+	 * yet. Measured on the committed fixtures, this reorders 1-2 presses per pull — small, and silent if
+	 * missed.
+	 */
+	const onGcd = inputs.casts
+		.filter((c) => c.onGcd)
+		.map((c) => ({ ...c, decidedAt: c.begin ?? c.t }))
+		.sort((a, b) => a.decidedAt - b.decidedAt || a.t - b.t);
 	const seen = new Set(onGcd.map((c) => c.id));
 
 	// When each rule's button was last pressed, walked forward with the casts so a cooldown check is a
@@ -660,14 +711,19 @@ export function aplAudit(inputs: AplInputs, ladder: readonly AplRule[]): AplAudi
 	const skips = new Map<AplRuleKey, number>();
 
 	for (const cast of onGcd) {
-		const state = stateAt(cast.t, inputs);
-		const auras = readerAt(cast.t, inputs);
-		const cooldowns = cooldownsAt(cast.t, ladder, lastCast, inputs.offLadderCooldowns);
+		// Judged at the commit throughout — the auras, the cooldown queries and the target band are all
+		// read at the moment the player chose, which is the thing the priority list decides. The bars are
+		// the one exception and `stateAt` explains why.
+		const state = stateAt(cast.decidedAt, cast.t, inputs);
+		const auras = readerAt(cast.decidedAt, inputs);
+		const cooldowns = cooldownsAt(cast.decidedAt, ladder, lastCast, inputs.offLadderCooldowns);
 		const verdict = judge(cast, state, auras, cooldowns, seen, reduction, lastCast, ladder, inputs);
 		presses.push(verdict);
 		if (verdict.verdict === 'skipped' && verdict.wanted !== null) {
 			skips.set(verdict.wanted, (skips.get(verdict.wanted) ?? 0) + 1);
 		}
+		// The landing, not the commit: a cooldown starts when the cast completes, so this is what a later
+		// `ready()` has to subtract from. See the note on `ready`.
 		lastCast.set(cast.id, cast.t);
 	}
 

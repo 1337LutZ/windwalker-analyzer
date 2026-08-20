@@ -56,8 +56,14 @@ describe('a surge that expired while the boss was away', () => {
 	});
 
 	it('says which presses were free and which reset made them free', () => {
-		expect(lavaBurst.presses.filter((p) => p.surge)).toHaveLength(23);
-		expect(lavaBurst.presses.filter((p) => p.ascendance)).toHaveLength(23);
+		// Seventeen of this pull's eighteen procs were spent, and the eighteenth is the one that expired at
+		// 157 147 inside the submerge, forgiven above. The count is bounded by `procs.length` by
+		// construction — a press cannot be made free by a reset that never happened — which is what makes
+		// this a real assertion rather than a recorded output: it was 23 while the audit read the surge
+		// window at the instant the cast *landed*, and 23 is more procs than the pull ever had.
+		expect(lavaBurst.presses.filter((p) => p.surge)).toHaveLength(17);
+		expect(lavaBurst.procs).toHaveLength(18);
+		expect(lavaBurst.presses.filter((p) => p.ascendance)).toHaveLength(24);
 	});
 });
 
@@ -72,8 +78,11 @@ describe('a pull that consumed every surge it was given', () => {
 
 	it('still counts the presses and their resets apart', () => {
 		expect(lavaBurst.presses).toHaveLength(41);
-		expect(lavaBurst.presses.filter((p) => p.surge)).toHaveLength(23);
-		expect(lavaBurst.presses.filter((p) => p.ascendance)).toHaveLength(14);
+		// Every one of this pull's twenty procs was spent, which is why `wasted` is 0 above. Bounded by
+		// `procs.length` for the same reason as the phased case.
+		expect(lavaBurst.presses.filter((p) => p.surge)).toHaveLength(20);
+		expect(lavaBurst.procs).toHaveLength(20);
+		expect(lavaBurst.presses.filter((p) => p.ascendance)).toHaveLength(15);
 	});
 });
 

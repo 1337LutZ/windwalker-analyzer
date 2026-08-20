@@ -180,8 +180,27 @@ export interface CastRow {
  * it answers is "what was up when this button went out", which no per-ability total can reach.
  */
 export interface CastMark {
-	/** Fight-relative ms, like every other timestamp in this file. */
+	/**
+	 * Fight-relative ms, like every other timestamp in this file — the instant the press **landed**.
+	 *
+	 * Deliberately still the landing instant now that `begin` exists beside it, and not because it is
+	 * the more useful of the two. It is a **join key**: `chiAudit.walk.points` are stamped on the raw
+	 * `cast` event, and `specs/windwalker/lib/index.ts` looks the chi bar up by exact equality against
+	 * this field. Re-pointing `t` would turn every one of those lookups into a miss, and the miss path
+	 * `continue`s — silently disabling the Blackout Kick starvation audit with no error and no failing
+	 * test. `view/blackoutKick.ts` joins `AplPress.t` to the cast list the same way. So `t` keeps its
+	 * meaning and the new instant gets a new name.
+	 */
 	t: number;
+	/**
+	 * When the press was **committed** — its `begincast`, or `t` for an instant press.
+	 *
+	 * The decision instant. What the player could see when they chose is what a priority list grades,
+	 * and for a 2.5s Lightning Bolt that is two and a half seconds before `t`. Absent on a mark built
+	 * before this field existed, and equal to `t` on every instant press, so a reader may treat
+	 * `begin ?? t` as always correct.
+	 */
+	begin?: number;
 	/**
 	 * The button's canonical cast id, which is what resolves an icon — *not* whichever id the log
 	 * happened to use first. Jab logs one id per weapon type, and those ids carry the weapon's icon.

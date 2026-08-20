@@ -97,6 +97,9 @@ describe('the ladder opportunities, quoted rather than re-judged', () => {
 		const audit: AplAudit = {
 			presses: Array.from({ length: 9 }, (_, i) => ({
 				t: i * 1000,
+				// Rushing Jade Wind is instant, so the press was decided when it landed. Every synthetic
+				// press in this file is an instant one, which is why the two instants coincide here.
+				decidedAt: i * 1000,
 				pressed: RJW_CAST_ID,
 				wanted: null,
 				verdict: 'skipped' as const,

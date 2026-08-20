@@ -873,6 +873,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		selfEvents,
 		raidStormlash,
 		castTimes,
+		castBeginTimes,
 		primaryID,
 		primaryName,
 		engaged,
@@ -1179,7 +1180,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// `readyWhen` is exactly those two resets. The section answers the one question a bare cast count
 	// cannot: a surge that expired with no Lava Burst inside was a free cast thrown away.
 	const lavaSurgeWindows = selfWindows(LAVA_SURGE);
-	const lavaBurstCasts = castTimes(LAVA_BURST);
+	/**
+	 * The commit instant, not the landing, and this one changes real numbers.
+	 *
+	 * A surge is spent the moment the player starts the cast — that is what consumes the buff and what
+	 * makes the cast free. Lava Burst takes two seconds, so a player who reacts to a surge nine seconds
+	 * into its ten-second window commits inside the window and *lands* a second after it closed. Read at
+	 * the landing, every one of those presses fell outside `[start, end]`: the proc was reported wasted
+	 * and the press reported as not benefiting, on a pull where the player did exactly the right thing.
+	 * A systematic false positive against late-window reactions, and the later the reaction the more
+	 * certain the accusation.
+	 *
+	 * The same argument covers Ascendance below. Ascendance removes Lava Burst's cooldown for fifteen
+	 * seconds; a press committed at 14.5s benefits from it and lands at 16.5s outside it.
+	 */
+	const lavaBurstCasts = castBeginTimes(LAVA_BURST);
 	const lavaSurgeProcs = lavaSurgeWindows.map((w) => {
 		const consumed = lavaBurstCasts.some((t) => t >= w.start && t <= w.end);
 		return {

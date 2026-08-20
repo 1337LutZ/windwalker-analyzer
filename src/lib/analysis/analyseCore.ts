@@ -700,6 +700,10 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 				const castTimeMs = castDurations.get(`${c.id}:${t}`);
 				return {
 					t,
+					// The commit instant, carried beside the landing rather than replacing it — see `CastMark`.
+					// Derived from the same duration the cast bar is drawn from, so the mark, the bar and the
+					// GCD walk cannot disagree about when this press started.
+					begin: t - (castTimeMs ?? 0),
 					// The button's canonical id, not `c.id` — which is whichever id the log happened to use
 					// first. Jab logs one id per weapon type and those ids carry the *weapon's* icon, so a monk
 					// holding a sword would have had every Jab on the timeline drawn as a sword.
