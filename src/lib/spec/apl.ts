@@ -1,7 +1,8 @@
 import type { CastMark, ResourceCurve, Window } from '~/lib/types';
 
-import type { AuraLevel } from '../analysis/auras';
+import { levelAt, type AuraLevel } from '../analysis/auras';
 import { inWindow, remainingIn } from '../analysis/auras';
+import { valueAtOrBefore } from '../analysis/search';
 
 /**
  * The priority-list audit engine, run against a spec's ladder.
@@ -203,6 +204,37 @@ export interface CooldownReader {
  * a false condition means the list did not want it, while a button the list wanted and the player
  * could not afford is not a decision at all. Both have to be true for a rule to claim a global.
  */
+/**
+ * One ladder entry as the reference views read it: the rule with its closures taken off.
+ *
+ * A component cannot be handed an `AplRule` — the conditions are functions over a live `State`, and a
+ * reference list has no pull to evaluate them against. This is the flat projection, and it is generic
+ * over the key type so both specs share it: each had written the identical fifteen lines, differing
+ * only in the name of its own key union, comments included.
+ */
+export interface LadderEntry<K extends string> {
+	key: K;
+	id: number;
+	/** Resolved rather than optional: an entry that named no bands exists in all four, so say all four. */
+	bands: readonly Band[];
+	talent: boolean;
+	/** The button that removes this one from the bars, when one does. */
+	replacedBy?: number;
+}
+
+/** Flattens a spec's ladder into `LadderEntry` rows, resolving the two defaults as it goes. */
+export function ladderEntries<K extends string>(
+	ladder: ReadonlyArray<AplRule & { key: K }>,
+): ReadonlyArray<LadderEntry<K>> {
+	return ladder.map((rule) => ({
+		key: rule.key,
+		id: rule.id,
+		bands: rule.bands ?? ALL_BANDS,
+		talent: rule.talent === true,
+		...(rule.replacedBy === undefined ? {} : { replacedBy: rule.replacedBy }),
+	}));
+}
+
 export interface AplRule {
 	key: AplRuleKey;
 	/** The cast id a press has to match to count as following this rule. */
@@ -316,22 +348,7 @@ export interface State {
  * before the first landed hit the player was demonstrably fighting nothing — and the wrong one for a
  * bar, where "no reading yet" and "empty" are different facts about the pull.
  */
-function valueAt(curve: ResourceCurve, t: number): number | null {
-	const points = curve.points;
-	let lo = 0;
-	let hi = points.length - 1;
-	let found = -1;
-	while (lo <= hi) {
-		const mid = (lo + hi) >> 1;
-		const point = points[mid];
-		if (point === undefined) break;
-		if (point[0] <= t) {
-			found = mid;
-			lo = mid + 1;
-		} else hi = mid - 1;
-	}
-	return points[found]?.[1] ?? null;
-}
+const valueAt = (curve: ResourceCurve, t: number): number | null => valueAtOrBefore(curve.points, t);
 
 /** Aura state frozen at one moment, so a rule cannot accidentally read a different `t` than its neighbours. */
 function readerAt(t: number, inputs: AplInputs): AuraReader {
@@ -347,26 +364,17 @@ function readerAt(t: number, inputs: AplInputs): AuraReader {
 			const windows = inputs.auras[key];
 			return windows === undefined ? 0 : remainingIn(t, windows);
 		},
-		// The last stretch that opened at or before `t`, and the level it held across the stretch.
-		// Null before the first stretch, on the same terms as a bar: "no reading yet" and "zero stacks"
-		// are different facts about the pull, and zero is the wrong answer for Lightning Shield at the
+		// The last stretch that opened before `t`, and the level it held across the stretch. The
+		// before-boundary reading matters for the same reason it does in `levelAt`: a press that spends
+		// the counter (Earth Shock draining Lightning Shield) is stamped at the same moment as the
+		// spend, so the level the press saw is the one before it. Null before the first stretch and
+		// null across a gap, on the same terms as a bar: "no reading yet" and "zero stacks" are
+		// different facts about the pull, and zero is the wrong answer for Lightning Shield at the
 		// bell.
 		stacks: (key) => {
 			const levels = inputs.stackLevels?.[key];
 			if (levels === undefined || levels.length === 0) return null;
-			let lo = 0;
-			let hi = levels.length - 1;
-			let found = -1;
-			while (lo <= hi) {
-				const mid = (lo + hi) >> 1;
-				const stretch = levels[mid];
-				if (stretch === undefined) break;
-				if (stretch.start <= t) {
-					found = mid;
-					lo = mid + 1;
-				} else hi = mid - 1;
-			}
-			return found === -1 ? null : (levels[found]?.level ?? null);
+			return levelAt(levels, t);
 		},
 	};
 }

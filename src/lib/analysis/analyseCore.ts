@@ -15,7 +15,7 @@
 
 import SPELLS from '~/generated/spells.json';
 import type { DamageEvent, WclEvent } from '~/lib/events';
-import { abilityIdOf, eventsOn, isCast, isDamage, isDeath, isResurrect } from '~/lib/events';
+import { abilityIdOf, eventsOn, instanceKey, isBeginCast, isCast, isDamage, isDeath, isResurrect } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
@@ -40,7 +40,7 @@ import type {
 	TargetMode,
 	Window,
 } from '~/lib/types';
-import { auraWindows } from './auras';
+import { type AuraWindow, auraWindows } from './auras';
 import { buildCastTable, castSeries, channelTickTimes, measureChannels, type CastSeries, type Channel } from './casts';
 import { cooldownDrift } from './cooldowns';
 import { aggregateDamage, damageByTarget, primaryTargetID } from './damage';
@@ -51,7 +51,7 @@ import { type Interval, unionMs } from './intervals';
 import { makeLinker } from './links';
 import { RAID_BUFF_NAMES, readRaidBuffs } from './raidBuffs';
 import { countAt, intervalsAtLeast, targetCounts, type TargetHit } from './targets';
-import { r1 } from './format';
+import { median, r1 } from './format';
 
 /**
  * Everything the core computed that a spec's audit may read — and the only thing it may read.
@@ -74,6 +74,8 @@ export interface Handles {
 	link(t: number): string;
 	/** The player's own events (`targetID` = actor), for self-buff walks. */
 	selfEvents: readonly WclEvent[];
+	/** Every Stormlash Totem placement in the fight, from every shaman — the raid-wide Stormlash view. */
+	raidStormlash: readonly WclEvent[];
 	registry: Registry;
 	/** Casts grouped by ability, exactly as the cast table was built from. */
 	series: Map<string, CastSeries>;
@@ -128,6 +130,16 @@ export interface Handles {
 	marks: CastMark[];
 	/** The potion's windows, including one that was already running when the bell went. */
 	potionWindows: Window[];
+	/**
+	 * The raid's haste cooldown on this player — the Bloodlust group, whoever cast it — and the Troll
+	 * racial's own burst, each window carrying the variant that opened it.
+	 *
+	 * Here so a spec's audit reads the cooldown rather than re-deriving it. Published unfiltered: a
+	 * window trimmed to one section's question is the wrong picture for the next section, so the
+	 * trimming belongs to the caller.
+	 */
+	hasteWindows: AuraWindow[];
+	berserkingWindows: AuraWindow[];
 	/** The thresholds a reader owns, clamped against the spec's own schema — an audit reads the keys its schema declared. */
 	settings: AnalysisSettings;
 }
@@ -208,7 +220,6 @@ export interface SpecConfig {
 }
 
 /** How the target-count audit keys the "one enemy" reading. Same pair the debuff walk buckets on. */
-const instanceKey = (target: number, instance: number | undefined): string => `${target}:${instance ?? '-'}`;
 
 /** The full analysis of one fight for one spec. */
 export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, spec: SpecConfig): Analysis {
@@ -222,7 +233,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// chi" two readings of one clock rather than two clocks.
 	const cooldownLeewayMs = clamped.cooldownLeewayMs;
 
-	const { code, fight, actor, events, table, actors } = dataset;
+	const { code, fight, actor, events, table, actors, raidStormlash } = dataset;
 	const t0 = fight.startTime;
 	const duration = fight.endTime - fight.startTime;
 	const entry = table.damageDone.entries.find((x) => x.name === actor.name);
@@ -288,16 +299,80 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const damageEvents = events.filter(isDamage).filter((e) => mine(e.sourceID));
 	const { abilities, eventTotal } = aggregateDamage(damageEvents, spec.registry, nameOf, ignoredMultiTargetIDs);
 
+	// ------------------------------------------------------ cast durations
+	// A cast-time spell logs a `begincast` when it starts and a `cast` when it completes; an instant
+	// press logs only the `cast`. Pair each completed cast with the `begincast` that opened it to
+	// measure the cast time, and treat a `begincast` no `cast` ever follows as a cancel. Keyed per
+	// ability id and matched most-recent-first, because starting a second cast of the same spell
+	// cancels the first — the log never says so, it just starts the next `begincast`.
+	const MAX_CAST_MS = 5000;
+	const MIN_CAST_MS = 100;
+	const beginByAbility = new Map<number, number[]>();
+	const castDurations = new Map<string, number>();
+	for (const e of events) {
+		if (e.sourceID !== actor.id) continue;
+		const id = abilityIdOf(e);
+		if (id === null) continue;
+		const t = e.timestamp - t0;
+		if (isBeginCast(e)) {
+			const stack = beginByAbility.get(id) ?? [];
+			stack.push(t);
+			beginByAbility.set(id, stack);
+		} else if (isCast(e)) {
+			if (spec.registry.isChannelTick(id)) continue;
+			const stack = beginByAbility.get(id);
+			if (stack === undefined) continue;
+			const begin = stack.length > 0 ? stack[stack.length - 1] : undefined;
+			if (begin !== undefined && t - begin <= MAX_CAST_MS) {
+				stack.pop();
+				// A real cast time only: an instant press logs its `begincast` and `cast` in the same
+				// instant, and that is not a bar worth drawing or a time worth carrying into a cancel's
+				// median. Keyed by id and time, not time alone — an instant press lands in the same
+				// millisecond as the cast that finished before it, and one key would hand it that cast's
+				// time.
+				if (t - begin >= MIN_CAST_MS) castDurations.set(`${id}:${t}`, t - begin);
+			}
+		}
+	}
+
+	// ------------------------------------------------------------- the GCD
+	// The effective global cooldown, measured rather than taken off the spec. The start of an instant
+	// on-GCD press to the start of the next on-GCD press is exactly one GCD; a cast-time spell's gap
+	// is its cast time, so those pairs are excluded. Floored at the game's 1s minimum and capped at the
+	// spec's own GCD, so a fixed-GCD spec (Windwalker) keeps its declared value while a hasted one
+	// (Elemental) lands on what the log actually did.
+	const GCD_MIN_MS = 1000;
+	const onGcdStarts: Array<{ start: number; instant: boolean; duration: number }> = [];
+	for (const e of events) {
+		if (e.sourceID !== actor.id || !isCast(e)) continue;
+		const id = abilityIdOf(e);
+		if (id === null || spec.registry.isChannelTick(id)) continue;
+		const ability = spec.registry.abilityByCastId(id);
+		if (ability === undefined || !ability.onGcd) continue;
+		const t = e.timestamp - t0;
+		const duration = castDurations.get(`${id}:${t}`);
+		onGcdStarts.push({ start: t - (duration ?? 0), instant: duration === undefined, duration: duration ?? 0 });
+	}
+	onGcdStarts.sort((a, b) => a.start - b.start);
+	const gcdGaps: number[] = [];
+	for (let i = 1; i < onGcdStarts.length; i++) {
+		if (!onGcdStarts[i - 1]!.instant) continue;
+		gcdGaps.push(onGcdStarts[i]!.start - onGcdStarts[i - 1]!.start);
+	}
+	const effectiveGcd = gcdGaps.length > 0 ? Math.max(GCD_MIN_MS, Math.min(median(gcdGaps), spec.gcdMs)) : spec.gcdMs;
+
 	const onGcdCasts = castList.filter((c) => c.onGcd).reduce((s, c) => s + c.count, 0);
 	const offGcdCasts = castList.filter((c) => !c.onGcd).reduce((s, c) => s + c.count, 0);
-	// Each on-GCD press occupies one GCD, except a channel, which is counted at its real measured
-	// length instead of the single GCD its cast event implies.
-	//
 	// Time *occupied*, which is not the same as time *used* — a press that bought nothing occupies its
-	// global just as thoroughly as one that did. The deduction happens in the spec's audit, once it
-	// has said which presses those were, and reaches the figure through `cpm.wastedGcds`.
+	// global just as thoroughly as one that did. Each on-GCD press occupies one effective GCD, except a
+	// cast-time spell, which occupies its *measured* cast length — the begincast-to-cast gap, with
+	// haste and reaction already in it, so no base-cast-time scaling is needed — and a channel, which is
+	// counted at its real measured length. The deduction happens in the spec's audit, via
+	// `cpm.wastedGcds`.
+	const channelCount = [...channels.values()].reduce((s, list) => s + list.length, 0);
 	const occupiedMs =
-		(onGcdCasts - [...channels.values()].reduce((s, list) => s + list.length, 0)) * spec.gcdMs + channelledMs;
+		Math.max(0, onGcdStarts.reduce((s, c) => s + Math.max(effectiveGcd, c.duration), 0) - channelCount * effectiveGcd) +
+		channelledMs;
 
 	// Read from the `combatantinfo` the event fetch already returned, so this costs no request.
 	const gear = readGear(events, actor.id);
@@ -363,10 +438,25 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * away is the fight's doing — but their complement is not downtime. On an add fight the player is
 	 * fighting for most of the pull and touching the boss for very little of it, and drawing that
 	 * complement as "the fight took the target away" flagged 85% of a Galakras pull as intermission.
-	 * Ticks are out for the same reason they are out above: a tick lands on an enemy nobody is near.
+	 *
+	 * The hits are the player's own *direct* damage and nothing else. Ticks are out because a DoT keeps
+	 * ticking on a boss nobody can reach, so counting one bridges a real intermission. Pet damage is out
+	 * because a pet picks a target and stays on it. Proc damage is out for the same reason a tick is —
+	 * Essence of Yu'lon, Multistrike and the Lightning Shield discharge all fire on their own after the
+	 * cast that spawned them, and a shaman who stops casting to heal through a transition is still
+	 * "hitting" if the cloak proc is allowed to say so. Only a press that landed as a modelled ability
+	 * against an enemy is contact.
 	 */
+	const enemyIDs = new Set(actors.filter((a) => a.type === 'NPC').map((a) => a.id));
 	const contact = engagedWindows(
-		damageEvents.filter((e) => !(isDamage(e) && e.tick === true)).map((e) => e.timestamp - t0),
+		damageEvents
+			.filter((e) => e.sourceID === actor.id && !(isDamage(e) && e.tick === true))
+			.filter((e) => e.targetID !== undefined && enemyIDs.has(e.targetID))
+			.filter((e) => {
+				const id = abilityIdOf(e);
+				return id !== null && spec.registry.abilityByDamageId(id) !== undefined;
+			})
+			.map((e) => e.timestamp - t0),
 		spec.thresholds.engagedGapMs,
 	);
 	/** Named apart from `contactMs` further down, which is the target-count audit's own, narrower clock. */
@@ -512,17 +602,23 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// could disagree with the count printed beside it.
 	const marks: CastMark[] = [...series.values()]
 		.flatMap((c) =>
-			c.times.map((t) => ({
-				t,
-				// The button's canonical id, not `c.id` — which is whichever id the log happened to use
-				// first. Jab logs one id per weapon type and those ids carry the *weapon's* icon, so a monk
-				// holding a sword would have had every Jab on the timeline drawn as a sword.
-				id: c.ability?.castIds[0] ?? c.id,
-				name: c.ability?.name ?? nameOf(c.id),
-				// An unmodelled press reads as off-GCD, the same assumption `buildCastTable` makes and for
-				// the same reason: a trinket drawn at the weight of a global claims a global was spent.
-				onGcd: c.ability?.onGcd ?? false,
-			})),
+			c.times.map((t) => {
+				// `c.id` is the series' representative id, which for every cast-time button in this report
+				// is its one cast id — the same id the pairing keyed on above.
+				const castTimeMs = castDurations.get(`${c.id}:${t}`);
+				return {
+					t,
+					// The button's canonical id, not `c.id` — which is whichever id the log happened to use
+					// first. Jab logs one id per weapon type and those ids carry the *weapon's* icon, so a monk
+					// holding a sword would have had every Jab on the timeline drawn as a sword.
+					id: c.ability?.castIds[0] ?? c.id,
+					name: c.ability?.name ?? nameOf(c.id),
+					// An unmodelled press reads as off-GCD, the same assumption `buildCastTable` makes and for
+					// the same reason: a trinket drawn at the weight of a global claims a global was spent.
+					onGcd: c.ability?.onGcd ?? false,
+					...(castTimeMs === undefined ? {} : { castTimeMs }),
+				};
+			}),
 		)
 		.sort((a, b) => a.t - b.t)
 		// One press, one mark — even when the log writes the press twice.
@@ -541,6 +637,37 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			const prev = all[i - 1];
 			return prev === undefined || prev.name !== mark.name || prev.id === mark.id || mark.t - prev.t > spec.samePressMs;
 		});
+
+	// -------------------------------------------------- cancelled casts
+	// The `begincast`s no `cast` ever completed — a press that started and was interrupted. Each carries
+	// the cast time the spell would have needed, read from the median of that same button's completed
+	// casts, so the red bar the timeline draws is the global the reader lost rather than a marker of
+	// unknown width. A button that was only ever cancelled falls back to a global and a half.
+	const castTimesById = new Map<number, number[]>();
+	for (const mark of marks) {
+		if (mark.castTimeMs === undefined) continue;
+		const list = castTimesById.get(mark.id) ?? [];
+		list.push(mark.castTimeMs);
+		castTimesById.set(mark.id, list);
+	}
+	const cancels: CastMark[] = [];
+	for (const [rawId, stack] of beginByAbility) {
+		const ability = spec.registry.abilityByCastId(rawId);
+		const id = ability?.castIds[0] ?? rawId;
+		const expected = castTimesById.get(id);
+		const castTimeMs = expected !== undefined && expected.length > 0 ? Math.round(median(expected)) : 1500;
+		for (const t of stack) {
+			cancels.push({
+				t,
+				id,
+				name: ability?.name ?? nameOf(rawId),
+				onGcd: ability?.onGcd ?? false,
+				castTimeMs,
+				cancelled: true,
+			});
+		}
+	}
+	cancels.sort((a, b) => a.t - b.t);
 
 	// ----------------------------------------------------------- player's deaths
 	/**
@@ -717,6 +844,20 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		};
 	})();
 
+	// --------------------------------------------------- raid haste cooldown
+	// The Bloodlust group and Berserking, detected here so every spec shades them on the timeline
+	// without writing its own audit. The player's own aura events are the source, and the shared auras
+	// carry the ids and the Bloodlust variants.
+	//
+	// Read before the audit runs rather than after it, because a spec's own sections want the same
+	// windows: the Windwalker grades Energizing Brew against the raid cooldown, and it used to walk
+	// the events a second time to get them. Two walks over one aura are two things that can disagree
+	// the moment either side gains a guard, and the section and the band drawn under it disagreeing
+	// about where Bloodlust started is not a bug a reader can see. One walk, published on the handles
+	// and on the timeline both.
+	const hasteWindows = auraWindows(selfEvents, spec.registry.aura('bloodlust'), t0, fight.endTime);
+	const berserkingWindows = auraWindows(selfEvents, spec.registry.aura('berserking'), t0, fight.endTime);
+
 	// ------------------------------------------------------------------- hooks
 	// The audit runs once the press marks and the resource samples exist — the last things its own
 	// audits read. It sees nothing but these handles, and `identify` runs before it because the spec
@@ -732,6 +873,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		nameOf,
 		link,
 		selfEvents,
+		raidStormlash: raidStormlash ?? [],
 		registry: spec.registry,
 		series,
 		castList,
@@ -761,6 +903,8 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		lostCasts,
 		marks,
 		potionWindows,
+		hasteWindows,
+		berserkingWindows,
 		settings: clamped,
 	};
 
@@ -794,7 +938,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			totalCpm: activeMs > 0 ? onGcdCasts / (activeMs / 60000) : 0,
 			onGcdCasts,
 			offGcdCasts,
-			gcdSlots: Math.floor(activeMs / spec.gcdMs),
+			gcdSlots: Math.floor(activeMs / effectiveGcd),
 			activeMs,
 			activePct: duration > 0 ? (activeMs / duration) * 100 : 0,
 			// The audit's two fields are merged in below, once it has run; the price it sets for
@@ -803,7 +947,9 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			channelSec: 0,
 		},
 		casts: castList,
-		timeline: { deaths },
+		// The core's half of the timeline: the deaths, and the contact clock every spec shades
+		// intermissions against — the spec's audit merges its own presses and lanes over this.
+		timeline: { deaths, contactSegments: contact, cancels, hasteWindows, berserkingWindows },
 		lostCasts,
 		targets: {
 			windowMs: spec.thresholds.targetWindowMs,
@@ -826,7 +972,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// prices them against the time the pull actually occupied, so the deduction and the headline stay
 	// readings of one clock.
 	const wastedGcds = audit.cpm.wastedGcds ?? 0;
-	const productiveMs = Math.max(0, occupiedMs - wastedGcds * spec.gcdMs);
+	const productiveMs = Math.max(0, occupiedMs - wastedGcds * effectiveGcd);
 
 	// `core.timeline` and `audit.timeline` are both optional on their interfaces — the committed
 	// fixtures predate them — but `analyseCore` itself always fills the first and the spec's audit

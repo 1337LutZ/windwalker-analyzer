@@ -9,7 +9,7 @@ import {
 } from '~/lib/events';
 import type { Aura } from '~/lib/game/model';
 import type { Window } from '~/lib/types';
-import { unionMs, type Interval } from './intervals';
+import { overlapMs, unionMs, type Interval } from './intervals';
 
 /**
  * Aura events stamped this close to a cast are treated as belonging to that cast.
@@ -20,6 +20,16 @@ import { unionMs, type Interval } from './intervals';
  * 15 of 33 presses wasted; with this guard the real answer was 0.
  */
 export const SELF_EVENT_MS = 250;
+
+/**
+ * The shortest gap in an aura worth calling a drop.
+ *
+ * One global. Below that it is refresh jitter — the log stamping a remove a few hundred milliseconds
+ * before the reapply that replaced it — and jitter reported as a drop is a fault the pull did not
+ * have. Every reader of a dot's downtime wants the same threshold, so it lives beside the walk that
+ * produces the windows rather than inside whichever spec asked first.
+ */
+export const DROP_MS = 1000;
 
 /** A window, plus the id that opened it — which is the variant when the aura's ids encode one. */
 export interface AuraWindow extends Window {
@@ -256,6 +266,40 @@ export function auraLevels(events: readonly WclEvent[], aura: Aura, t0: number, 
 }
 
 /**
+ * The level a stacking aura held at a press, as `auraLevels` recorded it.
+ *
+ * Read at `t - guardMs`, deliberately: the change the press caused is stamped at — or, more often, a
+ * millisecond *before* — the press itself. Earth Shock and its Fulmination are the standing case —
+ * the Lightning Shield drain logs one millisecond ahead of the cast that caused it — and reading the
+ * drain as already done turned a full seven-stack shield into a one-stack one. The guard is the same
+ * `SELF_EVENT_MS` window `remainingAtCast` uses, for the same reason: the press's own aura events are
+ * the one thing the question "what did the press see" must be blind to.
+ *
+ * Null before the first stretch (no reading yet) and null across a gap (the aura was down), which
+ * are different facts from "held one stack".
+ */
+export function levelAt(levels: readonly AuraLevel[], t: number, guardMs = SELF_EVENT_MS): number | null {
+	const at = t - guardMs;
+	let lo = 0;
+	let hi = levels.length - 1;
+	let found = -1;
+	while (lo <= hi) {
+		const mid = (lo + hi) >> 1;
+		const stretch = levels[mid];
+		if (stretch === undefined) break;
+		if (stretch.start < at) {
+			found = mid;
+			lo = mid + 1;
+		} else hi = mid - 1;
+	}
+	if (found === -1) return null;
+	const stretch = levels[found];
+	// `end >= at` rather than trusting `start < at` alone: a stretch that ended before `at` means the
+	// aura was down at `at`, and its last level is not the level that held there.
+	return stretch !== undefined && stretch.end >= at ? stretch.level : null;
+}
+
+/**
  * The stretches an aura held at least `atLeast` stacks, as windows.
  *
  * Adjacent stretches are joined, so a level walking 2 → 1 without ever reaching 0 reads as one
@@ -288,6 +332,82 @@ export function inWindow(t: number, windows: readonly Window[]): boolean {
 export function remainingIn(t: number, windows: readonly Window[]): number {
 	const w = windows.find((x) => t >= x.start && t <= x.end);
 	return w ? w.end - t : 0;
+}
+
+/** A stretch an aura was absent for: when it fell off, and for how long. */
+export interface AuraGap {
+	t: number;
+	ms: number;
+}
+
+/**
+ * The gaps between an aura's windows that count as drops, with the fight's own interruptions excluded.
+ *
+ * **Anything below `dropMs` is refresh jitter**, not a drop — the log stamping a remove a few hundred
+ * milliseconds before the reapply that replaced it. That rule always applies.
+ *
+ * How the intermission is excluded depends on whether the caller can prove one happened:
+ *
+ * **Given `away`, the exclusion is evidence-based.** Each gap is charged only for the part of it the
+ * player was actually in contact — `ms` comes back as that exposed time, not the raw gap — so a dot
+ * missing while the boss is untargetable costs nothing and a dot missing while it is right there
+ * costs all of it. This is the honest reading and it is what a caller should pass whenever it has a
+ * contact clock. Measured on `a:qHRAFwdGzaB6MPYC` #14: four gaps of 36ms, 888ms, 643ms and 41 914ms,
+ * where the long one carries only 529ms of contact and is correctly forgiven for being the boss's
+ * submerge, while the same rule would still report a 20s hole taken with the boss in reach.
+ *
+ * **Without `away`, the single longest gap is treated as the intermission.** A heuristic, kept for the
+ * Windwalker, which grew up on it and prints the figure it forgave. It under-reports by one on a fight
+ * with two intermissions, which is why the caller keeps every window in its output and filters only
+ * this list. Excluded by *position* rather than by value: two gaps of identical length are not
+ * far-fetched, because these are quantised to the aura's own apply and expire stamps, and filtering on
+ * `ms !== longest` threw away *both*, forgiving a real drop because an unrelated one matched its
+ * length.
+ *
+ * The heuristic is the dangerous one and it is why `away` exists. It forgives the largest gap
+ * *unconditionally* — so on a single-phase pull, the one real drop a player made is the largest gap
+ * there is, and the ledger goes silent about it. That is exactly what happened when the Elemental's
+ * Flame Shock ledger was first moved onto this function.
+ *
+ * `windows` must be sorted and disjoint — merge it first. Overlapping input yields negative gaps,
+ * which come back as no drops and a nonsense `intermissionMs` rather than an error.
+ */
+export function auraDrops(
+	windows: readonly Interval[],
+	dropMs = DROP_MS,
+	away?: readonly Interval[],
+): { drops: AuraGap[]; intermissionMs: number } {
+	const gaps: AuraGap[] = [];
+	for (let i = 1; i < windows.length; i += 1) {
+		const prev = windows[i - 1];
+		const cur = windows[i];
+		if (prev && cur) gaps.push({ t: prev[1], ms: cur[0] - prev[1] });
+	}
+
+	if (away !== undefined) {
+		const drops: AuraGap[] = [];
+		let forgiven = 0;
+		for (const gap of gaps) {
+			const absent = overlapMs(gap.t, gap.t + gap.ms, away);
+			const exposed = gap.ms - absent;
+			forgiven += absent;
+			// Charged for the exposed time, and judged on it too: a 42-second hole with half a second of
+			// contact in it is half a second of fault, which is below the jitter floor and says nothing.
+			if (exposed > dropMs) drops.push({ t: gap.t, ms: exposed });
+		}
+		return { drops, intermissionMs: forgiven };
+	}
+
+	let longestAt = -1;
+	gaps.forEach((g, i) => {
+		if (longestAt === -1 || g.ms > (gaps[longestAt]?.ms ?? -1)) longestAt = i;
+	});
+	return {
+		drops: gaps.filter((g, i) => g.ms > dropMs && i !== longestAt),
+		// The gap that was taken out, so a caller can print what it forgave rather than re-deriving it
+		// from a second walk and risking a different answer.
+		intermissionMs: longestAt === -1 ? 0 : (gaps[longestAt]?.ms ?? 0),
+	};
 }
 
 export function uptimePct(windows: readonly Window[], durationMs: number): number {
