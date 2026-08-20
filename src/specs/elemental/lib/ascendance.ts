@@ -1,173 +1,225 @@
-// The Ascendance press rule the audit models but does not judge: whether the fifteen seconds were
-// spent inside the raid's haste cooldown.
+// The Ascendance press rules the audit models but never judged: whether each press rode the
+// cooldown it was supposed to ride.
 //
-// `elementalAudit` already reads every input this needs — `ascPresses` from `castTimes(ASCENDANCE)`,
-// the core's `hasteWindows`, the contact clock — and `FlameShockPressKind` already carries an
-// `'ascPrep'` arm, so the audit knows Ascendance prep exists. What it never did was grade the press.
-// This module is that grade and nothing else: a pure function over the values the audit already
-// holds, so wiring it in is one call rather than a fifth concurrent edit to `index.ts`.
+// `elementalAudit` already reads every input this needs — `ascCasts` from `castTimes(ASCENDANCE)`,
+// the core's `hasteWindows`, `t16DebuffWindows`, the contact clock — and `FlameShockPressKind`
+// already carries an `'ascPrep'` arm, so the audit knows Ascendance prep exists. What it never did
+// was grade the press. This module is that grade and nothing else: a pure function over values the
+// audit already holds, so wiring it in is one call rather than another concurrent edit to `index.ts`.
+//
+// ------------------------------------------------------------- the two rules, from the sim's list
+//
+// Not invented here. `wowsims-mop/ui/shaman/elemental/apls/p5.apl.json` casts Ascendance (114049)
+// from exactly two priority entries, and the order they appear in is part of the rule:
+//
+//   priorityList[14]  dotRemainingTime(8050) > 15s  AND  currentTime <= 5s
+//   priorityList[15]  dotRemainingTime(8050) > 15s  AND  auraRemainingTime(CurrentTarget, 144999) >= 10s
+//
+// So the list presses Ascendance in the opener unconditionally, and presses it later only when
+// **Elemental Discharge** — the T16 two-piece debuff — has ten seconds or more left on the target.
+// Those are the user's two sentences, in the simulator's own numbers: "max 4-5 seconds into
+// Bloodlust (if on pull)" is entry 14, and "if the T16 two-piece is present, sync it with that" is
+// entry 15.
+//
+// **Which press gets which rule is therefore settled by the press, not by the player's gear.** The
+// first Ascendance of a pull *is* the opener press, and entry 14 governs it. Every later press is at
+// least one 180-second cooldown further in, so `currentTime <= 5s` can never hold for it and entry 15
+// is the only rule that can. One total decision, no press judged twice — see `ascendanceSync`.
+//
+// This is a deliberate departure from "the two-piece rule replaces the Bloodlust rule outright", and
+// the reason is measurable rather than aesthetic. All three committed pulls press Ascendance in the
+// opener with no Elemental Discharge up at all — `phased` at 5 006 ms, `unbroken` at 3 676 ms,
+// `cleave` at 3 487 ms, against first debuff windows opening at 26 490, 23 057 and 24 794 ms. Judging
+// the opener against the discharge would fault every one of them for something entry 14 explicitly
+// sanctions, which is the "charged the player for something they could not have done" bug this audit
+// has already shipped four times.
+//
+// **The Flame Shock half of both entries is deliberately not graded here.** `dotRemainingTime(8050) >
+// 15s` is the Flame Shock section's business and the audit already publishes `fsRemainingMs` on every
+// Ascendance press for it. Grading one press against the same condition in two sections is how a
+// report ends up contradicting itself.
 //
 // ---------------------------------------------------------------- the haste cooldown
 //
-// Not re-derived here, and deliberately not a bare spell id. `src/lib/game/shared.ts:132-155`
-// declares the whole group as one aura — `ids: [2825, 32182, 80353, 90355, 146555]`, named for the
-// effect rather than for any one spell, with `variants` saying which was actually cast — and
-// `analyseCore`'s single `auraWindows(selfEvents, spec.registry.aura('bloodlust'), …)` walks it once
-// and publishes the result on `Handles.hasteWindows`, precisely so
-// a spec's audit reads the cooldown instead of walking the stream a second time. This module takes
-// those windows as a parameter. A raid with a mage instead of a shaman therefore grades identically,
-// which is the whole point of the shared table.
+// Not re-derived, and deliberately not a bare spell id. `src/lib/game/shared.ts:132-155` declares the
+// whole group as one aura — `ids: [2825, 32182, 80353, 90355, 146555]`, named for the effect rather
+// than for any one spell, with `variants` saying which was actually cast — and `analyseCore`'s single
+// `auraWindows(selfEvents, spec.registry.aura('bloodlust'), …)` walks it once and publishes the result
+// on `Handles.hasteWindows`, precisely so a spec's audit reads the cooldown instead of walking the
+// stream a second time. This module takes those windows as a parameter and never names a spell.
+//
+// That it works for the whole group is measured, not asserted: the three committed pulls carry three
+// *different* members of it — Heroism (32182) on `phased`, cast by another player; Bloodlust (2825) on
+// `unbroken`, cast by the shaman himself; Time Warp (80353) on `cleave`. All three read identically.
 //
 // Two consequences of that walk are load-bearing below, and neither is this module's to fix:
 //
 //   - The Bloodlust aura declares no `durationMs`, so `auraWindows`' `openAtPull` inference can never
-//     fire for it (`auraWindows` refuses that rule without a duration bound). A haste cooldown
-//     cast *before* the bell leaves nothing in a fight-scoped stream but its own `removebuff`, which
-//     the default walk discards. Such a pull reads as "no haste cooldown on the pull" and is not
-//     graded — silence, not a zero.
+//     fire for it (`auraWindows` refuses that rule without a duration bound). A haste cooldown cast
+//     *before* the bell leaves nothing in a fight-scoped stream but its own `removebuff`, which the
+//     default walk discards. Such a pull reads as "no haste cooldown on the pull" and is not graded —
+//     silence, not a zero.
 //   - `hasteWindows` is built from `selfEvents`, i.e. events whose `targetID` is the player
 //     (`events/parse.ts:26`), so a shaman who lusts the raid does not close his own window with
 //     somebody else's `removebuff`. Measured: `unbroken` carries 45 events of id 2825 and comes back
 //     as exactly one window, `[785, 40790]`.
 //
-// ------------------------------------------------------- the T16 four-piece, from the source
+// ------------------------------------------------- the T16 two-piece, and the id it must NOT read
 //
-// Established from the simulator and from both committed anonymous pulls, not from memory, and the
-// finding is that **there is nothing here for Ascendance to be synced with.**
+// Established from the simulator, the 5.4 client data and all three committed pulls.
 //
-// The Elemental T16 set is `ItemSetCelestialHarmonyRegalia`,
-// `wowsims-mop/sim/shaman/items_mop.go:98`. Its four-piece (`items_mop.go:141-153`) is:
+// The set is `ItemSetCelestialHarmonyRegalia` (`wowsims-mop/sim/shaman/items_mop.go:98`). Its
+// two-piece (`items_mop.go:100-140`) registers **one** aura, on the enemy:
 //
-//     Callback: core.CallbackOnSpellHitDealt, Outcome: core.OutcomeLanded,
-//     ClassSpellMask: SpellMaskLightningBolt | SpellMaskChainLightning,
-//     ICD: time.Second * 60,
-//     Handler: shaman.LightningElemental.EnableWithTimeout(sim, …, 10*time.Second)
+//     ActionID: core.ActionID{SpellID: 144999}, Duration: time.Second * 2, MaxStacks: 6,
+//     OnStacksChange: aura.Duration = time.Second * 2 * time.Duration(newStacks)
+//     …AttachProcTrigger({ Callback: CallbackOnSpellHitDealt, Outcome: OutcomeLanded,
+//       ClassSpellMask: SpellMaskFulmination, TriggerImmediately: true,
+//       Handler: debuff.SetStacks(sim, shaman.LightningShieldAura.GetStacks()-1) })
 //
-// A landed Lightning Bolt or Chain Lightning has a chance, at most once a minute, to summon a
-// guardian for ten seconds. It touches Ascendance's cooldown, its duration and its damage not at
-// all. It is a proc, not a press: there is no window a player can choose to line Ascendance up with,
-// and grading a press against one would charge the player for a die roll. That would be a fifth bug
-// of the shape this audit has already shipped four times (plan steps 26, 31a, 31b, 34), which is
-// worse than shipping no grade.
+// **This is why the rule is gradeable at all.** There is no `ProcChance` and no `ICD` on that
+// trigger: every landed Fulmination applies it, and its length is `2s × (Lightning Shield charges
+// consumed)`, capped by `MaxStacks: 6` at twelve seconds. So the player chooses both whether it is up
+// and how long it lasts, and entry 15's ten-second demand means Fulminating at near-full charges
+// immediately before pressing Ascendance. That is a window a player can aim at — unlike the T16
+// *four*-piece, which is a 10-second guardian summon on a 60-second internal cooldown off a landed
+// Lightning Bolt (`items_mop.go:141-153`), a die roll with nothing to aim at and no relationship to
+// Ascendance whatsoever. The four-piece is not graded and should not be.
 //
-// The set bonus that *does* sync with Ascendance is the **T15** four-piece, `Ascendant Harmony`
-// (138144, `items_mop.go:85-91` — each Lava Burst takes 1.5s off Ascendance's cooldown). The audit
-// already models it as the `t15-4pc` aura, and `emPresses` already has a `'t15'` branch for it.
+// **Read 144999 and never 144998.** 144998 is a *set-bonus passive*: the simulator only ever
+// `ExposeToAPL`s it (`items_mop.go:138`), the client's `Spell` row for it has an **empty**
+// `AuraDescription_lang` and a description that merely forwards 144999's numbers, and it is a row in
+// `ItemSetSpell` (SpellID 144998, Threshold 2, ItemSetID 1182). A combat log never writes it. Across
+// all three committed pulls 144998 appears **zero** times, while 144999 appears 20, 18 and 24 times as
+// `applydebuff`/`refreshdebuff`/`removedebuff` sourced by the player. In the p5 list `auraIsActive(144998)`
+// is a *"do I own the two-piece"* branch selector for the Earth Shock rules, not a window.
 //
-// **Detectability, for the record, since the answer is yes and a future lane will want it.** The
-// four-piece is visible in the stream the app already fetches, though not where one would look:
-//
-//   - `combatantinfo.gear[].setID` does NOT work. Both committed pulls wear four pieces of set 1182
-//     ("Celestial Harmony Regalia", `wowsims.db` `ItemSet` 1182 → items 99092-99095, 99106), and WCL
-//     stamps `setID` on two of the four in `phased` and on none of the four in `unbroken`. Counting
-//     it reports 2 and 0 against a true 4 — a value assumed rather than read is how a sibling lane's
-//     whole bug happened.
-//   - The proc firing IS in the stream. `phased` carries five `summon` events of ability **145000**
-//     ("Summon Lightning Elemental") sourced by the player, at 1013, 62028, 122557, 192535 and
-//     252846 ms; `unbroken` carries four, at 1630, 61654, 123013 and 183329 ms. Every gap is between
-//     60 024 and 69 978 ms — the 60-second ICD above, measured rather than assumed. Presence of a
-//     `summon` of 145000 is proof of the four-piece.
-//   - Do not reach for 145003 or 144998. Both are the simulator's `ExposeToAPL` handles
-//     (`items_mop.go:138`, `:151`), not ids the game logs; 144998 appears zero times in either pull
-//     while the 2-piece's real debuff, 144999, appears eighteen and twenty times.
-//
-// So the T16 arm below is a precedence gate with no rule behind it. It is real code rather than a
-// comment because the requirement is that the four-piece rule *replaces* the Bloodlust rule rather
-// than both firing — and a precedence expressed as prose is a precedence nobody can test.
+// The audit models both — `t16-2pc-debuff` (144999) and `t16-2pc-proc` (144998) — and only the first
+// one can ever populate. See `docs/plan.md` step 49; this module takes the live windows as a
+// parameter and touches neither declaration.
 
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Interval } from '~/lib/analysis/intervals';
 import type { Window } from '~/lib/types';
 
 /**
- * How far into the raid's haste cooldown Ascendance may go before the press reads as late.
+ * How far into the raid's haste cooldown the opener may go before the press reads as late.
  *
  * **One number, and this is why it is 5 000 ms rather than the 4 000 the request also allowed.**
  *
- *   1. It is the number this audit already calls "the opener". `AscendancePress.opener` is
- *      `t <= 5000` in `ascPresses`, and `emPresses`' own `'opener'` branch is the same `t <= 5000`.
- *      No line numbers for `index.ts`: five lanes are writing that file concurrently and every number
- *      in it moves. The rule being added here *is* "Ascendance is an opener press", so reusing
- *      the opener's own boundary is what keeps the report from calling one press the opener and late
- *      into Bloodlust in the same breath. A second, nearly-identical constant is exactly how
- *      `docs/conventions.md` says numbers drift apart — "several copies carried the numbers while
- *      dropping the comment that justified them".
- *   2. It is comfortably more than the globals the opener actually needs. The Elemental `GCD_MS` is
+ *   1. It is the simulator's own opener horizon. `priorityList[14]`'s second condition is literally
+ *      `currentTime <= 5s`. The anchor differs — the sim measures from the pull and this rule measures
+ *      from the haste cooldown opening, because the user's rule is explicitly "into Bloodlust" — so
+ *      entry 14 settles the *magnitude* rather than the comparison, and it is quoted for that and
+ *      nothing more. On a lust-on-pull the two anchors are within a second of each other anyway: the
+ *      three committed pulls open theirs at 1 777, 785 and 941 ms.
+ *   2. It is the number this audit already calls "the opener" — `t <= 5000` in `ascPresses`, and the
+ *      same `t <= 5000` in `emPresses`' `'opener'` branch. Reusing it is what keeps the report from
+ *      calling one press the opener and late into Bloodlust in the same breath, and a second
+ *      nearly-identical constant is exactly the drift `docs/conventions.md` warns about. (No line
+ *      numbers for `index.ts`: several lanes are writing that file concurrently and every number in
+ *      it moves.)
+ *   3. It is comfortably more than the globals the opener actually needs. The Elemental `GCD_MS` is
  *      1 500 ms and haste shortens it; the haste cooldown is ×1.3 cast speed
- *      (`wowsims-mop/sim/core/buffs.go:689`, `multiplyCastSpeedEffect(aura, 1.3)`), so a lusted
- *      global is around 1 150 ms before any gear haste. Five seconds is four such globals, which is
- *      more than the p5 list spends before Ascendance — so a press outside it is a real delay rather
- *      than opener jitter.
- *   3. Where the request gave a range, the top of it is the direction this audit is obliged to err
- *      in. On the two committed pulls the real presses land at 3 229 ms (`phased`) and 2 891 ms
- *      (`unbroken`) into the cooldown, so the bound sits 1.8 s above the later of the two: close
- *      enough to bite on a sloppier pull, far enough not to fault a clean one.
+ *      (`wowsims-mop/sim/core/buffs.go:689`, `multiplyCastSpeedEffect(aura, 1.3)`), so a lusted global
+ *      is around 1 150 ms before any gear haste. Five seconds is four such globals — more than the p5
+ *      list spends before Ascendance, so a press outside it is a real delay rather than opener jitter.
+ *   4. Where the request gave a range, the top of it is the direction this audit is obliged to err in.
+ *      The three real presses land at 3 229, 2 891 and 2 546 ms into their cooldowns, so the bound
+ *      sits 1.8 s above the latest of them: close enough to bite on a sloppier pull, far enough not to
+ *      fault a clean one.
  *
- * It doubles as the definition of **"on the pull"** — see `ASCENDANCE_SYNC_LIMIT_MS`'s use against
- * `window.start` in `ascendanceSync`. Same reason: the rule is about the opener, so a haste cooldown
- * that went out after the opener is not the pull's, and one constant cannot drift from itself.
+ * It doubles as the definition of **"on the pull"** for the haste cooldown itself — a cooldown that
+ * opened after the opener is not the pull's, and Ascendance may well have been down for it. Same
+ * reason as above: one constant cannot drift from itself.
  */
-export const ASCENDANCE_SYNC_LIMIT_MS = 5000;
+export const ASCENDANCE_INTO_HASTE_MS = 5000;
+
+/**
+ * How much Elemental Discharge a non-opener press must have left to count as synced with it.
+ *
+ * The simulator's number, not a judgement of mine: `priorityList[15]` is
+ * `auraRemainingTime(CurrentTarget, 144999) >= 10s`. Ten of the twelve seconds the two-piece can
+ * possibly produce (`MaxStacks: 6` × 2 s), which is what makes it a real discipline test rather than a
+ * formality — it can only be met by Fulminating at near-full Lightning Shield charges in the global
+ * before the press.
+ */
+export const T16_2PC_SYNC_MIN_MS = 10_000;
 
 /**
  * Ascendance's cooldown — `wowsims-mop/sim/shaman/ascendance.go`, 180 s.
  *
  * A local copy of `index.ts`' own `ASCENDANCE_COOLDOWN_MS`, and the duplication is stated rather than
- * hidden: this
- * module is deliberately not importing from `index.ts`, because the wiring goes the other way and a
- * cycle is worse than a repeated literal. When it lands, this and the `index.ts` copy should be one
- * exported constant — `src/specs/elemental/lib/index.ts` is where the Elemental game numbers already
- * live, so exporting it there and importing it here is the resolution.
+ * hidden: this module deliberately does not import from `index.ts`, because the wiring goes the other
+ * way and a cycle is worse than a repeated literal. When it lands, this and the `index.ts` copy should
+ * be one exported constant — `src/specs/elemental/lib/index.ts` is where the Elemental game numbers
+ * already live, so exporting it there and importing it here is the resolution.
  */
 const ASCENDANCE_COOLDOWN_MS = 180_000;
 
-/** Which of the two rules was applied. Exactly one is, ever — see `ascendanceSync`. */
-export type AscendanceSyncRule = 'bloodlust' | 't16-4pc';
+/** Which rule judged one press. Exactly one ever does — see `ascendanceSync`. */
+export type AscendanceRule = 'bloodlust' | 't16-2pc';
 
 /**
- * Why the pull could not answer the question.
+ * Why a press could not be judged.
  *
  * Every one of these is a case where the log does not prove a fault, and each is reported as itself
  * rather than collapsed into a bad grade — the distinction `docs/conventions.md` draws between
  * `verdict_bad` and `verdict_none`: "a pull that never offered the chance has not failed to take it".
  */
-export type AscendanceSyncReason =
+export type AscendanceReason =
 	/** No haste cooldown opened inside the opener: never used, used later, or cast before the bell. */
 	| 'no-cooldown-on-pull'
-	/** The player never pressed Ascendance in this pull, so there is no press to place. */
-	| 'no-ascendance-press'
 	/** Ascendance was already running when the bell went — the press this rule judges is off-stream. */
 	| 'ascendance-up-at-the-pull'
 	/** The first press came more than one Ascendance cooldown in, so it may be a second charge. */
 	| 'first-press-past-one-cooldown'
-	/** Nothing was reachable inside the graded window, so the press could not have bought anything. */
+	/** Nothing was reachable when the press had to be made, so it could not have bought anything. */
 	| 'nothing-to-hit'
-	/** The T16 four-piece rule took precedence and has no window to sync against — see the module doc. */
-	| 't16-4pc-has-no-sync-window';
+	/** The caller established the player does not have the two-piece, so entry 15 does not apply. */
+	| 'no-two-piece-evidence'
+	/** The two-piece rule applies and the pull carries no Elemental Discharge at all to sync against. */
+	| 't16-2pc-not-in-log'
+	/** Less of the pull was left than the sync itself demands, so no press could have satisfied it. */
+	| 'pull-ends-too-soon';
 
-/** How the pull's Ascendance opener read against whichever rule applied. */
-export interface AscendanceSyncVerdict {
-	/** The rule that was applied. `t16-4pc` replaces `bloodlust` outright; they never both fire. */
-	rule: AscendanceSyncRule;
-	/** `none` means the pull could not answer the question, and `reason` says which way. */
+/** How one Ascendance press read against whichever rule governs it. */
+export interface AscendancePressVerdict {
+	/** The press, fight-relative. */
+	t: number;
+	/** The rule that judged it. The two never both fire on one press. */
+	rule: AscendanceRule;
+	/** `none` means this press could not be judged, and `reason` says which way. */
 	grade: 'good' | 'bad' | 'none';
-	reason: AscendanceSyncReason | null;
-	/** The window the press was measured from, fight-relative; null when there was none to read. */
-	syncStartMs: number | null;
-	/** The Ascendance press that was graded, fight-relative; null when none was. */
-	pressMs: number | null;
-	/** `pressMs - syncStartMs`. Negative when the press came first, which is not late. */
+	reason: AscendanceReason | null;
+	/** Bloodlust arm: ms from the haste cooldown opening to the press. Null under the two-piece rule. */
 	delayMs: number | null;
-	/** The bound `delayMs` was judged against, always reported so the number is never implicit. */
+	/** Two-piece arm: ms of Elemental Discharge left at the press. Null under the Bloodlust rule. */
+	dischargeRemainingMs: number | null;
+	/** The window the press was read against, fight-relative; null when there was none to read. */
+	syncStartMs: number | null;
+	/** The bound this press's own arm judged its own quantity against, so no threshold is implicit. */
 	limitMs: number;
 }
 
+/** Every Ascendance press in the pull, and the pull's worst gradeable verdict. */
+export interface AscendanceSyncVerdict {
+	presses: AscendancePressVerdict[];
+	/**
+	 * The worst grade any press earned, or `none` when not one of them could be judged.
+	 *
+	 * `bad` beats `good` beats `none`, and a pull that pressed Ascendance zero times comes back with an
+	 * empty `presses` and `none` — there is no press to have got wrong.
+	 */
+	grade: 'good' | 'bad' | 'none';
+}
+
 /**
- * Everything the rule reads, all of it already computed inside `elementalAudit`.
+ * Everything the rules read, all of it already computed inside `elementalAudit`.
  *
  * Fight-relative milliseconds throughout, which is what every one of these values already is:
- * `castTimes` returns fight-relative stamps, `auraWindows` subtracts `t0` from both ends
- * (`analysis/auras.ts:127`), and `Handles.contact` is built from the same clock.
+ * `castTimes` returns fight-relative stamps, `auraWindows` subtracts `t0` from both ends, and
+ * `Handles.contact` is built from the same clock.
  */
 export interface AscendanceSyncInput {
 	/** Every Ascendance press in the pull, ascending — `castTimes(ASCENDANCE)`. */
@@ -176,16 +228,16 @@ export interface AscendanceSyncInput {
 	 * Whether Ascendance was already running when the bell went.
 	 *
 	 * The one guard the log can actually supply against faulting a press the player could not have
-	 * made. A press made just before the pull puts the button on cooldown for three minutes and
-	 * leaves nothing in a fight-scoped stream but a bare `removebuff` of 114050, which is exactly
-	 * what `auraWindows`' `openAtPull` inference recovers — the `ascendance` aura declares
-	 * `durationMs: 15_000`, so the bound that rule needs is available. Computed the same way the audit's
-	 * own `fePrepull` already is.
+	 * made. A press made just before the pull puts the button on cooldown for three minutes and leaves
+	 * nothing in a fight-scoped stream but a bare `removebuff` of 114050, which is exactly what
+	 * `auraWindows`' `openAtPull` inference recovers — the `ascendance` aura declares
+	 * `durationMs: 15_000`, so the bound that rule needs is available. Computed the same way the
+	 * audit's own `fePrepull` already is.
 	 *
-	 * It is not a complete guard and this module does not pretend otherwise: a press more than
-	 * fifteen seconds before the bell leaves no trace at all. `first-press-past-one-cooldown` below
-	 * is the second half of the defence — beyond one full cooldown the first visible press may be a
-	 * second charge, so it is not graded.
+	 * It is not a complete guard and this module does not pretend otherwise: a press more than fifteen
+	 * seconds before the bell leaves no trace at all. `first-press-past-one-cooldown` is the second
+	 * half of the defence — beyond one full cooldown the first visible press may be a second charge, so
+	 * it is not graded.
 	 */
 	ascendanceAtPull: boolean;
 	/**
@@ -197,19 +249,23 @@ export interface AscendanceSyncInput {
 	hasteWindows: readonly AuraWindow[];
 	/** When the player had something to hit — `Handles.contact`. */
 	contact: readonly Interval[];
+	/** The pull's length, for the end-of-pull exemption — `Handles.duration`. */
+	durationMs: number;
 	/**
-	 * The T16 four-piece's sync windows, or `null` when there are none to sync against.
+	 * Elemental Discharge (144999) on the target, or `null` when the player does not have the
+	 * two-piece.
 	 *
-	 * `null` is the correct wiring today and the module doc says why at length: the Elemental
-	 * four-piece is a 10-second guardian summon on a 60-second internal cooldown, triggered by a
-	 * landed Lightning Bolt or Chain Lightning, with no relationship to Ascendance whatsoever. The
-	 * parameter exists so that the precedence is code — a non-null value takes over from the
-	 * Bloodlust rule completely — rather than a comment hoping the branch ordering works out.
+	 * `null` and `[]` are different claims and the difference is the point. `null` says the caller
+	 * established the set is not there, so entry 15 does not apply to this player at all. `[]` says the
+	 * set *is* there and the pull never landed a Fulmination, which entry 15 does apply to and cannot
+	 * be satisfied — reported as `t16-2pc-not-in-log`, never as a fall-through to the Bloodlust rule.
+	 * A gear-based detector would produce exactly that second case.
 	 *
-	 * An empty array is not the same as `null`: it says the four-piece rule applies and found nothing,
-	 * which is graded `none` / `t16-4pc-has-no-sync-window` rather than falling through to Bloodlust.
+	 * The live value in the audit is `t16DebuffWindows`, built by `dotWindowsOnTarget` from the
+	 * `t16-2pc-debuff` aura. Do not pass `twoPieceWindows`: that reads `t16-2pc-proc`, whose id the game
+	 * never logs — see the module doc and `docs/plan.md` step 49.
 	 */
-	t16FourPieceWindows: readonly Window[] | null;
+	t16TwoPieceWindows: readonly Window[] | null;
 }
 
 /**
@@ -224,80 +280,115 @@ function contactStart(contact: readonly Interval[]): number | null {
 	return contact[0]?.[0] ?? null;
 }
 
+/** Whether an instant fell inside any contact segment. */
+function inContact(contact: readonly Interval[], t: number): boolean {
+	return contact.some(([start, end]) => t >= start && t <= end);
+}
+
+const GRADE_ORDER = { none: 0, good: 1, bad: 2 } as const;
+
 /**
- * Where the pull's Ascendance opener landed relative to the cooldown it was supposed to ride.
+ * Where every Ascendance press landed relative to the cooldown it was supposed to ride.
  *
- * **Precedence is the first decision made and it is total.** When `t16FourPieceWindows` is non-null
- * the four-piece rule applies and the haste cooldown is never consulted; when it is null the
- * Bloodlust rule applies. There is no path on which both are read, which is the requirement — two
- * conditions that both fire and happen to agree today are two conditions that disagree after the
- * next edit.
+ * **Precedence is one total decision, taken per press, on the press's own index.** The first press of
+ * a pull is the opener and the Bloodlust rule judges it; every later press is at least one 180-second
+ * cooldown further in, so the simulator's `currentTime <= 5s` cannot hold for it and the two-piece
+ * rule judges it instead. No press is ever read by both rules, and the discriminator is stated once
+ * rather than falling out of the order two conditions happen to be written in.
  *
- * Everything after that decision is shared, in this order, and the order is part of the rule:
+ * Each arm then applies its own guards, and only a press that clears all of them gets a grade:
  *
- *   1. **Was there a window to measure from at all** — the rule's own precondition.
- *   2. **Did the player press it** — no press, nothing to place.
- *   3. **Can the press be attributed** — not if Ascendance was already up at the bell, and not if the
- *      first press is more than one full cooldown in.
- *   4. **Could the press have bought anything** — a graded window with nothing reachable in it is
- *      exempt, the same reading `docs/plan.md` step 22 gives every uptime denominator.
+ *   - **Bloodlust arm** — was there a haste cooldown inside the opener to measure from; can the press
+ *     be attributed to a button that was actually available (not already running at the bell, not
+ *     past one full cooldown); and had the player something to hit inside the stretch being judged.
+ *   - **Two-piece arm** — does entry 15 apply to this player at all; does the pull carry any Elemental
+ *     Discharge; was there enough pull left for the ten seconds the rule demands; and was the player
+ *     in contact at the press.
  *
- * Only a pull that clears all four gets a grade, and the grade is a single comparison against
- * `ASCENDANCE_SYNC_LIMIT_MS`. A press *before* the window opened is not late — the bound is an upper
- * bound on lateness, not a demand that the two land in a particular order — so a negative `delayMs`
- * is `good`.
+ * The end-of-pull exemption is the one worth naming, because it fires on real data. `unbroken`'s
+ * second press is at 183 734 ms of a 184 448 ms pull — 714 ms from the kill. Ten seconds of discharge
+ * could not have existed, so the press is exempt rather than bad.
  */
 export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdict {
-	const { ascendanceCasts, ascendanceAtPull, hasteWindows, contact, t16FourPieceWindows } = input;
-	const limitMs = ASCENDANCE_SYNC_LIMIT_MS;
-	const rule: AscendanceSyncRule = t16FourPieceWindows === null ? 'bloodlust' : 't16-4pc';
-	const none = (reason: AscendanceSyncReason, syncStartMs: number | null = null): AscendanceSyncVerdict => ({
-		rule,
-		grade: 'none',
-		reason,
-		syncStartMs,
-		pressMs: null,
-		delayMs: null,
-		limitMs,
+	const { ascendanceCasts, ascendanceAtPull, hasteWindows, contact, durationMs, t16TwoPieceWindows } = input;
+
+	const presses = ascendanceCasts.map((t, index): AscendancePressVerdict => {
+		// The whole of the precedence, in one expression. Index 0 is the opener press by definition;
+		// anything else is past the opener by a 180-second cooldown and entry 14 cannot reach it.
+		const rule: AscendanceRule = index === 0 ? 'bloodlust' : 't16-2pc';
+		const limitMs = rule === 'bloodlust' ? ASCENDANCE_INTO_HASTE_MS : T16_2PC_SYNC_MIN_MS;
+		const none = (reason: AscendanceReason, syncStartMs: number | null = null): AscendancePressVerdict => ({
+			t,
+			rule,
+			grade: 'none',
+			reason,
+			delayMs: null,
+			dischargeRemainingMs: null,
+			syncStartMs,
+			limitMs,
+		});
+
+		if (rule === 'bloodlust') {
+			// "If on pull": the haste cooldown that opened inside the opener. One that went out at 90s is
+			// a different tactical situation and is not read as the pull's.
+			const anchor = hasteWindows.find((w) => w.start <= ASCENDANCE_INTO_HASTE_MS);
+			if (anchor === undefined) return none('no-cooldown-on-pull');
+			if (ascendanceAtPull) return none('ascendance-up-at-the-pull', anchor.start);
+			if (t > ASCENDANCE_COOLDOWN_MS) return none('first-press-past-one-cooldown', anchor.start);
+
+			// Exempt time. The stretch being judged is `[anchor.start, anchor.start + limitMs]`, and the
+			// press only buys something if the player had a target inside it. Asked as "had contact begun
+			// by the deadline" rather than "was the press in contact", because the opener is graded on a
+			// window that legitimately opens before the first landed hit: `unbroken`'s cooldown opens at
+			// 785 ms and its contact clock does not start until 1 553 ms.
+			const reachable = contactStart(contact);
+			if (reachable === null || reachable > anchor.start + limitMs) return none('nothing-to-hit', anchor.start);
+
+			// A press *before* the cooldown landed is not late. The bound is an upper bound on lateness,
+			// not a demand that the two land in a particular order, so a negative delay grades good.
+			const delayMs = t - anchor.start;
+			return {
+				t,
+				rule,
+				grade: delayMs <= limitMs ? 'good' : 'bad',
+				reason: null,
+				delayMs,
+				dischargeRemainingMs: null,
+				syncStartMs: anchor.start,
+				limitMs,
+			};
+		}
+
+		if (t16TwoPieceWindows === null) return none('no-two-piece-evidence');
+		if (t16TwoPieceWindows.length === 0) return none('t16-2pc-not-in-log');
+		// Nothing the player did could have met a ten-second demand with less than ten seconds of pull
+		// left, so the press is exempt rather than faulted.
+		if (durationMs - t < limitMs) return none('pull-ends-too-soon');
+		// An instant, not a window: a later press is a moment in the pull, and asking whether the player
+		// was in contact at it is the honest question for a moment.
+		if (!inContact(contact, t)) return none('nothing-to-hit');
+
+		// Zero when the press found no discharge at all, which is the fault entry 15 describes rather
+		// than a missing measurement: the set is in evidence, so Fulmination was the player's to press.
+		const open = t16TwoPieceWindows.find((w) => t >= w.start && t <= w.end);
+		const dischargeRemainingMs = open === undefined ? 0 : open.end - t;
+		return {
+			t,
+			rule,
+			grade: dischargeRemainingMs >= limitMs ? 'good' : 'bad',
+			reason: null,
+			delayMs: null,
+			dischargeRemainingMs,
+			syncStartMs: open?.start ?? null,
+			limitMs,
+		};
 	});
 
-	// 1 — the window the press is measured from. For Bloodlust that is the haste cooldown that opened
-	// inside the opener, which is what "if on pull" means: a cooldown that went out at 90s is a
-	// different tactical situation and Ascendance may well have been down for it, so it is not read.
-	const anchor =
-		t16FourPieceWindows === null
-			? hasteWindows.find((w) => w.start <= limitMs)
-			: // The four-piece rule reads its own windows and stops. An empty list is the finding, not a
-				// reason to reach for the haste cooldown instead.
-				t16FourPieceWindows[0];
-	if (anchor === undefined) {
-		return none(t16FourPieceWindows === null ? 'no-cooldown-on-pull' : 't16-4pc-has-no-sync-window');
-	}
-
-	// 2 — the press. The *first* one: the rule is about the opener, and the recharge three minutes
-	// later answers a different question.
-	const pressMs = ascendanceCasts[0];
-	if (pressMs === undefined) return none('no-ascendance-press', anchor.start);
-
-	// 3 — can this press be attributed to a button that was actually available.
-	if (ascendanceAtPull) return none('ascendance-up-at-the-pull', anchor.start);
-	if (pressMs > ASCENDANCE_COOLDOWN_MS) return none('first-press-past-one-cooldown', anchor.start);
-
-	// 4 — exempt time. The graded stretch is `[anchor.start, anchor.start + limitMs]`, and the press
-	// only buys something if the player had a target inside it. A pull whose opening was an
-	// intermission, or that carried no enemy at all, cannot be charged for a late press: it is the
-	// same reading every uptime denominator in this report already takes.
-	const reachable = contactStart(contact);
-	if (reachable === null || reachable > anchor.start + limitMs) return none('nothing-to-hit', anchor.start);
-
-	const delayMs = pressMs - anchor.start;
-	return {
-		rule,
-		grade: delayMs <= limitMs ? 'good' : 'bad',
-		reason: null,
-		syncStartMs: anchor.start,
-		pressMs,
-		delayMs,
-		limitMs,
-	};
+	// The pull's headline is its worst gradeable press. A pull that pressed nothing, or whose every
+	// press was exempt, stays `none` — it has not failed to take a chance it never had.
+	const grade = presses.reduce<'good' | 'bad' | 'none'>(
+		(worst, press) => (GRADE_ORDER[press.grade] > GRADE_ORDER[worst] ? press.grade : worst),
+		'none',
+	);
+	return { presses, grade };
 }
