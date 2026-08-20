@@ -1405,13 +1405,19 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// stand-in, and the section says so.
 	const triggerWindows = new Map<'unerring-vision' | 'uvls-stacks' | 'black-blood', Interval[]>();
 	triggerWindows.set('unerring-vision', toIntervals(selfWindows(UNERRING_VISION)));
+	// `selfEvents`, not `events`, and this is not defensive tidying: both of these counters are worn by
+	// whoever has the trinket, so reading the raid's stream opened a snapshot window on this shaman's
+	// report whenever *another* player's Unerring Vision or Black Blood hit ten. The trigger beside them
+	// is self-scoped and so are the int procs these are intersected with, which is what made the odd one
+	// out invisible. It fabricated a fault — a `Snapshot missed` row for a trinket the audited player was
+	// not wearing — and it is the same species as the bug `dotWindowsOnTarget`'s comment records.
 	triggerWindows.set(
 		'uvls-stacks',
-		toIntervals(levelWindows(auraLevels(events, UNERRING_VISION_STACKS, t0, fightEnd), 10)),
+		toIntervals(levelWindows(auraLevels(selfEvents, UNERRING_VISION_STACKS, t0, fightEnd), 10)),
 	);
 	triggerWindows.set(
 		'black-blood',
-		toIntervals(levelWindows(auraLevels(events, WRATH_OF_DARKSPEAR, t0, fightEnd), 10)),
+		toIntervals(levelWindows(auraLevels(selfEvents, WRATH_OF_DARKSPEAR, t0, fightEnd), 10)),
 	);
 	const intProcWindows = mergeIntervals([
 		...toIntervals(selfWindows(BREATH_OF_HYDRA)),

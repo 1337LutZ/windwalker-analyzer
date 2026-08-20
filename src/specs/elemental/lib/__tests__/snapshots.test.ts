@@ -250,3 +250,63 @@ describe('the ledger the section feeds', () => {
 		expect(el.misses.filter((m) => m.kind.startsWith('Snapshot missed'))).toHaveLength(snapshots.missed);
 	});
 });
+
+/**
+ * Whose trinket is it?
+ *
+ * The UVLS counter and Black Blood are worn by whoever has the trinket, so a raid-mate's counter
+ * reaching ten is nothing to do with this shaman's dot. The walk used to read the whole raid's stream
+ * for those two while reading the player's own for the trigger beside them and for the int procs it
+ * intersects with, so another player's trinket opened a window here and the section reported a
+ * `Snapshot missed` for an item the audited player was not wearing.
+ *
+ * Both pulls below carry the *same* int proc on the player and the *same* counter events; only the
+ * actor the counter belongs to differs. The positive case is what stops this passing because the
+ * harness stopped seeing counters at all.
+ */
+const RAID_MATE = 4;
+
+const withCounterOn = (owner: number): Analysis & ElementalAuditResult => {
+	const counter: WclEvent[] = [
+		{ timestamp: T0 + 20_000, type: 'applybuff', abilityGameID: UVLS_STACKS, sourceID: owner, targetID: owner },
+		{
+			timestamp: T0 + 20_000,
+			type: 'applybuffstack',
+			abilityGameID: UVLS_STACKS,
+			sourceID: owner,
+			targetID: owner,
+			stack: 10,
+		},
+		{ timestamp: T0 + 30_000, type: 'removebuff', abilityGameID: UVLS_STACKS, sourceID: owner, targetID: owner },
+	];
+	return analyse({
+		...dataset,
+		actors: [...dataset.actors, { id: RAID_MATE, name: 'Someone Else', type: 'Player' }],
+		events: [
+			...contact,
+			onBoss(500, 'cast', LAVA_BURST),
+			...dot,
+			...counter,
+			// Breath of the Hydra on the player either way, so the int-proc half of the rule is satisfied
+			// and the only thing deciding the verdict is who owns the counter.
+			e(25_000, 'applybuff', BREATH_OF_HYDRA),
+			e(35_000, 'removebuff', BREATH_OF_HYDRA),
+		],
+	}) as Analysis & ElementalAuditResult;
+};
+
+describe('a trigger the audited player does not own', () => {
+	it('claims a window when the counter is the player’s own', () => {
+		const own = withCounterOn(ME).snapshots;
+		expect(own.windows).toEqual([{ start: 25_000, end: 30_000, source: 'uvls-stacks' }]);
+	});
+
+	it('claims nothing when the counter belongs to someone else in the raid', () => {
+		const el = withCounterOn(RAID_MATE);
+		expect(el.snapshots.windows).toEqual([]);
+		expect(el.snapshots.missed).toBe(0);
+		// And no row reaches the ledger the section prints from, which is where the fabricated fault was
+		// actually visible to a reader.
+		expect(el.misses.filter((m) => m.kind.startsWith('snapshot'))).toEqual([]);
+	});
+});
