@@ -292,6 +292,30 @@ describe('a multi-target pull', () => {
 		expect(el.cpm.activeMs).toBe(261_572);
 	});
 
+	/**
+	 * The one fixture whose events carry `classResources`, and the only one where the bars actually run.
+	 *
+	 * Deliberately different from its two siblings, which were fetched without `includeResources: true`
+	 * and so read zero samples on every bar. Keeping them here costs ~240KB and buys the only committed
+	 * Elemental pull on which the resource-reading path executes at all — 1189 mana readings about 46ms
+	 * apart, against 0 on `phased` and `unbroken`.
+	 *
+	 * Asserted rather than assumed, because "the fixture has no resource data" and "the code found no
+	 * resource data" are indistinguishable downstream: a bar with no samples renders its empty state and
+	 * a test written over it passes while reading nothing. That is not hypothetical — a revert-check
+	 * elsewhere in this branch came back green against a synthetic pull with no `classResources`, because
+	 * the ladder it was meant to exercise never ran. So if a future trim of this fixture drops the field
+	 * again, this line goes red instead of the suite quietly losing its only live resource path.
+	 */
+	it('carries the resource samples the other two fixtures do not', () => {
+		const mana = el.resources?.['mana'];
+		// Narrowed rather than cast: `ResourceBarAudit` is a union and only the pool half carries a
+		// sample count, so asserting through a cast would hide a bar declared as the wrong kind.
+		expect(mana?.kind).toBe('pool');
+		expect(mana?.kind === 'pool' ? mana.samples : 0).toBe(1189);
+		expect(mana?.kind === 'pool' ? mana.max : 0).toBe(300_000);
+	});
+
 	/** Thirteen enemies at once, and the only committed Elemental pull that reads multi-target at all. */
 	it('is the multi-target pull the other two fixtures cannot be', () => {
 		// Optional on the interface because the pre-analysed fixtures predate it; `analyseCore` always
