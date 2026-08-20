@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
-import { buildCastTable, castSeries, channelTickTimes, measureChannels } from '../casts';
+import { buildCastTable, castSeries, channelTickTimes, measureCastDurations, measureChannels } from '../casts';
 
 const ME = 7;
 const T0 = 1000;
@@ -54,6 +54,114 @@ function cast(t: number, id: number, sourceID = ME): WclEvent {
 		targetID: 99,
 	};
 }
+
+function begincast(t: number, id: number, sourceID = ME): WclEvent {
+	return {
+		timestamp: T0 + t,
+		type: 'begincast',
+		abilityGameID: id,
+		sourceID,
+		targetID: 99,
+	};
+}
+
+/**
+ * The two instants a press has, and the gap between them.
+ *
+ * The bug this covers: `castSeries` used to look only at `cast` events, so every press was recorded at
+ * the moment it *finished*, while the GCD walk in `analyseCore` anchored occupancy at the `begincast`.
+ * The two disagreed by exactly one cast time — up to ~2.5s on the Elemental shaman — and every
+ * consumer of the cast series was reading late. Both instants are now carried, so a consumer can say
+ * which question it is asking.
+ */
+describe('measureCastDurations', () => {
+	it('measures a cast from its begincast to its cast', () => {
+		const { durations } = measureCastDurations([begincast(0, 107428), cast(2000, 107428)], ME, T0, registry);
+		expect(durations.get('107428:2000')).toBe(2000);
+	});
+
+	it('calls an instant an instant rather than a nought-length cast', () => {
+		// A begincast and a cast in the same millisecond is how the log spells "instant". Recording a 0ms
+		// cast time would put a zero-width bar on the chart and drag a cancel's median toward nothing.
+		const { durations } = measureCastDurations([begincast(0, 115687), cast(0, 115687)], ME, T0, registry);
+		expect(durations.size).toBe(0);
+	});
+
+	it('matches most-recent-first, because a second begincast cancels the first', () => {
+		// The log never says a cast was cancelled; it just starts the next begincast. So the cast that
+		// completes belongs to the newest begincast, and the older one is the cancel.
+		const { durations, cancelled } = measureCastDurations(
+			[begincast(0, 107428), begincast(1000, 107428), cast(3000, 107428)],
+			ME,
+			T0,
+			registry,
+		);
+		expect(durations.get('107428:3000')).toBe(2000);
+		expect(cancelled.get(107428)).toEqual([0]);
+	});
+
+	it('reports a begincast no cast followed as a cancel', () => {
+		const { durations, cancelled } = measureCastDurations([begincast(0, 107428)], ME, T0, registry);
+		expect(durations.size).toBe(0);
+		expect(cancelled.get(107428)).toEqual([0]);
+	});
+
+	it('drops a stale begincast rather than pairing it across the fight', () => {
+		// Six seconds is longer than any cast in either spec, so this is two unrelated events and not a
+		// six-second cast — pairing them would invent an enormous occupancy for one press.
+		const { durations, cancelled } = measureCastDurations([begincast(0, 107428), cast(6000, 107428)], ME, T0, registry);
+		expect(durations.size).toBe(0);
+		expect(cancelled.get(107428)).toEqual([0]);
+	});
+
+	it('ignores another actor entirely', () => {
+		const { durations, cancelled } = measureCastDurations(
+			[begincast(0, 107428, 8), cast(2000, 107428, 8)],
+			ME,
+			T0,
+			registry,
+		);
+		expect(durations.size).toBe(0);
+		expect(cancelled.size).toBe(0);
+	});
+});
+
+describe('castSeries carries both instants', () => {
+	const events = [begincast(0, 107428), cast(2000, 107428), cast(4000, 115687)];
+	const durations = measureCastDurations(events, ME, T0, registry).durations;
+
+	it('records a cast-time press at its begincast as well as its landing', () => {
+		const rsk = castSeries(events, ME, T0, registry, durations).get('rising-sun-kick');
+		expect(rsk?.times).toEqual([2000]);
+		expect(rsk?.beginTimes).toEqual([0]);
+		expect(rsk?.presses[0]?.t).toBe(2000);
+		expect(rsk?.presses[0]?.begin).toBe(0);
+	});
+
+	it('collapses both instants onto one for an instant press', () => {
+		// The property that keeps this change off the Windwalker, which is almost entirely instants: with
+		// no measured cast time there is no shift, so nothing about that spec's figures can move.
+		const jab = castSeries(events, ME, T0, registry, durations).get('jab');
+		expect(jab?.times).toEqual([4000]);
+		expect(jab?.beginTimes).toEqual([4000]);
+		expect(jab?.presses[0]?.begin).toBe(4000);
+	});
+
+	it('falls back to the landing instant when no durations are supplied', () => {
+		// Not a silent downgrade: a caller that supplied no evidence of a cast time gets the answer that
+		// is correct for an instant, and `begin` is never later than `t` either way.
+		const rsk = castSeries(events, ME, T0, registry).get('rising-sun-kick');
+		expect(rsk?.beginTimes).toEqual([2000]);
+		expect(rsk?.presses[0]?.begin).toBe(2000);
+	});
+
+	it('keeps begin at or before the landing on every press of a real pull shape', () => {
+		const series = castSeries(events, ME, T0, registry, durations);
+		for (const rec of series.values()) {
+			for (const press of rec.presses) expect(press.begin).toBeLessThanOrEqual(press.t);
+		}
+	});
+});
 
 describe('castSeries', () => {
 	it('merges the ids of one button into a single series', () => {

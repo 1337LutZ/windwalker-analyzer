@@ -1,4 +1,4 @@
-import { abilityIdOf, isCast, type WclEvent, instanceKey } from '~/lib/events';
+import { abilityIdOf, isBeginCast, isCast, type WclEvent, instanceKey } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { CastRow } from '~/lib/types';
@@ -18,7 +18,30 @@ import { median, r1 } from './format';
  * enemy.
  */
 export interface CastPress {
+	/**
+	 * When the press *landed* — the instant the `cast` event fired and the spell took effect.
+	 *
+	 * For an instant press this is also when it was decided; for a cast-time spell the two are up to
+	 * ~2.5s apart, and `begin` is the other one. Read this one only for a question about the effect:
+	 * what the hit did, what the snapshot took, when the dot went on. Anything grading the *choice*
+	 * wants `begin` — see the note there.
+	 */
 	t: number;
+	/**
+	 * When the press was *committed* — the `begincast` that opened it, or `t` for an instant.
+	 *
+	 * The decision instant, and the one almost every judgement wants. A two-second cast judged at `t`
+	 * is judged on what the player knew two seconds after they chose, which is not the thing being
+	 * graded: by then the proc they were reacting to may have expired, the dot they were refreshing may
+	 * have fallen off, and the resource they spent has already been deducted. The priority list decides
+	 * at `begin`.
+	 *
+	 * Equal to `t` whenever the log gives no usable `begincast`, which covers every instant press (both
+	 * events land in the same millisecond) and a cast whose `begincast` was never paired. Never after
+	 * `t`, so `[begin, t]` is always a well-formed interval and a consumer may treat it as the press's
+	 * own span.
+	 */
+	begin: number;
 	target?: number;
 	instance?: number;
 	/** `instanceKey(target, instance)`, or null where the event named no target. */
@@ -33,8 +56,16 @@ export interface CastSeries {
 	/** A representative spell id — the first one seen, since one button can log several. */
 	id: number;
 	count: number;
-	/** Fight-relative cast times, in log order. */
+	/** Fight-relative instants each press *landed*, in log order — `CastPress.t`. */
 	times: number[];
+	/**
+	 * Fight-relative instants each press was *committed*, in log order — `CastPress.begin`.
+	 *
+	 * Parallel to `times` and element-for-element with it, so a consumer that had `times[i]` can move
+	 * to the decision instant without also having to move to `presses`. Identical to `times` for a spec
+	 * of instants, which is why this barely touches the Windwalker.
+	 */
+	beginTimes: number[];
 	/**
 	 * The same presses with their aimed target, in the same order as `times`.
 	 *
@@ -42,6 +73,83 @@ export interface CastSeries {
 	 * clock, and widening them all to reach `.t` would be churn for no gain.
 	 */
 	presses: CastPress[];
+}
+
+export interface CastDurations {
+	/** How long each completed cast took, keyed `<ability id>:<landing time>`. */
+	durations: Map<string, number>;
+	/**
+	 * The `begincast`s no `cast` ever completed, by raw ability id — a press that started and was
+	 * interrupted.
+	 *
+	 * The leftovers of the pairing rather than a second walk over the events, which is the only way the
+	 * two can be guaranteed to agree: a cancel is exactly a `begincast` this function did not consume.
+	 */
+	cancelled: Map<number, number[]>;
+}
+
+/**
+ * How long each completed cast took, and which `begincast`s never completed at all.
+ *
+ * A cast-time spell logs a `begincast` when it starts and a `cast` when it completes; an instant press
+ * logs only the `cast`. Pair each completed cast with the `begincast` that opened it to measure the
+ * cast time, and treat a `begincast` no `cast` ever follows as a cancel. Keyed per ability id and
+ * matched most-recent-first, because starting a second cast of the same spell cancels the first — the
+ * log never says so, it just starts the next `begincast`.
+ *
+ * This measurement used to live inline in `analyseCore`, where it fed the GCD walk and nothing else,
+ * while `castSeries` two hundred lines above it never looked at `begincast` at all. That is precisely
+ * how the two came to disagree by a whole cast time: the GCD maths anchored occupancy at the commit
+ * and every consumer of the cast series was reading the landing. One copy, both callers.
+ */
+export function measureCastDurations(
+	events: readonly WclEvent[],
+	sourceID: number,
+	t0: number,
+	registry: Registry,
+): CastDurations {
+	/** Wider than any cast in either spec, so a `begincast` this stale is a cancel and not a pairing. */
+	const MAX_CAST_MS = 5000;
+	/**
+	 * Under this a press is an instant, not a cast.
+	 *
+	 * An instant press logs its `begincast` and `cast` in the same millisecond — occasionally a hair
+	 * apart — and calling that a cast time would put a meaningless bar on the chart and pull a cancel's
+	 * median toward zero. It also means `begin === t` for an instant, which is what makes the two
+	 * instants collapse harmlessly on a spec of instants.
+	 */
+	const MIN_CAST_MS = 100;
+	const beginByAbility = new Map<number, number[]>();
+	const durations = new Map<string, number>();
+	for (const e of events) {
+		if (e.sourceID !== sourceID) continue;
+		const id = abilityIdOf(e);
+		if (id === null) continue;
+		const t = e.timestamp - t0;
+		if (isBeginCast(e)) {
+			const stack = beginByAbility.get(id) ?? [];
+			stack.push(t);
+			beginByAbility.set(id, stack);
+		} else if (isCast(e)) {
+			if (registry.isChannelTick(id)) continue;
+			const stack = beginByAbility.get(id);
+			if (stack === undefined) continue;
+			const begin = stack.length > 0 ? stack[stack.length - 1] : undefined;
+			if (begin !== undefined && t - begin <= MAX_CAST_MS) {
+				stack.pop();
+				// Keyed by id *and* time, not time alone — an instant press lands in the same millisecond
+				// as the cast that finished before it, and one key would hand it that cast's time.
+				if (t - begin >= MIN_CAST_MS) durations.set(`${id}:${t}`, t - begin);
+			}
+		}
+	}
+	// Whatever is still on a stack was never completed. Empty stacks are dropped so a caller can read
+	// the map's size as "how many buttons were cancelled" without filtering it first.
+	const cancelled = new Map<number, number[]>();
+	for (const [id, stack] of beginByAbility) {
+		if (stack.length > 0) cancelled.set(id, stack);
+	}
+	return { durations, cancelled };
 }
 
 /**
@@ -61,6 +169,15 @@ export function castSeries(
 	sourceID: number,
 	t0: number,
 	registry: Registry,
+	/**
+	 * Cast lengths from `measureCastDurations`, which is what lets each press carry its commit instant.
+	 *
+	 * Optional so that a caller with no interest in the distinction — a test naming three instants, say
+	 * — need not build one, and omitting it is not a silent downgrade: with no durations every `begin`
+	 * equals its `t`, which is the correct answer for an instant and the honest one for a caller that
+	 * did not supply the evidence.
+	 */
+	durations?: ReadonlyMap<string, number>,
 ): Map<string, CastSeries> {
 	const out = new Map<string, CastSeries>();
 	for (const e of events) {
@@ -70,12 +187,17 @@ export function castSeries(
 
 		const ability = registry.abilityByCastId(id) ?? null;
 		const key = ability?.key ?? `#${id}`;
-		const rec = out.get(key) ?? { ability, key, id, count: 0, times: [], presses: [] };
+		const rec = out.get(key) ?? { ability, key, id, count: 0, times: [], beginTimes: [], presses: [] };
 		rec.count++;
 		const t = e.timestamp - t0;
+		// `t` when nothing measured a cast time: an instant press, or a cast whose `begincast` the log
+		// never paired. Never later than `t`, so `[begin, t]` is always a well-formed span.
+		const begin = t - (durations?.get(`${id}:${t}`) ?? 0);
 		rec.times.push(t);
+		rec.beginTimes.push(begin);
 		rec.presses.push({
 			t,
+			begin,
 			...(e.targetID === undefined ? {} : { target: e.targetID }),
 			...(e.targetInstance === undefined ? {} : { instance: e.targetInstance }),
 			spawn: e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance),

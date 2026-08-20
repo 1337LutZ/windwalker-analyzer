@@ -15,7 +15,7 @@
 
 import SPELLS from '~/generated/spells.json';
 import type { DamageEvent, WclEvent } from '~/lib/events';
-import { abilityIdOf, eventsOn, instanceKey, isBeginCast, isCast, isDamage, isDeath, isResurrect } from '~/lib/events';
+import { abilityIdOf, eventsOn, instanceKey, isCast, isDamage, isDeath, isResurrect } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
@@ -44,6 +44,7 @@ import { type AuraWindow, auraWindows } from './auras';
 import {
 	buildCastTable,
 	castSeries,
+	measureCastDurations,
 	channelTickTimes,
 	measureChannels,
 	type CastPress,
@@ -96,7 +97,24 @@ export interface Handles {
 	/** Casts grouped by ability, exactly as the cast table was built from. */
 	series: Map<string, CastSeries>;
 	castList: CastRow[];
+	/**
+	 * When each press of this button *landed*, in log order.
+	 *
+	 * The landing instant, so read it for a question about the effect and not about the choice. For a
+	 * cast-time spell it is up to ~2.5s later than the moment the player committed, which is
+	 * `castBeginTimes`. Unchanged in meaning since before both existed, so a consumer that has not been
+	 * looked at is still reading what it always read rather than having been quietly re-pointed.
+	 */
 	castTimes(ability: Ability): number[];
+	/**
+	 * When each press of this button was *committed* — its `begincast`, or the cast instant for an
+	 * instant press.
+	 *
+	 * The decision instant, and what anything grading a *choice* should read: the priority list's
+	 * conditions were true or false at the moment the player pressed, not two seconds later when the
+	 * spell arrived. Element-for-element with `castTimes`, and identical to it for a spec of instants.
+	 */
+	castBeginTimes(ability: Ability): number[];
 	/**
 	 * The same presses carrying the enemy spawn each was *aimed at*.
 	 *
@@ -318,12 +336,25 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	});
 	const selfEvents = eventsOn(events, actor.id);
 
+	// ------------------------------------------------------ cast durations
+	// Measured before the cast series rather than after it, which is the whole point: the series needs
+	// them to know when each press was *committed*, and for a while it did not have them — so the GCD
+	// walk below anchored occupancy at the `begincast` while every consumer of the series read the
+	// landing, and the two disagreed by a full cast time. See `measureCastDurations`.
+	const { durations: castDurations, cancelled: cancelledBegins } = measureCastDurations(
+		events,
+		actor.id,
+		t0,
+		spec.registry,
+	);
+
 	// ------------------------------------------------------------------ casts
 	// Keyed by ability, so Jab's two weapon ids are one row and a channel's ticks are not presses.
-	const series = castSeries(events, actor.id, t0, spec.registry);
+	const series = castSeries(events, actor.id, t0, spec.registry, castDurations);
 	const castList = buildCastTable(series.values(), { activeMs, nameOf });
 
 	const castTimes = (ability: Ability): number[] => series.get(ability.key)?.times ?? [];
+	const castBeginTimes = (ability: Ability): number[] => series.get(ability.key)?.beginTimes ?? [];
 	const castPresses = (ability: Ability): CastPress[] => series.get(ability.key)?.presses ?? [];
 	const castCount = (ability: Ability): number => series.get(ability.key)?.count ?? 0;
 
@@ -362,42 +393,6 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		ignoredMultiTargetIDs,
 		immuneSpawns,
 	);
-
-	// ------------------------------------------------------ cast durations
-	// A cast-time spell logs a `begincast` when it starts and a `cast` when it completes; an instant
-	// press logs only the `cast`. Pair each completed cast with the `begincast` that opened it to
-	// measure the cast time, and treat a `begincast` no `cast` ever follows as a cancel. Keyed per
-	// ability id and matched most-recent-first, because starting a second cast of the same spell
-	// cancels the first — the log never says so, it just starts the next `begincast`.
-	const MAX_CAST_MS = 5000;
-	const MIN_CAST_MS = 100;
-	const beginByAbility = new Map<number, number[]>();
-	const castDurations = new Map<string, number>();
-	for (const e of events) {
-		if (e.sourceID !== actor.id) continue;
-		const id = abilityIdOf(e);
-		if (id === null) continue;
-		const t = e.timestamp - t0;
-		if (isBeginCast(e)) {
-			const stack = beginByAbility.get(id) ?? [];
-			stack.push(t);
-			beginByAbility.set(id, stack);
-		} else if (isCast(e)) {
-			if (spec.registry.isChannelTick(id)) continue;
-			const stack = beginByAbility.get(id);
-			if (stack === undefined) continue;
-			const begin = stack.length > 0 ? stack[stack.length - 1] : undefined;
-			if (begin !== undefined && t - begin <= MAX_CAST_MS) {
-				stack.pop();
-				// A real cast time only: an instant press logs its `begincast` and `cast` in the same
-				// instant, and that is not a bar worth drawing or a time worth carrying into a cancel's
-				// median. Keyed by id and time, not time alone — an instant press lands in the same
-				// millisecond as the cast that finished before it, and one key would hand it that cast's
-				// time.
-				if (t - begin >= MIN_CAST_MS) castDurations.set(`${id}:${t}`, t - begin);
-			}
-		}
-	}
 
 	// ------------------------------------------------------------- the GCD
 	// The effective global cooldown, measured rather than taken off the spec. The start of an instant
@@ -748,7 +743,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		castTimesById.set(mark.id, list);
 	}
 	const cancels: CastMark[] = [];
-	for (const [rawId, stack] of beginByAbility) {
+	for (const [rawId, stack] of cancelledBegins) {
 		const ability = spec.registry.abilityByCastId(rawId);
 		const id = ability?.castIds[0] ?? rawId;
 		const expected = castTimesById.get(id);
@@ -975,6 +970,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		series,
 		castList,
 		castTimes,
+		castBeginTimes,
 		castPresses,
 		castCount,
 		channels,
