@@ -1521,7 +1521,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const at = e.timestamp - t0;
 		const source = e.sourceID ?? -1;
 		const list = stormlashByShaman.get(source) ?? [];
-		list.push({ start: at, end: at + STORMLASH_DURATION_MS });
+		// Clamped, for the reason `untilFightEnd` exists: a totem laid with five seconds of fight left
+		// does not run its full ten. Its two neighbours already clamp — the player's own timeline lane
+		// through `untilFightEnd`, and `stormlashOverlaps` because `intervalsAtLeast` closes at
+		// `duration` — so leaving this one unclamped had the section's three numbers measured three
+		// different ways, and `StormlashTotems.tsx` drawing a bar past the end of its own axis.
+		const [start, end] = untilFightEnd(at, STORMLASH_DURATION_MS);
+		list.push({ start, end });
 		stormlashByShaman.set(source, list);
 	}
 	const stormlashShamans: StormlashAudit['shamans'] = [...stormlashByShaman.entries()].map(([id, windows]) => ({

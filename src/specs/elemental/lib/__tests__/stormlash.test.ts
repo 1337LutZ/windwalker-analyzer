@@ -165,7 +165,10 @@ describe('the raid’s placements, grouped by who laid them', () => {
 		// A placement whose source the log did not carry is still a placement worth drawing: it buckets
 		// under -1 with a null name rather than being dropped or credited to somebody.
 		expect(shaman(-1)?.name).toBeNull();
-		expect(shaman(-1)?.windows).toEqual([{ start: 52_000, end: 62_000 }]);
+		// Clamped to the pull, not 62 000: this totem was laid with eight seconds of fight left and did
+		// not get to run its full ten. It read 62 000 while this walk was the one place in the section
+		// that did not clamp, which put a bar two seconds past the end of its own axis.
+		expect(shaman(-1)?.windows).toEqual([{ start: 52_000, end: 60_000 }]);
 	});
 
 	/** Each shaman's own windows come back in time order, whatever order the fetch returned them in. */
