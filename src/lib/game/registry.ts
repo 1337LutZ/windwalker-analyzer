@@ -79,6 +79,18 @@ export function createRegistry(data: GameData): Registry {
 		}
 	}
 
+	// A dot's three numbers have to agree, because two of them are derivable from the third and a
+	// mistyped period would otherwise pass as a dot with a different shape — see `Dot.ticks`.
+	for (const ability of data.abilities) {
+		const dot = ability.dot;
+		if (dot === undefined) continue;
+		if (dot.ticks < 1 || dot.tickMs < 1 || dot.ticks * dot.tickMs !== dot.durationMs) {
+			throw new Error(
+				`ability "${ability.key}" declares a dot of ${dot.ticks} × ${dot.tickMs}ms, which is not its ${dot.durationMs}ms duration`,
+			);
+		}
+	}
+
 	// A channel tick that is also registered as a cast id would defeat the whole point of modelling
 	// the channel, so refuse it outright.
 	for (const id of tickIds) {

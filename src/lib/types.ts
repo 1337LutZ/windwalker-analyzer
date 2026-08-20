@@ -1906,9 +1906,15 @@ export type Analysis = AnalysisCore & SpecAuditResult;
  *   - `reapply`   it had lapsed, but not on the player's watch — the target was away, or the gap was
  *                 under `DROP_MS` and is refresh jitter. Not a fault.
  *   - `late`      it had lapsed with the player in contact for longer than the jitter floor. A fault.
- *   - `windowed`  refreshed inside the reader's own keep-it-up window.
+ *   - `windowed`  refreshed inside the dot's **last tick window**, so the pending tick rolled over.
  *   - `ascPrep`   refreshed early on purpose, for the sim's Ascendance prep rule.
  *   - `early`     refreshed with more left than either rule wants. A fault.
+ *
+ * `windowed` used to mean "inside the reader's own `flameShockRefreshMs`", a fixed millisecond window
+ * the reader owned. It now means what that number was standing in for: one tick period or less left, so
+ * one tick was still pending and reapplying rolled it over. The window is measured off the dot's own
+ * ticks per press rather than declared — see `lib/analysis/ticks.ts` — because a dot in this expansion
+ * is hasted on its ticks and not on its duration, so a pull has no one number.
  */
 export type FlameShockPressKind = 'apply' | 'reapply' | 'late' | 'windowed' | 'ascPrep' | 'early';
 
@@ -1926,7 +1932,17 @@ export interface FlameShockPress {
 	 * absent from — and that is why it cannot be inferred from `remainingMs` alone.
 	 */
 	exposedMs: number | null;
-	/** Whether the press was the reader's own keep-it-up window (`flameShockRefreshMs`). */
+	/**
+	 * The last tick window this press was judged against, in ms: the dot's tick cadence measured off the
+	 * log just before it, or the unhasted period when the log carried too few ticks to measure one.
+	 *
+	 * On the record per press rather than once per pull, because it genuinely differs press to press —
+	 * `phased` grades its refreshes against 1 349ms, 1 748ms and 2 275ms as the raid's haste cooldowns
+	 * fall off. `FlameShockAudit.refreshMs` is the median of these, for a chart that can only draw one
+	 * band.
+	 */
+	tickMs: number;
+	/** Whether the press landed in that window, which is what rolls the pending tick over. */
 	windowed: boolean;
 	/** Whether the press was the sim's Ascendance prep (rule 12): dot under 16s with Ascendance ready inside 2s. */
 	ascPrep: boolean;
@@ -1944,12 +1960,24 @@ export interface FlameShockAudit {
 	applies: number;
 	/** Presses made while the dot was up. */
 	refreshes: number;
-	/** Refreshes that were the reader's own keep-it-up window. */
+	/** Refreshes that landed in the dot's last tick window. */
 	windowed: number;
 	/** Refreshes that were the sim's Ascendance prep — never "wasted". */
 	ascPrep: number;
-	/** The keep-it-up window the refreshes were read against, so the chart can draw the same band. */
+	/**
+	 * The tick window the refreshes were read against, so the chart can draw the same band — the median
+	 * of the per-press `tickMs`, since a pull whose haste moved has no single one.
+	 *
+	 * Still named `refreshMs` because the chart and its copy read it by that name; what it holds is no
+	 * longer the retired `flameShockRefreshMs` setting but the dot's measured tick period. Both want
+	 * renaming to `tickMs` in the same change that renames the copy.
+	 */
 	refreshMs: number;
+	/**
+	 * The tick count the pull's cadence backs out of the dot's duration — the answer to how many ticks
+	 * the dot actually got, which is 10 only at zero haste. 13, 17 or 22 on the committed fixtures.
+	 */
+	ticks: number;
 	/** The dot's full duration, so the chart can scale its bars against it. */
 	durationMs: number;
 	/** Every press with the dot state at it, for the section's table. */

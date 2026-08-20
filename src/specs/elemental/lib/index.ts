@@ -38,7 +38,9 @@ import {
 	uptimePct,
 } from '~/lib/analysis/auras';
 import { atCapWindows } from '~/lib/analysis/counters';
+import { dotTicksBySpawn, inLastTickWindow, tickWindowAt } from '~/lib/analysis/ticks';
 import { complementOf, intersect, mergeIntervals, overlapMs, unionMs, type Interval } from '~/lib/analysis/intervals';
+import { median } from '~/lib/analysis/format';
 import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
 import { intervalsAtLeast, isJudgeableTarget, overlapPoints } from '~/lib/analysis/targets';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
@@ -61,7 +63,7 @@ import { abilityIdOf, instanceKey, isAuraEvent } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
 import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
-import type { Ability, Aura, GameData } from '~/lib/game/model';
+import type { Ability, Aura, Dot, GameData } from '~/lib/game/model';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
@@ -122,16 +124,27 @@ const FLAME_SHOCK_DURATION_MS = 30_000;
 const FS_SECOND_TARGET_LIFETIME_MS = 20_000;
 
 /**
- * The default Flame Shock refresh window, and only the default: the reader owns this one.
+ * Flame Shock's tick schedule, and what replaced the reader's own refresh window.
  *
- * The p5 list never refreshes the dot on a clock — its Flame Shock rules are the proc-window
- * reapplies and the Ascendance prep — so the keep-it-up window is this report's reading, floored at
- * the sim's own number (Lava Burst is gated on the dot outliving its 2s cast) and capped at a
- * quarter of the 30s dot, past which a refresh throws away more of the dot than it renews.
+ * Ten ticks of three seconds unhasted, from the same `sim/shaman/shocks.go` the duration above comes
+ * from. The pull never runs at that cadence: haste shortens the interval and leaves the duration
+ * alone, so the tick *count* moves, and the two committed fixtures carry the dot at 13, 17 and 22
+ * ticks inside a single fight. What the audit grades a refresh on is therefore the cadence measured
+ * off that pull's own ticks — see `lib/analysis/ticks.ts` — and not a number anybody declared.
+ *
+ * That is what retired `flameShockRefreshMs`. The setting was a fixed 3 000ms fudge standing in for
+ * the priority list's own rule, which its own comment already quoted: refresh "when the dot has less
+ * than one tick left". One tick is what this measures.
  */
-const FS_REFRESH_DEFAULT_MS = 3000;
-const FS_REFRESH_MIN_MS = 1000;
-const FS_REFRESH_MAX_MS = 7500;
+const FLAME_SHOCK_DOT: Dot = {
+	durationMs: FLAME_SHOCK_DURATION_MS,
+	tickMs: 3000,
+	ticks: 10,
+	hastedTicks: true,
+	// Measured on `phased`: the refresh at 59 530 had a tick pending at 60 368, that tick fired, and the
+	// dot then ran a further seventeen periods — eighteen ticks out of a seventeen-tick application.
+	rollsOver: true,
+};
 
 /** The sim's own thresholds, written where the audit reads them: rules 12, 13 and 18 of the p5 list. */
 const FS_ASC_PREP_MS = 16_000;
@@ -216,6 +229,7 @@ const ABILITIES: Ability[] = [
 		// Gated on its own dot's state rather than on time; the section grades the refresh timing.
 		gate: 'conditional',
 		applies: ['flame-shock'],
+		dot: FLAME_SHOCK_DOT,
 	},
 	{
 		key: 'lava-burst',
@@ -583,18 +597,9 @@ const EXTRA_NAMES: Record<number, string> = {
 // ------------------------------------------------------------------ settings
 
 export const ELEMENTAL_SETTINGS: SettingSchema[] = [
-	{
-		key: 'flameShockRefreshMs',
-		tKey: 'settings.ele.flameShock',
-		// The keep-it-up window. The floor is the sim's own Lava Burst gate (the dot must outlive the
-		// 2s cast), and the ceiling is a quarter of the 30s dot: past it a press throws away more of
-		// the dot than it renews, and every clip would be graded a refresh, emptying the "wasted"
-		// count the section exists to report.
-		default: FS_REFRESH_DEFAULT_MS,
-		min: FS_REFRESH_MIN_MS,
-		max: FS_REFRESH_MAX_MS,
-		step: 250,
-	},
+	// `flameShockRefreshMs` used to be the first entry here, and it is gone rather than re-defaulted:
+	// the dot's own tick cadence is what grades a refresh now, and it is measured rather than chosen.
+	// See `FLAME_SHOCK_DOT` above and `lib/settings/model.ts`, which carries the retirement note.
 	{
 		key: 'cooldownLeewayMs',
 		tKey: 'settings.cooldown',
@@ -779,7 +784,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		multiTargetMs,
 		contact,
 	} = h;
-	const { flameShockRefreshMs, lightningShieldOvercapMs, searingTotemRefreshMs } = h.settings;
+	const { lightningShieldOvercapMs, searingTotemRefreshMs } = h.settings;
 	const fightEnd = t0 + duration;
 
 	/**
@@ -930,6 +935,15 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		for (const [key, bucket] of bySpawn) fsTimelines.set(key, auraTimeline(bucket, FS_DEBUFF, t0));
 	}
 	/**
+	 * The dot's own ticks, per spawn — the pull's answer to how wide its last tick window is.
+	 *
+	 * Keyed the same way `fsTimelines` is, and for the same reason: two spawns of one add interleave into
+	 * a single stream, and an interval measured across the seam belongs to neither of them. Sourced to
+	 * this player, so another shaman's dot on the same boss cannot lend its cadence to this one.
+	 */
+	const fsTicks = dotTicksBySpawn(events, FS_DEBUFF, t0, actor.id);
+
+	/**
 	 * The spawn a Flame Shock press was **aimed at**, from the cast's own event.
 	 *
 	 * Not `spawnAt(t)`, which answers a different question: the enemy the player was *hitting* around
@@ -980,7 +994,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// "no dot was up" case the three down-states below split apart.
 		const remaining = remainingAtCast(spawn === null ? [] : (fsTimelines.get(spawn) ?? []), t, FS_DEBUFF);
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
-		const windowed = remaining > 0 && remaining <= flameShockRefreshMs;
+		/**
+		 * The dot's last tick window at this press, measured off its own ticks.
+		 *
+		 * This is what `flameShockRefreshMs` used to be, and the difference is not a tuning. One tick
+		 * period or less left means one tick is still pending, and reapplying there rolls that tick over:
+		 * the player keeps it *and* gets a full fresh dot, which is the most the global can buy. Earlier
+		 * than that the same global buys the same fresh dot while more of the old one was still owed.
+		 *
+		 * On the two committed pulls the window measures 1 349ms, 1 748ms or 2 275ms depending on which
+		 * haste cooldowns were up — never the 3 000ms the setting defaulted to, and never the same number
+		 * twice in one fight. Falls back to the unhasted 3 000ms period when the log carries too few ticks
+		 * to measure one (a press onto a spawn that never had the dot, or a synthetic pull).
+		 */
+		const tickWindow = tickWindowAt(spawn === null ? [] : (fsTicks.get(spawn) ?? []), t, FLAME_SHOCK_DOT);
+		const windowed = inLastTickWindow(remaining, tickWindow, FLAME_SHOCK_DOT);
 		const ascPrep = remaining > 0 && remaining < FS_ASC_PREP_MS && ascReadyInSec <= 2;
 		const exposed = remaining > 0 ? null : downBefore(spawn, t);
 		const kind: FlameShockPressKind =
@@ -1000,6 +1028,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			kind,
 			remainingMs: remaining > 0 ? remaining : null,
 			exposedMs: remaining > 0 ? null : (exposed ?? 0),
+			tickMs: tickWindow.cadenceMs,
 			windowed,
 			ascPrep,
 			// A refresh while Ascendance is up is a global thrown away — the list wants Lava Burst then.
@@ -1153,6 +1182,17 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// number downstream inherited the overlap: the graph drew a totem ticking through a Fire Elemental
 	// that had already destroyed it, the uptime figure counted that stretch as kept, and a re-press
 	// after an elemental read as a clip of a totem that was not there.
+	//
+	// **And the walk starts with whatever the bell found in the slot.** A Fire Elemental summoned before
+	// the pull logs no cast inside the fight window — its only trace is the bare `removebuff` where it
+	// expired, which `auraWindows`' `openAtPull` recovers as `[0, expiry]`. Built from the cast list
+	// alone the walk saw an empty slot for that stretch, left the elemental's own minute inside the
+	// Searing Totem denominator, and charged the player for seconds the elemental was standing in the
+	// one slot a totem could have gone in. That is precisely the fault-fabrication the paragraph above
+	// exists to prevent, one summon short of being caught.
+	const fePrepullWindow = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
+		(w) => w.preexisting === true,
+	);
 	const stCasts = castTimes(SEARING_TOTEM);
 	const feCasts = castTimes(FIRE_ELEMENTAL);
 	type FireTotem = 'searing' | 'elemental';
@@ -1165,7 +1205,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// What the slot holds as the walk moves through it. Both per-press reads come off this rather than
 	// off the totem's own cast list, so a press cannot be told it clipped a totem the Fire Elemental
 	// had already taken away — `held.kind` is the whole of that guard.
-	let held: { kind: FireTotem; start: number; end: number } | null = null;
+	//
+	// Seeded with the pre-pull elemental where there was one, so the first placement of the pull closes
+	// it exactly as an in-fight summon would.
+	let held: { kind: FireTotem; start: number; end: number } | null =
+		fePrepullWindow === undefined ? null : { kind: 'elemental', start: 0, end: fePrepullWindow.end };
 	// The two faults the walk is the only place that can see, keyed by the press they belong to.
 	const stRemaining = new Map<number, number>();
 	const stFeOverlap = new Set<number>();
@@ -1550,6 +1594,18 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const wastedGcds =
 		fsPresses.filter((p) => p.remainingMs !== null && !p.windowed && !p.ascPrep).length + stClipped.length;
 
+	/**
+	 * One tick window for the whole pull, out of a rule that is per press.
+	 *
+	 * The chart draws a single band and the section quotes a single figure, and a pull whose haste moved
+	 * has no single tick window — `phased` is graded against 1 349ms, 1 748ms and 2 275ms in the same
+	 * fight. The median of the windows the refreshes were actually judged against is the one that
+	 * describes most of them; the per-press truth stays on each press's own `tickMs`, which is what the
+	 * verdict was decided on. Falls back to the unhasted period on a pull with nothing to refresh.
+	 */
+	const fsRefreshWindows = fsPresses.filter((p) => p.remainingMs !== null).map((p) => p.tickMs);
+	const fsTickMs = fsRefreshWindows.length > 0 ? median(fsRefreshWindows) : FLAME_SHOCK_DOT.tickMs;
+
 	return {
 		flameShock: {
 			windows: fsMerged,
@@ -1559,7 +1615,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			refreshes,
 			windowed: fsPresses.filter((p) => p.windowed).length,
 			ascPrep: fsPresses.filter((p) => p.ascPrep).length,
-			refreshMs: flameShockRefreshMs,
+			refreshMs: fsTickMs,
+			ticks: Math.round(FLAME_SHOCK_DURATION_MS / fsTickMs),
 			durationMs: FLAME_SHOCK_DURATION_MS,
 			presses: fsPresses,
 			multiDotUptimeMs,

@@ -41,17 +41,6 @@ export interface AnalysisSettings {
 	 */
 	cooldownLeewayMs: number;
 	/**
-	 * How much Flame Shock may still be running for a press to be read as refreshing it. Elemental.
-	 *
-	 * Below it a press is a refresh; above it the press clipped a healthy dot and burned a cast that
-	 * Lava Burst or Lightning Bolt wanted. The APL's number is one Lightning Bolt cast time — it
-	 * stops casting the moment the dot has less than a cast left, and refreshes when the dot has less
-	 * than one tick left — and this defaults wider, for the same reason the others do: a person
-	 * cannot press on the instant they decide to, and a report that grades to the sim's frame is
-	 * grading latency.
-	 */
-	flameShockRefreshMs: number;
-	/**
 	 * How long Lightning Shield may sit at its ceiling before the time past that counts as
 	 * overcapping. Elemental.
 	 *
@@ -71,6 +60,21 @@ export interface AnalysisSettings {
 	 */
 	searingTotemRefreshMs: number;
 }
+
+// There was a Flame Shock setting here too, `flameShockRefreshMs`, and it went for a better reason
+// than `maxHealth` below: not that the log already carried the number, but that the number was
+// standing in for a mechanic.
+//
+// It asked how much of the dot may be left for a press to read as a refresh rather than a clip — a
+// fixed millisecond fudge, defaulting to 3 000ms. Its own comment already named what it was
+// approximating: the priority list "refreshes when the dot has less than one tick left". A tick is not
+// 3 000ms on any real pull, because Flame Shock is hasted on its ticks and not on its duration, so the
+// number the reader was being asked to own was a stand-in for something the pull itself states. It is
+// now measured off the tick stream instead — `lib/analysis/ticks.ts` — which is why this is a
+// retirement and not a re-default: there is no threshold left to disagree with.
+//
+// A reader who had moved the slider still has the key in `localStorage`. `normaliseSettings` reads only
+// the fields the schema names, so it is dropped on the next read exactly as `maxHealth` is.
 
 // There was a fourth setting here, `maxHealth`, and it is gone rather than defaulted.
 //

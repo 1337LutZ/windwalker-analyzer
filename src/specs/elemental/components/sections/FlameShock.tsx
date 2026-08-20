@@ -13,10 +13,15 @@ import FlameShockUptime from '../charts/FlameShockUptime';
  *
  * `formatPercentValue` prints two decimals, so every figure from here up renders as `100%` — and a
  * sentence under a tile reading 100% must not describe a gap. A band rather than an equality test
- * for two reasons: the dot's last window can close a millisecond before the engaged clock does (the
- * `unbroken` fixture, 99.99946%), and the figure is a union of dot windows over engaged time, so a
- * value a hair *over* 100 has to take this branch too rather than fall through to wording that
- * claims a gap.
+ * because the dot's last window can close a millisecond before the engaged clock does: the `unbroken`
+ * fixture is 99.99946%, which prints as 100% and had no gap in it.
+ *
+ * A band open at the top rather than a range, and this half is a backstop rather than a live case.
+ * `c85f6d4` intersects the dot's windows with the engaged clock before dividing, so the ratio can no
+ * longer exceed 100 — it used to be a union of dot windows over engaged time and reached 100.21% on a
+ * real pull. Kept because the consequence of a value over 100 falling through is wording that claims a
+ * gap on a pull that had none, which is the worst failure this comparison has; a `>=` cannot produce
+ * it and a range could. Do not narrow it back on the grounds that the ratio is now clipped.
  */
 const FULL_UPTIME_PCT = 99.995;
 

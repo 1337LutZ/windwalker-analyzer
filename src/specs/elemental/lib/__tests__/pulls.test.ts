@@ -96,12 +96,18 @@ describe('a phased pull', () => {
 	 * jitter and one was the boss submerging; none was a mistake. The press at 193 052 is the sharpest:
 	 * the dot had been down since 151 149, but the boss was away for 41.4s of that, so the player is
 	 * charged the 518ms they were actually present for.
+	 *
+	 * The press at 59 530 **moved**, from `windowed` to `early`, and that is the tick-window rule
+	 * arriving. It went out with 2 797ms of dot left against a tick measured at 1 748ms — the dot had
+	 * one and a half ticks still to come, so the pending tick was not the last one and nothing rolled
+	 * over. Under the retired 3 000ms setting it cleared by 203ms, which is the whole objection to a
+	 * fixed window: 3 000ms is not a tick on any pull this fixture contains.
 	 */
 	it('tells the three down-states apart', () => {
 		expect(el.flameShock.presses.map((p) => p.kind)).toEqual([
 			'apply',
 			'windowed',
-			'windowed',
+			'early',
 			'reapply',
 			'reapply',
 			'reapply',
@@ -109,8 +115,22 @@ describe('a phased pull', () => {
 			'windowed',
 		]);
 		expect(el.flameShock.presses.find((p) => p.t === 193_052)?.exposedMs).toBe(518);
-		// Nothing on this pull is a fault: no press dropped the dot on the player's own watch.
-		expect(el.flameShock.presses.filter((p) => p.kind === 'late' || p.kind === 'early')).toEqual([]);
+		// No press dropped the dot on the player's own watch, which is what `late` would say.
+		expect(el.flameShock.presses.filter((p) => p.kind === 'late')).toEqual([]);
+	});
+
+	/**
+	 * The tick windows the refreshes were judged against, which are the reason the verdict above moved.
+	 *
+	 * Three plateaus in one fight — 1 349ms, 1 748ms, 2 275ms — as Bloodlust and Elemental Mastery fell
+	 * off, none of them the 3 000ms the retired setting defaulted to and none of them each other. The
+	 * count backed out of the median is 13 ticks against the ten the spell declares.
+	 */
+	it('measures the dot’s tick window off the pull rather than taking it from a setting', () => {
+		const windows = el.flameShock.presses.filter((p) => p.remainingMs !== null).map((p) => Math.round(p.tickMs));
+		expect(windows).toEqual([1349, 1748, 2275, 2278]);
+		expect(Math.round(el.flameShock.refreshMs)).toBe(2275);
+		expect(el.flameShock.ticks).toBe(13);
 	});
 
 	it('reads the shield as pre-applied and tracks it to the end', () => {
@@ -161,23 +181,41 @@ describe('an unbroken pull', () => {
 	});
 
 	/**
-	 * One apply, six keep-up refreshes, and **not one fault** — which is the point of this fixture.
+	 * One apply and six refreshes, and the opener is still not a fault — which is the point of this
+	 * fixture.
 	 *
 	 * The opener used to be labelled "Late refresh" and banded as a mistake on a pull with 100% uptime.
-	 * There was no dot to refresh: it was the first application of the fight.
+	 * There was no dot to refresh: it was the first application of the fight. That is untouched, and
+	 * unconditionally so — see the note on `apply` below.
+	 *
+	 * Four of the six refreshes **moved**, from `windowed` to `early`, and this is the pull where the
+	 * tick-window rule bites hardest. Its refreshes went out with 2 925, 2 598, 2 182, 974, 2 883 and
+	 * 2 842ms of dot left, against tick windows measured at 1 724, 1 726, 2 246, 1 715, 2 255 and
+	 * 1 724ms. Under the retired 3 000ms setting every one of the six cleared, because 3 000ms is wider
+	 * than any tick this pull ever had; against the tick they were actually aimed at, only the third and
+	 * fourth had a single tick left to roll over. A perfect keep-up with four globals spent early is a
+	 * real reading of this log, and it is the reading the priority list's own rule gives.
 	 */
 	it('reads the opener as an application, not a late refresh', () => {
 		expect(el.flameShock.presses.map((p) => p.kind)).toEqual([
 			'apply',
+			'early',
+			'early',
 			'windowed',
 			'windowed',
-			'windowed',
-			'windowed',
-			'windowed',
-			'windowed',
+			'early',
+			'early',
 		]);
 		expect(el.flameShock.presses[0]?.exposedMs).toBe(0);
-		expect(el.flameShock.presses.filter((p) => p.kind === 'late' || p.kind === 'early')).toEqual([]);
+		expect(el.flameShock.presses.filter((p) => p.kind === 'late')).toEqual([]);
+	});
+
+	/** The same measurement on the other pull: six windows, no two the same, and 17 ticks not 10. */
+	it('measures the dot’s tick window off the pull rather than taking it from a setting', () => {
+		const windows = el.flameShock.presses.filter((p) => p.remainingMs !== null).map((p) => Math.round(p.tickMs));
+		expect(windows).toEqual([1724, 1726, 2246, 1715, 2255, 1724]);
+		expect(Math.round(el.flameShock.refreshMs)).toBe(1726);
+		expect(el.flameShock.ticks).toBe(17);
 	});
 
 	it('catches the two shocks spent below the ceiling', () => {

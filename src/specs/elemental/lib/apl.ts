@@ -35,7 +35,7 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  * - **Flame Shock's snapshot refreshes** (7, 12): the two Flame Shock rules above the filler — the
  *   proc-window reapplies (`Flame Shock Rules`) and the refresh just before Ascendance (`Flame
  *   Shock Refresh Prior to Ascendance`). They are judged by the Flame Shock section, which reads
- *   the proc windows and the reader's own `flameShockRefreshMs` against them; the ladder carries
+ *   the proc windows and the dot's own measured tick window against them; the ladder carries
  *   only the keep-it-up half of the story (see the `flame-shock` rung below).
  * - **The multi-target Flame Shock rule** (16): refreshes on a *secondary* target when its dot has
  *   less than a tick left. The ladder grades the primary target; the multi-target caveat is the
