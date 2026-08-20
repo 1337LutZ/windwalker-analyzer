@@ -32,6 +32,15 @@ export interface Session {
 	/** Why the last attempt failed, written for the visitor. Null when nothing has gone wrong. */
 	error: string | null;
 	/**
+	 * True when `error` is a session that aged out rather than an attempt that went wrong.
+	 *
+	 * The two need different headings and nothing else. A failed sign-in did not finish; an expiry
+	 * finished a long time ago and then ran out, and heading it "that sign-in did not finish" tells
+	 * someone who has not touched the button that they did something wrong. The distinction is a flag
+	 * rather than a parsed `error` string because the message is copy and copy gets rewritten.
+	 */
+	errorIsExpiry: boolean;
+	/**
 	 * The OAuth client id this browser signs in with, or null until one is set.
 	 *
 	 * It sits on the session because it gates the sign-in button and outlives it: unlike the token,

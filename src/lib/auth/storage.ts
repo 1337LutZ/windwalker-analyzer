@@ -10,6 +10,23 @@
 // making someone re-register or re-paste an id every tab would be hostile for no security gain. The
 // token is the secret; the id is configuration. They are stored differently because they *are*
 // different, and `clear()` below reflects that: signing out forgets the secret, not the setup.
+//
+// **"I have to sign in again on every refresh" is not an argument for `localStorage`, and it was
+// measured rather than argued.** `sessionStorage` survives a reload — it is cleared when the tab
+// closes, not when the page navigates — so a token written here is still here after F5, and
+// `restoreSession` picks it back up. Reloading a signed-in tab was checked against the running app
+// and comes back signed in. What the complaint actually was: an *expired* token was being restored
+// and announced as a live session, and a failed callback was wiping a good one. Both are fixed where
+// they were broken, and neither is a storage problem.
+//
+// So the trade `localStorage` would buy is still refused, and now for a stated price: it would turn
+// the blast radius of any XSS on this page from "the attacker can use the session while the page is
+// open" into "the attacker keeps a working credential for as long as it lives", and it would leave a
+// WarcraftLogs token on a shared machine for the next person. What it would buy is a session that
+// survives a new tab and a browser restart. That is a real convenience and it is deliberately not
+// taken: there is no refresh token to rotate away from a thief (see `exchange.ts`), so a leaked token
+// is good until it expires on WarcraftLogs' clock, and nothing in this app can revoke it. A tab-lived
+// secret is the mitigation. Signing in again in a new tab is the cost, and it is a click.
 
 import type { TokenSource } from './sessionContext';
 
@@ -55,6 +72,21 @@ const RETURN_KEY = 'wcl.pkce.return';
 const TOKEN_KEY = 'wcl.token';
 const SOURCE_KEY = 'wcl.token.source';
 const CLIENT_ID_KEY = 'wcl.clientId';
+/**
+ * That this tab has already spent its one automatic re-authorize.
+ *
+ * WarcraftLogs issues no refresh token, so the only way to renew an expired session without asking
+ * the visitor to retype anything is to send them back through the authorize screen — which, against a
+ * live WarcraftLogs session and a client they have already granted, returns them here with a new code
+ * and no interaction. That is a *navigation*, and a navigation that can fail is a navigation that can
+ * loop: land, find the token expired, leave, come back no better off, leave again.
+ *
+ * This is the fuse. One attempt per tab, spent before the tab navigates away — so the failure case
+ * costs one wasted round trip and then shows the sign-in button, rather than trapping the page in a
+ * redirect it cannot escape. A sign-in that works clears it, so a session that ages out later in the
+ * same tab is still allowed its own silent renewal.
+ */
+const SILENT_KEY = 'wcl.silentRetry';
 
 export interface PendingAuthorization {
 	verifier: string;
@@ -108,6 +140,37 @@ export function rememberToken({ token, source }: StoredToken): void {
 }
 
 /**
+ * Drops the token and nothing else.
+ *
+ * Narrower than `clear()` on purpose, and the difference is the whole point of having both. `clear()`
+ * is a sign-out: it also takes the pending verifier and state, because a sign-out ends any sign-in in
+ * flight. This one is for a token that has been *found dead* — expired on its own `exp`, or refused as
+ * a 401 — where a sign-in may well be the very next thing to happen and its verifier must survive.
+ *
+ * A dead token is worth removing rather than leaving to be restored on the next load: a stored corpse
+ * is what made a reload announce a session that could not spend a single request.
+ */
+export function forgetToken(): void {
+	write(session, TOKEN_KEY, null);
+	write(session, SOURCE_KEY, null);
+}
+
+/** True once this tab has spent its one automatic re-authorize. See `SILENT_KEY`. */
+export function silentRetryUsed(): boolean {
+	return read(session, SILENT_KEY) !== null;
+}
+
+/** Spent *before* the tab navigates away, because after it there is nothing left to record it. */
+export function markSilentRetry(): void {
+	write(session, SILENT_KEY, '1');
+}
+
+/** A sign-in that worked earns the tab its fuse back, for whenever this token ages out in turn. */
+export function clearSilentRetry(): void {
+	write(session, SILENT_KEY, null);
+}
+
+/**
  * The OAuth client this browser signs in with, or null when nobody has registered one yet.
  *
  * Every visitor registers their own: WarcraftLogs rate-limits per client, so one shared id would
@@ -132,4 +195,5 @@ export function clear(): void {
 	write(session, STATE_KEY, null);
 	write(session, TOKEN_KEY, null);
 	write(session, SOURCE_KEY, null);
+	write(session, SILENT_KEY, null);
 }

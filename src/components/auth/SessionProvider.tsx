@@ -9,7 +9,6 @@ import {
 	forgetClientID as dropClientID,
 	hasCallbackParams,
 	readClientID,
-	readToken,
 	rememberClientID,
 	rememberToken,
 	type Session,
@@ -17,20 +16,46 @@ import {
 	type StoredToken,
 	type TokenSource,
 } from '~/lib/auth';
+// Straight from the modules rather than through the barrel, exactly as `lib/wcl/client.ts` already
+// imports `lib/auth/token`. This is the expiry path, and it is new.
+import { restoreSession } from '~/lib/auth/restore';
+import { clearSilentRetry, forgetToken, markSilentRetry, silentRetryUsed } from '~/lib/auth/storage';
 
 function readMessage(cause: unknown): string {
 	return cause instanceof Error ? cause.message : 'Signing in to WarcraftLogs failed.';
 }
 
 /**
+ * What the reader is told when the token that was in this tab has aged out.
+ *
+ * Two messages because there are two fixes. A sign-in is renewed by signing in, and this is only ever
+ * seen when the silent re-authorize was unavailable or could not leave — when it works, the reader
+ * gets a signed-in page and no message at all, which is the whole point of it. A pasted token is
+ * never renewed automatically, so its message is the only thing that ever says so, and pointing that
+ * reader at the sign-in button would be pointing them away from the credential they chose.
+ */
+const EXPIRED_MESSAGE =
+	'Your WarcraftLogs session had expired, so it was not restored. Sign in again for a fresh one — WarcraftLogs issues no refresh token, so there is nothing this page can renew on your behalf.';
+const EXPIRED_MANUAL_MESSAGE =
+	'The token you pasted has expired, so it was not restored. Generate a new one and paste it in, or sign in with your WarcraftLogs account instead.';
+
+/**
  * Owns the signed-in state for the whole island.
  *
- * Two things happen on mount and they are deliberately ordered. A token already in `sessionStorage`
- * means this is an ordinary reload of a signed-in tab. A `?code=` in the address bar means this is
- * the landing back from WarcraftLogs and there is an exchange to finish — which is checked
+ * Three things can be true on mount and they are deliberately ordered. A token already in
+ * `sessionStorage` means this is an ordinary reload of a signed-in tab — `sessionStorage` survives a
+ * reload, so that is the common case and not a special one. A `?code=` in the address bar means this
+ * is the landing back from WarcraftLogs and there is an exchange to finish — which is checked
  * synchronously, so the first paint says "signing in" rather than "signed out" and then flickering.
  *
- * Neither can run during Astro's prerender: `sessionStorage` and `window.location` do not exist
+ * The third is a stored token that has *expired*, and it is the reason `restoreSession` exists rather
+ * than a bare `readToken`. Storage keeps whatever it was given and has no idea a token has a clock on
+ * it, so a tab reloaded past its token's `exp` used to come back saying "Signed in" and then fail its
+ * first query with a 401 telling the reader to sign in again. Now it is caught on the way in: the dead
+ * token is dropped, and the tab spends one automatic re-authorize trying to renew it without asking
+ * for anything. `lib/auth/restore.ts` argues why `exp` may be trusted to refuse but never to permit.
+ *
+ * None of it can run during Astro's prerender: `sessionStorage` and `window.location` do not exist
  * there, which is why nothing is read in a lazy state initialiser.
  *
  * A pasted token is the third way this state gets filled, and the only synchronous one: there is
@@ -46,11 +71,14 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 	const [source, setSource] = useState<TokenSource | null>(null);
 	const [status, setStatus] = useState<SessionStatus>('unknown');
 	const [error, setError] = useState<string | null>(null);
+	const [errorIsExpiry, setErrorIsExpiry] = useState(false);
 	const [clientID, setClientID] = useState<string | null>(null);
 
 	useEffect(() => {
-		setClientID(readClientID());
-		const held = readToken();
+		const id = readClientID();
+		setClientID(id);
+		const restored = restoreSession();
+		const held = restored.session;
 		const settle = (next: StoredToken | null) => {
 			setToken(next?.token ?? null);
 			setSource(next?.source ?? null);
@@ -58,7 +86,37 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 		};
 
 		if (!hasCallbackParams()) {
-			settle(held);
+			if (restored.reason !== 'expired') {
+				settle(held);
+				return;
+			}
+
+			// The token is past its own `exp`. Drop it first, whatever happens next: a corpse left in
+			// storage is what made the *previous* reload claim a session, and if the re-authorize below
+			// fails there must be nothing here for the reload after this one to fall for either.
+			forgetToken();
+			const expiredMessage = restored.expiredSource === 'manual' ? EXPIRED_MANUAL_MESSAGE : EXPIRED_MESSAGE;
+
+			// WarcraftLogs issues no refresh token, so this is the closest honest thing: send the tab
+			// back through the authorize screen. Against a live WarcraftLogs session and a client the
+			// reader has already granted, it returns here with a new code and no interaction — a
+			// renewal that costs a flicker instead of a click. It needs a client id to go at all, and
+			// one attempt per tab so a refusal cannot become a redirect loop.
+			if (restored.expiredSource === 'oauth' && id !== null && !silentRetryUsed()) {
+				markSilentRetry();
+				setStatus('signing-in');
+				beginAuthorize().catch(() => {
+					// Could not even leave. Say what happened rather than sitting on "Signing in…".
+					setErrorIsExpiry(true);
+					setError(expiredMessage);
+					settle(null);
+				});
+				return;
+			}
+
+			setErrorIsExpiry(true);
+			setError(expiredMessage);
+			settle(null);
 			return;
 		}
 
@@ -68,15 +126,25 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 			.then((fresh) => {
 				if (!live) return;
 				setError(null);
+				setErrorIsExpiry(false);
+				// A sign-in that landed earns the tab its silent-renewal fuse back, so that this token
+				// ageing out later in the same tab is renewed as quietly as this one was.
+				if (fresh !== null) clearSilentRetry();
 				settle(fresh !== null ? { token: fresh, source: 'oauth' } : held);
 			})
 			.catch((cause: unknown) => {
 				if (!live) return;
-				// A failed exchange leaves a half-finished sign-in in storage; nothing here is worth
-				// keeping, and a stale verifier is a thing to be replayed against.
-				clear();
+				// The pending verifier and state are already gone — `completeSignIn` consumes them
+				// before it does anything else, precisely so a stale one cannot be replayed against.
+				//
+				// So there is nothing left to clear, and `clear()` used to be called here anyway: it
+				// took the *token* with it. A callback that fails says nothing about a session this tab
+				// already holds, and wiping it turned "that sign-in did not finish" into "you are also
+				// signed out now" — a good token destroyed by an unrelated failure. What is held is
+				// kept; only the failure is reported.
+				setErrorIsExpiry(false);
 				setError(readMessage(cause));
-				settle(null);
+				settle(held);
 			});
 		return () => {
 			live = false;
@@ -85,6 +153,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 
 	const signIn = useCallback(() => {
 		setError(null);
+		setErrorIsExpiry(false);
 		setStatus('signing-in');
 		// The success path never resolves — the tab navigates to WarcraftLogs and this code is gone.
 		// Only the failure path (an unregistered client, or no crypto) comes back here.
@@ -104,6 +173,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 		if (cleaned === '') return;
 		rememberToken({ token: cleaned, source: 'manual' });
 		setError(null);
+		setErrorIsExpiry(false);
 		setToken(cleaned);
 		setSource('manual');
 		setStatus('signed-in');
@@ -115,6 +185,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 		rememberClientID(trimmed);
 		setClientID(trimmed);
 		setError(null);
+		setErrorIsExpiry(false);
 	}, []);
 
 	const forgetClientID = useCallback(() => {
@@ -129,6 +200,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 		setSource(null);
 		setStatus('signed-out');
 		setError(null);
+		setErrorIsExpiry(false);
 	}, []);
 
 	const session = useMemo<Session>(
@@ -137,6 +209,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 			source,
 			status,
 			error,
+			errorIsExpiry,
 			clientID,
 			saveClientID,
 			forgetClientID,
@@ -144,7 +217,19 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 			signInWithToken,
 			signOut,
 		}),
-		[token, source, status, error, clientID, saveClientID, forgetClientID, signIn, signInWithToken, signOut],
+		[
+			token,
+			source,
+			status,
+			error,
+			errorIsExpiry,
+			clientID,
+			saveClientID,
+			forgetClientID,
+			signIn,
+			signInWithToken,
+			signOut,
+		],
 	);
 
 	return <SessionContext value={session}>{children}</SessionContext>;

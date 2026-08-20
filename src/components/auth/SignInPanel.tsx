@@ -21,7 +21,7 @@ import TokenHelp from './TokenHelp';
  * needs to know to carry on.
  */
 export default function SignInPanel() {
-	const { token, source, status, error, signOut } = useSession();
+	const { token, source, status, error, errorIsExpiry, signOut } = useSession();
 
 	// Reading the payload is only ever used to say something useful; it proves nothing, and a token
 	// we cannot read is simply one we say nothing about. A signed-in token is always a user token, so
@@ -42,6 +42,18 @@ export default function SignInPanel() {
 						{source === 'manual' ? 'Forget this token' : 'Sign out'}
 					</button>
 				</div>
+
+				{/* A failed sign-in no longer takes the session with it — a callback that cannot be validated
+				    says nothing about a token this tab already holds, and destroying it was the bug. But that
+				    leaves a failure with a live session behind it, which this branch used to render nothing
+				    for: someone who pressed the button to switch accounts and was refused saw no answer at
+				    all. So the message is shown here too, and the session it did not damage is stated above
+				    it. */}
+				{error !== null ? (
+					<Callout title={errorIsExpiry ? 'Your session had expired' : 'That sign-in did not finish'}>
+						<p className="m-0">{error}</p>
+					</Callout>
+				) : null}
 
 				{/* What the token can still spend. Beneath the line that says a session exists, because it
 				    is a fact about that session — and it appears here rather than only on the report's
@@ -76,7 +88,9 @@ export default function SignInPanel() {
 			<ClientIdPanel />
 
 			{error !== null ? (
-				<Callout title="That sign-in did not finish">
+				/* An expiry is not a failed attempt, and heading it as one tells someone who never touched
+				   the button that they did something wrong. `errorIsExpiry` carries the distinction. */
+				<Callout title={errorIsExpiry ? 'Your session had expired' : 'That sign-in did not finish'}>
 					<p className="m-0">{error}</p>
 				</Callout>
 			) : null}
