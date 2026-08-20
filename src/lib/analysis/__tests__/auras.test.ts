@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { Aura } from '~/lib/game/model';
 import type { Interval } from '../intervals';
@@ -235,6 +235,37 @@ describe('remainingIn / uptimePct', () => {
 	it('measures uptime against the whole fight', () => {
 		expect(uptimePct(windows, 30000)).toBe(50);
 		expect(uptimePct(windows, 0)).toBe(0);
+	});
+
+	/**
+	 * The backstop, and the fact that it does not keep quiet.
+	 *
+	 * 15s of windows against a 10s denominator is the shape that printed 100.21% on the Elemental's
+	 * Flame Shock tile: a numerator measured over a span the denominator does not cover. A silent clamp
+	 * would have hidden that for a second time, so the out-of-range input is reported and the caller's
+	 * arithmetic is what gets fixed. Asserted rather than trusted, because a warning nobody checks is
+	 * the same as no warning.
+	 */
+	it('clamps a numerator wider than its denominator, loudly', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		try {
+			expect(uptimePct(windows, 10000)).toBe(100);
+			expect(warn).toHaveBeenCalledTimes(1);
+			expect(warn.mock.calls[0]?.[0]).toContain('not measured over the same span');
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	/** Exactly full is not out of range, and must not warn. */
+	it('says nothing when the windows exactly fill the denominator', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		try {
+			expect(uptimePct([{ start: 0, end: 10000 }], 10000)).toBe(100);
+			expect(warn).not.toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+		}
 	});
 });
 

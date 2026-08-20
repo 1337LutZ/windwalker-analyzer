@@ -54,8 +54,14 @@ describe('a phased pull', () => {
 		]);
 	});
 
+	/**
+	 * 88.62 and not the 88.67 this pinned before: 125ms of the fifth window runs past the last landed hit
+	 * on the boss, and the share is now measured over the engaged clock's own windows rather than against
+	 * its total. The windows themselves and `uptimeMs` are untouched — see `uptimeSpan.test.ts` for the
+	 * pull where the same 125ms-shaped overrun took the figure over 100%.
+	 */
 	it('keeps the dot up for most of the time it could', () => {
-		expect(+el.flameShock.uptimePct.toFixed(2)).toBe(88.67);
+		expect(+el.flameShock.uptimePct.toFixed(2)).toBe(88.62);
 		expect(el.flameShock.windows).toHaveLength(5);
 	});
 

@@ -873,6 +873,35 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const fsDot = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, primaryID, actor.id);
 	const fsMerged: Window[] = fsDot.merged.map(([start, end]) => ({ start, end }));
 	const fsUptimeMs = unionMs(toIntervals(fsMerged));
+	/**
+	 * The same coverage, clipped to the clock it is graded against — and the reason the tile once read
+	 * **100.21%**.
+	 *
+	 * `fsMerged` runs over the whole pull: the dot goes up when it goes up and its window closes at the
+	 * `removedebuff` the boss's death emits, or at the last event of the fight. `engagedMs` is a
+	 * different span — the union of `engaged`, which is built from the player's own landed non-tick hits
+	 * on the primary target and so cannot begin before the first of them or run past the last. Dividing
+	 * one by the other divides two clocks, and on a pull where the dot never falls off the numerator
+	 * wins.
+	 *
+	 * Measured, on the pull that produced the figure: the last landed hit is at 364.238s, the dot's
+	 * removal is stamped at 365.014s, and the dot went up 1ms after the first hit. The numerator carried
+	 * 365 009ms against a 364 234ms denominator — 775ms of dot ticking on a boss that had already taken
+	 * its last hit — and 365 009 / 364 234 is 100.2128%. Nothing was double-counted and no merge was
+	 * wrong; the two spans simply disagreed about when the pull was.
+	 *
+	 * So the numerator is intersected with the denominator's own windows, which is what `multiDotUptimeMs`
+	 * and `stUptimeMs` below already do — Flame Shock was the one figure in this file measuring a union
+	 * against a bare scalar. That makes the ratio a share by construction rather than by luck, since
+	 * `intersect` cannot return more time than `engaged` contains, and it closes the same hole one
+	 * segment earlier: a dot ticking on across a gap *between* two engaged stretches was credited
+	 * against a denominator that excludes that gap.
+	 *
+	 * `windows` and `uptimeMs` are deliberately left whole. They are what the timeline lane draws and
+	 * what the drop ledger reads, and both are claims about the pull rather than about the share —
+	 * clipping them would put a seam in the drawn dot where the boss merely stopped being hit.
+	 */
+	const fsEngagedWindows: Window[] = intersect(fsDot.merged, engaged).map(([start, end]) => ({ start, end }));
 	/** The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none. */
 	const fsRemainingAt = (t: number): number => {
 		const key = spawnAt(t);
@@ -1525,7 +1554,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		flameShock: {
 			windows: fsMerged,
 			uptimeMs: fsUptimeMs,
-			uptimePct: uptimePct(fsMerged, engagedMs),
+			uptimePct: uptimePct(fsEngagedWindows, engagedMs),
 			applies,
 			refreshes,
 			windowed: fsPresses.filter((p) => p.windowed).length,

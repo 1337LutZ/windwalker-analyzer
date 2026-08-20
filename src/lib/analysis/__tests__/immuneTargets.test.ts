@@ -164,9 +164,16 @@ describe('the Elemental second Flame Shock on Iron Juggernaut', () => {
 	 *
 	 * `flameShock.uptimePct` is measured against the boss's own engaged clock, so no reading of it ever
 	 * involved a mine. If this moves, the fix has reached somewhere it had no business reaching.
+	 *
+	 * `phased` reads 88.6226 and not the 88.6748 this pinned when it was written, and the target set is
+	 * not why. The numerator is now intersected with the engaged windows before the division — see
+	 * `uptimeSpan.test.ts` — and 125ms of that fixture's dot ran on past the last landed hit on the
+	 * boss, so it was being credited against a span not containing it. Same 5 windows, same
+	 * `uptimeMs`; only the share moved. `unbroken` is unchanged to every digit, because its dot closes
+	 * 1ms *inside* its engaged clock and there was nothing to clip.
 	 */
 	it('leaves the dot on the boss exactly where it was', () => {
-		expect(+el('phased').flameShock.uptimePct.toFixed(4)).toBe(88.6748);
+		expect(+el('phased').flameShock.uptimePct.toFixed(4)).toBe(88.6226);
 		expect(+el('unbroken').flameShock.uptimePct.toFixed(4)).toBe(99.9995);
 	});
 });

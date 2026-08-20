@@ -410,8 +410,38 @@ export function auraDrops(
 	};
 }
 
+/**
+ * What share of `durationMs` the windows covered.
+ *
+ * **The caller owes it a numerator measured over the same span as the denominator**, and the backstop
+ * below exists because one caller did not. The Elemental's Flame Shock tile printed 100.21%: the dot's
+ * windows ran to the `removedebuff` the boss's death emits, while the denominator was the engaged clock,
+ * which is built from the player's landed hits and ends at the last of them. 775ms of dot on a boss that
+ * had taken its last hit, divided by a span that stops earlier, is over 100% — and an uptime over 100%
+ * is not a value, it is a message that two clocks were mixed. The fix is at that call site, where the
+ * windows are now intersected with the engaged windows before they get here.
+ *
+ * So the clamp is a second line and not the answer. It is here, where the number is *computed*, rather
+ * than at the tile that renders it, because a display-layer clamp leaves the arithmetic broken and the
+ * reader none the wiser. And it is **loud**: a silent `Math.min` turns the next instance of this bug
+ * into an invisible one, which is precisely how this one survived long enough to be reported by a user.
+ * A dev warning rather than a throw, because a report is a read-only view of a log and blanking the
+ * whole page over one bad tile serves nobody — the warning names the overflow in the console of anyone
+ * running the analyser, and the tests below assert it fires.
+ */
 export function uptimePct(windows: readonly Window[], durationMs: number): number {
-	return durationMs > 0 ? (unionMs(toIntervals(windows)) / durationMs) * 100 : 0;
+	if (durationMs <= 0) return 0;
+	const coveredMs = unionMs(toIntervals(windows));
+	if (coveredMs > durationMs) {
+		if (import.meta.env.DEV) {
+			console.warn(
+				`[uptimePct] ${coveredMs}ms of windows against a ${durationMs}ms denominator: the numerator and the ` +
+					`denominator were not measured over the same span. Clamped to 100%.`,
+			);
+		}
+		return 100;
+	}
+	return (coveredMs / durationMs) * 100;
 }
 
 /** One moment an aura went up (applied or refreshed) or came off, fight-relative. */
