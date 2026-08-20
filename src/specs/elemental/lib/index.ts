@@ -1520,14 +1520,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// Totem pressed over a healthy one.
 	const wastedGcds =
 		fsPresses.filter((p) => p.remainingMs !== null && !p.windowed && !p.ascPrep).length + stClipped.length;
-	// TEMP-DIAG
-	if (process.env['WW_DIAG'] !== undefined) {
-		// eslint-disable-next-line
-		require('node:fs').writeFileSync(
-			process.env['WW_DIAG'] + '/diag-' + String(duration) + '.json',
-			JSON.stringify({ engaged, engagedMs, contact, fsMerged, fsUptimeMs, duration }, null, 1),
-		);
-	}
 
 	return {
 		flameShock: {
