@@ -478,18 +478,59 @@ Measured on the committed fixtures:
 `unbroken` is the sharpest case: a pull with one apply, six clean refreshes and 100% uptime is told it
 refreshed late. Nothing on that pull went wrong.
 
-- [ ] Split the states in the audit rather than in the copy. At least: **first application** (no window
+- [x] Split the states in the audit rather than in the copy. At least: **first application** (no window
       before this press), **re-applied after the fight took the target away**, and **late** (the dot was
       down while the player was in contact). A press below `DROP_MS` of downtime is jitter, not a fault —
       use the same threshold and the same contact clock `auraDrops` now takes, or the ledger and the table
       will disagree about the same instant.
-- [ ] Only the third case may set `faulted`. The first two must not band the row as a warning.
-- [ ] Copy: `flameShock.state.late` keeps its meaning; the two new states need their own keys. "First
+- [x] Only the third case may set `faulted`. The first two must not band the row as a warning.
+- [x] Copy: `flameShock.state.late` keeps its meaning; the two new states need their own keys. "First
       application" wants no grade at all — it is the opener, not a decision.
-- [ ] The same shape almost certainly affects the Windwalker's Tiger Palm / Rising Sun Kick press tables
-      and the Elemental's Searing Totem `remainingMs === null` rows. Check them before fixing only this one.
-- [ ] Validate: `unbroken` must show **no** faulted Flame Shock press, and `phased` must show the submerge
+- [x] **Checked the Windwalker: not affected, and that is the finding.** Tiger Palm already separates
+      `apply` from `refresh` and its comment explains why ("putting the buff up is not refreshing it… both
+      read zero remaining"); Rising Sun Kick has no press table at all. The Elemental was written from that
+      audit and collapsed the states again. So no Windwalker change, and no re-baseline.
+- [x] Validate: `unbroken` must show **no** faulted Flame Shock press, and `phased` must show the submerge
       re-application as exempt rather than late. Both are assertions to add to `pulls.test.ts`.
+
+## 25 — Findings from the deploy failure and the merge to main
+
+- [x] **The `elemental-analyzer` deploy was red, and the workflow was the cause.** `deploy-cloudflare.yml`
+      set `PUBLIC_SPEC` in a workflow-level `env:`, which reaches every step including the gates. Vitest
+      puts the process environment onto `import.meta.env`, so `DEFAULT_SPEC` resolved to Elemental _inside
+      the test run_ and the component suites scored committed Windwalker fixtures with the Shaman's scorer:
+      18 files, 96 tests, with `expected 1500 to be 1000` (Elemental's `gcdMs` vs the monk's) as the tell.
+      Now scoped to the `npm run build` step, which is the repo's own existing pattern in `deploy.yml`.
+      The Windwalker deploy had passed only by coincidence — `windwalker` is `SPECS[0]`, so pinning it picks
+      what the fallback would have chosen anyway.
+- [x] Merged to `main` (PR #4, `5b71994`) and the `feature/multi-spec` worktree removed. Work continues on
+      `main` in the main checkout; `.claude/skills` is a real directory there rather than a symlink, so the
+      skill file is inside the `oxfmt` gate.
+- [ ] **`LanesTimeline` still reaches into one spec's audit, and the leak grep cannot see it.** Line ~128
+      does `(analysis as Analysis & { lightningShield?: … })` — a cast rather than an import, so
+      `grep -rn "from '~/specs/"` reports clean. This is exactly what `timelineBanks` was created to remove
+      from `CastTimeline`; the fix is a `SpecDefinition` member alongside it. Worth also making the
+      convention's grep recipe aware that a cast is a leak too.
+- [ ] **The suite cannot run under an Elemental pin.** Roughly 18 test files assume `DEFAULT_SPEC` is the
+      Windwalker. `spec/__tests__/registry.test.ts` is the clearest — `const ww = DEFAULT_SPEC;
+    expect(ww.gcdMs).toBe(1000)` names the variable `ww` while reading the _default_; it should ask
+      `getSpec('windwalker')`. Harmless while the gates stay spec-independent, but it is the same assumption
+      that produced the red deploy above.
+
+## How the remaining work splits for parallel pickup
+
+Four lanes, cut so their file sets are disjoint. Nobody edits an `index.ts` barrel or
+`src/components/report/specSections.tsx` — those are reported back and applied by the coordinator.
+
+| lane                                  | owns                                                                                                       | items                   |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------- |
+| **A — intermission bands**            | `specs/*/components/charts/*Uptime.tsx`, `DebuffTimeline.tsx`, `charts/tones.ts`, `locales/en/report.json` | step 22                 |
+| **B — Elemental coverage**            | `specs/elemental/lib/__tests__/**` only                                                                    | step 24's coverage item |
+| **C — the `LanesTimeline` leak**      | `charts/LanesTimeline.tsx`, `lib/spec/registry.ts`, `specs/*/lib/view/timelineBanks.ts`                    | step 25                 |
+| **D — the `DEFAULT_SPEC` assumption** | `lib/spec/__tests__/`, `components/**/__tests__/`                                                          | step 25                 |
+
+B and D both touch tests but in disjoint directories. A owns `report.json` alone. What cannot be
+parallelised is step 24's end-to-end validation: it needs the finished tree and a browser.
 
 ## 24 — Validate the whole of it
 
@@ -507,5 +548,9 @@ right — the question no single step could answer.
       this branch is built on. Rewritten to keep the rule that wording was protecting, plus three path
       references that no longer resolved.
 - [ ] **Narrow viewports.** Every new Elemental section and chart at ~390px, per `docs/conventions.md`: measure `scrollWidth` against `clientWidth` in a 390px iframe rather than trusting a headless screenshot.
-- [ ] **The two deploys, once.** Run `cloudflare-elemental.yml` from the Actions tab and confirm it creates the `elemental-analyzer` project, publishes, and that sign-in works there — which needs `https://elemental-analyzer.pages.dev` registered with WarcraftLogs as a redirect URI first. The workflows are asserted to be well-formed; nothing has proved they run.
-- [ ] Validate: `npm run check` + `npm test` + `npm run build` from a clean `npm ci`, on Node 24 — the version CI uses, and not the one on the PATH here by default.
+- [x] **Both deploys run and both sites serve the right spec.** Elemental run `32391278686`, Windwalker
+      `32391278909`; `elemental-analyzer.pages.dev` serves "Elemental Shaman analyzer (alpha)". Getting there
+      needed a real fix — see step 25.
+- [x] Validate: clean `npm ci` on Node 24 in a throwaway clone — `npm run check` 0 errors, `npm test`
+      991 passed / 0 failed (JSON-verified, so no suite-level load failure hiding as green), `npm run build`
+      clean.
