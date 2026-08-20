@@ -1,0 +1,76 @@
+// One real Windwalker pull, end to end, from a raw event stream.
+//
+// This exists because the other Windwalker fixtures cannot do this job. `__fixtures__/{strong,poor,…}.json`
+// are pre-analysed `Analysis` objects, so a test that loads one and renders it exercises the components
+// and never calls `windwalkerAudit` at all — which means the render hashes taken from them are invariant
+// under *any* change to `lib/index.ts`. A refactor of the engine could be declared verified against them
+// and have proved nothing. This fixture is a raw `FightDataset`, so `analyse` really runs.
+//
+// `a:6MhZgjyAknFWrYfK` #12 — Iron Juggernaut 25H, 190.3s, an anonymous report, which is the only kind of
+// log that belongs in this repository.
+//
+// The figures are asserted rather than hashed on purpose: a hash says something moved, these say what.
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+import type { FightDataset } from '~/lib/types';
+import { analyse } from '../index';
+
+const dataset = JSON.parse(
+	readFileSync(resolve(import.meta.dirname, '../../__fixtures__/dataset-ironJuggernaut.json'), 'utf8'),
+) as FightDataset;
+
+describe('a real Windwalker pull, audited from raw events', () => {
+	const a = analyse(dataset);
+
+	it('is recognised as Windwalker', () => {
+		expect(a.isSpec).toBe(true);
+		expect(a.encounter).toBe('Iron Juggernaut');
+		expect(a.durationMs).toBe(190_309);
+	});
+
+	it('reads the pull the way WarcraftLogs does', () => {
+		expect(Math.round(a.damage.dps)).toBe(442_607);
+		expect(+a.cpm.totalCpm.toFixed(2)).toBe(52.81);
+	});
+
+	/** The measured effective GCD, not the flat 1.0s — step 1 of the multi-spec plan. */
+	it('prices the globals off the log rather than off the spec constant', () => {
+		expect(a.cpm.gcdSlots).toBe(189);
+		expect(+a.cpm.gcdUtilisationPct.toFixed(2)).toBe(89.61);
+	});
+
+	it('reads the brew bank through the shared stack walker', () => {
+		expect(a.brew.uses).toBe(7);
+		expect(+a.brew.avgConsumed.toFixed(2)).toBe(9.29);
+		expect(a.brew.wastedAtCap).toBe(0);
+	});
+
+	it('grades the Re-Origination snapshots', () => {
+		expect(a.procs.procs).toBe(4);
+		expect(a.procs.opportunities).toBe(4);
+		expect(a.procs.snapshotted).toBe(3);
+	});
+
+	/**
+	 * The debuff ledger, which now runs through the shared `auraDrops`.
+	 *
+	 * `intermissionSec` is 0.7 here, which is the heuristic being harmless: the largest gap on this pull
+	 * is jitter-sized, so writing it off costs nothing. The Elemental's `phased` fixture is where the same
+	 * heuristic would have been dangerous, and why that spec passes its contact clock in as evidence
+	 * instead.
+	 */
+	it('keeps the Rising Sun Kick debuff up, with nothing to report as dropped', () => {
+		expect(+a.debuff.engagedUptimePct.toFixed(2)).toBe(96);
+		expect(a.debuff.drops).toEqual([]);
+		expect(a.debuff.intermissionSec).toBe(0.7);
+	});
+
+	it('audits Tiger Palm and the cooldowns it held', () => {
+		expect(a.filler.casts).toBe(12);
+		expect(a.filler.wasted).toBe(0);
+		expect(a.lostCasts).toHaveLength(3);
+		expect(a.misses).toHaveLength(3);
+	});
+});
