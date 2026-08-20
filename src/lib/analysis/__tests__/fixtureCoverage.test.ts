@@ -157,12 +157,11 @@ describe('every aura a spec declares either fires in a committed fixture or is o
  *
  * Two entries are worth knowing about rather than scrolling past:
  *
- *   `t16-2pc-proc [144998]` is **not** an item nobody wore — it is the number the game does not use. It
- *   is the simulator's `ExposeToAPL` handle for the two-piece; the log writes 144999, which is declared
- *   separately as `t16-2pc-debuff` and fires on both Elemental pulls. This entry is dead weight and
- *   whatever reads `twoPieceWindows` reads an empty array. It stays listed rather than quietly deleted
- *   because removing it touches a chart lane and an APL gate, which is a change that deserves its own
- *   look — but it does not belong here permanently, and it is the reason this guard exists at all.
+ *   `t16-2pc-proc [144998]` was here, and is gone: it was the simulator's `ExposeToAPL` handle rather
+ *   than a number the game writes, so it was retired and its five readers consolidated onto
+ *   `t16-2pc-debuff` (144999), which fires on all three Elemental pulls. That is the shape of the right
+ *   answer to an entry appearing here — establish which kind it is, and if the game never writes it, it
+ *   belongs nowhere rather than on this list.
  *
  *   `capacitance [137596]` is the legendary meta gem. It is also referenced by bare key in shared chart
  *   code, which `docs/conventions.md` would rather it were not.
@@ -185,7 +184,6 @@ const SILENT_AURAS: Record<string, string[]> = {
 		're-origination [139117, 139120, 139121]',
 		'synapse-springs [96228]',
 		't15-4pc [138144]',
-		't16-2pc-proc [144998]',
 		'unerring-vision [138963]',
 		'unerring-vision-stacks [138786]',
 		'unleashed-fury [117012]',

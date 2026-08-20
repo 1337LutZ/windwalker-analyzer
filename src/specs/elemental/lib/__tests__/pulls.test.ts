@@ -398,3 +398,28 @@ describe('a multi-target pull', () => {
 		expect(unpriced(el)).toBe(11);
 	});
 });
+
+/**
+ * The two-piece proc is measured, on every committed pull.
+ *
+ * It was measured on none of them until the aura was repointed: `t16-2pc-proc` carried 144998, the
+ * simulator's `ExposeToAPL` handle, which the game never writes — so the windows were empty, Earth
+ * Shock's rule ran on three of its four conditions because `twoPiece` could not fire, the ladder's gate
+ * always read false, and a timeline lane drew nothing. Both original fixtures demonstrably had the set.
+ *
+ * Pinned per pull rather than as "greater than zero", because the failure mode was silence: a count that
+ * has to match is the only kind that notices going quiet again.
+ */
+describe('the T16 two-piece', () => {
+	for (const [name, windows, shocks] of [
+		['phased', 8, 4],
+		['unbroken', 5, 8],
+		['cleave', 8, 4],
+	] as const) {
+		it(`${name} sees the debuff and reads it as an Earth Shock condition`, () => {
+			const el = fx(name);
+			expect(el.timeline?.lanes?.find((l) => l.key === 't16-2pc-debuff')?.windows).toHaveLength(windows);
+			expect(el.earthShock.presses.filter((p) => p.reasons.includes('twoPiece'))).toHaveLength(shocks);
+		});
+	}
+});

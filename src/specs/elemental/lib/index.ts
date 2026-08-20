@@ -518,12 +518,6 @@ const AURAS: Aura[] = [
 		appliedBy: 'stormlash-totem',
 	},
 	{
-		key: 't16-2pc-proc',
-		name: 'Celestial Harmony',
-		ids: [144998],
-		kind: 'buff',
-	},
-	{
 		key: 't16-2pc-debuff',
 		name: 'Elemental Discharge',
 		ids: [144999],
@@ -614,7 +608,6 @@ const SEARING_TOTEM_DOT = registry.aura('searing-totem');
 const FIRE_ELEMENTAL_AURA = registry.aura('fire-elemental');
 const STORMLASH_AURA = registry.aura('stormlash-totem');
 const T15_4PC = registry.aura('t15-4pc');
-const T16_2PC_PROC = registry.aura('t16-2pc-proc');
 const T16_2PC_DEBUFF = registry.aura('t16-2pc-debuff');
 const UNERRING_VISION = registry.aura('unerring-vision');
 const UNERRING_VISION_STACKS = registry.aura('unerring-vision-stacks');
@@ -1221,7 +1214,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// module constant would be unreachable code implying the two could disagree.
 	const lightningShieldCap = LIGHTNING_SHIELD.maxStacks ?? 0;
 	const lsLevels = auraLevels(selfEvents, LIGHTNING_SHIELD, t0, fightEnd);
-	const twoPieceWindows = selfWindows(T16_2PC_PROC);
+	/**
+	 * The two-piece window: the debuff the proc leaves on the target, read where it actually lands.
+	 *
+	 * This used to be `selfWindows(T16_2PC_PROC)` — the set's own name, `Celestial Harmony`, wired to id
+	 * 144998. That number is the simulator's `ExposeToAPL` handle and the game never writes it, so the
+	 * windows were permanently empty and everything downstream of them was too: Earth Shock's rule ran on
+	 * three of its four conditions because `twoPiece` could not fire, the ladder's priority gate always
+	 * read false, and a timeline lane drew nothing. Both committed pulls demonstrably had the set — 144999
+	 * appears twenty times on one and eighteen on the other.
+	 *
+	 * It is also a *debuff on the target*, not a buff on the player, so the scoping was wrong as well as
+	 * the id: `selfWindows` would have found nothing even had the number been right.
+	 */
+	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
+	const twoPieceWindows: Window[] = t16DebuffWindows.map(([start, end]) => ({ start, end }));
 	const esPresses = castTimes(EARTH_SHOCK).map((t) => {
 		const stacks = levelAt(lsLevels, t);
 		// The dot on the enemy this shock is being fired at, not on any spawn of its actor id — the
@@ -1447,9 +1454,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	}
 
 	// ------------------------------------------------------------ Ascendance
-	// The two-piece debuff's union: it is drawn as a lane, and the two-piece read below is a check on
-	// this player's own proc rather than on which add they were facing.
-	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
+	// The two-piece window is `twoPieceWindows` above, computed once: it is drawn as a lane, gates the
+	// ladder, is one of Earth Shock's four conditions, and is read here. Five readers of one union, so
+	// they cannot disagree about when the proc was up.
 	const ascPresses = ascCasts.map((t) => ({
 		t,
 		// Per spawn: "Ascendance pressed without a fresh Flame Shock" is a claim about the enemy the
@@ -1457,11 +1464,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// which the sim evaluates against the current target.
 		fsRemainingMs: fsRemainingAt(t) || null,
 		opener: t <= 5000,
-		twoPiece:
-			remainingIn(
-				t,
-				t16DebuffWindows.map(([start, end]) => ({ start, end })),
-			) >= 10_000,
+		twoPiece: remainingIn(t, twoPieceWindows) >= 10_000,
 	}));
 
 	// The two cooldowns the list does not judge against a bare clock either, each read against its
@@ -1567,7 +1570,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// whether either was up, and answering it from a second pair of window sets would let the
 		// ladder disagree with the section that grades the same press.
 		'fire-elemental': feWindows.map(([start, end]) => ({ start, end })),
-		't16-2pc-proc': toIntervals(twoPieceWindows).map(([start, end]) => ({ start, end })),
+		't16-2pc-debuff': twoPieceWindows,
 	};
 	const emptyCurve = { max: 0, points: [] as Array<[number, number]> };
 	const aplInputs: AplInputs = {
@@ -1687,18 +1690,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			'proc',
 			toIntervals(selfWindows(LAVA_SURGE)).map(([s, e]) => ({ start: s, end: e })),
 		),
-		lane(
-			T16_2PC_PROC,
-			'proc',
-			toIntervals(twoPieceWindows).map(([s, e]) => ({ start: s, end: e })),
-		),
 		// The two-piece debuff the proc leaves on the primary target, so the Ascendance two-piece window
-		// can be read off the timeline rather than only off the cooldowns section.
-		lane(
-			T16_2PC_DEBUFF,
-			'debuff',
-			t16DebuffWindows.map(([start, end]) => ({ start, end })),
-		),
+		// can be read off the timeline rather than only off the cooldowns section. One lane, where there
+		// used to be this and an empty `t16-2pc-proc` beside it.
+		lane(T16_2PC_DEBUFF, 'debuff', twoPieceWindows),
 		lane(
 			UNERRING_VISION,
 			'proc',

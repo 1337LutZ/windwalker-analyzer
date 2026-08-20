@@ -186,7 +186,7 @@ export const LADDER: readonly ELE_AplRule[] = [
 			if (stacks !== null && stacks < 7) return false;
 			if (auras.remainingMs('flame-shock') < 6000) return false;
 			if (cooldowns.readyInSec(ID.ascendance) < ES_ASC_HOLD_SEC) return false;
-			if (auras.active('t16-2pc-proc')) return false;
+			if (auras.active('t16-2pc-debuff')) return false;
 			return true;
 		},
 	},
