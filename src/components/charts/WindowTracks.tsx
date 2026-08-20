@@ -61,7 +61,14 @@ export interface Track {
 	 * rows are not always copy at all — the Stormlash chart names a row after a shaman in the log.
 	 */
 	label: string;
-	/** Palette token the row's bars are painted with — named for what the row means, never for a colour. */
+	/**
+	 * Palette token the row's bars are painted with — named for what the row means, never for a colour.
+	 *
+	 * A row that draws time the section's denominator *dropped* — an intermission, a slot something
+	 * else was holding — takes `EXEMPT` from `./tones` rather than a token of its own choosing. Three
+	 * charts drew such a row and two of them disagreed about which grey it was; the note beside
+	 * `EXEMPT` is why there is now one answer.
+	 */
 	tone: keyof ChartTheme;
 	windows: ReadonlyArray<readonly [number, number]>;
 	/**

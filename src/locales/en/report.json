@@ -1254,11 +1254,12 @@
       },
       "label": "How much of the Flame Shock dot was left at each refresh, against the keep-it-up window",
       "empty": "Flame Shock was never refreshed in this pull.",
-      "uptimeLabel": "Flame Shock uptime over the pull, with the stretches the dot was down"
+      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up, the stretches it was down while you had something to hit, and the stretches with nothing to hit, which are left out of the percentage"
     },
     "track": {
       "up": "Dot up",
-      "dropped": "Dot down"
+      "dropped": "Dot down",
+      "away": "Nothing to hit"
     }
   },
   "earthShock": {
@@ -1317,11 +1318,12 @@
     "caption": "Every Searing Totem placement, what the previous totem still had on it, and what the press bought",
     "none": "Searing Totem was never cast in this pull.",
     "chart": {
-      "uptimeLabel": "Searing Totem uptime over the pull, with the stretches it was down"
+      "uptimeLabel": "Searing Totem uptime over the pull: the stretches it was ticking, the stretches it was down while the slot was yours to fill, and the two kinds of stretch left out of the percentage — nothing to hit, and the Fire Elemental holding the slot"
     },
     "track": {
       "up": "Totem up",
       "dropped": "Totem down",
+      "away": "Nothing to hit",
       "elemental": "Fire Elemental out"
     },
     "gate": "The Fire Elemental takes the one Fire totem slot while it is out, destroying the totem — so that stretch is left out of both the graph and the percentage rather than counted as a totem dropped. A placement under the elemental is the one case the list forbids outright: it kills the elemental to buy a totem."

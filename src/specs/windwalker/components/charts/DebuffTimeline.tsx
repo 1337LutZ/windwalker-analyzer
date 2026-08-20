@@ -7,6 +7,7 @@ import type { Analysis } from '~/lib/types';
 import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
+import { EXEMPT } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import WindowTracks from '~/components/charts/WindowTracks';
 
@@ -87,6 +88,10 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 	 * The away row is filtered to gaps over a second before it ever reaches here, so every span it
 	 * carries already clears `DROP_MS` and the flag cannot change what it draws. It is set anyway, so
 	 * that a later reader does not have to work out which of the three rows was the special one.
+	 *
+	 * Its tone is `EXEMPT` rather than a token written out here, because this row is the precedent the
+	 * Elemental uptime charts now follow — it used to be `muted` while theirs was `track`, which is one
+	 * meaning wearing two colours. See the note beside `EXEMPT` in `charts/tones.ts`.
 	 */
 	const rows = useMemo(
 		(): Track[] => [
@@ -98,7 +103,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 				lengthLabel: 'without it for',
 				widen: false,
 			},
-			{ label: t('debuff.track.away'), tone: 'muted', windows: tracks.away, lengthLabel: 'for', widen: false },
+			{ label: t('debuff.track.away'), tone: EXEMPT, windows: tracks.away, lengthLabel: 'for', widen: false },
 		],
 		[t, tracks],
 	);
@@ -120,6 +125,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 				<>
 					<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
+					{tracks.away.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('debuff.track.away')}</ChartKey>}
 				</>
 			}
 			note={t('debuff.chartCaption', { context, target })}

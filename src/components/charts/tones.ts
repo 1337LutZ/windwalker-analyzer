@@ -92,3 +92,36 @@ export const VAR: Record<Tone, string> = {
 	missSoft: 'var(--color-miss-soft)',
 	track: 'var(--color-track)',
 };
+
+/**
+ * The one tone an *exempt* stretch is drawn in: time the section's denominator dropped, so the
+ * reader is neither credited nor charged for it.
+ *
+ * A constant rather than three copies of the string, because three copies is how the tree ended up
+ * with two answers to one question. `DebuffTimeline`'s "nothing to hit" row was `muted` and
+ * `SearingTotemUptime`'s "Fire Elemental out" row was `track`; both read as faded grey, and a reader
+ * moving between two charts of one pull had no way to know the two bands meant the same thing.
+ *
+ * `track` is the survivor and `muted` is the one that went, for two reasons that are not taste.
+ * `muted` is one of the *text* colours — `--color-muted` is the dim ink beside `ink` and `ink-2`,
+ * mixed off `#a1a9a4` and built to be read at 14px — so painting a wide band in it puts the exempt
+ * ground brighter than the up and down rows that are the chart's actual argument. `track` is already
+ * documented above as the one tone here that is not a judgement, and it is a ground: dark enough to
+ * sit behind the rows rather than in front of them. It is also in `SWATCH`, so the key beside the
+ * chart can name it; `muted` is not, and adding a text token to the mark table would break the
+ * pairing rule this module exists to hold.
+ *
+ * **One tone, two labels.** Exempt is one concept for everything a chart decides about it — the
+ * colour, the order, the fact that it is a ground — because every such stretch is exactly "a second
+ * the denominator dropped", and a reader comparing two charts should not have to learn two visual
+ * languages for that. It is two *labels* wherever a chart has two causes, because the causes are not
+ * the same fact about the pull: the fight taking the target away is nothing the player did, while the
+ * Fire Elemental holding the one Fire totem slot is the player's own cooldown. Neither is a fault and
+ * both are uncounted, so they share the tone; only one of them is a thing the reader chose, so they
+ * keep their own names.
+ *
+ * Widening is *not* part of the concept, and `SearingTotemUptime` is the exception that shows why: an
+ * exempt row is a ground and so takes `widen: false`, unless a tile above the chart counts its spans
+ * one by one, in which case it is also a counted row and must not be gated. See `Track.widen`.
+ */
+export const EXEMPT = 'track' satisfies Tone;
