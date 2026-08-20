@@ -21,41 +21,12 @@
 // primary target, Lightning Shield's stack counter, and Ascendance's cooldown clock (via the
 // engine's `offLadderCooldowns`, because Ascendance is off-GCD and off the ladder).
 
-import {
-	type AuraPoint,
-	type AuraWindow,
-	auraDrops,
-	auraLevels,
-	DROP_MS,
-	auraTimeline,
-	auraWindows,
-	inWindow,
-	levelAt,
-	levelWindows,
-	remainingAtCast,
-	remainingIn,
-	toIntervals,
-	uptimePct,
-} from '~/lib/analysis/auras';
-import { atCapWindows } from '~/lib/analysis/counters';
-import { complementOf, intersect, mergeIntervals, unionMs, type Interval } from '~/lib/analysis/intervals';
-import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
-import { intervalsAtLeast, overlapPoints } from '~/lib/analysis/targets';
+import { auraLevels, auraWindows, inWindow, levelWindows, remainingIn, toIntervals } from '~/lib/analysis/auras';
+import { mergeIntervals, type Interval } from '~/lib/analysis/intervals';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
-import type {
-	Analysis,
-	AuraLane,
-	EarthShockReason,
-	ElementalAuditResult,
-	FightDataset,
-	Miss,
-	SearingTotemPress,
-	StormlashAudit,
-	WclEvent,
-	Window,
-} from '~/lib/types';
-import { abilityIdOf, instanceKey, isAuraEvent } from '~/lib/events/guards';
+import type { Analysis, AuraLane, ElementalAuditResult, FightDataset, Miss, WclEvent, Window } from '~/lib/types';
+import { abilityIdOf, isAuraEvent } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
 import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
@@ -63,7 +34,6 @@ import type { Ability, Aura, GameData } from '~/lib/game/model';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
-import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
@@ -749,7 +719,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		castTimes,
 		primaryID,
 		primaryName,
-		engaged,
 		engagedMs,
 		marks,
 		aplTargetCountAt,
