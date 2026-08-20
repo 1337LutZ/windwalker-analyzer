@@ -1891,11 +1891,41 @@ export type Analysis = AnalysisCore & SpecAuditResult;
  */
 
 /** One Flame Shock press on the primary target: an apply or a refresh. */
+/**
+ * What a Flame Shock press *was*, where "the dot was down" is three different things.
+ *
+ * `remainingMs === null` used to carry all three, and the section rendered every one of them as "Late
+ * Refresh" — an accusation, and one that also banded the row as a fault. On a pull with one apply, six
+ * clean refreshes and 100% uptime, the opener was told it refreshed late.
+ *
+ * The Windwalker's Tiger Palm audit had already made this distinction and written down why ("putting the
+ * buff up is not refreshing it… both read zero remaining"); the Elemental was written from it and
+ * collapsed the states again.
+ *
+ *   - `apply`     the dot had never been up on this spawn. The opener. Not a decision about timing.
+ *   - `reapply`   it had lapsed, but not on the player's watch — the target was away, or the gap was
+ *                 under `DROP_MS` and is refresh jitter. Not a fault.
+ *   - `late`      it had lapsed with the player in contact for longer than the jitter floor. A fault.
+ *   - `windowed`  refreshed inside the reader's own keep-it-up window.
+ *   - `ascPrep`   refreshed early on purpose, for the sim's Ascendance prep rule.
+ *   - `early`     refreshed with more left than either rule wants. A fault.
+ */
+export type FlameShockPressKind = 'apply' | 'reapply' | 'late' | 'windowed' | 'ascPrep' | 'early';
+
 export interface FlameShockPress {
 	/** When the press landed. */
 	t: number;
-	/** The dot's remaining time at the press; null when the dot was down and this was a fresh apply. */
+	/** Which of the six the press was — see `FlameShockPressKind`. */
+	kind: FlameShockPressKind;
+	/** The dot's remaining time at the press; null when the dot was down and this press applied one. */
 	remainingMs: number | null;
+	/**
+	 * How long the dot had been down *while the player was in contact*, for the three down-states.
+	 *
+	 * Null on a refresh, where nothing was down. Zero on an `apply` — there was no previous window to be
+	 * absent from — and that is why it cannot be inferred from `remainingMs` alone.
+	 */
+	exposedMs: number | null;
 	/** Whether the press was the reader's own keep-it-up window (`flameShockRefreshMs`). */
 	windowed: boolean;
 	/** Whether the press was the sim's Ascendance prep (rule 12): dot under 16s with Ascendance ready inside 2s. */

@@ -82,6 +82,31 @@ describe('a phased pull', () => {
 		expect(el.lightningShield.overcapWindows).toHaveLength(10);
 	});
 
+	/**
+	 * What each Flame Shock press *was*, and the accusation that used to be here.
+	 *
+	 * Every press whose dot was down read `remainingMs === null`, which the section rendered as "Late
+	 * refresh" and banded as a fault — so this pull showed four late refreshes. Three were sub-second
+	 * jitter and one was the boss submerging; none was a mistake. The press at 193 052 is the sharpest:
+	 * the dot had been down since 151 149, but the boss was away for 41.4s of that, so the player is
+	 * charged the 518ms they were actually present for.
+	 */
+	it('tells the three down-states apart', () => {
+		expect(el.flameShock.presses.map((p) => p.kind)).toEqual([
+			'apply',
+			'windowed',
+			'windowed',
+			'reapply',
+			'reapply',
+			'reapply',
+			'windowed',
+			'windowed',
+		]);
+		expect(el.flameShock.presses.find((p) => p.t === 193_052)?.exposedMs).toBe(518);
+		// Nothing on this pull is a fault: no press dropped the dot on the player's own watch.
+		expect(el.flameShock.presses.filter((p) => p.kind === 'late' || p.kind === 'early')).toEqual([]);
+	});
+
 	it('reads the shield as pre-applied and tracks it to the end', () => {
 		// No `applybuff` in the log: the shield was up before the pull, so the walk infers the level it
 		// must have held at t=0 rather than starting from nothing.
@@ -127,6 +152,26 @@ describe('an unbroken pull', () => {
 	it('charges the shield for the time it sat at seven charges', () => {
 		expect(el.lightningShield.overcapMs).toBe(23_387);
 		expect(el.lightningShield.overcapWindows).toHaveLength(7);
+	});
+
+	/**
+	 * One apply, six keep-up refreshes, and **not one fault** — which is the point of this fixture.
+	 *
+	 * The opener used to be labelled "Late refresh" and banded as a mistake on a pull with 100% uptime.
+	 * There was no dot to refresh: it was the first application of the fight.
+	 */
+	it('reads the opener as an application, not a late refresh', () => {
+		expect(el.flameShock.presses.map((p) => p.kind)).toEqual([
+			'apply',
+			'windowed',
+			'windowed',
+			'windowed',
+			'windowed',
+			'windowed',
+			'windowed',
+		]);
+		expect(el.flameShock.presses[0]?.exposedMs).toBe(0);
+		expect(el.flameShock.presses.filter((p) => p.kind === 'late' || p.kind === 'early')).toEqual([]);
 	});
 
 	it('catches the two shocks spent below the ceiling', () => {
