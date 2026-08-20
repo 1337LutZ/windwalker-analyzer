@@ -444,6 +444,7 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			earthShock: 'earth-shock',
 			searingTotem: 'searing-totem',
 			flameShockSnapshots: 'snapshots',
+			fireElemental: 'fire-elemental',
 		},
 	},
 };
