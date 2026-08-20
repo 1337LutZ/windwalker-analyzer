@@ -194,7 +194,7 @@ Environment is read two ways, and only one of them reads `.env`:
 
 - **`PUBLIC_SPEC`** — the registry key of the spec a build defaults to — is read by the app as
   `import.meta.env.PUBLIC_SPEC`, Astro's `.env`-loaded channel. A local `.env` re-points
-  `npm run dev` at another spec (today `windwalker` is the only registered key).
+  `npm run dev` at another spec; the registered keys are `windwalker` and `elemental`.
 - **`SITE_URL` and `BASE_PATH`** are read by `astro.config.mjs` from the real process environment
   (`process.env`), **not** from `.env` — export them in the shell instead (`SITE_URL=… npm run build`).
 
@@ -203,9 +203,36 @@ reaches CI — the deploy reads its environment from the workflow files, not fro
 
 ## Deployment
 
-Pushing to `main` runs `.github/workflows/cloudflare.yml`: `npm ci`, `npm run check`, `npm test`,
-then `npm run build` and `wrangler pages deploy dist`. A build that fails any check is not
-published. Pull requests run `.github/workflows/ci.yml`, which is the same two commands.
+Pushing to `main` publishes **both** sites from the same commit, through two independent runs:
+
+| Workflow                                      | Cloudflare project    | `PUBLIC_SPEC` | URL                                     |
+| --------------------------------------------- | --------------------- | ------------- | --------------------------------------- |
+| `.github/workflows/cloudflare-windwalker.yml` | `windwalker-analyzer` | `windwalker`  | `https://windwalker-analyzer.pages.dev` |
+| `.github/workflows/cloudflare-elemental.yml`  | `elemental-analyzer`  | `elemental`   | `https://elemental-analyzer.pages.dev`  |
+
+Both are thin callers over `.github/workflows/deploy-cloudflare.yml`, which holds every step: `npm ci`,
+`npm run check`, `npm test`, then `npm run build` and `wrangler pages deploy dist`. A build that fails
+any check is not published. Pull requests run `.github/workflows/ci.yml`, which is the same commands.
+
+One reusable workflow rather than two copies, because a copy is where the two drift and only one of
+them would keep getting the fixes. Not a matrix over the two specs either: a matrix is one run
+publishing both, so a re-run from the Actions tab re-publishes both, one failure marks the other red,
+and the two would share a concurrency group — the queueing this repo went out of its way to get right
+for a single site. Two callers, two runs, two queues (`cloudflare-pages-<spec>`).
+
+The gates are deliberately spec-independent: `npm run check` and `npm test` cover every registered
+spec in one pass, so a change that breaks the Elemental audit blocks the Windwalker deploy too. They
+are one codebase and one report engine.
+
+A new host has to be registered with WarcraftLogs as a redirect URI in its own right — OAuth redirects
+back to `window.location` and WarcraftLogs matches the registered URI byte for byte, so sign-in on an
+unregistered host fails with a message that blames the client id.
+
+`site_url` is a required input of the shared workflow rather than a default worth trusting, because
+`astro.config.mjs` defaults to the Windwalker domain. Today a wrong value there is latent rather than
+broken: `base` is empty on Pages, so every asset URL is root-relative and nothing in the emitted HTML
+names the host. It stops being latent the moment anything canonical is emitted — a `<link rel=
+"canonical">`, an `og:url`, a sitemap — and a required input is cheaper than finding that out later.
 
 Both go through `npm run`, never `npx <tool>`. `npx` downloads a tool that is not a declared
 dependency, so CI can silently run a different version from the one on your machine — which is how
@@ -218,9 +245,19 @@ It needs two repository secrets, under Settings → Secrets and variables → Ac
 | `CLOUDFLARE_API_TOKEN`  | Cloudflare dashboard → My Profile → API Tokens, template **Edit Cloudflare Workers**, or a custom token with the _Cloudflare Pages: Edit_ permission |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → Workers & Pages, shown in the right-hand sidebar                                                                              |
 
+Both projects share those two secrets — one Cloudflare account — which is what `secrets: inherit` in
+each caller says.
+
 The Pages project is created by the workflow if it does not exist, so a fresh account needs no
-dashboard visit — only the two secrets. The name lives in one place, `PROJECT_NAME` at the top of
-the workflow; change `SITE_URL` in `astro.config.mjs` to match if you use another.
+dashboard visit — only the two secrets. Each site's name and URL live in one place, the `with:` block
+of its caller workflow; nothing about a project name is hardcoded in the shared steps.
+
+To add a third spec's site: register the spec in `src/lib/spec/registry.ts`, then copy
+`cloudflare-elemental.yml`, changing the four values in it (workflow name, concurrency group,
+`project_name`, `spec`, `site_url`). `src/lib/spec/__tests__/registry.test.ts` reads the `spec:` values
+back out of the workflow files and fails if one is not a key the registry answers — `DEFAULT_SPEC`
+falls back to the first spec when `PUBLIC_SPEC` does not resolve, so a typo would otherwise deploy a
+site that is branded and behaves as the wrong spec, with nothing in the pipeline going red.
 
 If you would rather create it by hand, make it a **Direct Upload** project: the workflow uploads a
 build it made itself, and a Git-connected project would build the site a second time on Cloudflare's
@@ -234,18 +271,20 @@ The workflow deletes `src/pages/preview.astro` before building. That page is a d
 that renders committed fixtures, and removing it also removes the only import of that data, so none
 of it is bundled into the published site. It stays available in `npm run dev`.
 
-The spec a deployment serves is set by `PUBLIC_SPEC` in the workflow, and the registry's
-`DEFAULT_SPEC` reads it: the settings schema, the sections and the page branding all follow the
-pinned spec. The URL's own `?spec=` still wins at runtime, so a build that ships every spec keeps
-route-based selection. To serve one spec from its own host, deploy with `PUBLIC_SPEC` set and a
-matching `SITE_URL`.
+The spec a deployment serves is set by `PUBLIC_SPEC`, passed down from the caller's `spec:` input, and
+the registry's `DEFAULT_SPEC` reads it: the settings schema, the sections and the page branding all
+follow the pinned spec. Every build still ships every spec's code, and the URL's own `?spec=` wins at
+runtime — so a visitor handed an Elemental link on the Windwalker host still gets an Elemental report.
+The pinning decides the default and the branding, not what is available.
 
 `site` and `base` come from the `SITE_URL` and `BASE_PATH` environment variables, defaulting to the
 Cloudflare Pages domain at its root. `.github/workflows/deploy.yml` publishes to GitHub Pages
 instead and sets both, because a project site there is served under `/<repo>/` and an unprefixed
 build 404s every asset. It is manual-only (`workflow_dispatch`): two hosts publishing the same
 commit means two live copies, and only one of them can hold the redirect URI registered with
-WarcraftLogs.
+WarcraftLogs. It takes a `spec` choice input, defaulting to `windwalker` — but it publishes **one**
+site whichever you pick, because a GitHub project site is `/<repo>/` and there is one repo, so a run
+for Elemental replaces whatever it published last. Cloudflare is the path that serves both at once.
 
 These are read from the workflow's own environment — a `.env` file never reaches the CI build
 (see _Running it locally → Environment_).
@@ -268,7 +307,7 @@ src/layouts/ src/pages/  Astro shell — one page, the app itself is client-side
 src/styles/global.css    the dark-only palette, as Tailwind v4 @theme tokens
 src/generated/           API types, generated from schema/wcl.graphql — not hand-edited
 schema/wcl.graphql       the WarcraftLogs schema, vendored so builds need no token
-.github/workflows/       CI on pull requests, Cloudflare Pages deploy on main
+.github/workflows/       CI on pull requests, a Cloudflare Pages deploy per spec on main
 ```
 
 Abilities and auras are modelled as objects with relationships rather than as loose spell-id
