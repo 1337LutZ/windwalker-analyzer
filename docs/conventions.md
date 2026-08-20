@@ -5,11 +5,40 @@ code already here, and so the decisions below do not get re-litigated in every r
 
 ## Scope
 
-Mists of Pandaria, Windwalker Monk. Nothing else.
+Mists of Pandaria Classic. One API host, `classic.warcraftlogs.com`. **Two specs: Windwalker Monk and
+Elemental Shaman.**
 
-There is one API host, `classic.warcraftlogs.com`, and one spec. Do not add an `Instance` union, a
-`SpecDefinition` indirection, or a `switch` on expansion "for later". If a second spec is ever
-wanted, the game model below is the seam it plugs into — that is enough forward thinking.
+This section used to say "one spec, nothing else" and "do not add a `SpecDefinition` indirection". That
+was the right instinct at the time and it is no longer the shape of the code: the second spec arrived,
+and `SpecDefinition` is how it arrived. The rule it was protecting still stands, so here it is in the
+form that survived contact with a second spec.
+
+**The seam is `SpecDefinition`, and it is the only one.** A spec is one entry in
+`src/lib/spec/registry.ts` plus one folder under `src/specs/`. Everything a caller needs about _a_ spec
+hangs off its definition — `analyse`, `identify`, `score`, `weightsFor`, `wasteTone`, `settings`,
+`colors`, `gcdMs`. Two files may name a specific spec: `registry.ts` and
+`src/components/report/specSections.tsx`, which are the join points. Nothing else in `src/lib/` or
+`src/components/` may, and
+
+```
+grep -rn "from '~/specs/" src/components src/lib --include=*.ts --include=*.tsx \
+  | grep -v "specSections\|spec/registry\|__tests__"
+```
+
+is how you check. A hit is a leak: a spec-agnostic path that is secretly the shortest route to one
+spec's engine, which compiles against one spec while reading as though it takes any.
+
+**Still do not add an `Instance` union or a `switch` on expansion "for later".** One host, and the
+second spec cost nothing in that direction — it needed a registry, not a matrix.
+
+**And the original warning has a corollary worth more than the rule.** The expensive part of adding the
+second spec was not the abstraction; it was the copying. Machinery that is genuinely class-agnostic got
+re-implemented per spec — a stack walker, three interval helpers, four binary searches, the scorecard
+builders, a chart skeleton written four times — and several copies carried the numbers while dropping
+the comment that justified them, so the reasoning survived in exactly one place and never the copy.
+Two of those copies re-introduced bugs the original's own comment existed to prevent. Before writing a
+second version of anything, look for the first: `src/lib/analysis/`, `src/lib/score/`,
+`src/components/charts/`.
 
 ## One component per file
 
@@ -165,7 +194,7 @@ dropped. Each id is asked for exactly once, ever: entries already in the map are
 
 `lib/analysis/` is spec-agnostic pure functions. It must not import the Windwalker spec.
 
-`lib/game/` models abilities and auras as objects with relationships; `lib/spec/windwalker.ts`
+`lib/game/` models abilities and auras as objects with relationships; `specs/windwalker/lib/index.ts`
 declares them. Look ids up through the registry — `abilityByCastId`, `auraById`, `variantOf` — rather
 than comparing bare numbers, because the registry is what refuses to build when two objects claim the
 same id.
@@ -190,7 +219,7 @@ const { t, verdict } = useReportCopy(analysis);
 
 **Which sentence comes back is decided by `lib/score`, never by the component.** Every graded
 section has `verdict_good` / `verdict_ok` / `verdict_bad` / `verdict_none`, and the grade comes from
-thresholds in `lib/score/thresholds.ts` — each of which carries the reasoning that put it where it
+thresholds in each spec's own `specs/<spec>/lib/score.ts` — each of which carries the reasoning that put it where it
 is. This is the enforcement mechanism for the honesty rule below: a component _cannot_ hard-code a
 finding, because it never holds a sentence to hard-code.
 
@@ -215,7 +244,7 @@ second table here would drift from the one the API hands us.
 
 Two tests guard all of this and both must stay green: `lib/i18n/__tests__/keys.test.ts` fails if a
 component asks for a key that does not exist (a missing key renders as its own key path rather than
-throwing, so nothing else would catch it), and `lib/score/__tests__/score.test.ts` asserts the
+throwing, so nothing else would catch it), and `specs/windwalker/lib/__tests__/score.test.ts` asserts the
 thresholds actually separate three real captured pulls — a grading scheme that paints every log the
 same colour passes any test written around it and tells a reader nothing.
 
