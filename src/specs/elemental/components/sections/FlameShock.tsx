@@ -9,6 +9,18 @@ import FlameShockDepth from '../charts/FlameShockDepth';
 import FlameShockUptime from '../charts/FlameShockUptime';
 
 /**
+ * The uptime a reader is looking at, rather than the one the audit holds.
+ *
+ * `formatPercentValue` prints two decimals, so every figure from here up renders as `100%` — and a
+ * sentence under a tile reading 100% must not describe a gap. A band rather than an equality test
+ * for two reasons: the dot's last window can close a millisecond before the engaged clock does (the
+ * `unbroken` fixture, 99.99946%), and the figure is a union of dot windows over engaged time, so a
+ * value a hair *over* 100 has to take this branch too rather than fall through to wording that
+ * claims a gap.
+ */
+const FULL_UPTIME_PCT = 99.995;
+
+/**
  * Flame Shock: the dot the whole rotation is written around.
  *
  * A thirty-second snapshot dot with no cooldown and no cast time. Its remaining time gates Lava
@@ -19,7 +31,7 @@ import FlameShockUptime from '../charts/FlameShockUptime';
 export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { flameShock } = el;
-	const { t, verdict } = useReportCopy(analysis);
+	const { t, gradeOf } = useReportCopy(analysis);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -64,6 +76,19 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				}),
 		[flameShock.presses, t],
 	);
+
+	/**
+	 * Which wording the grade is said in — never which grade it is.
+	 *
+	 * The grade is still `lib/score`'s, from the uptime and the wasted-refresh share together, which
+	 * means a pull that never let the dot off the target can still be graded on its refreshes alone.
+	 * The graded sentences are written around an uptime figure with a gap in it, so on that pull they
+	 * read as a complaint about a flawless keep-up; the `_full` variants say what happened instead.
+	 * A pull with no dot window at all has nothing to claim and keeps `verdict_none`.
+	 */
+	const grade = gradeOf('flameShock');
+	const fullUptime = flameShock.windows.length > 0 && flameShock.uptimePct >= FULL_UPTIME_PCT;
+	const context = fullUptime && grade !== 'none' ? `${grade}_full` : grade;
 
 	return (
 		<Section id="flame-shock" title={t('flameShock.title')}>
@@ -110,7 +135,8 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-5 flex flex-col gap-3.5">
 				<Prose>
-					{verdict('flameShock', {
+					{t('flameShock.verdict', {
+						context,
 						uptime: flameShock.uptimePct,
 						casts: flameShock.applies + flameShock.refreshes,
 						wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep,

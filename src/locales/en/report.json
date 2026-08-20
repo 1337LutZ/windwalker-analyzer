@@ -1220,7 +1220,10 @@
     "intent": "A thirty-second snapshot dot with no cooldown and no cast time. Its remaining time gates Lava Burst, and its refresh timing is what the snapshot section grades — so a dropped Flame Shock is not one global but a cascade.",
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and no refresh bought nothing.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes went out with the dot still healthy, buying nothing.",
-    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot spent much of the pull down. {{wasted, integer}} refreshes also went out with it still healthy.",
+    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot was off the target for the rest of the time you had something to hit. {{wasted, integer}} refreshes also went out with it still healthy.",
+    "verdict_good_full": "The dot was up for every second you had something to hit, across {{casts}} casts — a perfect keep-up.",
+    "verdict_ok_full": "The dot was up for every second you had something to hit, across {{casts}} casts. {{wasted, integer}} of the refreshes went out with it still healthy, buying nothing.",
+    "verdict_bad_full": "The dot was up for every second you had something to hit, across {{casts}} casts. The grade is about the refreshes, not the uptime: {{wasted, integer}} of them went out with the dot still healthy, spending a global for nothing.",
     "verdict_none": "Flame Shock was never cast in this pull.",
     "kpi": {
       "uptime": "Dot uptime",
