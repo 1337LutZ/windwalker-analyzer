@@ -1,21 +1,32 @@
-// Two real Elemental pulls, end to end, from raw event streams.
+// Three real Elemental pulls, end to end, from raw event streams.
 //
 // The Windwalker's committed fixtures are pre-analysed `Analysis` objects, which means they exercise
 // rendering and cannot re-derive an audit — so a refactor of the engine can be "verified" against them
-// and prove nothing at all. These two are the other kind: raw `FightDataset`s, so `analyse` really runs
-// and the numbers below are the audit's own output rather than a file's contents.
+// and prove nothing at all. These three are the other kind: raw `FightDataset`s, so `analyse` really
+// runs and the numbers below are the audit's own output rather than a file's contents.
 //
-// Both are anonymous reports (`a:` codes, every player named `Player (N)`), which is the only kind of
-// log that belongs in this repository.
+// All three are anonymous reports (`a:` codes, every player named `Player (N)`), which is the only kind
+// of log that belongs in this repository.
 //
 // The figures are asserted rather than hashed on purpose. A hash tells you something moved; these tell
 // you *what* moved, which is the difference between a five-minute and a fifty-minute diagnosis.
+//
+// Two of them are single-target Iron Juggernaut, and for a while they were the only two. That is how
+// Chain Lightning stayed missing from the ability registry through 53 Elemental tests: neither pull
+// contains a single cast of it, so no assertion here could see that every press of the spec's
+// multi-target filler was being priced at zero occupied time. `cleave` is the third pull, and it exists
+// because the gap was in the *shape* of the evidence rather than in any one number.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
-import { analyse } from '../index';
+import { unmodelledPresses } from '~/lib/analysis/casts';
+import { analyse, registry } from '../index';
+
+/** Presses in a pull that no `Ability` claims — see `unmodelledPresses`, and `fixtureCoverage.test.ts`. */
+const unpriced = (el: Analysis): number =>
+	unmodelledPresses(el.casts, registry).reduce((sum, row) => sum + row.count, 0);
 
 const fx = (name: string): Analysis & ElementalAuditResult => {
 	const dataset = JSON.parse(
@@ -44,6 +55,24 @@ describe('a phased pull', () => {
 	it('reads the pull the way WarcraftLogs does', () => {
 		expect(Math.round(el.damage.dps)).toBe(300_749);
 		expect(+el.cpm.totalCpm.toFixed(2)).toBe(39.88);
+	});
+
+	/**
+	 * The globals this report knowingly does not price, counted so that "knowingly" is checkable.
+	 *
+	 * Twenty-five presses, and twenty-three of them take a global in game: fifteen Chain Heals, three
+	 * Healing Rains, two Healing Stream Totems, and one each of Healing Surge, Healing Tide Totem and
+	 * Thunderstorm. Only the two Shamanistic Rages are genuinely off the global. Pricing the other
+	 * twenty-three would take `gcdUtilisationPct` on this pull from 84.21% to 97.93% — measured, not
+	 * estimated — and `EXTRA_NAMES` carries the reasoning for why it does not: that figure divides a
+	 * numerator rebuilt from cast events by WarcraftLogs' own `activeTime`, and 97.93% leaves no room
+	 * for a pull that healed harder.
+	 *
+	 * Pinned as a count rather than left implicit because a spec that forgets a *rotational* button
+	 * lands in this same number, and 25 changing to 26 is the only warning the report would give.
+	 */
+	it('counts the presses it declines to price, on the pull that has the most of them', () => {
+		expect(unpriced(el)).toBe(25);
 	});
 
 	/** The intermission, off the player's own contact clock rather than from the boss's health. */
@@ -164,6 +193,11 @@ describe('an unbroken pull', () => {
 		expect(+el.cpm.totalCpm.toFixed(2)).toBe(46.48);
 	});
 
+	/** Six unpriced presses here against `phased`'s 25, which is why that pull carries the reasoning. */
+	it('counts the presses it declines to price', () => {
+		expect(unpriced(el)).toBe(6);
+	});
+
 	it('holds the dot for the whole pull through refreshes alone', () => {
 		expect(el.flameShock.windows).toHaveLength(1);
 		// Not exactly 100: the dot's single window closes at 184 399 while the engaged clock runs to
@@ -227,5 +261,116 @@ describe('an unbroken pull', () => {
 	it('has nothing to forgive, so a drop here would be a real one', () => {
 		expect(el.timeline?.contactSegments).toEqual([[1553, 183_328]]);
 		expect(el.misses.filter((m) => m.kind.startsWith('Flame Shock dropped'))).toEqual([]);
+	});
+});
+
+/**
+ * `a:xB3kh7v9pF2AHRtq` #46 — Siegecrafter Blackfuse 25H, 263.2s, and the pull the other two are not.
+ *
+ * The same report as `unbroken`, a different night's boss: Crawler Mines and the Shredder mean up to
+ * thirteen enemies at once and 57.3% of the contact clock reads multi-target, where both Iron Juggernaut
+ * pulls read single. That is the whole reason it is here. Seventy Chain Lightnings and eleven Lava Beams
+ * — 40% of every global the player spent — and neither committed fixture contained one of either, so the
+ * registry could omit both and the suite stayed green.
+ *
+ * What it caught, and what these numbers are the record of: `abilityByCastId(421)` returned `undefined`,
+ * so the shared core's GCD walk skipped the press, `buildCastTable` labelled it off-GCD, and the damage
+ * table filed its damage as `passive`. Before the two abilities were declared this pull read 56.02% GCD
+ * usage and 28.21 CPM, and told its reader that 30% of the damage came from no cast at all.
+ */
+describe('a multi-target pull', () => {
+	const el = fx('cleave');
+
+	it('is recognised as Elemental', () => {
+		expect(el.isSpec).toBe(true);
+		expect(el.encounter).toBe('Siegecrafter Blackfuse');
+		expect(el.durationMs).toBe(263_233);
+	});
+
+	it('reads the pull the way WarcraftLogs does', () => {
+		expect(Math.round(el.damage.dps)).toBe(412_584);
+		expect(el.cpm.activeMs).toBe(261_572);
+	});
+
+	/** Thirteen enemies at once, and the only committed Elemental pull that reads multi-target at all. */
+	it('is the multi-target pull the other two fixtures cannot be', () => {
+		// Optional on the interface because the pre-analysed fixtures predate it; `analyseCore` always
+		// fills it, so a missing one here is a failure and not a case to skip.
+		expect(el.targets).toBeDefined();
+		expect(el.targets?.detected).toBe('multi');
+		expect(el.targets?.counts.max).toBe(13);
+		expect(+(el.targets?.multiTargetPct ?? 0).toFixed(1)).toBe(57.3);
+	});
+
+	/**
+	 * The headline the missing abilities were wrong about, and the reason this pull is pinned at all.
+	 *
+	 * 56.02% before, 90.81% after, on an `activePct` of 99.37 — so the old figure was claiming the player
+	 * stood idle for 43% of a pull they were casting through. 204 on-GCD presses against 123 before: the
+	 * 81 that were invisible are exactly the Chain Lightnings and Lava Beams.
+	 *
+	 * `gcdUtilisationPct` moves with `wastedGcds` as well as with occupancy — the audit found three
+	 * wasted globals here — so a Flame Shock or cooldown lane that changes what counts as wasted will
+	 * land on this number. That is the intended behaviour of an asserted figure: it says which.
+	 *
+	 * It is also the fixture with the least headroom left under 100% on the Elemental side, which is the
+	 * live question in plan step 44: the numerator is rebuilt from cast events and the denominator is
+	 * WarcraftLogs' `activeTime`, and nothing bounds the first by the second.
+	 */
+	it('prices every global the player actually spent', () => {
+		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(90.81);
+		expect(+el.cpm.activePct.toFixed(2)).toBe(99.37);
+		expect(el.cpm.onGcdCasts).toBe(204);
+		expect(el.cpm.offGcdCasts).toBe(27);
+		expect(+el.cpm.totalCpm.toFixed(2)).toBe(46.79);
+		expect(el.cpm.wastedGcds).toBe(3);
+	});
+
+	/** The two rows that were absent from the registry, on the pull that presses them. */
+	it('counts Chain Lightning and Lava Beam as presses on the global', () => {
+		const row = (id: number) => el.casts.find((c) => c.id === id);
+		expect(row(421)?.count).toBe(70);
+		expect(row(421)?.onGcd).toBe(true);
+		expect(row(421)?.gate).toBe('conditional');
+		expect(row(114_074)?.count).toBe(11);
+		expect(row(114_074)?.onGcd).toBe(true);
+		expect(row(114_074)?.gate).toBe('conditional');
+	});
+
+	/**
+	 * The second symptom of the same omission: a quarter of the damage attributed to nothing.
+	 *
+	 * `passive` means "no cast produced this", and it is derived from the registry rather than declared —
+	 * `damage.ts` sets it from `ability === undefined`. So while Chain Lightning was unmodelled, its
+	 * 15.7% and Lava Beam's 4.0% were reported as though they had arrived unbidden, alongside their two
+	 * genuine overloads at 10.4% and 2.7%. Now only the overloads are, which is what a mastery readout
+	 * is. 114738 stays passive on purpose: it is Lava Beam's overload, not a second half of the cast.
+	 */
+	it('stops attributing a quarter of the damage to no cast', () => {
+		const dmg = (id: number) => el.damage.abilities.find((a) => a.id === id);
+		expect(dmg(421)?.passive).toBe(false);
+		expect(+(dmg(421)?.share ?? 0).toFixed(1)).toBe(15.7);
+		expect(dmg(114_074)?.passive).toBe(false);
+		expect(+(dmg(114_074)?.share ?? 0).toFixed(1)).toBe(4.0);
+		expect(dmg(45_297)?.passive).toBe(true);
+		expect(dmg(114_738)?.passive).toBe(true);
+		expect(dmg(114_738)?.name).toBe('Elemental Overload (Lava Beam)');
+	});
+
+	/**
+	 * The third symptom, and the one nobody was looking for: the contact clock.
+	 *
+	 * `analyseCore` builds it from hits that landed *as a modelled ability*, so while Chain Lightning was
+	 * unmodelled this pull read as three engaged stretches with two intermissions in it — 15.1s and 17.6s
+	 * where the report would have told a reader the fight took the target away. It never did: the player
+	 * was cleaving mines throughout, and one unbroken segment is what the log says.
+	 */
+	it('reads as one unbroken stretch of contact rather than three', () => {
+		expect(el.timeline?.contactSegments).toEqual([[1561, 263_133]]);
+	});
+
+	/** Eleven presses left unpriced, none of them rotational — see `EXTRA_NAMES` and `phased` above. */
+	it('counts the presses it declines to price', () => {
+		expect(unpriced(el)).toBe(11);
 	});
 });

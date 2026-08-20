@@ -120,6 +120,13 @@ export function buildCastTable(series: Iterable<CastSeries>, opts: CastTableOpti
 			count: c.count,
 			// Nothing is known about an unmodelled press, and the off-GCD assumption is the safe one:
 			// counting a trinket as a global would inflate GCD utilisation past what was pressed.
+			//
+			// Safe for a trinket and catastrophic for a rotational button, and this default cannot tell
+			// them apart — so it is paired with `unmodelledPresses` below rather than trusted alone.
+			// Chain Lightning was missing from the Elemental registry through 53 tests: every press was
+			// labelled off-GCD here and skipped by the core's GCD walk, which read 56.02% utilisation on
+			// a pull that filled 90.81% of its globals, and reported 15.7% of the damage as though no
+			// cast had produced it. The default was right; the silence around it was the bug.
 			onGcd: c.ability?.onGcd ?? false,
 			gate: c.ability?.gate ?? 'other',
 			cpm: activeMin > 0 ? c.count / activeMin : 0,
@@ -128,6 +135,30 @@ export function buildCastTable(series: Iterable<CastSeries>, opts: CastTableOpti
 			times: c.times,
 		}))
 		.sort((a, b) => b.count - a.count);
+}
+
+/**
+ * The rows of a cast table that no `Ability` claims — the presses this report priced at nothing.
+ *
+ * The counterweight to the `?? false` above, and the reason it can stay. An unmodelled press costs a
+ * spec nothing visible: it occupies no global in `gcdUtilisationPct`, contributes no `onGcdCasts` to
+ * `totalCpm`, and its damage is filed under `passive` as though it arrived unbidden. All three of
+ * those are correct for a trinket proc and all three are wrong for a filler, and the shared layer
+ * cannot tell which it is holding — only the spec knows, and only by declaring it.
+ *
+ * So the shared layer stops guessing and starts counting. This is the number a spec has to be able to
+ * look at: `fixtureCoverage.test.ts` walks it over every committed raw fixture and fails on any id
+ * that is neither a modelled ability nor on the spec's own `extraNames` list, so forgetting a button
+ * is a red test at fixture-commit time rather than a percentage that quietly reads two thirds of what
+ * it should. `pulls.test.ts` pins the per-pull count on top of that, which is what makes a *new*
+ * unmodelled press visible on a fixture that already had some.
+ *
+ * Both halves are needed. The count alone would have been pinned at 92 on the Elemental's
+ * multi-target pull and read as normal; the declared list alone would not notice a press appearing on
+ * a fixture whose ids were already all accounted for.
+ */
+export function unmodelledPresses(rows: readonly CastRow[], registry: Registry): CastRow[] {
+	return rows.filter((row) => registry.abilityByCastId(row.id) === undefined);
 }
 
 export interface Channel {

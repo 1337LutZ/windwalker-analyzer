@@ -43,6 +43,29 @@ describe('spec registry', () => {
 		expect(ww.identify).toBeTypeOf('function');
 		expect(ww.score).toBeTypeOf('function');
 	});
+
+	/**
+	 * The Elemental counterpart, and it pins two ability ids as well as the global.
+	 *
+	 * `getSpec('elemental')` for the same reason the monk's assertion names itself: these are the
+	 * shaman's own numbers, and 1500 is not 1000.
+	 *
+	 * The two ids are Chain Lightning and Lava Beam, and they are pinned because they were *absent*:
+	 * the registry declared sixteen abilities and neither was among them, so the shared core's GCD walk
+	 * skipped every press and the report read 56.02% utilisation on a pull that filled 90.81% of its
+	 * globals. `onGcd` is the field that did the damage — an unmodelled press falls back to `false` and
+	 * is then priced at nothing — so `onGcd` is what is asserted, through the same `abilityByCastId`
+	 * lookup the core itself uses rather than by searching the ability list for a name.
+	 */
+	it("carries the second spec's pieces, including the two ids the core prices globals from", () => {
+		const ele = getSpec('elemental')!;
+		expect(ele.gcdMs).toBe(1500);
+		expect(ele.analyse).toBeTypeOf('function');
+		expect(ele.identify).toBeTypeOf('function');
+		expect(ele.score).toBeTypeOf('function');
+		expect(ele.registry.abilityByCastId(421)?.onGcd).toBe(true);
+		expect(ele.registry.abilityByCastId(114074)?.onGcd).toBe(true);
+	});
 });
 
 /**

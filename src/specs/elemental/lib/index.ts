@@ -287,6 +287,41 @@ const ABILITIES: Ability[] = [
 		gate: 'conditional',
 	},
 	{
+		key: 'chain-lightning',
+		name: 'Chain Lightning',
+		castIds: [421],
+		damageIds: [421],
+		onGcd: true,
+		// The multi-target filler, and the reason this entry exists: without it the shared core skips
+		// every press — the GCD walk asks `abilityByCastId` and `continue`s on `undefined` — so 70
+		// casts on the `cleave` fixture were priced at zero occupied time and 15.7% of its damage was
+		// reported as though no cast had produced it. The 2s cast is `NewChainSpellConfig`'s
+		// `BaseCastTime` in `sim/shaman/chain_lightning.go`.
+		//
+		// `conditional`, deliberately not `cooldown`: the sim does give it a 3s timer, but what
+		// decides the press is how many enemies are up, so a drift verdict would invent a fault out of
+		// a single-target stretch where holding it was right.
+		castTimeMs: 2000,
+		gate: 'conditional',
+	},
+	{
+		key: 'lava-beam',
+		name: 'Lava Beam',
+		castIds: [114074],
+		damageIds: [114074],
+		onGcd: true,
+		// Chain Lightning's replacement while Ascendance is up: `sim/shaman/elemental/lava_beam.go`
+		// gates it on `ele.AscendanceAura.IsActive()` and takes the same 2s base cast. Gated on that
+		// window rather than on a clock of its own, so `conditional` for the same reason.
+		//
+		// Only 114074 is the press. The log carries Lava Beam damage under 114738 as well, and that is
+		// the mastery overload rather than a second half of the cast — measured on `cleave`, its hits
+		// land 42ms behind the beam's own and average 73% of them, exactly as 45297 sits behind Chain
+		// Lightning — so it stays named among the overloads instead of being claimed here.
+		castTimeMs: 2000,
+		gate: 'conditional',
+	},
+	{
 		key: 'ascendance',
 		name: 'Ascendance',
 		castIds: [114049],
@@ -564,10 +599,33 @@ const WRATH_OF_DARKSPEAR = registry.aura('wrath-of-darkspear');
 const TEMPUS_REPIT = registry.aura('tempus-repit');
 
 /**
- * Names for the ids the model deliberately does not carry: off-GCD utility, the overload damage and
- * the pets. Nothing here is an Ability, which is exactly what marks its damage passive — the
- * Elemental Overloads are a mastery readout, and the totems and pets are summons rather than
- * buttons the rotation spends globals on.
+ * Names for the ids the model deliberately does not carry, and a list that is **not** all one thing.
+ *
+ * Most of it is what it looks like: the melee swing, the mastery overloads, the shield's own
+ * discharge, the procs, the racials and the pets' spells. None of those is a button, which is what
+ * makes their damage `passive` — nothing here is an `Ability`, and that is the whole mechanism.
+ *
+ * The rest is a knowing omission and used to be described as though it were the same thing. This
+ * comment claimed everything below was "off-GCD utility"; the logs say otherwise. Lightning Shield
+ * (324), Ghost Wolf (2645), Bloodlust (2825), Healing Stream Totem (5394), Healing Surge (8004),
+ * Thunderstorm (51490), Earthgrab Totem (51485), Chain Heal (1064), Healing Rain (73920), Healing
+ * Tide Totem (108280) and Totemic Projection (108287) all occupy a global in game. **They are
+ * off-*rotation* globals, not off-GCD ones, and this report knowingly leaves them unpriced.** Only
+ * Shamanistic Rage (30823) is genuinely off the global.
+ *
+ * What that costs is measured, not guessed: pricing all eleven takes `gcdUtilisationPct` from 84.21%
+ * to 97.93% on the `phased` fixture, 91.26% to 93.40% on `unbroken`, 90.81% to 94.12% on `cleave`.
+ * The first of those is the reason it is not done here. `gcdUtilisationPct` divides a numerator
+ * rebuilt from cast events by WarcraftLogs' own `activeTime`, two clocks with no structural bound
+ * between them, so 97.93% spends nearly all the headroom that has been hiding the absence of one —
+ * and a pull that healed slightly harder would print a figure over 100%, which is worse for a reader
+ * than 84.21% honestly explained. Which clock is authoritative is plan step 44's question, not this
+ * table's; until it is answered, these stay named and unpriced.
+ *
+ * Unpriced is no longer silent, which is the other half of the decision: `unmodelledPresses` counts
+ * every press landing here, `pulls.test.ts` pins the count on all three fixtures, and
+ * `fixtureCoverage.test.ts` fails if a cast id shows up in a fixture that is neither modelled nor
+ * named below. That is what was missing when Chain Lightning went unmodelled for 53 tests.
  */
 const EXTRA_NAMES: Record<number, string> = {
 	1: 'Melee',
@@ -578,6 +636,10 @@ const EXTRA_NAMES: Record<number, string> = {
 	45296: 'Elemental Overload (Earth Shock)',
 	45297: 'Elemental Overload (Chain Lightning)',
 	114991: 'Elemental Overload (Lava Beam)',
+	// The id the log actually books Lava Beam's overload under — 114991 is the sim's. Named here
+	// because the spell map calls it plain "Lava Beam", which put a second row of that name in the
+	// damage table with no cast behind it and no way for a reader to tell which was which.
+	114738: 'Elemental Overload (Lava Beam)',
 	118523: 'Elemental Overload (Elemental Blast)',
 	26364: 'Lightning Shield Discharge',
 	88765: 'Rolling Thunder',
@@ -592,6 +654,21 @@ const EXTRA_NAMES: Record<number, string> = {
 	118350: 'Fire Elemental: Fire Nova',
 	118345: 'Earth Elemental: melee',
 	114206: 'Skull Banner',
+	// The off-rotation presses, declared rather than left to the spell map to name. Every one of them
+	// except Shamanistic Rage takes a global — see the note above for why they are named and not
+	// priced. Listing them is what lets `fixtureCoverage.test.ts` tell "known and unpriced" apart from
+	// "forgotten", which is the distinction that was missing when Chain Lightning was neither.
+	1064: 'Chain Heal',
+	2645: 'Ghost Wolf',
+	2825: 'Bloodlust',
+	5394: 'Healing Stream Totem',
+	8004: 'Healing Surge',
+	51485: 'Earthgrab Totem',
+	73920: 'Healing Rain',
+	108280: 'Healing Tide Totem',
+	108287: 'Totemic Projection',
+	// The one press here that really is off the global.
+	30823: 'Shamanistic Rage',
 };
 
 // ------------------------------------------------------------------ settings
