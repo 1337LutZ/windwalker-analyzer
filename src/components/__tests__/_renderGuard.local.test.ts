@@ -19,9 +19,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it } from 'vitest';
 
 import { initI18n } from '~/lib/i18n/config';
-import { DEFAULT_SPEC } from '~/lib/spec';
+import { getSpec } from '~/lib/spec';
 import type { Analysis } from '~/lib/types';
 import Report from '../Report';
+
+// Named rather than `DEFAULT_SPEC`: these fixtures are Windwalker pulls, so the spec they are
+// scored and read against has to be the Windwalker whatever `PUBLIC_SPEC` pinned the build to.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
 
 initI18n();
 
@@ -35,7 +39,7 @@ describe('windwalker render guard', () => {
 	it('hashes every fixture as rendered', () => {
 		const rows = NAMES.map((n) => {
 			const html = renderToStaticMarkup(
-				createElement(Report, { analysis: fx(n), targetChoice: 'auto', spec: DEFAULT_SPEC }),
+				createElement(Report, { analysis: fx(n), targetChoice: 'auto', spec: WINDWALKER_SPEC }),
 			);
 			const hash = createHash('sha256').update(html).digest('hex').slice(0, 16);
 			return `${n.padEnd(8)} render=${hash} len=${String(html.length).padStart(8)}`;

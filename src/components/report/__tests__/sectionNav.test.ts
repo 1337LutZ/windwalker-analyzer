@@ -20,19 +20,23 @@ import { describe, expect, it } from 'vitest';
 
 import type { Analysis } from '~/lib/types';
 
-import { DEFAULT_SPEC } from '~/lib/spec';
+import { getSpec } from '~/lib/spec';
 import Report from '../../Report';
+
+// Named rather than `DEFAULT_SPEC`: these fixtures are Windwalker pulls, so the spec they are
+// scored and read against has to be the Windwalker whatever `PUBLIC_SPEC` pinned the build to.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
 
 const analysis: Analysis = JSON.parse(
 	readFileSync(resolve(import.meta.dirname, '../../../specs/windwalker/__fixtures__/strong.json'), 'utf8'),
 );
 
-const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice: 'auto', spec: DEFAULT_SPEC }));
+const html = renderToStaticMarkup(createElement(Report, { analysis, targetChoice: 'auto', spec: WINDWALKER_SPEC }));
 const xuenTalent = JSON.parse(
 	readFileSync(resolve(import.meta.dirname, '../../../specs/windwalker/__fixtures__/mixed.json'), 'utf8'),
 ) as Analysis;
 const xuenHtml = renderToStaticMarkup(
-	createElement(Report, { analysis: xuenTalent, targetChoice: 'auto', spec: DEFAULT_SPEC }),
+	createElement(Report, { analysis: xuenTalent, targetChoice: 'auto', spec: WINDWALKER_SPEC }),
 );
 const nav = /<nav[^>]*>[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
 

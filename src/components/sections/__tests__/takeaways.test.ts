@@ -3,7 +3,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createElement } from 'react';
+import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -11,7 +11,18 @@ import { initI18n } from '~/lib/i18n/config';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
+import { SpecContext } from '~/components/report/specContext';
+import { getSpec } from '~/lib/spec';
+
 import Takeaways from '../Takeaways';
+
+// Every fixture below is a Windwalker pull, so the section is rendered under the Windwalker's own
+// scorer and copy. Named rather than left to `SpecContext`'s default, which is the build's pinned
+// `DEFAULT_SPEC` — under `PUBLIC_SPEC=elemental` that scored these monk fixtures with the Shaman's
+// thresholds.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
+const asWindwalker = (node: ReactNode): ReactElement =>
+	createElement(SpecContext.Provider, { value: WINDWALKER_SPEC }, node);
 
 initI18n();
 
@@ -28,7 +39,7 @@ const fixture = (name: string): Analysis =>
  * its label is styled.
  */
 function cards(analysis: Analysis): string[] {
-	const html = renderToStaticMarkup(createElement(Takeaways, { analysis }));
+	const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis })));
 	return [...html.matchAll(/<li\b[^>]*>.*?<span[^>]*uppercase text-muted">([^<]+)</gs)].map((m) => m[1] ?? '');
 }
 
@@ -89,7 +100,7 @@ describe('the summary takeaways', () => {
 		quiet.filler.casts = 0;
 
 		expect(cards(quiet)).toEqual([]);
-		const html = renderToStaticMarkup(createElement(Takeaways, { analysis: quiet }));
+		const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis: quiet })));
 		expect(html).toContain('no short list');
 	});
 });

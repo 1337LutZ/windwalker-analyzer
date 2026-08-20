@@ -1,12 +1,23 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createElement } from 'react';
+import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis } from '~/lib/types';
 
+import { SpecContext } from '~/components/report/specContext';
+import { getSpec } from '~/lib/spec';
+
 import CastsPerMinute from '../CastsPerMinute';
+
+// Every fixture below is a Windwalker pull, so the section is rendered under the Windwalker's own
+// scorer and copy. Named rather than left to `SpecContext`'s default, which is the build's pinned
+// `DEFAULT_SPEC` — under `PUBLIC_SPEC=elemental` that scored these monk fixtures with the Shaman's
+// thresholds.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
+const asWindwalker = (node: ReactNode): ReactElement =>
+	createElement(SpecContext.Provider, { value: WINDWALKER_SPEC }, node);
 
 const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'));
@@ -15,7 +26,7 @@ const COMBO_BREAKER_TIGER_PALM = 118864;
 
 /** The Tiger Palm row's `found / target` count cell, as rendered. */
 function tigerPalmCounts(analysis: Analysis): { found: number; target: number } {
-	const html = renderToStaticMarkup(createElement(CastsPerMinute, { analysis }));
+	const html = renderToStaticMarkup(asWindwalker(createElement(CastsPerMinute, { analysis })));
 	// The row is keyed by cast id; its count cell is the `found / target` pair.
 	const row = /Tiger Palm[\s\S]*?<b[^>]*>(\d+)<\/b><span[^>]*> \/ (\d+)<\/span>/.exec(html);
 	if (row === null) throw new Error('no Tiger Palm count cell in the rendered table');

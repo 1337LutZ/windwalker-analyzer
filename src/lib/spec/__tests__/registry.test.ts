@@ -34,7 +34,10 @@ describe('spec registry', () => {
 	});
 
 	it('carries the pieces the UI runs on', () => {
-		const ww = DEFAULT_SPEC;
+		// Named rather than `DEFAULT_SPEC`: the assertions below are the monk's own numbers, and the
+		// default is whatever `PUBLIC_SPEC` pinned. Reading the default here is what made the suite
+		// unrunnable under an Elemental pin — `expected 1500 to be 1000`.
+		const ww = getSpec('windwalker')!;
 		expect(ww.gcdMs).toBe(1000);
 		expect(ww.analyse).toBeTypeOf('function');
 		expect(ww.identify).toBeTypeOf('function');

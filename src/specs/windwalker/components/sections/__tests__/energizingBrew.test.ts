@@ -1,14 +1,25 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createElement } from 'react';
+import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
 import type { Analysis } from '~/lib/types';
 
+import { SpecContext } from '~/components/report/specContext';
+import { getSpec } from '~/lib/spec';
+
 import EnergizingBrew from '../EnergizingBrew';
 import Takeaways from '~/components/sections/Takeaways';
+
+// Every fixture below is a Windwalker pull, so the section is rendered under the Windwalker's own
+// scorer and copy. Named rather than left to `SpecContext`'s default, which is the build's pinned
+// `DEFAULT_SPEC` — under `PUBLIC_SPEC=elemental` that scored these monk fixtures with the Shaman's
+// thresholds.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
+const asWindwalker = (node: ReactNode): ReactElement =>
+	createElement(SpecContext.Provider, { value: WINDWALKER_SPEC }, node);
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -34,17 +45,19 @@ describe('Energizing Brew section', () => {
 		const analysis = withRecommendation();
 		const energizing = analysis.energizing!;
 		const html = renderToStaticMarkup(
-			createElement(EnergizingBrew, {
-				analysis: {
-					...analysis,
-					energizing: {
-						...energizing,
-						rushingJadeWind: true,
-						hasteRjwEligible: true,
-						hasteRjwUses: 0,
+			asWindwalker(
+				createElement(EnergizingBrew, {
+					analysis: {
+						...analysis,
+						energizing: {
+							...energizing,
+							rushingJadeWind: true,
+							hasteRjwEligible: true,
+							hasteRjwUses: 0,
+						},
 					},
-				},
-			}),
+				}),
+			),
 		);
 
 		expect(html).toContain(t('energizingBrew.recommendation.title'));
@@ -57,7 +70,7 @@ describe('Energizing Brew section', () => {
 	});
 
 	it('shows the RJW haste recommendation in the Summary cards', () => {
-		const html = renderToStaticMarkup(createElement(Takeaways, { analysis: withRecommendation() }));
+		const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis: withRecommendation() })));
 
 		expect(html).toContain(t('summary.takeaways.metric.energizingBrewRjw.label'));
 		expect(html).toContain(t('summary.takeaways.metric.energizingBrewRjw.fix'));

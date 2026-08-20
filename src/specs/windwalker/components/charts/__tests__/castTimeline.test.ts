@@ -3,7 +3,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createElement } from 'react';
+import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -19,6 +19,15 @@ import { tip, type ChartTheme } from '~/components/charts/apex';
 import { collapseTargets, perTargetBlock } from '~/components/charts/targetLanes';
 import { HIDDEN_AURAS, HIDDEN_CASTS } from '~/components/charts/hidden';
 import { spellIconUrl } from '~/components/primitives/spellIcon';
+import { SpecContext } from '~/components/report/specContext';
+import { getSpec } from '~/lib/spec';
+
+// The fixtures here are Windwalker pulls, and `CastTimeline` reads its banks and its scoring off the
+// spec. Named rather than left to `SpecContext`'s default, which is the build's pinned `DEFAULT_SPEC`
+// — under `PUBLIC_SPEC=elemental` that drew a monk pull with the Shaman's banks.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
+const asWindwalker = (node: ReactNode): ReactElement =>
+	createElement(SpecContext.Provider, { value: WINDWALKER_SPEC }, node);
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -82,7 +91,7 @@ const drawn: Analysis = {
 };
 
 const render = (analysis: Analysis, Component = CastTimeline) =>
-	renderToStaticMarkup(createElement(Component, { analysis }));
+	renderToStaticMarkup(asWindwalker(createElement(Component, { analysis })));
 
 /**
  * How many rows are labelled with exactly this name.

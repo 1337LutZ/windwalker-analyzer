@@ -1,13 +1,24 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createElement } from 'react';
+import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
 import type { Analysis } from '~/lib/types';
 
+import { SpecContext } from '~/components/report/specContext';
+import { getSpec } from '~/lib/spec';
+
 import BrewBankTimeline from '../BrewBankTimeline';
+
+// Every fixture below is a Windwalker pull, so the section is rendered under the Windwalker's own
+// scorer and copy. Named rather than left to `SpecContext`'s default, which is the build's pinned
+// `DEFAULT_SPEC` — under `PUBLIC_SPEC=elemental` that scored these monk fixtures with the Shaman's
+// thresholds.
+const WINDWALKER_SPEC = getSpec('windwalker')!;
+const asWindwalker = (node: ReactNode): ReactElement =>
+	createElement(SpecContext.Provider, { value: WINDWALKER_SPEC }, node);
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -15,7 +26,8 @@ const t = i18n.getFixedT('en', 'report');
 const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'));
 
-const render = (analysis: Analysis) => renderToStaticMarkup(createElement(BrewBankTimeline, { analysis }));
+const render = (analysis: Analysis) =>
+	renderToStaticMarkup(asWindwalker(createElement(BrewBankTimeline, { analysis })));
 
 /**
  * The committed fixtures are captured `analyse()` output from before the engine counted stacks gained,
