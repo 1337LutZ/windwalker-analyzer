@@ -38,6 +38,31 @@ export interface CounterStretch {
 }
 
 /**
+ * A gapless `[t, level]` series as stretches, each running to the next entry and the last to `durationMs`.
+ *
+ * For a counter that always holds *some* level — a bank or a charge counter, where zero is a reading
+ * rather than an absence. Do **not** use it on an aura's levels: those have gaps, and this would paper
+ * over them by running a stretch across the absence.
+ *
+ * The series must already record one entry per *change* (as `trackStackBank` and the Chi Brew walk both
+ * do), or a level that holds across several identical entries comes back as several stretches. They
+ * merge in `counterWindows` anyway, so the result is the same — it is just more work.
+ */
+export function stretchesFromPoints(
+	points: ReadonlyArray<readonly [number, number]>,
+	durationMs: number,
+): CounterStretch[] {
+	const out: CounterStretch[] = [];
+	for (let i = 0; i < points.length; i += 1) {
+		const point = points[i];
+		if (point === undefined) continue;
+		const end = Math.min(points[i + 1]?.[0] ?? durationMs, durationMs);
+		if (end > point[0]) out.push({ start: point[0], end, level: point[1] });
+	}
+	return out;
+}
+
+/**
  * The stretches whose level satisfied `holds`, merged, optionally forgiving a grace at the start of each.
  *
  * `leewayMs` comes off the *front* of every merged stretch and the tail is what gets reported, because

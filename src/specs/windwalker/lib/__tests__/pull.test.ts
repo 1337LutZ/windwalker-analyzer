@@ -67,6 +67,22 @@ describe('a real Windwalker pull, audited from raw events', () => {
 		expect(a.debuff.intermissionSec).toBe(0.7);
 	});
 
+	/**
+	 * The Chi Brew charge counter, and the stretches it sat at two.
+	 *
+	 * Pinned because the ceiling tracking was lifted out of the charge simulation and onto the shared
+	 * `atCapWindows`, which had been the fourth hand-written answer to "when was this counter full".
+	 * These figures were captured before that change and are unchanged by it — the raw stretch is
+	 * `[0, 2390]`, cut to the contact clock to give the `[421, 2390]` below, so `cappedMs` is 1969.
+	 */
+	it('reads the Chi Brew charges and the time spent at the ceiling', () => {
+		expect(a.chiBrew?.casts).toBe(6);
+		expect(a.chiBrew?.charges).toHaveLength(10);
+		expect(a.chiBrew?.cappedWindows).toEqual([{ start: 421, end: 2390 }]);
+		expect(a.chiBrew?.cappedMs).toBe(1969);
+		expect(a.chiBrew?.possibleUses).toBe(6);
+	});
+
 	it('audits Tiger Palm and the cooldowns it held', () => {
 		expect(a.filler.casts).toBe(12);
 		expect(a.filler.wasted).toBe(0);

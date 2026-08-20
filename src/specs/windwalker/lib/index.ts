@@ -68,9 +68,11 @@ import {
 	r1,
 	remainingAtCast,
 	remainingIn,
+	atCapWindows,
 	auraDrops,
 	DROP_MS,
 	SELF_EVENT_MS,
+	stretchesFromPoints,
 	snapshotWindowEnd,
 	toIntervals,
 	trackStackBank,
@@ -1354,27 +1356,16 @@ function chiBrewAudit(
 	}
 
 	let charges = CHI_BREW_CHARGES;
-	let fullSince: number | null = 0;
 	let timer: number | null = null;
-	let cappedMs = 0;
 
 	// The same walk, recorded as it goes, so the chart draws the counter this audit reasoned about
 	// rather than a second reconstruction of it that could disagree with the number printed beside it.
 	const points: Array<[number, number]> = [[0, CHI_BREW_CHARGES]];
-	const cappedWindows: Window[] = [];
 	const mark = (at: number): void => {
 		const last = points[points.length - 1];
 		// One point per *change*: a counter that holds two for a minute is one step, not a hundred.
 		if (last !== undefined && last[1] === charges) return;
 		points.push([at, charges]);
-	};
-	const closeCap = (at: number): void => {
-		if (fullSince === null) return;
-		cappedMs += Math.max(0, at - fullSince);
-		// A window of no width is not a stretch at the ceiling — it is the instant a charge came back
-		// and was spent, which is the opposite of the fault being drawn.
-		if (at > fullSince) cappedWindows.push({ start: fullSince, end: at });
-		fullSince = null;
 	};
 
 	const advance = (to: number): void => {
@@ -1387,13 +1378,11 @@ function chiBrewAudit(
 			charges += 1;
 			timer = charges < CHI_BREW_CHARGES ? landed + CHI_BREW_RECHARGE_MS : null;
 			mark(landed);
-			if (charges === CHI_BREW_CHARGES) fullSince = landed;
 		}
 	};
 
 	for (const at of [...casts].sort((a, b) => a - b)) {
 		advance(at);
-		if (charges === CHI_BREW_CHARGES) closeCap(at);
 		if (charges > 0) {
 			charges -= 1;
 			if (timer === null) timer = at + CHI_BREW_RECHARGE_MS;
@@ -1401,7 +1390,20 @@ function chiBrewAudit(
 		}
 	}
 	advance(durationMs);
-	if (charges === CHI_BREW_CHARGES) closeCap(durationMs);
+
+	/**
+	 * The stretches the counter sat at its ceiling, derived from the series above rather than tracked
+	 * inside the walk.
+	 *
+	 * This used to be a `fullSince`/`closeCap` pair threaded through the simulation, which made it the
+	 * fourth hand-written answer to "when was this counter full" in the codebase. It comes off
+	 * `atCapWindows` now, over the very series the chart draws — so the band, the figure and the picture
+	 * cannot disagree, because there is only one of them. `stretchesFromPoints` is safe here and not on
+	 * an aura's levels: a charge counter always holds *some* level, so the series has no gaps for a
+	 * stretch to run across.
+	 */
+	const cappedWindows = atCapWindows(stretchesFromPoints(points, durationMs), CHI_BREW_CHARGES);
+	const cappedMs = unionMs(toIntervals(cappedWindows));
 
 	/**
 	 * The same idle stretches, cut back to the time the player had something to hit.
