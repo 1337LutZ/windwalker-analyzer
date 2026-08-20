@@ -107,3 +107,44 @@ export function timelineNotes(analysis: Analysis): TimelineNotes {
 	}
 	return new Map([[TIGEREYE_BREW_LANE, spent]]);
 }
+
+/**
+ * The declared row order for this spec's timeline.
+ *
+ * Lives with the spec rather than in the shared chart, and reaches it through `SpecDefinition`. It used
+ * to sit in `components/charts/timelineOrder.ts` in a table keyed by `spec.key` — no cast and no import,
+ * so the convention grep was blind to it, and a third spec meant editing a shared file. That is the rule
+ * `SpecDefinition` exists to hold.
+ *
+ * Shared between the full cast log and the summary timeline, so the two charts lift the same rows in the
+ * same order and a row cannot drift between them.
+ */
+export const TIMELINE_ROW_ORDER: readonly string[] = [
+	'Melee',
+	'Re-Origination',
+	'Tigereye Brew',
+	'Energizing Brew',
+	'Chi Brew',
+	'Jab',
+	'Focus of Xuen',
+	'Rising Sun Kick',
+	'Combo Breaker: Tiger Palm',
+	'Tiger Palm',
+	'Combo Breaker: Blackout Kick',
+	'Blackout Kick',
+	'Rushing Jade Wind',
+	'Fists of Fury',
+	'Touch of Karma',
+	'Chi Wave',
+	'Zen Sphere',
+	'Chi Burst',
+	'Expel Harm',
+];
+
+/**
+ * This spec names no summary lanes, so the summary timeline shows everything it is given.
+ *
+ * The honest reading for a spec that has not decided what its own "at a glance" is, and the same answer
+ * the old `SUMMARY_LANE_KEYS` table gave by having no entry for it.
+ */
+export const SUMMARY_LANE_KEYS: readonly string[] | null = null;

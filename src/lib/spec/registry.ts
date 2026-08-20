@@ -22,7 +22,13 @@ import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/timelineBanks';
 import { analyse, registry as windwalkerRegistry, WINDWALKER, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis, wasteTone, weightsFor } from '~/specs/windwalker/lib/score';
-import { timelineBanks, timelineCounters, timelineNotes } from '~/specs/windwalker/lib/view/timelineBanks';
+import {
+	SUMMARY_LANE_KEYS as summaryLaneKeys,
+	timelineBanks,
+	timelineCounters,
+	timelineNotes,
+	TIMELINE_ROW_ORDER as timelineRowOrder,
+} from '~/specs/windwalker/lib/view/timelineBanks';
 import {
 	analyse as analyseElemental,
 	registry as elementalRegistry,
@@ -37,7 +43,9 @@ import {
 } from '~/specs/elemental/lib/score';
 import {
 	timelineBanks as timelineBanksElemental,
+	SUMMARY_LANE_KEYS as summaryLaneKeysElemental,
 	timelineCounters as timelineCountersElemental,
+	TIMELINE_ROW_ORDER as timelineRowOrderElemental,
 	timelineNotes as timelineNotesElemental,
 } from '~/specs/elemental/lib/view/timelineBanks';
 
@@ -114,6 +122,24 @@ export interface SpecDefinition {
 	 * nothing for a caller to test for. See `TimelineCounter` on why the brew is not one of these.
 	 */
 	timelineCounters(analysis: Analysis): TimelineCounter[];
+	/**
+	 * The order this spec's timeline rows are lifted into, by ability name.
+	 *
+	 * Read by both the cast log and the summary timeline, so the two cannot disagree about where a row
+	 * sits. A spec declaring an empty order keeps whatever order the engine produced.
+	 *
+	 * Here rather than in `components/charts/timelineOrder.ts`, where it used to live in a table keyed by
+	 * `spec.key`: thirty-three ability names from two specs, inside shared chart code, with no cast and no
+	 * import for the convention grep to catch. A third spec had to edit a shared file to be drawn at all.
+	 */
+	timelineRowOrder: readonly string[];
+	/**
+	 * The lanes the summary timeline shows, or `null` to show everything.
+	 *
+	 * `null` is not "not configured yet" — it is the honest reading for a spec that has not decided what
+	 * its own "at a glance" is, and it is what the old table said by having no entry.
+	 */
+	summaryLaneKeys: readonly string[] | null;
 	/** The thresholds a reader may disagree with, for the settings panel to render. */
 	settings: SettingSchema[];
 }
@@ -136,6 +162,8 @@ export const SPECS: SpecDefinition[] = [
 		timelineBanks,
 		timelineNotes,
 		timelineCounters,
+		timelineRowOrder,
+		summaryLaneKeys,
 		settings: WW_SETTINGS,
 	},
 	{
@@ -155,6 +183,8 @@ export const SPECS: SpecDefinition[] = [
 		timelineBanks: timelineBanksElemental,
 		timelineNotes: timelineNotesElemental,
 		timelineCounters: timelineCountersElemental,
+		timelineRowOrder: timelineRowOrderElemental,
+		summaryLaneKeys: summaryLaneKeysElemental,
 		settings: ELEMENTAL_SETTINGS,
 	},
 ];

@@ -17,7 +17,7 @@ import ChartEmpty from './ChartEmpty';
 import type { ChartTheme, TipContent } from './apex';
 import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
 import { SpecContext } from '~/components/report/specContext';
-import { ROW_ORDERS, EMPTY_ROW_ORDER, SUMMARY_LANE_KEYS, rowRank } from './timelineOrder';
+import { rowRank } from './timelineOrder';
 
 /**
  * Row height, on the 4px grid shared by every chart. 36 for the two that carry an icon beside each
@@ -206,8 +206,8 @@ function buildSpans(rows: readonly Row[], durationMs: number, theme: ChartTheme)
 export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	const spec = useContext(SpecContext);
-	const rowOrder = ROW_ORDERS[spec.key] ?? EMPTY_ROW_ORDER;
-	const summaryKeys = SUMMARY_LANE_KEYS[spec.key] ?? null;
+	const rowOrder = spec.timelineRowOrder;
+	const summaryKeys = spec.summaryLaneKeys;
 	// Memoised on its own, not read inline: a spec that has a counter builds a fresh array per call, and
 	// a fresh array here would give `rows` — and so `build`, and so the ApexCharts instance — a new
 	// identity on every render, tearing the chart down and redrawing it each time.

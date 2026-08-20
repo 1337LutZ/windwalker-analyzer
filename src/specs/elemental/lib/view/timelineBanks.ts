@@ -118,3 +118,45 @@ export function timelineCounters(analysis: Analysis): TimelineCounter[] {
 export function timelineNotes(): TimelineNotes {
 	return NO_NOTES;
 }
+
+/**
+ * The declared row order for this spec's timeline: the shock, the raid cooldown, the off-GCD cooldowns,
+ * the dot, the fire-and-forget totem, the two-piece, the summons, the filler, the proc and the button it
+ * frees. Lightning Shield is not a row — it is a counter, drawn above the rows like the Tigereye Brew
+ * bank, and reaches the chart through `timelineCounters`.
+ *
+ * Lives with the spec rather than in the shared chart, for the reason given on the Windwalker's copy of
+ * this: the old table was keyed by `spec.key` inside `components/charts/`, which meant a third spec had
+ * to edit a shared file.
+ */
+export const TIMELINE_ROW_ORDER: readonly string[] = [
+	'Melee',
+	'Earth Shock',
+	'Stormlash Totem',
+	'Ascendance',
+	'Lightning Shield',
+	'Elemental Mastery',
+	'Flame Shock',
+	'Searing Totem',
+	'Elemental Discharge',
+	'Fire Elemental',
+	'Earth Elemental',
+	'Lightning Bolt',
+	'Lava Surge',
+	'Lava Burst',
+];
+
+/**
+ * The lanes the summary timeline ("the pull, end to end") shows.
+ *
+ * The summary is not the cast log: it is the handful of rows the pull actually turned on — the cooldowns,
+ * the dot, and the procs that gated the rotation — so everything else is left out, presses included.
+ * This spec's own counter, Lightning Shield, is not a lane; the section draws it beside them.
+ */
+export const SUMMARY_LANE_KEYS: readonly string[] | null = [
+	'ascendance',
+	'stormlash-totem',
+	'flame-shock',
+	'searing-totem',
+	't16-2pc-debuff',
+];

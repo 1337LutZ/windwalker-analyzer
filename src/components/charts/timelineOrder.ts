@@ -1,73 +1,14 @@
 /**
- * The declared row order for each spec's timeline, and the two helpers that read it.
+ * The two helpers that read a spec's declared timeline row order.
  *
- * Shared between the full cast log and the summary timeline, so the two charts lift the same rows in
- * the same order and a row cannot drift between them.
- */
-
-const WINDWALKER_ROW_ORDER: readonly string[] = [
-	'Melee',
-	'Re-Origination',
-	'Tigereye Brew',
-	'Energizing Brew',
-	'Chi Brew',
-	'Jab',
-	'Focus of Xuen',
-	'Rising Sun Kick',
-	'Combo Breaker: Tiger Palm',
-	'Tiger Palm',
-	'Combo Breaker: Blackout Kick',
-	'Blackout Kick',
-	'Rushing Jade Wind',
-	'Fists of Fury',
-	'Touch of Karma',
-	'Chi Wave',
-	'Zen Sphere',
-	'Chi Burst',
-	'Expel Harm',
-];
-
-/** The Elemental's own order: the shock, the raid cooldown, the off-GCD cooldowns, the dot, the
- * fire-and-forget totem, the two-piece, the summons, the filler, the proc and the button it frees.
- * Lightning Shield is not a row — it is a counter, drawn above the rows like the Tigereye Brew bank. */
-const ELEMENTAL_ROW_ORDER: readonly string[] = [
-	'Melee',
-	'Earth Shock',
-	'Stormlash Totem',
-	'Ascendance',
-	'Lightning Shield',
-	'Elemental Mastery',
-	'Flame Shock',
-	'Searing Totem',
-	'Elemental Discharge',
-	'Fire Elemental',
-	'Earth Elemental',
-	'Lightning Bolt',
-	'Lava Surge',
-	'Lava Burst',
-];
-
-/** The declared row order per spec key; a spec without one keeps the order the engine produced. */
-export const ROW_ORDERS: Readonly<Record<string, readonly string[]>> = {
-	windwalker: WINDWALKER_ROW_ORDER,
-	elemental: ELEMENTAL_ROW_ORDER,
-};
-
-/**
- * The lane keys the summary timeline ("the pull, end to end") shows, by spec key.
+ * The orders themselves live with the specs that own them, on `SpecDefinition`, and no longer in a table
+ * here keyed by `spec.key`. That table carried nineteen Windwalker and fourteen Elemental ability names
+ * inside `components/charts/` with no cast and no import, so the convention grep could not see it and a
+ * third spec meant editing a shared file — the rule `SpecDefinition` exists to hold.
  *
- * The summary is not the cast log: it is the handful of rows the pull actually turned on — the
- * cooldowns, the dot, and the procs that gated the rotation — so a spec names the lanes that belong
- * there and everything else is left out, presses included. A spec without an entry shows everything,
- * which is the honest reading for one that has not yet decided what its own "at a glance" is. The
- * Elemental's own counter, Lightning Shield, is not a lane and is drawn beside it by the section.
+ * Shared between the full cast log and the summary timeline, so the two charts lift the same rows in the
+ * same order and a row cannot drift between them.
  */
-export const SUMMARY_LANE_KEYS: Readonly<Record<string, readonly string[]>> = {
-	elemental: ['ascendance', 'stormlash-totem', 'flame-shock', 'searing-totem', 't16-2pc-debuff'],
-};
-
-/** A stable empty order, so `ROW_ORDERS[spec.key] ?? EMPTY_ROW_ORDER` never hands a memo a fresh array. */
-export const EMPTY_ROW_ORDER: readonly string[] = [];
 
 /** Where a row sits in the declared order — the earliest entry any of its names answers to. */
 export const rowRank = (names: readonly string[], rowOrder: readonly string[]): number => {

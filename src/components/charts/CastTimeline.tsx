@@ -54,7 +54,7 @@ import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
 import { SpecContext } from '~/components/report/specContext';
-import { ROW_ORDERS, EMPTY_ROW_ORDER, led, rowRank } from './timelineOrder';
+import { led, rowRank } from './timelineOrder';
 import type { Registry } from '~/lib/game/registry';
 
 /**
@@ -1145,7 +1145,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// Elemental pull name different buttons, and both read through their own registry.
 	const spec = useContext(SpecContext);
 	const registry = spec.registry;
-	const rowOrder = ROW_ORDERS[spec.key] ?? EMPTY_ROW_ORDER;
+	const rowOrder = spec.timelineRowOrder;
 	const onUseNames = useMemo(() => onUseNamesOf(registry), [registry]);
 	const appliedByCast = useMemo(() => appliedByCastOf(registry), [registry]);
 	/**
