@@ -19,10 +19,10 @@ import type { SpecColors } from '~/lib/game/classes';
 import type { Grade, Scorecard } from '~/lib/score';
 import type { Analysis, FightDataset, TargetMode } from '~/lib/types';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
-import type { TimelineBank, TimelineNotes } from '~/lib/view/timelineBanks';
+import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/timelineBanks';
 import { analyse, registry as windwalkerRegistry, WINDWALKER, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis, wasteTone, weightsFor } from '~/specs/windwalker/lib/score';
-import { timelineBanks, timelineNotes } from '~/specs/windwalker/lib/view/timelineBanks';
+import { timelineBanks, timelineCounters, timelineNotes } from '~/specs/windwalker/lib/view/timelineBanks';
 import {
 	analyse as analyseElemental,
 	registry as elementalRegistry,
@@ -37,6 +37,7 @@ import {
 } from '~/specs/elemental/lib/score';
 import {
 	timelineBanks as timelineBanksElemental,
+	timelineCounters as timelineCountersElemental,
 	timelineNotes as timelineNotesElemental,
 } from '~/specs/elemental/lib/view/timelineBanks';
 
@@ -100,6 +101,19 @@ export interface SpecDefinition {
 	 * own aura key to decide whether to label it.
 	 */
 	timelineNotes(analysis: Analysis): TimelineNotes;
+	/**
+	 * The counters this spec draws as rows *among* the lanes of the summary timeline, one bar per load.
+	 *
+	 * The third of this family and the same reason as the other two: the summary timeline is shared, and
+	 * a counter is not. It used to reach the Elemental's Lightning Shield by casting the analysis to a
+	 * shape with an optional `lightningShield` field on it, and then wrote that spell's name and id into
+	 * the shared chart as literals — a cast the convention grep cannot see, because it is not an import.
+	 *
+	 * Empty is the honest answer for a spec that draws no counter row, and the answer the chart is built
+	 * around: it asks every spec and draws what comes back, so nothing here is optional and there is
+	 * nothing for a caller to test for. See `TimelineCounter` on why the brew is not one of these.
+	 */
+	timelineCounters(analysis: Analysis): TimelineCounter[];
 	/** The thresholds a reader may disagree with, for the settings panel to render. */
 	settings: SettingSchema[];
 }
@@ -121,6 +135,7 @@ export const SPECS: SpecDefinition[] = [
 		wasteTone,
 		timelineBanks,
 		timelineNotes,
+		timelineCounters,
 		settings: WW_SETTINGS,
 	},
 	{
@@ -139,6 +154,7 @@ export const SPECS: SpecDefinition[] = [
 		wasteTone: wasteToneElemental,
 		timelineBanks: timelineBanksElemental,
 		timelineNotes: timelineNotesElemental,
+		timelineCounters: timelineCountersElemental,
 		settings: ELEMENTAL_SETTINGS,
 	},
 ];

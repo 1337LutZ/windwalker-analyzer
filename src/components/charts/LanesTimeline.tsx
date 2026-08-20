@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis, AuraLane } from '~/lib/types';
+import type { CounterLoad, TimelineCounter } from '~/lib/view/timelineBanks';
 
 import { formatSeconds, formatStamp } from '~/lib/format';
 
@@ -72,12 +73,13 @@ interface Row {
 	windows: Array<[number, number]>;
 	presses: number[];
 	/**
-	 * A counter's spend cycles: one entry per load the shield built and threw away.
+	 * A counter's loads, when the spec draws one on this row: one entry per load it built and let go of.
 	 *
-	 * `held` is the charge the load had reached when it ended. `spent` says whether it ended in a
-	 * spend, which is what decides whether that charge is written on the bar — see `buildRows`.
+	 * Handed over by `spec.timelineCounters`, cut and labelled there — the chart draws the bars and
+	 * never learns what fills the counter. `CounterLoad.spent` is what decides whether the charge is
+	 * written on the bar; `buildSpans` is where that happens.
 	 */
-	stacks?: Array<{ start: number; end: number; held: number; spent: boolean }>;
+	loads?: CounterLoad[];
 }
 
 /**
@@ -88,7 +90,12 @@ interface Row {
  * When the spec names a summary set, only those lanes are drawn and the presses are left out — the
  * summary is "what the pull turned on", not "what the player pressed".
  */
-function buildRows(analysis: Analysis, rowOrder: readonly string[], summaryKeys: readonly string[] | null): Row[] {
+function buildRows(
+	analysis: Analysis,
+	counters: readonly TimelineCounter[],
+	rowOrder: readonly string[],
+	summaryKeys: readonly string[] | null,
+): Row[] {
 	const lanes = analysis.timeline?.lanes ?? [];
 	const casts = analysis.timeline?.casts ?? [];
 	const byName = new Map<string, Row>();
@@ -108,58 +115,21 @@ function buildRows(analysis: Analysis, rowOrder: readonly string[], summaryKeys:
 		}
 	}
 
-	// The Lightning Shield counter, drawn as one bar per spend cycle rather than one per stack gain: a
-	// cycle runs from the shield's last spend to the next one, and the label is the charge that spend
-	// unloaded — "1-4 → spend" is one bar labelled 4, "1-7 → spend" one labelled 7. The gains inside a
-	// cycle are noise; what the shock threw away is what a reader wants.
+	// The spec's own counters, each as a row of loads — the Elemental's Lightning Shield today. One bar
+	// per load rather than one per stack gain, because what a reader wants is what the spend threw away
+	// and not the fillers that built it; `counterLoads` carries the evidence for where a load ends.
 	//
-	// **A cycle ends at a decrease, not at zero.** Fulmination leaves one charge behind — the shield
-	// itself stays up — so the counter goes 7 → 1 and never reaches zero on a pull where the buff never
-	// falls off, which is every pull a shaman meant to have. Closing on `level === 0` therefore closed
-	// nothing: both committed fixtures hold a minimum level of 1 across 85 and 87 readings, so the whole
-	// fight came out as one bar carrying the only peak it ever reached. Thirteen Earth Shocks, one bar
-	// labelled 7, which is exactly what the reader reported seeing. A decrease *is* the spend here:
-	// nothing else takes a charge off this counter, and the thirteen decreases on `unbroken` are the
-	// thirteen Earth Shock presses the audit found, at the levels `badSpends` lists.
-	//
-	// Zero is still its own case and it draws nothing. A shield that fell off is absent rather than
-	// spent, so the stretch until it comes back stays blank and the load that was lost carries no
-	// figure — the same reading `CastTimeline`'s `stepsOf` takes of an empty counter.
-	const shield = (analysis as Analysis & { lightningShield?: { points: Array<[number, number]> } }).lightningShield;
-	if (shield !== undefined && shield.points.length > 0) {
-		const stacks: NonNullable<Row['stacks']> = [];
-		let rangeStart: number | null = null;
-		// The level the open load has reached. Also its peak, by construction — any fall closes the load
-		// below, so what is on the counter inside one only ever goes up.
-		let held = 0;
-		for (const [t, level] of shield.points) {
-			if (rangeStart === null) {
-				if (level > 0) {
-					rangeStart = t;
-					held = level;
-				}
-				continue;
-			}
-			if (level >= held) {
-				held = level;
-				continue;
-			}
-			// Down: the load is over. Spent if anything is left on the shield, lost if not, and either
-			// way the next load starts from what remains.
-			stacks.push({ start: rangeStart, end: t, held, spent: level > 0 });
-			rangeStart = level > 0 ? t : null;
-			held = level;
-		}
-		// Still charging when the log stopped. Drawn, because the shield really was up, and unlabelled,
-		// because no shock unloaded it — a number here would claim a press the pull never got to.
-		if (rangeStart !== null) stacks.push({ start: rangeStart, end: analysis.durationMs, held, spent: false });
-		byName.set('Lightning Shield', {
-			name: 'Lightning Shield',
-			id: 324,
-			tone: 'kick',
+	// `set` rather than a merge, exactly as before: a counter row is its own drawing, so a lane or a
+	// press row of the same name is replaced rather than drawn over. Map insertion order is preserved
+	// for a key that was already present, so replacing one does not move it.
+	for (const counter of counters) {
+		byName.set(counter.name, {
+			name: counter.name,
+			id: counter.id,
+			tone: counter.tone,
 			windows: [],
 			presses: [],
-			stacks,
+			loads: counter.loads,
 		});
 	}
 
@@ -204,7 +174,7 @@ function buildSpans(rows: readonly Row[], durationMs: number, theme: ChartTheme)
 				},
 			});
 		}
-		for (const load of row.stacks ?? []) {
+		for (const load of row.loads ?? []) {
 			spans.push({
 				x: row.name,
 				y: [load.start, Math.max(load.end, load.start + floor)],
@@ -238,7 +208,14 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 	const spec = useContext(SpecContext);
 	const rowOrder = ROW_ORDERS[spec.key] ?? EMPTY_ROW_ORDER;
 	const summaryKeys = SUMMARY_LANE_KEYS[spec.key] ?? null;
-	const rows = useMemo(() => buildRows(analysis, rowOrder, summaryKeys), [analysis, rowOrder, summaryKeys]);
+	// Memoised on its own, not read inline: a spec that has a counter builds a fresh array per call, and
+	// a fresh array here would give `rows` — and so `build`, and so the ApexCharts instance — a new
+	// identity on every render, tearing the chart down and redrawing it each time.
+	const counters = useMemo(() => spec.timelineCounters(analysis), [spec, analysis]);
+	const rows = useMemo(
+		() => buildRows(analysis, counters, rowOrder, summaryKeys),
+		[analysis, counters, rowOrder, summaryKeys],
+	);
 	const height = rows.length * ROW_HEIGHT + CHROME;
 
 	const build = useCallback(

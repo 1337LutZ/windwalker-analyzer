@@ -9,7 +9,7 @@
 // into a chart that reads as though it takes any pull.
 
 import type { Analysis } from '~/lib/types';
-import type { TimelineBank, TimelineNotes } from '~/lib/view/timelineBanks';
+import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/timelineBanks';
 import { TEB_CAP } from '~/specs/windwalker/lib';
 
 /**
@@ -19,6 +19,13 @@ import { TEB_CAP } from '~/specs/windwalker/lib';
  * aura logs under, and a table of ids would have to be kept in step with a list allowed to grow.
  */
 const TIGEREYE_BREW_LANE = 'tigereye-brew';
+
+/**
+ * A stable nothing, for the same reason the Elemental's `NO_NOTES` is one: nothing here allocates per
+ * call, so a caller that does not memoise the answer cannot be punished for it with a chart that
+ * rebuilds every bar on every render.
+ */
+const NO_COUNTERS: TimelineCounter[] = [];
 
 /**
  * The Tigereye Brew bank, as a third resource lane.
@@ -61,6 +68,23 @@ export function timelineBanks(analysis: Analysis): TimelineBank[] {
 			labelSpendsOnly: false,
 		},
 	];
+}
+
+/**
+ * No counter row on this spec's summary timeline — and not because the brew is not one.
+ *
+ * The bank *is* the same mechanic as the Elemental's shield: it accumulates from procs, holds twenty,
+ * and a brew spends ten of it. It could be handed over here as loads, and `counterLoads` would cut its
+ * `bankTimeline` the same way it cuts the shield's charge. What stops it is the drawing, not the type:
+ * the Windwalker's summary timeline names no lanes, so it draws every lane and every press the pull had
+ * — a Tigereye Brew row is already on it, with the stacks each brew spent written into its own bars by
+ * `timelineNotes`. A second Lightning-Shield-style row of loads beside it would say the same thing
+ * twice and disagree about which bar a spend belongs to.
+ *
+ * So: empty, deliberately, and the seam is not the reason the brew is not drawn this way.
+ */
+export function timelineCounters(): TimelineCounter[] {
+	return NO_COUNTERS;
 }
 
 /**

@@ -1,14 +1,17 @@
-// The Elemental's own counter on the cast log — the Lightning Shield charge.
+// The Elemental's own counter on its timelines — the Lightning Shield charge, drawn as a curve on the
+// cast log and as one bar per load on the summary timeline.
 //
 // A view module, as the Windwalker's counterpart is: arithmetic over what `elementalAudit` already
-// published, so the row and the Lightning Shield section cannot disagree about the pull.
+// published, so neither drawing can disagree with the Lightning Shield section about the pull.
 //
-// It lives here because the chart no longer does. `CastTimeline` is shared, and until this module
-// existed it reached the charge by casting an `Analysis` to a shape with an optional `lightningShield`
-// on it — this spec's audit read out of a chart that reads as though it takes any pull.
+// It lives here because the charts no longer do. Both are shared by the two specs, and until this
+// module existed each reached the charge by casting an `Analysis` to a shape with an optional
+// `lightningShield` on it — this spec's audit read out of charts that read as though they take any pull.
 
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
-import type { TimelineBank, TimelineNotes } from '~/lib/view/timelineBanks';
+import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/timelineBanks';
+import { counterLoads } from '~/lib/view/timelineBanks';
+import { registry } from '~/specs/elemental/lib';
 
 /**
  * The Elemental audit's fields, named for the type that holds them.
@@ -22,6 +25,19 @@ type ElementalAnalysis = Analysis & ElementalAuditResult;
 
 /** No lane on this spec's timeline carries a number in its bars. */
 const NO_NOTES: TimelineNotes = new Map();
+
+/**
+ * The counter itself, out of this spec's own game model rather than written down here.
+ *
+ * The name and the icon id used to be literals inside the shared summary chart — `'Lightning Shield'`
+ * and `324` — which is a spell id in code that reads as though it takes any pull, and a second place
+ * for the name to drift from. The model is the source of truth for both, and it is the registry that
+ * refuses to build when two objects claim one id.
+ *
+ * The name matters beyond the label: `timelineOrder.ts` places this row by name, so the model's
+ * spelling is what has to reach the chart.
+ */
+const LIGHTNING_SHIELD = registry.aura('lightning-shield');
 
 /**
  * Lightning Shield's charge, as a bank like the Windwalker's brew.
@@ -60,6 +76,34 @@ export function timelineBanks(analysis: Analysis): TimelineBank[] {
 			underline: 'kick',
 			ceilingIsWaste: false,
 			labelSpendsOnly: true,
+		},
+	];
+}
+
+/**
+ * The same charge cut into the loads the shocks spent, for the summary timeline's one row per thing.
+ *
+ * The summary has no strip to put a curve in, so the counter is a row of bars like every other row and
+ * each bar is one load: from the shield's last spend to the next, labelled with what that spend
+ * unloaded. `counterLoads` owns the walk and the evidence behind it — in particular why a load closes
+ * on a *decrease* rather than on zero, which is the bug this row shipped with.
+ *
+ * A row whenever the pull has charge readings at all, even if none of them ever fell: a shield that was
+ * up all pull and never spent is a row with one unlabelled bar, which is the honest drawing of it.
+ *
+ * The absent-audit check is not paranoia about this spec's own reports, for the reason `timelineBanks`
+ * gives above: a chart rendered without a provider reads `SpecContext`'s fallback, so a definition's
+ * member can be handed an analysis another spec produced.
+ */
+export function timelineCounters(analysis: Analysis): TimelineCounter[] {
+	const shield: ElementalAuditResult['lightningShield'] | undefined = (analysis as ElementalAnalysis).lightningShield;
+	if (shield === undefined || shield.points.length === 0) return [];
+	return [
+		{
+			name: LIGHTNING_SHIELD.name,
+			id: LIGHTNING_SHIELD.ids[0]!,
+			tone: 'kick',
+			loads: counterLoads(shield.points, analysis.durationMs),
 		},
 	];
 }
