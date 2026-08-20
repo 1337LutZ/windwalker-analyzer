@@ -21,12 +21,43 @@
 // primary target, Lightning Shield's stack counter, and Ascendance's cooldown clock (via the
 // engine's `offLadderCooldowns`, because Ascendance is off-GCD and off the ladder).
 
-import { auraLevels, auraWindows, inWindow, levelWindows, remainingIn, toIntervals } from '~/lib/analysis/auras';
-import { mergeIntervals, type Interval } from '~/lib/analysis/intervals';
+import {
+	type AuraPoint,
+	type AuraWindow,
+	auraDrops,
+	auraLevels,
+	DROP_MS,
+	auraTimeline,
+	auraWindows,
+	inWindow,
+	levelAt,
+	levelWindows,
+	remainingAtCast,
+	remainingIn,
+	toIntervals,
+	uptimePct,
+} from '~/lib/analysis/auras';
+import { atCapWindows } from '~/lib/analysis/counters';
+import { complementOf, intersect, mergeIntervals, overlapMs, unionMs, type Interval } from '~/lib/analysis/intervals';
+import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
+import { intervalsAtLeast, overlapPoints } from '~/lib/analysis/targets';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
-import type { Analysis, AuraLane, ElementalAuditResult, FightDataset, Miss, WclEvent, Window } from '~/lib/types';
-import { abilityIdOf, isAuraEvent } from '~/lib/events/guards';
+import type {
+	Analysis,
+	AuraLane,
+	EarthShockReason,
+	FlameShockPress,
+	FlameShockPressKind,
+	ElementalAuditResult,
+	FightDataset,
+	Miss,
+	SearingTotemPress,
+	StormlashAudit,
+	WclEvent,
+	Window,
+} from '~/lib/types';
+import { abilityIdOf, instanceKey, isAuraEvent } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
 import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
@@ -37,6 +68,7 @@ import { CLASS_COLOR } from '~/lib/game/classes';
 import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
+import { RESOURCE_TYPE } from '~/lib/game/resources';
 
 // ------------------------------------------------------------------- constants
 
@@ -719,6 +751,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		castTimes,
 		primaryID,
 		primaryName,
+		engaged,
 		engagedMs,
 		marks,
 		aplTargetCountAt,
@@ -865,21 +898,68 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * target reads consistently with its neighbours instead of dropping out of the audit.
 	 */
 	const fsAimedAt = new Map(castPresses(FLAME_SHOCK).map((press) => [press.t, press.spawn]));
-	const fsPresses = fsCasts.map((t) => {
+	/**
+	 * The stretches the player was not in contact — the fight's own interruptions.
+	 *
+	 * Declared here rather than beside the miss ledger that also reads it, because `downBefore` below
+	 * closes over it and runs immediately. Left further down it was a TDZ `ReferenceError` at runtime that
+	 * `tsc` cannot see, being inside a closure — the same trap `fightEnd` fell into earlier in this file.
+	 */
+	const fsAway = complementOf(contact, duration);
+
+	/**
+	 * The time the dot had been down, on this spawn, while the player was in contact.
+	 *
+	 * The three down-states hang off this. `null` means the dot had never been up on that spawn at all —
+	 * an opener, which is a different fact from "it lapsed and you were there", and the difference is
+	 * what stops the report accusing a player of a late refresh on their first press of the pull.
+	 */
+	const downBefore = (spawn: string | null, t: number): number | null => {
+		if (spawn === null) return null;
+		const windows = fsDot.byInstance.get(spawn) ?? [];
+		let previousEnd: number | null = null;
+		for (const w of windows) {
+			if (w.start >= t) break;
+			previousEnd = Math.max(previousEnd ?? 0, Math.min(w.end, t));
+		}
+		if (previousEnd === null) return null;
+		// Charged only for the part the player was present for, the same way `auraDrops` charges a gap.
+		return Math.max(0, t - previousEnd - overlapMs(previousEnd, t, fsAway));
+	};
+
+	const fsPresses: FlameShockPress[] = fsCasts.map((t) => {
 		const spawn = fsAimedAt.get(t) ?? spawnAt(t);
-		// An empty timeline needs no separate arm: `remainingAtCast` reads nothing as 0, and 0 is already
-		// the "no dot was up, so this press applied one" case below.
+		// An empty timeline needs no separate arm: `remainingAtCast` reads nothing as 0, and 0 is the
+		// "no dot was up" case the three down-states below split apart.
 		const remaining = remainingAtCast(spawn === null ? [] : (fsTimelines.get(spawn) ?? []), t, FS_DEBUFF);
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
+		const windowed = remaining > 0 && remaining <= flameShockRefreshMs;
+		const ascPrep = remaining > 0 && remaining < FS_ASC_PREP_MS && ascReadyInSec <= 2;
+		const exposed = remaining > 0 ? null : downBefore(spawn, t);
+		const kind: FlameShockPressKind =
+			remaining > 0
+				? windowed
+					? 'windowed'
+					: ascPrep
+						? 'ascPrep'
+						: 'early'
+				: exposed === null
+					? 'apply'
+					: exposed > DROP_MS
+						? 'late'
+						: 'reapply';
 		return {
 			t,
+			kind,
 			remainingMs: remaining > 0 ? remaining : null,
-			windowed: remaining > 0 && remaining <= flameShockRefreshMs,
-			ascPrep: remaining > 0 && remaining < FS_ASC_PREP_MS && ascReadyInSec <= 2,
+			exposedMs: remaining > 0 ? null : (exposed ?? 0),
+			windowed,
+			ascPrep,
 			// A refresh while Ascendance is up is a global thrown away — the list wants Lava Burst then.
 			duringAscendance: inWindow(t, ascActiveWindows),
 		};
 	});
+	// An `apply` and a `reapply` both put the dot up; only the refresh states renew one that was running.
 	const applies = fsPresses.filter((p) => p.remainingMs === null).length;
 	const refreshes = fsPresses.length - applies;
 
@@ -1278,7 +1358,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// would go silent about exactly the mistake it exists to report. Measured on
 	// `a:qHRAFwdGzaB6MPYC` #14, the four gaps are 36ms, 888ms, 643ms and 41 914ms, and only the last
 	// has any claim to being a phase break — it carries 529ms of contact against 41.4s of absence.
-	const fsAway = complementOf(contact, duration);
 	const fsDropMisses: Miss[] = auraDrops(toIntervals(fsMerged), DROP_MS, fsAway).drops.map((gap) => ({
 		kind: primaryName === null ? 'Flame Shock dropped' : `Flame Shock dropped (${primaryName})`,
 		at: gap.t,

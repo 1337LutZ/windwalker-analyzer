@@ -26,25 +26,39 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 			[...flameShock.presses]
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => {
-					// The three red timings — late (the dot dropped), during Ascendance, and early (a healthy
-					// dot clipped) — all get the fault band; the two good ones stay plain.
-					const faulted = press.remainingMs === null || press.duringAscendance || (!press.windowed && !press.ascPrep);
+					/**
+					 * Three of the six press kinds are faults; three are not.
+					 *
+					 * `late` (the dot dropped while the player was there), `early` (a healthy dot clipped) and a
+					 * refresh under Ascendance (a global the list wanted on Lava Burst) earn the band. An
+					 * `apply` is the opener and no decision at all; a `reapply` put the dot back up after the
+					 * fight took the target away or after sub-second jitter, which is not a mistake either.
+					 *
+					 * This used to read `press.remainingMs === null`, which was all three down-states at once —
+					 * so a pull with one apply, six clean refreshes and 100% uptime had its opener banded as a
+					 * fault and labelled "Late refresh".
+					 */
+					const faulted =
+						press.kind === 'late' || press.kind === 'early' || (press.duringAscendance && press.remainingMs !== null);
 					return {
 						key: `${press.t}-${i}`,
 						band: faulted ? ('warn' as const) : undefined,
 						cells: {
 							at: formatClock(press.t),
-							remaining: press.remainingMs === null ? t('flameShock.state.late') : formatSeconds(press.remainingMs),
+							// The dot's remaining time where there was one; otherwise how long it had been down on
+							// the player's own watch, which is the number the three down-states are judged on.
+							remaining:
+								press.remainingMs !== null
+									? formatSeconds(press.remainingMs)
+									: press.kind === 'apply'
+										? '—'
+										: formatSeconds(press.exposedMs ?? 0),
 							state:
 								press.remainingMs === null
-									? t('flameShock.state.late')
+									? t(`flameShock.state.${press.kind}`)
 									: press.duringAscendance
 										? t('flameShock.state.duringAscendance')
-										: press.ascPrep
-											? t('flameShock.state.ascPrep')
-											: press.windowed
-												? t('flameShock.state.windowed')
-												: t('flameShock.state.early'),
+										: t(`flameShock.state.${press.kind}`),
 						},
 					};
 				}),

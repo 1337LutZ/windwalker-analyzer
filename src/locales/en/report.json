@@ -1235,6 +1235,8 @@
       "state": "what it was"
     },
     "state": {
+      "apply": "First application",
+      "reapply": "Reapplied",
       "late": "Late refresh",
       "duringAscendance": "Refresh during Ascendance",
       "ascPrep": "Ascendance prep",
