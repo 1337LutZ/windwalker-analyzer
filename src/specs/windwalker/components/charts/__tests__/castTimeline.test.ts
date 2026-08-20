@@ -14,10 +14,10 @@ import { formatClock, formatGap, formatStamp } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
 
 import CastLog from '~/components/sections/CastLog';
-import CastTimeline from '../CastTimeline';
+import CastTimeline from '~/components/charts/CastTimeline';
 import { tip, type ChartTheme } from '~/components/charts/apex';
-import { collapseTargets, perTargetBlock } from '../targetLanes';
-import { HIDDEN_AURAS, HIDDEN_CASTS } from '../hidden';
+import { collapseTargets, perTargetBlock } from '~/components/charts/targetLanes';
+import { HIDDEN_AURAS, HIDDEN_CASTS } from '~/components/charts/hidden';
 import { spellIconUrl } from '~/components/primitives/spellIcon';
 
 initI18n();

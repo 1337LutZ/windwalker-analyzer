@@ -3,7 +3,7 @@ import { Dialog } from '@base-ui/react/dialog';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import type { Analysis } from '~/lib/types';
 
-import { CastTimeline } from '~/specs/windwalker/components/charts';
+import CastTimeline from '../charts/CastTimeline';
 import { Section } from '../primitives';
 import { buttonClass } from '../primitives/controls';
 

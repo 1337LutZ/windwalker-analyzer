@@ -24,40 +24,37 @@ import type {
 	AbilityDamage,
 	Analysis,
 	AuraLane,
-	BrewSummary,
 	CastMark,
 	DeathMark,
-	DebuffSummary,
 	LaneGroup,
 	LaneSpend,
 	LaneStacks,
 	LaneTarget,
 	LaneWindow,
 	ResourceBarAudit,
-	ResourceCurve,
 	Window,
 } from '~/lib/types';
-import { TEB_CAP } from '~/specs/windwalker/lib';
 import { barColor, curveOfBar } from '~/lib/view/resourceBars';
+import type { BankTone, TimelineBank } from '~/lib/view/timelineBanks';
 import { specColorsOf } from '~/lib/view/specColors';
 
-import { SpellIcon } from '~/components/primitives';
-import { buttonClass } from '~/components/primitives/controls';
-import { spellIconUrl } from '~/components/primitives/spellIcon';
+import { SpellIcon } from '../primitives';
+import { buttonClass } from '../primitives/controls';
+import { spellIconUrl } from '../primitives/spellIcon';
 import { formatGap, formatStamp } from '~/lib/format';
 
-import { fmt, n } from '~/components/format';
-import { jumpToHeading } from '~/components/jump';
-import { readTheme, tip, type ChartTheme, type TipRow } from '~/components/charts/apex';
-import ChartEmpty from '~/components/charts/ChartEmpty';
-import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from '~/components/charts/scroll';
-import ResourceTrack, { type ShadeWindow } from '~/components/charts/ResourceTrack';
-import { cappedOf, emptiedOf } from '~/components/charts/capped';
+import { fmt, n } from '../format';
+import { jumpToHeading } from '../jump';
+import { readTheme, tip, type ChartTheme, type TipRow } from './apex';
+import ChartEmpty from './ChartEmpty';
+import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
+import ResourceTrack, { type ShadeWindow } from './ResourceTrack';
+import { cappedOf, emptiedOf } from './capped';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
 import { SpecContext } from '~/components/report/specContext';
-import { ROW_ORDERS, EMPTY_ROW_ORDER, led, rowRank } from '~/components/charts/timelineOrder';
+import { ROW_ORDERS, EMPTY_ROW_ORDER, led, rowRank } from './timelineOrder';
 import type { Registry } from '~/lib/game/registry';
 
 /**
@@ -185,6 +182,26 @@ const GROUP_TONE: Record<Toggle, keyof ChartTheme> = {
 	buff: 'brew',
 	proc: 'rune',
 	debuff: 'kick',
+};
+
+/**
+ * The two literal spellings of a bank's palette token — see `BankTone`.
+ *
+ * A third and a fourth table for the same reason `GROUP_TONE` is a second one: a class Tailwind never
+ * reads in source is a class it never generates, so `hover:decoration-${tone}` would silently draw no
+ * underline at all, and the SVG stroke is a resolved value rather than a class and cannot share the
+ * spelling either. The spec names the mechanic its counter belongs to; both spellings of it live here.
+ */
+const BANK_UNDERLINE: Record<BankTone, string> = {
+	brew: 'hover:decoration-brew',
+	rune: 'hover:decoration-rune',
+	kick: 'hover:decoration-kick',
+};
+
+const BANK_COLOR: Record<BankTone, string> = {
+	brew: 'var(--color-brew)',
+	rune: 'var(--color-rune)',
+	kick: 'var(--color-kick)',
 };
 
 /** How far the tip sits from the cursor: clear of the icon underneath without leaving the pointer. */
@@ -833,9 +850,10 @@ function labelFits(label: string, ms: number, pxPerSec: number): boolean {
 /**
  * One lane's windows, as bars. Width is a percentage too, so zoom never touches them.
  *
- * `notes` labels a bar with a number when the lane has one worth carrying — the stacks a Tigereye
- * Brew spent, which is what separates a brew worth pressing from one that was not, and is invisible
- * from the bar's length alone.
+ * `notes` labels a bar with a number when the lane has one worth carrying — the spec supplies them
+ * per lane (`SpecDefinition.timelineNotes`), and the Windwalker's Tigereye Brew is the one lane with
+ * any today: the stacks a brew spent are what separate a brew worth pressing from one that was not,
+ * and they are invisible from the bar's length alone.
  *
  * `spentAs` does the same job for a lane the engine handed a verdict per window: an aura that is
  * cashed in rather than waited out draws the same bar whether a press took it or the clock did, and
@@ -858,13 +876,13 @@ function labelFits(label: string, ms: number, pxPerSec: number): boolean {
 function barNodesOf(
 	lane: AuraLane,
 	span: number,
-	notes: Map<number, number> | null,
+	notes: ReadonlyMap<number, number> | undefined,
 	spentAs: (spend: LaneSpend) => { text: string; icon: string | null },
 	pxPerSec: number,
 	prePullLabel: string,
 ) {
 	// Keyed on the window's own start, which is what the engine identified each verdict by — the same
-	// key the brew notes above use, and sound for the same reason: two windows of one aura cannot open
+	// key `notes` above is keyed on, and sound for the same reason: two windows of one aura cannot open
 	// on the same millisecond unless the aura logs under several ids, and this one logs under one.
 	const spent = new Map((lane.spent ?? []).map((s) => [s.start, spentAs(s)]));
 	return lane.windows.map((w: LaneWindow) => {
@@ -1130,56 +1148,38 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const rowOrder = ROW_ORDERS[spec.key] ?? EMPTY_ROW_ORDER;
 	const onUseNames = useMemo(() => onUseNamesOf(registry), [registry]);
 	const appliedByCast = useMemo(() => appliedByCastOf(registry), [registry]);
-	// The Windwalker half of an `Analysis` is absent on a spec that never produced it — read through a
-	// truthiness guard, so an Elemental pull simply draws no bank, no contact and no haste rows.
-	const ww = analysis as unknown as { brew?: BrewSummary; debuff?: DebuffSummary };
-	// The Elemental half of an `Analysis`, for the Lightning Shield counter the timeline draws like the
-	// Tigereye Brew bank — a stepping counter with the spends labelled, not an on-or-off window.
-	const el = analysis as unknown as { lightningShield?: { points: Array<[number, number]>; maxStacks: number } };
+	/**
+	 * The spec-audited half of an `Analysis`, read as the optional thing it is at runtime.
+	 *
+	 * No cast, and that is the point: `Analysis` is `AnalysisCore & SpecAuditResult`, `SpecAuditResult`
+	 * happens to be the *Windwalker's* shape, and an Elemental pull is the same type carrying none of
+	 * it — so TypeScript promises `debuff` is there and the runtime does not. `Partial` is the honest
+	 * reading of that and it is a plain assignment, where this used to be an `as unknown as` through a
+	 * hand-written shape. One field is left: a fallback for reports captured before the core carried a
+	 * contact clock of its own. Everything else this chart read out of one spec's audit now arrives
+	 * through that spec's definition, below.
+	 */
+	const specAudit: Partial<Pick<Analysis, 'debuff'>> = analysis;
 	const resources = analysis.resources;
 	/**
-	 * The Tigereye Brew bank, as a third resource lane.
+	 * The counters drawn above the rows, from the spec's own definition.
 	 *
-	 * It behaves like one and is spent like one — it fills from procs, holds twenty, and a brew empties
-	 * ten of it — so it is read the same way and drawn the same way. The engine already tracks it for
-	 * the bank chart, so this is the same numbers on a different clock rather than a second count.
-	 *
-	 * `TEB_CAP` rather than the pull's observed peak: a bank that never reached twenty still had twenty
-	 * to reach, and scaling to the peak would draw a half-full bank as a full one.
+	 * A bank is not something this chart can derive: the Windwalker banks Tigereye Brew stacks and the
+	 * Elemental charges Lightning Shield, each against a ceiling that comes out of its own game model,
+	 * and how a full one reads is a claim about that spec's economy. So the chart takes a list and draws it — one row in the
+	 * gutter and one track for each, in the order it was handed them — and a spec with no counter hands
+	 * back nothing rather than being special-cased here.
 	 */
-	const brewBank = useMemo<ResourceCurve | null>(
-		() =>
-			(ww.brew?.bankTimeline.length ?? 0) === 0
-				? null
-				: { max: TEB_CAP, points: (ww.brew?.bankTimeline ?? []).map(([t, n]): [number, number] => [t, n]) },
-		[ww.brew?.bankTimeline],
-	);
-
-	// The Lightning Shield counter, as a bank like the brew's — the charge over the pull, spent whole
-	// by Earth Shock, drawn stepping with the spends labelled.
-	const shieldBank = useMemo<ResourceCurve | null>(
-		() =>
-			(el.lightningShield?.points.length ?? 0) === 0
-				? null
-				: { max: el.lightningShield?.maxStacks ?? 7, points: el.lightningShield?.points ?? [] },
-		[el.lightningShield?.points, el.lightningShield?.maxStacks],
-	);
+	const banks = useMemo<TimelineBank[]>(() => spec.timelineBanks(analysis), [spec, analysis]);
 
 	/**
-	 * What each brew window spent, keyed by when it opened.
+	 * The figures written into another lane's bars, keyed by lane — the stacks each Tigereye Brew spent.
 	 *
-	 * The lane draws the window; this is what makes it worth looking at. A brew that went out on eight
-	 * stacks and one that went out on ten are the same bar otherwise, and the difference is the whole
-	 * argument of the Tigereye Brew section.
+	 * From the definition for the same reason the banks are: this used to be one spec's audit read
+	 * through a cast and handed to whichever lane matched that spec's own aura key, in a chart both
+	 * specs draw. A spec with no such figure answers with an empty map, and `barNodesOf` labels nothing.
 	 */
-	const brewSpend = useMemo(() => {
-		const by = new Map<number, number>();
-		for (const use of ww.brew?.useList ?? []) {
-			if (use.window === null) continue;
-			by.set(use.window.start, (by.get(use.window.start) ?? 0) + use.consumed);
-		}
-		return by;
-	}, [ww.brew?.useList]);
+	const laneNotes = useMemo(() => spec.timelineNotes(analysis), [spec, analysis]);
 	// The resource lanes this pull carries, derived from the audited bars — a pool draws as a line, a
 	// points bar as steps, and each bar's regen is read off its own audit below.
 	const resourceLanes = useMemo(() => resourceLanesOf(resources), [resources]);
@@ -1291,10 +1291,18 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			// most of it. Against every target the same pull gives six segments and 27%, which is the add
 			// waves the reader actually watched.
 			complementOf(
-				analysis.timeline?.contactSegments ?? ww.debuff?.contactSegments ?? ww.debuff?.engagedSegments ?? [],
+				analysis.timeline?.contactSegments ??
+					specAudit.debuff?.contactSegments ??
+					specAudit.debuff?.engagedSegments ??
+					[],
 				analysis.durationMs,
 			).filter(([start, end]) => end - start >= MIN_INTERMISSION_MS),
-		[analysis.timeline?.contactSegments, ww.debuff?.contactSegments, ww.debuff?.engagedSegments, analysis.durationMs],
+		[
+			analysis.timeline?.contactSegments,
+			specAudit.debuff?.contactSegments,
+			specAudit.debuff?.engagedSegments,
+			analysis.durationMs,
+		],
 	);
 
 	const drag = useDragScroll();
@@ -1382,7 +1390,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						? barNodesOf(
 								lane,
 								span,
-								lane.key === 'tigereye-brew' ? brewSpend : null,
+								// Whether this lane carries a figure in its bars is the spec's answer, not a name
+								// this chart knows: it looks the lane up and labels nothing when there is no entry.
+								laneNotes.get(lane.key),
 								spentAs,
 								pxPerSec,
 								t('castLog.tip.prePull'),
@@ -1391,7 +1401,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			})),
 		// Zoom is a dependency now, as it already is for the press lanes above: whether a window is wide
 		// enough to carry its variant is a question about pixels, so a zoom step has to rebuild these.
-		[lanes, span, brewSpend, spentAs, pxPerSec, t],
+		[lanes, span, laneNotes, spentAs, pxPerSec, t],
 	);
 	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
 	const gcdRules = useMemo(() => gcdRulesPath(casts, span), [casts, span]);
@@ -2085,30 +2095,24 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									<span className="tabular font-mono text-xs text-muted">{curveOfBar(resources[key])?.max}</span>
 								</div>
 							))}
-					{brewBank === null ? null : (
-						<div className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+					{/* The spec's counters, in its own order. Always a real anchor: a bank exists because a
+					    section argues about it, which is not true of every audited bar above. */}
+					{banks.map((bank) => (
+						<div
+							key={bank.key}
+							className={`flex items-center gap-2 pr-2 ${LANE_RULE}`}
+							style={{ height: RESOURCE_ROW_PX }}
+						>
 							<a
-								href="#bank-heading"
-								onClick={(event) => jumpToHeading('bank-heading', event)}
-								className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-brew hover:text-ink"
+								href={`#${bank.section}-heading`}
+								onClick={(event) => jumpToHeading(`${bank.section}-heading`, event)}
+								className={`truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors ${BANK_UNDERLINE[bank.underline]} hover:text-ink`}
 							>
-								{t('castLog.resource.brew')}
+								{t(`castLog.resource.${bank.key}`)}
 							</a>
-							<span className="tabular font-mono text-xs text-muted">{brewBank.max}</span>
+							<span className="tabular font-mono text-xs text-muted">{bank.curve.max}</span>
 						</div>
-					)}
-					{shieldBank === null ? null : (
-						<div className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
-							<a
-								href="#lightning-shield-heading"
-								onClick={(event) => jumpToHeading('lightning-shield-heading', event)}
-								className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
-							>
-								{t('castLog.resource.lightningShield')}
-							</a>
-							<span className="tabular font-mono text-xs text-muted">{shieldBank.max}</span>
-						</div>
-					)}
+					))}
 					{/* The player's own rows, in the four runs they are cut into: the rows the declared order
 					    names, then the rest of the damage, then the auras nobody ranked, then the kit and
 					    everything the fight asked for. The same four in the same order on the track below —
@@ -2334,39 +2338,32 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 										</div>
 									);
 								})}
-						{brewBank === null ? null : (
-							<div className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+						{banks.map((bank) => (
+							<div key={bank.key} className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
 								<ResourceTrack
-									curve={brewBank}
+									curve={bank.curve}
 									durationMs={span}
-									stroke="var(--color-rune)"
-									fill="color-mix(in oklch, var(--color-rune) 18%, transparent)"
-									// Stepped like chi, for the same reason: the bank holds whole stacks, and a slope
-									// between two readings would draw a fraction of a stack nobody ever had.
+									stroke={BANK_COLOR[bank.tone]}
+									fill={`color-mix(in oklch, ${BANK_COLOR[bank.tone]} 18%, transparent)`}
+									// Stepped like chi, and every bank is: a bank holds whole units, and a slope
+									// between two readings would draw a fraction of one that nobody ever held.
 									mode="steps"
+									// Only the drops, where the gains are noise — a counter that ticks up on every
+									// filler would otherwise carry a number per cast around the one worth reading.
+									labelDecreases={bank.labelSpendsOnly}
 									minLabelGapMs={labelGapMs}
-									shades={[{ windows: cappedOf(brewBank), className: 'fill-miss/25', label: 'capped' }]}
-									label={t('castLog.resourceAria.brew', { max: brewBank.max })}
+									// The ceiling shaded only where sitting at it is a loss. Whether it is belongs to
+									// the bank: a full brew bank is a proc that had nowhere to go, while a counter the
+									// rotation is trying to keep full has its own section to argue the overcap.
+									shades={
+										bank.ceilingIsWaste
+											? [{ windows: cappedOf(bank.curve), className: 'fill-miss/25', label: 'capped' }]
+											: undefined
+									}
+									label={t(`castLog.resourceAria.${bank.key}`, { max: bank.curve.max })}
 								/>
 							</div>
-						)}
-						{shieldBank === null ? null : (
-							<div className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
-								<ResourceTrack
-									curve={shieldBank}
-									durationMs={span}
-									stroke="var(--color-kick)"
-									fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
-									// Stepped for the same reason as the brew bank: the shield holds whole charges,
-									// and a slope would draw a fraction nobody ever held. Only the spends are
-									// labelled — the gains are every Bolt, and the unload is what is worth reading.
-									mode="steps"
-									labelDecreases
-									minLabelGapMs={labelGapMs}
-									label={t('castLog.resourceAria.lightningShield', { max: shieldBank.max })}
-								/>
-							</div>
-						)}
+						))}
 						{/* The same four runs the gutter draws, in the same order. */}
 						{lead.map(laneTrack)}
 						{showCasts ? castsMid.map(castTrack) : null}
