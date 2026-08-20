@@ -60,9 +60,19 @@ describe('a real Windwalker pull, audited from raw events', () => {
 	 * is jitter-sized, so writing it off costs nothing. The Elemental's `phased` fixture is where the same
 	 * heuristic would have been dangerous, and why that spec passes its contact clock in as evidence
 	 * instead.
+	 *
+	 * **`engagedUptimePct` was 96.00 and is now 98.12, and that is a fix rather than a drift.** The
+	 * coverage walk hands each landed hit the time until the next one and asks whether *that* enemy was
+	 * carrying the debuff. This pull's Crawler Mines are immune to everything — all 27 hits they ever
+	 * take come back `hitType: 10` — so the ten swings the monk put into six of them used to own slices
+	 * of the pull that no debuff could ever have been on, and every one of those slices was charged
+	 * against the player. `spawnLives` in `~/lib/analysis/targets` now keeps a unit nothing can damage
+	 * out of `landedHits` entirely, so those slices go back to the boss, which did have the debuff. The
+	 * denominator (`inContactMs`) is deliberately unchanged: the monk was in combat and could act, they
+	 * were only aiming at something the game refused.
 	 */
 	it('keeps the Rising Sun Kick debuff up, with nothing to report as dropped', () => {
-		expect(+a.debuff.engagedUptimePct.toFixed(2)).toBe(96);
+		expect(+a.debuff.engagedUptimePct.toFixed(2)).toBe(98.12);
 		expect(a.debuff.drops).toEqual([]);
 		expect(a.debuff.intermissionSec).toBe(0.7);
 	});

@@ -4,9 +4,135 @@
 // of damage that landed on one enemy — and an average cannot say that a five-minute pull was one
 // target for four minutes and six adds for one. These two functions are the per-moment answer, and
 // they know nothing about which spec is asking: a hit is a time and an enemy.
+//
+// And the question before that one, which the counts are only as good as: *which* enemies deserve to be
+// counted. That is `spawnLives` and `isJudgeableTarget` at the top of the file.
+
+import { instanceKey, isDamage, type WclEvent } from '~/lib/events';
 
 import type { Interval } from './intervals';
 import { valueAtOrBefore } from './search';
+
+/**
+ * WarcraftLogs' `hitType` for a blow the unit was **immune** to. Read off real events, never guessed.
+ *
+ * The number matters more than it looks: a wrong constant here does not fail, it silently matches
+ * nothing and the fix below quietly does nothing at all. So it was established by counting, over the
+ * three committed Iron Juggernaut datasets — `windwalker/__fixtures__/dataset-ironJuggernaut.json`,
+ * `elemental/__fixtures__/phased.json` and `elemental/__fixtures__/unbroken.json`, all anonymous
+ * reports of the same encounter:
+ *
+ *  - In the Windwalker dataset, 1155 damage events carry hit types `{0:31, 1:587, 2:407, 4:9, 5:9,
+ *    6:71, 8:9, 10:32}`. Every one of the 32 type-10 events has `amount: 0`.
+ *  - Of those 32, **27 target actor 236, `Crawler Mine`** — and all 27 events that actor ever receives
+ *    are type 10. Nine distinct `targetInstance` values, so every mine spawn on the pull, without
+ *    exception, returned nothing but this.
+ *  - The other 5 are five consecutive Fists of Fury ticks on the **boss** at 71.3s–74.3s, out of the
+ *    1026 hits the boss took. The boss went immune for a phase and was killed anyway.
+ *  - `phased.json` repeats it: all 6 of its type-10 events land on `Crawler Mine`, six spawns, every
+ *    one of them wholly immune. `unbroken.json` has 25, of which 18 land on seven wholly-immune mine
+ *    spawns and 7 on a unit that also took real damage.
+ *
+ * Amount alone cannot stand in for it: type 0 (miss) and type 8 also carry `amount: 0`, and 17 plain
+ * type-1 hits do too. The field is `hitType` and the value is 10.
+ */
+const IMMUNE_HIT_TYPE = 10;
+
+/**
+ * What the log knows about one enemy spawn that decides whether it deserves to be judged at all.
+ *
+ * **The rule is about the unit, not the event, and that is a decision rather than a detail.** A single
+ * immune hit is a phase, and the fixtures prove it: the Iron Juggernaut itself returns five immune
+ * Fists of Fury ticks in the middle of a pull that kills it. Dropping those five *events* would punch
+ * a hole in the contact clock while the player was demonstrably attacking the boss — and would still
+ * leave the boss counted, so it buys nothing. A unit that has **only ever** returned immune is the
+ * different fact: nothing the player can press will ever land on it, so it is not a target, it never
+ * was one, and it cannot pad a fan-out count or host a dot.
+ *
+ * A unit that was immune for a phase and killable later therefore stays a target for the whole pull.
+ * Carving its immune phase out would be a separate change with its own question — whether that phase
+ * is downtime or disregarded — and the pull's own contact clock already answers it.
+ */
+export interface SpawnLife {
+	/** Every hit landed on this spawn came back immune, so nothing the player presses can touch it. */
+	immune: boolean;
+	/**
+	 * How long the log can see this spawn in the fight.
+	 *
+	 * Measured **from the first hit the player landed on it** — the first moment the log proves the unit
+	 * was reachable, and the earliest a dot could have gone on it. Not from its spawn: the events query
+	 * is scoped to the player as source (`fightEvents.graphql`), so an encounter add's arrival is not in
+	 * the stream at all. Measured **to its last hit**, for the same reason — all three committed Iron
+	 * Juggernaut datasets carry zero `death` events for an enemy NPC, so a death is not available to
+	 * measure to either.
+	 *
+	 * Except at the bell: a spawn still being hit within one target window of the end of the pull had no
+	 * observable end, so its life runs to the fight's end instead. That is what makes a mob still alive
+	 * when the fight stops trivially qualify, rather than being scored on the accident of when the
+	 * player last swung at it.
+	 */
+	lifetimeMs: number;
+}
+
+/**
+ * Every enemy spawn the player touched, with the two facts `isJudgeableTarget` reads.
+ *
+ * Taken over the player's *whole* damage stream — pets folded in, periodic ticks included — because
+ * the question is "can anything this player does land on that unit", and the widest evidence is the
+ * honest answer to it. That is deliberately a wider set of events than the landed-hit list this
+ * verdict is then applied to.
+ *
+ * Keyed by spawn and not by actor id, for the reason `TargetHit.instance` exists: WarcraftLogs hands
+ * ten simultaneous adds one `targetID`, so an id-level verdict is a verdict about an enemy *kind*.
+ */
+export function spawnLives(
+	events: readonly WclEvent[],
+	t0: number,
+	endMs: number,
+	windowMs: number,
+): Map<string, SpawnLife> {
+	const seen = new Map<string, { immune: boolean; firstMs: number; lastMs: number }>();
+	for (const e of events) {
+		if (!isDamage(e) || e.targetID === undefined) continue;
+		const key = instanceKey(e.targetID, e.targetInstance);
+		const t = e.timestamp - t0;
+		const immune = e.hitType === IMMUNE_HIT_TYPE;
+		const rec = seen.get(key);
+		if (rec === undefined) seen.set(key, { immune, firstMs: t, lastMs: t });
+		else {
+			// `&&`, so one hit that landed is enough to make the unit a target for the whole pull.
+			rec.immune = rec.immune && immune;
+			rec.firstMs = Math.min(rec.firstMs, t);
+			rec.lastMs = Math.max(rec.lastMs, t);
+		}
+	}
+	const lives = new Map<string, SpawnLife>();
+	for (const [key, rec] of seen) {
+		const seenTo = rec.lastMs + windowMs >= endMs ? endMs : rec.lastMs;
+		lives.set(key, { immune: rec.immune, lifetimeMs: Math.max(0, seenTo - rec.firstMs) });
+	}
+	return lives;
+}
+
+/**
+ * Whether a spawn deserves to be judged — the one predicate, with both of its clauses.
+ *
+ * One function rather than two filters, because the two questions are the same question. An immune
+ * unit is never a target; a unit that died moments after it arrived is not a target *for a dot*. Both
+ * are "does this thing deserve to be graded against", and splitting them into separate filters is how
+ * the report ends up applying one and not the other — which is exactly what `ignoredMultiTargetActorIDs`
+ * further up the same seam already had to be consolidated to prevent.
+ *
+ * `minLifetimeMs` is left out by every caller asking the plain question: is this a target at all. Only
+ * a dot's reader passes it, because only a dot cares how long the unit was going to be there.
+ *
+ * An unknown spawn is not judgeable. A spawn with no hits on it is not something the player was
+ * fighting, so there is nothing to grade and no honest grade to give.
+ */
+export function isJudgeableTarget(life: SpawnLife | undefined, opts: { minLifetimeMs?: number } = {}): boolean {
+	if (life === undefined || life.immune) return false;
+	return opts.minLifetimeMs === undefined || life.lifetimeMs > opts.minLifetimeMs;
+}
 
 /** One landed hit: when it landed, and on whom. */
 export interface TargetHit {

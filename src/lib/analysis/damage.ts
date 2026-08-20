@@ -1,4 +1,4 @@
-import { abilityIdOf, type DamageEvent } from '~/lib/events';
+import { abilityIdOf, instanceKey, type DamageEvent } from '~/lib/events';
 import type { Registry } from '~/lib/game/registry';
 import type { AbilityDamage } from '~/lib/types';
 
@@ -32,12 +32,20 @@ export interface DamageAggregate {
  * dealt and belongs in the table, but a swing that spread across four enemies the spec does not count
  * is not evidence that an area button had four targets. Without this the per-moment target count and
  * the fan-out disagreed about the same pull, one applying the list and the other not.
+ *
+ * `ignoredSpawns` is the same exclusion arrived at from the other direction: spawns the log itself says
+ * were never targets, because every hit on them came back immune — `spawnLives` in `./targets`, which
+ * is where that verdict is reached and the only place it is reached. It is a set of `instanceKey`s
+ * rather than actor ids because immunity is a property of a unit and WarcraftLogs numbers NPCs by type.
+ * Passed in for exactly the reason `ignoredTargets` is: the fan-out and the per-moment count are two
+ * numbers about "how many enemies was this" and they have to agree.
  */
 export function aggregateDamage(
 	damageEvents: readonly DamageEvent[],
 	registry: Registry,
 	nameOf: (id: number) => string,
 	ignoredTargets: ReadonlySet<number> = new Set(),
+	ignoredSpawns: ReadonlySet<string> = new Set(),
 ): DamageAggregate {
 	const rows = new Map<
 		string,
@@ -72,9 +80,12 @@ export function aggregateDamage(
 		rec.total += e.amount ?? 0;
 		rec.hits++;
 		if (e.hitType === CRIT) rec.crits++;
-		if (e.targetID !== undefined && !ignoredTargets.has(e.targetID)) {
+		// `instanceKey` rather than a fourth hand-written spelling of the same key, so the spawns named in
+		// `ignoredSpawns` and the spawns counted here are keyed identically by construction.
+		const spawn = e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance);
+		if (e.targetID !== undefined && spawn !== null && !ignoredTargets.has(e.targetID) && !ignoredSpawns.has(spawn)) {
 			const targets = rec.targetsByTimestamp.get(e.timestamp) ?? new Set<string>();
-			targets.add(`${e.targetID}:${e.targetInstance ?? ''}`);
+			targets.add(spawn);
 			rec.targetsByTimestamp.set(e.timestamp, targets);
 		}
 		rows.set(key, rec);

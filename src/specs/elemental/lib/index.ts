@@ -40,7 +40,7 @@ import {
 import { atCapWindows } from '~/lib/analysis/counters';
 import { complementOf, intersect, mergeIntervals, overlapMs, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
-import { intervalsAtLeast, overlapPoints } from '~/lib/analysis/targets';
+import { intervalsAtLeast, isJudgeableTarget, overlapPoints } from '~/lib/analysis/targets';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
 import type {
@@ -103,6 +103,23 @@ const POTION_CATEGORY_CD_MS = 60_000;
  * the int-proc windows the Flame Shock section grades.
  */
 const FLAME_SHOCK_DURATION_MS = 30_000;
+
+/**
+ * How long a **second** target has to live before a Flame Shock on it was worth the global.
+ *
+ * Twenty seconds, and it is a judgement about payback time rather than a property of the spell — which
+ * is the whole reason it has a name. Flame Shock's damage arrives in ten three-second ticks, so the
+ * global that applies it is only bought back once enough of them have landed to beat the Lightning Bolt
+ * that global would otherwise have been. Two thirds of the dot's own 30s duration is where that
+ * crossing sits, and it is deliberately not the duration: a dot that runs its full length is not the
+ * bar, the bar is the point past which it has out-earned the cast it displaced.
+ *
+ * It cuts both ways, which is the point. A mob that dies four seconds after the dot lands cost the
+ * player nothing by going undotted, so charging them for the omission invents a fault they could not
+ * have avoided — and crediting the *application* is just as wrong, because that global really was
+ * thrown away. Below this bar the report says nothing about the second dot either way.
+ */
+const FS_SECOND_TARGET_LIFETIME_MS = 20_000;
 
 /**
  * The default Flame Shock refresh window, and only the default: the reader owns this one.
@@ -757,6 +774,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		aplTargetCountAt,
 		lostCasts,
 		landedHits,
+		spawnLives,
 		multiTargetWindows,
 		multiTargetMs,
 		contact,
@@ -967,14 +985,34 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// The cleave preset's rule (maxDots 2) keeps the dot on a second target while two or more enemies
 	// are up — the Dark Shaman are the textbook case. The secondary is the second-busiest enemy the
 	// player actually hit, and the metric is the dot's uptime on it over the multi-target stretch.
+	//
+	// Only out of enemies this rule can fairly be applied to, which is the *second* clause of the same
+	// predicate the core already used to build `landedHits`. The core asked "is this a target at all"
+	// and dropped the units nothing can damage; this asks the narrower question a dot has to ask —
+	// was it going to be there long enough for the global to pay for itself — with the same
+	// `isJudgeableTarget` over the same `spawnLives`, so the two cannot answer differently.
 	const hitCounts = new Map<number, number>();
-	for (const hit of landedHits) hitCounts.set(hit.target, (hitCounts.get(hit.target) ?? 0) + 1);
+	for (const hit of landedHits) {
+		if (!isJudgeableTarget(spawnLives.get(hit.key), { minLifetimeMs: FS_SECOND_TARGET_LIFETIME_MS })) continue;
+		hitCounts.set(hit.target, (hitCounts.get(hit.target) ?? 0) + 1);
+	}
 	const secondaryID = [...hitCounts.entries()].filter(([id]) => id !== primaryID).sort((a, b) => b[1] - a[1])[0]?.[0];
 	// The union across the secondary's own spawns, for the same reason the primary's figure is: this is
 	// a percentage labelled with one enemy, not a verdict on one press.
 	const fsSecondaryWindows = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID, actor.id).merged;
 	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, multiTargetWindows));
-	const multiDotUptimePct = multiTargetMs > 0 ? (multiDotUptimeMs / multiTargetMs) * 100 : 0;
+	/**
+	 * The denominator, and it is the *dot's* clock rather than the pull's.
+	 *
+	 * Zero when the pull put no second target worth dotting in front of the player, which is a different
+	 * fact from a second dot that was never kept up — and the only one of the two this pull can support.
+	 * Both readers of this figure already treat it as exactly that gate: `score.ts` grades nothing when
+	 * it is zero and the section hides the tile, so a pull whose only other enemy was an immune mine or
+	 * an add that died in four seconds is left unjudged instead of being handed a 0% it could not have
+	 * beaten.
+	 */
+	const multiDotMs = secondaryID === undefined ? 0 : multiTargetMs;
+	const multiDotUptimePct = multiDotMs > 0 ? (multiDotUptimeMs / multiDotMs) * 100 : 0;
 
 	// ------------------------------------------------------------ Lava Burst
 	// Lava Surge (77762) makes one Lava Burst free, and Ascendance resets the cooldown — the ladder's
@@ -1482,6 +1520,14 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// Totem pressed over a healthy one.
 	const wastedGcds =
 		fsPresses.filter((p) => p.remainingMs !== null && !p.windowed && !p.ascPrep).length + stClipped.length;
+	// TEMP-DIAG
+	if (process.env['WW_DIAG'] !== undefined) {
+		// eslint-disable-next-line
+		require('node:fs').writeFileSync(
+			process.env['WW_DIAG'] + '/diag-' + String(duration) + '.json',
+			JSON.stringify({ engaged, engagedMs, contact, fsMerged, fsUptimeMs, duration }, null, 1),
+		);
+	}
 
 	return {
 		flameShock: {
@@ -1497,7 +1543,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			presses: fsPresses,
 			multiDotUptimeMs,
 			multiDotUptimePct,
-			multiTargetMs,
+			multiTargetMs: multiDotMs,
 		},
 		lavaBurst: {
 			procs: lavaSurgeProcs,

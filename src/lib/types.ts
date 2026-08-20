@@ -1961,7 +1961,14 @@ export interface FlameShockAudit {
 	 */
 	multiDotUptimeMs: number;
 	multiDotUptimePct: number;
-	/** The denominator `multiDotUptimePct` is against — the time two or more enemies were up. */
+	/**
+	 * The denominator `multiDotUptimePct` is against — the time two or more enemies were up, and **zero
+	 * when none of the other enemies deserved a second dot**: an immune unit is never a target, and one
+	 * that died before the dot could pay for its global is not a target for a dot. Read as the gate on
+	 * whether this question can be asked at all; `score.ts` grades nothing at zero and the section
+	 * hides the tile, which is how a pull that never offered a second dot is left unjudged rather than
+	 * given a 0% it could not have beaten.
+	 */
 	multiTargetMs: number;
 }
 

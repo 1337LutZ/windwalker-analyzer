@@ -58,7 +58,15 @@ import { readGear } from './gear';
 import { type Interval, unionMs } from './intervals';
 import { makeLinker } from './links';
 import { RAID_BUFF_NAMES, readRaidBuffs } from './raidBuffs';
-import { countAt, intervalsAtLeast, targetCounts, type TargetHit } from './targets';
+import {
+	countAt,
+	intervalsAtLeast,
+	isJudgeableTarget,
+	spawnLives,
+	targetCounts,
+	type SpawnLife,
+	type TargetHit,
+} from './targets';
 import { median, r1 } from './format';
 
 /**
@@ -122,8 +130,19 @@ export interface Handles {
 	engagedMs: number;
 	contact: Interval[];
 	inContactMs: number;
-	/** Every hit the player landed themselves: when, and on whom. Ticks and pets are out. */
+	/**
+	 * Every hit the player landed themselves: when, and on whom. Ticks and pets are out, and so is
+	 * anything landed on a unit that was never a target — see `spawnLives`.
+	 */
 	landedHits: Array<TargetHit & { key: string; abilityID: number | null }>;
+	/**
+	 * What the log knows about each enemy spawn the player touched, keyed by `instanceKey`.
+	 *
+	 * Published so an audit that asks a *narrower* question than "was this a target" — a dot's reader,
+	 * which also cares whether the unit was going to be there long enough to be worth a global — reads
+	 * the same facts through the same `isJudgeableTarget` predicate rather than deriving its own.
+	 */
+	spawnLives: ReadonlyMap<string, SpawnLife>;
 	multiTargetWindows: Interval[];
 	multiTargetMs: number;
 	/** The time with at least one enemy in the count window — the target mode's denominator. */
@@ -315,7 +334,24 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// the damage table is the earlier of the two. See `ignoredMultiTargetActors` on the spec config.
 	const ignoredMultiTargetIDs = spec.ignoredMultiTargetActors(fight.encounterID, table.fight.enemyNPCs);
 	const damageEvents = events.filter(isDamage).filter((e) => mine(e.sourceID));
-	const { abilities, eventTotal } = aggregateDamage(damageEvents, spec.registry, nameOf, ignoredMultiTargetIDs);
+	/**
+	 * Which enemy spawns were ever targets at all — the question before "how many of them were there".
+	 *
+	 * Derived from the log rather than declared, which is the difference between this and
+	 * `ignoredMultiTargetActors` beside it: that list is a static judgement about an NPC type, while a
+	 * unit nothing can damage says so itself, in every hit it returns. Computed once here so the fan-out
+	 * count in the damage table and the per-moment count further down cannot disagree — which is the
+	 * mistake `ignoredMultiTargetActorIDs`' own comment records having already made once.
+	 */
+	const spawnLifeByKey = spawnLives(damageEvents, t0, duration, spec.thresholds.targetWindowMs);
+	const immuneSpawns = new Set([...spawnLifeByKey].filter(([, life]) => !isJudgeableTarget(life)).map(([key]) => key));
+	const { abilities, eventTotal } = aggregateDamage(
+		damageEvents,
+		spec.registry,
+		nameOf,
+		ignoredMultiTargetIDs,
+		immuneSpawns,
+	);
 
 	// ------------------------------------------------------ cast durations
 	// A cast-time spell logs a `begincast` when it starts and a `cast` when it completes; an instant
@@ -499,6 +535,14 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const landedHits: Array<TargetHit & { key: string; abilityID: number | null }> = [];
 	for (const e of damageEvents) {
 		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
+		// A hit on a unit nothing can damage did not land on anything. Filtered here, at the one place
+		// the hit list is built, rather than by each of the six readers of it — the target count and the
+		// APL's band, the Windwalker's Rising Sun Kick coverage walk, the Elemental's "which enemy was
+		// the player on" and its second-dot pick. Every one of them was reading a Crawler Mine on Iron
+		// Juggernaut as an enemy in front of the player: it padded the fan-out count that decides
+		// Rushing Jade Wind's three-target chi refund, and it charged a stretch of contact time as
+		// uncovered by a debuff no debuff could ever have been on.
+		if (!isJudgeableTarget(spawnLifeByKey.get(instanceKey(e.targetID, e.targetInstance)))) continue;
 		landedHits.push({
 			t: e.timestamp - t0,
 			target: e.targetID,
@@ -914,6 +958,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		contact,
 		inContactMs,
 		landedHits,
+		spawnLives: spawnLifeByKey,
 		multiTargetWindows,
 		multiTargetMs,
 		contactMs,
