@@ -142,6 +142,23 @@ export interface AplInputs {
 	pullMs: number;
 	/** Aura windows by the spec's own key, so this module never has to know a spell id for a buff. */
 	auras: Readonly<Partial<Record<string, readonly Window[]>>>;
+	/**
+	 * Remaining time for auras a window array cannot describe, keyed the same way and read at the press.
+	 *
+	 * One case, and it is not a shortcut around `auras`: a dot on *whichever enemy the player is facing*
+	 * is not a set of windows over time at all. The Elemental's Flame Shock is that dot — the p5 list
+	 * writes `dotRemainingTime(8050)` and the sim evaluates it against the unit the action is aimed at,
+	 * while the log's dot lives on several spawns of one actor id at once. Neither shape of window array
+	 * says it: clipping each spawn's window at the moment the player left that enemy makes `remainingIn`
+	 * read a *future* target swap as the dot expiring, and not clipping it is the union, which credits a
+	 * dot sitting on an add across the room. So the audit that knows which spawn the press was on hands
+	 * the answer over as a function of `t` instead.
+	 *
+	 * `remainingMs` only, and deliberately: `present` stays a fact about the pull ("looked for, never
+	 * went up"), and no rule in either ladder asks whether such an aura is `active`. When a key is
+	 * absent here the window array answers, which is every aura in the Windwalker ladder.
+	 */
+	auraRemainingAt?: Readonly<Partial<Record<string, (t: number) => number>>>;
 	/** How long a Fists of Fury channel ran, measured. The Windwalker APL writes this as four ticks plus input delay. */
 	fofChannelSec: number;
 	/**
@@ -361,6 +378,9 @@ function readerAt(t: number, inputs: AplInputs): AuraReader {
 			return windows === undefined ? false : inWindow(t, windows);
 		},
 		remainingMs: (key) => {
+			// The audit's own reading first, where it has one — see `auraRemainingAt`.
+			const reading = inputs.auraRemainingAt?.[key];
+			if (reading !== undefined) return reading(t);
 			const windows = inputs.auras[key];
 			return windows === undefined ? 0 : remainingIn(t, windows);
 		},

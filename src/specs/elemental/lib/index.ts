@@ -22,6 +22,7 @@
 // engine's `offLadderCooldowns`, because Ascendance is off-GCD and off the ladder).
 
 import {
+	type AuraPoint,
 	type AuraWindow,
 	auraDrops,
 	auraLevels,
@@ -38,7 +39,7 @@ import {
 } from '~/lib/analysis/auras';
 import { atCapWindows } from '~/lib/analysis/counters';
 import { complementOf, intersect, mergeIntervals, unionMs, type Interval } from '~/lib/analysis/intervals';
-import { stampAtOrBefore } from '~/lib/analysis/search';
+import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
 import { intervalsAtLeast, overlapPoints } from '~/lib/analysis/targets';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
@@ -627,12 +628,34 @@ const NEEDS_TARGET: ReadonlySet<string> = new Set([
 // -------------------------------------------------------------------- audit
 
 /**
- * The dot's windows on one target, refresh-open and merged.
+ * The dot's windows on one target: once per spawn that carried it, and once as the union.
+ *
+ * Two readings out of one walk, because they answer two different questions and this file has already
+ * paid once for confusing them. `merged` is "did this enemy have the dot" — the honest reading for a
+ * figure or a lane labelled with one enemy's name. `byInstance` is "did the add in front of the player
+ * have the dot" — the only honest reading for anything grading a press. The Windwalker splits the same
+ * measurement the same way, `rskByTarget` against `rskByInstance`, for the same reason.
+ */
+interface DotWindows {
+	/**
+	 * Each spawn's own windows, keyed by `instanceKey` and merged within the spawn.
+	 *
+	 * `Window[]` rather than `Interval[]` because the only thing that reads it is `remainingIn` at a
+	 * press — the shared helper rather than a fifth hand-rolled copy of its loop — and converting once
+	 * here beats converting per press.
+	 */
+	byInstance: ReadonlyMap<string, readonly Window[]>;
+	/** The union across every spawn of the enemy id. */
+	merged: Interval[];
+}
+
+/**
+ * The dot's windows on one target, refresh-open, per spawn and merged.
  *
  * The same machinery the Rising Sun Kick debuff uses (`windwalker.ts`): bucket the 8050 aura events
  * by the enemy they landed on, walk each bucket with `openOnRefresh` so a refresh with nothing open
- * is still proof the dot was up, and merge the result — the merged intervals are what the uptime
- * and the remaining-time reads share, so the figure and the reads cannot disagree about the pull.
+ * is still proof the dot was up, and merge the result — every reading downstream comes out of this one
+ * walk, so the figure and the per-press reads cannot disagree about the pull.
  *
  * Flame Shock shares its id with the cast, which the RSK debuff never had to deal with; the buckets
  * are filtered to aura events before `auraWindows` sees them, so a cast event is never mistaken for
@@ -653,8 +676,8 @@ function dotWindowsOnTarget(
 	t0: number,
 	fightEnd: number,
 	targetID: number | undefined,
-): Interval[] {
-	if (targetID === undefined) return [];
+): DotWindows {
+	if (targetID === undefined) return { byInstance: new Map(), merged: [] };
 	const ids = new Set(aura.ids);
 	const buckets = new Map<string, WclEvent[]>();
 	for (const e of events) {
@@ -666,13 +689,19 @@ function dotWindowsOnTarget(
 		if (bucket) bucket.push(e);
 		else buckets.set(key, [e]);
 	}
-	// Walked per spawn, then merged across them: two copies of an add carrying the dot at once is the
-	// enemy covered, not twice covered, and `mergeIntervals` is what says so.
-	return mergeIntervals(
-		[...buckets.values()].flatMap((bucket) =>
-			toIntervals(auraWindows(bucket, aura, t0, fightEnd, { openOnRefresh: true })),
-		),
-	);
+	// Walked per spawn, kept per spawn, and merged across them: two copies of an add carrying the dot
+	// at once is the enemy covered, not twice covered, and `mergeIntervals` is what says so.
+	const byInstance = new Map<string, readonly Window[]>();
+	const all: Interval[] = [];
+	for (const [key, bucket] of buckets) {
+		const spans = mergeIntervals(toIntervals(auraWindows(bucket, aura, t0, fightEnd, { openOnRefresh: true })));
+		byInstance.set(
+			key,
+			spans.map(([start, end]) => ({ start, end })),
+		);
+		all.push(...spans);
+	}
+	return { byInstance, merged: mergeIntervals(all) };
 }
 
 /**
@@ -753,44 +782,99 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const ascCasts = castTimes(ASCENDANCE);
 	const ascActiveWindows = selfWindows(ASCENDANCE_AURA);
 
+	// ------------------------------------------------ the enemy in front of the player
+	/**
+	 * Which spawn the player was on at an instant, as an `instanceKey` — the core's `landedHits` read
+	 * backwards.
+	 *
+	 * Every rule that grades a press makes a claim about one enemy: the one being hit. `landedHits` is
+	 * already exactly what that needs — sorted, ticks and pets out, and carrying the spawn rather than
+	 * only the actor id, because WarcraftLogs hands ten simultaneous adds one `targetID` and the id
+	 * alone calls all ten of them the same enemy. So each hit owns the time until the next one, and the
+	 * enemy at `t` is the one the last hit at or before `t` landed on.
+	 *
+	 * `lastIndexAtOrBefore` and not a loop of its own. This is the same step-series search as
+	 * `ascendanceReadyInSec`, and the reason `search.ts` exists is that it had been written out four
+	 * times before anybody noticed.
+	 *
+	 * **Before the first landed hit — the opener — the answer is the _first_ hit's spawn.** A press in
+	 * the opening global is aimed at whatever the next global lands on: the player has one thing
+	 * targeted and has not swapped off it yet. Both alternatives are worse, and both were considered.
+	 * Falling back to the union re-introduces the exact looseness this walk exists to remove. Reading
+	 * "no spawn, therefore no dot" is worse still — it charges the opener's Earth Shock with `fsLow`
+	 * and the opener's Ascendance with a missing dot on every pull, which is a fabricated fault rather
+	 * than a missing measurement.
+	 *
+	 * Null only when the player landed no direct hit in the whole pull. That is not a quiet "no dot":
+	 * it is a pull with no enemy in it at all — `primaryID` there came off a tick or a pet — so nothing
+	 * this audit grades has a target to be graded against and there is no honest reading to give.
+	 *
+	 * Ties inside one millisecond go to the last hit in the sorted stream, the same arbitrary-but-
+	 * bounded choice the Windwalker's own walk makes: an area hit lands on every enemy at one stamp, so
+	 * which of them is "the" target there is undecidable, and it is the same dot on each of them.
+	 */
+	const spawnAt = (t: number): string | null => {
+		if (landedHits.length === 0) return null;
+		const at = lastIndexAtOrBefore(landedHits.length, (i) => landedHits[i]?.t ?? Infinity, t);
+		return (at === -1 ? landedHits[0] : landedHits[at])?.key ?? null;
+	};
+
 	// --------------------------------------------------------- Flame Shock
 	// The dot on the enemy the pull was about. Without a primary there is nothing to measure — the
 	// section reads zero rather than inventing a target.
 	//
-	// **`fsMerged` is the union across every spawn of that enemy id, and that is the right reading for
-	// some of its consumers and a loose one for others.** For the uptime figure and the lane it is
-	// honest: a row labelled with one name should say whether that enemy had the dot. For the per-press
-	// readers — `remainingIn` behind the Earth Shock `fsLow` reason, and `auras['flame-shock']` handed to
-	// the ladder — it is looser than it looks, because an Earth Shock pressed while a *different* spawn
-	// carries the dot reads as "dot up" when the enemy in front of the player has nothing on it.
+	// **Two readings out of one walk, and which one a consumer gets is the whole of this block.**
 	//
-	// The Windwalker splits these: `rskByInstance` for anything grading a press against the enemy the
-	// player was actually on, `rskByTarget` for anything drawn. The Elemental has only the union so far.
-	// Tightening it needs the "which spawn was the player on at `t`" walk the core's `landedHits` keys
-	// support, and it moves Earth Shock's grade and the ladder's verdicts — so it is a deliberate change
-	// with its own verification, tracked as its own step rather than folded in here.
-	const fsWindows = primaryID === undefined ? [] : dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, primaryID);
-	const fsMerged: Window[] = fsWindows.map(([start, end]) => ({ start, end }));
+	// `fsMerged` is the union across every spawn of that enemy id. It is the honest reading for the
+	// uptime figure, the timeline lane, the drop ledger and the snapshot windows: a row labelled with
+	// one enemy's name should say whether that enemy had the dot.
+	//
+	// `fsRemainingAt` is the other reading — the dot on the spawn `spawnAt` says the player was on —
+	// and every rule that grades a press takes it instead: the Earth Shock `fsLow` reason, the
+	// Elemental Mastery sync and the Ascendance prep check, the ladder's own `dotRemainingTime`, and
+	// `fsPresses` through its per-spawn timeline below. On a multi-add pull the union answers a
+	// question none of them asked: an Earth Shock pressed while a *different* spawn carried the dot
+	// read as "dot up" when the enemy in front of the player had nothing on it. This is the split the
+	// Windwalker already draws — `rskByInstance` for a graded press, `rskByTarget` for anything drawn.
+	const fsDot = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, primaryID);
+	const fsMerged: Window[] = fsDot.merged.map(([start, end]) => ({ start, end }));
 	const fsUptimeMs = unionMs(toIntervals(fsMerged));
+	/** The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none. */
+	const fsRemainingAt = (t: number): number => {
+		const key = spawnAt(t);
+		return key === null ? 0 : remainingIn(t, fsDot.byInstance.get(key) ?? []);
+	};
 
 	const fsCasts = castTimes(FLAME_SHOCK);
 	// The dot's own clock, read blind to the refresh the press itself caused — that refresh is stamped
 	// a millisecond *before* the cast, and reading it scored every press as a full 30s. `remainingAtCast`
 	// is the same guard the Windwalker's Tiger Palm refresh uses, for the same reason.
-	const fsTimeline =
-		primaryID === undefined
-			? []
-			: auraTimeline(
-					events.filter((e) => e.targetID === primaryID),
-					FS_DEBUFF,
-					t0,
-				);
+	//
+	// One timeline per **spawn**, not one for the target. `remainingAtCast` takes the last point before
+	// the press and nothing else, so a stream with two spawns interleaved hands it the *other* add's
+	// remove — which zeroes a dot still running on the enemy being hit and then reads the next refresh
+	// of it as a fresh apply. Same mistake as bucketing the windows by id, one function further on.
+	const fsTimelines = new Map<string, readonly AuraPoint[]>();
+	if (primaryID !== undefined) {
+		const bySpawn = new Map<string, WclEvent[]>();
+		for (const e of events) {
+			if (e.targetID !== primaryID) continue;
+			const key = instanceKey(e.targetID, e.targetInstance);
+			const bucket = bySpawn.get(key);
+			if (bucket) bucket.push(e);
+			else bySpawn.set(key, [e]);
+		}
+		for (const [key, bucket] of bySpawn) fsTimelines.set(key, auraTimeline(bucket, FS_DEBUFF, t0));
+	}
 	const fsPresses = fsCasts.map((t) => {
-		const remaining = remainingAtCast(fsTimeline, t, FS_DEBUFF);
+		const spawn = spawnAt(t);
+		// An empty timeline needs no separate arm: `remainingAtCast` reads nothing as 0, and 0 is already
+		// the "no dot was up, so this press applied one" case below.
+		const remaining = remainingAtCast(spawn === null ? [] : (fsTimelines.get(spawn) ?? []), t, FS_DEBUFF);
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
 		return {
 			t,
-			remainingMs: fsTimeline.length === 0 ? null : remaining > 0 ? remaining : null,
+			remainingMs: remaining > 0 ? remaining : null,
 			windowed: remaining > 0 && remaining <= flameShockRefreshMs,
 			ascPrep: remaining > 0 && remaining < FS_ASC_PREP_MS && ascReadyInSec <= 2,
 			// A refresh while Ascendance is up is a global thrown away — the list wants Lava Burst then.
@@ -807,8 +891,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const hitCounts = new Map<number, number>();
 	for (const hit of landedHits) hitCounts.set(hit.target, (hitCounts.get(hit.target) ?? 0) + 1);
 	const secondaryID = [...hitCounts.entries()].filter(([id]) => id !== primaryID).sort((a, b) => b[1] - a[1])[0]?.[0];
-	const fsSecondaryWindows =
-		secondaryID === undefined ? [] : dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID);
+	// The union across the secondary's own spawns, for the same reason the primary's figure is: this is
+	// a percentage labelled with one enemy, not a verdict on one press.
+	const fsSecondaryWindows = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID).merged;
 	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, multiTargetWindows));
 	const multiDotUptimePct = multiTargetMs > 0 ? (multiDotUptimeMs / multiTargetMs) * 100 : 0;
 
@@ -847,7 +932,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const twoPieceWindows = selfWindows(T16_2PC_PROC);
 	const esPresses = castTimes(EARTH_SHOCK).map((t) => {
 		const stacks = levelAt(lsLevels, t);
-		const fsRemaining = remainingIn(t, fsMerged);
+		// The dot on the enemy this shock is being fired at, not on any spawn of its actor id — the
+		// `fsLow` reason below is a statement about the target in front of the player.
+		const fsRemaining = fsRemainingAt(t);
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
 		const twoPiece = inWindow(t, twoPieceWindows);
 		// The four conditions the sim's rule wants, and the reason each failure maps to — so the
@@ -1038,11 +1125,15 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	}
 
 	// ------------------------------------------------------------ Ascendance
-	const t16DebuffWindows =
-		primaryID === undefined ? [] : dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID);
+	// The two-piece debuff's union: it is drawn as a lane, and the two-piece read below is a check on
+	// this player's own proc rather than on which add they were facing.
+	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID).merged;
 	const ascPresses = ascCasts.map((t) => ({
 		t,
-		fsRemainingMs: remainingIn(t, fsMerged) || null,
+		// Per spawn: "Ascendance pressed without a fresh Flame Shock" is a claim about the enemy the
+		// player was about to spend the window on, and the list's own rule reads `dotRemainingTime`,
+		// which the sim evaluates against the current target.
+		fsRemainingMs: fsRemainingAt(t) || null,
 		opener: t <= 5000,
 		twoPiece:
 			remainingIn(
@@ -1061,7 +1152,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const t15Windows = selfWindows(T15_4PC);
 	const emPresses = castTimes(ELEMENTAL_MASTERY).map((t) => {
 		const ascReady = ascendanceReadyInSec(ascCasts, t);
-		const fsRemaining = remainingIn(t, fsMerged);
+		// Per spawn, on the same terms as the Ascendance press it is synced with — the `sync` reason is
+		// a claim about the dot on the enemy the pair of cooldowns is about to be spent on.
+		const fsRemaining = fsRemainingAt(t);
 		const t15Active = inWindow(t, t15Windows);
 		const ascActive = inWindow(t, ascActiveWindows);
 		const reason: 'opener' | 'sync' | 't15' | 'off' | null =
@@ -1128,6 +1221,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 
 	// ------------------------------------------------------------------ APL
 	const auras: AplInputs['auras'] = {
+		// The union, and only for `present` — "this pull carried the dot at all" is a fact about the pull.
+		// Every rule that reads the dot reads `dotRemainingTime`, which comes through `auraRemainingAt`
+		// below instead, because no window array can express "on whichever enemy I am facing": clipping
+		// a spawn's window at the moment the player left the enemy makes `remainingIn` read the *future*
+		// target swap as the dot expiring, and leaving it unclipped is the union again.
 		'flame-shock': fsMerged,
 		ascendance: toIntervals(selfWindows(ASCENDANCE_AURA)).map(([start, end]) => ({
 			start,
@@ -1153,6 +1251,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		gcdMs: GCD_MS,
 		pullMs: duration,
 		auras,
+		// The one aura whose answer depends on *which* enemy, not only on when. The p5 list writes it as
+		// `dotRemainingTime(8050)`, which the sim evaluates against the unit the action is aimed at, so
+		// this is the closer transcription as well as the tighter one.
+		auraRemainingAt: { 'flame-shock': fsRemainingAt },
 		fofChannelSec: 0,
 		targetsAt: aplTargetCountAt,
 		stackLevels: { 'lightning-shield': lsLevels },
