@@ -1,4 +1,4 @@
-import { ALL_BANDS, type AplRule, type Band } from '~/lib/spec/apl';
+import { type AplRule, ladderEntries } from '~/lib/spec/apl';
 
 /**
  * The Windwalker priority list, declared for the audit engine.
@@ -417,20 +417,6 @@ const LADDER: readonly WW_AplRule[] = [
  * `condition` would sooner or later call it, and it would have to invent a `State` to do so — a
  * second, fictional pull sitting inside a reference table.
  */
-export const LADDER_ENTRIES: ReadonlyArray<{
-	key: WW_AplRuleKey;
-	id: number;
-	/** Resolved rather than optional: an entry that named no bands exists in all four, so say all four. */
-	bands: readonly Band[];
-	talent: boolean;
-	/** The button that removes this one from the bars, when one does. */
-	replacedBy?: number;
-}> = LADDER.map((rule) => ({
-	key: rule.key,
-	id: rule.id,
-	bands: rule.bands ?? ALL_BANDS,
-	talent: rule.talent === true,
-	...(rule.replacedBy === undefined ? {} : { replacedBy: rule.replacedBy }),
-}));
+export const LADDER_ENTRIES = ladderEntries(LADDER);
 
 export { LADDER };
