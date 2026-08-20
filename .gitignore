@@ -25,3 +25,8 @@ src/lib/__fixtures__/analysis.json
 
 # Claude Code worktrees live under .claude/worktrees/ and must never be tracked.
 .claude/worktrees/
+
+# The working plan for the multi-spec migration. Deliberately untracked: it is a scratchpad for
+# whoever is mid-migration, not a document the repository maintains. `docs/conventions.md` and
+# `.claude/skills/wcl-analyzer/SKILL.md` are the durable records.
+docs/plan.md
