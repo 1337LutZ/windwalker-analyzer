@@ -1401,9 +1401,14 @@ function chiBrewAudit(
 	 * cannot disagree, because there is only one of them. `stretchesFromPoints` is safe here and not on
 	 * an aura's levels: a charge counter always holds *some* level, so the series has no gaps for a
 	 * stretch to run across.
+	 *
+	 * Only the *windows* are kept. The raw millisecond total was dead before this change too — the
+	 * section publishes `Math.round(idleMs)`, the contact-cut figure below — but it was a `let` with a
+	 * `+=`, which the linter tolerates, so nothing said so. Deriving it as a `const` made the deadness
+	 * visible, which is the honest state: there is one at-ceiling number and it is the one a reader
+	 * could have acted on.
 	 */
 	const cappedWindows = atCapWindows(stretchesFromPoints(points, durationMs), CHI_BREW_CHARGES);
-	const cappedMs = unionMs(toIntervals(cappedWindows));
 
 	/**
 	 * The same idle stretches, cut back to the time the player had something to hit.
