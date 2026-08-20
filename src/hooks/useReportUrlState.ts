@@ -72,21 +72,37 @@ export function useInitialUrlSelection(): UrlSelection {
 	return initial;
 }
 
+/**
+ * The address bar this selection asks for: the keys that are set written, the keys that are not
+ * dropped rather than written empty.
+ *
+ * **`url.hash` is carried through, and that is load-bearing.** The fragment is a different owner's
+ * property — `useSectionAnchor` writes which section the reader is at — and this writer fires
+ * whenever the pickers resolve, which on a shared link is *after* that fragment was already there.
+ * Reassembling without it would silently drop the section from every link that also named a player.
+ *
+ * Pulled out of the hook so that survival is a testable claim rather than a line to be read
+ * carefully.
+ */
+function nextHref(href: string, selection: UrlSelection): string {
+	const url = new URL(href);
+	const set = (key: string, value: string | null) => {
+		if (value === null || value === '') url.searchParams.delete(key);
+		else url.searchParams.set(key, value);
+	};
+	set(PARAM.code, selection.code);
+	set(PARAM.fight, selection.fightID === null ? null : String(selection.fightID));
+	set(PARAM.player, selection.player);
+	set(PARAM.spec, selection.spec);
+	// `URL` percent-encodes for us, which matters: anonymous reports name players `Player (17)`,
+	// and the parentheses and space have to survive the round trip.
+	return `${url.pathname}${url.search}${url.hash}`;
+}
+
 /** Writes the selection back, dropping the keys that are not set rather than writing empty ones. */
 export function useUrlSelectionWriter(): (selection: UrlSelection) => void {
 	return useCallback((selection: UrlSelection) => {
-		const url = new URL(window.location.href);
-		const set = (key: string, value: string | null) => {
-			if (value === null || value === '') url.searchParams.delete(key);
-			else url.searchParams.set(key, value);
-		};
-		set(PARAM.code, selection.code);
-		set(PARAM.fight, selection.fightID === null ? null : String(selection.fightID));
-		set(PARAM.player, selection.player);
-		set(PARAM.spec, selection.spec);
-		// `URL` percent-encodes for us, which matters: anonymous reports name players `Player (17)`,
-		// and the parentheses and space have to survive the round trip.
-		window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+		window.history.replaceState(null, '', nextHref(window.location.href, selection));
 	}, []);
 }
 
@@ -117,4 +133,4 @@ export function shouldAutoRun(state: {
 	return state.roster.includes(state.playerName);
 }
 
-export const __test = { parse };
+export const __test = { parse, nextHref };

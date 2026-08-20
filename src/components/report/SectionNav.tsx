@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import '~/lib/i18n';
 
+import { useSectionAnchor } from '~/hooks/useSectionAnchor';
 import { jumpToHeading } from '../jump';
 
 /**
@@ -142,6 +143,16 @@ export default function SectionNav({ sections }: { sections: readonly ReportSect
 	// keys the sections title themselves with rather than restating them.
 	const { t } = useTranslation('report');
 	const [current, setCurrent] = useState<string | null>(null);
+	/**
+	 * The address bar's copy of that answer, and the way back from a shared link.
+	 *
+	 * Here rather than in `Report` because this is where "where the reader is" is already known — the
+	 * observer below is the only thing on the page that knows it, and a second one would be a second
+	 * answer free to disagree with the highlight. It also mounts at the right moment: this component
+	 * is rendered with the report, so a fragment restored from mount finds the sections that link was
+	 * asking for. See `useSectionAnchor` for the rest of the reasoning.
+	 */
+	const pushSection = useSectionAnchor(sections, current);
 
 	const items = useMemo(() => foldIntoGroups(sections), [sections]);
 	// Which group to open for a section that scrolls into view. Built from the same array, so it can
@@ -248,6 +259,10 @@ export default function SectionNav({ sections }: { sections: readonly ReportSect
 		// Shared with the timeline's resource labels, so a link into a section behaves the same wherever
 		// it is on the page. `false` means the heading is not here — let the browser follow the href.
 		if (!jumpToHeading(`${id}-heading`, event)) return;
+		// Pushed, not replaced: this is the history entry the browser would have made itself if the
+		// handler above had not taken the click to scroll smoothly instead. `useSectionAnchor` argues
+		// it at length.
+		pushSection(id);
 		// Answered now rather than waiting for the observer, so the click reads as having landed even
 		// while a smooth scroll is still travelling.
 		setCurrent(id);
