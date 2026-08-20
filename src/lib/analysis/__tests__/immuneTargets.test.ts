@@ -150,12 +150,20 @@ describe('the Elemental second Flame Shock on Iron Juggernaut', () => {
 		expect(a.flameShock.multiDotUptimeMs).toBe(0);
 	});
 
-	it('disregards it again when the only other target did not live long enough to be worth a global', () => {
+	it('has no second unit on it worth judging at all, once the friendly is out', () => {
 		const a = el('phased');
-		// The mines are out of the count, but a real second unit remains — so this is the lifetime clause
-		// doing the work and not the immunity one.
-		expect(targetsOf(a).counts.max).toBe(2);
-		expect(targetsOf(a).multiTargetMs).toBe(5000);
+		// This pinned `counts.max` 2 when it was written, on the stated grounds that "a real second unit
+		// remains — so this is the lifetime clause doing the work and not the immunity one". That second
+		// unit was actor 1, `Player (1)`, a friendly paladin with eight damage events. It is now excluded
+		// where `hitsOnAnything` is built, so the pull has exactly one judgeable target and the lifetime
+		// clause was never what disregarded the multi-dot rule here.
+		//
+		// The clause itself is held by the synthetic pull below — an add that lived four seconds, still
+		// counted as a target, still `multiTargetMs: 0` — which is the right place for it, because a
+		// fixture that happens to contain a short-lived unit proves the rule only until the fixture
+		// changes.
+		expect(targetsOf(a).counts.max).toBe(1);
+		expect(targetsOf(a).multiTargetMs).toBe(0);
 		expect(a.flameShock.multiTargetMs).toBe(0);
 	});
 
@@ -243,6 +251,9 @@ const synthetic = (events: WclEvent[]): FightDataset => ({
 		// secondary pick is "the busiest enemy that is not the primary", so the primary has to be pinned.
 		{ id: BOSS, name: 'Iron Qon', type: 'NPC', subType: 'Boss' },
 		{ id: ADD, name: 'Quilen Guardian', type: 'NPC', subType: 'NPC' },
+		// A raid-mate, declared as this log declares one. Present in every synthetic pull so the friendly
+		// exclusion has an actor to recognise; harmless where nothing is aimed at it.
+		{ id: 41, name: 'Someone Else', type: 'Player' },
 	],
 	events,
 	table: {
@@ -553,5 +564,39 @@ describe('the trigger count reaches the ladder', () => {
 	it('grades the wind into a pack of immune mines as the multi-target rung followed', () => {
 		const press = a.apl?.presses.find((p) => p.pressed === RJW_CAST);
 		expect(press).toMatchObject({ verdict: 'followed', wanted: 'rushing-jade-wind-open' });
+	});
+});
+
+/**
+ * A friendly is not a target, whatever the damage table says.
+ *
+ * The real case is `phased`, where actor 1 is a friendly paladin with eight damage events and was the
+ * pull's second-busiest "enemy". That is pinned above, but a fixture holds a rule only until the
+ * fixture changes, so the rule gets its own pull: the same events that make a real add count, aimed at
+ * a unit the actor list declares a `Player`.
+ *
+ * Deliberately built so the friendly would *win* the secondary pick if it were eligible — it is hit
+ * for longer than the add ever is in the passing case, and lives the whole pull, so it clears the
+ * lifetime clause and is never immune. Neither of the other two exclusions can be what disregards it.
+ */
+const FRIEND = 41;
+
+describe('a unit the log calls a Player', () => {
+	const withFriendly = run([
+		...presses,
+		...bossHits,
+		...bossDot,
+		...every2s(10_000, 110_000, FRIEND),
+		...dotOn(FRIEND, 10_000, 110_000),
+	]);
+
+	it('is read as one damage target: the boss', () => {
+		expect(targetsOf(withFriendly).counts.max).toBe(1);
+		expect(targetsOf(withFriendly).multiTargetMs).toBe(0);
+	});
+
+	it('is not picked as the second dot target', () => {
+		expect(withFriendly.flameShock.multiTargetMs).toBe(0);
+		expect(withFriendly.flameShock.multiDotUptimeMs).toBe(0);
 	});
 });

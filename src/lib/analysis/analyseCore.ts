@@ -537,9 +537,23 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * NPC *type*, so it needs the id; and the count itself needs the spawn, because WarcraftLogs hands
 	 * ten simultaneous adds one `targetID` and counting on that alone calls all ten of them one enemy.
 	 */
+	// Players and their pets, from the actor list. The audited actor is in here too, which costs
+	// nothing: a press cannot land on its own caster.
+	const friendlyIDs = new Set(actors.filter((a) => a.type === 'Player' || a.type === 'Pet').map((a) => a.id));
 	const hitsOnAnything: Array<TargetHit & { key: string; abilityID: number | null }> = [];
 	for (const e of damageEvents) {
 		if (e.sourceID !== actor.id || e.tick === true || e.targetID === undefined) continue;
+		// Not a friendly. On one committed pull the second-busiest "enemy" was actor 1, a friendly paladin
+		// with eight damage events, and it was eligible both to pad the target count and to be picked as
+		// the secondary dot target. A friendly is a target for neither damage nor a hit-count trigger, so
+		// the exclusion belongs here rather than in either of the two counts derived below.
+		//
+		// Stated as "known to be friendly" rather than `enemyIDs.has(...)` on purpose, even though
+		// `contact` above is built the other way round. An id absent from the actor list is *unknown*,
+		// not friendly, and requiring proof of enemyhood would silently drop every real target on a log
+		// whose actor list came back short — a failure that looks exactly like a quiet pull. The bug
+		// being fixed was a target the log positively declared a `Player`, so that is what is excluded.
+		if (friendlyIDs.has(e.targetID)) continue;
 		hitsOnAnything.push({
 			t: e.timestamp - t0,
 			target: e.targetID,
