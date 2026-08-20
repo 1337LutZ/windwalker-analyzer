@@ -76,7 +76,10 @@ const timeline: Timeline = {
 	],
 };
 
-const drawn: Analysis = { ...captured, timeline };
+const drawn: Analysis = {
+	...captured,
+	timeline: { ...timeline, hasteWindows: captured.energizing?.hasteWindows ?? [], berserkingWindows: [] },
+};
 
 const render = (analysis: Analysis, Component = CastTimeline) =>
 	renderToStaticMarkup(createElement(Component, { analysis }));
@@ -1028,7 +1031,7 @@ describe('CastTimeline, intermissions and deaths', () => {
 describe('CastTimeline, the haste cooldown behind the chart', () => {
 	const haste = (windows: AuraWindow[]): Analysis => ({
 		...drawn,
-		energizing: { ...captured.energizing!, hasteWindows: windows },
+		timeline: { ...timeline, hasteWindows: windows },
 	});
 
 	it('shades the stretch it was up, and names which of the five it was', () => {

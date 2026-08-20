@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Analysis } from '~/lib/types';
 
-import CastsPerMinute from '~/components/sections/CastsPerMinute';
+import CastsPerMinute from '../CastsPerMinute';
 
 const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'));

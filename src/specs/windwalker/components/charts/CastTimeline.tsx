@@ -15,7 +15,7 @@
 // want is zero rather than merely invisible. The grid is a repeating gradient on the track, which is
 // a whole axis for no nodes at all.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { AuraWindow } from '~/lib/analysis/auras';
@@ -24,17 +24,20 @@ import type {
 	AbilityDamage,
 	Analysis,
 	AuraLane,
+	BrewSummary,
 	CastMark,
 	DeathMark,
+	DebuffSummary,
 	LaneGroup,
 	LaneSpend,
 	LaneStacks,
 	LaneTarget,
 	LaneWindow,
+	ResourceBarAudit,
 	ResourceCurve,
 	Window,
 } from '~/lib/types';
-import { TEB_CAP, registry } from '~/specs/windwalker/lib';
+import { TEB_CAP } from '~/specs/windwalker/lib';
 import { barColor, curveOfBar } from '~/lib/view/resourceBars';
 import { specColorsOf } from '~/lib/view/specColors';
 
@@ -49,9 +52,13 @@ import { readTheme, tip, type ChartTheme, type TipRow } from '~/components/chart
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from '~/components/charts/scroll';
 import ResourceTrack, { type ShadeWindow } from '~/components/charts/ResourceTrack';
-import { cappedOf } from '~/components/charts/capped';
+import { cappedOf, emptiedOf } from '~/components/charts/capped';
+import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
+import { SpecContext } from '~/components/report/specContext';
+import { ROW_ORDERS, EMPTY_ROW_ORDER, led, rowRank } from '~/components/charts/timelineOrder';
+import type { Registry } from '~/lib/game/registry';
 
 /**
  * One lane's height, and the label gutter uses the same number — which is what lines the two columns
@@ -209,6 +216,16 @@ const NO_DEATHS: DeathMark[] = [];
 const NO_HASTE: AuraWindow[] = [];
 
 /**
+ * The vertical name written inside a haste band, so a wash alone does not have to name itself.
+ *
+ * Rotated about its top-left and set just inside the band's left rule, so it reads top-to-bottom
+ * beside the rule rather than across it. Shared by the Bloodlust group and Berserking, which differ
+ * only in the text colour.
+ */
+const HASTE_LABEL_CLASS =
+	'pointer-events-none absolute top-3 left-3 origin-top-left rotate-90 font-mono text-[10px] leading-none whitespace-nowrap';
+
+/**
  * How the reader has overridden the per-enemy grouping, if at all.
  *
  * `auto` is the chart's own judgement — a heading only where there is more than one enemy to tell
@@ -233,12 +250,13 @@ const MAX_TARGET_LANES = 12;
 /**
  * The shortest stretch out of contact worth shading.
  *
- * `engagedSegments` is measured from damage, so a segment ends wherever the last hit landed and a
- * sliver either side of that boundary is the sampling rather than a phase — `DebuffTimeline` draws
- * the same complement and discards the same slivers. It is also about the narrowest band that still
- * reads as a band instead of as a gridline nobody drew.
+ * `contactSegments` is measured from direct damage, so a segment ends wherever the last hit landed
+ * and a sliver either side of that boundary is the sampling rather than a phase — `DebuffTimeline`
+ * draws the same complement and discards the same slivers. Three seconds rather than one: the pull
+ * itself opens with a run-up before the first cast lands, and a sub-second lead-in is a player
+ * pressing on the bell, not a phase worth a band across the whole chart.
  */
-const MIN_INTERMISSION_MS = 1000;
+const MIN_INTERMISSION_MS = 3000;
 
 /**
  * The presses, as one absolutely positioned node each.
@@ -283,32 +301,6 @@ const MIN_INTERMISSION_MS = 1000;
  * the kit and the buttons the fight asked for. `tierOf` still owns that tail; this list only owns its
  * own head.
  */
-const ROW_ORDER: readonly string[] = [
-	'Melee',
-	'Re-Origination',
-	'Tigereye Brew',
-	'Energizing Brew',
-	'Chi Brew',
-	'Jab',
-	'Focus of Xuen',
-	'Rising Sun Kick',
-	// The proc above the button it makes free, both times. The buff is what explains the press
-	// underneath it — a Tiger Palm on a Combo Breaker is a different press from one that cost a chi —
-	// so it reads downward as cause then effect rather than the other way about.
-	'Combo Breaker: Tiger Palm',
-	'Tiger Palm',
-	'Combo Breaker: Blackout Kick',
-	'Blackout Kick',
-	'Rushing Jade Wind',
-	'Fists of Fury',
-	'Touch of Karma',
-	// Talent row three, which is one button of the three and never two. Listing all three costs
-	// nothing and asks the log nothing: only the one that was actually taken has a row to find.
-	'Chi Wave',
-	'Zen Sphere',
-	'Chi Burst',
-	'Expel Harm',
-];
 
 /**
  * The rule that divides one lane from the next.
@@ -327,20 +319,29 @@ const LANE_RULE = 'border-b border-line/40';
  * so this table carries only what is intrinsic to the bar: which key to read, how to draw it, and
  * which section argues about it.
  */
-const RESOURCE_LANES = [
-	{
-		key: 'energy' as const,
-		mode: 'line' as const,
-		// The section that argues about this bar, so its label can jump there. Null while no such
-		// section exists; a link to nowhere is worse than none.
-		section: 'energy' as string | null,
-	},
-	{
-		key: 'chi' as const,
-		mode: 'steps' as const,
-		section: 'chi' as string | null,
-	},
-];
+/**
+ * The sections that argue about each bar, keyed by the bar's own key. A bar with no section gets no
+ * jump link — the mana bar on an Elemental report has nothing to argue it, so its label is a span.
+ */
+const RESOURCE_SECTION: Readonly<Record<string, string>> = { energy: 'energy', chi: 'chi' };
+
+/**
+ * The resource lanes this pull actually carries, derived from the audited bars rather than hardcoded:
+ * a pool (energy, mana) draws as a line, a points bar (chi) as steps.
+ */
+function resourceLanesOf(
+	resources: Record<string, ResourceBarAudit> | undefined,
+): Array<{ key: string; mode: 'line' | 'steps'; section: string | null }> {
+	if (resources === undefined) return [];
+	return Object.keys(resources).map((key) => {
+		const bar = resources[key];
+		return {
+			key,
+			mode: bar?.kind === 'pool' ? 'line' : 'steps',
+			section: RESOURCE_SECTION[key] ?? null,
+		};
+	});
+}
 
 /** Auto-attacks, which WarcraftLogs logs under this id for every class. */
 const MELEE_ID = 1;
@@ -366,11 +367,12 @@ const RESOURCE_ROW_PX = 72;
  * the bar was full. Printing an invented chi figure beside a measured energy one would make the two
  * look equally solid.
  */
-function lostIn(windows: readonly Window[], key: 'energy' | 'chi', regenPerSec: number | null): ShadeWindow[] {
+function lostIn(windows: readonly Window[], regenPerSec: number | null): ShadeWindow[] {
 	return windows.map((w) => {
-		// Chi bands are drawn but never labelled: what a capped stretch cost is counted per press on the
-		// curve itself, because chi arrives in whole points rather than accruing against a clock.
-		if (key === 'chi' || regenPerSec === null) return { ...w };
+		// A points bar (chi) is never labelled: what a capped stretch cost is counted per press on the
+		// curve itself, because chi arrives in whole points rather than accruing against a clock. A pool
+		// bar (energy, mana) refills on a clock, so the stretch cost is its regen rate times its length.
+		if (regenPerSec === null) return { ...w };
 		return { ...w, text: `~${Math.round(((w.end - w.start) / 1000) * regenPerSec)}` };
 	});
 }
@@ -403,22 +405,6 @@ function gcdRulesPath(casts: readonly CastMark[], span: number): string {
 	}
 	return d;
 }
-
-/**
- * Where a row sits in the declared order — the earliest entry any of its names answers to — or the
- * length of the list when it answers to none of them. See `ROW_ORDER` for what a row's names are.
- */
-const rowRank = (names: readonly string[]): number => {
-	let best = ROW_ORDER.length;
-	for (const name of names) {
-		const at = ROW_ORDER.indexOf(name);
-		if (at !== -1 && at < best) best = at;
-	}
-	return best;
-};
-
-/** Whether the declared order names this row at all — everything else keeps the order it had. */
-const led = (names: readonly string[]): boolean => rowRank(names) < ROW_ORDER.length;
 
 /**
  * Which row each press sits on, so that no two icons overlap.
@@ -526,9 +512,8 @@ const damagingNames = (abilities: readonly AbilityDamage[]): Set<string> =>
  * A module constant rather than a memo. The registry is one too, so this set is the same for every
  * pull ever rendered — unlike `damagingNames`, which is a reading of *this* pull's damage table.
  */
-const ON_USE_NAMES: ReadonlySet<string> = new Set(
-	registry.abilities.filter((a) => a.onUse === true).map((a) => a.name),
-);
+const onUseNamesOf = (registry: Registry): ReadonlySet<string> =>
+	new Set(registry.abilities.filter((a) => a.onUse === true).map((a) => a.name));
 
 /**
  * Which of the three tiers a press lane sits in — lower is higher up the chart.
@@ -543,8 +528,8 @@ const ON_USE_NAMES: ReadonlySet<string> = new Set(
  * limitation is unchanged and deliberate — see `damagingNames` for why answering it needs something
  * the model does not carry.
  */
-const tierOf = (name: string, damaging: ReadonlySet<string>): number =>
-	damaging.has(name) ? 0 : ON_USE_NAMES.has(name) ? 1 : 2;
+const tierOf = (name: string, damaging: ReadonlySet<string>, onUseNames: ReadonlySet<string>): number =>
+	damaging.has(name) ? 0 : onUseNames.has(name) ? 1 : 2;
 
 /**
  * The presses grouped into one lane per ability, in the order the lanes are drawn.
@@ -575,7 +560,12 @@ interface CastLane {
 	rowOf: Map<CastMark, number>;
 }
 
-function castLanesOf(casts: readonly CastMark[], pxPerSec: number, damaging: ReadonlySet<string>): CastLane[] {
+function castLanesOf(
+	casts: readonly CastMark[],
+	pxPerSec: number,
+	damaging: ReadonlySet<string>,
+	onUseNames: ReadonlySet<string>,
+): CastLane[] {
 	// Keyed by name, not by id. One spell can log under several ids — measured on a real pull, Spear
 	// Hand Strike arrives under two and drew two identical rows — and a reader grouping "by spell"
 	// means the button, not the id behind it. The first id seen carries the icon, which is safe
@@ -601,7 +591,7 @@ function castLanesOf(casts: readonly CastMark[], pxPerSec: number, damaging: Rea
 		})
 		.sort(
 			(a, b) =>
-				tierOf(a.name, damaging) - tierOf(b.name, damaging) ||
+				tierOf(a.name, damaging, onUseNames) - tierOf(b.name, damaging, onUseNames) ||
 				b.casts.length - a.casts.length ||
 				(a.casts[0]?.t ?? 0) - (b.casts[0]?.t ?? 0),
 		);
@@ -620,21 +610,29 @@ function castNodesOf(
 	rowOf: Map<CastMark, number>,
 	sentTo: (c: CastMark) => string | undefined,
 ) {
-	return casts.map((c) => {
+	return casts.flatMap((c) => {
 		const url = spellIconUrl(c.id);
 		const size = GCD_ICON_PX;
 		// The enemy a press aimed at, where the press is one that aims. On the `title` as well as in the
 		// tooltip: the attribute is the fallback for a reader whose pointer never fires, and a press whose
 		// whole point is *which* enemy would otherwise say less to them than it does to everyone else.
 		const target = sentTo(c);
-		const title = `${c.name} · ${formatStamp(c.t)}${target === undefined ? '' : ` · ${target}`}`;
+		// The cast time rides on the `title` too — it is the one fact a cast-time press has that an
+		// instant press does not, and a reader whose pointer never fires still deserves to see it.
+		const castTime = c.castTimeMs === undefined || c.castTimeMs <= 0 ? undefined : formatGap(c.castTimeMs);
+		const title = `${c.name} · ${formatStamp(c.t)}${castTime === undefined ? '' : ` · ${castTime}`}${target === undefined ? '' : ` · ${target}`}`;
 		const key = `${c.t}-${c.id}`;
 		// The icon's *left* edge is its moment, not its centre.
 		//
 		// A press occupies the global that begins when it goes out, so the icon should start on that
 		// gridline and run into the global it spent — centred, every mark straddled its own line and two
-		// lanes could not be read against each other, which is the whole point of drawing the grid.
+		// lanes could not be read against each other, which is the whole point of drawing the grid. A
+		// cast-time spell is the exception: its moment is the *start* of the cast, and the bar that
+		// follows it is the cast itself, ending where the spell launches.
 		const left = pct(c.t, span);
+		// The icon's left edge, which is the moment the press *began* for a cast-time spell — a cancel
+		// is already at its begincast, so its `t` is left as it is.
+		const iconLeft = pct(c.cancelled === true ? c.t : c.t - (c.castTimeMs ?? 0), span);
 		// Rows run downwards from the top of the lane, each one an icon box tall. `top` is the row's
 		// centre and the mark is translated up by half itself, so it sits centred in its row rather
 		// than hanging from the top of it.
@@ -642,9 +640,10 @@ function castNodesOf(
 
 		// Nothing in the icon map answers for this id — a rare trinket, a racial. Drawn as a tick rather
 		// than dropped: a hole in the lane would read as a global nobody spent, which is a claim about
-		// the rotation that the log did not make.
-		if (url === null) {
-			return (
+		// the rotation that the log did not make. Shared by a completed cast and a cancel, so the button
+		// reads as pressed either way.
+		const icon =
+			url === null ? (
 				<span
 					key={key}
 					title={title}
@@ -653,38 +652,76 @@ function castNodesOf(
 					data-tip-at={formatStamp(c.t)}
 					data-tip-auto={c.id === MELEE_ID ? '' : undefined}
 					data-tip-target={target}
-					style={{ left, top, height: size }}
+					data-tip-cast={castTime}
+					style={{ left: iconLeft, top, height: size }}
 					className="absolute w-[3px] -translate-y-1/2 rounded-[1px] bg-muted"
 				/>
+			) : (
+				<img
+					key={key}
+					src={url}
+					// Decorative: the plot as a whole carries the text alternative, and announcing three hundred
+					// icons one at a time is not a description of anything.
+					alt=""
+					title={title}
+					// What the shared tooltip reads off the mark under the cursor. Attributes rather than a
+					// rendered tooltip: they cost no node at all, which is what the objection above was about.
+					data-tip={c.name}
+					data-tip-tone={GROUP_TONE.casts}
+					data-tip-at={formatStamp(c.t)}
+					// Auto-attacks are not pressed, so the tooltip must not say they were. Marked on the mark
+					// rather than decided in the tooltip, which has no business knowing which id is melee.
+					data-tip-auto={c.id === MELEE_ID ? '' : undefined}
+					// Which enemy this press aimed at, on the one button whose whole point is the answer.
+					data-tip-target={target}
+					data-tip-cast={castTime}
+					width={size}
+					height={size}
+					loading="lazy"
+					decoding="async"
+					style={{ left: iconLeft, top, width: size, height: size }}
+					className="absolute -translate-y-1/2 rounded-[3px] border border-line/60"
+				/>
 			);
+
+		// A cancelled cast: the icon still shows, with a red bar running *forward* from it at the length
+		// the cast would have needed — the press happened, and bought nothing.
+		if (c.cancelled === true) {
+			const castTimeMs = Math.max(c.castTimeMs ?? 0, 0);
+			return [
+				<span
+					key={`${key}-cancel`}
+					title={`${title} · ${formatGap(castTimeMs)}`}
+					data-tip={c.name}
+					data-tip-tone="miss"
+					data-tip-at={formatStamp(c.t)}
+					data-tip-cancelled=""
+					data-tip-cast={formatGap(castTimeMs)}
+					style={{ left, top, width: pct(castTimeMs, span), height: size }}
+					className="absolute -translate-y-1/2 min-w-[2px] rounded-[2px] bg-miss/50"
+				/>,
+				icon,
+			];
 		}
 
-		return (
-			<img
-				key={key}
-				src={url}
-				// Decorative: the plot as a whole carries the text alternative, and announcing three hundred
-				// icons one at a time is not a description of anything.
-				alt=""
-				title={title}
-				// What the shared tooltip reads off the mark under the cursor. Attributes rather than a
-				// rendered tooltip: they cost no node at all, which is what the objection above was about.
-				data-tip={c.name}
-				data-tip-tone={GROUP_TONE.casts}
-				data-tip-at={formatStamp(c.t)}
-				// Auto-attacks are not pressed, so the tooltip must not say they were. Marked on the mark
-				// rather than decided in the tooltip, which has no business knowing which id is melee.
-				data-tip-auto={c.id === MELEE_ID ? '' : undefined}
-				// Which enemy this press aimed at, on the one button whose whole point is the answer.
-				data-tip-target={target}
-				width={size}
-				height={size}
-				loading="lazy"
-				decoding="async"
-				style={{ left, top, width: size, height: size }}
-				className="absolute -translate-y-1/2 rounded-[3px] border border-line/60"
-			/>
-		);
+		// The cast bar behind the icon, from the `begincast` to the `cast`. Only a cast-time spell has
+		// one — an instant press draws the icon alone. The bar's left edge is the moment the cast began,
+		// so a Lightning Bolt reads as an icon at the start, followed by the bar running to the launch.
+		const bar =
+			c.castTimeMs === undefined || c.castTimeMs <= 0 ? null : (
+				<span
+					key={`${key}-bar`}
+					title={title}
+					data-tip={c.name}
+					data-tip-tone={GROUP_TONE.casts}
+					data-tip-at={formatStamp(c.t)}
+					data-tip-cast={formatGap(c.castTimeMs)}
+					style={{ left: iconLeft, top, width: pct(c.castTimeMs, span), height: size }}
+					className="absolute -translate-y-1/2 min-w-[2px] rounded-[2px] bg-ink-2/40"
+				/>
+			);
+
+		return bar === null ? [icon] : [bar, icon];
 	});
 }
 
@@ -711,7 +748,7 @@ interface CastRow {
  * Tiger Power as well, so the same press would have two rows to sit on and no reason to prefer
  * either. Which presses actually spent a proc is a judgement, and the Combo Breaker section owns it.
  */
-const APPLIED_BY_CAST = ((): Map<number, string> => {
+const appliedByCastOf = (registry: Registry): Map<number, string> => {
 	const by = new Map<number, string>();
 	for (const aura of registry.auras) {
 		if (aura.appliedBy === undefined) continue;
@@ -720,7 +757,7 @@ const APPLIED_BY_CAST = ((): Map<number, string> => {
 		for (const id of registry.ability(aura.appliedBy).castIds) if (!by.has(id)) by.set(id, aura.key);
 	}
 	return by;
-})();
+};
 
 /**
  * The presses that belong on an aura's row, and the ones that keep a row of their own.
@@ -750,14 +787,14 @@ const APPLIED_BY_CAST = ((): Map<number, string> => {
  * the consumables. That is one row's worth of movement for the button and it buys the aura rows
  * staying one list.
  */
-function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[]) {
+function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[], appliedByCast: Map<number, string>) {
 	const lanesPerKey = new Map<string, number>();
 	for (const lane of lanes) lanesPerKey.set(lane.key, (lanesPerKey.get(lane.key) ?? 0) + 1);
 
 	const into = new Map<string, CastRow>();
 	const loose: CastRow[] = [];
 	for (const press of pressed) {
-		const key = APPLIED_BY_CAST.get(press.lane.id);
+		const key = appliedByCast.get(press.lane.id);
 		// `into.has` guards a loss rather than an impossibility: two cast lanes claiming one aura would
 		// overwrite each other, and the marks of whichever lost would leave the chart without a trace.
 		if (key !== undefined && lanesPerKey.get(key) === 1 && !into.has(key)) into.set(key, press);
@@ -1086,6 +1123,19 @@ function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// `useTranslation`, not `useReportCopy`: this draws what it is handed and holds no verdict.
 	const { t } = useTranslation('report');
+	// The spec's own game model, for the tier sort and the aura-merge table. A Windwalker and an
+	// Elemental pull name different buttons, and both read through their own registry.
+	const spec = useContext(SpecContext);
+	const registry = spec.registry;
+	const rowOrder = ROW_ORDERS[spec.key] ?? EMPTY_ROW_ORDER;
+	const onUseNames = useMemo(() => onUseNamesOf(registry), [registry]);
+	const appliedByCast = useMemo(() => appliedByCastOf(registry), [registry]);
+	// The Windwalker half of an `Analysis` is absent on a spec that never produced it — read through a
+	// truthiness guard, so an Elemental pull simply draws no bank, no contact and no haste rows.
+	const ww = analysis as unknown as { brew?: BrewSummary; debuff?: DebuffSummary };
+	// The Elemental half of an `Analysis`, for the Lightning Shield counter the timeline draws like the
+	// Tigereye Brew bank — a stepping counter with the spends labelled, not an on-or-off window.
+	const el = analysis as unknown as { lightningShield?: { points: Array<[number, number]>; maxStacks: number } };
 	const resources = analysis.resources;
 	/**
 	 * The Tigereye Brew bank, as a third resource lane.
@@ -1099,10 +1149,20 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 */
 	const brewBank = useMemo<ResourceCurve | null>(
 		() =>
-			analysis.brew.bankTimeline.length === 0
+			(ww.brew?.bankTimeline.length ?? 0) === 0
 				? null
-				: { max: TEB_CAP, points: analysis.brew.bankTimeline.map(([t, n]): [number, number] => [t, n]) },
-		[analysis.brew.bankTimeline],
+				: { max: TEB_CAP, points: (ww.brew?.bankTimeline ?? []).map(([t, n]): [number, number] => [t, n]) },
+		[ww.brew?.bankTimeline],
+	);
+
+	// The Lightning Shield counter, as a bank like the brew's — the charge over the pull, spent whole
+	// by Earth Shock, drawn stepping with the spends labelled.
+	const shieldBank = useMemo<ResourceCurve | null>(
+		() =>
+			(el.lightningShield?.points.length ?? 0) === 0
+				? null
+				: { max: el.lightningShield?.maxStacks ?? 7, points: el.lightningShield?.points ?? [] },
+		[el.lightningShield?.points, el.lightningShield?.maxStacks],
 	);
 
 	/**
@@ -1114,17 +1174,15 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 */
 	const brewSpend = useMemo(() => {
 		const by = new Map<number, number>();
-		for (const use of analysis.brew.useList) {
+		for (const use of ww.brew?.useList ?? []) {
 			if (use.window === null) continue;
 			by.set(use.window.start, (by.get(use.window.start) ?? 0) + use.consumed);
 		}
 		return by;
-	}, [analysis.brew.useList]);
-	// Measured from this pull's own readings, so a hasted monk is not charged at a stranger's rate. The
-	// energy bar is the pool audit — the spec's config says so — so the rate is read through that gate:
-	// a points bar has no rate to read, and a fixture predating the audits has no bar at all.
-	const energyAudit = analysis.resources?.energy;
-	const energyRegen = energyAudit?.kind === 'pool' ? energyAudit.regenPerSec : null;
+	}, [ww.brew?.useList]);
+	// The resource lanes this pull carries, derived from the audited bars — a pool draws as a line, a
+	// points bar as steps, and each bar's regen is read off its own audit below.
+	const resourceLanes = useMemo(() => resourceLanesOf(resources), [resources]);
 	// Everything the engine measured, before the ignore table has had its say. Kept under its own name
 	// because the caption has to be able to say what went, and it can only name what it was handed.
 	const allCasts = analysis.timeline?.casts ?? NO_CASTS;
@@ -1138,20 +1196,23 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// list below is keyed on, and a fresh array each render would rebuild several hundred marks on every
 	// pointer move. The picker's set is filtered too, so a hidden lane cannot be offered back either.
 	const casts = useMemo(() => drawnCastsOf(allCasts), [allCasts]);
+	// Casts the player started and never finished, folded into the same lanes as the casts they were
+	// — a cancelled Lightning Bolt belongs in the Lightning Bolt row, drawn as a red bar there.
+	const cancels = analysis.timeline?.cancels ?? NO_CASTS;
+	const castMarks = useMemo(() => (cancels.length === 0 ? casts : [...casts, ...cancels]), [casts, cancels]);
 	const drawnLanes = useMemo(() => drawnLanesOf(allDrawnLanes), [allDrawnLanes]);
 	const spareLanes = useMemo(() => drawnLanesOf(allSpareLanes), [allSpareLanes]);
 	const hidden = useMemo(() => hiddenNames([...allDrawnLanes, ...allSpareLanes]), [allDrawnLanes, allSpareLanes]);
 	const deaths = analysis.timeline?.deaths ?? NO_DEATHS;
 	/**
-	 * The raid's haste cooldown, read off the Energizing Brew audit rather than measured again here.
-	 *
-	 * That audit already asks the log this exact question — its whole Bloodlust clause is "was one of
-	 * these running" — so the windows exist, and measuring them a second time would be a second answer
-	 * free to disagree with the one the section beside this chart prints. Truthiness rather than a null
-	 * check, for the reason every optional field on an analysis carries: on a fixture captured before
-	 * the audit existed it arrives as `undefined`.
+	 * The raid's haste cooldown, detected by the core rather than by any one spec's audit — so an
+	 * Elemental pull shades it exactly as a Windwalker's does. Truthiness rather than a null check, for
+	 * the reason every optional field on an analysis carries: on a fixture captured before the core
+	 * detected it, it arrives as `undefined`.
 	 */
-	const haste = analysis.energizing?.hasteWindows ?? NO_HASTE;
+	const haste = analysis.timeline?.hasteWindows ?? NO_HASTE;
+	/** The Troll racial's own haste burst, drawn as a second, lighter band beside Bloodlust. */
+	const berserking = analysis.timeline?.berserkingWindows ?? NO_HASTE;
 	/**
 	 * Which of the five a window actually was.
 	 *
@@ -1222,17 +1283,18 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 */
 	const intermissions = useMemo(
 		() =>
-			// Contact with *anything*, falling back to the graded windows only on an analysis captured
-			// before the wider measure existed. The two are not interchangeable: `engagedSegments` is
-			// scoped to the primary target so Rising Sun Kick's uptime means something, and its complement
-			// therefore reads "you were not on the boss". On Galakras that flagged 85% of the pull as
-			// intermission — the player was fighting adds for most of it. Against every target the same
-			// pull gives six segments and 27%, which is the add waves the reader actually watched.
+			// Contact with *anything*, from the core's own clock — falling back to the Windwalker's graded
+			// segments only on an analysis captured before the core carried it. The two are not
+			// interchangeable: `engagedSegments` is scoped to the primary target so Rising Sun Kick's
+			// uptime means something, and its complement therefore reads "you were not on the boss". On
+			// Galakras that flagged 85% of the pull as intermission — the player was fighting adds for
+			// most of it. Against every target the same pull gives six segments and 27%, which is the add
+			// waves the reader actually watched.
 			complementOf(
-				analysis.debuff.contactSegments ?? analysis.debuff.engagedSegments ?? [],
+				analysis.timeline?.contactSegments ?? ww.debuff?.contactSegments ?? ww.debuff?.engagedSegments ?? [],
 				analysis.durationMs,
 			).filter(([start, end]) => end - start >= MIN_INTERMISSION_MS),
-		[analysis.debuff.contactSegments, analysis.debuff.engagedSegments, analysis.durationMs],
+		[analysis.timeline?.contactSegments, ww.debuff?.contactSegments, ww.debuff?.engagedSegments, analysis.durationMs],
 	);
 
 	const drag = useDragScroll();
@@ -1251,7 +1313,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	// The damaging set is built once per pull rather than per lane, so what the sort does is a lookup
 	// and not a scan of the damage table for every button the player owns.
 	const damaging = useMemo(() => damagingNames(analysis.damage.abilities), [analysis.damage.abilities]);
-	const castLanes = useMemo(() => castLanesOf(casts, pxPerSec, damaging), [casts, pxPerSec, damaging]);
+	const castLanes = useMemo(
+		() => castLanesOf(castMarks, pxPerSec, damaging, onUseNames),
+		[castMarks, pxPerSec, damaging, onUseNames],
+	);
 	/**
 	 * The enemy a press aimed at, in words — the Storm, Earth and Fire section's own words.
 	 *
@@ -1304,7 +1369,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	);
 	// Which of those rows an aura has claimed. Split rather than rebuilt, so the marks a merged row
 	// draws are the very element objects the memo above made and React skips them all the same.
-	const pressed = useMemo(() => mergeRows(castNodes, lanes), [castNodes, lanes]);
+	const pressed = useMemo(() => mergeRows(castNodes, lanes, appliedByCast), [castNodes, lanes, appliedByCast]);
 	const laneRows = useMemo(
 		() =>
 			lanes.map((lane) => ({
@@ -1429,8 +1494,22 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// gem rather than about the chart — and the answer to "why does the meter stop early".
 				const wait = mark.getAttribute('data-tip-wait');
 				const hit = mark.getAttribute('data-tip-hit');
+				// How long a cast-time press took, and whether it never completed — a bar carries one, a
+				// cancelled bar carries both.
+				const cast = mark.getAttribute('data-tip-cast');
+				const cancelled = mark.hasAttribute('data-tip-cancelled');
 				if (at !== null)
-					rows.push([t(mark.hasAttribute('data-tip-auto') ? 'castLog.tip.swing' : 'castLog.tip.at'), at]);
+					rows.push([
+						t(
+							cancelled
+								? 'castLog.tip.cancelledAt'
+								: mark.hasAttribute('data-tip-auto')
+									? 'castLog.tip.swing'
+									: 'castLog.tip.at',
+						),
+						at,
+					]);
+				if (cast !== null) rows.push([t('castLog.tip.cast'), cast]);
 				// Directly under the moment, because it is the other half of the same sentence: this press,
 				// at this time, at that enemy.
 				if (target !== null) rows.push([t('castLog.tip.sentTo'), target]);
@@ -1628,13 +1707,13 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * a second rule for the gutter and the track to keep in step over.
 	 */
 	const lead: Block[] = [
-		...auraRows.map((row) => ({ rank: rowRank(namesOf(row)), block: { key: row.lane.key, row } as Block })),
+		...auraRows.map((row) => ({ rank: rowRank(namesOf(row), rowOrder), block: { key: row.lane.key, row } as Block })),
 		...(showCasts ? pressed.loose : []).map((press) => ({
-			rank: rowRank([press.lane.name]),
+			rank: rowRank([press.lane.name], rowOrder),
 			block: { key: press.lane.name, press } as Block,
 		})),
 	]
-		.filter(({ rank }) => rank < ROW_ORDER.length)
+		.filter(({ rank }) => rank < rowOrder.length)
 		.sort((a, b) => a.rank - b.rank)
 		.map(({ block }) => block);
 
@@ -1647,7 +1726,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * and close enough to the damage to still be read against it. A filter over the already-sorted list
 	 * rather than a second sort, so the block keeps engine order exactly as it had it.
 	 */
-	const restBlocks: Block[] = auraRows.filter((row) => !led(namesOf(row))).map((row) => ({ key: row.lane.key, row }));
+	const restBlocks: Block[] = auraRows
+		.filter((row) => !led(namesOf(row), rowOrder))
+		.map((row) => ({ key: row.lane.key, row }));
 	const targetBlocks: Block[] = [];
 	let heading: number | null = null;
 	for (const row of targetRows) {
@@ -1868,9 +1949,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * is meant without depending on the sort having held. It is a lookup in a `Set` per lane and there
 	 * are twenty.
 	 */
-	const restPresses = pressed.loose.filter(({ lane }) => !led([lane.name]));
-	const castsMid = restPresses.filter(({ lane }) => tierOf(lane.name, damaging) === 0);
-	const castsBelow = restPresses.filter(({ lane }) => tierOf(lane.name, damaging) !== 0);
+	const restPresses = pressed.loose.filter(({ lane }) => !led([lane.name], rowOrder));
+	const castsMid = restPresses.filter(({ lane }) => tierOf(lane.name, damaging, onUseNames) === 0);
+	const castsBelow = restPresses.filter(({ lane }) => tierOf(lane.name, damaging, onUseNames) !== 0);
 	const trackPx = Math.max(320, (span / 1000) * pxPerSec);
 
 	return (
@@ -1981,7 +2062,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					    so the two halves of the chart read as one list rather than as two conventions. */}
 					{resources === undefined
 						? null
-						: RESOURCE_LANES.map(({ key }) => (
+						: resourceLanes.map(({ key, section }) => (
 								<div
 									key={key}
 									className={`flex items-center gap-2 pr-2 ${LANE_RULE}`}
@@ -1990,14 +2071,12 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									{/* A real anchor when the bar has a section arguing about it, so it middle-clicks
 									    and keyboards like every other link on the page. `scroll-mt` on the headings
 									    already keeps the landing clear of the sticky bar. */}
-									{RESOURCE_LANES.find((l) => l.key === key)?.section == null ? (
+									{section == null ? (
 										<span className="truncate font-mono text-sm text-ink-2">{t(`castLog.resource.${key}`)}</span>
 									) : (
 										<a
-											href={`#${RESOURCE_LANES.find((l) => l.key === key)?.section}-heading`}
-											onClick={(event) =>
-												jumpToHeading(`${RESOURCE_LANES.find((l) => l.key === key)?.section}-heading`, event)
-											}
+											href={`#${section}-heading`}
+											onClick={(event) => jumpToHeading(`${section}-heading`, event)}
 											className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
 										>
 											{t(`castLog.resource.${key}`)}
@@ -2016,6 +2095,18 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								{t('castLog.resource.brew')}
 							</a>
 							<span className="tabular font-mono text-xs text-muted">{brewBank.max}</span>
+						</div>
+					)}
+					{shieldBank === null ? null : (
+						<div className={`flex items-center gap-2 pr-2 ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+							<a
+								href="#lightning-shield-heading"
+								onClick={(event) => jumpToHeading('lightning-shield-heading', event)}
+								className="truncate rounded-sm font-mono text-sm text-ink-2 underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
+							>
+								{t('castLog.resource.lightningShield')}
+							</a>
+							<span className="tabular font-mono text-xs text-muted">{shieldBank.max}</span>
 						</div>
 					)}
 					{/* The player's own rows, in the four runs they are cut into: the rows the declared order
@@ -2110,7 +2201,32 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 										// spent on the few pixels that carry a moment rather than on the many that
 										// carry a condition.
 										className="pointer-events-auto absolute inset-y-0 border-x-2 border-lust bg-[var(--color-band-lust)]"
-									/>
+									>
+										{/* The spell's own name at the start, so a band is a band and not a puzzle:
+										    the wash alone cannot tell Bloodlust from Berserking when they overlap. */}
+										<span className={`${HASTE_LABEL_CLASS} text-lust`}>{lustName(w)}</span>
+									</span>
+								))}
+							</div>
+						)}
+						{berserking.length === 0 ? null : (
+							<div className="pointer-events-none absolute inset-0">
+								{berserking.map((w) => (
+									<span
+										key={`berserking-${w.start}-${w.end}`}
+										title={`Berserking · ${formatStamp(w.start)} → ${formatStamp(w.end)}`}
+										data-tip="Berserking"
+										data-tip-tone="lust"
+										data-tip-from={formatStamp(w.start)}
+										data-tip-to={formatStamp(w.end)}
+										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+										// The same wash as Bloodlust, laid on top of it, so two haste bursts stacked
+										// read as one darker stretch; a dashed rule is what tells it apart when it
+										// stands alone.
+										className="pointer-events-auto absolute inset-y-0 border-x-2 border-dashed border-lust/60 bg-[var(--color-band-lust)]"
+									>
+										<span className={`${HASTE_LABEL_CLASS} text-lust/70`}>Berserking</span>
+									</span>
 								))}
 							</div>
 						)}
@@ -2163,15 +2279,40 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						    and same proportional geometry, so a peak lines up with the press that caused it. */}
 						{resources === undefined
 							? null
-							: RESOURCE_LANES.map(({ key, mode }) => {
-									const curve = curveOfBar(resources[key]);
+							: resourceLanes.map(({ key, mode }) => {
+									const bar = resources[key];
+									const curve = curveOfBar(bar);
 									// A bar with no readings yet draws no row at all — an empty track would claim a
 									// shape the pull never produced. The gutter above still lists the bar, so the
 									// missing row reads as absence rather than as a lane that vanished.
 									if (curve === undefined || curve.points.length === 0) return null;
 									// The bar's own colour from the sim's palette; the spec's primary only for a
 									// bar the sim has not coloured (or a fixture that predates the audits).
-									const laneColor = barColor(resources[key], specColorsOf(analysis.specName).primary);
+									const laneColor = barColor(bar, specColorsOf(analysis.specName).primary);
+									// The regen that prices a capped stretch, read off the bar's own pool audit.
+									const regen = bar?.kind === 'pool' ? bar.regenPerSec : null;
+									// Mana is the one pool whose being full is not a fault — it sits at the ceiling
+									// until cast, and a full bar is exactly where it should be. Its fault is the
+									// floor: running out, which no other bar can do. So the mana row carries the
+									// empty shade instead of the capped one.
+									const shades =
+										bar?.type === RESOURCE_TYPE.mana
+											? [
+													{
+														windows: emptiedOf(curve),
+														className: 'fill-miss/25',
+														textClassName: 'text-miss',
+														label: 'empty',
+													},
+												]
+											: [
+													{
+														windows: lostIn(cappedOf(curve), regen),
+														className: 'fill-miss/25',
+														textClassName: 'text-miss',
+														label: 'capped',
+													},
+												];
 									return (
 										<div key={key} className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
 											<ResourceTrack
@@ -2185,14 +2326,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 												// loss. A full bar is not a fault by itself — it is one while there was
 												// something to spend it on — so the shading says "here", and the Energy
 												// section beside it is where the engaged-versus-downtime split is argued.
-												shades={[
-													{
-														windows: lostIn(cappedOf(curve), key, energyRegen),
-														className: 'fill-miss/25',
-														textClassName: 'text-miss',
-														label: 'capped',
-													},
-												]}
+												// Mana is the exception, handled in `shades` above: its ceiling is no fault,
+												// its floor is.
+												shades={shades}
 												label={t(`castLog.resourceAria.${key}`, { max: curve.max })}
 											/>
 										</div>
@@ -2211,6 +2347,23 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									minLabelGapMs={labelGapMs}
 									shades={[{ windows: cappedOf(brewBank), className: 'fill-miss/25', label: 'capped' }]}
 									label={t('castLog.resourceAria.brew', { max: brewBank.max })}
+								/>
+							</div>
+						)}
+						{shieldBank === null ? null : (
+							<div className={`relative ${LANE_RULE}`} style={{ height: RESOURCE_ROW_PX }}>
+								<ResourceTrack
+									curve={shieldBank}
+									durationMs={span}
+									stroke="var(--color-kick)"
+									fill="color-mix(in oklch, var(--color-kick) 18%, transparent)"
+									// Stepped for the same reason as the brew bank: the shield holds whole charges,
+									// and a slope would draw a fraction nobody ever held. Only the spends are
+									// labelled — the gains are every Bolt, and the unload is what is worth reading.
+									mode="steps"
+									labelDecreases
+									minLabelGapMs={labelGapMs}
+									label={t('castLog.resourceAria.lightningShield', { max: shieldBank.max })}
 								/>
 							</div>
 						)}
