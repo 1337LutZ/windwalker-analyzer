@@ -17,7 +17,12 @@ public/_devtoken.json
 # `capture.test.ts` always writes here, and the file is a staging area rather than a fixture:
 # the three committed fixtures are made by renaming it. Left tracked it gets swept into whatever
 # commit is open when a capture runs, which is how a 25k-line orphan reached the history once.
-src/lib/__fixtures__/analysis.json
+#
+# Globbed over the spec because this pattern had already gone dead once: it named
+# `src/lib/__fixtures__/`, a directory that no longer exists, while the capture writes to
+# `src/specs/windwalker/__fixtures__/` — so the one file it exists to keep out was tracked again, and
+# a second spec's capture would have been too.
+src/specs/*/__fixtures__/analysis.json
 
 # `wrangler pages dev dist` writes temp JavaScript here while exercising `public/_headers`, and
 # oxlint then fails on files nobody wrote.
