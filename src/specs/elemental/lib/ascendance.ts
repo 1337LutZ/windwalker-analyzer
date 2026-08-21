@@ -1,11 +1,12 @@
-// The Ascendance press rules the audit models but never judged: whether each press rode the
-// cooldown it was supposed to ride.
+// The Ascendance press rules: whether each press rode the cooldown it was supposed to ride.
 //
-// `elementalAudit` already reads every input this needs — `ascCasts` from `castTimes(ASCENDANCE)`,
-// the core's `hasteWindows`, `t16DebuffWindows`, the contact clock — and `FlameShockPressKind`
-// already carries an `'ascPrep'` arm, so the audit knows Ascendance prep exists. What it never did
-// was grade the press. This module is that grade and nothing else: a pure function over values the
-// audit already holds, so wiring it in is one call rather than another concurrent edit to `index.ts`.
+// `elementalAudit` already read every input this needs — `ascCasts` from `castTimes(ASCENDANCE)`, the
+// core's `hasteWindows`, `t16DebuffWindows`, the contact clock — and `FlameShockPressKind` already
+// carried an `'ascPrep'` arm, so the audit knew Ascendance prep existed. What it never did was grade
+// the press. This module is that grade and nothing else: a pure function over values the audit
+// already holds, which is what let it be built while four lanes were writing `index.ts` and wired in
+// afterwards as one call. It is wired now — `elementalAudit`'s Ascendance block calls
+// `ascendanceSync` and publishes the verdicts on `AscendanceAudit`.
 //
 // ------------------------------------------------------------- the two rules, from the sim's list
 //
@@ -94,9 +95,12 @@
 // `applydebuff`/`refreshdebuff`/`removedebuff` sourced by the player. In the p5 list `auraIsActive(144998)`
 // is a *"do I own the two-piece"* branch selector for the Earth Shock rules, not a window.
 //
-// The audit models both — `t16-2pc-debuff` (144999) and `t16-2pc-proc` (144998) — and only the first
-// one can ever populate. See `docs/plan.md` step 49; this module takes the live windows as a
-// parameter and touches neither declaration.
+// The audit models **only** 144999, as the `t16-2pc-debuff` aura. It used to carry a `t16-2pc-proc`
+// declaration for 144998 beside it, and `344af23` (plan step 49) deleted that: an aura keyed to an id
+// the game never writes could only ever draw an empty lane and read as "the proc never fired". The
+// paragraph above stays because the id is still the trap — it is the number in the p5 list, so the next
+// reader of that list will reach for it — but nothing in this codebase reads it any more. This module
+// takes the live windows as a parameter and touches no declaration.
 
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Interval } from '~/lib/analysis/intervals';
@@ -261,9 +265,15 @@ export interface AscendanceSyncInput {
 	 * be satisfied — reported as `t16-2pc-not-in-log`, never as a fall-through to the Bloodlust rule.
 	 * A gear-based detector would produce exactly that second case.
 	 *
-	 * The live value in the audit is `t16DebuffWindows`, built by `dotWindowsOnTarget` from the
-	 * `t16-2pc-debuff` aura. Do not pass `twoPieceWindows`: that reads `t16-2pc-proc`, whose id the game
-	 * never logs — see the module doc and `docs/plan.md` step 49.
+	 * The audit passes `twoPieceWindows`, which **is** the 144999 reading — `t16DebuffWindows` from
+	 * `dotWindowsOnTarget` over the `t16-2pc-debuff` aura, in `Window` shape. This used to say the
+	 * opposite ("do not pass `twoPieceWindows`, that reads `t16-2pc-proc`") and was written when a second
+	 * declaration for 144998 existed; `344af23` deleted it and repointed that name at the live debuff, so
+	 * the warning had come to forbid the one correct argument. Nothing named after the proc remains.
+	 *
+	 * The audit passes `null` for an empty array, deliberately: its evidence *is* the debuff, so no
+	 * windows means no evidence rather than a set that never procced. The `[]` case is for a caller with
+	 * gear evidence, and there is none today.
 	 */
 	t16TwoPieceWindows: readonly Window[] | null;
 }

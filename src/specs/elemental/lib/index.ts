@@ -80,6 +80,7 @@ import { CLASS_COLOR } from '~/lib/game/classes';
 import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
+import { ascendanceSync } from './ascendance';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 
 // ------------------------------------------------------------------- constants
@@ -801,7 +802,11 @@ const EXTRA_NAMES: Record<number, string> = {
 	26297: 'Berserking',
 	57984: 'Fire Elemental: Fire Blast',
 	117588: 'Fire Elemental: Fire Shield',
-	118297: 'Fire Elemental: melee',
+	// Immolate, and not melee — the §48 leftover, corrected against the client's own `SpellName` row
+	// (118297 = "Immolate") and `sim/shaman/fire_elemental_spells.go:72`, `registerImmolate`. It logs as
+	// a cast dot (begincast/cast/applydebuff/tick); the pet's actual melee books under `-4`, which never
+	// reaches this map.
+	118297: 'Fire Elemental: Immolate',
 	118350: 'Fire Elemental: Fire Nova',
 	118345: 'Earth Elemental: melee',
 	114206: 'Skull Banner',
@@ -1125,6 +1130,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		multiTargetMs,
 		contact,
 		inContactMs,
+		hasteWindows,
 	} = h;
 	const { lightningShieldOvercapMs, searingTotemRefreshMs } = h.settings;
 	const fightEnd = t0 + duration;
@@ -1377,8 +1383,18 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			if (end > hit.t) fsCoveredParts.push([Math.max(start, hit.t), Math.min(end, until)]);
 		}
 	}
-	/** One quantity, two shapes: the union is the figure, the array is what a chart could draw. */
-	const fsContactWindows: Window[] = mergeIntervals(fsCoveredParts).map(([start, end]) => ({ start, end }));
+	/** One quantity, three shapes: the merge is the walk's answer, the array is what a chart could draw. */
+	const fsContactMerged = mergeIntervals(fsCoveredParts);
+	const fsContactWindows: Window[] = fsContactMerged.map(([start, end]) => ({ start, end }));
+	/**
+	 * The third shape, and the one `flameShock.uptimePct` is a share of — published as
+	 * `contactUptimeMs`.
+	 *
+	 * Off the same merge rather than a second union of the same parts, for the reason the pair above
+	 * exists: two readings of one quantity are two answers, and the one a reader sees would be
+	 * whichever the tile happened to call.
+	 */
+	const fsContactMs = unionMs(fsContactMerged);
 	/** The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none. */
 	const fsRemainingAt = (t: number): number => {
 		const key = spawnAt(t);
@@ -2051,14 +2067,55 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// The two-piece window is `twoPieceWindows` above, computed once: it is drawn as a lane, gates the
 	// ladder, is one of Earth Shock's four conditions, and is read here. Five readers of one union, so
 	// they cannot disagree about when the proc was up.
-	const ascPresses = ascCasts.map((t) => ({
-		t,
+	//
+	/**
+	 * Whether Ascendance was already running when the bell went.
+	 *
+	 * The same shape as `fePrepullWindow` below — an `openAtPull` walk, guarded by the press list —
+	 * and off `laneWindows`' memo rather than a fourth walk of the same aura, which is exactly the
+	 * guarded reading that closure already builds for the drawn lane. The guard is not optional here:
+	 * Ascendance's press (114049) and buff (114050) are different ids, so `auraWindows`' per-id "was
+	 * this opening logged" test cannot let the press vouch for the buff, and a stream that lost the
+	 * `applybuff` sharing the press's millisecond would read an ordinary in-fight window as a pre-pull
+	 * one. See `laneWindows`' own docstring, which names Ascendance as the case it exists for.
+	 *
+	 * An inferred window feeding a grader is normally the thing that closure forbids. It is admissible
+	 * in this one direction and only this one: `ascendanceSync` reads this to **refuse** to grade —
+	 * `'ascendance-up-at-the-pull'` — so the inference can only ever move a press from a fault to
+	 * silence, never the other way. Same licence, and the same argument, as the pre-pull Fire Elemental
+	 * seeding the fire totem slot walk.
+	 */
+	const ascendanceAtPull = laneWindows(ASCENDANCE_AURA, ascCasts).some((w) => w.preexisting === true);
+	/**
+	 * The press rules, from `./ascendance` — the opener against the raid's haste cooldown, every later
+	 * press against the T16 two-piece.
+	 *
+	 * `null` rather than `[]` when the pull carries no Elemental Discharge, which is the distinction
+	 * that module's `t16TwoPieceWindows` draws and the reason it is a parameter: `[]` claims the set is
+	 * on the player and never procced, and nothing this audit reads can claim that. The evidence here is
+	 * the debuff itself, so no windows means no evidence — `'no-two-piece-evidence'`, not a fault. The
+	 * timeline lane makes the same call by construction, since empty lanes are dropped from it.
+	 */
+	const ascSync = ascendanceSync({
+		ascendanceCasts: ascCasts,
+		ascendanceAtPull,
+		hasteWindows,
+		contact,
+		durationMs: duration,
+		t16TwoPieceWindows: twoPieceWindows.length > 0 ? twoPieceWindows : null,
+	});
+	// Mapped over the verdicts rather than over `ascCasts`, so a press and its verdict cannot come
+	// apart: `ascendanceSync` maps the cast list one-to-one, and taking the `t` off the verdict is what
+	// makes that guarantee structural rather than an index both sides have to agree about.
+	const ascPresses = ascSync.presses.map((sync) => ({
+		t: sync.t,
 		// Per spawn: "Ascendance pressed without a fresh Flame Shock" is a claim about the enemy the
 		// player was about to spend the window on, and the list's own rule reads `dotRemainingTime`,
 		// which the sim evaluates against the current target.
-		fsRemainingMs: fsRemainingAt(t) || null,
-		opener: isOpener(t),
-		twoPiece: remainingIn(t, twoPieceWindows) >= 10_000,
+		fsRemainingMs: fsRemainingAt(sync.t) || null,
+		opener: isOpener(sync.t),
+		twoPiece: remainingIn(sync.t, twoPieceWindows) >= 10_000,
+		sync,
 	}));
 
 	// The two cooldowns the list does not judge against a bare clock either, each read against its
@@ -2497,6 +2554,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			multiDotUptimePct,
 			multiTargetMs: multiDotMs,
 			scoredMs: inContactMs,
+			contactUptimeMs: fsContactMs,
 		},
 		lavaBurst: {
 			procs: lavaSurgeProcs,
@@ -2528,7 +2586,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			refreshed: snapRefreshed,
 			missed: snapMissed,
 		},
-		ascendance: { presses: ascPresses },
+		ascendance: { presses: ascPresses, atPull: ascendanceAtPull, grade: ascSync.grade },
 		elementalMastery: { presses: emPresses },
 		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined },
 		earthElemental: { presses: eePresses },

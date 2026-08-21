@@ -36,8 +36,10 @@ import { analyse, isOpener, registry } from '../index';
  *
  * Two of the five come from places worth naming. The two-piece windows are read off the
  * `t16-2pc-debuff` timeline lane, which is `t16DebuffWindows` — the *live* 144999 reading, not the
- * dead 144998 one. And `ascendanceAtPull` is the one value the audit does not yet publish, so it is
- * computed here the same way the audit computes its own `fePrepull`.
+ * dead 144998 one. And `ascendanceAtPull` is walked here from the raw stream rather than taken off
+ * `analysis.ascendance.atPull`, which the audit now publishes: reading the audit's own answer back
+ * would make the wiring suite below assert a value against itself. The suite pins the two against
+ * each other instead, which is the check worth having — see `the wiring, end to end`.
  */
 function pull(name: string): { input: AscendanceSyncInput; analysis: Analysis & ElementalAuditResult } {
 	const dataset = JSON.parse(
@@ -157,6 +159,93 @@ describe('the three committed anonymous pulls', () => {
 		expect(ascendanceSync(pull('unbroken').input).grade).toBe('good');
 		expect(ascendanceSync(pull('phased').input).grade).toBe('bad');
 		expect(ascendanceSync(pull('cleave').input).grade).toBe('bad');
+	});
+});
+
+// ------------------------------------------------------------------ the wiring
+
+/**
+ * The audit's own call, rather than this suite's reconstruction of it.
+ *
+ * Every assertion above hands `ascendanceSync` a hand-assembled input and grades the return. That
+ * proves the rules and proves nothing about `analyse()`, which is how this module spent 34 passing
+ * tests as dead code — `grep -rn "ascendance'" src/ | grep import` returned exactly one line, this
+ * file's. So these read `analysis.ascendance` and never call `ascendanceSync` at all.
+ *
+ * The three grades are the literals plan §53 already knew, and they are pinned as literals on
+ * purpose: a test that compared the audit's grade against `ascendanceSync(pull(name).input).grade`
+ * would pass whatever the wiring passed, since both sides would come out of the same five values.
+ */
+describe('the wiring, end to end', () => {
+	it('publishes one grade per pull, and it is the grade the rules give', () => {
+		// `unbroken` is a good opener plus one press exempted 714ms from the kill; the other two carry a
+		// real unsynced second press. Section 53's three known values, asserted at the level that was
+		// missing rather than by recomputing them.
+		expect(pull('unbroken').analysis.ascendance.grade).toBe('good');
+		expect(pull('phased').analysis.ascendance.grade).toBe('bad');
+		expect(pull('cleave').analysis.ascendance.grade).toBe('bad');
+	});
+
+	it('grades each press with the rule that governs it, off the audit alone', () => {
+		// The one end-to-end case §53 asked for, and the numbers are the fixture's own: `unbroken`'s
+		// second press at 183 734 of a 184 448 ms pull. Written out in full so the wiring cannot pass by
+		// handing the module an empty input and getting a shapely `none` back — an opener graded `good`
+		// with a `delayMs` of 2 891 can only come from `hasteWindows` having arrived.
+		const { presses } = pull('unbroken').analysis.ascendance;
+		expect(presses.map((p) => [p.t, p.sync.t])).toEqual([
+			[3676, 3676],
+			[183_734, 183_734],
+		]);
+		expect(presses.map((p) => p.sync)).toEqual([
+			{
+				t: 3676,
+				rule: 'bloodlust',
+				grade: 'good',
+				reason: null,
+				delayMs: 2891,
+				dischargeRemainingMs: null,
+				syncStartMs: 785,
+				limitMs: 5000,
+			},
+			{
+				t: 183_734,
+				rule: 't16-2pc',
+				grade: 'none',
+				reason: 'pull-ends-too-soon',
+				delayMs: null,
+				dischargeRemainingMs: null,
+				syncStartMs: null,
+				limitMs: 10_000,
+			},
+		]);
+	});
+
+	it('passes the two-piece debuff and not the id the game never writes', () => {
+		// If the wiring had reached for the dead 144998 reading the windows would be empty, the arm would
+		// refuse with `no-two-piece-evidence`, and `phased` and `cleave` would come back `none` instead of
+		// carrying the fault. So the reason field is the evidence for which id arrived.
+		for (const name of ['phased', 'cleave'] as const) {
+			const second = pull(name).analysis.ascendance.presses[1]?.sync;
+			expect([second?.rule, second?.grade, second?.reason, second?.dischargeRemainingMs]).toEqual([
+				't16-2pc',
+				'bad',
+				null,
+				0,
+			]);
+		}
+	});
+
+	it('publishes the pre-pull guard, and agrees with a raw walk of the stream', () => {
+		// Not one committed pull has Ascendance up at the bell, so the published flag is `false` on all
+		// three — and it is published anyway, because it is the difference between a press that was not
+		// made and a press the log cannot see. The audit's reading is the *guarded* one (a press at or
+		// before the recovered expiry vouches for the window), so it can only be narrower than this
+		// walk; on all three both come out false and the two are pinned against each other.
+		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+			const { analysis, input } = pull(name);
+			expect(analysis.ascendance.atPull).toBe(false);
+			expect(input.ascendanceAtPull).toBe(false);
+		}
 	});
 });
 

@@ -22,6 +22,11 @@ import type { AplAudit, Band } from '~/lib/spec/apl';
 // carries those rather than a copy of the shape that could drift from them.
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
+// Type-only, and pointing at a spec rather than at `lib`, which is the same trade the two imports
+// above make: the Ascendance press verdict is defined beside the rules that produce it, and this file
+// already carries `ElementalAuditResult` and `AscendancePress`, so the alternative is not a cleaner
+// boundary but a second copy of one audit's shape free to drift from the first.
+import type { AscendancePressVerdict, AscendanceSyncVerdict } from '~/specs/elemental/lib/ascendance';
 import type { ResourceTypeValue } from '~/lib/game/resources';
 import type { FightPhase } from '~/lib/wcl/phases';
 
@@ -2097,8 +2102,22 @@ export interface FlameShockPress {
 export interface FlameShockAudit {
 	/** The dot's up-windows on the primary target, one per application, refresh-open. */
 	windows: Window[];
-	/** Uptime over the time the primary target was engaged. */
+	/**
+	 * The dot's whole life on the **primary target**, unclipped — the union of `windows`.
+	 *
+	 * **It is not the numerator of `uptimePct`, and the two were documented as one figure for as long
+	 * as they were.** This is the drawn bar's own length: what the timeline lane shows and what the
+	 * drop ledger reads, deliberately left whole so a stretch where the boss merely stopped being
+	 * hittable does not put a seam in the dot. `contactUptimeMs` below is the graded numerator.
+	 */
 	uptimeMs: number;
+	/**
+	 * `contactUptimeMs / scoredMs`, as a percentage — the dot on **whichever spawn was being hit**,
+	 * over the time the player was in contact with anything.
+	 *
+	 * Neither half of it is `uptimeMs`. Both of its own halves are published beside it precisely so
+	 * this can be checked rather than taken on trust, which is the whole of plan §29.
+	 */
 	uptimePct: number;
 	/** Presses made while the dot was down — the count of fresh applies. */
 	applies: number;
@@ -2166,6 +2185,26 @@ export interface FlameShockAudit {
 	 * what let the numerator and denominator be measured over different spans for as long as they were.
 	 */
 	scoredMs: number;
+	/**
+	 * `uptimePct`'s **numerator**: the dot's up-time on the spawn the player was actually hitting,
+	 * clipped to the contact clock.
+	 *
+	 * Published because `scoredMs` alone did not close §29. With the denominator visible and the
+	 * numerator invisible, `uptimeMs / scoredMs` still did not come to `uptimePct / 100` — `uptimeMs`
+	 * is the primary target's whole dot and this is a different span, per spawn and clipped — so the
+	 * section's own complaint, that a reader cannot derive either of the two named fields from the
+	 * other, stayed true of exactly the pair it named. These two are the ratio, and nothing else is.
+	 *
+	 * The gap between this and `uptimeMs` is not slack to be reconciled: it is dot time on an enemy the
+	 * player was not hitting, plus dot time outside contact altogether. Measured: 9 309 ms on `phased`,
+	 * 1 071 on `unbroken`, 45 896 on `cleave` — the third one is 17% of the pull, which is the size of
+	 * the mistake a reader was invited to make.
+	 *
+	 * `unbroken`'s 100% is a real 100 and not `uptimePct`'s clamp: this and `scoredMs` come to the same
+	 * 181 775 ms exactly. Worth stating, because a clamped reading would have made the ratio unprovable
+	 * on the one fixture where the dot never dropped.
+	 */
+	contactUptimeMs: number;
 }
 
 /** Why an Earth Shock failed the sim's rule, in the order the section reads them. */
@@ -2293,10 +2332,39 @@ export interface AscendancePress {
 	opener: boolean;
 	/** Whether the press was the two-piece rule (the debuff on the target with 10s+ left). */
 	twoPiece: boolean;
+	/**
+	 * How this press read against the one rule that governs it — the sim's priority 14 for the opener,
+	 * priority 15 for every later press. See `specs/elemental/lib/ascendance.ts` for both rules and the
+	 * refusals, which is also where the shape is declared, for the reason `AplAudit` is imported rather
+	 * than restated at the top of this file.
+	 *
+	 * Carried **per press** rather than as a second array beside `presses`: the two would be one
+	 * quantity in two shapes with nothing but an index tying them together. `sync.t` and `t` are the
+	 * same number by construction — the audit builds its press rows off these verdicts.
+	 */
+	sync: AscendancePressVerdict;
 }
 
 export interface AscendanceAudit {
 	presses: AscendancePress[];
+	/**
+	 * Whether Ascendance was already running when the bell went.
+	 *
+	 * Published for the same reason `fireElemental.prepull` is: it is the difference between a press
+	 * the player did not make and a press made before the log starts, and without it a reader cannot
+	 * tell why `grade` refused. It is also the input that makes the refusal possible — see
+	 * `AscendanceSyncInput.ascendanceAtPull`, which explains what it can and cannot prove.
+	 */
+	atPull: boolean;
+	/**
+	 * The pull's Ascendance verdict: the worst grade any press earned.
+	 *
+	 * `none` is not a middle value and must not be read as one. It means not one press could be judged
+	 * — no haste cooldown on the pull, no Elemental Discharge in evidence, the button already running
+	 * at the bell, or nothing to hit — and a pull that pressed Ascendance zero times comes back `none`
+	 * with an empty `presses`. The per-press `reason` says which.
+	 */
+	grade: AscendanceSyncVerdict['grade'];
 }
 
 /** One Elemental Mastery press and the branch of the list's rule it hit. */

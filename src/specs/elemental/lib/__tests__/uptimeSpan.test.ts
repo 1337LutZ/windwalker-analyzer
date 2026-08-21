@@ -216,6 +216,21 @@ describe('a dot that outlives the last hit and dropped once besides', () => {
 		);
 		expect(el.flameShock.uptimePct).toBeLessThan(72.7);
 	});
+
+	/**
+	 * The numerator as a figure rather than only as a share — `contactUptimeMs`, which §29 asked for and
+	 * which this pull is the one place in the file that can pin against an independent fact.
+	 *
+	 * Both dot windows were laid down by this file, so the clipped coverage is arithmetic over the two
+	 * constants rather than a reading of anything the audit produced: 99 996ms of the first window plus
+	 * the 164 238ms of the second that falls before the last hit. The 776ms tail past `LAST_HIT` is what
+	 * this whole file exists for, and it is absent here while `uptimeMs` above still carries it — which
+	 * is the difference the two docstrings on those fields now state and could not before.
+	 */
+	it('publishes that coverage as a figure, not only as a percentage', () => {
+		expect(el.flameShock.contactUptimeMs).toBe(100_000 - START + (LAST_HIT - 200_000));
+		expect(el.flameShock.uptimeMs - el.flameShock.contactUptimeMs).toBe(DOT_END - LAST_HIT);
+	});
 });
 
 /**
@@ -240,9 +255,13 @@ describe('a dot that outlives the last hit and dropped once besides', () => {
  * of these three pulls (239 246 against 206 557 on `phased` alone), so equality with the contact clock
  * excludes it.
  *
- * What this still does **not** catch is the numerator being measured over a different span from the
- * denominator — the bug that produced 100.21% — because a clamped 100% satisfies every assertion here.
- * The synthetic pulls hold that: the two above for the overrun, and the two below for the choice of clock.
+ * **And the numerator is now published too, so the ratio itself is finally assertable here.** While only
+ * `scoredMs` was published this block could not catch a numerator measured over a different span from its
+ * denominator — the bug that produced 100.21% — because a clamped 100% satisfies a bound and an identity
+ * against the wrong figure. `contactUptimeMs` closes that: the two published halves must come to the
+ * published share exactly, and each pull's numerator is pinned to its own measured literal so that
+ * identity cannot be satisfied by both halves drifting together. The synthetic pulls above and below stay
+ * for what they still hold alone: the overrun, and the choice of clock.
  */
 const fx = (name: string): Analysis & ElementalAuditResult =>
 	analyse(
@@ -260,6 +279,44 @@ describe('the published denominator', () => {
 			expect(fs.scoredMs).toBe(unionMs(el.timeline?.contactSegments ?? []));
 		});
 	}
+});
+
+/**
+ * The numerator, published — and the two figures the tile prints are one ratio.
+ *
+ * Measured once and written down, because the identity on its own would hold just as well if both halves
+ * moved together. Each numerator is the dot on whichever spawn was being hit, clipped to contact; the
+ * gap to `uptimeMs` is the dot's time on an enemy the player was not hitting, plus dot outside contact.
+ * On `cleave` that gap is 45 896ms — 17% of the pull — which is the size of the mistake a reader was
+ * invited to make while the field was invisible.
+ *
+ * `unbroken`'s 100% is arithmetic and not the clamp: numerator and denominator are the same 181 775ms.
+ * That is worth an assertion of its own, because the one fixture whose dot never dropped is exactly the
+ * one where a clamped reading would look identical to a correct one.
+ */
+describe('the published numerator', () => {
+	const measured = {
+		phased: { contactUptimeMs: 202_842, scoredMs: 206_557, uptimeMs: 212_151 },
+		unbroken: { contactUptimeMs: 181_775, scoredMs: 181_775, uptimeMs: 182_846 },
+		cleave: { contactUptimeMs: 189_111, scoredMs: 261_572, uptimeMs: 235_007 },
+	} as const;
+
+	for (const [name, want] of Object.entries(measured)) {
+		it(`${name} publishes the figure behind its percentage`, () => {
+			const fs = fx(name).flameShock;
+			expect({ contactUptimeMs: fs.contactUptimeMs, scoredMs: fs.scoredMs, uptimeMs: fs.uptimeMs }).toEqual(want);
+			// The ratio, exactly — not to a tolerance. These are the only two fields it is a ratio of.
+			expect((fs.contactUptimeMs / fs.scoredMs) * 100).toBe(fs.uptimePct);
+			// And bounded by construction, which is what makes the clamp unreachable rather than unused.
+			expect(fs.contactUptimeMs).toBeLessThanOrEqual(fs.scoredMs);
+		});
+	}
+
+	it('reaches 100% on unbroken by arithmetic and not by clamp', () => {
+		const fs = fx('unbroken').flameShock;
+		expect(fs.uptimePct).toBe(100);
+		expect(fs.contactUptimeMs).toBe(fs.scoredMs);
+	});
 });
 
 // ---------------------------------------------------------------------------------------------------
