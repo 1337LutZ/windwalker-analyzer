@@ -674,7 +674,7 @@ const tierOf = (name: string, damaging: ReadonlySet<string>, onUseNames: Readonl
  * Each lane is still packed internally: two presses of the *same* ability can land close enough to
  * overlap at the wide end of the zoom ladder, and a lane that needs two sub-rows gets two.
  */
-interface CastLane {
+export interface CastLane {
 	id: number;
 	name: string;
 	casts: CastMark[];
@@ -850,7 +850,7 @@ function castNodesOf(
 }
 
 /** A cast lane and its marks, which travel together whether the lane keeps its row or joins an aura's. */
-interface CastRow {
+export interface CastRow {
 	lane: CastLane;
 	nodes: ReactNode;
 }
@@ -911,14 +911,36 @@ const appliedByCastOf = (registry: Registry): Map<number, string> => {
  * the consumables. That is one row's worth of movement for the button and it buys the aura rows
  * staying one list.
  */
-function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[], appliedByCast: Map<number, string>) {
+export function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[], appliedByCast: Map<number, string>) {
 	const lanesPerKey = new Map<string, number>();
 	for (const lane of lanes) lanesPerKey.set(lane.key, (lanesPerKey.get(lane.key) ?? 0) + 1);
+
+	/**
+	 * The lane a press shares a *name* with, for an aura no single button owns.
+	 *
+	 * `appliedBy` cannot answer for Bloodlust, and that is deliberate rather than an omission: the aura
+	 * is declared across five ids because the rotation only cares that raid haste is up, not which class
+	 * brought it (`shared.ts`, the `bloodlust` block). No one button applies it, so the model has nothing
+	 * to point `appliedBy` at — and the press and the window were drawn as two rows with one name.
+	 *
+	 * Matching on the name is what the summary timeline already does for every row it builds
+	 * (`LanesTimeline`'s `buildRows` keys its map by `lane.name`), so this makes the two charts agree
+	 * rather than inventing a rule. `null` marks a name two different keys claim, which must not merge —
+	 * the same caution `lanesPerKey` applies in the other direction.
+	 */
+	const keyByName = new Map<string, string | null>();
+	for (const lane of lanes) {
+		const seen = keyByName.get(lane.name);
+		if (seen === undefined) keyByName.set(lane.name, lane.key);
+		else if (seen !== lane.key) keyByName.set(lane.name, null);
+	}
 
 	const into = new Map<string, CastRow>();
 	const loose: CastRow[] = [];
 	for (const press of pressed) {
-		const key = appliedByCast.get(press.lane.id);
+		// The model's answer first, the name only when it has none: an `appliedBy` that disagrees with a
+		// shared name is the model being explicit, and it wins.
+		const key = appliedByCast.get(press.lane.id) ?? keyByName.get(press.lane.name) ?? undefined;
 		// `into.has` guards a loss rather than an impossibility: two cast lanes claiming one aura would
 		// overwrite each other, and the marks of whichever lost would leave the chart without a trace.
 		if (key !== undefined && lanesPerKey.get(key) === 1 && !into.has(key)) into.set(key, press);
