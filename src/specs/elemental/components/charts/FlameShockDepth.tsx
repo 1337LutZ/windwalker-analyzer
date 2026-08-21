@@ -116,7 +116,22 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 			 * application had already delivered every scheduled tick reads `intoLastTickMs` measured back from
 			 * a tick that landed before the application this bar is drawn for.
 			 */
-			const tailMs = Math.max(0, Math.min(elapsed, p.intoLastTickMs ?? 0));
+			const rawTailMs = Math.max(0, Math.min(elapsed, p.intoLastTickMs ?? 0));
+			/**
+			 * The tail, floored so a real one can be seen.
+			 *
+			 * A press taken a few milliseconds into its last tick has a genuine tail of a few milliseconds,
+			 * which on a 30-second axis is a fraction of a pixel — it draws as nothing, and the bar then reads
+			 * as though it never reached its last tick at all. That is the case this chart most needs to show,
+			 * because it is the one the old declared-duration band got wrong.
+			 *
+			 * `/ 400` is the sliver rule this codebase already uses for exactly this — `minimumSpan` in
+			 * `LanesTimeline`, "a span shorter than this is a sliver too thin to hover, so it is drawn at this
+			 * width". **The bar's total length is preserved**: the floor is taken out of the segment below it,
+			 * so only the split moves and never the end. The tooltip carries the true figure to the
+			 * millisecond, so nothing here is the only statement of it.
+			 */
+			const tailMs = rawTailMs > 0 ? Math.max(rawTailMs, flameShock.durationMs / 400) : 0;
 			const meta: TipContent = {
 				title: `Refresh ${String(i + 1).padStart(2, '0')}`,
 				tone,
