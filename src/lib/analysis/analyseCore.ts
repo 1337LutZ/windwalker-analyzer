@@ -309,6 +309,17 @@ export interface SpecConfig {
 
 /** How the target-count audit keys the "one enemy" reading. Same pair the debuff walk buckets on. */
 
+/**
+ * The shortest global the game will hand out: the cap haste is allowed to pull the GCD down to.
+ *
+ * One number, exported, because two things need it and a second copy is how two things come to
+ * disagree about one rule. `analyseCore` floors its measured `effectiveGcd` here — a median of observed
+ * gaps can only ever be at or above the floor — and `charts/castRows.ts` uses it as the ceiling on how
+ * much track one press icon may reserve, which is the only bound that makes "two presses a global apart
+ * share a row" true at every zoom rung.
+ */
+export const GCD_MIN_MS = 1000;
+
 /** The full analysis of one fight for one spec. */
 export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, spec: SpecConfig): Analysis {
 	// The thresholds the reader owns, clamped against the spec's own schema. Everything else here is
@@ -421,7 +432,6 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// is its cast time, so those pairs are excluded. Floored at the game's 1s minimum and capped at the
 	// spec's own GCD, so a fixed-GCD spec (Windwalker) keeps its declared value while a hasted one
 	// (Elemental) lands on what the log actually did.
-	const GCD_MIN_MS = 1000;
 	const onGcdStarts: Array<{ start: number; instant: boolean; duration: number }> = [];
 	for (const e of events) {
 		if (e.sourceID !== actor.id || !isCast(e)) continue;
