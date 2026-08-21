@@ -246,10 +246,11 @@ export const THRESHOLDS = {
 	/**
 	 * Share of Earth Shock presses the sim's rule wanted.
 	 *
-	 * The rule is a stack counter plus a clock: press when Lightning Shield is at the ceiling, the
-	 * Flame Shock dot has time to live, Ascendance is not about to demand the shock timer, and no
-	 * two-piece proc is up. A press that passes all four is the list's own call; a press that fails
-	 * one is a shock spent early.
+	 * The rule is two rules, and the tier-16 two-piece proc picks which one a press is judged against:
+	 * with the proc down, Lightning Shield at the ceiling, the Flame Shock dot above six seconds and
+	 * Ascendance not about to demand the shock timer; with the proc up, the shield at the ceiling, the
+	 * proc's debuff inside its last four seconds and the dot outliving two ticks. A press that passes its
+	 * own branch is the list's own call; a press that fails a condition of it is a shock spent early.
 	 */
 	earthShockGood: { good: 85, ok: 65, higherIsBetter: true },
 

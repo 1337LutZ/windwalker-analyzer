@@ -2124,7 +2124,24 @@ export interface FlameShockAudit {
 }
 
 /** Why an Earth Shock failed the sim's rule, in the order the section reads them. */
-export type EarthShockReason = 'belowFull' | 'fsLow' | 'ascReady' | 'twoPiece';
+/**
+ * Why the list did not want an Earth Shock press.
+ *
+ * `Earth Shock Rules` is an **or of two branches** and the tier-16 two-piece proc picks which one
+ * applies, so these do not all coexist on one press. With the proc down the branch asks for the shield
+ * at the ceiling, the dot above six seconds and Ascendance six seconds away (`belowFull`, `fsLow`,
+ * `ascReady`); with it up the branch asks for the shield at the ceiling, the proc's debuff inside its
+ * last four seconds and the dot outliving two ticks (`belowFull`, `twoPiece`, `fsTail`).
+ *
+ *   - `belowFull`  the shield was under its ceiling, so Fulmination was spent early. Either branch.
+ *   - `fsLow`      the dot had under six seconds, with no proc up. The proc-down branch only.
+ *   - `ascReady`   Ascendance was within six seconds of the shared shock timer. The proc-down branch only.
+ *   - `twoPiece`   a proc was up with **more than four seconds** left on its debuff, so the list wanted
+ *                  the shock held for its tail. The proc-up branch only.
+ *   - `fsTail`     a proc was up and the dot would not have outlived two of its own ticks. The proc-up
+ *                  branch's dot floor, which is two measured tick periods and not `fsLow`'s six seconds.
+ */
+export type EarthShockReason = 'belowFull' | 'fsLow' | 'ascReady' | 'twoPiece' | 'fsTail';
 
 /** One Earth Shock press, with everything the sim's rule reads, at the press. */
 export interface EarthShockPress {
@@ -2137,9 +2154,14 @@ export interface EarthShockPress {
 	ascReadyInSec: number;
 	/** Whether the tier-16 two-piece proc was up under the press. */
 	twoPiece: boolean;
-	/** Whether the sim's rule (stacks at the ceiling, dot up, Ascendance held, no two-piece) wanted it. */
+	/**
+	 * Whether either branch of the sim's rule wanted the press — see `EarthShockReason` for the two.
+	 *
+	 * A press inside a two-piece window is **not** automatically bad: the proc's own branch asks for the
+	 * shock in the debuff's last four seconds, which is the one thing this used to fault outright.
+	 */
 	good: boolean;
-	/** Which of the four conditions failed, in the order the section reads them; empty when good. */
+	/** Which conditions of the applicable branch failed, in the order the section reads them; empty when good. */
 	reasons: EarthShockReason[];
 }
 

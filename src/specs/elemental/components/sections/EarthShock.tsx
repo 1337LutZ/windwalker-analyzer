@@ -9,11 +9,17 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 /**
  * Earth Shock: the Lightning Shield spender, judged against the sim's own rule.
  *
- * The p5 list's Earth Shock rule wants the press only when four things line up — Lightning Shield at
- * the ceiling (a stack spent is a stack of Fulmination the shield must rebuild), the Flame Shock dot
- * has time to live, Ascendance is not about to demand the shared shock timer, and no tier-16
- * two-piece proc is up. A press that fails one of them is a shock spent early; the section reports
- * which.
+ * The p5 list's Earth Shock rule is an **or of two branches**, and the tier-16 two-piece proc decides
+ * which one a press is judged against. With the proc down it wants Lightning Shield at the ceiling (a
+ * stack spent is a stack of Fulmination the shield must rebuild), the Flame Shock dot above six seconds
+ * and Ascendance more than six seconds from demanding the shared shock timer. With the proc up it wants
+ * the shield at the ceiling, the proc's debuff inside its last four seconds, and the dot outliving two
+ * of its own ticks — Ascendance is not asked about at all.
+ *
+ * A press that fails a condition of *its* branch is a shock spent early; the section reports which. Note
+ * that the table is the fault ledger — a press the rule wanted has no row — so a shock taken correctly
+ * inside a two-piece window shows up here by its absence rather than by a marker, the same way every
+ * other correct press does.
  */
 export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;

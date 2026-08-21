@@ -171,6 +171,16 @@ const FLAME_SHOCK_DOT: Dot = {
 /** The sim's own thresholds, written where the audit reads them: rules 12, 13 and 18 of the p5 list. */
 const FS_ASC_PREP_MS = 16_000;
 /**
+ * How little of the two-piece debuff has to be left before the list wants the shock inside its window.
+ *
+ * `auraRemainingTime(CurrentTarget, 144999) <= 4s`, the third clause of the second branch of
+ * `Earth Shock Rules`. The debuff is Elemental Discharge (`sim/shaman/items_mop.go:107`) and 144999 is
+ * the id the game actually writes — 144998, which the same rule tests for *presence*, is the sim's
+ * `ExposeToAPL` handle for the same proc and never appears in a log. Both clauses are read off the one
+ * set of windows this audit can see, which is the 144999 debuff on the primary target.
+ */
+const ES_TWO_PIECE_TAIL_MS = 4000;
+/**
  * How much stronger a new Flame Shock application has to be for refreshing early to be the right press.
  *
  * The sim's own number, not a tolerance chosen here: `Flame Shock Rules` in
@@ -1652,13 +1662,41 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const fsRemaining = fsRemainingAt(t);
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
 		const twoPiece = inWindow(t, twoPieceWindows);
-		// The four conditions the sim's rule wants, and the reason each failure maps to — so the
-		// section can say *why* a shock went early instead of collapsing all four into one word.
+		/**
+		 * The sim's rule is an **or of two branches**, and which one applies is decided by the proc.
+		 *
+		 * `Earth Shock Rules` in `ui/shaman/elemental/apls/p5.apl.json` is `OR(A, B)` where A opens with
+		 * `NOT auraIsActive(144998)` and B opens with `auraIsActive(144998)` — the same proc, negated one
+		 * way and asserted the other. So exactly one branch is applicable to any press and this is a
+		 * branch rather than four independent conditions:
+		 *
+		 *   - **A, the proc down.** Shield at the ceiling, dot at least 6s, Ascendance at least 6s away.
+		 *   - **B, the proc up.** Shield at the ceiling, the proc's debuff inside its last four seconds,
+		 *     and the dot outliving **two ticks**. Ascendance is not asked about at all, and the dot floor
+		 *     is two of this press's own tick periods rather than a flat six seconds.
+		 *
+		 * Only A was implemented, with the proc's window pushed as a fault reason full stop — so a shock
+		 * fired exactly as B wants it was reported as a shock spent early. This can only ever excuse a
+		 * press: B drops one of A's conditions and loosens another, and `2 × tickMs` is at most the 6 000ms
+		 * `ES_FS_MIN_MS` (it reaches it only at zero haste, where `tickWindowAt` falls back to the unhasted
+		 * period).
+		 *
+		 * `dotTickFrequency` is the tick *period*, not a rate — `sim/core/apl_values_dot.go:191-194` returns
+		 * `dot.tickPeriod`, the value frozen at the application. So the floor is measured off this press's
+		 * own cadence, the same reading the Flame Shock refresh verdicts use, and not off the audit's median:
+		 * that median is wrong for any press outside the pull's dominant haste plateau.
+		 */
+		const esSpawn = spawnAt(t);
+		const tickMs = tickWindowAt(esSpawn === null ? [] : (fsTicks.get(esSpawn) ?? []), t, FLAME_SHOCK_DOT).cadenceMs;
 		const reasons: EarthShockReason[] = [];
 		if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
-		if (fsRemaining < ES_FS_MIN_MS) reasons.push('fsLow');
-		if (ascReadyInSec < ES_ASC_HOLD_SEC) reasons.push('ascReady');
-		if (twoPiece) reasons.push('twoPiece');
+		if (twoPiece) {
+			if (remainingIn(t, twoPieceWindows) > ES_TWO_PIECE_TAIL_MS) reasons.push('twoPiece');
+			if (fsRemaining < 2 * tickMs) reasons.push('fsTail');
+		} else {
+			if (fsRemaining < ES_FS_MIN_MS) reasons.push('fsLow');
+			if (ascReadyInSec < ES_ASC_HOLD_SEC) reasons.push('ascReady');
+		}
 		return {
 			t,
 			lsStacks: stacks,

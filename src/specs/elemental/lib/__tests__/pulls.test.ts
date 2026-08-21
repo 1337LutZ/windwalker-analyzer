@@ -506,11 +506,16 @@ describe('a multi-target pull', () => {
  *
  * Pinned per pull rather than as "greater than zero", because the failure mode was silence: a count that
  * has to match is the only kind that notices going quiet again.
+ *
+ * `unbroken` reads seven and not eight since the rule's second branch landed. Its press at 180 744 is
+ * inside a window's **last four seconds**, which is where that branch asks for the shock rather than
+ * forbidding it — so the window is no longer a reason against that one press. The other seven are 9 to 26
+ * seconds from their window's end and are still shocks taken too soon. See `earthShockTwoPiece.test.ts`.
  */
 describe('the T16 two-piece', () => {
 	for (const [name, windows, shocks] of [
 		['phased', 8, 4],
-		['unbroken', 5, 8],
+		['unbroken', 5, 7],
 		['cleave', 8, 4],
 	] as const) {
 		it(`${name} sees the debuff and reads it as an Earth Shock condition`, () => {

@@ -1311,10 +1311,10 @@
   },
   "earthShock": {
     "title": "Earth Shock",
-    "intent": "Earth Shock spends the Lightning Shield. Press it when the shield is full, the Flame Shock dot has time left, Ascendance is not about to need the shock, and no two-piece proc is up — anything else is a shock spent early.",
-    "verdict_good": "{{good, integer}} of {{casts, integer}} shocks lined up all four conditions.",
-    "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks lined up all four conditions; the rest went out early.",
-    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks lined up all four conditions — most were spent before they were right.",
+    "intent": "Earth Shock spends the Lightning Shield, and the priority list has two rules for it. With no tier-16 two-piece proc up: press when the shield is full, the Flame Shock dot has over six seconds and Ascendance is not about to need the shock timer. While a proc is up: hold the shock until the proc’s debuff is inside its last four seconds, then press it with the shield full and the dot outliving two ticks. A press inside a proc window is therefore not early by itself — only one taken too soon in it is.",
+    "verdict_good": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them.",
+    "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them; the rest went out early.",
+    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them — most were spent before they were right.",
     "verdict_none": "Earth Shock was never cast in this pull.",
     "kpi": {
       "good": "Good shocks",
@@ -1329,9 +1329,10 @@
       "belowFull": "Below 7 stacks",
       "fsLow": "Flame Shock under 6s",
       "ascReady": "Ascendance ready within 6s",
-      "twoPiece": "T16 2P Proc up"
+      "twoPiece": "T16 2P proc with over 4s left",
+      "fsTail": "Flame Shock under two ticks"
     },
-    "caption": "Every Earth Shock the sim's rule refused, and which of its four conditions failed",
+    "caption": "Every Earth Shock the sim's rule refused, and which of its conditions failed",
     "none": "Every Earth Shock matched the sim's rule.",
     "fulmination": "A stack spent early is a stack of the shield’s Fulmination the shield must rebuild before the next shock."
   },
