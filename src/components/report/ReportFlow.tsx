@@ -21,6 +21,7 @@ import { buttonClass, primaryButtonClass } from '../primitives/controls';
 
 import FetchProgress from './FetchProgress';
 import FightSelector from './FightSelector';
+import { resolvePlayerName } from './resolvePlayer';
 import PlayerSelector from './PlayerSelector';
 import ReportInput from './ReportInput';
 import ReportSkeleton from './ReportSkeleton';
@@ -145,11 +146,7 @@ export default function ReportFlow() {
 	// fresh array on every render while the query is in flight, so that effect woke on every render
 	// until the roster arrived — harmless only because a ref stops it from firing twice.
 	const roster = useMemo(() => players.data ?? [], [players.data]);
-	const playerName =
-		roster.find((player) => player.name === chosenPlayer)?.name ??
-		roster.find((player) => player.id === input?.sourceID)?.name ??
-		roster[0]?.name ??
-		null;
+	const playerName = resolvePlayerName(roster, chosenPlayer, input?.sourceID ?? null);
 
 	const {
 		analysis,
@@ -379,7 +376,11 @@ export default function ReportFlow() {
 							value={fightID}
 							onChange={(next) => {
 								setChosenFightID(next);
-								setChosenPlayer(null);
+								// The reader's choice deliberately survives a change of pull: swapping between
+								// encounters is how you follow one person through a night, and clearing it here
+								// sent every swap back to whoever happens to be first in the roster. It is safe to
+								// keep because `resolvePlayerName` falls through — a name this pull has nobody by
+								// is not selected, it is simply not found.
 								setFightJustChosen(true);
 							}}
 						/>
