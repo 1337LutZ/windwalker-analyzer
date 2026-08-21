@@ -1252,7 +1252,7 @@ export const LATE_MS = 3000;
 export const WW_SETTINGS: SettingSchema[] = [
 	{
 		key: 'snapshotLeewayMs',
-		tKey: 'settings.leeway',
+		tKey: 'settings.ww.leeway',
 		// One global — the rotation's own target is a brew inside the proc's final global. The floor is
 		// where there is no window left to react in, so below it the report would grade reflexes rather
 		// than play; the ceiling is `LATE_MS`, past which the two bands would overlap and every snapshot
@@ -1264,7 +1264,7 @@ export const WW_SETTINGS: SettingSchema[] = [
 	},
 	{
 		key: 'tigerPalmRefreshMs',
-		tKey: 'settings.tigerPalm',
+		tKey: 'settings.ww.tigerPalm',
 		// Two globals, one wider than the APL — see `TP_REFRESH_WINDOW_MS` above for why the departure
 		// is deliberate, with the APL's own value reachable at the floor. The ceiling is a quarter of
 		// Tiger Power's 20s: past it a press throws away more of the buff than it renews, and every clip
@@ -1276,7 +1276,7 @@ export const WW_SETTINGS: SettingSchema[] = [
 	},
 	{
 		key: 'cooldownLeewayMs',
-		tKey: 'settings.cooldown',
+		tKey: 'settings.ww.cooldown',
 		// A global and a half, and the whole of a wait is forgiven rather than a slice off a longer one.
 		// The floor is the one global this setting replaces — the press the player was already committed
 		// to when the button returned — and the ceiling is a quarter of Rising Sun Kick's 8s, the

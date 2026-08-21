@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { SPECS } from '~/lib/spec';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
@@ -93,5 +94,57 @@ describe('report copy', () => {
 		expect(t('snapshots.lastGcd', { count: 6 })).toContain('their procs');
 		expect(t('misses.summary', { count: 1 })).toContain('thing');
 		expect(t('misses.summary', { count: 30 })).toContain('things');
+	});
+});
+
+/**
+ * The settings panel, whose hints are shell copy and were leaking one spec's buttons into the other's.
+ *
+ * `settings.cooldown` is pointed at by both specs' schemas and its hint ended with "— Rising Sun Kick,
+ * Chi Wave, Xuen and the potion", so an Elemental reader was handed four Monk abilities as the examples
+ * of what their own leeway applies to. The shared sentence now stops at the claim that is true for
+ * both, and the examples live on each spec's own namespaced key.
+ *
+ * The foreign-name set is derived from `gameData`, not from a list written here: "which abilities are
+ * this spec's" is a fact about the game model, and a test that restated it would only be checking its
+ * own restatement.
+ */
+describe('settings copy', () => {
+	const tUi = i18n.getFixedT('en', 'ui');
+	const namesOf = (spec: (typeof SPECS)[number]) => new Set(spec.gameData.abilities.map((a) => a.name));
+
+	it('names no ability that belongs to another spec', () => {
+		const leaks: string[] = [];
+		for (const spec of SPECS) {
+			const own = namesOf(spec);
+			const foreign = SPECS.filter((other) => other.key !== spec.key)
+				.flatMap((other) => [...namesOf(other)])
+				.filter((name) => !own.has(name));
+			expect(foreign.length, `${spec.key}: nothing to leak — is a second spec registered?`).toBeGreaterThan(0);
+
+			for (const setting of spec.settings) {
+				// The same call `SettingsDialog` makes, interpolation included, so a name that reached the
+				// reader through a placeholder would be caught too.
+				const hint = tUi(`${setting.tKey}.hint`, {
+					min: setting.min,
+					max: setting.max,
+					default: setting.default,
+				});
+				for (const name of foreign) {
+					if (hint.includes(name)) leaks.push(`${spec.key} → ${setting.tKey}.hint names ${name}`);
+				}
+			}
+		}
+		expect(leaks, `settings copy naming another spec's buttons:\n${leaks.join('\n')}`).toEqual([]);
+	});
+
+	/**
+	 * And the leak was not closed by deleting the information: the Windwalker's own cooldown hint still
+	 * lists the buttons the leeway applies to, on the key only its own schema points at.
+	 */
+	it('keeps the Windwalker’s own examples on the Windwalker’s own key', () => {
+		const hint = tUi('settings.ww.cooldown.hint', { min: 1000, max: 2000, default: 1500 });
+		expect(hint).toContain('Rising Sun Kick');
+		expect(hint).toContain('Chi Wave');
 	});
 });

@@ -36,6 +36,32 @@ function literalKeys(source: string): string[] {
 }
 
 /**
+ * The settings panel's keys, which are computed and so invisible to `literalKeys`.
+ *
+ * `SettingsDialog` renders whatever schema the spec declares and reaches its copy through the
+ * entry's own ``t(`${s.tKey}.label`)`` — so the key that has to exist is a `tKey` value from a spec's
+ * schema joined to a suffix from the component. Neither half is a literal key anywhere, which is why
+ * renaming a `tKey` without moving the copy renders `settings.ww.leeway.label` at a reader with the
+ * whole suite green.
+ *
+ * Both halves are scanned rather than listed: a fourth suffix added to the dialog, or a threshold
+ * added to a spec, is checked by the fact of being written.
+ */
+function settingsKeys(sources: readonly string[]): string[] {
+	const roots = new Set<string>();
+	const suffixes = new Set<string>();
+	for (const source of sources) {
+		for (const match of source.matchAll(/\btKey:\s*'([a-zA-Z][\w.]*)'/g)) {
+			if (match[1] !== undefined) roots.add(match[1]);
+		}
+		for (const match of source.matchAll(/\$\{[\w.]*\btKey\}\.([a-zA-Z][\w.]*)`/g)) {
+			if (match[1] !== undefined) suffixes.add(match[1]);
+		}
+	}
+	return [...roots].flatMap((root) => [...suffixes].map((suffix) => `${root}.${suffix}`));
+}
+
+/**
  * Whether a key resolves in either namespace, in any of the forms i18next looks for at runtime.
  *
  * A key is legitimately stored only as its suffixed variants: `summary_one` / `summary_other` for a
@@ -112,5 +138,64 @@ describe('translation keys', () => {
 			}
 		}
 		expect(missing, `missing translation keys:\n${missing.join('\n')}`).toEqual([]);
+	});
+
+	it('every key the settings panel computes from a spec schema exists in the locale', () => {
+		const keys = settingsKeys(files.map((file) => readFileSync(file, 'utf8')));
+		expect(
+			keys.length,
+			'no `tKey` roots or no `${tKey}.…` suffixes found — has the settings panel changed?',
+		).toBeGreaterThan(10);
+		const missing = keys.filter((key) => !resolves(key, 'ui'));
+		expect(missing, `missing settings keys:\n${missing.join('\n')}`).toEqual([]);
+	});
+});
+
+/**
+ * The other direction: copy nothing reads.
+ *
+ * The suite above proves every key a component asks for exists. It says nothing about the reverse, and
+ * that gap shipped: `settings.ele.flameShock` sat in `ui.json` for the length of a migration after the
+ * setting it belonged to was retired, because the only thing that would have noticed was a human
+ * reading the file. Dead copy is not harmless — it is the thing a translator translates and the thing
+ * the next person copies when adding a fourth spec's threshold.
+ *
+ * **`ui` only, and that is the honest scope.** Every key in the shell namespace is reached one of two
+ * statically visible ways: a literal `t('steps.fight')`, or a spec schema's `tKey` joined to a suffix
+ * the settings dialog writes. `report` is not like that — it is reached through `verdict()`, through
+ * grade contexts and through `copyPrefix` templates — so an orphan hunt there would report most of the
+ * file as dead. The equivalent check for the prefixed families it does have is
+ * `copyPrefix.test.ts`'s third case.
+ */
+describe('shell copy with no reader', () => {
+	const UI = JSON.parse(readFileSync(join(SRC, 'locales/en/ui.json'), 'utf8')) as Record<string, unknown>;
+
+	/** Every leaf as a dotted path, with any `_context` / `_plural` suffix taken back off. */
+	function leaves(): string[] {
+		const out = new Set<string>();
+		const visit = (node: unknown, path: string) => {
+			if (typeof node !== 'object' || node === null) {
+				out.add(path.replace(/_[a-z]+$/, ''));
+				return;
+			}
+			for (const [key, value] of Object.entries(node)) visit(value, path === '' ? key : `${path}.${key}`);
+		};
+		visit(UI, '');
+		return [...out].sort();
+	}
+
+	it('carries no key nothing asks for', () => {
+		// `lib` and `layouts` as well, because a key is a key wherever it is asked for: the credits
+		// summary is built outside `components/`, and an orphan hunt that cannot see its reader would
+		// report live copy as dead.
+		const sources = walk(join(SRC, 'components'))
+			.concat(walk(join(SRC, 'hooks')), walk(join(SRC, 'specs')), walk(join(SRC, 'lib')), walk(join(SRC, 'layouts')))
+			.map((file) => readFileSync(file, 'utf8'));
+
+		const asked = new Set(sources.flatMap((source) => literalKeys(source)).concat(settingsKeys(sources)));
+		expect(asked.size, 'no keys found in the source — has the `t(...)` call shape changed?').toBeGreaterThan(20);
+
+		const orphans = leaves().filter((key) => !asked.has(key));
+		expect(orphans, `shell copy nothing reads:\n${orphans.join('\n')}`).toEqual([]);
 	});
 });
