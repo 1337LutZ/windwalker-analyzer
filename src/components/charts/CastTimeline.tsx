@@ -233,6 +233,78 @@ const NO_DEATHS: DeathMark[] = [];
 const NO_HASTE: AuraWindow[] = [];
 
 /**
+ * One phase change of the boss's own script, on the fight's clock — what the marker layer draws.
+ *
+ * Deliberately not `FightPhase`. That type is the wire shape: its `startTime` is *report*-relative,
+ * the same basis as `fight.startTime` and the odd one out on a chart where every other number is
+ * measured from the bell. Converting once, into a type whose field is named `at` like every other
+ * moment here, is what stops a report-relative millisecond being handed to `pct` — which would draw
+ * the marker some fifty minutes past the end of the pull and look like the phase data being wrong.
+ *
+ * `isIntermission` is not carried, and that is a measurement rather than an oversight: it is `false`
+ * on every phase in this expansion, including the Garrosh phase literally named "Intermission: Realm
+ * of Y'shaarj" (see `lib/wcl/phases`). A field that is constant cannot distinguish anything, so the
+ * marker does not pretend to read it.
+ */
+interface PhaseMark {
+	/** The phase's own 1-indexed number, which repeats when a pull re-enters a phase. */
+	id: number;
+	/** Fight-relative ms. */
+	at: number;
+	name: string | null;
+}
+/** Stable identity for a pull WarcraftLogs reports no phases for, which is 6 of the 14 in this zone. */
+const NO_PHASES: PhaseMark[] = [];
+
+/**
+ * The phase marker's height: exactly one row, and the request's own number.
+ *
+ * One row rather than a full-height rule on purpose. A phase boundary is a fact about the boss and
+ * not about any lane, so it has nothing to say all the way down the chart — and the three things that
+ * *do* run full height (Bloodlust, the intermission shading, a death) each mean the stretch they
+ * cover, which a boundary does not. Tied to `ROW_PX` because the point of 24px is that it is one
+ * row's worth of annotation and never covers a second.
+ */
+const PHASE_MARKER_PX = ROW_PX;
+
+/**
+ * The phase marker's line and its label, in semi-transparent white.
+ *
+ * **Not one of the tones in `charts/tones.ts`, and that is the whole colour decision.** Every one of
+ * those means something — `miss` is a fault, `brew`/`rune`/`kick` are mechanics, `lust` is the raid's
+ * haste — and a phase boundary is not a judgement about the player at all. It is the boss's script.
+ * The same argument put the exempt band on `track` rather than on a graded tone.
+ *
+ * **White through `ink` rather than through Tailwind's own `white`.** `--color-ink` *is* pure
+ * `#ffffff` — `styles/global.css` says so in as many words — so these are the requested colour to the
+ * bit, while staying inside the token layer the palette was validated in. Nothing in `src/components`
+ * names a colour Tailwind's default theme supplies, and this is not the place to be first: the note on
+ * the palette is that an addition judged by eye silently breaks the separation it was checked for.
+ *
+ * `track`, which the exempt band uses, is not available here for the reason `tones.ts` gives for
+ * preferring it *there*: it is a ground, dark enough to sit behind the rows. This is a hairline and
+ * ten-pixel text sitting on top of them, which is what a text token is for — the objection that
+ * retired `muted` was about painting a wide band in a reading colour, not about a mark.
+ *
+ * Semi-transparent because the marker sits over the resource bar at the top of the track, and a solid
+ * white rule there would read as a reading the bar took.
+ */
+const PHASE_LINE_CLASS = 'border-l border-ink/40';
+const PHASE_LABEL_CLASS =
+	'pointer-events-none absolute top-0 left-1 font-mono text-[10px] whitespace-nowrap text-ink/70';
+
+/**
+ * How wide the marker's hit box is — the line plus enough of a gutter to be hovered.
+ *
+ * The label cannot be the hit box. It is dropped whenever two transitions are too close to write
+ * both, and that is precisely the case where the reader needs the tooltip, so a box sized by its
+ * contents would lose the name exactly when the name became the only way to get it. A fixed 8px is
+ * the same trick the haste band plays with its transparent full-height box, at the size an
+ * annotation this small can afford to steal from the bar underneath.
+ */
+const PHASE_HIT_PX = 8;
+
+/**
  * The vertical name written inside a haste band, so a wash alone does not have to name itself.
  *
  * Rotated about its top-left and set just inside the band's left rule, so it reads top-to-bottom
@@ -1354,6 +1426,37 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		],
 	);
 
+	/**
+	 * The boss's phase changes, on the fight's own clock and with the pull's own transition dropped.
+	 *
+	 * Three things this does that a straight `map` would get wrong, all of them measured on real Siege
+	 * of Orgrimmar data rather than guessed at:
+	 *
+	 * - **The clock.** `FightPhase.startTime` is report-relative — the same basis as `fight.startTime`
+	 *   and nothing else on this chart — so every entry is rebased through `fightStartMs`. Without that
+	 *   basis there is no honest conversion available, so an analysis captured before the core carried
+	 *   one draws no markers rather than markers in the wrong place.
+	 * - **The pull.** The transition into the fight's first phase lands on `fight.startTime` exactly, so
+	 *   it rebases to zero. Every fight has it and a rule on the bell says nothing, so it goes. Dropped
+	 *   by its *time* and not by its position or its id: this is a transition log rather than a phase
+	 *   list, and a pull that comes back round to phase one — Iron Juggernaut does, seven seconds from
+	 *   the kill — has a second entry with `id: 1` that is a real boundary and must be drawn.
+	 * - **The order.** Kept as `resolveFightPhases` sorted it, by time, because the label rule below
+	 *   reads each marker's room off the next one and that is only the next marker if the list is in
+	 *   time order.
+	 */
+	const phases = useMemo<PhaseMark[]>(() => {
+		const transitions = analysis.timeline?.phases;
+		const fightStart = analysis.fightStartMs;
+		if (transitions === undefined || fightStart === undefined) return NO_PHASES;
+		return transitions.flatMap((phase) => {
+			const at = phase.startTime - fightStart;
+			// Outside the pull as well as on the bell: a transition at or past the end has nowhere to be
+			// drawn, and `pct` would put it off the right edge of the track.
+			return at <= 0 || at >= span ? [] : [{ id: phase.id, at, name: phase.name }];
+		});
+	}, [analysis.timeline?.phases, analysis.fightStartMs, span]);
+
 	const drag = useDragScroll();
 	const pxPerSec = ZOOM_LADDER[zoom] ?? ZOOM_LADDER[DEFAULT_ZOOM] ?? 24;
 	const stepMs = tickStepMs(pxPerSec);
@@ -1557,6 +1660,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// cancelled bar carries both.
 				const cast = mark.getAttribute('data-tip-cast');
 				const cancelled = mark.hasAttribute('data-tip-cancelled');
+				// When a phase began. Its own attribute rather than `at`, for the reason `landed` has one:
+				// `at` is labelled "Pressed", and the boss changing phase is not something anybody pressed.
+				const entered = mark.getAttribute('data-tip-entered');
 				if (at !== null)
 					rows.push([
 						t(
@@ -1568,6 +1674,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						),
 						at,
 					]);
+				if (entered !== null) rows.push([t('castLog.tip.entered'), entered]);
 				if (cast !== null) rows.push([t('castLog.tip.cast'), cast]);
 				// Directly under the moment, because it is the other half of the same sentence: this press,
 				// at this time, at that enemy.
@@ -1957,6 +2064,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				}),
 		intermissions.length > 0 ? t('castLog.intermission.note') : null,
 		deaths.length > 0 ? t('castLog.death.note') : null,
+		// The white rules along the top, which are the one annotation on this chart that comes from the
+		// encounter rather than from the player's own log — so nothing about them can be inferred from
+		// the marks around them. Two things the picture cannot say for itself: a rule with no name beside
+		// it had no room for one, and the same name can appear twice because a boss can re-enter a phase.
+		phases.length === 0 ? null : t('castLog.phase.note'),
 		// A row drawn as a meter instead of as a bar is a different convention from every other row, and
 		// one whose meter never fills needs saying out loud — otherwise the missing fifth charge reads as
 		// a gap in the chart rather than as the discharge it actually is. `rows` is already the drawn
@@ -2504,6 +2616,62 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								/>
 							);
 						})}
+						{/* The boss's phase changes, and last in the source of all — on top even of a death band.
+
+						    The paint order that comment above argues about ranks the full-height annotations by
+						    what a reader loses if one is covered, and this is not one of them: it is 24px at the
+						    very top and a few pixels wide, so being underneath does not make it quieter, it makes
+						    it invisible. It is the same call the haste band makes about its own edges — the fill
+						    washes out to 30% and the two rules that carry the moment stay at full strength,
+						    because a few pixels holding an instant cannot afford to be shaded by anything.
+
+						    One row tall rather than a rule down the chart, in white rather than in a tone: see
+						    `PHASE_MARKER_PX` and `PHASE_LINE_CLASS` for both arguments. The layer is inert and
+						    each marker is not, which is the same hit-test arrangement every other band here
+						    uses. */}
+						{phases.length === 0 ? null : (
+							<div className="pointer-events-none absolute inset-x-0 top-0" style={{ height: PHASE_MARKER_PX }}>
+								{phases.map((phase, i) => {
+									// A phase the report has no metadata for is still a boundary that happened, so it is
+									// named by its number rather than dropped. The number is the API's `id`, which the
+									// schema guarantees is the phase — unlike this array's index, which is the
+									// transition and counts re-entries.
+									const name = phase.name ?? t('castLog.phase.unnamed', { id: phase.id });
+									// How much room the label has: up to the next boundary, or to the end of the pull for
+									// the last one. `labelFits` then answers in pixels at the current zoom, which is the
+									// same rule an aura bar's variant is written by — so the collision is decided by
+									// what is actually on the screen rather than by a millisecond threshold that means
+									// something different on every rung of the ladder.
+									//
+									// **The rule is drop the label, keep the line.** Staggering was the alternative and
+									// it costs more than it buys: a second row of labels doubles the annotation's height
+									// over the resource bar, and it still fails at three close transitions rather than
+									// two. A line with no name is still an honest mark — the boundary is where the chart
+									// says it is — and the name is on the tooltip, which is where the aura bars already
+									// put the label they had no room to write.
+									const room = (phases[i + 1]?.at ?? span) - phase.at;
+									return (
+										<span
+											// Both, because the id repeats within a pull and only the pair is unique.
+											key={`${phase.id}-${phase.at}`}
+											title={`${t('castLog.phase.title')} · ${name} · ${formatStamp(phase.at)}`}
+											data-tip={name}
+											// `ink` rather than any of the coloured tones, for the reason the rule is white.
+											data-tip-tone="ink"
+											data-tip-entered={formatStamp(phase.at)}
+											style={{ left: pct(phase.at, span), width: PHASE_HIT_PX }}
+											className={`pointer-events-auto absolute inset-y-0 ${PHASE_LINE_CLASS}`}
+										>
+											{labelFits(name, room, pxPerSec) ? (
+												<span className={PHASE_LABEL_CLASS} style={{ lineHeight: `${PHASE_MARKER_PX}px` }}>
+													{name}
+												</span>
+											) : null}
+										</span>
+									);
+								})}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>

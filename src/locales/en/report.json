@@ -444,6 +444,7 @@
       "at": "Pressed",
       "swing": "Swung",
       "cancelledAt": "Cancelled at",
+      "entered": "Entered",
       "cast": "Cast for",
       "stat": "Converted into",
       "from": "Up",
@@ -492,6 +493,11 @@
     "intermission": {
       "title": "Intermission",
       "note": "The shaded stretches are intermissions — the boss was out of reach, so there was nothing to press anything at. The boss was unreachable during those stretches, and none of it counts against you."
+    },
+    "phase": {
+      "title": "Phase",
+      "unnamed": "Phase {{id}}",
+      "note": "The short white rules along the top are the boss’s own phase changes, as WarcraftLogs reports them — the fight’s script, not anything you did. The pull into the first phase is not marked, because every fight has one. A rule with no name beside it had no room for one, so hover it. And a boss can come back round to a phase it has already been in, which is why the same name can appear twice."
     },
     "death": {
       "title": "Death",

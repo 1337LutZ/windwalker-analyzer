@@ -8,7 +8,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import type { AuraWindow } from '~/lib/analysis/auras';
-import type { Analysis, AuraLane, CastMark, CastTimeline as Timeline } from '~/lib/types';
+import type { Analysis, AuraLane, CastMark, CastTimeline as Timeline, FightDataset } from '~/lib/types';
 
 import { formatClock, formatGap, formatStamp } from '~/lib/format';
 import i18n, { initI18n } from '~/lib/i18n/config';
@@ -1631,5 +1631,115 @@ describe('the tooltip markup', () => {
 	/** And a row without one is exactly what it was before, which is every row on every other chart. */
 	it('draws no icon for a row that carries none', () => {
 		expect(tip(theme, { title: 'Up', tone: 'kick', rows: [['Up', '0:10']] })).not.toContain('<img');
+	});
+});
+
+/**
+ * The boss's own phase changes, marked along the top of the track.
+ *
+ * Driven from the raw dataset through `analyse` rather than from a hand-built `Analysis`, because the
+ * two facts most likely to be got wrong are both about the *fetch* and not about the drawing: the
+ * transitions arrive on the report's clock rather than the fight's, and their ids are a transition log
+ * rather than a phase list. A fixture with `phaseTransitions` in it is the only thing that puts both
+ * in front of the component the way the API does.
+ *
+ * `dataset-ironJuggernaut.json` is the case, and it is one pull that carries every trap at once. Its
+ * three transitions are `1 → 3171410`, `2 → 3294896`, `1 → 3354895` against a fight that runs
+ * 3171410–3361719, so: the first lands exactly on the bell, the last is a *return* to phase one with
+ * the same id and the same name as the first, and it opens 6.8s from the kill — which at the default
+ * zoom is less room than its own name needs. An anonymous report, as every fixture here is.
+ */
+describe('CastTimeline, the boss’s phases', () => {
+	const dataset = JSON.parse(
+		readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/dataset-ironJuggernaut.json'), 'utf8'),
+	) as FightDataset;
+	// Through the spec's own definition rather than through a second import of its engine — the
+	// registry is the seam, and `WINDWALKER_SPEC` is already the spec this file renders against.
+	const pull = WINDWALKER_SPEC.analyse(dataset);
+	const html = render(pull);
+
+	/**
+	 * Written out rather than computed from the fixture, so both sides of the assertion cannot move
+	 * together. These are the two transitions rebased onto the fight's clock by hand — 3294896 and
+	 * 3354895 less the 3171410 the fight started at — and then their positions as a share of the
+	 * 190309ms pull. A marker still carrying the report's clock would be off the end of the track by a
+	 * factor of seventeen, and these numbers are what says so.
+	 */
+	const SIEGE_MODE = { stamp: '2:03.486', left: 'left:64.8871046561119%' };
+	const BACK_TO_ASSAULT = { stamp: '3:03.485', left: 'left:96.41425261022863%' };
+
+	it('marks each phase change on the fight’s own clock', () => {
+		expect(html).toContain(`data-tip-entered="${SIEGE_MODE.stamp}"`);
+		expect(html).toContain(SIEGE_MODE.left);
+		expect(html).toContain(`data-tip-entered="${BACK_TO_ASSAULT.stamp}"`);
+		expect(html).toContain(BACK_TO_ASSAULT.left);
+	});
+
+	/**
+	 * The pull is not a phase change worth marking, and dropping it must not cost the *other* entry
+	 * that shares its id. Two markers for three transitions is the whole claim.
+	 */
+	it('skips the transition at the bell and keeps the return to the same phase', () => {
+		expect((html.match(/data-tip-entered="/g) ?? []).length).toBe(2);
+		expect(html).not.toContain('data-tip-entered="0:00.000"');
+		// Both surviving markers name a phase, and the last one names the first phase again — which is
+		// what a transition log means and what an index into a phase list would have got wrong.
+		expect((html.match(/data-tip="Stage One: Assault Mode"/g) ?? []).length).toBe(1);
+		expect((html.match(/data-tip="Stage Two: Siege Mode"/g) ?? []).length).toBe(1);
+	});
+
+	/** A minute of clear track after it, so the name is written beside the line. */
+	it('writes the phase name beside the line when the next change is far enough off', () => {
+		expect(html).toContain('>Stage Two: Siege Mode</span>');
+	});
+
+	/**
+	 * And 6.8s of it for a 23-character name, which at 24px/s is 164px of room for 169px of label.
+	 * The rule is drop the label and keep the line — and keep the name reachable, which is the half
+	 * that makes dropping it honest rather than lossy.
+	 */
+	it('drops the label where the change is too close to the end to write it, and keeps the line', () => {
+		expect(html).not.toContain('>Stage One: Assault Mode</span>');
+		expect(html).toContain('data-tip="Stage One: Assault Mode"');
+		expect(html).toContain(BACK_TO_ASSAULT.left);
+	});
+
+	/** The sentence the picture cannot say: which rules these are, and why one of them has no name. */
+	it('says in the caption what the rules along the top are', () => {
+		expect(html).toContain('phase changes, as WarcraftLogs reports them');
+	});
+
+	/**
+	 * A transition whose id the report has no metadata for. Named by the id, which the schema says *is*
+	 * the phase number — the array position is the transition and is not.
+	 */
+	it('names a phase the report has no name for by its number', () => {
+		const unnamed: Analysis = {
+			...pull,
+			// `analyse` always fills the timeline in; the optionality on the type is for the fixtures
+			// captured before it existed, which this is not one of.
+			timeline: {
+				...pull.timeline!,
+				phases: [{ id: 4, startTime: 3294896, name: null, isIntermission: false }],
+			},
+		};
+		expect(render(unnamed)).toContain('>Phase 4</span>');
+	});
+
+	/** Six of the fourteen Siege encounters report none, so an absent list is the ordinary case. */
+	it('draws nothing for an encounter WarcraftLogs reports no phases for', () => {
+		expect(render(drawn)).not.toContain('data-tip-entered=');
+		expect(render(drawn)).not.toContain('phase changes, as WarcraftLogs reports them');
+	});
+
+	/**
+	 * And nothing at all without the fight's start time, rather than markers on the report's clock.
+	 * An analysis captured before the core carried one has no basis to rebase against, and a marker
+	 * drawn anyway would be off the end of the track.
+	 */
+	it('draws nothing when there is no fight start to rebase the transitions against', () => {
+		const older: Partial<Analysis> = { ...pull };
+		delete older.fightStartMs;
+		expect(render(older as Analysis)).not.toContain('data-tip-entered=');
 	});
 });

@@ -10,6 +10,11 @@
     "startTime": 3171410,
     "endTime": 3361719
   },
+  "phases": [
+    { "id": 1, "startTime": 3171410, "name": "Stage One: Assault Mode", "isIntermission": false },
+    { "id": 2, "startTime": 3294896, "name": "Stage Two: Siege Mode", "isIntermission": false },
+    { "id": 1, "startTime": 3354895, "name": "Stage One: Assault Mode", "isIntermission": false }
+  ],
   "actor": { "id": 17, "name": "Player (17)", "type": "Player" },
   "actors": [
     { "id": -1, "name": "Environment", "type": "NPC", "subType": "Boss", "petOwner": null },
