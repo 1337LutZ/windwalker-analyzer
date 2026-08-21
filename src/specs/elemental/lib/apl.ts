@@ -70,6 +70,8 @@ export type ELE_AplRuleKey =
 	| 'elemental-blast'
 	| 'earth-shock'
 	| 'searing-totem'
+	| 'lava-beam'
+	| 'chain-lightning'
 	| 'lightning-bolt';
 
 /** Cast ids, as the log records them and the cast table keys on them. */
@@ -81,6 +83,8 @@ const ID = {
 	earthShock: 8042,
 	searingTotem: 3599,
 	lightningBolt: 403,
+	chainLightning: 421,
+	lavaBeam: 114074,
 	ascendance: 114049,
 } as const;
 
@@ -200,6 +204,53 @@ export const LADDER: readonly ELE_AplRule[] = [
 		energyCost: 0,
 		condition: (_state, auras) => !auras.active('fire-elemental') && !auras.active('searing-totem'),
 	},
+	// The two multi-target fillers, and **they do not come from the p5 list** — that list is
+	// single-target and contains neither. `ui/shaman/elemental/apls/cleave.apl.json` ends
+	// `… → Chain Lightning (421) → Lightning Bolt (403)`, and `aoe.apl.json` ends
+	// `… → Lava Beam (114074) → Chain Lightning (421)`. So the order below is both files' order, and
+	// the band gates are what the two files *are*: rungs the single-target list omits are rungs that
+	// exist from two targets up.
+	//
+	// Without them the ladder priced every one of these presses as a fault it could not name. Measured
+	// on `cleave` before this: 70 Chain Lightning and 11 Lava Beam presses, all `skipped`, **81 of the
+	// pull's 126 skips.** A button with no rung can never be graded as correct, so the section was
+	// reporting 64% of its faults on the only add fight in the fixtures against buttons it did not know
+	// existed. The registry side of this was fixed in step 40 (`618169c`); the rotation side was not.
+	{
+		// Chain Lightning's replacement while Ascendance is up, not a priority above it:
+		// `sim/shaman/elemental/lava_beam.go` gates the spell itself on `ele.AscendanceAura.IsActive()`,
+		// so outside that window it is not on the bars at all.
+		//
+		// **`replacedBy` is the wrong tool for this**, which is worth saying because it looks like the
+		// right one. That field asks `seen.has(id)` — whether the player ever pressed the replacement —
+		// which models a talent or a glyph swapping a button permanently. Ascendance swaps this one for
+		// forty seconds at a time, so the relation is per-press and belongs in the conditions: this rung
+		// wants the window, and Chain Lightning's rung below refuses it.
+		//
+		// Measured on `cleave`: 11 presses, **11 of them inside an Ascendance window**, every one at
+		// band 4.
+		key: 'lava-beam',
+		id: ID.lavaBeam,
+		chiCost: 0,
+		energyCost: 0,
+		bands: [2, 3, 4],
+		condition: (_state, auras) => auras.active('ascendance'),
+	},
+	{
+		// Unconditional in the cleave list — the whole gate is the target count, which is the band.
+		//
+		// Measured on `cleave`: 70 presses at bands 1:8, 2:10, 3:12, 4:40. **The eight at band 1 stay
+		// faults, and that is the point** — a single-target Chain Lightning is a real mistake, and a
+		// rung that admitted it at every count would have replaced 81 unattributable faults with 81
+		// excuses. The one press the log places inside an Ascendance window is almost certainly the
+		// cast-finish timestamp of step 47 rather than a cast the game allowed.
+		key: 'chain-lightning',
+		id: ID.chainLightning,
+		chiCost: 0,
+		energyCost: 0,
+		bands: [2, 3, 4],
+		condition: (_state, auras) => !auras.active('ascendance'),
+	},
 	{
 		// 22 — the unconditional filler. Everything above it wanted nothing.
 		key: 'lightning-bolt',
@@ -262,5 +313,8 @@ export const ROTATION: readonly RotationEntry[] = [
 	{ key: 'fire-elemental', id: 2894, group: 'cooldown', onGcd: true },
 	{ key: 'searing-totem', id: 3599, group: 'filler', onGcd: true },
 	{ key: 'earth-elemental', id: 2062, group: 'cooldown', onGcd: true },
+	// From the cleave and aoe lists rather than p5, which has neither — see the ladder's own note.
+	{ key: 'lava-beam', id: 114074, group: 'filler', onGcd: true },
+	{ key: 'chain-lightning', id: 421, group: 'filler', onGcd: true },
 	{ key: 'lightning-bolt', id: 403, group: 'filler', onGcd: true },
 ];

@@ -986,6 +986,14 @@
         "name": "Earth Elemental",
         "condition": "Near the end — 62s or less remaining."
       },
+      "lava-beam": {
+        "name": "Lava Beam",
+        "condition": "From two targets up, while Ascendance is up — it replaces Chain Lightning."
+      },
+      "chain-lightning": {
+        "name": "Chain Lightning",
+        "condition": "From two targets up, outside Ascendance."
+      },
       "lightning-bolt": {
         "name": "Lightning Bolt",
         "condition": "Filler. Always available."
@@ -1128,6 +1136,8 @@
       "elemental-blast": "Elemental Blast",
       "earth-shock": "Earth Shock",
       "searing-totem": "Searing Totem",
+      "lava-beam": "Lava Beam",
+      "chain-lightning": "Chain Lightning",
       "lightning-bolt": "Lightning Bolt"
     },
     "reconstructed": "Nothing here is graded, and this is why. The conditions behind these judgements are read off the log’s auras and cooldowns, which are only stamped when an event happened to move them — close, but a press judged against a state that is off by a moment can be called a miss when it was not."
