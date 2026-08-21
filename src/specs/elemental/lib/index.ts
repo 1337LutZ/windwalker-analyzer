@@ -40,6 +40,7 @@ import {
 import { atCapWindows } from '~/lib/analysis/counters';
 import { dotTicksBySpawn, inLastTickWindow, tickWindowAt } from '~/lib/analysis/ticks';
 import { complementOf, intersect, mergeIntervals, overlapMs, unionMs, type Interval } from '~/lib/analysis/intervals';
+import { damageByTarget } from '~/lib/analysis/damage';
 import { median } from '~/lib/analysis/format';
 import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
 import { intervalsAtLeast, isJudgeableTarget, overlapPoints } from '~/lib/analysis/targets';
@@ -122,6 +123,21 @@ const FLAME_SHOCK_DURATION_MS = 30_000;
  * thrown away. Below this bar the report says nothing about the second dot either way.
  */
 const FS_SECOND_TARGET_LIFETIME_MS = 20_000;
+
+/**
+ * How many Flame Shock rows the timeline draws before the rest go to the picker.
+ *
+ * The Windwalker's `RSK_TARGET_LANES` and the same number, because it is the same judgement about the
+ * same chart: past half a dozen rows of one aura the enemies' block stops being read and starts being
+ * scrolled. The cap decides what is drawn *by default* and nothing else — the enemies past it are
+ * carried in `timeline.hiddenLanes` and counted in `timeline.hiddenTargets`, so the chart can offer
+ * them and can say how many it is not showing. A cap that dropped them would be the chart quietly
+ * disagreeing with the pull.
+ *
+ * Not a per-spec setting: it is a property of how tall a chart reads, not of how a pull is scored, and
+ * `lib/settings` is for the thresholds the analysis is *measured* with.
+ */
+const FS_TARGET_LANES = 6;
 
 /**
  * Flame Shock's tick schedule, and what replaced the reader's own refresh window.
@@ -841,6 +857,22 @@ interface DotWindows {
 	 * here beats converting per press.
 	 */
 	byInstance: ReadonlyMap<string, readonly Window[]>;
+	/**
+	 * Each **enemy id's** own windows — that id's spawns unioned — which is what a drawn row means.
+	 *
+	 * The third reading, and it is neither of the two above rather than a convenience over them. A row
+	 * labelled "Automated Shredder" is a claim about that enemy, so it wants the spawns of *one* id
+	 * merged and no others; `merged` has already thrown the ids away, and `byInstance` would give the
+	 * same add two indistinguishable rows. The Windwalker draws from exactly this reading and calls it
+	 * `rskByTarget`.
+	 *
+	 * Built in the walk rather than by splitting `instanceKey` back apart at the call site: the loop has
+	 * `targetID` in hand, and a caller that parsed `"470:-"` would be coupled to that helper's string
+	 * format from another module.
+	 *
+	 * **Nothing graded reads it.** It exists for the timeline's per-enemy rows.
+	 */
+	byTarget: ReadonlyMap<number, Interval[]>;
 	/** The union across every spawn of the enemy id. */
 	merged: Interval[];
 	/**
@@ -885,7 +917,7 @@ function dotWindowsOnTarget(
 	sourceID: number,
 	options: { openAtPull?: boolean } = {},
 ): DotWindows {
-	if (targetID === undefined) return { byInstance: new Map(), merged: [], inferredAtPull: false };
+	if (targetID === undefined) return { byInstance: new Map(), byTarget: new Map(), merged: [], inferredAtPull: false };
 	return dotWindowsBySpawn(events, aura, t0, fightEnd, sourceID, targetID, options);
 }
 
@@ -937,7 +969,9 @@ function dotWindowsBySpawn(
 	{ openAtPull = false }: { openAtPull?: boolean } = {},
 ): DotWindows {
 	const ids = new Set(aura.ids);
-	const buckets = new Map<string, WclEvent[]>();
+	// The spawn's events and the enemy id they landed on. The id is kept beside the bucket rather than
+	// read back out of the key, so `byTarget` below can group without anybody parsing `instanceKey`.
+	const buckets = new Map<string, { target: number; events: WclEvent[] }>();
 	for (const e of events) {
 		if (targetID !== undefined && e.targetID !== targetID) continue;
 		if (e.targetID === undefined) continue;
@@ -956,25 +990,33 @@ function dotWindowsBySpawn(
 		if (id === null || !ids.has(id) || !(isAuraEvent(e) || (openAtPull && isCast(e)))) continue;
 		const key = instanceKey(e.targetID, e.targetInstance);
 		const bucket = buckets.get(key);
-		if (bucket) bucket.push(e);
-		else buckets.set(key, [e]);
+		if (bucket) bucket.events.push(e);
+		else buckets.set(key, { target: e.targetID, events: [e] });
 	}
 	// Walked per spawn, kept per spawn, and merged across them: two copies of an add carrying the dot
 	// at once is the enemy covered, not twice covered, and `mergeIntervals` is what says so.
 	const byInstance = new Map<string, readonly Window[]>();
+	const perTarget = new Map<number, Interval[]>();
 	const all: Interval[] = [];
 	let inferredAtPull = false;
 	for (const [key, bucket] of buckets) {
-		const walked = auraWindows(bucket, aura, t0, fightEnd, { openOnRefresh: true, openAtPull });
+		const walked = auraWindows(bucket.events, aura, t0, fightEnd, { openOnRefresh: true, openAtPull });
 		if (walked.some((w) => w.preexisting === true)) inferredAtPull = true;
 		const spans = mergeIntervals(toIntervals(walked));
 		byInstance.set(
 			key,
 			spans.map(([start, end]) => ({ start, end })),
 		);
+		const gathered = perTarget.get(bucket.target);
+		if (gathered) gathered.push(...spans);
+		else perTarget.set(bucket.target, [...spans]);
 		all.push(...spans);
 	}
-	return { byInstance, merged: mergeIntervals(all), inferredAtPull };
+	// Merged per id for the same reason `merged` is merged across all of them: two copies of an add
+	// carrying the dot at once is the enemy covered, not twice covered.
+	const byTarget = new Map<number, Interval[]>();
+	for (const [id, spans] of perTarget) byTarget.set(id, mergeIntervals(spans));
+	return { byInstance, byTarget, merged: mergeIntervals(all), inferredAtPull };
 }
 
 /**
@@ -1264,7 +1306,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * what the drop ledger reads, and both are claims about the pull rather than about the share —
 	 * clipping them would put a seam in the drawn dot where the boss merely stopped being hit.
 	 */
-	const fsDotAnywhere = dotWindowsBySpawn(events, FS_DEBUFF, t0, fightEnd, actor.id).byInstance;
+	// One walk, two readings taken off it. `byInstance` is the graded numerator's, below; `byTarget` is
+	// the timeline's per-enemy rows, down in the timeline section — the same split `fsDot` above makes,
+	// one scope wider.
+	const fsAnywhere = dotWindowsBySpawn(events, FS_DEBUFF, t0, fightEnd, actor.id);
+	const fsDotAnywhere = fsAnywhere.byInstance;
 	const fsContactDotBySpawn = new Map<string, Interval[]>();
 	const fsDotOn = (key: string): Interval[] => {
 		const known = fsContactDotBySpawn.get(key);
@@ -1982,6 +2028,80 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		})),
 	});
 	/**
+	 * The Flame Shock dot again, one row per enemy that carried it — for drawing, and only for drawing.
+	 *
+	 * The chart has had the whole per-enemy apparatus all along — `perTargetBlock`, the enemy headings,
+	 * `collapseTargets`, the picker — and it groups on `AuraLane.target`. This file emitted no lane
+	 * carrying one, so an Elemental's Flame Shock drew as a single merged bar even on the `cleave`
+	 * fixture — a Siegecrafter Blackfuse pull whose stream carries 71 enemy spawns under six actor ids,
+	 * two of which really did carry the dot. A merged bar says "something out there had the dot", which
+	 * is the weaker claim `castLog.target.mergedNote` exists to warn about, and it was being offered as
+	 * if it were the only one available.
+	 *
+	 * **Nothing computed here reaches a number, and that is the constraint rather than a remark.**
+	 * `flameShock.uptimePct` is the contact clock's reading (`fsContactWindows` over `inContactMs`) and
+	 * it is measured a long way above this; the primary's row is `dotLaneWindows(FS_DEBUFF)` — the very
+	 * array the lane already drew — so the row the reader compares the figure against is unchanged, and
+	 * the enemies added beside it are rows the figure was never measured over. The three reference pulls
+	 * read 98.2015%, 100% and 72.2979% before this block existed and read the same after it.
+	 *
+	 * **Per enemy id, not per spawn**, even though `byTarget` is built out of the per-spawn walk.
+	 * `LaneTarget.id` is a report actor id and `CastTimeline` keys its rows `${lane.key}@${target.id}`,
+	 * so two spawns of one add would be two rows with one name, one id and one React key — reconciled
+	 * into each other. The union of an id's spawns is also what a row labelled with an enemy's name
+	 * honestly means, which is the argument `dotWindowsBySpawn` already makes for `merged`.
+	 *
+	 * What is decided here and nowhere else is *order and cut*. Ordered by the damage the enemy took
+	 * from this player — the same currency `primaryID` itself was chosen in — so the row order agrees
+	 * with the report's own answer to "which enemy was this pull about" rather than offering a second
+	 * one. Time up was the alternative and it ranks a dotted-and-abandoned add above the one the player
+	 * killed, because the dot runs its 30s either way.
+	 */
+	const fsTargets = (() => {
+		// The report's actor list is the only thing that can name an enemy — `enemyNPCs` carries ids and
+		// gameIDs and no names at all. An id it does not answer for stays null and the chart labels it as
+		// an unnamed enemy carrying that id, which is the truth; a lane named after the wrong add is
+		// worse than a lane named after none.
+		const named = (id: number): string | null => h.actors.find((a) => a.id === id)?.name ?? null;
+		const damageTaken = damageByTarget(h.damageEvents);
+		const others = [...fsAnywhere.byTarget]
+			.filter(([id]) => id !== primaryID)
+			.map(([id, spans]) => ({
+				id,
+				name: named(id),
+				damage: damageTaken.get(id) ?? 0,
+				windows: spans.map(([start, end]): Window => ({ start, end })),
+			}))
+			// An enemy whose only trace is a stray refresh has no window to draw, and an empty row costs
+			// a line to say that the add existed.
+			.filter((target) => target.windows.length > 0)
+			.sort((a, b) => b.damage - a.damage || (a.windows[0]?.start ?? 0) - (b.windows[0]?.start ?? 0));
+		const drawn = others.slice(0, Math.max(0, FS_TARGET_LANES - 1));
+		return {
+			targets: [
+				// The primary first, and its windows are `dotLaneWindows`' — the array this lane was already
+				// drawn from, inferred pre-pull window and all. Re-deriving it from `byTarget` would draw the
+				// boss's row from a different walk than the one the section's own provenance marking comes
+				// off (`openAtPull`), and `prepullLanes.test.ts` is a test of exactly that bar.
+				//
+				// `primaryName` rather than `named(primaryID)`: the report already has an answer for this
+				// enemy's name and the header prints it, so a second lookup could only disagree.
+				...(primaryID === undefined ? [] : [{ id: primaryID, name: primaryName, windows: dotLaneWindows(FS_DEBUFF) }]),
+				...drawn,
+			],
+			// The enemies past the cap, kept rather than counted and dropped: a reader who wants the
+			// seventh add can only be offered it if it survived this far. Same order the sort left them in,
+			// so `lanes` ++ `hiddenLanes` concatenates back into the full damage order.
+			rest: others.slice(drawn.length),
+			hidden: others.length - drawn.length,
+		};
+	})();
+	/** A per-enemy row, in the one shape both the drawn set and the remainder are built from. */
+	const targetLane = (target: { id: number; name: string | null; windows: Window[] }): AuraLane => ({
+		...lane(FS_DEBUFF, 'debuff', target.windows),
+		target: { id: target.id, name: target.name, primary: target.id === primaryID },
+	});
+	/**
 	 * **The §6 audit of this file's `auraWindows` calls, written down because the calls that did _not_
 	 * change are the more useful half.**
 	 *
@@ -2011,7 +2131,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * clock reading "before the pull" and by the caption that explains a bar with no press above it.
 	 */
 	const lanes: AuraLane[] = [
-		lane(FS_DEBUFF, 'debuff', dotLaneWindows(FS_DEBUFF)),
+		// One row per enemy that carried the dot, sharing the aura's key and separated by their target —
+		// the primary first, which is the row that used to stand for the whole pull on its own.
+		...fsTargets.targets.map(targetLane),
 		// The player's own Stormlash, not the raid's: the timeline is this player's story, and the raid
 		// view lives in the Stormlash section. The cast carries the window because the totem lasts a
 		// fixed ten seconds.
@@ -2062,6 +2184,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// taken, or the trinket was not worn. Dropped rather than drawn empty, so the timeline names only
 		// what actually happened.
 	].filter((l) => l.windows.length > 0);
+
+	// The enemies past the cap, in the same shape. Not in `lanes`, deliberately: that array is what the
+	// chart draws, and these are what it may be asked to draw instead.
+	const hiddenLanes: AuraLane[] = fsTargets.rest.map(targetLane);
 
 	// -------------------------------------------------------------- assembly
 	// The globals this audit found spent on a press that bought nothing: a Flame Shock refresh that
@@ -2149,7 +2275,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		aplForced,
 		misses: [...fsDropMisses, ...snapshotMisses, ...ascMisses, ...heldMisses],
 		cpm: { wastedGcds, channelSec: 0 },
-		timeline: { casts: marks, lanes },
+		timeline: { casts: marks, lanes, hiddenTargets: fsTargets.hidden, hiddenLanes },
 	};
 }
 
