@@ -395,6 +395,35 @@ function lostIn(windows: readonly Window[], regenPerSec: number | null): ShadeWi
 }
 
 /**
+ * The instant a mark is *drawn* at: the press's commit, not its landing.
+ *
+ * One function because three readers need the same answer and had two. `castNodesOf` has always drawn
+ * the icon and the cast bar from here — the press's moment is the start of the cast, and the bar that
+ * follows it is the cast — while `packCasts` reserved track from `t` and `gcdRulesPath` ruled at `t`,
+ * both of them the landing. One disagreement, two symptoms, and neither is a rounding difference on a
+ * spec with cast times:
+ *
+ * - The rule for a two-second Lightning Bolt stood two seconds to the right of its own icon.
+ * - The packer was not measuring the thing it was laying out. A completed cast lands at the same
+ *   instant the *next* press's cancelled begincast is logged, because a cancel's `t` **is** its
+ *   begincast — measured on `unbroken`, a landing at 156 530 against a cancel at 156 531, 1ms apart
+ *   and well inside an icon, so the lane grew a second row. Their commits are 1 522ms apart and never
+ *   collided. On the three Elemental pulls at the default zoom this was splitting Lightning Bolt,
+ *   Lava Burst, Chain Lightning and Lava Beam.
+ *
+ * **A cancel keeps its `t`, and that is the data rather than a special case.** A cancelled mark is
+ * built straight from the `begincast` no `cast` ever completed, so its `t` already is the commit — and
+ * its `castTimeMs` is the *median* of that button's completed casts, an estimate for drawing the bar
+ * the reader lost. Back-computing through it would move the press by a number no log ever measured.
+ *
+ * Derived rather than read off `CastMark.begin`, which names this instant and is the obvious source.
+ * `begin` is absent on exactly the mark that caused the bug, and absent again on any analysis stored
+ * before the field existed — where the icon is still drawn from `castTimeMs`. Computing what is drawn
+ * is what makes the three unable to disagree; it equals `begin` on every mark that carries one.
+ */
+const commitOf = (c: CastMark): number => (c.cancelled === true ? c.t : c.t - (c.castTimeMs ?? 0));
+
+/**
  * A vertical rule at every global the player actually spent, drawn as one SVG path.
  *
  * This replaced a gridline every 1000ms, which was a ruler pretending to be the rotation: a global is
@@ -402,6 +431,12 @@ function lostIn(windows: readonly Window[], regenPerSec: number | null): ShadeWi
  * lines up with nothing. These lines *are* the data — one per on-GCD press — so there is nothing to
  * round and nothing to misrepresent, and reading straight up a line answers the question the chart is
  * for: this press, and what was up when it went out.
+ *
+ * **At the commit, which is what "went out" means.** A rule used to be drawn at `c.t`, the landing,
+ * while the icon it belongs to has always been drawn at the commit — so a two-second Lightning Bolt
+ * put its own global two seconds to the right of its own icon, and reading straight up the line
+ * answered a question nobody asked. `commitOf` is the shared answer; a fourth reader of this instant
+ * should call it rather than write the arithmetic again.
  *
  * Off-GCD presses are left out. They occupy no global, so a line at one would claim a slot that was
  * never spent.
@@ -417,7 +452,7 @@ function gcdRulesPath(casts: readonly CastMark[], span: number): string {
 	for (const c of casts) {
 		if (!c.onGcd) continue;
 		// Per-mille of the pull, which is finer than any screen this is drawn on.
-		const x = ((c.t / span) * 1000).toFixed(3);
+		const x = ((commitOf(c) / span) * 1000).toFixed(3);
 		d += `M${x} 0V1`;
 	}
 	return d;
@@ -459,13 +494,25 @@ function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number
 	// The moment each row is free again, in fight time.
 	const freeAt: number[] = [];
 
-	// An icon starts at its moment and runs rightwards, so it occupies `[t, t + its own width]`, less
-	// the slack that keeps a hairline of overlap from splitting a lane in two.
+	// An icon starts at the commit and runs rightwards, so it occupies `[commit, commit + its own
+	// width]`, less the slack that keeps a hairline of overlap from splitting a lane in two.
 	const widthMs = Math.max(0, GCD_ICON_PX + ICON_GUTTER_PX - OVERLAP_TOLERANCE_PX) * msPerPx;
 	const gutterMs = 0;
 
-	for (const c of [...casts].sort((a, b) => a.t - b.t)) {
-		let row = freeAt.findIndex((free) => c.t >= free);
+	// **No minimum-global floor on top of this, and that is the point rather than an omission.** The
+	// game already enforces one — the next press cannot be committed until the global is up, so
+	// commit-to-commit spacing has the lower bound that landing-to-landing never had. Measured over the
+	// three Elemental pulls the closest pair of Lightning Bolt commits is 967ms against an icon
+	// covering 958ms at the default zoom, so the bound the log carries is the one that clears the
+	// icon. A floor here would be re-deriving that from a constant, and it would be wrong at the wide
+	// end of the ladder, where an icon covers two seconds of track and stacking is the honest answer.
+	//
+	// Sorted by the same instant it packs on: the greedy fit only holds if rows are visited in
+	// non-decreasing order of the key being compared, and a late-landing early-committed press would
+	// otherwise be visited out of order.
+	for (const c of [...casts].sort((a, b) => commitOf(a) - commitOf(b))) {
+		const at = commitOf(c);
+		let row = freeAt.findIndex((free) => at >= free);
 		if (row === -1) {
 			if (freeAt.length < MAX_CAST_ROWS) {
 				row = freeAt.length;
@@ -474,7 +521,7 @@ function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number
 				row = freeAt.reduce((best, free, i) => (free < (freeAt[best] ?? Infinity) ? i : best), 0);
 			}
 		}
-		freeAt[row] = c.t + widthMs + gutterMs;
+		freeAt[row] = at + widthMs + gutterMs;
 		rowOf.set(c, row);
 	}
 
@@ -648,8 +695,10 @@ function castNodesOf(
 		// follows it is the cast itself, ending where the spell launches.
 		const left = pct(c.t, span);
 		// The icon's left edge, which is the moment the press *began* for a cast-time spell — a cancel
-		// is already at its begincast, so its `t` is left as it is.
-		const iconLeft = pct(c.cancelled === true ? c.t : c.t - (c.castTimeMs ?? 0), span);
+		// is already at its begincast, so its `t` is left as it is. Through `commitOf`, which is the same
+		// instant `packCasts` reserves track from: the packer and the drawing have to agree or a lane
+		// splits over marks that are nowhere near each other.
+		const iconLeft = pct(commitOf(c), span);
 		// Rows run downwards from the top of the lane, each one an icon box tall. `top` is the row's
 		// centre and the mark is translated up by half itself, so it sits centred in its row rather
 		// than hanging from the top of it.

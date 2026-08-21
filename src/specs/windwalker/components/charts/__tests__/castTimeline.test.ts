@@ -1138,6 +1138,85 @@ describe('CastTimeline, the haste band drawn as a wash', () => {
 });
 
 /**
+ * Everything on this chart is positioned on the instant the press was **committed**.
+ *
+ * The icon always was; the GCD rule and the row packer were not, and both read `t` — the landing. On a
+ * spec of instants the three agree by accident, which is why this went unseen until the Elemental
+ * arrived with a two-second Lightning Bolt. Two symptoms of the one disagreement:
+ *
+ * - a rule two seconds to the right of the icon whose global it is, so reading straight up the line
+ *   answered a question nobody asked;
+ * - a lane split into two rows over marks that are nowhere near each other. A cancel's `t` *is* its
+ *   begincast, so the cancelled press that follows a completed one lands a millisecond from it on the
+ *   landing clock and a global and a half away on the commit clock. `unbroken` carries exactly that
+ *   pair at 156 530 and 156 531, and it was splitting Lightning Bolt, Lava Burst, Chain Lightning and
+ *   Lava Beam at the default zoom.
+ *
+ * Written against the rendered markup rather than against `commitOf`, which is not exported: the `d` of
+ * the rules path and the `left` of the icon are the two numbers that have to be the same, and a test
+ * that reads them off the SVG cannot pass while they differ.
+ */
+describe('CastTimeline, positioned on the commit and not the landing', () => {
+	const SPAN = drawn.durationMs;
+	/** Per-mille of the pull, which is how `gcdRulesPath` writes an x. */
+	const rule = (at: number) => `M${((at / SPAN) * 1000).toFixed(3)} 0V1`;
+	const left = (at: number) => `left:${(at / SPAN) * 100}%`;
+
+	/** Committed at 20s, two seconds of cast, landed at 22s. */
+	const bolt: CastMark = { t: 22000, begin: 20000, id: 403, name: 'Lightning Bolt', onGcd: true, castTimeMs: 2000 };
+	/** The next press, abandoned a millisecond after that one landed. Its `t` already is its begincast. */
+	const abandoned: CastMark = {
+		t: 22001,
+		id: 403,
+		name: 'Lightning Bolt',
+		onGcd: true,
+		castTimeMs: 1500,
+		cancelled: true,
+	};
+
+	const withPresses = (casts: CastMark[], cancels: CastMark[] = []): Analysis => ({
+		...drawn,
+		timeline: { ...timeline, casts, cancels, lanes: [] },
+	});
+
+	it('rules the global where the cast began, not where it landed', () => {
+		const html = render(withPresses([bolt]));
+		expect(html).toContain(rule(20000));
+		expect(html).not.toContain(rule(22000));
+		// And the icon is at the same instant, which is the claim the two halves of this share.
+		expect(html).toContain(left(20000));
+	});
+
+	/**
+	 * A cancel is not back-computed, and that is the data rather than a special case: the mark is built
+	 * from the `begincast` no `cast` completed, so its `t` is already the commit, and its `castTimeMs`
+	 * is the median of that button's completed casts — an estimate for the width of the bar the reader
+	 * lost. Subtracting it would move the press by a number no log measured.
+	 */
+	it('leaves a cancelled press at its own timestamp', () => {
+		// Drawn alongside the completed press, because a pull of nothing but cancels renders the empty
+		// state rather than a chart.
+		const html = render(withPresses([bolt], [abandoned]));
+		expect(html).toContain(left(22001));
+		expect(html).not.toContain(left(22001 - 1500));
+	});
+
+	/**
+	 * The row split. One press and one cancel a millisecond apart on the landing clock and 2 001ms apart
+	 * on the commit clock: one row, because an icon covers 958ms at the default zoom.
+	 *
+	 * Read off `top` and the lane's height rather than off a row count, because those are what a reader
+	 * sees — row 0 centres at 12px and row 1 at 36px, and a two-row lane is 48px tall.
+	 */
+	it('keeps a press and the cancel after it on one row', () => {
+		const html = render(withPresses([bolt], [abandoned]));
+		expect(html).toContain('top:12px');
+		expect(html).not.toContain('top:36px');
+		expect(html).not.toContain('height:48px');
+	});
+});
+
+/**
  * A stacking aura's row, drawn as a meter rather than as a bar.
  *
  * A stacking aura's *window* is the least interesting thing about it: Capacitance is up for most of a
