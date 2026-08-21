@@ -12,6 +12,12 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * Lava Surge makes one Lava Burst free, and Ascendance resets the cooldown — the ladder's `readyWhen`
  * is exactly those two. The section is about the one free cast that is invisible in a cast count: a
  * surge that expired with no Lava Burst inside was a free cast thrown away.
+ *
+ * **One table, and it is the ledger of what went wrong — not the log.** A per-press table used to sit
+ * under this one, naming every Lava Burst and which of the two resets paid for it. Nothing in it was
+ * ever a fault: a Lava Burst press is wanted at essentially every point in the priority list, so the
+ * table asked a reader to scan a column in which every row was fine. The same argument Earth Shock's
+ * table already carries ("the bad-shock ledger, not the log"), and the count survives as a tile.
  */
 export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
@@ -34,24 +40,6 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 					},
 				})),
 		[lavaBurst.procs, t],
-	);
-
-	const pressRows = useMemo<GridRow[]>(
-		() =>
-			[...lavaBurst.presses]
-				.sort((a, b) => a.t - b.t)
-				.map((press, i) => ({
-					key: `${press.t}-${i}`,
-					cells: {
-						at: formatClock(press.t),
-						state: press.surge
-							? t('lavaBurst.state.surge')
-							: press.ascendance
-								? t('lavaBurst.state.ascendance')
-								: t('lavaBurst.state.cooldown'),
-					},
-				})),
-		[lavaBurst.presses, t],
 	);
 
 	return (
@@ -80,18 +68,6 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 					]}
 					rows={procRows}
 					empty={t('lavaBurst.none')}
-				/>
-			</div>
-
-			<div className="mt-5">
-				<DataGrid
-					caption={t('lavaBurst.pressCaption')}
-					columns={[
-						{ key: 'at', label: t('lavaBurst.columns.at'), width: '96px' },
-						{ key: 'state', label: t('lavaBurst.columns.state') },
-					]}
-					rows={pressRows}
-					empty={t('lavaBurst.noPresses')}
 				/>
 			</div>
 

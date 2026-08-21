@@ -1537,16 +1537,10 @@
       "state": "what it was"
     },
     "state": {
-      "consumed": "Consumed",
-      "wasted": "Expired unused",
-      "surge": "Lava Surge",
-      "ascendance": "Ascendance reset",
-      "cooldown": "On cooldown"
+      "wasted": "Expired unused"
     },
-    "procCaption": "Every Lava Surge proc, and whether a Lava Burst consumed it before it expired",
-    "pressCaption": "Every Lava Burst press, and what made it free",
+    "procCaption": "The Lava Surge procs that expired with no Lava Burst inside them",
     "none": "Lava Surge never procced in this pull.",
-    "noPresses": "Lava Burst was never cast in this pull.",
     "note": "A surge is a free cast only while the dot is up — Lava Burst needs the Flame Shock dot to outlive its cast, which is why the ladder’s rule reads the dot rather than the proc alone."
   }
 }
