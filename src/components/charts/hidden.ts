@@ -15,10 +15,23 @@
 // rows and invite a future edit to one copy. It lived under `specs/windwalker/` while the chart did,
 // and its wording claimed to be about Windwalkers; it was misfiled rather than wrong.
 //
-// What is true today and worth saying rather than implying: only the Windwalker's game model declares
-// these two auras (`GEAR_PROCS` in `specs/windwalker/lib/index.ts`), so on an Elemental pull the table
-// matches nothing and filters nothing. It is inert there, not overreaching, and it would start
-// applying unchanged the day that spec models the same gear.
+// What is true today and worth saying rather than implying: **both auras are now shared**, declared in
+// `lib/game/shared.ts` and merged into every spec's model, so this table applies on an Elemental pull as
+// much as on a Windwalker one. It says nothing on either committed Elemental fixture only because no
+// shaman in them wore the gem or the cloak. This paragraph used to claim the two were the Windwalker's
+// own (`GEAR_PROCS` in `specs/windwalker/lib/index.ts`) and that the table was therefore inert
+// elsewhere; that stopped being true when the item effects moved to the shared model, and the promise it
+// made — "it would start applying unchanged the day that spec models the same gear" — has been kept.
+//
+// **Can these keys come from the game model instead?** (plan step 30, which flags them as one spec's
+// keys sitting in shared chart code.) Not yet, and the blocker is not this file. Both `Aura` and
+// `Ability` in `lib/game/model.ts` carry no field for "real, measured, and not worth a row", and
+// `SpecDefinition` carries no `hiddenAuras`/`hiddenCasts` either — so there is nowhere for the answer to
+// live except a table like this one. What the sweep *did* settle is that the three entries are real
+// (`capacitance` 137596, `flurry-of-xuen` 146194 and 137597 all have sim citations and all three fire on
+// the committed Windwalker fixture), and that a fourth belongs beside them: 141004, the hunter's
+// Lightning Strike. The shape the move would take is a `hidden?: true` on `Aura` plus the same on the
+// damage id's owner — both in files this lane does not own, so it is reported rather than done.
 //
 // **Hidden, not un-modelled.** Nothing here is removed from any spec or from the analysis. The auras
 // are still measured, the counters still built, and the damage still counted — Lightning Strike is
@@ -75,6 +88,13 @@ export const HIDDEN_CASTS: ReadonlySet<number> = new Set([
 	// the payoff marks off it. Its damage is untouched and stays in Damage by Ability, where it is a
 	// real 4–5% of the pull.
 	137597,
+	// **The same payout, on a hunter.** `metagems.go:48` is
+	// `ActionID{SpellID: core.TernaryInt32(isHunter, 141004, 137597)}` — one gem, one mechanic, two ids,
+	// chosen by class because the hunter's version is a ranged spell rather than a melee one. Nothing in
+	// this app declared the second id, so a hunter's chart would have drawn payoff marks that a monk's
+	// does not, off the same gem, for no reason a reader could see. It is a *class* split and not a
+	// judgement, which is why it is folded in here rather than argued about separately.
+	141004,
 ]);
 
 /** The lanes worth drawing, in the order they arrived. */

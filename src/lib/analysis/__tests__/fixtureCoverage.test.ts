@@ -170,39 +170,107 @@ describe('every aura a spec declares either fires in a committed fixture or is o
  * `fortifying-brew`, `dampen-harm` — because that spec has exactly one raw-event fixture and its monk
  * talented none of them. That is a statement about the fixture set, not about the model, and it is a
  * decent argument for a second Windwalker dataset.
+ *
+ * **The item sweep (plan §51a) grew both lists, and what it took *off* them is the finding.** Two
+ * entries left, and neither because anything was deleted:
+ *
+ *   `synapse-springs [96228]` is gone from the Elemental list because the tinker's buff logs a different
+ *   id per stat granted and only the agility one was declared. All three Elemental pulls press 126734 and
+ *   all three write **96230** (intellect), so the press had a lane and the buff window it opened had
+ *   none. It fires now.
+ *
+ *   `unerring-vision-stacks [138786]` still reads the same, and the entry behind it no longer says the
+ *   same thing: 138786 was never Unerring Vision's, and Unerring Vision has no counter for a key of this
+ *   name to mean. It is Wushoolay's Final Choice's proc window, whose ten-stack counter is the separate
+ *   `wushoolays-lightning-stacks [138788]` two lines down. The key is a misnomer held in place by one
+ *   reader; `lib/game/shared.ts` carries the whole of it, and the rename is one change across four
+ *   files rather than a declaration this file can fix.
+ *
+ * `jade-spirit`, `lightweave`, `essence-of-yulon` and `toxic-power` never reach this list on the
+ * Elemental side, and `dancing-steel` never reaches it on the Windwalker side: all five fire on a
+ * committed pull and none of them was declared before the sweep.
  */
 const SILENT_AURAS: Record<string, string[]> = {
 	elemental: [
+		'blades-of-renataki [138756]',
+		'blades-of-renataki-stacks [138737]',
 		'blood-fury [33697]',
 		'breath-of-hydra [138898]',
 		'capacitance [137596]',
 		'chayes [139133]',
+		'cloudburst [138856]',
+		'cruelty [146285]',
+		'cruelty-stacks [146293]',
+		'dancing-steel [120032]',
+		'dextrous [146308]',
 		'elemental-mastery [16166]',
+		'eye-of-brutality [139170]',
+		'feathers-of-fury [138759]',
+		'feathers-of-fury-stacks [138760]',
 		'ferocity [148896]',
 		'flurry-of-xuen [146194]',
+		'fortitude [137593]',
+		'juju-madness [138938]',
+		'lord-blastingtons [109085]',
 		'primal-elementalist [117013]',
+		'rampage [138870]',
 		're-origination [139117, 139120, 139121]',
-		'synapse-springs [96228]',
+		'restless-agility [146310]',
+		'rivers-song [116660]',
+		'spirit-of-chi-ji [146200]',
+		'swordguard-embroidery [125489]',
 		't15-4pc [138144]',
+		'tenacious [148899]',
+		'titanic-restoration [146314]',
 		'unerring-vision [138963]',
 		'unerring-vision-stacks [138786]',
 		'unleashed-fury [117012]',
 		'vicious [148903]',
+		'windsong [104423, 104509, 104510]',
 		'wrath-of-darkspear [146184]',
+		'wrath-of-darkspear-stacks [146202]',
+		'wushoolays-lightning-stacks [138788]',
 	],
 	windwalker: [
 		'berserking [26297]',
+		'blades-of-renataki [138756]',
+		'blades-of-renataki-stacks [138737]',
 		'blood-fury [33697]',
 		'breath-of-hydra [138898]',
 		'chayes [139133]',
+		'cloudburst [138856]',
+		'cruelty [146285]',
+		'cruelty-stacks [146293]',
 		'dampen-harm [122278]',
+		'dextrous [146308]',
+		'essence-of-yulon [146198]',
+		'expanded-mind [146046]',
+		'eye-of-brutality [139170]',
+		'feathers-of-fury [138759]',
+		'feathers-of-fury-stacks [138760]',
 		'ferocity [148896]',
 		'fortifying-brew [120954]',
+		'fortitude [137593]',
+		'jade-spirit [104993]',
+		'juju-madness [138938]',
+		'lightweave [125487]',
+		'lord-blastingtons [109085]',
+		'rampage [138870]',
+		'restless-agility [146310]',
+		'rivers-song [116660]',
 		'rushing-jade-wind [116847]',
+		'spirit-of-chi-ji [146200]',
 		'storm-earth-and-fire [137639]',
+		'swordguard-embroidery [125489]',
 		'tempus-repit [137590]',
+		'tenacious [148899]',
+		'titanic-restoration [146314]',
+		'toxic-power [148906]',
 		'unerring-vision [138963]',
 		'unerring-vision-stacks [138786]',
+		'windsong [104423, 104509, 104510]',
 		'wrath-of-darkspear [146184]',
+		'wrath-of-darkspear-stacks [146202]',
+		'wushoolays-lightning-stacks [138788]',
 	],
 };
