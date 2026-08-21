@@ -1979,7 +1979,8 @@ export type Analysis = AnalysisCore & SpecAuditResult;
  *   - `late`      it had lapsed with the player in contact for longer than the jitter floor. A fault.
  *   - `windowed`  refreshed inside the dot's **last tick window**, so the pending tick rolled over.
  *   - `ascPrep`   refreshed early on purpose, for the sim's Ascendance prep rule.
- *   - `early`     refreshed with more left than either rule wants. A fault.
+ *   - `snapshot`  refreshed early on purpose, because the new application snapshots a stronger dot.
+ *   - `early`     refreshed with more left than any of those rules wants. A fault.
  *
  * `windowed` used to mean "inside the reader's own `flameShockRefreshMs`", a fixed millisecond window
  * the reader owned. It now means what that number was standing in for: one tick period or less left, so
@@ -1987,12 +1988,12 @@ export type Analysis = AnalysisCore & SpecAuditResult;
  * ticks per press rather than declared — see `lib/analysis/ticks.ts` — because a dot in this expansion
  * is hasted on its ticks and not on its duration, so a pull has no one number.
  */
-export type FlameShockPressKind = 'apply' | 'reapply' | 'late' | 'windowed' | 'ascPrep' | 'early';
+export type FlameShockPressKind = 'apply' | 'reapply' | 'late' | 'windowed' | 'ascPrep' | 'snapshot' | 'early';
 
 export interface FlameShockPress {
 	/** When the press landed. */
 	t: number;
-	/** Which of the six the press was — see `FlameShockPressKind`. */
+	/** Which of the seven the press was — see `FlameShockPressKind`. */
 	kind: FlameShockPressKind;
 	/** The dot's remaining time at the press; null when the dot was down and this press applied one. */
 	remainingMs: number | null;
@@ -2017,6 +2018,32 @@ export interface FlameShockPress {
 	windowed: boolean;
 	/** Whether the press was the sim's Ascendance prep (rule 12): dot under 16s with Ascendance ready inside 2s. */
 	ascPrep: boolean;
+	/**
+	 * How much stronger the dot this press applied is than the one it replaced, as a ratio: `0.104` is a
+	 * new application worth 10.4% more. Negative when the press snapshotted a weaker dot.
+	 *
+	 * The sim's `Flame Shock Rules` value variable refreshes early when `dotPercentIncrease(8050) > 10%`
+	 * (`ui/shaman/elemental/apls/p5.apl.json`), and that is what this measures — **damage per millisecond
+	 * of dot**, cadence included, because Flame Shock snapshots its tick period as well as its damage. See
+	 * `DotSnapshot.strength` in `lib/analysis/ticks` for the sim citations and for the two committed presses
+	 * where reading tick damage instead of the combined form gives the opposite verdict.
+	 *
+	 * Read off `unmitigatedAmount`, which strips the crit roll and the target's damage-taken multipliers,
+	 * so no stat model is involved and nothing has to be reconstructed.
+	 *
+	 * **Null means the log could not say**, per press and not per pull: the application this press created
+	 * got fewer than three ticks before the fight ended, or there was no previous application to compare
+	 * against (an `apply`). A null press keeps the classification it would have had with no snapshot reading
+	 * at all — it is never credited on the strength of a measurement that was not taken.
+	 *
+	 * **Known looseness, stated rather than hidden.** The sim's rule is a conjunction: a talent, a
+	 * ten-stack Intellect proc, a second trigger proc, *and* the >10% delta. Only the delta is checked
+	 * here, because no committed fixture's shaman wore any of the six items involved — `snapshots` reads
+	 * `{ windows: 0, refreshed: 0, missed: 0 }` on all three — so requiring the proc window would credit
+	 * nothing at all and the fix would be untestable. So a lucky press reads the same as a read one, which
+	 * is the same looseness the `flameShockSnapshots` metric already lives with.
+	 */
+	snapshotDeltaPct: number | null;
 	/** Whether Ascendance was up under the press — a refresh thrown away while Lava Burst wanted the global. */
 	duringAscendance: boolean;
 }
@@ -2035,6 +2062,15 @@ export interface FlameShockAudit {
 	windowed: number;
 	/** Refreshes that were the sim's Ascendance prep — never "wasted". */
 	ascPrep: number;
+	/**
+	 * Refreshes that were early on purpose, because the new application snapshotted a dot more than 10%
+	 * stronger per millisecond — the sim's own `dotPercentIncrease(8050) > 10%`. Never "wasted" either.
+	 *
+	 * Counted only where `windowed` and `ascPrep` do not already excuse the press, so the three excuses
+	 * partition the refreshes rather than overlapping: a last-tick refresh needs no snapshot justification
+	 * and must not be credited twice. See `FlameShockPress.snapshotDeltaPct`.
+	 */
+	snapshotGain: number;
 	/**
 	 * The tick window the refreshes were read against, so the chart can draw the same band — the median
 	 * of the per-press `tickMs`, since a pull whose haste moved has no single one.

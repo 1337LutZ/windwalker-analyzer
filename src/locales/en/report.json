@@ -1058,7 +1058,7 @@
         },
         "flameShockWaste": {
           "label": "Stop overwriting the dot",
-          "fix": "{{value, percent}} of your Flame Shock refreshes bought nothing. Keep it under {{target, percent}} — those globals could have been Lightning Bolts."
+          "fix": "{{value, percent}} of your Flame Shock refreshes bought nothing — they were not in the dot’s last tick, not Ascendance prep, and did not snapshot a stronger dot. Keep it under {{target, percent}}; those globals could have been Lightning Bolts."
         },
         "flameShockMultiDot": {
           "label": "Dot the second target",
@@ -1259,12 +1259,12 @@
   "flameShock": {
     "title": "Flame Shock",
     "intent": "A thirty-second snapshot dot with no cooldown and no cast time. Its remaining time gates Lava Burst, and its refresh timing is what the snapshot section grades — so a dropped Flame Shock is not one global but a cascade.",
-    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and no refresh bought nothing.",
-    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes went out with the dot still healthy, buying nothing.",
-    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot was off the target for the rest of the time you had something to hit. {{wasted, integer}} refreshes also went out with it still healthy.",
+    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and every refresh bought something.",
+    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes clipped a healthy dot without a stronger snapshot to show for it.",
+    "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot was off the target for the rest of the time you had something to hit. {{wasted, integer}} refreshes also clipped a healthy dot with no stronger snapshot to show for it.",
     "verdict_good_full": "The dot was up for every second you had something to hit, across {{casts}} casts — a perfect keep-up.",
-    "verdict_ok_full": "The dot was up for every second you had something to hit, across {{casts}} casts. {{wasted, integer}} of the refreshes went out with it still healthy, buying nothing.",
-    "verdict_bad_full": "The dot was up for every second you had something to hit, across {{casts}} casts. The grade is about the refreshes, not the uptime: {{wasted, integer}} of them went out with the dot still healthy, spending a global for nothing.",
+    "verdict_ok_full": "The dot was up for every second you had something to hit, across {{casts}} casts. {{wasted, integer}} of the refreshes clipped a healthy dot without a stronger snapshot to show for it.",
+    "verdict_bad_full": "The dot was up for every second you had something to hit, across {{casts}} casts. The grade is about the refreshes, not the uptime: {{wasted, integer}} of them clipped a healthy dot with no stronger snapshot to show for it, spending a global for nothing.",
     "verdict_none": "Flame Shock was never cast in this pull.",
     "kpi": {
       "uptime": "Dot uptime",
@@ -1286,15 +1286,17 @@
       "duringAscendance": "Refresh during Ascendance",
       "ascPrep": "Ascendance prep",
       "windowed": "Last-tick refresh",
+      "snapshot": "Early, for a stronger dot",
       "early": "Early refresh"
     },
     "caption": "Every Flame Shock press, what the dot still had on it, and what the press bought",
     "none": "Flame Shock was never pressed in this pull.",
-    "snapshotNote": "The proc-window reapplies are graded in the Snapshots section; the count above is the keep-it-up half of the story only.",
+    "snapshotNote": "An early refresh is not automatically a mistake. The priority list wants one when the new application snapshots a dot more than 10% stronger per second — more spellpower, more crit, or a faster tick cadence — and those presses read “Early, for a stronger dot” above and are not counted as waste. Only the size of the gain is checked, not the proc that usually causes it, so a lucky press reads the same as a read one. The proc windows themselves are graded in the Snapshots section.",
     "chart": {
       "band": "last tick",
       "key": {
         "windowed": "In the last tick",
+        "snapshot": "Refreshed for a stronger dot",
         "wasted": "Clipped a healthy dot"
       },
       "label": "How much of the Flame Shock dot was left at each refresh, against the dot’s last tick",
@@ -1394,7 +1396,7 @@
     },
     "caption": "Every proc window the sim would have claimed a refresh in, and what opened it",
     "none": "No proc window was offered in this pull.",
-    "measurable": "The \"dot grew by 10%\" half of the sim’s rule cannot be read off a log; the intellect-proc requirement is its readable stand-in."
+    "measurable": "The \"dot grew by 10%\" half of the sim’s rule *is* readable off a log, and the Flame Shock section now reads it: every tick reports its damage before the crit roll and before the target’s own debuffs, so one application’s snapshot is a single number and the change across a refresh is that number over its tick period. What this section adds is the other half — which procs were on offer to be snapshotted in the first place."
   },
   "cooldowns": {
     "title": "Cooldowns",

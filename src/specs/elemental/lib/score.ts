@@ -70,12 +70,23 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 
 	const flameShockUptime = metric('flameShockUptime', flameShock.windows.length > 0 ? flameShock.uptimePct : null);
-	// The refreshes that bought nothing: neither the reader's own keep-it-up window nor the sim's
-	// Ascendance prep. Over the refreshes taken — never over the applies, which are the presses that
-	// were correct by construction (there was no dot to clip).
+	/**
+	 * The refreshes that bought nothing — none of the three reasons the list has to press the button
+	 * into a dot that is still running. Over the refreshes taken, never over the applies, which were
+	 * correct by construction (there was no dot to clip).
+	 *
+	 * **Not nullable, and that is the point.** A press the log cannot measure a snapshot delta for keeps
+	 * whatever kind it would have had without one, so it lands in `refreshes` and in none of the three
+	 * excuses — charged, which is the old verdict, rather than quietly forgiven. The unmeasurable case
+	 * is per press; there is no pull-level "cannot say" for this figure to carry, and `sharePct` already
+	 * returns null for the only pull that genuinely cannot answer, the one with no refreshes at all.
+	 */
 	const flameShockWaste = metric(
 		'flameShockWaste',
-		sharePct(flameShock.refreshes - flameShock.windowed - flameShock.ascPrep, flameShock.refreshes),
+		sharePct(
+			flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
+			flameShock.refreshes,
+		),
 	);
 
 	// The cleave preset's multi-dot rule: while two or more enemies are up, the dot should also sit on
@@ -217,9 +228,10 @@ export const THRESHOLDS = {
 	/**
 	 * Share of Flame Shock refreshes that bought nothing.
 	 *
-	 * A refresh is a fault only when it was neither the reader's keep-it-up window nor the sim's
-	 * Ascendance prep — the two reasons to press the button while the dot is already up. Everything
-	 * else clips a healthy dot for no gain. Lower is better.
+	 * A refresh is a fault only when it was none of the three reasons the list has to press the button
+	 * while the dot is already up: its last tick window, the Ascendance prep, or a new application worth
+	 * more than 10% more damage per millisecond of dot than the one it replaced. Everything else clips a
+	 * healthy dot for no gain. Lower is better.
 	 */
 	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false },
 

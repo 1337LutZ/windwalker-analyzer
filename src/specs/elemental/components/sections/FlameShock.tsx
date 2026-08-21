@@ -44,12 +44,14 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => {
 					/**
-					 * Three of the six press kinds are faults; three are not.
+					 * Three of the seven press kinds are faults; four are not.
 					 *
 					 * `late` (the dot dropped while the player was there), `early` (a healthy dot clipped) and a
 					 * refresh under Ascendance (a global the list wanted on Lava Burst) earn the band. An
 					 * `apply` is the opener and no decision at all; a `reapply` put the dot back up after the
-					 * fight took the target away or after sub-second jitter, which is not a mistake either.
+					 * fight took the target away or after sub-second jitter, which is not a mistake either; and
+					 * a `snapshot` refresh clipped the dot on purpose, for a new application worth more than
+					 * 10% more per second, which is the list's own reason to press early.
 					 *
 					 * This used to read `press.remainingMs === null`, which was all three down-states at once —
 					 * so a pull with one apply, six clean refreshes and 100% uptime had its opener banded as a
@@ -152,7 +154,9 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 						context,
 						uptime: flameShock.uptimePct,
 						casts: flameShock.applies + flameShock.refreshes,
-						wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep,
+						// The same subtraction `score.ts` makes for `flameShockWaste`, and it has to stay the same
+						// one: the sentence and the grade underneath it are about the identical set of presses.
+						wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
 					})}
 				</Prose>
 				<Note>{t('flameShock.snapshotNote')}</Note>

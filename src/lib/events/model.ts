@@ -122,7 +122,17 @@ export type DamageEvent = EventBase &
 		/** 1 = hit, 2 = crit; the miss, dodge and parry outcomes are the codes above it. */
 		hitType?: number;
 		mitigated?: number;
-		/** What the hit would have been before armour and absorbs. */
+		/**
+		 * What the hit would have been before armour and absorbs — and also before **the crit roll** and
+		 * before **the target's own damage-taken multipliers**.
+		 *
+		 * The last two are the load-bearing half and the old wording omitted them, which made the field look
+		 * like a smaller version of `amount` rather than a different quantity. It is the *attacker's* side of
+		 * the hit on its own, so it holds still across a dot application while `amount` moves with every crit
+		 * and every debuff the raid lands: `unbroken`'s 98 Flame Shock ticks take 6 distinct values here, one
+		 * per application, against 25 in `amount`. That is what lets a snapshot be read off a log with no stat
+		 * model at all — see `DotTick` in `lib/analysis/ticks`.
+		 */
 		unmitigatedAmount?: number;
 		absorbed?: number;
 	};

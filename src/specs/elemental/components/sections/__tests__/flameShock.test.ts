@@ -45,9 +45,17 @@ const unbroken: El = analyse(
 	JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/unbroken.json'), 'utf8')) as FightDataset,
 ) as El;
 
+/**
+ * The audit with the refresh ledger rewritten, and with the *whole* ledger rewritten.
+ *
+ * `snapshotGain` is zeroed unless a case sets it, because the verdict's `wasted` is
+ * `refreshes - windowed - ascPrep - snapshotGain` and this fixture's own `snapshotGain` is 2. A case
+ * that forces `windowed` without also clearing that would be describing a pull where eight of six
+ * refreshes were excused, and one of them below would print a negative count.
+ */
 const withFlameShock = (over: Partial<El['flameShock']>): El => ({
 	...unbroken,
-	flameShock: { ...unbroken.flameShock, ...over },
+	flameShock: { ...unbroken.flameShock, snapshotGain: 0, ...over },
 });
 
 const render = (analysis: Analysis) =>
@@ -113,7 +121,7 @@ describe('Flame Shock verdict', () => {
 	it('has its own wording for a middling refresh share on a perfect keep-up', () => {
 		const html = render(withFlameShock({ windowed: 5 }));
 		expect(html).toContain(t('flameShock.verdict', { context: 'ok_full', casts: CASTS, wasted: 1 }));
-		expect(html).toContain('1 of the refreshes went out with it still healthy');
+		expect(html).toContain('1 of the refreshes clipped a healthy dot without a stronger snapshot');
 	});
 
 	/**

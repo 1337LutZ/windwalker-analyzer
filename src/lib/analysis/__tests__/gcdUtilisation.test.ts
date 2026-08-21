@@ -74,18 +74,25 @@ describe('gcdUtilisationPct is measured against the contact clock', () => {
 	 * 90.81% before and 86.89% after, and the 10 254 ms of difference is double-counted occupancy the
 	 * summed numerator could not see: two presses closer together than one effective global occupy the
 	 * span between them once and were charged twice. A union of intervals charges it once.
+	 *
+	 * **87.32 since the Flame Shock snapshot rule landed, and the denominator did not move again.** The
+	 * numerator subtracts `wastedGcds * effectiveGcd`, and one of this pull's two early refreshes turned
+	 * out to snapshot a dot 42.7% stronger per millisecond — a press the priority list wants — so it is
+	 * no longer charged as a wasted global. One global's worth of occupancy came back, on both fixtures
+	 * below as well. Not a re-grade anywhere: the band is `good` at 80.
 	 */
 	it('drops the occupancy a sum double-counted, on the pull where the clocks agree', () => {
 		const el = analyseElemental(load(EL('cleave')));
 		expect(el.cpm.activeMs).toBe(261_572);
 		expect(contactMs(el)).toBe(261_572);
-		expect(pct(el.cpm.gcdUtilisationPct)).toBe(86.89);
+		expect(pct(el.cpm.gcdUtilisationPct)).toBe(87.32);
 	});
 
-	it('reads the single-target pull at 90.80', () => {
+	/** 90.80 until two of this pull's four early refreshes were found to be the list's own play. */
+	it('reads the single-target pull at 91.94', () => {
 		const el = analyseElemental(load(EL('unbroken')));
 		expect(contactMs(el)).toBe(181_775);
-		expect(pct(el.cpm.gcdUtilisationPct)).toBe(90.8);
+		expect(pct(el.cpm.gcdUtilisationPct)).toBe(91.94);
 	});
 
 	/** The other spec, on the same shared clock — this file's reason for not living under either. */
@@ -143,9 +150,11 @@ describe('the ratio cannot exceed 100%, by construction rather than by clamp', (
 	it('reads inside 100%, and gets there by arithmetic rather than by a clamp', () => {
 		expect(truncated.cpm.gcdUtilisationPct).toBeLessThanOrEqual(100);
 		// Not 100 exactly, which is the point: a clamp would have printed 100 and hidden the overflow. This
-		// is the real measurement — the presses inside the surviving minute cover 93.17% of it, and the
-		// three-and-a-half minutes of presses outside it are simply not in the numerator.
-		expect(pct(truncated.cpm.gcdUtilisationPct)).toBe(93.17);
+		// is the real measurement — the presses inside the surviving minute cover 95.10% of it, and the
+		// three-and-a-half minutes of presses outside it are simply not in the numerator. It read 93.17
+		// before the Flame Shock snapshot rule stopped charging this pull's refresh at 29 777 as waste;
+		// that press is inside the surviving minute, so its global comes back into this numerator too.
+		expect(pct(truncated.cpm.gcdUtilisationPct)).toBe(95.1);
 	});
 });
 

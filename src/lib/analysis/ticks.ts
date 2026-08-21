@@ -44,6 +44,7 @@ import type { WclEvent } from '~/lib/events';
 import { abilityIdOf, instanceKey, isDamage } from '~/lib/events/guards';
 import type { Aura, Dot } from '~/lib/game/model';
 
+import { median } from './format';
 import { lastIndexAtOrBefore } from './search';
 
 /** How many consecutive intervals a cadence is measured over, at most. */
@@ -68,19 +69,63 @@ export function dotTicksBySpawn(
 	t0: number,
 	sourceID: number,
 ): Map<string, number[]> {
-	const ids = new Set(aura.ids);
 	const out = new Map<string, number[]>();
+	for (const [key, ticks] of dotTickSnapshotsBySpawn(events, aura, t0, sourceID)) {
+		out.set(
+			key,
+			ticks.map((tick) => tick.t),
+		);
+	}
+	return out;
+}
+
+/** One periodic tick of a dot: when it landed, and the reading that identifies the application it came from. */
+export interface DotTick {
+	/** When it landed, in ms since `t0`. */
+	t: number;
+	/**
+	 * `unmitigatedAmount`: the tick stripped of armour, absorbs, **the crit roll** and **the target's own
+	 * damage-taken multipliers** — so it is the application's snapshot in isolation, with no stat model
+	 * behind it at all. Null only when the log omitted the field.
+	 *
+	 * `amount` cannot answer this question. It moves with every crit and with every damage-taken debuff
+	 * the raid puts on the target, so it changes tick to tick *inside a single application* — which is
+	 * exactly the thing a snapshot reading has to hold still. Measured across the three committed
+	 * Elemental fixtures: 346 Flame Shock ticks, none missing the field, and `unbroken`'s 98 ticks take
+	 * **6** distinct `unmitigatedAmount` values — one per application — against 25 distinct `amount`s.
+	 *
+	 * It carries a one-unit rounding wobble (13 529 against 13 530 inside one `cleave` application),
+	 * which is why every reading of it below is a median and never a mean.
+	 */
+	unmitigatedAmount: number | null;
+}
+
+/**
+ * Every periodic tick of one dot with the snapshot it carried, bucketed by the spawn that took it.
+ *
+ * Same stream and same bucketing as `dotTicksBySpawn`, which is built on this — see that function for
+ * why the key is a spawn and why `tick === true` is the filter.
+ */
+export function dotTickSnapshotsBySpawn(
+	events: readonly WclEvent[],
+	aura: Aura,
+	t0: number,
+	sourceID: number,
+): Map<string, DotTick[]> {
+	const ids = new Set(aura.ids);
+	const out = new Map<string, DotTick[]>();
 	for (const e of events) {
 		if (!isDamage(e) || e.tick !== true || e.sourceID !== sourceID) continue;
 		const id = abilityIdOf(e);
 		if (id === null || !ids.has(id)) continue;
 		if (e.targetID === undefined) continue;
 		const key = instanceKey(e.targetID, e.targetInstance);
+		const tick: DotTick = { t: e.timestamp - t0, unmitigatedAmount: e.unmitigatedAmount ?? null };
 		const bucket = out.get(key);
-		if (bucket) bucket.push(e.timestamp - t0);
-		else out.set(key, [e.timestamp - t0]);
+		if (bucket) bucket.push(tick);
+		else out.set(key, [tick]);
 	}
-	for (const bucket of out.values()) bucket.sort((a, b) => a - b);
+	for (const bucket of out.values()) bucket.sort((a, b) => a.t - b.t);
 	return out;
 }
 
@@ -160,6 +205,73 @@ export function inLastTickWindow(remainingMs: number, window: TickWindow, dot: D
 		);
 	}
 	return remainingMs > 0 && remainingMs <= window.cadenceMs;
+}
+
+/** What one application of a snapshotting dot froze at the instant it went up. */
+export interface DotSnapshot {
+	/** Its per-tick unmitigated amount: the median of the application's own ticks. */
+	tickAmount: number;
+	/** Its tick period in ms, measured off the application's own ticks. */
+	cadenceMs: number;
+	/**
+	 * `tickAmount / cadenceMs` — damage per **millisecond of dot**, and not the damage of a tick.
+	 *
+	 * That is the sim's own combined form, not a refinement of it. `dotPercentIncrease`
+	 * (`sim/core/apl_values_dot.go:338-347`) divides `ExpectedTickDamage` by the dot's tick period
+	 * (`sim/shaman/shocks.go:96-105`), because Flame Shock snapshots its **cadence** as well as its
+	 * damage — `AffectedByCastSpeed: true` at `sim/shaman/shocks.go:79-88`, with `dot.tickPeriod` frozen
+	 * at apply (`sim/core/dot.go:81-89`, `:122-146`). More haste at the application means more ticks
+	 * inside the same fixed 30s, so a faster application is a stronger one even at identical tick damage.
+	 *
+	 * The distinction flips verdicts rather than nudging them, measured on the committed fixtures:
+	 * `unbroken`'s refresh at 140.03s is **+1.9%** on tick damage and **+32.7%** per millisecond, and
+	 * `cleave`'s at 57.50s is **+29.7%** on tick damage and **−23.5%** per millisecond. Reading tick
+	 * damage would credit the second and pass over the first, and both answers would be wrong.
+	 */
+	strength: number;
+	/** How many of the application's ticks the reading is over. */
+	ticks: number;
+}
+
+/**
+ * The snapshot the application running in `(from, to]` froze, or null when the log cannot say.
+ *
+ * `from` and `to` are **presses**, not instants of interest, and that is what makes the reading clean:
+ * only one application of a dot can tick on one spawn between two presses at it, so every tick in the
+ * half-open segment belongs to the same application and the segment needs no other boundary detection.
+ *
+ * Two consequences of that, both deliberate:
+ *
+ *   - **The cadence is the plain mean of the segment's own intervals**, not the trimmed four-sample mean
+ *     `tickWindowAt` takes. That trim exists because a walk backwards from an arbitrary instant cannot
+ *     see a re-application boundary (see the note at the top of this file); a press-bounded segment
+ *     cannot contain one, so trimming here would only throw away accuracy. Reading `unbroken`'s
+ *     application at 28.63s: 1 728ms over all fifteen of its intervals against 1 704ms from the first
+ *     four trimmed, which is a 1.4% error in a ratio that decides a verdict.
+ *   - **Intervals longer than the unhasted period are still dropped.** They span an absence rather than
+ *     a tick — the target left, or the dot expired well before the next press — and haste can only ever
+ *     shorten a period, so nothing needs tuning to recognise one.
+ *
+ * Null rather than a guess when the segment carries fewer than `TICK_MIN_SAMPLE` intervals: one
+ * interval is a reading and not a measurement, the same floor the rest of this file holds. On the
+ * committed fixtures that is one press — `cleave`'s last, at 259.72s, whose application got a single
+ * tick before the fight ended. A caller must fall through to whatever it would have concluded without
+ * a snapshot reading rather than treat null as "no change".
+ */
+export function dotSnapshotIn(ticks: readonly DotTick[], from: number, to: number, dot: Dot): DotSnapshot | null {
+	const own = ticks.filter((tick) => tick.t > from && tick.t <= to);
+	const amounts = own.map((tick) => tick.unmitigatedAmount).filter((a): a is number => a !== null);
+	if (amounts.length === 0) return null;
+	const intervals: number[] = [];
+	for (let i = 1; i < own.length; i++) {
+		const gap = (own[i]?.t ?? 0) - (own[i - 1]?.t ?? 0);
+		if (gap > dot.tickMs) continue;
+		intervals.push(gap);
+	}
+	if (intervals.length < TICK_MIN_SAMPLE) return null;
+	const cadenceMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+	const tickAmount = median(amounts);
+	return { tickAmount, cadenceMs, strength: tickAmount / cadenceMs, ticks: own.length };
 }
 
 /** The sample with one copy of its largest entry removed. */

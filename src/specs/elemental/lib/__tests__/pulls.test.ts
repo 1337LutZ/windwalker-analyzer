@@ -304,17 +304,22 @@ describe('an unbroken pull', () => {
 	 * 2 842ms of dot left, against tick windows measured at 1 724, 1 726, 2 246, 1 715, 2 255 and
 	 * 1 724ms. Under the retired 3 000ms setting every one of the six cleared, because 3 000ms is wider
 	 * than any tick this pull ever had; against the tick they were actually aimed at, only the third and
-	 * fourth had a single tick left to roll over. A perfect keep-up with four globals spent early is a
-	 * real reading of this log, and it is the reading the priority list's own rule gives.
+	 * fourth had a single tick left to roll over.
+	 *
+	 * **Two of those four early presses then moved again, to `snapshot`.** The priority list refreshes
+	 * early when the new application snapshots a dot more than 10% stronger per millisecond, and these
+	 * two are +42.4% (28 628) and +32.7% (140 025) — see `flameShockSnapshot.test.ts` for the readings.
+	 * So this pull is a perfect keep-up with **two** globals genuinely spent early rather than four, and
+	 * the two that remain snapshotted a dot 52% and 41% *weaker*.
 	 */
 	it('reads the opener as an application, not a late refresh', () => {
 		expect(el.flameShock.presses.map((p) => p.kind)).toEqual([
 			'apply',
-			'early',
+			'snapshot',
 			'early',
 			'windowed',
 			'windowed',
-			'early',
+			'snapshot',
 			'early',
 		]);
 		expect(el.flameShock.presses[0]?.exposedMs).toBe(0);
@@ -430,12 +435,16 @@ describe('a multi-target pull', () => {
 	 * the denominator rather than by observing that three pulls happen to land under it.
 	 */
 	it('prices every global the player actually spent', () => {
-		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(86.89);
+		// 86.89 and three wasted globals until the snapshot rule cleared this pull's refresh at 29 777,
+		// which put a dot 42.7% stronger per millisecond up and is the press the list asks for. Two
+		// wasted globals left: the refresh at 57 499, which snapshotted 23.3% weaker, and one Searing
+		// Totem pressed over a healthy one.
+		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(87.32);
 		expect(+el.cpm.activePct.toFixed(2)).toBe(99.37);
 		expect(el.cpm.onGcdCasts).toBe(204);
 		expect(el.cpm.offGcdCasts).toBe(27);
 		expect(+el.cpm.totalCpm.toFixed(2)).toBe(46.79);
-		expect(el.cpm.wastedGcds).toBe(3);
+		expect(el.cpm.wastedGcds).toBe(2);
 	});
 
 	/** The two rows that were absent from the registry, on the pull that presses them. */

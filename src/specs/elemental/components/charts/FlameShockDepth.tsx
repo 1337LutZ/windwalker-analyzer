@@ -43,8 +43,15 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[]
 		.map((p, i) => {
 			const label = `${String(i + 1).padStart(2, '0')} · ${fmt(p.t)}`;
 			// A refresh during Ascendance is the one outright fault; an early refresh (a healthy dot
-			// clipped) is the amber; the last-tick refresh and the Ascendance prep are both the accent.
-			const tone: keyof ChartTheme = p.duringAscendance ? 'miss' : p.windowed || p.ascPrep ? 'kick' : 'brew';
+			// clipped) is the amber; the last-tick refresh, the Ascendance prep and a refresh that
+			// snapshotted a stronger dot are all the accent. That third one has to be here and not only in
+			// the ladder: the tone comes off the same predicate `flameShockWaste` does, so leaving it out
+			// would draw a press the section calls correct in the fault colour.
+			const tone: keyof ChartTheme = p.duringAscendance
+				? 'miss'
+				: p.windowed || p.ascPrep || p.kind === 'snapshot'
+					? 'kick'
+					: 'brew';
 			const elapsed = flameShock.durationMs - (p.remainingMs ?? 0);
 			return {
 				x: label,
@@ -64,13 +71,26 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[]
 						// its own 2 246ms tick, so the median is not merely imprecise here, it is the wrong
 						// number for that bar.
 						['last tick', `${sec(p.tickMs)}s`],
+						// The snapshot delta, on every refresh that has one rather than only on the credited ones.
+						// A reader looking at an amber bar wants to see *why* it did not clear the bar, and a
+						// figure that appears only when it is flattering is not evidence.
+						...(p.snapshotDeltaPct !== null
+							? [
+									['dot strength', `${p.snapshotDeltaPct > 0 ? '+' : ''}${r1(p.snapshotDeltaPct * 100)}%`] as [
+										string,
+										string,
+									],
+								]
+							: []),
 						p.duringAscendance
 							? (['reason', 'refresh during Ascendance'] as [string, string])
 							: p.ascPrep
 								? (['reason', 'Ascendance prep'] as [string, string])
 								: p.windowed
 									? (['reason', 'refreshed on the last tick'] as [string, string])
-									: (['reason', 'early refresh'] as [string, string]),
+									: p.kind === 'snapshot'
+										? (['reason', 'snapshotted a stronger dot'] as [string, string])
+										: (['reason', 'early refresh'] as [string, string]),
 					],
 				},
 			};
@@ -180,6 +200,12 @@ export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 			caption={
 				<>
 					<ChartKey tone="kick">{t('flameShock.chart.key.windowed')}</ChartKey>
+					{/*
+					 * Two keys in the same accent, on purpose. The colour means "this press was correct", and it
+					 * covers two unrelated reasons a press can be — the last tick window and a stronger snapshot.
+					 * Naming only the first left the second looking like an unexplained exception to the legend.
+					 */}
+					<ChartKey tone="kick">{t('flameShock.chart.key.snapshot')}</ChartKey>
 					<ChartKey tone="brew">{t('flameShock.chart.key.wasted')}</ChartKey>
 				</>
 			}

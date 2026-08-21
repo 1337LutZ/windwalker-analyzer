@@ -38,7 +38,13 @@ import {
 	uptimePct,
 } from '~/lib/analysis/auras';
 import { atCapWindows } from '~/lib/analysis/counters';
-import { dotTicksBySpawn, inLastTickWindow, tickWindowAt } from '~/lib/analysis/ticks';
+import {
+	dotSnapshotIn,
+	dotTickSnapshotsBySpawn,
+	dotTicksBySpawn,
+	inLastTickWindow,
+	tickWindowAt,
+} from '~/lib/analysis/ticks';
 import { complementOf, intersect, mergeIntervals, overlapMs, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { damageByTarget } from '~/lib/analysis/damage';
 import { median } from '~/lib/analysis/format';
@@ -164,6 +170,16 @@ const FLAME_SHOCK_DOT: Dot = {
 
 /** The sim's own thresholds, written where the audit reads them: rules 12, 13 and 18 of the p5 list. */
 const FS_ASC_PREP_MS = 16_000;
+/**
+ * How much stronger a new Flame Shock application has to be for refreshing early to be the right press.
+ *
+ * The sim's own number, not a tolerance chosen here: `Flame Shock Rules` in
+ * `ui/shaman/elemental/apls/p5.apl.json` gates the early refresh on `dotPercentIncrease(8050) > 10%`,
+ * and the literal `"10%"` appears twice in that variable with no 15% anywhere for this spell. Worth
+ * naming because the rule was reported to this project as 15%, and the report's own copy already said
+ * ten (`flameShockSnapshots.measurable`).
+ */
+const FS_SNAPSHOT_GAIN = 0.1;
 const ES_FS_MIN_MS = 6000;
 const ES_ASC_HOLD_SEC = 6;
 
@@ -1371,6 +1387,14 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * this player, so another shaman's dot on the same boss cannot lend its cadence to this one.
 	 */
 	const fsTicks = dotTicksBySpawn(events, FS_DEBUFF, t0, actor.id);
+	/**
+	 * The same ticks with the snapshot each one carried, for the strength a press bought.
+	 *
+	 * Bucketed per spawn for a second reason on top of the cadence one above, and this one is measured:
+	 * pooling `cleave`'s two spawns (470 and 478:1) puts the second add's ticks between the boss's and
+	 * reads the boss's cadence as 756ms. Every verdict downstream of that number would be an invention.
+	 */
+	const fsTickSnapshots = dotTickSnapshotsBySpawn(events, FS_DEBUFF, t0, actor.id);
 
 	/**
 	 * The spawn a Flame Shock press was **aimed at**, from the cast's own event.
@@ -1388,6 +1412,35 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * target reads consistently with its neighbours instead of dropping out of the audit.
 	 */
 	const fsAimedAt = new Map(castPresses(FLAME_SHOCK).map((press) => [press.t, press.spawn]));
+	// Declared here rather than beside `fsTickSnapshots`, which is where it belongs by subject: it closes
+	// over `fsAimedAt` and runs immediately, so above that line it is a TDZ `ReferenceError` at runtime
+	// that `tsc` cannot see — the same trap `fsAway` below and `fightEnd` earlier in this file fell into.
+	/**
+	 * The press before and the press after each press, on the spawn it was aimed at.
+	 *
+	 * A snapshot reading needs the application's own ticks and nothing else, and two presses at one spawn
+	 * are the only boundary that can isolate them — see `dotSnapshotIn`. Keyed by press time because
+	 * `fsCasts` is already the list of them and is already sorted.
+	 */
+	const fsPressBounds = new Map<number, { previous: number; next: number }>();
+	{
+		const bySpawn = new Map<string, number[]>();
+		for (const t of fsCasts) {
+			const spawn = fsAimedAt.get(t) ?? spawnAt(t);
+			if (spawn === null) continue;
+			const bucket = bySpawn.get(spawn);
+			if (bucket) bucket.push(t);
+			else bySpawn.set(spawn, [t]);
+		}
+		for (const presses of bySpawn.values()) {
+			presses.forEach((t, i) => {
+				// `-Infinity` and `Infinity` rather than nulls: the first press of a spawn has every earlier tick
+				// to compare against (there are none) and the last has every later one, which is what the open
+				// ends mean. `dotSnapshotIn` returns null on an empty segment, so the opener needs no special arm.
+				fsPressBounds.set(t, { previous: presses[i - 1] ?? -Infinity, next: presses[i + 1] ?? Infinity });
+			});
+		}
+	}
 	/**
 	 * The stretches the player was not in contact — the fight's own interruptions.
 	 *
@@ -1439,14 +1492,43 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const tickWindow = tickWindowAt(spawn === null ? [] : (fsTicks.get(spawn) ?? []), t, FLAME_SHOCK_DOT);
 		const windowed = inLastTickWindow(remaining, tickWindow, FLAME_SHOCK_DOT);
 		const ascPrep = remaining > 0 && remaining < FS_ASC_PREP_MS && ascReadyInSec <= 2;
+		/**
+		 * How much stronger the dot this press put up is than the one it replaced — the sim's own reason to
+		 * refresh early, and the third excuse a refresh can have.
+		 *
+		 * `Flame Shock Rules` in `ui/shaman/elemental/apls/p5.apl.json` refreshes early when
+		 * `dotPercentIncrease(8050) > 10%`. The literal `"10%"` appears twice in that variable and no 15%
+		 * exists anywhere for Flame Shock, which matters because the threshold was reported to this project
+		 * as 15 — `flameShockSnapshots.measurable` in the copy already said 10.
+		 *
+		 * Both halves of the ratio are read off the ticks of one application on one spawn, bounded by the
+		 * presses either side of it, and both are damage per millisecond of dot rather than per tick. See
+		 * `dotSnapshotIn` and `FlameShockPress.snapshotDeltaPct` for why each of those is load-bearing.
+		 *
+		 * Computed only for a refresh. On a press that put the dot back up there is no live application to
+		 * compare against — the previous one had already expired — so a ratio against it would be a number
+		 * about a dot that was not there.
+		 */
+		const bounds = fsPressBounds.get(t);
+		const spawnTicks = spawn === null ? [] : (fsTickSnapshots.get(spawn) ?? []);
+		const before = bounds ? dotSnapshotIn(spawnTicks, bounds.previous, t, FLAME_SHOCK_DOT) : null;
+		const after = bounds ? dotSnapshotIn(spawnTicks, t, bounds.next, FLAME_SHOCK_DOT) : null;
+		const snapshotDeltaPct =
+			remaining > 0 && before !== null && after !== null ? after.strength / before.strength - 1 : null;
+		const snapshotGain = snapshotDeltaPct !== null && snapshotDeltaPct > FS_SNAPSHOT_GAIN;
 		const exposed = remaining > 0 ? null : downBefore(spawn, t);
+		// `snapshot` sits *after* `windowed` and `ascPrep`, not before them. A last-tick refresh is already
+		// the best the global can buy and needs no second justification, and crediting one press under two
+		// excuses would subtract it twice out of `flameShockWaste`.
 		const kind: FlameShockPressKind =
 			remaining > 0
 				? windowed
 					? 'windowed'
 					: ascPrep
 						? 'ascPrep'
-						: 'early'
+						: snapshotGain
+							? 'snapshot'
+							: 'early'
 				: exposed === null
 					? 'apply'
 					: exposed > DROP_MS
@@ -1460,6 +1542,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			tickMs: tickWindow.cadenceMs,
 			windowed,
 			ascPrep,
+			snapshotDeltaPct,
 			// A refresh while Ascendance is up is a global thrown away — the list wants Lava Burst then.
 			duringAscendance: inWindow(t, ascActiveWindows),
 		};
@@ -2193,8 +2276,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// The globals this audit found spent on a press that bought nothing: a Flame Shock refresh that
 	// was neither the reader's keep-it-up window nor the sim's Ascendance prep, and every Searing
 	// Totem pressed over a healthy one.
+	// The three excuses have to be the same three the section, the chart and `flameShockWaste` use, or
+	// `gcdUtilisation` charges a global for a press the Flame Shock section calls correct.
 	const wastedGcds =
-		fsPresses.filter((p) => p.remainingMs !== null && !p.windowed && !p.ascPrep).length + stClipped.length;
+		fsPresses.filter((p) => p.remainingMs !== null && !p.windowed && !p.ascPrep && p.kind !== 'snapshot').length +
+		stClipped.length;
 
 	/**
 	 * One tick window for the whole pull, out of a rule that is per press.
@@ -2217,6 +2303,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			refreshes,
 			windowed: fsPresses.filter((p) => p.windowed).length,
 			ascPrep: fsPresses.filter((p) => p.ascPrep).length,
+			// Off the *kind* and not off the delta, which is what keeps the three excuses from overlapping:
+			// a press that was already `windowed` carries a delta too, and counting it here would subtract
+			// it from `flameShockWaste` twice.
+			snapshotGain: fsPresses.filter((p) => p.kind === 'snapshot').length,
 			tickMs: fsTickMs,
 			ticks: Math.round(FLAME_SHOCK_DURATION_MS / fsTickMs),
 			durationMs: FLAME_SHOCK_DURATION_MS,
