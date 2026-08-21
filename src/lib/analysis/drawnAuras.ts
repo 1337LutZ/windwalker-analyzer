@@ -119,3 +119,18 @@ export function staleExcuses(
 		.filter((key) => !fired.has(key))
 		.sort();
 }
+
+/**
+ * Ledger entries whose aura is now drawn after all, so the reason has been overtaken.
+ *
+ * The other direction of `staleExcuses`, and the one that bites during concurrent work: an entry
+ * reading "no timeline row yet" beside a lane that draws the row is worse than absent, because it tells
+ * the next reader not to look. Nothing else catches it — an excused key that is drawn satisfies
+ * `undrawnAuras` because the lane exists and satisfies `staleExcuses` because the aura still fires — so
+ * a lane landing under a ledger entry is silent in every other assertion here.
+ */
+export function redundantExcuses(excused: Readonly<Record<string, string>>, drawn: ReadonlySet<string>): string[] {
+	return Object.keys(excused)
+		.filter((key) => drawn.has(key))
+		.sort();
+}

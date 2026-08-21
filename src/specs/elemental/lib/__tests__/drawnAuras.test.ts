@@ -24,7 +24,14 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { aurasPutOnPlayer, drawnLaneKeys, selfAuraEvents, staleExcuses, undrawnAuras } from '~/lib/analysis/drawnAuras';
+import {
+	aurasPutOnPlayer,
+	drawnLaneKeys,
+	redundantExcuses,
+	selfAuraEvents,
+	staleExcuses,
+	undrawnAuras,
+} from '~/lib/analysis/drawnAuras';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse, registry } from '~/specs/elemental/lib';
 
@@ -163,7 +170,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		for (const name of FIXTURES) expect(firedOn(load(name)).get('blood-fury') ?? 0).toBe(0);
 	});
 
-	it('keeps the ledger honest — nothing excused that no longer fires', () => {
+	it('keeps the ledger honest — nothing excused that no longer fires, nothing excused that is drawn', () => {
 		// A reason for an aura that stopped appearing is a reason nobody will ever check. Asserted across
 		// the three pulls together, because a defensive is not pressed on every one.
 		expect(
@@ -172,5 +179,14 @@ describe('an aura that fired has somewhere to be drawn', () => {
 				FIXTURES.map((name) => firedOn(load(name))),
 			),
 		).toEqual([]);
+
+		// And the other direction, which is the one that bites here: `earth-elemental` is on this ledger
+		// saying it has no row *yet*, and gaining one is the change most likely to be made next. An entry
+		// that survives the lane it was excusing tells the next reader not to look, and nothing else in this
+		// file notices — a drawn key satisfies the sweep, and a firing key satisfies the check above. So when
+		// this fails naming `earth-elemental`, the lane landed and the entry above is what to delete.
+		for (const name of FIXTURES) {
+			expect(redundantExcuses(NOT_LANES, drawnOn(load(name))), `${name}`).toEqual([]);
+		}
 	});
 });

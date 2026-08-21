@@ -36,7 +36,14 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { aurasPutOnPlayer, drawnLaneKeys, selfAuraEvents, staleExcuses, undrawnAuras } from '~/lib/analysis/drawnAuras';
+import {
+	aurasPutOnPlayer,
+	drawnLaneKeys,
+	redundantExcuses,
+	selfAuraEvents,
+	staleExcuses,
+	undrawnAuras,
+} from '~/lib/analysis/drawnAuras';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse, registry } from '../index';
 
@@ -170,8 +177,12 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		expect(withHaste.length).toBe(5);
 	});
 
-	it('keeps the ledger honest — nothing excused that no longer fires', () => {
+	it('keeps the ledger honest — nothing excused that no longer fires, nothing excused that is drawn', () => {
 		// A reason for an aura that stopped appearing is a reason nobody will ever check again.
 		expect(staleExcuses(NOT_LANES, [putOnPlayer()])).toEqual([]);
+		// And an entry that outlives the lane it was excusing, which no other assertion here can see: a
+		// drawn key satisfies the sweep and a firing key satisfies the line above, so a row landing under a
+		// reason saying there is no row would be silent.
+		expect(redundantExcuses(NOT_LANES, drawnKeys())).toEqual([]);
 	});
 });
