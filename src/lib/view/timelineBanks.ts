@@ -20,7 +20,7 @@
 //   room for a curve. There the counter is a row of bars like any other, one per load, and the figure
 //   the spend threw away is written into the bar.
 
-import type { ResourceCurve } from '~/lib/types';
+import type { ResourceCurve, Window } from '~/lib/types';
 
 /**
  * The palette a bank draws in, named for what it means rather than for what it looks like — the
@@ -68,6 +68,26 @@ export interface TimelineBank {
 	 * the one figure worth reading, which is what a spend unloaded.
 	 */
 	labelSpendsOnly: boolean;
+	/**
+	 * The stretches that were a fault, shaded behind the curve in the fault tone.
+	 *
+	 * Beside `ceilingIsWaste` rather than folded into it, because the two answer different questions.
+	 * `ceilingIsWaste` asks the *chart* to derive the fault from the curve — every reading at the
+	 * ceiling — which is right for a bank whose ceiling is a loss by definition. This is the spec
+	 * handing over windows it worked out itself, which is the only way a fault with any judgement in it
+	 * can reach the drawing: Lightning Shield's overcap is time at seven *past the reader's own leeway*,
+	 * and a helper walking the curve has no leeway to apply. Without this the cast log could either
+	 * redden every stretch at the ceiling — contradicting the section beside it — or say nothing.
+	 *
+	 * A zero-length window is a fault that happened at an instant rather than over a stretch (a spend
+	 * below the ceiling), and is drawn as the thinnest mark the track can place. Same convention the
+	 * Lightning Shield section's own bands use, so the two drawings mark the same moments.
+	 *
+	 * `text` is a short note drawn at the window's left edge in the fault colour — what the fault cost,
+	 * where a number is what makes it legible. A mark an instant wide is invisible on a long pull without
+	 * one, which is the whole reason the section writes the level a bad spend threw away beside it.
+	 */
+	faultWindows?: ReadonlyArray<Window & { text?: string }>;
 }
 
 /**

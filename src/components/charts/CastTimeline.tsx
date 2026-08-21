@@ -49,8 +49,9 @@ import { readTheme, tip, type ChartTheme, type TipRow } from './apex';
 import ChartEmpty from './ChartEmpty';
 import { GCD_ICON_PX, commitOf, packCasts } from './castRows';
 import { DEFAULT_ZOOM, ZOOM_LADDER, tickStepMs, useDragScroll } from './scroll';
-import ResourceTrack, { type ShadeWindow } from './ResourceTrack';
+import ResourceTrack, { type Shade, type ShadeWindow } from './ResourceTrack';
 import { cappedOf, emptiedOf } from './capped';
+import { BAND } from './tones';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { HIDDEN_CASTS, drawnCastsOf, drawnLanesOf, hiddenNames } from './hidden';
 import { collapseTargets, perTargetBlock } from './targetLanes';
@@ -1275,6 +1276,31 @@ function chargeNodesOf(lane: AuraLane, stacks: LaneStacks, span: number) {
 			);
 		}),
 	];
+}
+
+/**
+ * What a bank shades behind its curve — the two ways a fault can reach the drawing, in the order they
+ * are painted.
+ *
+ * The ceiling first, where the bank says sitting at it is a loss, then whatever windows the spec worked
+ * out for itself. Two shades and not one merged list: they are different claims and they are keyed
+ * separately, so a bank that draws both has one rect per fault rather than a collision on the key.
+ *
+ * `undefined` for a bank with neither, rather than an empty array, so the track's own default applies
+ * and a spec with nothing to say cannot be told apart from one that said nothing.
+ */
+function bankShadesOf(bank: TimelineBank): Shade[] | undefined {
+	const shades: Shade[] = [];
+	if (bank.ceilingIsWaste) shades.push({ windows: cappedOf(bank.curve), className: 'fill-miss/25', label: 'capped' });
+	const faults = bank.faultWindows ?? [];
+	// The same band tone the section that argues this bank paints its faults in, rather than the wash
+	// above: the reader compares the two charts, and one claim drawn in two reds reads as two claims.
+	if (faults.length > 0) {
+		// `textClassName` and not the track's muted default: a fault's note is part of the fault, and the
+		// section that argues this bank writes the same number in the same red.
+		shades.push({ windows: faults, className: BAND.miss.fill, textClassName: BAND.miss.text, label: 'fault' });
+	}
+	return shades.length === 0 ? undefined : shades;
 }
 
 /**
@@ -2695,14 +2721,21 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 									// filler would otherwise carry a number per cast around the one worth reading.
 									labelDecreases={bank.labelSpendsOnly}
 									minLabelGapMs={labelGapMs}
-									// The ceiling shaded only where sitting at it is a loss. Whether it is belongs to
-									// the bank: a full brew bank is a proc that had nowhere to go, while a counter the
-									// rotation is trying to keep full has its own section to argue the overcap.
-									shades={
-										bank.ceilingIsWaste
-											? [{ windows: cappedOf(bank.curve), className: 'fill-miss/25', label: 'capped' }]
-											: undefined
-									}
+									// Two ways a bank's faults reach the drawing, and a bank uses whichever fits it.
+									//
+									// The ceiling is shaded only where sitting at it is a loss, and whether it is belongs
+									// to the bank: a full brew bank is a proc that had nowhere to go, while a counter the
+									// rotation is trying to keep full is doing its job at seven.
+									//
+									// A bank whose faults carry judgement hands the windows over instead — Lightning
+									// Shield's overcap is time at the ceiling past the reader's own leeway, which nothing
+									// walking the curve here could work out. Drawn in the band tone the Lightning Shield
+									// section paints its own faults in, because it is the same claim about the same pull
+									// and the reader is looking at the two charts one after the other.
+									//
+									// Both, when a bank declares both. Neither is a special case of the other and a bank
+									// with nothing to say gets no shade at all rather than an empty one.
+									shades={bankShadesOf(bank)}
 									label={t(`castLog.resourceAria.${bank.key}`, { max: bank.curve.max })}
 								/>
 							</div>

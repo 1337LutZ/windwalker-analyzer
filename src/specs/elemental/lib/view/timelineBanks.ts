@@ -50,10 +50,19 @@ const LIGHTNING_SHIELD = registry.aura('lightning-shield');
  * Only the spends are labelled. The gains are every Lightning Bolt, so numbering them would bury the
  * one figure worth reading, which is what an Earth Shock unloaded.
  *
- * The ceiling is deliberately *not* shaded, unlike the brew bank's. Sitting at seven is the state this
- * rotation is trying to be in, and what the Lightning Shield section actually faults is time at the
- * ceiling past the reader's own leeway (`lightningShieldOvercapMs`) — a figure the chart's shading
- * helper has no leeway for. Reddening every stretch at seven would contradict the section beside it.
+ * `ceilingIsWaste` stays false, and the faults are handed over instead. Sitting at seven is the state
+ * this rotation is trying to be in, so the chart's own helper — which reddens every reading at the
+ * ceiling — would fault the thing the rotation is for. What the Lightning Shield section faults is
+ * narrower and has judgement in it: time at the ceiling *past the reader's own leeway*
+ * (`lightningShieldOvercapMs`), the stretches the shield was off entirely, and the shocks that spent
+ * below full. Those three are already computed for that section's own chart, so they are passed
+ * through here rather than re-derived, and the two drawings cannot disagree about the pull.
+ *
+ * The bad spends arrive as zero-length windows carrying the level they unloaded, exactly as the section
+ * passes them, because a spend is an instant and not a stretch — and a mark an instant wide is invisible
+ * on a pull this long without a number beside it. `labelSpendsOnly` writes every drop's level on the
+ * curve already; this writes the bad ones again in the fault colour, which is what separates a shock
+ * taken at seven from one taken at four.
  *
  * No bank on a pull with no charge readings, and the absent-audit check is not paranoia about this
  * spec's own reports: a section rendered without a provider reads `SpecContext`'s fallback (see
@@ -76,6 +85,19 @@ export function timelineBanks(analysis: Analysis): TimelineBank[] {
 			underline: 'kick',
 			ceilingIsWaste: false,
 			labelSpendsOnly: true,
+			// `?? []` on the two window lists for the reason the absent-audit check above exists rather than
+			// out of caution: a stored `Analysis` predates whichever field was added after it was captured,
+			// and this file is handed those. `badSpends` predates neither, so it is read straight.
+			faultWindows: [
+				...(shield.downWindows ?? []),
+				...(shield.overcapWindows ?? []),
+				...shield.badSpends.map((spend) => ({
+					start: spend.t,
+					end: spend.t,
+					// `null` is the log not stamping a level on that press, and there is no number to write.
+					...(spend.stacks === null ? {} : { text: `${spend.stacks}` }),
+				})),
+			],
 		},
 	];
 }
