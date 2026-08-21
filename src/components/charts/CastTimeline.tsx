@@ -185,6 +185,59 @@ const GROUP_TONE: Record<Toggle, keyof ChartTheme> = {
 };
 
 /**
+ * The same four categories a third time, as the CSS value a hatch is striped in — see `HATCH`.
+ *
+ * A third table for the reason `GROUP_TONE` is a second one and `BANK_COLOR` in `tones.ts` a fourth:
+ * a `background-image` is an inline style rather than a class, so it needs the resolved token and not
+ * the Tailwind spelling. `VAR` in `tones.ts` is keyed by `Tone` and has no entry for `ink2`, so it
+ * cannot answer for a press row; this is keyed by the toggle, like the two tables above it.
+ */
+const GROUP_VAR: Record<Toggle, string> = {
+	casts: 'var(--color-ink-2)',
+	buff: 'var(--color-brew)',
+	proc: 'var(--color-rune)',
+	debuff: 'var(--color-kick)',
+};
+
+/**
+ * The fill of a bar that is **entirely** an inference: stripes of the lane's own tone over the rail.
+ *
+ * Only a rung-3 window gets it — `preexisting` *and* `truncated`, which `auraWindows` explains is the
+ * mark of a window the log never carried an event for at either end. Its evidence is the pull's
+ * `combatantinfo` snapshot and nothing else, which is the weakest thing in the report, and a solid bar
+ * says the same as one whose apply and removal are both in the log. A rung-2 bar keeps the solid fill:
+ * its removal is a real event, so `[0, removal]` is time the aura provably held and only its left edge
+ * is inferred — the tooltip's clock is the right place for that, and is where it already goes.
+ *
+ * **Stripes and not an alpha**, which is the rule `--color-band-*` in `styles/global.css` was written
+ * to hold: a translucent fill takes its colour partly from whatever is under it, and under a lane bar
+ * is the plot's surface in one place and a haste wash in another, so one alpha would draw two colours.
+ * Both stops here are opaque. The gaps are `--color-track`, already documented in `tones.ts` as the one
+ * tone that is not a judgement — a fainter tint of the lane's own colour would read as a weaker version
+ * of the mechanic, which is a claim about the pull rather than about the evidence.
+ *
+ * Measured rather than eyeballed, at the current palette, per group and for both specs' primaries
+ * (`kick` is derived from the spec's colour, the other two are fixed):
+ *
+ * | group  | tone            | stripe : gap    | stripe : surface | gap : surface |
+ * | ---    | ---             | ---             | ---              | ---           |
+ * | buff   | `#fbbf24`       | 7.33            | 9.59 / 10.41     | 1.31 / 1.42   |
+ * | proc   | `#a78bfa`       | 4.50            | 5.88 / 6.39      | 1.31 / 1.42   |
+ * | debuff | `kick`, derived | 10.06 / 4.53    | 13.16 / 6.44     | 1.31 / 1.42   |
+ *
+ * Two figures where they differ: Windwalker then Elemental. The load-bearing one is the first column —
+ * the stripe against its own gap, worst case 4.50:1 — because that is what makes the bar read as
+ * hatched rather than as a solid bar in a slightly odd colour. The third says a hatched bar is still
+ * plainly a bar: the gaps sit lighter than the plot behind them, so the window's extent survives.
+ *
+ * 3px on 6px at 135°, which is the smallest period that still resolves two stripes inside the 2px
+ * minimum width a bar can be drawn at.
+ */
+const HATCH_PERIOD_PX = 3;
+const hatchOf = (group: Toggle): string =>
+	`repeating-linear-gradient(135deg, ${GROUP_VAR[group]} 0 ${HATCH_PERIOD_PX}px, var(--color-track) ${HATCH_PERIOD_PX}px ${HATCH_PERIOD_PX * 2}px)`;
+
+/**
  * The two literal spellings of a bank's palette token — see `BankTone`.
  *
  * A third and a fourth table for the same reason `GROUP_TONE` is a second one: a class Tailwind never
@@ -1051,6 +1104,15 @@ function labelFits(label: string, ms: number, pxPerSec: number): boolean {
  * every other respect: colour on this chart marks the category and a fourth treatment here would be
  * a new visual grammar for one row. The correction is made where the bar makes its claim, which is
  * the clock in the tooltip, and the missing icon is explained once in the caption.
+ *
+ * **`preexisting` *with* `truncated` is the one bar that is drawn differently**, and that pair is not
+ * a longer version of the paragraph above: `auraWindows` records that no event-derived window can
+ * carry both, so it identifies a window the log holds no event for at either end. Its whole evidence
+ * is the pull's `combatantinfo` snapshot — the weakest thing in the report — and the argument above,
+ * that the tooltip is where a wrong-looking left edge gets corrected, does not survive a bar whose
+ * *right* edge is inferred too. So it is hatched (`hatchOf`) and it says which rung it is in words
+ * (`inferredLabel`), because a bar that merely looks different tells a reader that something is
+ * different without telling them what.
  */
 function barNodesOf(
 	lane: AuraLane,
@@ -1059,6 +1121,7 @@ function barNodesOf(
 	spentAs: (spend: LaneSpend) => { text: string; icon: string | null },
 	pxPerSec: number,
 	prePullLabel: string,
+	inferredLabel: string,
 ) {
 	// Keyed on the window's own start, which is what the engine identified each verdict by — the same
 	// key `notes` above is keyed on, and sound for the same reason: two windows of one aura cannot open
@@ -1073,6 +1136,8 @@ function barNodesOf(
 		// on a window the aura brought into the fight it is where the drawing had to start, not where
 		// anything happened, and the words say so instead.
 		const from = w.preexisting === true ? prePullLabel : formatStamp(w.start);
+		// The rung-3 test, and it is the pair rather than either flag — see the note above the function.
+		const inferred = w.preexisting === true && w.truncated === true;
 		return (
 			<span
 				// Both ends, not just the start: an aura logged under several ids — Re-Origination is one —
@@ -1082,7 +1147,7 @@ function barNodesOf(
 				// what spent the window rather than only when it opened and closed. The variant rides on it
 				// for the same reason and one more: it is the only thing the reader gets when the bar was too
 				// narrow to write it in, and that is the common case at the wide end of the zoom ladder.
-				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${from} → ${formatStamp(w.end)}${fate === undefined ? '' : ` · ${fate.text}`}`}
+				title={`${lane.name}${w.variant === undefined ? '' : ` · ${w.variant}`} · ${from} → ${formatStamp(w.end)}${inferred ? ` · ${inferredLabel}` : ''}${fate === undefined ? '' : ` · ${fate.text}`}`}
 				// The aura's own name, which is the half of a merged row's label that the gutter may have
 				// truncated — and on a row named after the button, the only place the aura is named at all.
 				data-tip={lane.name}
@@ -1099,7 +1164,17 @@ function barNodesOf(
 				// be carrying an element again — which is the objection the whole `data-*` design answers.
 				data-tip-spent={fate?.text}
 				data-tip-spent-icon={fate?.icon ?? undefined}
-				style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+				// Where this window came from, in words, and only on the one rung that needs saying: a bar with
+				// no logged endpoint at either end. Already worded, like `sentTo` and `spentAs` — the reading of
+				// the flags belongs here, beside the drawing they change, and not in the tooltip that shows it.
+				data-tip-evidence={inferred ? inferredLabel : undefined}
+				style={{
+					left: pct(w.start, span),
+					width: pct(Math.max(w.end - w.start, 0), span),
+					// Painted over the group's solid fill rather than instead of it, so a browser that draws no
+					// gradient falls back to today's bar rather than to a lane of bare rail.
+					...(inferred ? { backgroundImage: hatchOf(lane.group) } : {}),
+				}}
 				// A floor of two pixels, because a window can be shorter than the screen can draw and a bar
 				// nobody can see is indistinguishable from an aura that never went up.
 				// The full row, top to bottom. A bar floating inside its lane reads as a smaller thing than
@@ -1633,6 +1708,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								spentAs,
 								pxPerSec,
 								t('castLog.tip.prePull'),
+								t('castLog.tip.inferredFromPull'),
 							)
 						: chargeNodesOf(lane, lane.stacks, span),
 			})),
@@ -1725,6 +1801,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				// it inside, which is what makes the tooltip the fact's home rather than its overflow.
 				const stat = mark.getAttribute('data-tip-stat');
 				const spent = mark.getAttribute('data-tip-spent');
+				// Which rung of `auraWindows` drew this bar, on the one rung that is entirely an inference.
+				// Absent on every other mark on the chart, which is the point: a row that appeared on every
+				// window would stop being the thing that separates this one.
+				const evidence = mark.getAttribute('data-tip-evidence');
 				// The consuming spell's art, resolved on the mark and carried as a URL: the tooltip is built
 				// as a string, so an icon in it is markup rather than an element, and this is the one row on
 				// the chart whose value is a spell the reader would rather recognise than read.
@@ -1772,6 +1852,9 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				if (stat !== null) rows.push([t('castLog.tip.stat'), stat]);
 				if (from !== null) rows.push([t('castLog.tip.from'), from]);
 				if (to !== null) rows.push([t('castLog.tip.to'), to]);
+				// Under both clocks, because it is what those two clocks are worth: on a rung-3 bar neither of
+				// them is an event.
+				if (evidence !== null) rows.push([t('castLog.tip.evidence'), evidence]);
 				// After both ends of the window, because it is what the second of them was.
 				if (spent !== null) rows.push([t('castLog.tip.spent'), spent, spentIcon ?? undefined]);
 				if (by !== null) rows.push([t('castLog.tip.by'), by]);

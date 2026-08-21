@@ -459,7 +459,9 @@
       "spentExpired": "nothing — it ran out",
       "spentOpen": "nothing — the pull ended first",
       "spentNone": "nothing — it came off unspent",
-      "prePull": "before the pull"
+      "prePull": "before the pull",
+      "evidence": "Evidence",
+      "inferredFromPull": "the pull snapshot alone — never seen to go up or come off"
     },
     "target": {
       "unnamed": "Unnamed enemy #{{id}}",

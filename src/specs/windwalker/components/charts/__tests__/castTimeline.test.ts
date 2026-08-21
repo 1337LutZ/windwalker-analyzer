@@ -1591,6 +1591,123 @@ describe('the stat a proc converted into', () => {
 });
 
 /**
+ * How much of a bar the log actually witnessed, and the three answers the chart has to keep apart.
+ *
+ * Plan §6. `auraWindows` builds a window on one of three rungs, and the flags on it are the provenance
+ * rather than two unrelated facts: neither set means both ends are the log's own events; `preexisting`
+ * alone means the start was inferred from a leading removal, which is a real event; **both** means the
+ * window came off the pull's `combatantinfo` snapshot and the log carried no event for it at either end.
+ * No event-derived window can carry the pair — one flag is set where a window closes and the other only
+ * on a window that never did — so it is the mark of the weakest evidence in the report.
+ *
+ * Which is the thing the report was stating with more confidence than it had: a snapshot-only bar drew
+ * identically to one with an apply and a removal behind it.
+ */
+describe('what a bar says about its own evidence', () => {
+	/** One buff lane in each of the three provenances, over the fixture's own timeline. */
+	const provenanceLane = (flags: Partial<Pick<AuraWindow, 'preexisting' | 'truncated'>>): AuraLane => ({
+		key: 'legacy-of-the-emperor',
+		name: 'Legacy of the Emperor',
+		id: 115921,
+		group: 'buff',
+		windows: [{ start: 0, end: 60000, ...flags }],
+	});
+	const withLane = (lane: AuraLane): Analysis => ({
+		...drawn,
+		timeline: { ...timeline, lanes: [lane, ...timeline.lanes.slice(1)] },
+	});
+	/** The bar's own element, found by the tooltip attribute every bar on the chart carries. */
+	const barFor = (html: string, name: string): string => {
+		const found = html.match(new RegExp(`<span[^>]*data-tip="${name}"[^>]*>`));
+		expect(found, name).not.toBeNull();
+		return found![0];
+	};
+
+	/**
+	 * The rung the whole change is for: hatched, and named in words.
+	 *
+	 * The hatch is stripes of the lane's own tone over `--color-track`, both stops opaque — the rule
+	 * `--color-band-*` in `global.css` exists to hold, because a translucent fill borrows the colour of
+	 * whatever is under it and under a lane bar that is the plot in one place and a haste wash in another.
+	 * Measured at the current palette, the worst stripe-against-gap contrast is the proc violet at
+	 * 4.50:1 and the gaps sit at 1.31:1 against the plot, so the pattern reads and the bar still reads as
+	 * a bar.
+	 */
+	it('hatches a bar the log carried no event for, and says which rung it is', () => {
+		const bar = barFor(
+			render(withLane(provenanceLane({ preexisting: true, truncated: true }))),
+			'Legacy of the Emperor',
+		);
+		expect(bar).toContain('repeating-linear-gradient');
+		expect(bar).toContain('var(--color-brew)');
+		expect(bar).toContain('var(--color-track)');
+		expect(bar).toContain(`data-tip-evidence="${t('castLog.tip.inferredFromPull')}"`);
+		// And on the `title` too, for the reader whose pointer never fires — the same rule the verdict and
+		// the variant already follow. Pulled out of its own attribute rather than searched for anywhere in
+		// the element, which `data-tip-evidence` would have satisfied on its own.
+		expect(bar.match(/title="([^"]*)"/)?.[1]).toContain(t('castLog.tip.inferredFromPull'));
+	});
+
+	/**
+	 * Rung 2 stays solid, and that is a decision rather than an oversight.
+	 *
+	 * Its removal is a real event, so `[0, removal]` is time the aura provably held and only the left edge
+	 * is an inference — which the tooltip's clock already says, in words, where the bar makes that claim.
+	 * A second hatched treatment here would spend the one visual difference the chart has on the rung that
+	 * does not need it.
+	 */
+	it('leaves a bar with a logged removal solid, and says nothing about evidence', () => {
+		const bar = barFor(render(withLane(provenanceLane({ preexisting: true }))), 'Legacy of the Emperor');
+		expect(bar).not.toContain('repeating-linear-gradient');
+		expect(bar).not.toContain('data-tip-evidence');
+		// The one correction it does get, unchanged: the left edge is the pull and not a stamp.
+		expect(bar).toContain(`data-tip-from="${t('castLog.tip.prePull')}"`);
+	});
+
+	/** And neither flag alone is the pair: a window still open at the kill is ordinary. */
+	it('leaves a bar that merely outlived the pull solid', () => {
+		const bar = barFor(render(withLane(provenanceLane({ truncated: true }))), 'Legacy of the Emperor');
+		expect(bar).not.toContain('repeating-linear-gradient');
+		expect(bar).not.toContain('data-tip-evidence');
+		expect(bar).toContain(`data-tip-from="${formatStamp(0)}"`);
+	});
+
+	/** A window with both endpoints logged, which is nearly every bar on the chart. */
+	it('leaves an ordinary bar alone', () => {
+		const bar = barFor(render(withLane(provenanceLane({}))), 'Legacy of the Emperor');
+		expect(bar).not.toContain('repeating-linear-gradient');
+		expect(bar).not.toContain('data-tip-evidence');
+	});
+
+	/**
+	 * The captured Windwalker fixtures, and the reason none of the six render hashes moved.
+	 *
+	 * All four flagged shapes appear across them — `truncated` on a buff still up at the kill, and
+	 * `preexisting` on the pre-pull Virmen's Bite — but **never the pair**, because no lane in either spec
+	 * passes `pullAuras`. So the hatch is unreachable from a committed pull, which is what makes this a
+	 * change no existing bar's drawing moves under.
+	 */
+	it('finds no snapshot-only bar in any committed pull', () => {
+		for (const name of ['strong', 'poor', 'mixed', 'cleave', 'waves', 'weave']) {
+			const fixture: Analysis = JSON.parse(
+				readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'),
+			);
+			const pairs = (fixture.timeline?.lanes ?? []).flatMap((l) =>
+				l.windows.filter((w) => w.preexisting === true && w.truncated === true),
+			);
+			expect(pairs, name).toEqual([]);
+			expect(render(fixture), name).not.toContain('repeating-linear-gradient');
+		}
+	});
+
+	/** Both halves of the copy, so a missing key fails here rather than rendering raw at a reader. */
+	it('has a word for the row and for the rung', () => {
+		expect(t('castLog.tip.evidence')).not.toBe('castLog.tip.evidence');
+		expect(t('castLog.tip.inferredFromPull')).not.toBe('castLog.tip.inferredFromPull');
+	});
+});
+
+/**
  * The shared node's own assembly, which is the half the server render cannot reach: the tooltip is
  * written by a pointer handler, and effects do not run under `renderToStaticMarkup`.
  */

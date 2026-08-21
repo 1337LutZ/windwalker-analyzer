@@ -59,7 +59,7 @@ import type {
 	WclEvent,
 	Window,
 } from '~/lib/types';
-import { abilityIdOf, instanceKey, isAuraEvent } from '~/lib/events/guards';
+import { abilityIdOf, instanceKey, isAuraEvent, isCast } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
 import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
@@ -833,6 +833,16 @@ interface DotWindows {
 	byInstance: ReadonlyMap<string, readonly Window[]>;
 	/** The union across every spawn of the enemy id. */
 	merged: Interval[];
+	/**
+	 * True when any spawn's first window was **inferred** rather than logged — `openAtPull` only.
+	 *
+	 * A flag rather than a `preexisting` on `merged`, because `merged` is `Interval[]` and its callers
+	 * want it that way. Carried out of the walk instead of re-derived by the caller from "the first
+	 * window starts at zero": that test would be two readings of one fact, and the whole point of this
+	 * return is that a drawn lane and a graded union can differ. Always false without `openAtPull`, which
+	 * is every graded reader in this file.
+	 */
+	inferredAtPull: boolean;
 }
 
 /**
@@ -845,7 +855,7 @@ interface DotWindows {
  *
  * Flame Shock shares its id with the cast, which the RSK debuff never had to deal with; the buckets
  * are filtered to aura events before `auraWindows` sees them, so a cast event is never mistaken for
- * an application.
+ * an application. **`openAtPull` is the one caller that needs them back** — see there.
  *
  * Bucketed by **spawn** — `instanceKey(targetID, targetInstance)` — and not by `targetID` alone.
  * WarcraftLogs gives one actor id to an NPC *type*, so every copy of an add shares it, and one bucket
@@ -863,9 +873,10 @@ function dotWindowsOnTarget(
 	fightEnd: number,
 	targetID: number | undefined,
 	sourceID: number,
+	options: { openAtPull?: boolean } = {},
 ): DotWindows {
-	if (targetID === undefined) return { byInstance: new Map(), merged: [] };
-	return dotWindowsBySpawn(events, aura, t0, fightEnd, sourceID, targetID);
+	if (targetID === undefined) return { byInstance: new Map(), merged: [], inferredAtPull: false };
+	return dotWindowsBySpawn(events, aura, t0, fightEnd, sourceID, targetID, options);
 }
 
 /**
@@ -882,6 +893,29 @@ function dotWindowsOnTarget(
  * No enemy filter, and none is needed. The only reader of the unscoped map indexes it by the spawns in
  * `landedHits`, which the core has already cleared of friendlies and of units nothing could damage — so
  * a spawn this walk knows about and that list does not is simply never asked for.
+ *
+ * **`openAtPull` — for a drawn lane and never for a graded figure.** Plan §6 wants every aura lane to
+ * show the whole window it can prove, and a dot pressed before the bell that expires in-fight leaves
+ * nothing behind but its own `removedebuff`: no apply, so the default walk draws nothing at all for the
+ * stretch it held. `auraWindows`' `openAtPull` recovers that as `[0, removal]`.
+ *
+ * Two things it changes here, and the second is the reason this is an option rather than the default.
+ *
+ *   - **The cast filter is relaxed.** `auraWindows` refuses the inference for an id whose opening this
+ *     stream witnessed, and a `cast` counts — which is exactly the guard a dot needs, because Flame
+ *     Shock's press and debuff are both 8050 and a press inside the fight is proof the dot went up
+ *     inside it. `isAuraEvent` filtered that press out before the walk could read it, so the guard was
+ *     blind by construction. Casts are admitted back for this walk only, and admitting them is safe for
+ *     the same reason the filter was cautious: `auraWindows` treats a cast as evidence of an opening and
+ *     never as an opening, so no cast can start a window.
+ *   - **`inferredAtPull` comes back set** when any spawn's window was recovered that way, which is what
+ *     lets the lane mark the bar as the inference it is.
+ *
+ * Off by default because **the graded readings must not move.** `flameShock.uptimePct` is measured from
+ * this walk, and `[0, removal]` is a claim about the pull rather than about a press: a player who dotted
+ * before the bell did nothing wrong, but neither did the log record them doing anything, and a graded
+ * figure that credited the stretch would be scoring `combatantinfo`-grade evidence. So the drawn bar and
+ * the graded union are allowed to differ, and every graded caller in this file leaves this off.
  */
 function dotWindowsBySpawn(
 	events: readonly WclEvent[],
@@ -890,6 +924,7 @@ function dotWindowsBySpawn(
 	fightEnd: number,
 	sourceID: number,
 	targetID?: number,
+	{ openAtPull = false }: { openAtPull?: boolean } = {},
 ): DotWindows {
 	const ids = new Set(aura.ids);
 	const buckets = new Map<string, WclEvent[]>();
@@ -908,7 +943,7 @@ function dotWindowsBySpawn(
 		// Flame Shock, and the alternative — accepting foreign removes — is the two-shaman bug back again.
 		if (e.sourceID !== sourceID) continue;
 		const id = abilityIdOf(e);
-		if (id === null || !ids.has(id) || !isAuraEvent(e)) continue;
+		if (id === null || !ids.has(id) || !(isAuraEvent(e) || (openAtPull && isCast(e)))) continue;
 		const key = instanceKey(e.targetID, e.targetInstance);
 		const bucket = buckets.get(key);
 		if (bucket) bucket.push(e);
@@ -918,15 +953,38 @@ function dotWindowsBySpawn(
 	// at once is the enemy covered, not twice covered, and `mergeIntervals` is what says so.
 	const byInstance = new Map<string, readonly Window[]>();
 	const all: Interval[] = [];
+	let inferredAtPull = false;
 	for (const [key, bucket] of buckets) {
-		const spans = mergeIntervals(toIntervals(auraWindows(bucket, aura, t0, fightEnd, { openOnRefresh: true })));
+		const walked = auraWindows(bucket, aura, t0, fightEnd, { openOnRefresh: true, openAtPull });
+		if (walked.some((w) => w.preexisting === true)) inferredAtPull = true;
+		const spans = mergeIntervals(toIntervals(walked));
 		byInstance.set(
 			key,
 			spans.map(([start, end]) => ({ start, end })),
 		);
 		all.push(...spans);
 	}
-	return { byInstance, merged: mergeIntervals(all) };
+	return { byInstance, merged: mergeIntervals(all), inferredAtPull };
+}
+
+/**
+ * Merged spans as lane windows, with the span that opens at the bell marked `preexisting`.
+ *
+ * The one bookkeeping step every inferred lane in this file needs, and it is here rather than copied at
+ * two call sites because both of them lose the flag the same way: a walk answers in `AuraWindow`s, the
+ * spans get merged to settle overlaps, and `Interval` has nowhere to keep "this one was inferred". So
+ * the fact travels beside the spans and is put back once.
+ *
+ * **Two conditions and neither implies the other.** `inferredAtPull` is the walk's own answer — it
+ * recovered a window from a bare removal, or the totem-slot walk seeded the slot from one. `start === 0`
+ * is the drawn span reaching the bell, which is what makes *this* span the one the inference is about;
+ * the later spans of the same lane are ordinary. A window that opens at zero on a pull where nothing was
+ * inferred is a logged application stamped at the pull, and it is left alone.
+ */
+function pullSpansAsWindows(spans: readonly Interval[], inferredAtPull: boolean): Window[] {
+	return spans.map(([start, end]) =>
+		inferredAtPull && start === 0 ? { start, end, preexisting: true } : { start, end },
+	);
 }
 
 /**
@@ -1043,6 +1101,32 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		);
 		laneWindowCache.set(aura.key, walked);
 		return walked;
+	};
+	/**
+	 * The same thing for a **dot**, which does not come off the player's own stream.
+	 *
+	 * `laneWindows` above walks `selfEvents`; Flame Shock and the two-piece debuff sit on an enemy and come
+	 * out of `dotWindowsOnTarget`, bucketed per spawn. So this is the sibling of that closure rather than a
+	 * second copy of it: the same rule — the picture infers, the graders do not — over the other walk.
+	 *
+	 * **The graded arrays are not rebuilt from this.** `fsMerged` and `twoPieceWindows` keep their own
+	 * calls, deliberately: `flameShock.uptimePct`, the drop ledger, the snapshot check, the APL's `present`
+	 * and Earth Shock's `twoPiece` condition all read those, and every one of them is a claim about a press.
+	 * The union here is a superset of the graded one — the same walk plus a leading `[0, removal]` where the
+	 * log left one — which is exactly the licence §6 asks for: the drawn bar may show more than the graded
+	 * union, so long as it says which part of it was inferred.
+	 *
+	 * `preexisting` lands on the first merged window and only on that one. An inferred window always opens
+	 * at zero, so it is always inside the first of the merged spans; the flag comes off the walk's own
+	 * answer (`inferredAtPull`) rather than from testing whether that span starts at zero, which would be
+	 * one fact read twice.
+	 *
+	 * Rung 3 does not apply and cannot: `combatantinfo` lists the auras on the **player** at the bell, and
+	 * a dot on an enemy is not one of them. Both of these are rung 2 or nothing.
+	 */
+	const dotLaneWindows = (aura: Aura): Window[] => {
+		const dot = dotWindowsOnTarget(events, aura, t0, fightEnd, primaryID, actor.id, { openAtPull: true });
+		return pullSpansAsWindows(dot.merged, dot.inferredAtPull);
 	};
 	// A cast's fixed-duration window (a totem, the Fire Elemental) runs until the spell would expire,
 	// but the fight may end first — clamp it so a Searing Totem laid in the last global does not draw a
@@ -1848,12 +1932,31 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	);
 
 	// -------------------------------------------------------------- timeline
+	/**
+	 * One drawn row, and the copy that keeps the window's **provenance** on the way to it.
+	 *
+	 * This used to be `windows.map((w) => ({ start: w.start, end: w.end }))`, and that was the whole of
+	 * why §6's marking requirement could not land: `preexisting` and `truncated` are what tell a bar the
+	 * log proved both ends of from one that was inferred, and rebuilding each window from two of its
+	 * fields threw both away. The chart reads them (`CastTimeline`'s `barNodesOf`), `LaneWindow` carries
+	 * them, and no type could catch the loss — a narrower object still satisfies an optional field.
+	 *
+	 * Still a copy rather than the array itself: `AuraLane.windows` is mutable and several of the arrays
+	 * handed in here are shared with a graded reader, so passing one through would let a consumer that
+	 * sorted "its own" lane reorder a figure's own windows. Spread only when true, so a lane that carries
+	 * neither flag serialises exactly as it did before — every captured fixture included.
+	 */
 	const lane = (aura: Ability | Aura, group: 'buff' | 'proc' | 'debuff', windows: readonly Window[]): AuraLane => ({
 		key: aura.key,
 		name: aura.name,
 		id: ('castIds' in aura ? aura.castIds[0] : aura.ids[0]) ?? 0,
 		group,
-		windows: windows.map((w) => ({ start: w.start, end: w.end })),
+		windows: windows.map((w) => ({
+			start: w.start,
+			end: w.end,
+			...(w.preexisting === true ? { preexisting: true } : {}),
+			...(w.truncated === true ? { truncated: true } : {}),
+		})),
 	});
 	/**
 	 * **The §6 audit of this file's `auraWindows` calls, written down because the calls that did _not_
@@ -1863,29 +1966,29 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * infers the pre-pull window; see its docstring for why that is a second walk and not a switch on the
 	 * memo, and for why rung 3 (`pullAuras`) is not used anywhere in this file.
 	 *
-	 * The three lanes that do **not** infer, and what each would need:
+	 * **`flame-shock` and `t16-2pc-debuff` now infer too**, through `dotLaneWindows` — the sibling closure
+	 * for the auras that sit on an enemy rather than on the player. They were the two that could not, for
+	 * two reasons that both had to go first: `dotWindowsBySpawn` filtered the press out of its buckets, so
+	 * the "a cast proves the opening was logged in-fight" guard was blind even though Flame Shock's press
+	 * and debuff are both 8050; and their windows are the **graded** ones, so an inferred bar could not be
+	 * drawn until `lane` above stopped throwing `preexisting` away. Both fixed, and the two readings are
+	 * now separate arrays: `fsMerged` and `twoPieceWindows` are still what every figure is measured from.
 	 *
-	 *   - **`flame-shock`** comes from `dotWindowsBySpawn`, and that walk filters its buckets to aura
-	 *     events before `auraWindows` sees them — so the "a cast proves the opening was logged in-fight"
-	 *     guard is blind there by construction, even though the dot's press and debuff share id 8050. Its
-	 *     windows are also the graded ones: `uptimeMs`, the drop ledger, the snapshot check and the APL's
-	 *     `present` all read `fsMerged`. So inferring there would move graded numbers off the weakest
-	 *     evidence in the section, and doing it safely wants `AuraLane` able to carry `preexisting` so the
-	 *     drawn bar and the graded union can differ. Same for `t16-2pc-debuff`, which shares the walk.
+	 * The two lanes that still do **not** infer, and why not:
+	 *
 	 *   - **`searing-totem` and `fire-elemental`** come off the Fire totem slot walk, which already
 	 *     recovers the pre-pull elemental with `openAtPull: true` and its own press guard. Asking
 	 *     `auraWindows` a second time for either would be a second answer to one question.
 	 *   - **`stormlash-totem`** is built from cast times and a fixed ten seconds, so there is no aura walk
 	 *     to give an option to. A pre-pull Stormlash would need the press, and the press is the evidence.
 	 *
-	 * **What this cannot do yet, and it is a real gap:** `AuraLane` carries only `{ start, end }`, so the
-	 * `preexisting` flag `auraWindows` sets is dropped on the way to the chart and an inferred bar draws
-	 * identically to one with both endpoints logged. Every bar inferred here is rung 2 — a removal the log
-	 * really carried — which is why drawing it unmarked is defensible in the meantime, but the marking
-	 * needs a field on `AuraLane` in `src/lib/types.ts`, which this lane does not own.
+	 * Every bar this file can infer is rung 2 — a removal the log really carried. Rung 3 needs
+	 * `pullAuras` and nothing here passes it, so the hatched fill `CastTimeline` reserves for a
+	 * snapshot-only bar is unreachable from an Elemental pull; a rung-2 bar is marked by its tooltip
+	 * clock reading "before the pull" and by the caption that explains a bar with no press above it.
 	 */
 	const lanes: AuraLane[] = [
-		lane(FS_DEBUFF, 'debuff', fsMerged),
+		lane(FS_DEBUFF, 'debuff', dotLaneWindows(FS_DEBUFF)),
 		// The player's own Stormlash, not the raid's: the timeline is this player's story, and the raid
 		// view lives in the Stormlash section. The cast carries the window because the totem lasts a
 		// fixed ten seconds.
@@ -1902,50 +2005,36 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			'buff',
 			// `ascCasts` as the press guard: this aura's cast and buff ids differ, so `auraWindows`' own
 			// guard cannot see the press. See `laneWindows`.
-			toIntervals(laneWindows(ASCENDANCE_AURA, ascCasts)).map(([s, e]) => ({ start: s, end: e })),
+			//
+			// Handed straight to `lane` rather than through `toIntervals(...).map(...)`, here and at every
+			// other `laneWindows` row below. That round trip was doing nothing but converting an
+			// `AuraWindow[]` into a shape `lane` already accepts, and on the way it dropped the
+			// `preexisting` and `truncated` flags the walk had just set — which meant `lane` could carry
+			// the provenance and still receive none.
+			laneWindows(ASCENDANCE_AURA, ascCasts),
 		),
-		lane(
-			ELEMENTAL_MASTERY,
-			'buff',
-			toIntervals(laneWindows(registry.aura('elemental-mastery'))).map(([s, e]) => ({ start: s, end: e })),
-		),
+		lane(ELEMENTAL_MASTERY, 'buff', laneWindows(registry.aura('elemental-mastery'))),
 		// The elemental's windows off the Fire totem slot walk, so this lane and the Searing Totem lane
 		// under it are the two halves of one slot rather than two independent claims on the same time.
 		lane(
 			FIRE_ELEMENTAL_AURA,
 			'buff',
-			feWindows.map(([s, e]) => ({ start: s, end: e })),
+			// Marked where the slot walk seeded itself from a pre-pull summon: that stretch is inferred from
+			// the bare `removebuff` the expiry left behind, exactly as a rung-2 window elsewhere is, and the
+			// flag was being lost because the walk answers in `Interval`s. `searingTotem.feWindows` keeps the
+			// plain spans — it is the chart's exempt band and not a claim about evidence.
+			pullSpansAsWindows(feWindows, fePrepullWindow !== undefined),
 		),
 		lane(SEARING_TOTEM_DOT, 'debuff', stMerged),
-		lane(
-			LAVA_SURGE,
-			'proc',
-			toIntervals(laneWindows(LAVA_SURGE)).map(([s, e]) => ({ start: s, end: e })),
-		),
+		lane(LAVA_SURGE, 'proc', laneWindows(LAVA_SURGE)),
 		// The two-piece debuff the proc leaves on the primary target, so the Ascendance two-piece window
 		// can be read off the timeline rather than only off the cooldowns section. One lane, where there
 		// used to be this and an empty `t16-2pc-proc` beside it.
-		lane(T16_2PC_DEBUFF, 'debuff', twoPieceWindows),
-		lane(
-			UNERRING_VISION,
-			'proc',
-			toIntervals(laneWindows(UNERRING_VISION)).map(([s, e]) => ({ start: s, end: e })),
-		),
-		lane(
-			BREATH_OF_HYDRA,
-			'proc',
-			toIntervals(laneWindows(BREATH_OF_HYDRA)).map(([s, e]) => ({ start: s, end: e })),
-		),
-		lane(
-			CHAYES,
-			'proc',
-			toIntervals(laneWindows(CHAYES)).map(([s, e]) => ({ start: s, end: e })),
-		),
-		lane(
-			WRATH_OF_DARKSPEAR,
-			'proc',
-			toIntervals(laneWindows(WRATH_OF_DARKSPEAR)).map(([s, e]) => ({ start: s, end: e })),
-		),
+		lane(T16_2PC_DEBUFF, 'debuff', dotLaneWindows(T16_2PC_DEBUFF)),
+		lane(UNERRING_VISION, 'proc', laneWindows(UNERRING_VISION)),
+		lane(BREATH_OF_HYDRA, 'proc', laneWindows(BREATH_OF_HYDRA)),
+		lane(CHAYES, 'proc', laneWindows(CHAYES)),
+		lane(WRATH_OF_DARKSPEAR, 'proc', laneWindows(WRATH_OF_DARKSPEAR)),
 		// An aura the log never carried has no windows and no business taking a row — the talent was not
 		// taken, or the trinket was not worn. Dropped rather than drawn empty, so the timeline names only
 		// what actually happened.

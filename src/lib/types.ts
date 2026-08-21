@@ -156,6 +156,15 @@ export interface Window {
 	 * the aura began before the fight did — and read the same way, for truthiness, because it is absent
 	 * on every ordinary window and on any analysis captured before it existed. Only `auraWindows` with
 	 * `openAtPull` sets it; see there for what makes the inference sound and why it is opt-in.
+	 *
+	 * **Together with `truncated` it is also the window's provenance**, which is why neither flag has a
+	 * companion field saying where the window came from. Neither set: both ends are the log's own
+	 * events. `preexisting` alone: the start was inferred from a leading removal, and the removal is
+	 * real. **Both: nothing about this window was logged at all** — it comes off the pull's
+	 * `combatantinfo` snapshot, which is the weakest evidence in the report. No event-derived window
+	 * can carry the pair, because one flag is set where a window closes and the other only on a window
+	 * that never did. `auraWindows` holds the three rungs and `CastTimeline` is what draws the
+	 * difference.
 	 */
 	preexisting?: boolean;
 }
@@ -313,6 +322,15 @@ export interface LaneTarget {
  * the timeline name the stat instead of drawing three indistinguishable bars. Optional, and read for
  * `undefined`: an aura with no variants has none, and neither has an analysis captured before the
  * walk recorded them.
+ *
+ * **`preexisting` and `truncated` arrive through `Window`, and a lane builder must not drop them.**
+ * That pair is the window's provenance (see `Window.preexisting`), and it is the only thing that
+ * separates a bar the log proved both ends of from one inferred off the pull snapshot — so a builder
+ * that rebuilds each window as `{ start, end }` hands the chart a bar it cannot tell apart from a
+ * logged one. This is not a type the compiler can enforce, because a narrower object still satisfies
+ * a wider optional type; it is a rule, and it is written here because the Elemental's lane builder
+ * broke it — `windows.map((w) => ({ start: w.start, end: w.end }))` — and the marking §6 asked for
+ * could not land until it stopped. `id` and `variant` are the two that stay genuinely optional.
  */
 export type LaneWindow = Window & Partial<Pick<AuraWindow, 'id' | 'variant'>>;
 

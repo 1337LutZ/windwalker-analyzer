@@ -7,7 +7,15 @@
 // Every case here is synthetic, and it has to be. None of the three committed Elemental fixtures carries
 // a leading orphan removal for any of these auras, so the change is inert against all three: measured,
 // their lane window counts and first windows are identical before and after. A fixture cannot hold a rule
-// it does not exercise.
+// it does not exercise. The one lane on those pulls that *is* inferred — the pre-pull Fire Elemental, on
+// all three — is asserted where it belongs, in `firePrepull.test.ts`.
+//
+// **The marking is asserted with the window, not beside it.** `preexisting` is what tells the chart the
+// bar's left edge is the pull rather than an event, and it survives to `AuraLane.windows` only because
+// the lane builder copies it — it used to rebuild each window as `{ start, end }`, which drew an inferred
+// bar identically to one the log proved both ends of. So every expectation below is an exact `toEqual`
+// including the flag: an assertion that only checked the span would pass on the version of this file
+// that threw the flag away.
 //
 // The pairs are the point. Each aura is tested twice — once where the log proves nothing about the
 // opening, and once where it proves the press happened inside the fight — because an inference that
@@ -32,6 +40,11 @@ const ASCENDANCE_BUFF = 114_050;
 const ELEMENTAL_MASTERY = 16_166;
 /** Lava Surge declares no duration, so it is the case the bound cannot be checked for. */
 const LAVA_SURGE = 77_762;
+/** Flame Shock: **one id for the press and the debuff**, which is what makes its own cast the guard. */
+const FLAME_SHOCK = 8050;
+/** Elemental Discharge, the T16 two-piece debuff. Declares no duration, and nothing casts it. */
+const T16_2PC_DEBUFF = 144_999;
+const EARTH_SHOCK = 8042;
 
 const e = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
 	timestamp: T0 + t,
@@ -41,6 +54,9 @@ const e = (t: number, type: string, id: number, extra: Record<string, unknown> =
 	targetID: ME,
 	...extra,
 });
+
+/** The same event aimed at the boss, which is where a dot lives — and where the walk buckets it. */
+const onBoss = (t: number, type: string, id: number): WclEvent => e(t, type, id, { targetID: BOSS, targetInstance: 1 });
 
 const fight = {
 	id: 6,
@@ -103,8 +119,9 @@ describe('a pre-pull Ascendance', () => {
 	it('draws the stretch the log proves it was up for', () => {
 		const lane = laneFor(run([e(EXPIRY, 'removebuff', ASCENDANCE_BUFF)]), 'ascendance');
 		// `[0, expiry]` and not `[expiry, expiry]`, and not a missing lane: the removal is proof the buff
-		// was up, and the pull is the earliest the window can honestly be said to have opened.
-		expect(lane?.windows).toEqual([{ start: 0, end: EXPIRY }]);
+		// was up, and the pull is the earliest the window can honestly be said to have opened — and
+		// `preexisting`, because that is the difference the reader is owed.
+		expect(lane?.windows).toEqual([{ start: 0, end: EXPIRY, preexisting: true }]);
 	});
 
 	/**
@@ -147,7 +164,7 @@ describe('a pre-pull Elemental Mastery', () => {
 
 	it('draws the stretch the log proves it was up for', () => {
 		const lane = laneFor(run([e(EXPIRY, 'removebuff', ELEMENTAL_MASTERY)]), 'elemental-mastery');
-		expect(lane?.windows).toEqual([{ start: 0, end: EXPIRY }]);
+		expect(lane?.windows).toEqual([{ start: 0, end: EXPIRY, preexisting: true }]);
 	});
 
 	it('is not inferred when the pull carried the press, with no guard list needed', () => {
@@ -180,7 +197,7 @@ describe('a pre-pull Lava Surge', () => {
 	const el = run([e(EXPIRY, 'removebuff', LAVA_SURGE)]);
 
 	it('draws the stretch the log proves it was up for, with no duration to check against', () => {
-		expect(laneFor(el, 'lava-surge')?.windows).toEqual([{ start: 0, end: EXPIRY }]);
+		expect(laneFor(el, 'lava-surge')?.windows).toEqual([{ start: 0, end: EXPIRY, preexisting: true }]);
 	});
 
 	it('does not hand the inferred window to the rule that grades the proc', () => {
@@ -188,5 +205,93 @@ describe('a pre-pull Lava Surge', () => {
 		// about the pull is not evidence about a press, and this proc was never pressed at all.
 		expect(el.lavaBurst.procs).toEqual([]);
 		expect(el.lavaBurst.wasted).toBe(0);
+	});
+});
+
+/**
+ * Flame Shock, which is the case §6 could not reach at all until two separate things were fixed.
+ *
+ * The lane comes off `dotWindowsBySpawn` rather than off the player's own stream, and that walk filtered
+ * its buckets to *aura* events before `auraWindows` saw them — so the "a cast proves the opening was
+ * logged in-fight" guard was blind by construction, even though this dot's press and debuff are both
+ * 8050. And these windows are the **graded** ones: the uptime figure, the drop ledger, the snapshot check
+ * and the APL's `present` all read them, so an inferred bar could not be drawn until the lane could say
+ * it was inferred.
+ *
+ * Both halves are asserted here, and the second is the one that matters more: **the picture gains twenty
+ * seconds and the grader gains nothing.**
+ */
+describe('a pre-pull Flame Shock', () => {
+	/** Inside the dot's own thirty seconds, so `auraWindows`' duration bound admits the removal. */
+	const EXPIRY = 20_000;
+
+	it('draws the stretch the log proves the dot was up for', () => {
+		const lane = laneFor(run([onBoss(EXPIRY, 'removedebuff', FLAME_SHOCK)]), 'flame-shock');
+		expect(lane?.windows).toEqual([{ start: 0, end: EXPIRY, preexisting: true }]);
+	});
+
+	/**
+	 * And not one millisecond of it reaches anything that grades a press.
+	 *
+	 * `combatantinfo`-grade evidence about the pull is not evidence about a press: a shaman who dotted
+	 * before the bell did nothing wrong, and neither did the log record them doing anything, so a figure
+	 * that credited the stretch would be scoring an inference. The two readings are separate arrays for
+	 * exactly this reason, and the assertion is against the control pull rather than against a literal —
+	 * a hard-coded zero would still pass if the graded walk started answering with the same array the
+	 * lane does.
+	 */
+	it('hands none of the inferred stretch to the graded uptime', () => {
+		const control = run([]);
+		const inferred = run([onBoss(EXPIRY, 'removedebuff', FLAME_SHOCK)]);
+		expect(laneFor(inferred, 'flame-shock')?.windows).toHaveLength(1);
+		expect(laneFor(control, 'flame-shock')).toBeUndefined();
+		expect(inferred.flameShock.windows).toEqual(control.flameShock.windows);
+		expect(inferred.flameShock.uptimeMs).toBe(control.flameShock.uptimeMs);
+		expect(inferred.flameShock.uptimePct).toBe(control.flameShock.uptimePct);
+	});
+
+	/**
+	 * The guard, and it is the whole of why the bucket filter had to change.
+	 *
+	 * A press inside the fight is proof the dot went up inside it, so the removal that follows is that
+	 * press's dot running out and not a pre-pull application. `auraWindows` already refuses the inference
+	 * for an id whose opening it witnessed and counts a `cast` as a witness — but the cast never reached
+	 * it, because `isAuraEvent` had filtered it out of the bucket. Restore that filter and this goes red:
+	 * the lane comes back with `[0, 20000]` on a pull that plainly pressed the button at 3s.
+	 */
+	it('is not inferred when the pull carried the press', () => {
+		const lane = laneFor(
+			run([onBoss(3000, 'cast', FLAME_SHOCK), onBoss(EXPIRY, 'removedebuff', FLAME_SHOCK)]),
+			'flame-shock',
+		);
+		expect(lane).toBeUndefined();
+	});
+
+	/** And the duration bound still holds: the dot cannot have been running for thirty-one seconds. */
+	it('refuses a removal that lands past the dot’s own duration', () => {
+		expect(laneFor(run([onBoss(30_001, 'removedebuff', FLAME_SHOCK)]), 'flame-shock')).toBeUndefined();
+	});
+});
+
+/**
+ * The T16 two-piece debuff, which shares that walk and is the other half of the same gap.
+ *
+ * Nothing casts it — it is left on the target by the proc — so there is no press for a guard to find,
+ * and it declares no duration, which makes it the unbounded case as well. What holds it in is the
+ * leading-orphan rule: a pull cannot start twice, so at most one window per id can come from that branch.
+ */
+describe('a pre-pull two-piece debuff', () => {
+	const EXPIRY = 25_000;
+	const el = run([onBoss(EXPIRY, 'removedebuff', T16_2PC_DEBUFF), e(2000, 'cast', EARTH_SHOCK, { targetID: BOSS })]);
+
+	it('draws the stretch the log proves it was up for, with no duration to check against', () => {
+		expect(laneFor(el, 't16-2pc-debuff')?.windows).toEqual([{ start: 0, end: EXPIRY, preexisting: true }]);
+	});
+
+	it('does not let the inferred window satisfy Earth Shock’s two-piece condition', () => {
+		// The press sits inside the drawn bar and still reads as having had no two-piece window, because
+		// `twoPieceWindows` is the graded array and the inference never touches it.
+		expect(el.earthShock.presses.map((p) => p.t)).toEqual([2000]);
+		expect(el.earthShock.presses.every((p) => p.twoPiece === false)).toBe(true);
 	});
 });

@@ -119,6 +119,13 @@ export interface AuraWindow extends Window {
  *      other only on a window that never did), so the combination is the mark of this rung and the
  *      reader of a `Window` can tell the three apart without a fourth field.
  *
+ * **The mark is only worth setting if something reads it, and something now does.** A `Window` that
+ * becomes a `LaneWindow` keeps both flags — `types.ts` records that a lane builder must not rebuild a
+ * window as `{ start, end }` — and `CastTimeline`'s `barNodesOf` draws a rung-3 bar hatched rather
+ * than solid and names the rung in its tooltip. A rung-2 bar is left solid, and deliberately: its
+ * removal is a real event and `[0, removal]` is time the aura provably held, so the correction it
+ * needs is the clock in the tooltip rather than the fill. Rung 3 has no logged endpoint at all.
+ *
  * Rung 3 is gated on `openAtPull` as well as on `pullAuras` being supplied. It makes the same claim
  * rung 2 does — "this was already running at the bell" — on weaker evidence, so a caller that declined
  * the stronger inference must not be handed the weaker one by a second argument.

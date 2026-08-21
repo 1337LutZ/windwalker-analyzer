@@ -225,6 +225,37 @@ describe('what the summary is willing to say about the pre-pull', () => {
 	});
 
 	/**
+	 * And the bar the reader sees says so, which is a separate claim from the window existing.
+	 *
+	 * Plan §6: an inferred bar must not draw identically to one the log proved both ends of. The lane
+	 * builder used to rebuild every window as `{ start, end }`, so this stretch — recovered from a bare
+	 * `removebuff` and nothing else — reached the chart indistinguishable from a summon pressed at the
+	 * bell, and the timeline stamped its left edge `0:00.000` as though something had happened there.
+	 * With the flag carried, the tooltip reads "before the pull" instead and the caption explains the
+	 * missing press icon.
+	 *
+	 * `searingTotem.feWindows` is deliberately **not** marked. It is the exempt band the uptime chart
+	 * shades — time the denominator dropped — and that is a fact about the clock rather than about the
+	 * evidence, so it keeps the plain spans the assertion above pins.
+	 */
+	it.each([
+		['phased', 57_259],
+		['unbroken', 58_014],
+		['cleave', 58_298],
+	])('marks %s’s elemental bar as the inference it is', (name, expiry) => {
+		const el = fx(name);
+		const lane = el.timeline?.lanes?.find((l) => l.key === 'fire-elemental');
+		// The expiry is the literal the block above pins, not `feWindows[0].end` — reading the end off the
+		// array the lane is built from would make both sides of this one value and the assertion would hold
+		// however wrong the window was.
+		expect(lane?.windows).toEqual([{ start: 0, end: expiry, preexisting: true }]);
+		// The pairing that would say rung 3 — a window with no logged endpoint at either end — and this is
+		// not that: the removal is real, so only the left edge is inferred and the bar stays solid.
+		expect(lane?.windows.some((w) => w.truncated === true)).toBe(false);
+		expect(el.searingTotem.feWindows.some((w) => w.preexisting === true)).toBe(false);
+	});
+
+	/**
 	 * The other side of that, and the guard that matters more than the grade.
 	 *
 	 * Handing the slot walk a longer window than the elemental really held would charge a totem placed
