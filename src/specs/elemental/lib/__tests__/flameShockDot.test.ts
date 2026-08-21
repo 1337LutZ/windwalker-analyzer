@@ -67,7 +67,14 @@ const dataset: FightDataset = {
 		endTime: T0 + DURATION,
 	},
 	actor: { id: ME, name: 'Sparkstorm', type: 'Player' },
-	actors: [{ id: ME, name: 'Sparkstorm', type: 'Player' }],
+	// The add is declared, and it has to be: `contact` — the clock the uptime share is measured against
+	// — is built from hits on ids the actor list calls an NPC, so a pull that never declares its enemy
+	// has an empty contact clock and any share of it is zero whatever the dot did. It was absent while
+	// the share was measured against the primary target's `engaged` clock, which needs no actor list.
+	actors: [
+		{ id: ME, name: 'Sparkstorm', type: 'Player' },
+		{ id: ADD, name: 'Quilen Guardian', type: 'NPC' },
+	],
 	// A Lava Burst so `identify` accepts the pull as Elemental at all.
 	events: [...contact, ...dotEvents, e(2000, 'cast', LAVA_BURST, { targetID: ADD, targetInstance: 1 })],
 	table: {
@@ -117,8 +124,26 @@ describe('the Flame Shock dot across two spawns of one add', () => {
 		expect(el.flameShock.uptimeMs).toBe(80_000);
 	});
 
-	it('measures uptime over the engaged clock rather than the whole pull', () => {
-		// Contact runs 0 to 120s, so engaged is the pull and the share is 80 of 120.
-		expect(el.flameShock.uptimePct).toBeCloseTo((80_000 / 120_000) * 100, 6);
+	/**
+	 * And the share is **not** that 80s over the pull, which is the other half of the same split.
+	 *
+	 * This pinned 66.7% — the enemy's whole union of 80s against a 120s clock — while the share was
+	 * `intersect(fsDot.merged, engaged) / engagedMs`, a union across every spawn of the id. It is now the
+	 * dot on the spawn the player was demonstrably hitting, over the contact clock, and on this pull the
+	 * player never once hit instance 2: every landed hit in the stream is on instance 1. So instance 2's
+	 * 20–50s window is coverage on an enemy that was not in front of them, and 60s of the 80s is what
+	 * the share can see — 50.0% of a 120 000ms contact clock.
+	 *
+	 * Which makes this pull a guard on the swap rather than a casualty of it. 66.7% and 50.0% are the
+	 * union reading and the per-spawn reading of one event stream, and no clamp or rounding can make
+	 * them agree: revert the numerator to `fsDot.merged` and this fails by 16.7 points.
+	 *
+	 * `windows` and `uptimeMs` above are untouched at 80s, deliberately — the lane is labelled with the
+	 * enemy's name and that enemy did carry the dot for 80 seconds.
+	 */
+	it('measures the share over the spawn the player was actually hitting', () => {
+		expect(el.timeline?.contactSegments).toEqual([[0, 120_000]]);
+		expect(el.flameShock.scoredMs).toBe(120_000);
+		expect(el.flameShock.uptimePct).toBeCloseTo((60_000 / 120_000) * 100, 6);
 	});
 });

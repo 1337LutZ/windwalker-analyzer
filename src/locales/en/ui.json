@@ -29,11 +29,6 @@
     "short": "Settings",
     "title": "Analysis settings",
     "intent": "Most of what this report checks is fixed by the spec and not something you can change. These settings are the exceptions — thresholds that depend on you, or that the log cannot tell us.",
-    "cooldown": {
-      "label": "Cooldown leeway",
-      "unit": "ms",
-      "hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown."
-    },
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
     "save": "Save",
     "reset": "Back to defaults",
@@ -55,6 +50,11 @@
       }
     },
     "ele": {
+      "cooldown": {
+        "label": "Cooldown leeway",
+        "unit": "ms",
+        "hint": "How late a press can land after a cooldown comes back before the wait is counted as a cooldown held. A wait shorter than this is forgiven whole; a longer one is still charged whole. The default of {{default}}ms is the global you were already committed to when the button came up, plus half a global to see it and press it. Lower it to {{min}}ms for the strictest reading. Between {{min}} and {{max}}ms, and it applies to every button with a cooldown — Unleash Elements, Elemental Blast, Ascendance, Elemental Mastery and the Fire Elemental."
+      },
       "lightningShieldOvercap": {
         "label": "Lightning Shield overcap grace",
         "unit": "ms",

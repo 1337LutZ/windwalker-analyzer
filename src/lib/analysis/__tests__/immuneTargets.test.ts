@@ -168,21 +168,39 @@ describe('the Elemental second Flame Shock on Iron Juggernaut', () => {
 	});
 
 	/**
-	 * And the primary dot is untouched by all of it, which is the control on this change.
+	 * And the dot on the boss is untouched by all of it, which is the control on this change.
 	 *
-	 * `flameShock.uptimePct` is measured against the boss's own engaged clock, so no reading of it ever
-	 * involved a mine. If this moves, the fix has reached somewhere it had no business reaching.
+	 * **The control's premise had to be restated, because the figure it was written around moved.** It
+	 * used to be `flameShock.uptimePct`, on the stated grounds that the share was "measured against the
+	 * boss's own engaged clock, so no reading of it ever involved a mine". That is no longer true: the
+	 * share is now the dot on whichever spawn the player was hitting over the *contact* clock, built by
+	 * the same hit-slice walk as the Windwalker's `engagedUptimePct` two describes above — so it reads
+	 * `landedHits`, and `landedHits` is exactly what this fix filters. The Elemental figure is now as
+	 * sensitive to the mine exclusion as the Monk's 96.00 → 98.12 is, and a control cannot be a number
+	 * the change under test is supposed to move.
 	 *
-	 * `phased` reads 88.6226 and not the 88.6748 this pinned when it was written, and the target set is
-	 * not why. The numerator is now intersected with the engaged windows before the division — see
-	 * `uptimeSpan.test.ts` — and 125ms of that fixture's dot ran on past the last landed hit on the
-	 * boss, so it was being credited against a span not containing it. Same 5 windows, same
-	 * `uptimeMs`; only the share moved. `unbroken` is unchanged to every digit, because its dot closes
-	 * 1ms *inside* its engaged clock and there was nothing to clip.
+	 * So the control is the pair that genuinely is target-set-invariant, and always was: the dot's own
+	 * windows and their union. `dotWindowsOnTarget` walks the debuff on the primary target and nothing
+	 * else — no hit list, no contact clock, no target count — so a mine cannot reach it by any path. If
+	 * either of these moves, the fix has gone somewhere it had no business going.
+	 *
+	 * The share is pinned underneath as a *witness* rather than a control: 98.2015 on `phased` against
+	 * the 88.6226 it read while the denominator was the boss's clock, and exactly 100 on `unbroken`,
+	 * whose dot covers every millisecond of its contact clock. The full derivation of both, with the
+	 * before-and-after and why the numerator had to move with the denominator, is in
+	 * `specs/elemental/lib/__tests__/pulls.test.ts` and `uptimeSpan.test.ts`.
 	 */
 	it('leaves the dot on the boss exactly where it was', () => {
-		expect(+el('phased').flameShock.uptimePct.toFixed(4)).toBe(88.6226);
-		expect(+el('unbroken').flameShock.uptimePct.toFixed(4)).toBe(99.9995);
+		expect(el('phased').flameShock.uptimeMs).toBe(212_151);
+		expect(el('phased').flameShock.windows).toHaveLength(5);
+		expect(el('unbroken').flameShock.uptimeMs).toBe(182_846);
+		expect(el('unbroken').flameShock.windows).toHaveLength(1);
+	});
+
+	/** The share, on the clock it now names — see the block above for why this is not the control. */
+	it('reads the share over the contact clock', () => {
+		expect(+el('phased').flameShock.uptimePct.toFixed(4)).toBe(98.2015);
+		expect(+el('unbroken').flameShock.uptimePct.toFixed(4)).toBe(100);
 	});
 });
 

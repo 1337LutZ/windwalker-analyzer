@@ -22,11 +22,11 @@ const e = (t: number, type: string, id: number, extra: Record<string, unknown> =
 });
 
 /**
- * A hit every five seconds, so the engaged clock is the whole pull.
+ * A hit every five seconds, so the contact clock is the whole pull.
  *
- * The denominator is engaged time less the elemental's window, and a synthetic pull with three hits
+ * The denominator is contact time less the elemental's window, and a synthetic pull with three hits
  * in it would make every figure below a statement about `engagedWindows`' gap threshold instead of
- * about the Fire totem slot. Five seconds is well inside the 15s gap, so `engaged` is one window
+ * about the Fire totem slot. Five seconds is well inside the 15s gap, so the clock is one window
  * running from the first hit to the last.
  */
 const contact: WclEvent[] = Array.from({ length: DURATION / 5000 + 1 }, (_, i) =>
@@ -65,7 +65,15 @@ const dataset: FightDataset = {
 		endTime: END,
 	},
 	actor: { id: ME, name: 'Sparkstorm', type: 'Player' },
-	actors: [{ id: ME, name: 'Sparkstorm', type: 'Player' }],
+	// The boss is declared, and it has to be: `contact` — the clock this section is now measured against
+	// — only counts hits on an id the actor list calls an NPC, so a pull that never declares its enemy has
+	// an empty contact clock and every share of it is zero. It was absent while the denominator was the
+	// primary target's `engaged` clock, which is built from the damage table's own target and needs no
+	// actor list.
+	actors: [
+		{ id: ME, name: 'Sparkstorm', type: 'Player' },
+		{ id: BOSS, name: 'Iron Qon', type: 'NPC', subType: 'Boss' },
+	],
 	events,
 	table: {
 		fight: {
@@ -157,9 +165,15 @@ describe('what the Searing Totem uptime is measured against', () => {
 	/**
 	 * The elemental's window comes out of the denominator. A player cannot have a totem up while the
 	 * elemental holds the slot, so scoring that time would fault correct play — held against the whole
-	 * of engaged time the section's thresholds were unreachable on any pull that pressed the elemental.
+	 * of the clock the section's thresholds were unreachable on any pull that pressed the elemental.
+	 *
+	 * The clock itself is `contact`, the player's, and on this pull that is also the whole 240s: one enemy,
+	 * hit every five seconds with one modelled ability, so nothing separates it from the boss's own clock.
+	 * Which is exactly why this pull cannot guard *which* clock — see `pulls.test.ts` for the real fixture
+	 * whose two clocks are 32.7s apart, which can.
 	 */
 	it('drops the elemental’s window from the clock', () => {
+		expect(el.timeline?.contactSegments).toEqual([[0, DURATION]]);
 		expect(searingTotem.scoredMs).toBe(DURATION - 30_000);
 	});
 

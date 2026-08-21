@@ -63,10 +63,13 @@ describe('a phased pull', () => {
 	 * Twenty-five presses, and twenty-three of them take a global in game: fifteen Chain Heals, three
 	 * Healing Rains, two Healing Stream Totems, and one each of Healing Surge, Healing Tide Totem and
 	 * Thunderstorm. Only the two Shamanistic Rages are genuinely off the global. Pricing the other
-	 * twenty-three would take `gcdUtilisationPct` on this pull from 84.21% to 97.93% — measured, not
-	 * estimated — and `EXTRA_NAMES` carries the reasoning for why it does not: that figure divides a
-	 * numerator rebuilt from cast events by WarcraftLogs' own `activeTime`, and 97.93% leaves no room
-	 * for a pull that healed harder.
+	 * twenty-three would have taken `gcdUtilisationPct` on this pull from 84.21% to 97.93% against the old
+	 * denominator — measured, not estimated — and `EXTRA_NAMES` carries the reasoning for why it does not.
+	 * Both halves of that figure have since moved: it is 94.08% here now, over the player's own contact
+	 * clock rather than over WarcraftLogs' `activeTime`, with the numerator clipped to that same clock. So
+	 * the old argument that "97.93% leaves no room for a pull that healed harder" no longer holds — a
+	 * global spent healing while nothing was in reach is now outside both halves — and if those presses
+	 * are ever priced, this note has to be re-measured rather than reasoned about from these numbers.
 	 *
 	 * Pinned as a count rather than left implicit because a spec that forgets a *rotational* button
 	 * lands in this same number, and 25 changing to 26 is the only warning the report would give.
@@ -84,14 +87,88 @@ describe('a phased pull', () => {
 	});
 
 	/**
-	 * 88.62 and not the 88.67 this pinned before: 125ms of the fifth window runs past the last landed hit
-	 * on the boss, and the share is now measured over the engaged clock's own windows rather than against
-	 * its total. The windows themselves and `uptimeMs` are untouched — see `uptimeSpan.test.ts` for the
-	 * pull where the same 125ms-shaped overrun took the figure over 100%.
+	 * **98.20, and it was 88.62 — the figure moved because the clock did, on purpose.**
+	 *
+	 * The share used to divide the dot on the primary target by `engagedMs`, the **boss's** clock: the
+	 * stretches the primary was there to be hit, 239 246ms here. It now divides by `contact`, the
+	 * **player's** clock — the stretches they landed a modelled ability on something — which on this pull
+	 * is the 206 557ms the two segments above add up to. The chart under the tile was already shading
+	 * from `contact`, so the picture and the percentage were fractions of two different fights.
+	 *
+	 * The 32.7s between the two clocks is the whole of the move, and it is not an untargetable boss: the
+	 * fixture's prose calls 142.3–192.5s "the boss submerges", and `engaged` staying open across it is
+	 * proof damage was landing on the primary throughout — from the pets and from unmodelled procs, both
+	 * of which `contact` filters out. So what `contact` forgives is the player's own absence from the
+	 * rotation, which is the right thing to forgive in a metric about a button they press.
+	 *
+	 * **The numerator moved with it and had to.** Clipped to `engaged` it is 212 026ms, which is *more*
+	 * than contact's 206 557ms — divide one by the other and `uptimePct` clamps to 100 and warns, which
+	 * is the exact defect that produced a 100.21% tile. It is now 202 842ms: the dot on whichever spawn
+	 * the player was demonstrably hitting, each landed hit owning the time until the next, intersected
+	 * with `contact`. The remaining 3 715ms is contact time with no dot on the enemy in front of them —
+	 * three sub-second refresh gaps and the 529ms of the submerge the player was present for.
+	 *
+	 * `windows` and `uptimeMs` are untouched at five windows and 212 151ms. They are what the lane draws
+	 * and what the drop ledger reads, and both are claims about the pull rather than about the share.
+	 *
+	 * This crosses `flameShockUptime`'s `ok` band into `good` (95/85 in `score.ts`, weight 3, the heaviest
+	 * single Elemental metric). The `flameShock` *section* grade stays `ok` and the overall verdict stays
+	 * `ok`, because the section is graded on the wasted-refresh share as well as on the uptime.
 	 */
 	it('keeps the dot up for most of the time it could', () => {
-		expect(+el.flameShock.uptimePct.toFixed(2)).toBe(88.62);
+		expect(+el.flameShock.uptimePct.toFixed(2)).toBe(98.2);
+		expect(el.flameShock.scoredMs).toBe(206_557);
+		expect(el.flameShock.uptimeMs).toBe(212_151);
 		expect(el.flameShock.windows).toHaveLength(5);
+	});
+
+	/**
+	 * The Searing Totem's clock moved the same way, and this is the assertion that holds it.
+	 *
+	 * `stScoredMs` was `intersect(engaged, complementOf(feWindows))` and is now
+	 * `intersect(contact, complementOf(feWindows))`: 182 999ms becomes 150 310ms, and the share goes from
+	 * 65.57% to 79.83%. Same argument as Flame Shock's — `SearingTotemUptime.tsx` builds its "down" band
+	 * from `intersect(contactSegments, slotFree)` and its own comment claims "the section's denominator
+	 * drops the same stretch", which was not true while the denominator was the boss's clock.
+	 *
+	 * **This pull is where that has to be pinned, and not in `searingTotem.test.ts`.** Every synthetic
+	 * Searing Totem pull, and both `firePrepull` pulls, are single-enemy streams where `contact` and
+	 * `engaged` are the same array — so they would have survived the switch without noticing it. `phased`
+	 * is the fixture whose two clocks are 32.7s apart, so the swap is visible here or nowhere.
+	 *
+	 * The numerator follows the denominator without a second edit, because it is intersected with it:
+	 * 120 000ms of totem here is unchanged only because none of this pull's placements reach into the
+	 * 32.7s the clocks differ by. `unbroken`'s does — 78 224ms becomes 77 152ms.
+	 *
+	 * `searingTotemUptime` is weight 1 with bands `{ good: 85, ok: 65 }`, and no fixture crosses one:
+	 * `phased` 65.57 → 79.83 (ok either side), `unbroken` 61.89 → 61.57 (bad), `cleave` 78.71 → 78.72 (ok).
+	 */
+	it('grades the totem against the same clock its chart shades from', () => {
+		expect(el.searingTotem.scoredMs).toBe(150_310);
+		expect(el.searingTotem.uptimeMs).toBe(120_000);
+		expect(+el.searingTotem.uptimePct.toFixed(2)).toBe(79.84);
+	});
+
+	/**
+	 * The opener, and the six milliseconds that used to lose it.
+	 *
+	 * This pull's Ascendance goes out at **5 006ms** and read `opener: false`, because the comparison was
+	 * a bare `t <= 5000`. Nothing about the press is late — it is the first Ascendance of the pull, four
+	 * or so globals in — and nothing about a log justifies deciding it on the sixth millisecond. The
+	 * comparison is now `isOpener`, `t <= OPENER_MS + OPENER_GRACE_MS`, 5 250ms.
+	 *
+	 * **This is the only end-to-end guard on that predicate, and it was previously unguarded entirely.**
+	 * `pulls.test.ts` pinned nothing about Ascendance, `ascendance.test.ts` exercises `ascendanceSync`,
+	 * which is a different module with its own haste-anchored bound, and none of the three fixtures casts
+	 * Elemental Mastery at all — so the second reader of the predicate has only the unit assertions in
+	 * `ascendance.test.ts` behind it. Both presses are pinned rather than just the first, so a tolerance
+	 * that swallowed the whole pull would fail here too.
+	 */
+	it('reads the opening Ascendance as the opener, six milliseconds past five seconds', () => {
+		expect(el.ascendance.presses.map((p) => [p.t, p.opener])).toEqual([
+			[5006, true],
+			[196_197, false],
+		]);
 	});
 
 	/**
@@ -337,12 +414,23 @@ describe('a multi-target pull', () => {
 	 * wasted globals here — so a Flame Shock or cooldown lane that changes what counts as wasted will
 	 * land on this number. That is the intended behaviour of an asserted figure: it says which.
 	 *
-	 * It is also the fixture with the least headroom left under 100% on the Elemental side, which is the
-	 * live question in plan step 44: the numerator is rebuilt from cast events and the denominator is
-	 * WarcraftLogs' `activeTime`, and nothing bounds the first by the second.
+	 * **90.81 became 86.89 when the denominator moved off `activeTime`, and on this pull the denominator
+	 * is not what moved it.** Its contact clock and WarcraftLogs' `activeTime` are both 261 572ms, to the
+	 * millisecond, so the entire 3.92-point drop is the numerator: the occupied globals are now a *union*
+	 * of spans clipped to the contact clock rather than a sum of prices, and 9 486ms of this pull was
+	 * being charged twice. 204 presses against a measured 1 124ms effective global, with the log stamping
+	 * many pairs closer together than the median — most of them inside the raid's haste cooldown, where
+	 * the real global is shorter than the median this pull's presses derive. A further 768ms sat outside
+	 * contact. Nothing here is a re-grade: the band is `good` at 80.
+	 *
+	 * That also retires the headroom worry this note used to carry, which was the live question in plan
+	 * step 44. The ratio is now bounded by construction rather than by luck — a union of intervals
+	 * intersected with `contact` cannot cover more of the pull than `contact` does — and
+	 * `lib/analysis/__tests__/gcdUtilisation.test.ts` demonstrates that by forcing the numerator far past
+	 * the denominator rather than by observing that three pulls happen to land under it.
 	 */
 	it('prices every global the player actually spent', () => {
-		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(90.81);
+		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(86.89);
 		expect(+el.cpm.activePct.toFixed(2)).toBe(99.37);
 		expect(el.cpm.onGcdCasts).toBe(204);
 		expect(el.cpm.offGcdCasts).toBe(27);

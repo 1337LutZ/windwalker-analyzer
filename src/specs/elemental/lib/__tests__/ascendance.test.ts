@@ -23,7 +23,7 @@ import type { Interval } from '~/lib/analysis/intervals';
 import { eventsOn } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset, Window } from '~/lib/types';
 import { ascendanceSync, ASCENDANCE_INTO_HASTE_MS, T16_2PC_SYNC_MIN_MS, type AscendanceSyncInput } from '../ascendance';
-import { analyse, registry } from '../index';
+import { analyse, isOpener, registry } from '../index';
 
 // ------------------------------------------------------------------ real pulls
 
@@ -185,10 +185,45 @@ const first = (over: Partial<AscendanceSyncInput>): ReturnType<typeof ascendance
 	return press;
 };
 
+/**
+ * `isOpener`, which is a *different* bound from the one the suite below pins, and the two now differ.
+ *
+ * Both were bare 5 000s and both were called "the opener". `isOpener` is anchored on the **pull** and is
+ * what `AscendancePress.opener` and the Elemental Mastery `'opener'` branch read; `ASCENDANCE_INTO_HASTE_MS`
+ * is anchored on the **haste cooldown opening** and is what the suite below grades against. Only the
+ * pull-anchored one carries the 250ms tolerance, and deliberately: the haste constant has three further
+ * readers (the lateness grade, whether a cooldown counts as "on the pull", and the `nothing-to-hit`
+ * exemption's right edge) and widening it would move all three.
+ *
+ * So "faults a press one millisecond past it" below still means exactly what it says — about the haste
+ * bound. Read the two suites together or the 5 000 in one and the 5 250 in the other look like a
+ * contradiction.
+ */
+describe('the pull-anchored opener bound', () => {
+	it('admits the press that used to miss it by six milliseconds', () => {
+		// `phased`'s opening Ascendance, the case this tolerance exists for — pinned end to end in
+		// `pulls.test.ts`, and here as the predicate on its own.
+		expect(isOpener(5006)).toBe(true);
+	});
+
+	it('is 5 250ms and reports both sides of itself', () => {
+		expect(isOpener(5250)).toBe(true);
+		expect(isOpener(5251)).toBe(false);
+		// A press before the bell's own first global is trivially the opener; a press a full global late
+		// still is not, which is the whole objection to flooring — `Math.floor(t / 1000) * 1000 <= 5000`
+		// would have admitted every one of these.
+		expect(isOpener(0)).toBe(true);
+		expect([isOpener(5500), isOpener(5999)]).toEqual([false, false]);
+	});
+});
+
 describe('the opener bound, and which side of it a press falls on', () => {
 	it('is one number and reports itself, so the threshold is never implicit', () => {
 		expect(ASCENDANCE_INTO_HASTE_MS).toBe(5000);
 		expect(first({}).limitMs).toBe(5000);
+		// And it is *not* the pull-anchored bound, which is 250ms wider. Asserted so a future change that
+		// unifies them has to come through this line and say why.
+		expect(isOpener(ASCENDANCE_INTO_HASTE_MS + 1)).toBe(true);
 	});
 
 	it('passes a press exactly on the bound', () => {

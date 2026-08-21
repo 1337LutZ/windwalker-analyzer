@@ -151,6 +151,54 @@ const FS_ASC_PREP_MS = 16_000;
 const ES_FS_MIN_MS = 6000;
 const ES_ASC_HOLD_SEC = 6;
 
+/**
+ * The opener: how far into the pull a press may land and still be judged as one of its first globals.
+ *
+ * The sim's own horizon — `priorityList[14]`'s second condition is literally `currentTime <= 5s`, and
+ * entries 9 and 14 both gate on it. Two rules in this audit read it: `AscendancePress.opener` and the
+ * Elemental Mastery `reason`'s `'opener'` branch, which short-circuits four other branches. Both are
+ * **anchored on the pull**, which is what makes them one question and lets them share one predicate.
+ *
+ * Deliberately not `ASCENDANCE_INTO_HASTE_MS`, which is also 5 000 and also called "the opener" in its
+ * own docstring. That one is anchored on the *haste cooldown opening* and does three further jobs
+ * (`ascendance.ts`: the good/bad lateness grade, whether a haste cooldown counts as "on the pull", and
+ * the right edge of the `nothing-to-hit` exemption). The two numbers agree today and their readers do
+ * not, so widening one must not widen the other.
+ */
+const OPENER_MS = 5000;
+
+/**
+ * What the opener comparison forgives: **timestamp jitter and the reaction between them**, and nothing
+ * that could be called a global of play.
+ *
+ * `phased` opens with an Ascendance at **5 006ms** and was told it was not the opener by six
+ * milliseconds. A player who pressed four buttons and then this one has made the opener; a log whose
+ * stamps are rounded to the millisecond and whose events are ordered by a server has no business
+ * deciding that on the sixth.
+ *
+ * **250ms, and chosen over flooring.** `Math.floor(t / 1000) * 1000 <= OPENER_MS` was the other
+ * candidate and it admits anything up to 5 999ms — a full second of tolerance arriving as a side effect
+ * of the arithmetic rather than as a stated intent, and a second is most of a lusted global (the
+ * Elemental `GCD_MS` is 1 500ms and the haste cooldown is ×1.3 cast speed, so around 1 150ms). A press
+ * a whole global late is late and the report should say so. 250ms cannot hide one.
+ *
+ * The magnitude has precedent in this codebase: `SELF_EVENT_MS` in `lib/analysis/auras.ts` is also 250,
+ * for the ordering slop between a cast and the aura event it produces. Cited for the size and
+ * deliberately **not** reused — that constant is about one press against its own aura and this one is
+ * about a press against the bell, so tightening either must not move the other.
+ */
+const OPENER_GRACE_MS = 250;
+
+/**
+ * Whether a press at `t` counts as part of the opener — the single predicate both pull-anchored readers
+ * call.
+ *
+ * One function rather than two `t <= 5000` literals, which is what the sites were. `docs/conventions.md`
+ * is explicit about the cost of the second copy, and `ASCENDANCE_INTO_HASTE_MS`' docstring names these
+ * two literals by hand precisely because it could not stop them drifting.
+ */
+export const isOpener = (t: number): boolean => t <= OPENER_MS + OPENER_GRACE_MS;
+
 /** Ascendance's cooldown and duration, from `sim/shaman/ascendance.go` (180s, 15s). */
 const ASCENDANCE_COOLDOWN_MS = 180_000;
 const ASCENDANCE_DURATION_MS = 15_000;
@@ -631,14 +679,30 @@ const TEMPUS_REPIT = registry.aura('tempus-repit');
  * off-*rotation* globals, not off-GCD ones, and this report knowingly leaves them unpriced.** Only
  * Shamanistic Rage (30823) is genuinely off the global.
  *
- * What that costs is measured, not guessed: pricing all eleven takes `gcdUtilisationPct` from 84.21%
- * to 97.93% on the `phased` fixture, 91.26% to 93.40% on `unbroken`, 90.81% to 94.12% on `cleave`.
- * The first of those is the reason it is not done here. `gcdUtilisationPct` divides a numerator
- * rebuilt from cast events by WarcraftLogs' own `activeTime`, two clocks with no structural bound
- * between them, so 97.93% spends nearly all the headroom that has been hiding the absence of one —
- * and a pull that healed slightly harder would print a figure over 100%, which is worse for a reader
- * than 84.21% honestly explained. Which clock is authoritative is plan step 44's question, not this
- * table's; until it is answered, these stay named and unpriced.
+ * **The decision stands and its argument has changed under it, so here is the argument as it is now.**
+ *
+ * It used to be a headroom argument, and a good one at the time: pricing all eleven took
+ * `gcdUtilisationPct` from 84.21% to 97.93% on `phased`, 91.26% to 93.40% on `unbroken` and 90.81% to
+ * 94.12% on `cleave`, and the figure divided a numerator rebuilt from cast events by WarcraftLogs' own
+ * `activeTime` — two clocks with no structural bound between them — so 97.93% spent nearly all the
+ * headroom that had been hiding the absence of one, and a pull that healed slightly harder would print
+ * over 100%.
+ *
+ * That argument is retired, because both halves of the figure moved (`fe3d7ad`, plan §2 — not this
+ * lane's change). The denominator is the player's own contact clock and the numerator is a union of
+ * occupied spans clipped to it, so the ratio is bounded by construction rather than by luck and cannot
+ * exceed 100 however much is priced into it. The baselines are now **94.08% on `phased`, 90.80% on
+ * `unbroken` and 86.89% on `cleave`** — measured, and none of the three is the number quoted above.
+ *
+ * **The six deltas above are therefore history and not evidence.** Every one was measured against the
+ * old arithmetic; what pricing these eleven would do to the figure now has not been measured, and it
+ * should be re-derived rather than reasoned about from these numbers if the question is reopened.
+ *
+ * What survives is the reason that was never about headroom: these are off-**rotation** globals. Pricing
+ * them makes the figure answer "was this player busy" when what the section asks is "of the globals the
+ * rotation wanted, how many did you fill" — and a Chain Heal cast through a transition is a global the
+ * rotation did not want. The clock question that used to be deferred here (plan step 44) is answered;
+ * this one is a judgement about what the metric means, and it keeps them named and unpriced.
  *
  * Unpriced is no longer silent, which is the other half of the decision: `unmodelledPresses` counts
  * every press landing here, `pulls.test.ts` pins the count on all three fixtures, and
@@ -697,7 +761,10 @@ export const ELEMENTAL_SETTINGS: SettingSchema[] = [
 	// See `FLAME_SHOCK_DOT` above and `lib/settings/model.ts`, which carries the retirement note.
 	{
 		key: 'cooldownLeewayMs',
-		tKey: 'settings.cooldown',
+		// `settings.ele.cooldown`, not the bare `settings.cooldown` this pointed at: the hint names the
+		// buttons the leeway applies to, and a shared key cannot name two specs' buttons. The Windwalker
+		// moved to `settings.ww.cooldown` in the same pass, which is what made this one the odd one out.
+		tKey: 'settings.ele.cooldown',
 		// A global and a half, and the whole of a wait is forgiven rather than a slice off a longer
 		// one. The shortest cooldown in the audited set is Unleash Elements' 15s, and each wait is
 		// forgiven in full and separately.
@@ -798,10 +865,37 @@ function dotWindowsOnTarget(
 	sourceID: number,
 ): DotWindows {
 	if (targetID === undefined) return { byInstance: new Map(), merged: [] };
+	return dotWindowsBySpawn(events, aura, t0, fightEnd, sourceID, targetID);
+}
+
+/**
+ * The same walk with the target filter optional — every spawn the dot ever landed on, keyed the same
+ * way.
+ *
+ * Called with a `targetID` by `dotWindowsOnTarget` above and without one by the graded uptime
+ * numerator, which asks "did the enemy the player was hitting have the dot" and so cannot be scoped
+ * to one enemy in advance. Split out rather than copied: the source filter below and the
+ * bucket-per-spawn rule are the two things this file has already paid for getting wrong, and
+ * `docs/conventions.md` is explicit that the second copy is where the comment gets dropped and the bug
+ * comes back.
+ *
+ * No enemy filter, and none is needed. The only reader of the unscoped map indexes it by the spawns in
+ * `landedHits`, which the core has already cleared of friendlies and of units nothing could damage — so
+ * a spawn this walk knows about and that list does not is simply never asked for.
+ */
+function dotWindowsBySpawn(
+	events: readonly WclEvent[],
+	aura: Aura,
+	t0: number,
+	fightEnd: number,
+	sourceID: number,
+	targetID?: number,
+): DotWindows {
 	const ids = new Set(aura.ids);
 	const buckets = new Map<string, WclEvent[]>();
 	for (const e of events) {
-		if (e.targetID !== targetID) continue;
+		if (targetID !== undefined && e.targetID !== targetID) continue;
+		if (e.targetID === undefined) continue;
 		// **This player's dot, not the debuff.** Two Elemental shamans both keep Flame Shock on the boss,
 		// and the log carries both — so a walk over every source interleaves two dots into one stream and
 		// credits this player with the other's coverage. `sourceID` is required rather than defaulted so a
@@ -869,8 +963,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		castBeginTimes,
 		primaryID,
 		primaryName,
-		engaged,
-		engagedMs,
 		marks,
 		aplTargetCountAt,
 		lostCasts,
@@ -879,6 +971,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		multiTargetWindows,
 		multiTargetMs,
 		contact,
+		inContactMs,
 	} = h;
 	const { lightningShieldOvercapMs, searingTotemRefreshMs } = h.settings;
 	const fightEnd = t0 + duration;
@@ -907,6 +1000,48 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		if (cached !== undefined) return cached;
 		const walked = auraWindows(selfEvents, aura, t0, fightEnd);
 		selfWindowCache.set(aura.key, walked);
+		return walked;
+	};
+	/**
+	 * The same aura's windows for a **drawn lane**, with the pre-pull window inferred.
+	 *
+	 * Plan §6: a lane should show the whole window it can prove, and a lane that never asks for the
+	 * inference starts its bar at the first in-fight event — so an aura already running at the bell reads
+	 * as applied late, or as never applied at all. `auraWindows`' `openAtPull` recovers it from the bare
+	 * removal it left behind and marks the window `preexisting`.
+	 *
+	 * **A second walk rather than switching the memo, and this is the whole of why.** Every aura here has
+	 * two kinds of reader. `ascendance` is drawn *and* read by the Elemental Mastery `t15` branch and by
+	 * the APL; `lava-surge` is drawn *and* is what `lavaSurgeProcs` grades; the four item procs are drawn
+	 * *and* are the snapshot section's trigger and int-proc windows. An inferred bar is evidence about the
+	 * pull and it is not evidence about a press, so the graders keep the plain walk and only the picture
+	 * gains the inference. That is the standing rule on this inference — a lane that grades from its
+	 * windows must not read an inferred bar as proof of anything the player did.
+	 *
+	 * `presses` is the hand-guard for an aura whose **cast id differs from its buff id**. `auraWindows`
+	 * counts a `cast` of the aura's own id as proof the opening was logged inside the fight, and that test
+	 * is per id — so where the two split, a stream that carried the press but lost the `applybuff` beside
+	 * it (they share a millisecond, and pages are cut on timestamps) would have an ordinary in-fight
+	 * window recovered as a pre-pull one. Ascendance is that case: 114049 for the press against 114050 for
+	 * the buff. The guard is the one the Fire totem slot walk already uses below, for the same reason and
+	 * in the same shape — a press at or before the recovered expiry can only be the press that opened it.
+	 * Auras whose ids agree (Elemental Mastery, 16166 for both) need no list, and a proc with no press at
+	 * all cannot have one.
+	 *
+	 * **`pullAuras` — rung 3 — is deliberately not used here.** It is sound only for an aura that could
+	 * plausibly have lasted the pull, and every lane in this file is a timed cooldown, a proc or a dot:
+	 * handing it `combatantinfo` presence would shade a whole fight as Ascended off a buff that lasts
+	 * fifteen seconds. The Elemental's one permanent aura, Lightning Shield, is not drawn as a lane — it
+	 * is read as a stack counter — so nothing here wants that rung.
+	 */
+	const laneWindowCache = new Map<string, readonly AuraWindow[]>();
+	const laneWindows = (aura: Aura, presses: readonly number[] = []): readonly AuraWindow[] => {
+		const cached = laneWindowCache.get(aura.key);
+		if (cached !== undefined) return cached;
+		const walked = auraWindows(selfEvents, aura, t0, fightEnd, { openAtPull: true }).filter(
+			(w) => w.preexisting !== true || !presses.some((t) => t <= w.end),
+		);
+		laneWindowCache.set(aura.key, walked);
 		return walked;
 	};
 	// A cast's fixed-duration window (a totem, the Fire Elemental) runs until the spell would expire,
@@ -975,34 +1110,92 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const fsMerged: Window[] = fsDot.merged.map(([start, end]) => ({ start, end }));
 	const fsUptimeMs = unionMs(toIntervals(fsMerged));
 	/**
-	 * The same coverage, clipped to the clock it is graded against — and the reason the tile once read
-	 * **100.21%**.
+	 * The graded numerator: the dot on whichever spawn the player was in contact with, clipped to the
+	 * contact clock — and the reason the tile once read **100.21%**.
 	 *
-	 * `fsMerged` runs over the whole pull: the dot goes up when it goes up and its window closes at the
-	 * `removedebuff` the boss's death emits, or at the last event of the fight. `engagedMs` is a
-	 * different span — the union of `engaged`, which is built from the player's own landed non-tick hits
-	 * on the primary target and so cannot begin before the first of them or run past the last. Dividing
-	 * one by the other divides two clocks, and on a pull where the dot never falls off the numerator
-	 * wins.
+	 * **Two mistakes are guarded here, and they are not the same mistake.**
 	 *
-	 * Measured, on the pull that produced the figure: the last landed hit is at 364.238s, the dot's
-	 * removal is stamped at 365.014s, and the dot went up 1ms after the first hit. The numerator carried
-	 * 365 009ms against a 364 234ms denominator — 775ms of dot ticking on a boss that had already taken
-	 * its last hit — and 365 009 / 364 234 is 100.2128%. Nothing was double-counted and no merge was
-	 * wrong; the two spans simply disagreed about when the pull was.
+	 * The first is a numerator and a denominator measured over different spans. `fsMerged` runs over the
+	 * whole pull: the dot goes up when it goes up and its window closes at the `removedebuff` the boss's
+	 * death emits, or at the last event of the fight. Either clock is a shorter span — built from landed
+	 * non-tick hits, so it cannot begin before the first of them or run past the last. Measured, on the
+	 * pull that produced the figure: the last landed hit is at 364.238s, the dot's removal is stamped at
+	 * 365.014s, and the dot went up 1ms after the first hit. The numerator carried 365 009ms against a
+	 * 364 234ms denominator — 775ms of dot ticking on a boss that had already taken its last hit — and
+	 * 365 009 / 364 234 is 100.2128%. Nothing was double-counted and no merge was wrong; the two spans
+	 * simply disagreed about when the pull was. So the numerator is intersected with the denominator's
+	 * own windows, which is what `multiDotUptimeMs` and `stUptimeMs` below already do.
 	 *
-	 * So the numerator is intersected with the denominator's own windows, which is what `multiDotUptimeMs`
-	 * and `stUptimeMs` below already do — Flame Shock was the one figure in this file measuring a union
-	 * against a bare scalar. That makes the ratio a share by construction rather than by luck, since
-	 * `intersect` cannot return more time than `engaged` contains, and it closes the same hole one
-	 * segment earlier: a dot ticking on across a gap *between* two engaged stretches was credited
-	 * against a denominator that excludes that gap.
+	 * The second is subtler and is what this block now exists for: **whose clock.** This figure used to
+	 * divide the dot on the primary target by `engagedMs`, the *boss's* clock — the stretches the primary
+	 * was there to be hit. The chart under the tile
+	 * (`specs/elemental/components/charts/FlameShockUptime.tsx`) shades from `contact`, the *player's*
+	 * clock, so the picture and the percentage were fractions of two different fights. Contact is the
+	 * honest denominator for a metric about a button the player presses: it forgives the stretches they
+	 * had nothing in reach, and it does not forgive the stretches they were in the fight and off the
+	 * rotation. On `phased` the two are 206 557ms of contact against 239 246ms of engaged, and the 32.7s
+	 * between them is not an untargetable boss — `engaged` is proof damage was landing on the primary
+	 * throughout, from the pets and from unmodelled procs, both of which `contact` filters out. What
+	 * contact forgives there is the player's own absence from the rotation.
+	 *
+	 * **And the numerator had to move with it, or the fix above comes straight back.** Clipped to
+	 * `engaged` the numerator is 212 026ms on `phased`, which is *more* than contact's 206 557ms: divide
+	 * one by the other and `uptimePct` clamps to 100 and warns. So the numerator is rebuilt on the same
+	 * terms the denominator is — the dot on the enemy the player was demonstrably hitting, each landed
+	 * hit owning the time until the next, intersected with `contact`. This is the Windwalker's own
+	 * reading of its Rising Sun Kick debuff (`specs/windwalker/lib/index.ts`, `contactUpSegments` over
+	 * `inContactMs`), built here off the same two pieces: a per-spawn dot map, and the hit list `spawnAt`
+	 * already reads.
+	 *
+	 * **Over every spawn, not `fsDot.byInstance`, and the difference is 47 seconds.** `fsDot` is scoped to
+	 * the primary target, so a map built from it credits nothing at all for the stretches the player was
+	 * hitting an add — while `contact` counts every one of those stretches in the denominator. That is
+	 * the same mismatch one step in: a numerator scoped to the primary's own spawns divided by the time
+	 * the player was on *anything*. Measured on `cleave`, which spends 148.9s of its 263.2s multi-target:
+	 * the primary-scoped numerator reads 187 930ms and the honest one 189 111ms, so the two agree there
+	 * only because that player barely dotted the adds (`multiDotUptimePct` is 16.6%). On a pull where the
+	 * cleave rule *was* followed the primary-scoped reading would charge every dotted add as downtime —
+	 * a fault invented out of doing what the priority list asked. So the walk asks
+	 * `dotWindowsBySpawn` for every spawn.
+	 *
+	 * Keyed by spawn and not by enemy id, for the reason that function gives at length: one `targetID`
+	 * covers every copy of an add, and that id's *union* would credit a dot sitting on a copy the player
+	 * killed two minutes ago.
+	 *
+	 * This is not the multi-dot metric in disguise. `multiDotUptimePct` asks whether a *second* dot went
+	 * out on the secondary target across the stretches two enemies were up — a question about a press the
+	 * player chose to make. This asks whether the enemy in front of them was dotted at all.
 	 *
 	 * `windows` and `uptimeMs` are deliberately left whole. They are what the timeline lane draws and
 	 * what the drop ledger reads, and both are claims about the pull rather than about the share —
 	 * clipping them would put a seam in the drawn dot where the boss merely stopped being hit.
 	 */
-	const fsEngagedWindows: Window[] = intersect(fsDot.merged, engaged).map(([start, end]) => ({ start, end }));
+	const fsDotAnywhere = dotWindowsBySpawn(events, FS_DEBUFF, t0, fightEnd, actor.id).byInstance;
+	const fsContactDotBySpawn = new Map<string, Interval[]>();
+	const fsDotOn = (key: string): Interval[] => {
+		const known = fsContactDotBySpawn.get(key);
+		if (known !== undefined) return known;
+		// Merged and clipped once per spawn rather than once per hit: a boss carried through a whole pull
+		// is thousands of hits against the same handful of windows.
+		const windows = mergeIntervals(intersect(toIntervals(fsDotAnywhere.get(key) ?? []), contact));
+		fsContactDotBySpawn.set(key, windows);
+		return windows;
+	};
+	const fsCoveredParts: Interval[] = [];
+	for (let i = 0; i < landedHits.length; i++) {
+		const hit = landedHits[i];
+		if (hit === undefined) continue;
+		// Each hit owns the time until the next one — that is how long the player was demonstrably on
+		// that enemy — and the last one owns the rest of the pull, which the intersection with contact
+		// has already clipped back to nothing past the final window.
+		const until = landedHits[i + 1]?.t ?? duration;
+		for (const [start, end] of fsDotOn(hit.key)) {
+			if (start >= until) break;
+			if (end > hit.t) fsCoveredParts.push([Math.max(start, hit.t), Math.min(end, until)]);
+		}
+	}
+	/** One quantity, two shapes: the union is the figure, the array is what a chart could draw. */
+	const fsContactWindows: Window[] = mergeIntervals(fsCoveredParts).map(([start, end]) => ({ start, end }));
 	/** The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none. */
 	const fsRemainingAt = (t: number): number => {
 		const key = spawnAt(t);
@@ -1386,7 +1579,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const stWastedMs = stClipped.reduce((s, p) => s + (p.remainingMs ?? 0), 0);
 
 	/**
-	 * The clock the totem is graded against: engaged time, less every stretch the Fire Elemental owned
+	 * The clock the totem is graded against: contact time, less every stretch the Fire Elemental owned
 	 * the slot.
 	 *
 	 * A player cannot have a Searing Totem up while the elemental is out, so that time is not a totem
@@ -1394,12 +1587,24 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * a pull that used the elemental on cooldown could not clear the section's "good" bar however well
 	 * the totem was kept.
 	 *
-	 * The numerator is intersected with the same clock rather than taken raw. Two halves of one ratio
-	 * measured over two different stretches is how a percentage above 100 happens — a totem ticking
-	 * through an intermission would have counted up against a denominator the intermission was already
-	 * out of.
+	 * **`contact` and not `engaged`, for the same reason Flame Shock's share moved.** This used to divide
+	 * by the primary target's own clock while `SearingTotemUptime.tsx` shaded its "down" band from
+	 * `intersect(contactSegments, slotFree)` — so the picture forgave the stretches the player had nothing
+	 * in reach and the percentage beside it did not. That is a chart and a figure describing two different
+	 * fights in one section, which is the defect this pass exists to close; the chart's own comment
+	 * already claims "the section's denominator drops the same stretch", and now it does. Dropping a
+	 * totem is also a claim about the player rather than about the boss's reachability: a totem ticks on
+	 * whatever is near it, so the seconds worth grading are the seconds the player was in the fight.
+	 *
+	 * Measured on `phased`, whose two clocks are 32.7s apart: 182 999ms of scored time becomes 150 310ms
+	 * and the share goes from 65.57% to 79.83%. No fixture crosses a band on it.
+	 *
+	 * The numerator is intersected with the same clock rather than taken raw, so it follows this line
+	 * without a second edit. Two halves of one ratio measured over two different stretches is how a
+	 * percentage above 100 happens — a totem ticking through an intermission would have counted up
+	 * against a denominator the intermission was already out of.
 	 */
-	const stScored = intersect(engaged, complementOf(feWindows, duration));
+	const stScored = intersect(contact, complementOf(feWindows, duration));
 	const stScoredMs = unionMs(stScored);
 	const stUptimeMs = unionMs(intersect(stIntervals, stScored));
 
@@ -1463,7 +1668,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// player was about to spend the window on, and the list's own rule reads `dotRemainingTime`,
 		// which the sim evaluates against the current target.
 		fsRemainingMs: fsRemainingAt(t) || null,
-		opener: t <= 5000,
+		opener: isOpener(t),
 		twoPiece: remainingIn(t, twoPieceWindows) >= 10_000,
 	}));
 
@@ -1482,16 +1687,15 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const fsRemaining = fsRemainingAt(t);
 		const t15Active = inWindow(t, t15Windows);
 		const ascActive = inWindow(t, ascActiveWindows);
-		const reason: 'opener' | 'sync' | 't15' | 'off' | null =
-			t <= 5000
-				? 'opener'
-				: ascReady <= 2 && fsRemaining <= FS_ASC_PREP_MS
-					? 'sync'
-					: t15Active && (ascActive || ascReady >= 90 || ascReady < 2)
-						? 't15'
-						: !t15Active && (ascReady >= 85 || ascReady < 4)
-							? 'off'
-							: null;
+		const reason: 'opener' | 'sync' | 't15' | 'off' | null = isOpener(t)
+			? 'opener'
+			: ascReady <= 2 && fsRemaining <= FS_ASC_PREP_MS
+				? 'sync'
+				: t15Active && (ascActive || ascReady >= 90 || ascReady < 2)
+					? 't15'
+					: !t15Active && (ascReady >= 85 || ascReady < 4)
+						? 'off'
+						: null;
 		return { t, reason };
 	});
 	const fePresses = castTimes(FIRE_ELEMENTAL).map((t) => {
@@ -1651,6 +1855,35 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		group,
 		windows: windows.map((w) => ({ start: w.start, end: w.end })),
 	});
+	/**
+	 * **The §6 audit of this file's `auraWindows` calls, written down because the calls that did _not_
+	 * change are the more useful half.**
+	 *
+	 * Every lane below that comes from the player's own aura stream now goes through `laneWindows`, which
+	 * infers the pre-pull window; see its docstring for why that is a second walk and not a switch on the
+	 * memo, and for why rung 3 (`pullAuras`) is not used anywhere in this file.
+	 *
+	 * The three lanes that do **not** infer, and what each would need:
+	 *
+	 *   - **`flame-shock`** comes from `dotWindowsBySpawn`, and that walk filters its buckets to aura
+	 *     events before `auraWindows` sees them — so the "a cast proves the opening was logged in-fight"
+	 *     guard is blind there by construction, even though the dot's press and debuff share id 8050. Its
+	 *     windows are also the graded ones: `uptimeMs`, the drop ledger, the snapshot check and the APL's
+	 *     `present` all read `fsMerged`. So inferring there would move graded numbers off the weakest
+	 *     evidence in the section, and doing it safely wants `AuraLane` able to carry `preexisting` so the
+	 *     drawn bar and the graded union can differ. Same for `t16-2pc-debuff`, which shares the walk.
+	 *   - **`searing-totem` and `fire-elemental`** come off the Fire totem slot walk, which already
+	 *     recovers the pre-pull elemental with `openAtPull: true` and its own press guard. Asking
+	 *     `auraWindows` a second time for either would be a second answer to one question.
+	 *   - **`stormlash-totem`** is built from cast times and a fixed ten seconds, so there is no aura walk
+	 *     to give an option to. A pre-pull Stormlash would need the press, and the press is the evidence.
+	 *
+	 * **What this cannot do yet, and it is a real gap:** `AuraLane` carries only `{ start, end }`, so the
+	 * `preexisting` flag `auraWindows` sets is dropped on the way to the chart and an inferred bar draws
+	 * identically to one with both endpoints logged. Every bar inferred here is rung 2 — a removal the log
+	 * really carried — which is why drawing it unmarked is defensible in the meantime, but the marking
+	 * needs a field on `AuraLane` in `src/lib/types.ts`, which this lane does not own.
+	 */
 	const lanes: AuraLane[] = [
 		lane(FS_DEBUFF, 'debuff', fsMerged),
 		// The player's own Stormlash, not the raid's: the timeline is this player's story, and the raid
@@ -1667,15 +1900,14 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		lane(
 			ASCENDANCE_AURA,
 			'buff',
-			toIntervals(selfWindows(ASCENDANCE_AURA)).map(([s, e]) => ({ start: s, end: e })),
+			// `ascCasts` as the press guard: this aura's cast and buff ids differ, so `auraWindows`' own
+			// guard cannot see the press. See `laneWindows`.
+			toIntervals(laneWindows(ASCENDANCE_AURA, ascCasts)).map(([s, e]) => ({ start: s, end: e })),
 		),
 		lane(
 			ELEMENTAL_MASTERY,
 			'buff',
-			toIntervals(selfWindows(registry.aura('elemental-mastery'))).map(([s, e]) => ({
-				start: s,
-				end: e,
-			})),
+			toIntervals(laneWindows(registry.aura('elemental-mastery'))).map(([s, e]) => ({ start: s, end: e })),
 		),
 		// The elemental's windows off the Fire totem slot walk, so this lane and the Searing Totem lane
 		// under it are the two halves of one slot rather than two independent claims on the same time.
@@ -1688,7 +1920,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		lane(
 			LAVA_SURGE,
 			'proc',
-			toIntervals(selfWindows(LAVA_SURGE)).map(([s, e]) => ({ start: s, end: e })),
+			toIntervals(laneWindows(LAVA_SURGE)).map(([s, e]) => ({ start: s, end: e })),
 		),
 		// The two-piece debuff the proc leaves on the primary target, so the Ascendance two-piece window
 		// can be read off the timeline rather than only off the cooldowns section. One lane, where there
@@ -1697,22 +1929,22 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		lane(
 			UNERRING_VISION,
 			'proc',
-			toIntervals(selfWindows(UNERRING_VISION)).map(([s, e]) => ({ start: s, end: e })),
+			toIntervals(laneWindows(UNERRING_VISION)).map(([s, e]) => ({ start: s, end: e })),
 		),
 		lane(
 			BREATH_OF_HYDRA,
 			'proc',
-			toIntervals(selfWindows(BREATH_OF_HYDRA)).map(([s, e]) => ({ start: s, end: e })),
+			toIntervals(laneWindows(BREATH_OF_HYDRA)).map(([s, e]) => ({ start: s, end: e })),
 		),
 		lane(
 			CHAYES,
 			'proc',
-			toIntervals(selfWindows(CHAYES)).map(([s, e]) => ({ start: s, end: e })),
+			toIntervals(laneWindows(CHAYES)).map(([s, e]) => ({ start: s, end: e })),
 		),
 		lane(
 			WRATH_OF_DARKSPEAR,
 			'proc',
-			toIntervals(selfWindows(WRATH_OF_DARKSPEAR)).map(([s, e]) => ({ start: s, end: e })),
+			toIntervals(laneWindows(WRATH_OF_DARKSPEAR)).map(([s, e]) => ({ start: s, end: e })),
 		),
 		// An aura the log never carried has no windows and no business taking a row — the talent was not
 		// taken, or the trinket was not worn. Dropped rather than drawn empty, so the timeline names only
@@ -1742,7 +1974,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		flameShock: {
 			windows: fsMerged,
 			uptimeMs: fsUptimeMs,
-			uptimePct: uptimePct(fsEngagedWindows, engagedMs),
+			uptimePct: uptimePct(fsContactWindows, inContactMs),
 			applies,
 			refreshes,
 			windowed: fsPresses.filter((p) => p.windowed).length,
@@ -1754,7 +1986,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			multiDotUptimeMs,
 			multiDotUptimePct,
 			multiTargetMs: multiDotMs,
-			scoredMs: engagedMs,
+			scoredMs: inContactMs,
 		},
 		lavaBurst: {
 			procs: lavaSurgeProcs,
