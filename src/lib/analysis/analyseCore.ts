@@ -1102,6 +1102,11 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		timeline: {
 			...core.timeline,
 			...audit.timeline,
+			// Straight through from the fetch. Spread last so it cannot be clobbered by a spec that happens
+			// to put a `phases` on its own timeline, and omitted entirely when the fetch carried none rather
+			// than written as an empty array — "WarcraftLogs knows no phases for this encounter" and "this
+			// pull had one phase" are different facts, and 6 of the 14 Siege encounters are the first.
+			...(dataset.phases === undefined ? {} : { phases: dataset.phases }),
 		},
 	} as Analysis;
 }

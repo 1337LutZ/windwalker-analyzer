@@ -1771,6 +1771,15 @@ export interface AnalysisCore {
 		hasteWindows?: AuraWindow[];
 		/** The Troll racial's 10s haste burst, detected alongside `hasteWindows` for the same reason. */
 		berserkingWindows?: AuraWindow[];
+		/**
+		 * The encounter's phase transitions, carried through from the fetched dataset unchanged.
+		 *
+		 * Here rather than re-derived because there is nothing to derive: WarcraftLogs states them and the
+		 * audit has no view of its own to add. Optional twice over — the committed fixtures predate the
+		 * fetch, and WarcraftLogs itself returns none for 6 of the 14 Siege encounters. See `FightDataset`
+		 * for the two traps in the shape.
+		 */
+		phases?: FightPhase[];
 	};
 	lostCasts: LostCastRow[];
 	/**
