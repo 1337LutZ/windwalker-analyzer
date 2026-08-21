@@ -44,15 +44,6 @@ import { analyse, registry } from '~/specs/elemental/lib';
 const NOT_LANES: Record<string, string> = {
 	// Drawn above the rows as its own counter, not among them — `timelineBanks`.
 	'lightning-shield': 'drawn as the charge bank',
-	// Declared for its **duration bound** and nothing else: `auraWindows`' `openAtPull` inference refuses
-	// to recover a pre-pull window without one, and until this aura existed a pre-pulled Earth Elemental
-	// was indistinguishable from a cooldown nobody pressed (§68). The Earth Elemental has never had a
-	// timeline row — before that declaration or after it — so this excuses the status quo rather than a
-	// regression. It is also the strongest candidate on this list for gaining one, and that belongs to
-	// whoever owns the drawing: the Fire Elemental's own row is the worked precedent, and unlike the
-	// three below there is a real rotational claim here, since the summon takes a global and holds the
-	// earth totem slot for its minute.
-	'earth-elemental': 'no timeline row yet — declared for the pre-pull inference, see §68',
 	// The player lived, moved or healed. None of it changes what the rotation wanted, and a row each
 	// would push the rotation's own rows off the screen on a long pull.
 	'astral-shift': 'defensive, no bearing on the rotation',

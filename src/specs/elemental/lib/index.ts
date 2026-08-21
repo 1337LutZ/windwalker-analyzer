@@ -30,6 +30,7 @@ import {
 	auraTimeline,
 	auraWindows,
 	inWindow,
+	raidScoped,
 	SELF_EVENT_MS,
 	levelAt,
 	levelWindows,
@@ -273,6 +274,18 @@ const SEARING_TOTEM_DURATION_MS = 60_000;
 const EE_END_MS = 62_000;
 
 /**
+ * The Earth Elemental's own cooldown: five minutes, the same as the Fire Elemental's.
+ *
+ * **Which of the two numbers this is.** The summon sits behind two timers in
+ * `sim/shaman/earth_elemental_totem.go`: its own `CD.Duration` of `time.Minute * 5`, and a `SharedCD` of
+ * `time.Minute * 1` on `ElementalSharedCDTimer` that it shares with the Fire Elemental. `cooldownMs` is
+ * the button's own clock — `cooldowns.ts` reads it as "ready again at `last cast + cooldownMs`" — so it is
+ * the five minutes. The shared minute is a constraint *between* two buttons, which this model has no field
+ * for and no reader that wants one. The field said 120 000, which is neither of them.
+ */
+const EARTH_ELEMENTAL_COOLDOWN_MS = 300_000;
+
+/**
  * The Earth Elemental's own minute — `sim/shaman/earth_elemental_totem.go`'s `totalDuration`, and the
  * client's `SpellDuration` row for 118323, which agree at 60 000ms.
  *
@@ -486,9 +499,11 @@ const ABILITIES: Ability[] = [
 		damageIds: [2062],
 		onGcd: true,
 		// The p5 list presses it almost entirely in end-of-fight terms (`remainingTime <= 62s`), so a
-		// drift verdict would call the list's own plan a fault. Counted and never scored.
+		// drift verdict would call the list's own plan a fault. Counted and never scored: `gate: 'other'`
+		// makes `cooldownDrift` read the cooldown as zero and `analyseCore` leave it out of `lostCasts`
+		// altogether, so the corrected figure below moves nothing but the cast table's own CD column.
 		gate: 'other',
-		cooldownMs: 120_000,
+		cooldownMs: EARTH_ELEMENTAL_COOLDOWN_MS,
 		applies: ['earth-elemental'],
 	},
 	{
@@ -1162,12 +1177,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const {
 		actor,
 		castPresses,
-		events,
 		t0,
 		duration,
 		link,
 		selfEvents,
-		raidStormlash,
 		castTimes,
 		castBeginTimes,
 		primaryID,
@@ -1185,6 +1198,24 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	} = h;
 	const { lightningShieldOvercapMs, searingTotemRefreshMs } = h.settings;
 	const fightEnd = t0 + duration;
+
+	/**
+	 * The two raid-wide streams this audit is handed, named as the raid's rather than taken as given.
+	 *
+	 * Plan §31a. Three bugs in this file were one mistake — `auraLevels(events, …)` where the line beside
+	 * it walked `selfEvents` — and all three read as another player's aura on this shaman's report: two
+	 * snapshot triggers opened windows off somebody else's trinket, and the two-shaman Flame Shock the
+	 * `dotWindowsOnTarget` comment records is the same species. `raidScoped` makes that shape a *compile*
+	 * error rather than a thing to catch in review: the three aura walks take `ScopedEvents`, which these
+	 * two values are deliberately not assignable to.
+	 *
+	 * A cast at runtime and nothing else, so no figure here can move. The consumers below are unaffected —
+	 * every one of them wants the raid stream and takes `readonly WclEvent[]`, which a branded stream still
+	 * satisfies: the dot walks (which bucket by spawn *before* they walk, and the bucket is the scope), the
+	 * damage and tick sweeps, and the Stormlash loop, which reads one placement per shaman on purpose.
+	 */
+	const events = raidScoped(h.events);
+	const raidStormlash = raidScoped(h.raidStormlash);
 
 	/**
 	 * The player's own windows for one aura, walked once.
@@ -2559,6 +2590,19 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			pullSpansAsWindows(feWindows, fePrepullWindow !== undefined),
 		),
 		lane(SEARING_TOTEM_DOT, 'debuff', stMerged),
+		// The other summon, which had no row at all: it was excused in `drawnAuras.test.ts`' `NOT_LANES`
+		// ledger as "declared for the pre-pull inference", and that excused the status quo rather than a
+		// decision. It has the strongest rotational claim of anything on that list — the summon costs a
+		// global and holds the earth totem slot for its whole minute, which is exactly what a reader
+		// cannot see from the press mark alone — and `TIMELINE_ROW_ORDER` has named an `Earth Elemental`
+		// row since before there was an aura to fill it.
+		//
+		// `eeCasts` as the press guard, and for the same reason Ascendance needs one: the press is 2062
+		// and the buff is 118323, so `auraWindows`' own "was this opening logged in-fight" test — which is
+		// per id — cannot see the press that opened a window it is about to call pre-pull. Through
+		// `laneWindows` rather than `selfWindows` so the bar shows a pre-pull summon, and the press
+		// verdicts above keep the plain reading: `earthElemental.presses` is unchanged either way.
+		lane(EARTH_ELEMENTAL_AURA, 'buff', laneWindows(EARTH_ELEMENTAL_AURA, eeCasts)),
 		lane(LAVA_SURGE, 'proc', laneWindows(LAVA_SURGE)),
 		// The two-piece debuff the proc leaves on the primary target, so the Ascendance two-piece window
 		// can be read off the timeline rather than only off the cooldowns section. One lane, where there

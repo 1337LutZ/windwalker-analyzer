@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
-import { analyse } from '../index';
+import { analyse, registry } from '../index';
 
 const load = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
@@ -42,6 +42,55 @@ describe('the Earth Elemental on two real pulls', () => {
 		expect(el.earthElemental.presses).toEqual([{ t: 66_657, nearEnd: false, inferred: false }]);
 		expect(el.durationMs - 66_657).toBeGreaterThan(62_000);
 		expect(el.earthElemental.prepull).toBe(false);
+	});
+
+	/**
+	 * Its cooldown is the sim's `CD.Duration`, and that is the same five minutes the Fire Elemental has.
+	 *
+	 * Asserted as the *pairing* rather than as the literal, because the pairing is the fact:
+	 * `earth_elemental_totem.go` and `fire_elemental_totem.go` carry the identical `CD.Duration:
+	 * time.Minute * 5` and the identical one-minute `SharedCD`, so the two summons cannot disagree here.
+	 * The field read 120 000 — neither of the sim's two numbers.
+	 *
+	 * The second half is why the correction was safe to make: `gate: 'other'` keeps it out of `lostCasts`
+	 * entirely, so no drift, no lost cast and no grade reads the number on the pull that presses it.
+	 */
+	it("carries the sim's five minutes, and no scored figure reads it", () => {
+		expect(registry.ability('earth-elemental').cooldownMs).toBe(registry.ability('fire-elemental').cooldownMs);
+		expect(registry.ability('earth-elemental').gate).toBe('other');
+		const el = fx('phased');
+		expect(el.earthElemental.presses).toHaveLength(1);
+		expect(el.lostCasts.map((row) => row.name)).not.toContain('Earth Elemental');
+	});
+});
+
+describe('the Earth Elemental has a timeline row', () => {
+	const laneOn = (name: string) =>
+		((fx(name) as Analysis).timeline?.lanes ?? []).find((l) => l.key === 'earth-elemental');
+
+	/**
+	 * The bar is the log's own `applybuff`→`removebuff` pair, so its length is the elemental's minute —
+	 * which is the thing the press mark alone cannot show, and the reason this earns a row: the summon
+	 * held the earth totem slot for sixty of the pull's seconds.
+	 */
+	it('draws the whole minute on the pull that logged both ends', () => {
+		const lane = laneOn('unbroken');
+		// The press is at 66 657 (above); the `applybuff` is the millisecond before it, as the aura's own
+		// note records for both fixtures that carry it.
+		expect(lane?.windows).toEqual([{ start: 66_656, end: 126_657 }]);
+		const [window] = lane?.windows ?? [];
+		expect((window?.end ?? 0) - (window?.start ?? 0)).toBeCloseTo(60_000, -1);
+	});
+
+	/** And a summon the kill cut short is drawn short, marked as truncated rather than as a full minute. */
+	it('clips the bar at the kill and says so', () => {
+		const el = fx('phased');
+		expect(laneOn('phased')?.windows).toEqual([{ start: 240_166, end: el.durationMs, truncated: true }]);
+	});
+
+	/** `cleave` carries neither 2062 nor 118323, so there is nothing to draw and no empty row drawn. */
+	it('draws no row on the pull that never summoned it', () => {
+		expect(laneOn('cleave')).toBeUndefined();
 	});
 });
 
