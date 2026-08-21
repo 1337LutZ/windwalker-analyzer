@@ -100,9 +100,10 @@ describe('the Fire Elemental pre-pull note', () => {
 	it('says it was out when the bell went', () => {
 		const html = render(make(200_000, [e(40_000, 'removebuff', FIRE_ELEMENTAL_BUFF)]));
 		expect(html).toContain(t('fireElemental.prepullYes'));
-		// And the empty press table says the same thing rather than "never pressed in this pull", which
-		// beside that note is the report arguing with itself — plan step 48's own bug report.
-		expect(html).toContain(t('fireElemental.nonePrepull'));
+		// And the table lists the summon as a use rather than standing empty. It used to assert a second
+		// empty-state string here — the wording that papered over having no row at all — which became
+		// unreachable the moment the prepull use became a row.
+		expect(html).toContain(t('fireElemental.state.prepull'));
 		expect(html).not.toContain(t('fireElemental.none'));
 	});
 

@@ -64,10 +64,14 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 						{ key: 'state', label: t('fireElemental.columns.state') },
 					]}
 					rows={rows}
-					// A pull whose only summon predates the bell has no press to list, and "never pressed in
-					// this pull" beside a note saying it was already out reads as the report contradicting
-					// itself — which is how the missed detection behind plan step 48 was reported.
-					empty={prepullTone === 'good' ? t('fireElemental.nonePrepull') : t('fireElemental.none')}
+					// One empty state, because there is no longer a case that needs two. A pull whose only
+					// summon predates the bell used to have no press to list, so "never pressed in this pull"
+					// sat beside a note saying it was already out — the report arguing with itself, which is
+					// how the missed detection behind plan step 48 was reported. The second string existed to
+					// paper over that. The prepull use is now a row of its own, so the contradiction is fixed
+					// where it was rather than worded around, and this slot only renders when the elemental
+					// really was never summoned.
+					empty={t('fireElemental.none')}
 				/>
 			</div>
 

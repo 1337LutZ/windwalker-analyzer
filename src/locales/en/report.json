@@ -1448,6 +1448,7 @@
       "state": "rule"
     },
     "state": {
+      "prepull": "Prepulled (no cast logged)",
       "near-end": "Near the end",
       "sync": "Synced with Ascendance",
       "early": "Early",
@@ -1455,7 +1456,6 @@
     },
     "caption": "Every Fire Elemental press and which window it was",
     "none": "Fire Elemental was never pressed in this pull.",
-    "nonePrepull": "No press inside this pull — the elemental was summoned before the bell, which is where the list wants it.",
     "prepullYes": "It was already out when the bell went — the prepull press the list makes under Heroism.",
     "prepullNo": "It was not out when the bell went. Summoning it just before the pull is free: the elemental works from the first second and its five-minute cooldown starts turning earlier. Whether it was still down from the attempt before is not something this log can see, so nothing here counts it as a mistake.",
     "prepullUnknown": "Whether it was out at the bell is not a question this pull can answer. A pre-pull elemental leaves only the expiry it logs a minute later, and this fight either ended or had not yet reached this player before that could land."
