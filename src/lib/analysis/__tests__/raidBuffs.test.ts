@@ -6,10 +6,18 @@
 // at once. The numbers in the assertions are what the log actually supports, not what a tidier
 // model would like it to say.
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 
-import { narrowRaidBuffs, RAID_BUFF_EFFECT_KEYS, readRaidBuffs, type RaidBuffEffect } from '../raidBuffs';
+import {
+	narrowRaidBuffs,
+	RAID_BUFF_EFFECT_KEYS,
+	RAID_BUFF_NAMES,
+	readRaidBuffs,
+	type RaidBuffEffect,
+} from '../raidBuffs';
 
 const T0 = 1000;
 const END = T0 + 100_000;
@@ -298,5 +306,53 @@ describe('narrowRaidBuffs', () => {
 	/** Every key used above is one the shared table actually groups — the typo case, caught by name. */
 	it('is declared against keys the measurement carries', () => {
 		for (const effect of CASTER) expect(RAID_BUFF_EFFECT_KEYS).toContain(effect.key);
+	});
+});
+
+/**
+ * The id the game writes, not the one the simulator declares.
+ *
+ * Leader of the Pack has two: **24932** is the raid-wide aura and **17007** is the druid's own. The sim
+ * declares only 17007 and this model followed it, so the crit row measured the buff for the druids and
+ * called it absent for everyone else — 51 of 77 player-report pairs across three anonymous 25H nights
+ * carried 24932, against 3 pairs for 17007.
+ *
+ * The fixture assertion is the one that matters. `phased.json` has carried ability 24932 all along, so
+ * the committed data could have caught this and nothing was asking it to. That is the same hole the
+ * cast-id coverage guard closed for abilities, one aura over.
+ */
+describe('the crit buff’s two ids', () => {
+	it('names the raid-wide aura, which is the one a non-druid gets', () => {
+		expect(RAID_BUFF_NAMES.get(24932)).toBe('Leader of the Pack');
+	});
+
+	it('still names the druid’s own, because a druid reading their own report has that one', () => {
+		expect(RAID_BUFF_NAMES.get(17007)).toBe('Leader of the Pack');
+	});
+
+	it('is declared for the id a committed fixture proves was up at the pull', () => {
+		// Not in the event stream — in `combatantinfo`'s own aura list, which is the only record of anything
+		// buffed before the bell and the field `readRaidBuffs` reads for exactly that reason. So the fixture
+		// does not merely mention 24932: it proves the buff was on that shaman at the pull, while the crit
+		// row was reporting the effect absent.
+		const raw = readFileSync(resolve(import.meta.dirname, '../../../specs/elemental/__fixtures__/phased.json'), 'utf8');
+		const dataset = JSON.parse(raw) as { events: Array<{ auras?: Array<{ ability?: number }> }> };
+		const pullAuras = new Set(
+			dataset.events
+				.flatMap((e) => (e.auras ?? []).map((a) => a.ability))
+				.filter((id): id is number => id !== undefined),
+		);
+		// Guard against the assertion quietly passing on a fixture that stopped carrying it.
+		expect(pullAuras.has(24932), 'phased.json no longer carries 24932 at the pull; this test is now vacuous').toBe(
+			true,
+		);
+		expect(RAID_BUFF_NAMES.has(24932)).toBe(true);
+		// And the id the sim declares is not the one the fixture carries — the whole point.
+		expect(pullAuras.has(17007)).toBe(false);
+	});
+
+	it('names both of Spirit Beast Blessing’s ids for the same reason, at lower confidence', () => {
+		expect(RAID_BUFF_NAMES.get(127830)).toBe('Spirit Beast Blessing');
+		expect(RAID_BUFF_NAMES.get(128997)).toBe('Spirit Beast Blessing');
 	});
 });

@@ -182,6 +182,15 @@ const EFFECTS: EffectGroup[] = [
 		// present — a fabricated fault, which is the one thing it must never print.
 		key: 'crit',
 		providers: [
+			// Two ids for one druid, and the raid-wide one was the missing half. **24932 is the aura the raid
+			// gets**: 2,086 applications across 51 of 77 player-report pairs on three anonymous 25H nights.
+			// **17007 is the druid's own self-aura** — 58 applications, 3 pairs of 77. The simulator declares
+			// only 17007 (`sim/core/buffs.go:406`) and this file followed it, so the row measured the buff for
+			// the three druids and reported it absent for the 48 other players who demonstrably had it.
+			//
+			// `phased.json` carries ability 24932 twice. The fixture was writing the id the model did not
+			// declare, which is a gap the committed data could have caught and nothing was asking it to.
+			{ id: 24932, name: 'Leader of the Pack' },
 			{ id: 17007, name: 'Leader of the Pack' },
 			{ id: 90309, name: 'Terrifying Roar' },
 			{ id: 24604, name: 'Furious Howl' },
@@ -196,6 +205,10 @@ const EFFECTS: EffectGroup[] = [
 		key: 'mastery',
 		providers: [
 			{ id: 93435, name: 'Roar of Courage' },
+			// Both, for the same reason as Leader of the Pack above, and at much lower confidence: the log
+			// writes **127830** (3 applications, one report) and never 128997, which the sim declares. Three
+			// witnesses settle which id the game writes and settle nothing else, so both stay.
+			{ id: 127830, name: 'Spirit Beast Blessing' },
 			{ id: 128997, name: 'Spirit Beast Blessing' },
 			{ id: 19740, name: 'Blessing of Might' },
 			{ id: 116956, name: 'Grace of Air' },

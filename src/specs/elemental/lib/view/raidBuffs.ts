@@ -60,7 +60,9 @@ export const RAID_BUFF_EFFECTS: readonly RaidBuffEffect[] = [
 	// passive talent aura with no player cast, so only an `applybuff` will ever appear for it.
 	{ key: 'spellHaste', iconId: 51470, selfProvided: true },
 	// Leader of the Pack: the commonest source, and likewise a passive with no cast to log.
-	{ key: 'crit', iconId: 17007, selfProvided: false },
+	// 24932 and not 17007: the raid-wide aura, not the druid's own — see the crit group in
+	// `lib/analysis/raidBuffs.ts` for the counts that settle which is which.
+	{ key: 'crit', iconId: 24932, selfProvided: false },
 	// Grace of Air 116956 — the other half of `Shaman.AddRaidBuffs`, `sim/shaman/shaman.go:230-231`.
 	{ key: 'mastery', iconId: 116956, selfProvided: true },
 	// Last, because it is the one this spec is paid for only at second hand — see the note above.
