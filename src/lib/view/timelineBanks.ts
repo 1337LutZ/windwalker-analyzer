@@ -91,6 +91,16 @@ export interface CounterLoad {
 	 * a press that never happened.
 	 */
 	spent: boolean;
+	/**
+	 * The load ended below the counter's ceiling — a spend that threw charge away, or a shield that fell
+	 * off before it was full.
+	 *
+	 * Set only when the caller supplies a `cap`, because the ceiling is a fact about the aura and this
+	 * module knows no auras. `spent` and this are independent: a spend below the cap is a wasted press, a
+	 * *loss* below the cap is a wasted shield, and both are faults a reader can act on — which is why one
+	 * flag covers them and the tooltip says which.
+	 */
+	belowCap?: boolean;
 }
 
 /**
@@ -111,6 +121,19 @@ export interface TimelineCounter {
 	id: number;
 	tone: BankTone;
 	loads: CounterLoad[];
+	/**
+	 * Stretches of this counter that were a fault in themselves, rather than a load that ended badly.
+	 *
+	 * Time at the ceiling and time with the counter gone are both faults a reader can act on, and neither
+	 * is a property of one load: overcapping happens *inside* a load, and an absence happens *between*
+	 * two. So they arrive as windows and are drawn over the loads in the fault tone — which is exactly
+	 * what the spec's own section chart does, unifying fell-off, overcapped and spent-below-full into one
+	 * red band with one key entry.
+	 *
+	 * Supplied by the spec because every part of that judgement is the spec's: what the ceiling is, how
+	 * much grace sitting at it deserves, and whether an absence was the player's doing.
+	 */
+	faultWindows?: Array<readonly [number, number]>;
 }
 
 /**
@@ -135,7 +158,17 @@ export interface TimelineCounter {
  * so the stretch until it comes back stays blank and the load that was lost carries no figure — the
  * same reading `CastTimeline`'s `stepsOf` takes of an empty counter.
  */
-export function counterLoads(points: readonly (readonly [number, number])[], endMs: number): CounterLoad[] {
+export function counterLoads(
+	points: readonly (readonly [number, number])[],
+	endMs: number,
+	/**
+	 * The counter's ceiling, when the caller knows it. Loads that ended under it are flagged `belowCap`.
+	 *
+	 * Optional rather than required so a counter with no meaningful ceiling — one that is spent at
+	 * whatever it has reached — is drawn without inventing a fault for it.
+	 */
+	cap?: number,
+): CounterLoad[] {
 	const loads: CounterLoad[] = [];
 	let start: number | null = null;
 	let held = 0;
@@ -153,12 +186,20 @@ export function counterLoads(points: readonly (readonly [number, number])[], end
 		}
 		// Down: the load is over. Spent if anything is left on the counter, lost if not, and either way
 		// the next load starts from what remains.
-		loads.push({ start, end: t, held, spent: level > 0 });
+		loads.push({
+			start,
+			end: t,
+			held,
+			spent: level > 0,
+			...(cap !== undefined && held < cap ? { belowCap: true } : {}),
+		});
 		start = level > 0 ? t : null;
 		held = level;
 	}
 	// Still charging when the log stopped. Drawn, because the charge really was there, and unlabelled,
 	// because nothing unloaded it.
+	// Not `belowCap`, whatever it is holding: the log stopped, the player did not. Charging when the bell
+	// rings is not a fault and marking it one would charge them for the fight ending.
 	if (start !== null) loads.push({ start, end: endMs, held, spent: false });
 	return loads;
 }

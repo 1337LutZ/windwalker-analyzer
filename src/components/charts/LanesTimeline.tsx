@@ -80,6 +80,13 @@ interface Row {
 	 * written on the bar; `buildSpans` is where that happens.
 	 */
 	loads?: CounterLoad[];
+	/**
+	 * Stretches that are a fault in themselves, drawn over the loads in the fault tone.
+	 *
+	 * Separate from `loads` because neither of the two is a property of one load: overcapping happens
+	 * inside a load and an absence happens between two.
+	 */
+	faultWindows?: Array<readonly [number, number]>;
 }
 
 /**
@@ -130,6 +137,7 @@ function buildRows(
 			windows: [],
 			presses: [],
 			loads: counter.loads,
+			faultWindows: counter.faultWindows,
 		});
 	}
 
@@ -175,10 +183,19 @@ function buildSpans(rows: readonly Row[], durationMs: number, theme: ChartTheme)
 			});
 		}
 		for (const load of row.loads ?? []) {
+			// A load that ended under the ceiling is the fault the row exists to show, so it is drawn in the
+			// fault tone rather than the row's own. Same argument as the resource track washing its stretches
+			// at the cap: the reader is looking for where charge was thrown away, and a bar in the row's
+			// colour asks them to compare heights to find it.
+			//
+			// `belowCap` is the spec's answer, not this chart's — it knows no ceilings — and it covers a spend
+			// below full and a shield lost below full alike. The tooltip is what separates them, because they
+			// are different mistakes with the same cost and a reader can only act on the distinction.
+			const wasted = load.belowCap === true;
 			spans.push({
 				x: row.name,
 				y: [load.start, Math.max(load.end, load.start + floor)],
-				fillColor: theme[row.tone],
+				fillColor: wasted ? theme.miss : theme[row.tone],
 				strokeColor: theme.bg,
 				// Only a load that ended in a spend carries a figure, because the figure *is* the spend —
 				// the same number the Lightning Shield section writes over each fall in its own chart, and
@@ -186,11 +203,33 @@ function buildSpans(rows: readonly Row[], durationMs: number, theme: ChartTheme)
 				...(load.spent ? { count: `${load.held}` } : {}),
 				meta: {
 					title: row.name,
-					tone: row.tone,
+					tone: wasted ? 'miss' : row.tone,
 					rows: [
 						['from', formatStamp(load.start)],
 						['to', formatStamp(load.end)],
 						['stacks', `${load.held}`],
+						...(wasted
+							? ([[load.spent ? 'spent below full' : 'lost below full', `${load.held}`]] as Array<[string, string]>)
+							: []),
+					],
+				},
+			});
+		}
+		// **After the loads, and the order is the drawing.** These overlap the loads they describe — an
+		// overcap stretch sits inside one — and a later span in the same series paints over an earlier one,
+		// which is what puts the red on the part of the load that was at the ceiling rather than beside it.
+		for (const [start, end] of row.faultWindows ?? []) {
+			spans.push({
+				x: row.name,
+				y: [start, Math.max(end, start + floor)],
+				fillColor: theme.miss,
+				strokeColor: theme.bg,
+				meta: {
+					title: row.name,
+					tone: 'miss',
+					rows: [
+						['from', formatStamp(start)],
+						['to', formatStamp(end)],
 					],
 				},
 			});

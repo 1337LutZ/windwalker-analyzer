@@ -103,7 +103,18 @@ export function timelineCounters(analysis: Analysis): TimelineCounter[] {
 			name: LIGHTNING_SHIELD.name,
 			id: LIGHTNING_SHIELD.ids[0]!,
 			tone: 'kick',
-			loads: counterLoads(shield.points, analysis.durationMs),
+			// The cap, so a load that ended short of it is drawn as the fault it is. Read off the aura rather
+			// than written here: seven is Fulmination's ceiling and the game model is where that lives.
+			loads: counterLoads(shield.points, analysis.durationMs, LIGHTNING_SHIELD.maxStacks),
+			// The same three faults the section's own chart unifies into one red band: the shield gone, and
+			// the shield sitting full. The third — a load spent below the ceiling — is `belowCap` on the load
+			// itself, because that one *is* a property of a load.
+			// `?? []` on both, for the reason the absent-audit check above exists rather than out of caution:
+			// a stored `Analysis` predates whichever field was added after it was captured, and this file is
+			// handed those. A counter with no fault windows draws its loads and claims nothing.
+			faultWindows: [...(shield.downWindows ?? []), ...(shield.overcapWindows ?? [])].map(
+				(w) => [w.start, w.end] as const,
+			),
 		},
 	];
 }

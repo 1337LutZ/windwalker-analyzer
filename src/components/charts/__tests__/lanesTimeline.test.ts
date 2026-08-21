@@ -183,9 +183,12 @@ describe('the counter is cut one bar per spend', () => {
 		)[0]!.loads;
 
 		expect(loads).toHaveLength(2);
-		expect(loads[0]).toEqual({ start: 0, end: 2000, held: 5, spent: false });
-		// Still charging when the log stopped: drawn to the end of the pull, and unlabelled, because no
-		// press unloaded it.
+		// `belowCap` as well as unspent: it fell off holding five of seven, which is the fault the timeline
+		// draws in red — a shield lost before it was full, not merely a load that ended.
+		expect(loads[0]).toEqual({ start: 0, end: 2000, held: 5, spent: false, belowCap: true });
+		// Still charging when the log stopped: drawn to the end of the pull, unlabelled because no press
+		// unloaded it, and **not** `belowCap` — the log stopped, the player did not, and charging when the
+		// bell rings is not a mistake to charge them for.
 		expect(loads[1]).toEqual({ start: 8000, end: DURATION_MS, held: 3, spent: false });
 	});
 
@@ -204,5 +207,66 @@ describe('the counter is cut one bar per spend', () => {
 		const analysis = analysisWith(FOUR_SPENDS_AT_SEVEN);
 		expect(WINDWALKER.timelineCounters(analysis)).toEqual([]);
 		expect(WINDWALKER.timelineCounters(analysis)).toBe(WINDWALKER.timelineCounters(analysis));
+	});
+});
+
+/**
+ * The three faults the section's own chart unifies into one red band, on the summary row too.
+ *
+ * A reader looking at the shield wants to know where charge was thrown away, and a row drawn entirely
+ * in its own colour asks them to compare bar heights to find it. So: a load that ended under the
+ * ceiling is flagged, and the stretches that are a fault in themselves — the shield gone, the shield
+ * sitting full — arrive as windows, because neither is a property of one load. Overcapping happens
+ * *inside* a load and an absence happens *between* two.
+ *
+ * Asserted on what the spec hands the chart rather than on the rendered bars: the chart draws its
+ * spans inside an ApexCharts canvas, which server markup cannot see. What the chart does with these is
+ * pinned by the row-count assertions above.
+ */
+describe('the counter marks what was wasted', () => {
+	const shieldWith = (extra: Record<string, unknown>): Analysis =>
+		({
+			durationMs: DURATION_MS,
+			timeline: { lanes: [], casts: [] },
+			lightningShield: { points: FOUR_SPENDS_AT_SEVEN, maxStacks: 7, ...extra },
+		}) as unknown as Analysis;
+
+	it('leaves a load spent at the ceiling unflagged', () => {
+		const loads = ELEMENTAL.timelineCounters(shieldWith({}))[0]!.loads;
+		// All four unloads are at seven, so none of them wasted anything.
+		expect(loads.filter((load) => load.spent).every((load) => load.belowCap === undefined)).toBe(true);
+	});
+
+	it('flags a load spent below the ceiling', () => {
+		const loads = ELEMENTAL.timelineCounters(
+			shieldWith({
+				points: [
+					[0, 1],
+					[1000, 4],
+					[2000, 1],
+				],
+			}),
+		)[0]!.loads;
+		const spent = loads.find((load) => load.spent);
+		expect(spent?.held).toBe(4);
+		expect(spent?.belowCap).toBe(true);
+	});
+
+	it('carries the shield’s absent and at-ceiling stretches as fault windows', () => {
+		const counter = ELEMENTAL.timelineCounters(
+			shieldWith({
+				downWindows: [{ start: 5000, end: 6000 }],
+				overcapWindows: [{ start: 20_000, end: 23_000 }],
+			}),
+		)[0]!;
+		expect(counter.faultWindows).toEqual([
+			[5000, 6000],
+			[20_000, 23_000],
+		]);
+	});
+
+	it('claims no faults for an analysis captured before those fields existed', () => {
+		// A stored `Analysis` predates whichever field came after it, and this spec is handed those.
+		expect(ELEMENTAL.timelineCounters(shieldWith({}))[0]!.faultWindows).toEqual([]);
 	});
 });
