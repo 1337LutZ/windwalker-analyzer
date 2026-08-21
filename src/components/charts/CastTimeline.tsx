@@ -1945,7 +1945,16 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		// names, so a pull with two of the same still reads as two stretches.
 		haste.length === 0
 			? null
-			: t('castLog.lust.note', { count: haste.length, names: [...new Set(haste.map(lustName))].join(', ') }),
+			: // Per spec, because the claim is not the same claim: haste shortens a Windwalker's globals *and*
+				// speeds their energy regen, while a caster's mana does not work that way at all — for them it
+				// shortens the casts themselves and quickens their dot ticks. A bare `note` stays as the honest
+				// fallback for a spec with no sentence of its own, saying only the part that is true of every
+				// spec, rather than inheriting another's resource.
+				t('castLog.lust.note', {
+					count: haste.length,
+					context: spec.key,
+					names: [...new Set(haste.map(lustName))].join(', '),
+				}),
 		intermissions.length > 0 ? t('castLog.intermission.note') : null,
 		deaths.length > 0 ? t('castLog.death.note') : null,
 		// A row drawn as a meter instead of as a bar is a different convention from every other row, and

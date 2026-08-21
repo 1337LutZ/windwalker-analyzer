@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { SPECS } from '~/lib/spec';
+import { ELEMENTAL_SPEC } from '~/specs/elemental';
+import { WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
 
@@ -146,5 +148,49 @@ describe('settings copy', () => {
 		const hint = tUi('settings.ww.cooldown.hint', { min: 1000, max: 2000, default: 1500 });
 		expect(hint).toContain('Rising Sun Kick');
 		expect(hint).toContain('Chi Wave');
+	});
+});
+
+/**
+ * The haste-band legend describes a different mechanic per spec, so it must not hand one spec another's.
+ *
+ * Haste shortens every spec's globals — that part is shared. What it does *besides* that is not: a
+ * Windwalker's energy comes back faster, and a caster's mana does not work that way at all, while their
+ * casts shorten and their dots tick quicker. The legend used to state the energy clause to everyone.
+ *
+ * Asserted against the strings rather than through a rendered chart because that is where the claim lives,
+ * and because the rendered version is already pinned on the Windwalker side by
+ * `specs/windwalker/components/charts/__tests__/castTimeline.test.ts`.
+ */
+describe('the haste band legend', () => {
+	/**
+	 * A spec's own resources, read off its config rather than listed here, so a spec that gains one does not
+	 * need this test edited. `resources` is on the spec *config* and not on `SpecDefinition`, which is why
+	 * these are imported directly — the same reason this file already imports a spec's scorer.
+	 */
+	const OWN: Record<string, string[]> = {
+		windwalker: Object.keys(WW_SPEC.resources),
+		elemental: Object.keys(ELEMENTAL_SPEC.resources),
+	};
+	const ALL = [...new Set(Object.values(OWN).flat())];
+
+	for (const spec of SPECS) {
+		it(`does not tell a ${spec.key} reader about another spec's resource`, () => {
+			const own = OWN[spec.key] ?? [];
+			expect(own.length, `no resources known for ${spec.key}; the map above needs it`).toBeGreaterThan(0);
+			for (const count of [1, 2]) {
+				const note = t('castLog.lust.note', { count, context: spec.key, names: 'Bloodlust' });
+				expect(note, `${spec.key} legend resolved to a raw key`).not.toContain('castLog.lust');
+				for (const other of ALL.filter((r) => !own.includes(r))) {
+					expect(note.toLowerCase(), `${spec.key} legend names ${other}`).not.toContain(other);
+				}
+			}
+		});
+	}
+
+	it('still tells a Windwalker about their energy, rather than closing the leak by deleting the claim', () => {
+		expect(t('castLog.lust.note', { count: 1, context: 'windwalker', names: 'Heroism' })).toContain(
+			'energy comes back faster',
+		);
 	});
 });

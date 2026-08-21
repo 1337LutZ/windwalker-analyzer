@@ -482,8 +482,12 @@
     "hiddenRows_other": "{{rows}} fired on this pull and are not drawn: they run on their own schedules, so there is no decision to read against your presses. They are still measured, and their damage still counts under Damage by ability.",
     "lust": {
       "unnamed": "Haste cooldown",
-      "note_one": "The blue stretch is {{names}}, the raid’s haste cooldown. Your globals are shorter inside it and your energy comes back faster, so a stretch that looks busier there is the haste, not a change of plan.",
-      "note_other": "The blue stretches are {{names}}, the raid’s haste cooldown. Your globals are shorter inside them and your energy comes back faster, so a stretch that looks busier there is the haste, not a change of plan."
+      "note_one": "The blue stretch is {{names}}, the raid’s haste cooldown. Your globals are shorter inside it, so a stretch that looks busier there is the haste, not a change of plan.",
+      "note_other": "The blue stretches are {{names}}, the raid’s haste cooldown. Your globals are shorter inside them, so a stretch that looks busier there is the haste, not a change of plan.",
+      "note_windwalker_one": "The blue stretch is {{names}}, the raid’s haste cooldown. Your globals are shorter inside it and your energy comes back faster, so a stretch that looks busier there is the haste, not a change of plan.",
+      "note_windwalker_other": "The blue stretches are {{names}}, the raid’s haste cooldown. Your globals are shorter inside them and your energy comes back faster, so a stretch that looks busier there is the haste, not a change of plan.",
+      "note_elemental_one": "The blue stretch is {{names}}, the raid’s haste cooldown. Your globals and your casts are both shorter inside it, and your dots tick faster, so a stretch that looks busier there is the haste, not a change of plan.",
+      "note_elemental_other": "The blue stretches are {{names}}, the raid’s haste cooldown. Your globals and your casts are both shorter inside them, and your dots tick faster, so a stretch that looks busier there is the haste, not a change of plan."
     },
     "intermission": {
       "title": "Intermission",

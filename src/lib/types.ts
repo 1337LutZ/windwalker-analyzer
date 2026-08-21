@@ -23,6 +23,7 @@ import type { AplAudit, Band } from '~/lib/spec/apl';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
 import type { ResourceTypeValue } from '~/lib/game/resources';
+import type { FightPhase } from '~/lib/wcl/phases';
 
 // ---------------------------------------------------------------- WCL types
 
@@ -117,6 +118,23 @@ export interface FightDataset {
 	events: WclEvent[];
 	table: FightTable;
 	actors: Actor[];
+	/**
+	 * The encounter's phase transitions, when WarcraftLogs knows any — one entry per transition, in time
+	 * order, joined to the encounter's phase names.
+	 *
+	 * The type lives in `~/lib/wcl/phases` with the rest of the wire types rather than here. Optional
+	 * because it is genuinely absent rather than merely unfetched: transitions come back for 8 of the 14
+	 * Siege encounters, and `null` for the rest — Siegecrafter Blackfuse among them, which is the `cleave`
+	 * fixture's own encounter.
+	 *
+	 * Two things about the shape that have caught people already. The ids **repeat and are not
+	 * monotonic** — Iron Juggernaut is `1, 2, 1` — because this is a transition log rather than a phase
+	 * list, so array position is not the phase number and two entries can legitimately share a name. And
+	 * `isIntermission` is `false` on **every** phase in this expansion, including the Garrosh phase named
+	 * "Intermission: Realm of Y'shaarj", so nothing may be built on it here; the name is the only signal
+	 * MoP gives.
+	 */
+	phases?: FightPhase[];
 	/**
 	 * Every Stormlash Totem placement in the fight, from every shaman — the raid-wide view the
 	 * Stormlash section needs, since the player's own stream hides the other shamans' totems.

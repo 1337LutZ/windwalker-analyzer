@@ -1049,7 +1049,13 @@ describe('CastTimeline, the haste cooldown behind the chart', () => {
 		const html = render(drawn);
 		expect(html).toContain('data-tip="Heroism"');
 		expect(html).toContain(`data-tip-from="${formatStamp(429424)}"`);
-		expect(html).toContain(t('castLog.lust.note', { count: 1, names: 'Heroism' }));
+		// The literal sentence, not `t(...)` with the component's own arguments — that would have been the
+		// test agreeing with the lookup rather than checking what reaches the reader, and it is why this
+		// assertion did not notice when the copy went per-spec.
+		expect(html).toContain('The blue stretch is Heroism, the raid’s haste cooldown.');
+		// The half that is true of a Monk and of nobody else: haste speeds energy regen, and a caster's
+		// mana does not work that way. A Windwalker must get the Windwalker sentence.
+		expect(html).toContain('your energy comes back faster');
 	});
 
 	/** Two of them in one pull is two bands, each named for itself, and one sentence listing both. */
@@ -1062,7 +1068,8 @@ describe('CastTimeline, the haste cooldown behind the chart', () => {
 		);
 		expect(html).toContain('data-tip="Bloodlust"');
 		expect(html).toContain('data-tip="Time Warp"');
-		expect(html).toContain(t('castLog.lust.note', { count: 2, names: 'Bloodlust, Time Warp' }));
+		expect(html).toContain('The blue stretches are Bloodlust, Time Warp, the raid’s haste cooldown.');
+		expect(html).toContain('your energy comes back faster');
 	});
 
 	/**
@@ -1079,7 +1086,7 @@ describe('CastTimeline, the haste cooldown behind the chart', () => {
 	it('shades nothing on a pull with no haste cooldown', () => {
 		const html = render(haste([]));
 		expect(html).not.toContain('data-tip="Heroism"');
-		expect(html).not.toContain(t('castLog.lust.note', { count: 1, names: 'Heroism' }));
+		expect(html).not.toContain('the raid’s haste cooldown');
 	});
 });
 
