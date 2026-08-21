@@ -65,9 +65,17 @@ const LIGHTNING_SHIELD = registry.aura('lightning-shield');
  * taken at seven from one taken at four.
  *
  * No bank on a pull with no charge readings, and the absent-audit check is not paranoia about this
- * spec's own reports: a section rendered without a provider reads `SpecContext`'s fallback (see
- * `specContext.ts`), so a definition's member can be handed an analysis another spec produced. The
- * ceiling that used to be defaulted to seven here was never reached — an audit is either present with
+ * spec's own reports — but it is no longer the context that makes it so. `SpecContext` has no fallback:
+ * it defaults to `null`, `useSpec` throws rather than guessing, and `Report` keeps the wrong-spec
+ * refusal inside the provider, so nothing renders a section against a spec nobody named. Two reasons
+ * stand in place of that one. First, the cast on the line below: `lightningShield` is not on `Analysis`
+ * at all, so nothing type-checked this read, and a Windwalker analysis has no such key — this file is
+ * one half of a definition the chart swaps by context, and
+ * `components/charts/__tests__/lanesTimeline.test.ts` renders each definition against the other's pull
+ * on purpose. Second, a stored `Analysis` captured before this audit existed reads `undefined` through
+ * the same cast, which is the reason the `?? []`s below already give for themselves.
+ *
+ * The ceiling that used to be defaulted to seven here was never reached — an audit is either present with
  * its own `maxStacks` or absent altogether, so the row is drawn against the model's number or not at
  * all.
  */
@@ -113,9 +121,11 @@ export function timelineBanks(analysis: Analysis): TimelineBank[] {
  * A row whenever the pull has charge readings at all, even if none of them ever fell: a shield that was
  * up all pull and never spent is a row with one unlabelled bar, which is the honest drawing of it.
  *
- * The absent-audit check is not paranoia about this spec's own reports, for the reason `timelineBanks`
- * gives above: a chart rendered without a provider reads `SpecContext`'s fallback, so a definition's
- * member can be handed an analysis another spec produced.
+ * The absent-audit check is not paranoia about this spec's own reports, for the two reasons
+ * `timelineBanks` gives above: `lightningShield` is reached through a cast nothing type-checked, so a
+ * Windwalker analysis reads `undefined` here, and so does a stored `Analysis` captured before this audit
+ * existed. Not the reason this used to give — `SpecContext` has no fallback spec any more; it defaults
+ * to `null` and `useSpec` throws.
  */
 export function timelineCounters(analysis: Analysis): TimelineCounter[] {
 	const shield: ElementalAuditResult['lightningShield'] | undefined = (analysis as ElementalAnalysis).lightningShield;

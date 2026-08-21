@@ -44,9 +44,20 @@ const NO_COUNTERS: TimelineCounter[] = [];
  *
  * No bank at all on a pull that banked nothing. `bankTimeline` is empty on a report captured before
  * the engine tracked it, and an empty curve would draw a flat row claiming a bank nobody measured.
- * The optional chain guards a field the type promises is there, and it is not for this spec's own
- * reports: a section rendered without a provider reads `SpecContext`'s fallback (see `specContext.ts`),
- * so the deployment default's member can be handed an analysis another spec produced.
+ *
+ * The optional chain guards a field the type promises is there, and what is wrong is the promise — not
+ * the context, which is where this used to point. There is no fallback spec any more: `specContext.ts`
+ * defaults to `null`, `useSpec` throws rather than guessing, and `Report` keeps the wrong-spec refusal
+ * *inside* the provider, so no render path reaches this function without a spec named for the pull.
+ * `ReportFlow` derives the analysis from the same spec it provides, so the app pairs the two correctly.
+ *
+ * The reason that survives is the type. `Analysis` is `AnalysisCore & SpecAuditResult`
+ * (`lib/types.ts:1950`) and `SpecAuditResult` is *the Windwalker's* audit shape, so every analysis is
+ * typed as carrying `brew` and only a Windwalker pull ever writes one — an Elemental analysis has no
+ * such key at runtime. This file is one half of a definition the chart swaps by context, and
+ * `components/charts/__tests__/lanesTimeline.test.ts` hands it an analysis carrying the *other* spec's
+ * field and not this one, on purpose. `?.` is what makes that a row this spec declines to draw instead
+ * of a throw.
  */
 export function timelineBanks(analysis: Analysis): TimelineBank[] {
 	const banked = analysis.brew?.bankTimeline ?? [];

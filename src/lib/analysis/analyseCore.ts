@@ -763,6 +763,29 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const lostCasts = spec.registry.abilities
 		.filter((a) => a.gate === 'cooldown')
 		.map((ability): LostCastRow | null => {
+			// The completion clock, and deliberately so: `castTimes` is `CastSeries.times`, the instant each
+			// cast *finished* (`casts.ts` reads `cast` and never `begincast`), not `castBeginTimes`. So the
+			// drift below is measured completion-to-completion, and both ends of every idle window sit one
+			// cast time later than the corresponding begincast.
+			//
+			// Which clock is right is genuinely open, and worth stating rather than settling here because
+			// only a cast-time button can tell the two apart. `spec/apl.ts:516-519` argues for this one: a
+			// spell's cooldown starts when the cast *completes*, which is why `apl.ts` keeps `lastCast` on
+			// landings, and `cooldownDrift` opens each window at `previous completion + cooldownMs` — the
+			// same clock the game runs. The argument the other way is about the *closing* end: the button
+			// stopped sitting idle when the player committed to the next cast, which is one cast time before
+			// that cast landed, so on `apl.ts`'s own premise each window is one cast time too *long*. (Plan
+			// §47 guessed the opposite direction, "understated by one cast time"; that only follows if the
+			// cooldown starts at the begincast, and on *that* premise completion-to-completion is exactly
+			// right whenever the cast time is constant, because both ends move together.)
+			//
+			// Unmeasurable on what is committed, which is why it stays as it is rather than being changed on
+			// an argument. The Windwalker declares no `castTimeMs` at all, and the only cooldown-gated
+			// Elemental ability with one is `elemental-blast` (`specs/elemental/lib/index.ts:341-349`,
+			// `castTimeMs: 2000`, `gate: 'cooldown'`) — a talent nobody in `phased`, `unbroken` or `cleave`
+			// took, so it produces no row on any committed fixture and no shipped figure moves either way.
+			// Changing it would mean threading `castBeginTimes` into `cooldownDrift` as a second clock and
+			// re-baselining every drift figure, on a fixture that cannot show the difference.
 			const times = castTimes(ability);
 			if (!times.length) return null;
 			const live: Interval[] = spec.needsTarget.has(ability.key) && engaged.length ? engaged : [[0, duration]];

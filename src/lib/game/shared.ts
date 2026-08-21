@@ -449,9 +449,11 @@ export const SHARED_AURAS: Aura[] = [
 		durationMs: 10_000,
 		maxStacks: 10,
 	},
-	// Wushoolay's Final Choice's own window is the one gap in this block, and it is a naming accident
-	// rather than an omission: 138786 is declared above, under the key `unerring-vision-stacks`, for the
-	// reason that entry gives at length.
+	// Wushoolay's Final Choice's own window is the one gap in this block, and it is an accident of
+	// placement rather than an omission: 138786 is declared above, under the key `wushoolays-lightning`,
+	// in the block for trinkets that log a single aura. The wrong name is what put it there — the sweep
+	// re-keyed it off `unerring-vision-stacks` without moving the entry — and the reason is given at
+	// length on that entry.
 	{
 		key: 'wushoolays-lightning-stacks',
 		name: 'Electrified',

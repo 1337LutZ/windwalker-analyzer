@@ -121,8 +121,17 @@ describe('LanesTimeline counter rows come from the spec, not from the analysis',
 
 	/**
 	 * And the other spec's definition is not merely quiet about the counter — it renders its own pull
-	 * without throwing and draws the lane that pull has. `SpecContext`'s fallback is the deployment's
-	 * pinned spec, so this pairing happens for real whenever a chart renders without a provider.
+	 * without throwing and draws the lane that pull has.
+	 *
+	 * This used to claim the pairing happens for real, on the grounds that `SpecContext` fell back to the
+	 * deployment's pinned spec whenever a chart rendered without a provider. It does not: the context
+	 * defaults to `null`, `useSpec` throws, `Report` keeps the wrong-spec refusal inside the provider, and
+	 * `ReportFlow` derives the analysis from the same spec it hands down. So this pairing is one only a
+	 * test makes — and it is still the assertion worth having, because it is what keeps a definition a
+	 * self-contained answer rather than a promise about which analysis it will be given. The shared
+	 * `Analysis` type carries no such promise either way: it is the core intersected with the
+	 * *Windwalker's* audit shape, so `brew` is typed present on every pull including the ones that never
+	 * write it, and `lightningShield` is typed on none of the pulls that do.
 	 */
 	it('renders the other spec’s definition without throwing, and still draws its lane', () => {
 		const ww = renderUnder(WINDWALKER, analysisWith(FOUR_SPENDS_AT_SEVEN));
