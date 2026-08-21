@@ -1822,13 +1822,25 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * directly — will see a press credited here and read it as a bug. It is not: the multiplier was
 	 * already banked when the cast landed.
 	 *
-	 * The reading here is the **commit** instant, `CastPress.begin`, which is `t` on every row of this
-	 * list and the same instant `surge` and `ascendance` above are read at for the reasons given there.
-	 * Commit and completion differ only when the dot expires *inside* the cast, and that case is not a
-	 * gap in the model: the ladder's own Lava Burst rung already refuses the press
-	 * (`apl.ts`, `auras.remainingMs('flame-shock') > LAVA_BURST_CAST_MS`), so a dot running out mid-cast
-	 * is charged as a lost cast there rather than being credited twice here. What is left for this field
-	 * is the unambiguous case every rule agrees on — no dot on the target when the button went down.
+	 * **So this field reads the completion instant, `CastPress.t`, and not the commit** — even though the
+	 * row's own `t` is the commit and `surge` and `ascendance` beside it are read there. The two are
+	 * different questions and this codebase keeps them apart everywhere else:
+	 *
+	 *   - *Was this press the right choice?* is judged at the **commit**, because that is when the player
+	 *     decided, which is why `surge`, `ascendance` and the APL's whole state read `begin`.
+	 *   - *Did the ×1.5 actually apply?* is a fact about the **game**, and the game decides it when the
+	 *     cast completes.
+	 *
+	 * This is the second question — the docstring on the field calls a false reading "threw a third of
+	 * the hit away" — so reading the commit would let it answer `true` for a press that demonstrably got
+	 * no bonus. That the ladder's Lava Burst rung separately refuses a press whose dot will not outlive
+	 * the cast (`auras.remainingMs('flame-shock') > LAVA_BURST_CAST_MS`) does not rescue it: that charges
+	 * the *choice*, at the commit, where it belongs, and leaves this field free to state the *outcome*
+	 * truthfully. Neither double-counts the other.
+	 *
+	 * Being published rather than graded makes the literal truth matter more, not less: a figure nobody
+	 * is scored on is read as a fact. Empirically the choice is invisible today — commit and completion
+	 * agree on all 133 presses across the three fixtures — so the synthetic pull is what pins it.
 	 *
 	 * **Published, not graded, and `overall()` is untouched.** Every millisecond the dot was down is
 	 * already charged by `flameShockUptime` (weight 3), and a Lava Burst inside one of those stretches is
@@ -1852,7 +1864,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			ascendance: inWindow(press.begin, ascActiveWindows),
 			// Null is "no enemy to judge against", which happens only on a pull with no landed hit at
 			// all; an empty window list is a real answer — that enemy never carried the dot.
-			flameShock: spawn === null ? null : inWindow(press.begin, fsDotAnywhere.get(spawn) ?? []),
+			flameShock: spawn === null ? null : inWindow(press.t, fsDotAnywhere.get(spawn) ?? []),
 		};
 	});
 

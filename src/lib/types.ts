@@ -2444,7 +2444,12 @@ export interface LavaBurstPress {
 	/** Free from Ascendance's reset. */
 	ascendance: boolean;
 	/**
-	 * Flame Shock up on the enemy this press was **aimed at**, read at `t`.
+	 * Flame Shock up on the enemy this press was **aimed at**, read at the cast's **completion**.
+	 *
+	 * Not at `t`, which is this row's commit instant. Whether the multiplier applied is a fact about the
+	 * game and the game decides it when the cast completes; whether the press was a good idea is a
+	 * judgement about the player and is read at the commit, like `surge` and `ascendance`. The audit
+	 * filling this in carries the argument.
 	 *
 	 * False is a fault: Flame Shock is Lava Burst's ×1.5 damage multiplier, so a press committed with
 	 * no dot on its target threw a third of the hit away. Published and drawn, not graded — the

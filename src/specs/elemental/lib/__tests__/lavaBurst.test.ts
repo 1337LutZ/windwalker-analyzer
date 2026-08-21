@@ -416,15 +416,22 @@ const dotPull: FightDataset = {
 describe('Flame Shock under the press', () => {
 	const { lavaBurst } = analyse(dotPull) as Analysis & ElementalAuditResult;
 
-	it('reads the commit instant, so the dot may expire inside the cast', () => {
-		// Every row's `t` is the `begincast`, two seconds before the cast it opened — the field could not
-		// be reading the completion instant and still report these stamps.
+	it('reads the completion instant, so a dot that expires inside the cast is not credited', () => {
+		// Every row's `t` is the `begincast`, two seconds before the cast it opened — so the stamps below
+		// are commits while `flameShock` is read two seconds later. That split is the point, not an
+		// oversight: the row says when the player pressed, the field says whether the game paid.
 		expect(lavaBurst.presses.map((p) => p.t)).toEqual([5000, 20_000, 39_000, 70_000, 75_000, 100_000]);
-		expect(lavaBurst.presses.map((p) => p.flameShock)).toEqual([false, true, true, true, false, true]);
+		// **The third row is the whole reason this test exists.** The boss carries the dot over [10s, 40s].
+		// That press commits at 39s — inside — and completes at 41s, outside. Read at the commit it would
+		// say `true`, and the sim would have given it no multiplier: `ApplyEffects` tests the dot when the
+		// cast completes. So the honest answer is `false`, and the press is charged as a *choice* by the
+		// ladder's own rung instead, which refuses a press whose dot will not outlive the cast.
+		expect(lavaBurst.presses.map((p) => p.flameShock)).toEqual([false, true, false, true, false, true]);
 	});
 
 	it('names the dot-less presses and nothing else', () => {
-		expect(lavaBurst.presses.filter((p) => p.flameShock === false).map((p) => p.t)).toEqual([5000, 75_000]);
+		// Three, not two: 39s joins them for the reason above.
+		expect(lavaBurst.presses.filter((p) => p.flameShock === false).map((p) => p.t)).toEqual([5000, 39_000, 75_000]);
 		// Nothing unreadable: every press resolved to an enemy, the last one through the hit fallback.
 		expect(lavaBurst.presses.filter((p) => p.flameShock === null)).toEqual([]);
 	});
