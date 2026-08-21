@@ -28,10 +28,6 @@ import { analyse, registry } from '~/specs/elemental/lib';
 const NOT_LANES: Record<string, string> = {
 	// Drawn above the rows as its own counter, not among them — `timelineBanks`.
 	'lightning-shield': 'drawn as the charge bank',
-	// Drawn as the full-height wash behind everything, because a haste window is not a row's worth of
-	// claim — `CastTimeline`'s haste band.
-	bloodlust: 'drawn as the haste band',
-	berserking: 'drawn as the haste band',
 	// The player lived, moved or healed. None of it changes what the rotation wanted, and a row each
 	// would push the rotation's own rows off the screen on a long pull.
 	'astral-shift': 'defensive, no bearing on the rotation',
@@ -83,6 +79,37 @@ describe('an aura that fired has somewhere to be drawn', () => {
 				expect(drawn.has(key), `${name} should draw ${key}`).toBe(true);
 			}
 		}
+	});
+
+	it('gives the haste racials and Bloodlust rows of their own, not just the wash', () => {
+		// These were excused as "drawn as the haste band" and that was wrong. The band is one full-height
+		// shade behind everything: it cannot say which of the two was up, cannot be hovered for a duration,
+		// and does not exist for a buff that is not haste. Both are kept — the wash is the region, the row
+		// is the aura — so this asserts the row, which is the half that was missing.
+		for (const name of FIXTURES) {
+			const dataset = load(name);
+			const fired = firedOn(dataset);
+			const drawn = new Set(((analyse(dataset) as Analysis).timeline?.lanes ?? []).map((l) => l.key));
+			for (const key of ['bloodlust', 'berserking'] as const) {
+				// Not every pull brings a troll, so this asserts the pairing rather than the presence.
+				if ((fired.get(key) ?? 0) === 0) continue;
+				expect(drawn.has(key), `${name} should draw ${key}`).toBe(true);
+			}
+			// Every pull has a raid haste cooldown of some kind, so the loop above is never a no-op.
+			expect(fired.get('bloodlust') ?? 0).toBeGreaterThan(0);
+		}
+	});
+
+	it('declares Blood Fury with a lane, though no fixture exercises it', () => {
+		// **Stated rather than asserted as drawn.** Blood Fury is an orc racial and none of the three
+		// fixture players is an orc, so `windows.length > 0` drops the lane and there is nothing to see. It
+		// is the case with the strongest claim of the three all the same: it grants spell power, so it was
+		// not in the haste wash either and had no representation anywhere in the report.
+		//
+		// What can be checked without a fixture is that the id is declared and reachable, which is what the
+		// lane needs to work the first time an orc is analysed.
+		expect(registry.aura('blood-fury').ids).toContain(33_697);
+		for (const name of FIXTURES) expect(firedOn(load(name)).get('blood-fury') ?? 0).toBe(0);
 	});
 
 	it('keeps the ledger honest — nothing excused that no longer fires', () => {

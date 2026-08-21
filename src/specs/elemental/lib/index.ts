@@ -726,6 +726,12 @@ const TOXIC_POWER = registry.aura('toxic-power');
 const EXPANDED_MIND = registry.aura('expanded-mind');
 const SYNAPSE_SPRINGS = registry.aura('synapse-springs');
 const JADE_SERPENT_POTION = registry.aura('jade-serpent-potion');
+// The three the reader pressed or was given that had no row of their own. Bloodlust and Berserking were
+// shaded as the full-height haste wash and nothing else; Blood Fury is spell power, so it was not even
+// in that.
+const BLOODLUST = registry.aura('bloodlust');
+const BERSERKING = registry.aura('berserking');
+const BLOOD_FURY = registry.aura('blood-fury');
 
 /**
  * Names for the ids the model deliberately does not carry, and a list that is **not** all one thing.
@@ -2429,6 +2435,17 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		lane(EXPANDED_MIND, 'proc', laneWindows(EXPANDED_MIND)),
 		lane(SYNAPSE_SPRINGS, 'buff', laneWindows(SYNAPSE_SPRINGS)),
 		lane(JADE_SERPENT_POTION, 'buff', laneWindows(JADE_SERPENT_POTION)),
+		// **The haste wash is not a substitute for these rows, which is what having only the wash assumed.**
+		// It is one full-height shade behind everything, so it says "haste was up somewhere in here" and
+		// cannot say which of Bloodlust or Berserking, cannot be hovered for a duration, and disappears
+		// entirely for a buff that is not haste. Blood Fury is spell power: it had no representation at all.
+		//
+		// Both are kept. The wash is the region — the reason a stretch of the pull looks different — and the
+		// row is the aura, with its own start, end and tooltip. Drawing one and calling the other covered is
+		// how these three went missing.
+		lane(BLOODLUST, 'buff', laneWindows(BLOODLUST)),
+		lane(BERSERKING, 'buff', laneWindows(BERSERKING)),
+		lane(BLOOD_FURY, 'buff', laneWindows(BLOOD_FURY)),
 		// An aura the log never carried has no windows and no business taking a row — the talent was not
 		// taken, or the trinket was not worn. Dropped rather than drawn empty, so the timeline names only
 		// what actually happened.
