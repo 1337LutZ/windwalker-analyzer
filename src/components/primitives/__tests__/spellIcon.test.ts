@@ -69,3 +69,52 @@ describe('SpellIcon', () => {
 		}
 	});
 });
+
+/**
+ * The tooltip, and the label that shares it.
+ *
+ * `power.js` raises the card off the href, so what these assert is the link — there is no client-side
+ * behaviour to drive here, and asserting the widget's own output would be testing Wowhead.
+ *
+ * The two shapes differ on purpose and the difference is the interesting part: a bare icon is
+ * decoration beside a name already on screen, so it stays out of the accessibility tree and out of the
+ * tab order; an icon with a label *is* the name, so it is neither.
+ */
+describe('SpellIcon, linked to Wowhead', () => {
+	const RSK = 107428;
+	const withLabel = (label: string) => renderToStaticMarkup(createElement(SpellIcon, { id: RSK, label }));
+
+	it('links the icon to the spell page, which is what raises the tooltip', () => {
+		expect(render(RSK)).toContain('href="https://www.wowhead.com/mop-classic/spell=107428"');
+	});
+
+	it('opens off-site links in a new tab without handing over the referrer', () => {
+		const html = render(RSK);
+		expect(html).toContain('target="_blank"');
+		expect(html).toContain('rel="noreferrer noopener"');
+	});
+
+	it('keeps a bare icon out of the accessibility tree and out of the tab order', () => {
+		// The name is already rendered as text beside it, so announcing the icon reads it twice — the same
+		// reason `alt` is empty. And a link with no accessible name is worse than no link.
+		const html = render(RSK);
+		expect(html).toContain('aria-hidden="true"');
+		expect(html).toContain('tabindex="-1"');
+	});
+
+	it('puts the label inside the same link, so the tooltip covers the name too', () => {
+		const html = withLabel('Rising Sun Kick');
+		expect(html).toContain('href="https://www.wowhead.com/mop-classic/spell=107428"');
+		expect(html).toContain('Rising Sun Kick');
+		// One anchor, not an anchor beside a span: the pair cannot drift apart when a table reflows.
+		expect(html.match(/<a /g)).toHaveLength(1);
+	});
+
+	it('makes a labelled icon reachable, because there the link is the name', () => {
+		expect(withLabel('Rising Sun Kick')).not.toContain('tabindex="-1"');
+	});
+
+	it('still renders nothing for an id with no icon, label or not', () => {
+		expect(renderToStaticMarkup(createElement(SpellIcon, { id: 999_999, label: 'Nonesuch' }))).toBe('');
+	});
+});
