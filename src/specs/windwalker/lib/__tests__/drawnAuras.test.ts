@@ -13,12 +13,17 @@
 // row — `dancing-steel` (the weapon enchant, 18 applications), `bloodlust` (the pull's Time Warp),
 // `diffuse-magic` and `tigereye-brew-bank`. The first two are now lanes and the last two are excused below.
 //
-// **Why the sweep counts removals as well as applications, which the Elemental's does not.** Widening it
-// added exactly one key on this fixture, and that key was `bloodlust`: the pull's haste cooldown went up
-// before the bell, so its only event is the removal at 39.9s and an apply-only sweep cannot see it at all.
-// The missing row and the blind spot were the same fact, which is a poor thing for a guard to share with
-// the bug it is guarding against. "The log put this aura on the player" is the question; an application is
-// only one kind of evidence for it.
+// **Why the sweep counts removals as well as applications.** Widening it added exactly one key on this
+// fixture, and that key was `bloodlust`: the pull's haste cooldown went up before the bell, so its only
+// event is the removal at 39.9s and an apply-only sweep cannot see it at all. The missing row and the blind
+// spot were the same fact, which is a poor thing for a guard to share with the bug it is guarding against.
+// "The log put this aura on the player" is the question; an application is only one kind of evidence for it.
+//
+// **The sweep itself now lives in `~/lib/analysis/drawnAuras`**, shared with the Elemental's guard, which
+// had been written days apart as a second copy that swept applications only. That file argues its own
+// location and carries the reasoning; the merge took this file's shape as the base because this is the
+// reading that found something. It also cost the Elemental's guard its blind spot, which turned out to be
+// hiding the Fire Elemental on all three of that spec's pulls.
 //
 // **One raw fixture, and that is a limit rather than a choice.** `__fixtures__/{strong,mixed,poor,waves,
 // weave,cleave}.json` are pre-analysed `Analysis` objects with **no `events` array at all** — the capture
@@ -31,6 +36,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { aurasPutOnPlayer, drawnLaneKeys, selfAuraEvents, staleExcuses, undrawnAuras } from '~/lib/analysis/drawnAuras';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse, registry } from '../index';
 
@@ -59,11 +65,6 @@ const ANALYSED = ['strong', 'mixed', 'poor', 'waves', 'weave', 'cleave'] as cons
 const analysed = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as Analysis;
 
-type RawEvent = { type: string; abilityGameID?: number; targetID?: number; sourceID?: number };
-
-const selfAuraEvents = (types: RegExp): RawEvent[] =>
-	(dataset.events as RawEvent[]).filter((e) => e.targetID === dataset.actor.id && types.test(e.type));
-
 /**
  * Every declared aura the log put on the player, by key, with how many events say so.
  *
@@ -71,17 +72,9 @@ const selfAuraEvents = (types: RegExp): RawEvent[] =>
  * signature of a buff that went up before the fight's event window opened, which is ordinary for a raid
  * cooldown and for a pre-pull consumable, and is exactly the case the narrower reading misses.
  */
-const putOnPlayer = (): Map<string, number> => {
-	const out = new Map<string, number>();
-	for (const event of selfAuraEvents(/^(apply|refreshbuff|remove)/)) {
-		const aura = registry.auraById(event.abilityGameID ?? -1);
-		if (aura === undefined) continue;
-		out.set(aura.key, (out.get(aura.key) ?? 0) + 1);
-	}
-	return out;
-};
+const putOnPlayer = (): Map<string, number> => aurasPutOnPlayer(dataset, registry);
 
-const drawnKeys = (): Set<string> => new Set(analyse(dataset).timeline?.lanes.map((l) => l.key) ?? []);
+const drawnKeys = (): Set<string> => drawnLaneKeys(analyse(dataset));
 
 describe('an aura that fired has somewhere to be drawn', () => {
 	it('draws or accounts for everything the pull put on the player', () => {
@@ -89,9 +82,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// Not vacuous: this pull really does carry a dozen declared auras and more.
 		expect(on.size).toBeGreaterThan(10);
 
-		const drawn = drawnKeys();
-		const orphans = [...on.keys()].filter((key) => !drawn.has(key) && NOT_LANES[key] === undefined).sort();
-		expect(orphans).toEqual([]);
+		expect(undrawnAuras(on, drawnKeys(), NOT_LANES)).toEqual([]);
 	});
 
 	it('draws Dancing Steel, which fires all pull and nothing in this report reads', () => {
@@ -99,7 +90,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// that procs from the first seconds to the last, under an id `shared.ts` had to correct the simulator
 		// on, and which no metric here consumes — so nothing but the chart could ever have shown it, and
 		// nothing but the chart's absence could ever have reported it missing.
-		const events = selfAuraEvents(/^(applybuff|refreshbuff|removebuff)$/).filter((e) => e.abilityGameID === 120_032);
+		const events = selfAuraEvents(dataset).filter((e) => e.abilityGameID === 120_032);
 		const count = (type: string): number => events.filter((e) => e.type === type).length;
 		expect(count('applybuff')).toBe(12);
 		expect(count('refreshbuff')).toBe(6);
@@ -122,10 +113,16 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// the bell, so the log carries **no application for it at all** — one bare removal, from another
 		// actor, at 39.9s — and the row exists only because the core walks this aura with `openAtPull`.
 		const group = new Set(registry.aura('bloodlust').ids);
-		const events = selfAuraEvents(/^(apply|refreshbuff|remove)/).filter((e) => group.has(e.abilityGameID ?? -1));
+		const events = selfAuraEvents(dataset).filter((e) => group.has(e.abilityGameID ?? -1));
 		expect(events.map((e) => e.type)).toEqual(['removebuff']);
 		expect(events[0]?.abilityGameID).toBe(80_353);
 		expect(events[0]?.sourceID).not.toBe(dataset.actor.id);
+		// Both halves of that asserted rather than left to the module doc, so narrowing the now-shared sweep
+		// fails here instead of quietly passing: the default reading has the key, and the narrow one does not.
+		// Without the first line the sweep could stop counting removals and every other assertion here would
+		// still be satisfied, which is the shape of failure this whole file exists to catch.
+		expect(putOnPlayer().get('bloodlust')).toBe(1);
+		expect(aurasPutOnPlayer(dataset, registry, ['applied', 'refreshed', 'stacked']).has('bloodlust')).toBe(false);
 
 		const analysis = analyse(dataset);
 		const lane = analysis.timeline?.lanes.find((l) => l.key === 'bloodlust');
@@ -175,8 +172,6 @@ describe('an aura that fired has somewhere to be drawn', () => {
 
 	it('keeps the ledger honest — nothing excused that no longer fires', () => {
 		// A reason for an aura that stopped appearing is a reason nobody will ever check again.
-		const on = putOnPlayer();
-		const stale = Object.keys(NOT_LANES).filter((key) => (on.get(key) ?? 0) === 0);
-		expect(stale).toEqual([]);
+		expect(staleExcuses(NOT_LANES, [putOnPlayer()])).toEqual([]);
 	});
 });
