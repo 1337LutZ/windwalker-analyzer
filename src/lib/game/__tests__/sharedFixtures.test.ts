@@ -15,6 +15,7 @@ import { auraWindows } from '~/lib/analysis/auras';
 import { createRegistry } from '~/lib/game/registry';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import type { Analysis, FightDataset } from '~/lib/types';
+import { analyse as analyseElemental } from '~/specs/elemental/lib';
 import { analyse as analyseWindwalker } from '~/specs/windwalker';
 
 const registry = createRegistry({ abilities: SHARED_ABILITIES, auras: SHARED_AURAS });
@@ -139,5 +140,56 @@ describe('what the Windwalker report says differently', () => {
 		const analysis = analyseWindwalker(fixture('windwalker', 'dataset-ironJuggernaut.json')) as Analysis;
 		const lane = analysis.timeline?.lanes.find((l) => l.key === 'synapse-springs');
 		expect(lane?.windows.map((w) => w.variant)).toEqual(['Agility', 'Agility', 'Agility', 'Agility']);
+	});
+});
+
+describe('the two shared haste bands that can be up at once', () => {
+	/**
+	 * `bloodlust` and `berserking` are both shared auras and both drawn as a band across the cast log, so
+	 * a pull that has them up together is the only thing that exercises the band's **overlap** composite.
+	 * That composite is a drawing decision and not arithmetic — two translucent washes stacked read
+	 * darker than either, and the fix chosen was one band per stretch rather than a lower alpha — which
+	 * is exactly the kind of claim that needs a route to a real pull rather than a hand-built mark.
+	 *
+	 * Read off `analyse()`'s `timeline` rather than through `auraWindows` because those two arrays are
+	 * what the band is drawn from; a window measured here that the timeline never publishes would prove
+	 * nothing about the drawing.
+	 */
+	const timelineOf = (file: string) => analyseElemental(fixture('elemental', file)).timeline;
+
+	/**
+	 * Why the pull already on the preview page cannot show it: `phased` has a Heroism band and **no
+	 * Berserking window at all**, so its one band never has a second under it.
+	 */
+	it('phased has a haste band and nothing to overlap it', () => {
+		const timeline = timelineOf('phased.json');
+		expect(timeline?.hasteWindows).toEqual([{ start: 1777, end: 41_785, id: 32_182, variant: 'Heroism' }]);
+		expect(timeline?.berserkingWindows).toEqual([]);
+	});
+
+	/** And `unbroken` does: the Berserking window sits entirely inside the Bloodlust one. */
+	it('unbroken nests a whole Berserking window inside its Bloodlust', () => {
+		const timeline = timelineOf('unbroken.json');
+		expect(timeline?.hasteWindows).toEqual([{ start: 785, end: 40_790, id: 2825, variant: 'Bloodlust' }]);
+		const first = timeline?.berserkingWindows?.[0];
+		expect(first?.start).toBe(3673);
+		expect(first?.end).toBe(13_677);
+		// Contained, not merely touching — so the composite is a full stretch of two bands and not a seam.
+		expect(first!.start).toBeGreaterThan(785);
+		expect(first!.end).toBeLessThan(40_790);
+	});
+
+	/**
+	 * And the measurement is reachable by a person, which is the half no measurement can assert about
+	 * itself: `/preview` is the only route in this app that renders a report without a WarcraftLogs
+	 * token, so a pull that is not in its map cannot be looked at. Read off the page's source because the
+	 * map is a local in Astro frontmatter — there is nothing to import.
+	 */
+	it('and the overlap pull is on the only token-free route', () => {
+		const page = readFileSync(resolve(import.meta.dirname, '../../../pages/preview.astro'), 'utf8');
+		const map = /const fixtures = \{([^}]*)\}/.exec(page);
+		expect(map, 'preview.astro no longer declares a `fixtures` object literal').not.toBeNull();
+		const names = map![1]!.split(',').map((n) => n.trim());
+		expect(names).toContain('unbroken');
 	});
 });

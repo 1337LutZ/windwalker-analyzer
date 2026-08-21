@@ -67,13 +67,21 @@ const LIGHTNING_SHIELD = registry.aura('lightning-shield');
  * No bank on a pull with no charge readings, and the absent-audit check is not paranoia about this
  * spec's own reports — but it is no longer the context that makes it so. `SpecContext` has no fallback:
  * it defaults to `null`, `useSpec` throws rather than guessing, and `Report` keeps the wrong-spec
- * refusal inside the provider, so nothing renders a section against a spec nobody named. Two reasons
- * stand in place of that one. First, the cast on the line below: `lightningShield` is not on `Analysis`
- * at all, so nothing type-checked this read, and a Windwalker analysis has no such key — this file is
- * one half of a definition the chart swaps by context, and
+ * refusal inside the provider, so nothing renders a section against a spec nobody named.
+ *
+ * **What carries the check is the cast on the line below**, and it carries it today. `lightningShield`
+ * is not on `Analysis` at all — `Analysis` is `AnalysisCore & SpecAuditResult` and `SpecAuditResult` is
+ * the *Windwalker's* audit shape — so nothing type-checked this read, and a Windwalker analysis has no
+ * such key at runtime. This file is one half of a definition the chart swaps by context, and
  * `components/charts/__tests__/lanesTimeline.test.ts` renders each definition against the other's pull
- * on purpose. Second, a stored `Analysis` captured before this audit existed reads `undefined` through
- * the same cast, which is the reason the `?? []`s below already give for themselves.
+ * on purpose. That is a live case with a test on it, not a hypothetical.
+ *
+ * A stored `Analysis` captured before this audit existed would read `undefined` through the same cast,
+ * and that is a real reason too — but **it has no committed instance on this spec, and this file is not
+ * handed one.** The Elemental commits raw `FightDataset`s and no captured `Analysis` at all; the only
+ * stored analyses in the repo are the Windwalker's, which reach this function through the cast rather
+ * than through a stale field. So the cast is what makes the check earn its place now, and the stored
+ * case is why it will still be right if this spec ever stores one.
  *
  * The ceiling that used to be defaulted to seven here was never reached — an audit is either present with
  * its own `maxStacks` or absent altogether, so the row is drawn against the model's number or not at
@@ -93,9 +101,14 @@ export function timelineBanks(analysis: Analysis): TimelineBank[] {
 			underline: 'kick',
 			ceilingIsWaste: false,
 			labelSpendsOnly: true,
-			// `?? []` on the two window lists for the reason the absent-audit check above exists rather than
-			// out of caution: a stored `Analysis` predates whichever field was added after it was captured,
-			// and this file is handed those. `badSpends` predates neither, so it is read straight.
+			// `?? []` on the two window lists, and **not** for the reason the check above it stands on: past
+			// that early return the audit is present, so the cross-spec pull the cast lets through never
+			// reaches this line. Both fields are declared non-optional on `LightningShieldAudit`, so the only
+			// way either arrives `undefined` is a stored `Analysis` read back as `JSON.parse(...) as Analysis`
+			// — a cast, not a check — that predates whichever field was added after it. That is the guard with
+			// no committed instance on this spec, which stores no `Analysis` to be stale. Kept because the
+			// alternative to a two-character fallback is a chart that throws on the first stored pull.
+			// `badSpends` predates neither, so it is read straight.
 			faultWindows: [
 				...(shield.downWindows ?? []),
 				...(shield.overcapWindows ?? []),
@@ -121,11 +134,12 @@ export function timelineBanks(analysis: Analysis): TimelineBank[] {
  * A row whenever the pull has charge readings at all, even if none of them ever fell: a shield that was
  * up all pull and never spent is a row with one unlabelled bar, which is the honest drawing of it.
  *
- * The absent-audit check is not paranoia about this spec's own reports, for the two reasons
- * `timelineBanks` gives above: `lightningShield` is reached through a cast nothing type-checked, so a
- * Windwalker analysis reads `undefined` here, and so does a stored `Analysis` captured before this audit
- * existed. Not the reason this used to give — `SpecContext` has no fallback spec any more; it defaults
- * to `null` and `useSpec` throws.
+ * The absent-audit check is not paranoia about this spec's own reports, and the reason that carries it is
+ * the one `timelineBanks` gives above: `lightningShield` is reached through a cast nothing type-checked,
+ * so a Windwalker analysis reads `undefined` here — the case `lanesTimeline.test.ts` renders on purpose.
+ * A stored `Analysis` predating the audit would read `undefined` too, but this spec commits none, so that
+ * half is the future reason and not this one. Neither is the reason this used to give — `SpecContext` has
+ * no fallback spec any more; it defaults to `null` and `useSpec` throws.
  */
 export function timelineCounters(analysis: Analysis): TimelineCounter[] {
 	const shield: ElementalAuditResult['lightningShield'] | undefined = (analysis as ElementalAnalysis).lightningShield;

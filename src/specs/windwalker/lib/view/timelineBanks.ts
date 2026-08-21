@@ -42,8 +42,13 @@ const NO_COUNTERS: TimelineCounter[] = [];
  * Drawn in the proc colour and underlined in the brew's, which is the pairing the chart has always
  * had: the row is named for the button and coloured for what fills it.
  *
- * No bank at all on a pull that banked nothing. `bankTimeline` is empty on a report captured before
- * the engine tracked it, and an empty curve would draw a flat row claiming a bank nobody measured.
+ * No bank at all on a pull that banked nothing — an empty curve would draw a flat row claiming a bank
+ * nobody measured. **What reaches that return is the cross-spec pull below and not a stale capture**,
+ * the mirror of the correction the Elemental's copy of this file carries. This used to say `bankTimeline`
+ * "is empty on a report captured before the engine tracked it": the field is declared non-optional on
+ * `BrewSummary` and all six committed captures in `__fixtures__` carry a populated one — 98 to 312
+ * points — so no fixture is that case, and a capture predating the field would arrive with the key
+ * *absent* rather than empty, which the `?? []` covers on the way in.
  *
  * The optional chain guards a field the type promises is there, and what is wrong is the promise — not
  * the context, which is where this used to point. There is no fallback spec any more: `specContext.ts`

@@ -422,6 +422,12 @@ export const SHARED_AURAS: Aura[] = [
 	 * 146184/1,424, 138849/0 against 138856/275. Two of those overrides carry comments saying they exist
 	 * for APL compatibility rather than for log fidelity, which is the same hazard as the retired 144998:
 	 * a number written for the rotation language that the game never emits. `db.json` gets all five right.
+	 *
+	 * **And that finding is guarded, not only written down here.** All five payload ids are in the
+	 * sim-only list in `game/__tests__/shared.test.ts` — the one suite there whose list does not come from
+	 * these declarations — so re-inverting any pair from the Go file fails a named test instead of quietly
+	 * emptying a lane. Which is the whole difference from the 144998 failure: that id was declared with a
+	 * sim citation beside it and measured nothing for as long as nothing asked.
 	 */
 	{
 		key: 'blades-of-renataki',

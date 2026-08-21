@@ -9,6 +9,7 @@ import Base from '~/layouts/Base.astro';
 import type { FightDataset } from '~/lib/types';
 import { analyse as analyseElemental } from '~/specs/elemental';
 import phasedRaw from '~/specs/elemental/__fixtures__/phased.json';
+import unbrokenRaw from '~/specs/elemental/__fixtures__/unbroken.json';
 import mixed from '~/specs/windwalker/__fixtures__/mixed.json';
 import poor from '~/specs/windwalker/__fixtures__/poor.json';
 import strong from '~/specs/windwalker/__fixtures__/strong.json';
@@ -18,11 +19,11 @@ import strong from '~/specs/windwalker/__fixtures__/strong.json';
 import weave from '~/specs/windwalker/__fixtures__/weave.json';
 
 /**
- * The Elemental entry, and it is **analysed here rather than stored** — the one asymmetry in this
+ * The Elemental entries, and they are **analysed here rather than stored** — the one asymmetry in this
  * map, deliberately.
  *
  * There is no captured Elemental `Analysis` to import: that spec commits raw `FightDataset`s and lets
- * `analyse()` run over them. So this page either grew a seventh stored analysis or grew a build-time
+ * `analyse()` run over them. So this page either grew stored analyses or grew a build-time
  * call, and the argument for the call is the four Windwalker entries above it. Every one of them is
  * `analyse()` output frozen at capture time, and each has already gone stale in the one way that
  * matters to a *preview*: all four have a `timeline` object with no `hasteWindows` key at all,
@@ -33,8 +34,17 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  *
  * Analysing at build time cannot go stale: whatever `analyse()` returns today is what this page
  * shows, so an engine change is visible here on the next build instead of quietly disagreeing with a
- * file. It costs ~25ms and adds no committed bytes, the raw fixture already being in the tree —
- * against ~130KB of derived JSON that would duplicate it.
+ * file. It adds no committed bytes, the raw fixtures already being in the tree — against ~130KB of
+ * derived JSON per pull that would duplicate them.
+ *
+ * **What the second entry costs, measured rather than assumed.** The `analyse()` call itself is not the
+ * price: warm it is ~6ms a pull, ~10–22ms on the first call in a cold process, which is where the
+ * "~25ms" this used to quote came from. The price is the page. `client:load` serialises the whole
+ * `fixtures` map into the island's props, so `dist/preview/index.html` goes **2 689 686 → 2 927 860
+ * bytes**, +238 174 (+8.9%), and `npm run build` goes from 2.70–3.01s (five warm runs at the previous
+ * commit) to 2.87–3.31s (four warm runs here) — about +0.2s, nearly all of it writing that HTML rather
+ * than running the audit. Paid by a dev harness that ships to nobody, and the reason a third Elemental
+ * entry needs its own argument rather than following from this one.
  *
  * `output: 'static'`, so this runs in Node at build time: no token, no fetch and no `analyse()` reach
  * the browser, and the island is handed the finished object exactly as it is handed the stored four.
@@ -44,15 +54,23 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  * standing rule is that no *named* player's data enters the repo. This is a staleness decision, not
  * a privacy one.
  *
- * `phased` of the three because step 22 named it: its 142.3s–192.5s submerge is the exempt-track case
- * whose in-app check was impossible while this page was Windwalker-only. It also carries the Heroism
- * window at 1 777–41 785ms, which is what makes the haste band reachable from a fixture at all.
- * `unbroken` is the one whose haste and Berserking windows overlap, so the band's *overlap* composite
- * still has no route — one more entry here if that is wanted.
+ * `phased` first because step 22 named it: its 142.3s–192.5s submerge is the exempt-track case whose
+ * in-app check was impossible while this page was Windwalker-only. It also carries the Heroism window
+ * at 1 777–41 785ms, which is what makes the haste band reachable from a fixture at all.
+ *
+ * `unbroken` second for the band's **overlap** composite, which `phased` cannot reach: `phased` has no
+ * Berserking window at all, so the one band it draws never has a second one under it. `unbroken` has
+ * Bloodlust 785–40 790ms with Berserking 3 673–13 677ms sitting entirely inside it — 10 004ms of two
+ * bands over the same stretch. That is the case worth being able to look at rather than a spare pull:
+ * two translucent washes stacked read darker than either, and the fix chosen for that was one band per
+ * stretch rather than a lower alpha, so the composite is a *drawing* decision with no route from a
+ * fixture until now. `cleave` overlaps too (Time Warp 941–40 947 over Berserking 3 482–13 487) and is
+ * not here — one pull is enough to look at a composite, and the cost below is per entry.
  */
 const phased = analyseElemental(phasedRaw as unknown as FightDataset);
+const unbroken = analyseElemental(unbrokenRaw as unknown as FightDataset);
 
-const fixtures = { poor, mixed, strong, weave, phased } as never;
+const fixtures = { poor, mixed, strong, weave, phased, unbroken } as never;
 ---
 
 <Base title="Report preview" description="Fixture-driven render for chart and copy validation.">
