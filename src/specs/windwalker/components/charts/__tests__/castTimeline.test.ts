@@ -1635,19 +1635,25 @@ describe('the tooltip markup', () => {
 });
 
 /**
- * The boss's own phase changes, marked along the top of the track.
+ * The boss's own phase changes, in a gutter of their own above the track.
  *
- * Driven from the raw dataset through `analyse` rather than from a hand-built `Analysis`, because the
- * two facts most likely to be got wrong are both about the *fetch* and not about the drawing: the
- * transitions arrive on the report's clock rather than the fight's, and their ids are a transition log
- * rather than a phase list. A fixture with `phaseTransitions` in it is the only thing that puts both
- * in front of the component the way the API does.
+ * Driven from the raw dataset through the spec's `analyse` rather than from a hand-built `Analysis`,
+ * because the two facts most likely to be got wrong are both about the *fetch* and not about the
+ * drawing: the transitions arrive on the report's clock rather than the fight's, and their ids are a
+ * transition log rather than a phase list. A fixture with `phaseTransitions` in it is the only thing
+ * that puts both in front of the component the way the API does.
  *
- * `dataset-ironJuggernaut.json` is the case, and it is one pull that carries every trap at once. Its
- * three transitions are `1 → 3171410`, `2 → 3294896`, `1 → 3354895` against a fight that runs
- * 3171410–3361719, so: the first lands exactly on the bell, the last is a *return* to phase one with
- * the same id and the same name as the first, and it opens 6.8s from the kill — which at the default
- * zoom is less room than its own name needs. An anonymous report, as every fixture here is.
+ * `dataset-ironJuggernaut.json` is the case. Its three transitions are `1 → 3171410`, `2 → 3294896`,
+ * `1 → 3354895` against a fight that runs 3171410–3361719, so: the first lands exactly on the bell,
+ * the last is a *return* to phase one with the same id and the same name as the first, and it opens
+ * 6.8s from the kill — close enough to the end that its name runs past the right edge of the track,
+ * which is the case the old overlay dropped the label for and this one does not. An anonymous report,
+ * as every fixture here is.
+ *
+ * Its two drawn transitions are 60s apart, which is far more than a label needs at any rung of the
+ * zoom ladder, so the *label-versus-label* collision is not in this fixture and is built by hand
+ * below. Worth saying because it is easy to read the 6.8s as a gap between two transitions: it is the
+ * gap between the last transition and the kill.
  */
 describe('CastTimeline, the boss’s phases', () => {
 	const dataset = JSON.parse(
@@ -1667,12 +1673,37 @@ describe('CastTimeline, the boss’s phases', () => {
 	 */
 	const SIEGE_MODE = { stamp: '2:03.486', left: 'left:64.8871046561119%' };
 	const BACK_TO_ASSAULT = { stamp: '3:03.485', left: 'left:96.41425261022863%' };
+	/** 190309ms of pull at the default rung of the ladder, 24px/s, and one row of gutter. */
+	const ONE_ROW_GUTTER = 'style="width:4567.416px;height:24px"';
 
 	it('marks each phase change on the fight’s own clock', () => {
 		expect(html).toContain(`data-tip-entered="${SIEGE_MODE.stamp}"`);
 		expect(html).toContain(SIEGE_MODE.left);
 		expect(html).toContain(`data-tip-entered="${BACK_TO_ASSAULT.stamp}"`);
 		expect(html).toContain(BACK_TO_ASSAULT.left);
+	});
+
+	/**
+	 * The gutter is vertical space and not an overlay: it is as wide as the track, as tall as the rows
+	 * it needs, and it comes *before* the track in the markup — so everything the chart draws is below
+	 * it rather than under it.
+	 */
+	it('claims a band of its own above the track', () => {
+		expect(html).toContain(ONE_ROW_GUTTER);
+		// The gutter, then the track, in that order and nothing between them.
+		expect(html.indexOf(ONE_ROW_GUTTER)).toBeLessThan(html.indexOf('style="width:4567.416px"'));
+	});
+
+	/**
+	 * And the left-hand label column carries the same row, named, at exactly the same height. Without it
+	 * every name in that column would sit one band above the row it belongs to, because the two columns
+	 * line up by drawing the same rows in the same order and by nothing else.
+	 */
+	it('opens the label column with a named row of the same height', () => {
+		expect(html).toContain(
+			'<div class="w-28 shrink-0 sm:w-44"><div class="flex items-start gap-2 pr-2" style="height:24px">' +
+				'<span class="truncate font-mono text-sm leading-6 text-ink-2">Phase</span></div>',
+		);
 	});
 
 	/**
@@ -1688,24 +1719,53 @@ describe('CastTimeline, the boss’s phases', () => {
 		expect((html.match(/data-tip="Stage Two: Siege Mode"/g) ?? []).length).toBe(1);
 	});
 
-	/** A minute of clear track after it, so the name is written beside the line. */
-	it('writes the phase name beside the line when the next change is far enough off', () => {
+	/**
+	 * Every marker is labelled, including the one 6.8s from the kill whose name is wider than the track
+	 * it has left. That marker is the reason this test exists: the overlay used to drop its label,
+	 * because the label would have been drawn across the resource bar. In a gutter there is nothing for
+	 * it to be drawn across, so it is drawn.
+	 */
+	it('writes the label on every marker, even one that runs past the end of the track', () => {
 		expect(html).toContain('>Stage Two: Siege Mode</span>');
+		expect(html).toContain('>Stage One: Assault Mode</span>');
 	});
 
 	/**
-	 * And 6.8s of it for a 23-character name, which at 24px/s is 164px of room for 169px of label.
-	 * The rule is drop the label and keep the line — and keep the name reachable, which is the half
-	 * that makes dropping it honest rather than lossy.
+	 * Two changes 2s apart, which at 24px/s is 48px of track for a name that needs 148 — so the second
+	 * label takes the second row and the gutter grows by exactly one row to hold it. Built by hand
+	 * because no encounter in this zone changes phase twice inside a global; the packing is a question
+	 * about pixels, and this is the pixel case.
 	 */
-	it('drops the label where the change is too close to the end to write it, and keeps the line', () => {
-		expect(html).not.toContain('>Stage One: Assault Mode</span>');
-		expect(html).toContain('data-tip="Stage One: Assault Mode"');
-		expect(html).toContain(BACK_TO_ASSAULT.left);
+	it('drops a crowded label to a second row and grows the gutter to hold it', () => {
+		const crowded: Analysis = {
+			...pull,
+			// `analyse` always fills the timeline in; the optionality on the type is for the fixtures
+			// captured before it existed, which this is not one of.
+			timeline: {
+				...pull.timeline!,
+				phases: [
+					{ id: 2, startTime: 3294896, name: 'Stage Two: Siege Mode', isIntermission: false },
+					{ id: 3, startTime: 3296896, name: 'Stage Three: Salvage', isIntermission: false },
+				],
+			},
+		};
+		const crowdedHtml = render(crowded);
+		// Two rows of gutter, and the label column shifted by the same 48px.
+		expect(crowdedHtml).toContain('style="width:4567.416px;height:48px"');
+		expect(crowdedHtml).toContain(
+			'<div class="w-28 shrink-0 sm:w-44"><div class="flex items-start gap-2 pr-2" style="height:48px">',
+		);
+		// The first label keeps the top row; the second takes the one below it. Asserted as one
+		// contiguous run of attributes so the row cannot be read off the wrong marker.
+		expect(crowdedHtml).toContain('data-tip-entered="2:03.486" style="left:64.8871046561119%;top:0"');
+		expect(crowdedHtml).toContain('data-tip-entered="2:05.486" style="left:65.93802710328991%;top:24px"');
+		// And neither name is clipped, which is the whole argument for staggering over truncating.
+		expect(crowdedHtml).toContain('>Stage Two: Siege Mode</span>');
+		expect(crowdedHtml).toContain('>Stage Three: Salvage</span>');
 	});
 
-	/** The sentence the picture cannot say: which rules these are, and why one of them has no name. */
-	it('says in the caption what the rules along the top are', () => {
+	/** The sentence the picture cannot say: which rules these are, and why one name can appear twice. */
+	it('says in the caption what the rules above the chart are', () => {
 		expect(html).toContain('phase changes, as WarcraftLogs reports them');
 	});
 
@@ -1716,8 +1776,6 @@ describe('CastTimeline, the boss’s phases', () => {
 	it('names a phase the report has no name for by its number', () => {
 		const unnamed: Analysis = {
 			...pull,
-			// `analyse` always fills the timeline in; the optionality on the type is for the fixtures
-			// captured before it existed, which this is not one of.
 			timeline: {
 				...pull.timeline!,
 				phases: [{ id: 4, startTime: 3294896, name: null, isIntermission: false }],
@@ -1726,10 +1784,20 @@ describe('CastTimeline, the boss’s phases', () => {
 		expect(render(unnamed)).toContain('>Phase 4</span>');
 	});
 
-	/** Six of the fourteen Siege encounters report none, so an absent list is the ordinary case. */
-	it('draws nothing for an encounter WarcraftLogs reports no phases for', () => {
-		expect(render(drawn)).not.toContain('data-tip-entered=');
-		expect(render(drawn)).not.toContain('phase changes, as WarcraftLogs reports them');
+	/**
+	 * Six of the fourteen Siege encounters report none and six of the ten committed fixtures predate the
+	 * fetch, so an absent list is the common case — and it has to cost the chart *nothing*, not an empty
+	 * band. No gutter, no spacer, and therefore not a pixel of movement in any report without phases.
+	 */
+	it('draws no band at all for an encounter WarcraftLogs reports no phases for', () => {
+		const bare = render(drawn);
+		expect(bare).not.toContain('data-tip-entered=');
+		expect(bare).not.toContain('phase changes, as WarcraftLogs reports them');
+		// No row in the label column either, named or otherwise: the column opens on its first resource.
+		expect(bare).not.toContain('>Phase</span>');
+		expect(bare).not.toContain('<div class="flex items-start gap-2 pr-2"');
+		// And no gutter, which is the only box on the chart carrying a width and a height together.
+		expect(bare).not.toMatch(/style="width:[\d.]+px;height:/);
 	});
 
 	/**
@@ -1740,6 +1808,8 @@ describe('CastTimeline, the boss’s phases', () => {
 	it('draws nothing when there is no fight start to rebase the transitions against', () => {
 		const older: Partial<Analysis> = { ...pull };
 		delete older.fightStartMs;
-		expect(render(older as Analysis)).not.toContain('data-tip-entered=');
+		const bare = render(older as Analysis);
+		expect(bare).not.toContain('data-tip-entered=');
+		expect(bare).not.toMatch(/style="width:[\d.]+px;height:/);
 	});
 });

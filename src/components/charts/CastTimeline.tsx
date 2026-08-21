@@ -257,15 +257,20 @@ interface PhaseMark {
 const NO_PHASES: PhaseMark[] = [];
 
 /**
- * The phase marker's height: exactly one row, and the request's own number.
+ * One row of the phase gutter: 24px, the request's own number, and one row of the chart.
  *
  * One row rather than a full-height rule on purpose. A phase boundary is a fact about the boss and
  * not about any lane, so it has nothing to say all the way down the chart — and the three things that
  * *do* run full height (Bloodlust, the intermission shading, a death) each mean the stretch they
  * cover, which a boundary does not. Tied to `ROW_PX` because the point of 24px is that it is one
- * row's worth of annotation and never covers a second.
+ * row's worth of annotation.
+ *
+ * **The gutter this measures is real vertical space, not an overlay.** It sits above the track and
+ * pushes the whole chart down by its own height, so nothing the chart draws — a lane, a resource bar,
+ * the haste wash, the intermission shading, a death band — is ever underneath a marker. That is what
+ * lets the label always be drawn: it is not competing with anything for the pixels it needs.
  */
-const PHASE_MARKER_PX = ROW_PX;
+const PHASE_ROW_PX = ROW_PX;
 
 /**
  * The phase marker's line and its label, in semi-transparent white.
@@ -282,27 +287,25 @@ const PHASE_MARKER_PX = ROW_PX;
  * the palette is that an addition judged by eye silently breaks the separation it was checked for.
  *
  * `track`, which the exempt band uses, is not available here for the reason `tones.ts` gives for
- * preferring it *there*: it is a ground, dark enough to sit behind the rows. This is a hairline and
- * ten-pixel text sitting on top of them, which is what a text token is for — the objection that
- * retired `muted` was about painting a wide band in a reading colour, not about a mark.
+ * preferring it *there*: it is a ground, dark enough to sit *behind* rows. Nothing is behind these —
+ * the gutter is empty space of its own — so what this needs is a mark and a reading colour, which is
+ * what the text tokens are. The objection that retired `muted` was about painting a wide band in a
+ * reading colour, not about a hairline and ten pixels of type.
  *
- * Semi-transparent because the marker sits over the resource bar at the top of the track, and a solid
- * white rule there would read as a reading the bar took.
- */
-const PHASE_LINE_CLASS = 'border-l border-ink/40';
-const PHASE_LABEL_CLASS =
-	'pointer-events-none absolute top-0 left-1 font-mono text-[10px] whitespace-nowrap text-ink/70';
-
-/**
- * How wide the marker's hit box is — the line plus enough of a gutter to be hovered.
+ * Semi-transparent rather than flat `ink` because the gutter is context and the pull is the subject.
+ * `ink` is the strength body copy is set in; a rule and a name per phase at that weight would be the
+ * loudest thing on a chart whose argument is entirely below them.
  *
- * The label cannot be the hit box. It is dropped whenever two transitions are too close to write
- * both, and that is precisely the case where the reader needs the tooltip, so a box sized by its
- * contents would lose the name exactly when the name became the only way to get it. A fixed 8px is
- * the same trick the haste band plays with its transparent full-height box, at the size an
- * annotation this small can afford to steal from the bar underneath.
+ * **One element, and its own width.** The marker used to carry a fixed 8px hit box, because the label
+ * was the thing that disappeared under crowding and a box sized by its contents would have lost the
+ * name exactly when the tooltip became the only way to get it. The gutter retires that argument
+ * outright — the label is always drawn now — so the box shrink-wraps the line and the text it
+ * actually draws, which is the honest hit area for an annotation: what you can see is what you can
+ * hover. `leading-6` is `PHASE_ROW_PX`, which is what centres the text in its own row while the box
+ * itself runs on down to the chart.
  */
-const PHASE_HIT_PX = 8;
+const PHASE_MARKER_CLASS =
+	'pointer-events-auto absolute bottom-0 border-l border-ink/40 pl-1 font-mono text-[10px] leading-6 whitespace-nowrap text-ink/70';
 
 /**
  * The vertical name written inside a haste band, so a wash alone does not have to name itself.
@@ -598,6 +601,61 @@ function packCasts(casts: readonly CastMark[], pxPerSec: number): { rows: number
 	}
 
 	return { rows: Math.max(1, freeAt.length), rowOf };
+}
+
+/** A phase marker with its copy resolved and the row of the gutter its label was placed on. */
+interface PlacedPhase {
+	mark: PhaseMark;
+	label: string;
+	row: number;
+}
+
+/**
+ * Which row of the phase gutter each label sits on, so that no two labels overprint.
+ *
+ * **Stagger rather than truncate, and the constraint that decided it the other way is gone.** While
+ * the markers were an overlay, a second row of labels meant a second row of text over the resource
+ * bar, so the rule was to drop the label and keep the line. The gutter owns its vertical space now:
+ * another row costs the chart a few pixels of downward shift and costs the reader nothing, so the
+ * question is only stagger versus clip.
+ *
+ * Truncating is the worse of the two *on this data specifically*, which is why this is not a matter of
+ * taste. Siege of Orgrimmar names its phases "Stage One: Assault Mode" and "Stage Two: Siege Mode",
+ * and Garrosh's are "Intermission: Realm of Y'shaarj" and "P2: Power of Y'shaarj" — pairs that share
+ * a prefix and differ at the end. Clipping them to the room available yields "Stage O…" against
+ * "Stage T…", which is the case `labelFits` already refuses for an aura's variant: a stub that has
+ * thrown away the only distinguishing part is worse than no label, because it reads as information.
+ * Staggering keeps every character of both.
+ *
+ * Greedy, in time order, first row whose last label has finished — the same shape as `packCasts`, and
+ * deliberately not that function: it packs one fixed icon width and has a ceiling and an
+ * overlap-of-last-resort because a pull holds hundreds of presses, whereas a label's width is its own
+ * and an encounter in this zone reports at most six transitions. That bound is why there is no `MAX`
+ * here: the row count cannot exceed the number of markers, which is single digits, and a cap would
+ * only reintroduce overprinting for nothing.
+ *
+ * Width is estimated from the character count exactly as `labelFits` estimates it, and re-derived per
+ * zoom for the reason `packCasts` gives: whether two labels collide is a question about pixels, and
+ * the same two transitions clear each other at 48px/s and sit on top of each other at 3px/s.
+ *
+ * `labelled` must be in time order, which `resolveFightPhases` guarantees — a greedy fit only holds
+ * if the items arrive in non-decreasing order of the key it compares.
+ */
+function placePhaseLabels(
+	labelled: readonly { mark: PhaseMark; label: string }[],
+	pxPerSec: number,
+): { rows: number; placed: PlacedPhase[] } {
+	const msPerPx = 1000 / pxPerSec;
+	// The moment each row's last label finishes, in fight time.
+	const freeAt: number[] = [];
+	const placed = labelled.map(({ mark, label }) => {
+		const widthMs = (label.length * LABEL_CHAR_PX + LABEL_PAD_PX) * msPerPx;
+		const found = freeAt.findIndex((free) => mark.at >= free);
+		const row = found === -1 ? freeAt.length : found;
+		freeAt[row] = mark.at + widthMs;
+		return { mark, label, row };
+	});
+	return { rows: Math.max(1, freeAt.length), placed };
 }
 
 /**
@@ -1459,6 +1517,33 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 
 	const drag = useDragScroll();
 	const pxPerSec = ZOOM_LADDER[zoom] ?? ZOOM_LADDER[DEFAULT_ZOOM] ?? 24;
+	/**
+	 * The markers with their copy resolved, then laid out into rows of the gutter.
+	 *
+	 * Two steps rather than one because only the first needs the copy file: a phase the report has no
+	 * metadata for is still a boundary that happened, so it is named by its number rather than dropped,
+	 * and the number is the API's `id` — which the schema guarantees is the phase, unlike this array's
+	 * index, which is the transition and counts re-entries. The packing below then works on strings and
+	 * pixels and knows nothing about phases.
+	 */
+	const phaseLabels = useMemo(
+		() => phases.map((mark) => ({ mark, label: mark.name ?? t('castLog.phase.unnamed', { id: mark.id }) })),
+		[phases, t],
+	);
+	const { rows: phaseRows, placed: placedPhases } = useMemo(
+		() => placePhaseLabels(phaseLabels, pxPerSec),
+		[phaseLabels, pxPerSec],
+	);
+	/**
+	 * The gutter's height, and zero when the pull has no phases at all.
+	 *
+	 * Zero rather than one empty row, and this is the one number in the feature that had to be
+	 * conditional. WarcraftLogs reports no transitions for 6 of the 14 encounters in this zone —
+	 * Siegecrafter Blackfuse among them — and six of the ten committed fixtures predate the fetch
+	 * entirely, so "no phases" is the common case and not the edge. A band reserved for markers that do
+	 * not exist would push every one of those reports down by a row to say nothing.
+	 */
+	const phaseGutterPx = phases.length === 0 ? 0 : phaseRows * PHASE_ROW_PX;
 	const stepMs = tickStepMs(pxPerSec);
 	// Room for two digits and a breath, converted from pixels into fight time at the current zoom —
 	// which is the only place that conversion can be made, since the tracks are drawn proportionally.
@@ -2064,10 +2149,11 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				}),
 		intermissions.length > 0 ? t('castLog.intermission.note') : null,
 		deaths.length > 0 ? t('castLog.death.note') : null,
-		// The white rules along the top, which are the one annotation on this chart that comes from the
+		// The white rules above the track, which are the one annotation on this chart that comes from the
 		// encounter rather than from the player's own log — so nothing about them can be inferred from
-		// the marks around them. Two things the picture cannot say for itself: a rule with no name beside
-		// it had no room for one, and the same name can appear twice because a boss can re-enter a phase.
+		// the marks around them. Two things the picture cannot say for itself: the pull's own transition
+		// into phase one is deliberately not drawn, and the same name can appear twice because a boss can
+		// re-enter a phase it has already been in.
 		phases.length === 0 ? null : t('castLog.phase.note'),
 		// A row drawn as a meter instead of as a bar is a different convention from every other row, and
 		// one whose meter never fills needs saying out loud — otherwise the missing fifth charge reads as
@@ -2238,6 +2324,30 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 				    heights are the same constant on both sides, which is what lines them up without anything
 				    having to measure anything. */}
 				<div className="w-28 shrink-0 sm:w-44">
+					{/* The phase gutter's row in this column, and first in the sequence exactly as it is first
+					    on the track.
+
+					    **Not a spacer — a row, named.** The two columns line up because they draw the same rows
+					    in the same order at the same heights and nothing measures anything, so a band that
+					    claims space on one side has to claim it on the other or every label below it names the
+					    row above the one it belongs to. It carries `phaseGutterPx`, which is the same number
+					    the track's band is given: when a crowded pull staggers its labels onto a second row
+					    that number grows, and it grows on both sides at once because there is only one of it.
+
+					    Named for the same reason every other row here is: a reader should not have to infer
+					    what a mark is from the mark. `castLog.phase.title` rather than a second string that
+					    means the same thing — it is the word the marker's own tooltip is titled with, and the
+					    two cannot drift apart if there is only one of them.
+
+					    Top-aligned rather than centred, so on a staggered gutter the word sits beside the
+					    first row of labels instead of between the two. No hairline, unlike every row below:
+					    the rule under a lane separates it from the next lane, and what is under this is the
+					    chart. */}
+					{phaseGutterPx === 0 ? null : (
+						<div className="flex items-start gap-2 pr-2" style={{ height: phaseGutterPx }}>
+							<span className="truncate font-mono text-sm leading-6 text-ink-2">{t('castLog.phase.title')}</span>
+						</div>
+					)}
 					{/* One label per ability, matching the aura lanes below it: the same icon-and-name shape,
 					    so the two halves of the chart read as one list rather than as two conventions. */}
 					{resources === undefined
@@ -2323,6 +2433,50 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						lanes: lanes.length,
 					})}
 				>
+					{/* The boss's phase changes, in a band of their own above the track.
+
+					    **Real vertical space rather than an overlay, and that is the whole of this design.**
+					    Every other annotation on this chart competes for the same pixels as the marks it
+					    annotates, and each one had to argue its way through the paint order to get them — the
+					    haste wash down to 30% so the globals stay findable, the intermission over it, a death
+					    band over that. A phase boundary loses that argument whichever way it is settled: it is
+					    a hairline and a name, so being underneath makes it invisible rather than quieter, and
+					    being on top puts text across the resource bar. Given a row of its own it wins without
+					    anything else losing, and the label never has to be dropped to make room.
+
+					    Inside the scroller and the same `trackPx` wide, which is what keeps a marker over its
+					    own moment: the percentages resolve against this box and against the track's box, and
+					    the two are the same width and scroll as one. It is also what puts the markers inside
+					    the pointer listener that fills the shared tooltip.
+
+					    Nothing at all when the pull has no phases — see `phaseGutterPx`. The label column opens
+					    with the matching row, named, at the same height and read off the same number, which is
+					    what keeps the two columns agreeing about which row is which. */}
+					{phaseGutterPx === 0 ? null : (
+						<div className="relative" style={{ width: trackPx, height: phaseGutterPx }}>
+							{placedPhases.map(({ mark, label, row }) => (
+								<span
+									// Both, because the id repeats within a pull and only the pair is unique.
+									key={`${mark.id}-${mark.at}`}
+									title={`${t('castLog.phase.title')} · ${label} · ${formatStamp(mark.at)}`}
+									data-tip={label}
+									// `ink` rather than any of the coloured tones, for the reason the rule is white.
+									data-tip-tone="ink"
+									// The moment, which the label does not carry. Its own attribute rather than `at`,
+									// which the tooltip labels "Pressed" — nobody pressed a phase change.
+									data-tip-entered={formatStamp(mark.at)}
+									// Down to the bottom of the gutter rather than one row tall, so every rule ends flush
+									// against the chart it annotates and a staggered label is still joined to its own
+									// moment. On a single-row gutter — every real encounter at the default zoom — that is
+									// exactly the 24px line asked for.
+									style={{ left: pct(mark.at, span), top: row * PHASE_ROW_PX }}
+									className={PHASE_MARKER_CLASS}
+								>
+									{label}
+								</span>
+							))}
+						</div>
+					)}
 					<div
 						className="relative"
 						style={{
@@ -2616,62 +2770,6 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								/>
 							);
 						})}
-						{/* The boss's phase changes, and last in the source of all — on top even of a death band.
-
-						    The paint order that comment above argues about ranks the full-height annotations by
-						    what a reader loses if one is covered, and this is not one of them: it is 24px at the
-						    very top and a few pixels wide, so being underneath does not make it quieter, it makes
-						    it invisible. It is the same call the haste band makes about its own edges — the fill
-						    washes out to 30% and the two rules that carry the moment stay at full strength,
-						    because a few pixels holding an instant cannot afford to be shaded by anything.
-
-						    One row tall rather than a rule down the chart, in white rather than in a tone: see
-						    `PHASE_MARKER_PX` and `PHASE_LINE_CLASS` for both arguments. The layer is inert and
-						    each marker is not, which is the same hit-test arrangement every other band here
-						    uses. */}
-						{phases.length === 0 ? null : (
-							<div className="pointer-events-none absolute inset-x-0 top-0" style={{ height: PHASE_MARKER_PX }}>
-								{phases.map((phase, i) => {
-									// A phase the report has no metadata for is still a boundary that happened, so it is
-									// named by its number rather than dropped. The number is the API's `id`, which the
-									// schema guarantees is the phase — unlike this array's index, which is the
-									// transition and counts re-entries.
-									const name = phase.name ?? t('castLog.phase.unnamed', { id: phase.id });
-									// How much room the label has: up to the next boundary, or to the end of the pull for
-									// the last one. `labelFits` then answers in pixels at the current zoom, which is the
-									// same rule an aura bar's variant is written by — so the collision is decided by
-									// what is actually on the screen rather than by a millisecond threshold that means
-									// something different on every rung of the ladder.
-									//
-									// **The rule is drop the label, keep the line.** Staggering was the alternative and
-									// it costs more than it buys: a second row of labels doubles the annotation's height
-									// over the resource bar, and it still fails at three close transitions rather than
-									// two. A line with no name is still an honest mark — the boundary is where the chart
-									// says it is — and the name is on the tooltip, which is where the aura bars already
-									// put the label they had no room to write.
-									const room = (phases[i + 1]?.at ?? span) - phase.at;
-									return (
-										<span
-											// Both, because the id repeats within a pull and only the pair is unique.
-											key={`${phase.id}-${phase.at}`}
-											title={`${t('castLog.phase.title')} · ${name} · ${formatStamp(phase.at)}`}
-											data-tip={name}
-											// `ink` rather than any of the coloured tones, for the reason the rule is white.
-											data-tip-tone="ink"
-											data-tip-entered={formatStamp(phase.at)}
-											style={{ left: pct(phase.at, span), width: PHASE_HIT_PX }}
-											className={`pointer-events-auto absolute inset-y-0 ${PHASE_LINE_CLASS}`}
-										>
-											{labelFits(name, room, pxPerSec) ? (
-												<span className={PHASE_LABEL_CLASS} style={{ lineHeight: `${PHASE_MARKER_PX}px` }}>
-													{name}
-												</span>
-											) : null}
-										</span>
-									);
-								})}
-							</div>
-						)}
 					</div>
 				</div>
 			</div>

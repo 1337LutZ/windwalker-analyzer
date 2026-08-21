@@ -497,7 +497,7 @@
     "phase": {
       "title": "Phase",
       "unnamed": "Phase {{id}}",
-      "note": "The short white rules along the top are the boss’s own phase changes, as WarcraftLogs reports them — the fight’s script, not anything you did. The pull into the first phase is not marked, because every fight has one. A rule with no name beside it had no room for one, so hover it. And a boss can come back round to a phase it has already been in, which is why the same name can appear twice."
+      "note": "The short white rules above the chart are the boss’s own phase changes, as WarcraftLogs reports them — the fight’s script, not anything you did. The pull into the first phase is not marked, because every fight has one. A label drops to a second line where two changes are too close together to write both on one. And a boss can come back round to a phase it has already been in, which is why the same name can appear twice."
     },
     "death": {
       "title": "Death",
