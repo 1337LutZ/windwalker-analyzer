@@ -243,6 +243,13 @@ const TIP_OFFSET_PX = 14;
  */
 const LABEL_CHAR_PX = 7;
 const LABEL_PAD_PX = 8;
+/**
+ * The gap between a bar's left edge and a label written inside it — the `pl-[4px]` this replaced.
+ *
+ * Named because it is now added to a variable inset rather than spelled into one Tailwind class, and a
+ * bare `+ 4` beside `labelInsetPx` would read as arithmetic rather than as the edge it is.
+ */
+const LABEL_EDGE_PX = 4;
 
 /** Stable identities for an absent timeline, so the memos below do not re-run on every render. */
 const NO_CASTS: CastMark[] = [];
@@ -942,8 +949,8 @@ function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[], appl
  * never lost; it moves from the bar to the pointer. Re-Origination runs ten seconds, which clears
  * even the longest of the three at every zoom step but the widest.
  */
-function labelFits(label: string, ms: number, pxPerSec: number): boolean {
-	return (ms / 1000) * pxPerSec >= label.length * LABEL_CHAR_PX + LABEL_PAD_PX;
+function labelFits(label: string, ms: number, pxPerSec: number, insetPx = 0): boolean {
+	return (ms / 1000) * pxPerSec >= label.length * LABEL_CHAR_PX + LABEL_PAD_PX + insetPx;
 }
 
 /**
@@ -989,6 +996,19 @@ function barNodesOf(
 	pxPerSec: number,
 	prePullLabel: string,
 	inferredLabel: string,
+	/**
+	 * How far in from the bar's left edge a written label has to start.
+	 *
+	 * Non-zero on a row that also draws press icons, because those are painted **after** the bars — on
+	 * purpose, so an icon sits on top of the bar it opened rather than under it — and a label at the
+	 * bar's own left edge then ends up behind the icon of the very press that opened the window. Synapse
+	 * Springs is the case that showed it: it gained `variants`, so it started writing a stat name into a
+	 * bar whose first 24 pixels were already spoken for.
+	 *
+	 * Fed to `labelFits` as well as to the padding, or the estimate would keep saying a word fits in room
+	 * the icon has taken.
+	 */
+	labelInsetPx = 0,
 ) {
 	// Keyed on the window's own start, which is what the engine identified each verdict by — the same
 	// key `notes` above is keyed on, and sound for the same reason: two windows of one aura cannot open
@@ -998,7 +1018,8 @@ function barNodesOf(
 		const fate = spent.get(w.start);
 		// Written inside the bar when there is room for it, and never truncated to a stub — see
 		// `labelFits` for why a clipped stat name is worse than none.
-		const label = w.variant !== undefined && labelFits(w.variant, w.end - w.start, pxPerSec) ? w.variant : null;
+		const label =
+			w.variant !== undefined && labelFits(w.variant, w.end - w.start, pxPerSec, labelInsetPx) ? w.variant : null;
 		// What the bar's left edge means. `0:00.000` is the one stamp on this chart that can be a lie:
 		// on a window the aura brought into the fight it is where the drawing had to start, not where
 		// anything happened, and the words say so instead.
@@ -1071,7 +1092,10 @@ function barNodesOf(
 					// `inset-0` with `overflow-hidden` is the guarantee rather than the layout: `labelFits`
 					// has already decided the word belongs here, and this is what makes a wrong estimate clip
 					// at the bar's edge instead of spilling across the lane onto its neighbours.
-					<span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden pl-[4px] font-mono text-xs leading-none font-semibold text-bg">
+					<span
+						className="pointer-events-none absolute inset-0 flex items-center overflow-hidden font-mono text-xs leading-none font-semibold text-bg"
+						style={{ paddingLeft: labelInsetPx + LABEL_EDGE_PX }}
+					>
 						{label}
 					</span>
 				)}
@@ -1576,12 +1600,16 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								pxPerSec,
 								t('castLog.tip.prePull'),
 								t('castLog.tip.inferredFromPull'),
+								// One icon's width when this row also draws press marks, and nothing when it does not.
+								// The marks are painted after the bars so an icon sits on top of the bar it opened, so
+								// a label starting at the bar's own edge starts underneath that icon.
+								pressed.into.has(lane.key) ? GCD_ICON_PX : 0,
 							)
 						: chargeNodesOf(lane, lane.stacks, span),
 			})),
 		// Zoom is a dependency now, as it already is for the press lanes above: whether a window is wide
 		// enough to carry its variant is a question about pixels, so a zoom step has to rebuild these.
-		[lanes, span, laneNotes, spentAs, pxPerSec, t],
+		[lanes, span, laneNotes, spentAs, pxPerSec, t, pressed],
 	);
 	// Independent of zoom: the path is proportional, so a zoom step stretches it rather than rebuilding.
 	const gcdRules = useMemo(() => gcdRulesPath(casts, span), [casts, span]);

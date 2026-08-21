@@ -1554,9 +1554,37 @@ describe('the stat a proc converted into', () => {
 	 * The guarantee that does not depend on the estimate being right. Whatever the font turns out to
 	 * be, the label is clipped at the bar's own edge rather than drawn across the lane beside it.
 	 */
+	/**
+	 * A written label starts one gap in from the bar's edge — and further when an icon shares the row.
+	 *
+	 * Press marks are painted **after** the bars, deliberately, so an icon sits on top of the bar it
+	 * opened. A label starting at the bar's own left edge therefore starts underneath that icon. Synapse
+	 * Springs is what surfaced it: it gained `variants`, so it began writing a stat name into a bar whose
+	 * first 24 pixels were already spoken for.
+	 *
+	 * Only the unpressed baseline is asserted here, and the reason is worth recording rather than
+	 * hiding: **no committed fixture can show the other branch.** The pre-analysed `Analysis` fixtures
+	 * predate `variants` entirely, and a lane only merges with its press when the analysis carries the
+	 * cast — so the case the user hit arises on a freshly analysed raw dataset and not on anything
+	 * stored here. Asserting it would need a raw-dataset render, which this file has no harness for.
+	 * The inset itself is wired off the same `pressed.into` lookup that decides whether marks are drawn
+	 * at all, so the two cannot disagree about whether an icon is there.
+	 */
+	it('starts a written label one gap in from the bar’s edge', () => {
+		const html = render(withLane(procLane('Mastery', 139120, 10000)));
+		const span = html.match(/<span[^>]*>Mastery<\/span>/);
+		expect(span?.[0], 'no label span found for Mastery').toBeDefined();
+		// The gap, not a hardcoded total: this lane draws no marks, so the inset is the edge alone.
+		expect(span?.[0]).toContain('padding-left:4px');
+	});
+
 	it('clips the label to the bar rather than letting it spill', () => {
 		const html = render(withLane(procLane('Mastery', 139120, 10000)));
-		const label = html.match(/<span class="([^"]*)">Mastery<\/span>/);
+		// Tolerant of further attributes on the span, which is what it gained when the label's left inset
+		// became a computed `style` rather than a fixed class — the guarantee being asserted is the clip,
+		// not the shape of the tag.
+		const label = html.match(/<span class="([^"]*)"[^>]*>Mastery<\/span>/);
+		expect(label?.[1], 'no label span found for Mastery').toBeDefined();
 		expect(label?.[1]).toContain('overflow-hidden');
 		expect(label?.[1]).toContain('absolute inset-0');
 	});
