@@ -29,6 +29,21 @@ query ReportFights($code: String!) {
 					name
 				}
 			}
+			# The static phase list for every encounter this report saw, which is what names a
+			# transition. Free: measured, this document costs 1.01 points with these fields and 1.01
+			# without, because WCL prices a request by its heaviest resolver and `phases` is documented
+			# as not double-charging a query that already loads fights.
+			phases {
+				encounterID
+				# WarcraftLogs' own word on whether this encounter's phase list is good enough to split
+				# wipes by. False on most of Siege of Orgrimmar, and read rather than assumed.
+				separatesWipes
+				phases {
+					id
+					name
+					isIntermission
+				}
+			}
 			fights {
 				id
 				name
@@ -43,6 +58,14 @@ query ReportFights($code: String!) {
 				enemyNPCs {
 					id
 					gameID
+				}
+				# When this pull actually entered each phase. `id` is 1-indexed and joins to the
+				# metadata above; it repeats, because a fight that re-enters phase one reports id 1
+				# twice, so this is a list of transitions and not a list of phases. Null on an
+				# encounter WarcraftLogs has no phases for.
+				phaseTransitions {
+					id
+					startTime
 				}
 			}
 		}

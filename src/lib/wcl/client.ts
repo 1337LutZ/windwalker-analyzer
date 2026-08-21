@@ -37,6 +37,12 @@ import RAID_STORMLASH_QUERY from './raidStormlash.graphql?raw';
 import RATE_LIMIT_QUERY from './rateLimit.graphql?raw';
 import REPORT_ACTORS_QUERY from './reportActors.graphql?raw';
 import REPORT_FIGHTS_QUERY from './reportFights.graphql?raw';
+import {
+	normaliseEncounterPhases,
+	normalisePhaseTransitions,
+	type EncounterPhases,
+	type PhaseTransition,
+} from './phases';
 import { readRateLimit, type ApiCredits } from './rateLimit';
 
 /** A stuck request would otherwise leave the UI's progress indicator frozen with no way out. */
@@ -78,6 +84,11 @@ export type FightWithNpcs = Fight & {
 	 * fight the API declined to score.
 	 */
 	fightPercentage?: number | null;
+	/**
+	 * When this pull entered each phase. Empty for the several Siege encounters WarcraftLogs has no
+	 * phases for; see phases.ts for which, and for why the ids repeat.
+	 */
+	phaseTransitions?: PhaseTransition[];
 };
 
 /**
@@ -108,6 +119,11 @@ export interface ReportSummary {
 	 * Empty when the report has no zone, which is what `difficultyLabel` falls back for.
 	 */
 	difficultyNames: Record<number, string>;
+	/**
+	 * The static phase list of every encounter in the report, which is the only thing that can name a
+	 * fight's `phaseTransitions`. Rides along on the same query for no extra points — see phases.ts.
+	 */
+	encounterPhases: EncounterPhases[];
 	fights: FightWithNpcs[];
 }
 
@@ -357,6 +373,7 @@ export class WclClient {
 					.filter((d): d is { id: number; name: string } => typeof d?.id === 'number' && !!d.name)
 					.map((d) => [d.id, d.name]),
 			),
+			encounterPhases: normaliseEncounterPhases(report.phases),
 			fights: (report.fights ?? []).filter((fight): fight is QueriedFight => fight !== null).map(normaliseFight),
 		};
 	}
@@ -501,6 +518,7 @@ function normaliseFight(fight: QueriedFight): FightWithNpcs {
 		enemyNPCs: (fight.enemyNPCs ?? []).filter(
 			(npc): npc is FightNpc => typeof npc?.id === 'number' && typeof npc.gameID === 'number',
 		),
+		phaseTransitions: normalisePhaseTransitions(fight.phaseTransitions),
 	};
 }
 

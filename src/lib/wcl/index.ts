@@ -9,7 +9,15 @@ export {
 export { WclClient, WclError } from './client';
 export type { EventPage, FightPlayer, FightWithNpcs, ReportSummary, WclClientOptions, WclErrorKind } from './client';
 export { fetchFightDataset, listReportFights } from './fetchFight';
-export type { FetchFightOptions, FetchProgress, FightWithRoster, ReportFightList } from './fetchFight';
+export type {
+	FetchFightOptions,
+	FetchProgress,
+	FightWithRoster,
+	PhasedFightDataset,
+	ReportFightList,
+} from './fetchFight';
+export { resolveFightPhases } from './phases';
+export type { EncounterPhases, FightPhase, PhaseMetadata, PhaseTransition } from './phases';
 export {
 	ASSUMED_ANALYSIS_COST,
 	forgetCredits,

@@ -5,6 +5,7 @@
 import type { WclEvent } from '~/lib/events';
 import type { Actor, FightDataset } from '~/lib/types';
 import { WclClient, WclError, type FightWithNpcs } from './client';
+import { resolveFightPhases, type FightPhase } from './phases';
 
 /**
  * A single fight's events run to several pages. This ceiling only exists to stop a cursor that
@@ -28,6 +29,16 @@ export interface FetchFightOptions {
 	/** Called between requests so a long fetch can show progress instead of appearing to hang. */
 	onProgress?: (progress: FetchProgress) => void;
 }
+
+/**
+ * A fetched dataset, plus the boss phases WarcraftLogs reported for that pull.
+ *
+ * `phases` is declared here rather than on `FightDataset` itself only because `lib/types.ts` is the
+ * most contended file in the tree; the intersection keeps the field real at the fetch boundary
+ * without touching it. Empty for the several encounters WarcraftLogs has no phases for — see
+ * phases.ts for which, and for what MoP Classic actually returns.
+ */
+export type PhasedFightDataset = FightDataset & { phases: FightPhase[] };
 
 /** A fight plus the players who were actually in that pull, for the fight picker. */
 export type FightWithRoster = FightWithNpcs & { roster: Actor[] };
@@ -74,7 +85,7 @@ export async function listReportFights(client: WclClient, code: string): Promise
 }
 
 /** Everything the analysis engine needs about one player in one fight. */
-export async function fetchFightDataset(client: WclClient, options: FetchFightOptions): Promise<FightDataset> {
+export async function fetchFightDataset(client: WclClient, options: FetchFightOptions): Promise<PhasedFightDataset> {
 	const { code, fightID, playerName, onProgress } = options;
 
 	onProgress?.({ phase: 'report', message: 'Loading the report…' });
@@ -119,6 +130,7 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 		table: { fight, damageDone },
 		actors,
 		raidStormlash,
+		phases: resolveFightPhases(fight, report.encounterPhases),
 	};
 }
 
