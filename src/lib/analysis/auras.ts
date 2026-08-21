@@ -80,17 +80,56 @@ export interface AuraWindow extends Window {
  *     is something else and is dropped as before. `cast` is included because it is the event the
  *     rule is actually written against and because it costs nothing to be independent of WarcraftLogs
  *     always emitting the apply beside it.
- *   - **The removal must land inside the aura's own duration.** An aura running at `t0` cannot
- *     survive past `t0 + durationMs`, so a bare removal after that was never a pre-pull application.
- *     An aura with no declared duration therefore never qualifies — the bound cannot be checked, and
- *     an unbounded version of this rule would fire on any orphan removal anywhere in a pull. Across
- *     the three anonymous reports 288 bare removals of Virmen's Bite (25s) all land between 18.5s and
- *     25.0s, and not one falls outside the bound.
+ *   - **The removal must land inside the aura's own duration, where there is one.** An aura running at
+ *     `t0` cannot survive past `t0 + durationMs`, so a bare removal after that was never a pre-pull
+ *     application. Across the three anonymous reports 288 bare removals of Virmen's Bite (25s) all land
+ *     between 18.5s and 25.0s, and not one falls outside the bound.
+ *
+ *     **An aura that declares no duration is admitted rather than refused**, and that is a reversal.
+ *     The bound cannot be checked, so this rule used to drop the event — which meant a modelling gap
+ *     read as an absence of evidence. The standing case is the shared `bloodlust` aura, which declares
+ *     no duration because the five ids it covers are one *effect* rather than one spell: a haste
+ *     cooldown pressed before the bell left nothing but its own `removebuff`, was thrown away here, and
+ *     the pull then read as having had no haste cooldown at all. A removal is proof the aura was up;
+ *     refusing to say so because this model does not know for how long states less than the log does.
+ *     What holds the unbounded case in is the leading-orphan rule above, not the duration: a pull cannot
+ *     start twice, so at most one window per id can ever come from this branch.
  *
  * The window runs from `t0` to the removal and is marked `preexisting`, which is `truncated`'s
  * opposite number: the *start* is the pull rather than an event. Clamping rather than back-dating is
  * the same under-stating direction the refresh case takes — `end - durationMs` recovers when it was
  * really applied, and that belongs to the caller that knows what it is looking at.
+ *
+ * `pullAuras` is the third and weakest rung, for the aura that left **no event at all**. A buff applied
+ * before the pull and never removed inside it emits no apply and no removal, so neither of the two
+ * rules above can fire and the lane draws nothing whatever. `combatantinfo`'s aura list is the log's
+ * only record of that case — the same free event `readGear` and `readRaidBuffs` already read — so a
+ * caller that has it may pass the ids it named and get one window across the whole fight.
+ *
+ * **The precedence, in one place, because three rules that each look reasonable alone are how a report
+ * comes to state more than it knows:**
+ *
+ *   1. **Events beat inference.** An apply pairs with its removal and that window is the answer; a
+ *      window still open at the end runs to `fightEnd` and is `truncated`.
+ *   2. **A leading removal alone gives `[0, removal]`**, marked `preexisting`, subject to the two
+ *      conditions above.
+ *   3. **`combatantinfo` presence with no events at all gives `[0, fightEnd]`**, marked `preexisting`
+ *      *and* `truncated` — never seen to open and never seen to close, which is exactly what the pair
+ *      of flags says. No event-derived window can carry both (one is set where a window closes, the
+ *      other only on a window that never did), so the combination is the mark of this rung and the
+ *      reader of a `Window` can tell the three apart without a fourth field.
+ *
+ * Rung 3 is gated on `openAtPull` as well as on `pullAuras` being supplied. It makes the same claim
+ * rung 2 does — "this was already running at the bell" — on weaker evidence, so a caller that declined
+ * the stronger inference must not be handed the weaker one by a second argument.
+ *
+ * **Two things rung 3 must not be used for.** It is only sound for an aura that could plausibly have
+ * lasted the pull: a flask, a raid buff, a permanent aura. For a timed cooldown it would draw a 40s
+ * buff across a four-minute fight, which is why the haste lanes in `analyseCore` opt into rung 2 and
+ * not into this one. And **a caller that grades from its windows must not read a rung-3 bar as proof of
+ * anything the player did** — `combatantinfo` proves presence and never absence (see `pullAuras` in
+ * `raidBuffs.ts`, where the monk's own Legacy of the Emperor is provably up at the pull and simply
+ * missing from the list), so its silence is not a fault and its presence is not a press.
  *
  * Off by default, and for a sharper reason than `openOnRefresh` is. This only means anything for an
  * aura short enough that "it was up at the pull" is a fact about the pull. A flask runs an hour, so
@@ -105,7 +144,11 @@ export function auraWindows(
 	aura: Aura,
 	t0: number,
 	fightEnd: number,
-	{ openOnRefresh = false, openAtPull = false }: { openOnRefresh?: boolean; openAtPull?: boolean } = {},
+	{
+		openOnRefresh = false,
+		openAtPull = false,
+		pullAuras,
+	}: { openOnRefresh?: boolean; openAtPull?: boolean; pullAuras?: ReadonlySet<number> } = {},
 ): AuraWindow[] {
 	const ids = new Set(aura.ids);
 	const open = new Map<number, number>();
@@ -114,12 +157,19 @@ export function auraWindows(
 	// Ids whose opening this stream has already witnessed, in any form. Only `openAtPull` reads it,
 	// and it is what keeps the inference to the *leading* orphan: a pull cannot have started twice.
 	const opened = new Set<number>();
-	// Zero when the aura declares none, which makes the bound below refuse every candidate.
-	const durationMs = aura.durationMs ?? 0;
+	// Undefined when the aura declares none, which the bound below reads as "no bound to check" rather
+	// than as a bound of zero — see the note on that rule.
+	const durationMs = aura.durationMs;
+	// Whether this aura appeared in the stream in any form at all. Only rung 3 reads it, and it has to
+	// be a flag rather than a check on `out`: a removal the two rules above declined leaves no window
+	// behind, and "the log said nothing" and "the log said something this walk refused" are different
+	// facts.
+	let seenAny = false;
 
 	for (const e of events) {
 		const id = abilityIdOf(e);
 		if (id === null || !ids.has(id)) continue;
+		seenAny = true;
 
 		if (isAuraApply(e) || (openOnRefresh && isAuraRefresh(e))) {
 			if (!open.has(id)) open.set(id, e.timestamp);
@@ -134,7 +184,7 @@ export function auraWindows(
 					variant: variantOf(id),
 				});
 				open.delete(id);
-			} else if (openAtPull && !opened.has(id) && e.timestamp - t0 < durationMs) {
+			} else if (openAtPull && !opened.has(id) && (durationMs === undefined || e.timestamp - t0 < durationMs)) {
 				out.push({
 					start: 0,
 					end: e.timestamp - t0,
@@ -160,6 +210,24 @@ export function auraWindows(
 			id,
 			variant: variantOf(id),
 		});
+	}
+
+	// Rung 3: no event of this aura anywhere in the stream, and `combatantinfo` says it was on the
+	// player at the bell. The first of the aura's own ids that list names, so an aura whose ids encode a
+	// variant still reports which one — and `ids` order rather than the list's, because that is the
+	// order every other window on this lane is keyed by.
+	if (openAtPull && pullAuras !== undefined && !seenAny) {
+		const id = aura.ids.find((candidate) => pullAuras.has(candidate));
+		if (id !== undefined) {
+			out.push({
+				start: 0,
+				end: fightEnd - t0,
+				preexisting: true,
+				truncated: true,
+				id,
+				variant: variantOf(id),
+			});
+		}
 	}
 	return out.sort((a, b) => a.start - b.start);
 }

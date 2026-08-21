@@ -173,11 +173,39 @@ describe('auraWindows', () => {
 			expect(auraWindows([ev(25000, 'removebuff', 105697)], POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([]);
 		});
 
-		it('refuses an aura with no declared duration, because the bound cannot be checked', () => {
+		/**
+		 * The reversal, and the aura it was reversed for.
+		 *
+		 * This used to assert `[]`: with no declared duration the bound cannot be checked, so the event was
+		 * dropped. That made a gap in *this* model read as an absence of evidence in the log. The shared
+		 * `bloodlust` aura declares no duration on purpose — its five ids are one effect rather than one
+		 * spell — so a haste cooldown pressed before the bell left nothing but a `removebuff`, that removal
+		 * was thrown away here, and the pull read as `no-cooldown-on-pull`.
+		 *
+		 * What still holds the unbounded case in is the leading-orphan rule, not the duration: at most one
+		 * window per id can ever come out of this branch, and the case below proves it on the same aura.
+		 */
+		it('admits an aura with no declared duration, because a removal is still proof it was up', () => {
 			const unbounded: Aura = { ...POTION, durationMs: undefined };
-			expect(auraWindows([ev(1000, 'removebuff', 105697)], unbounded, T0, T0 + 200000, { openAtPull: true })).toEqual(
-				[],
-			);
+			expect(auraWindows([ev(1000, 'removebuff', 105697)], unbounded, T0, T0 + 200000, { openAtPull: true })).toEqual([
+				{ start: 0, end: 1000, preexisting: true, id: 105697, variant: undefined },
+			]);
+		});
+
+		it('still infers only once for an undated aura, and never behind a press', () => {
+			const unbounded: Aura = { ...POTION, durationMs: undefined };
+			// Two orphan removals and, later, an ordinary apply/remove pair. Only the first removal is the
+			// pull's; the second has nothing left to be, and the pair speaks for itself.
+			const events = [
+				ev(1000, 'removebuff', 105697),
+				ev(2000, 'removebuff', 105697),
+				ev(30000, 'applybuff', 105697),
+				ev(70000, 'removebuff', 105697),
+			];
+			expect(auraWindows(events, unbounded, T0, T0 + 200000, { openAtPull: true })).toEqual([
+				{ start: 0, end: 1000, preexisting: true, id: 105697, variant: undefined },
+				{ start: 30000, end: 70000, id: 105697, variant: undefined },
+			]);
 		});
 
 		it('refuses a removal that follows a press of the same id', () => {
@@ -217,6 +245,72 @@ describe('auraWindows', () => {
 			expect(window).toMatchObject({ start: 0, end: 10230, preexisting: true });
 			// The number that reading would produce, and the reason nothing asks for it.
 			expect(10230 - (elixir.durationMs ?? 0)).toBe(-3_589_770);
+		});
+	});
+
+	/**
+	 * The aura that left no event whatever — rung 3, from `combatantinfo` alone.
+	 *
+	 * A buff applied before the pull and never removed inside it emits no apply and no removal, so
+	 * neither of the two event rules can fire and every window rule above returns nothing at all. The
+	 * fight's own `combatantinfo` is the only record of it, and `analyseCore` publishes the ids it named
+	 * as `Handles.pullAuras`.
+	 *
+	 * Two things this suite exists to hold: that the bar is drawn, and that it is drawn *differently*
+	 * from one the log actually witnessed.
+	 */
+	describe('an aura known only from combatantinfo', () => {
+		const FLASK: Aura = { key: 'flask', name: 'Flask', ids: [105691], kind: 'buff' };
+
+		it('draws nothing at all without the list, which is the gap', () => {
+			expect(auraWindows([], FLASK, T0, T0 + 200000, { openAtPull: true })).toEqual([]);
+		});
+
+		it('draws the whole fight, marked as neither end being witnessed', () => {
+			expect(auraWindows([], FLASK, T0, T0 + 200000, { openAtPull: true, pullAuras: new Set([105691]) })).toEqual([
+				{ start: 0, end: 200000, preexisting: true, truncated: true, id: 105691, variant: undefined },
+			]);
+		});
+
+		/**
+		 * The flag pair is the mark, so it has to be unreachable any other way.
+		 *
+		 * `preexisting` is written where a window *closes* on an orphan removal and `truncated` only on a
+		 * window that never closed, so no event-derived window can carry both — which is what lets a
+		 * reader tell the weakest rung from the other two without a fourth field on `Window`.
+		 */
+		it('cannot be confused with a window the log witnessed either end of', () => {
+			const inferredStart = auraWindows(
+				[ev(1000, 'removebuff', 105691)],
+				{ ...FLASK, durationMs: 25000 },
+				T0,
+				T0 + 200000,
+				{
+					openAtPull: true,
+				},
+			);
+			const inferredEnd = auraWindows([ev(1000, 'applybuff', 105691)], FLASK, T0, T0 + 200000, { openAtPull: true });
+			expect(inferredStart.map((w) => [w.preexisting, w.truncated])).toEqual([[true, undefined]]);
+			expect(inferredEnd.map((w) => [w.preexisting, w.truncated])).toEqual([[undefined, true]]);
+		});
+
+		it('defers to any event the aura did leave, however weak', () => {
+			// One `applybuff` at 40s and the list naming the same id. The event wins: the aura demonstrably
+			// went up at 40s, so a bar from 0 would contradict the log rather than fill a hole in it.
+			expect(
+				auraWindows([ev(40000, 'applybuff', 105691)], FLASK, T0, T0 + 200000, {
+					openAtPull: true,
+					pullAuras: new Set([105691]),
+				}),
+			).toEqual([{ start: 40000, end: 200000, truncated: true, id: 105691, variant: undefined }]);
+		});
+
+		it('will not hand a caller that declined the pull inference a weaker version of it', () => {
+			expect(auraWindows([], FLASK, T0, T0 + 200000, { pullAuras: new Set([105691]) })).toEqual([]);
+		});
+
+		it('says nothing when the list does not name the aura', () => {
+			expect(auraWindows([], FLASK, T0, T0 + 200000, { openAtPull: true, pullAuras: new Set([999]) })).toEqual([]);
 		});
 	});
 });

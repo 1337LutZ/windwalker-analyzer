@@ -15,7 +15,16 @@
 
 import SPELLS from '~/generated/spells.json';
 import type { DamageEvent, WclEvent } from '~/lib/events';
-import { abilityIdOf, eventsOn, instanceKey, isCast, isDamage, isDeath, isResurrect } from '~/lib/events';
+import {
+	abilityIdOf,
+	eventsOn,
+	instanceKey,
+	isCast,
+	isCombatantInfo,
+	isDamage,
+	isDeath,
+	isResurrect,
+} from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
@@ -56,7 +65,7 @@ import { aggregateDamage, damageByTarget, primaryTargetID } from './damage';
 import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf } from './energy';
 import { engagedWindows } from './engagement';
 import { readGear } from './gear';
-import { type Interval, unionMs } from './intervals';
+import { intersect, type Interval, unionMs } from './intervals';
 import { makeLinker } from './links';
 import { RAID_BUFF_NAMES, readRaidBuffs } from './raidBuffs';
 import {
@@ -133,6 +142,21 @@ export interface Handles {
 	eventTotal: number;
 	gear: GearSummary;
 	raidBuffs: RaidBuffSummary;
+	/**
+	 * The ability ids `combatantinfo` says were already on the player when the bell rang.
+	 *
+	 * The third rung of `auraWindows`' pre-pull evidence, and the only one that can see an aura which
+	 * left no event at all — applied before the pull and never removed inside it, so there is no apply
+	 * and no removal to pair or to orphan. Published here rather than re-read per lane because it comes
+	 * off the same free `combatantinfo` event `gear` and `raidBuffs` above already read, so consulting
+	 * it costs no request and one reader cannot disagree with another about what the list said.
+	 *
+	 * **It proves presence and never absence** — see `pullAuras` in `raidBuffs.ts`, where a monk's own
+	 * Legacy of the Emperor is provably up at the pull and simply missing from this list — so a lane
+	 * that *grades* must not read silence here as a fault, and must not read a window inferred from it
+	 * as proof of a press.
+	 */
+	pullAuras: ReadonlySet<number>;
 	/** The enemy this pull was about, and the share that decided it. */
 	primaryID: number | undefined;
 	primaryGameID: number | null;
@@ -362,12 +386,9 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// Every ability whose press locks the player out is measured at its real length from its tick
 	// stream, so haste is already in the number. Windwalker has one; a spec may have none or several.
 	const channels = new Map<string, Channel[]>();
-	let channelledMs = 0;
 	for (const ability of spec.registry.abilities) {
 		if (!ability.channel) continue;
-		const measured = measureChannels(castTimes(ability), channelTickTimes(events, ability, actor.id, t0));
-		channels.set(ability.key, measured);
-		channelledMs += measured.reduce((s, c) => s + c.channelMs, 0);
+		channels.set(ability.key, measureChannels(castTimes(ability), channelTickTimes(events, ability, actor.id, t0)));
 	}
 
 	// ----------------------------------------------------------------- damage
@@ -422,16 +443,36 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 
 	const onGcdCasts = castList.filter((c) => c.onGcd).reduce((s, c) => s + c.count, 0);
 	const offGcdCasts = castList.filter((c) => !c.onGcd).reduce((s, c) => s + c.count, 0);
-	// Time *occupied*, which is not the same as time *used* — a press that bought nothing occupies its
-	// global just as thoroughly as one that did. Each on-GCD press occupies one effective GCD, except a
-	// cast-time spell, which occupies its *measured* cast length — the begincast-to-cast gap, with
-	// haste and reaction already in it, so no base-cast-time scaling is needed — and a channel, which is
-	// counted at its real measured length. The deduction happens in the spec's audit, via
-	// `cpm.wastedGcds`.
-	const channelCount = [...channels.values()].reduce((s, list) => s + list.length, 0);
-	const occupiedMs =
-		Math.max(0, onGcdStarts.reduce((s, c) => s + Math.max(effectiveGcd, c.duration), 0) - channelCount * effectiveGcd) +
-		channelledMs;
+	/**
+	 * Where each on-GCD press sat on the clock — spans, not a sum.
+	 *
+	 * Time *occupied*, which is not the same as time *used*: a press that bought nothing occupies its
+	 * global just as thoroughly as one that did. Each on-GCD press occupies one effective GCD, except a
+	 * cast-time spell, which occupies its *measured* cast length — the begincast-to-cast gap, with haste
+	 * and reaction already in it, so no base-cast-time scaling is needed — and a channel, which occupies
+	 * its real measured length instead. The deduction for a press that bought nothing happens in the
+	 * spec's audit, via `cpm.wastedGcds`.
+	 *
+	 * Kept as intervals rather than summed, because the total is about to be divided by a clock and a
+	 * sum cannot be clipped to one. Two things a sum gets wrong, both of which push a share of a whole
+	 * past 100%: two presses 900ms apart under a 1.0s global occupy 1.9s of the pull and sum to 2.0s,
+	 * and a press whose bar runs past the last hit of a contact window occupies time the denominator
+	 * does not contain. `occupiedMs`, below the contact clock, is where the clipping happens.
+	 */
+	const channelMsAt = new Map<number, number>();
+	for (const list of channels.values()) {
+		for (const ch of list) channelMsAt.set(ch.start, ch.channelMs);
+	}
+	const occupancy: Interval[] = onGcdStarts.map((c) => {
+		// Looked up on the press's own start, which is where a channel is: a channel logs no cast bar, so
+		// its `start` here is the `cast` instant, which is exactly the `start` `measureChannels` keyed its
+		// measurement on. The effective global is deliberately *not* a floor under a channel — the same
+		// arithmetic the summed version did by deducting one global per channel before adding the
+		// measured channel time back.
+		const channelMs = channelMsAt.get(c.start);
+		const ms = channelMs === undefined ? Math.max(effectiveGcd, c.duration) : channelMs;
+		return [c.start, c.start + ms];
+	});
 
 	// Read from the `combatantinfo` the event fetch already returned, so this costs no request.
 	const gear = readGear(events, actor.id);
@@ -440,6 +481,17 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// only record of anything buffed before the pull, and without it a raid that buffs in the usual
 	// place looks unbuffed.
 	const raidBuffs = readRaidBuffs(events, actor.id, t0, fight.endTime);
+
+	// The same event again, for the ids alone. `readRaidBuffs` keys its own copy by `id:source` because
+	// it has to know *who* supplied a buff; an aura lane only ever asks whether the aura was there, so
+	// the source is dropped here rather than making every caller strip it.
+	const pullAuras = new Set<number>();
+	for (const e of events) {
+		if (!isCombatantInfo(e) || e.sourceID !== actor.id) continue;
+		for (const aura of e.auras ?? []) {
+			if (typeof aura.ability === 'number') pullAuras.add(aura.ability);
+		}
+	}
 
 	// ----------------------------------------------------------- primary target
 	// Which enemies the report itself calls bosses. WarcraftLogs marks them in the report's master
@@ -520,6 +572,29 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	);
 	/** Named apart from `contactMs` further down, which is the target-count audit's own, narrower clock. */
 	const inContactMs = unionMs(contact);
+
+	/**
+	 * The occupied globals, clipped to the clock they are about to be divided by.
+	 *
+	 * This is the whole of the fix for a `gcdUtilisationPct` that could exceed 100%. The old figure
+	 * divided a numerator rebuilt from *cast* events by WarcraftLogs' own `activeTime` off the damage
+	 * table — two independent estimates of how busy the player was, with no arithmetic relationship
+	 * between them, so nothing bounded the ratio. On the `phased` fixture the two clocks sat 32.7
+	 * seconds apart and the headroom that hid the defect had already been half spent by pricing one
+	 * missing filler.
+	 *
+	 * Both halves now come from this pass, and the numerator is a subset of the denominator by
+	 * construction: a union of intervals intersected with `contact` cannot cover more than `contact`
+	 * does. That is a structural bound rather than a clamp, which is why there is no clamp here — the
+	 * `uptimePct` warning in `auras.ts` exists because that call site *can* still be handed
+	 * mismatched spans, and this one cannot.
+	 *
+	 * What the clipping actually drops is a press made while nothing was in reach: a global spent
+	 * during an intermission is neither counted as filled nor held against the player, because the
+	 * denominator does not contain that time either. That is the same rule the debuff ledgers already
+	 * apply to a dot missing while the boss is away.
+	 */
+	const occupiedMs = unionMs(intersect(occupancy, contact));
 
 	/**
 	 * Every hit the player landed themselves: when, and on whom.
@@ -965,8 +1040,18 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// the moment either side gains a guard, and the section and the band drawn under it disagreeing
 	// about where Bloodlust started is not a bug a reader can see. One walk, published on the handles
 	// and on the timeline both.
-	const hasteWindows = auraWindows(selfEvents, spec.registry.aura('bloodlust'), t0, fight.endTime);
-	const berserkingWindows = auraWindows(selfEvents, spec.registry.aura('berserking'), t0, fight.endTime);
+	//
+	// `openAtPull` on both, and rung 2 only. A haste cooldown pressed just before the bell is ordinary
+	// play, and without the inference its whole in-fight stretch is invisible: the removal is the only
+	// event the fetch returns, the default walk discards it, and the pull reads as having had no haste
+	// cooldown at all. Rung 3 is deliberately *not* asked for — Bloodlust runs 40s and Berserking 10s,
+	// so a `combatantinfo`-only bar would shade a four-minute fight as hasted throughout.
+	const hasteWindows = auraWindows(selfEvents, spec.registry.aura('bloodlust'), t0, fight.endTime, {
+		openAtPull: true,
+	});
+	const berserkingWindows = auraWindows(selfEvents, spec.registry.aura('berserking'), t0, fight.endTime, {
+		openAtPull: true,
+	});
 
 	// ------------------------------------------------------------------- hooks
 	// The audit runs once the press marks and the resource samples exist — the last things its own
@@ -984,6 +1069,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		link,
 		selfEvents,
 		raidStormlash: raidStormlash ?? [],
+		pullAuras,
 		registry: spec.registry,
 		series,
 		castList,
@@ -1085,6 +1171,11 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// The two places the halves share one figure. The spec's audit found the wasted globals; the core
 	// prices them against the time the pull actually occupied, so the deduction and the headline stay
 	// readings of one clock.
+	//
+	// A count times a global rather than an interval subtraction, so a wasted press made outside the
+	// contact clock is deducted from a numerator that never counted it. That errs downward — towards
+	// reporting less filled time than the player managed — which is the direction a report about the
+	// player's own faults should err in, and it is why nothing here can push the ratio above 100%.
 	const wastedGcds = audit.cpm.wastedGcds ?? 0;
 	const productiveMs = Math.max(0, occupiedMs - wastedGcds * effectiveGcd);
 
@@ -1097,7 +1188,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		cpm: {
 			...core.cpm,
 			...audit.cpm,
-			gcdUtilisationPct: activeMs > 0 ? (productiveMs / activeMs) * 100 : 0,
+			gcdUtilisationPct: inContactMs > 0 ? (productiveMs / inContactMs) * 100 : 0,
 		},
 		timeline: {
 			...core.timeline,

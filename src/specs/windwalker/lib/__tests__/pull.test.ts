@@ -35,10 +35,38 @@ describe('a real Windwalker pull, audited from raw events', () => {
 		expect(+a.cpm.totalCpm.toFixed(2)).toBe(52.81);
 	});
 
-	/** The measured effective GCD, not the flat 1.0s — step 1 of the multi-spec plan. */
+	/**
+	 * The measured effective GCD, not the flat 1.0s — step 1 of the multi-spec plan.
+	 *
+	 * **`gcdUtilisationPct` was 89.61 and is now 88.55, and the whole of the difference is a correction
+	 * to the numerator rather than to the clock.** The figure moved because shared code did: it used to
+	 * divide occupied time rebuilt from cast events by WarcraftLogs' `activeTime` off the damage table,
+	 * and it now divides the same occupancy — clipped to the player's own contact clock — by that clock.
+	 * See `lib/analysis/__tests__/gcdUtilisation.test.ts`, which owns the reasoning.
+	 *
+	 * That change was made for the Elemental and it is worth saying exactly why it moves a Monk, because
+	 * the obvious explanation is the wrong one. Contact excludes pet damage and unmodelled procs — Xuen
+	 * and the trinkets, for this spec — so the expectation is a narrower denominator. Measured, it is
+	 * not: `activeTime` is 189 735ms and the contact clock is 189 618ms, 117ms apart, worth 0.06 of a
+	 * point. The Monk is in contact essentially the whole pull.
+	 *
+	 * The 1.06 points come from the numerator, in two parts, and both are time this pull was charged for
+	 * twice or charged for at all:
+	 *
+	 *   - **1 121ms of overlap.** 167 on-GCD presses, each priced at a 1.0s global, and the log stamps
+	 *     some pairs closer together than that. Summing the prices charges 2 000ms of occupancy for
+	 *     1 900ms of wall clock; a union of the same spans charges it once.
+	 *   - **1 000ms outside contact** — exactly one global, the last press of the pull, whose global runs
+	 *     past the last hit the contact clock ends at. Crediting it credits time the denominator does not
+	 *     contain, which is the same one-global-wide defect the Elemental's Flame Shock tile hit at 125ms.
+	 *
+	 * So 88.55 counts every millisecond of the pull at most once and only where the player had something
+	 * to hit. The band is unmoved — `gcdUtilisation` is `good` at 85 — so nothing about this pull's grade
+	 * changes.
+	 */
 	it('prices the globals off the log rather than off the spec constant', () => {
 		expect(a.cpm.gcdSlots).toBe(189);
-		expect(+a.cpm.gcdUtilisationPct.toFixed(2)).toBe(89.61);
+		expect(+a.cpm.gcdUtilisationPct.toFixed(2)).toBe(88.55);
 	});
 
 	it('reads the brew bank through the shared stack walker', () => {
