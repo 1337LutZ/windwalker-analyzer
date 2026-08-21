@@ -718,6 +718,14 @@ const CHAYES = registry.aura('chayes');
 const WRATH_OF_DARKSPEAR = registry.aura('wrath-of-darkspear');
 const WRATH_OF_DARKSPEAR_STACKS = registry.aura('wrath-of-darkspear-stacks');
 const TEMPUS_REPIT = registry.aura('tempus-repit');
+// The gear effects that actually fired on every committed pull and had no row until now. Each one is a
+// buff a reader can see in their own log and could not find in this report — see the lane list below.
+const JADE_SPIRIT = registry.aura('jade-spirit');
+const LIGHTWEAVE = registry.aura('lightweave');
+const TOXIC_POWER = registry.aura('toxic-power');
+const EXPANDED_MIND = registry.aura('expanded-mind');
+const SYNAPSE_SPRINGS = registry.aura('synapse-springs');
+const JADE_SERPENT_POTION = registry.aura('jade-serpent-potion');
 
 /**
  * Names for the ids the model deliberately does not carry, and a list that is **not** all one thing.
@@ -2402,6 +2410,25 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		lane(BREATH_OF_HYDRA, 'proc', laneWindows(BREATH_OF_HYDRA)),
 		lane(CHAYES, 'proc', laneWindows(CHAYES)),
 		lane(WRATH_OF_DARKSPEAR, 'proc', laneWindows(WRATH_OF_DARKSPEAR)),
+		// The gear that fires on every committed pull, and did not have a row.
+		//
+		// **How this was missed is the reason the guard below it exists.** The four rows above are the
+		// trinkets *these fixtures' players did not wear* — declared correctly, filtered out by the
+		// `windows.length > 0` line at the end of this array, and so invisible in the report and in this
+		// list. The effects that did fire were never added, and nothing failed: the coverage ledger asks
+		// "which declared aura never fires", which is the opposite question. A reader with Purified
+		// Bindings and Kardris' Toxic Totem equipped saw neither in their timeline, on a pull where both
+		// procced, and the model had both ids right the whole time.
+		//
+		// Split by group on purpose: a proc is something the pull gave you and an on-use is something you
+		// pressed, and the tone should not claim you chose the first or were handed the second.
+		lane(TEMPUS_REPIT, 'proc', laneWindows(TEMPUS_REPIT)),
+		lane(JADE_SPIRIT, 'proc', laneWindows(JADE_SPIRIT)),
+		lane(LIGHTWEAVE, 'proc', laneWindows(LIGHTWEAVE)),
+		lane(TOXIC_POWER, 'proc', laneWindows(TOXIC_POWER)),
+		lane(EXPANDED_MIND, 'proc', laneWindows(EXPANDED_MIND)),
+		lane(SYNAPSE_SPRINGS, 'buff', laneWindows(SYNAPSE_SPRINGS)),
+		lane(JADE_SERPENT_POTION, 'buff', laneWindows(JADE_SERPENT_POTION)),
 		// An aura the log never carried has no windows and no business taking a row — the talent was not
 		// taken, or the trinket was not worn. Dropped rather than drawn empty, so the timeline names only
 		// what actually happened.
