@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatClock, formatSeconds } from '~/lib/format';
+import { formatClock } from '~/lib/format';
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
 
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
@@ -33,7 +33,6 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 					cells: {
 						at: formatClock(press.t),
 						stacks: press.lsStacks === null ? '—' : `${press.lsStacks}`,
-						dotLeft: formatSeconds(press.fsRemainingMs),
 						state: press.reasons.map((reason) => t(`earthShock.state.${reason}`)).join(', '),
 					},
 				})),
@@ -66,7 +65,6 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 					columns={[
 						{ key: 'at', label: t('earthShock.columns.at'), width: '96px' },
 						{ key: 'stacks', label: t('earthShock.columns.stacks'), align: 'right', width: '110px' },
-						{ key: 'dotLeft', label: t('earthShock.columns.dotLeft'), align: 'right', width: '110px' },
 						{ key: 'state', label: t('earthShock.columns.state') },
 					]}
 					rows={rows}

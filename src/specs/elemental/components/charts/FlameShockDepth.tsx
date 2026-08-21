@@ -37,7 +37,7 @@ interface Bar {
  * 2 275ms in the same fight, as Bloodlust and Elemental Mastery fell off. Each bar's tone is the
  * verdict against *its own* window; only the band behind them has to pick one.
  */
-function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[] {
+export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[] {
 	return flameShock.presses
 		.filter((p) => p.remainingMs !== null)
 		.map((p, i) => {
@@ -57,6 +57,13 @@ function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[] {
 						['pressed at', formatStamp(p.t)],
 						['dot had run', `${sec(elapsed)}s`],
 						['dot left', `${sec(p.remainingMs ?? 0)}s`],
+						// This press's *own* window, which is the number its tone was decided against. The band
+						// behind the bars has to pick one for the whole pull, and the docstring above defends
+						// that — but it left the reader no way to see the window that actually judged the press
+						// they are hovering. On `unbroken` the median is 1 726ms while the press at 83 852 rolled
+						// its own 2 246ms tick, so the median is not merely imprecise here, it is the wrong
+						// number for that bar.
+						['last tick', `${sec(p.tickMs)}s`],
 						p.duringAscendance
 							? (['reason', 'refresh during Ascendance'] as [string, string])
 							: p.ascPrep

@@ -1311,7 +1311,6 @@
     "columns": {
       "at": "at",
       "stacks": "shield stacks",
-      "dotLeft": "dot left",
       "state": "what it was"
     },
     "state": {

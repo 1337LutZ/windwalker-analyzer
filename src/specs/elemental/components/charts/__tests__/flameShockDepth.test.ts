@@ -17,12 +17,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
+import { fmt } from '~/components/format';
 import { getSpec } from '~/lib/spec';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
 import { SpecContext } from '~/components/report/specContext';
 import { analyse } from '~/specs/elemental/lib';
+import type { ChartTheme } from '~/components/charts/apex';
 import FlameShock from '../../sections/FlameShock';
+import { buildBars } from '../FlameShockDepth';
+import EarthShock from '../../sections/EarthShock';
 
 const ELEMENTAL_SPEC = getSpec('elemental')!;
 
@@ -75,5 +79,59 @@ describe('Flame Shock last-tick copy', () => {
 		expect(html).not.toContain('Keep-up refresh');
 		expect(html).not.toContain('keep-it-up window');
 		expect(html).not.toContain('refresh window');
+	});
+});
+
+/**
+ * A stand-in palette. `readTheme` reads computed CSS custom properties off a live document, and none of
+ * what is asserted below is a colour — the tone is already covered by the copy tests above.
+ */
+const THEME = { miss: '#m', kick: '#k', brew: '#b' } as unknown as ChartTheme;
+
+describe('the refresh tooltip names the window that judged the press', () => {
+	it("carries each press's own last tick, not the pull's median", () => {
+		const bars = buildBars(unbroken.flameShock, THEME);
+		// Every bar, so a reader hovering any refresh can see what it was judged against.
+		expect(bars.every((bar) => bar.meta.rows.some(([label]) => label === 'last tick'))).toBe(true);
+
+		// The press at 83 852 is the case the whole per-press model exists for: it rolled its own 2 246ms
+		// tick while this pull's median window is 1 726ms, so the median is not merely imprecise for that
+		// bar — it is the wrong number. Located by its own timestamp rather than by index, and the press is
+		// read out of the audit so this cannot pass by comparing the tooltip against itself.
+		const drawn = unbroken.flameShock.presses.filter((p) => p.remainingMs !== null);
+		const i = drawn.findIndex((p) => p.t === 83_852);
+		expect(i).toBeGreaterThanOrEqual(0);
+		expect(drawn[i]!.tickMs).toBeCloseTo(2245.667, 2);
+		expect(unbroken.flameShock.tickMs).toBeCloseTo(1725.667, 2);
+
+		// `buildBars` filters then maps, so bar `i` is `drawn[i]` — asserted rather than assumed by
+		// checking the bar's own label carries that press's timestamp.
+		const bar = bars[i]!;
+		expect(bar.x).toContain(fmt(83_852));
+		expect(bar.meta.rows).toContainEqual(['last tick', '2.2s']);
+		// The median would have read differently, which is what makes the distinction visible at all.
+		expect(bar.meta.rows).not.toContainEqual(['last tick', '1.7s']);
+	});
+});
+
+describe('the Earth Shock ledger', () => {
+	// The dot's remaining time is a Flame Shock fact. An Earth Shock is judged on the shield's stacks and
+	// on the rules in its own `state` column, none of which read the dot — so the column was a number the
+	// reader had to decide to ignore on every row.
+	const shockHtml = renderToStaticMarkup(
+		createElement(
+			SpecContext.Provider,
+			{ value: ELEMENTAL_SPEC },
+			createElement(EarthShock, { analysis: unbroken as Analysis }),
+		),
+	);
+
+	it('has rows to draw, so the header assertions below are not vacuous', () => {
+		expect(unbroken.earthShock.presses.filter((p) => !p.good).length).toBeGreaterThan(0);
+	});
+
+	it('no longer offers a "dot left" column', () => {
+		expect(shockHtml).toContain(t('earthShock.columns.stacks'));
+		expect(shockHtml).not.toContain('dot left');
 	});
 });
