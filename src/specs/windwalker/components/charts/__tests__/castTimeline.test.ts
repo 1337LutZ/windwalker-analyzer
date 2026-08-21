@@ -1084,6 +1084,60 @@ describe('CastTimeline, the haste cooldown behind the chart', () => {
 });
 
 /**
+ * The band as a wash, and why the wash is one layer rather than one per band.
+ *
+ * The reported bug was that the globals could not be read through Bloodlust, and the cause was not the
+ * paint order — the rules were already drawn over the band. It was contrast: `--color-band-lust` is an
+ * opaque mix lighter than `surface`, and a `--color-line` hairline reading 1.45:1 against the bare
+ * track reads 1.12:1 against the band, 1.01:1 on the Elemental palette. So the fill is washed.
+ *
+ * The half worth a test is the *layer*. Bloodlust and Berserking overlap — the racial is pressed
+ * inside the raid cooldown — and two translucent fills stacked composite to 1-(1-a)², which would hand
+ * the globals straight back wherever the two meet. Group opacity is what makes an overlap the same
+ * wash as a single window, and that is a claim about the markup: one washed layer, every fill inside
+ * it, and none on the spans that carry the edges and the tooltips.
+ */
+describe('CastTimeline, the haste band drawn as a wash', () => {
+	/** Berserking inside Bloodlust, which is where a troll actually presses it. */
+	const overlapping: Analysis = {
+		...drawn,
+		timeline: {
+			...timeline,
+			hasteWindows: [{ start: 10000, end: 50000, id: 2825, variant: 'Bloodlust' }],
+			berserkingWindows: [{ start: 20000, end: 30000, id: 26297 }],
+		},
+	};
+
+	const WASH = 'class="pointer-events-none absolute inset-0 opacity-30"';
+	const FILL = 'class="absolute inset-y-0 bg-[var(--color-band-lust)]"';
+	const count = (html: string, needle: string) => html.split(needle).length - 1;
+
+	/** `opacity-30` and not a fresh number: it is the strength the lane bars already wash at. */
+	it('washes both overlapping bands inside a single layer', () => {
+		const html = renderToStaticMarkup(asWindwalker(createElement(CastTimeline, { analysis: overlapping })));
+		expect(count(html, WASH)).toBe(1);
+		expect(count(html, FILL)).toBe(2);
+	});
+
+	/**
+	 * The edges keep their full strength and lose their fill. A transparent box still answers
+	 * `elementsFromPoint`, so the tooltips are unaffected by moving the paint off these spans.
+	 */
+	it('paints no fill on the spans that carry the edges', () => {
+		const html = renderToStaticMarkup(asWindwalker(createElement(CastTimeline, { analysis: overlapping })));
+		expect(count(html, 'bg-[var(--color-band-lust)]')).toBe(count(html, FILL));
+		expect(html).toContain('class="pointer-events-auto absolute inset-y-0 border-x-2 border-lust"');
+		expect(html).toContain('class="pointer-events-auto absolute inset-y-0 border-x-2 border-dashed border-lust/60"');
+	});
+
+	/** No layer at all on a pull that got neither, rather than an empty one. */
+	it('draws no wash layer on a pull with no haste at all', () => {
+		const html = render({ ...drawn, timeline: { ...timeline, hasteWindows: [], berserkingWindows: [] } });
+		expect(html).not.toContain(WASH);
+	});
+});
+
+/**
  * A stacking aura's row, drawn as a meter rather than as a bar.
  *
  * A stacking aura's *window* is the least interesting thing about it: Capacitance is up for most of a

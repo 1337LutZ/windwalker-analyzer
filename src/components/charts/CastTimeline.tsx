@@ -2179,13 +2179,54 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						    to lose: a death band is the loudest explanation on the chart and stays on top of
 						    everything, the intermission says the marks inside it cannot be read normally and
 						    keeps its place over this, and Bloodlust is the widest and least urgent of the three
-						    — a condition rather than an event. Being underneath also means it never hides the
-						    grid of globals, which matters because `--color-band-lust` is opaque like every other
-						    band: painted over the rules it would erase them for the length of the window.
+						    — a condition rather than an event.
+
+						    **Being underneath was not enough to keep the globals readable, which is why the fill
+						    is a wash and a layer of its own.** The rules are already drawn over this, so nothing
+						    was covering them — what hid them was contrast. `--color-band-lust` is an opaque mix
+						    that lands *lighter* than `surface`, so a `--color-line` hairline that reads 1.45:1
+						    against the bare track reads 1.12:1 against the band, and 1.01:1 on the Elemental
+						    palette, where line and band land on the same luminance and the grid disappears
+						    outright for the length of the window. At `opacity-30` — the strength the lane bars
+						    already wash at — they come back to 1.35:1 and 1.19:1, within a few percent of how
+						    they read outside the band, which is the target: a global spent inside Bloodlust
+						    should be no harder to find than one spent outside it.
+
+						    **One layer for both fills, and that is not tidiness.** Bloodlust and Berserking
+						    overlap constantly — the racial is pressed inside the raid cooldown — and two
+						    translucent washes stacked composite to 1-(1-a)², so a 30% band would read as 51%
+						    exactly where the two meet and take the globals back with it: the same bug, wearing
+						    the overlap as a disguise. Group opacity composites the children against each other
+						    first — opaque over opaque, so identically — and blends the result once, which makes
+						    an overlap the same wash as a single window. One band per stretch, which is also what
+						    the reader is being told: haste was up.
+
+						    The edges and the names stay out of this layer, at full strength. They are the few
+						    pixels that carry a moment, and now that the fill is this faint they are the whole of
+						    what makes a window findable.
 
 						    Order is the hit test as well as the paint, since `elementsFromPoint` answers
 						    topmost-first — so where a lust window and an intermission overlap, the tooltip is the
-						    intermission's, which is the one with something to warn about. */}
+						    intermission's, which is the one with something to warn about. This layer is inert for
+						    that reason: it is the paint, and the spans below carry the tooltips. */}
+						{haste.length === 0 && berserking.length === 0 ? null : (
+							<div className="pointer-events-none absolute inset-0 opacity-30">
+								{haste.map((w) => (
+									<span
+										key={`lust-${w.start}-${w.end}`}
+										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+										className="absolute inset-y-0 bg-[var(--color-band-lust)]"
+									/>
+								))}
+								{berserking.map((w) => (
+									<span
+										key={`berserking-${w.start}-${w.end}`}
+										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
+										className="absolute inset-y-0 bg-[var(--color-band-lust)]"
+									/>
+								))}
+							</div>
+						)}
 						{haste.length === 0 ? null : (
 							<div className="pointer-events-none absolute inset-0">
 								{haste.map((w) => (
@@ -2199,12 +2240,12 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 										data-tip-from={formatStamp(w.start)}
 										data-tip-to={formatStamp(w.end)}
 										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
-										// The fill is deliberately the faintest wash on the chart — everything is drawn
-										// over it — and the edges are what make the window findable: two full-strength
-										// rules where the buff went up and came off, which is the strength this needs
-										// spent on the few pixels that carry a moment rather than on the many that
-										// carry a condition.
-										className="pointer-events-auto absolute inset-y-0 border-x-2 border-lust bg-[var(--color-band-lust)]"
+										// No fill: that is the washed layer above, drawn once for both bands. What is left
+										// here is the edges and the hit box — two full-strength rules where the buff went up
+										// and came off, which is the strength this needs spent on the few pixels that carry a
+										// moment rather than on the many that carry a condition. A transparent box still
+										// answers `elementsFromPoint`, so the tooltip is unchanged.
+										className="pointer-events-auto absolute inset-y-0 border-x-2 border-lust"
 									>
 										{/* The spell's own name at the start, so a band is a band and not a puzzle:
 										    the wash alone cannot tell Bloodlust from Berserking when they overlap. */}
@@ -2224,10 +2265,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 										data-tip-from={formatStamp(w.start)}
 										data-tip-to={formatStamp(w.end)}
 										style={{ left: pct(w.start, span), width: pct(Math.max(w.end - w.start, 0), span) }}
-										// The same wash as Bloodlust, laid on top of it, so two haste bursts stacked
-										// read as one darker stretch; a dashed rule is what tells it apart when it
-										// stands alone.
-										className="pointer-events-auto absolute inset-y-0 border-x-2 border-dashed border-lust/60 bg-[var(--color-band-lust)]"
+										// The same wash as Bloodlust and now literally the same layer, so two haste bursts
+										// stacked read as one stretch rather than as a darker one; a dashed rule is what
+										// tells it apart when it stands alone.
+										className="pointer-events-auto absolute inset-y-0 border-x-2 border-dashed border-lust/60"
 									>
 										<span className={`${HASTE_LABEL_CLASS} text-lust/70`}>Berserking</span>
 									</span>
