@@ -11,14 +11,23 @@
 // Only A was implemented, with the proc's window pushed as a fault reason full stop — so a shock fired
 // exactly as B asks for it was reported as a shock spent early.
 //
-// **What the committed fixtures can and cannot show.** All three carry the two-piece debuff (144999,
-// Elemental Discharge) and all three have Earth Shocks inside its windows, so the branch is exercised on
-// real data — but not one of them has a shock taken in the last four seconds of a window *with the
-// shield full*. `unbroken`'s press at 180 744 is the only one inside the four-second tail at all, and it
-// spent two stacks, so it stays a fault on `belowFull`. `earthShockGood` therefore does not move on any
-// of the three: the change is visible on real data only as that press's reason list, which is asserted
-// below. The press that B actually rescues is on the synthetic pull at the bottom, and that is stated
-// rather than dressed up as a real-log finding.
+// **Which branch applies is a fact about the player's gear, not about the pull**, and getting that wrong
+// was the first attempt at this test's subject. 144998 is the two-piece's *set bonus aura* exposed to the
+// rotation language (`sim/shaman/items_mop.go:126-140`), so it is active exactly while the set is worn:
+// A is "no set", B is "set". Selecting the branch per press off the debuff instead sent a set owner whose
+// debuff happened to be *down* into branch A, charging them `fsLow` and `ascReady` — two conditions their
+// rotation does not contain. And B's debuff clause is genuinely satisfied when the debuff is down, because
+// `auraRemainingTime` returns 0 for an inactive aura (`sim/core/apl_values_aura.go:108-111`) and `0 <= 4s`.
+//
+// **What the committed fixtures can and cannot show.** All three carry the debuff (144999, Elemental
+// Discharge) and therefore all three own the set, so **branch A is unexercised by real data in this
+// repository** — the synthetic pull at the bottom is the only cover it has. `earthShockGood` moves on
+// `phased` alone (41.6667 → 58.3333, still `bad`), because that pull's five other faults were `fsLow` and
+// `ascReady` on presses whose debuff was down. `fsLow` and `ascReady` now appear on no fixture at all.
+// None of the three has a shock in the last four seconds of a window *with the shield full*:
+// `unbroken`'s press at 180 744 is the only one inside a tail and it spent two stacks, so it stays a fault
+// on `belowFull`. The press B rescues outright is synthetic, and that is stated rather than dressed up as
+// a real-log finding.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -87,16 +96,37 @@ describe('the branch on the committed pulls', () => {
 	});
 
 	/**
-	 * And the graded figure does not move on any of the three, which is the honest report of this change.
+	 * The graded figure, and it moves on exactly one pull — upward, which is the only direction this
+	 * change can move it: B drops one of A's conditions and loosens another.
 	 *
-	 * Every other in-window press sits 9 to 26 seconds from its window's end, so `twoPiece` is still the
-	 * right fault for all of them. The branch can only ever excuse a press — it drops one of A's
-	 * conditions and loosens another — so a figure that had moved could only have moved up.
+	 * `phased` gains two good shocks because five of its faults were `fsLow` and `ascReady`, charged
+	 * against a player whose rotation contains neither. `unbroken` and `cleave` do not move: their faults
+	 * were already `belowFull` and `twoPiece`, and every other in-window press sits 9 to 26 seconds from
+	 * its window's end, so `twoPiece` is still right for all of them.
+	 *
+	 * All three stay `bad` — the `ok` boundary is 65 (`score.ts:242`).
 	 */
-	it('moves earthShockGood on none of the three pulls', () => {
+	it('moves earthShockGood on phased alone, and upward', () => {
 		expect(goodPct(unbroken)).toBeCloseTo(38.4615, 3);
 		expect(goodPct(analysed('cleave'))).toBeCloseTo(41.6667, 3);
-		expect(goodPct(analysed('phased'))).toBeCloseTo(41.6667, 3);
+		expect(goodPct(analysed('phased'))).toBeCloseTo(58.3333, 3);
+	});
+
+	/**
+	 * Branch A's two conditions reach no press on any committed pull, because all three own the set.
+	 *
+	 * Asserted rather than left implicit: it is the reason the synthetic pull below is not optional
+	 * garnish but the only cover branch A has, and if a future fixture arrives without the set this goes
+	 * red and says so.
+	 */
+	it('charges no fixture with a condition from the branch they do not have', () => {
+		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+			const reasons = analysed(name).earthShock.presses.flatMap((p) => p.reasons);
+			expect(reasons).not.toContain('fsLow');
+			expect(reasons).not.toContain('ascReady');
+			// And the pull really does have presses to charge, so this is not vacuous.
+			expect(analysed(name).earthShock.presses.length).toBeGreaterThan(0);
+		}
 	});
 });
 

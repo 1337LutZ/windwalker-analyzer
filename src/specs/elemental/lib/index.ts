@@ -1655,6 +1655,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 */
 	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
 	const twoPieceWindows: Window[] = t16DebuffWindows.map(([start, end]) => ({ start, end }));
+	/**
+	 * Whether this player owns the T16 two-piece, which is what picks Earth Shock's branch.
+	 *
+	 * Read off the debuff rather than off the gear, and the gear is genuinely the better evidence when it
+	 * is there: `GearSlot.setID` exists (`analysis/gear.ts:113`) and `phased` carries two pieces of set
+	 * 1182. But it is **absent on two of the three committed pulls** — `combatantinfo` simply does not
+	 * carry the field on those captures, which is the case that field's own comment warns about — so a
+	 * gear read would answer "no set" for a player the log proves had one.
+	 *
+	 * Elemental Discharge can only exist if the two-piece is equipped: it is applied by the set bonus's
+	 * own proc trigger on Fulmination (`sim/shaman/items_mop.go:126-140`). So one window of it is proof,
+	 * and no window is the absence of proof rather than proof of absence — which is why this errs onto
+	 * branch A, the stricter one, rather than crediting a set nothing evidenced.
+	 */
+	const twoPieceOwned = twoPieceWindows.length > 0;
 	const esPresses = castTimes(EARTH_SHOCK).map((t) => {
 		const stacks = levelAt(lsLevels, t);
 		// The dot on the enemy this shock is being fired at, not on any spawn of its actor id — the
@@ -1663,17 +1678,33 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
 		const twoPiece = inWindow(t, twoPieceWindows);
 		/**
-		 * The sim's rule is an **or of two branches**, and which one applies is decided by the proc.
+		 * The sim's rule is an **or of two branches**, and which one applies is decided by the player's
+		 * **gear**, not by anything happening in the pull.
 		 *
 		 * `Earth Shock Rules` in `ui/shaman/elemental/apls/p5.apl.json` is `OR(A, B)` where A opens with
-		 * `NOT auraIsActive(144998)` and B opens with `auraIsActive(144998)` — the same proc, negated one
-		 * way and asserted the other. So exactly one branch is applicable to any press and this is a
-		 * branch rather than four independent conditions:
+		 * `NOT auraIsActive(144998)` and B with `auraIsActive(144998)`. **144998 is not a proc.** It is the
+		 * T16 two-piece's *set bonus aura*, exposed to the rotation language by
+		 * `AttachProcTrigger(…).ExposeToAPL(144998)` (`sim/shaman/items_mop.go:126-140`) — so it is active
+		 * for exactly as long as the set is equipped. The two branches are therefore "this player owns the
+		 * two-piece" and "this player does not", and only one of them is reachable on a given pull:
 		 *
-		 *   - **A, the proc down.** Shield at the ceiling, dot at least 6s, Ascendance at least 6s away.
-		 *   - **B, the proc up.** Shield at the ceiling, the proc's debuff inside its last four seconds,
-		 *     and the dot outliving **two ticks**. Ascendance is not asked about at all, and the dot floor
-		 *     is two of this press's own tick periods rather than a flat six seconds.
+		 *   - **A, without the set.** Shield at the ceiling, dot at least 6s, Ascendance at least 6s away.
+		 *   - **B, with the set.** Shield at the ceiling, Elemental Discharge with **4s or less left**, and
+		 *     the dot outliving **two ticks**. Ascendance is not asked about at all and the flat 6s dot
+		 *     floor is gone.
+		 *
+		 * **B's debuff clause is satisfied when the debuff is *down*, and that is not a loophole — it is
+		 * what the sim computes.** `auraRemainingTime` on an inactive aura returns 0
+		 * (`sim/core/apl_values_aura.go:108-111`, `TernaryDuration(aura.IsActive(), …, 0)`) and `0 <= 4s`.
+		 * `remainingIn` returns 0 outside a window for the same reason, so the two agree without a special
+		 * case. Read as behaviour rather than arithmetic: with the set, Fulmination's job is to keep
+		 * Elemental Discharge up, so shock when it is missing or about to lapse and hold when it has time
+		 * left.
+		 *
+		 * **This was implemented per press against the debuff, which is wrong in one direction only.** A
+		 * set owner whose debuff happened to be down fell through to branch A and was charged `fsLow` and
+		 * `ascReady` — two conditions their rotation does not contain. Both committed pulls own the set, so
+		 * every one of those presses was graded against the wrong branch.
 		 *
 		 * Only A was implemented, with the proc's window pushed as a fault reason full stop — so a shock
 		 * fired exactly as B wants it was reported as a shock spent early. This can only ever excuse a
@@ -1690,7 +1721,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const tickMs = tickWindowAt(esSpawn === null ? [] : (fsTicks.get(esSpawn) ?? []), t, FLAME_SHOCK_DOT).cadenceMs;
 		const reasons: EarthShockReason[] = [];
 		if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
-		if (twoPiece) {
+		if (twoPieceOwned) {
 			if (remainingIn(t, twoPieceWindows) > ES_TWO_PIECE_TAIL_MS) reasons.push('twoPiece');
 			if (fsRemaining < 2 * tickMs) reasons.push('fsTail');
 		} else {
