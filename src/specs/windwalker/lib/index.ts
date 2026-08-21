@@ -365,10 +365,17 @@ export const GCD_MS = 1000;
  * rather than tuned to either.
  *
  * It used to gate the debuff grade, and no longer does — uptime is measured against the enemy being
- * hit, which is fair on an add fight and needs no gate. What still reads it is the Energizing Brew
- * audit, whose APL exception is written `numberTargets >= 2`, and the caveat the debuff section
- * prints beside a spread pull. Both are whole-pull questions, which is what this number is; the
- * per-moment answer is `TARGET_WINDOW_MS` below.
+ * hit, which is fair on an add fight and needs no gate. What still reads it is `debuff.singleTarget`,
+ * and through that the caveat the debuff section prints beside a spread pull
+ * (`RisingSunKick.tsx:136`) and the damage table's own copy. A whole-pull question, which is what this
+ * number is; the per-moment answer is `TARGET_WINDOW_MS` below.
+ *
+ * **It does not reach the Energizing Brew audit**, whatever this comment said before. That audit's APL
+ * exception is `rjwKnown` — `castCount(RUSHING_JADE_WIND_CAST) > 0`, a talent test — and it reads no
+ * target count at all. The sim's rule is `Bloodlust inactive OR (Rushing Jade Wind known AND
+ * numberTargets >= 2)`, so the second half of it genuinely is unimplemented; that is a gap worth
+ * knowing about and not a reader of this constant. Naming a reader that does not exist is the exact
+ * failure this codebase keeps writing comments to prevent.
  */
 export const SINGLE_TARGET_SHARE_PCT = 66;
 
