@@ -6,6 +6,9 @@ import '~/styles/global.css';
 import PreviewSwitcher from '~/components/PreviewSwitcher';
 import { pageShellClass } from '~/components/primitives/pageShell';
 import Base from '~/layouts/Base.astro';
+import type { FightDataset } from '~/lib/types';
+import { analyse as analyseElemental } from '~/specs/elemental';
+import phasedRaw from '~/specs/elemental/__fixtures__/phased.json';
 import mixed from '~/specs/windwalker/__fixtures__/mixed.json';
 import poor from '~/specs/windwalker/__fixtures__/poor.json';
 import strong from '~/specs/windwalker/__fixtures__/strong.json';
@@ -14,7 +17,42 @@ import strong from '~/specs/windwalker/__fixtures__/strong.json';
 // a weave bug stays invisible to everyone checking the preview.
 import weave from '~/specs/windwalker/__fixtures__/weave.json';
 
-const fixtures = { poor, mixed, strong, weave } as never;
+/**
+ * The Elemental entry, and it is **analysed here rather than stored** — the one asymmetry in this
+ * map, deliberately.
+ *
+ * There is no captured Elemental `Analysis` to import: that spec commits raw `FightDataset`s and lets
+ * `analyse()` run over them. So this page either grew a seventh stored analysis or grew a build-time
+ * call, and the argument for the call is the four Windwalker entries above it. Every one of them is
+ * `analyse()` output frozen at capture time, and each has already gone stale in the one way that
+ * matters to a *preview*: all four have a `timeline` object with no `hasteWindows` key at all,
+ * because the field postdates the capture. The Bloodlust band is undrawable from any of them, and
+ * `windwalker/components/charts/__tests__/castTimeline.test.ts` patches the field in by hand to
+ * render it at all. A stored Elemental analysis would inherit that failure mode on the next field
+ * added.
+ *
+ * Analysing at build time cannot go stale: whatever `analyse()` returns today is what this page
+ * shows, so an engine change is visible here on the next build instead of quietly disagreeing with a
+ * file. It costs ~25ms and adds no committed bytes, the raw fixture already being in the tree —
+ * against ~130KB of derived JSON that would duplicate it.
+ *
+ * `output: 'static'`, so this runs in Node at build time: no token, no fetch and no `analyse()` reach
+ * the browser, and the island is handed the finished object exactly as it is handed the stored four.
+ *
+ * Committing the derived output would have been *allowed* had it been the better call — the three
+ * Elemental fixtures come from anonymous (`a:`) reports where every actor is `Player (N)`, and the
+ * standing rule is that no *named* player's data enters the repo. This is a staleness decision, not
+ * a privacy one.
+ *
+ * `phased` of the three because step 22 named it: its 142.3s–192.5s submerge is the exempt-track case
+ * whose in-app check was impossible while this page was Windwalker-only. It also carries the Heroism
+ * window at 1 777–41 785ms, which is what makes the haste band reachable from a fixture at all.
+ * `unbroken` is the one whose haste and Berserking windows overlap, so the band's *overlap* composite
+ * still has no route — one more entry here if that is wanted.
+ */
+const phased = analyseElemental(phasedRaw as unknown as FightDataset);
+
+const fixtures = { poor, mixed, strong, weave, phased } as never;
 ---
 
 <Base title="Report preview" description="Fixture-driven render for chart and copy validation.">

@@ -2,15 +2,25 @@ import { useState } from 'react';
 
 import type { Analysis } from '~/lib/types';
 import type { TargetModeChoice } from '~/lib/view/targetMode';
-import { DEFAULT_SPEC, getSpec } from '~/lib/spec';
+import { DEFAULT_SPEC, SPECS } from '~/lib/spec';
 
 import Report from './Report';
 import TargetModeControl from './report/TargetModeControl';
 import { compactChoiceClass } from './primitives/controls';
 
-/** The fixtures this harness renders are all Windwalker, so it pins that spec regardless of the
- * build's `PUBLIC_SPEC`. */
-const SPEC = getSpec('windwalker') ?? DEFAULT_SPEC;
+/**
+ * The spec each fixture is read against — taken from the pull rather than pinned.
+ *
+ * This was `getSpec('windwalker')`, pinned so the harness ignored the build's `PUBLIC_SPEC`. That was
+ * right while every fixture was a Windwalker one, and it is what kept the Elemental sections off the
+ * only token-free route in the app: `preview.astro` carries an Elemental pull now, and a pinned spec
+ * would have rendered it through the Windwalker's section list and scorecard.
+ *
+ * Off `analysis.specName`, which is `analyseCore`'s copy of the engine config's own spelling and the
+ * same string `SpecDefinition.specName` carries, so the two cannot name different specs. Still not
+ * `DEFAULT_SPEC` first: which spec a *fixture* is has nothing to do with which spec the build serves.
+ */
+const specFor = (analysis: Analysis) => SPECS.find((spec) => spec.specName === analysis.specName) ?? DEFAULT_SPEC;
 
 /** TEMPORARY dev harness — delete before shipping, along with src/pages/preview.astro. */
 export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string, Analysis> }) {
@@ -42,7 +52,7 @@ export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string,
 			{analysis ? (
 				<>
 					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
-					<Report key={name} analysis={analysis} targetChoice={targetChoice} spec={SPEC} />
+					<Report key={name} analysis={analysis} targetChoice={targetChoice} spec={specFor(analysis)} />
 				</>
 			) : null}
 		</div>

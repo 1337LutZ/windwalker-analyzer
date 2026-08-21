@@ -1866,31 +1866,41 @@ export interface SpecAuditResult {
 	 */
 	blackoutKick?: BlackoutKickAudit;
 	channel: ChannelAudit;
-	/** Optional only because the committed fixtures predate it; `analyse()` always fills it in. */
+	/** Optional against a stored analysis, per `energizing` below; `analyse()` always fills it in. */
 	chiBrew?: ChiBrewAudit;
 	/**
-	 * Optional for one reason only: every committed fixture in `~/lib/__fixtures__` is captured
-	 * `analyse()` output from before this field existed, and they are cast to `Analysis` rather than
-	 * migrated — so on a fixture this is `undefined`, not `null` and not an empty audit. `analyse()`
-	 * always fills it in. Anything reading it has to guard on truthiness.
+	 * Optional against a *stored* analysis: captured output is read back as `JSON.parse(...) as
+	 * Analysis` — a cast, not a check — so a field added after the capture arrives `undefined`, not
+	 * `null` and not an empty audit. `analyse()` always fills it in, so anything reading it has to
+	 * guard on truthiness.
+	 *
+	 * **No committed fixture is that case for this field, and the directory this used to cite is
+	 * gone.** The captured Windwalker analyses live in `~/specs/windwalker/__fixtures__` — six of them,
+	 * and all six carry a populated `energizing` — while the Elemental has no captured `Analysis` at
+	 * all, only raw `FightDataset`s that `analyse()` runs over. So the reason is a guard against stored
+	 * output in general rather than a case any fixture exercises.
+	 *
+	 * That the guard is worth keeping is one field away, not hypothetical: those same six analyses have
+	 * no `timeline.hasteWindows` key *at all*, because that field postdates their capture, and
+	 * `windwalker/components/charts/__tests__/castTimeline.test.ts` patches it in to render the band.
 	 */
 	energizing?: EnergizingBrewAudit;
 	filler: FillerAudit;
 	karma: KarmaAudit;
 	/**
-	 * Optional only because the committed fixtures predate it.
-	 *
-	 * `analyse()` always produces it, but the fixtures in `lib/__fixtures__` are captured output read
-	 * back as `JSON.parse(...) as Analysis` — a cast, not a check — so on those this is `undefined`,
-	 * not `null`. Marking it optional is what forces the renderer to guard instead of reading through
+	 * Optional for the same reason `energizing` above it is, and with the same caveat: `analyse()`
+	 * always produces it, a stored analysis read back as `JSON.parse(...) as Analysis` can be missing
+	 * it, and **no committed fixture actually is** — all six captures in
+	 * `~/specs/windwalker/__fixtures__` carry a `xuen`, and the Elemental stores no `Analysis` to be
+	 * missing one. Marking it optional is what forces the renderer to guard instead of reading through
 	 * a field TypeScript would otherwise promise was there.
 	 */
 	xuen?: XuenAudit;
 	/**
-	 * Optional for the same reason `xuen` above it is: the committed fixtures are captured `analyse()`
-	 * output from before this field existed and are cast to `Analysis` rather than migrated, so on a
-	 * fixture it arrives as `undefined` — not `null`, and not an audit full of zeroes. `analyse()`
-	 * always fills it in. Anything reading it has to guard on truthiness.
+	 * Optional for the same reason `xuen` above it is: a stored analysis captured before this field
+	 * existed and cast to `Analysis` rather than migrated arrives `undefined` here — not `null`, and
+	 * not an audit full of zeroes. No committed fixture is that case either. `analyse()` always fills
+	 * it in. Anything reading it has to guard on truthiness.
 	 */
 	sef?: SefAudit;
 	comboBreaker: Array<{

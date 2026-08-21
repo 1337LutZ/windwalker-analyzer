@@ -197,44 +197,51 @@ export const SHARED_AURAS: Aura[] = [
 		// "Perfect Aim", four seconds of guaranteed crit — item 94524, `itemEffects[0].buffId` in
 		// `assets/database/db.json`, and `UnerringVisionBuffId` in `sim/common/mop/trinkets_phase_3_52.go:13`.
 		// **This is the trinket's only effect.** It has no `stackingAura` in `db.json`, no second id in the
-		// sim, and no counter: see the retired `unerring-vision-stacks` below for what used to claim there
-		// was one.
+		// sim, and no counter. A key called `unerring-vision-stacks` used to claim otherwise; the id it held
+		// was 138786, which is Wushoolay's, and it says so now under `wushoolays-lightning` below.
 		ids: [138963],
 		kind: 'buff',
 		durationMs: 4_000,
 	},
 	{
 		/**
-		 * *** The key is a misnomer. The id, the name and the cap below are the truth. ***
+		 * *** Wushoolay's Final Choice's proc window. The entry is this long because the *simulator's* own
+		 * priority list will send a reader here looking for a ten-stack counter, and there is not one. ***
 		 *
-		 * This read `name: 'Unerring Vision of Lei-Shen (stacking)'`, `ids: [138786]`, `maxStacks: 10`, and
-		 * every one of the three was wrong about something.
+		 * The key read `unerring-vision-stacks` until `7319f15`, with `name: 'Unerring Vision of Lei-Shen
+		 * (stacking)'` and `maxStacks: 10` beside it, and every part of that except the id was wrong about
+		 * something. The id was always the only half that named a real aura.
 		 *
-		 * **138786 is a different trinket.** It is Wushoolay's Final Choice's proc window — `db.json` item
+		 * **138786 is not Unerring Vision's.** It is Wushoolay's Final Choice's proc window — `db.json` item
 		 * 94513, `itemEffects[0]`: buff "Wushoolay's Lightning", ten seconds, `maxCumulativeStacks: 1`. It
 		 * does not stack, and three 25H raid nights write 45 non-stacking applications of it. Its ten-stack
 		 * counter is a **separate** id, 138788 "Electrified" (`stackingAura.buffId`), declared as
-		 * `wushoolays-lightning-stacks` below. So `maxStacks: 10` here was not a number on the wrong id, it
-		 * was a number the game never writes for this id at all.
+		 * `wushoolays-lightning-stacks` below. So the retired `maxStacks: 10` was not a number on the wrong
+		 * id, it was a number the game never writes for this id at all.
 		 *
 		 * **And Unerring Vision has no counter.** `db.json` items 94524/95814/96186/96558/96930 each carry
 		 * exactly one effect, 138963, with no `stackingAura`; `sim/common/mop/trinkets_phase_3_52.go:13`
-		 * carries the same single id. There is no aura for this key to have been named after.
+		 * carries the same single id. There was no aura for the old key to have been named after.
 		 *
-		 * The sim's APL is where the confusion came from and it is not wrong on its own terms:
-		 * `ui/shaman/elemental/apls/p5.apl.json`'s "Flame Shock Rules" asks for
-		 * `auraNumStacks(138786) >= 10`, because the sim's *hand-written* Wushoolay's override
-		 * (`trinkets_phase_3_52.go:99-108`) puts the stacks on 138786 and the payload on 138790 — the
-		 * inversion described on the stacking-trinket block below. Transcribing that condition into this
-		 * app named the wrong trinket and then asked a non-stacking id for ten stacks.
+		 * **The part worth keeping is where the confusion came from, because the sim is not wrong on its own
+		 * terms.** `ui/shaman/elemental/apls/p5.apl.json`'s "Flame Shock Rules" asks for
+		 * `auraNumStacks(138786) >= 10`, and inside the sim that holds: the *hand-written* Wushoolay's
+		 * override (`trinkets_phase_3_52.go:99-108`) puts the stacks on 138786 and the payload on 138790 —
+		 * the inversion described on the stacking-trinket block below. A log writes the window and the
+		 * counter as separate ids, so the same condition cannot hold there. Transcribing it named the wrong
+		 * trinket and then asked a non-stacking id for ten stacks.
 		 *
-		 * **Why the key survives.** `specs/elemental/lib/index.ts:661` resolves this aura by name to build
-		 * one of the Flame Shock snapshot audit's three trigger windows, and that file belongs to another
-		 * lane. Renaming the key to `wushoolays-lightning` is a one-line change there, one in
-		 * `lib/analysis/__tests__/fixtureCoverage.test.ts`'s ledger, and one to `UVLS_STACKS` in
-		 * `specs/elemental/lib/__tests__/snapshots.test.ts`. Both are now repointed at
-		 * `wushoolays-lightning-stacks`, which is the aura that can actually reach ten, so this key finally
-		 * says what it holds.
+		 * **Where the two sources disagree about which id is the payload and which the tracker, `db.json`
+		 * was right five times out of five** — the per-trinket counts are on the stacking-trinket block
+		 * below, and `game/__tests__/shared.test.ts`'s sim-only list is the guard that keeps a declaration
+		 * from reaching for the Go file again.
+		 *
+		 * Anything that wants the ten stacks reads `wushoolays-lightning-stacks`, the aura that can reach
+		 * them: `WUSHOOLAYS_STACKS` in `specs/elemental/lib/index.ts` builds one of the Flame Shock
+		 * snapshot audit's three trigger windows off it, and the ledgers in
+		 * `lib/analysis/__tests__/fixtureCoverage.test.ts` and
+		 * `specs/elemental/lib/__tests__/snapshots.test.ts` name it too. Nothing resolves this key by the
+		 * old name any more, so it is free to say what it holds.
 		 */
 		key: 'wushoolays-lightning',
 		name: "Wushoolay's Lightning",

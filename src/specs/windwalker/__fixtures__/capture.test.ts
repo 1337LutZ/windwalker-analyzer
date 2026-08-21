@@ -1,7 +1,7 @@
 // TEMPORARY harness, not a test. Fetches one real pull and writes the analysis to disk so the UI can
 // be rendered against real data without a token ever reaching the browser.
 //
-// Run: WCL_TOKEN=… npx vitest run src/lib/__fixtures__/capture.test.ts
+// Run: WCL_TOKEN=… npx vitest run src/specs/windwalker/__fixtures__/capture.test.ts
 // Skips itself when the token is absent, so a normal `vitest run` is unaffected.
 //
 // Capture from ANONYMOUS reports only (`a:` codes). The fixtures are committed, and a fixture built
