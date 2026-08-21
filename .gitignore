@@ -30,3 +30,9 @@ src/lib/__fixtures__/analysis.json
 # whoever is mid-migration, not a document the repository maintains. `docs/conventions.md` and
 # `.claude/skills/wcl-analyzer/SKILL.md` are the durable records.
 docs/plan.md
+
+# Throwaway vitest configs for one-off measurement probes. The technique is documented in the
+# lane briefs: a config at the repo root pointing at a scratchpad test, deleted after the run. A
+# forgotten one used to fail `npm run check` for every other lane and could be swept into a commit
+# by a `git add -A`.
+probe*.config.mjs
