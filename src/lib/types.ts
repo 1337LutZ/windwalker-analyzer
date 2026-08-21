@@ -2046,7 +2046,12 @@ export interface FlameShockAudit {
 	 */
 	multiTargetMs: number;
 	/**
-	 * What `uptimePct` is a share of: the engaged clock, the pull minus the time the boss was away.
+	 * What `uptimePct` is a share of: the **contact** clock — every stretch the player was in contact with
+	 * an enemy they could damage, which is the same clock the chart beneath it shades against.
+	 *
+	 * It was the engaged clock, scoped to the primary target. That is a different question, and dividing a
+	 * dot measured across every spawn by a denominator scoped to one of them is the mismatched-halves
+	 * defect this field exists to make checkable.
 	 *
 	 * Published for the reason `searingTotem.scoredMs` is. Without it a reader can see `uptimeMs` and
 	 * `uptimePct` and derive neither from the other, so they cannot tell a dropped dot from a boss that
@@ -2150,7 +2155,13 @@ export interface AscendancePress {
 	t: number;
 	/** The dot's remaining time at the press; null when the dot was down. */
 	fsRemainingMs: number | null;
-	/** Whether the press was the opener rule (first five seconds). */
+	/**
+	 * Whether the press was the opener rule — within `OPENER_MS + OPENER_GRACE_MS` of the pull, i.e. 5 250 ms.
+	 *
+	 * Not a flat five seconds: a real press landed at 5 006 ms and read as not-the-opener by six
+	 * milliseconds, which is measuring the log's clock rather than the play. The grace is stated separately
+	 * from the bound so the bound stays the number the priority list actually names.
+	 */
 	opener: boolean;
 	/** Whether the press was the two-piece rule (the debuff on the target with 10s+ left). */
 	twoPiece: boolean;

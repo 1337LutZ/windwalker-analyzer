@@ -102,9 +102,10 @@ describe('report copy', () => {
 /**
  * The settings panel, whose hints are shell copy and were leaking one spec's buttons into the other's.
  *
- * `settings.cooldown` is pointed at by both specs' schemas and its hint ended with "— Rising Sun Kick,
+ * `settings.cooldown` was pointed at by both specs' schemas and its hint ended with "— Rising Sun Kick,
  * Chi Wave, Xuen and the potion", so an Elemental reader was handed four Monk abilities as the examples
- * of what their own leeway applies to. The shared sentence now stops at the claim that is true for
+ * of what their own leeway applies to. Each spec now has its own key — `settings.ww.cooldown` and
+ * `settings.ele.cooldown` — and the shared sentence stops at the claim that is true for
  * both, and the examples live on each spec's own namespaced key.
  *
  * The foreign-name set is derived from `gameData`, not from a list written here: "which abilities are
