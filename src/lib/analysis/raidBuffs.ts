@@ -141,6 +141,11 @@ const EFFECTS: EffectGroup[] = [
 		// +5% crit at once, into two separate exclusive categories.
 		key: 'spellPower',
 		providers: [
+			// 1459 is "Arcane Brilliance" in Mists and this name is deliberate, even though WarcraftLogs
+			// labels the id "Arcane Intellect" — that is the *modern* spell's name backfilled onto the id by
+			// a client the site reads from a later expansion. A reader looking at a MoP pull saw Arcane
+			// Brilliance in their buff frame, so the report says Arcane Brilliance. Do not "fix" this to
+			// match what the WCL tables print.
 			{ id: 1459, name: 'Arcane Brilliance' },
 			{ id: 126309, name: 'Still Water' },
 			{ id: 77747, name: 'Burning Wrath' },
