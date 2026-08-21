@@ -1,6 +1,6 @@
 // The snapshot windows: where the p5 list's Flame Shock rule (priority 7) wants the dot reapplied.
 //
-// The rule is a trigger — the UVLS buff, the UVLS counter at ten, or Black Blood of Y'Shaarj at ten —
+// The rule is a trigger — the UVLS buff, Wushoolay's counter at ten, or Black Blood's counter at ten —
 // **and** one of the int procs up at the same time, so the window a press is graded against is the
 // *overlap* of the two rather than either one of them.
 //
@@ -24,8 +24,15 @@ const LIGHTNING_BOLT = 403;
 
 /** The three triggers, and the three int procs whose overlap with one is what the rule claims. */
 const UVLS_BUFF = 138_963;
-const UVLS_STACKS = 138_786;
-const BLACK_BLOOD = 146_184;
+// Wushoolay's ten-stack counter, and **not** 138786. The sim's rule asks `auraNumStacks(138786) >= 10`
+// and that is coherent inside the sim, where a Go override put the stacks on the window's id — but a log
+// writes the window (138786, one stack, ten seconds) and the counter (138788, ten stacks) as separate
+// ids, and Unerring Vision has no counter of its own at all. This fixture fed the window id at stack 10,
+// a state the game never produces, so it was exercising the trigger through data that could not occur.
+const WUSHOOLAYS_STACKS = 138_788;
+// The counter, not the window — same correction as Wushoolay's above. 146184 is Black Blood's own
+// window (no stacks); 146202 is the ten-stack counter the rule's `>= 10` can actually reach.
+const BLACK_BLOOD = 146_202;
 const BREATH_OF_HYDRA = 138_898;
 const CHAYES = 139_133;
 const TEMPUS_REPIT = 137_590;
@@ -91,10 +98,10 @@ const procs: WclEvent[] = [
 	e(30_000, 'removebuff', BLACK_BLOOD),
 	e(25_000, 'applybuff', BREATH_OF_HYDRA),
 	e(35_000, 'removebuff', BREATH_OF_HYDRA),
-	// The UVLS counter at ten, 60-70s. Cha-Ye's 55-65s over it: overlap 60-65s.
-	e(60_000, 'applybuff', UVLS_STACKS),
-	e(60_000, 'applybuffstack', UVLS_STACKS, { stack: 10 }),
-	e(70_000, 'removebuff', UVLS_STACKS),
+	// Wushoolay's counter at ten, 60-70s. Cha-Ye's 55-65s over it: overlap 60-65s.
+	e(60_000, 'applybuff', WUSHOOLAYS_STACKS),
+	e(60_000, 'applybuffstack', WUSHOOLAYS_STACKS, { stack: 10 }),
+	e(70_000, 'removebuff', WUSHOOLAYS_STACKS),
 	e(55_000, 'applybuff', CHAYES),
 	e(65_000, 'removebuff', CHAYES),
 	// The UVLS buff, 100-110s. Tempus Repit 105-115s over it: overlap 105-110s.
@@ -109,9 +116,9 @@ const procs: WclEvent[] = [
 	e(138_000, 'removebuff', BREATH_OF_HYDRA),
 	// The counter at ten again, 160-170s, with **no int proc anywhere near it** — the half of the rule
 	// a log can actually be read for, and a trigger without it claims nothing.
-	e(160_000, 'applybuff', UVLS_STACKS),
-	e(160_000, 'applybuffstack', UVLS_STACKS, { stack: 10 }),
-	e(170_000, 'removebuff', UVLS_STACKS),
+	e(160_000, 'applybuff', WUSHOOLAYS_STACKS),
+	e(160_000, 'applybuffstack', WUSHOOLAYS_STACKS, { stack: 10 }),
+	e(170_000, 'removebuff', WUSHOOLAYS_STACKS),
 ];
 
 const dataset: FightDataset = {
@@ -268,16 +275,16 @@ const RAID_MATE = 4;
 
 const withCounterOn = (owner: number): Analysis & ElementalAuditResult => {
 	const counter: WclEvent[] = [
-		{ timestamp: T0 + 20_000, type: 'applybuff', abilityGameID: UVLS_STACKS, sourceID: owner, targetID: owner },
+		{ timestamp: T0 + 20_000, type: 'applybuff', abilityGameID: WUSHOOLAYS_STACKS, sourceID: owner, targetID: owner },
 		{
 			timestamp: T0 + 20_000,
 			type: 'applybuffstack',
-			abilityGameID: UVLS_STACKS,
+			abilityGameID: WUSHOOLAYS_STACKS,
 			sourceID: owner,
 			targetID: owner,
 			stack: 10,
 		},
-		{ timestamp: T0 + 30_000, type: 'removebuff', abilityGameID: UVLS_STACKS, sourceID: owner, targetID: owner },
+		{ timestamp: T0 + 30_000, type: 'removebuff', abilityGameID: WUSHOOLAYS_STACKS, sourceID: owner, targetID: owner },
 	];
 	return analyse({
 		...dataset,

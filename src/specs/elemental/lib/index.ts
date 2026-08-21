@@ -408,8 +408,13 @@ const ABILITIES: Ability[] = [
 	{
 		key: 'stormlash-totem',
 		name: 'Stormlash Totem',
+		// Three ids for one totem, and only the cast was right. **120668 is what the shaman presses**;
+		// **120687 is the damage** each lash deals, which is what a damage row has to match; and 120676 is
+		// the buff the raid gets, declared as its own aura below. Measured on three anonymous 25H nights:
+		// cast 200, aura 7,447, and the damage is ~2.0 bn. The committed Elemental fixtures carry
+		// `abilityGameID: 120687` themselves, so the damage row was matching an id the data never writes.
 		castIds: [120668],
-		damageIds: [120668],
+		damageIds: [120687],
 		onGcd: true,
 		// A five-minute raid cooldown (`sim/core/buffs.go: StormLashCD`), talent-gated in the list.
 		// Counted and never scored.
@@ -560,7 +565,11 @@ const AURAS: Aura[] = [
 	{
 		key: 'stormlash-totem',
 		name: 'Stormlash Totem',
-		ids: [120668],
+		// The aura the raid gets is **120676**, not the press. Confirmed on all four committed raw fixtures
+		// (8/4/8 Elemental, 4 Windwalker) and on 7,447 applications across three raid nights, while 120668
+		// never appears as a buff at all. Note it lands on a monk too, so this is arguably a shared raid
+		// buff rather than an Elemental-only one — worth moving to `game/shared.ts` when someone is there.
+		ids: [120676],
 		kind: 'buff',
 		durationMs: STORMLASH_DURATION_MS,
 		appliedBy: 'stormlash-totem',
@@ -658,10 +667,11 @@ const STORMLASH_AURA = registry.aura('stormlash-totem');
 const T15_4PC = registry.aura('t15-4pc');
 const T16_2PC_DEBUFF = registry.aura('t16-2pc-debuff');
 const UNERRING_VISION = registry.aura('unerring-vision');
-const UNERRING_VISION_STACKS = registry.aura('unerring-vision-stacks');
+const WUSHOOLAYS_STACKS = registry.aura('wushoolays-lightning-stacks');
 const BREATH_OF_HYDRA = registry.aura('breath-of-hydra');
 const CHAYES = registry.aura('chayes');
 const WRATH_OF_DARKSPEAR = registry.aura('wrath-of-darkspear');
+const WRATH_OF_DARKSPEAR_STACKS = registry.aura('wrath-of-darkspear-stacks');
 const TEMPUS_REPIT = registry.aura('tempus-repit');
 
 /**
@@ -1709,11 +1719,24 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// not wearing — and it is the same species as the bug `dotWindowsOnTarget`'s comment records.
 	triggerWindows.set(
 		'uvls-stacks',
-		toIntervals(levelWindows(auraLevels(selfEvents, UNERRING_VISION_STACKS, t0, fightEnd), 10)),
+		// Wushoolay's counter, not Unerring Vision's — Unerring Vision has none. The sim's own rule asks
+		// `auraNumStacks(138786) >= 10`, and inside the sim that is coherent because a Go override put the
+		// stacks on the window's id; in a log the window and the counter are separate ids and only 138788
+		// ever reaches ten. Threshold off `aura.maxStacks`, because a literal is what let Skeer's counter of
+		// twenty go unnoticed elsewhere.
+		toIntervals(
+			levelWindows(auraLevels(selfEvents, WUSHOOLAYS_STACKS, t0, fightEnd), WUSHOOLAYS_STACKS.maxStacks ?? 10),
+		),
 	);
 	triggerWindows.set(
 		'black-blood',
-		toIntervals(levelWindows(auraLevels(selfEvents, WRATH_OF_DARKSPEAR, t0, fightEnd), 10)),
+		// Same correction: 146184 is the window and 146202 is the ten-stack counter.
+		toIntervals(
+			levelWindows(
+				auraLevels(selfEvents, WRATH_OF_DARKSPEAR_STACKS, t0, fightEnd),
+				WRATH_OF_DARKSPEAR_STACKS.maxStacks ?? 10,
+			),
+		),
 	);
 	const intProcWindows = mergeIntervals([
 		...toIntervals(selfWindows(BREATH_OF_HYDRA)),

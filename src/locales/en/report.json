@@ -1365,7 +1365,7 @@
   },
   "flameShockSnapshots": {
     "title": "Snapshots",
-    "intent": "When a trigger proc (UVLS, its counter, or Black Blood) overlaps an intellect proc, the sim wants Flame Shock reapplied inside it so the snapshot freezes the proc’s spellpower. A window the dot was up through with no refresh inside is a missed snapshot.",
+    "intent": "When a trigger proc (UVLS, Wushoolay’s counter, or Black Blood’s counter) overlaps an intellect proc, the sim wants Flame Shock reapplied inside it so the snapshot freezes the proc’s spellpower. A window the dot was up through with no refresh inside is a missed snapshot.",
     "verdict_good": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
     "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
     "verdict_bad": "Only {{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh — the rest let the proc pass without a snapshot.",
@@ -1380,7 +1380,7 @@
     },
     "source": {
       "unerring-vision": "Unerring Vision",
-      "uvls-stacks": "UVLS at ten stacks",
+      "uvls-stacks": "Wushoolay’s at ten stacks",
       "black-blood": "Black Blood at ten stacks"
     },
     "caption": "Every proc window the sim would have claimed a refresh in, and what opened it",

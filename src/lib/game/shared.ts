@@ -232,11 +232,11 @@ export const SHARED_AURAS: Aura[] = [
 		 * one of the Flame Shock snapshot audit's three trigger windows, and that file belongs to another
 		 * lane. Renaming the key to `wushoolays-lightning` is a one-line change there, one in
 		 * `lib/analysis/__tests__/fixtureCoverage.test.ts`'s ledger, and one to `UVLS_STACKS` in
-		 * `specs/elemental/lib/__tests__/snapshots.test.ts` — and the same change should repoint that
-		 * trigger at `wushoolays-lightning-stacks`, which is the aura that can actually reach ten. Doing it
-		 * here would have left the tree red; it is specified in full in the lane report instead.
+		 * `specs/elemental/lib/__tests__/snapshots.test.ts`. Both are now repointed at
+		 * `wushoolays-lightning-stacks`, which is the aura that can actually reach ten, so this key finally
+		 * says what it holds.
 		 */
-		key: 'unerring-vision-stacks',
+		key: 'wushoolays-lightning',
 		name: "Wushoolay's Lightning",
 		ids: [138786],
 		kind: 'buff',
