@@ -12,6 +12,41 @@ import type { Window } from '~/lib/types';
 import { overlapMs, unionMs, type Interval } from './intervals';
 
 /**
+ * The whole raid's event stream, marked as the raid's.
+ *
+ * Three bugs in one audit came out of one affordance: every walk below took a bare `readonly WclEvent[]`
+ * and so accepted the raid stream and one actor's stream interchangeably. A raid with two shamans
+ * interleaves two Lightning Shields under one id and the walk cannot tell them apart, so a stack reading
+ * taken off the raid stream is "whichever shaman spent last", and another player's trinket opens a
+ * snapshot window on this one's report. Plan §31a: two of them shipped, `f26931d` fixed the third, and
+ * nothing stopped a fourth.
+ *
+ * **The brand is on the dangerous value rather than on the safe one, and that is the whole design.** The
+ * self-scoped stream is built once per report (`analyseCore`'s `selfEvents`) and flows through five
+ * closures and two specs; the raid stream is one handle per audit. So naming the raid stream and
+ * *refusing* it costs one line per audit and leaves every existing caller compiling untouched — the
+ * Windwalker's twelve self-scoped walks included — where demanding a brand on the safe stream would have
+ * made a plain `readonly WclEvent[]` an error at every call site in the repo at once, in four files no
+ * one lane owns. The cost of the inversion is stated on `ScopedEvents` below.
+ *
+ * Types only. `raidScoped` is the identity at runtime, so nothing here can change a number.
+ */
+export type RaidEvents = readonly WclEvent[] & { readonly __interleavesActors: true };
+
+/** Marks a stream as the raid's — the one thing the aura walks below will not walk. */
+export const raidScoped = (events: readonly WclEvent[]): RaidEvents => events as RaidEvents;
+
+/**
+ * Events already scoped to one actor, one pet or one enemy spawn — anything the raid stream is not.
+ *
+ * `RaidEvents` is not assignable to this, which is the guard. A bare `readonly WclEvent[]` is, which is
+ * the limit of it: this catches handing over a stream that is *known* to be the raid's, not a stream that
+ * merely has never been narrowed. A per-spawn bucket is admitted deliberately — the bucketing *is* the
+ * scoping, which is why `dotWindowsBySpawn` may take the raid stream and hand its buckets to these walks.
+ */
+export type ScopedEvents = readonly WclEvent[] & { readonly __interleavesActors?: undefined };
+
+/**
  * Aura events stamped this close to a cast are treated as belonging to that cast.
  *
  * A buff the cast itself applies is logged 0–2 ms *before* the cast event, so reading the buff clock
@@ -147,7 +182,7 @@ export interface AuraWindow extends Window {
  * A window still open when the fight ends is closed at `fightEnd` and marked `truncated`.
  */
 export function auraWindows(
-	events: readonly WclEvent[],
+	events: ScopedEvents,
 	aura: Aura,
 	t0: number,
 	fightEnd: number,
@@ -286,7 +321,7 @@ export interface AuraLevel {
  *
  * A stretch still open when the fight ends runs to `fightEnd`, the same as a window does.
  */
-export function auraLevels(events: readonly WclEvent[], aura: Aura, t0: number, fightEnd: number): AuraLevel[] {
+export function auraLevels(events: ScopedEvents, aura: Aura, t0: number, fightEnd: number): AuraLevel[] {
 	const ids = new Set(aura.ids);
 	const out: AuraLevel[] = [];
 	let level = 0;
@@ -527,7 +562,7 @@ export interface AuraPoint {
 }
 
 /** Every apply, refresh and removal of one aura, in time order. */
-export function auraTimeline(events: readonly WclEvent[], aura: Aura, t0: number): AuraPoint[] {
+export function auraTimeline(events: ScopedEvents, aura: Aura, t0: number): AuraPoint[] {
 	const ids = new Set(aura.ids);
 	const out: AuraPoint[] = [];
 	for (const e of events) {

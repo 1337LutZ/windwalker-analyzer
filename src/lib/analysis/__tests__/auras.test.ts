@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { Aura } from '~/lib/game/model';
@@ -10,6 +13,7 @@ import {
 	auraTimeline,
 	auraWindows,
 	levelAt,
+	raidScoped,
 	remainingAtCast,
 	remainingIn,
 	uptimePct,
@@ -54,6 +58,85 @@ const RSK_DEBUFF: Aura = {
 function ev(t: number, type: string, id = TIGER_POWER.ids[0]!): WclEvent {
 	return { timestamp: T0 + t, type, abilityGameID: id, targetID: 1 };
 }
+
+/**
+ * The affordance plan §31a closed: every walk in this file took a bare event list, so the raid's stream
+ * and one actor's were interchangeable arguments. Three bugs came out of that, all of the same shape —
+ * `auraLevels(events, …)` on the line beside one that walked `selfEvents` — and all three reported
+ * another player's aura as this one's.
+ *
+ * Two halves, and the first is why the second is worth a type: the wrong reading is not noisy, it is
+ * plausible.
+ */
+describe("the raid stream is not one actor's", () => {
+	/** Stacks are the sharpest case: the count *is* the number, so a foreign event is a wrong figure. */
+	const LIGHTNING_SHIELD: Aura = {
+		key: 'lightning-shield',
+		name: 'Lightning Shield',
+		ids: [324],
+		kind: 'buff',
+		maxStacks: 7,
+	};
+	const shieldStack = (t: number, type: string, n: number, shaman: number): WclEvent => ({
+		timestamp: T0 + t,
+		type,
+		abilityGameID: 324,
+		sourceID: shaman,
+		targetID: shaman,
+		stack: n,
+	});
+	/** This shaman's shield, filled and never spent. */
+	const mine = [shieldStack(1000, 'applybuffstack', 7, 1)];
+	/** The other shaman's, spent down to one — same id, same stream, a different player's Earth Shock. */
+	const theirs = [shieldStack(2000, 'removebuffstack', 1, 2)];
+
+	it('reads whichever shaman spent last when two are interleaved under one id', () => {
+		const scoped = auraLevels(mine, LIGHTNING_SHIELD, T0, T0 + 40_000);
+		const raid = auraLevels([...mine, ...theirs], LIGHTNING_SHIELD, T0, T0 + 40_000);
+		// The walk has no actor to filter on and never claimed to: it is the caller that owes the scoping.
+		expect(levelAt(scoped, 3000)).toBe(7);
+		expect(levelAt(raid, 3000)).toBe(1);
+	});
+
+	it("refuses a stream marked as the raid's, in all three walks", () => {
+		const raid = raidScoped([...mine, ...theirs]);
+		// @ts-expect-error — `RaidEvents` is not `ScopedEvents`; scope it, or bucket it, before walking it.
+		const levels = auraLevels(raid, LIGHTNING_SHIELD, T0, T0 + 40_000);
+		// @ts-expect-error — same guard on the window walk, where the two-shaman Flame Shock bug lived.
+		auraWindows(raid, LIGHTNING_SHIELD, T0, T0 + 40_000);
+		// @ts-expect-error — and on the point list, which is the same stream read a third way.
+		auraTimeline(raid, LIGHTNING_SHIELD, T0);
+		// Types only, so the wrong answer is still *there* — it is no longer reachable without saying so.
+		expect(levelAt(levels, 3000)).toBe(1);
+	});
+
+	it('is the identity at runtime, so no figure can move with it', () => {
+		expect(raidScoped(mine)).toBe(mine);
+	});
+
+	/**
+	 * The brand only bites where it is applied, and one door is out of its reach: `Handles.events` is
+	 * declared in the engine as a bare `readonly WclEvent[]`, so `auraLevels(h.events, …)` type-checks
+	 * whatever a spec does with its own local. The Elemental brands its two raid handles at the top of its
+	 * audit and is closed; **the Windwalker brands nothing and is closed by this test alone.**
+	 *
+	 * A grep and not a type, therefore, and deliberately the narrowest one that catches the bug's actual
+	 * shape — the handle passed straight in, which is how all three instances were written.
+	 */
+	it('no audit hands a raid-wide handle straight to a walk', () => {
+		const suspicious = /aura(?:Windows|Levels|Timeline)\(\s*(?:h\.)?(?:events|raidStormlash)\s*,/;
+		const code = (text: string): string => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+		/** `src`, so the sweep sees both specs' audits and not only the engine's own half. */
+		const root = resolve(import.meta.dirname, '../../..');
+		const offenders = readdirSync(root, { recursive: true, encoding: 'utf8' })
+			.filter((rel) => /\.tsx?$/.test(rel) && !rel.includes('__tests__'))
+			// Comments stripped first: the prose that records this bug quotes the offending line, and the
+			// file that carries the most of it is `auras.ts` itself.
+			.filter((rel) => suspicious.test(code(readFileSync(resolve(root, rel), 'utf8'))))
+			.sort();
+		expect(offenders).toEqual([]);
+	});
+});
 
 describe('auraWindows', () => {
 	it('pairs apply with remove and reports fight-relative times', () => {
