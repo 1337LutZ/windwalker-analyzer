@@ -1,10 +1,10 @@
 {
 	"source": {
 		"repo": "wowsims/mop",
-		"commit": "c48908022e2a896a7da2f2cd486a5aeefe546fa5",
-		"committed": "2026-08-18T08:48:42.000Z",
-		"fromDatabase": 85,
-		"fromWowhead": 166
+		"commit": "49588f62b50966e304f8f0eeb0067de9666849c3",
+		"committed": "2026-08-21T06:52:09.000Z",
+		"fromDatabase": 87,
+		"fromWowhead": 190
 	},
 	"spells": {
 		"1": {
@@ -142,6 +142,10 @@
 		"24907": {
 			"name": "Moonkin Aura",
 			"icon": "spell_nature_moonglow"
+		},
+		"24932": {
+			"name": "Leader of the Pack",
+			"icon": "spell_nature_unyeildingstamina"
 		},
 		"25046": {
 			"name": "Arcane Torrent",
@@ -295,6 +299,10 @@
 			"name": "Greater Healing Wave",
 			"icon": "spell_nature_healingwavelesser"
 		},
+		"77747": {
+			"name": "Burning Wrath",
+			"icon": "spell_fire_totemofwrath"
+		},
 		"77762": {
 			"name": "Lava Surge",
 			"icon": "spell_shaman_lavasurge"
@@ -367,6 +375,10 @@
 			"name": "Synapse Springs",
 			"icon": "spell_shaman_elementaloath"
 		},
+		"96229": {
+			"name": "Synapse Springs",
+			"icon": "spell_shaman_elementaloath"
+		},
 		"96230": {
 			"name": "Synapse Springs",
 			"icon": "spell_shaman_elementaloath"
@@ -398,6 +410,18 @@
 		"101643": {
 			"name": "Transcendence",
 			"icon": "monk_ability_transcendence"
+		},
+		"104423": {
+			"name": "Windsong",
+			"icon": "spell_frost_arcticwinds"
+		},
+		"104509": {
+			"name": "Windsong",
+			"icon": "spell_frost_arcticwinds"
+		},
+		"104510": {
+			"name": "Windsong",
+			"icon": "spell_frost_arcticwinds"
 		},
 		"104993": {
 			"name": "Jade Spirit",
@@ -463,9 +487,17 @@
 			"name": "Jab",
 			"icon": "ability_monk_staffstrike"
 		},
+		"109085": {
+			"name": "Lord Blastington's Scope of Doom",
+			"icon": "inv_misc_scopeb"
+		},
 		"109132": {
 			"name": "Roll",
 			"icon": "ability_monk_roll"
+		},
+		"109773": {
+			"name": "Dark Intent",
+			"icon": "spell_warlock_focusshadow"
 		},
 		"110745": {
 			"name": "Divine Star",
@@ -590,6 +622,10 @@
 		"115921": {
 			"name": "Legacy of the Emperor",
 			"icon": "ability_monk_legacyoftheemperor"
+		},
+		"116660": {
+			"name": "River's Song",
+			"icon": "spell_arcane_arcane02"
 		},
 		"116705": {
 			"name": "Spear Hand Strike",
@@ -783,6 +819,10 @@
 			"name": "Lightweave",
 			"icon": "spell_arcane_prismaticcloak"
 		},
+		"125489": {
+			"name": "Swordguard Embroidery",
+			"icon": "ability_rogue_throwingspecialization"
+		},
 		"126309": {
 			"name": "Still Water",
 			"icon": "inv_elemental_mote_water01"
@@ -794,6 +834,10 @@
 		"126734": {
 			"name": "Synapse Springs",
 			"icon": "spell_shaman_elementaloath"
+		},
+		"127830": {
+			"name": "Spirit Beast Blessing",
+			"icon": "inv_pet_celestialdragon"
 		},
 		"128432": {
 			"name": "Cackling Howl",
@@ -827,6 +871,10 @@
 			"name": "Tempus Repit",
 			"icon": "spell_nature_invisibilty"
 		},
+		"137593": {
+			"name": "Fortitude",
+			"icon": "inv_stone_08"
+		},
 		"137596": {
 			"name": "Capacitance",
 			"icon": "spell_nature_purge"
@@ -843,13 +891,45 @@
 			"name": "Item - Shaman T15 Elemental 4P Bonus",
 			"icon": "trade_engineering"
 		},
+		"138737": {
+			"name": "Blades",
+			"icon": "inv_sword_11"
+		},
+		"138756": {
+			"name": "Blades of Renataki",
+			"icon": "ability_warrior_bladestorm"
+		},
+		"138759": {
+			"name": "Feathers of Fury",
+			"icon": "ability_priest_angelicfeather"
+		},
+		"138760": {
+			"name": "Mighty",
+			"icon": "spell_nature_strength"
+		},
 		"138786": {
 			"name": "Wushoolay's Lightning",
 			"icon": "spell_nature_chainlightning"
 		},
+		"138788": {
+			"name": "Electrified",
+			"icon": "spell_nature_lightningoverload"
+		},
+		"138856": {
+			"name": "Cloudburst",
+			"icon": "spell_nature_eyeofthestorm"
+		},
+		"138870": {
+			"name": "Rampage",
+			"icon": "ability_warrior_rampage"
+		},
 		"138898": {
 			"name": "Breath of Many Minds",
 			"icon": "spell_shadow_mindflay"
+		},
+		"138938": {
+			"name": "Juju Madness",
+			"icon": "trade_archaeology_troll_voodoodoll"
 		},
 		"138963": {
 			"name": "Perfect Aim",
@@ -870,6 +950,10 @@
 		"139133": {
 			"name": "Mastermind",
 			"icon": "spell_holy_mindsooth"
+		},
+		"139170": {
+			"name": "Eye of Brutality",
+			"icon": "ability_rogue_bloodyeye"
 		},
 		"142912": {
 			"name": "Glyph of Lightning Shield",
@@ -927,10 +1011,6 @@
 			"name": "Spark of Life",
 			"icon": "talentspec_druid_restoration"
 		},
-		"144998": {
-			"name": "Item - Shaman T16 Elemental 2P Bonus",
-			"icon": "ability_rogue_feigndeath"
-		},
 		"144999": {
 			"name": "Elemental Discharge",
 			"icon": "spell_frostfire-orb"
@@ -987,6 +1067,26 @@
 			"name": "Essence of Yu'lon",
 			"icon": "monk_stance_wiseserpent"
 		},
+		"146200": {
+			"name": "Spirit of Chi-Ji",
+			"icon": "ability_mount_cranemountpurple"
+		},
+		"146202": {
+			"name": "Wrath",
+			"icon": "inv_legendary_sigilofpower"
+		},
+		"146285": {
+			"name": "Cruelty",
+			"icon": "ability_rogue_eviscerate"
+		},
+		"146293": {
+			"name": "Cruel",
+			"icon": "ability_rogue_eviscerate"
+		},
+		"146310": {
+			"name": "Restless Agility",
+			"icon": "inv_jewelry_necklace_13"
+		},
 		"146364": {
 			"name": "Throw Bomb",
 			"icon": "inv_misc_bomb_05"
@@ -1022,6 +1122,10 @@
 		"148896": {
 			"name": "Ferocity",
 			"icon": "inv_relics_idolofferocity"
+		},
+		"148899": {
+			"name": "Tenacious",
+			"icon": "ability_warrior_intensifyrage"
 		},
 		"148903": {
 			"name": "Vicious",

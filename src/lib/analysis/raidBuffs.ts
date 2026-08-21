@@ -92,7 +92,12 @@ export interface RaidBuffEffect {
  * differ elsewhere the effect reads "not reported" rather than a wrong number, which is the safe
  * direction: this report would rather say nothing than invent a fault.
  */
-const EFFECTS: EffectGroup[] = [
+/**
+ * Exported for one guard only — `__tests__/raidBuffIcons.test.ts` asserts every provider here resolves
+ * in the generated spell map. Nothing else should read it: the shared pass builds a row per group and
+ * `narrowRaidBuffs` is what a spec's section calls.
+ */
+export const EFFECTS: EffectGroup[] = [
 	{
 		// +10% attack power — `{stats.AttackPower, 1.1, true}`, sim/core/buffs.go:306-352. Ten, not the
 		// five it is often quoted as; the multiplier is read off the simulator, not recalled.
