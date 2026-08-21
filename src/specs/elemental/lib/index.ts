@@ -800,15 +800,21 @@ const EXTRA_NAMES: Record<number, string> = {
 	51490: 'Thunderstorm',
 	33697: 'Blood Fury',
 	26297: 'Berserking',
+	// The two elementals' own spells, and **four of these five labels were wrong** — checked one id at a
+	// time against the 5.4 client's `SpellName` rows and against `sim/shaman/fire_elemental_spells.go`
+	// and `earth_elemental_spells.go`, which register the same five numbers by name. Only Fire Blast was
+	// right. The rest were shifted by one and two were invented: 117588 is Fire Nova (there is no "Fire
+	// Shield"), 118350 is Empower, 118297 is Immolate, and the Earth Elemental's 118345 is Pulverize.
+	// Neither pet's white swing reaches this map at all — melee books under `-4`.
+	//
+	// A wrong label here is not cosmetic in the way it looks. This map is what names a row in the damage
+	// table, so a reader comparing their own log against the report saw damage attributed to a spell
+	// their elemental never cast, twice over, with the real spell's name sitting on the wrong row.
 	57984: 'Fire Elemental: Fire Blast',
-	117588: 'Fire Elemental: Fire Shield',
-	// Immolate, and not melee — the §48 leftover, corrected against the client's own `SpellName` row
-	// (118297 = "Immolate") and `sim/shaman/fire_elemental_spells.go:72`, `registerImmolate`. It logs as
-	// a cast dot (begincast/cast/applydebuff/tick); the pet's actual melee books under `-4`, which never
-	// reaches this map.
+	117588: 'Fire Elemental: Fire Nova',
 	118297: 'Fire Elemental: Immolate',
-	118350: 'Fire Elemental: Fire Nova',
-	118345: 'Earth Elemental: melee',
+	118350: 'Fire Elemental: Empower',
+	118345: 'Earth Elemental: Pulverize',
 	114206: 'Skull Banner',
 	// The off-rotation presses, declared rather than left to the spell map to name. Every one of them
 	// except Shamanistic Rage takes a global — see the note above for why they are named and not
