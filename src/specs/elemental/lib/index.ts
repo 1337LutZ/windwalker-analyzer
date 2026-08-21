@@ -58,7 +58,9 @@ import { defaultSettings } from '~/lib/settings';
 import type {
 	Analysis,
 	AuraLane,
+	EarthElementalPress,
 	EarthShockReason,
+	FireElementalPress,
 	FlameShockPress,
 	FlameShockPressKind,
 	ElementalAuditResult,
@@ -271,6 +273,16 @@ const SEARING_TOTEM_DURATION_MS = 60_000;
 const EE_END_MS = 62_000;
 
 /**
+ * The Earth Elemental's own minute — `sim/shaman/earth_elemental_totem.go`'s `totalDuration`, and the
+ * client's `SpellDuration` row for 118323, which agree at 60 000ms.
+ *
+ * Needed for the same reason the Fire Elemental's is: `auraWindows`' `openAtPull` inference refuses to
+ * recover a pre-pull window without a duration bound, so an aura declared without one can never report
+ * a summon made before the bell.
+ */
+const EARTH_ELEMENTAL_DURATION_MS = 60_000;
+
+/**
  * How little of the fight may be left for a Searing Totem placement to still be worth the global.
  *
  * The totem lasts a minute, so a placement with ten seconds to go throws away fifty of them — a
@@ -477,6 +489,7 @@ const ABILITIES: Ability[] = [
 		// drift verdict would call the list's own plan a fault. Counted and never scored.
 		gate: 'other',
 		cooldownMs: 120_000,
+		applies: ['earth-elemental'],
 	},
 	{
 		key: 'jade-serpent-potion',
@@ -609,6 +622,37 @@ const AURAS: Aura[] = [
 		appliedBy: 'fire-elemental',
 	},
 	{
+		key: 'earth-elemental',
+		name: 'Earth Elemental',
+		/**
+		 * The same two-id shape as the Fire Elemental above, and declared for the same one reason: until
+		 * this existed, a pre-pulled Earth Elemental was invisible.
+		 *
+		 * 2062 is the *press* and **118323 is the aura** — measured on the committed fixtures, where a
+		 * summon inside the pull emits both:
+		 *
+		 * ```
+		 * applybuff 118323  player -> player     the buff that says the elemental is out
+		 * summon    118323  player -> the pet    the body
+		 * cast      2062    player               the press
+		 * summon    2062    player -> the totem  the totem object
+		 * ```
+		 *
+		 * `phased` at 240.166s and `unbroken` at 66.657s, both with the `applybuff` a millisecond before
+		 * the `summon`; `unbroken` also carries the `removebuff` at 126.657s, one minute later. `cleave`
+		 * carries neither id and no pet of its own, which is a pull that genuinely never summoned it.
+		 *
+		 * **No committed fixture carries a pre-pull one**, so the branch this unlocks is covered by a
+		 * synthetic pull rather than by a fixture — see `elementals.test.ts`. That asymmetry is the same
+		 * one that hid the Fire Elemental's tile reading zero on all three: a branch no fixture reaches
+		 * is a branch nothing looked wrong in.
+		 */
+		ids: [2062, 118323],
+		kind: 'buff',
+		durationMs: EARTH_ELEMENTAL_DURATION_MS,
+		appliedBy: 'earth-elemental',
+	},
+	{
 		key: 'stormlash-totem',
 		name: 'Stormlash Totem',
 		// The aura the raid gets is **120676**, not the press. Confirmed on all four committed raw fixtures
@@ -709,6 +753,7 @@ const LAVA_SURGE = registry.aura('lava-surge');
 const LIGHTNING_SHIELD = registry.aura('lightning-shield');
 const SEARING_TOTEM_DOT = registry.aura('searing-totem');
 const FIRE_ELEMENTAL_AURA = registry.aura('fire-elemental');
+const EARTH_ELEMENTAL_AURA = registry.aura('earth-elemental');
 const STORMLASH_AURA = registry.aura('stormlash-totem');
 const T15_4PC = registry.aura('t15-4pc');
 const T16_2PC_DEBUFF = registry.aura('t16-2pc-debuff');
@@ -2150,23 +2195,67 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 						: null;
 		return { t, reason };
 	});
-	const fePresses = castTimes(FIRE_ELEMENTAL).map((t) => {
-		const remaining = duration - t;
-		const ascReady = ascendanceReadyInSec(ascCasts, t);
-		const reason: 'near-end' | 'sync' | 'early' | null =
-			remaining < FIRE_ELEMENTAL_DURATION_MS
-				? 'near-end'
-				: remaining < 150_000 && ascReady <= 5
-					? 'sync'
-					: remaining > 180_000
-						? 'early'
-						: null;
-		return { t, reason };
-	});
+	/**
+	 * Every Fire Elemental **use**, which is not the same list as every cast event.
+	 *
+	 * A summon made before the bell logs no cast inside the fight window — that absence is the whole
+	 * reason `fePrepullWindow` exists — so a list built from `castTimes` alone came back empty on all
+	 * three committed fixtures while the same audit drew a 58-second bar and set `prepull: true`. The
+	 * section's "Summons" tile printed that empty length, so two parts of one section disagreed about
+	 * whether the button had been pressed, and the tile is the one a reader believes.
+	 *
+	 * A row with provenance rather than `presses.length + (prepull ? 1 : 0)`: the count and the table
+	 * come off one list, so they cannot disagree again in the other direction, and `inferred` says which
+	 * rows have a cast event behind them. `t: 0` is the honest stamp — the window itself is recovered as
+	 * `[0, expiry]` and the press's real instant is not in the log at all.
+	 *
+	 * `reason: 'prepull'` and not the branch arithmetic below. Fed through that, a pre-pull use would
+	 * read `'early'` on every pull longer than three minutes, which is the p5 list's own opening play
+	 * scored as a mistake — the "charged the player for something they could not have done" shape this
+	 * audit has shipped four times.
+	 */
+	const fePresses: FireElementalPress[] = [
+		...(fePrepullWindow === undefined
+			? []
+			: [{ t: 0, reason: 'prepull' as const, inferred: true } satisfies FireElementalPress]),
+		...castTimes(FIRE_ELEMENTAL).map((t): FireElementalPress => {
+			const remaining = duration - t;
+			const ascReady = ascendanceReadyInSec(ascCasts, t);
+			const reason: 'near-end' | 'sync' | 'early' | null =
+				remaining < FIRE_ELEMENTAL_DURATION_MS
+					? 'near-end'
+					: remaining < 150_000 && ascReady <= 5
+						? 'sync'
+						: remaining > 180_000
+							? 'early'
+							: null;
+			return { t, reason, inferred: false };
+		}),
+	];
 
-	// The Earth Elemental, judged against the list's own end-of-fight rule (`remainingTime <= 62s`) —
-	// the one branch the p5 list actually uses, the Skull Banner and no-Primal-Elementalist edges aside.
-	const eePresses = castTimes(EARTH_ELEMENTAL).map((t) => ({ t, nearEnd: duration - t <= EE_END_MS }));
+	/**
+	 * The Earth Elemental, judged against the list's own end-of-fight rule (`remainingTime <= 62s`) —
+	 * the one branch the p5 list actually uses, the Skull Banner and no-Primal-Elementalist edges aside.
+	 *
+	 * Recovered the same way and for the sharper version of the same reason. This cooldown had **no**
+	 * pre-pull inference at all, so a pull with no 2062 cast read as an unused cooldown whether it was
+	 * unused or summoned before the bell, and nothing in the report could tell those apart. `cleave` is
+	 * that pull: zero presses and no evidence either way until now.
+	 *
+	 * `nearEnd` is the same expression for an inferred use as for a real one rather than a hardcoded
+	 * `false`. On a pull shorter than the end window a pre-pull summon really is inside it, and one
+	 * expression cannot disagree with itself about that.
+	 */
+	const eeCasts = castTimes(EARTH_ELEMENTAL);
+	const eePrepullWindow = auraWindows(selfEvents, EARTH_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
+		(w) => w.preexisting === true && !eeCasts.some((t) => t <= w.end),
+	);
+	const eePresses: EarthElementalPress[] = [
+		...(eePrepullWindow === undefined
+			? []
+			: [{ t: 0, nearEnd: duration <= EE_END_MS, inferred: true } satisfies EarthElementalPress]),
+		...eeCasts.map((t): EarthElementalPress => ({ t, nearEnd: duration - t <= EE_END_MS, inferred: false })),
+	];
 	// Whether the Fire Elemental was already out when the bell went — the prepull press the list makes
 	// when Heroism is going up on the pull. The window itself is recovered up at the Fire totem slot
 	// walk, which needs it to seed the slot; asking `auraWindows` a second time here would be a second
@@ -2595,7 +2684,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		ascendance: { presses: ascPresses, atPull: ascendanceAtPull, grade: ascSync.grade },
 		elementalMastery: { presses: emPresses },
 		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined },
-		earthElemental: { presses: eePresses },
+		earthElemental: { presses: eePresses, prepull: eePrepullWindow !== undefined },
 		stormlash: { shamans: stormlashShamans, overlaps: stormlashOverlaps, totems: stormlashTotems },
 		lightningShield: {
 			points: lsPoints,

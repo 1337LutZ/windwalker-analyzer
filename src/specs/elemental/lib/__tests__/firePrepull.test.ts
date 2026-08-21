@@ -218,8 +218,11 @@ describe('what the summary is willing to say about the pre-pull', () => {
 	])('reads the pre-pull summon %s left behind at %d', (name, expiry) => {
 		const el = fx(name);
 		expect(el.fireElemental.prepull).toBe(true);
-		// No press inside the pull: the summon happened before the bell, which is what the window says.
-		expect(el.fireElemental.presses).toEqual([]);
+		// No *cast* inside the pull, and one use all the same — §68. This read `toEqual([])`, which is
+		// what the section's "Summons" tile printed: zero, on all three pulls, under a note saying the
+		// elemental was already out. The use is stamped 0 and marked `inferred`, so the tile can count it
+		// and the table can still say the log carries no press for it.
+		expect(el.fireElemental.presses).toEqual([{ t: 0, reason: 'prepull', inferred: true }]);
 		expect(el.searingTotem.feWindows).toEqual([{ start: 0, end: expiry }]);
 		expect(metricOn(el)).toMatchObject({ value: 1, grade: 'good', unmeasurable: false });
 	});
@@ -292,7 +295,7 @@ describe('what the summary is willing to say about the pre-pull', () => {
 		const el = run(
 			make(200_000, [e(5000, 'cast', FIRE_ELEMENTAL, { targetID: -1 }), e(30_000, 'removebuff', FIRE_ELEMENTAL_BUFF)]),
 		);
-		expect(el.fireElemental.presses).toEqual([{ t: 5000, reason: 'early' }]);
+		expect(el.fireElemental.presses).toEqual([{ t: 5000, reason: 'early', inferred: false }]);
 		expect(el.fireElemental.prepull).toBe(false);
 		// The press's own window off the slot walk, and nothing before it.
 		expect(el.searingTotem.feWindows).toEqual([{ start: 5000, end: 65_000 }]);

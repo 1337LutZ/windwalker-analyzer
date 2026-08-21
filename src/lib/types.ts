@@ -2376,16 +2376,34 @@ export interface ElementalMasteryPress {
 
 /** One Fire Elemental press and the branch of the list's rule it hit. */
 export interface FireElementalPress {
+	/** Fight-relative, and **0 on an inferred use** — a pre-pull press's real instant is not in the log. */
 	t: number;
-	/** The first branch this press satisfied, or null when none did — a press the list would not have made. */
-	reason: 'near-end' | 'sync' | 'early' | null;
+	/**
+	 * The first branch this press satisfied, or null when none did — a press the list would not have made.
+	 *
+	 * `'prepull'` is not one of those branches: it is the use the list opens with, and it is named rather
+	 * than run through the others because the arithmetic would call it `'early'` on any pull longer than
+	 * three minutes.
+	 */
+	reason: 'prepull' | 'near-end' | 'sync' | 'early' | null;
+	/**
+	 * Whether this use was recovered rather than read: `true` means no cast event, only a pre-pull window.
+	 *
+	 * Published because the tile that counts these rows has to count the inferred one — a pull that
+	 * summoned before the bell used the cooldown — and a reader looking at the table then has to be able
+	 * to see which row the log does not carry a press for. §57d's rule for drawn bars, on a counted row.
+	 */
+	inferred: boolean;
 }
 
 /** One Earth Elemental press and whether it was the list's own end-of-fight rule. */
 export interface EarthElementalPress {
+	/** Fight-relative, and **0 on an inferred use** — a pre-pull press's real instant is not in the log. */
 	t: number;
 	/** The p5 list presses it almost entirely in end-of-fight terms (`remainingTime <= 62s`). */
 	nearEnd: boolean;
+	/** Whether this use was recovered from a pre-pull window rather than read off a cast. */
+	inferred: boolean;
 }
 
 /** One Earth Shock that spent the shield below its ceiling — a spend that threw Fulmination away. */
@@ -2483,7 +2501,17 @@ export interface ElementalAuditResult {
 		/** Whether it was already out when the bell went. */ prepull: boolean;
 	};
 	/** Earth Elemental's presses, judged against the end-of-fight rule rather than drift. */
-	earthElemental: { presses: EarthElementalPress[] };
+	earthElemental: {
+		presses: EarthElementalPress[];
+		/**
+		 * Whether it was already out when the bell went.
+		 *
+		 * Not graded, and deliberately so — the p5 list has no pre-pull Earth Elemental play to grade
+		 * against. It is published because without it "no presses" was one field covering two different
+		 * pulls: a cooldown nobody used, and one used before the log starts.
+		 */
+		prepull: boolean;
+	};
 	/** The raid's Stormlash placements, for the coordination section. */
 	stormlash: StormlashAudit;
 	lightningShield: LightningShieldAudit;
