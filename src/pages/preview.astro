@@ -39,12 +39,12 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  *
  * **What the second entry costs, measured rather than assumed.** The `analyse()` call itself is not the
  * price: warm it is ~6ms a pull, ~10–22ms on the first call in a cold process, which is where the
- * "~25ms" this used to quote came from. The price is the page. `client:load` serialises the whole
- * `fixtures` map into the island's props, so `dist/preview/index.html` goes **2 689 686 → 2 927 860
- * bytes**, +238 174 (+8.9%), and `npm run build` goes from 2.70–3.01s (five warm runs at the previous
- * commit) to 2.87–3.31s (four warm runs here) — about +0.2s, nearly all of it writing that HTML rather
- * than running the audit. Paid by a dev harness that ships to nobody, and the reason a third Elemental
- * entry needs its own argument rather than following from this one.
+ * "~25ms" this used to quote came from. `npm run build` cannot see it either: three interleaved warm
+ * runs a side in a clean worktree land 2.54–3.33s with this entry against 2.56–2.73s without, one
+ * spread inside the other. The price is the page. `client:load` serialises the whole `fixtures` map into
+ * the island's props, so `dist/preview/index.html` goes **2 689 686 → 2 924 979 bytes**, +235 293
+ * (+8.75%). Paid by a dev harness that ships to nobody, and the reason a third Elemental entry needs its
+ * own argument rather than following from this one.
  *
  * `output: 'static'`, so this runs in Node at build time: no token, no fetch and no `analyse()` reach
  * the browser, and the island is handed the finished object exactly as it is handed the stored four.
