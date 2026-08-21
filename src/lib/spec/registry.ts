@@ -13,6 +13,7 @@
 // the cheap query that decides whether the expensive one is worth fetching at all.
 
 import type { Handles } from '~/lib/analysis/analyseCore';
+import type { RaidBuffEffect } from '~/lib/analysis/raidBuffs';
 import type { GameData } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { SpecColors } from '~/lib/game/classes';
@@ -29,6 +30,7 @@ import {
 	timelineNotes,
 	TIMELINE_ROW_ORDER as timelineRowOrder,
 } from '~/specs/windwalker/lib/view/timelineBanks';
+import { RAID_BUFF_EFFECTS as raidBuffEffects } from '~/specs/windwalker/lib/view/raidBuffs';
 import {
 	analyse as analyseElemental,
 	registry as elementalRegistry,
@@ -48,6 +50,7 @@ import {
 	TIMELINE_ROW_ORDER as timelineRowOrderElemental,
 	timelineNotes as timelineNotesElemental,
 } from '~/specs/elemental/lib/view/timelineBanks';
+import { RAID_BUFF_EFFECTS as raidBuffEffectsElemental } from '~/specs/elemental/lib/view/raidBuffs';
 
 export interface SpecDefinition {
 	/** The registry's own key — what the URL carries and `getSpec` reads. */
@@ -140,6 +143,21 @@ export interface SpecDefinition {
 	 * its own "at a glance" is, and it is what the old table said by having no entry.
 	 */
 	summaryLaneKeys: readonly string[] | null;
+	/**
+	 * The raid-buff effects this spec's damage rests on, in the order its report draws them.
+	 *
+	 * The fourth of the view properties above and the same reason as the other three: the section is
+	 * shared and the list is not. It used to be a six-entry table inside `lib/analysis/raidBuffs`, chosen
+	 * for a Monk down to the icons — and that section reports *gaps*, so an effect a spec cannot use
+	 * became a fault its reader could not fix. An Elemental Shaman was being shown a missing multiplier
+	 * on attack power, and no row at all for the +10% spell power that is the largest single multiplier
+	 * on their damage.
+	 *
+	 * Which spells supply an effect stays shared, because that is a fact about the game rather than about
+	 * a spec. Only three answers per row are the spec's: whether to draw it, which icon stands for it, and
+	 * whether the spec supplies it itself — the last being the one that reads as an accusation when wrong.
+	 */
+	raidBuffEffects: readonly RaidBuffEffect[];
 	/** The thresholds a reader may disagree with, for the settings panel to render. */
 	settings: SettingSchema[];
 }
@@ -164,6 +182,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters,
 		timelineRowOrder,
 		summaryLaneKeys,
+		raidBuffEffects,
 		settings: WW_SETTINGS,
 	},
 	{
@@ -185,6 +204,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters: timelineCountersElemental,
 		timelineRowOrder: timelineRowOrderElemental,
 		summaryLaneKeys: summaryLaneKeysElemental,
+		raidBuffEffects: raidBuffEffectsElemental,
 		settings: ELEMENTAL_SETTINGS,
 	},
 ];

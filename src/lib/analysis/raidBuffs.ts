@@ -1,5 +1,4 @@
-// The raid buffs a Windwalker's damage actually depends on, grouped by *effect* rather than by
-// spell.
+// The raid buffs a player's damage actually depends on, grouped by *effect* rather than by spell.
 //
 // Grouping is the whole point. Five classes bring the same +10% attack power, four bring the same
 // +5% critical strike, and a report with a row per spell is a report that cannot answer the only
@@ -8,6 +7,17 @@
 // `aura.NewExclusiveEffect(stat.StatName()+"Buff", …)`), and that grouping is copied here rather
 // than invented: two providers of one effect do not stack in the sim, so two providers in the log
 // are one row.
+//
+// **Which effects matter is a fact about a spec; which spells supply one is a fact about the game.**
+// Only the second is in this module. `EFFECTS` below is every effect the simulator groups and every
+// spell it accepts as a source, and `readRaidBuffs` measures all of them. A spec then declares the
+// ones its own damage rests on — `SpecDefinition.raidBuffEffects`, written in its own
+// `lib/view/raidBuffs.ts` — and `narrowRaidBuffs` at the bottom is where the two meet.
+//
+// That seam is not decoration. This section reports **gaps**, so an effect a spec cannot use becomes
+// a fault its reader cannot fix: for six rows and two specs, an Elemental Shaman was being told to
+// chase a multiplier on attack power, and had no row at all for the +10% spell power that is the
+// largest single multiplier on their damage.
 //
 // What this module will not do is grade. It reports what the log carried and says plainly when the
 // log carried nothing, because those are different facts and the difference is the point — see
@@ -26,28 +36,53 @@ interface Provider {
 	name: string;
 }
 
-interface Effect {
+/** One of the simulator's exclusive-effect categories, and every spell that registers into it. */
+interface EffectGroup {
 	/** Locale key under `raidBuffs.effects`, and the row's React key. */
 	key: string;
-	/**
-	 * The spell whose icon stands for the whole effect when the log did not say which provider it
-	 * was. Chosen as the one a Windwalker is most likely to recognise — their own where they have
-	 * one, the commonest raid source otherwise.
-	 */
-	iconId: number;
-	/** True when a Monk supplies this effect themselves, which makes a gap in it the player's own. */
-	selfProvided: boolean;
 	providers: Provider[];
 }
 
 /**
- * The effects, and every spell the simulator accepts as supplying each.
+ * What one spec declares about one effect: that its damage rests on it, which icon stands for it, and
+ * whether the spec supplies it itself.
  *
- * Every id and every grouping below is read out of the checked-out wowsims-mop tree rather than
- * from memory, because "which buffs matter" is exactly the kind of thing that is remembered wrong:
+ * Both fields are judgements about a spec rather than facts about the game, which is why they are
+ * declared per spec and not in the table below. They used to be fields of that table with one spec's
+ * answers written into them — `iconId` documented as "the one a Windwalker is most likely to
+ * recognise", `selfProvided` as "true when a Monk supplies this effect themselves" — so the second
+ * spec to be added read the first spec's report card.
  *
- *   - the five stat/AP/haste/crit/mastery groups and their members are the `if raidBuffs.X` blocks
- *     of `applyBuffEffects`, sim/core/buffs.go:92-197, in that function's own order;
+ * `selfProvided` is the one that actually misleads a reader, and it inverts almost completely between
+ * the two specs the app ships. Wrong, it turns "the raid did not have this" into "you failed to press
+ * this" — the fabricated indictment the rest of this module is built to avoid.
+ */
+export interface RaidBuffEffect {
+	/** An effect key from `EFFECTS`. `RAID_BUFF_EFFECT_KEYS` is the list, and a test holds specs to it. */
+	key: string;
+	/**
+	 * The spell whose icon stands for the whole effect when the log did not say which provider it was.
+	 *
+	 * The one *this spec's* reader is most likely to recognise: their own press where they have one, the
+	 * commonest raid source otherwise.
+	 */
+	iconId: number;
+	/** True when this spec supplies the effect itself, which makes a gap in it the player's own. */
+	selfProvided: boolean;
+}
+
+/**
+ * Every effect the simulator groups, and every spell it accepts as supplying each.
+ *
+ * In `applyBuffEffects`' own order — attack power, melee haste, spell power, spell haste, crit,
+ * mastery, all-stats (sim/core/buffs.go:95-186) — so the two can be read side by side. That is not the
+ * order any report draws: a spec's own `raidBuffEffects` decides that, and neither spec the app ships
+ * puts attack power first.
+ *
+ * Every id and every grouping below is read out of the checked-out wowsims-mop tree rather than from
+ * memory, because "which buffs matter" is exactly the kind of thing that is remembered wrong:
+ *
+ *   - the seven groups and their members are the `if raidBuffs.X` blocks of `applyBuffEffects`;
  *   - the multipliers quoted in the copy are the `StatConfig` values beside them.
  *
  * The ids are the simulator's `ActionID{SpellID: …}`, which is the id the *caster* presses. That is
@@ -57,31 +92,16 @@ interface Effect {
  * differ elsewhere the effect reads "not reported" rather than a wrong number, which is the safe
  * direction: this report would rather say nothing than invent a fault.
  */
-const EFFECTS: Effect[] = [
-	{
-		// +5% Strength, Agility and Intellect — `makeExclusiveAllStatPercentBuff(…, 1.05)`,
-		// sim/core/buffs.go:224-239. Agility is a Windwalker's attack power and their crit, so this is
-		// the broadest of the six.
-		key: 'stats',
-		iconId: 115921,
-		selfProvided: true,
-		providers: [
-			{ id: 20217, name: 'Blessing of Kings' },
-			{ id: 1126, name: 'Mark of the Wild' },
-			{ id: 115921, name: 'Legacy of the Emperor' },
-			// The aura id the same spell lands on the raid as. Observed on a real pull where the monk
-			// cast it and 115921 never appeared in the stream at all — without this the Monk's own buff
-			// reads as never applied, which is the exact fabricated fault this report refuses to print.
-			{ id: 117666, name: 'Legacy of the Emperor' },
-			{ id: 90363, name: 'Embrace of the Shale Spider' },
-		],
-	},
+const EFFECTS: EffectGroup[] = [
 	{
 		// +10% attack power — `{stats.AttackPower, 1.1, true}`, sim/core/buffs.go:306-352. Ten, not the
 		// five it is often quoted as; the multiplier is read off the simulator, not recalled.
+		//
+		// A multiplier on the *stat*, and pets do not inherit it — `fireElementalStatInheritance` hands a
+		// pet `ownerStats[SpellPower]` for every spec but Enhancement
+		// (sim/shaman/fire_elemental_pet.go:165-175). Both paths dead is what makes this the one row a
+		// caster genuinely gains nothing from, and the only one the Elemental's list leaves out.
 		key: 'attackPower',
-		iconId: 57330,
-		selfProvided: false,
 		providers: [
 			{ id: 57330, name: 'Horn of Winter' },
 			{ id: 19506, name: 'Trueshot Aura' },
@@ -91,10 +111,17 @@ const EFFECTS: Effect[] = [
 	{
 		// +10% melee and ranged attack speed — `registerExclusiveMeleeHaste(aura, 1.10)`,
 		// sim/core/buffs.go:359-395. It multiplies `PseudoStats.MeleeSpeedMultiplier` and nothing else,
-		// so for a Windwalker it is auto-attack damage; it does *not* touch energy — see below.
+		// so it is auto-attack speed and never a cast, a tick or an energy bar.
+		//
+		// It is still not a melee-only row, and the reason generalises: **stat scaling and pseudo-stat
+		// inheritance are separate paths, and a buff has to be cleared on both before it is called
+		// irrelevant.** A pet with `HasDynamicMeleeSpeedInheritance` multiplies its own melee speed by
+		// its owner's and stays synced to it, inheriting `MeleeSpeedMultiplier` and
+		// `AttackSpeedMultiplier` both (sim/core/pet.go:333-350). All three of the Elemental's pets set
+		// that flag — fire_elemental_pet.go:42, earth_elemental_pet.go:31, lightning_elemental.go:29 —
+		// and they swing (`AutoSwingMelee: true`, fire_elemental_pet.go:63). So a shaman who never lands
+		// a white hit is paid by this anyway, through the pets, and the row is on their list.
 		key: 'meleeHaste',
-		iconId: 55610,
-		selfProvided: false,
 		providers: [
 			{ id: 55610, name: 'Unholy Aura' },
 			{ id: 128432, name: 'Cackling Howl' },
@@ -104,23 +131,37 @@ const EFFECTS: Effect[] = [
 		],
 	},
 	{
-		// +5% spell haste — `registerExclusiveSpellHaste(aura, 0.05)`, sim/core/buffs.go:458-486.
+		// +10% spell power — `{stats.SpellPower, 1.10, true}`, sim/core/buffs.go:124-136, and the four
+		// providers at :494-513. The caster's counterpart of the attack-power row above, and it was
+		// simply absent: this section held six rows chosen for a Monk, for whom spell power buys nothing,
+		// so the broadest multiplier on an Elemental's damage had no row to be missing from.
 		//
-		// It is worth being exact about why this is in a *damage* report, because the usual reason
-		// given for it is wrong. Spell haste does NOT move a Windwalker's energy regeneration in this
-		// simulator: `energyBar.EnergyRegenPerSecond()` is `10.0 * hasteRatingMultiplier *
+		// Arcane Brilliance and Still Water are in this group *and* in the crit group below, which is the
+		// simulator and not a duplication: one `makeExclusiveBuff` call registers +10% spell power and
+		// +5% crit at once, into two separate exclusive categories.
+		key: 'spellPower',
+		providers: [
+			{ id: 1459, name: 'Arcane Brilliance' },
+			{ id: 126309, name: 'Still Water' },
+			{ id: 77747, name: 'Burning Wrath' },
+			{ id: 109773, name: 'Dark Intent' },
+		],
+	},
+	{
+		// +5% spell haste — `registerExclusiveSpellHaste(aura, 0.05)`, sim/core/buffs.go:458-486. It
+		// calls `MultiplyCastSpeed` (sim/core/unit.go:531), which sets `unit.CastSpeed` and stops there.
+		//
+		// For a caster that is the whole of it and it needs no argument. For a Monk it needed one, because
+		// the usual reason given is wrong: spell haste does NOT move a Windwalker's energy regeneration
+		// in this simulator. `energyBar.EnergyRegenPerSecond()` is `10.0 * hasteRatingMultiplier *
 		// energyRegenMultiplier` (sim/core/energy.go:97-98), `hasteRatingMultiplier` is rebuilt from
 		// `stats.HasteRating` alone (sim/core/energy.go:189) and `energyRegenMultiplier` only moves
-		// through `MultiplyResourceRegenSpeed`, which this buff never calls — it calls
-		// `MultiplyCastSpeed` (sim/core/unit.go:531), which sets `unit.CastSpeed` and stops there.
-		//
-		// What it does buy is the channel: Fists of Fury is a `Dot` with `AffectedByCastSpeed: true`
-		// and `HasteReducesDuration: true` (sim/monk/ww_fists_of_fury.go:61-62), as is Spinning Crane
-		// Kick (sim/monk/spinning_crane_kick.go:76). Five percent off the channel is five percent of
-		// that time handed back to the rest of the priority list.
+		// through `MultiplyResourceRegenSpeed`, which this buff never calls. What it buys a Monk is the
+		// channel: Fists of Fury is a `Dot` with `AffectedByCastSpeed: true` and
+		// `HasteReducesDuration: true` (sim/monk/ww_fists_of_fury.go:61-62), as is Spinning Crane Kick
+		// (sim/monk/spinning_crane_kick.go:76), so five percent off the channel is five percent of that
+		// time handed back to the rest of the priority list.
 		key: 'spellHaste',
-		iconId: 24907,
-		selfProvided: false,
 		providers: [
 			{ id: 24907, name: 'Moonkin Aura' },
 			{ id: 49868, name: 'Mind Quickening' },
@@ -128,17 +169,18 @@ const EFFECTS: Effect[] = [
 		],
 	},
 	{
-		// +5% critical strike — `{stats.PhysicalCritPercent, 5, false}`, sim/core/buffs.go:403-449.
+		// +5% critical strike — and both kinds of it. Every provider registers
+		// `{stats.PhysicalCritPercent, 5, false}` *and* `{stats.SpellCritPercent, 5, false}` in one
+		// `makeExclusiveBuff` call, sim/core/buffs.go:403-449, which is the whole reason this row belongs
+		// to a caster as much as to a melee. It was documented here as physical crit alone.
 		//
 		// The last two are not a mistake and not padding. In this simulator Arcane Brilliance and Still
-		// Water register `PhysicalCritPercent` +5 alongside their spell power (sim/core/buffs.go:494-508)
-		// and so land in the same exclusive category as Leader of the Pack. A player reading a 5.4
-		// tooltip would not expect a mage to cover this; the model this whole project is built against
-		// says they do, and leaving them out would let the report announce a missing buff the simulator
-		// considers present — a fabricated fault, which is the one thing it must never print.
+		// Water register that crit pair alongside their spell power (sim/core/buffs.go:494-508) and so
+		// land in the same exclusive category as Leader of the Pack. A player reading a 5.4 tooltip would
+		// not expect a mage to cover this; the model this whole project is built against says they do,
+		// and leaving them out would let the report announce a missing buff the simulator considers
+		// present — a fabricated fault, which is the one thing it must never print.
 		key: 'crit',
-		iconId: 116781,
-		selfProvided: true,
 		providers: [
 			{ id: 17007, name: 'Leader of the Pack' },
 			{ id: 90309, name: 'Terrifying Roar' },
@@ -152,8 +194,6 @@ const EFFECTS: Effect[] = [
 		// +3000 mastery rating — `MasteryRaidBuffStrength`, sim/core/buffs.go:12 and 289-300. Flat
 		// rating, not a percentage, which is why it is the one row whose worth depends on the reforge.
 		key: 'mastery',
-		iconId: 116956,
-		selfProvided: false,
 		providers: [
 			{ id: 93435, name: 'Roar of Courage' },
 			{ id: 128997, name: 'Spirit Beast Blessing' },
@@ -161,14 +201,62 @@ const EFFECTS: Effect[] = [
 			{ id: 116956, name: 'Grace of Air' },
 		],
 	},
+	{
+		// +5% Strength, Agility and Intellect — `makeExclusiveAllStatPercentBuff(…, 1.05)`,
+		// sim/core/buffs.go:178-190 and 224-239. One buff, three stats, so every spec takes something
+		// from it and takes a different thing: Agility is a Windwalker's attack power and their crit,
+		// Intellect is an Elemental's spell power and theirs.
+		key: 'stats',
+		providers: [
+			{ id: 20217, name: 'Blessing of Kings' },
+			{ id: 1126, name: 'Mark of the Wild' },
+			{ id: 115921, name: 'Legacy of the Emperor' },
+			// The aura id the same spell lands on the raid as. Observed on a real pull where the monk
+			// cast it and 115921 never appeared in the stream at all — without this the Monk's own buff
+			// reads as never applied, which is the exact fabricated fault this report refuses to print.
+			{ id: 117666, name: 'Legacy of the Emperor' },
+			{ id: 90363, name: 'Embrace of the Shale Spider' },
+		],
+	},
 ];
+
+/**
+ * A placeholder icon for a row nobody has claimed yet: the first provider listed, and nothing more.
+ *
+ * Every row a report draws gets its icon from the spec's own `RaidBuffEffect`, so this is only ever
+ * read on a measured row that no spec asked for. It exists because `RaidBuffRow.iconId` is a required
+ * field of the shared analysis type, not because a spec-neutral pass has an opinion about which of
+ * five classes a reader recognises. A group is never empty — the type would allow it, the table does
+ * not — and 0 is the honest answer if one ever were, since `SpellIcon` draws a placeholder for an id
+ * it cannot resolve.
+ */
+function iconFor(effect: EffectGroup): number {
+	return effect.providers[0]?.id ?? 0;
+}
+
+/**
+ * Each effect's key and the provider ids under it, for the test that holds every spec's declaration
+ * against this module.
+ *
+ * Two ways a `RaidBuffEffect` can be wrong that only a check by *name* catches. A key with no group
+ * here measures nothing and drops out of the report silently — the one failure this seam can have. And
+ * an `iconId` that is not a provider of the effect it stands for draws the wrong spell beside a row,
+ * which nothing rendering the section would notice either.
+ */
+export const RAID_BUFF_PROVIDER_IDS: ReadonlyMap<string, readonly number[]> = new Map(
+	EFFECTS.map((effect): [string, readonly number[]] => [effect.key, effect.providers.map((p) => p.id)]),
+);
+
+/** The effect keys a spec may declare — the keys of `RAID_BUFF_PROVIDER_IDS`, so the two cannot drift. */
+export const RAID_BUFF_EFFECT_KEYS: readonly string[] = [...RAID_BUFF_PROVIDER_IDS.keys()];
 
 /**
  * Every id the roster above can name, and the spell behind it.
  *
- * Two of these are the Monk's own presses — Legacy of the Emperor and Legacy of the White Tiger — and
- * the cast timeline draws presses. A raid buff does no damage, so it never reaches the damage table
- * the engine's `nameOf` falls back to, and both rows drew as a bare `#115921` until this existed.
+ * Some of these are a player's own presses — Legacy of the Emperor, Legacy of the White Tiger, Burning
+ * Wrath — and the cast timeline draws presses. A raid buff does no damage, so it never reaches the
+ * damage table the engine's `nameOf` falls back to, and those rows drew as a bare `#115921` until this
+ * existed.
  *
  * A second *reading* of `EFFECTS` and emphatically not a second copy of it. The ids are settled above,
  * once, beside the reasoning that settled them — which is what keeps Legacy of the Emperor's two ids
@@ -247,7 +335,7 @@ function instanceWindows(
  * — measured on a real pull, that turned a buff which was up for the whole fight into 69% uptime.
  * Tracked apart and unioned, the survivor covers the gap, which is what actually occurred.
  */
-function instancesOf(effect: Effect, events: readonly WclEvent[], atPull: ReadonlySet<string>): Instance[] {
+function instancesOf(effect: EffectGroup, events: readonly WclEvent[], atPull: ReadonlySet<string>): Instance[] {
 	const ids = new Map(effect.providers.map((p) => [p.id, p]));
 	const found = new Map<string, Instance>();
 
@@ -286,7 +374,16 @@ function instancesOf(effect: Effect, events: readonly WclEvent[], atPull: Readon
 }
 
 /**
- * Which raid buffs were on the player, one row per effect.
+ * Which raid buffs were on the player, one row per effect the simulator groups.
+ *
+ * **Spec-neutral, and one step short of what a report draws.** Every group in `EFFECTS` gets a row,
+ * because this runs inside the shared engine pass, which knows the spec's model but not the spec's
+ * registry entry — `narrowRaidBuffs` is the second step, and the section calls it with the spec's own
+ * `raidBuffEffects`. Two fields of `RaidBuffRow` therefore cannot be answered here and are filled
+ * mechanically for the declaration to replace: `iconId` is the first provider listed, and
+ * `selfProvided` is false, since "can this spec cast it" is not a question the stream can answer.
+ * `selfGaps` on the summary is 0 for the same reason. `notReported` is honest but counts groups a
+ * given spec may not draw, so the section takes its own from the narrowed rows.
  *
  * Takes the whole fetched stream, the way `readGear` does, and narrows it here: the aura work wants
  * only what landed *on* this player, while `combatantinfo` is addressed to them as its source and
@@ -324,14 +421,14 @@ export function readRaidBuffs(
 		if (instances.length === 0) {
 			return {
 				key: effect.key,
-				iconId: effect.iconId,
+				iconId: iconFor(effect),
 				providers: [],
 				notReported: true,
 				uptimeMs: 0,
 				uptimePct: 0,
 				fromPull: false,
 				byPlayer: false,
-				selfProvided: effect.selfProvided,
+				selfProvided: false,
 				gaps: [],
 			};
 		}
@@ -364,7 +461,7 @@ export function readRaidBuffs(
 		const uptimeMs = unionMs(covered);
 		return {
 			key: effect.key,
-			iconId: effect.iconId,
+			iconId: iconFor(effect),
 			// The spells actually seen, deduplicated: two hunters are one Trueshot Aura to a reader.
 			providers: [...new Set(instances.map((i) => i.provider.name))],
 			notReported: false,
@@ -372,7 +469,7 @@ export function readRaidBuffs(
 			uptimePct: duration > 0 ? (uptimeMs / duration) * 100 : 0,
 			fromPull: instances.some((i) => i.fromPull),
 			byPlayer: instances.some((i) => i.source === actorID),
-			selfProvided: effect.selfProvided,
+			selfProvided: false,
 			gaps: gaps.map((g) => ({ at: g.at, seconds: Math.round(g.seconds * 10) / 10 })),
 		};
 	});
@@ -384,6 +481,38 @@ export function readRaidBuffs(
 		// nobody's buffing mistake — worth counting so the section can say so rather than letting the
 		// reader conclude their raid dropped everything at once.
 		deaths: onPlayer.filter((e) => isDeath(e)).length,
+		notReported: rows.filter((r) => r.notReported).length,
+		// Not `rows.filter(r => r.selfProvided …)`, which would be an assertion whose two sides come from
+		// the same hard-coded false. No row above claims a self-provider, so the count is zero by
+		// construction; `narrowRaidBuffs` computes the real one once a spec has said what it supplies.
+		selfGaps: 0,
+	};
+}
+
+/**
+ * One spec's reading of a measured pull: its own rows, in its own order, with its own two judgements.
+ *
+ * The other half of the seam described at the top of this module. `readRaidBuffs` measured every
+ * effect the simulator groups; this keeps the ones the spec declared, in the order it declared them,
+ * and writes the spec's `iconId` and `selfProvided` over the mechanical placeholders. `deaths` is a
+ * fact about the pull and passes through; the two counts are recomputed, because a count over rows
+ * this spec does not draw is a count of nothing the reader can see.
+ *
+ * A declared key with no measured row is dropped rather than faked. It can only happen by typo — the
+ * keys are `RAID_BUFF_EFFECT_KEYS` — and `lib/spec/__tests__/raidBuffEffects.test.ts` fails on it by
+ * name, which is the only place it can be caught loudly: silently drawing a row of zeroes for an
+ * effect nothing measured is exactly the fabricated fault this module refuses to print.
+ */
+export function narrowRaidBuffs(summary: RaidBuffSummary, effects: readonly RaidBuffEffect[]): RaidBuffSummary {
+	const measured = new Map(summary.rows.map((row) => [row.key, row]));
+	const rows = effects.flatMap((effect): RaidBuffRow[] => {
+		const row = measured.get(effect.key);
+		return row === undefined ? [] : [{ ...row, iconId: effect.iconId, selfProvided: effect.selfProvided }];
+	});
+
+	return {
+		rows,
+		deaths: summary.deaths,
 		notReported: rows.filter((r) => r.notReported).length,
 		selfGaps: rows.filter((r) => r.selfProvided && !r.notReported && r.gaps.length > 0).length,
 	};

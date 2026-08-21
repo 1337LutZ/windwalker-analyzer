@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 
-import { readRaidBuffs } from '../raidBuffs';
+import { narrowRaidBuffs, RAID_BUFF_EFFECT_KEYS, readRaidBuffs, type RaidBuffEffect } from '../raidBuffs';
 
 const T0 = 1000;
 const END = T0 + 100_000;
@@ -23,6 +23,8 @@ const TRUESHOT = 19506;
 const LOTWT = 116781;
 /** Moonkin Aura, +5% spell haste. */
 const MOONKIN = 24907;
+/** Burning Wrath: +10% spell power, and the shaman's own — the row this section did not have. */
+const BURNING_WRATH = 77747;
 
 function ev(t: number, type: string, id: number, source: number): WclEvent {
 	return { timestamp: T0 + t, type, abilityGameID: id, sourceID: source, targetID: ME };
@@ -43,16 +45,34 @@ describe('readRaidBuffs', () => {
 		expect(row.gaps).toEqual([]);
 	});
 
+	/**
+	 * One row per effect the simulator groups, in `applyBuffEffects`' own order — which is what the
+	 * module's docstring claimed while the table was in a different order with no spell-power group in
+	 * it at all. No spec draws this order; `narrowRaidBuffs` below is what decides that.
+	 */
 	it('groups every provider of one effect into a single row', () => {
 		const summary = readRaidBuffs([], ME, T0, END);
 		expect(summary.rows.map((r) => r.key)).toEqual([
-			'stats',
 			'attackPower',
 			'meleeHaste',
+			'spellPower',
 			'spellHaste',
 			'crit',
 			'mastery',
+			'stats',
 		]);
+	});
+
+	/**
+	 * The group that was missing entirely, and the largest single multiplier on a caster's damage:
+	 * `{stats.SpellPower, 1.10, true}`, sim/core/buffs.go. Measured here exactly as any other is.
+	 */
+	it('measures the spell power group', () => {
+		const row = rowOf([ev(30_000, 'applybuff', BURNING_WRATH, 7)], 'spellPower');
+		expect(row.notReported).toBe(false);
+		expect(row.providers).toEqual(['Burning Wrath']);
+		expect(row.uptimeMs).toBe(70_000);
+		expect(row.gaps).toEqual([{ at: 0, seconds: 30 }]);
 	});
 
 	/**
@@ -154,17 +174,21 @@ describe('readRaidBuffs', () => {
 		expect(row.gaps).toEqual([]);
 	});
 
-	it('flags an effect the player supplies themselves', () => {
+	/**
+	 * `byPlayer` is a fact about the log — this actor was one of the casters — and it is the one this
+	 * pass can answer. `selfProvided` is a fact about the *spec*, so it is false on every row here and
+	 * `narrowRaidBuffs` is where it gets its answer; see the suite below.
+	 */
+	it('records that the player was one of the casters, and claims nothing about their spec', () => {
 		const row = rowOf([ev(40_000, 'applybuff', LOTWT, ME)], 'crit');
-		expect(row.selfProvided).toBe(true);
 		expect(row.byPlayer).toBe(true);
+		expect(row.selfProvided).toBe(false);
 		expect(row.gaps).toEqual([{ at: 0, seconds: 40 }]);
-		expect(readRaidBuffs([ev(40_000, 'applybuff', LOTWT, ME)], ME, T0, END).selfGaps).toBe(1);
+		expect(readRaidBuffs([ev(40_000, 'applybuff', LOTWT, ME)], ME, T0, END).selfGaps).toBe(0);
 	});
 
-	it('does not call an effect self-provided when somebody else brought it', () => {
+	it('does not call the player a caster when somebody else brought it', () => {
 		const row = rowOf([pull([{ ability: MOONKIN, source: 7 }])], 'spellHaste');
-		expect(row.selfProvided).toBe(false);
 		expect(row.byPlayer).toBe(false);
 	});
 
@@ -201,7 +225,78 @@ describe('readRaidBuffs', () => {
 	});
 
 	it('counts the effects it could not speak to', () => {
-		expect(readRaidBuffs([], ME, T0, END).notReported).toBe(6);
-		expect(readRaidBuffs([pull([{ ability: HOW, source: 4 }])], ME, T0, END).notReported).toBe(5);
+		expect(readRaidBuffs([], ME, T0, END).notReported).toBe(7);
+		expect(readRaidBuffs([pull([{ ability: HOW, source: 4 }])], ME, T0, END).notReported).toBe(6);
+	});
+});
+
+/**
+ * The other half of the seam: a spec's own reading of a measured pull.
+ *
+ * The reason it exists is the reason the six-row roster was wrong. The section reports **gaps**, and
+ * before a spec could say which effects its damage rests on, an Elemental report drew a Monk's list —
+ * a missing multiplier on attack power presented as a fault, and no row at all for spell power. The
+ * two judgements this applies, the icon and `selfProvided`, are the two the stream cannot answer, and
+ * a wrong `selfProvided` is the one that reads as an accusation.
+ */
+describe('narrowRaidBuffs', () => {
+	/** A caster's list: no attack power, spell power added, and three the shaman brings themselves. */
+	const CASTER: readonly RaidBuffEffect[] = [
+		{ key: 'stats', iconId: 20217, selfProvided: false },
+		{ key: 'spellPower', iconId: BURNING_WRATH, selfProvided: true },
+		{ key: 'spellHaste', iconId: 51470, selfProvided: true },
+		{ key: 'crit', iconId: 17007, selfProvided: false },
+	];
+
+	it("keeps only the spec's effects, in the order the spec declared them", () => {
+		const narrowed = narrowRaidBuffs(readRaidBuffs([], ME, T0, END), CASTER);
+		expect(narrowed.rows.map((r) => r.key)).toEqual(['stats', 'spellPower', 'spellHaste', 'crit']);
+		// The order is the declaration's and not the measurement's, which had crit before stats.
+		expect(narrowed.rows.map((r) => r.key)).not.toEqual(
+			readRaidBuffs([], ME, T0, END)
+				.rows.map((r) => r.key)
+				.filter((key) => CASTER.some((e) => e.key === key)),
+		);
+	});
+
+	/** An effect the spec did not declare is not a gap the reader can fix, so it is not on the page. */
+	it('drops an effect the spec does not declare, and does not count it as missing', () => {
+		const measured = readRaidBuffs([], ME, T0, END);
+		expect(measured.rows.some((r) => r.key === 'attackPower')).toBe(true);
+		const narrowed = narrowRaidBuffs(measured, CASTER);
+		expect(narrowed.rows.some((r) => r.key === 'attackPower')).toBe(false);
+		expect(narrowed.notReported).toBe(CASTER.length);
+	});
+
+	it("writes the spec's own icon over the measurement's placeholder", () => {
+		const measured = readRaidBuffs([], ME, T0, END);
+		expect(measured.rows.find((r) => r.key === 'spellPower')?.iconId).toBe(1459);
+		const narrowed = narrowRaidBuffs(measured, CASTER);
+		expect(narrowed.rows.find((r) => r.key === 'spellPower')?.iconId).toBe(BURNING_WRATH);
+	});
+
+	/**
+	 * The whole point of the field. A shaman brings Burning Wrath themselves, so a gap in it is theirs
+	 * to fix and the section says so; the same gap in the all-stats row is somebody else's roster.
+	 */
+	it("counts a gap as the player's own only in an effect their spec supplies", () => {
+		const late = readRaidBuffs([ev(40_000, 'applybuff', BURNING_WRATH, ME)], ME, T0, END);
+		const narrowed = narrowRaidBuffs(late, CASTER);
+		expect(narrowed.rows.find((r) => r.key === 'spellPower')?.selfProvided).toBe(true);
+		expect(narrowed.rows.find((r) => r.key === 'stats')?.selfProvided).toBe(false);
+		expect(narrowed.selfGaps).toBe(1);
+		// An effect nothing was logged about is silence, not a fault: `notReported` rows are never
+		// counted as self-gaps however sure the spec is that it supplies them.
+		expect(narrowRaidBuffs(readRaidBuffs([], ME, T0, END), CASTER).selfGaps).toBe(0);
+	});
+
+	it('passes the death count through, since it is a fact about the pull and not about the spec', () => {
+		const measured = readRaidBuffs([{ timestamp: T0 + 40_000, type: 'death', targetID: ME }], ME, T0, END);
+		expect(narrowRaidBuffs(measured, CASTER).deaths).toBe(1);
+	});
+
+	/** Every key used above is one the shared table actually groups — the typo case, caught by name. */
+	it('is declared against keys the measurement carries', () => {
+		for (const effect of CASTER) expect(RAID_BUFF_EFFECT_KEYS).toContain(effect.key);
 	});
 });

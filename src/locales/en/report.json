@@ -671,9 +671,11 @@
   },
   "raidBuffs": {
     "title": "Raid buffs",
-    "intent": "The buffs that move a Windwalker's damage, one row per effect rather than one per spell — five classes bring the same attack power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Rising Sun Kick above: a buff stays up perfectly well while the boss is untargetable.",
+    "intent_windwalker": "The buffs that move a Windwalker's damage, one row per effect rather than one per spell — five classes bring the same attack power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Rising Sun Kick above: a buff stays up perfectly well while the boss is untargetable.",
+    "intent_elemental": "The buffs that move an Elemental Shaman's damage, one row per effect rather than one per spell — four classes bring the same spell power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Flame Shock above: a buff stays up perfectly well while the boss is untargetable.",
     "none": "This report was produced before raid buffs were read, so there is nothing to show here. Nothing is wrong with the pull.",
-    "caption": "Raid buffs affecting this Windwalker, by effect",
+    "caption_windwalker": "Raid buffs affecting this Windwalker, by effect",
+    "caption_elemental": "Raid buffs affecting this Elemental Shaman, by effect",
     "columns": {
       "buff": "Effect",
       "uptime": "Uptime",
@@ -681,19 +683,30 @@
       "state": "What the log says"
     },
     "effects": {
-      "stats": "+5% Agility",
+      "stats": "+5% all stats",
+      "stats_windwalker": "+5% Agility",
+      "stats_elemental": "+5% Intellect",
       "attackPower": "+10% attack power",
       "meleeHaste": "+10% melee haste",
+      "spellPower": "+10% spell power",
       "spellHaste": "+5% spell haste",
       "crit": "+5% critical strike",
       "mastery": "+3000 mastery"
     },
     "worth": {
-      "stats": "Agility is attack power and critical strike at once, which makes this the broadest of the six.",
+      "stats": "Five percent of the primary stat everything you press scales from, which makes this the broadest row on the page.",
+      "stats_windwalker": "Agility is attack power and critical strike at once, which makes this the broadest of the six.",
+      "stats_elemental": "Intellect is spell power and critical strike at once, which makes this the broadest of the six.",
       "attackPower": "A flat multiplier on everything you hit with. Ten percent, not the five it is often quoted as.",
-      "meleeHaste": "It only speeds up auto-attacks. It does not feed your energy bar, whatever the tooltip suggests.",
-      "spellHaste": "It shortens the Fists of Fury channel and gives that time back to the rotation. It does not affect energy regeneration — that runs off haste rating from gear.",
+      "meleeHaste": "It speeds up auto-attacks and nothing else, whatever the tooltip suggests.",
+      "meleeHaste_windwalker": "It only speeds up auto-attacks. It does not feed your energy bar, whatever the tooltip suggests.",
+      "meleeHaste_elemental": "You never swing, so none of this reaches your own casts — but your elementals do swing, and they inherit your melee speed, so it is a pet damage buff. That is why it is last on this list rather than missing from it.",
+      "spellPower": "A flat multiplier on the spell power every one of your casts is built out of. Ten percent, and the largest single number on this page after your primary stat.",
+      "spellHaste": "Five percent off every cast you make.",
+      "spellHaste_windwalker": "It shortens the Fists of Fury channel and gives that time back to the rotation. It does not affect energy regeneration — that runs off haste rating from gear.",
+      "spellHaste_elemental": "Five percent off every cast in the pull, and your dots tick faster inside it too. It is the one haste buff that reaches a caster's whole rotation.",
       "crit": "Flat critical strike chance, and the one most likely to be missing without anyone noticing.",
+      "crit_elemental": "Flat critical strike chance on your casts, and your elementals inherit it as well, so this row pays twice. It is also the one most likely to be missing without anyone noticing.",
       "mastery": "Flat rating, so what it is worth to you depends on how you have reforged."
     },
     "covered": "Up for the whole pull.",
@@ -708,8 +721,10 @@
     "self_other": "{{buffs}} are yours to supply, and they were not up for the whole pull. Those are the rows on this page you can fix alone.",
     "deaths_one": "You died once in this pull. You have no buffs while dead, so a gap that lines up with the death is not a missing buff.",
     "deaths_other": "You died {{count}} times in this pull. You have no buffs while dead, so gaps that line up with those deaths are not missing buffs.",
-    "excluded": "Stamina and spell power are left out on purpose. Both are real raid buffs and neither adds a point of Windwalker damage, so a row for either would be one nobody can act on.",
-    "debuffs": "The two target debuffs a melee cares about — weakened armour and physical vulnerability — are not on this page, and not because they were missing in the raid. The fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading them would take a second query this report does not make uninvited."
+    "excluded_windwalker": "Stamina and spell power are left out on purpose. Both are real raid buffs and neither adds a point of Windwalker damage, so a row for either would be one nobody can act on.",
+    "excluded_elemental": "Stamina and attack power are left out on purpose. Both are real raid buffs and neither adds a point of Elemental Shaman damage: your spells are built out of spell power, and so are your elementals, which inherit that rather than attack power. A row for either would be one nobody can act on.",
+    "debuffs_windwalker": "The two target debuffs a melee cares about — weakened armour and physical vulnerability — are not on this page, and not because they were missing in the raid. The fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading them would take a second query this report does not make uninvited.",
+    "debuffs_elemental": "The target debuff a caster cares about — the extra five percent magic damage that Curse of the Elements and its equivalents put on the boss — is not on this page, and not because it was missing in the raid. Every row above is a buff on you, and the fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading it would take a second query this report does not make uninvited."
   },
   "rotation": {
     "title": "The rotation",
