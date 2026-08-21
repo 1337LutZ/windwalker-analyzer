@@ -18,29 +18,44 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * ever a fault: a Lava Burst press is wanted at essentially every point in the priority list, so the
  * table asked a reader to scan a column in which every row was fine. The same argument Earth Shock's
  * table already carries ("the bad-shock ledger, not the log"), and the count survives as a tile.
+ *
+ * **A press with no Flame Shock on its target is a fault, so it joins that ledger rather than bringing
+ * the press list back.** Flame Shock is Lava Burst's ×1.5, and the audit reads it at the instant the
+ * cast was committed — see the note there for why that is the sim's instant and not the impact. Both
+ * kinds of row are "something the player gave away", so they interleave in one time-ordered ledger
+ * instead of asking a reader to cross-reference two tables.
  */
 export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { lavaBurst } = el;
 	const { t } = useReportCopy(analysis);
 
-	const procRows = useMemo<GridRow[]>(
-		() =>
-			[...lavaBurst.procs]
-				// Only the surges the player actually threw away — a consumed surge needs no row, and one
-				// the fight took back during an intermission was never on offer.
+	const faultRows = useMemo<GridRow[]>(() => {
+		const faults = [
+			// Only the surges the player actually threw away — a consumed surge needs no row, and one
+			// the fight took back during an intermission was never on offer.
+			...lavaBurst.procs
 				.filter((proc) => proc.wasted)
-				.sort((a, b) => a.start - b.start)
-				.map((proc, i) => ({
-					key: `${proc.start}-${i}`,
-					band: 'warn' as const,
-					cells: {
-						at: formatClock(proc.start),
-						state: t('lavaBurst.state.wasted'),
-					},
-				})),
-		[lavaBurst.procs, t],
-	);
+				.map((proc) => ({ at: proc.start, kind: 'surge', state: t('lavaBurst.state.wasted') })),
+			// `=== false` and not `!p.flameShock`: null is "the log named no target and the pull had no
+			// hit to fall back on", which is a missing measurement rather than a missing dot.
+			...lavaBurst.presses
+				.filter((press) => press.flameShock === false)
+				.map((press) => ({ at: press.t, kind: 'nodot', state: t('lavaBurst.state.noDot') })),
+		];
+		return faults
+			.sort((a, b) => a.at - b.at)
+			.map((fault, i) => ({
+				// The kind and the index both belong in the key: two faults can share a millisecond, and
+				// the two lists are independent so their stamps can collide.
+				key: `${fault.kind}-${fault.at}-${i}`,
+				band: 'warn' as const,
+				cells: {
+					at: formatClock(fault.at),
+					state: fault.state,
+				},
+			}));
+	}, [lavaBurst.procs, lavaBurst.presses, t]);
 
 	return (
 		<Section id="lava-burst" title={t('lavaBurst.title')}>
@@ -61,12 +76,12 @@ export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-5">
 				<DataGrid
-					caption={t('lavaBurst.procCaption')}
+					caption={t('lavaBurst.caption')}
 					columns={[
 						{ key: 'at', label: t('lavaBurst.columns.at'), width: '96px' },
 						{ key: 'state', label: t('lavaBurst.columns.state') },
 					]}
-					rows={procRows}
+					rows={faultRows}
 					empty={t('lavaBurst.none')}
 				/>
 			</div>

@@ -1807,11 +1807,54 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			wasted: !consumed && contact.some(([s, e]) => w.end >= s && w.end < e),
 		};
 	});
-	const lavaBurstPresses = lavaBurstCasts.map((t) => ({
-		t,
-		surge: inWindow(t, lavaSurgeWindows),
-		ascendance: inWindow(t, ascActiveWindows),
-	}));
+	/**
+	 * **Flame Shock is Lava Burst's ×1.5, and the instant it is judged at is the whole subtlety.**
+	 *
+	 * The multiplier, not the crit: `BonusCritPercent: 100` in `sim/shaman/elemental/lavaburst.go:48`
+	 * is unconditional, so in this model Lava Burst always crits and what Flame Shock grants is a ×1.5
+	 * on the damage. "Damage/crit bonus" is one thing, not two.
+	 *
+	 * **Three instants exist and only two of them are the sim's.** `ApplyEffects` (`:69-80`) tests
+	 * `ele.FlameShock.Dot(target).IsActive()` and computes `result` there — at **cast completion** — and
+	 * only `DealDamage` is deferred by `WaitTravelTime`. So the sim decides once, before the missile
+	 * flies, and a dot that expires during the ~800ms of travel keeps the bonus. A reader who believes
+	 * the bonus needs the dot up *at impact* — a natural reading, and one this project was asked about
+	 * directly — will see a press credited here and read it as a bug. It is not: the multiplier was
+	 * already banked when the cast landed.
+	 *
+	 * The reading here is the **commit** instant, `CastPress.begin`, which is `t` on every row of this
+	 * list and the same instant `surge` and `ascendance` above are read at for the reasons given there.
+	 * Commit and completion differ only when the dot expires *inside* the cast, and that case is not a
+	 * gap in the model: the ladder's own Lava Burst rung already refuses the press
+	 * (`apl.ts`, `auras.remainingMs('flame-shock') > LAVA_BURST_CAST_MS`), so a dot running out mid-cast
+	 * is charged as a lost cast there rather than being credited twice here. What is left for this field
+	 * is the unambiguous case every rule agrees on — no dot on the target when the button went down.
+	 *
+	 * **Published, not graded, and `overall()` is untouched.** Every millisecond the dot was down is
+	 * already charged by `flameShockUptime` (weight 3), and a Lava Burst inside one of those stretches is
+	 * a consequence of that same dropped dot rather than a second mistake. Grading it would mark one
+	 * error down twice — exactly why `lightningShield.badSpends` is listed and left ungraded next to
+	 * `earthShockGood`. Measured before deciding: **zero** such presses across `cleave`, `phased` and
+	 * `unbroken` (43, 49 and 41 presses, every one committed with the dot up), so a metric would also
+	 * carry weight while reading a perfect 100% on every pull the repo can check it against.
+	 *
+	 * **Over every spawn, not `fsDot.byInstance`.** `fsDot` is scoped to the primary, so a Lava Burst
+	 * aimed at a dotted add would read as undotted — `cleave` already carries a Flame Shock on `478:1`,
+	 * so that is a live shape and not a hypothetical. The fallback to `spawnAt` when the cast event
+	 * named no target is `fsAimedAt`'s: judge the press against the enemy every other rule at that
+	 * instant is judged against, rather than dropping it out of the audit.
+	 */
+	const lavaBurstPresses = castPresses(LAVA_BURST).map((press) => {
+		const spawn = press.spawn ?? spawnAt(press.begin);
+		return {
+			t: press.begin,
+			surge: inWindow(press.begin, lavaSurgeWindows),
+			ascendance: inWindow(press.begin, ascActiveWindows),
+			// Null is "no enemy to judge against", which happens only on a pull with no landed hit at
+			// all; an empty window list is a real answer — that enemy never carried the dot.
+			flameShock: spawn === null ? null : inWindow(press.begin, fsDotAnywhere.get(spawn) ?? []),
+		};
+	});
 
 	// ---------------------------------------------------------- Earth Shock
 	// The shield is a self-buff, so its counter is read off the player's own events rather than the

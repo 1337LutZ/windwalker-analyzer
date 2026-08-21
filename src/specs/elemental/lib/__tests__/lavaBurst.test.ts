@@ -16,12 +16,8 @@ import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 
-const fx = (name: string): Analysis & ElementalAuditResult => {
-	const dataset = JSON.parse(
-		readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
-	) as FightDataset;
-	return analyse(dataset) as Analysis & ElementalAuditResult;
-};
+const fx = (name: string): Analysis & ElementalAuditResult =>
+	analyse(rawDataset(name)) as Analysis & ElementalAuditResult;
 
 describe('a surge that expired while the boss was away', () => {
 	const el = fx('phased');
@@ -83,6 +79,96 @@ describe('a pull that consumed every surge it was given', () => {
 		expect(lavaBurst.presses.filter((p) => p.surge)).toHaveLength(20);
 		expect(lavaBurst.procs).toHaveLength(20);
 		expect(lavaBurst.presses.filter((p) => p.ascendance)).toHaveLength(15);
+	});
+});
+
+// ------------------------------------------------- Flame Shock, off the raw stream
+
+/**
+ * The player's own Flame Shock **down** stretches on one enemy, walked out of the dataset's events and
+ * nothing else.
+ *
+ * Deliberately a second implementation. The thing under test is `lavaBurst.presses[].flameShock`, which
+ * is built from `dotWindowsBySpawn` and `CastPress.begin`; checking it against a window list produced by
+ * the same two functions would assert that the audit agrees with itself. This walk reads
+ * `applydebuff` / `refreshdebuff` / `removedebuff` straight off the fixture, so a change to either of
+ * those helpers moves one side of the comparison and not the other.
+ */
+function fsDownStretches(dataset: FightDataset, target: number): Array<[number, number]> {
+	const t0 = dataset.fight.startTime;
+	const fightEnd = dataset.fight.endTime - t0;
+	const out: Array<[number, number]> = [];
+	let down: number | null = 0;
+	for (const e of dataset.events) {
+		if (e.abilityGameID !== 8050 || e.sourceID !== dataset.actor.id || e.targetID !== target) continue;
+		const t = e.timestamp - t0;
+		if (e.type === 'removedebuff') down ??= t;
+		else if ((e.type === 'applydebuff' || e.type === 'refreshdebuff') && down !== null) {
+			if (t > down) out.push([down, t]);
+			down = null;
+		}
+	}
+	if (down !== null && fightEnd > down) out.push([down, fightEnd]);
+	return out;
+}
+
+function rawDataset(name: string): FightDataset {
+	return JSON.parse(
+		readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
+	) as FightDataset;
+}
+
+/**
+ * **No committed fixture has a Lava Burst committed with the dot down — and none of them is vacuous.**
+ *
+ * The point of pinning this rather than only testing the synthetic pull below: a reader who sees "zero
+ * faults on every real pull" should be able to tell "the check never fires" apart from "the check had
+ * no chance to fire". `cleave` and `phased` give it plenty of chance — walked off their own event
+ * streams the dot is absent from the primary for eight and six stretches, the longest 11.5s and 41.9s
+ * (the submerge) — and `unbroken` gives it almost none, which is what its name says: 1553ms of pre-pull
+ * ramp and one 49ms seam, and no Lava Burst within either.
+ *
+ * The tightest near-miss anywhere is `cleave`'s press at 118 136, committed 264ms before the dot fell
+ * at 118 400. That is one of the three hits §67a measured, and it reads as buffed here for the reason
+ * §67a settled: the multiplier is decided at the cast and not at the impact.
+ *
+ * So the whole ledger of dot-less presses is empty on committed data, which is why the field is
+ * published and not graded, and why the case is covered synthetically below.
+ */
+describe('Flame Shock under every Lava Burst the fixtures carry', () => {
+	/** Per fixture: the primary's id, the press count, and the dot's down stretches read off the log. */
+	const pulls = {
+		cleave: { primary: 470, presses: 43, stretches: 8, longest: 11_496 },
+		phased: { primary: 216, presses: 49, stretches: 6, longest: 41_914 },
+		unbroken: { primary: 308, presses: 41, stretches: 2, longest: 1553 },
+	} as const;
+
+	for (const name of ['cleave', 'phased', 'unbroken'] as const) {
+		it(`${name}: every press committed inside a dot window`, () => {
+			const dataset = rawDataset(name);
+			const down = fsDownStretches(dataset, pulls[name].primary);
+			const { lavaBurst } = analyse(dataset) as Analysis & ElementalAuditResult;
+
+			// How much chance the check had on this pull, stated rather than left implicit.
+			expect(down).toHaveLength(pulls[name].stretches);
+			expect(Math.max(...down.map(([s, e]) => e - s))).toBe(pulls[name].longest);
+
+			expect(lavaBurst.presses).toHaveLength(pulls[name].presses);
+			// The independent side of the comparison: no commit instant lies inside a down stretch.
+			const insideAGap = lavaBurst.presses.filter((p) => down.some(([s, e]) => p.t > s && p.t < e));
+			expect(insideAGap).toEqual([]);
+			// And the audit says the same thing in its own terms, with nothing unreadable.
+			expect(lavaBurst.presses.filter((p) => p.flameShock === false)).toEqual([]);
+			expect(lavaBurst.presses.filter((p) => p.flameShock === null)).toEqual([]);
+		});
+	}
+
+	/** The near-miss named above, asserted rather than only described. */
+	it('credits the press that committed 264ms before the dot fell', () => {
+		const dataset = rawDataset('cleave');
+		expect(fsDownStretches(dataset, 470)).toContainEqual([118_400, 120_417]);
+		const { lavaBurst } = analyse(dataset) as Analysis & ElementalAuditResult;
+		expect(lavaBurst.presses.find((p) => p.t === 118_136)?.flameShock).toBe(true);
 	});
 });
 
@@ -224,10 +310,139 @@ describe('the three things a surge can come to', () => {
 
 describe('what made each press free', () => {
 	it('names the reset behind every Lava Burst', () => {
+		// `flameShock: false` on all three because this pull contains no Flame Shock at all — the events
+		// above are surges, Ascendance and Lightning Bolt. Not an incidental default: it is the field
+		// answering the question, and the pull it answers about is a shaman who never dotted anything.
 		expect(el.lavaBurst.presses).toEqual([
-			{ t: 5000, surge: false, ascendance: false },
-			{ t: 15_000, surge: true, ascendance: false },
-			{ t: 95_000, surge: false, ascendance: true },
+			{ t: 5000, surge: false, ascendance: false, flameShock: false },
+			{ t: 15_000, surge: true, ascendance: false, flameShock: false },
+			{ t: 95_000, surge: false, ascendance: true, flameShock: false },
 		]);
+	});
+});
+
+// -------------------------------------------- synthetic: Flame Shock under the press
+
+/**
+ * The dot-less Lava Burst, and the three edges around it — none of which any committed fixture has.
+ *
+ * Built rather than found because the search came up empty: `cleave`, `phased` and `unbroken` commit 133
+ * Lava Bursts between them and every single one of them inside a dot window (see the fixture suite
+ * above). So the fault this field exists to name has no real example in the repo, and the only way to
+ * hold the behaviour still is a pull constructed to contain one.
+ *
+ * Four things it pins, in the order the presses fall:
+ *
+ *   5s   no dot yet — the plain fault, `false`.
+ *   20s  dot up, `true`.
+ *   39s  dot up at the **commit** and gone by the time the two-second cast completes at 41s. Reads
+ *        `true`, and that is the whole §67/§67a argument in one row: the ×1.5 is decided when the
+ *        button goes down, so a dot that ends mid-flight — or here, mid-cast — was already paid for.
+ *        The player is not let off, either: the ladder refuses that press and charges it as a lost cast.
+ *   70s  aimed at the **add**, which is dotted while the boss is not. Reads `true`, which is why the
+ *        audit reads the dot per spawn rather than off the primary — a primary-scoped map would call a
+ *        correct cleave Lava Burst a fault.
+ *   75s  aimed at the boss while only the add is dotted. The same instant, the other answer: `false`.
+ *   100s the cast event names **no target**, so the press falls back to the enemy the player was
+ *        demonstrably hitting. The boss is dotted again by then, so `true` — the fallback resolving,
+ *        not a silent `false`.
+ */
+const T0B = 900_000;
+const ADD = 13;
+const FLAME_SHOCK = 8050;
+
+const eb = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
+	timestamp: T0B + t,
+	type,
+	abilityGameID: id,
+	sourceID: ME,
+	targetID: ME,
+	...extra,
+});
+
+/** One hit every three seconds on the boss: unbroken contact, and the fallback's answer at 100s. */
+const dotContact: WclEvent[] = Array.from({ length: 40 }, (_, i) =>
+	eb(i * 3000, 'damage', LIGHTNING_BOLT, { targetID: BOSS, targetInstance: 1, amount: 1000, hitType: 1 }),
+);
+
+/** The boss dotted twice with a hole in the middle, and the add dotted across that hole. */
+const dotEvents: WclEvent[] = [
+	eb(10_000, 'applydebuff', FLAME_SHOCK, { targetID: BOSS, targetInstance: 1 }),
+	eb(40_000, 'removedebuff', FLAME_SHOCK, { targetID: BOSS, targetInstance: 1 }),
+	eb(60_000, 'applydebuff', FLAME_SHOCK, { targetID: ADD, targetInstance: 1 }),
+	eb(90_000, 'removedebuff', FLAME_SHOCK, { targetID: ADD, targetInstance: 1 }),
+	eb(95_000, 'applydebuff', FLAME_SHOCK, { targetID: BOSS, targetInstance: 1 }),
+	eb(119_000, 'removedebuff', FLAME_SHOCK, { targetID: BOSS, targetInstance: 1 }),
+];
+
+/** Each press a `begincast`/`cast` pair two seconds apart, so `begin` and `t` are visibly different. */
+const dotBursts: WclEvent[] = [
+	[5000, BOSS],
+	[20_000, BOSS],
+	[39_000, BOSS],
+	[70_000, ADD],
+	[75_000, BOSS],
+].flatMap(([begin, target]) => [
+	eb(begin as number, 'begincast', LAVA_BURST, { targetID: target, targetInstance: 1 }),
+	eb((begin as number) + 2000, 'cast', LAVA_BURST, { targetID: target, targetInstance: 1 }),
+]);
+
+/** The press the log gave no target for — `targetID` explicitly absent, not pointed at the player. */
+const untargetedBurst: WclEvent[] = [
+	eb(100_000, 'begincast', LAVA_BURST, { targetID: undefined }),
+	eb(102_000, 'cast', LAVA_BURST, { targetID: undefined }),
+];
+
+const dotPull: FightDataset = {
+	...synthetic,
+	code: 'ele-lvb-fs',
+	fight: { ...synthetic.fight, startTime: T0B, endTime: T0B + DURATION },
+	actors: [...synthetic.actors, { id: ADD, name: 'Molten Add', type: 'NPC' }],
+	events: [...dotContact, ...dotEvents, ...dotBursts, ...untargetedBurst],
+	table: {
+		...synthetic.table,
+		fight: {
+			...synthetic.table.fight,
+			startTime: T0B,
+			endTime: T0B + DURATION,
+			enemyNPCs: [
+				{ id: BOSS, gameID: 68_078 },
+				{ id: ADD, gameID: 68_079 },
+			],
+		},
+	},
+};
+
+describe('Flame Shock under the press', () => {
+	const { lavaBurst } = analyse(dotPull) as Analysis & ElementalAuditResult;
+
+	it('reads the commit instant, so the dot may expire inside the cast', () => {
+		// Every row's `t` is the `begincast`, two seconds before the cast it opened — the field could not
+		// be reading the completion instant and still report these stamps.
+		expect(lavaBurst.presses.map((p) => p.t)).toEqual([5000, 20_000, 39_000, 70_000, 75_000, 100_000]);
+		expect(lavaBurst.presses.map((p) => p.flameShock)).toEqual([false, true, true, true, false, true]);
+	});
+
+	it('names the dot-less presses and nothing else', () => {
+		expect(lavaBurst.presses.filter((p) => p.flameShock === false).map((p) => p.t)).toEqual([5000, 75_000]);
+		// Nothing unreadable: every press resolved to an enemy, the last one through the hit fallback.
+		expect(lavaBurst.presses.filter((p) => p.flameShock === null)).toEqual([]);
+	});
+
+	/**
+	 * The independent read of the same two answers, off the constructed stream rather than off the field.
+	 *
+	 * The boss carries the dot over [10s, 40s] and [95s, 119s], so 5s and 75s are outside both and 20s,
+	 * 39s and 100s are inside one — which is exactly the split above, arrived at without the audit.
+	 */
+	it('agrees with the dot windows the pull was built from', () => {
+		const bossDown = fsDownStretches(dotPull, BOSS);
+		expect(bossDown).toEqual([
+			[0, 10_000],
+			[40_000, 95_000],
+			[119_000, DURATION],
+		]);
+		const aimedAtBoss = [5000, 20_000, 39_000, 75_000, 100_000];
+		expect(aimedAtBoss.filter((t) => bossDown.some(([s, e]) => t > s && t < e))).toEqual([5000, 75_000]);
 	});
 });

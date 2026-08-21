@@ -2435,13 +2435,25 @@ export interface LavaSurgeProc {
 	wasted: boolean;
 }
 
-/** One Lava Burst press, and what made it free. */
+/** One Lava Burst press, what made it free, and whether Flame Shock paid for it. */
 export interface LavaBurstPress {
+	/** The commit instant — the `begincast`, or the cast itself for a surge-instant press. */
 	t: number;
 	/** Free from a Lava Surge proc. */
 	surge: boolean;
 	/** Free from Ascendance's reset. */
 	ascendance: boolean;
+	/**
+	 * Flame Shock up on the enemy this press was **aimed at**, read at `t`.
+	 *
+	 * False is a fault: Flame Shock is Lava Burst's ×1.5 damage multiplier, so a press committed with
+	 * no dot on its target threw a third of the hit away. Published and drawn, not graded — the
+	 * reasoning is at the audit that fills this in.
+	 *
+	 * Null is "cannot say", never "no dot": the cast event named no target and the pull had no landed
+	 * hit to fall back on. Reading that as false would invent a fault out of a missing measurement.
+	 */
+	flameShock: boolean | null;
 }
 
 /** Lava Burst and its two resets — the free casts, and the surges that expired with no press. */

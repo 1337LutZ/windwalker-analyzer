@@ -1537,10 +1537,11 @@
       "state": "what it was"
     },
     "state": {
-      "wasted": "Expired unused"
+      "wasted": "Expired unused",
+      "noDot": "Cast with no Flame Shock on the target"
     },
-    "procCaption": "The Lava Surge procs that expired with no Lava Burst inside them",
-    "none": "Lava Surge never procced in this pull.",
-    "note": "A surge is a free cast only while the dot is up — Lava Burst needs the Flame Shock dot to outlive its cast, which is why the ladder’s rule reads the dot rather than the proc alone."
+    "caption": "What this pull gave away: the Lava Surge procs that expired with no Lava Burst inside them, and the Lava Bursts committed with no Flame Shock on the enemy they were aimed at",
+    "none": "Nothing given away — every Lava Surge was spent, and every Lava Burst went out with Flame Shock already on its target.",
+    "note": "Flame Shock is what makes Lava Burst hit hard: a ×1.5 on the damage, and the crit is unconditional, so the two are one bonus and not two. The bonus is settled when the cast goes out, not when the missile lands — a dot that runs out during the ~0.8s of travel has already paid for the hit, so a press this section leaves alone can still look wrong if you expect the dot to survive to impact. Only a press committed with no dot at all is listed here; a dot that expires mid-cast is charged as a lost cast instead, because the priority list refuses that press in the first place."
   }
 }
