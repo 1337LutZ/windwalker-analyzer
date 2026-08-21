@@ -30,6 +30,7 @@ import {
 	auraTimeline,
 	auraWindows,
 	inWindow,
+	SELF_EVENT_MS,
 	levelAt,
 	levelWindows,
 	remainingAtCast,
@@ -40,8 +41,10 @@ import {
 import { atCapWindows } from '~/lib/analysis/counters';
 import {
 	dotSnapshotIn,
+	dotTickBudgetIn,
 	dotTickSnapshotsBySpawn,
 	dotTicksBySpawn,
+	inLastTick,
 	inLastTickWindow,
 	tickWindowAt,
 } from '~/lib/analysis/ticks';
@@ -66,7 +69,7 @@ import type {
 	WclEvent,
 	Window,
 } from '~/lib/types';
-import { abilityIdOf, instanceKey, isAuraEvent, isCast } from '~/lib/events/guards';
+import { abilityIdOf, instanceKey, isAuraEvent, isAuraRefresh, isCast } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
 import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
@@ -1452,6 +1455,41 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		}
 	}
 	/**
+	 * Every instant the log called this dot **refreshed** rather than applied, per spawn.
+	 *
+	 * The one fact about an application that its own ticks cannot carry, and it is worth a whole tick:
+	 * a refresh onto a live dot keeps the pending tick and schedules a full count on top of it
+	 * (`dot.Duration += nextTick; dot.remainingTicks++`, `sim/core/dot.go:122-146`). WarcraftLogs'
+	 * `refreshdebuff` is exactly the sim's `dot.IsActive()` at the press, so the distinction is read
+	 * off the log rather than inferred from the declared remaining time — which is the number this whole
+	 * derivation exists to stop grading against.
+	 *
+	 * Sourced to this player and keyed by spawn for the same reasons the tick streams are.
+	 */
+	const fsRefreshedAt = new Map<string, number[]>();
+	for (const e of events) {
+		if (!isAuraRefresh(e) || e.sourceID !== actor.id || e.targetID === undefined) continue;
+		const id = abilityIdOf(e);
+		if (id === null || !FS_DEBUFF.ids.includes(id)) continue;
+		const key = instanceKey(e.targetID, e.targetInstance);
+		const bucket = fsRefreshedAt.get(key);
+		if (bucket) bucket.push(e.timestamp - t0);
+		else fsRefreshedAt.set(key, [e.timestamp - t0]);
+	}
+	/**
+	 * Did the application a press at `start` opened begin as a refresh onto a live dot?
+	 *
+	 * `SELF_EVENT_MS` because the aura event a press produces is stamped a moment either side of the
+	 * cast — the same slop `remainingAtCast` guards against, cited for the same reason. False for an
+	 * application with no press before it (`-Infinity`): a dot that was up before the pull began has no
+	 * observable start, and inventing a pending tick for it would be a guess.
+	 */
+	const beganAsRefresh = (spawn: string | null, start: number): boolean =>
+		spawn !== null &&
+		Number.isFinite(start) &&
+		(fsRefreshedAt.get(spawn) ?? []).some((r) => Math.abs(r - start) <= SELF_EVENT_MS);
+
+	/**
 	 * The stretches the player was not in contact — the fight's own interruptions.
 	 *
 	 * Declared here rather than beside the miss ledger that also reads it, because `downBefore` below
@@ -1487,20 +1525,49 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const remaining = remainingAtCast(spawn === null ? [] : (fsTimelines.get(spawn) ?? []), t, FS_DEBUFF);
 		const ascReadyInSec = ascendanceReadyInSec(ascCasts, t);
 		/**
-		 * The dot's last tick window at this press, measured off its own ticks.
+		 * The dot's tick cadence at this press, measured off its own ticks.
 		 *
-		 * This is what `flameShockRefreshMs` used to be, and the difference is not a tuning. One tick
-		 * period or less left means one tick is still pending, and reapplying there rolls that tick over:
-		 * the player keeps it *and* gets a full fresh dot, which is the most the global can buy. Earlier
-		 * than that the same global buys the same fresh dot while more of the old one was still owed.
+		 * This is what `flameShockRefreshMs` used to be, and the difference is not a tuning: one tick is
+		 * the width of the thing the verdict is about. On the two committed pulls it measures 1 349ms,
+		 * 1 748ms or 2 275ms depending on which haste cooldowns were up — never the 3 000ms the setting
+		 * defaulted to, and never the same number twice in one fight. Falls back to the unhasted 3 000ms
+		 * period when the log carries too few ticks to measure one.
 		 *
-		 * On the two committed pulls the window measures 1 349ms, 1 748ms or 2 275ms depending on which
-		 * haste cooldowns were up — never the 3 000ms the setting defaulted to, and never the same number
-		 * twice in one fight. Falls back to the unhasted 3 000ms period when the log carries too few ticks
-		 * to measure one (a press onto a spawn that never had the dot, or a synthetic pull).
+		 * **Reported, and no longer what grades the press.** It is the number the chart's band and the
+		 * tooltip quote, and `ticksLeft` below is the verdict — a comparison of two durations is only
+		 * accurate to within the half-tick that bankers rounding drops off the declared duration, which
+		 * is the same size as the tick being tested. See `dotTickBudgetIn`.
 		 */
 		const tickWindow = tickWindowAt(spawn === null ? [] : (fsTicks.get(spawn) ?? []), t, FLAME_SHOCK_DOT);
-		const windowed = inLastTickWindow(remaining, tickWindow, FLAME_SHOCK_DOT);
+		/**
+		 * The press either side of this one on the spawn it was aimed at — the boundaries of the
+		 * application it replaced, which both the tick count and the snapshot strength below are read
+		 * inside. Declared once so the two cannot end up measuring different applications.
+		 */
+		const bounds = fsPressBounds.get(t);
+		/**
+		 * The ticks the dot this press replaced still owed — the number the verdict is actually made on.
+		 *
+		 * Bounded by the press before this one on the same spawn, which is the boundary of the application
+		 * being refreshed: only one application can tick on one spawn between two presses at it. See
+		 * `dotTickBudgetIn` for why this is counted and not subtracted, with both fixture presses where a
+		 * duration test gives the opposite answer.
+		 *
+		 * Null when the application landed fewer than three ticks before the press — nothing to measure a
+		 * period from, so nothing to count against. That is the opener of a spawn (whose dot was down
+		 * anyway) and a synthetic pull with no periodic damage in it; those fall back to the declared
+		 * duration through `inLastTickWindow`, which is the older and looser reading of the same rule.
+		 */
+		const budget = bounds
+			? dotTickBudgetIn(spawn === null ? [] : (fsTicks.get(spawn) ?? []), bounds.previous, t, FLAME_SHOCK_DOT, {
+					refreshed: beganAsRefresh(spawn, bounds.previous),
+				})
+			: null;
+		const windowed =
+			remaining > 0 &&
+			(budget !== null
+				? inLastTick(budget, FLAME_SHOCK_DOT)
+				: inLastTickWindow(remaining, tickWindow, FLAME_SHOCK_DOT));
 		const ascPrep = remaining > 0 && remaining < FS_ASC_PREP_MS && ascReadyInSec <= 2;
 		/**
 		 * How much stronger the dot this press put up is than the one it replaced — the sim's own reason to
@@ -1519,7 +1586,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		 * compare against — the previous one had already expired — so a ratio against it would be a number
 		 * about a dot that was not there.
 		 */
-		const bounds = fsPressBounds.get(t);
 		const spawnTicks = spawn === null ? [] : (fsTickSnapshots.get(spawn) ?? []);
 		const before = bounds ? dotSnapshotIn(spawnTicks, bounds.previous, t, FLAME_SHOCK_DOT) : null;
 		const after = bounds ? dotSnapshotIn(spawnTicks, t, bounds.next, FLAME_SHOCK_DOT) : null;
@@ -1550,6 +1616,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			remainingMs: remaining > 0 ? remaining : null,
 			exposedMs: remaining > 0 ? null : (exposed ?? 0),
 			tickMs: tickWindow.cadenceMs,
+			ticksLeft: budget?.left ?? null,
+			// The same verdict as a length, so the chart can draw the last tick per press instead of
+			// shading one band at the end of a declared 30s axis that no application ever ran for.
+			intoLastTickMs: budget === null ? null : t - budget.lastTickAt,
 			windowed,
 			ascPrep,
 			snapshotDeltaPct,

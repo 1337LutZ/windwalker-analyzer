@@ -1977,16 +1977,20 @@ export type Analysis = AnalysisCore & SpecAuditResult;
  *   - `reapply`   it had lapsed, but not on the player's watch — the target was away, or the gap was
  *                 under `DROP_MS` and is refresh jitter. Not a fault.
  *   - `late`      it had lapsed with the player in contact for longer than the jitter floor. A fault.
- *   - `windowed`  refreshed inside the dot's **last tick window**, so the pending tick rolled over.
+ *   - `windowed`  refreshed with at most one tick still owed, so the pending tick rolled over and
+ *                 nothing was thrown away.
  *   - `ascPrep`   refreshed early on purpose, for the sim's Ascendance prep rule.
  *   - `snapshot`  refreshed early on purpose, because the new application snapshots a stronger dot.
  *   - `early`     refreshed with more left than any of those rules wants. A fault.
  *
  * `windowed` used to mean "inside the reader's own `flameShockRefreshMs`", a fixed millisecond window
- * the reader owned. It now means what that number was standing in for: one tick period or less left, so
- * one tick was still pending and reapplying rolled it over. The window is measured off the dot's own
+ * the reader owned. It now means what that number was standing in for: **at most one tick still owed**,
+ * so a tick was pending and reapplying rolled it over. Both halves of that are read off the dot's own
  * ticks per press rather than declared — see `lib/analysis/ticks.ts` — because a dot in this expansion
- * is hasted on its ticks and not on its duration, so a pull has no one number.
+ * is hasted on its ticks and not on its duration, so a pull has no one number and no application runs
+ * for the 30s it declares. It is a **count** and not a remaining time: `remainingMs` is against the
+ * declared duration, which over-states a fresh application by the half-tick bankers rounding drops and
+ * under-states a refreshed one by the pending tick it kept, and both errors flip a fixture verdict.
  */
 export type FlameShockPressKind = 'apply' | 'reapply' | 'late' | 'windowed' | 'ascPrep' | 'snapshot' | 'early';
 
@@ -1995,7 +1999,19 @@ export interface FlameShockPress {
 	t: number;
 	/** Which of the seven the press was — see `FlameShockPressKind`. */
 	kind: FlameShockPressKind;
-	/** The dot's remaining time at the press; null when the dot was down and this press applied one. */
+	/**
+	 * The dot's remaining time at the press against its **declared** duration; null when the dot was
+	 * down and this press applied one.
+	 *
+	 * **It therefore runs long, and it is not what grades the press.** A dot in this expansion is hasted
+	 * on its ticks and not on its duration, so the game schedules `RoundToEven(duration / period)` whole
+	 * ticks and the application ends with the last of them (`sim/core/dot.go:122-146`) — 29 410ms at a
+	 * 1 730ms period, not 30 000ms. A refresh onto a live dot keeps its pending tick on top of that,
+	 * which can push the real end the other way, *past* the declared one.
+	 *
+	 * Published because it is the figure the section's table and the chart's tooltip show and the one a
+	 * reader recognises. Graded on `ticksLeft`, which is counted rather than subtracted.
+	 */
 	remainingMs: number | null;
 	/**
 	 * How long the dot had been down *while the player was in contact*, for the three down-states.
@@ -2014,7 +2030,37 @@ export interface FlameShockPress {
 	 * band.
 	 */
 	tickMs: number;
-	/** Whether the press landed in that window, which is what rolls the pending tick over. */
+	/**
+	 * How many ticks the dot this press replaced still owed: `RoundToEven(30 000 / period)` for the
+	 * application being refreshed — plus the pending tick it kept if it began as a refresh itself —
+	 * minus the ticks it had actually landed.
+	 *
+	 * **The number `windowed` is decided on**, which is why it is published: one owed is the pending tick
+	 * that rolls over and nothing thrown away, two owed is a tick clipped. Counted rather than projected
+	 * off `remainingMs`, because that figure is half a tick out in either direction — see its own doc
+	 * and `dotTickBudgetIn` in `lib/analysis/ticks`.
+	 *
+	 * Null when the log cannot count: the application landed fewer than three ticks before the press, so
+	 * it has no measurable period. Those presses fall back to comparing `remainingMs` against `tickMs`,
+	 * and on the committed fixtures they are only the openers, whose dot was down anyway.
+	 */
+	ticksLeft: number | null;
+	/**
+	 * How far **into** the dot's own last tick the press landed, in ms — negative when it landed before
+	 * that tick was due, and by how much.
+	 *
+	 * The same fact as `ticksLeft <= 1` expressed as a length, and it exists because the verdict has to
+	 * be *drawable*. A chart's x-axis is elapsed time, and elapsed time at a press can only be measured
+	 * against the declared duration, so a band at the right-hand end of a 30s axis is systematically
+	 * later than any real last tick: measured against two credited presses on a live log it sat 69ms and
+	 * 343ms past them, and both bars stopped short of a band they belonged inside. With this the last
+	 * tick is drawn per press, as the tail of the bar itself, and the drawing cannot disagree with the
+	 * grade.
+	 *
+	 * Null exactly when `ticksLeft` is: the application landed too few ticks to measure a period.
+	 */
+	intoLastTickMs: number | null;
+	/** Whether the press landed on the dot's last tick, which is what rolls the pending tick over. */
 	windowed: boolean;
 	/** Whether the press was the sim's Ascendance prep (rule 12): dot under 16s with Ascendance ready inside 2s. */
 	ascPrep: boolean;
@@ -2072,13 +2118,17 @@ export interface FlameShockAudit {
 	 */
 	snapshotGain: number;
 	/**
-	 * The tick window the refreshes were read against, so the chart can draw the same band — the median
-	 * of the per-press `tickMs`, since a pull whose haste moved has no single one.
+	 * The pull's typical tick period: the median of the per-press `tickMs`, since a pull whose haste
+	 * moved has no single one — on one committed pull the period ran at three plateaus, ~1 348, ~1 752
+	 * and ~2 281 ms, as Bloodlust and Elemental Mastery fell off one after the other.
 	 *
-	 * A median and not a constant, which is why the band it draws carries no number: on one committed
-	 * pull the period ran at three plateaus, ~1 348, ~1 752 and ~2 281 ms, as Bloodlust and Elemental
-	 * Mastery fell off one after the other. Each press is judged against **its own** `tickMs`; this
-	 * exists only for a chart with a single x-axis to shade against.
+	 * **It has no reader left, and that is stated rather than hidden.** It existed for the depth chart's
+	 * single shaded band, and that band is gone: anchored to the declared 30s duration it sat later than
+	 * any real last tick, so it contradicted the verdicts drawn against it (see
+	 * `FlameShockPress.intoLastTickMs`). Each press is judged and now drawn against **its own** cadence.
+	 * Left published because §66's brief was explicit that this field stay, and because deleting a
+	 * pull-level figure is the plan owner's call and not a side effect of fixing a chart — but nothing
+	 * reads it today.
 	 */
 	tickMs: number;
 	/** The dot's full duration, so the chart can scale its bars against it. */

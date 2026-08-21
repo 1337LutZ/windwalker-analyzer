@@ -46,8 +46,9 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					/**
 					 * Three of the seven press kinds are faults; four are not.
 					 *
-					 * `late` (the dot dropped while the player was there), `early` (a healthy dot clipped) and a
-					 * refresh under Ascendance (a global the list wanted on Lava Burst) earn the band. An
+					 * `late` (the dot dropped while the player was there), `early` (a tick thrown away — the
+					 * dot still owed two or more and one of them was clipped off) and a refresh under
+					 * Ascendance (a global the list wanted on Lava Burst) earn the band. An
 					 * `apply` is the opener and no decision at all; a `reapply` put the dot back up after the
 					 * fight took the target away or after sub-second jitter, which is not a mistake either; and
 					 * a `snapshot` refresh clipped the dot on purpose, for a new application worth more than
@@ -72,6 +73,12 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 									: press.kind === 'apply'
 										? '—'
 										: formatSeconds(press.exposedMs ?? 0),
+							// The figure the verdict on this row was actually made on, and the reason the column
+							// exists: `dot left` is measured against the dot's *declared* duration and so runs
+							// half a tick long, which is the whole width of the rule. A refresh the log carried
+							// too few ticks to count reads `—` and was graded on `dot left` after all. A press
+							// onto a dot that was already down is not graded on a count at all.
+							ticksLeft: press.remainingMs === null || press.ticksLeft === null ? '—' : `${press.ticksLeft}`,
 							state:
 								press.remainingMs === null
 									? t(`flameShock.state.${press.kind}`)
@@ -133,6 +140,7 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					columns={[
 						{ key: 'at', label: t('flameShock.columns.at'), width: '96px' },
 						{ key: 'remaining', label: t('flameShock.columns.remaining'), align: 'right', width: '110px' },
+						{ key: 'ticksLeft', label: t('flameShock.columns.ticksLeft'), align: 'right', width: '86px' },
 						{ key: 'state', label: t('flameShock.columns.state') },
 					]}
 					rows={rows}

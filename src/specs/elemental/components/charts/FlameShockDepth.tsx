@@ -25,25 +25,77 @@ interface Bar {
 	meta: TipContent;
 }
 
+/** The two segments of one row: the dot before its last tick, and the part inside it. */
+export interface DepthSeries {
+	held: Bar[];
+	lastTick: Bar[];
+	/**
+	 * The stretch every drawn dot's **final tick** falls in, in ms since each application: from the
+	 * earliest opening to the latest end. See `buildBars`.
+	 */
+	lastTickZone: { from: number; to: number } | null;
+	/**
+	 * How far the axis has to reach — the longest thing drawn, which is **not** the declared duration.
+	 *
+	 * A dot runs `period × RoundToEven(declared / period)`, so it ends *short* of the declared 30s when
+	 * the period does not divide it (29.61–29.80s on `phased`) and *past* it when a refresh keeps its
+	 * pending tick (30.14s on `unbroken`). Either way the declared number is the wrong right-hand edge:
+	 * it left 0.3s of axis nothing could reach, which is what made the shading look unaligned with the
+	 * end of the plot.
+	 */
+	axisMaxMs: number;
+}
+
 /**
- * One bar per refresh: how far into the dot's full duration the press landed.
+ * One bar per refresh, in two segments: how far into the dot the press landed, and how much of that
+ * was inside the dot's **own last tick**.
  *
- * The dot is a snapshot, so a refresh is only wanted near its end — inside its **last tick**, where
- * the pending tick rolls over — or just before Ascendance. A press into a healthy dot is a global and
- * a snapshot both thrown away, and the band marks the stretch at the right end that separates the two.
+ * The dot is a snapshot, so a refresh is only wanted at its end — on the last tick, where the pending
+ * tick rolls over — or just before Ascendance. A press earlier than that throws a tick away, and the
+ * violet tail is what separates the two, **per row**.
  *
- * That window is measured per press off the log's own ticks (`FlameShockPress.tickMs`), not set by the
- * reader and not one number for the pull: `phased` grades its refreshes against 1 349ms, 1 748ms and
- * 2 275ms in the same fight, as Bloodlust and Elemental Mastery fell off. Each bar's tone is the
- * verdict against *its own* window; only the band behind them has to pick one.
+ * ## Why the tail and not a band
+ *
+ * There was a single shaded band at the right-hand end of the axis, `durationMs − median(tickMs)` wide,
+ * and it contradicted the verdicts drawn against it. The axis is elapsed time and elapsed time is
+ * measured against the dot's *declared* 30s, while no application runs for 30s — it runs
+ * `period × RoundToEven(30 000 / period)`, plus the pending tick a refresh keeps. So the band sat later
+ * than every real last tick: measured on a live pull, two credited presses ended 69ms and 343ms *before*
+ * a band they belonged inside, and a reader could see the report crediting a press its own chart drew
+ * outside the window. A band cannot be fixed by moving it, because an Apex xaxis annotation spans the
+ * whole plot and each row's dot is a different length — 13, 17 or 22 ticks on one pull.
+ *
+ * The tail is that window drawn per row, off `FlameShockPress.intoLastTickMs`, which is the same
+ * measurement the grade is made on. A credited bar therefore *ends inside its own tail* by construction
+ * and an early one has no tail at all; `flameShockDepth.test.ts` pins that as an invariant over every
+ * press of all three fixtures.
+ *
+ * Tone is unchanged and still the verdict: the row's colour says what the press was, and the tail says
+ * where the dot's last tick began. `phased` grades its refreshes against 1 349ms, 1 748ms and 2 275ms
+ * ticks in the same fight as Bloodlust and Elemental Mastery fall off, so no one number could have
+ * drawn this.
  */
-export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[] {
-	return flameShock.presses
+export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): DepthSeries {
+	const held: Bar[] = [];
+	const lastTick: Bar[] = [];
+	/**
+	 * Where each drawn press's own last tick *opened*, in ms since its application.
+	 *
+	 * Collected so the chart can shade the stretch these openings fall in. It is a range and not a
+	 * threshold: the opening moves with haste, and on a pull whose haste cooldowns drop it moves by most
+	 * of a second — which is exactly what the shading is worth showing.
+	 */
+	const openings: number[] = [];
+	/** Where each drawn dot's schedule actually ran out — its opening plus its own final tick. */
+	const ends: number[] = [];
+	/** The longest bar, so the axis can be sized to the data rather than to a declared number. */
+	let longestBar = 0;
+	flameShock.presses
 		.filter((p) => p.remainingMs !== null)
-		.map((p, i) => {
+		.forEach((p, i) => {
 			const label = `${String(i + 1).padStart(2, '0')} · ${fmt(p.t)}`;
-			// A refresh during Ascendance is the one outright fault; an early refresh (a healthy dot
-			// clipped) is the amber; the last-tick refresh, the Ascendance prep and a refresh that
+			// A refresh during Ascendance is the one outright fault; an early refresh (a tick thrown away)
+			// is the amber; the last-tick refresh, the Ascendance prep and a refresh that
 			// snapshotted a stronger dot are all the accent. That third one has to be here and not only in
 			// the ladder: the tone comes off the same predicate `flameShockWaste` does, so leaving it out
 			// would draw a press the section calls correct in the fault colour.
@@ -52,49 +104,83 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Bar[]
 				: p.windowed || p.ascPrep || p.kind === 'snapshot'
 					? 'kick'
 					: 'brew';
+			// `durationMs − remainingMs` reduces to `t − applyTime`, because `remainingMs` is
+			// `applyTime + durationMs − t`. So the bar's length is the real elapsed time since the
+			// application and carries none of the declared duration's error; only a *band* anchored to the
+			// right-hand end of the axis did.
 			const elapsed = flameShock.durationMs - (p.remainingMs ?? 0);
-			return {
-				x: label,
-				y: r1(elapsed / 1000),
-				fillColor: theme[tone],
-				meta: {
-					title: `Refresh ${String(i + 1).padStart(2, '0')}`,
-					tone,
-					rows: [
-						['pressed at', formatStamp(p.t)],
-						['dot had run', `${sec(elapsed)}s`],
-						['dot left', `${sec(p.remainingMs ?? 0)}s`],
-						// This press's *own* window, which is the number its tone was decided against. The band
-						// behind the bars has to pick one for the whole pull, and the docstring above defends
-						// that — but it left the reader no way to see the window that actually judged the press
-						// they are hovering. On `unbroken` the median is 1 726ms while the press at 83 852 rolled
-						// its own 2 246ms tick, so the median is not merely imprecise here, it is the wrong
-						// number for that bar.
-						['last tick', `${sec(p.tickMs)}s`],
-						// The snapshot delta, on every refresh that has one rather than only on the credited ones.
-						// A reader looking at an amber bar wants to see *why* it did not clear the bar, and a
-						// figure that appears only when it is flattering is not evidence.
-						...(p.snapshotDeltaPct !== null
-							? [
-									['dot strength', `${p.snapshotDeltaPct > 0 ? '+' : ''}${r1(p.snapshotDeltaPct * 100)}%`] as [
-										string,
-										string,
-									],
-								]
-							: []),
-						p.duringAscendance
-							? (['reason', 'refresh during Ascendance'] as [string, string])
-							: p.ascPrep
-								? (['reason', 'Ascendance prep'] as [string, string])
-								: p.windowed
-									? (['reason', 'refreshed on the last tick'] as [string, string])
-									: p.kind === 'snapshot'
-										? (['reason', 'snapshotted a stronger dot'] as [string, string])
-										: (['reason', 'early refresh'] as [string, string]),
-					],
-				},
+			/**
+			 * The part of the bar inside the dot's own last tick — zero for a press that never reached it.
+			 *
+			 * Clamped to the bar's own length for the one case that can exceed it: a press onto a spawn whose
+			 * application had already delivered every scheduled tick reads `intoLastTickMs` measured back from
+			 * a tick that landed before the application this bar is drawn for.
+			 */
+			const tailMs = Math.max(0, Math.min(elapsed, p.intoLastTickMs ?? 0));
+			const meta: TipContent = {
+				title: `Refresh ${String(i + 1).padStart(2, '0')}`,
+				tone,
+				rows: [
+					['pressed at', formatStamp(p.t)],
+					['dot had run', `${sec(elapsed)}s`],
+					['dot left', `${sec(p.remainingMs ?? 0)}s`],
+					// This press's *own* tick, which is the width of the tail drawn on its row. On `unbroken`
+					// the pull's median is 1 726ms while the press at 83 852 was judged against its own
+					// 2 246ms tick, so a median is not merely imprecise here, it is the wrong number for that
+					// bar — which is why nothing pull-wide is drawn any more.
+					['last tick', `${sec(p.tickMs)}s`],
+					// The count the tone was decided on. Published beside the two lengths so a reader can see
+					// that the tail and the verdict are one measurement rather than two that happen to agree.
+					...(p.ticksLeft !== null ? [['ticks left', `${p.ticksLeft}`] as [string, string]] : []),
+					// How far into that tick the press landed, negative when it never got there. This is the
+					// tail's own length, so the row says in words exactly what the drawing says in pixels.
+					...(p.intoLastTickMs !== null
+						? [
+								[
+									'into last tick',
+									p.intoLastTickMs >= 0 ? `${sec(p.intoLastTickMs)}s` : `${sec(-p.intoLastTickMs)}s short`,
+								] as [string, string],
+							]
+						: []),
+					// The snapshot delta, on every refresh that has one rather than only on the credited ones.
+					// A reader looking at an amber bar wants to see *why* it did not clear the bar, and a
+					// figure that appears only when it is flattering is not evidence.
+					...(p.snapshotDeltaPct !== null
+						? [
+								['dot strength', `${p.snapshotDeltaPct > 0 ? '+' : ''}${r1(p.snapshotDeltaPct * 100)}%`] as [
+									string,
+									string,
+								],
+							]
+						: []),
+					p.duringAscendance
+						? (['reason', 'refresh during Ascendance'] as [string, string])
+						: p.ascPrep
+							? (['reason', 'Ascendance prep'] as [string, string])
+							: p.windowed
+								? (['reason', 'refreshed on the last tick'] as [string, string])
+								: p.kind === 'snapshot'
+									? (['reason', 'snapshotted a stronger dot'] as [string, string])
+									: (['reason', 'early — a tick thrown away'] as [string, string]),
+				],
 			};
+			// Stacked, so the two segments are one bar: what the dot ran before its last tick, and the part
+			// of it inside that tick. The same `meta` on both, because a reader hovering either half is
+			// asking about the same press.
+			held.push({ x: label, y: (elapsed - tailMs) / 1000, fillColor: theme[tone], meta });
+			lastTick.push({ x: label, y: tailMs / 1000, fillColor: theme.rune, meta });
+			// `elapsed − intoLastTickMs` is the instant this press's last tick opened, whether the press
+			// reached it or not: `intoLastTickMs` is negative when it did not, which puts the opening later
+			// than the bar ends. Both belong in the range.
+			longestBar = Math.max(longestBar, elapsed);
+			if (p.intoLastTickMs !== null) {
+				const opening = elapsed - p.intoLastTickMs;
+				openings.push(opening);
+				ends.push(opening + p.tickMs);
+			}
 		});
+	const lastTickZone = openings.length > 0 ? { from: Math.min(...openings), to: Math.max(...ends) } : null;
+	return { held, lastTick, lastTickZone, axisMaxMs: Math.max(longestBar, lastTickZone?.to ?? 0) };
 }
 
 export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
@@ -105,88 +191,93 @@ export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 	const height = refreshes * ROW_HEIGHT + CHROME;
 
 	const build = useCallback(
-		({ theme, narrow, animate }: ChartEnv): ApexOptions => ({
-			chart: {
-				...baseChart({ id: 'ele-flame-shock-depth', type: 'bar', height, theme, animate }),
-			},
-			series: [{ name: 'left', data: buildBars(flameShock, theme) }],
-			plotOptions: { bar: { horizontal: true, barHeight: '62%', borderRadius: 2 } },
-			dataLabels: { enabled: false },
-			legend: { show: false },
-			stroke: { width: 0 },
-			grid: baseGrid(theme),
-			annotations: {
-				xaxis: [
-					{
-						/**
-						 * One band for a window that is per press — the median, and deliberately unlabelled as such.
-						 *
-						 * The last tick window is the tail of the dot's duration, so the band belongs at the right
-						 * end; but its width moved three times inside `phased` alone (1 349 / 1 748 / 2 275ms) and
-						 * this chart has one x-axis to draw it on. `flameShock.tickMs` is the median of the
-						 * windows the refreshes were actually judged against, so the band is an **average** of them
-						 * and no press is graded against it — a bar's tone comes from that press's own `tickMs`. The
-						 * label says "last tick" and quotes no number for exactly that reason: it used to read
-						 * "refresh window 1.3s", which asserted one window for a pull that had three.
-						 *
-						 * Drawing it per press would mean a rectangle per row, which an Apex xaxis annotation cannot
-						 * be — it spans the plot. The per-press truth is in the tone and in the tooltip's "dot left"
-						 * instead. If this ever becomes a per-row band, take the number back off the median.
-						 */
-						x: r1((flameShock.durationMs - flameShock.tickMs) / 1000),
-						x2: r1(flameShock.durationMs / 1000),
-						fillColor: theme.kick,
-						borderColor: 'transparent',
-						opacity: 0.2,
-						...(narrow
-							? {}
-							: {
-									label: {
-										text: t('flameShock.chart.band'),
-										borderColor: 'transparent',
-										orientation: 'horizontal',
-										position: 'top',
-										offsetY: -6,
-										style: {
-											background: theme.raised,
-											color: theme.muted,
-											fontFamily: theme.mono,
-											fontSize: LABEL_FONT_SIZE,
-										},
-									},
-								}),
-					},
+		({ theme, narrow, animate }: ChartEnv): ApexOptions => {
+			const series = buildBars(flameShock, theme);
+			// The stretch the drawn dots' last ticks began in. Restored after being dropped with the old
+			// band, and deliberately a different claim from that one: the old band ran to the right-hand end
+			// of a *declared* 30s axis and read as "past here is fine", which contradicted the verdicts drawn
+			// against it. This runs from the earliest opening to the latest, so it says "the last tick begins
+			// somewhere in here, and it moves with your haste" — context for the tails, not a threshold.
+			// A single opening degenerates to a line, which is the honest drawing of a pull whose haste never
+			// changed.
+			const zone = series.lastTickZone;
+			return {
+				chart: {
+					...baseChart({ id: 'ele-flame-shock-depth', type: 'bar', height, theme, animate }),
+					stacked: true,
+				},
+				series: [
+					{ name: 'held', data: series.held },
+					{ name: 'last tick', data: series.lastTick },
 				],
-			},
-			xaxis: {
-				type: 'numeric',
-				min: 0,
-				max: r1(flameShock.durationMs / 1000),
-				tickAmount: narrow ? 3 : 5,
-				title: {
-					text: narrow ? 'seconds into the dot' : 'seconds held into the dot',
-					style: {
-						color: theme.muted,
-						fontSize: LABEL_FONT_SIZE,
-						fontFamily: theme.mono,
-						fontWeight: 500,
+				// Stacked so a row's two segments are one bar. Nothing here is a second measurement stacked on
+				// top of a first: the tail is the part of the same elapsed time that fell inside the dot's own
+				// last tick, which is what the verdict is, so the bar's total length is unchanged.
+				plotOptions: { bar: { horizontal: true, barHeight: '62%', borderRadius: 2 } },
+				dataLabels: { enabled: false },
+				legend: { show: false },
+				stroke: { width: 0 },
+				grid: baseGrid(theme),
+				annotations:
+					zone === null
+						? {}
+						: {
+								xaxis: [
+									{
+										x: r1(zone.from / 1000),
+										...(zone.to > zone.from ? { x2: r1(zone.to / 1000) } : {}),
+										fillColor: theme.rune,
+										opacity: 0.12,
+										borderColor: theme.rune,
+										strokeDashArray: zone.to > zone.from ? 0 : 3,
+										label: narrow
+											? undefined
+											: {
+													text: t('flameShock.chart.zone'),
+													position: 'top',
+													orientation: 'horizontal',
+													offsetY: -2,
+													borderWidth: 0,
+													style: {
+														background: 'transparent',
+														color: theme.muted,
+														fontSize: LABEL_FONT_SIZE,
+														fontFamily: theme.mono,
+													},
+												},
+									},
+								],
+							},
+				xaxis: {
+					type: 'numeric',
+					min: 0,
+					max: r1(series.axisMaxMs / 1000),
+					tickAmount: narrow ? 3 : 5,
+					title: {
+						text: narrow ? 'seconds into the dot' : 'seconds held into the dot',
+						style: {
+							color: theme.muted,
+							fontSize: LABEL_FONT_SIZE,
+							fontFamily: theme.mono,
+							fontWeight: 500,
+						},
+					},
+					axisBorder: { show: false },
+					axisTicks: { color: theme.line },
+					labels: {
+						style: { colors: theme.muted, fontSize: LABEL_FONT_SIZE, fontFamily: theme.mono },
+						formatter: (value: string | number) => `${r1(Number(value))}s`,
 					},
 				},
-				axisBorder: { show: false },
-				axisTicks: { color: theme.line },
-				labels: {
-					style: { colors: theme.muted, fontSize: LABEL_FONT_SIZE, fontFamily: theme.mono },
-					formatter: (value: string | number) => `${r1(Number(value))}s`,
+				yaxis: {
+					labels: {
+						maxWidth: narrow ? 88 : 104,
+						style: { colors: theme.muted, fontSize: LABEL_FONT_SIZE, fontFamily: theme.mono },
+					},
 				},
-			},
-			yaxis: {
-				labels: {
-					maxWidth: narrow ? 88 : 104,
-					style: { colors: theme.muted, fontSize: LABEL_FONT_SIZE, fontFamily: theme.mono },
-				},
-			},
-			tooltip: baseTooltip(theme),
-		}),
+				tooltip: baseTooltip(theme),
+			};
+		},
 		[flameShock, height, t],
 	);
 
@@ -207,6 +298,13 @@ export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 					 */}
 					<ChartKey tone="kick">{t('flameShock.chart.key.snapshot')}</ChartKey>
 					<ChartKey tone="brew">{t('flameShock.chart.key.wasted')}</ChartKey>
+					{/*
+					 * The one tone here that is not a verdict: the tail every bar carries iff the press reached
+					 * the dot's own last tick. It replaces the shaded band, which claimed one window for a pull
+					 * whose applications ran 13, 17 and 22 ticks — so it is named as a length on the bar rather
+					 * than as a region of the plot.
+					 */}
+					<ChartKey tone="rune">{t('flameShock.chart.key.lastTick')}</ChartKey>
 				</>
 			}
 		>

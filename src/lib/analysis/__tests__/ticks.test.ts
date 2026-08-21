@@ -19,15 +19,26 @@ import { createRegistry } from '~/lib/game/registry';
 import type { Aura, Dot } from '~/lib/game/model';
 import type { FightDataset } from '~/lib/types';
 
-import { dotTicksBySpawn, inLastTickWindow, tickWindowAt, TICK_MIN_SAMPLE, TICK_SAMPLE } from '../ticks';
+import {
+	dotTickBudgetIn,
+	dotTicksBySpawn,
+	inLastTick,
+	inLastTickWindow,
+	tickWindowAt,
+	TICK_MIN_SAMPLE,
+	TICK_SAMPLE,
+} from '../ticks';
 
 /** Flame Shock as the Elemental module declares it: ten three-second ticks — `sim/shaman/shocks.go`. */
 const FLAME_SHOCK: Dot = { durationMs: 30_000, tickMs: 3000, ticks: 10, hastedTicks: true, rollsOver: true };
 const FS_AURA: Aura = { key: 'flame-shock', name: 'Flame Shock', ids: [8050], kind: 'debuff', durationMs: 30_000 };
 
-const phased = JSON.parse(
-	readFileSync(resolve(import.meta.dirname, '../../../specs/elemental/__fixtures__/phased.json'), 'utf8'),
-) as FightDataset;
+const fixture = (name: string): FightDataset =>
+	JSON.parse(
+		readFileSync(resolve(import.meta.dirname, `../../../specs/elemental/__fixtures__/${name}.json`), 'utf8'),
+	) as FightDataset;
+
+const phased = fixture('phased');
 
 const ticksOf = (dataset: FightDataset): number[] => {
 	const bySpawn = dotTicksBySpawn(dataset.events, FS_AURA, dataset.fight.startTime, dataset.actor.id);
@@ -184,5 +195,98 @@ describe('the declaration guard', () => {
 	it('refuses a tick count that is not the duration over the period', () => {
 		expect(() => createRegistry(ability({ ...FLAME_SHOCK, tickMs: 2000 }))).toThrow(/10 × 2000ms/);
 		expect(() => createRegistry(ability({ ...FLAME_SHOCK, ticks: 0 }))).toThrow(/is not its 30000ms duration/);
+	});
+});
+
+/**
+ * The load-bearing claim behind grading a refresh by ticks: **a dot's real duration is
+ * `period × RoundToEven(declared / period)`, not the declared duration.**
+ *
+ * `sim/core/dot.go:122-146` — `remainingTicks = HastedTickCount()`, then
+ * `Duration = tickPeriod * remainingTicks`. Bankers rounding, whole ticks, no leftover fragment. At
+ * 1347.7ms that is `RoundToEven(22.26) = 22` ticks and **29 649ms**, not 30 000; at 2279.3ms it is 13
+ * ticks and **29 631ms**. That shortfall is why `remainingMs` — which is measured against the declared
+ * 30 000 — reads long, and why a press with exactly one tick left could fail a `remaining <= tickMs`
+ * test and be faulted for playing correctly.
+ *
+ * The only case that can *test* the claim is an application nobody refreshed: its `removedebuff` is the
+ * schedule running out. `phased` has three, at three different cadences, so bankers rounding is
+ * exercised at 22.26, 17.11 and 13.16 rather than at one comfortable value.
+ *
+ * A refresh is deliberately **not** asserted here. `dot.go:136-139` adds the *pending* tick's remaining
+ * time rather than a whole period (`Duration += nextTick; remainingTicks++`), so a refreshed
+ * application's end is `period × N + nextTick` — the tick *count* is `N + 1`, which is what
+ * `dotTickBudgetIn` returns, but the duration is not `period × (N + 1)` unless the refresh happened to
+ * land on a tick. Measured on `cleave`'s refresh at 57 499ms, assuming a whole period overshoots the
+ * logged removal by 2.2s. Asserting the count without the duration is the honest half.
+ */
+describe('a dot’s schedule against the log that ran it', () => {
+	/** `applydebuff` → `removedebuff` with nothing in between, read off the fixture itself. */
+	const naturalExpiries = (dataset: FightDataset): Array<{ from: number; to: number }> => {
+		const t0 = dataset.fight.startTime;
+		const own = dataset.events.filter(
+			(e: WclEvent) => e.abilityGameID === 8050 && (e as { sourceID?: number }).sourceID === dataset.actor.id,
+		);
+		const out: Array<{ from: number; to: number }> = [];
+		for (const [i, e] of own.entries()) {
+			if (e.type !== 'applydebuff') continue;
+			const after = own.slice(i + 1);
+			const end = after.find((x) => x.type === 'removedebuff' || x.type === 'refreshdebuff');
+			if (end?.type === 'removedebuff') out.push({ from: e.timestamp - t0, to: end.timestamp - t0 });
+		}
+		return out;
+	};
+
+	const expiries = naturalExpiries(phased);
+	const ticks = ticksOf(phased);
+
+	it('finds the three unrefreshed applications, so nothing below is vacuous', () => {
+		expect(expiries.map((w) => Math.round(w.from))).toEqual([2631, 91_059, 121_512]);
+	});
+
+	it('ends each one where `period × scheduled` says it should, to within 25ms', () => {
+		for (const { from, to } of expiries) {
+			const budget = dotTickBudgetIn(ticks, from, to, FLAME_SHOCK, { refreshed: false });
+			expect(budget).not.toBeNull();
+			// Delivered everything it was scheduled: this is what "ran out" means, and it is the
+			// precondition for the duration check being about the schedule rather than about a clip.
+			expect(budget!.delivered).toBe(budget!.scheduled);
+			expect(budget!.left).toBe(0);
+			// The claim. 25ms is the observed spread across all eight natural expiries in the three raw
+			// fixtures (+11, +5, +6, −21, −16, +4, +10, +16) — the log's own jitter in when a removal is
+			// stamped, not slack in the model.
+			expect(from + budget!.cadenceMs * budget!.scheduled).toBeCloseTo(to, -1.4);
+		}
+	});
+
+	it('backs out a tick count the declared duration would have got wrong', () => {
+		// Three cadences, three counts, and none of them is the declared ten. The middle one is the case
+		// that matters most: 30 000 / 1753 is 17.11, so a model that floored or rounded up would be out by
+		// a tick and would move a verdict.
+		const counts = expiries.map(({ from, to }) => {
+			const b = dotTickBudgetIn(ticks, from, to, FLAME_SHOCK, { refreshed: false });
+			return [b!.scheduled, Math.round(b!.cadenceMs)];
+		});
+		expect(counts).toEqual([
+			[22, 1348],
+			[17, 1753],
+			[13, 2279],
+		]);
+		// And the real durations are all short of the declared 30 000, which is the whole point.
+		for (const [scheduled, cadence] of counts) expect(scheduled! * cadence!).toBeLessThan(FLAME_SHOCK.durationMs);
+	});
+
+	it('counts a fully delivered application as inside the last tick, and that is deliberate', () => {
+		const { from, to } = expiries[0]!;
+		const budget = dotTickBudgetIn(ticks, from, to, FLAME_SHOCK, { refreshed: false })!;
+		expect(budget.left).toBe(0);
+		// `inLastTick` is `left <= 1`, so **zero counts**. Worth asserting rather than leaving to the
+		// reader of the predicate, because "in the last tick" sounds like it should mean exactly one.
+		//
+		// It is the right answer for what this grades: a refresh that throws no tick away. With nothing
+		// owed there is nothing to throw away, so the press cannot be waste. A dot that has *already
+		// expired* does not reach here at all — `remainingMs` is null for a re-apply, so it is not
+		// classified as a refresh in the first place.
+		expect(inLastTick(budget, FLAME_SHOCK)).toBe(true);
 	});
 });

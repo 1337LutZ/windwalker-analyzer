@@ -306,22 +306,34 @@ describe('an unbroken pull', () => {
 	 * than any tick this pull ever had; against the tick they were actually aimed at, only the third and
 	 * fourth had a single tick left to roll over.
 	 *
-	 * **Two of those four early presses then moved again, to `snapshot`.** The priority list refreshes
+	 * **Three of those four early presses then moved again, to `snapshot`.** The priority list refreshes
 	 * early when the new application snapshots a dot more than 10% stronger per millisecond, and these
-	 * two are +42.4% (28 628) and +32.7% (140 025) — see `flameShockSnapshot.test.ts` for the readings.
-	 * So this pull is a perfect keep-up with **two** globals genuinely spent early rather than four, and
-	 * the two that remain snapshotted a dot 52% and 41% *weaker*.
+	 * three are +42.4% (28 628), +56.2% (83 852) and +32.7% (140 025) — see `flameShockSnapshot.test.ts`
+	 * for the readings. So this pull is a perfect keep-up with **two** globals genuinely spent early
+	 * rather than four, and the two that remain snapshotted a dot 52% and 41% *weaker*.
+	 *
+	 * **The press at 83 852 moved a second time, out of `windowed`,** when the rule became a count of
+	 * ticks owed rather than a comparison of durations. It went out 2 182ms before its dot's *declared*
+	 * expiry against a 2 246ms tick, so the duration test called it a rollover — but its application had
+	 * landed 12 of the 14 ticks its 2 250.6ms period bought (13 scheduled plus the pending tick it kept
+	 * as a refresh), and the log's own stream carries a tick at 83 911 and none between 81 675 and the
+	 * press. Two ticks owed is one thrown away. The declared duration under-stated the dot here rather
+	 * than over-stating it, because a refresh keeps its pending tick: the real expiry was 144ms *past*
+	 * the 30s mark.
 	 */
 	it('reads the opener as an application, not a late refresh', () => {
 		expect(el.flameShock.presses.map((p) => p.kind)).toEqual([
 			'apply',
 			'snapshot',
 			'early',
-			'windowed',
+			'snapshot',
 			'windowed',
 			'snapshot',
 			'early',
 		]);
+		// The count each of those verdicts was made on, beside the declared remaining time that used to
+		// make them. One owed is the pending tick rolling over; two is a tick clipped off.
+		expect(el.flameShock.presses.map((p) => p.ticksLeft)).toEqual([null, 2, 2, 2, 1, 2, 2]);
 		expect(el.flameShock.presses[0]?.exposedMs).toBe(0);
 		expect(el.flameShock.presses.filter((p) => p.kind === 'late')).toEqual([]);
 	});

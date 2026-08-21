@@ -35,8 +35,8 @@ type El = Analysis & ElementalAuditResult;
  * `a:xB3kh7v9pF2AHRtq` #16 — the unbroken pull: one apply, six refreshes, and a dot that is never off
  * the target. Analysed once; each case below overrides the two fields the verdict reads.
  *
- * Two of those six refreshes landed in the dot's last tick window and four did not, so the pull's own
- * `windowed` is 2 and its refresh share grades `bad`. That is the right reading of the log and it is not
+ * One of those six refreshes landed on the dot's last tick and five did not, so the pull's own
+ * `windowed` is 1 and its refresh share grades `bad`. That is the right reading of the log and it is not
  * what most of these cases are about — they are about which *sentence* each grade produces — so the
  * cases that need a clean refresh ledger say so with `PERFECT_KEEPUP` rather than leaning on the
  * fixture's own number. It used to be 6, back when a 3 000ms setting decided it.
@@ -121,7 +121,7 @@ describe('Flame Shock verdict', () => {
 	it('has its own wording for a middling refresh share on a perfect keep-up', () => {
 		const html = render(withFlameShock({ windowed: 5 }));
 		expect(html).toContain(t('flameShock.verdict', { context: 'ok_full', casts: CASTS, wasted: 1 }));
-		expect(html).toContain('1 of the refreshes clipped a healthy dot without a stronger snapshot');
+		expect(html).toContain('1 of the refreshes threw away a tick of the running dot with no stronger snapshot');
 	});
 
 	/**

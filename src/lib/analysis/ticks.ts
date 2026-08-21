@@ -186,11 +186,17 @@ export function tickWindowAt(tickTimes: readonly number[], t: number, dot: Dot):
 /**
  * Did a reapplication with `remainingMs` left land in the dot's **last tick window**?
  *
- * That is the whole scoring rule. One tick period or less remaining means one tick is still pending,
- * and reapplying there rolls that tick over — the player keeps it *and* gets a full fresh dot, so the
- * global bought the most it could. Reapplying earlier buys the same fresh dot for the same global
- * while more of the old one was still owed, which is what the sim's own priority list means by
- * refreshing "when the dot has less than one tick left".
+ * **The fallback reading of the rule, and it is only correct to within half a tick.** `inLastTick`
+ * below is the one the verdict wants; this one is what is left when the log carries too few ticks to
+ * count them — a synthetic pull, or a press onto a spawn whose application never ticked. It is kept
+ * because "no measurement" must fall back to the older reading rather than to a silent `false`.
+ *
+ * The reason it is not the rule: every caller's `remainingMs` is measured against the dot's *declared*
+ * duration, and a dot in this expansion does not run for its declared duration (`sim/core/dot.go:122`
+ * — `tickPeriod × RoundToEven(BaseDuration / tickPeriod)`, plus the pending tick on a refresh). At a
+ * 1 730ms period that is 17 ticks and 29 410ms, so `remainingMs` runs 590ms long; on a refreshed
+ * application the kept pending tick can push the true end *past* the declared one instead. Both
+ * directions were measured on the committed fixtures and both flip a verdict — see `inLastTick`.
  *
  * Zero remaining is not in the window: the dot was already down, and putting one back up is a
  * different press with a different name (see `FlameShockPressKind`).
@@ -205,6 +211,154 @@ export function inLastTickWindow(remainingMs: number, window: TickWindow, dot: D
 		);
 	}
 	return remainingMs > 0 && remainingMs <= window.cadenceMs;
+}
+
+/** What one application of a dot still owes, counted rather than projected off a duration. */
+export interface TickBudget {
+	/**
+	 * The ticks the application was scheduled to deliver, all told.
+	 *
+	 * `RoundToEven(duration / period)` — `HastedTickCount` at `sim/core/dot.go:122-146`, which schedules
+	 * whole ticks by bankers rounding and leaves no fractional remainder — **plus one** for the pending
+	 * tick a refresh onto a live dot keeps ("the next tick never gets clipped", `dot.Duration +=
+	 * nextTick; dot.remainingTicks++`).
+	 */
+	scheduled: number;
+	/** The ticks it had actually landed by the instant asked about. */
+	delivered: number;
+	/** `scheduled − delivered`, floored at zero: the ticks still owed. */
+	left: number;
+	/** The period the schedule was backed out of — the mean of the application's own intervals. */
+	cadenceMs: number;
+	/**
+	 * When the application's **last tick window opened**, in ms since `t0`: the moment its
+	 * second-to-last scheduled tick landed or was due, after which only one tick is owed.
+	 *
+	 * `lastDelivered + (left − 1) × cadenceMs`, which is one formula for all three cases — the window is
+	 * already open at the last delivered tick when one is owed, one period further on when two are, and
+	 * one period *back* when the application has already delivered everything.
+	 *
+	 * Here because a caller that has to *draw* the verdict needs it and cannot recover it: the elapsed
+	 * time at a press is measured against the declared duration, so a shared band at the right-hand end
+	 * of a 30s axis sits later than any real last tick — 69ms and 343ms past two credited presses,
+	 * measured. An instant rather than an offset into the application, so nothing has to reconstruct
+	 * where the application started.
+	 */
+	lastTickAt: number;
+}
+
+/**
+ * The tick budget of the application running in `(from, to]` — what it was scheduled to deliver, what
+ * it had delivered by `to`, and so what it still owed. Null when the log cannot say.
+ *
+ * `from` and `to` are **presses**, the same boundaries `dotSnapshotIn` takes and for the same reason:
+ * only one application of a dot can tick on one spawn between two presses at it, so every tick in the
+ * half-open segment belongs to one application and needs no other boundary detection. `refreshed` says
+ * whether the press at `from` landed on a live dot, which is the sim's `dot.IsActive()` and the log's
+ * `refreshdebuff` — it is worth a whole extra tick and cannot be read off the ticks themselves.
+ *
+ * ## Why the count and not the remaining time
+ *
+ * The scoring question is "was one tick still pending", and the honest way to answer it is to count.
+ * Measured on `cleave`: the press at 29 777 had 1 784ms of *declared* dot left against a 1 725ms tick,
+ * so a duration test faults it — while its application had delivered 16 of the 17 ticks a 1 729.7ms
+ * period buys, and one tick was pending. The over-statement is exactly the `30 000 − 17 × 1 729.7` =
+ * 609ms that bankers rounding drops, and it is half a tick wide: the same size as the thing being
+ * measured. `unbroken`'s press at 83 852 is the same defect in the other direction — 2 182ms declared
+ * against its own 2 246ms tick reads as a rollover, while 12 of 14 ticks had landed and the refresh's
+ * kept pending tick had pushed the real end 144ms *past* the declared one.
+ *
+ * Counting is also noise-proof where a corrected duration test would not be. The true remaining at
+ * `cleave` 29 777 is 1 175ms against a 1 725ms period — but on `rpM9JRABYcvPFbjL` #26 the same press
+ * shape came out 1 741ms against a 1 727ms period, a 14ms margin, on an application whose own tick
+ * gaps spanned 1 677–1 803ms. A count has no margin to be inside.
+ *
+ * ## Where the period comes from
+ *
+ * The plain mean of the application's **own** intervals, end to end — not `tickWindowAt`'s trimmed
+ * four-sample mean, which exists because a walk back from an arbitrary instant cannot see a
+ * re-application boundary and which therefore biases a few ms low. A press-bounded segment cannot
+ * contain such a boundary, and the count is `round(30 000 / period)`, so accuracy here is worth more
+ * than robustness that costs it. Intervals longer than the unhasted period are still dropped: they
+ * span an absence rather than a tick.
+ *
+ * Null rather than a guess below `TICK_MIN_SAMPLE` intervals, the same floor the rest of this file
+ * holds — one interval is a reading, not a measurement. A caller must fall through to whatever it
+ * would have concluded without a count (see `inLastTickWindow`), never read null as "nothing owed".
+ */
+export function dotTickBudgetIn(
+	tickTimes: readonly number[],
+	from: number,
+	to: number,
+	dot: Dot,
+	{ refreshed }: { refreshed: boolean },
+): TickBudget | null {
+	if (!dot.hastedTicks) {
+		throw new Error('dotTickBudgetIn: haste shortens this dot’s duration, so its tick count cannot be counted out');
+	}
+	const own = tickTimes.filter((t) => t > from && t <= to);
+	const cadenceMs = applicationCadence(own, dot);
+	if (cadenceMs === null) return null;
+	const scheduled = roundToEven(dot.durationMs / cadenceMs) + (refreshed ? 1 : 0);
+	const left = Math.max(0, scheduled - own.length);
+	// `own` cannot be empty: a cadence needs `TICK_MIN_SAMPLE` intervals, so at least three ticks.
+	const lastDelivered = own[own.length - 1] ?? 0;
+	return { scheduled, delivered: own.length, left, cadenceMs, lastTickAt: lastDelivered + (left - 1) * cadenceMs };
+}
+
+/**
+ * Did a reapplication land inside the dot's **last tick** — the one press that throws nothing away?
+ *
+ * One tick still owed means that tick is pending, and reapplying there rolls it over: the player keeps
+ * it *and* gets a full fresh dot, so the global bought the most it could. Two owed means one of them
+ * was thrown away, which is what the sim's own priority list means by refreshing "when the dot has
+ * less than one tick left". Nothing owed is in the window too — every scheduled tick had landed, so a
+ * press there clipped nothing either.
+ *
+ * **Throws for a dot that does not roll over — Warlock.** The question does not apply there, and a
+ * bare `false` would be read as the player having missed the window. See `Dot.rollsOver`.
+ */
+export function inLastTick(budget: TickBudget, dot: Dot): boolean {
+	if (!dot.rollsOver) {
+		throw new Error('inLastTick: this dot does not roll over, so the last tick is not what grades a refresh');
+	}
+	return budget.left <= 1;
+}
+
+/**
+ * Bankers rounding — the sim's `RoundToEven`, and the reason a dot's schedule is not its declared
+ * duration.
+ *
+ * `Math.round` is half-up and would differ only on an exact `.5`, which a measured period never lands
+ * on. Written out anyway because the count is the sim's count or it is nothing: reading a period of
+ * exactly 1 764.7ms (30 000 / 17.5) off a pull and scheduling 18 ticks where the game schedules 17
+ * would be a whole tick of error in a rule whose whole margin is one tick.
+ */
+function roundToEven(x: number): number {
+	const below = Math.floor(x);
+	const frac = x - below;
+	if (frac > 0.5) return below + 1;
+	if (frac < 0.5) return below;
+	return below % 2 === 0 ? below : below + 1;
+}
+
+/**
+ * The mean interval of one application's own ticks, or null below `TICK_MIN_SAMPLE` of them.
+ *
+ * Shared by the two press-bounded readings — the snapshot's cadence and the tick budget's period — so
+ * that a verdict and the strength behind it can never be measured off two different numbers.
+ */
+function applicationCadence(times: readonly number[], dot: Dot): number | null {
+	const intervals: number[] = [];
+	for (let i = 1; i < times.length; i++) {
+		const gap = (times[i] ?? 0) - (times[i - 1] ?? 0);
+		// Longer than the unhasted period, so it spans an absence rather than a tick — the target left, or
+		// the dot expired well before the next press. Haste can only ever shorten a period.
+		if (gap > dot.tickMs) continue;
+		intervals.push(gap);
+	}
+	if (intervals.length < TICK_MIN_SAMPLE) return null;
+	return intervals.reduce((a, b) => a + b, 0) / intervals.length;
 }
 
 /** What one application of a snapshotting dot froze at the instant it went up. */
@@ -262,14 +416,11 @@ export function dotSnapshotIn(ticks: readonly DotTick[], from: number, to: numbe
 	const own = ticks.filter((tick) => tick.t > from && tick.t <= to);
 	const amounts = own.map((tick) => tick.unmitigatedAmount).filter((a): a is number => a !== null);
 	if (amounts.length === 0) return null;
-	const intervals: number[] = [];
-	for (let i = 1; i < own.length; i++) {
-		const gap = (own[i]?.t ?? 0) - (own[i - 1]?.t ?? 0);
-		if (gap > dot.tickMs) continue;
-		intervals.push(gap);
-	}
-	if (intervals.length < TICK_MIN_SAMPLE) return null;
-	const cadenceMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+	const cadenceMs = applicationCadence(
+		own.map((tick) => tick.t),
+		dot,
+	);
+	if (cadenceMs === null) return null;
 	const tickAmount = median(amounts);
 	return { tickAmount, cadenceMs, strength: tickAmount / cadenceMs, ticks: own.length };
 }

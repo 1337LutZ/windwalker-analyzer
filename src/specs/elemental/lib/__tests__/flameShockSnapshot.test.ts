@@ -147,18 +147,24 @@ describe('the sim’s own reason to refresh Flame Shock early', () => {
 	const el = { unbroken: analysed('unbroken'), cleave: analysed('cleave'), phased: analysed('phased') };
 
 	/**
-	 * The two `unbroken` refreshes the old audit faulted and the list wanted.
+	 * The three `unbroken` refreshes the old audit faulted and the list wanted.
 	 *
 	 * 28 628 replaced a 13 529-per-tick application at 1 730ms with a 19 245 one at 1 728ms; 140 025
 	 * replaced 19 784 at 2 252ms with 20 159 at 1 730ms. Both clear 10% by a wide margin, and the second
 	 * one clears it almost entirely on cadence — see the per-millisecond test below.
+	 *
+	 * 83 852 is the third, and it arrived here from `windowed` rather than from `early`: the tick count
+	 * shows two ticks owed where the declared remaining time read one, so the press needs its snapshot to
+	 * excuse it after all. It is +56.2%, which is not near anything.
 	 */
-	it('credits the two unbroken refreshes that snapshotted a stronger dot', () => {
+	it('credits the three unbroken refreshes that snapshotted a stronger dot', () => {
 		expect(pressAt(el.unbroken, 28_628).kind).toBe('snapshot');
 		expect(pressAt(el.unbroken, 28_628).snapshotDeltaPct).toBeCloseTo(0.4244, 3);
+		expect(pressAt(el.unbroken, 83_852).kind).toBe('snapshot');
+		expect(pressAt(el.unbroken, 83_852).snapshotDeltaPct).toBeCloseTo(0.5615, 3);
 		expect(pressAt(el.unbroken, 140_025).kind).toBe('snapshot');
 		expect(pressAt(el.unbroken, 140_025).snapshotDeltaPct).toBeCloseTo(0.3267, 3);
-		expect(el.unbroken.flameShock.snapshotGain).toBe(2);
+		expect(el.unbroken.flameShock.snapshotGain).toBe(3);
 	});
 
 	/** And the two that snapshotted a weaker one stay faults, by a margin nothing could round away. */
@@ -169,14 +175,25 @@ describe('the sim’s own reason to refresh Flame Shock early', () => {
 		expect(pressAt(el.unbroken, 167_184).snapshotDeltaPct).toBeCloseTo(-0.4099, 3);
 	});
 
-	/** `cleave` has exactly two refreshes, one of each, and both are on the boss spawn. */
+	/**
+	 * `cleave` has exactly two refreshes and both are on the boss spawn — one excused, one not.
+	 *
+	 * The first is `windowed` rather than `snapshot`, and it is the press this whole count exists for: it
+	 * went out with 1 784ms of *declared* dot left against a 1 725ms tick, so a duration test faulted it
+	 * by 59ms — while its application had landed 16 of the 17 ticks a 1 729.7ms period buys and one tick
+	 * was still pending. The 609ms over-statement is exactly the `30 000 − 17 × 1 729.7` that bankers
+	 * rounding drops. Its snapshot gain is +42.7%, so the excuse it no longer needs is still measurable,
+	 * which is what makes the ladder's ordering testable in the case below.
+	 */
 	it('splits cleave’s two refreshes', () => {
 		expect(el.cleave.flameShock.refreshes).toBe(2);
-		expect(pressAt(el.cleave, 29_777).kind).toBe('snapshot');
+		expect(pressAt(el.cleave, 29_777).kind).toBe('windowed');
+		expect(pressAt(el.cleave, 29_777).ticksLeft).toBe(1);
 		expect(pressAt(el.cleave, 29_777).snapshotDeltaPct).toBeCloseTo(0.4268, 3);
 		expect(pressAt(el.cleave, 57_499).kind).toBe('early');
+		expect(pressAt(el.cleave, 57_499).ticksLeft).toBe(4);
 		expect(pressAt(el.cleave, 57_499).snapshotDeltaPct).toBeCloseTo(-0.2331, 3);
-		expect(el.cleave.flameShock.snapshotGain).toBe(1);
+		expect(el.cleave.flameShock.snapshotGain).toBe(0);
 	});
 
 	/**
@@ -227,18 +244,28 @@ describe('the sim’s own reason to refresh Flame Shock early', () => {
 	/**
 	 * A last-tick refresh is not credited twice, and the ladder's order is what stops it.
 	 *
-	 * `unbroken`'s press at 83 852 landed with 2.18s left against its own 2.25s tick, so it is `windowed`
-	 * — and it also snapshotted a dot 56% stronger. Both excuses apply; only one may be counted, or
-	 * `flameShockWaste` subtracts the same press out of the refreshes twice and can go negative. So
-	 * `snapshotGain` is counted off the *kind* and `snapshot` sits after `windowed` in the ladder.
+	 * `cleave`'s press at 29 777 had one tick still owed, so it is `windowed` — and it also snapshotted a
+	 * dot 43% stronger. Both excuses apply; only one may be counted, or `flameShockWaste` subtracts the
+	 * same press out of the refreshes twice and can go negative. So `snapshotGain` is counted off the
+	 * *kind* and `snapshot` sits after `windowed` in the ladder: this pull's `windowed` is 1, its
+	 * `snapshotGain` is 0, and the two together are one press rather than two.
+	 *
+	 * The case used to be `unbroken`'s press at 83 852, which stopped being `windowed` when the rule
+	 * became a count — the same press now proves the *other* half of the ordering, that a press dropping
+	 * out of `windowed` falls through to `snapshot` rather than to `early`.
 	 */
 	it('does not credit a last-tick refresh a second time for its snapshot', () => {
-		const press = pressAt(el.unbroken, 83_852);
+		const press = pressAt(el.cleave, 29_777);
 		expect(press.kind).toBe('windowed');
 		expect(press.snapshotDeltaPct).toBeGreaterThan(0.1);
-		const fs = el.unbroken.flameShock;
+		const fs = el.cleave.flameShock;
+		expect([fs.windowed, fs.ascPrep, fs.snapshotGain]).toEqual([1, 0, 0]);
 		expect(fs.windowed + fs.ascPrep + fs.snapshotGain).toBeLessThanOrEqual(fs.refreshes);
-		expect(fs.snapshotGain).toBe(fs.presses.filter((p) => p.kind === 'snapshot').length);
+		for (const a of Object.values(el)) {
+			const audit = a.flameShock;
+			expect(audit.snapshotGain).toBe(audit.presses.filter((p) => p.kind === 'snapshot').length);
+			expect(audit.windowed).toBe(audit.presses.filter((p) => p.kind === 'windowed').length);
+		}
 	});
 
 	/** Seven graded early presses across the three pulls, three of which clear the sim's 10%. */
