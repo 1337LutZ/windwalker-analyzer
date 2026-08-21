@@ -2377,7 +2377,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// it from `flameShockWaste` twice.
 			snapshotGain: fsPresses.filter((p) => p.kind === 'snapshot').length,
 			tickMs: fsTickMs,
-			ticks: Math.round(FLAME_SHOCK_DURATION_MS / fsTickMs),
 			durationMs: FLAME_SHOCK_DURATION_MS,
 			presses: fsPresses,
 			multiDotUptimeMs,

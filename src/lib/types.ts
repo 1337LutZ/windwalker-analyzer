@@ -2081,11 +2081,6 @@ export interface FlameShockAudit {
 	 * exists only for a chart with a single x-axis to shade against.
 	 */
 	tickMs: number;
-	/**
-	 * The tick count the pull's cadence backs out of the dot's duration — the answer to how many ticks
-	 * the dot actually got, which is 10 only at zero haste. 13, 17 or 22 on the committed fixtures.
-	 */
-	ticks: number;
 	/** The dot's full duration, so the chart can scale its bars against it. */
 	durationMs: number;
 	/** Every press with the dot state at it, for the section's table. */

@@ -112,14 +112,6 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					<StatTile value={`${flameShock.applies}`} label={t('flameShock.kpi.applies')} />
 					<StatTile value={`${flameShock.refreshes}`} label={t('flameShock.kpi.refreshes')} />
 					<StatTile value={`${flameShock.windowed}`} label={t('flameShock.kpi.windowed')} />
-					{/*
-					 * How many ticks this pull's dot actually had, backed out of the measured cadence rather than
-					 * taken from the spell. Haste shortens the interval and leaves the duration alone, so the count
-					 * is what moves: the declared ten becomes thirteen or seventeen under raid cooldowns. It is the
-					 * only place the report tells a reader that, and it is what makes the tile beside it legible —
-					 * "in the last tick" means a different number of seconds on every one of those pulls.
-					 */}
-					<StatTile value={`${flameShock.ticks}`} label={t('flameShock.kpi.ticks')} />
 					{/* The cleave rule's own tile, present only when the pull actually had a second target. */}
 					{flameShock.multiTargetMs > 0 ? (
 						<StatTile value={formatPercentValue(flameShock.multiDotUptimePct)} label={t('flameShock.kpi.multiDot')} />

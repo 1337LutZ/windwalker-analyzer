@@ -80,6 +80,17 @@ describe('Flame Shock last-tick copy', () => {
 		expect(html).not.toContain('keep-it-up window');
 		expect(html).not.toContain('refresh window');
 	});
+
+	it('quotes no tick count for the pull, because the applications did not share one', () => {
+		// The same objection as the band's retired "refresh window 1.3s", one field over. A tile read
+		// "Ticks per dot" off `round(30000 / median(tickMs))`, and on this pull the six graded presses ran
+		// 1 715–2 255ms — 17.5 ticks down to 13.3. The median printed 17, a figure none of the six
+		// applications had. The per-press count is real and the pull-wide one is not, so the section states
+		// the cadence per press (the tooltip below) and states no count at all.
+		expect(html).not.toContain('Ticks per dot');
+		// Non-vacuous: the tile row did render, so the string is absent because the tile is gone.
+		expect(html).toContain('In the last tick');
+	});
 });
 
 /**

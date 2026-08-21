@@ -229,14 +229,14 @@ describe('a phased pull', () => {
 	 * The tick windows the refreshes were judged against, which are the reason the verdict above moved.
 	 *
 	 * Three plateaus in one fight — 1 349ms, 1 748ms, 2 275ms — as Bloodlust and Elemental Mastery fell
-	 * off, none of them the 3 000ms the retired setting defaulted to and none of them each other. The
-	 * count backed out of the median is 13 ticks against the ten the spell declares.
+	 * off, none of them the 3 000ms the retired setting defaulted to and none of them each other. Which is
+	 * also why no count is derived from the median any more: 30s over these windows is 22, 17 and 13 ticks,
+	 * so one number for the pull is a figure none of its applications had.
 	 */
 	it('measures the dot’s tick window off the pull rather than taking it from a setting', () => {
 		const windows = el.flameShock.presses.filter((p) => p.remainingMs !== null).map((p) => Math.round(p.tickMs));
 		expect(windows).toEqual([1349, 1748, 2275, 2278]);
 		expect(Math.round(el.flameShock.tickMs)).toBe(2275);
-		expect(el.flameShock.ticks).toBe(13);
 	});
 
 	it('reads the shield as pre-applied and tracks it to the end', () => {
@@ -326,12 +326,11 @@ describe('an unbroken pull', () => {
 		expect(el.flameShock.presses.filter((p) => p.kind === 'late')).toEqual([]);
 	});
 
-	/** The same measurement on the other pull: six windows, no two the same, and 17 ticks not 10. */
+	/** The same measurement on the other pull: six windows, spanning 1 715–2 255ms, no two the same. */
 	it('measures the dot’s tick window off the pull rather than taking it from a setting', () => {
 		const windows = el.flameShock.presses.filter((p) => p.remainingMs !== null).map((p) => Math.round(p.tickMs));
 		expect(windows).toEqual([1724, 1726, 2246, 1715, 2255, 1724]);
 		expect(Math.round(el.flameShock.tickMs)).toBe(1726);
-		expect(el.flameShock.ticks).toBe(17);
 	});
 
 	it('catches the two shocks spent below the ceiling', () => {
