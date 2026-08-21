@@ -1685,7 +1685,14 @@ export interface RaidBuffRow {
 	fromPull: boolean;
 	/** True when the player was one of the casters — which makes any gap theirs to fix. */
 	byPlayer: boolean;
-	/** True when a Monk can supply this effect at all, whether or not this one did. */
+	/**
+	 * True when **this spec** can supply the effect itself, whether or not it did on this pull.
+	 *
+	 * Written by the spec, not measured: the shared pass has no view on who brings what, and the set
+	 * inverts almost completely between the two — a Monk brings all-stats and crit, an Elemental brings
+	 * mastery, spell power and spell haste. Getting it wrong turns "the raid did not have this" into "you
+	 * failed to press this", which is why it is declared rather than inferred.
+	 */
 	selfProvided: boolean;
 	/** Stretches with no provider up, in time order, including one before the first application. */
 	gaps: Array<{ at: number; seconds: number }>;
@@ -1696,7 +1703,7 @@ export interface RaidBuffSummary {
 	/** Player deaths in the pull. A corpse holds no buffs, so these explain gaps in every row. */
 	deaths: number;
 	notReported: number;
-	/** Effects the Monk supplies that were not up for the whole pull. */
+	/** Effects **this spec** supplies itself that were not up for the whole pull. */
 	selfGaps: number;
 }
 
