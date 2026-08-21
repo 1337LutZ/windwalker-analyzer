@@ -1094,11 +1094,38 @@ const FOCUS_OF_XUEN = registry.aura('focus-of-xuen');
  * timeline learns a spell id. Re-Origination is deliberately absent from both: it keeps the lane it
  * has always had, drawn from the snapshot analysis' own windows rather than from a second reading.
  */
-const GEAR_PROCS: Aura[] = ['capacitance', 'flurry-of-xuen', 'focus-of-xuen', 'vicious', 'ferocity'].map((key) =>
-	registry.aura(key),
-);
+const GEAR_PROCS: Aura[] = [
+	'capacitance',
+	'flurry-of-xuen',
+	'focus-of-xuen',
+	'vicious',
+	'ferocity',
+	// The weapon enchant, added because it fires and had no row: 18 applications on the committed dataset
+	// (12 applies, 6 refreshes) and 13,024 across the item sweep, under the id the game actually writes —
+	// 120032, see `shared.ts` for why the sim's own pair is not it. **Nothing in this report consumes it**,
+	// which is why it went unnoticed for as long as it did: a proc no metric reads is a proc only the
+	// chart can show, so no figure changed by its absence and no test could miss it.
+	'dancing-steel',
+].map((key) => registry.aura(key));
 /** The kit the player pressed. Same windows, drawn as buffs, because a press is not a proc. */
 const ITEM_USES: Aura[] = ['synapse-springs', 'virmens-bite'].map((key) => registry.aura(key));
+
+/**
+ * The raid's haste cooldown and the two racial buffs — neither gear nor a class button, and none of
+ * them with a row until now.
+ *
+ * Named apart from both lists above because their windows are not this audit's own walk. The core
+ * already publishes `hasteWindows` and `berserkingWindows`, both with `openAtPull`, and on the
+ * committed dataset that flag is the whole difference between a lane and nothing at all: the pull's
+ * Time Warp went up before the bell, so the only event the log carries for it is the removal at 39.9s
+ * and a default walk discards it. Reading the published windows also keeps the row and the band the
+ * rotation flow shades as one reading rather than two that can drift apart.
+ *
+ * Blood Fury is the exception and does walk, because nothing else in the engine reads it.
+ */
+const BLOODLUST = registry.aura('bloodlust');
+const BERSERKING = registry.aura('berserking');
+const BLOOD_FURY = registry.aura('blood-fury');
 
 /**
  * The combat potion, named apart from the list above because it is the only one of the kit with a
@@ -1657,6 +1684,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		marks,
 		potionWindows,
 		hasteWindows,
+		berserkingWindows,
 		settings,
 	} = h;
 	const { snapshotLeewayMs, cooldownLeewayMs } = settings;
@@ -3337,6 +3365,23 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		...ITEM_USES.map((aura) =>
 			lane(aura, 'buff', aura === POTION ? potionWindows : auraWindows(selfEvents, aura, t0, fight.endTime)),
 		),
+		// **The haste band is not a substitute for these rows, which is what having only the band assumed.**
+		// `hasteWindows` is drawn as one full-height wash behind the pull, so it says "a haste cooldown was
+		// up somewhere in here" and stops there: it cannot be hovered for a start, an end or a duration, and
+		// for a buff that is not haste it does not exist at all. Blood Fury grants attack power, so it had no
+		// representation anywhere in this report despite being declared with the right id.
+		//
+		// Both are kept, because they are different claims — the wash is the *region*, the reason a stretch
+		// of the pull looks faster, and the row is the *aura*. The Elemental excused these three as covered
+		// by its own band one commit before reversing it, and that excuse is the evidence: a reason in a
+		// ledger is only as good as the reasoning in it.
+		//
+		// Grouped as presses. A racial is a button and Bloodlust is somebody's button, which is the same
+		// distinction `ITEM_USES` above draws against the procs — a tone that called these procs would claim
+		// the pull handed the player something that was in fact pressed.
+		lane(BLOODLUST, 'buff', hasteWindows),
+		lane(BERSERKING, 'buff', berserkingWindows),
+		lane(BLOOD_FURY, 'buff', auraWindows(selfEvents, BLOOD_FURY, t0, fight.endTime)),
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
 		...rskTargets.targets.map(targetLane),
