@@ -200,15 +200,14 @@ describe('the ratio cannot exceed 100%, by construction rather than by clamp', (
 });
 
 /**
- * The four other readers of `activeMs`, and why each one stayed.
+ * The two readers of `activeMs` that stayed, and why each one did.
  *
  * The failure mode this change had to avoid is half the report moving to one clock and half staying on
- * the other, so the split is pinned here rather than left to be discovered. Only the figure that is a
- * *share of a bounded whole* moved. The rest are rates per active minute, or `activeMs` restated, and
- * each of them is reconstructed outside this engine by a file that reads `cpm.activeMs` directly —
- * `PaceTiles` divides `gcdSlots` by it, `CastsPerMinute` converts the per-ability rates back through
- * it, and `report.json`'s `casts.presses` prints it as the span the cast count was taken over. Moving
- * any of those three needs its component and its copy to move in the same change.
+ * the other, so the split is pinned here rather than left to be discovered. What is left on
+ * WarcraftLogs' clock is `activePct` — argued at length further down, and the one figure whose two
+ * halves are both WarcraftLogs' — and `gcdSlots`, whose only printed reader divides `activeMs` straight
+ * back out of it. `activeMs` itself stays published because the *gap* between the two clocks is the
+ * signal that one of them is describing something other than what its name says.
  */
 describe('the readers that stay on WarcraftLogs active time', () => {
 	const el = analyseElemental(load(EL('phased')));
@@ -220,12 +219,82 @@ describe('the readers that stay on WarcraftLogs active time', () => {
 		expect(pct((el.cpm.activeMs / el.durationMs) * 100)).toBe(92.62);
 	});
 
-	it('keeps totalCpm and gcdSlots on that clock too', () => {
-		expect(pct(el.cpm.totalCpm)).toBe(39.88);
+	/**
+	 * `gcdSlots` stays, and the no-change guard is on both specs because it is shared code.
+	 *
+	 * Rebuilt from contact it would read 182 and 188 rather than 211 and 189, which moves the target rate
+	 * `PaceTiles` prints by under 0.4 cpm — `activeMs` cancels out of `gcdSlots / (activeMs / 60_000)` to
+	 * within the floor. Both assertions are **no-change guards**: nothing here should move, and if
+	 * someone does move this field these are the lines that say so.
+	 */
+	it('keeps gcdSlots on that clock, because its only printed reader divides the clock back out', () => {
+		expect(el.cpm.gcdSlots).toBe(211); // no-change guard
+		expect(ww.cpm.gcdSlots).toBe(189); // no-change guard
+	});
+});
+
+/**
+ * `totalCpm`, the cast table, and the last two-clock pairing in this engine.
+ *
+ * The shape `gcdUtilisationPct` had, and wrong in the same direction: **our** count of presses, off the
+ * cast stream, over **WarcraftLogs'** `activeTime`, a presence span off the damage table. The two have
+ * no arithmetic relationship, so the rate was not a reading of anything in particular. It outlived the
+ * three corrections above it — the GCD share, Flame Shock's uptime, Searing Totem's uptime — for one
+ * reason: **a rate has no 100% to cross.** Nothing clamped, nothing printed an impossible value, and so
+ * nothing looked wrong.
+ *
+ * Three figures had to move in one change or the section would contradict itself, and they are the
+ * three pinned below: the headline rate, `buildCastTable`'s per-ability rates (the suite already
+ * asserted Σ rows == headline, so one moving alone is a failure by construction), and the conversion
+ * `CastsPerMinute.tsx` runs in the other direction to print a target cast count.
+ */
+describe('totalCpm is per contact minute, and the cast table with it', () => {
+	const analysed = {
+		phased: analyseElemental(load(EL('phased'))),
+		cleave: analyseElemental(load(EL('cleave'))),
+		unbroken: analyseElemental(load(EL('unbroken'))),
+		iron: analyseWindwalker(load(WW)),
+	};
+
+	/**
+	 * The pull the change is about, premise before figure so the pin cannot pass by accident.
+	 *
+	 * The old reading is asserted here as a counterfactual rather than described in prose: 39.88 is what
+	 * dividing the same 159 presses by WarcraftLogs' span gives, and the 6.31 cpm between the two is the
+	 * 32.7-second submerge being charged as time the player could have been casting. They spent it
+	 * healing — 370 heal events — which is time they were in no position to press a Lightning Bolt, and
+	 * so belongs in neither half of a rate about presses.
+	 */
+	it('reads the phased pull against contact and not against WarcraftLogs active time', () => {
+		const el = analysed.phased;
+		expect(el.cpm.activeMs - contactMs(el)).toBe(32_689);
+		expect(pct(el.cpm.totalCpm)).toBe(46.19);
+		expect(pct(el.cpm.onGcdCasts / (contactMs(el) / 60_000))).toBe(46.19);
+		// What it read before, and still would if the denominator went back.
 		expect(pct(el.cpm.onGcdCasts / (el.cpm.activeMs / 60_000))).toBe(39.88);
-		expect(el.cpm.gcdSlots).toBe(211);
-		expect(ww.cpm.gcdSlots).toBe(189);
-		expect(pct(ww.cpm.totalCpm)).toBe(52.81);
+		expect(pct(el.cpm.totalCpm - el.cpm.onGcdCasts / (el.cpm.activeMs / 60_000))).toBe(6.31);
+	});
+
+	/**
+	 * Every fixture, old reading beside new, because this change moves a printed number on both specs.
+	 *
+	 * `cleave` is the control: its two clocks are equal to the millisecond, so a fixture that moved there
+	 * would mean the contact clock had stopped being contact. **The Windwalker is the canary** — an
+	 * all-instant bar whose clocks are 117ms apart cannot move more than a few hundredths, so a large
+	 * movement on that row is a defect in this change and not a result of it.
+	 */
+	it('moves phased by 6.31 cpm, cleave by nothing, and the Windwalker by 0.03', () => {
+		const rows = [
+			['phased', 39.88, 46.19],
+			['cleave', 46.79, 46.79],
+			['unbroken', 46.48, 46.87],
+			['iron', 52.81, 52.84],
+		] as const;
+		for (const [key, before, after] of rows) {
+			const a = analysed[key];
+			expect(pct(a.cpm.onGcdCasts / (a.cpm.activeMs / 60_000))).toBe(before);
+			expect(pct(a.cpm.totalCpm)).toBe(after);
+		}
 	});
 
 	/**
@@ -233,13 +302,67 @@ describe('the readers that stay on WarcraftLogs active time', () => {
 	 *
 	 * Two different code paths — `buildCastTable`'s own division and `totalCpm` — so this fails the
 	 * moment one of them is moved to a different clock without the other. That is the exact shape of the
-	 * regression this suite is here to make loud.
+	 * regression this suite is here to make loud. Unchanged by this commit except that both sides are now
+	 * on the other clock, and asserted on all four fixtures rather than two.
 	 */
 	it('keeps the cast table commensurable with the headline rate', () => {
-		for (const a of [el, ww]) {
+		for (const a of Object.values(analysed)) {
 			const summed = a.casts.filter((row) => row.onGcd).reduce((sum, row) => sum + row.cpm, 0);
 			expect(pct(summed)).toBe(pct(a.cpm.totalCpm));
 		}
+	});
+
+	/**
+	 * The conversion `CastsPerMinute.tsx` runs in the other direction, which is why the table could not
+	 * be left behind.
+	 *
+	 * That component multiplies a row's rate back by the span to print a cast count next to it, so the
+	 * span it uses has to be the one the rate was divided by. Run against WarcraftLogs' wider span the
+	 * same arithmetic turns `phased`'s 159 presses into 184 — a table whose "casts" column contradicts
+	 * its own "cpm" column by 25 presses — and the counterfactual is asserted rather than described,
+	 * because it is the whole reason the section had to move as one piece.
+	 */
+	it('recovers each row press count when a rate is multiplied back by the contact span', () => {
+		for (const a of Object.values(analysed)) {
+			const minutes = contactMs(a) / 60_000;
+			for (const row of a.casts.filter((r) => r.onGcd)) {
+				expect(Math.round(row.cpm * minutes)).toBe(row.count);
+			}
+		}
+		const el = analysed.phased;
+		const wrong = el.casts
+			.filter((r) => r.onGcd)
+			.reduce((sum, r) => sum + Math.round(r.cpm * (el.cpm.activeMs / 60_000)), 0);
+		expect(wrong).toBe(184);
+		expect(el.cpm.onGcdCasts).toBe(159);
+	});
+
+	/**
+	 * The one thing about this rate that is still not a single clock, stated rather than left to be found.
+	 *
+	 * The numerator is **every** on-GCD press, including one made while nothing was in reach; the
+	 * denominator only contains the time something was. So the rate errs slightly upward, in the opposite
+	 * direction to `gcdUtilisationPct`, whose numerator *is* clipped to contact. The presses are not
+	 * clipped on purpose — `onGcdCasts` is also printed as a count of what the player pressed, and every
+	 * row's `count` is unclipped, so clipping here would break Σ rows == headline and would tell a player
+	 * they made fewer presses than they made.
+	 *
+	 * Measured, it is worth at most 2 presses in 204. These are **no-change guards** rather than pins on
+	 * this commit — they read the timeline and not the rate, and pass identically against the old clock —
+	 * and they exist so that a contact clock which starts rejecting real presses shows up here rather
+	 * than as a headline rate that quietly drifts upward.
+	 */
+	it('counts a press made outside contact in the numerator, and the price of that is two presses', () => {
+		const outside = (a: Analysis): number => {
+			const segments = a.timeline?.contactSegments ?? [];
+			return (a.timeline?.casts ?? [])
+				.filter((m) => m.onGcd)
+				.filter((m) => !segments.some(([start, end]) => m.t >= start && m.t <= end)).length;
+		};
+		expect([outside(analysed.phased), analysed.phased.cpm.onGcdCasts]).toEqual([1, 159]); // no-change guard
+		expect([outside(analysed.cleave), analysed.cleave.cpm.onGcdCasts]).toEqual([2, 204]); // no-change guard
+		expect([outside(analysed.unbroken), analysed.unbroken.cpm.onGcdCasts]).toEqual([1, 142]); // no-change guard
+		expect([outside(analysed.iron), analysed.iron.cpm.onGcdCasts]).toEqual([0, 167]); // no-change guard
 	});
 });
 
@@ -355,6 +478,12 @@ describe('activePct stays on the pull length, and the obvious repair is the defe
 	 * `totalCpm`, `gcdSlots` and every per-ability rate quietly became per *pull* minute. Reachable —
 	 * `resolvePlayer` gates only on `friendlyPlayers`, so a healer or someone who died before landing a
 	 * hit gets here. Reproduced by renaming the actor, which is the whole of what the lookup keys on.
+	 *
+	 * **Two of those four readers are now immune to it**, which is the second thing moving `totalCpm`
+	 * bought. The contact clock is built from the player's own damage events and does not consult the
+	 * damage table at all, so the rate on the renamed actor is the same 46.79 the real one reads instead
+	 * of drifting to 46.50. `activePct` and `gcdSlots` are still exposed, which is why the warning is
+	 * still worth printing.
 	 */
 	it('warns instead of silently substituting the pull length for a missing damage row', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -364,7 +493,10 @@ describe('activePct stays on the pull length, and the obvious repair is the defe
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('263233ms pull length'));
 		warn.mockRestore();
 		expect(pct(orphan.cpm.activePct)).toBe(100);
-		expect(pct(orphan.cpm.totalCpm)).toBe(46.5);
+		expect(orphan.cpm.gcdSlots).toBe(234);
+		// The rate is unmoved, because its clock never came from the missing row: 46.50 before this
+		// commit, and the same reading as the named actor after it.
+		expect(pct(orphan.cpm.totalCpm)).toBe(46.79);
 		// The real reading, for contrast — same pull, same presses, one name.
 		expect(pct(analysed.cleave.cpm.activePct)).toBe(99.37);
 		expect(pct(analysed.cleave.cpm.totalCpm)).toBe(46.79);
@@ -373,22 +505,29 @@ describe('activePct stays on the pull length, and the obvious repair is the defe
 	/**
 	 * The CPM tile against the GCD tile, which `PaceTiles` claimed were the same ratio.
 	 *
-	 * They are not, and the gap is the §2 failure mode made concrete: since the GCD figure moved to the
-	 * contact clock, the two tiles sit on different clocks *and* on different notions of a global, while
-	 * carrying the same grade. All four assertions are **no-change guards** on the numbers now written in
-	 * `PaceTiles.tsx` — nothing here should move, and if someone makes the tiles agree, this is where the
-	 * comment gets found and corrected rather than left lying.
+	 * They still are not, and **one of the two reasons they were not has been removed.** The tiles used
+	 * to sit on different clocks as well as on different notions of a global; `totalCpm` is on contact
+	 * now, so what is left is that this ratio counts *presses* and the one beside it counts
+	 * *milliseconds*, and a press cannot see the second global a hard cast occupied.
+	 *
+	 * Moving the clock closed most of the gap on `phased` — 18.72 points down to 6.80 — and almost none
+	 * of it on `unbroken`, whose two clocks were 1.5 seconds apart to begin with, so the 10.59 points
+	 * there are hard casts and nothing else. The numbers are the ones now written in `PaceTiles.tsx`, and
+	 * the assertions are guards on that comment: if someone makes the two tiles agree, this is where the
+	 * claim gets found rather than left lying.
 	 */
 	it('measures how far the CPM tile is from the GCD tile it was said to match', () => {
 		const tileRatio = (a: Analysis): number => {
 			const targetCpm = a.cpm.gcdSlots / (a.cpm.activeMs / 60_000);
 			return pct((a.cpm.totalCpm / targetCpm) * 100);
 		};
-		expect([tileRatio(analysed.phased), pct(analysed.phased.cpm.gcdUtilisationPct)]).toEqual([75.36, 94.08]);
-		expect([tileRatio(analysed.unbroken), pct(analysed.unbroken.cpm.gcdUtilisationPct)]).toEqual([80.68, 91.94]);
+		expect([tileRatio(analysed.phased), pct(analysed.phased.cpm.gcdUtilisationPct)]).toEqual([87.28, 94.08]);
+		expect([tileRatio(analysed.unbroken), pct(analysed.unbroken.cpm.gcdUtilisationPct)]).toEqual([81.35, 91.94]);
 		// The two that do agree, and the reason: an all-instant bar with nothing wasted is the case where
-		// counting presses and counting milliseconds give the same answer.
-		expect([tileRatio(analysed.iron), pct(analysed.iron.cpm.gcdUtilisationPct)]).toEqual([88.36, 88.55]);
+		// counting presses and counting milliseconds give the same answer. Their two clocks were already
+		// 117ms and 0ms apart, so these rows moved by 0.05 and by nothing at all — which is what makes the
+		// Windwalker row the canary for this change rather than a result of it.
+		expect([tileRatio(analysed.iron), pct(analysed.iron.cpm.gcdUtilisationPct)]).toEqual([88.41, 88.55]);
 		expect([tileRatio(analysed.cleave), pct(analysed.cleave.cpm.gcdUtilisationPct)]).toEqual([87.93, 87.32]);
 	});
 });

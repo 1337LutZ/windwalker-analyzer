@@ -208,8 +208,11 @@ describe('buildCastTable', () => {
 		T0,
 		registry,
 	);
+	// One contact minute, so every row's `cpm` is its own press count and the arithmetic is not what is
+	// under test here. The option is named for the clock `analyseCore` passes — the player's contact
+	// span, not WarcraftLogs' `activeTime` — and was renamed when `totalCpm` moved onto it.
 	const rows = buildCastTable(series.values(), {
-		activeMs: 60000,
+		contactMs: 60000,
 		nameOf: (id) => `#${id}`,
 	});
 

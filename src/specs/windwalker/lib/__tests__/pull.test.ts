@@ -30,9 +30,26 @@ describe('a real Windwalker pull, audited from raw events', () => {
 		expect(a.durationMs).toBe(190_309);
 	});
 
-	it('reads the pull the way WarcraftLogs does', () => {
+	/**
+	 * The DPS is WarcraftLogs'. **The cast rate is no longer**, and on this fixture that is a 0.03 cpm
+	 * difference by design.
+	 *
+	 * `totalCpm` used to divide this engine's press count by WarcraftLogs' `activeTime` off the damage
+	 * table — two clocks with no arithmetic relationship — and is now per *contact* minute, the same
+	 * clock `gcdUtilisationPct` is measured against. The reasoning is in
+	 * `lib/analysis/__tests__/gcdUtilisation.test.ts`, which owns it, and on the Elemental's `phased`
+	 * fixture the same move is worth 6.31 cpm.
+	 *
+	 * It is worth 0.03 here, and **this fixture is the canary for the change rather than a result of it**:
+	 * a Windwalker's bar is entirely instant presses and this pull's two clocks are 117ms apart
+	 * (189 735ms against 189 618ms), so a Monk that moved by more than a few hundredths would mean the
+	 * contact clock had stopped measuring contact.
+	 */
+	it('reads the pull the way WarcraftLogs does, except for the clock the rate is per', () => {
 		expect(Math.round(a.damage.dps)).toBe(442_607);
-		expect(+a.cpm.totalCpm.toFixed(2)).toBe(52.81);
+		expect(+a.cpm.totalCpm.toFixed(2)).toBe(52.84);
+		// What it read before, off WarcraftLogs' span, and the whole of the movement.
+		expect(+(a.cpm.onGcdCasts / (a.cpm.activeMs / 60_000)).toFixed(2)).toBe(52.81);
 	});
 
 	/**

@@ -52,9 +52,27 @@ describe('a phased pull', () => {
 		expect(el.durationMs).toBe(258_304);
 	});
 
-	it('reads the pull the way WarcraftLogs does', () => {
+	/**
+	 * The DPS is WarcraftLogs' own figure. **The cast rate deliberately is not, and this is the pull that
+	 * shows why.**
+	 *
+	 * `totalCpm` used to be our press count over WarcraftLogs' `activeTime` — two clocks with no
+	 * arithmetic relationship, the same defect already corrected for `gcdUtilisationPct`, Flame Shock's
+	 * uptime and Searing Totem's. It survived three rounds of that fix because **a rate has no 100% to
+	 * cross**, so nothing clamped and nothing looked wrong.
+	 *
+	 * On this pull WarcraftLogs' span charges the 32.7-second submerge as castable time — the stretch the
+	 * player spent healing, 370 heal events — so the rate read **39.88** where the player's own contact
+	 * clock says **46.19**. Understated by 6.31 cpm. `cleave` does not move at all (its two clocks are
+	 * identical to the millisecond) and the Windwalker moves 0.03, which is the canary: that spec is
+	 * almost entirely instant casts.
+	 *
+	 * Nothing graded moves with it. Both specs' `score.ts` read only `gcdUtilisationPct`, so `totalCpm` is
+	 * a printed figure and not a metric.
+	 */
+	it('reads the pull the way WarcraftLogs does, except for the clock the rate is per', () => {
 		expect(Math.round(el.damage.dps)).toBe(300_749);
-		expect(+el.cpm.totalCpm.toFixed(2)).toBe(39.88);
+		expect(+el.cpm.totalCpm.toFixed(2)).toBe(46.19);
 	});
 
 	/**
@@ -265,9 +283,11 @@ describe('an unbroken pull', () => {
 		expect(el.durationMs).toBe(184_448);
 	});
 
-	it('reads the pull the way WarcraftLogs does', () => {
+	// 46.48 -> 46.87 for the reason `phased` carries: the rate is per minute of contact now, not per
+	// minute of WarcraftLogs' presence span. A small move here because this pull's two clocks are close.
+	it('reads the pull the way WarcraftLogs does, except for the clock the rate is per', () => {
 		expect(Math.round(el.damage.dps)).toBe(410_752);
-		expect(+el.cpm.totalCpm.toFixed(2)).toBe(46.48);
+		expect(+el.cpm.totalCpm.toFixed(2)).toBe(46.87);
 	});
 
 	/** Six unpriced presses here against `phased`'s 25, which is why that pull carries the reasoning. */
@@ -380,7 +400,11 @@ describe('a multi-target pull', () => {
 		expect(el.durationMs).toBe(263_233);
 	});
 
-	it('reads the pull the way WarcraftLogs does', () => {
+	// Retitled with its siblings though nothing here moved: `activeMs` *is* still WarcraftLogs' number and
+	// is deliberately kept, because the gap between it and our own clock is how we find out one of them is
+	// wrong. This pull's two clocks agree to the millisecond, so it is also the control that says the new
+	// denominator did not simply shift everything.
+	it('reads the pull the way WarcraftLogs does, except for the clock the rate is per', () => {
 		expect(Math.round(el.damage.dps)).toBe(412_584);
 		expect(el.cpm.activeMs).toBe(261_572);
 	});

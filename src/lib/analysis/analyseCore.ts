@@ -352,22 +352,31 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * — it keeps 32 689ms that `inContactMs` drops: the submerge from 142.3s to 192.5s the player spent
 	 * healing, 370 heal events between 145 219ms and 245 954ms.
 	 *
-	 * Four readers, and the clock each one should be on is argued where it is assembled (`cpm`, below).
+	 * Three readers left, and the clock each one should be on is argued where it is assembled (`cpm`,
+	 * below): `activePct`, `gcdSlots`, and the field itself, republished so the gap between the two clocks
+	 * stays visible. `totalCpm` and every per-ability rate used to be here too and are now on `contact`.
 	 *
 	 * **The fallback is loud, following `uptimePct`'s precedent in `auras.ts`.** A player with no row in
 	 * the damage table — a healer, or someone who died before landing a hit; `resolvePlayer` will hand
-	 * either of them over, since the only gate is `friendlyPlayers` — silently moved all four readers
-	 * onto the pull length, and `activePct` printed exactly 100.00% for the one player it can say nothing
-	 * at all about. That reads as a flawless pull rather than as a missing row. Measured on `cleave` with
-	 * the actor renamed: `activePct` 99.37 → 100.00 and `totalCpm` 46.79 → 46.50. A warning rather than a
-	 * throw for the reason `uptimePct` gives — a report is a read-only view of a log and the rest of the
-	 * page is unaffected — and it names both spans, so the substitution is visible rather than inferred.
+	 * either of them over, since the only gate is `friendlyPlayers` — silently moved every reader onto the
+	 * pull length, and `activePct` printed exactly 100.00% for the one player it can say nothing at all
+	 * about. That reads as a flawless pull rather than as a missing row. Measured on `cleave` with the
+	 * actor renamed: `activePct` 99.37 → 100.00. A warning rather than a throw for the reason `uptimePct`
+	 * gives — a report is a read-only view of a log and the rest of the page is unaffected — and it names
+	 * both spans, so the substitution is visible rather than inferred.
+	 *
+	 * **The blast radius of that fallback is two fields narrower than it was.** `totalCpm` and the
+	 * per-ability rates are on the contact clock now, which is built from the player's own damage events
+	 * and does not care whether the damage table carried a row for them: on the renamed `cleave` actor
+	 * they stay at 46.79 rather than drifting to 46.50. `activePct` and `gcdSlots` are still exposed to
+	 * it, which is why the warning is still worth printing.
 	 */
 	if (entry === undefined && import.meta.env.DEV) {
 		console.warn(
 			`[analyseCore] no damage-table row for ${actor.name}: WarcraftLogs' activeTime is unavailable, so the ` +
-				`${duration}ms pull length is standing in for it. activePct will read 100%, and totalCpm, gcdSlots ` +
-				`and every per-ability rate are per pull minute rather than per active minute.`,
+				`${duration}ms pull length is standing in for it. activePct will read 100%, and gcdSlots is ` +
+				`counted over the pull rather than over the active span. The cast rates are unaffected: they ` +
+				`are per contact minute, off this player's own damage events.`,
 		);
 	}
 	const activeMs = entry?.activeTime ?? duration;
@@ -420,7 +429,9 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// ------------------------------------------------------------------ casts
 	// Keyed by ability, so Jab's two weapon ids are one row and a channel's ticks are not presses.
 	const series = castSeries(events, actor.id, t0, spec.registry, castDurations);
-	const castList = buildCastTable(series.values(), { activeMs, nameOf });
+	// The per-ability table is built further down, below `inContactMs`, because its rates are per
+	// contact minute and a clock cannot be divided by before it is measured. Only the table moves;
+	// `series` stays here, where the presses every audit reads are keyed.
 
 	const castTimes = (ability: Ability): number[] => series.get(ability.key)?.times ?? [];
 	const castBeginTimes = (ability: Ability): number[] => series.get(ability.key)?.beginTimes ?? [];
@@ -485,8 +496,6 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	}
 	const effectiveGcd = gcdGaps.length > 0 ? Math.max(GCD_MIN_MS, Math.min(median(gcdGaps), spec.gcdMs)) : spec.gcdMs;
 
-	const onGcdCasts = castList.filter((c) => c.onGcd).reduce((s, c) => s + c.count, 0);
-	const offGcdCasts = castList.filter((c) => !c.onGcd).reduce((s, c) => s + c.count, 0);
 	/**
 	 * Where each on-GCD press sat on the clock — spans, not a sum.
 	 *
@@ -616,6 +625,19 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	);
 	/** Named apart from `contactMs` further down, which is the target-count audit's own, narrower clock. */
 	const inContactMs = unionMs(contact);
+
+	// ------------------------------------------------------------------ cast table
+	/**
+	 * The per-ability rows, and the two press counts, built here rather than beside `series` above
+	 * because all three are measured per **contact** minute and the clock has to exist first.
+	 *
+	 * The counts themselves are clock-free — `onGcd` and `count` — and are moved only because they read
+	 * `castList`. Deriving them from `series` instead would put the on-GCD decision in a second place,
+	 * and that decision is the one Chain Lightning was silently on the wrong side of for 53 tests.
+	 */
+	const castList = buildCastTable(series.values(), { contactMs: inContactMs, nameOf });
+	const onGcdCasts = castList.filter((c) => c.onGcd).reduce((s, c) => s + c.count, 0);
+	const offGcdCasts = castList.filter((c) => !c.onGcd).reduce((s, c) => s + c.count, 0);
 
 	/**
 	 * The occupied globals, clipped to the clock they are about to be divided by.
@@ -1221,19 +1243,37 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		// being able to say which half. Audited across all four raw fixtures; every reason is a
 		// measurement.
 		cpm: {
-			// **Should be per contact minute, and cannot move in isolation.** This is the two-clock shape
-			// the GCD figure had — our own count of presses over WarcraftLogs' estimate of how busy the
-			// player was — and it is wrong in the same direction: on `phased` it reads 39.88 where the
-			// player's own clock says 46.18, understating the rate by 6.30 cpm because it charges the
-			// 32.7s submerge as time they could have been casting. It is not urgent, because a rate has
-			// no 100% to cross and so cannot print a value that is not a value.
-			//
-			// Blocked on copy this change does not own: `report.json`'s `casts.presses` prints `activeMs`
-			// as the span the cast count was taken over, `casts.verdict_*` prints this rate in the same
-			// breath as the GCD share, and `CastsPerMinute.tsx` converts the per-ability rates back
-			// through the same clock to print a cast count. Moving the number without those three says
-			// "46.18 casts per minute over 261 572ms of a 263 233ms pull", which is arithmetically false.
-			totalCpm: activeMs > 0 ? onGcdCasts / (activeMs / 60000) : 0,
+			/**
+			 * **Per contact minute** — the player's own clock, the same one `gcdUtilisationPct` is measured
+			 * against, and moved here from WarcraftLogs' `activeTime`.
+			 *
+			 * It was the last genuine two-clock pairing in this engine: our own count of presses over
+			 * WarcraftLogs' estimate of how busy the player was. Those two have no arithmetic relationship —
+			 * we count the presses off the cast stream, `activeTime` is a presence span off the damage table —
+			 * which is the defect `fe3d7ad` corrected for the GCD share, and that Flame Shock's and Searing
+			 * Totem's uptimes were corrected for before it. It survived longer than all three because **a rate has no 100% to cross**: nothing
+			 * clamped, nothing printed an impossible value, and so nothing looked wrong.
+			 *
+			 * Measured, on the four raw fixtures, old against new:
+			 *
+			 *   ele/phased     39.88 → 46.19   (+6.31, the 32.7s submerge was charged as castable time)
+			 *   ele/cleave     46.79 → 46.79   (0.00, the two clocks agree to the millisecond here)
+			 *   ele/unbroken   46.48 → 46.87   (+0.39)
+			 *   ww/iron        52.81 → 52.84   (+0.03, and this one is the canary — an all-instant bar whose
+			 *                                   clocks are 117ms apart cannot move, so a big move means the
+			 *                                   contact clock has stopped measuring contact)
+			 *
+			 * Nothing graded moves with it: neither spec's `score.ts` reads this field, and the `casts` verdict
+			 * is selected by `gcdUtilisation`'s band. It is printed in two places, and both had to move in the
+			 * same change or the section would contradict itself — `buildCastTable`'s per-ability rates (the
+			 * suite pins Σ rows == this figure) and `CastsPerMinute.tsx`, which multiplies a row's rate back by
+			 * the same span to print a cast count.
+			 *
+			 * One sentence in `report.json` is now false and is another lane's file to fix: `casts.presses`
+			 * prints `activeMs` as "the span the cast count was taken over", which is no longer the span this
+			 * rate was taken over. Reported rather than worked around.
+			 */
+			totalCpm: inContactMs > 0 ? onGcdCasts / (inContactMs / 60000) : 0,
 			onGcdCasts,
 			offGcdCasts,
 			// **Stays, because the clock very nearly cancels out of its only printed reader.** Two readers:

@@ -220,16 +220,22 @@ export function gapStats(times: readonly number[]): {
 
 export interface CastTableOptions {
 	/**
-	 * WarcraftLogs' active time for the player: CPM against it is the fair read.
+	 * The player's own contact clock — `unionMs(contact)` in `analyseCore`, the time they were in a
+	 * position to press something. Not WarcraftLogs' `activeTime`, which is what this was.
 	 *
 	 * **Not an independent choice of clock — it has to be whichever one `cpm.totalCpm` uses.** These rows
 	 * are the same count of presses cut per ability, and two things join the two figures at the hip: the
 	 * suite asserts Σ of the on-GCD rows' `cpm` equals `totalCpm` (two code paths, so it fails the moment
 	 * one side moves alone), and `CastsPerMinute.tsx` multiplies a row's rate back by this same span to
-	 * print a cast count. So when `totalCpm` moves onto the contact clock — argued at its own line in
-	 * `analyseCore` — this moves in the same change, and never before it.
+	 * print a cast count. Both moved onto contact in the change that moved `totalCpm`; the reasoning is
+	 * at that field's own line in `analyseCore`.
+	 *
+	 * Named `contactMs` rather than left as `activeMs` on purpose. A caller that has only WarcraftLogs'
+	 * span can still pass it and get a defensible number, but it will no longer be able to do so without
+	 * noticing which clock the parameter is asking for — that silence is exactly how the two figures
+	 * ended up on different clocks in the first place.
 	 */
-	activeMs: number;
+	contactMs: number;
 	/** Names for ids the registry does not model, usually taken from the damage table. */
 	nameOf(id: number): string;
 }
@@ -243,7 +249,7 @@ export interface CastTableOptions {
  * way the log can support.
  */
 export function buildCastTable(series: Iterable<CastSeries>, opts: CastTableOptions): CastRow[] {
-	const activeMin = opts.activeMs / 60000;
+	const contactMin = opts.contactMs / 60000;
 	return [...series]
 		.map((c) => ({
 			id: c.id,
@@ -260,7 +266,7 @@ export function buildCastTable(series: Iterable<CastSeries>, opts: CastTableOpti
 			// cast had produced it. The default was right; the silence around it was the bug.
 			onGcd: c.ability?.onGcd ?? false,
 			gate: c.ability?.gate ?? 'other',
-			cpm: activeMin > 0 ? c.count / activeMin : 0,
+			cpm: contactMin > 0 ? c.count / contactMin : 0,
 			cooldownSec: c.ability?.cooldownMs ? c.ability.cooldownMs / 1000 : null,
 			// Cadence off the commit instants, not the landings: "how often did they press this" is a
 			// question about presses. Landing-to-landing folds each press's own cast bar into the gap

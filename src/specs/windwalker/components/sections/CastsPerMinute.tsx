@@ -201,13 +201,13 @@ function achievedPct(c: CastRow, budget: TigerPalmBudget): number | null {
  * The count cell, in the same `found / target` shape as the rate beside it — whole casts, because
  * "eleven presses too many" is the unit a reader can act on in a way "3.2 cpm too many" is not.
  */
-function castsCell(c: CastRow, budget: TigerPalmBudget, activeMin: number) {
+function castsCell(c: CastRow, budget: TigerPalmBudget, contactMin: number) {
 	const optimal = optimalCpm(c, budget);
 	const tone = pairTone(achievedPct(c, budget));
 	return (
 		<span className="tabular whitespace-nowrap">
 			<b className={`font-semibold ${tone.found}`}>{c.count}</b>
-			{optimal === null ? null : <span className={tone.target}> / {Math.round(optimal * activeMin)}</span>}
+			{optimal === null ? null : <span className={tone.target}> / {Math.round(optimal * contactMin)}</span>}
 		</span>
 	);
 }
@@ -274,8 +274,28 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 		() => analysis.casts.filter((c) => c.count > 1 && c.onGcd && !UTILITY_IDS.has(c.id)),
 		[analysis.casts],
 	);
-	// `cpm` is per active minute, so a target count has to be converted back through the same clock.
-	const activeMin = analysis.cpm.activeMs / 60_000;
+	/**
+	 * The clock every rate on this section is per: the player's own contact span, summed from the
+	 * segments the analysis publishes.
+	 *
+	 * `CastRow.cpm` and `cpm.totalCpm` are both per **contact** minute, so a target *count* has to be
+	 * converted back through that same span or the two columns stop being the same measurement — a rate
+	 * of 6.0 beside a count of 26 says the reader can multiply one to get the other, and they must be
+	 * able to.
+	 *
+	 * Re-summed from `timeline.contactSegments` rather than read off a field beside the rate, because
+	 * there is no such field: `CpmSummary` publishes WarcraftLogs' `activeMs` and not this. The fallback
+	 * is `activeMs`, which is what the committed pre-analysed fixtures were built with — they predate
+	 * `contactSegments` entirely, so on those this section keeps reading exactly the clock their numbers
+	 * were computed on rather than mixing one clock's rates with another's span.
+	 */
+	const contactMs = useMemo(() => {
+		const segments = analysis.timeline?.contactSegments;
+		return segments === undefined || segments.length === 0
+			? analysis.cpm.activeMs
+			: segments.reduce((sum, [start, end]) => sum + (end - start), 0);
+	}, [analysis.timeline?.contactSegments, analysis.cpm.activeMs]);
+	const contactMin = contactMs / 60_000;
 	const budget = useMemo(() => tigerPalmBudget(analysis), [analysis]);
 
 	const rows = useMemo<GridRow[]>(
@@ -290,11 +310,11 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 					bar: barCell(c, budget, t),
 					// Observed against its target in one cell, so the gap is read without crossing columns.
 					rate: rateCell(c, budget),
-					casts: castsCell(c, budget, activeMin),
+					casts: castsCell(c, budget, contactMin),
 					gate: gateLabel(c, t),
 				},
 			})),
-		[gcdCasts, budget, activeMin, t],
+		[gcdCasts, budget, contactMin, t],
 	);
 
 	// Built as a list and joined rather than laid out in JSX: two of these sentences only exist on
@@ -307,10 +327,17 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 			? []
 			: [
 					t('casts.activeTime', { active: cpm.activePct }),
+					// `active` is handed the **contact** span, not `cpm.activeMs`, so the span this sentence
+					// names is the one the rate above it was actually divided by. Both are on the page: the
+					// sentence before this prints `activePct`, which is WarcraftLogs' clock, and on `phased`
+					// the two read 92.62% and 79.97% of the same pull. Keeping both is deliberate — the gap
+					// is the signal that one of the two clocks is describing something else — but the
+					// placeholder is still called `active` and the copy still calls both spans "active",
+					// which is a wording fix in `report.json` that this change does not own.
 					t('casts.presses', {
 						onGcd: cpm.onGcdCasts,
 						offGcd: cpm.offGcdCasts,
-						active: cpm.activeMs,
+						active: contactMs,
 						total: analysis.durationMs,
 					}),
 				]),

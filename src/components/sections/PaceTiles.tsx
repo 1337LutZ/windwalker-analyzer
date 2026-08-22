@@ -40,19 +40,31 @@ export default function PaceTiles({ analysis }: { analysis: Analysis }) {
 	 * anyone who hard-casts.
 	 *
 	 * It then claimed dividing by `gcdSlots` "keeps this tile's ratio identical to the GCD tile beside
-	 * it". Measured, the two are 18.72 points apart on the Elemental's `phased` (75.36 against 94.08) and
-	 * 11.26 on `unbroken` (80.68 against 91.94), and agree only on the Windwalker (88.36 against 88.55)
-	 * and on `cleave` (87.93 against 87.32). The agreement was never structural — it holds exactly where
-	 * every press is instant and nothing is wasted, which is what a monk's bar is and what a shaman's is
-	 * not. Two separate reasons, both now measured: this ratio counts *presses* and cannot see a hard cast
-	 * that occupied two globals, while the GCD tile counts *milliseconds*; and since `fe3d7ad` the GCD
-	 * tile is measured against the contact clock while `cpm.totalCpm` is still per WarcraftLogs' active
-	 * minute, and on `phased` those two clocks are 32.7 seconds apart.
+	 * it". It does not, and one of the two reasons it did not has since been removed.
+	 *
+	 * The reason that is gone: the two tiles used to be on different **clocks**. `cpm.totalCpm` was per
+	 * WarcraftLogs' active minute while the GCD tile has been measured against the contact clock since
+	 * `fe3d7ad`, and on `phased` those two clocks are 32.7 seconds apart. `totalCpm` is on contact now,
+	 * so both tiles describe the same span of the same pull.
+	 *
+	 * The reason that remains: this ratio counts **presses** and the GCD tile counts **milliseconds**, so
+	 * this one cannot see a hard cast that occupied two globals. Measured, with the clocks now shared:
+	 * `phased` 87.28 against 94.08, `unbroken` 81.35 against 91.94, the Windwalker 88.41 against 88.55,
+	 * `cleave` 87.93 against 87.32. Moving the clock closed most of the gap on `phased` — it was 18.72
+	 * points and is 6.80 — and closed almost none of it on `unbroken`, where the two clocks were only
+	 * 1.5 seconds apart to begin with and the 10.59 points left are entirely hard casts. The pair agrees
+	 * on the Windwalker and on `cleave` for the same reason it always did: an all-instant bar with
+	 * nothing wasted is where counting presses and counting milliseconds give the same answer.
 	 *
 	 * So the pair here is one self-consistent reading — a rate over the clock its own denominator came
-	 * from — and it is **not** a second opinion on the GCD tile. `cpm.activeMs` cancels out of the
-	 * division to within `gcdSlots`' floor, which is why this tile is nearly indifferent to which clock
-	 * that field is on and the GCD tile beside it is not.
+	 * from — and it is **not** a second opinion on the GCD tile. That the two clocks now agree does not
+	 * make it one.
+	 *
+	 * The target below is deliberately left on `cpm.activeMs`, and that is not a third clock: `gcdSlots`
+	 * is `floor(activeMs / effectiveGcd)`, so `activeMs` cancels and what survives is ≈`60_000 /
+	 * effectiveGcd` — globals per minute, which is the same number on either clock to within the floor.
+	 * Pairing it with a rate per contact minute is therefore sound; rebuilding it on contact moves it by
+	 * under 0.4 cpm, which is argued at `cpm.gcdSlots` in `analyseCore`.
 	 */
 	const targetCpm = cpm.activeMs > 0 ? cpm.gcdSlots / (cpm.activeMs / 60_000) : null;
 
