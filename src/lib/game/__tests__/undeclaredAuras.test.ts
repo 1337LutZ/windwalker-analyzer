@@ -33,8 +33,9 @@
 // somebody else's healing, somebody else's defensive and the boss's own debuffs, and none of that is a
 // gap — a damage audit that drew a row for Rejuvenation would be worse, not better. The entries say
 // which of those it is, in the words of the thing itself, so that the *next* id to appear here is read
-// rather than waved through. Three entries are gaps rather than classifications and say so; they name
-// the file that has to change and go the moment it does, which `declaredLedgerIds` enforces.
+// rather than waved through. The entries marked as gaps are not classifications at all and say so;
+// they name the file that has to change and go the moment it does, which `declaredLedgerIds`
+// enforces.
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -115,8 +116,9 @@ const lustLockout = (spell: string): string =>
 
 const LEDGER: Record<number, string> = {
 	// ------------------------------------------------- gaps, not classifications
-	// Three entries below are the finding rather than a filing. Each names the file that has to change
-	// and dies the moment it does: `declaredLedgerIds` fails naming the id, which is the handoff.
+	// The entries below marked as gaps are the finding rather than a filing. Each names the file that
+	// has to change and dies the moment it does: `declaredLedgerIds` fails naming the id, which is the
+	// handoff.
 
 	// The Elemental's own +20% Elemental-school damage buff, and by far the largest thing this sweep
 	// found. `sim/shaman/talents_elemental.go:143-190` registers Clearcasting as a 2-stack, 15s aura on
@@ -127,13 +129,6 @@ const LEDGER: Record<number, string> = {
 	// label the row, and that is the only thing in the repository that knows the number exists.
 	16246:
 		'Clearcasting: NOT MODELLED, and it is a damage multiplier. The Elemental Focus proc — +20% Elemental-school damage, 2 stacks, 15s, consumed per cast (sim/shaman/talents_elemental.go:143). Needs an aura in specs/elemental/lib/index.ts; this entry goes when it has one.',
-	// The mage's second raid-buff spell. 1459 Arcane Brilliance is a provider of both `spellPower` and
-	// `crit` in `analysis/raidBuffs.ts`; 61316 is the same buff under the other of the two ids Mists
-	// splits it across, and the roster has only the first. So a raid whose mage happened to cast
-	// Dalaran Brilliance reads as having no +10% spell power at all — a fabricated fault, which is the
-	// one thing that module says it must never print. `cleave` carries it.
-	61316:
-		'Dalaran Brilliance: a MISSING PROVIDER, not an exemption. The mage supplies +10% spell power and +5% crit under either 1459 or 61316 and `raidBuffs.ts` EFFECTS lists only 1459, so this raid reads as unbuffed. Belongs in that roster; this entry goes when it is there.',
 
 	// -------------------------------------------------------- the player's own
 	// Off-rotation presses and passives. All are named in the Elemental's `EXTRA_NAMES` where they are
@@ -252,10 +247,11 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	it('keeps the ledger honest — nothing excused that no longer fires, nothing excused that is now modelled', () => {
 		// A reason for an id that stopped appearing is a reason nobody will ever check again.
 		expect(staleLedgerIds(LEDGER, sweeps)).toEqual([]);
-		// And the other direction, which is the one that matters for the three gap entries above: an
-		// entry saying "nothing declares this yet" that outlives the declaration tells the next reader
-		// not to look. When this fails naming 16246, 61316 or 120676, the model gained it and the entry
-		// is what to delete.
+		// And the other direction, which is the one that matters for the gap entries above: an entry
+		// saying "nothing declares this yet" that outlives the declaration tells the next reader not to
+		// look. It has fired for real once already — declaring 61316 Dalaran Brilliance in `raidBuffs.ts`
+		// turned this red naming that id, and deleting its entry is what closed it, which is the handoff
+		// working. When it fails naming 16246, the model gained that one and its entry is what to delete.
 		expect(declaredLedgerIds(LEDGER, sweeps)).toEqual([]);
 	});
 });

@@ -15,6 +15,7 @@ import {
 	narrowRaidBuffs,
 	RAID_BUFF_EFFECT_KEYS,
 	RAID_BUFF_NAMES,
+	RAID_BUFF_PROVIDER_IDS,
 	readRaidBuffs,
 	type RaidBuffEffect,
 } from '../raidBuffs';
@@ -354,5 +355,126 @@ describe('the crit buff’s two ids', () => {
 	it('names both of Spirit Beast Blessing’s ids for the same reason, at lower confidence', () => {
 		expect(RAID_BUFF_NAMES.get(127830)).toBe('Spirit Beast Blessing');
 		expect(RAID_BUFF_NAMES.get(128997)).toBe('Spirit Beast Blessing');
+	});
+});
+
+/**
+ * The mage's two ids, and the fault the missing one was printing.
+ *
+ * Mists splits the mage's raid buff across **1459 Arcane Brilliance** and **61316 Dalaran Brilliance**
+ * — the same spell learned from the Dalaran tome, and the same buff: Wowhead's `mop-classic` tooltip
+ * for 61316 carries no description of its own but *links to spell 1459* for it, "increasing their spell
+ * power by 10% and their critical strike chance by 5%", and its buff line reads "Increases spell power
+ * by 10%. Increases critical strike chance by 5%." So it belongs to both groups 1459 belongs to, for
+ * the reason 1459 does: `sim/core/buffs.go:502-508` registers `{stats.SpellPower, 1.10, true}` and the
+ * `PhysicalCritPercent`/`SpellCritPercent` pair in one `makeExclusiveBuff` call. The simulator names
+ * only 1459 — 61316 occurs nowhere in that tree, and nowhere in its database either — so the log is the
+ * only witness that the second id is what a real raid writes, and two of the four committed pulls
+ * write it.
+ *
+ * **It was printing a fabricated fault, on the row the Elemental report draws.** Neither pull carrying
+ * 61316 has any other crit provider on it: with only 1459 declared the crit row read *not reported* on
+ * `cleave` and on `unbroken`, and the section named the effect in its "not reported" note, while the
+ * pull snapshot proves the buff was on that shaman from before the bell. The spell-power row survived
+ * only because the shaman brings Burning Wrath themselves — a spec without a self-provider would have
+ * had the same silence there.
+ */
+describe('the mage’s two ids', () => {
+	/** The committed pull that carries 61316 and no other crit provider at all. */
+	const cleave = (): { events: WclEvent[]; actor: { id: number }; fight: { startTime: number; endTime: number } } =>
+		JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../specs/elemental/__fixtures__/cleave.json'), 'utf8'));
+
+	it('supplies both of the effects 1459 supplies, and neither more nor fewer', () => {
+		const groups = RAID_BUFF_EFFECT_KEYS.filter((key) => (RAID_BUFF_PROVIDER_IDS.get(key) ?? []).includes(61_316));
+		expect(groups).toEqual(
+			RAID_BUFF_EFFECT_KEYS.filter((key) => (RAID_BUFF_PROVIDER_IDS.get(key) ?? []).includes(1459)),
+		);
+		expect(groups).toEqual(['spellPower', 'crit']);
+	});
+
+	it('is named by the buff a Mists reader saw, not by the id it shares its text with', () => {
+		expect(RAID_BUFF_NAMES.get(61_316)).toBe('Dalaran Brilliance');
+	});
+
+	it('does not take either row’s icon, which no regeneration has resolved for it', () => {
+		// The rule §70 recorded: `iconId` is the first provider of its group, and a provider added at the
+		// front of a group draws a blank until the generated map catches up. 1459 stays first in both.
+		expect(RAID_BUFF_PROVIDER_IDS.get('spellPower')?.[0]).toBe(1459);
+		expect(RAID_BUFF_PROVIDER_IDS.get('crit')?.[0]).toBe(24_932);
+	});
+
+	/**
+	 * The fixture assertion, and the one that measures the fault rather than restating the declaration.
+	 * `cleave.json`'s `combatantinfo` carries 61316 from another player and carries no 1459, no 24932, no
+	 * 17007, no Legacy of the White Tiger — so the crit row it produced was silence about a buff the
+	 * snapshot proves was up.
+	 */
+	it('turns the crit row on a committed pull from “not reported” into the buff that was up', () => {
+		const dataset = cleave();
+		const pullAuras = new Set(
+			(dataset.events as Array<{ auras?: Array<{ ability?: number }> }>)
+				.flatMap((e) => e.auras ?? [])
+				.map((a) => a.ability)
+				.filter((id): id is number => id !== undefined),
+		);
+		// Guard against the assertion going vacuous on a re-captured fixture.
+		expect(pullAuras.has(61_316), 'cleave.json no longer carries 61316 at the pull; this test is now vacuous').toBe(
+			true,
+		);
+		expect(pullAuras.has(1459)).toBe(false);
+		for (const other of [24_932, 17_007, 90_309, 24_604, 116_781, 126_309]) expect(pullAuras.has(other)).toBe(false);
+
+		const summary = readRaidBuffs(dataset.events, dataset.actor.id, dataset.fight.startTime, dataset.fight.endTime);
+		const crit = summary.rows.find((r) => r.key === 'crit')!;
+		expect(crit.notReported).toBe(false);
+		expect(crit.providers).toEqual(['Dalaran Brilliance']);
+		expect(crit.fromPull).toBe(true);
+		// **Not 100%, and the number is the point.** The one gap opens at 106 254 ms, four milliseconds
+		// before the death at 106 258 ms, and closes when the mage re-buffs 92 seconds later — a corpse
+		// holds no buffs, which is why the summary counts deaths and the section says so in its own note.
+		// Every other row on this pull shows the same signature at the same instant. So the row reads a
+		// real drop measured off the stream, where before it read nothing at all.
+		expect(crit.uptimePct).toBeCloseTo(64.96, 2);
+		expect(crit.gaps).toEqual([{ at: 106_254, seconds: 92.2 }]);
+		expect(summary.deaths).toBe(1);
+		// And the spell-power row gains the provider it was already covering the effect without: the
+		// shaman's own Burning Wrath held it at 100% throughout, which is what hid this on that row.
+		expect(summary.rows.find((r) => r.key === 'spellPower')?.providers).toEqual([
+			'Dalaran Brilliance',
+			'Burning Wrath',
+			'Dark Intent',
+		]);
+		expect(summary.rows.find((r) => r.key === 'spellPower')?.uptimePct).toBeCloseTo(100, 5);
+	});
+
+	/**
+	 * The same pull without the death, so the number is the buff's own. `unbroken` carries 61316 in its
+	 * snapshot and logs no aura event for it at all — the ordinary shape of a raid buff cast before the
+	 * bell — so the crit row went from "not reported" to a full pull's uptime.
+	 */
+	it('reads a full pull on the other fixture that carries it, which has no death in it', () => {
+		const dataset = JSON.parse(
+			readFileSync(resolve(import.meta.dirname, '../../../specs/elemental/__fixtures__/unbroken.json'), 'utf8'),
+		) as { events: WclEvent[]; actor: { id: number }; fight: { startTime: number; endTime: number } };
+		const summary = readRaidBuffs(dataset.events, dataset.actor.id, dataset.fight.startTime, dataset.fight.endTime);
+		const crit = summary.rows.find((r) => r.key === 'crit')!;
+		expect(crit.notReported).toBe(false);
+		expect(crit.providers).toEqual(['Dalaran Brilliance']);
+		expect(crit.uptimePct).toBe(100);
+		expect(crit.gaps).toEqual([]);
+		// Nothing is left unreported on this pull now, where the crit row was the one silence in it.
+		expect(summary.notReported).toBe(0);
+	});
+
+	/**
+	 * The general case behind that pull: a raid whose mage cast the other id is a raid with the buff, and
+	 * the report used to say it had neither half of it. Both effects, because both were silent.
+	 */
+	it('reports both effects for a raid whose only mage buff is the second id', () => {
+		const events = [pull([{ ability: 61_316, source: 4 }])];
+		expect(rowOf(events, 'crit').notReported).toBe(false);
+		expect(rowOf(events, 'crit').uptimePct).toBe(100);
+		expect(rowOf(events, 'spellPower').notReported).toBe(false);
+		expect(rowOf(events, 'spellPower').uptimePct).toBe(100);
 	});
 });

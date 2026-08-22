@@ -143,7 +143,9 @@ export const EFFECTS: EffectGroup[] = [
 		//
 		// Arcane Brilliance and Still Water are in this group *and* in the crit group below, which is the
 		// simulator and not a duplication: one `makeExclusiveBuff` call registers +10% spell power and
-		// +5% crit at once, into two separate exclusive categories.
+		// +5% crit at once, into two separate exclusive categories. Dalaran Brilliance is in both for the
+		// same reason — it is Arcane Brilliance under the second id Mists gives it, which is why there are
+		// five entries here against the simulator's four providers.
 		key: 'spellPower',
 		providers: [
 			// 1459 is "Arcane Brilliance" in Mists and this name is deliberate, even though WarcraftLogs
@@ -152,6 +154,17 @@ export const EFFECTS: EffectGroup[] = [
 			// Brilliance in their buff frame, so the report says Arcane Brilliance. Do not "fix" this to
 			// match what the WCL tables print.
 			{ id: 1459, name: 'Arcane Brilliance' },
+			// The mage's *other* id, and the same buff: Mists carries Arcane Brilliance and the Dalaran-tome
+			// version of it, and a raid gets whichever one its mage learned. The simulator declares only
+			// 1459 — 61316 appears nowhere in that tree and nowhere in its database — so the log and the
+			// tooltip are what settle it. Wowhead's `mop-classic` tooltip for 61316 has no text of its own
+			// and links to spell 1459 for it: "increasing their spell power by 10% and their critical strike
+			// chance by 5%", with a buff line reading exactly that. Two of the four committed pulls write
+			// this id and neither writes 1459, and on both of them it was the *only* crit provider on the
+			// player — so the crit row read "not reported" while the pull snapshot proved the buff was up.
+			// The one fault this module must never print, printed on committed data. Second, not first,
+			// because the row's icon is its first provider and the generated map answers for 1459.
+			{ id: 61316, name: 'Dalaran Brilliance' },
 			{ id: 126309, name: 'Still Water' },
 			{ id: 77747, name: 'Burning Wrath' },
 			{ id: 109773, name: 'Dark Intent' },
@@ -206,6 +219,10 @@ export const EFFECTS: EffectGroup[] = [
 			{ id: 24604, name: 'Furious Howl' },
 			{ id: 116781, name: 'Legacy of the White Tiger' },
 			{ id: 1459, name: 'Arcane Brilliance' },
+			// Both mage ids here for the same reason they are both in the spell-power group above: one
+			// `makeExclusiveBuff` call registers the spell power and the crit pair together, so a raid buffed
+			// under either id has both halves of it.
+			{ id: 61316, name: 'Dalaran Brilliance' },
 			{ id: 126309, name: 'Still Water' },
 		],
 	},

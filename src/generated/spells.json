@@ -4,7 +4,7 @@
 		"commit": "49588f62b50966e304f8f0eeb0067de9666849c3",
 		"committed": "2026-08-21T06:52:09.000Z",
 		"fromDatabase": 87,
-		"fromWowhead": 190
+		"fromWowhead": 192
 	},
 	"spells": {
 		"1": {
@@ -266,6 +266,10 @@
 		"61295": {
 			"name": "Riptide",
 			"icon": "spell_nature_riptide"
+		},
+		"61316": {
+			"name": "Dalaran Brilliance",
+			"icon": "achievement_dungeon_theviolethold_heroic"
 		},
 		"69179": {
 			"name": "Arcane Torrent",
@@ -686,6 +690,10 @@
 		"118297": {
 			"name": "Immolate",
 			"icon": "spell_fire_immolation"
+		},
+		"118323": {
+			"name": "Earth Elemental",
+			"icon": "spell_nature_earthelemental_totem"
 		},
 		"118345": {
 			"name": "Pulverize",
