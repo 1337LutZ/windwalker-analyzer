@@ -9,12 +9,12 @@ import { useCallback, useContext, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import '~/lib/i18n';
-import type { Grade, Scorecard } from '~/lib/score';
+import type { BandView, Grade, Scorecard } from '~/lib/score';
 import type { SpecDefinition } from '~/lib/spec';
-import type { Analysis, TargetMode } from '~/lib/types';
+import type { Analysis } from '~/lib/types';
 
 import { useSpec } from '~/components/report/specContext';
-import { TargetModeContext } from '~/components/report/targetModeContext';
+import { ScoreViewContext } from '~/components/report/scoreViewContext';
 
 /** `none` is not a grade — it means the pull could not answer the question at all. */
 export type CopyGrade = Grade | 'none';
@@ -68,21 +68,28 @@ const CARDS = new WeakMap<Analysis, Map<string, Scorecard>>();
  * Keyed by analysis, spec *and* reading, because both the spec and the reading change the card.
  *
  * The spec picks the scoring module — a Windwalker pull and an Elemental pull are scored by their own
- * thresholds — and the reading changes how the spec weighs its metrics. The inner map is small and
- * bounded by the number of specs times the number of modes, and it still hangs off the analysis, so a
- * report's cards are still collected with the report.
+ * thresholds — and the reading changes both which of the spec's rules were asked of the pull and how
+ * it weighs the answers. The inner map is small and bounded by the number of specs times the number of
+ * readings a reader can produce (three), and it still hangs off the analysis, so a report's cards are
+ * still collected with the report.
+ *
+ * Keyed on the view's *contents* and not on the view object, which is the whole reason this takes a
+ * string apart rather than using a second `WeakMap`: `resolveBands` returns a fresh object per call,
+ * so identity would miss every time and the memo above it would score the pull once per section again.
+ * Both halves of the reading are in the key, because both reach the card — the bands decide which
+ * rules applied and the mode decides what their answers are worth.
  */
-function scorecardFor(analysis: Analysis, spec: SpecDefinition, mode: TargetMode | null): Scorecard {
-	let byMode = CARDS.get(analysis);
-	if (byMode === undefined) {
-		byMode = new Map();
-		CARDS.set(analysis, byMode);
+function scorecardFor(analysis: Analysis, spec: SpecDefinition, view: BandView): Scorecard {
+	let byView = CARDS.get(analysis);
+	if (byView === undefined) {
+		byView = new Map();
+		CARDS.set(analysis, byView);
 	}
-	const key = `${spec.key}:${mode ?? 'auto'}`;
-	const known = byMode.get(key);
+	const key = `${spec.key}:${view.bands?.join(',') ?? 'all'}:${view.mode ?? 'none'}`;
+	const known = byView.get(key);
 	if (known !== undefined) return known;
-	const card = spec.score(analysis, mode);
-	byMode.set(key, card);
+	const card = spec.score(analysis, view);
+	byView.set(key, card);
 	return card;
 }
 
@@ -91,8 +98,8 @@ export function useReportCopy(analysis: Analysis): ReportCopy {
 	// Read rather than passed: every section already calls this hook, so the spec and the reading
 	// arrive without thirty signatures having to carry them.
 	const spec = useSpec();
-	const mode = useContext(TargetModeContext);
-	const card = useMemo(() => scorecardFor(analysis, spec, mode), [analysis, spec, mode]);
+	const view = useContext(ScoreViewContext);
+	const card = useMemo(() => scorecardFor(analysis, spec, view), [analysis, spec, view]);
 
 	const gradeOf = useCallback(
 		(section: string): CopyGrade => {

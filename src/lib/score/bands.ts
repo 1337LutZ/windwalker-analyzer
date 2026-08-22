@@ -47,6 +47,25 @@ export interface BandView {
 	 * once; nothing produces it, and a caller seeing it would be right to treat it as a bug.
 	 */
 	bands: readonly Band[] | null;
+	/**
+	 * The same pull read as one whole-pull mode, for the questions a set of bands cannot answer.
+	 *
+	 * Both readings, on one object, because the two questions in the scorecard are genuinely different.
+	 * *Which rules applied* is per-rung and per-moment, and only the set can answer it — that is
+	 * everything above. *How much a one-target number should matter when the job was spreading* is a
+	 * claim about the pull as a whole: `MULTI_TARGET_WEIGHTS` discounts Rising Sun Kick uptime on that
+	 * argument, and a band set has nothing to say about it. A pull that dipped to one enemy for one
+	 * window was not thereby a single-target pull.
+	 *
+	 * Carried rather than derived, in either direction. Deriving the mode from the set would need an
+	 * invented dwell threshold, which `resolveBands` declines to invent for exactly the reason stated
+	 * there; deriving the set from the mode is `viewBands`' lossy arm and is the thing this interface
+	 * exists to stop. So both come off the same two inputs — the counts and the reader's choice — in one
+	 * place, and the score and the weights cannot disagree about what the pull was.
+	 *
+	 * Null on the same terms as `bands`: nothing detected a reading and the reader has not forced one.
+	 */
+	mode: TargetMode | null;
 	/** True when the reader forced the reading rather than the counts detecting it. */
 	forced: boolean;
 }
@@ -104,4 +123,17 @@ export function viewBands(view: ScoreView): readonly Band[] | null {
 	if (view === null || view === undefined) return null;
 	if (typeof view === 'string') return view === 'single' ? [1] : [3];
 	return view.bands;
+}
+
+/**
+ * The whole-pull reading a scoring call was told about — the counterpart of `viewBands`, and the
+ * only one of the two that a `TargetMode` can answer without losing anything.
+ *
+ * For a bare mode it is the mode itself. For a `BandView` it is the mode that view was resolved
+ * alongside, which is why that field exists rather than being reconstructed from the set here: see
+ * `BandView.mode`.
+ */
+export function viewMode(view: ScoreView): TargetMode | null {
+	if (view === null || view === undefined) return null;
+	return typeof view === 'string' ? view : view.mode;
 }

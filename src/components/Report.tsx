@@ -5,9 +5,9 @@ import type { Analysis } from '~/lib/types';
 
 import SectionNav, { type ReportSection } from './report/SectionNav';
 import { SpecContext } from './report/specContext';
-import { TargetModeContext } from './report/targetModeContext';
+import { ScoreViewContext } from './report/scoreViewContext';
 import { SPEC_SECTIONS, SPEC_SUMMARY } from './report/specSections';
-import { resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
+import { resolveBands, resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
 import { ReportHeader, SpecRefusal, Takeaways } from './sections';
 
 /**
@@ -58,6 +58,16 @@ export default function Report({
 	// `auto` resolves to.
 	const { mode } = resolveTargetMode(analysis.targets?.detected, targetChoice);
 	const forcedMode = targetChoice === 'auto' ? null : mode;
+	// The reading everything *graded* is read at, and the two resolutions are not the same answer. The
+	// mode below this line goes only to the sections that select data by target count — one band each,
+	// by their own argument — while every grade in the report comes off the band set, because a metric
+	// is graded over a clock and a mixed pull's clock runs through several bands. `resolveBands` carries
+	// the mode along inside the view, so the weights still get their whole-pull reading from the same
+	// object the bands came on.
+	//
+	// Memoised because it is a provider value: a fresh object per render would re-render every graded
+	// section in the report for a reading that had not changed.
+	const scoreView = useMemo(() => resolveBands(analysis.targets, targetChoice), [analysis, targetChoice]);
 	// The sections this pull actually renders, and the list the nav is built from — one array, so a
 	// section that declines to appear cannot leave a link behind pointing at a heading that is not
 	// there. Memoised because `SectionNav` observes whatever it is handed and rebuilds its observer
@@ -81,7 +91,7 @@ export default function Report({
 		// on that path would have thrown — the context refuses to guess now — and there is no reason for
 		// a render path to sit outside the provider in the first place.
 		<SpecContext.Provider value={spec}>
-			<TargetModeContext.Provider value={mode}>
+			<ScoreViewContext.Provider value={scoreView}>
 				{!analysis.isSpec ? (
 					<SpecRefusal analysis={analysis} spec={spec} />
 				) : (
@@ -100,12 +110,14 @@ export default function Report({
 								<Takeaways analysis={analysis} />
 							</section>
 							{sections.map((section) =>
-								// Still props, though the mode is in context now, because these sections differ from
-								// every other. Every other section reads the mode *indirectly*, through the scorecard
-								// that weights its metrics; `modeProps` marks the ones that use it to select what is
-								// rendered at all — which of the precomputed audits, and which rungs of the priority
-								// list exist at that count. A prop says that at the call site, where reading context
-								// would hide the places the choice picks data rather than reweighting it.
+								// Still props, and the mode rather than the band set, because these sections differ from
+								// every other in both ways. Every other section reads the reading *indirectly*, through
+								// the scorecard that grades and weights its metrics, and that reading is the set;
+								// `modeProps` marks the ones that use it to select what is rendered at all — which of the
+								// precomputed audits, and which rungs of the priority list exist at that count. Those
+								// want one band and say so, which is what `bandForMode` is for. A prop says that at the
+								// call site, where reading context would hide the places the choice picks data rather
+								// than regrading it.
 								//
 								// They take the same value for that reason: the priority list is judged at the reader's
 								// target count, the rotation reference prints the list that count produces, and the
@@ -128,7 +140,7 @@ export default function Report({
 						</article>
 					</div>
 				)}
-			</TargetModeContext.Provider>
+			</ScoreViewContext.Provider>
 		</SpecContext.Provider>
 	);
 }

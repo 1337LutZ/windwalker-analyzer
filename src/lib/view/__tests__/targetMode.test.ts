@@ -84,7 +84,13 @@ describe('resolveBands', () => {
 	 * mode named, and the four bands are what says otherwise.
 	 */
 	it('reads a mixed pull as the several bands it was fought at', () => {
-		expect(resolveBands(windwalker('strong').targets, 'auto')).toEqual({ bands: [1, 2, 3, 4], forced: false });
+		expect(resolveBands(windwalker('strong').targets, 'auto')).toEqual({
+			bands: [1, 2, 3, 4],
+			// The lossy arm, carried beside the set rather than replaced by it: the mode is what the
+			// whole-pull weights still ask for, and on this pull it is the reading the four bands contradict.
+			mode: 'single',
+			forced: false,
+		});
 		expect(bandForMode('single')).toBe(1);
 	});
 
@@ -110,8 +116,8 @@ describe('resolveBands', () => {
 	 * pull read at one band on the reader's word is a different fact from one that was fought at one.
 	 */
 	it('narrows to the one band the reader forced', () => {
-		expect(resolveBands(windwalker('cleave').targets, 'single')).toEqual({ bands: [1], forced: true });
-		expect(resolveBands(windwalker('cleave').targets, 'multi')).toEqual({ bands: [3], forced: true });
+		expect(resolveBands(windwalker('cleave').targets, 'single')).toEqual({ bands: [1], mode: 'single', forced: true });
+		expect(resolveBands(windwalker('cleave').targets, 'multi')).toEqual({ bands: [3], mode: 'multi', forced: true });
 	});
 
 	/**
@@ -121,6 +127,6 @@ describe('resolveBands', () => {
 	 */
 	it('says nothing was detected rather than inventing a band', () => {
 		expect(bandsInPull(undefined)).toBeNull();
-		expect(resolveBands(undefined, 'auto')).toEqual({ bands: null, forced: false });
+		expect(resolveBands(undefined, 'auto')).toEqual({ bands: null, mode: null, forced: false });
 	});
 });

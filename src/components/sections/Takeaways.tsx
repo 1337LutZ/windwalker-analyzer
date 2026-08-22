@@ -3,7 +3,7 @@ import { useContext, useMemo } from 'react';
 import { jumpToHeading } from '../jump';
 import { useSpec } from '../report/specContext';
 import { SPEC_TAKEAWAYS, type AdviceTakeaway } from '../report/specSections';
-import { TargetModeContext } from '../report/targetModeContext';
+import { ScoreViewContext } from '../report/scoreViewContext';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { GRADE_ORDER, type Metric } from '~/lib/score';
 import type { Analysis } from '~/lib/types';
@@ -63,12 +63,17 @@ function shortfall(metric: Metric): number {
  * **The weights are the reading's, not the base set**, and that is the same map `overall` is averaged
  * over rather than a second one. It used to read `WEIGHTS` directly, which made the summary the one
  * part of the report blind to how the pull was being read — and blind in the direction that hurts,
- * because the two metrics `MULTI_TARGET_WEIGHTS` discounts are discounted for a reason the summary
- * repeats verbatim. `tigerPalmWaste` drops to a third on an add fight because at full weight it
- * "hands every add fight three points of credit for a habit it never had the chance to show"; a card
- * telling that player to stop overwriting Tiger Power is exactly that credit spent as advice. The
- * headline and the short list under it now rank on one set of weights, which is what stops them
- * disagreeing about what mattered on the pull.
+ * because what `MULTI_TARGET_WEIGHTS` discounts is discounted for a reason the summary repeats
+ * verbatim: Rising Sun Kick uptime on one target is a smaller part of the story when the job is
+ * spreading, so a card ranking it above everything on an add fight is that same overstatement spent
+ * as advice. The headline and the short list under it rank on one set of weights, which is what stops
+ * them disagreeing about what mattered on the pull.
+ *
+ * The reading reaches this list a second way now, and the more important one. A metric outside its
+ * own bands is `unmeasurable` — the question was not asked of this pull — so it cannot deal a card at
+ * all, which is what stops an add fight being told to fix its single-target filler. That is the whole
+ * of the reported bug this list was the visible face of: three cards about one rule that only ever
+ * applied to part of the pull.
  *
  * Nothing unmeasurable appears. A pull with no procs to snapshot has not failed to snapshot them,
  * and "cannot say" is not a takeaway.
@@ -78,11 +83,11 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 	// Read the same way every graded section reads it, and for the same reason `useReportCopy` does:
 	// the spec and the reading are context rather than a prop, so neither arrives through a signature.
 	const spec = useSpec();
-	const mode = useContext(TargetModeContext);
+	const view = useContext(ScoreViewContext);
 
 	const takeaways = useMemo<Takeaway[]>(() => {
 		const takeawayConfig = SPEC_TAKEAWAYS[spec.key];
-		const weights = spec.weightsFor(mode);
+		const weights = spec.weightsFor(view);
 		const all: MetricTakeaway[] = [];
 		for (const [section, score] of Object.entries(card.sections)) {
 			for (const metric of score.metrics) {
@@ -104,7 +109,7 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 			.slice(0, CARDS);
 		const advice = takeawayConfig?.advice?.(analysis) ?? [];
 		return [...advice, ...metricTakeaways].slice(0, CARDS);
-	}, [analysis, card, mode, spec]);
+	}, [analysis, card, spec, view]);
 
 	if (takeaways.length === 0) {
 		return (

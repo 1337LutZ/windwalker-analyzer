@@ -108,9 +108,15 @@ export function bandsInPull(targets: TargetSummary | undefined): readonly Band[]
  * The three committed Elemental fixtures make the difference concrete: `phased` and `unbroken` never
  * exceed one enemy, so both readings agree on band 1 and nothing here can change them, while `cleave`
  * reads `[1, 2, 3, 4]` under detection and would be flattened to `[3]` by its detected mode alone.
+ *
+ * The whole-pull mode rides along on the result — see `BandView.mode` — rather than being fetched by
+ * the caller from `resolveTargetMode` a second time. Both readings come off the same two inputs, so
+ * resolving them together is what makes it impossible for the grade and the weights to be arguing
+ * about different pulls.
  */
 export function resolveBands(targets: TargetSummary | undefined, choice: TargetModeChoice): BandView {
-	if (choice === 'auto') return { bands: bandsInPull(targets), forced: false };
+	const { mode } = resolveTargetMode(targets?.detected, choice);
+	if (choice === 'auto') return { bands: bandsInPull(targets), mode, forced: false };
 	const forced = bandForMode(choice);
-	return { bands: forced === null ? null : [forced], forced: true };
+	return { bands: forced === null ? null : [forced], mode, forced: true };
 }

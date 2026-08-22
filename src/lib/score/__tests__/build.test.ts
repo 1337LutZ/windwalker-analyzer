@@ -94,14 +94,18 @@ describe('the sample floor', () => {
 describe('a rule outside its bands', () => {
 	/** Not graded, and not graded *well*: `exempt` is beside `unmeasurable` so the copy can tell them apart. */
 	it('says the question was not asked, on a pull that never left band 3+', () => {
-		const m = metricOf(RULES, 'overcapMs', 9_999_999, undefined, { bands: [3, 4], forced: false });
+		const m = metricOf(RULES, 'overcapMs', 9_999_999, undefined, { bands: [3, 4], mode: null, forced: false });
 		expect(m.unmeasurable).toBe(true);
 		expect(m.exempt).toBe(true);
 	});
 
 	/** Cleave stays graded: two targets still spend the charges, so band 2 keeps the rule. */
 	it('keeps grading a pull that spent any time in its bands', () => {
-		const mixed = metricOf(RULES, 'overcapMs', 9_999_999, undefined, { bands: [1, 2, 3, 4], forced: false });
+		const mixed = metricOf(RULES, 'overcapMs', 9_999_999, undefined, {
+			bands: [1, 2, 3, 4],
+			mode: null,
+			forced: false,
+		});
 		expect(mixed.unmeasurable).toBe(false);
 		expect(mixed.exempt).toBeUndefined();
 	});
@@ -121,7 +125,9 @@ describe('a rule outside its bands', () => {
 
 	/** A rule that declares no bands is asked of every pull, however many enemies were up. */
 	it('never exempts an undeclared rule', () => {
-		expect(metricOf(RULES, 'uptimePct', 99, undefined, { bands: [3, 4], forced: false }).unmeasurable).toBe(false);
+		expect(metricOf(RULES, 'uptimePct', 99, undefined, { bands: [3, 4], mode: null, forced: false }).unmeasurable).toBe(
+			false,
+		);
 	});
 
 	/**
@@ -136,7 +142,7 @@ describe('a rule outside its bands', () => {
 
 	/** `grader` exists so the view is bound once and no metric can be built outside the exemption. */
 	it('binds the view for every metric a grader builds', () => {
-		const metric = grader(RULES, { bands: [3, 4], forced: false });
+		const metric = grader(RULES, { bands: [3, 4], mode: null, forced: false });
 		expect(metric('overcapMs', 0).exempt).toBe(true);
 		expect(metric('uptimePct', 99).exempt).toBeUndefined();
 	});

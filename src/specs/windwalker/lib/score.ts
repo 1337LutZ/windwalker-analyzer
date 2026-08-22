@@ -7,9 +7,22 @@
 // (`wasteTone` and friends) that colour the tiles. A second spec brings its own module beside
 // this one; the registry points each at its own.
 
-import type { Analysis, TargetMode } from '~/lib/types';
-import { GRADE_ORDER, gradeOf, metricOf, overall, section, sharePct } from '~/lib/score';
-import type { Grade, Metric, Scorecard, Threshold } from '~/lib/score';
+import type { Analysis, FillerAudit, TargetSummary } from '~/lib/types';
+import { countAt } from '~/lib/analysis/targets';
+import {
+	appliesAt,
+	GRADE_ORDER,
+	gradedOver,
+	grader,
+	gradeOf,
+	overallOf,
+	section,
+	shareOf,
+	sharePct,
+	viewMode,
+} from '~/lib/score';
+import type { Grade, Measured, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
+import { bandOf } from '~/lib/spec/apl';
 
 /**
  * How a share of wasted resource reads as a colour.
@@ -99,11 +112,42 @@ export function defensiveUseTone(used: number, possible: number): Grade | null {
 // defaulted, because a pull with no Re-Origination procs has not failed to snapshot them — and copy
 // that says "0 of 0 caught, poor" about a fight that never offered the chance is worse than silence.
 
-// `sharePct`, `section` and `overall` come from `~/lib/score` — they were identical to the Elemental
-// module's copies once the comments were stripped. `metric` is bound to this spec's own thresholds
-// here, which is the only part of the four that was ever spec-specific.
-const metric = (key: MetricKey, value: number | null, context?: string): Metric =>
-	metricOf(THRESHOLDS, key, value, context);
+// `sharePct`, `section` and `overallOf` come from `~/lib/score` — they were identical to the Elemental
+// module's copies once the comments were stripped. `grader` binds this spec's own thresholds *and* the
+// pull's reading, which is the only part of the four that was ever spec-specific, and the reading is
+// the half it would be easy to leave off exactly one metric.
+
+/**
+ * The Tiger Palm presses the rule was ever about, and the share of them that bought nothing.
+ *
+ * The count-metric counterpart of `Metric.gradedMs`, and the reason `bands: [1]` on this rule is a
+ * control rather than a decoration. The declaration on its own only answers "did this pull ever enter
+ * band 1", and on the fixtures we hold every pull did — all six visit band 1, the two the counts read
+ * as multi-target included — so a band with nothing narrowing the sample behind it would exempt
+ * nothing under the detected reading while presenting as an exemption. This is the narrowing: a press
+ * made with three enemies up was never a press the single-target filler rule asked for, so it leaves
+ * the numerator and the denominator together.
+ *
+ * Narrowed by the *rule's* bands and not by the reader's, deliberately. How many enemies were up is a
+ * measurement rather than a reading — forcing the report to argue single-target does not retroactively
+ * empty the room — so this cut is the same on every reading, exactly as the Elemental's audit cuts its
+ * clocks at the regime boundaries whatever the reader asked for. What the reader's reading decides is
+ * the *other* half: whether the rule applied to this pull at all, which is `metricOf`'s exemption.
+ *
+ * `castList` and `casts` are two views of one measurement, and the cut only applies where they agree.
+ * Where they do not there is nothing trustworthy to narrow with, so the whole-pull share stands — what
+ * this metric graded before bands existed, and the conservative direction: it judges too much rather
+ * than excusing too much.
+ */
+function tigerPalmShare(filler: FillerAudit, targets: TargetSummary | undefined): Measured {
+	if (filler.castList.length !== filler.casts) return shareOf(filler.wasted, filler.casts);
+	// Zero before the first counted hit, and `bandOf` reads zero as band 1 — so a pull with no counts at
+	// all (every fixture captured before they existed) keeps every press, which is the reading that
+	// grades everything rather than the one that excuses everything.
+	const enemiesAt = countAt(targets?.counts.points ?? []);
+	const presses = filler.castList.filter((press) => appliesAt(THRESHOLDS.tigerPalmWaste, bandOf(enemiesAt(press.t))));
+	return shareOf(presses.filter((press) => press.reason === 'wasted').length, presses.length);
+}
 
 /**
  * Grades one pull.
@@ -111,13 +155,17 @@ const metric = (key: MetricKey, value: number | null, context?: string): Metric 
  * Section keys match the report's section ids, so a component asks for its own verdict by the name
  * it already has.
  */
-export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null): Scorecard {
+export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
 	const { procs, brew, debuff, filler, cpm, karma, potions } = analysis;
+	// Bound once, so no metric below can be built outside the exemption. See `grader`.
+	const metric = grader(THRESHOLDS, view);
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 	// Against the procs the bank could actually have paid for, not every proc that fired. A pull opens
 	// with an empty bank, so the raw count charges players for procs they were never offered.
-	const snapshotRate = metric('snapshotRate', sharePct(procs.snapshotted, procs.opportunities));
+	// `shareOf` rather than `sharePct`: the denominator is a count of procs, so the sample floor applies.
+	// One or two affordable procs cannot separate a habit from a coin toss — see `MIN_GRADED_SAMPLE`.
+	const snapshotRate = metric('snapshotRate', shareOf(procs.snapshotted, procs.opportunities));
 	// Averaged over caught procs only, so with none caught there is nothing to average.
 	const snapshotDepth = metric('snapshotDepth', procs.snapshotted > 0 ? procs.meanDepthPct : null);
 	// Graded on every pull that cast it, add fight or not.
@@ -129,8 +177,16 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 	// same pull reads 93.6%. Both halves are fixed now, and `debuff.engagedUptimePct` asks whether the
 	// debuff was on the enemy the player was hitting at each moment, which is a fair question on any
 	// pull. Keeping the gate would leave the section silent on exactly the fights it can speak to.
-	const rskUptime = metric('rskUptime', debuff.casts > 0 ? debuff.engagedUptimePct : null);
-	const tigerPalmWaste = metric('tigerPalmWaste', sharePct(filler.wasted, filler.casts));
+	//
+	// Over the clock the audit says it graded — `contactMs` when the capture has it, the narrower
+	// `engagedMs` on the fixtures that predate it, which is what those were measured against. No band
+	// cuts this clock (see the rule), so the guard only ever fires on a pull with presses and no contact
+	// at all; it is published because a share of a clock should carry the clock it was a share of.
+	const rskUptime = metric(
+		'rskUptime',
+		gradedOver(debuff.casts > 0 ? debuff.engagedUptimePct : null, debuff.contactMs ?? debuff.engagedMs),
+	);
+	const tigerPalmWaste = metric('tigerPalmWaste', tigerPalmShare(filler, analysis.targets));
 	const brewStacks = metric('brewStacks', brew.uses > 0 ? brew.avgConsumed : null);
 	// Graded on the stacks that were avoidable, not on every stack the cap refused. A stack lost while
 	// holding a brew for a Re-Origination proc, on a proc where holding was the cheaper of the two
@@ -189,8 +245,13 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		potionsUsed,
 	];
 
+	// `overallOf` rather than `overall`: the denominator travels with the verdict, so a headline drawn
+	// over a pull most of whose weight was exempted says so instead of reading as a whole-pull claim.
+	const { grade, judged } = overallOf(all, weightsFor(view));
+
 	return {
-		overall: overall(all, weightsFor(mode)),
+		overall: grade,
+		judged,
 		sections: {
 			// Depth is deliberately secondary — see the note on SectionScore.
 			snapshots: section([snapshotRate], [snapshotDepth]),
@@ -349,8 +410,28 @@ export const THRESHOLDS = {
 	 * Tiger Palm earns its global two ways: spending a free Combo Breaker proc, or refreshing Tiger
 	 * Power before it drops. Anything else clips a healthy buff and takes a global that Jab or
 	 * Blackout Kick wanted. A handful is noise; a third of them is a habit.
+	 *
+	 * **Band 1, because this is the one Windwalker rule only one target count's list contains.** Tiger
+	 * Palm is the single-target filler; from two enemies up the list wants those globals on Rushing Jade
+	 * Wind and Spinning Crane Kick, and the button is pressed to hold Tiger Power rather than as a
+	 * filler at all. Grading a press made into a pack against a rule about the single-target filler is
+	 * the reported bug in this spec's own shape.
+	 *
+	 * This is the *only* threshold in this table that gets a band, and the test the others fail is one
+	 * sentence: the resource or the opportunity has to exist differently at different target counts.
+	 * Snapshotting a proc, filling your globals, banking and spending brew stacks and drinking a potion
+	 * are the same job however many enemies are in front of you, so they stay graded everywhere. Rising
+	 * Sun Kick uptime is the near miss and is left alone on measurement rather than on argument — a band
+	 * cut from the multi group's own quartiles over 92 pulls could not separate an 81.4% Nazgrim from an
+	 * 80.6% Galakras; the derivation is above `rskUptime`.
+	 *
+	 * A band declaration alone would have changed nothing here, which is the failure this project has
+	 * already shipped once: every committed fixture visits band 1, so the intersection is never empty
+	 * under the detected reading and nothing would be exempted. `tigerPalmShare` is the other half — the
+	 * presses made outside band 1 leave the sample — and it is what turns the declaration into a
+	 * control. With the sample honest the weight no longer needs its whole-pull discount; see `WEIGHTS`.
 	 */
-	tigerPalmWaste: { good: 10, ok: 30, higherIsBetter: false },
+	tigerPalmWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1] },
 
 	/**
 	 * Average stacks consumed per brew, out of the ten a full brew spends.
@@ -424,7 +505,7 @@ export const THRESHOLDS = {
 	 * across that would be invented precision.
 	 */
 	potionsUsed: { good: 2, ok: 1, higherIsBetter: true },
-} as const satisfies Record<string, Threshold>;
+} as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
 
@@ -440,6 +521,18 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// The two things this spec is actually about, and the two that separate the sample most sharply:
 	// catch rate spreads 25–100% and Tiger Palm waste is frankly bimodal — players either have the
 	// habit or they do not.
+	//
+	// **Tiger Palm's three is now its weight on every reading**, where it used to fall to one whenever
+	// the pull was read as multi-target. The discount was the right answer to a real problem stated the
+	// only way it could be stated at the time: at full weight the metric "hands every add fight three
+	// points of credit for a habit it never had the chance to show". But it charged the whole pull for
+	// where part of it was fought, and it took the credit away from the single-target stretches where
+	// the habit genuinely was on show — the mixed pull is detected `single`, wastes 17 of the 23 presses
+	// it made at one enemy, and there is nothing about that worth discounting. `bands: [1]` plus the
+	// sample narrowing says the same thing precisely instead: the presses made into a pack leave the
+	// measurement, and a pull with too few in-band presses left to judge is not judged on it at all.
+	// Three rather than higher because three is what the sample argued for and nothing here is new
+	// evidence about how much the habit matters — only about which presses it was ever a claim over.
 	snapshotRate: 4,
 	tigerPalmWaste: 3,
 	// Table stakes. Both are close to universally passed once the cast data is right, so they were
@@ -471,16 +564,21 @@ export const WEIGHTS: Record<MetricKey, number> = {
 /**
  * What changes when the pull is read as multi-target.
  *
- * Only two metrics move, and both because the *question* changes rather than because add fights
- * deserve an easier mark. Everything absent from this map is mode-independent and stays where it is:
- * snapshotting a proc and filling your globals are the same job however many enemies are in front of
- * you.
+ * One metric moves, and because the *question* changes rather than because add fights deserve an
+ * easier mark. Everything absent from this map is mode-independent and stays where it is: snapshotting
+ * a proc and filling your globals are the same job however many enemies are in front of you.
  *
- * **`tigerPalmWaste` drops from 3 to 1.** Tiger Palm is the single-target filler. Above two targets
- * the list wants Rushing Jade Wind and Spinning Crane Kick in those globals, so the button is pressed
- * mostly to hold Tiger Power and there is far less of it to waste — across the fixtures the two
- * multi-target pulls sit at 4.5% and 0.0% while the single-target ones reach 72% and 73%. At full
- * weight it hands every add fight three points of credit for a habit it never had the chance to show.
+ * **`tigerPalmWaste` used to be the other entry and is no longer here.** It carries a band now, which
+ * is a strictly more honest statement of the same finding — see the note beside its weight and the one
+ * above its threshold. A whole-pull discount and a band declaration doing the same job would be two
+ * mechanisms disagreeing about one rule, and the discount is the one that cannot tell a press made at
+ * one enemy from a press made into six.
+ *
+ * A whole-pull weight is still the right shape for what is left, which is why this map survives rather
+ * than every entry becoming a band. `bands` answers "was this rule in the list at this count", and the
+ * priority list contains Rising Sun Kick at every count — the claim below is about how much a
+ * one-target *number* should matter when the job is spreading, which is a claim about the pull and not
+ * about the rungs.
  *
  * **`rskUptime` drops from 2 to 1, and its thresholds are deliberately left alone.** Uptime on one
  * target is a smaller part of the story when the player is correctly spreading damage, so it should
@@ -495,11 +593,17 @@ export const WEIGHTS: Record<MetricKey, number> = {
  * fights land, and nothing in the sweep touches it.
  */
 export const MULTI_TARGET_WEIGHTS: Partial<Record<MetricKey, number>> = {
-	tigerPalmWaste: 1,
 	rskUptime: 1,
 };
 
-/** The weights for a reading: the base set, unless the pull is being read as multi-target. */
-export function weightsFor(mode: 'single' | 'multi' | null): Record<MetricKey, number> {
-	return mode === 'multi' ? { ...WEIGHTS, ...MULTI_TARGET_WEIGHTS } : WEIGHTS;
+/**
+ * The weights for a reading: the base set, unless the pull is being read as multi-target.
+ *
+ * Takes the whole `ScoreView` and reads the mode off it rather than being handed a mode, so the
+ * weights and the grades come off one object and cannot be arguing about different pulls. `viewMode`
+ * is the half of the view a band set cannot supply and the half this function needs — see
+ * `BandView.mode` for why both readings travel together.
+ */
+export function weightsFor(view: ScoreView): Record<MetricKey, number> {
+	return viewMode(view) === 'multi' ? { ...WEIGHTS, ...MULTI_TARGET_WEIGHTS } : WEIGHTS;
 }

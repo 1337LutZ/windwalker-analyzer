@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ALL_BANDS } from '~/lib/spec/apl';
 
-import { appliesAt, bandsOf, gradedBands, viewBands } from '../index';
+import { appliesAt, bandsOf, gradedBands, viewBands, viewMode } from '../index';
 
 describe('a rule’s declared bands', () => {
 	/** Undeclared means every band, the same default `ladderEntries` resolves for an APL entry. */
@@ -44,8 +44,8 @@ describe('what a pull leaves of a rule', () => {
 
 describe('viewBands', () => {
 	it('passes a band view through', () => {
-		expect(viewBands({ bands: [1, 2, 4], forced: false })).toEqual([1, 2, 4]);
-		expect(viewBands({ bands: null, forced: true })).toBeNull();
+		expect(viewBands({ bands: [1, 2, 4], mode: null, forced: false })).toEqual([1, 2, 4]);
+		expect(viewBands({ bands: null, mode: null, forced: true })).toBeNull();
 	});
 
 	/**
@@ -60,5 +60,35 @@ describe('viewBands', () => {
 	it('says nothing when it was told nothing', () => {
 		expect(viewBands(null)).toBeNull();
 		expect(viewBands(undefined)).toBeNull();
+	});
+});
+
+describe('viewMode', () => {
+	/**
+	 * The other half of a view, and the half a `TargetMode` answers without losing anything — which is
+	 * the whole asymmetry of the union: a mode is a complete answer to "how should the pull be weighed"
+	 * and a lossy one to "which rules applied", and the set is the other way round. So a `BandView`
+	 * carries both and neither is reconstructed from the other.
+	 */
+	it('reads the whole-pull reading off either arm', () => {
+		expect(viewMode('multi')).toBe('multi');
+		expect(viewMode({ bands: [1, 2, 3, 4], mode: 'single', forced: false })).toBe('single');
+	});
+
+	/**
+	 * A mixed pull that was *detected* single-target is the case the two halves disagree on, and both
+	 * halves have to survive the disagreement: all four bands were fought, and the whole pull is still
+	 * weighed as single-target. Collapsing either into the other is what this pair exists to stop.
+	 */
+	it('keeps a set of bands and a single mode on the same pull', () => {
+		const strong = { bands: [1, 2, 3, 4], mode: 'single', forced: false } as const;
+		expect(viewBands(strong)).toEqual([1, 2, 3, 4]);
+		expect(viewMode(strong)).toBe('single');
+	});
+
+	it('says nothing when it was told nothing', () => {
+		expect(viewMode(null)).toBeNull();
+		expect(viewMode(undefined)).toBeNull();
+		expect(viewMode({ bands: null, mode: null, forced: false })).toBeNull();
 	});
 });
