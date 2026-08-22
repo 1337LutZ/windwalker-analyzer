@@ -11,7 +11,12 @@
 // They also happen to cover both arms and one exemption on real data: two of the three second
 // presses are genuinely unsynced, and `unbroken`'s is 714 ms from the kill and therefore exempt.
 //
-// Everything else is synthetic, because not one of the three exercises a refusal on its opener.
+// Everything else is synthetic, because not one of the three exercises a refusal on its opener — and,
+// for the two absolute rules plan §80 added, **neither fault fires on any committed fixture**. Every
+// opener is inside the pull-anchored bound (5 006, 3 676, 3 487 ms), so rule 1 grades all three good;
+// and only `unbroken` has a press whose window runs past the kill at all, which rule 2 excuses because
+// the button came back 58 ms before it. Both faults are therefore covered synthetically, and the real
+// pulls are pinned as the *unchanged* side of the change — `good` / `bad` / `bad`, before and after.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -22,7 +27,15 @@ import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Interval } from '~/lib/analysis/intervals';
 import { eventsOn } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset, Window } from '~/lib/types';
-import { ascendanceSync, ASCENDANCE_INTO_HASTE_MS, T16_2PC_SYNC_MIN_MS, type AscendanceSyncInput } from '../ascendance';
+import {
+	ascendanceSync,
+	ASCENDANCE_COOLDOWN_MS,
+	ASCENDANCE_DURATION_MS,
+	ASCENDANCE_INTO_HASTE_MS,
+	OPENER_DEADLINE_MS,
+	T16_2PC_SYNC_MIN_MS,
+	type AscendanceSyncInput,
+} from '../ascendance';
 import { analyse, isOpener, registry } from '../index';
 
 // ------------------------------------------------------------------ real pulls
@@ -107,6 +120,9 @@ describe('the three committed anonymous pulls', () => {
 				dischargeRemainingMs: null,
 				syncStartMs,
 				limitMs: 5000,
+				// Every one of the three has more than fifteen seconds of pull after its opener, so no
+				// part of the window was lost and rule 2 has nothing to measure.
+				wastedMs: null,
 			});
 		}
 	});
@@ -130,6 +146,9 @@ describe('the three committed anonymous pulls', () => {
 				dischargeRemainingMs: 0,
 				syncStartMs: null,
 				limitMs: 10_000,
+				// 62.1s and 79.0s of pull left, so the fifteen seconds fitted and rule 2 is silent on
+				// both. The fault here is the sync's, exactly as before the rule existed.
+				wastedMs: null,
 			});
 		}
 	});
@@ -141,6 +160,10 @@ describe('the three committed anonymous pulls', () => {
 		// guard, on real data.
 		const { input } = pull('unbroken');
 		expect(input.durationMs - 183_734).toBe(714);
+		// And rule 2 does not take it either, which is the addition. The press wastes 14 286 ms of its
+		// own window — the number is reported, not charged — because the press before it was the opener
+		// at 3 676 ms, which put a three-minute button back at 183 676 and left no earlier press to make.
+		expect(input.ascendanceCasts[1]! - input.ascendanceCasts[0]! - ASCENDANCE_COOLDOWN_MS).toBe(58);
 		expect(ascendanceSync(input).presses[1]).toEqual({
 			t: 183_734,
 			rule: 't16-2pc',
@@ -150,12 +173,20 @@ describe('the three committed anonymous pulls', () => {
 			dischargeRemainingMs: null,
 			syncStartMs: null,
 			limitMs: 10_000,
+			wastedMs: ASCENDANCE_DURATION_MS - 714,
 		});
 	});
 
 	it('rolls the pull up to its worst gradeable press', () => {
 		// `unbroken` is a good opener plus one exempt press, so the pull is good; the other two carry a
 		// real fault and are bad. An exemption must not drag a pull down and must not lift one up.
+		//
+		// **These three are the graded figure the two new rules were measured against, and none of them
+		// moved.** Rule 1 grades every opener good because every opener is inside the pull-anchored
+		// bound; rule 2 fires on no committed press. The one press either rule could have reached is
+		// `unbroken`'s second, and the availability guard leaves it exempt — so the pull stays `good`
+		// rather than becoming `bad`, which is the whole difference between the rule and a bare
+		// `fightEnd - 15s` comparison.
 		expect(ascendanceSync(pull('unbroken').input).grade).toBe('good');
 		expect(ascendanceSync(pull('phased').input).grade).toBe('bad');
 		expect(ascendanceSync(pull('cleave').input).grade).toBe('bad');
@@ -206,6 +237,7 @@ describe('the wiring, end to end', () => {
 				dischargeRemainingMs: null,
 				syncStartMs: 785,
 				limitMs: 5000,
+				wastedMs: null,
 			},
 			{
 				t: 183_734,
@@ -216,6 +248,7 @@ describe('the wiring, end to end', () => {
 				dischargeRemainingMs: null,
 				syncStartMs: null,
 				limitMs: 10_000,
+				wastedMs: 14_286,
 			},
 		]);
 	});
@@ -315,13 +348,28 @@ describe('the opener bound, and which side of it a press falls on', () => {
 		expect(isOpener(ASCENDANCE_INTO_HASTE_MS + 1)).toBe(true);
 	});
 
+	/**
+	 * Both sides of entry 14's bound are now read on a cooldown that opened **on the bell**, and they have
+	 * to be.
+	 *
+	 * They used to sit on `lust(1000, 41_000)`, which put the press at 6 000 and 6 001 ms — inside this
+	 * bound and outside the opener, so rule 1 faults both and the pair stopped separating anything. On a
+	 * lust at zero the two bounds nest, 5 000 inside 5 250, and this is the only band in which entry 14
+	 * bites alone.
+	 *
+	 * **That band is narrow, and deliberately not widened.** Entry 14 can only be the binding constraint
+	 * when the haste cooldown opened within `OPENER_GRACE_MS` of the bell; the three committed pulls open
+	 * theirs at 1 777, 785 and 941 ms, so on all three rule 1 is the tighter of the two and `delayMs` is
+	 * reported rather than decisive. Keeping both is what plan §39 argued and what publishes the delay at
+	 * all — see `ASCENDANCE_INTO_HASTE_MS`.
+	 */
 	it('passes a press exactly on the bound', () => {
-		const v = first({ ascendanceCasts: [1000 + ASCENDANCE_INTO_HASTE_MS] });
+		const v = first({ hasteWindows: [lust(0, 40_000)], ascendanceCasts: [ASCENDANCE_INTO_HASTE_MS] });
 		expect([v.grade, v.delayMs]).toEqual(['good', 5000]);
 	});
 
 	it('faults a press one millisecond past it', () => {
-		const v = first({ ascendanceCasts: [1000 + ASCENDANCE_INTO_HASTE_MS + 1] });
+		const v = first({ hasteWindows: [lust(0, 40_000)], ascendanceCasts: [ASCENDANCE_INTO_HASTE_MS + 1] });
 		expect([v.grade, v.delayMs]).toEqual(['bad', 5001]);
 	});
 
@@ -334,23 +382,22 @@ describe('the opener bound, and which side of it a press falls on', () => {
 });
 
 describe('what the opener rule refuses to grade', () => {
-	it('says nothing when the haste cooldown went out after the opener', () => {
-		// A Bloodlust at 90s is a different tactical situation — Ascendance may well have been spent
-		// already — so it is not read as the pull's, and no fault is invented.
-		const v = first({ hasteWindows: [lust(90_000, 130_000)] });
-		expect([v.rule, v.grade, v.reason, v.syncStartMs]).toEqual(['bloodlust', 'none', 'no-cooldown-on-pull', null]);
-	});
-
-	it('says nothing when the pull carried no haste cooldown at all', () => {
+	it('grades the opener on a pull that brought no haste cooldown at all', () => {
 		// Which also covers the cooldown cast *before* the bell: the Bloodlust aura declares no duration,
 		// so `auraWindows` cannot recover a pre-pull window for it and the walk comes back empty.
+		//
+		// This used to be `none` / `'no-cooldown-on-pull'`, and rule 1 is why it is not: opening with
+		// Ascendance needs no raid cooldown, so a missing one is a missing *measurement* — null `delayMs`
+		// and null `syncStartMs` — and the press is graded on the opener alone.
 		const v = first({ hasteWindows: [] });
-		expect([v.grade, v.reason]).toEqual(['none', 'no-cooldown-on-pull']);
+		expect([v.rule, v.grade, v.reason, v.delayMs, v.syncStartMs]).toEqual(['bloodlust', 'good', null, null, null]);
 	});
 
-	it('has no press to grade when Ascendance was never pressed', () => {
-		const v = at({ ascendanceCasts: [] });
-		expect([v.presses, v.grade]).toEqual([[], 'none']);
+	it('grades the opener when the haste cooldown went out long after it', () => {
+		// A Bloodlust at 90s is a different tactical situation and is still not read as the pull's — the
+		// anchor search is unchanged. What changed is that its absence no longer buys the press silence.
+		const v = first({ hasteWindows: [lust(90_000, 130_000)] });
+		expect([v.grade, v.delayMs, v.syncStartMs]).toEqual(['good', null, null]);
 	});
 
 	it('says nothing when Ascendance was already running at the bell', () => {
@@ -383,9 +430,18 @@ describe('what the opener rule refuses to grade', () => {
 	});
 
 	it('grades a pull whose contact begins on the last millisecond of the graded window', () => {
-		// The boundary of the exemption, pinned from the other side.
+		// The boundary of the exemption, pinned from the other side. The lust opens at 1 000 and the haste
+		// bound runs to 6 000, which is later than the opener deadline, so 6 000 is the deadline here.
 		const v = first({ contact: [[6000, 300_000]], ascendanceCasts: [3000] });
 		expect([v.grade, v.reason]).toEqual(['good', null]);
+	});
+
+	it('falls back to the opener deadline when there is no haste bound to stretch it', () => {
+		// The same exemption on a pull that brought no cooldown: with nothing to measure into, the stretch
+		// being judged is the opener itself, and the deadline is its own bound rather than zero.
+		expect(first({ hasteWindows: [], contact: [[OPENER_DEADLINE_MS, 300_000]] }).grade).toBe('good');
+		const late = first({ hasteWindows: [], contact: [[OPENER_DEADLINE_MS + 1, 300_000]] });
+		expect([late.grade, late.reason]).toEqual(['none', 'nothing-to-hit']);
 	});
 
 	it('says nothing when the pull carried no enemy at all', () => {
@@ -440,15 +496,13 @@ describe('the two-piece rule, on every press that is not the opener', () => {
 		expect([v.rule, v.grade, v.reason, v.delayMs]).toEqual(['t16-2pc', 'none', 't16-2pc-not-in-log', null]);
 	});
 
-	it('exempts a press with less pull left than the sync itself demands', () => {
-		const v = second({ durationMs: 209_999 });
-		expect([v.grade, v.reason]).toEqual(['none', 'pull-ends-too-soon']);
-	});
-
-	it('grades a press with exactly enough pull left', () => {
-		// 210 000 − 200 000 is the ten seconds the rule asks for, so this side of the boundary is judged.
-		const v = second({ durationMs: 210_000 });
-		expect([v.grade, v.reason, v.dischargeRemainingMs]).toEqual(['good', null, 12_000]);
+	it('grades a press with the whole window ahead of it', () => {
+		// 215 000 − 200 000 is Ascendance's own fifteen seconds, so nothing is lost to the kill and the
+		// sync is the only question left. This used to read `durationMs: 210_000` and the sync's ten
+		// seconds; rule 2 is the wider bound, so the pull has to be five seconds longer for the press to
+		// reach the sync arm at all.
+		const v = second({ durationMs: 215_000 });
+		expect([v.grade, v.reason, v.dischargeRemainingMs, v.wastedMs]).toEqual(['good', null, 12_000, null]);
 	});
 
 	it('says nothing when the player was not in contact at the press', () => {
@@ -481,20 +535,180 @@ describe('precedence: one rule per press, decided once', () => {
 	});
 
 	it('applies the two-piece rule to a later press on a pull with no haste cooldown whatsoever', () => {
-		// The opener rule's own precondition is never consulted for a press it does not govern.
+		// The opener rule's own measurement is never consulted for a press it does not govern, and the
+		// opener itself is now graded by rule 1 rather than silenced by the missing cooldown.
 		const v = at({
 			hasteWindows: [],
 			ascendanceCasts: [2000, 200_000],
 			t16TwoPieceWindows: [win(195_000, 212_000)],
 		});
-		expect(v.presses.map((p) => [p.rule, p.grade, p.reason])).toEqual([
-			['bloodlust', 'none', 'no-cooldown-on-pull'],
-			['t16-2pc', 'good', null],
+		expect(v.presses.map((p) => [p.rule, p.grade, p.reason, p.delayMs])).toEqual([
+			['bloodlust', 'good', null, null],
+			['t16-2pc', 'good', null, null],
 		]);
 	});
 
 	it('names the rule by position alone, for every press in a three-press pull', () => {
 		const v = at({ ascendanceCasts: [2000, 190_000, 290_000], t16TwoPieceWindows: [] });
 		expect(v.presses.map((p) => p.rule)).toEqual(['bloodlust', 't16-2pc', 't16-2pc']);
+	});
+});
+
+/**
+ * Rule 1 — Ascendance is *always* used in the opener (plan §80, rule 1).
+ *
+ * The absolute half of the opener press's grade, and the half that needs no haste cooldown. Every case
+ * here is synthetic because no committed pull fails it: all three open at 5 006, 3 676 and 3 487 ms.
+ * The boundary is the one §52 settled and `isOpener` applies, pinned against that predicate below
+ * rather than restated as a number this suite believes on its own.
+ */
+describe('rule 1: the opener press is not optional', () => {
+	it('uses the pull-anchored bound §52 settled, and is pinned to `isOpener` itself', () => {
+		// The tightest statement of "these are one boundary": the constant is the *largest* `t` for which
+		// `index.ts`' own predicate holds. A change to either side fails here rather than quietly leaving
+		// two opener bounds in one spec.
+		expect([isOpener(OPENER_DEADLINE_MS), isOpener(OPENER_DEADLINE_MS + 1)]).toEqual([true, false]);
+		expect(OPENER_DEADLINE_MS).toBe(5250);
+	});
+
+	it('needs the 250ms grace to leave `phased` alone', () => {
+		// The press the grace was written for is the press this rule grades. Anchored on the fixture's own
+		// opener rather than on the literal: 5 006 is past `ASCENDANCE_INTO_HASTE_MS` and inside the
+		// pull-anchored bound, so rule 1 on the raw 5 000 would fault a clean opener on a committed pull.
+		const t = pull('phased').input.ascendanceCasts[0];
+		expect(t).toBe(5006);
+		expect([t! > ASCENDANCE_INTO_HASTE_MS, isOpener(t!)]).toEqual([true, true]);
+	});
+
+	it('faults a first press past the opener on a pull that brought no haste cooldown', () => {
+		// Was `none` / `'no-cooldown-on-pull'`: an opener 30 seconds in went ungraded because the raid
+		// happened not to lust. Nothing about pressing Ascendance in the opener needs a raid cooldown.
+		const v = first({ hasteWindows: [], ascendanceCasts: [30_000] });
+		expect([v.rule, v.grade, v.reason, v.delayMs, v.syncStartMs]).toEqual(['bloodlust', 'bad', null, null, null]);
+	});
+
+	it('faults an opener that a late haste cooldown used to excuse', () => {
+		const v = first({ hasteWindows: [lust(90_000, 130_000)], ascendanceCasts: [30_000] });
+		expect([v.grade, v.reason]).toEqual(['bad', null]);
+	});
+
+	it('faults a press inside the haste bound but outside the opener', () => {
+		// The case that makes rule 1 a *new condition* rather than a restatement of the old one. The lust
+		// opens at 4 000 and the press is 4 000 ms into it — good under entry 14, which is why `delayMs`
+		// is asserted — but 8 000 ms into the pull, which no opener bound admits.
+		const v = first({ hasteWindows: [lust(4000, 44_000)], ascendanceCasts: [8000] });
+		expect([v.grade, v.delayMs, v.limitMs]).toEqual(['bad', 4000, ASCENDANCE_INTO_HASTE_MS]);
+	});
+
+	it('still applies the haste bound to a press well inside the opener', () => {
+		// The mirror, so the grade is an `and` rather than a replacement: a press 5 100 ms into a lust that
+		// went out on the bell is inside the opener and past entry 14's bound, and is faulted for that.
+		const v = first({ hasteWindows: [lust(0, 40_000)], ascendanceCasts: [5100] });
+		expect([v.grade, v.delayMs]).toEqual(['bad', 5100]);
+	});
+
+	it('reports both sides of the opener bound, against `phased`s own haste window', () => {
+		// Both presses are comfortably inside entry 14's bound from a cooldown that opened at 1 777 — the
+		// deltas are 3 473 and 3 474 — so only rule 1 can separate them, and it does, on its own edge.
+		const window = [lust(1777, 41_785)];
+		expect(first({ hasteWindows: window, ascendanceCasts: [OPENER_DEADLINE_MS] }).grade).toBe('good');
+		expect(first({ hasteWindows: window, ascendanceCasts: [OPENER_DEADLINE_MS + 1] }).grade).toBe('bad');
+	});
+
+	it('faults a pull that never pressed it at all', () => {
+		// The plainest way to fail "always used in the opener", and the one grade no press carries: the
+		// verdict has an empty `presses` and the fault lands on the pull.
+		const v = at({ ascendanceCasts: [] });
+		expect([v.presses, v.grade]).toEqual([[], 'bad']);
+	});
+
+	it('says nothing about a pull that never pressed it and could not have', () => {
+		// The same three guards a press gets, on the pull-level arm. Ascendance up at the bell means the
+		// opener press is off-stream; a pull with nothing reachable inside the opener had nothing to spend
+		// it on; and a pull that ended inside the opener never finished one.
+		expect(at({ ascendanceCasts: [], ascendanceAtPull: true }).grade).toBe('none');
+		expect(at({ ascendanceCasts: [], contact: [[20_000, 300_000]] }).grade).toBe('none');
+		expect(at({ ascendanceCasts: [], contact: [] }).grade).toBe('none');
+		expect(at({ ascendanceCasts: [], durationMs: OPENER_DEADLINE_MS }).grade).toBe('none');
+		expect(at({ ascendanceCasts: [], durationMs: OPENER_DEADLINE_MS + 1 }).grade).toBe('bad');
+	});
+});
+
+/**
+ * Rule 2 — Ascendance must never lose uptime to the end of the fight (plan §80, rule 2).
+ *
+ * The boundary is Ascendance's own duration, `sim/shaman/ascendance.go:61`'s `Duration: time.Second *
+ * 15`, and not the sync's ten seconds. Every fault here is synthetic: the only committed press whose
+ * window runs past a kill is `unbroken`'s second, and the availability guard excuses it, which the real-
+ * pull suite above pins.
+ */
+describe('rule 2: a later press must not spend the window past the kill', () => {
+	/** A pull with an opener and one later press at 200s, the two-piece in evidence around it. */
+	const later = (over: Partial<AscendanceSyncInput> = {}) =>
+		at({ ascendanceCasts: [2000, 200_000], t16TwoPieceWindows: [win(195_000, 212_000)], ...over });
+
+	const second = (over: Partial<AscendanceSyncInput> = {}) => {
+		const press = later(over).presses[1];
+		if (press === undefined) throw new Error('expected a second press');
+		return press;
+	};
+
+	it('is the buff duration the sim declares, and it is wider than the sync', () => {
+		expect(ASCENDANCE_DURATION_MS).toBe(15_000);
+		expect(ASCENDANCE_DURATION_MS).toBeGreaterThan(T16_2PC_SYNC_MIN_MS);
+	});
+
+	it('faults a press that let the window run past the kill, and says how much it lost', () => {
+		// 5 001 ms of the fifteen thrown away, with the button back at 182 000 and the last press that
+		// would have fitted at 194 999. Was `none` / `'pull-ends-too-soon'`, exempted for a sync it could
+		// not reach — which said nothing about the window it wasted.
+		const v = second({ durationMs: 209_999 });
+		expect([v.grade, v.reason, v.wastedMs]).toEqual(['bad', null, 5001]);
+	});
+
+	it('reports both sides of the boundary, one millisecond apart', () => {
+		expect([second({ durationMs: 215_000 }).grade, second({ durationMs: 214_999 }).grade]).toEqual(['good', 'bad']);
+		expect(second({ durationMs: 214_999 }).wastedMs).toBe(1);
+	});
+
+	it('turns on whether the button could have come back in time', () => {
+		// The guard, on the same press twice — 190 000 ms into a 195 000 ms pull, wasting 10 000 ms either
+		// way — with the *previous* press one millisecond apart. At 0 the button is back at 180 000, which
+		// is the last press that would have fitted, so the delay was the player's; at 1 it is back at
+		// 180 001 and no press at this index could have fitted, so the sync exempts it instead. This is
+		// `unbroken`'s shape, at the boundary rather than 3 976 ms clear of it.
+		const window = { durationMs: 195_000, t16TwoPieceWindows: [win(150_000, 194_000)] };
+		const ready = at({ ...window, ascendanceCasts: [0, 190_000] }).presses[1];
+		const notReady = at({ ...window, ascendanceCasts: [1, 190_000] }).presses[1];
+		expect([ready?.grade, ready?.wastedMs]).toEqual(['bad', 10_000]);
+		expect([notReady?.grade, notReady?.reason, notReady?.wastedMs]).toEqual(['none', 'pull-ends-too-soon', 10_000]);
+	});
+
+	it('faults a late press with no two-piece in evidence at all', () => {
+		// Rule 2 is absolute and owes nothing to the player's gear, so it is asked before entry 15's own
+		// preconditions. Was `none` / `'no-two-piece-evidence'`: a press five seconds from the kill went
+		// ungraded because the log showed no set.
+		const v = at({ ascendanceCasts: [2000, 290_000], t16TwoPieceWindows: null }).presses[1];
+		expect([v?.rule, v?.grade, v?.reason, v?.wastedMs]).toEqual(['t16-2pc', 'bad', null, 5000]);
+	});
+
+	it('does not fault a press that bought nothing anyway', () => {
+		// Out of contact at the press: the honest answer is still silence, and rule 2 must not overtake it
+		// — an earlier press would have had nothing in front of it either.
+		const v = at({
+			ascendanceCasts: [2000, 290_000],
+			t16TwoPieceWindows: [win(280_000, 295_000)],
+			contact: [[900, 150_000]],
+		}).presses[1];
+		expect([v?.grade, v?.reason, v?.wastedMs]).toEqual(['none', 'nothing-to-hit', 5000]);
+	});
+
+	it('never faults the opener for a window the kill cut short', () => {
+		// Precedence, where the two absolutes would otherwise contradict each other: on an eight-second
+		// pull the opener loses nine seconds of its window and entry 14 asked for the press anyway. The
+		// waste is reported and the press is good — rule 2 governs only the presses the player chose the
+		// moment of.
+		const v = at({ ascendanceCasts: [2000], durationMs: 8000, contact: [[900, 8000]] }).presses[0];
+		expect([v?.rule, v?.grade, v?.reason, v?.wastedMs]).toEqual(['bloodlust', 'good', null, 9000]);
 	});
 });
