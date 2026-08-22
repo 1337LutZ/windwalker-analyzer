@@ -40,6 +40,9 @@ import {
 	uptimePct,
 } from '~/lib/analysis/auras';
 import { atCapWindowsIn } from '~/lib/analysis/counters';
+// Type only, for `fsPressAt` — the accessor that keeps the Flame Shock press list and the map keyed for
+// it on one clock. See its docstring for why that has to be a function rather than a comment.
+import type { CastPress } from '~/lib/analysis/casts';
 import {
 	dotSnapshotIn,
 	dotTickBudgetIn,
@@ -1734,6 +1737,49 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// sixty-second tail past the pull.
 	const untilFightEnd = (t: number, ms: number): Interval => [t, Math.min(t + ms, duration)];
 
+	/**
+	 * **The Ascendance press list, on the landing clock — and this site is *mixed* rather than
+	 * choice-graded, which is the opposite of how it reads.**
+	 *
+	 * Seven readers hang off this one binding, more than any other cast list in the file, and an audit
+	 * that filed it as "grades a choice, so it wants `castBeginTimes` the day the button gains a cast
+	 * time" would be wrong about six of the seven. The ruling on `analyseCore`'s `Handles` splits them:
+	 *
+	 *   - **`ascendanceReadyInSec(ascCasts, t)`** — five calls, from the Flame Shock, Earth Shock,
+	 *     Elemental Mastery, Fire Elemental and Earth Elemental blocks. This is `last + 180s - t`, i.e.
+	 *     the **cooldown's arming instant**, and `5cde12d` settled from the simulator that a cooldown is
+	 *     armed at the *landing*: `triggerCooldown` is called only from `Hardcast.OnComplete`
+	 *     (`sim/core/cast.go:187-205`), which fires at `Expires = begincast + castTime`. So the landing
+	 *     is correct here and the commit would be wrong — re-pointing this list would make every one of
+	 *     those five readiness figures early by the cast time. `apl.ts:758-760` says the same thing about
+	 *     `lastCast`, for the same reason.
+	 *   - **`offLadderCooldowns[114049].casts`** — the same arming clock, read by `cooldownsAt`'s
+	 *     `readyInSec` for a button the ladder walk cannot see because it is off-GCD. Landing.
+	 *   - **`laneWindows(ASCENDANCE_AURA, ascCasts)`** — twice, the drawn lane and `ascendanceAtPull`.
+	 *     A **join key** against the aura stream: it exists because the press (114049) and the buff
+	 *     (114050) are different ids, so it is asking "is there a press in this window's neighbourhood",
+	 *     against `applybuff`/`removebuff` stamps. The ruling puts a join on whichever clock the other
+	 *     side carries, and that is the `cast`.
+	 *   - **`ascendanceSync({ ascendanceCasts: ascCasts, … })`** — the one genuinely choice-graded
+	 *     reader, and the day this button gains a cast time it is the only one that moves. Its rules ask
+	 *     whether the press was in the opener, how far into a haste cooldown it went, and how much
+	 *     Elemental Discharge and Skull Banner were left, all of which were true or false when the player
+	 *     decided. It is also *itself* mixed — `wastedMs` and the "never lose uptime to the kill" rule
+	 *     measure the fifteen-second window, which the game opens at the landing — so the split has to be
+	 *     drawn inside `./ascendance` and cannot be drawn by what is handed to it from here.
+	 *
+	 * Left as one binding rather than split into a landing list and a commit list **because six of the
+	 * seven want the landing and the seventh cannot use a bare list honestly.** Two names here would put
+	 * the commit list at one call site and imply `ascendanceSync` was uniformly on it, which is the
+	 * claim above that is false. `castPresses(ASCENDANCE)` is the shape that fits — each press carrying
+	 * both instants — and that is a change to `ascendanceSync`'s signature, in a module this lane does
+	 * not own.
+	 *
+	 * Ascendance is an instant (no `castTime` in `sim/shaman/ascendance.go`), so `castTimes` and
+	 * `castBeginTimes` are identical on it today and nothing above is observable yet.
+	 * `ascendanceClock.test.ts` builds the pull where they are not, so the five readiness reads are
+	 * pinned to the landing rather than to the fact that no fixture can tell.
+	 */
 	const ascCasts = castTimes(ASCENDANCE);
 	const ascActiveWindows = selfWindows(ASCENDANCE_AURA);
 
@@ -1901,7 +1947,35 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		return key === null ? 0 : remainingIn(t, fsDot.byInstance.get(key) ?? []);
 	};
 
-	const fsCasts = castTimes(FLAME_SHOCK);
+	/**
+	 * **The clock every Flame Shock reading in this block is on, declared once as a function so that
+	 * moving it moves the map key with it.**
+	 *
+	 * `analyseCore`'s `Handles` ruling names a landing used as a **map key** as one of the two live traps
+	 * it deliberately does not settle, and this is that trap. `fsAimedAt` below is keyed by a press
+	 * instant and `fsCasts` is the list of instants looked up in it; both are `press.t` today, and if one
+	 * moved to `press.begin` alone every lookup would *silently* miss and fall through to `spawnAt(t)` —
+	 * the hit-enemy fallback whose own docstring exists to say it is the wrong enemy for this one button.
+	 * A comment cannot hold that: the two lines are fifty apart and the failure mode is a wrong answer
+	 * rather than an error. So the accessor is the single point of change and both sides call it, and
+	 * `flameShockAimedClock.test.ts` pins the pair on a synthetic press whose `begin` and `t` differ.
+	 *
+	 * **It is the landing (`press.t`), and here that is a decision rather than the accident it is at the
+	 * other six unstated sites in this file.** Almost everything downstream is a join against an event
+	 * stream, which the ruling puts on whichever clock the other side carries — `remainingAtCast` and
+	 * `fsTimelines` against the dot's own aura events, `tickWindowAt` and `dotTickBudgetIn` against its
+	 * ticks, `beganAsRefresh` against the `refreshdebuff` stamps, `downBefore` against the walked
+	 * windows, `fsPressBounds` as the boundary between two applications. Every one of those is stamped at
+	 * the `cast`, so this list has to be. The day Flame Shock gains a cast time it is the two
+	 * *choice*-graded fields on the row — `ascReadyInSec` and the `ascPrep` verdict built from it — that
+	 * move to the commit, and they move individually rather than by re-pointing this accessor.
+	 */
+	const fsPressAt = (press: CastPress): number => press.t;
+	const fsPressList = castPresses(FLAME_SHOCK);
+	// Element-for-element `castTimes(FLAME_SHOCK)` — `CastSeries.times` and `CastSeries.presses` are
+	// parallel by construction — read through the accessor above so the clock is stated rather than
+	// implied by which of the three handles was reached for.
+	const fsCasts = fsPressList.map(fsPressAt);
 	// The dot's own clock, read blind to the refresh the press itself caused — that refresh is stamped
 	// a millisecond *before* the cast, and reading it scored every press as a full 30s. `remainingAtCast`
 	// is the same guard the Windwalker's Tiger Palm refresh uses, for the same reason.
@@ -1953,8 +2027,14 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * Falls back to the hit spawn when the cast event named no target at all. That is not a guess about
 	 * aim: it is the same enemy every other rule at that instant is judged against, so a press with no
 	 * target reads consistently with its neighbours instead of dropping out of the audit.
+	 *
+	 * **Keyed through `fsPressAt`, which is what makes the key and every reader of it one edit.** This map
+	 * is looked up as `fsAimedAt.get(t)` for each `t` in `fsCasts`, and `fsCasts` is that same accessor
+	 * mapped over the same list — so the two cannot come apart under a clock change. Written out as
+	 * `press.t` here it could, and silently: a missed lookup is indistinguishable from a press the log
+	 * named no target for, and both take the fallback below.
 	 */
-	const fsAimedAt = new Map(castPresses(FLAME_SHOCK).map((press) => [press.t, press.spawn]));
+	const fsAimedAt = new Map(fsPressList.map((press) => [fsPressAt(press), press.spawn]));
 	// Declared here rather than beside `fsTickSnapshots`, which is where it belongs by subject: it closes
 	// over `fsAimedAt` and runs immediately, so above that line it is a TDZ `ReferenceError` at runtime
 	// that `tsc` cannot see — the same trap `fsAway` below and `fightEnd` earlier in this file fell into.
@@ -2378,6 +2458,31 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * branch A, the stricter one, rather than crediting a set nothing evidenced.
 	 */
 	const twoPieceOwned = twoPieceWindows.length > 0;
+	/**
+	 * **The landing clock, and every one of this row's four inputs is a join against an event stream.**
+	 *
+	 * Stated because it was not: the `Handles` ruling's audit found eighteen of twenty cast readers across
+	 * the two specs reading a button with no cast time at all, so the clock each had picked was never
+	 * exercised. Earth Shock is one of them — no `castTimeMs` in the model above, and none in the sim:
+	 * `newShockSpellConfig` (`sim/shaman/shocks.go:14-40`, shared by both shocks) sets `DefaultCast` to
+	 * `{GCD: core.GCDDefault}` and no `CastTime` at all, which is the instant branch of
+	 * `sim/core/cast.go`. So `castTimes` and `castBeginTimes` are the same array here and nothing below
+	 * is observable yet.
+	 *
+	 * It would nonetheless stay the landing if that changed, because all four reads are join keys:
+	 * `levelAt(lsLevels, t)` against the Lightning Shield stack events, `fsRemainingAt(t)` against the
+	 * dot's walked windows, `inWindow(t, twoPieceWindows)` against the Elemental Discharge debuff. Each
+	 * of those exists only on a `cast`, `applydebuff` or stack change, so a commit-stamped lookup would
+	 * read a shield charge the player had not been granted yet.
+	 *
+	 * The **one** input that would move is `ascendanceReadyInSec(ascCasts, t)` and the `ascReady` fault
+	 * built from it — a claim about what was ready when the player *chose* — plus the row's own `t` if
+	 * the table is to say when the button went down. That is the mixed shape the ruling names, and
+	 * `castPresses(EARTH_SHOCK)` is what it wants: `press.begin` for those two and `press.t` for the
+	 * other three, on one row, rather than two arrays a caller has to line up. Not done today because
+	 * with `begin === t` it would be a refactor with no observable half, and `lavaBurstPresses` above
+	 * already carries the pattern for when there is one.
+	 */
 	const esPresses = castTimes(EARTH_SHOCK).map((t) => {
 		const stacks = levelAt(lsLevels, t);
 		// The dot on the enemy this shock is being fired at, not on any spawn of its actor id — the
@@ -2697,6 +2802,31 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// but lost the `applybuff` beside it — they share a millisecond, and pages are cut on timestamps —
 	// would have its ordinary in-fight summon recovered as a pre-pull one. A press at or before the
 	// recovered expiry can only be that, since no shaman presses this twice inside one minute.
+	/**
+	 * **The two Fire totem placement lists, on the landing clock — the *effect* side of the ruling, and
+	 * the counterpart of `feCommits` some four hundred lines below.**
+	 *
+	 * This file reads the Fire Elemental cast list twice, on opposite sides of `analyseCore`'s `Handles`
+	 * ruling, and they coexist today only because the button is an instant. Renamed apart so that a
+	 * future edit to one has to see the other:
+	 *
+	 *   - **Here, `feCasts` / `stCasts` — the landing.** What these are is the instant a summon *began
+	 *     occupying* the one Fire totem slot, which is exactly the ruling's "when a totem began occupying
+	 *     its slot" example of an effect: the slot walk below closes whatever the slot held at each of
+	 *     these stamps, `feWindows` is measured from them, and `stScored` divides by their complement.
+	 *     The game destroys the standing totem when the new one lands, not when the player starts
+	 *     pressing, so a commit-stamped walk would hand a Searing Totem back seconds of a slot the
+	 *     elemental was already in. `fePrepullWindow`'s guard on the next line is a join against the
+	 *     aura's own `removebuff` and is on the landing for the join reason instead.
+	 *   - **`feCommits`, in the press-verdict block — the commit.** Whether the press was on-rule is a
+	 *     claim about what the player knew when they chose.
+	 *
+	 * Neither totem has a cast time — `registerFireElementalTotem` (`sim/shaman/fire_elemental_totem.go:31`,
+	 * `GCD: core.GCDDefault`) and `registerSearingTotemSpell` (`sim/shaman/fire_totems.go:24-28`,
+	 * `GCD: time.Second`) each set a GCD and no `CastTime`, which is the instant branch of
+	 * `sim/core/cast.go` — so the two lists are identical arrays today and the split above is stated
+	 * intent rather than an observable difference.
+	 */
 	const stCasts = castTimes(SEARING_TOTEM);
 	const feCasts = castTimes(FIRE_ELEMENTAL);
 	const feAuraWindows = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true });
@@ -2977,6 +3107,29 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// `combatantinfo` is a single event and the only thing that can answer "was this button even taken".
 	const talents = readTalents(events, actor.id);
 	const t15Windows = selfWindows(T15_4PC);
+	/**
+	 * **The landing clock, unstated until now, and this row is the file's clearest *mixed* site.**
+	 *
+	 * Elemental Mastery is off the GCD and instant, so `castTimes` and `castBeginTimes` are the same
+	 * array on it and none of what follows is observable — which is exactly why it is worth writing down,
+	 * per the `Handles` ruling's note that eighteen of the twenty cast readers in this project have never
+	 * had their clock exercised.
+	 *
+	 * The row is a verdict — `reason` names which of rule 9's four arms sanctioned the press — so the
+	 * *choice* half wants the commit: `isOpener(t)`, and `ascendanceReadyInSec(ascCasts, t)`, which asks
+	 * how far Ascendance was from coming back at the instant the player decided to pair the two. But
+	 * every one of its inputs is also a **join key** against a walked window list — `fsRemainingAt(t)`
+	 * against the dot, `inWindow(t, t15Windows)` against the tier-15 proc, `inWindow(t,
+	 * ascActiveWindows)` against Ascendance's own buff — and those are stamped on `applybuff`, i.e. the
+	 * landing. So the day this button gains a cast time it needs both instants on one row and not a
+	 * re-pointing: `castPresses(ELEMENTAL_MASTERY)`, with `press.begin` for the two choice terms, the
+	 * published `t` and the opener test, and `press.t` for the three window lookups.
+	 *
+	 * Not converted today because with `begin === t` the conversion has no observable half, and a
+	 * synthetic that fixed one would be pinning `castPresses`' own contract rather than anything this
+	 * block decides — `Ascendance`'s readiness read is where that contract is actually load-bearing, and
+	 * `ascendanceClock.test.ts` pins it there once for all five callers including this one.
+	 */
 	const emPresses = castTimes(ELEMENTAL_MASTERY).map((t) => {
 		const ascReady = ascendanceReadyInSec(ascCasts, t);
 		// Per spawn, on the same terms as the Ascendance press it is synced with — the `sync` reason is
@@ -3002,6 +3155,28 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		return { t, reason, ascReadySec: ascReady };
 	});
 	/**
+	 * **The commit clock — the *choice* side of the ruling, and the counterpart of `feCasts` in the Fire
+	 * totem slot block above, which reads this same button's presses on the landing.**
+	 *
+	 * Named apart from `feCasts` rather than sharing it, so neither reading can be moved without seeing
+	 * the other. Both are correct today and only because a totem press is an instant; the argument for
+	 * each being on the clock it is on is written out at `feCasts`.
+	 *
+	 * Every term of `fePresses`' verdict below is what the player knew when they pressed. `duration - t`
+	 * is how much pull they had left to spend the summon in, and `ascendanceReadyInSec` is how close
+	 * Ascendance was to coming back — both read at the decision, because a rule saying "press this when
+	 * the fight has under a minute left" is a rule about the moment the button goes down. The row's own
+	 * `t` is the commit for the same reason, and matches `lavaBurstPresses` above, which is this file's
+	 * precedent for a graded press row: `t: press.begin`, with only the outcome fields on the landing.
+	 *
+	 * Nothing joins on this list — `fePresses` is published straight onto `fireElemental.presses` and the
+	 * bar is drawn from `feWindows` — so unlike `eeCasts` and `ascCasts` there is no join key here
+	 * holding it on the landing, and it is the one Fire Elemental reading that can be moved cleanly. The
+	 * cooldown-drift row for this button is untouched either way: that reads `castTimes` inside
+	 * `analyseCore`, where a cooldown is armed at the landing.
+	 */
+	const feCommits = castBeginTimes(FIRE_ELEMENTAL);
+	/**
 	 * Every Fire Elemental **use**, which is not the same list as every cast event.
 	 *
 	 * A summon made before the bell logs no cast inside the fight window — that absence is the whole
@@ -3024,7 +3199,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		...(fePrepullWindow === undefined
 			? []
 			: [{ t: 0, reason: 'prepull' as const, inferred: true } satisfies FireElementalPress]),
-		...castTimes(FIRE_ELEMENTAL).map((t): FireElementalPress => {
+		...feCommits.map((t): FireElementalPress => {
 			const remaining = duration - t;
 			const ascReady = ascendanceReadyInSec(ascCasts, t);
 			const reason: 'near-end' | 'sync' | 'early' | null =
@@ -3083,6 +3258,19 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * The verdict is the same expression for an inferred use as for a read one rather than a hardcoded
 	 * value. On a pull shorter than the end window a pre-pull summon really is inside branch A, and one
 	 * expression cannot disagree with itself about that — the *grading* excludes it, not the reading.
+	 *
+	 * **On the landing clock, and unlike the Fire Elemental's verdict this one cannot simply be moved.**
+	 * Three readers share this list and two of them are join keys: `eePrepullWindow` on the next line
+	 * tests the recovered aura window against the presses, and `laneWindows(EARTH_ELEMENTAL_AURA,
+	 * eeCasts)` at the timeline does the same for the drawn bar — both exist because the press (2062) and
+	 * the buff (118323) are different ids, so `auraWindows`' own per-id guard cannot see the press, and
+	 * both are matching against `applybuff`/`removebuff` stamps. The third, `eeVerdictAt(t)`, is a choice
+	 * grade whose terms are `remainingTime` and two `spellTimeToReady` clocks read as the player chose.
+	 * So this is the mixed shape too, and the day Earth Elemental gains a cast time it wants
+	 * `castPresses`: `press.t` for the two guards and `press.begin` for the verdict. Splitting it now
+	 * would be two names for one array — the summon is instant
+	 * (`sim/shaman/earth_elemental_totem.go:29-32` sets `GCD: core.GCDDefault` and no `CastTime`) — and
+	 * would put the guards and the grade on lists a reader could not tell apart.
 	 */
 	const eeCasts = castTimes(EARTH_ELEMENTAL);
 	const eePrepullWindow = auraWindows(selfEvents, EARTH_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
@@ -3206,6 +3394,22 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * A press that never put the buff on the player at all has no row, and cannot: this list is the
 	 * totems that *reached* them. That costs nothing observable — a shaman is inside their own totem's
 	 * radius when they drop it — and the alternative is a row with no bar in a table of bars.
+	 */
+	/**
+	 * **The landing clock, and this one is a pure *join key*, so it is the only one of the file's unstated
+	 * sites that would not move even in principle.**
+	 *
+	 * `stampAtOrBefore(stormlashPresses, w.start)` matches a press against `w.start`, and `w.start` is
+	 * the buff bar's own opening off `raidSourceLanes` — an `applybuff` stamp. The ruling puts a join on
+	 * whichever clock the other side carries, and this side has to be able to sit *before* that stamp by
+	 * a bounded amount: the block above measures the buff landing 807 ms after the press on `phased`, 192
+	 * on `unbroken`, 214 on `cleave`, and the recovery is "the latest own cast within one totem's
+	 * lifetime of the bar opening". A commit-stamped list would widen that gap by the cast time in the
+	 * only direction the search can already be wrong, for no gain — the question here is which press this
+	 * bar came from, not whether the press was a good one.
+	 *
+	 * Instant today in any case: `registerStormlashCD` (`sim/shaman/stormlash_totem.go:24`) registers the
+	 * summon with no `CastTime`.
 	 */
 	const stormlashPresses = castTimes(STORMLASH_TOTEM);
 	const stormlashReceived: StormlashReceived[] = [...raidLanes.drawn, ...raidLanes.hidden]
