@@ -503,3 +503,53 @@ describe('the two target counts', () => {
 		expect(audit?.presses[0]?.wanted).not.toBe('rushing-jade-wind-open');
 	});
 });
+
+/**
+ * Which of a press's two instants the walk judges at.
+ *
+ * Pinned on the one shape that can tell the two clocks apart: a button whose own cooldown was still
+ * running when the player committed and back up by the time the cast landed. Nothing pinned this,
+ * and it is the most consequential clock choice in the report — on the Elemental's `cleave` pull,
+ * judging at the landing instead moves **32 of 204** verdicts and **39** of the rungs they are
+ * measured against (`phased` 18/23, `unbroken` 12/16).
+ *
+ * Built by hand rather than off a fixture, and the Windwalker ladder is only the vehicle: that spec
+ * declares no cast times at all, so 0 of 394 presses on `dataset-ironJuggernaut` have `begin < t` and
+ * no Windwalker fixture can exercise this. The engine is shared, which is why the guard lives here
+ * rather than beside the spec that can see it.
+ *
+ * The ground truth is not this function's arithmetic. Rising Sun Kick's cooldown is armed when the
+ * first cast *lands* — the simulator triggers it inside the hardcast's completion callback
+ * (`wowsims-mop` `sim/core/cast.go:184-205`, `:258-268`) — so a second press committed at 7 000ms
+ * after a landing at 0, on an 8 000ms cooldown, was pressed a second early. That is a real mistake,
+ * and the landing clock launders it into a followed press.
+ */
+describe('the clock a press is judged at', () => {
+	/** Landed at 0, so the 8s cooldown is back at 8 000ms. Second press committed at 7 000, landed at 9 000. */
+	const EARLY_SECOND_KICK: CastMark[] = [
+		{ t: 0, id: ID.risingSunKick, name: 'Rising Sun Kick', onGcd: true },
+		{ t: 9000, begin: 7000, id: ID.risingSunKick, name: 'Rising Sun Kick', onGcd: true },
+	];
+
+	it('judges a press at its commit, where the button it pressed was still on cooldown', () => {
+		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: EARLY_SECOND_KICK }), LADDER);
+		expect(audit?.presses[1]).toMatchObject({ t: 9000, decidedAt: 7000, verdict: 'skipped', wanted: 'jab' });
+		expect(audit?.followed).toBe(1);
+		expect(audit?.skipped).toBe(1);
+	});
+
+	/**
+	 * **Deliberate contrast case, green under either clock by construction** — a press whose commit *is*
+	 * its landing is what every `CastMark` carried before `begin` existed, and both readings of it agree.
+	 *
+	 * It is here so the assertion above is a claim about the engine's clock rather than about the
+	 * ladder: same ladder, same cooldown, same two landings, and the mistake appears and disappears with
+	 * nothing but the commit instant.
+	 */
+	it('would have called that same press correct off the landing instant alone', () => {
+		const landings = EARLY_SECOND_KICK.map((c) => ({ ...c, begin: c.t }));
+		const audit = aplAudit(inputs({ chi: flat(4, 2), casts: landings }), LADDER);
+		expect(audit?.presses[1]).toMatchObject({ t: 9000, decidedAt: 9000, verdict: 'followed' });
+		expect(audit?.followed).toBe(2);
+	});
+});

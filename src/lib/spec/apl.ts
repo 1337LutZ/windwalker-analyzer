@@ -519,6 +519,15 @@ function bandFor(rule: AplRule, state: State, inputs: AplInputs): Band {
 // `t` is the decision instant and `lastCast` holds landing instants, and the asymmetry is deliberate:
 // the question is "was it off cooldown when I chose", and a spell's cooldown starts when the cast
 // *completes*. Reading both off the same clock would be wrong in one direction or the other.
+//
+// That premise is the simulator's, not this file's opinion, and it is worth citing outward because
+// three sites in this repo assert it and until now each cited the other two. In `wowsims-mop`, a spell
+// with a cast time takes the hardcast branch at `sim/core/cast.go:178` and is handed a `Hardcast` whose
+// `OnComplete` (`:187`) is what calls `spell.triggerCooldown(sim)` (`:205`); `triggerCooldown` sets
+// `spell.CD` to `sim.CurrentTime + cd` (`:258-268`), and that callback is fired by a pending action
+// scheduled at `Hardcast.Expires` — `begincast + castTime` (`sim/core/gcd.go:8-24`). So `sim.CurrentTime`
+// there *is* the landing, and the cooldown is armed at the landing. An instant press runs the same two
+// statements inline at `:241`, where the two instants coincide anyway.
 function ready(rule: AplRule, t: number, lastCast: ReadonlyMap<number, number>, auras: AuraReader): boolean {
 	if (rule.cooldownMs === undefined) return true;
 	if (rule.readyWhen !== undefined && rule.readyWhen(auras)) return true;
@@ -694,8 +703,32 @@ export function aplAudit(inputs: AplInputs, ladder: readonly AplRule[]): AplAudi
 	 * orders are different permutations: an instant pressed 200ms after a 2.5s Lightning Bolt landed was
 	 * committed 2.3s *before* it. This walk builds `lastCast` forward as it goes, so a walk in landing
 	 * order judging at the commit instant would check a cooldown against a press that had not been made
-	 * yet. Measured on the committed fixtures, this reorders 1-2 presses per pull — small, and silent if
-	 * missed.
+	 * yet.
+	 *
+	 * The re-sort itself is tiny, and it used to be recorded here as the size of the whole change — "1-2
+	 * presses per pull", which read as though the clock hardly mattered. Measured position by position it
+	 * is smaller still: **`phased` and `cleave` do not reorder at all, and `unbroken` reorders one
+	 * adjacent pair.** What the clock is actually worth is the *re-reading*, not the reordering, and that
+	 * is two orders of magnitude larger — judging at the landing instead moves **32 of 204** verdicts on
+	 * `cleave`, 18 of 159 on `phased` and 12 of 142 on `unbroken`, with 39/23/16 presses changing which
+	 * rung they are measured against. Followed counts go 99→95, 107→93 and 97→85 — so the landing clock is
+	 * also the *harsher* one on all three pulls, which is worth knowing before anyone reads the move as
+	 * grade inflation.
+	 *
+	 * One movement is common to all three pulls, and it is the cooldown case this walk's `lastCast`
+	 * asymmetry is about: 5 presses on `cleave`, 8 on `phased` and 9 on `unbroken` where the landing clock
+	 * demanded Lava Burst and the commit clock finds the pressed Lightning Bolt correct, because Lava
+	 * Burst's cooldown was still running when the player chose and back up by the time their bolt arrived.
+	 * The single largest group is `cleave`-only and runs the other way: 10 presses the landing clock called
+	 * a followed Chain Lightning and the commit clock calls a skipped Flame Shock. The two directions
+	 * partly cancel, which is why the followed count on that pull moves by only 4 while 32 verdicts do: 18
+	 * presses gain `followed` under the commit clock and 14 lose it. Reading either column alone
+	 * understates the change by most of an order of magnitude.
+	 *
+	 * On the Windwalker none of it applies and that is a fact rather than an expectation: 0 of 394 presses
+	 * on `dataset-ironJuggernaut` have `begin < t`, because that spec declares no `castTimeMs` and even
+	 * Fists of Fury logs its `cast` at the start of the channel. `__tests__/apl.test.ts`' clock guard is
+	 * therefore hand-built — no committed Windwalker pull can exercise this walk's clock at all.
 	 */
 	const onGcd = inputs.casts
 		.filter((c) => c.onGcd)

@@ -106,6 +106,32 @@ export interface Handles {
 	/** Casts grouped by ability, exactly as the cast table was built from. */
 	series: Map<string, CastSeries>;
 	castList: CastRow[];
+	// ## Which of the three a consumer should reach for
+	//
+	// The ruling, written here because this is the one place all of them are read from and an audit of the
+	// twenty call sites across the two specs found only three that said which clock they were on:
+	//
+	// - Grading a **choice** — did the list want this button, was the proc up when they decided, was the
+	//   cooldown ready when they chose — reads `castBeginTimes`. The conditions were true or false at the
+	//   commit, and that is the thing being graded.
+	// - Measuring an **effect** — what a snapshot took, when a dot went on, when a totem began occupying
+	//   its slot, how long a channel locked the player out — reads `castTimes`. The game decides those at
+	//   the completion.
+	// - A **join key** against another event stream reads whichever clock the other side is stamped on,
+	//   which in practice is always `castTimes`: a resource reading or a buff application exists only on
+	//   the `cast` event. `CastMark.t` and `AplPress.t` stay landings for exactly this reason.
+	// - A site with one of each — the press's verdict *and* the effect it had — takes both and says so.
+	//   `castPresses` exists for that: each press carries `begin` and `t` together rather than forcing a
+	//   caller to line two arrays up.
+	//
+	// Two things this ruling does not settle, and both are live traps rather than hypotheticals. A landing
+	// used as a **map key** couples to whatever populated the map, so a choice-grading list and the
+	// `castPresses` map keyed for it have to move clocks in the same edit or every lookup silently misses
+	// and falls through to a default. And most consumers are correct today only because their button is an
+	// instant: 18 of those 20 sites read a button with no cast time at all, so the clock they picked has
+	// never been tested. `castTimes` is deliberately still the pre-`begincast` meaning for that reason — a
+	// consumer nobody has looked at is reading what it always read, rather than having been re-pointed by
+	// a sweep.
 	/**
 	 * When each press of this button *landed*, in log order.
 	 *
@@ -441,6 +467,15 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// ----------------------------------------------------------------- channels
 	// Every ability whose press locks the player out is measured at its real length from its tick
 	// stream, so haste is already in the number. Windwalker has one; a spec may have none or several.
+	//
+	// **`castTimes` and not `castBeginTimes`, and it is the right one rather than the untouched one.** A
+	// channel has no cast bar: the log writes its `cast` at the instant the channel *starts*, and the
+	// ticks that follow are timed from there — which is what `measureChannels` needs, since it claims the
+	// ticks in `[start - leadMs, start + maxMs]` and would lose the first one to a start placed early.
+	// The two clocks agree here anyway, and measurably so rather than by assumption: 0 of 394 presses on
+	// `dataset-ironJuggernaut` have `begin < t`, Fists of Fury included, so nothing pairs a `begincast`
+	// with this spec's one channel at all. The day a spec declares a channel behind a real cast bar, this
+	// still wants the landing — the lockout starts when the channelling does.
 	const channels = new Map<string, Channel[]>();
 	for (const ability of spec.registry.abilities) {
 		if (!ability.channel) continue;
@@ -837,15 +872,25 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			// **Both clocks, one to each end of the window** — the completions to open it, the commits to
 			// close it. `cooldownDrift`'s docblock carries the argument; the short of it is that the game
 			// arms a cooldown at `SPELL_CAST_SUCCESS` (so the window opens at `previous completion +
-			// cooldownMs`, the premise `spec/apl.ts:519-521` and `:725` state and keep `lastCast` on) while
-			// the button stopped sitting *unused* at the moment the player committed to the next press.
+			// cooldownMs`) while the button stopped sitting *unused* at the moment the player committed to
+			// the next press.
+			//
+			// The arming half is the simulator's, not this repo's reading of itself: in `wowsims-mop` a
+			// cast-time spell reaches `spell.triggerCooldown(sim)` only from inside its `Hardcast`'s
+			// `OnComplete` (`sim/core/cast.go:178-205`), which fires at `Hardcast.Expires` = `begincast +
+			// castTime` (`sim/core/gcd.go:8-24`), and `triggerCooldown` arms `spell.CD` at `sim.CurrentTime`
+			// (`cast.go:258-268`). `spec/apl.ts`' `ready()` states the same premise and keeps `lastCast` on
+			// landings for it — but it and this site and `cooldowns.ts` were, until that citation, three
+			// comments pointing at each other.
 			//
 			// This site is why both are reachable here: `castTimes` is `CastSeries.times` and
 			// `castBeginTimes` is `CastSeries.beginTimes`, element-for-element with it. Nothing on a
 			// committed fixture moves by passing the second one — the Windwalker declares no `castTimeMs`
 			// anywhere and the only cooldown-gated Elemental button with one is `elemental-blast`
-			// (`specs/elemental/lib/index.ts:425-435`, `castTimeMs: 2000`, `cooldownMs: 12_000`), a talent
-			// nobody in `phased`, `unbroken` or `cleave` took. It is the *next* cast-time cooldown that this
+			// (`castTimeMs: 2000`, `cooldownMs: 12_000`, on its own entry in `specs/elemental/lib/index.ts` —
+			// named rather than numbered, because the line citation this replaced had already rotted by 74
+			// lines under the lanes editing that file), a talent nobody in `phased`, `unbroken` or `cleave`
+			// took. It is the *next* cast-time cooldown that this
 			// is for, which on the old clock would have been charged one cast time per press and handed a
 			// phantom lost cast for flawless play with nothing anywhere failing.
 			//

@@ -57,10 +57,20 @@ export interface CooldownDrift {
  *
  * - **It opens at the previous cast's completion**, because that is when the game starts the cooldown —
  *   `SPELL_CAST_SUCCESS` is the event that arms it. `spec/apl.ts` argues exactly this and keeps
- *   `lastCast` on landings for it: `apl.ts:519-521` ("`t` is the decision instant and `lastCast` holds
+ *   `lastCast` on landings for it: `apl.ts`' `ready()` ("`t` is the decision instant and `lastCast` holds
  *   landing instants, and the asymmetry is deliberate … a spell's cooldown starts when the cast
- *   *completes*") and again at `apl.ts:725` ("The landing, not the commit: a cooldown starts when the
- *   cast completes").
+ *   *completes*") and again where `aplAudit` writes `lastCast` ("The landing, not the commit: a cooldown
+ *   starts when the cast completes").
+ *
+ *   **Confirmed against the simulator rather than taken from `apl.ts`**, which matters because this repo
+ *   had three sites asserting the premise and each of them cited the other two. In `wowsims-mop`, a spell
+ *   with a cast time takes the hardcast branch at `sim/core/cast.go:178` and is given a `Hardcast` whose
+ *   `OnComplete` (`:187`) is what calls `spell.triggerCooldown(sim)` (`:205`); `triggerCooldown` sets
+ *   `spell.CD` to `sim.CurrentTime + cd` (`:258-268`), and that callback is fired by a pending action
+ *   scheduled at `Hardcast.Expires` = `begincast + castTime` (`sim/core/gcd.go:8-24`). So `sim.CurrentTime`
+ *   there is the landing: the cooldown is armed at the landing, as a fact about the game rather than a
+ *   choice this file makes. An instant press runs the same two statements inline at `cast.go:241`, where
+ *   the two instants coincide anyway.
  * - **It closes at the next press's commit**, because that is when the button stopped sitting unused.
  *   The seconds between committing and landing were spent pressing this very button; charging them says
  *   the cast itself was the mistake.
@@ -82,10 +92,13 @@ export interface CooldownDrift {
  * player started casting it. `tailMs` does *not*, and must not be made symmetric — the last cooldown was
  * armed when the last cast landed, so the tail runs from `last landing + cooldownMs`.
  *
- * **No committed figure moves.** The Windwalker declares no `castTimeMs` at all, so `commits` and
- * `times` are the same array for every one of its buttons; on the Elemental the only cooldown-gated
- * button with a cast time is `elemental-blast` (`specs/elemental/lib/index.ts:425-435`, `castTimeMs:
- * 2000`, `cooldownMs: 12_000`), a talent nobody in `phased`, `unbroken` or `cleave` took. So this
+ * **No committed figure moves, measured and not assumed.** The Windwalker declares no `castTimeMs` at
+ * all, and 0 of the 394 presses on `dataset-ironJuggernaut` have a `begincast` earlier than their `cast`
+ * — so `commits` and `times` are the same array for every one of its buttons, Fists of Fury's channel
+ * included. On the Elemental the only cooldown-gated button with a cast time is `elemental-blast`
+ * (`castTimeMs: 2000`, `cooldownMs: 12_000`, on its own entry in `specs/elemental/lib/index.ts` — named
+ * rather than numbered, because the line citation this replaced had already rotted by 74 lines under the
+ * lanes editing that file), a talent nobody in `phased`, `unbroken` or `cleave` took. So this
  * corrects a figure no fixture can show — which is the argument for correcting it now rather than the
  * argument for leaving it: the next spec to declare a cast-time cooldown would have inherited a phantom
  * lost cast per pull with nothing anywhere failing.

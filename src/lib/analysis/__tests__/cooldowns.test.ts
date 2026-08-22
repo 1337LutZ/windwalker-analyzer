@@ -38,7 +38,8 @@ const FISTS_OF_FURY: Ability = {
 
 /**
  * A 12s cooldown behind a **2s cast** — the only shape that can tell the two clocks apart, and the
- * only one either spec declares (`specs/elemental/lib/index.ts:425-435`, Elemental Blast). Every other
+ * only one either spec declares (the `elemental-blast` entry in `specs/elemental/lib/index.ts`, named
+ * rather than numbered — the line citation this replaced had rotted by 74 lines). Every other
  * cooldown-gated button in this report is an instant, where the commit and the landing are the same
  * millisecond and nothing below could see a difference.
  */
