@@ -263,7 +263,11 @@ describe('auraWindows', () => {
 		 * dropped. That made a gap in *this* model read as an absence of evidence in the log. The shared
 		 * `bloodlust` aura declares no duration on purpose — its five ids are one effect rather than one
 		 * spell — so a haste cooldown pressed before the bell left nothing but a `removebuff`, that removal
-		 * was thrown away here, and the pull read as `no-cooldown-on-pull`.
+		 * was thrown away here, and the Ascendance opener went ungraded for want of a window to measure
+		 * against. That downstream symptom used to be named here as the reason `'no-cooldown-on-pull'`; the
+		 * reason itself is gone (`cbc9259` deleted it, because opening with Ascendance needs no raid
+		 * cooldown, so a missing one is a missing *measurement* rather than a fault). What this case is
+		 * about is unchanged: the removal is evidence and dropping it loses the pull's opening window.
 		 *
 		 * What still holds the unbounded case in is the leading-orphan rule, not the duration: at most one
 		 * window per id can ever come out of this branch, and the case below proves it on the same aura.
