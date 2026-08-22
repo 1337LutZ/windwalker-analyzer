@@ -106,26 +106,41 @@ describe('the stacking trinkets are a window and a counter, and the counter carr
 	 * Putting the cap on the window is what `wrath-of-darkspear` did, and it made a graded input — the
 	 * Elemental snapshot audit's "at ten stacks" trigger — ask a non-stacking aura for ten stacks.
 	 *
-	 * **Each row asserts the window is declared before it asserts the window does not stack**, and that
-	 * line is not ceremony. `auraById(window)?.maxStacks` is `undefined` for an aura that does not stack
-	 * *and* for an id nothing declares at all, so without it a row pointed at the sim's payload half —
-	 * `138758` for Ji-Kun rather than `138759` — passed this table while being exactly the inversion the
-	 * table exists to name. The `simOnly` list below did catch that one, from the other side, and that
-	 * is what hid the hole: the pair stayed covered while the pairs table was asserting nothing about
-	 * it. The counter side needs no such line, `toBe(cap)` already failing on an `undefined`.
+	 * *** Each row names the pair it is about, and that column is what makes the two cap assertions
+	 * capable of failing. *** Neither of them is an assertion about *which* aura answered.
+	 * `auraById(window)?.maxStacks` is `undefined` for every aura that does not stack, and
+	 * `auraById(counter)?.maxStacks` is the cap for every counter that shares one — four of these five
+	 * cap at ten — so a row can be wrong in a way both lines are blind to.
+	 *
+	 * Measured on this table, twice, before the key column existed. Pointing Ji-Kun's row at
+	 * **138786**, which is Wushoolay's window — declared, real, and the wrong trinket — left the file at
+	 * `30 passed (30)`. Swapping Renataki's and Ji-Kun's *counters* with each other, 138737 against
+	 * 138760, left it at `30 passed (30)` as well. Both are the inversion this table exists to name and
+	 * both were silent, because "is declared and does not stack" is a shape and not an identity.
+	 *
+	 * A `toBeDefined()` on the window used to stand here, and it closed only the narrower case:
+	 * a row pointed at the sim's *undeclared* payload half — `138758` for Ji-Kun rather than `138759`
+	 * — which the `simOnly` list below already caught from the other side, and that overlap is what hid
+	 * the rest of the hole. Asserting the key subsumes it: an id nothing declares resolves to
+	 * `undefined` and fails the same line, by name, with the id in the message.
+	 *
+	 * The counter's key is **derived** rather than given a sixth column: it is the window's key plus
+	 * `-stacks` on all five pairs, so deriving it asserts the naming convention that *is* the pairing
+	 * instead of restating two handles that could be mistyped together.
 	 */
-	const pairs: Array<[string, number, number, number]> = [
-		// [item, window id, counter id, counter cap]
-		["Renataki's Soul Charm", 138_756, 138_737, 10],
-		['Fabled Feather of Ji-Kun', 138_759, 138_760, 10],
-		["Wushoolay's Final Choice", 138_786, 138_788, 10],
-		["Skeer's Bloodsoaked Talisman", 146_285, 146_293, 20],
-		["Black Blood of Y'Shaarj", 146_184, 146_202, 10],
+	const pairs: Array<[string, string, number, number, number]> = [
+		// [item, the window aura's registry key, window id, counter id, counter cap]
+		["Renataki's Soul Charm", 'blades-of-renataki', 138_756, 138_737, 10],
+		['Fabled Feather of Ji-Kun', 'feathers-of-fury', 138_759, 138_760, 10],
+		["Wushoolay's Final Choice", 'wushoolays-lightning', 138_786, 138_788, 10],
+		["Skeer's Bloodsoaked Talisman", 'cruelty', 146_285, 146_293, 20],
+		["Black Blood of Y'Shaarj", 'wrath-of-darkspear', 146_184, 146_202, 10],
 	];
 
-	for (const [item, window, counter, cap] of pairs) {
-		it(`${item}: the window does not stack and the counter caps at ${cap}`, () => {
-			expect(registry.auraById(window), `${window} is the window, and has to be declared`).toBeDefined();
+	for (const [item, key, window, counter, cap] of pairs) {
+		it(`${item}: ${key} is the window, ${key}-stacks the counter, and the counter caps at ${cap}`, () => {
+			expect(registry.auraById(window)?.key, `${window} should be ${item}'s window`).toBe(key);
+			expect(registry.auraById(counter)?.key, `${counter} should be ${item}'s counter`).toBe(`${key}-stacks`);
 			expect(registry.auraById(window)?.maxStacks, `${window} is the window`).toBeUndefined();
 			expect(registry.auraById(counter)?.maxStacks, `${counter} is the counter`).toBe(cap);
 		});

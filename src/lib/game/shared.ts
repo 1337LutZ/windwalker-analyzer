@@ -460,6 +460,13 @@ export const SHARED_AURAS: Aura[] = [
 	 * these declarations — so re-inverting any pair from the Go file fails a named test instead of quietly
 	 * emptying a lane. Which is the whole difference from the 144998 failure: that id was declared with a
 	 * sim citation beside it and measured nothing for as long as nothing asked.
+	 *
+	 * The pairs table in that same file is the other half, and it took a second pass to become one: it
+	 * now pins each id to the **key** it has to resolve to, because "is declared and does not stack" is a
+	 * shape four of these five share. Pointing Ji-Kun's row at 138786 — Wushoolay's window, declared and
+	 * real and the wrong trinket — used to pass it, and so did swapping Renataki's counter with Ji-Kun's,
+	 * both counters capping at ten. The sim-only list cannot cover either: it guards which ids reach these
+	 * declarations at all, and every id in both mutations is one that belongs here — just not in that row.
 	 */
 	{
 		key: 'blades-of-renataki',
