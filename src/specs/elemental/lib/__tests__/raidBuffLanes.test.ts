@@ -482,8 +482,17 @@ describe('the lift did not touch the section’s own numbers', () => {
 	it('still says nothing about the raid on a pull that never fetched it, while drawing the rows', () => {
 		for (const name of FIXTURES) {
 			const el = fx(name);
-			expect(el.stormlash, name).toEqual({ shamans: [], overlaps: [], totems: 0 });
+			// The three *placement* figures, named one by one rather than through a whole-object equality.
+			// `stormlash.received` now sits beside them, read off the buff on the player rather than off
+			// the fetch — which is the same distinction this test exists to keep — so an equality over the
+			// whole audit would have to restate its rows in order to say the placements are empty.
+			expect([el.stormlash.shamans, el.stormlash.overlaps, el.stormlash.totems], name).toEqual([[], [], 0]);
 			expect(rowsFor(el, 'stormlash-totem').length, name).toBeGreaterThan(0);
+			// And the table's rows come off the same side of the split the lanes do, so the two cannot drift:
+			// one entry per bar drawn, on every pull.
+			expect(el.stormlash.received?.length, name).toBe(
+				rowsFor(el, 'stormlash-totem').reduce((n, row) => n + row.windows.length, 0),
+			);
 		}
 	});
 });

@@ -74,6 +74,7 @@ import type {
 	Miss,
 	SearingTotemPress,
 	StormlashAudit,
+	StormlashReceived,
 	WclEvent,
 	Window,
 } from '~/lib/types';
@@ -2864,6 +2865,78 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		2,
 		duration,
 	).map(([start, end]) => ({ start, end }));
+	/**
+	 * The totems that actually reached this player, one row per instance — **and §80's rule 6 on the
+	 * player's own.**
+	 *
+	 * ## Which source, because the obvious one is empty
+	 *
+	 * `stormlashShamans` above is the raid's *placements*, off `raidStormlash` — a separate fetch, and
+	 * **no committed fixture carries it**: `shamans` is `[]` and `totems` is `0` on all three. A table
+	 * built off it would render empty on every pull we hold while looking finished, which is the failure
+	 * mode plan §93 named. So the rows come off `raidLanes` instead — the aura walk over the fight's own
+	 * stream, narrowed by `onTarget` to the buff that landed on this player — which has 2, 4 and 4 rows.
+	 * The two are not two readings of one fact: one is what the raid laid, the other is what reached the
+	 * player, and only the second is answerable without the extra fetch. The section says so in as many
+	 * words rather than leaving a reader to reconcile a table of four totems with a tile reading zero.
+	 *
+	 * `drawn` **and** `hidden`, for the same reason the Skull Banner argument above takes both: a chart
+	 * has a six-row budget and a table does not, and a seventh shaman's totem is a fact about the pull
+	 * whether or not there is screen space for its lane.
+	 *
+	 * ## Which question rule 6 asks — the cast, not the overlap
+	 *
+	 * The user's words are "Stormlash should ideally **not be cast** during Ascendance", and this reads
+	 * them literally: the press, inside the player's own Ascendance. Lane F measured that at **0 of 3**
+	 * committed pulls, and measured the *overlap* reading — the player's own totem merely running inside
+	 * the window — at 1 of 3 (`phased`, 7 136 of that totem's 9 714 ms). The overlap has the bigger
+	 * number and is still the wrong question, for a reason no amount of data settles:
+	 *
+	 * **An overlap is not a fault, it is the good case.** Stormlash procs off what the raid does while it
+	 * is up, so a totem running through a burst window is worth *more*, not less. What costs something is
+	 * the **global**: during Ascendance every one of them was wanted on Lava Beam, which is the identical
+	 * argument the Flame Shock ladder already makes about a refresh under Ascendance ("a global the list
+	 * wanted on Lava Burst"). Reporting the overlap as an improvement would have printed a benefit as a
+	 * problem and told a reader to stop doing something right.
+	 *
+	 * **So the row is empty of faults on all three fixtures, deliberately.** That is the honest answer
+	 * and not a hole: these three pulls did not make this mistake, and the table says so on the rows it
+	 * does have rather than by showing nothing. It can fire — a press eleven seconds into an opener that
+	 * began at five is all it takes, and `stormlash.test.ts` builds exactly that — so this is not the
+	 * 144998 shape of an id the game never writes.
+	 *
+	 * ## Off the press, not off the bar
+	 *
+	 * The buff goes up after the summon lands: 807 ms later on `phased`, 192 on `unbroken`, 214 on
+	 * `cleave`. The global was spent at the press, so the press is what is tested, recovered as the
+	 * latest own cast within one totem's lifetime of the bar opening. Anything else keeps the bar's own
+	 * start, which is the only reading available for a totem whose press this log did not carry.
+	 *
+	 * A press that never put the buff on the player at all has no row, and cannot: this list is the
+	 * totems that *reached* them. That costs nothing observable — a shaman is inside their own totem's
+	 * radius when they drop it — and the alternative is a row with no bar in a table of bars.
+	 */
+	const stormlashPresses = castTimes(STORMLASH_TOTEM);
+	const stormlashReceived: StormlashReceived[] = [...raidLanes.drawn, ...raidLanes.hidden]
+		.filter((l) => l.key === 'stormlash-totem')
+		.flatMap((l) =>
+			l.windows.map((w): StormlashReceived => {
+				const source = l.source ?? { id: -1, name: null, own: false };
+				const press = stampAtOrBefore(stormlashPresses, w.start);
+				return {
+					t: w.start,
+					end: w.end,
+					source,
+					duringAscendance:
+						source.own && press !== null && w.start - press <= STORMLASH_DURATION_MS
+							? inWindow(press, ascActiveWindows)
+							: source.own
+								? inWindow(w.start, ascActiveWindows)
+								: null,
+				};
+			}),
+		)
+		.sort((a, b) => a.t - b.t);
 
 	// ------------------------------------------------------------------ APL
 	const auras: AplInputs['auras'] = {
@@ -3347,7 +3420,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			good: eeGradable.filter((p) => p.verdict === 'near-end').length,
 			graded: eeGradable.length,
 		},
-		stormlash: { shamans: stormlashShamans, overlaps: stormlashOverlaps, totems: stormlashTotems },
+		stormlash: {
+			shamans: stormlashShamans,
+			overlaps: stormlashOverlaps,
+			totems: stormlashTotems,
+			received: stormlashReceived,
+		},
 		lightningShield: {
 			points: lsPoints,
 			maxStacks: lightningShieldCap,

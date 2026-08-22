@@ -2710,6 +2710,42 @@ export interface StormlashShaman {
 }
 
 /**
+ * One Stormlash Totem this player was actually given, whoever laid it.
+ *
+ * **A different source from `StormlashShaman`, and that is the whole point of it.** `shamans` comes out
+ * of `raidStormlash`, a separate raid-wide *placement* fetch, and no committed fixture carries that
+ * field — so `shamans` is `[]` and `totems` is `0` on every pull we hold, and a table built off them
+ * renders empty while looking finished. This comes off the fight's own event stream narrowed to the buff
+ * that landed on *this* player, which is populated on all three (2, 4 and 4 totems). The two answer
+ * different questions — `shamans` is what the raid laid, this is what reached the player — and only the
+ * second can be read without the extra fetch.
+ */
+export interface StormlashReceived {
+	/** When the buff went up on the player, fight-relative ms. */
+	t: number;
+	/** When it came off, clamped to the kill. */
+	end: number;
+	/** Who laid it — the same `petOwner`-resolved caster the timeline row carries. */
+	source: LaneSource;
+	/**
+	 * Whether **the player's own press** landed inside their own Ascendance — plan §80 rule 6.
+	 *
+	 * Shown, never graded. The user wrote "should *ideally* not be cast during Ascendance", and §92 set
+	 * the precedent that §80's hedge is read per sentence: "should have at least" grades, "should
+	 * ideally" shows. Nothing reads this into a grade expression.
+	 *
+	 * Read off the **press**, not off the bar's start. The two differ by up to a global — on `phased` the
+	 * press is at 1 620 ms and the buff went up at 2 427 — and the thing rule 6 is about is the global,
+	 * because during Ascendance every one of them was wanted on Lava Beam.
+	 *
+	 * Null for a totem somebody else laid. A raid-mate's Stormlash landing inside this player's
+	 * Ascendance is not a press this player made, and calling that `false` would put a column of
+	 * reassurance beside rows nobody could have done anything about.
+	 */
+	duringAscendance: boolean | null;
+}
+
+/**
  * The raid's Stormlash Totems, read together — the buff does not stack, so two totems up at once is
  * a totem wasted, and the section exists to show where that happened.
  */
@@ -2719,6 +2755,13 @@ export interface StormlashAudit {
 	overlaps: Window[];
 	/** Total placements across the raid. */
 	totems: number;
+	/**
+	 * The totems that reached this player, in time order — the rows of the section's table.
+	 *
+	 * Optional because an `Analysis` captured before this field existed carries none, and absent has to
+	 * read as "this pull was analysed without it" rather than as "no totem reached them".
+	 */
+	received?: StormlashReceived[];
 }
 
 /**

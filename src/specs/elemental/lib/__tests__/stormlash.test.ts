@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
+import { scoreAnalysis } from '../score';
 
 const STORMLASH = 120_668;
 
@@ -36,7 +37,11 @@ describe('a pull whose raid-wide placements were never fetched', () => {
 	 * reader conclude nobody else brought a totem.
 	 */
 	it('says nothing about the raid rather than guessing', () => {
-		expect(el.stormlash).toEqual({ shamans: [], overlaps: [], totems: 0 });
+		// The three *placement* figures, asserted on their own rather than through a whole-object
+		// `toEqual`. `received` sits beside them off a different source and is populated, so an equality
+		// over the whole audit would have to restate four totems to say "the placements are empty" — and
+		// the next field added to the audit would fail this for no reason connected to what it checks.
+		expect([el.stormlash.shamans, el.stormlash.overlaps, el.stormlash.totems]).toEqual([[], [], 0]);
 	});
 
 	/**
@@ -227,5 +232,238 @@ describe('the stretches two totems were up at once', () => {
 
 	it('never reports an overlap past the pull', () => {
 		for (const w of stormlash.overlaps) expect(w.end).toBeLessThanOrEqual(el.durationMs);
+	});
+});
+
+// ------------------------------------------------------------------ §80 rule 6
+
+/**
+ * Plan §80 rule 6 — the row the user asked for, and **which of its two readings it asks.**
+ *
+ * Their words:
+ *
+ *   > Stormlash should ideally not be cast during Ascendance (can add as improvement in the Stormlash
+ *   > section as a row in the table (doesnt exist yet, similar to Flame Shock usage label))
+ *
+ * Two things are settled by that sentence and are not re-opened here. It is **shown, not graded** —
+ * "ideally", and "as an improvement" — which is §92's precedent applied per sentence rather than to
+ * §80's block. And it belongs in the **Stormlash section's table**, in the shape the Flame Shock usage
+ * label already has.
+ *
+ * ## The cast, not the overlap
+ *
+ * Lane F measured both readings. The player's own **cast** inside an Ascendance window is **0 of 3**
+ * committed pulls; their own totem merely **overlapping** one is 1 of 3, `phased` at 7 136 of that
+ * totem's 9 714 ms. The overlap has the bigger number and is the wrong question, for a reason no
+ * amount of data settles: **an overlap is not a fault at all.** Stormlash pays out on what the raid
+ * does while it is up, so a totem running through a burst window is worth more rather than less. What
+ * costs something is the **global** — during Ascendance every one of them was wanted on Lava Beam,
+ * which is the identical argument the Flame Shock ladder already makes about a refresh under
+ * Ascendance. Reporting the overlap as an improvement would print a benefit as a problem.
+ *
+ * So the reading is the press, it fires on nothing committed, and that is the honest answer rather
+ * than a hole: these three pulls did not make this mistake, and the table says so on the rows it does
+ * have. `a press inside Ascendance` below is the proof it can fire.
+ */
+describe('rule 6: the player’s own press, inside their own Ascendance', () => {
+	const pulls = ['phased', 'unbroken', 'cleave'] as const;
+
+	/**
+	 * **Not a red against the old behaviour — a measurement of the fixtures**, and labelled so on the
+	 * line, exactly as `ascendance.test.ts` labels its two. `received` did not exist before this change,
+	 * so of course it fails; what earns the test its place is the *numbers*, which are what decide that
+	 * the table has rows to show at all. 2, 4 and 4 — against `stormlash.totems`, which is 0 on all
+	 * three, because the placement fetch is not in any fixture.
+	 */
+	it('has rows on all three pulls where the placement audit has none', () => {
+		for (const name of pulls) {
+			const el = fx(name);
+			expect([name, el.stormlash.totems]).toEqual([name, 0]);
+			expect([name, el.stormlash.received?.length]).toEqual([name, { phased: 2, unbroken: 4, cleave: 4 }[name]]);
+			// One own totem apiece, so the rule has exactly one press to speak about on each pull.
+			expect([name, el.stormlash.received?.filter((r) => r.source.own).length]).toEqual([name, 1]);
+		}
+	});
+
+	/** Also a fixture measurement rather than a red: this is the 0 of 3, stated as a number. */
+	it('finds no press inside Ascendance on any committed pull', () => {
+		for (const name of pulls) {
+			const el = fx(name);
+			// `false` on the player's own row, `null` on everybody else's — never `false` on a raid-mate's,
+			// which would be a column of reassurance about a press this player did not make.
+			expect([name, el.stormlash.received?.map((r) => r.duringAscendance)]).toEqual([
+				name,
+				{ phased: [false, null], unbroken: [null, null, false, null], cleave: [null, null, false, null] }[name],
+			]);
+		}
+	});
+
+	/**
+	 * **The choice between the two readings, pinned from the data that separates them.**
+	 *
+	 * `phased` is the one pull where they disagree: the player's own totem is up for 7 136 of the
+	 * opener's fifteen seconds — 73% of the totem's own 9 714 ms lifetime — and the press that laid it
+	 * was 3 385 ms before the Ascendance press. So the overlap reading fires here and the cast reading
+	 * does not, and the row reads `false`. A row built off the overlap could not pass this.
+	 */
+	it('reads false on the one pull where the overlap reading would fire', () => {
+		const el = fx('phased');
+		const own = el.stormlash.received?.find((r) => r.source.own);
+		expect([own?.t, own?.end]).toEqual([2427, 12_141]);
+		expect(own!.end - own!.t).toBe(9714);
+		// The opener's window, off the drawn lane rather than restated, so the arithmetic below is against
+		// the same fifteen seconds every other section reads.
+		const asc = el.timeline?.lanes.find((l) => l.key === 'ascendance')?.windows[0];
+		expect(asc).toEqual({ start: 5005, end: 20_007 });
+		const overlap = Math.min(own!.end, asc!.end) - Math.max(own!.t, asc!.start);
+		expect(overlap).toBe(7136);
+		expect(overlap / (own!.end - own!.t)).toBeGreaterThan(0.73);
+		// And the row still says no press was made inside the window, because none was.
+		expect(own?.duringAscendance).toBe(false);
+	});
+});
+
+// ------------------------------------------------ synthetic: the fault, and what it does not do
+
+const ASC_CAST = 114_049;
+const ASC_BUFF = 114_050;
+const STORMLASH_BUFF = 120_676;
+
+/**
+ * The synthetic pull above with **no `raidStormlash` and no events**, for the suites below to fill in.
+ *
+ * The missing placement fetch is the point rather than an omission: `received` exists because it can be
+ * read without one, and a shell that supplied placements would let a passing test prove nothing about
+ * the pulls we actually hold.
+ */
+const shell: Omit<FightDataset, 'events' | 'raidStormlash'> = {
+	code: dataset.code,
+	fight: dataset.fight,
+	actor: dataset.actor,
+	actors: dataset.actors,
+	table: dataset.table,
+};
+
+/**
+ * A pull with one Ascendance and one Stormlash, with the Stormlash press movable.
+ *
+ * The player's own totem arrives as a **pet's** `applybuff`, which is what a real log carries — the
+ * totem is its own actor — so this also exercises the `petOwner` resolution the row's `source` depends
+ * on.
+ */
+function ascPull(pressAt: number, over: { ascendanceAt?: number } = {}) {
+	const ascendanceAt = over.ascendanceAt ?? 10_000;
+	const TOTEM = 40;
+	const at = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
+		timestamp: T0 + t,
+		type,
+		abilityGameID: id,
+		sourceID: ME,
+		targetID: ME,
+		...extra,
+	});
+	const pull: FightDataset = {
+		...shell,
+		actors: [...shell.actors, { id: TOTEM, name: 'Stormlash Totem', type: 'Pet', petOwner: ME }],
+		events: [
+			...contact,
+			at(ascendanceAt, 'cast', ASC_CAST),
+			at(ascendanceAt, 'applybuff', ASC_BUFF),
+			at(ascendanceAt + 15_000, 'removebuff', ASC_BUFF),
+			at(pressAt, 'cast', STORMLASH),
+			// The buff lands a global after the summon does, as it does on every real pull — 800ms here,
+			// which is `phased`s own 807 rounded. This is the gap the reading has to see past.
+			at(pressAt + 800, 'applybuff', STORMLASH_BUFF, { sourceID: TOTEM }),
+			at(pressAt + 10_800, 'removebuff', STORMLASH_BUFF, { sourceID: TOTEM }),
+		],
+	};
+	const analysed = analyse(pull) as Analysis & ElementalAuditResult;
+	const own = analysed.stormlash.received?.find((r) => r.source.own);
+	return { el: analysed, own };
+}
+
+describe('the fault rule 6 can find, which no committed pull contains', () => {
+	it('marks a press made inside the window', () => {
+		// Ascendance at 10s, Stormlash at 14s: four seconds into the fifteen, and a global that was
+		// wanted on Lava Beam.
+		const { own } = ascPull(14_000);
+		expect([own?.t, own?.duringAscendance]).toEqual([14_800, true]);
+	});
+
+	it('leaves a press before the window alone', () => {
+		const { own } = ascPull(6000);
+		expect([own?.t, own?.duringAscendance]).toEqual([6800, false]);
+	});
+
+	it('leaves a press after the window alone', () => {
+		const { own } = ascPull(26_000);
+		expect([own?.t, own?.duringAscendance]).toEqual([26_800, false]);
+	});
+
+	/**
+	 * **The press, not the bar — the 800ms straddle, from both sides.**
+	 *
+	 * A press at 9 400 with Ascendance opening at 10 000 puts the *press* 600ms outside the window and
+	 * the *bar* 200ms inside it. The global was spent before the button, so the row reads `false`. A
+	 * reading off `w.start` — which is the field the row prints in its `at` column, and therefore the
+	 * tempting one — answers `true` here and charges the player for a totem they laid first.
+	 */
+	it('reads the press even where the bar it opened starts inside the window', () => {
+		const { own } = ascPull(9400);
+		expect(own?.t).toBe(10_200);
+		expect(own?.duringAscendance).toBe(false);
+	});
+
+	/** And the mirror: the press inside, the bar's start also inside. No disagreement, still true. */
+	it('agrees with the bar where the two are on the same side', () => {
+		expect(ascPull(10_400).own?.duringAscendance).toBe(true);
+	});
+
+	/**
+	 * **Shown, not graded** — the half of §92's precedent that keeps this a preference.
+	 *
+	 * Two whole analyses, scored independently, differing only in when the Stormlash went down. Every
+	 * section's grade and the overall grade are identical, so a `true` here cannot cost a player
+	 * anything. Not a tautology: the two cards come out of two separate `analyse` + `scoreAnalysis`
+	 * runs over two different event streams, and one of the two rows really does read `true`.
+	 */
+	it('moves no grade when it fires', () => {
+		const inside = ascPull(14_000);
+		const outside = ascPull(6000);
+		expect([inside.own?.duringAscendance, outside.own?.duringAscendance]).toEqual([true, false]);
+		const cardOf = (a: Analysis) => {
+			const card = scoreAnalysis(a);
+			return [card.overall, Object.fromEntries(Object.entries(card.sections).map(([k, v]) => [k, v.grade]))];
+		};
+		expect(cardOf(inside.el)).toEqual(cardOf(outside.el));
+	});
+});
+
+describe('a totem somebody else laid', () => {
+	it('gets a row with no reading on it rather than a passing one', () => {
+		const OTHER_TOTEM = 41;
+		const pull = {
+			...shell,
+			actors: [...shell.actors, { id: OTHER_TOTEM, name: "Thunderfist's Totem", type: 'Pet', petOwner: OTHER }],
+			events: [
+				...contact,
+				e(10_000, 'cast', ASC_CAST),
+				e(10_000, 'applybuff', ASC_BUFF),
+				e(25_000, 'removebuff', ASC_BUFF),
+				// Inside the window, and laid by somebody else — so the *overlap* reading would fire on a
+				// press this player had no part in.
+				e(12_000, 'applybuff', STORMLASH_BUFF, { sourceID: OTHER_TOTEM }),
+				e(22_000, 'removebuff', STORMLASH_BUFF, { sourceID: OTHER_TOTEM }),
+			],
+		} satisfies FightDataset;
+		const other = (analyse(pull) as Analysis & ElementalAuditResult).stormlash.received;
+		expect(other?.map((r) => [r.t, r.source.id, r.source.own, r.duringAscendance])).toEqual([
+			[12_000, OTHER, false, null],
+		]);
+	});
+
+	it('says nothing at all on a pull no totem reached', () => {
+		const bare = { ...shell, events: [...contact] } satisfies FightDataset;
+		expect((analyse(bare) as Analysis & ElementalAuditResult).stormlash.received).toEqual([]);
 	});
 });

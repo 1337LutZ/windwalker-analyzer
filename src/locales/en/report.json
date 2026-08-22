@@ -1577,6 +1577,21 @@
       "label": "The raid's Stormlash Totems on the pull clock, a row per shaman, with the stretches where two totems ran at once"
     },
     "empty": "No Stormlash Totem was placed in this pull.",
+    "columns": {
+      "at": "at",
+      "who": "laid by",
+      "upFor": "up for",
+      "state": "what it was"
+    },
+    "state": {
+      "yours": "Yours, laid outside Ascendance",
+      "duringAscendance": "Yours, and laid during Ascendance — ideally that global goes to Lava Beam instead"
+    },
+    "you": "You",
+    "caption": "Every Stormlash Totem that reached you in this pull, whoever laid it, and whether your own went down during Ascendance",
+    "none": "No Stormlash Totem reached you in this pull.",
+    "sourceNote": "The two tiles and the chart above read the raid's totem placements, which come from a separate fetch this pull does not carry — so they count zero. The table below asks the other half of the question and needs no extra fetch: every totem whose buff landed on you, and who laid it.",
+    "ascendanceNote": "Dropping Stormlash costs you a global, and during Ascendance you want that global on Lava Beam — so lay the totem before you press Ascendance, or after the window closes. Treat this as a preference rather than a requirement: nothing in your score moves either way, and a totem still running through Ascendance is a good thing, because Stormlash pays out on what the raid does while it is up.",
     "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the chart only shows where the raid left a totem on the table."
   },
   "lavaBurst": {
