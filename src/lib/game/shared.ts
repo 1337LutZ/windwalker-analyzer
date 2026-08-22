@@ -156,6 +156,38 @@ export const SHARED_AURAS: Aura[] = [
 		},
 		kind: 'buff',
 	},
+	{
+		key: 'skull-banner',
+		name: 'Skull Banner',
+		/**
+		 * The Warrior's raid cooldown: **+20% critical strike damage** for ten seconds, every three
+		 * minutes. `SkullBannerAura`'s `OnGain` multiplies `PseudoStats.CritDamageMultiplier` by 1.2 and
+		 * `OnExpire` divides it back — `sim/core/buffs.go:1153-1176`, with `SkullBannerDuration` and
+		 * `SkullBannerCD` at :1121-1122.
+		 *
+		 * **Shared rather than a spec's, for the same reason Bloodlust is.** It is pressed by somebody
+		 * else and lands on the whole raid, and what it multiplies is crit *damage* — which every spec in
+		 * this repository deals, and every spec that could be added to it. Declaring it in one spec's
+		 * list would be declaring it for one of the two players it was measured on.
+		 *
+		 * **114206, and 114207 must never be written here.** `sim/core/buffs.go:1118` is `var
+		 * SkullBannerActionID = ActionID{SpellID: 114206}` and the aura registers under that same number;
+		 * 114207 occurs exactly once in the simulator's repository, at
+		 * `ui/core/components/inputs/buffs_debuffs.ts:108`, as the icon the buff picker draws. The log
+		 * agrees with the sim and not with the picker: 114206 lands on the player on all four committed
+		 * pulls — 4 applications on `phased`, 2 on `unbroken`, 4 on `cleave`, 3 on
+		 * `dataset-ironJuggernaut`, each matched by a removal — and 114207 appears on none of them. Plan
+		 * §51a recorded that split, and declaring the UI id is the exact shape that produced the retired
+		 * 144998: a handle the game never writes, wired to five readers, silent through fifty-three green
+		 * tests.
+		 *
+		 * No `appliedBy`, on the same terms as Bloodlust: the press belongs to another actor, so there is
+		 * no button of this player's for it to point at.
+		 */
+		ids: [114206],
+		kind: 'buff',
+		durationMs: 10_000,
+	},
 
 	// ---------------------------------------------------------- the tinker buff
 	{

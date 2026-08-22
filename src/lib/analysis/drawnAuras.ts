@@ -1,6 +1,11 @@
 // The sweep behind both specs' `drawnAuras.test.ts`: every aura the log put on the player, by
 // registry key, so a guard can ask which of them nothing draws.
 //
+// **And by raw id, which is a different question.** The key reading resolves through
+// `registry.auraById` and drops what it cannot resolve, so it can only see auras the model declares.
+// `auraIdsPutOnPlayer` and the three ledger checks below it drop that filter, which is what closes the
+// third failure mode — see `game/__tests__/undeclaredAuras.test.ts` for the ledger and the argument.
+//
 // **Why it is one function and not two.** The two guards were written days apart and diverged in a
 // way that mattered rather than a way that looked like style. The Windwalker's counted removals as
 // evidence; the Elemental's counted applications and refreshes only. On the Windwalker's own fixture
@@ -84,6 +89,100 @@ export function aurasPutOnPlayer(
 		out.set(aura.key, (out.get(aura.key) ?? 0) + 1);
 	}
 	return out;
+}
+
+/**
+ * Every aura **id** the log put on the player, declared or not, with how many events say so.
+ *
+ * The counterpart of `aurasPutOnPlayer` and the reason both exist. That one resolves through
+ * `registry.auraById` and drops what it cannot resolve, so it can only ever ask about auras the model
+ * *declares* — which makes it structurally blind to the third failure mode: an id the log puts on the
+ * player that nothing declares at all. Skull Banner (114206) fires on all four committed pulls, was
+ * named in the Elemental's `EXTRA_NAMES` so the cast-coverage ledger was satisfied, and was drawn
+ * nowhere; it passed every guard in the repository. So did 146046 before a reader found it in their own
+ * log.
+ *
+ * The same evidence rule as the key sweep, for the same reason — see `selfAuraEvents`. An apply-only
+ * reading of this would have missed the Fire Elemental on all three Elemental pulls, and the ids that
+ * only ever *stack* on the player (324 reaches the sweep through `applybuffstack` and nothing else)
+ * would be absent from a sweep that read applications alone.
+ */
+export function auraIdsPutOnPlayer(
+	dataset: FightDataset,
+	kinds: readonly AuraEvidence[] = ALL_EVIDENCE,
+): Map<number, number> {
+	const out = new Map<number, number>();
+	for (const event of selfAuraEvents(dataset, kinds)) {
+		const id = abilityIdOf(event);
+		if (id === null) continue;
+		out.set(id, (out.get(id) ?? 0) + 1);
+	}
+	return out;
+}
+
+/**
+ * One pull's ids and the question "does the spec that analyses this pull declare them".
+ *
+ * Paired rather than passed separately because the answer is a property of the *pair*: 120676 is
+ * declared by the Elemental and not by the Windwalker, so "is this id declared" has no answer until a
+ * pull is named. Keeping them together is what lets one ledger cover both specs without claiming that
+ * either spec's model is the other's.
+ */
+export interface IdSweep {
+	/** What `auraIdsPutOnPlayer` read off this pull. */
+	ids: ReadonlyMap<number, number>;
+	/** `registry.auraById(id) !== undefined` for the spec that analyses it. */
+	declares: (id: number) => boolean;
+}
+
+/** Ledger ids, numerically. `Object.keys` on a numeric-keyed record hands back strings. */
+const ledgerIds = (ledger: Readonly<Record<number, string>>): number[] => Object.keys(ledger).map(Number);
+
+/**
+ * Ids the log put on the player that nothing declares and no ledger entry excuses.
+ *
+ * Sorted numerically, because a failure here is read as a list of spell ids and `[...].sort()` would
+ * order them as text — 1126 before 17.
+ */
+export function unmodelledAuraIds(sweeps: readonly IdSweep[], ledger: Readonly<Record<number, string>>): number[] {
+	const missing = new Set<number>();
+	for (const sweep of sweeps) {
+		for (const id of sweep.ids.keys()) {
+			if (!sweep.declares(id) && ledger[id] === undefined) missing.add(id);
+		}
+	}
+	return [...missing].sort((a, b) => a - b);
+}
+
+/**
+ * Ledger ids that fired on no pull at all — the id counterpart of `staleExcuses`, and the same
+ * argument: a reason written for an id that stopped appearing is a reason nobody will ever check.
+ */
+export function staleLedgerIds(ledger: Readonly<Record<number, string>>, sweeps: readonly IdSweep[]): number[] {
+	const fired = new Set(sweeps.flatMap((sweep) => [...sweep.ids.keys()]));
+	return ledgerIds(ledger)
+		.filter((id) => !fired.has(id))
+		.sort((a, b) => a - b);
+}
+
+/**
+ * Ledger ids that every pull carrying them now declares, so the entry has been overtaken.
+ *
+ * The id counterpart of `redundantExcuses`, and the check that makes an entry reading "nothing declares
+ * this yet" safe to write: the moment a spec declares it, the entry that told the next reader not to
+ * look becomes a failure naming itself. Nothing else here notices — a declared id satisfies
+ * `unmodelledAuraIds` and a firing id satisfies `staleLedgerIds`.
+ *
+ * **Every** pull, not any: 120676 is declared by the Elemental and not by the Windwalker, and an entry
+ * that is still the only thing accounting for it on one spec's pull is not redundant.
+ */
+export function declaredLedgerIds(ledger: Readonly<Record<number, string>>, sweeps: readonly IdSweep[]): number[] {
+	return ledgerIds(ledger)
+		.filter((id) => {
+			const carrying = sweeps.filter((sweep) => sweep.ids.has(id));
+			return carrying.length > 0 && carrying.every((sweep) => sweep.declares(id));
+		})
+		.sort((a, b) => a - b);
 }
 
 /** The lane keys an analysis actually drew — the set the sweep is measured against. */

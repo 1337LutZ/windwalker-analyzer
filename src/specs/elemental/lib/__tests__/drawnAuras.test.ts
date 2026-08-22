@@ -49,6 +49,14 @@ const NOT_LANES: Record<string, string> = {
 	'astral-shift': 'defensive, no bearing on the rotation',
 	'spiritwalkers-grace': 'movement, no bearing on the rotation',
 	'ancestral-guidance': 'healing, no bearing on the rotation',
+	// **A handoff rather than a decision, and the only entry here that is one.** Skull Banner (114206)
+	// is declared in `game/shared.ts` as of this commit and drawn by nothing: the row asked for is one
+	// per *instance* — one per banner — which is a change in `specs/elemental/lib/index.ts` and out of
+	// this file's reach (plan §79). It is written down rather than left to fail because
+	// `redundantExcuses` retires it by itself: the moment that lane lands, the last test in this file
+	// fails naming `skull-banner` and this line is what to delete. Exactly the shape `earth-elemental`
+	// had, and the reason that check exists at all.
+	'skull-banner': 'declared here; the per-instance raid-cooldown lane has not landed yet — plan §79',
 };
 
 const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;

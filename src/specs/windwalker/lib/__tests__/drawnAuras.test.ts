@@ -60,6 +60,13 @@ const NOT_LANES: Record<string, string> = {
 	// The player survived something. It changes nothing the rotation wanted, and a row for it would push
 	// the rotation's own rows down the screen on a long pull.
 	'diffuse-magic': 'defensive, no bearing on the rotation',
+	// **A handoff rather than a decision, and the only entry here that is one.** Skull Banner (114206)
+	// is declared in `game/shared.ts` as of this commit and drawn by nothing: it goes up three times on
+	// this pull, from another player, and the row asked for is one per *banner* — a change in
+	// `specs/windwalker/lib/index.ts` and out of this file's reach (plan §79). Written down rather than
+	// left to fail because `redundantExcuses` retires it by itself: the moment that lane lands, the last
+	// test in this file fails naming `skull-banner` and this line is what to delete.
+	'skull-banner': 'declared here; the per-instance raid-cooldown lane has not landed yet — plan §79',
 };
 
 const dataset = JSON.parse(
