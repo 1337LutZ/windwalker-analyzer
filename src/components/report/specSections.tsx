@@ -53,9 +53,11 @@ import {
 	Xuen,
 } from '~/specs/windwalker/components/sections';
 import {
-	Cooldowns,
+	Ascendance,
+	CooldownDrift,
 	EarthElemental,
 	EarthShock,
+	ElementalMastery,
 	FireElemental,
 	FlameShock,
 	KpiTiles as ElementalKpiTiles,
@@ -67,6 +69,7 @@ import {
 	Snapshots,
 	Stormlash,
 } from '~/specs/elemental/components/sections';
+import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
  * One of the spec's resource bars, as a titled section.
@@ -336,8 +339,8 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		},
 
 		// The rotational presses, one section each: Flame Shock is the dot everything else is gated
-		// on, Earth Shock spends the Lightning Shield counter, Searing Totem is the fire-and-forget,
-		// and the cooldowns section holds Ascendance and the other long timers.
+		// on, Earth Shock spends the Lightning Shield counter, and Searing Totem is the fire-and-forget.
+		// The long timers follow in the cooldowns group below, a section per button.
 		{ id: 'flame-shock', titleKey: 'flameShock.title', group: 'abilities', Component: FlameShock },
 		// Lava Burst is the dot's spender — the proc that makes it free is the section's own argument.
 		{ id: 'lava-burst', titleKey: 'lavaBurst.title', group: 'abilities', Component: LavaBurst },
@@ -347,7 +350,30 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// grade the two halves of that loop.
 		{ id: 'lightning-shield', titleKey: 'lightningShield.title', group: 'abilities', Component: LightningShield },
 		{ id: 'searing-totem', titleKey: 'searingTotem.title', group: 'abilities', Component: SearingTotem },
-		{ id: 'cooldowns', titleKey: 'cooldowns.title', group: 'cooldowns', Component: Cooldowns },
+
+		// ------------------------------------------------------------- the cooldowns, one section each
+		//
+		// One heading per button, in place of the single `cooldowns` section that held an Ascendance
+		// table, an Elemental Mastery table and the leftover ledger under one title. A reader arriving
+		// here is holding a button, and the split is also what lets a button decline to appear at all.
+		//
+		// Ascendance first, and ungated: it is not a talent (`ui/core/talents/trees/shaman.json` has
+		// eighteen entries and 114049 is not one of them; `sim/shaman/shaman.go:245` registers it
+		// unconditionally), so every Elemental has it and an empty table is a real finding.
+		{ id: 'ascendance', titleKey: 'ascendance.title', group: 'cooldowns', Component: Ascendance },
+		// Directly under the cooldown it is spent on, and the first Elemental section with a talent gate.
+		// Elemental Mastery *is* a talent — tier four, `talents/trees/shaman.json:87-93`, gated in the sim
+		// at `sim/shaman/talents.go:37` — so a player who chose Ancestral Swiftness or Echo of the
+		// Elements instead was being shown a table for a button they never had. Hidden only on positive
+		// evidence of that choice, exactly as Xuen and Rushing Jade Wind are above: an unknown talent list
+		// keeps the section, because a forgotten cooldown is the fault most worth reporting.
+		{
+			id: 'elemental-mastery',
+			titleKey: 'elementalMastery.title',
+			group: 'cooldowns',
+			Component: ElementalMastery,
+			when: hasElementalMastery,
+		},
 		// The two summons beside the cooldowns: Fire Elemental synced with Ascendance (or prepull under
 		// Heroism), Earth Elemental in the pull's last minute.
 		{ id: 'fire-elemental', titleKey: 'fireElemental.title', group: 'cooldowns', Component: FireElemental },
@@ -355,6 +381,16 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// The raid cooldown beside the personal ones: Stormlash is assigned across the raid's shamans,
 		// and the overlap row is the section's whole point.
 		{ id: 'stormlash', titleKey: 'stormlash.title', group: 'cooldowns', Component: Stormlash },
+		// Last of the group, because it is the leftovers rather than a button: every other cooldown-gated
+		// press the sections above do not judge on placement. It declines on a pull with no such press,
+		// which is all three committed fixtures — see `hasHeldCooldowns`.
+		{
+			id: 'cooldown-drift',
+			titleKey: 'cooldownDrift.title',
+			group: 'cooldowns',
+			Component: CooldownDrift,
+			when: hasHeldCooldowns,
+		},
 
 		// The generic tables: what dealt the damage, and every mistake with a link back to the replay.
 		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },

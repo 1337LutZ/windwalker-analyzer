@@ -3,9 +3,11 @@
 // The same spec-root rule the Windwalker sections keep: everything about one spec lives under
 // `~/specs/<key>`, and the generic barrels stay generic.
 
-export { default as Cooldowns } from './Cooldowns';
+export { default as Ascendance } from './Ascendance';
+export { default as CooldownDrift } from './CooldownDrift';
 export { default as EarthElemental } from './EarthElemental';
 export { default as EarthShock } from './EarthShock';
+export { default as ElementalMastery } from './ElementalMastery';
 export { default as FireElemental } from './FireElemental';
 export { default as FlameShock } from './FlameShock';
 export { default as KpiTiles } from './KpiTiles';

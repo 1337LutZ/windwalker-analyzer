@@ -1284,7 +1284,7 @@
       "reapply": "Reapplied",
       "late": "Late refresh",
       "duringAscendance": "Refresh during Ascendance",
-      "ascPrep": "Ascendance prep",
+      "ascPrep": "Refreshed early to carry the dot into Ascendance",
       "windowed": "Last-tick refresh",
       "snapshot": "Early, for a stronger dot",
       "early": "Early — a tick thrown away"
@@ -1312,7 +1312,7 @@
   },
   "earthShock": {
     "title": "Earth Shock",
-    "intent": "Earth Shock spends the Lightning Shield, and which rule judges a press depends on how many enemies were up at that press. At one target the list has two branches. With no tier-16 two-piece proc up: press when the shield is full, the Flame Shock dot has over six seconds and Ascendance is not about to need the shock timer. While a proc is up: hold the shock until the proc’s debuff is inside its last four seconds, then press it with the shield full and the dot outliving two ticks. A press inside a proc window is therefore not early by itself — only one taken too soon in it is. At two targets it is a different list with one form: six stacks, and eight seconds of dot rather than six. No Ascendance hold, no two-piece term, and nothing for the set to change.",
+    "intent": "Earth Shock spends the Lightning Shield, and what makes a press good depends on how many enemies were up when you pressed it. Against one enemy with no tier-16 two-piece proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance not about to want the shock's own timer. While a tier-16 proc is running the press waits instead — hold the shock until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. A press inside a proc window is therefore not early just for being there; only one taken before that last four seconds is. Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them.",
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them; the rest went out early.",
     "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them — most were spent before they were right.",
@@ -1327,15 +1327,15 @@
       "state": "what it was"
     },
     "state": {
-      "belowFull": "Below 7 stacks",
-      "fsLow": "Flame Shock under 6s",
-      "ascReady": "Ascendance ready within 6s",
-      "twoPiece": "T16 2P proc with over 4s left",
-      "fsTail": "Flame Shock under two ticks",
-      "cleaveStacks": "Below 6 stacks (Cleave list)",
-      "cleaveDot": "Flame Shock under 8s (Cleave list)"
+      "belowFull": "Shield below 7 charges",
+      "fsLow": "Flame Shock had under 6s left",
+      "ascReady": "Ascendance was due within 6s — it wants this timer",
+      "twoPiece": "Spent with over 4s still on the tier-16 proc — wait for its last four seconds",
+      "fsTail": "Flame Shock had under two ticks left",
+      "cleaveStacks": "Shield below 6 charges, with two enemies up",
+      "cleaveDot": "Flame Shock had under 8s left, with two enemies up"
     },
-    "caption": "Every Earth Shock the sim's rule refused, and which of its conditions failed",
+    "caption": "Every Earth Shock the priority list would not have pressed, and what was wrong when you pressed it",
     "none": "Every Earth Shock matched the sim's rule.",
     "fulmination": "A stack spent early is a stack of the shield’s Fulmination the shield must rebuild before the next shock."
   },
@@ -1402,41 +1402,58 @@
     "none": "No proc window was offered in this pull.",
     "measurable": "The \"dot grew by 10%\" half of the sim’s rule *is* readable off a log, and the Flame Shock section now reads it: every tick reports its damage before the crit roll and before the target’s own debuffs, so one application’s snapshot is a single number and the change across a refresh is that number over its tick period. What this section adds is the other half — which procs were on offer to be snapshotted in the first place."
   },
-  "cooldowns": {
-    "title": "Cooldowns",
-    "intent": "Ascendance is pressed on the opener or the two-piece window, Elemental Mastery is synced with Ascendance — neither is judged against a bare clock. The two summons keep their own sections. Unleash Elements and Elemental Blast are plain press-when-ready, and their idle time is the drift table below.",
+  "ascendance": {
+    "title": "Ascendance",
+    "intent": "Fifteen seconds in which Lava Burst has no cooldown, and every Elemental shaman has it — this one is not a talent, so the section is here on every pull. The priority list presses it in the opener, or inside a tier-16 two-piece window, so what is judged here is where the press landed rather than how promptly the button came off cooldown. The dot column is the other half of that: with Lava Burst as your filler for fifteen seconds, Flame Shock wants to be on the target for all fifteen.",
     "kpi": {
-      "ascendance": "Ascendance presses",
-      "lost": "Cooldowns held"
+      "presses": "Ascendance presses"
     },
     "columns": {
       "at": "at",
       "dotLeft": "dot left",
-      "state": "rule",
-      "button": "button",
-      "casts": "casts",
-      "lost": "held",
-      "drift": "idle"
+      "state": "what it was"
     },
     "state": {
-      "opener": "Opener",
-      "twoPiece": "Two-piece window",
-      "plain": "No rule",
-      "sync": "Synced with Ascendance",
-      "t15": "Tier-15 four-piece",
-      "off": "Ascendance far away",
-      "near-end": "Near the end",
-      "early": "Early"
+      "opener": "In the opener",
+      "twoPiece": "In a tier-16 two-piece window",
+      "plain": "Neither the opener nor a tier-16 window — pressed on the clock alone"
     },
-    "ascCaption": "Every Ascendance press and which rule it was",
-    "ascNone": "Ascendance was never pressed in this pull.",
-    "driftCaption": "The other cooldowns and how long each sat ready",
-    "driftNone": "No cooldown-gated buttons in this pull.",
-    "pe": "Fire Elemental is measured against a five-minute cooldown; a Primal Elementalist build presses it on three, so its drift row reads low when the log’s own windows run three.",
-    "emCaption": "Every Elemental Mastery press and whether it was the sync",
-    "feCaption": "Every Fire Elemental press and whether it was synced with Ascendance",
-    "emNone": "Elemental Mastery was never pressed in this pull.",
-    "feNone": "Fire Elemental was never pressed in this pull."
+    "caption": "Every Ascendance press, what the Flame Shock dot had left, and where the press landed",
+    "none": "Ascendance was never pressed in this pull."
+  },
+  "elementalMastery": {
+    "title": "Elemental Mastery",
+    "intent": "Thirty percent haste for twenty seconds on a ninety-second cooldown — and a talent, taken instead of Ancestral Swiftness or Echo of the Elements, so this section appears only when your log says you took it. The priority list spends it on Ascendance: in the opener, or with Ascendance a second or two out and the Flame Shock dot inside sixteen seconds, so the haste lands on the window that spends it. A tier-15 four-piece changes that pairing; without one, a press taken a long way from Ascendance is allowed rather than wasted.",
+    "columns": {
+      "at": "at",
+      "state": "what it was"
+    },
+    "state": {
+      "opener": "In the opener",
+      "sync": "Pressed onto Ascendance",
+      "t15": "Inside a tier-15 four-piece window",
+      "off": "Pressed clear of Ascendance, which the list allows when the sync is not on offer",
+      "plain": "Neither with Ascendance nor clear of it — pressed while Ascendance was still coming back"
+    },
+    "caption": "Every Elemental Mastery press and whether it landed on Ascendance",
+    "noneTalented": "You took Elemental Mastery and never pressed it — twenty seconds of haste that stayed on the bar all pull.",
+    "noneUnknown": "Elemental Mastery was never pressed in this pull.",
+    "unreadable": "This log carries no talent list for you, so the report cannot say whether Elemental Mastery was one of your choices at that tier. The section stays rather than vanish on a guess: a button you did not take and a button you took and forgot are opposite findings, and the talent list is the only thing that tells them apart."
+  },
+  "cooldownDrift": {
+    "title": "Held cooldowns",
+    "intent": "The buttons the list only ever says “press it when it is up” about — Unleash Elements, Elemental Blast if you took it, and anything else on a timer that the sections above do not judge on placement. One row each: how many presses the pull had room for, how many of those you did not make, and how long the button stood ready and unpressed. Ascendance, Elemental Mastery and the two elementals are judged on where the press landed instead, so they are not in here.",
+    "kpi": {
+      "lost": "Presses missed"
+    },
+    "columns": {
+      "button": "button",
+      "casts": "casts",
+      "lost": "presses missed",
+      "drift": "stood ready"
+    },
+    "caption": "The other cooldowns, and how long each stood ready without being pressed",
+    "none": "No cooldown of this kind was left unpressed in this pull."
   },
   "fireElemental": {
     "title": "Fire Elemental",
@@ -1447,14 +1464,14 @@
     },
     "columns": {
       "at": "at",
-      "state": "rule"
+      "state": "what it was"
     },
     "state": {
       "prepull": "Prepulled (no cast logged)",
       "near-end": "Near the end",
       "sync": "Synced with Ascendance",
-      "early": "Early",
-      "plain": "No rule"
+      "early": "Early enough to come back and be spent again",
+      "plain": "Too late to come back before the end, too far from Ascendance to pair with it"
     },
     "caption": "Every Fire Elemental press and which window it was",
     "none": "Fire Elemental was never pressed in this pull.",
@@ -1464,25 +1481,25 @@
   },
   "earthElemental": {
     "title": "Earth Elemental",
-    "intent": "The list's rule for this summon is an or of three, and only one of them is about the end of the fight. A is the pull's last sixty-two seconds. B is a window before Ascendance with the Fire Elemental down and its cooldown over a minute away — and it also asks when a *warrior's* Skull Banner comes back, which no combat log carries. C is the glyphed thirty-second Fire Elemental's gap, and the glyph is something an observed summon can rule out but never prove. So a press is graded against A, refuted where every readable term of B and C says no, and otherwise left as cannot say.",
+    "intent": "Hold this summon for the end of the pull. The priority list wants it in the fight's last sixty-two seconds, and lets it out earlier for one reason only: to stand in for the Fire Elemental in a burst window the Fire Elemental cannot be part of — that one already spent and over a minute from coming back, with Ascendance and a warrior's Skull Banner both about to go up. Two things that window waits on are invisible to a combat log: when another player's Skull Banner comes back, and whether the Fire Elemental is glyphed down to thirty seconds. So a press in the last sixty-two seconds is right; a press outside it that the log shows was standing in for nothing is a mistake; and a press that window might have wanted is left unjudged rather than called a mistake.",
     "kpi": {
       "used": "Summons",
-      "nearEnd": "In the window",
-      "unknown": "Cannot say"
+      "nearEnd": "In the last minute",
+      "unknown": "This log can't judge"
     },
     "columns": {
       "at": "at",
-      "state": "what the rule says"
+      "state": "what it was"
     },
     "state": {
-      "nearEnd": "Near the end — branch A",
-      "offRule": "No branch wanted it",
-      "unknown": "Cannot say — Skull Banner"
+      "nearEnd": "In the fight's last minute, where it belongs",
+      "offRule": "Too early — hold it for the fight's last minute",
+      "unknown": "Early — right only in a burst window this log cannot see"
     },
-    "caption": "Every Earth Elemental use and which branch of the list’s rule it answers",
+    "caption": "Every Earth Elemental summon and what its timing was worth",
     "none": "Earth Elemental was never pressed in this pull.",
     "inferred": "before the pull",
-    "unreadable": "Branch B reads spellTimeToReady(114206 Skull Banner), which is another player’s cooldown — a combat log has no way to answer it, and neither has this report. A press that only that branch could have justified is left as cannot say rather than called a mistake, and it is in neither half of the graded count. A summon made before the pull is drawn but never graded: the list has no pre-pull Earth Elemental play to grade it against."
+    "unreadable": "Pressing this summon early is only ever right as a stand-in for the Fire Elemental in a burst window, and one of the things that window waits on is a warrior's Skull Banner coming off cooldown — another player's button, which your combat log does not record. So an early press that window might have wanted is marked as one this report cannot judge: it is not held against you, and it counts in neither half of the graded figure. A summon made before the pull is drawn as a row and never graded either — the priority list has no pre-pull play for this button to be measured against."
   },
   "lightningShield": {
     "title": "Lightning Shield",
