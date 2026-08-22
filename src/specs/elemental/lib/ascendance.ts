@@ -77,6 +77,80 @@
 // class entry 15 governs — and `wastedMs` is still reported on the opener, because the measurement is
 // true even where no rule charges for it.
 //
+// ------------------------------------------- the two Skull Banner rules, from the user (plan §80)
+//
+// Two more sentences, and this pair is **not** phrased alike, which is the whole of how they are
+// modelled:
+//
+//   > Ascandence should have at least 90% overlap with Skull Banner (Skull banner is 10s, Asc 15s
+//   > 90% in this case would be based on the SB 10s)
+//
+//   > 2nd Ascandence should ideally be synced with 2nd Skull Banners
+//
+// "should have at least" against "should ideally be". So **rule 3 is graded and rule 4 is shown** —
+// the vocabulary §80's own box sets up ("treat the absolutes as graded and the ideals as
+// shown-with-a-reason"), applied per sentence rather than to the block. That box files 3, 4 and 6
+// together as "hedged in the request ('ideally')", and on the user's actual words that is true of 4
+// and 6 and not of 3: rule 3 carries no hedge and is the one rule of the six the user wrote the
+// arithmetic out for. A departure from the plan's grouping, stated here so it is a decision rather
+// than a slip. `bannerOverlapMs` therefore participates in `grade`; `secondBannerSynced` never does,
+// and a test asserts that a `false` there leaves a press `good`.
+//
+// **The denominator is the banner's ten seconds, so the bar is 9 000 ms** — see
+// `SKULL_BANNER_OVERLAP_MIN_MS`, which is where the reason the user gave for it is written down.
+//
+// ------------------------------------------------------- what "overlap with Skull Banner" is over
+//
+// **Rule 3 measures the union of every banner that landed on the player, not the best single one**,
+// and `phased` is why. Its opener is at 5 006 ms and two warriors staggered their banners: one from
+// 3 319 to 13 760 ms and the next from 13 760 to 23 838. The best *single* banner gives the press
+// 8 754 ms and fails the rule by 246 ms — while Skull Banner was in fact up for 14 999 of the
+// 15 000 ms of that Ascendance. Faulting a player whose buff never lapsed, because two other players
+// staggered their presses, is the "charged the player for something they could not have done" bug
+// this module's comments already name four times.
+//
+// The union reading also **agrees with the per-banner reading on the case the user described**: they
+// wrote "Skull banner is 10s", singular, because one warrior presses one banner, and where a press
+// sees one banner the union *is* that banner. So this is a strict generalisation of the sentence
+// rather than a reinterpretation of it — and it is what makes the stated denominator make sense, since
+// 90% of Ascendance's own fifteen seconds is a bar no single ten-second banner could clear.
+//
+// **Rule 4 reads a different set on purpose: each caster's own second banner.** The two rules ask
+// different questions. Rule 3 asks "was the buff up", which is a union question — the player felt one
+// buff whoever supplied it. Rule 4 asks whether the two *cooldowns* lined up on their second rotation,
+// which is a question about presses, and a press belongs to a caster: Skull Banner is a three-minute
+// button (`sim/core/buffs.go:1122`, `SkullBannerCD = time.Minute * 3`) exactly as Ascendance is, so
+// "the 2nd Skull Banner" is one warrior's second press of it and not the second bar on the chart.
+//
+// Measured, and the distinction decides the answer on real data. On `cleave` the banners arrive at
+// 2 814, 14 299, 184 448 and 203 392 ms from two warriors pressing 2 814/184 448 and 14 299/203 392.
+// The second Ascendance is at 184 240. Counting bars, "the 2nd Skull Banner" is 14 299 and the rule
+// reads false by three minutes; counting each warrior's second press, it is 184 448 and the two are
+// synced to 208 ms. `phased` is the same shape — its second Ascendance at 196 197 lines up with the
+// second banner of the warrior who opened at 13 760, not with the second bar at 13 760 itself.
+//
+// That per-caster bucket is not built here and is not this module's to build: `windowsBySource` and
+// `raidSourceLanes` (`lib/analysis/raidCasters.ts`) already walk the raid stream into one entry per
+// *resolved* caster — resolved through `petOwner`, because every banner is applied by the object the
+// warrior planted and each planting is its own actor. This module takes those entries as a parameter
+// and never names a spell or walks a stream.
+//
+// ---------------------------------------------- the parameter is optional, and silence is its default
+//
+// `skullBannerWindows` is optional because the windows are assembled in `index.ts`, which four lanes
+// have been writing at once, and this module was built and tested ahead of its call site once before.
+// **Absent, it degrades to "cannot say" and never to "good" or "bad":** `bannerOverlapMs` and
+// `secondBannerSynced` come back null and rule 3 passes its half of the `and` unasked, exactly as a
+// null `delayMs` does for entry 14. A rule that silently passed because its input never arrived would
+// be worse than an absent one, so the null is pinned by test from both sides.
+//
+// **An empty reading is the same silence, and deliberately not the `[]`-means-fault call
+// `t16TwoPieceWindows` makes.** There the empty array is a fault because the set is the player's and
+// Fulmination is their button. Skull Banner is somebody else's button entirely: a pull where no warrior
+// banner reached the player is a fact about the raid roster, and a shaman cannot press it. Nor can a
+// log show a warrior's cooldown — the same limit `index.ts` already records against the Earth Elemental
+// rung's `spellTimeToReady(114206)` term. So no banners means no measurement, not a zero.
+//
 // ---------------------------------------------------------------- the haste cooldown
 //
 // Not re-derived, and deliberately not a bare spell id. `src/lib/game/shared.ts:132-155` declares the
@@ -140,6 +214,7 @@
 // takes the live windows as a parameter and touches no declaration.
 
 import type { AuraWindow } from '~/lib/analysis/auras';
+import { mergeIntervals, overlapMs } from '~/lib/analysis/intervals';
 import type { Interval } from '~/lib/analysis/intervals';
 import type { Window } from '~/lib/types';
 
@@ -251,6 +326,61 @@ export const ASCENDANCE_DURATION_MS = 15_000;
 export const ASCENDANCE_COOLDOWN_MS = 180_000;
 
 /**
+ * Skull Banner's window, **confirmed against the simulator rather than taken from the request**.
+ *
+ * `wowsims-mop/sim/core/buffs.go:1121` is `const SkullBannerDuration = time.Second * 10`, and
+ * `SkullBannerAura` at `:1153` registers the buff with `Duration: SkullBannerDuration` — so ten seconds,
+ * which is what the user said, and it is stated here because the rule below is arithmetic on it. The
+ * cooldown beside it at `:1122` is `SkullBannerCD = time.Minute * 3`, which is what makes "the 2nd Skull
+ * Banner" a meaningful ordinal at all.
+ *
+ * The id is **114206** and never 114207. `sim/core/buffs.go:1118` is `var SkullBannerActionID =
+ * ActionID{SpellID: 114206}` and the aura registers under the same number; 114207 occurs once in the
+ * simulator, as the icon its buff picker draws (`ui/core/components/inputs/buffs_debuffs.ts:108`). The
+ * logs agree with the sim: 114206 lands on the player on all three committed pulls and 114207 on none.
+ * `game/shared.ts` declares exactly that — `ids: [114206]`, `durationMs: 10_000` — so **this module
+ * names neither number**, and this note exists only because the split is the trap 144998 already was.
+ * The windows arrive as a parameter, walked from the declaration by `raidCasters.ts`.
+ */
+export const SKULL_BANNER_DURATION_MS = 10_000;
+
+/**
+ * How much Skull Banner an Ascendance window must contain — rule 3's bound, and it is 90% of **ten**
+ * seconds.
+ *
+ * The one rule of the user's six they wrote the arithmetic out for, and they wrote it out because the
+ * obvious reading is the wrong one: *"Ascandence should have at least 90% overlap with Skull Banner
+ * (Skull banner is 10s, Asc 15s 90% in this case would be based on the SB 10s)"*. So the denominator is
+ * `SKULL_BANNER_DURATION_MS` and the bar is 9 000 ms.
+ *
+ * **Not 90% of Ascendance's fifteen seconds, which would be 13 500 and a near-unfailable rule.** A
+ * single ten-second banner cannot put 13 500 ms inside anything, so that reading would fault every
+ * press that is not double-bannered and pass nothing else — the rule would be measuring the raid's
+ * warrior count. Getting the two durations the right way round is the whole content of the user's
+ * parenthesis.
+ *
+ * Read by rule 3 for its grade and by rule 4 for its shown verdict, so the two cannot drift apart. Rule
+ * 4's own sentence gives no number — "should ideally be synced" — and inventing a second one for it
+ * would be a threshold with no author.
+ */
+export const SKULL_BANNER_OVERLAP_MIN_MS = 9000;
+
+/**
+ * One caster's Skull Banners, as they landed on this player.
+ *
+ * The shape `windowsBySource`/`raidSourceLanes` already produce — one entry per *resolved* caster, that
+ * caster's windows in clock order — because rule 4 needs the press index within a caster and rule 3
+ * needs the union across all of them. Taking the bucketed form rather than a flat window list is what
+ * lets one parameter answer both without this module deciding whose banner is whose.
+ */
+export interface BannerCasterWindows {
+	/** The report actor id of the player who pressed it — `LaneSource.id`, the owner and not the object. */
+	source: number;
+	/** That caster's banners, ascending by start. `windows[1]` is their second press. */
+	windows: readonly Window[];
+}
+
+/**
  * Which of the two priority entries governs one press. Exactly one ever does — see `ascendanceSync`.
  *
  * The **class** of press rather than the single condition that decided its grade: since plan §80 each
@@ -315,6 +445,46 @@ export interface AscendancePressVerdict {
 	 * `unbroken`'s second press it is 14 286 — fifteen seconds less the 714 ms of pull that were left.
 	 */
 	wastedMs: number | null;
+	/**
+	 * Rule 3 — how much Skull Banner this press's Ascendance window contained, against
+	 * `SKULL_BANNER_OVERLAP_MIN_MS`.
+	 *
+	 * The **union** of every banner that landed on the player, clipped to `[t, t + 15s]` and to the kill.
+	 * A measurement on every press, reported even where nothing is charged for it, on the same terms as
+	 * `wastedMs`.
+	 *
+	 * **Null means there was nothing to measure against, and only that** — no banner reading was passed
+	 * in, or the pull carried none that reached the player. It never means "not asked because the press
+	 * was exempt": an exempt press still reports the overlap it had. A null passes rule 3's half of the
+	 * grade, exactly as a null `delayMs` passes entry 14's.
+	 *
+	 * A small number here does not always mean a fault, and the guard is deliberate rather than missing:
+	 * a press with less pull left than the rule's own 9 000 ms could not have met it whatever it did, so
+	 * rule 3 stands down and the number is still reported. Same principle as rule 2's availability guard.
+	 */
+	bannerOverlapMs: number | null;
+	/**
+	 * Rule 4 — how much of the *second banner* this press's window contained. Non-null on the second
+	 * press alone.
+	 *
+	 * Not the union `bannerOverlapMs` reads: the best overlap against any one caster's **own second
+	 * banner**, because "the 2nd Skull Banner" is a warrior's second press of a three-minute button and
+	 * not the second bar drawn on the chart. See the header for the `cleave` measurement that separates
+	 * the two readings by three minutes.
+	 *
+	 * Null on every press but the second, and on the second when no caster pressed twice — which is
+	 * `unbroken`, where two warriors banner once each.
+	 */
+	secondBannerOverlapMs: number | null;
+	/**
+	 * Rule 4's verdict, and **it is shown rather than graded**.
+	 *
+	 * The user hedged this one — "should *ideally* be synced" — where rule 3 says "should have at least",
+	 * so this never enters `grade`. `null` is "cannot say" and covers every press but the second as well
+	 * as a second press with no second banner to compare against. Decided on
+	 * `SKULL_BANNER_OVERLAP_MIN_MS`, borrowed from rule 3 because rule 4's sentence names no number.
+	 */
+	secondBannerSynced: boolean | null;
 }
 
 /** Every Ascendance press in the pull, and the pull's worst gradeable verdict. */
@@ -389,6 +559,22 @@ export interface AscendanceSyncInput {
 	 * gear evidence, and there is none today.
 	 */
 	t16TwoPieceWindows: readonly Window[] | null;
+	/**
+	 * Skull Banner as this player received it, one entry per caster — rules 3 and 4's only input.
+	 *
+	 * **Optional, and its absence is silence.** `undefined` is the state this module ships in until
+	 * `index.ts` passes it: rule 3 is not asked, rule 4 says nothing, and no press can be graded better
+	 * or worse for it. Same treatment for an empty array and for a caster list whose windows are all
+	 * empty — a pull no warrior banner reached is the raid's roster and not the shaman's press, so there
+	 * is nothing to fault. This is the one place this module differs from `t16TwoPieceWindows`' `null`
+	 * versus `[]` distinction, and the header says why.
+	 *
+	 * Fight-relative and already narrowed to what landed on *this* player, because that is what
+	 * `raidSourceLanes` produces: it passes `onTarget: actorID` precisely so a raid-wide stream is not
+	 * counted twenty-five times. Bucketed per resolved caster, so `windows[1]` is a warrior's second
+	 * press rather than the second banner in the pull.
+	 */
+	skullBannerWindows?: readonly BannerCasterWindows[];
 }
 
 /**
@@ -432,6 +618,13 @@ const GRADE_ORDER = { none: 0, good: 1, bad: 2 } as const;
  *     then, does entry 15 apply to this player at all, does the pull carry any Elemental Discharge, was
  *     there enough pull left for the ten seconds it demands, and was the player in contact.
  *
+ * **Rule 3 is a third condition in that same `and`, on both arms, and it is the only one shared between
+ * them.** Every press wants Skull Banner inside its window whichever entry it answers to, so the
+ * measurement and the bound are the press's rather than the arm's and are taken once above the branch.
+ * Like rule 2 it is strictly additive — it can only turn a press bad — and like entry 14 it is silent
+ * where the log gave it nothing to measure. **Rule 4 is in no grade at all**: the user hedged it, so it
+ * rides out on the second press as `secondBannerSynced` and moves nothing.
+ *
  * The two exemptions worth naming are the ones that fire on real data, and both are the same
  * principle — never charge a player for a press they could not have made. `unbroken`'s second press is
  * at 183 734 ms of a 184 448 ms pull, 714 ms from the kill, so it wastes 14 286 ms of its window and
@@ -441,13 +634,48 @@ const GRADE_ORDER = { none: 0, good: 1, bad: 2 } as const;
  * module already gave it before either rule existed.
  */
 export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdict {
-	const { ascendanceCasts, ascendanceAtPull, hasteWindows, contact, durationMs, t16TwoPieceWindows } = input;
+	const {
+		ascendanceCasts,
+		ascendanceAtPull,
+		hasteWindows,
+		contact,
+		durationMs,
+		t16TwoPieceWindows,
+		skullBannerWindows,
+	} = input;
 
 	// The latest press whose whole window fits before the kill, and how much of it a later one throws
 	// away. One derivation, read by rule 2 for its grade and by every verdict for the measurement.
 	const lastFittingPressMs = durationMs - ASCENDANCE_DURATION_MS;
 	const wastedAt = (t: number): number | null =>
 		t > lastFittingPressMs ? t + ASCENDANCE_DURATION_MS - durationMs : null;
+	// The stretch this press actually bought, clipped to the kill — what both banner rules measure
+	// inside, and the only place Ascendance's own duration meets the pull's length for them.
+	const windowOf = (t: number): Interval => [t, Math.min(t + ASCENDANCE_DURATION_MS, durationMs)];
+
+	// ---- rules 3 and 4's two readings of one input.
+	//
+	// Rule 3 unions every caster's banners, because the player felt one buff whoever supplied it, and
+	// `overlapMs` sums its ranges — so merging first is not tidiness, it is what stops two warriors who
+	// overlapped from being counted twice. `mergeIntervals` joins ranges that merely touch, which is the
+	// case on all three committed pulls: one warrior's banner comes off on the same millisecond the
+	// next goes up, and two abutting bars are one unbroken buff.
+	//
+	// `null` for both the missing parameter and an empty reading, which is the same claim — no banner to
+	// measure against. Not a zero: see the field docs.
+	const bannerUnion = mergeIntervals(
+		(skullBannerWindows ?? []).flatMap((c) => c.windows.map(({ start, end }): Interval => [start, end])),
+	);
+	const bannerOverlapAt = (t: number): number | null => {
+		if (bannerUnion.length === 0) return null;
+		const [start, end] = windowOf(t);
+		return overlapMs(start, end, bannerUnion);
+	};
+	// Rule 4's set: each caster's *own* second banner, and nothing else. One warrior's second press of a
+	// three-minute button is what "the 2nd Skull Banner" names; the second bar in the pull is a different
+	// banner on every fixture measured. Casters who pressed once contribute nothing rather than their
+	// first.
+	const secondBanners = (skullBannerWindows ?? []).flatMap((c) => (c.windows[1] === undefined ? [] : [c.windows[1]]));
 	// The earliest moment the pull offered anything to spend a cooldown on. Read by the opener's
 	// exemption and by rule 1's no-press-at-all case, which is why it is hoisted out of the map.
 	const reachable = contactStart(contact);
@@ -458,6 +686,26 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 		const rule: AscendanceRule = index === 0 ? 'bloodlust' : 't16-2pc';
 		const limitMs = rule === 'bloodlust' ? ASCENDANCE_INTO_HASTE_MS : T16_2PC_SYNC_MIN_MS;
 		const wastedMs = wastedAt(t);
+		// Rule 3's measurement, and rule 2's guard's sibling: a press with less pull left than the rule's
+		// own 9 000 ms could not have contained them however it was timed, so the overlap is reported and
+		// the grade is not charged for it. Hoisted out of both arms because the number is the press's
+		// rather than the arm's, and the two arms must not each grow their own copy of the bound.
+		const bannerOverlapMs = bannerOverlapAt(t);
+		const bannerOk =
+			bannerOverlapMs === null ||
+			bannerOverlapMs >= SKULL_BANNER_OVERLAP_MIN_MS ||
+			durationMs - t < SKULL_BANNER_OVERLAP_MIN_MS;
+		// Rule 4, on the second press and nowhere else. `Math.max` over the casters who pressed twice:
+		// several warriors each have a second banner, and the rule is met if the press lined up with any
+		// one of them — the same "was there a banner for it" question rule 3 asks of the union, narrowed to
+		// the presses that share Ascendance's rotation.
+		const secondBannerOverlapMs =
+			index !== 1 || secondBanners.length === 0
+				? null
+				: Math.max(...secondBanners.map((w) => overlapMs(...windowOf(t), [[w.start, w.end]])));
+		// Shown, never graded — `bannerOk` above is rule 3's and this appears in no grade expression.
+		const secondBannerSynced =
+			secondBannerOverlapMs === null ? null : secondBannerOverlapMs >= SKULL_BANNER_OVERLAP_MIN_MS;
 		const none = (reason: AscendanceReason, syncStartMs: number | null = null): AscendancePressVerdict => ({
 			t,
 			rule,
@@ -468,6 +716,9 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 			syncStartMs,
 			limitMs,
 			wastedMs,
+			bannerOverlapMs,
+			secondBannerOverlapMs,
+			secondBannerSynced,
 		});
 
 		if (rule === 'bloodlust') {
@@ -496,16 +747,21 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 			return {
 				t,
 				rule,
-				// Rule 1 and entry 14, both necessary: the press must be in the opener, and — where there
-				// was a haste cooldown to be late into — inside the haste bound as well. A null `delayMs`
-				// is "no cooldown to measure against", which cannot fault a press, so it passes its half.
-				grade: t <= OPENER_DEADLINE_MS && (delayMs === null || delayMs <= limitMs) ? 'good' : 'bad',
+				// Rule 1, entry 14 and rule 3, all three necessary: the press must be in the opener, and —
+				// where there was a haste cooldown to be late into — inside the haste bound as well, and —
+				// where the pull carried a banner to measure — holding 9 000 ms of it. A null `delayMs` is "no
+				// cooldown to measure against" and a null `bannerOverlapMs` is "no banner to measure
+				// against"; neither can fault a press, so each passes its own half.
+				grade: t <= OPENER_DEADLINE_MS && (delayMs === null || delayMs <= limitMs) && bannerOk ? 'good' : 'bad',
 				reason: null,
 				delayMs,
 				dischargeRemainingMs: null,
 				syncStartMs,
 				limitMs,
 				wastedMs,
+				bannerOverlapMs,
+				secondBannerOverlapMs,
+				secondBannerSynced,
 			};
 		}
 
@@ -539,6 +795,9 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 				syncStartMs: null,
 				limitMs,
 				wastedMs,
+				bannerOverlapMs,
+				secondBannerOverlapMs,
+				secondBannerSynced,
 			};
 		}
 
@@ -558,13 +817,19 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 		return {
 			t,
 			rule,
-			grade: dischargeRemainingMs >= limitMs ? 'good' : 'bad',
+			// Entry 15 and rule 3, both necessary and on the same terms as the opener arm's pair: the
+			// discharge must have ten seconds left, and — where the pull carried a banner to measure — the
+			// window must hold 9 000 ms of it.
+			grade: dischargeRemainingMs >= limitMs && bannerOk ? 'good' : 'bad',
 			reason: null,
 			delayMs: null,
 			dischargeRemainingMs,
 			syncStartMs: open?.start ?? null,
 			limitMs,
 			wastedMs,
+			bannerOverlapMs,
+			secondBannerOverlapMs,
+			secondBannerSynced,
 		};
 	});
 

@@ -17,6 +17,15 @@
 // and only `unbroken` has a press whose window runs past the kill at all, which rule 2 excuses because
 // the button came back 58 ms before it. Both faults are therefore covered synthetically, and the real
 // pulls are pinned as the *unchanged* side of the change — `good` / `bad` / `bad`, before and after.
+//
+// **Rules 3 and 4 (Skull Banner) are the same story, and this time it is a measurement.** All three
+// pulls carry banners on the player from two warriors apiece, so both rules have real input on all six
+// presses — but on the union reading rule 3 uses, the six overlaps are 15 000, 10 149, 15 000, 0,
+// 13 944 and 10 273 ms against a 9 000 bound, and the single zero is on a press rule 2's guard has
+// already exempted. So no committed press fails rule 3, both grade movements are synthetic again, and
+// `good` / `bad` / `bad` survives a third change. Two tests in the last suite pin real numbers without
+// being reds against the old behaviour, and say so on the line: they measure the fixtures rather than
+// the rules.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -33,8 +42,11 @@ import {
 	ASCENDANCE_DURATION_MS,
 	ASCENDANCE_INTO_HASTE_MS,
 	OPENER_DEADLINE_MS,
+	SKULL_BANNER_DURATION_MS,
+	SKULL_BANNER_OVERLAP_MIN_MS,
 	T16_2PC_SYNC_MIN_MS,
 	type AscendanceSyncInput,
+	type BannerCasterWindows,
 } from '../ascendance';
 import { analyse, isOpener, registry } from '../index';
 
@@ -82,6 +94,25 @@ function pull(name: string): { input: AscendanceSyncInput; analysis: Analysis & 
 	};
 }
 
+/**
+ * Skull Banner as the wiring hunk would hand it over — **off the audit's own published lanes**, which
+ * is the argument the hunk passes and not a second walk of the stream.
+ *
+ * Deliberately *not* folded into `pull()` above. `pull()` is the input `index.ts` builds today, and
+ * today it passes no banner windows at all; the suites above pin that unwired state, which is the only
+ * proof this deliverable can offer that rules 3 and 4 degrade to silence rather than to a grade. When
+ * the hunk lands, this function's body is what moves into `index.ts` and `pull()` gains the field.
+ *
+ * `drawn` **and** `hidden`, because `raidSourceLanes` caps the drawn rows at `RAID_SOURCE_LANES` (6):
+ * reading only the drawn half would silently lose a seventh warrior's banners, and a grading input has
+ * no business inheriting a chart's row budget.
+ */
+function banners(analysis: Analysis & ElementalAuditResult): BannerCasterWindows[] {
+	return [...(analysis.timeline?.lanes ?? []), ...(analysis.timeline?.hiddenLanes ?? [])]
+		.filter((l) => l.key === 'skull-banner')
+		.map((l) => ({ source: l.source?.id ?? -1, windows: l.windows }));
+}
+
 describe('the three committed anonymous pulls', () => {
 	it('reads three different members of the haste group without naming one', () => {
 		expect(pull('phased').input.hasteWindows).toEqual([{ start: 1777, end: 41_785, id: 32_182, variant: 'Heroism' }]);
@@ -123,6 +154,14 @@ describe('the three committed anonymous pulls', () => {
 				// Every one of the three has more than fifteen seconds of pull after its opener, so no
 				// part of the window was lost and rule 2 has nothing to measure.
 				wastedMs: null,
+				// `pull()` builds the input the audit passes **today**, and it passes no banner windows —
+				// so all three of rules 3 and 4's fields are null and neither rule speaks. The unwired
+				// state, pinned deliberately: an optional input nothing supplies must come back "cannot
+				// say", never "good" or "bad", and these three openers are graded on rule 1 and entry 14
+				// alone. The `Skull Banner` suite below hands the same three pulls the argument.
+				bannerOverlapMs: null,
+				secondBannerOverlapMs: null,
+				secondBannerSynced: null,
 			});
 		}
 	});
@@ -149,6 +188,13 @@ describe('the three committed anonymous pulls', () => {
 				// 62.1s and 79.0s of pull left, so the fifteen seconds fitted and rule 2 is silent on
 				// both. The fault here is the sync's, exactly as before the rule existed.
 				wastedMs: null,
+				// Unwired, as above — and worth having on the press rules 3 and 4 could both reach, because
+				// the `Skull Banner` suite below shows both of them *pass* on this press once the argument
+				// arrives. The fault stays entry 15's either way; nothing here is graded by a rule that
+				// was never asked.
+				bannerOverlapMs: null,
+				secondBannerOverlapMs: null,
+				secondBannerSynced: null,
 			});
 		}
 	});
@@ -174,6 +220,9 @@ describe('the three committed anonymous pulls', () => {
 			syncStartMs: null,
 			limitMs: 10_000,
 			wastedMs: ASCENDANCE_DURATION_MS - 714,
+			bannerOverlapMs: null,
+			secondBannerOverlapMs: null,
+			secondBannerSynced: null,
 		});
 	});
 
@@ -238,6 +287,13 @@ describe('the wiring, end to end', () => {
 				syncStartMs: 785,
 				limitMs: 5000,
 				wastedMs: null,
+				// **This is the deliverable's own evidence that `index.ts` does not pass the banner windows
+				// yet.** `unbroken` carries two Skull Banners covering 2 884–23 372 ms, which is the whole
+				// of this opener's fifteen seconds — so a wired audit would publish 15 000 here. It
+				// publishes null, and rule 3 is silent rather than passing on a value it never read.
+				bannerOverlapMs: null,
+				secondBannerOverlapMs: null,
+				secondBannerSynced: null,
 			},
 			{
 				t: 183_734,
@@ -249,6 +305,9 @@ describe('the wiring, end to end', () => {
 				syncStartMs: null,
 				limitMs: 10_000,
 				wastedMs: 14_286,
+				bannerOverlapMs: null,
+				secondBannerOverlapMs: null,
+				secondBannerSynced: null,
 			},
 		]);
 	});
@@ -710,5 +769,367 @@ describe('rule 2: a later press must not spend the window past the kill', () => 
 		// moment of.
 		const v = at({ ascendanceCasts: [2000], durationMs: 8000, contact: [[900, 8000]] }).presses[0];
 		expect([v?.rule, v?.grade, v?.reason, v?.wastedMs]).toEqual(['bloodlust', 'good', null, 9000]);
+	});
+});
+
+/**
+ * Rules 3 and 4 — Skull Banner (plan §80, rules 3 and 4).
+ *
+ * The user's two sentences, and they are **not** phrased alike:
+ *
+ *   > Ascandence should have at least 90% overlap with Skull Banner (Skull banner is 10s, Asc 15s 90%
+ *   > in this case would be based on the SB 10s)
+ *
+ *   > 2nd Ascandence should ideally be synced with 2nd Skull Banners
+ *
+ * "should have at least" against "should ideally be", so rule 3 is graded and rule 4 is shown. Both
+ * halves of that are asserted: rule 3 turns presses bad below, and a press whose `secondBannerSynced`
+ * is `false` is asserted `good`.
+ *
+ * **Skull Banner's duration and id are confirmed from the simulator, not from the request.**
+ * `sim/core/buffs.go:1121` is `SkullBannerDuration = time.Second * 10` and `:1118` is `SkullBannerActionID
+ * = ActionID{SpellID: 114206}` — the user's "10s" is right and 114207 (the buff picker's icon) is not the
+ * logged id. The declaration in `game/shared.ts` already says both, so this module names neither number
+ * and the constants below only restate the duration the arithmetic runs on.
+ *
+ * Every fault here is synthetic, and this time that is a measurement rather than a convention: on the
+ * union reading these rules use, **no committed press fails rule 3** — the six real overlaps are 15 000,
+ * 10 149, 15 000, 0 (on a press already exempt), 13 944 and 10 273 ms. The real pulls are therefore
+ * pinned as the unchanged side, and both faults are built.
+ */
+describe('Skull Banner: rule 3 is graded and rule 4 is shown', () => {
+	/** One warrior's banners, as `raidSourceLanes` buckets them — resolved caster, windows in press order. */
+	const from = (source: number, ...windows: ReadonlyArray<readonly [number, number]>): BannerCasterWindows => ({
+		source,
+		windows: windows.map(([start, end]) => ({ start, end })),
+	});
+
+	describe('the bound, and which of the two durations it is 90% of', () => {
+		it('is 9 000ms, and emphatically not 90% of Ascendance', () => {
+			// The whole content of the user's parenthesis. 13 500 is what 90% of Ascendance's own fifteen
+			// seconds would be, and no single ten-second banner can put that much inside anything — so the
+			// rule would have graded the raid's warrior count rather than the player's timing.
+			expect(SKULL_BANNER_DURATION_MS).toBe(10_000);
+			expect(SKULL_BANNER_OVERLAP_MIN_MS).toBe(9000);
+			expect(SKULL_BANNER_OVERLAP_MIN_MS).toBe(0.9 * SKULL_BANNER_DURATION_MS);
+			expect(SKULL_BANNER_OVERLAP_MIN_MS).not.toBe(0.9 * ASCENDANCE_DURATION_MS);
+			// And the sim's own duration, so the denominator is not this file's opinion of it.
+			expect(SKULL_BANNER_DURATION_MS).toBeLessThan(ASCENDANCE_DURATION_MS);
+		});
+	});
+
+	describe('rule 3, on the opener arm', () => {
+		it('passes a press holding exactly 9 000ms of banner', () => {
+			// The press at 2 000 buys [2 000, 17 000]; a banner from 8 000 to 17 000 puts 9 000 of itself
+			// inside it. Exactly the bound, from the passing side.
+			const v = first({ skullBannerWindows: [from(9, [8000, 17_000])] });
+			expect([v.grade, v.bannerOverlapMs]).toEqual(['good', 9000]);
+		});
+
+		it('faults a press one millisecond short of it', () => {
+			// The same press against a banner one millisecond later. Rule 1 and entry 14 both pass — the
+			// press is at 2 000 with lust at 1 000 — so this `bad` can only be rule 3's.
+			const v = first({ skullBannerWindows: [from(9, [8001, 17_001])] });
+			expect([v.grade, v.reason, v.delayMs, v.bannerOverlapMs]).toEqual(['bad', null, 1000, 8999]);
+		});
+
+		it('faults a press that found no banner at all, and calls it zero', () => {
+			// Zero and not null: the pull carried a banner, so there was a window to have aimed at. The
+			// distinction from `[]` below is the whole reason the input is bucketed rather than boolean.
+			const v = first({ skullBannerWindows: [from(9, [100_000, 110_000])] });
+			expect([v.grade, v.bannerOverlapMs]).toEqual(['bad', 0]);
+		});
+	});
+
+	describe('rule 3, on the two-piece arm — one bound, both arms', () => {
+		const second = (over: Partial<AscendanceSyncInput>) => {
+			const press = at({
+				ascendanceCasts: [2000, 200_000],
+				t16TwoPieceWindows: [win(195_000, 212_000)],
+				...over,
+			}).presses[1];
+			if (press === undefined) throw new Error('expected a second press');
+			return press;
+		};
+
+		it('faults a later press with a full discharge and no banner under it', () => {
+			// 12 000ms of Elemental Discharge, which entry 15 passes outright, and 4 000ms of banner. The
+			// press was good before rule 3 and the only term that moved is the overlap.
+			const v = second({ skullBannerWindows: [from(9, [196_000, 204_000])] });
+			expect([v.grade, v.dischargeRemainingMs, v.bannerOverlapMs]).toEqual(['bad', 12_000, 4000]);
+		});
+
+		it('leaves a later press good when both its own rule and rule 3 are met', () => {
+			const v = second({ skullBannerWindows: [from(9, [199_000, 209_000])] });
+			expect([v.grade, v.dischargeRemainingMs, v.bannerOverlapMs]).toEqual(['good', 12_000, 9000]);
+		});
+
+		it('does not overtake an exemption the press already had', () => {
+			// Rule 3 is a term in the grade, not a refusal, so it never reaches a press the arm's own guards
+			// have already excused. Out of contact at the press with no banner anywhere near it: still
+			// `nothing-to-hit`, and the overlap is reported beside it rather than charged.
+			const v = second({ contact: [[900, 150_000]], skullBannerWindows: [from(9, [10_000, 20_000])] });
+			expect([v.grade, v.reason, v.bannerOverlapMs]).toEqual(['none', 'nothing-to-hit', 0]);
+		});
+	});
+
+	describe('what rule 3 refuses to grade', () => {
+		it('says nothing at all when nothing passed it any banners', () => {
+			// The unwired state, and the one this deliverable ships in. Null, and a null passes rule 3's
+			// half of the `and` exactly as a null `delayMs` passes entry 14's — so the press keeps the
+			// grade it had before the rule existed, and rule 3 has not silently approved of anything.
+			const v = first({});
+			expect([v.grade, v.bannerOverlapMs, v.secondBannerOverlapMs, v.secondBannerSynced]).toEqual([
+				'good',
+				null,
+				null,
+				null,
+			]);
+		});
+
+		it('says nothing when the raid brought no banner that reached the player', () => {
+			// `[]` is the same silence as absent, and deliberately **not** the fault `t16TwoPieceWindows`'
+			// empty array is. Fulmination is the player's button; Skull Banner is a warrior's, and a log
+			// cannot show a warrior's cooldown. A pull no banner reached is the raid roster, not a press.
+			expect(first({ skullBannerWindows: [] }).bannerOverlapMs).toBeNull();
+			// And a caster list whose windows are all empty says the same thing, so a bucket that came back
+			// without windows cannot become a zero.
+			expect(first({ skullBannerWindows: [from(9), from(11)] }).bannerOverlapMs).toBeNull();
+			expect(first({ skullBannerWindows: [] }).grade).toBe('good');
+		});
+
+		it('does not fault a press with less pull left than the rule itself demands', () => {
+			// The guard, at its own boundary, one millisecond apart. A press at 2 000 of an 11 000ms pull has
+			// exactly 9 000ms of pull left, so 9 000ms of banner was reachable and the shortfall is charged;
+			// at 10 999 it was not, and the overlap is reported without a fault. Same principle as rule 2's
+			// availability guard — never charge for a press that could not have gone better.
+			const banner = { skullBannerWindows: [from(9, [10_400, 20_400])] };
+			const reachable = first({ ...banner, durationMs: 11_000 });
+			const not = first({ ...banner, durationMs: 10_999 });
+			expect([reachable.grade, reachable.bannerOverlapMs]).toEqual(['bad', 600]);
+			expect([not.grade, not.bannerOverlapMs]).toEqual(['good', 599]);
+		});
+	});
+
+	describe('the union, which is what "overlap with Skull Banner" is over', () => {
+		it('counts two staggered banners as the one unbroken buff they are', () => {
+			// `phased`s shape, synthetically: two warriors hand off at 10 000 and the press at 2 000 has the
+			// buff for all fifteen of its seconds. The best *single* banner gives it 8 000ms and would fault
+			// a player whose crit-damage buff never lapsed, for two other players' stagger.
+			const v = first({ skullBannerWindows: [from(9, [0, 10_000]), from(11, [10_000, 20_000])] });
+			expect([v.grade, v.bannerOverlapMs]).toEqual(['good', 15_000]);
+			// The reading this replaces, stated so the choice is visible rather than implied.
+			expect(Math.max(10_000 - 2000, 17_000 - 10_000)).toBeLessThan(SKULL_BANNER_OVERLAP_MIN_MS);
+		});
+
+		it('does not count two overlapping banners twice', () => {
+			// Both warriors pressed on the pull, so the player had one buff and not two. Summing rather than
+			// unioning would read 10 000ms here and pass a press that had 5 000.
+			const v = first({
+				ascendanceCasts: [5000],
+				skullBannerWindows: [from(9, [0, 10_000]), from(11, [0, 10_000])],
+			});
+			expect([v.grade, v.bannerOverlapMs]).toEqual(['bad', 5000]);
+		});
+
+		it('clips the window to the kill rather than to a bare fifteen seconds', () => {
+			// A banner running past the end of the pull cannot be spent, so the overlap stops at the kill.
+			const v = first({ durationMs: 12_000, skullBannerWindows: [from(9, [2000, 12_000])] });
+			expect(v.bannerOverlapMs).toBe(10_000);
+		});
+	});
+
+	describe('rule 4: the second press against each caster’s second banner', () => {
+		/** Two warriors who each pressed twice, and a second Ascendance on the later pair. */
+		const twoWarriors = (over: Partial<AscendanceSyncInput> = {}) =>
+			at({
+				ascendanceCasts: [2000, 180_000],
+				t16TwoPieceWindows: [win(175_000, 195_000)],
+				skullBannerWindows: [from(9, [0, 10_000], [180_000, 190_000]), from(11, [12_000, 22_000], [200_000, 210_000])],
+				...over,
+			});
+
+		it('reads a caster’s own second press, not the second banner in the pull', () => {
+			// `cleave`s shape. Counting bars, "the 2nd Skull Banner" is the one at 12 000 and the rule reads
+			// false by three minutes; counting each warrior's second press it is the one at 180 000 and the
+			// two are synced exactly. Skull Banner is a three-minute button (`SkullBannerCD`) as Ascendance
+			// is, so the ordinal is a press of a cooldown and not a bar on a chart.
+			const v = twoWarriors().presses[1];
+			expect([v?.secondBannerOverlapMs, v?.secondBannerSynced]).toEqual([10_000, true]);
+		});
+
+		it('takes the best of several second banners rather than the first', () => {
+			// Reversed, so a rule that read `skullBannerWindows[0]` and stopped would come back false.
+			const v = twoWarriors({
+				skullBannerWindows: [from(11, [12_000, 22_000], [200_000, 210_000]), from(9, [0, 10_000], [180_000, 190_000])],
+			}).presses[1];
+			expect([v?.secondBannerOverlapMs, v?.secondBannerSynced]).toEqual([10_000, true]);
+		});
+
+		it('is on the second press and no other', () => {
+			const v = at({
+				ascendanceCasts: [2000, 180_000, 280_000],
+				t16TwoPieceWindows: [],
+				skullBannerWindows: [from(9, [0, 10_000], [180_000, 190_000])],
+			});
+			expect(v.presses.map((p) => [p.secondBannerOverlapMs, p.secondBannerSynced])).toEqual([
+				[null, null],
+				[10_000, true],
+				[null, null],
+			]);
+		});
+
+		it('says nothing when no caster pressed twice', () => {
+			// `unbroken`s shape: two warriors, one banner each, so there is no second Skull Banner to be
+			// synced with and the honest answer is silence rather than false.
+			const v = twoWarriors({ skullBannerWindows: [from(9, [0, 10_000]), from(11, [12_000, 22_000])] }).presses[1];
+			expect([v?.secondBannerOverlapMs, v?.secondBannerSynced]).toEqual([null, null]);
+		});
+
+		it('says nothing when nothing passed it any banners', () => {
+			const v = twoWarriors({ skullBannerWindows: undefined }).presses[1];
+			expect([v?.secondBannerOverlapMs, v?.secondBannerSynced]).toEqual([null, null]);
+		});
+
+		it('borrows rule 3’s bound, because its own sentence names no number', () => {
+			// Both banners are a full ten seconds; what moves is when the warrior pressed. One second before
+			// the Ascendance puts 9 000ms of it inside; one millisecond earlier than that puts 8 999.
+			const exact = twoWarriors({
+				skullBannerWindows: [from(9, [0, 10_000], [179_000, 189_000])],
+			}).presses[1];
+			const short = twoWarriors({
+				skullBannerWindows: [from(9, [0, 10_000], [178_999, 188_999])],
+			}).presses[1];
+			expect([exact?.secondBannerOverlapMs, exact?.secondBannerSynced]).toEqual([SKULL_BANNER_OVERLAP_MIN_MS, true]);
+			expect([short?.secondBannerOverlapMs, short?.secondBannerSynced]).toEqual([8999, false]);
+		});
+
+		it('is shown and never graded, which is the difference from rule 3', () => {
+			// The user hedged rule 4 — "should *ideally* be synced" — and this is that hedge made
+			// structural. The press has 12 000ms of discharge (entry 15: good) and 14 000ms of banner under
+			// it from the union (rule 3: good), while the only *second* banner in the pull is three minutes
+			// away (rule 4: false). A rule 4 that graded would make this press `bad`; it stays `good`.
+			const v = at({
+				ascendanceCasts: [2000, 200_000],
+				t16TwoPieceWindows: [win(195_000, 212_000)],
+				skullBannerWindows: [from(9, [195_000, 205_000]), from(11, [204_000, 214_000], [250_000, 260_000])],
+			}).presses[1];
+			expect([v?.grade, v?.bannerOverlapMs, v?.secondBannerOverlapMs, v?.secondBannerSynced]).toEqual([
+				'good',
+				14_000,
+				0,
+				false,
+			]);
+		});
+	});
+});
+
+/**
+ * Rules 3 and 4 on the three committed pulls, with the argument the wiring hunk would pass.
+ *
+ * **The rules can be exercised on real data, and the answer is measured rather than assumed.** No
+ * committed pull has the *player* as the banner's caster — every banner comes from another raider — but
+ * that does not matter to either rule: both read the banner as the player **received** it, which is what
+ * `raidSourceLanes` narrows the stream to. What does matter is that all three pulls carry banners on the
+ * player from two warriors apiece, so rule 3 has something to measure on all six presses and rule 4 has a
+ * second banner to find on two of the three.
+ */
+describe('Skull Banner on the committed pulls', () => {
+	const wired = (name: string) => {
+		const { analysis, input } = pull(name);
+		return { analysis, verdict: ascendanceSync({ ...input, skullBannerWindows: banners(analysis) }) };
+	};
+
+	it('finds two warriors on every pull, and the player among neither', () => {
+		// **A measurement of the fixtures, not a red against the old behaviour** — it reads the lanes and
+		// no verdict, so it passed before this change too. It is here because it is the fact that decides
+		// whether rules 3 and 4 are exercisable at all, and the answer had to be measured rather than
+		// assumed: `phased` and `cleave` carry four banners from two warriors, `unbroken` two from two.
+		// None of the six lanes is the player's own — a shaman does not plant a banner — which is why
+		// every one has `own: false`, and why both rules read the buff the player *received* rather than a
+		// press of theirs. Had this come back empty, both rules would have been synthetic-only.
+		const expected = [
+			['phased', [2, 2]],
+			['unbroken', [1, 1]],
+			['cleave', [2, 2]],
+		] as const;
+		for (const [name, counts] of expected) {
+			const { analysis } = pull(name);
+			expect(banners(analysis).map((c) => c.windows.length)).toEqual(counts);
+			const lanes = [...(analysis.timeline?.lanes ?? []), ...(analysis.timeline?.hiddenLanes ?? [])];
+			expect(lanes.filter((l) => l.key === 'skull-banner').map((l) => l.source?.own)).toEqual([false, false]);
+		}
+	});
+
+	it('measures rule 3 on all six presses, and faults none of them', () => {
+		// The six overlaps, pinned individually. Five are comfortable; the sixth is `unbroken`s second
+		// press, 714ms from the kill, which sees no banner at all — reported as 0 and charged for nothing,
+		// because that press is exempt under rule 2's own guard before rule 3 is reached.
+		const expected = [
+			['phased', [15_000, 10_149]],
+			['unbroken', [15_000, 0]],
+			['cleave', [13_944, 10_273]],
+		] as const;
+		for (const [name, overlaps] of expected) {
+			expect(wired(name).verdict.presses.map((p) => p.bannerOverlapMs)).toEqual(overlaps);
+		}
+	});
+
+	it('reports rule 4 on two of the three, and says nothing on the third', () => {
+		// `phased`s second Ascendance at 196 197 finds the second banner of the warrior who opened at
+		// 13 760 (196 649–206 798); `cleave`s at 184 240 finds the one at 184 448–194 721, 208ms later.
+		// `unbroken` has two warriors who each pressed once, so there is no second banner and the answer is
+		// null rather than false.
+		const expected = [
+			['phased', 10_149, true],
+			['unbroken', null, null],
+			['cleave', 10_273, true],
+		] as const;
+		for (const [name, overlap, synced] of expected) {
+			const second = wired(name).verdict.presses[1];
+			expect([second?.secondBannerOverlapMs, second?.secondBannerSynced]).toEqual([overlap, synced]);
+		}
+	});
+
+	it('moves no grade on any pull, and no press verdict either', () => {
+		// The before/after, and it is a nil result on all three: `bad` / `good` / `bad` before rules 3 and
+		// 4 and after them, with every press keeping the verdict lane D's change left it with. Rule 3 can
+		// only fault, and the lowest overlap any *gradeable* press has is 10 149ms against a 9 000 bound.
+		//
+		// **Also not a red against the old behaviour, and it cannot be** — a test that a change moved
+		// nothing has nothing to fail against. What it does guard is the next change: it is the line that
+		// fails if rule 3 is ever re-pointed at the best single banner instead of the union, which is the
+		// one alternative reading with real support, and which `phased` measurably does not survive. See
+		// below.
+		//
+		// Pinned as literals rather than against the unwired run, which would compare two computations
+		// over the same five values and pass whatever they were.
+		const expected = [
+			['phased', 'bad', ['good', 'bad']],
+			['unbroken', 'good', ['good', 'none']],
+			['cleave', 'bad', ['good', 'bad']],
+		] as const;
+		for (const [name, grade, presses] of expected) {
+			const { verdict } = wired(name);
+			expect(verdict.grade).toBe(grade);
+			expect(verdict.presses.map((p) => p.grade)).toEqual(presses);
+		}
+	});
+
+	it('would fault a clean opener on `phased` if it read the best single banner', () => {
+		// The measured cost of the reading rule 3 does **not** use, on the one pull where the two readings
+		// disagree. Two warriors handed off at 13 760ms: the first banner gives this opener 8 754ms, 246ms
+		// short of the bound, while Skull Banner was in fact up for 14 999 of the 15 000ms the press bought.
+		// Per-banner would call that a fault; the union calls it 15 000, and the press is graded on rules 1
+		// and entry 14 as it was.
+		const { analysis, verdict } = wired('phased');
+		const press = verdict.presses[0];
+		const window: [number, number] = [press!.t, press!.t + ASCENDANCE_DURATION_MS];
+		const perBanner = banners(analysis)
+			.flatMap((c) => c.windows)
+			.map((w) => Math.max(0, Math.min(window[1], w.end) - Math.max(window[0], w.start)));
+		expect(Math.max(...perBanner)).toBe(8754);
+		expect(Math.max(...perBanner)).toBeLessThan(SKULL_BANNER_OVERLAP_MIN_MS);
+		expect([press?.bannerOverlapMs, press?.grade]).toEqual([15_000, 'good']);
 	});
 });
