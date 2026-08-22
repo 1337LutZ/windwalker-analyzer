@@ -2261,18 +2261,34 @@ export interface FlameShockAudit {
 	presses: FlameShockPress[];
 	/**
 	 * The cleave preset's multi-dot rule ("keep Flame Shock on both targets"): the dot's uptime on the
-	 * secondary target over the time two or more enemies were up. Zero on a pull that never went
-	 * multi-target.
+	 * secondary target over the stretches **two** enemies were up. Zero on a pull that never went
+	 * multi-target, and clipped to the same array `multiTargetMs` is the length of.
 	 */
 	multiDotUptimeMs: number;
 	multiDotUptimePct: number;
 	/**
-	 * The denominator `multiDotUptimePct` is against — the time two or more enemies were up, and **zero
-	 * when none of the other enemies deserved a second dot**: an immune unit is never a target, and one
-	 * that died before the dot could pay for its global is not a target for a dot. Read as the gate on
-	 * whether this question can be asked at all; `score.ts` grades nothing at zero and the section
-	 * hides the tile, which is how a pull that never offered a second dot is left unjudged rather than
-	 * given a 0% it could not have beaten.
+	 * The denominator `multiDotUptimePct` is against, and **also the graded length the score refuses an
+	 * empty one on**: the time two enemies were up — not two *or more* — and **zero when none of the other
+	 * enemies deserved a second dot**, an immune unit never being a target and one that died before the dot
+	 * could pay for its global not being a target for a dot.
+	 *
+	 * Read as the gate on whether this question can be asked at all; `score.ts` passes it through
+	 * `gradedOver` so a zero from either cause grades nothing, and the section hides the tile. That is how
+	 * a pull whose only other enemy was an immune mine, and a pull that spent every one of its two-target
+	 * seconds inside an add wave, are both left unjudged rather than handed a 0% neither could have beaten.
+	 *
+	 * **Band 2 alone, which makes this the one clock in the audit cut at both ends.** `cleave.apl.json`
+	 * rung 9 is `maxDots: 2`: there is no such rule at one enemy, because there is no second target, and
+	 * none at three, because `aoe.apl.json` has no multi-dot rung anywhere in it. So the floor is the
+	 * core's `>= 2` series and the ceiling is the same `aoeWindows` complement the dot's uptime clock, the
+	 * totem's and the shield's overcap all take — `>= 2` less `>= 3`. The other three are band-1-or-2 rules
+	 * and need the ceiling only. The derivation, and why it is a difference of two count series rather than
+	 * an "exactly two" series computed once, is at `mdGraded` in the Elemental's `index.ts`.
+	 *
+	 * It is deliberately *not* the core's `targets.multiTargetMs`, which it used to be verbatim. That field
+	 * is the mode share's own numerator and is untrimmed by design ("evidence and a denominator, not
+	 * exemptions"); borrowing it made this rule's clock run through bands 3 and 4, which are counts the
+	 * rule does not exist at.
 	 */
 	multiTargetMs: number;
 	/**

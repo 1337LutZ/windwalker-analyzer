@@ -1,4 +1,4 @@
-// The three graded clocks drop the stretches no list had a rule for, and an empty clock refuses to grade.
+// The four graded clocks drop the stretches no list had a rule for, and an empty clock refuses to grade.
 //
 // This is the half of the band exemption that changes a number, and until it landed the other half
 // presented as band-aware while forgiving nothing. `MetricRule.bands` nulls a metric only when the band
@@ -20,12 +20,20 @@
 //
 // `phased` and `unbroken` never exceed one enemy, so every assertion about them here is a no-change guard
 // and is labelled as one. `cleave` is the only committed fixture with band-3+ time.
+//
+// **The fourth clock is shaped differently from the other three and has its own describe block.**
+// `flameShockMultiDot` declares `bands: [2]` and not `[1, 2]`, so `gradedSpans` is a *ceiling* over a clock
+// that already carried a floor: the cut is `intersect(multiTargetWindows, gradedSpans)` — the core's `>= 2`
+// series less its `>= 3` one — and what survives is band 2 and nothing else. Two count series and not one,
+// which is the piece of arithmetic that needed pinning; the committed fixtures cannot isolate it, so two
+// hand-built pulls do.
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { complementOf, type Interval, intersect, unionMs } from '~/lib/analysis/intervals';
+import { intervalsAtLeast } from '~/lib/analysis/targets';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset, Window } from '~/lib/types';
 
@@ -176,6 +184,114 @@ describe('both halves of every ratio are cut with the same array', () => {
 	});
 });
 
+// -------------------------------------------------------- the clock cut at both ends
+
+/**
+ * The band-2 clock, rebuilt from the reader's two published series rather than read off the field it is
+ * asserting.
+ *
+ * `targets.counts.points` *is* the core's `targetPoints` — the series the target-count chart draws — and
+ * `lightningShield.aoeWindows` is the array the sections grey. So this reconstructs "two enemies up, and
+ * not three" out of what a reader can see and then demands the audit agree with it, rather than dividing
+ * one of the audit's numbers by another.
+ *
+ * **It degenerates the right way, which is what makes it a signature rather than a renumbering.** With no
+ * AoE stretches `complementOf` is the whole pull and this collapses to
+ * `unionMs(intervalsAtLeast(points, 2, durationMs))` — the core's `multiTargetMs`, which is exactly what
+ * this field used to be. Every pull with a second target and no third therefore keeps its old figure to
+ * the millisecond, which is the property `immuneTargets.test.ts` pins at 55 000ms from the other side.
+ */
+const bandTwo = (a: Analysis & ElementalAuditResult): Interval[] =>
+	intersect(
+		intervalsAtLeast(a.targets?.counts.points ?? [], 2, a.durationMs),
+		complementOf(toIntervals(a.lightningShield.aoeWindows), a.durationMs),
+	);
+
+describe('the second dot is measured over band 2 alone', () => {
+	/**
+	 * The denominator, derived and then pinned so a derivation that quietly went to zero on both sides
+	 * cannot pass.
+	 *
+	 * `cleave` loses the **whole** 82 858ms exempt array, not a part of it, and that exactness is a finding
+	 * rather than a coincidence: every millisecond the ladder read as three-or-more enemies was also a
+	 * millisecond the damage series read as two-or-more, so the two edges nest and the subtraction is
+	 * clean. The dot's own clock lost 82 758ms of its 82 858 for want of 100ms of contact; this one has no
+	 * contact term to lose it to.
+	 */
+	it('measures the second dot over the time two enemies were up, less the AoE stretches', () => {
+		for (const name of FIXTURES) {
+			expect(el[name].flameShock.multiTargetMs, name).toBe(unionMs(bandTwo(el[name])));
+		}
+		// 148 865ms was the whole band-2-or-more clock and the figure this field used to publish.
+		expect(unionMs(intervalsAtLeast(el.cleave.targets?.counts.points ?? [], 2, el.cleave.durationMs))).toBe(148_865);
+		expect(el.cleave.flameShock.multiTargetMs).toBe(148_865 - 82_858);
+		// The exempt array nests inside the band-2-or-more clock, which is why the line above subtracts all
+		// of it rather than the part that overlapped.
+		const exempt = toIntervals(el.cleave.lightningShield.aoeWindows);
+		expect(
+			unionMs(intersect(intervalsAtLeast(el.cleave.targets?.counts.points ?? [], 2, el.cleave.durationMs), exempt)),
+		).toBe(unionMs(exempt));
+		// No-change guards: neither single-target pull ever reaches two enemies, so there was never a clock
+		// here to cut and there is none now.
+		expect(el.phased.flameShock.multiTargetMs).toBe(0);
+		expect(el.unbroken.flameShock.multiTargetMs).toBe(0);
+	});
+
+	/**
+	 * And the numerator came off the same array, which on this pull is 12 407ms of the secondary's dot that
+	 * was up while three or more enemies were being hit.
+	 */
+	it('cuts the second dot itself with the same array', () => {
+		expect(el.cleave.flameShock.multiDotUptimeMs).toBe(24_769 - 12_407);
+		for (const name of FIXTURES) {
+			const { flameShock } = el[name];
+			expect(flameShock.multiDotUptimeMs, name).toBeLessThanOrEqual(flameShock.multiTargetMs);
+			expect(flameShock.multiDotUptimePct, name).toBeLessThanOrEqual(100);
+		}
+		// A real share of its own published clock, on the one fixture that has one.
+		expect((el.cleave.flameShock.multiDotUptimeMs / el.cleave.flameShock.multiTargetMs) * 100).toBe(
+			el.cleave.flameShock.multiDotUptimePct,
+		);
+	});
+
+	/**
+	 * The figure itself, before and after, because a correctness change with no verdict behind it is the
+	 * easiest kind to lose.
+	 *
+	 * 16.64% to 18.73% and still `bad` — as is the section, and the pull. That is the honest outcome: the
+	 * player dotted the secondary for under a fifth of the time two enemies were up whichever way the
+	 * stretch is counted, so the undotted second target is a real fault and not an artefact of a clock that
+	 * ran too long.
+	 */
+	it('reads 18.73% on the mixed pull and still faults it', () => {
+		expect(+el.cleave.flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
+		const card = scoreAnalysis(el.cleave);
+		const md = card.sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
+		expect(md?.value).toBe(el.cleave.flameShock.multiDotUptimePct);
+		expect(md?.unmeasurable).toBe(false);
+		expect(md?.grade).toBe('bad');
+		expect(card.sections['flameShock']?.grade).toBe('bad');
+		expect(card.overall).toBe('bad');
+	});
+
+	/**
+	 * The two single-target pulls read "cannot say", and for two reasons at once rather than one.
+	 *
+	 * They already did — `bands: [2]` against a pull that never leaves band 1 is an empty intersection, so
+	 * `metricOf` was refusing them on the declaration alone. What changes is that the clock now agrees:
+	 * `multiTargetMs` is published as the graded length and arrives at zero, so the refusal no longer rests
+	 * on the band table being right about a pull. Both guards, one answer.
+	 */
+	it('says nothing about the second dot on a pull that never had a second target', () => {
+		for (const name of ['phased', 'unbroken'] as const) {
+			const md = scoreAnalysis(el[name]).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
+			expect(md, name).toBeDefined();
+			expect(md?.unmeasurable, name).toBe(true);
+			expect(md?.gradedMs, name).toBe(0);
+		}
+	});
+});
+
 // ------------------------------------------------------------ the empty clock
 
 const T0 = 500_000;
@@ -305,5 +421,215 @@ describe('a pull with no gradable stretch says so instead of grading it good', (
 		const totem = card.sections['searingTotem']?.metrics.find((m) => m.key === 'searingTotemUptime');
 		expect(uptime?.unmeasurable).toBe(true);
 		expect(totem?.unmeasurable).toBe(true);
+	});
+
+	/**
+	 * And the second dot, where the free pass ran the *other* way — this pull was being accused rather
+	 * than excused, which is the worse of the two failures.
+	 *
+	 * Three adds throughout and no Flame Shock anywhere in the log, so the secondary's dot is empty. Over
+	 * the core's `>= 2` clock — the whole pull, since three enemies are always two — that is 0% of a
+	 * multi-dot rule the running list does not contain, graded `bad` and reported as one of the pull's
+	 * faults. Over band 2 there is no clock at all, and the honest answer is that nothing here was asked.
+	 */
+	it('says nothing about the second dot on a pull with no two-target stretch', () => {
+		// The premise: two-or-more covers the whole pull, so this is a cut and not an absence.
+		expect(unionMs(intervalsAtLeast(allAoe.targets?.counts.points ?? [], 2, allAoe.durationMs))).toBe(
+			allAoe.durationMs,
+		);
+		expect(allAoe.flameShock.multiTargetMs).toBe(0);
+		const md = scoreAnalysis(allAoe).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
+		expect(md?.unmeasurable).toBe(true);
+		expect(md?.gradedMs).toBe(0);
+	});
+});
+
+// ------------------------------------------------- band 2 and band 3 in one pull
+
+/**
+ * The arithmetic this task turns on, built rather than measured: one pull that spends part of itself at
+ * two enemies and part at three, with the secondary's dot placed wholly inside one of the two.
+ *
+ * No committed fixture can isolate it. `cleave` has both bands but its dot is scattered across them, so
+ * moving 12 407ms of numerator is consistent with several different cuts; `phased` and `unbroken` have no
+ * second target at all. So the two pulls below are the same events with the dot moved, and between them
+ * they pin both edges of the clock separately:
+ *
+ *   - **the dot inside the add wave only** — the whole numerator is exempt time, so the reading is 0% of a
+ *     real band-2 clock. Under the old cut it was 36% of a clock that ran through the add wave.
+ *   - **the dot outside the add wave only** — the numerator is untouched and the denominator shrinks, so
+ *     the figure *rises*, 25.81% to 42.78%. This is the direction the `cleave` figure moved.
+ *
+ * The band-3 stretch is `[60 000, 120 000 + one global]` and both dots are placed clear of that boundary
+ * by two seconds, so neither numerator depends on where the trailing trim lands. The denominator does, and
+ * is asserted against `aoeWindows` rather than a literal for that reason.
+ */
+const B0 = 900_000;
+const B_DURATION = 200_000;
+const B_ME = 3;
+const B_BOSS = 30;
+const B_SECOND = 31;
+const B_THIRD = 32;
+const FLAME_SHOCK = 8050;
+
+const bev = (t: number, type: string, id: number, extra: Record<string, unknown> = {}): WclEvent => ({
+	timestamp: B0 + t,
+	type,
+	abilityGameID: id,
+	sourceID: B_ME,
+	targetID: B_ME,
+	...extra,
+});
+
+/** Every two seconds, so the count series is one unbroken stretch per enemy rather than a flicker. */
+const hits = (fromMs: number, toMs: number, target: number): WclEvent[] =>
+	Array.from({ length: Math.floor((toMs - fromMs) / 2000) + 1 }, (_, i) =>
+		bev(fromMs + i * 2000, 'damage', 403, { targetID: target, amount: 1000, hitType: 1 }),
+	);
+
+const dot = (target: number, fromMs: number, toMs: number): WclEvent[] => [
+	bev(fromMs, 'applydebuff', FLAME_SHOCK, { targetID: target }),
+	bev(toMs, 'removedebuff', FLAME_SHOCK, { targetID: target }),
+];
+
+/**
+ * The boss is hit for the whole pull and the second enemy for the first 150s, so band 2 runs from the
+ * bell; the third enemy is hit from 60s to 120s and nothing else, so band 3 is one stretch in the middle.
+ */
+const twoBands = (secondDot: WclEvent[]): Analysis & ElementalAuditResult =>
+	analyse({
+		code: 'bands2',
+		fight: {
+			id: 1,
+			name: 'Dark Shaman',
+			encounterID: 1623,
+			kill: true,
+			difficulty: 4,
+			size: 25,
+			startTime: B0,
+			endTime: B0 + B_DURATION,
+		},
+		actor: { id: B_ME, name: 'Sparkstorm', type: 'Player' },
+		actors: [
+			{ id: B_ME, name: 'Sparkstorm', type: 'Player' },
+			// `subType: 'Boss'` pins the primary, so "the busiest enemy that is not the primary" is a
+			// question with one answer rather than a tie decided by hit order.
+			{ id: B_BOSS, name: 'Wavebinder Kardris', type: 'NPC', subType: 'Boss' },
+			{ id: B_SECOND, name: 'Earthbreaker Haromm', type: 'NPC', subType: 'NPC' },
+			{ id: B_THIRD, name: 'Foul Slime', type: 'NPC', subType: 'NPC' },
+			{ id: 4, name: 'Someone Else', type: 'Player' },
+		],
+		events: [
+			...hits(0, 198_000, B_BOSS),
+			...hits(0, 150_000, B_SECOND),
+			...hits(60_000, 120_000, B_THIRD),
+			...dot(B_BOSS, 0, 198_000),
+			...secondDot,
+			// One Lava Burst, so the pull reads as an Elemental at all — see `looksElemental`.
+			bev(500, 'cast', 51_505, { targetID: B_BOSS }),
+		],
+		table: {
+			fight: {
+				id: 1,
+				name: 'Dark Shaman',
+				encounterID: 1623,
+				kill: true,
+				difficulty: 4,
+				size: 25,
+				startTime: B0,
+				endTime: B0 + B_DURATION,
+				enemyNPCs: [
+					{ id: B_BOSS, gameID: 71_454 },
+					{ id: B_SECOND, gameID: 71_859 },
+					{ id: B_THIRD, gameID: 71_858 },
+				],
+			},
+			damageDone: {
+				entries: [
+					{
+						name: 'Sparkstorm',
+						id: B_ME,
+						type: 'Shaman',
+						itemLevel: 553,
+						total: 300_000,
+						activeTime: B_DURATION,
+						abilities: [{ guid: 403, name: 'Lightning Bolt', total: 300_000 }],
+					},
+				],
+			},
+		},
+	}) as Analysis & ElementalAuditResult;
+
+/** Dot on the second enemy only while the third was up: 56 000ms, all of it inside the add wave. */
+const dotInWave = twoBands(dot(B_SECOND, 62_000, 118_000));
+/** The same 40 000ms of dot moved clear of the wave, before it opens. */
+const dotBeforeWave = twoBands(dot(B_SECOND, 10_000, 50_000));
+
+describe('a pull with a band-2 stretch and a band-3 stretch', () => {
+	/** The premise, asserted rather than assumed: this pull really does visit both bands and no more. */
+	it('is built with two bands and a second target worth dotting', () => {
+		expect(dotInWave.targets?.counts.max).toBe(3);
+		expect(dotInWave.primaryTarget?.id).toBe(B_BOSS);
+		const aoe = toIntervals(dotInWave.lightningShield.aoeWindows);
+		expect(aoe).toHaveLength(1);
+		expect(aoe[0]?.[0]).toBe(60_000);
+		// The close is one measured global past the last three-wide hit, so it lands inside 121 500 — which
+		// is what puts both dots below clear of the boundary whatever the global measures.
+		expect(aoe[0]?.[1]).toBeGreaterThan(120_000);
+		expect(aoe[0]?.[1]).toBeLessThanOrEqual(121_500);
+	});
+
+	/**
+	 * The denominator, on both pulls, against the identity that makes the cut checkable: the band-2-or-more
+	 * clock less the whole exempt array, because the add wave sits inside the stretch the second enemy was
+	 * up for.
+	 */
+	it('grades over the band-2-or-more clock less the add wave', () => {
+		for (const [name, a] of [
+			['dotInWave', dotInWave],
+			['dotBeforeWave', dotBeforeWave],
+		] as const) {
+			const atLeastTwo = unionMs(intervalsAtLeast(a.targets?.counts.points ?? [], 2, a.durationMs));
+			const aoeMs = unionMs(toIntervals(a.lightningShield.aoeWindows));
+			expect(atLeastTwo, name).toBe(155_000);
+			expect(a.flameShock.multiTargetMs, name).toBe(unionMs(bandTwo(a)));
+			expect(a.flameShock.multiTargetMs, name).toBe(155_000 - aoeMs);
+			// A real cut and not a rounding: the wave is over a third of the old clock. Bounded rather than
+			// pinned, because the exact figure carries the measured global — 93 500ms at the declared 1 500,
+			// where the trim is `5 000 - 1 500` and the wave closes at 121 500.
+			expect(a.flameShock.multiTargetMs, name).toBeLessThan(95_000);
+			expect(a.flameShock.multiTargetMs, name).toBeGreaterThan(93_000);
+		}
+	});
+
+	/**
+	 * **The numerator is cut by the same array.** 56 000ms of dot, every millisecond of it inside the add
+	 * wave, and none of it reaches the figure: the second enemy was dotted only while the list had stopped
+	 * asking for a second dot. Under the old clock this was 56 000ms over 155 000ms — 36.1% — a figure made
+	 * entirely of time band 2 never saw.
+	 */
+	it('drops a second dot that was only ever up inside the add wave', () => {
+		expect(dotInWave.flameShock.multiDotUptimeMs).toBe(0);
+		expect(dotInWave.flameShock.multiTargetMs).toBeGreaterThan(0);
+		expect(dotInWave.flameShock.multiDotUptimePct).toBe(0);
+		// Graded, not refused: there is a band-2 clock, and 0% of it is the answer.
+		const md = scoreAnalysis(dotInWave).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
+		expect(md?.unmeasurable).toBe(false);
+		expect(md?.grade).toBe('bad');
+	});
+
+	/**
+	 * **And the denominator alone moves the figure the other way.** The same 40 000ms of dot, placed clear
+	 * of the wave, is 25.8% of the old clock and 42-point-something of the band-2 one — the direction
+	 * `cleave` moved, for the same reason and with the numerator held fixed to prove it is the denominator
+	 * doing the work.
+	 */
+	it('raises the figure when the dot was up over band 2 and the wave leaves the clock', () => {
+		const { multiDotUptimeMs, multiTargetMs, multiDotUptimePct } = dotBeforeWave.flameShock;
+		expect(multiDotUptimeMs).toBe(40_000);
+		// 25.81% over the old clock, 42.78% over the band-2 one, off the same 40 000ms of dot.
+		expect((40_000 / 155_000) * 100).toBeCloseTo(25.81, 2);
+		expect(multiDotUptimePct).toBe((multiDotUptimeMs / multiTargetMs) * 100);
+		expect(+multiDotUptimePct.toFixed(2)).toBe(42.78);
 	});
 });

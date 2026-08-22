@@ -128,11 +128,31 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		),
 	);
 
-	// The cleave preset's multi-dot rule: while two or more enemies are up, the dot should also sit on
-	// the secondary target. Null on a single-target pull, where there was no second target to dot.
+	/**
+	 * The cleave preset's multi-dot rule: while two enemies are up, the dot should also sit on the
+	 * secondary target.
+	 *
+	 * **`gradedOver` and no hand-written guard in front of it**, which is a collapse rather than an
+	 * addition. This read `multiTargetMs > 0 ? pct : null`, and that ternary *was* the empty-clock check,
+	 * written out by hand at the one call site that happened to think of it — the failure `Measured` exists
+	 * to stop. `multiTargetMs` is this share's denominator, so passing it as the graded length says the
+	 * same thing through the one mechanism, and `metricOf` nulls on it for the same reason it nulls on the
+	 * shield's.
+	 *
+	 * Unlike `flameShockUptime` there is no second guard to keep beside it, because there is no second
+	 * question. The dot's uptime keeps `windows.length > 0` because "no dot in the log at all" and "no
+	 * gradable stretch" are different facts; here both of the ways this can be empty — no second target
+	 * worth dotting, no stretch at two enemies — are already *in* the clock, by the audit's construction of
+	 * it. A `windows.length` clause on the secondary's dot would be worse than redundant: an undotted
+	 * secondary is precisely the fault this metric exists to report, so refusing to grade the pull that has
+	 * none would silence the only answer it can give.
+	 *
+	 * The clock behind it is band 2 alone — `>= 2` less `>= 3` — and that cut is the audit's, at `mdGraded`
+	 * in `index.ts`. What it is worth is at this metric's threshold entry.
+	 */
 	const flameShockMultiDot = metric(
 		'flameShockMultiDot',
-		flameShock.multiTargetMs > 0 ? flameShock.multiDotUptimePct : null,
+		gradedOver(flameShock.multiDotUptimePct, flameShock.multiTargetMs),
 	);
 
 	/**
@@ -388,18 +408,24 @@ export { GRADE_ORDER };
 // to cut."
 //
 // **The half that does is the audit's, and it has landed.** `specs/elemental/lib/index.ts` hoists one
-// `gradedSpans = complementOf(aoeWindows, duration)` and cuts three clocks with it — the dot's uptime,
-// the totem's uptime and the shield's overcap — intersecting the numerator and the denominator of each
-// ratio with the same array, because clipping one half and not the other is how an uptime above 100%
-// happens. It publishes the length of each, so `metricOf` can null on a clock that came out empty rather
-// than grading `0ms of fault` over `0ms of time` as a perfect pull.
+// `gradedSpans = complementOf(aoeWindows, duration)` and cuts four clocks with it — the dot's uptime, the
+// totem's uptime, the shield's overcap and the second dot's uptime — intersecting the numerator and the
+// denominator of each ratio with the same array, because clipping one half and not the other is how an
+// uptime above 100% happens. It publishes the length of each, so `metricOf` can null on a clock that came
+// out empty rather than grading `0ms of fault` over `0ms of time` as a perfect pull.
+//
+// The fourth is the odd one and worth naming here: `flameShockMultiDot` is `bands: [2]` rather than
+// `[1, 2]`, so `gradedSpans` is its *ceiling* over a clock that already had a floor — the cut is
+// `intersect(multiTargetWindows, gradedSpans)`, the `>= 2` series less the `>= 3` one, and what is left is
+// band 2 and nothing else. Same array, both edges.
 //
 // So a declaration is necessary and not sufficient, and both halves have to be present for a rule to be
-// honest. Three of the seven declarations below have a cut clock behind them; the other four are rules
-// whose *sample* is already narrowed instead (`earthShockGood`'s `judged` counter, `flameShockMultiDot`'s
-// `multiTargetMs` gate) or whose clock nothing has yet cut — `flameShockMultiDot` is the live one, and its
-// entry says so. Reading a verdict, the two states to keep apart are: an `exempt` metric was never asked
-// of this pull at all, and a graded metric whose clock has been narrowed to the stretches that did ask.
+// honest. Four of the seven declarations below have a cut clock behind them, `flameShockMultiDot` being the
+// last to get one — band 2 alone, `>= 2` less `>= 3`, the one cut with an edge at both ends. The remaining
+// three are rules whose *sample* is narrowed instead of their clock (`earthShockGood`'s `judged` counter) or
+// whose number is a count of presses rather than a span. Reading a verdict, the two states to keep apart
+// are: an `exempt` metric was never asked of this pull at all, and a graded metric whose clock has been
+// narrowed to the stretches that did ask.
 //
 // What earns a declaration: a rung only some target counts' lists contain, where the *number this
 // metric is* is a reading of that rung. What does not: a resource, a slot, a global or a pre-pull press
@@ -487,10 +513,10 @@ export const THRESHOLDS = {
 	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1] },
 
 	/**
-	 * The dot's uptime on the secondary target while two or more enemies were up — the cleave preset's
-	 * multi-dot rule. A second target that stays undotted for the whole multi-target stretch is a dot
-	 * the player never put where it would tick for free; keeping both up is the skill the fight asks
-	 * for. Unmeasurable on a single-target pull.
+	 * The dot's uptime on the secondary target while **two** enemies were up — the cleave preset's
+	 * multi-dot rule. A second target that stays undotted for the whole of that stretch is a dot the
+	 * player never put where it would tick for free; keeping both up is the skill the fight asks for.
+	 * Unmeasurable on a single-target pull.
 	 *
 	 * **`bands: [2]` — one band, and the only entry in this table with a hole in the middle of it.** The
 	 * second dot is `cleave.apl.json` rung 9's `maxDots: 2` and appears in neither of the other two
@@ -500,25 +526,30 @@ export const THRESHOLDS = {
 	 * stops asking for a second dot and starts asking for Lava Beam and Chain Lightning. Two enemies is
 	 * the one count at which spreading the dot is the rule.
 	 *
-	 * The band and the old `multiTargetMs > 0` guard say different things, and both are kept: the guard
-	 * says the pull offered no second target worth dotting, the band says the list did not ask for one.
-	 * On `phased` and `unbroken` the two now agree and the metric reads `exempt` where before it read only
-	 * "cannot say" — the same number, a better reason.
+	 * The band and the empty-clock guard say different things, and both survive: the clock says the pull
+	 * offered no gradable two-target stretch, the band says the list did not ask for a second dot at the
+	 * counts this pull visited. On `phased` and `unbroken` the two agree and the metric reads `exempt`
+	 * where it once read only "cannot say" — the same number, a better reason.
 	 *
-	 * **This is the one clock in the table still uncut, and the measurement says cutting it would change no
-	 * verdict.** `multiTargetMs` is the time **two or more** enemies were up, so on a mixed pull it runs
-	 * through bands 3 and 4 as well and the declaration above does not shorten it: `multiDotUptimeMs` and
-	 * `multiTargetMs` both want intersecting with `gradedSpans`, which would leave the band-2 stretches
-	 * alone. Measured on `cleave` by doing exactly that and then reverting it: the clock goes from 148 865ms
-	 * to 66 007ms and the figure from **16.64% to 18.73%** — still far under the 60% `ok` line, so the
-	 * metric stays `bad`, the section stays `bad` and the pull's verdict does not move.
+	 * **This was the last clock in the table still uncut, and it is cut now.** `multiTargetMs` was the time
+	 * two *or more* enemies were up, so on a mixed pull it ran through bands 3 and 4 as well and the
+	 * declaration above did not shorten it. It is now `intersect(multiTargetWindows, gradedSpans)` — the
+	 * `>= 2` series less the `>= 3` one, which is band 2 alone and the only cut in this audit with an edge
+	 * at *both* ends; the other three are band-1-or-2 rules and take a ceiling only. `multiDotUptimeMs`
+	 * comes off the identical array, so the ratio's two halves cannot disagree.
 	 *
-	 * Which makes it worth saying plainly what that measurement means: on this pull the undotted second
-	 * target is a **real** fault and not an artefact of a clock that ran too long. The player dotted the
+	 * **On `cleave` the clock goes 148 865ms to 66 007ms and the figure 16.64% to 18.73%, and the metric
+	 * stays `bad`** — as does the section, and the pull's verdict. The whole 82 858ms the denominator loses
+	 * is the exempt array to the millisecond, which is the arithmetic saying every add-wave second was
+	 * inside the two-target clock and none of it outside. The numerator loses 12 407ms of 24 769. Neither
+	 * single-target fixture moves, because neither ever reaches two enemies.
+	 *
+	 * So this is a correctness change with **no verdict behind it**, which is worth stating rather than
+	 * dressing up: 18.73% is as far under the 60% `ok` line as 16.64% was. On this pull the undotted second
+	 * target is a *real* fault and not an artefact of a clock that ran too long — the player dotted the
 	 * secondary for under a fifth of the time two enemies were up whichever way the stretch is counted.
-	 * The cut is still the right change — the number should be measured over the stretches the rule was
-	 * asked at — but it is a correctness change with no verdict behind it, so it is left for a lane that
-	 * can also give `multiTargetMs` its own published graded length rather than being folded in here.
+	 * What the cut buys is that the published figure is now a reading of the rung it names, and that a pull
+	 * whose only two-target seconds fell inside an add wave says "cannot say" instead of 0%.
 	 */
 	flameShockMultiDot: { good: 85, ok: 60, higherIsBetter: true, bands: [2] },
 

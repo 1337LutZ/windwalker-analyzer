@@ -1612,7 +1612,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		spawnLives,
 		multiTargetWindows,
 		aoeWindows,
-		multiTargetMs,
 		contact,
 		hasteWindows,
 	} = h;
@@ -1820,8 +1819,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	};
 
 	/**
-	 * The stretches of this pull a band-1-or-2 rule is honest over: everything **less** the time three
-	 * or more enemies were up.
+	 * The stretches of this pull a banded rule is honest over: everything **less** the time three or more
+	 * enemies were up.
 	 *
 	 * **This is the half of the exemption that changes a number, and it belongs here rather than in the
 	 * score.** `lib/score/bands.ts` says so in its own words — "Nothing here decides *how much* of a
@@ -1831,7 +1830,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * exactly as it did before while presenting as band-aware. Cutting is the audit's job because the
 	 * audit is the only thing that holds the stretches.
 	 *
-	 * Three clocks are cut with it, and **each cuts both halves of its own ratio with this same array.**
+	 * Four clocks are cut with it, and **each cuts both halves of its own ratio with this same array.**
 	 * Clipping a numerator and not its denominator is how a percentage above 100 happens, and this file
 	 * has already produced one that way — see `fsContactMs` and the 100.21% its docblock dissects. So the
 	 * rule is: intersect the denominator, and intersect the numerator with the identical array, never
@@ -1844,6 +1843,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * than absent. `aoeWindows` is the core's own three-or-more series, already trimmed of the trailing
 	 * window of boss-only time that closes a stretch when the count merely falls (`fbc4963`), so nothing
 	 * here re-derives that boundary either.
+	 *
+	 * **Three of the four readers use it as a ceiling over a clock whose floor is "anything at all"; the
+	 * fourth uses it as a ceiling over a clock that already had a floor.** `mdGraded` intersects it with
+	 * `multiTargetWindows` rather than with `contact`, so `flameShockMultiDot` — declared `bands: [2]`, off
+	 * a rung that exists at two enemies and at no other count — is graded over band 2 and nothing else.
+	 * The same array, supplying the second of two edges rather than the only one; see that block for why
+	 * it takes two count series and cannot be an "exactly two" series derived here.
 	 *
 	 * Not every clock wants it, and the ones that decline say why at their own threshold: a slot fact, a
 	 * global, a resource or a pre-pull press exists identically at every count. `lightningShieldFellOff`
@@ -2350,9 +2356,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const refreshes = fsPresses.length - applies;
 
 	// ----------------------------------------------- Flame Shock multi-dot
-	// The cleave preset's rule (maxDots 2) keeps the dot on a second target while two or more enemies
-	// are up — the Dark Shaman are the textbook case. The secondary is the second-busiest enemy the
-	// player actually hit, and the metric is the dot's uptime on it over the multi-target stretch.
+	// The cleave preset's rule (maxDots 2) keeps the dot on a second target while two enemies are up —
+	// the Dark Shaman are the textbook case. The secondary is the second-busiest enemy the player
+	// actually hit, and the metric is the dot's uptime on it over the stretches that rule was running:
+	// two enemies and not three, which is the one banded clock in this file with an edge at both ends.
 	//
 	// Only out of enemies this rule can fairly be applied to, which is the *second* clause of the same
 	// predicate the core already used to build `landedHits`. The core asked "is this a target at all"
@@ -2368,7 +2375,43 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// The union across the secondary's own spawns, for the same reason the primary's figure is: this is
 	// a percentage labelled with one enemy, not a verdict on one press.
 	const fsSecondaryWindows = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID, actor.id).merged;
-	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, multiTargetWindows));
+	/**
+	 * The stretches this rule is graded over: **band 2 alone** — two enemies up, and not three.
+	 *
+	 * **The one clock in this file whose cut is a difference of two arrays rather than the complement of
+	 * one, and that is the whole of what is new here.** The other three banded clocks are band-1-or-2
+	 * rules: their lower edge is "anything at all", so cutting them is `intersect(wholeClock, gradedSpans)`
+	 * and `gradedSpans` supplies the only edge there is. `flameShockMultiDot` declares `bands: [2]` and
+	 * means it — `cleave.apl.json` rung 9 is `maxDots: 2`, a rule that does not exist at one enemy because
+	 * there is no second target to dot, and does not exist at three because `aoe.apl.json` has no
+	 * multi-dot rung at all. So this rule needs **both** edges: a floor at two and a ceiling under three.
+	 *
+	 * The floor is already here and always was — `multiTargetWindows` is the core's `>= 2` series, which is
+	 * why band 1 never reached this figure and why the two single-target fixtures read zero. What was
+	 * missing is the ceiling, and it is the same `gradedSpans` the other three take: `>= 2` minus `>= 3`
+	 * leaves exactly the stretches at two. Which is the mirror image of the others rather than a different
+	 * mechanism — there, band 2 is the last band kept; here it is the only one.
+	 *
+	 * **Two series and not one, deliberately, and it is worth being precise about what that costs.**
+	 * `multiTargetWindows` is `intervalsAtLeast(targetPoints, 2, duration)` and `aoeWindows` is
+	 * `intervalsAtLeast(aplTargetPoints, 3, duration, targetWindowMs - effectiveGcd)`: a different count
+	 * series (the APL one excludes the spec's own area damage, per plan §41) and a trailing edge trimmed to
+	 * one global (`fbc4963`). So the difference is not "the interval where the count was exactly 2" derived
+	 * afresh — it is the band-2-or-more clock less the stretches the *ladder* read as its aoe band. That is
+	 * the right pair on purpose: the numerator here is a dot the player did or did not keep up, so the floor
+	 * wants the damage series that decides whether a second target existed, and the ceiling wants the
+	 * ladder's own series, because the question the ceiling asks is which list was running. Re-deriving an
+	 * "exactly two" series off either one alone would be a third reading of the target count, free to
+	 * disagree with both — the defect `exemptTrack.test.ts` was written after.
+	 *
+	 * **Both halves of the ratio come off this array**, as everywhere else in this audit:
+	 * `multiDotUptimeMs` intersects the secondary's dot with it and `mdGradedMs` is its own length, so the
+	 * numerator is inside the denominator by construction. Clipping one half of a band cut and not the
+	 * other is how `fsContactMs` once published 100.21%.
+	 */
+	const mdGraded = intersect(multiTargetWindows, gradedSpans);
+	const mdGradedMs = unionMs(mdGraded);
+	const multiDotUptimeMs = unionMs(intersect(fsSecondaryWindows, mdGraded));
 	/**
 	 * The denominator, and it is the *dot's* clock rather than the pull's.
 	 *
@@ -2378,8 +2421,18 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * it is zero and the section hides the tile, so a pull whose only other enemy was an immune mine or
 	 * an add that died in four seconds is left unjudged instead of being handed a 0% it could not have
 	 * beaten.
+	 *
+	 * **And now also the graded length, which is why it is `mdGradedMs` and no longer the core's
+	 * `multiTargetMs` verbatim.** It carries two reasons to be empty rather than one — no second target
+	 * worth dotting, and no stretch at two enemies for the rule to be a rule at — and `score.ts` hands it
+	 * to `gradedOver` so both arrive as "cannot say". This metric does not get a second field of its own
+	 * next to it, the way `lightningShield.gradedMs` did: the shield's `overcapMs` is a *fault count* with
+	 * no denominator field anywhere, so its clock had to be published separately, whereas this number *is*
+	 * the denominator of the percentage beside it. A parallel `gradedMs` here would be a second name for
+	 * one number — exactly what `8d8b1f0` declined to add beside `scoredMs` and `contactUptimeMs`, on the
+	 * grounds that they already were the denominator and the numerator.
 	 */
-	const multiDotMs = secondaryID === undefined ? 0 : multiTargetMs;
+	const multiDotMs = secondaryID === undefined ? 0 : mdGradedMs;
 	const multiDotUptimePct = multiDotMs > 0 ? (multiDotUptimeMs / multiDotMs) * 100 : 0;
 
 	// ------------------------------------------------------------ Lava Burst
@@ -3989,6 +4042,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			presses: fsPresses,
 			multiDotUptimeMs,
 			multiDotUptimePct,
+			// The band-2 clock and no longer the core's `>= 2` one: the same field, the same role — this
+			// share's denominator and its gate — measured over the stretches rung 9 was a rule at.
 			multiTargetMs: multiDotMs,
 			scoredMs: fsGradedMs,
 			contactUptimeMs: fsContactMs,
