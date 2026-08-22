@@ -17,7 +17,7 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function Snapshots({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { snapshots } = el;
-	const { t, verdict } = useReportCopy(analysis);
+	const { t, unasked, verdict } = useReportCopy(analysis);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -47,7 +47,11 @@ export default function Snapshots({ analysis }: { analysis: Analysis }) {
 					<StatTile
 						value={`${snapshots.refreshed}`}
 						suffix={`/${snapshots.refreshed + snapshots.missed}`}
-						label={t('flameShockSnapshots.kpi.refreshed')}
+						label={
+							unasked('flameShockSnapshots')
+								? `${t('flameShockSnapshots.kpi.refreshed')} — ${t('metric.notAsked')}`
+								: t('flameShockSnapshots.kpi.refreshed')
+						}
 					/>
 					<StatTile value={`${snapshots.missed}`} label={t('flameShockSnapshots.kpi.missed')} />
 				</StatTiles>

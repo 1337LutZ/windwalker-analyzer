@@ -23,7 +23,26 @@ import { EXEMPT } from '~/components/charts/tones';
 export default function LightningShield({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { lightningShield } = el;
-	const { t, verdict } = useReportCopy(analysis);
+	const { t, gradeOf, unasked, verdict } = useReportCopy(analysis);
+
+	/**
+	 * Which of the shield's two faults the verdict below is answering for — because on one reading it is
+	 * only one of them.
+	 *
+	 * `lightningShieldOvercap` is `bands: [1, 2]` (nothing in the multi-target order spends the charges, so
+	 * sitting at seven is the only state available) and `lightningShieldFellOff` has no scope at all, for
+	 * the reason the metric spells out: Rolling Thunder returns mana per charge and only while the buff is
+	 * up, so keeping it up pays at every enemy count. On a reading of three or more enemies the overcap is
+	 * unasked, the drop count is not, and the letter comes off the drop count alone.
+	 *
+	 * **Kept and narrowed rather than withheld** — the argument is in `SearingTotem.tsx`, which is in the
+	 * same state for the same reason. Here the old sentence was worse than a mislead: `verdict_good` says
+	 * "The shield never sat at seven past the leeway", which is a positive claim about a duration nothing
+	 * had measured, and on `phased` that duration is not zero.
+	 */
+	const grade = gradeOf('lightningShield');
+	const overcapUnasked = unasked('lightningShieldOvercap');
+	const narrowed = overcapUnasked && grade !== 'none' && grade !== 'exempt';
 
 	/**
 	 * The stretches left out of the overcap figure, as the chart's exempt row.
@@ -77,7 +96,15 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-4.5">
 				<StatTiles>
-					<StatTile value={formatSeconds(lightningShield.overcapMs)} label={t('lightningShield.kpi.overcap')} />
+					{/* The number stays and the label says what it is — see the same tile in `SearingTotem.tsx`. */}
+					<StatTile
+						value={formatSeconds(lightningShield.overcapMs)}
+						label={
+							overcapUnasked
+								? `${t('lightningShield.kpi.overcap')} — ${t('metric.notAsked')}`
+								: t('lightningShield.kpi.overcap')
+						}
+					/>
 					<StatTile value={`${lightningShield.fellOff}`} label={t('lightningShield.kpi.fellOff')} />
 					<StatTile value={`${lightningShield.badSpends.length}`} label={t('lightningShield.kpi.badSpends')} />
 				</StatTiles>
@@ -143,7 +170,16 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-5 flex flex-col gap-3.5">
 				<Prose>
-					{verdict('lightningShield', { overcap: lightningShield.overcapMs, fellOff: lightningShield.fellOff })}
+					{narrowed
+						? t('lightningShield.verdict', {
+								context: `${grade}_noOvercap`,
+								overcap: lightningShield.overcapMs,
+								fellOff: lightningShield.fellOff,
+							})
+						: verdict('lightningShield', {
+								overcap: lightningShield.overcapMs,
+								fellOff: lightningShield.fellOff,
+							})}
 				</Prose>
 				{/* What the grey band means, on the pulls that have one.
 

@@ -975,6 +975,45 @@ describe('CastTimeline, intermissions and deaths', () => {
 		expect(html).toContain(t('castLog.intermission.note'));
 	});
 
+	/**
+	 * Every stretch of the complement, and not only the ones over three seconds.
+	 *
+	 * There was a `>= 3000` floor here, justified on the grounds that "a sub-second lead-in is a player
+	 * pressing on the bell, not a phase". Measured, no lead-in in the fixture set is sub-second: `strong`'s
+	 * is 1 521ms and the longest is 2 475ms, so the threshold was discarding the very stretches it was
+	 * written to keep, and on four of nine pulls it shaded nothing at all over 1.6–2.7s out of contact.
+	 * `DebuffTimeline` lost a one-second filter over the same complement in the same change, so the two
+	 * charts now shade the identical array on a Windwalker pull.
+	 *
+	 * `strong`'s complement is three spans — a 1 521ms lead-in, a 17 849ms phase and a 442ms tail — and
+	 * only the middle one used to be drawn. Asserted through the stamps in each band's own `title`, which
+	 * is the only thing on the chart that names a shaded stretch by its ends.
+	 */
+	it('shades the lead-in and the tail, not only the stretches over three seconds', () => {
+		const html = render(drawn);
+		const title = (start: number, end: number) =>
+			`title="${t('castLog.intermission.title')} · ${formatStamp(start)} → ${formatStamp(end)}"`;
+		expect(html).toContain(title(0, 1521)); // the lead-in, under the old three-second floor
+		expect(html).toContain(title(534_749, 535_191)); // the tail, under it as well
+		expect(html).toContain(title(399_772, 417_621)); // the phase, which was always drawn
+		// Three bands and no more: the complement of `contactSegments` has three spans on this pull, so a
+		// fourth would mean something other than the complement is being drawn.
+		expect((html.match(new RegExp(`data-tip="${t('castLog.intermission.title')}"`, 'g')) ?? []).length).toBe(3);
+	});
+
+	/**
+	 * And the band no longer claims to be a phase, which is the other half of dropping the floor.
+	 *
+	 * A 442ms stretch cannot honestly be titled "Intermission"; it can honestly be titled by what the
+	 * array is. The note under the chart names all three kinds rather than only the middle one.
+	 */
+	it('names the band for what the array is rather than for a phase', () => {
+		expect(t('castLog.intermission.title')).toBe('Nothing to hit');
+		const note = t('castLog.intermission.note');
+		expect(note).toContain('before your first hit lands, and after your last');
+		expect(note).toContain('None of it counts against you');
+	});
+
 	/** Nothing to shade on a pull that never lost contact, and no sentence about shading either. */
 	it('shades nothing on a pull with no intermission', () => {
 		// Both segment lists, because the chart reads the wider one. `engagedSegments` is scoped to the

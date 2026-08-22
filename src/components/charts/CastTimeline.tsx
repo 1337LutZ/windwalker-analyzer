@@ -367,20 +367,6 @@ const GROUPINGS: readonly Grouping[] = ['auto', 'on', 'off'];
 const MAX_TARGET_LANES = 12;
 
 /**
- * The shortest stretch out of contact worth shading.
- *
- * `contactSegments` is measured from direct damage, so a segment ends wherever the last hit landed
- * and a sliver either side of that boundary is the sampling rather than a phase — `DebuffTimeline`
- * draws the same complement and discards the same slivers (at a second rather than three, and the
- * Elemental uptime charts discard none of it at all, which makes three answers to "which slivers
- * count" across one report — see the note beside `exemptRows` in `DebuffTimeline`). Three seconds
- * rather than one: the pull
- * itself opens with a run-up before the first cast lands, and a sub-second lead-in is a player
- * pressing on the bell, not a phase worth a band across the whole chart.
- */
-const MIN_INTERMISSION_MS = 3000;
-
-/**
  * The presses, as one absolutely positioned node each.
  *
  * One node, not a wrapper around a node: at three hundred casts the difference is three hundred
@@ -1525,11 +1511,24 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	}, [drawnLanes, spareLanes, shownTargets, grouping, t]);
 
 	/**
-	 * The stretches the boss was out of reach, as the complement of engaged time.
+	 * The stretches nothing of the player's was landing on anything, as the complement of contact time.
 	 *
-	 * Not a row of its own: an intermission is not something the player did, and a lane for it would
-	 * sit among twenty lanes that are. Shaded behind everything instead, which is what says "this is
-	 * the fight's doing" without saying it in a colour that grades anything.
+	 * Not a row of its own: it is not something the player did, and a lane for it would sit among twenty
+	 * lanes that are. Shaded behind everything instead, which is what says "this is the fight's doing"
+	 * without saying it in a colour that grades anything.
+	 *
+	 * **There was a `>= 3000` filter on this and it is gone, which makes the whole report agree about which
+	 * slivers count: none of them are discarded anywhere.** The filter's own reason was that "a sub-second
+	 * lead-in is a player pressing on the bell, not a phase" — and measured, no lead-in in the fixture set
+	 * is sub-second: they run 862 to 2475ms, so the threshold was dropping the very stretches it was
+	 * written to keep, and on four of nine pulls it shaded nothing at all while 1.6–2.7s of the pull had
+	 * nothing of the player's landing in it. `DebuffTimeline` lost a one-second filter over the same
+	 * complement in the same change; the two charts now shade the identical array on a Windwalker pull,
+	 * which they did not before.
+	 *
+	 * The band is named for what the array is rather than for a phase, and that is the other half of
+	 * dropping the floor — see `castLog.intermission`. A 57ms band cannot honestly be called an
+	 * intermission; it can honestly be called a stretch with nothing of yours landing.
 	 */
 	const intermissions = useMemo(
 		() =>
@@ -1546,7 +1545,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 					specAudit.debuff?.engagedSegments ??
 					[],
 				analysis.durationMs,
-			).filter(([start, end]) => end - start >= MIN_INTERMISSION_MS),
+			),
 		[
 			analysis.timeline?.contactSegments,
 			specAudit.debuff?.contactSegments,

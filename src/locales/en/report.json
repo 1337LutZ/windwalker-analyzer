@@ -419,6 +419,9 @@
     "snapshotRate": "Proc windows caught",
     "earthShock": "Good Earth Shocks"
   },
+  "metric": {
+    "notAsked": "not measured at this many enemies"
+  },
   "empty": {
     "section": "Nothing to report here for this pull."
   },
@@ -523,8 +526,8 @@
       "note_elemental_other": "The blue stretches are {{names}}, the raid’s haste cooldown. Your globals and your casts are both shorter inside them, and your dots tick faster, so a stretch that looks busier there is the haste, not a change of plan."
     },
     "intermission": {
-      "title": "Intermission",
-      "note": "The shaded stretches are intermissions — the boss was out of reach, so there was nothing to press anything at. The boss was unreachable during those stretches, and none of it counts against you."
+      "title": "Nothing to hit",
+      "note": "The shaded stretches are the ones where nothing you pressed was landing on anything: an intermission with the boss out of reach, and the run-up either side of the pull — before your first hit lands, and after your last. None of it counts against you, and every uptime figure in this report is measured over the stretches in between."
     },
     "phase": {
       "title": "Phase",
@@ -1305,6 +1308,7 @@
     "verdict_good_full": "The dot was up for every second you had something to hit, across {{casts}} casts — a perfect keep-up.",
     "verdict_ok_full": "The dot was up for every second you had something to hit, across {{casts}} casts. {{wasted, integer}} of the refreshes threw away a tick of the running dot with no stronger snapshot to show for it.",
     "verdict_bad_full": "The dot was up for every second you had something to hit, across {{casts}} casts. The grade is about the refreshes, not the uptime: {{wasted, integer}} of them threw away a tick of the running dot with no stronger snapshot to show for it, spending a global for nothing.",
+    "verdict_exempt": "From three enemies up the multi-target order asks only that Flame Shock go back up when it is off the enemy in front of you — it holds you to no dot uptime and gives you no reason to refresh a dot that is still running. So your {{uptime, percent}} uptime across {{casts}} casts is drawn above and none of it is measured on this reading. Switch the reading with the control at the top of the page if you want it counted.",
     "verdict_none": "Flame Shock was never cast in this pull.",
     "kpi": {
       "uptime": "Dot uptime",
@@ -1349,8 +1353,10 @@
     "track": {
       "up": "Dot up",
       "dropped": "Dot down",
-      "away": "Nothing to hit"
-    }
+      "away": "Nothing to hit",
+      "aoe": "Three or more enemies"
+    },
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no Lava Burst in it at all, and Lava Burst is why a dropped Flame Shock costs far more than the global that puts it back — so nothing there holds you to a dot uptime, and those seconds leave the percentage instead of counting against you. Two enemies is still counted, because that list casts both Flame Shock and Lava Burst. Put the dot back up when it is off the enemy in front of you either way: that is the AoE list's first rung."
   },
   "earthShock": {
     "title": "Earth Shock",
@@ -1358,6 +1364,7 @@
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them.",
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them; the rest went out early.",
     "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them — most were spent before they were right.",
+    "verdict_exempt": "From three enemies up the multi-target order has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so none of your {{presses, integer}} shocks is right or wrong on this reading. Switch the reading with the control at the top of the page if you want them counted.",
     "verdict_none": "Earth Shock was never cast in this pull.",
     "kpi": {
       "good": "Good shocks",
@@ -1389,6 +1396,9 @@
     "verdict_good": "{{uptime, percent}} uptime, and no press landed over a live totem.",
     "verdict_ok": "{{uptime, percent}} uptime. {{clipped, integer}} presses clipped a healthy totem, throwing away {{wasted, duration}} of its dot.",
     "verdict_bad": "{{uptime, percent}} uptime, and {{clipped, integer}} presses clipped a healthy totem — {{wasted, duration}} of ticks the earlier press had already bought.",
+    "verdict_good_noUptime": "From three enemies up nothing in the multi-target order asks for a fire totem, so your {{uptime, percent}} totem uptime is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. What is measured at every enemy count is the slot, and you kept it clear: no Searing Totem of yours went down while the Fire Elemental was holding it.",
+    "verdict_ok_noUptime": "From three enemies up nothing in the multi-target order asks for a fire totem, so your {{uptime, percent}} totem uptime is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. What is measured at every enemy count is the slot, and one Searing Totem went down while the Fire Elemental was holding it. The elemental destroys whatever fire totem you lay under it, so that global bought nothing at any number of enemies — wait for the elemental to run out.",
+    "verdict_bad_noUptime": "From three enemies up nothing in the multi-target order asks for a fire totem, so your {{uptime, percent}} totem uptime is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. What is measured at every enemy count is the slot, and {{overlaps, integer}} Searing Totems went down while the Fire Elemental was holding it. The elemental destroys whatever fire totem you lay under it, so those globals bought nothing at any number of enemies — wait for the elemental to run out.",
     "verdict_none": "Searing Totem was never cast in this pull.",
     "kpi": {
       "uptime": "Totem uptime",
@@ -1418,8 +1428,10 @@
       "up": "Totem up",
       "dropped": "Totem down",
       "away": "Nothing to hit",
-      "elemental": "Fire Elemental out"
+      "elemental": "Fire Elemental out",
+      "aoe": "Three or more enemies"
     },
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no fire totem in it at all — neither Searing Totem nor Magma Totem — so an empty slot there is not a totem you dropped, and those seconds leave the percentage instead of counting against you. Two enemies is still counted, because that list keeps Searing Totem and ranks it above Flame Shock, Lava Burst, Elemental Blast and Earth Shock.",
     "gate": "The Fire Elemental takes the one Fire totem slot while it is out, destroying the totem — so that stretch is left out of both the graph and the percentage rather than counted as a totem dropped. A placement under the elemental is the one case the list forbids outright: it kills the elemental to buy a totem."
   },
   "flameShockSnapshots": {
@@ -1428,6 +1440,7 @@
     "verdict_good": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
     "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
     "verdict_bad": "Only {{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh — the rest let the proc pass without a snapshot.",
+    "verdict_exempt": "From three enemies up the multi-target order has no Flame Shock refresh in it, so there is no proc window here you were meant to snapshot: the {{caught, integer}} of {{offered, integer}} above is not measured on this reading. Switch the reading with the control at the top of the page if you want it counted.",
     "verdict_none": "No proc window was offered in this pull.",
     "kpi": {
       "refreshed": "Windows caught",
@@ -1576,6 +1589,9 @@
     "verdict_good": "The shield never sat at seven past the leeway and never fell off.",
     "verdict_ok": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times.",
     "verdict_bad": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times — both are charges the next spend lost.",
+    "verdict_good_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours never came off: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so it pays however many enemies are in front of you.",
+    "verdict_ok_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours came off once. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without.",
+    "verdict_bad_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours came off {{fellOff, integer}} times. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without.",
     "verdict_none": "Lightning Shield was never up in this pull.",
     "kpi": {
       "overcap": "Overcapped",

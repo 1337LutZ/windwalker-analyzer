@@ -80,13 +80,19 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 	 * between it and this row is decided by the same precedence rule the Elemental uptime charts use
 	 * rather than by a fourth complement written out here.
 	 *
-	 * **The filter stays outside it, and the difference is worth knowing about.** `gapsBetween` drops
-	 * gaps of a second or less before the windows ever reach here, so this row is the seconds the
-	 * denominator dropped *less the slivers* — while `FlameShockUptime` draws the complement whole. Two
-	 * charts of one pull can therefore print exempt totals a few hundred milliseconds apart. That is
-	 * deliberate on both sides for reasons in each file, not a bug either has, and `exemptRows` cannot
-	 * reconcile it because it is a question about what `contactSegments` measures rather than about how
-	 * overlapping causes divide.
+	 * **There was a filter in front of this, and it is gone.** `gapsBetween` used to drop gaps of a second
+	 * or less, so this row was the seconds the denominator dropped *less the slivers* while
+	 * `FlameShockUptime` drew the complement whole — three charts of one pull, three answers to "which
+	 * slivers count", and the `away` total in `chartLabel` below stating a number its own denominator did
+	 * not drop. Measured across the fixtures, that filter moved the drawn total by 162–483ms on five of six
+	 * Windwalker pulls and by the whole of it on `weave`, whose only out-of-contact stretches are 862 and
+	 * 57ms: the row vanished, the key with it, and the label printed `0ms` of a 919ms drop. It moved no
+	 * graded figure on any pull, because the uptime denominator is `contactSegments` either way.
+	 *
+	 * A rule that changes a stated total and nothing a reader can see is all cost, so the answer is one
+	 * floor and it is none. The row is `widen: false`, so a sliver draws at true sub-pixel width — nothing
+	 * appears, nothing is claimed, and the total is the denominator's. `CastTimeline` dropped a three-second
+	 * floor in the same change for the same reason.
 	 */
 	const exempt = useMemo(
 		() => exemptRows([{ label: t('debuff.track.away'), windows: tracks.away }], analysis.durationMs),
@@ -108,9 +114,9 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 	 * 535s pull, and from 256s to 289s of a 434s one: a track drawn near saturated above a tile that
 	 * reads 87%. Both rows are measurements the tiles state, so neither may overstate itself.
 	 *
-	 * The away row is filtered to gaps over a second before it ever reaches here, so every span it
-	 * carries already clears `DROP_MS` and the flag cannot change what it draws. It is set anyway, so
-	 * that a later reader does not have to work out which of the three rows was the special one.
+	 * The away row now carries every span of the complement, slivers included, so the flag is doing real
+	 * work on it rather than being set for symmetry: a 442ms tail widened to the floor would claim a break
+	 * in the fight that never happened. See the note above `gapsBetween`.
 	 *
 	 * Its tone is `EXEMPT` rather than a token written out here, because this row is the precedent the
 	 * Elemental uptime charts now follow — it used to be `muted` while theirs was `track`, which is one
@@ -185,16 +191,21 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 /**
  * The stretches *not* covered by `segments`, which is where there was nothing to fight.
  *
- * The complement itself is `complementOf` in the interval primitives — the cast timeline shades the
- * same stretches, and two hand-rolled complements would eventually disagree about a boundary. What
- * stays here is the filter: a sliver either side of a segment boundary is rounding, not a phase, and
- * a second's worth of it is a bar too thin to hover on a chart drawn at this width.
+ * `complementOf` and nothing else now — the cast timeline shades the same stretches off the same
+ * primitive, and this is what makes the two agree to the millisecond. There used to be a `> 1000` filter
+ * here on the argument that a sliver either side of a segment boundary is rounding rather than a phase.
+ * That argument is about how the span is *drawn*, and it was applied to the array as well: the row went
+ * into `chartLabel`'s `away` total, so the sentence stated a figure the uptime denominator had not
+ * dropped. Nothing a reader could see changed either way, because `widen: false` draws a 442ms span at a
+ * fraction of a pixel.
  *
- * It stays *here*, at the call site, rather than moving into `WindowTracks` with the rest of the
- * skeleton. The track component draws the arrays it is handed and does not second-guess them, because
- * every row it draws is a figure some tile above it states; deciding that part of an array is not
- * really data is a decision about what `contactSegments` measures, and this is the file that knows.
+ * The three kinds of span in here, measured rather than assumed, are worth knowing before anyone puts a
+ * floor back: on every fixture the complement is the lead-in before the first hit lands (862–2475ms), the
+ * tail after the last (57–483ms), and the genuine intermissions in between (17.8s on `strong`, 116.6s
+ * across six waves on `waves`, 39.0s on `mixed`). A duration threshold is a poor proxy for the first two
+ * and cuts the third on a short phase — at three seconds, four of nine pulls shaded nothing at all while
+ * spending 1.6–2.7s out of contact.
  */
 function gapsBetween(segments: ReadonlyArray<readonly [number, number]>, durationMs: number): Array<[number, number]> {
-	return complementOf([...segments], durationMs).filter(([start, end]) => end - start > 1000);
+	return complementOf([...segments], durationMs);
 }

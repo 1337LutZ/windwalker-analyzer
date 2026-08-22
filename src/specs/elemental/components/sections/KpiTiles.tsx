@@ -17,7 +17,15 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 	const { flameShock, snapshots, earthShock } = el;
 	// `toneOf` is the grade behind one tile's own number, from the hook — see its doc there for why a
 	// tile is coloured by its metric rather than by the section the metric sits in.
-	const { t, toneOf } = useReportCopy(analysis);
+	const { t, toneOf, unasked } = useReportCopy(analysis);
+	/**
+	 * The label, plus the one thing an uncoloured tile cannot say for itself.
+	 *
+	 * `toneOf` returns null for a metric with no threshold, one the log could not answer *and* one nothing
+	 * asked — the three have to look alike, so the summary row is where an unasked figure is most easily
+	 * read as a judged one. `unasked` separates the third case and the caption states it. See the hook.
+	 */
+	const tile = (key: string, metric: string) => (unasked(metric) ? `${t(key)} — ${t('metric.notAsked')}` : t(key));
 
 	const snapshotTotal = snapshots.refreshed + snapshots.missed;
 
@@ -29,13 +37,13 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 				<PaceTiles analysis={analysis} />
 				<StatTile
 					value={formatPercentValue(flameShock.uptimePct)}
-					label={t('kpi.flameShock')}
+					label={tile('kpi.flameShock', 'flameShockUptime')}
 					grade={toneOf('flameShockUptime')}
 				/>
 				<StatTile
 					value={`${snapshots.refreshed}`}
 					suffix={snapshotTotal > 0 ? `/${snapshotTotal}` : undefined}
-					label={t('kpi.snapshotRate')}
+					label={tile('kpi.snapshotRate', 'flameShockSnapshots')}
 					grade={toneOf('flameShockSnapshots')}
 				/>
 				{/*
@@ -46,7 +54,7 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 				<StatTile
 					value={`${earthShock.good}`}
 					suffix={earthShock.judged > 0 ? `/${earthShock.judged}` : undefined}
-					label={t('kpi.earthShock')}
+					label={tile('kpi.earthShock', 'earthShockGood')}
 					grade={toneOf('earthShockGood')}
 				/>
 			</StatTiles>

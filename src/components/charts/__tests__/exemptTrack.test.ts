@@ -22,7 +22,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { complementOf, intersect } from '~/lib/analysis/intervals';
+import { complementOf, intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
@@ -77,6 +77,24 @@ const SUBMERGE: Array<[number, number]> = [
 	[142_282, 192_534],
 	[257_821, 258_304],
 ];
+
+/**
+ * `a:5R2WhbtHK1AM3Vgn` #19 — the one committed Elemental pull that ever exceeds two enemies, and so the
+ * only one that can show an AoE exempt row at all.
+ *
+ * **The reason the tests below are on this fixture and not on `phased`.** Everything above runs on
+ * `phased`, which never leaves one enemy: `lightningShield.aoeWindows` is empty there, so a chart that
+ * drew the AoE stretches into its *red* row — fault time its own percentage had stopped charging — would
+ * pass every assertion in this file. The guard was blind to the disagreement by fixture choice, which is
+ * exactly the shape of bug this file exists to catch. 82 858ms of `cleave`'s 263 233 are above two enemies,
+ * across seven stretches.
+ */
+const cleave = elemental('cleave');
+
+const toIntervals = (windows: ReadonlyArray<{ start: number; end: number }>): Interval[] =>
+	windows.map((w): Interval => [w.start, w.end]);
+const spans = (windows: ReadonlyArray<readonly [number, number]>): Interval[] =>
+	windows.map((w): Interval => [w[0], w[1]]);
 
 describe('the exempt row', () => {
 	it('is drawn last, behind the up and down rows it is the ground for', () => {
@@ -150,6 +168,100 @@ describe('the exempt row', () => {
 			{ label: 'Fire Elemental out', windows: slot },
 			{ label: 'Nothing to hit', windows: away },
 		]);
+	});
+
+	/**
+	 * The AoE row, and the red row it came out of — one claim per stretch of pull.
+	 *
+	 * `8d8b1f0` cut both dot clocks with `gradedSpans`, so `flameShock.scoredMs` and
+	 * `searingTotem.scoredMs` stopped charging add-wave time and the two tiles moved (72.30% → 83.90% and
+	 * 78.72% → 88.50%). Until this landed the charts' red rows still spanned those stretches, so the
+	 * picture charged the reader for time the percentage beside it had already forgiven. Both halves are
+	 * asserted here: the grey row exists, and the red row is out of the same milliseconds.
+	 */
+	it('shades the add waves both dot clocks now drop, and stops calling them a fault', () => {
+		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
+		expect(unionMs(aoe)).toBe(82_858); // the fixture fact the rest of this rests on
+
+		for (const [name, chart] of [
+			['Flame Shock', FlameShockUptime],
+			['Searing Totem', SearingTotemUptime],
+		] as const) {
+			const rows = rowsOf(createElement(chart, { analysis: cleave }));
+			const grey = rows.find((row) => row.label === 'Three or more enemies');
+			expect(grey, name).toBeDefined();
+			expect(unionMs(spans(grey?.windows ?? [])), name).toBeGreaterThan(0);
+
+			// Not one millisecond of the add waves is drawn as a dropped dot or a dropped totem.
+			const red = rows.find((row) => row.tone === 'miss');
+			expect(unionMs(intersect(spans(red?.windows ?? []), aoe)), name).toBe(0);
+		}
+	});
+
+	/**
+	 * And the arithmetic behind those rows, to the millisecond: the exempt rows are the pull less the clock
+	 * the tile's percentage was taken over.
+	 *
+	 * This is the identity the whole exempt-row idea rests on, checkable here for the first time because
+	 * the audit now publishes the graded length. It is also what settles the sliver question — a length
+	 * floor on any of these rows would move one side of this equality and nothing else, which is a chart
+	 * telling a different story from its own tile.
+	 */
+	it('draws exactly the pull the two dot clocks did not measure', () => {
+		for (const [name, chart, scoredMs] of [
+			['Flame Shock', FlameShockUptime, cleave.flameShock.scoredMs],
+			['Searing Totem', SearingTotemUptime, cleave.searingTotem.scoredMs],
+		] as const) {
+			const rows = rowsOf(createElement(chart, { analysis: cleave }));
+			const exempt = rows.filter((row) => row.tone === EXEMPT).flatMap((row) => spans(row.windows));
+			expect(unionMs(exempt), name).toBe(cleave.durationMs - scoredMs);
+		}
+		// The two figures the equality is against, so a fixture recapture that moved them says so here.
+		expect(cleave.flameShock.scoredMs).toBe(178_814);
+		expect(cleave.searingTotem.scoredMs).toBe(127_378);
+	});
+
+	/**
+	 * A no-change guard, labelled: `phased` never leaves one enemy, so neither chart may grow a row.
+	 *
+	 * Which is the point about fixture choice made at `cleave` above, from the other side — the absence of
+	 * the row is the answer on a pull with no add wave, and a row that appeared empty would read as a
+	 * rendering fault.
+	 */
+	it('draws no AoE row on a pull that never left one enemy', () => {
+		expect(phased.lightningShield.aoeWindows).toEqual([]); // no-change guard
+		for (const chart of [FlameShockUptime, SearingTotemUptime]) {
+			const labels = rowsOf(createElement(chart, { analysis: phased })).map((row) => row.label);
+			expect(labels).not.toContain('Three or more enemies'); // no-change guard
+		}
+	});
+
+	/**
+	 * The Rising Sun Kick row, against the array its own denominator dropped — the assertion this file
+	 * made about Flame Shock and never about this chart.
+	 *
+	 * `gapsBetween` used to filter the complement to gaps over a second, so the row was the seconds the
+	 * denominator dropped *less the slivers* while the two Elemental charts drew theirs whole. Three
+	 * charts of one pull, three answers to "which slivers count", and `debuff.chartLabel` printing an
+	 * `away` total that no denominator matched.
+	 *
+	 * `weave` is the pull that makes the difference unarguable rather than pedantic: its only stretches
+	 * out of contact are 862ms at the front and 57ms at the back, so under the old filter the row was
+	 * empty, the key entry vanished and the label stated 0ms of a 919ms drop.
+	 */
+	it.each([
+		['weave', 919],
+		['strong', 19_812],
+		['waves', 117_004],
+	])('draws the seconds the Rising Sun Kick denominator dropped on %s', (name, awayMs) => {
+		const analysis = windwalker(name);
+		const contact = analysis.debuff.contactSegments ?? [];
+		expect(contact.length).toBeGreaterThan(0);
+		const away = rowsOf(createElement(DebuffTimeline, { analysis, target: 'the boss' })).find(
+			(row) => row.tone === EXEMPT,
+		);
+		expect(spans(away?.windows ?? [])).toEqual(complementOf([...contact], analysis.durationMs));
+		expect(unionMs(spans(away?.windows ?? []))).toBe(awayMs);
 	});
 
 	it('is one tone across every chart that has one', () => {

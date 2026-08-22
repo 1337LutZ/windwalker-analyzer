@@ -31,7 +31,7 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { earthShock } = el;
-	const { t, verdict } = useReportCopy(analysis);
+	const { t, unasked, verdict } = useReportCopy(analysis);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -67,7 +67,15 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-4.5">
 				<StatTiles>
-					<StatTile value={`${earthShock.good}`} suffix={`/${earthShock.judged}`} label={t('earthShock.kpi.good')} />
+					<StatTile
+						value={`${earthShock.good}`}
+						suffix={`/${earthShock.judged}`}
+						label={
+							unasked('earthShockGood')
+								? `${t('earthShock.kpi.good')} — ${t('metric.notAsked')}`
+								: t('earthShock.kpi.good')
+						}
+					/>
 					<StatTile value={`${earthShock.belowFull}`} label={t('earthShock.kpi.belowFull')} />
 				</StatTiles>
 			</div>
@@ -86,7 +94,18 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">
-				<Prose>{verdict('earthShock', { good: earthShock.good, casts: earthShock.judged })}</Prose>
+				{/* `presses` is only read by `verdict_exempt`, which is the sentence for a reading where no list
+				    has an Earth Shock rule at all: `judged` is the count at one and two enemies, so on that
+				    reading it is the wrong number to name and the total is the right one. Without it the
+				    fallback was `verdict_none` — "Earth Shock was never cast in this pull" — printed over a
+				    table of shocks. */}
+				<Prose>
+					{verdict('earthShock', {
+						good: earthShock.good,
+						casts: earthShock.judged,
+						presses: earthShock.presses.length,
+					})}
+				</Prose>
 				{/*
 				 * The presses this section is *not* judging, said out loud on the pulls that have any.
 				 *

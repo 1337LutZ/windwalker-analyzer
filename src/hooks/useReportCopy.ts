@@ -55,6 +55,22 @@ export interface ReportCopy {
 	 */
 	toneOf: (key: string) => Grade | null;
 	/**
+	 * Whether one metric's own scope excludes the reading, by its key — the question was not asked of this
+	 * pull, as opposed to asked and unanswerable.
+	 *
+	 * The distinction `toneOf` cannot make and must not: it returns `null` for a metric with no threshold,
+	 * for one the log could not answer, and for one nothing asked, because all three have to *look* the
+	 * same — an uncoloured tile. What the copy beside the tile has to say about them is not the same at
+	 * all. "We could not read this" is a hedge about the log; "nothing asked this of you" is a fact about
+	 * the pull, and only the second one has a number sitting next to it that the reader will otherwise
+	 * take as judged.
+	 *
+	 * Searched across every section rather than by section name, for the reason `toneOf` gives: metric
+	 * keys are unique across a scorecard, so the first match is the only match. False for a key no
+	 * scorecard holds, which is the same answer as "nothing exempted it".
+	 */
+	unasked: (key: string) => boolean;
+	/**
 	 * The graded sentence for a section: `t('<section>.verdict', { context: <grade> })`.
 	 *
 	 * Values are interpolated, so a verdict can name the numbers that produced it. Pass `count` when
@@ -148,6 +164,17 @@ export function useReportCopy(analysis: Analysis): ReportCopy {
 		[card],
 	);
 
+	const unasked = useCallback(
+		(key: string): boolean => {
+			for (const score of Object.values(card.sections)) {
+				const metric = score.metrics.find((m) => m.key === key);
+				if (metric) return metric.exempt === true;
+			}
+			return false;
+		},
+		[card],
+	);
+
 	const verdict = useCallback(
 		(section: string, values: Record<string, unknown> = {}) => {
 			const grade = gradeOf(section);
@@ -162,5 +189,5 @@ export function useReportCopy(analysis: Analysis): ReportCopy {
 		[t, gradeOf],
 	);
 
-	return { t, card, gradeOf, toneOf, verdict };
+	return { t, card, gradeOf, toneOf, unasked, verdict };
 }

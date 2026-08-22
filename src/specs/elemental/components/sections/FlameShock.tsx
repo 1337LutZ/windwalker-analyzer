@@ -74,7 +74,14 @@ function snapshotWording(press: FlameShockPress): Record<string, string> {
 export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { flameShock } = el;
-	const { t, gradeOf } = useReportCopy(analysis);
+	// The stretches three or more enemies were up, straight off the array the audit's own `gradedSpans` is
+	// the complement of — the same one `FlameShockUptime` shades. Read here only to decide whether the
+	// note below has a band to explain.
+	const aoeWindows = el.lightningShield.aoeWindows;
+	const { t, gradeOf, unasked } = useReportCopy(analysis);
+	// A tile whose number nothing on this reading was measured against says so in its own label rather
+	// than in a note under the table — see the same two lines in `SearingTotem.tsx`. The number stays.
+	const tile = (key: string, metric: string) => (unasked(metric) ? `${t(key)} — ${t('metric.notAsked')}` : t(key));
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -140,7 +147,12 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	 */
 	const grade = gradeOf('flameShock');
 	const fullUptime = flameShock.windows.length > 0 && flameShock.uptimePct >= FULL_UPTIME_PCT;
-	const context = fullUptime && grade !== 'none' ? `${grade}_full` : grade;
+	// `exempt` is excluded alongside `none`, and it has to be: the `_full` variants exist to re-word a
+	// *graded* sentence written around a gap, and there is no `verdict_exempt_full` — i18next resolves a
+	// missing context to the bare `flameShock.verdict`, which no section has, and renders the key itself at
+	// the reader. `unbroken` read as multi-target is exactly that pull: 100% uptime and every rule unasked,
+	// so it printed the literal text `flameShock.verdict` where its verdict belongs.
+	const context = fullUptime && grade !== 'none' && grade !== 'exempt' ? `${grade}_full` : grade;
 
 	return (
 		<Section id="flame-shock" title={t('flameShock.title')}>
@@ -153,13 +165,19 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-4.5">
 				<StatTiles>
-					<StatTile value={formatPercentValue(flameShock.uptimePct)} label={t('flameShock.kpi.uptime')} />
+					<StatTile
+						value={formatPercentValue(flameShock.uptimePct)}
+						label={tile('flameShock.kpi.uptime', 'flameShockUptime')}
+					/>
 					<StatTile value={`${flameShock.applies}`} label={t('flameShock.kpi.applies')} />
 					<StatTile value={`${flameShock.refreshes}`} label={t('flameShock.kpi.refreshes')} />
 					<StatTile value={`${flameShock.windowed}`} label={t('flameShock.kpi.windowed')} />
 					{/* The cleave rule's own tile, present only when the pull actually had a second target. */}
 					{flameShock.multiTargetMs > 0 ? (
-						<StatTile value={formatPercentValue(flameShock.multiDotUptimePct)} label={t('flameShock.kpi.multiDot')} />
+						<StatTile
+							value={formatPercentValue(flameShock.multiDotUptimePct)}
+							label={tile('flameShock.kpi.multiDot', 'flameShockMultiDot')}
+						/>
 					) : null}
 				</StatTiles>
 			</div>
@@ -197,6 +215,16 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 						wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
 					})}
 				</Prose>
+				{/* What the grey band on the uptime graph means, on the pulls that have one.
+
+				    The same gate and the same argument as `lightningShield.aoeNote`: the key names the band
+				    and a key cannot carry a reason, so without this the graph shades a stretch and the tile
+				    prints a percentage with no text anywhere saying the second was measured over the
+				    complement of the first. Gated on the band rather than printed always, because a note on
+				    every pull tells a reader nothing about this one — and it is the only place the
+				    two-target case is stated, which is the half a reader who takes the grey to mean "adds
+				    were forgiven" is owed. */}
+				{aoeWindows.length === 0 ? null : <Note>{t('flameShock.aoeNote')}</Note>}
 				<Note>{t('flameShock.snapshotNote')}</Note>
 			</div>
 		</Section>
