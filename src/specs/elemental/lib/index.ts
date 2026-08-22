@@ -200,6 +200,37 @@ const ES_TWO_PIECE_TAIL_MS = 4000;
  * and the literal `"10%"` appears twice in that variable with no 15% anywhere for this spell. Worth
  * naming because the rule was reported to this project as 15%, and the report's own copy already said
  * ten (`flameShockSnapshots.measurable`).
+ *
+ * ### Re-examined against Clearcasting, and deliberately left alone (plan §87)
+ *
+ * The objection was sharp and arithmetically right: Clearcasting is **+20%** and up for 52-72% of these
+ * pulls, so a stack on its own is twice this number and "a bar a single always-available proc clears is
+ * not a bar". Three things answer it, in the order they were measured.
+ *
+ * **1. The sim's own numerator has the proc in it, so the total is the figure being cited.**
+ * `dotPercentIncrease` divides `ExpectedTickDamage` by `ExpectedTickDamageFromCurrentSnapshot`
+ * (`sim/core/apl_values_dot.go:338-347`), and Flame Shock's non-snapshot branch is
+ * `spell.CalcPeriodicDamage(...)` (`sim/shaman/shocks.go:96-107`) — the spell's *current*
+ * `DamageMultiplier`, which is where the school mod lives. So the list this report grades against would
+ * itself refresh early under Clearcasting, **because of** Clearcasting. Netting the proc out here would
+ * make this figure disagree with the rotation it is named after, and a press the sim would make would
+ * start reading as waste.
+ *
+ * **2. It is not the proc that carries the credited presses anyway, and that is measured per press.**
+ * `FlameShockPress.snapshotDeltaWithoutClearcastingPct` divides the +20% out of whichever of the two
+ * applications froze it. On the committed fixtures every one of the seven graded presses lands on the
+ * same side of this threshold either way: the three credited ones are +42.4/+56.2/+32.7 as measured and
+ * +18.7/+30.1/+59.2 with the proc removed. One of the three is *stronger* with it removed, because the
+ * dot it replaced had the proc and the dot it applied did not.
+ *
+ * **3. Raising it would be a move no fixture can see.** The seven graded deltas are +56.2%, +42.4%,
+ * +32.7%, +0.01%, −23.3%, −41.0% and −52.5%, so **every threshold strictly between +0.01% and +32.7%
+ * classifies all seven identically** — and on the proc-free reading the same is true from +0.01% to
+ * +18.7%. Moving a graded threshold into a gap that wide is tuning against nothing, which is plan §90's
+ * finding verbatim: a declared control that changed no outcome while looking like one.
+ *
+ * What was wrong was the **copy**, which named a trinket's spellpower as the reason. That is fixed where
+ * it was wrong: `flameShock.intent`, `flameShock.state.snapshot*` and `flameShock.snapshotNote`.
  */
 const FS_SNAPSHOT_GAIN = 0.1;
 const ES_FS_MIN_MS = 6000;
@@ -396,6 +427,22 @@ const LIGHTNING_SHIELD_MAX_STACKS = 7;
  */
 const CLEARCASTING_MAX_STACKS = 2;
 const CLEARCASTING_DURATION_MS = 15_000;
+/**
+ * The factor Clearcasting multiplies an Elemental-school spell's damage by, and the one number in this
+ * file whose job is to split a shipped figure into two named halves.
+ *
+ * `SpellMod_DamageDone_Pct` **+0.2** over `School: core.SpellSchoolElemental`
+ * (`sim/shaman/talents_elemental.go`), applied as `spell.DamageMultiplier *= 1 + mod.floatValue`
+ * (`sim/core/spell_mod.go:499`) and then frozen by `Dot.Snapshot` — the chain `clearcasting.test.ts`
+ * proves five ways out of the sim and then measures off the fixtures at 1.236 and 1.262.
+ *
+ * It is here because it is the **largest single term in `snapshotDeltaPct`** and was an unnamed one until
+ * plan §87: one stack is twice the threshold the refresh is credited against, and it is up for 52-72% of
+ * these pulls, so a reader told a refresh was "worth the tick" could not tell whether the dot grew because
+ * of the gear the copy talked about or because of a proc every crit hands out. Dividing it back out does
+ * not change what is graded — see `FS_SNAPSHOT_GAIN` for why that would be the wrong move.
+ */
+const CLEARCASTING_DAMAGE_MULT = 1.2;
 
 /**
  * How long the shield may sit at the ceiling before the time counts as overcapped.
@@ -1812,6 +1859,20 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		return Math.max(0, t - previousEnd - overlapMs(previousEnd, t, fsAway));
 	};
 
+	/**
+	 * Clearcasting's own windows, for the snapshot attribution each press carries.
+	 *
+	 * `selfWindows` and not `laneWindows`: the plain walk, with no pre-pull inference. That is the standing
+	 * rule this file states at `laneWindows` — an inferred bar is evidence about the pull and never about a
+	 * press — and it bites here, because the drawn row *does* infer and a press one second into the fight
+	 * would otherwise be told it froze a proc recovered from a bare removal.
+	 *
+	 * This grades nothing. `clearcasting.test.ts` asserts that no rotation asks for the proc and that the
+	 * audit publishes no figure about it, and that still holds: what is published here is an attribution of
+	 * a number the report already showed, not a judgement on a press the player made.
+	 */
+	const clearcastingWindows = selfWindows(CLEARCASTING);
+
 	const fsPresses: FlameShockPress[] = fsCasts.map((t) => {
 		const spawn = fsAimedAt.get(t) ?? spawnAt(t);
 		// An empty timeline needs no separate arm: `remainingAtCast` reads nothing as 0, and 0 is the
@@ -1886,6 +1947,43 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const snapshotDeltaPct =
 			remaining > 0 && before !== null && after !== null ? after.strength / before.strength - 1 : null;
 		const snapshotGain = snapshotDeltaPct !== null && snapshotDeltaPct > FS_SNAPSHOT_GAIN;
+		/**
+		 * Which of the two applications froze Clearcasting, and the delta with its +20% taken back out.
+		 *
+		 * Plan §87. `snapshotDeltaPct` above is the sim's own ratio and stays the graded one, but it is a
+		 * *total*, and its biggest single term is a proc no reader of this section was ever told about:
+		 * `CLEARCASTING_DAMAGE_MULT` is +20% against a threshold of ten, so a stack on one side of the
+		 * comparison and not the other clears the bar by itself. That is not a reason to net it out of the
+		 * grade (`FS_SNAPSHOT_GAIN` says why) — it is a reason the section has to be able to **name** it,
+		 * and the aura being modelled since `8f3f579` is what makes naming it possible.
+		 *
+		 * Read at the press for the new application and at the press before it on the same spawn for the one
+		 * being replaced, which is the same pair of boundaries the strengths themselves come from — so the
+		 * proc state and the ratio cannot end up describing different applications.
+		 *
+		 * **The containment test has to include the closing instant, and this is not a convention.** Flame
+		 * Shock is on the sim's `canConsumeSpells` mask, and `applyEffects` runs *before* `OnCastComplete`
+		 * (`sim/core/cast.go:329-332`), so a press that spends the last stack is applied with the multiplier
+		 * still on. The log writes that as a `removebuff` in the very millisecond of the cast: three of the
+		 * fixtures' presses are exactly that, and a half-open reading would call every one of them
+		 * proc-free. `inWindow` is inclusive at both ends, and `clearcasting.test.ts` measured the +20% off
+		 * the fixtures with the same inclusive test.
+		 */
+		const clearcasting = inWindow(t, clearcastingWindows);
+		const clearcastingBefore =
+			bounds !== undefined && Number.isFinite(bounds.previous) ? inWindow(bounds.previous, clearcastingWindows) : null;
+		/**
+		 * `snapshotDeltaPct` with Clearcasting's term divided out — the part of the gain the proc cannot
+		 * explain. Held to being the **identical value** when the proc is not a term at all, which the early
+		 * return below guarantees rather than approximates: a reader of the two fields together decides
+		 * whether to name the proc by whether they differ, so an epsilon here would be a wrong sentence.
+		 */
+		const snapshotDeltaWithoutClearcastingPct =
+			snapshotDeltaPct === null || clearcastingBefore === null || clearcastingBefore === clearcasting
+				? snapshotDeltaPct
+				: clearcasting
+					? (1 + snapshotDeltaPct) / CLEARCASTING_DAMAGE_MULT - 1
+					: (1 + snapshotDeltaPct) * CLEARCASTING_DAMAGE_MULT - 1;
 		const exposed = remaining > 0 ? null : downBefore(spawn, t);
 		// `snapshot` sits *after* `windowed` and `ascPrep`, not before them. A last-tick refresh is already
 		// the best the global can buy and needs no second justification, and crediting one press under two
@@ -1917,6 +2015,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			windowed,
 			ascPrep,
 			snapshotDeltaPct,
+			snapshotClearcasting: clearcasting,
+			snapshotDeltaWithoutClearcastingPct,
 			// A refresh while Ascendance is up is a global thrown away — the list wants Lava Burst then.
 			duringAscendance: inWindow(t, ascActiveWindows),
 		};

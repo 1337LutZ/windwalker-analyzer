@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatClock, formatPercentValue, formatSeconds } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import { formatClock, formatPercent, formatPercentValue, formatSeconds } from '~/lib/format';
+import type { Analysis, ElementalAuditResult, FlameShockPress } from '~/lib/types';
 
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
 import FlameShockDepth from '../charts/FlameShockDepth';
@@ -24,6 +24,44 @@ import FlameShockUptime from '../charts/FlameShockUptime';
  * it and a range could. Do not narrow it back on the grounds that the ratio is now clipped.
  */
 const FULL_UPTIME_PCT = 99.995;
+
+/**
+ * How a credited early refresh is worded, and which of its two figures the sentence leads with.
+ *
+ * Plan §87. The gain a `snapshot` press is credited for is a total, and its largest single term is
+ * Clearcasting's +20% — twice the threshold on its own, and up for 52-72% of the committed pulls. Two of
+ * the three presses this report credits were made under it. So a row that said "worth the tick" beside a
+ * section talking about a trinket's spellpower was telling a reader the wrong reason for a right number.
+ *
+ * `snapshotDeltaWithoutClearcastingPct` is that same gain with the proc divided out of whichever
+ * application froze it, and it is **strictly equal** to the total when the proc is not a term — both dots
+ * had it, or neither did — which is what makes the comparison below a safe way to decide whether the proc
+ * is worth naming. That equality is guaranteed at the point of derivation, not approximated; see the
+ * field's own doc.
+ *
+ * Returns the interpolation for the neutral string when there is nothing to attribute, so a press with no
+ * reading at all keeps exactly the wording it had.
+ */
+function snapshotWording(press: FlameShockPress): Record<string, string> {
+	const gain = press.snapshotDeltaPct;
+	const own = press.snapshotDeltaWithoutClearcastingPct;
+	// Only the credited kind, rather than every press that happens to carry a reading. A `windowed`
+	// refresh needs no snapshot excuse and is not counted under one (see the ladder's ordering in
+	// `lib/index.ts`), so re-wording its row on a figure it was not judged on would say the excuse was
+	// used. Passing nothing keeps every other kind on the string it already had, with no lookup that
+	// depends on a missing-context fallback.
+	if (press.kind !== 'snapshot' || gain === null || own === null) return {};
+	if (own === gain) return { gain: formatPercent(gain) };
+	return {
+		gain: formatPercent(gain),
+		own: formatPercent(own),
+		// `froze` where this dot carries the proc and the one it replaced did not; `gaveUp` the other way
+		// round, which is the case that matters most — `unbroken`'s refresh at 2:20 is 32.7% stronger while
+		// *losing* the proc, so it is 59.2% stronger on everything else. A press like that is the clearest
+		// evidence the figure is not an artefact of the proc, and it deserves its own sentence.
+		context: press.snapshotClearcasting ? 'froze' : 'gaveUp',
+	};
+}
 
 /**
  * Flame Shock: the dot the whole rotation is written around.
@@ -84,7 +122,7 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 									? t(`flameShock.state.${press.kind}`)
 									: press.duringAscendance
 										? t('flameShock.state.duringAscendance')
-										: t(`flameShock.state.${press.kind}`),
+										: t(`flameShock.state.${press.kind}`, snapshotWording(press)),
 						},
 					};
 				}),

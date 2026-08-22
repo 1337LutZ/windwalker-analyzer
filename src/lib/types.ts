@@ -2160,6 +2160,46 @@ export interface FlameShockPress {
 	 * is the same looseness the `flameShockSnapshots` metric already lives with.
 	 */
 	snapshotDeltaPct: number | null;
+	/**
+	 * Whether the dot **this press applied** froze Clearcasting's +20% into itself.
+	 *
+	 * Elemental Focus (16246) is `SpellMod_DamageDone_Pct` +0.2 over `SpellSchoolElemental`, and the dot is
+	 * a Fire spell inside that mask, so an application made under the proc carries the whole 20% for all
+	 * thirty seconds — proven five ways out of the sim and then measured off these fixtures at 1.236 and
+	 * 1.262 in `clearcasting.test.ts`.
+	 *
+	 * True at the closing millisecond of a window as well as inside it, and that is load-bearing rather
+	 * than tidy: Flame Shock spends a stack, `applyEffects` runs before `OnCastComplete`
+	 * (`sim/core/cast.go:329-332`), and the log stamps the resulting `removebuff` in the same millisecond
+	 * as the cast — three of the committed fixtures' presses are exactly that case.
+	 *
+	 * **Not a grade and not gradeable.** No `ui/shaman/elemental/apls/*.apl.json` mentions the proc, so
+	 * nothing here says a press should or should not have been made under it. It is published so the
+	 * section can say *which term* made a dot stronger — see below.
+	 */
+	snapshotClearcasting: boolean;
+	/**
+	 * `snapshotDeltaPct` with Clearcasting's +20% divided back out of whichever of the two applications
+	 * froze it — how much stronger the new dot is on everything **except** the proc.
+	 *
+	 * Plan §87, and the fault it fixes is in a number the report already showed. `snapshotDeltaPct` is the
+	 * sim's own total and stays what the press is graded on; but the proc is +20% against a threshold of
+	 * ten and is up for 52-72% of these pulls, so on its own it clears the bar — and the section's copy
+	 * named a trinket's spellpower as the reason. Two of the three credited presses in the fixtures were
+	 * made under it. This field is what lets the sentence name the term that actually did the work instead
+	 * of implying one that did not.
+	 *
+	 * **Strictly equal to `snapshotDeltaPct`, not merely close, when the proc is not a term** — both
+	 * applications froze it, or neither did. A reader decides whether to name the proc by whether the two
+	 * differ, so the equality is exact by construction and asserted.
+	 *
+	 * Null exactly when `snapshotDeltaPct` is null, for the same reasons and never for others.
+	 *
+	 * It is an attribution and **not a second threshold**. Netting the proc out of the grade would put this
+	 * report at odds with the list it grades against, whose own `dotPercentIncrease` numerator has the proc
+	 * in it; and on the committed fixtures it would change no press either way. See `FS_SNAPSHOT_GAIN`.
+	 */
+	snapshotDeltaWithoutClearcastingPct: number | null;
 	/** Whether Ascendance was up under the press — a refresh thrown away while Lava Burst wanted the global. */
 	duringAscendance: boolean;
 }

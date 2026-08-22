@@ -1259,7 +1259,7 @@
   },
   "flameShock": {
     "title": "Flame Shock",
-    "intent": "A thirty-second snapshot dot, no cooldown and no cast time. Lava Burst needs it on the target, and the dot keeps whatever spellpower you applied it with for its whole duration — so letting Flame Shock drop costs you far more than the one global it takes to put it back.",
+    "intent": "A thirty-second snapshot dot, no cooldown and no cast time. Lava Burst needs it on the target, and the dot freezes everything you had up at the instant you applied it — spellpower, your haste, and Clearcasting’s +20% — then keeps all of it for the full thirty seconds. So letting Flame Shock drop costs you far more than the one global it takes to put it back.",
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and every refresh bought something.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes threw away a tick of the running dot with no stronger snapshot to show for it.",
     "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot was off the target for the rest of the time you had something to hit. {{wasted, integer}} refreshes also threw away a tick of the running dot with no stronger snapshot to show for it.",
@@ -1287,12 +1287,14 @@
       "duringAscendance": "Refresh during Ascendance",
       "ascPrep": "Refreshed early to carry the dot into Ascendance",
       "windowed": "Last-tick refresh",
-      "snapshot": "Refreshed early into a dot over 10% stronger — worth the tick",
+      "snapshot": "Refreshed early into a dot {{gain}} stronger — worth the tick",
+      "snapshot_froze": "Refreshed early into a dot {{gain}} stronger, with Clearcasting’s +20% frozen into it — {{own}} stronger without the proc",
+      "snapshot_gaveUp": "Refreshed early into a dot {{gain}} stronger even though Clearcasting was up on the dot you replaced and not on this one — {{own}} stronger on everything but the proc",
       "early": "Early — a tick thrown away"
     },
     "caption": "Every Flame Shock press, what was left on the dot, and what the press bought you",
     "none": "Flame Shock was never pressed in this pull.",
-    "snapshotNote": "A refresh with one tick still to come throws nothing away — that tick rolls over into the new application, which is what “Last-tick refresh” and the “ticks left” column mean. An earlier one is not automatically a mistake either. The priority list wants one when the new application snapshots a dot more than 10% stronger per second — more spellpower, more crit, or a faster tick cadence — and those presses read “Early, for a stronger dot” above and are not counted as waste. Only the size of the gain is checked, not the proc that usually causes it, so a lucky press reads the same as a read one. The proc windows themselves are graded in the Snapshots section.",
+    "snapshotNote": "A refresh with one tick still to come throws nothing away — that tick rolls over into the new application, which is what “Last-tick refresh” and the “ticks left” column mean. An earlier one is not automatically a mistake either. The priority list wants one when the new application snapshots a dot more than 10% stronger per second, and those presses read “worth the tick” above and are not counted as waste. Four things can make the new dot stronger: more spellpower, more crit, a faster tick cadence, and Clearcasting, which is +20% on its own — twice the bar, and up for more than half of a normal pull. So where Clearcasting was frozen into one of the two dots and not the other, the row says so and gives you the second figure with the proc divided back out: that is the part your timing bought. Only the size of the gain decides the row, never which proc produced it, so a lucky press reads the same as a read one. The procs worth timing a refresh around are graded in the Snapshots section.",
     "chart": {
       "key": {
         "windowed": "In the last tick",
