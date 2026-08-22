@@ -131,24 +131,34 @@ const OVERSHOT = 130;
  * A real anchor rather than a click handler: it is a jump to a place on this page, so it should
  * middle-click, right-click and keyboard like every other link. `scroll-mt` on the headings already
  * keeps the landing clear of the sticky bar.
+ *
+ * **The link wraps the name and not the icon, because `SpellIcon` is itself an anchor** — to Wowhead.
+ * Wrapping both put `<a>` inside `<a>`, which React renders happily and the HTML parser refuses: it
+ * closes the open anchor rather than nesting, so the server's DOM came back with two siblings where the
+ * client tree had one inside the other. That was the `/preview` hydration mismatch, and React named it
+ * exactly ("In HTML, <a> cannot be a descendant of <a>"). It was never viewport-dependent — `DataGrid`
+ * server-renders both layouts, so the nesting appeared twice per pull, which is why it survived a fix
+ * aimed at the narrow branch.
+ *
+ * `ItemIcon` carries this rule as a comment already and lays its gems out as siblings for the same
+ * reason; this is that precedent applied rather than a new idea.
  */
 function nameCell(c: CastRow) {
 	const section = DEEP_DIVE[c.id];
-	const label = (
-		<>
+	return (
+		<span className="flex items-center gap-2">
 			<SpellIcon id={c.id} size="sm" />
-			<span>{c.name}</span>
-		</>
-	);
-	return section === undefined ? (
-		<span className="flex items-center gap-2">{label}</span>
-	) : (
-		<a
-			href={`#${section}-heading`}
-			className="flex items-center gap-2 rounded-sm underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
-		>
-			{label}
-		</a>
+			{section === undefined ? (
+				<span>{c.name}</span>
+			) : (
+				<a
+					href={`#${section}-heading`}
+					className="rounded-sm underline decoration-line underline-offset-4 transition-colors hover:decoration-kick hover:text-ink"
+				>
+					{c.name}
+				</a>
+			)}
+		</span>
 	);
 }
 
