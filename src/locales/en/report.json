@@ -355,16 +355,43 @@
   },
   "mana": {
     "title": "Mana",
-    "intent": "Mana refills on a clock and is spent by everything you cast, so a full bar is exactly where it should be. Its only fault is the floor: running out, which is the one thing no other bar in this report can do.",
-    "none": "This log carried no resource snapshots, so there is no mana bar to read. Nothing is wrong with the pull — the report was simply not given the numbers.",
-    "clean": "Mana never ran out. Every cast the pull asked for was affordable.",
-    "summary": "Mana sat empty for {{empty, duration}} of the {{duration, clock}} pull, so for that long the next cast simply could not go out.",
+    "intent": "Everything you cast comes out of this pool, so a full bar is exactly where it should be — the only fault is the floor. Two buttons refill it, and on two targets you press both on a number: Thunderstorm at {{starved, percent}} mana, which hands back {{starved, percent}} of your maximum for free, and Shamanistic Rage at {{strained, percent}}, which cuts what your casts cost for fifteen seconds and does not even take a global. What is flagged below is sitting under one of those numbers with the button for it up and unpressed.",
+    "verdict_good": "You never sat under {{starved, percent}} with Thunderstorm up, and never under {{strained, percent}} with Shamanistic Rage up. The pool was never the thing holding your casts back.",
+    "verdict_ok": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. Press Thunderstorm the moment the bar reaches {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum — and put the Rage down every time it is up and you are under {{strained, percent}}.",
+    "verdict_bad": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. At {{starved, percent}} your next Lava Burst may simply not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
+    "kpi": {
+      "lowest": "Lowest mana",
+      "starved": "Starved, button up",
+      "rage": "Rages not pressed"
+    },
     "key": {
       "bar": "Mana over the pull",
-      "empty": "Out of mana"
+      "starved": "Under {{starved, percent}} with Thunderstorm up",
+      "strained": "Under {{strained, percent}} with Shamanistic Rage up",
+      "exempt": "Under {{starved, percent}} with both buttons coming back"
     },
-    "chartLabel": "Mana over the pull, holding up to {{max}}, empty for {{empty, duration}} of {{duration, duration}}",
-    "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto events rather than onto a clock — {{samples}} here, a median of {{median, gap}} apart and 99% within {{p99, gap}} — so nothing between two readings is measured. A stretch at zero that opened and closed inside one gap is missed entirely, so these figures under-report rather than over-report."
+    "chartLabel": "Mana over the pull, holding up to {{max}}, dropping to {{min, percent}} of it at the lowest, with {{starvedMs, duration}} spent under {{starved, percent}} while Thunderstorm was up",
+    "caption": "Every stretch you spent under one of the two numbers with the button for it up — press the button and the stretch disappears",
+    "columns": {
+      "at": "at",
+      "held": "for",
+      "low": "down to",
+      "press": "press"
+    },
+    "noRows": "You were never under either number with the button for it up in this pull.",
+    "press": {
+      "thunderstorm": "Thunderstorm",
+      "rage": "Shamanistic Rage"
+    },
+    "bothDown": "{{ms, duration}} of your time under {{starved, percent}} had Thunderstorm and Shamanistic Rage both still coming back. That is the fight taking your mana rather than anything you did, and none of it is counted against you — there was no press left to make.",
+    "shield": "{{ms, duration}} of the starved stretches above ran while Lightning Shield was off you, and that is a cause and not a coincidence: Rolling Thunder returns 2% of your maximum mana every time it grants a charge, and it only fires while the shield is up. Every Lightning Bolt and Chain Lightning you cast with the shield down was mana that never arrived. Keep the shield on and part of this refills itself.",
+    "opening": "{{ms, duration}} of your low-mana time fell inside the opening of the pull, before enough time had passed to tell from this log alone whether the button was up — Thunderstorm comes back in 45s and Shamanistic Rage in 60s, and a press taken just before the pull leaves no trace inside it. Those seconds are left out rather than counted either way.",
+    "early_one": "You pressed Thunderstorm once above {{starved, percent}} mana. It is not counted against you anywhere in this report, but it is worth knowing the trade: the press takes a global, so on a pool that did not need it you swapped a Lightning Bolt for mana you already had.",
+    "early_other": "You pressed Thunderstorm {{count}} times above {{starved, percent}} mana. None of them is counted against you anywhere in this report, but it is worth knowing the trade: each press takes a global, so on a pool that did not need it you swapped a Lightning Bolt for mana you already had.",
+    "none": "This log carried no mana readings at all, so there is no bar to read and nothing here can be answered. Nothing is wrong with the pull — the report was simply not given the numbers.",
+    "clean": "The pool never reached either number with the button for it up, so there was no press to make and nothing to flag. Mana was not what limited this pull.",
+    "floor": "A stretch has to run at least {{floor}} — one global — before it is counted, because that is how often the priority order looks at your mana. Anything shorter is not a press you passed over.",
+    "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto events rather than onto a timer — {{samples}} here, a median of {{median, gap}} apart and 99% within {{p99, gap}} — so nothing between two readings is measured. A dip that opened and closed inside one of those gaps is missed entirely, so these figures under-report rather than over-report."
   },
   "method": {
     "title": "Method",
@@ -1092,6 +1119,14 @@
         "lightningShieldFellOff": {
           "label": "Keep the shield up",
           "fix": "The shield came all the way off {{value, integer}} times. A full removal throws the whole counter away and the shield has to be rebuilt from one."
+        },
+        "thunderstormMissed": {
+          "label": "Press Thunderstorm when you are dry",
+          "fix": "You spent {{value, duration}} at or under 15% mana with Thunderstorm off cooldown. It is free, hands back 15% of your maximum, and at that mana your next Lava Burst may not go out at all — press it as the bar reaches the line."
+        },
+        "shamanisticRageMissed": {
+          "label": "Put Shamanistic Rage down",
+          "fix": "{{value, integer}} times Shamanistic Rage came back to a pool already at or under 70% and you did not press it. It costs no global and cuts what your casts cost for fifteen seconds, so there is nothing to weigh up — press it whenever it is up and you are under 70%."
         }
       }
     }

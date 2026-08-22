@@ -280,8 +280,50 @@ export function overlapPoints(windows: readonly Interval[]): TargetCountPoint[] 
  * The series is a step function, so a stretch runs from the point that reached the count to the next
  * point that did not — and the last one runs to the end of the pull, which is the caller's number
  * rather than this function's guess.
+ *
+ * **Both edges of a stretch are set by a trailing window, and only one of them is late.**
+ * `targetCounts` counts an enemy from the instant it is hit — no lag at all on the opening edge — and
+ * drops it a full window after its last hit. So a stretch opens on the hit that made the count and
+ * closes `windowMs` after the hit that stopped keeping it. `trimTrailingMs` is for the callers that
+ * cannot afford the closing lag.
  */
-export function intervalsAtLeast(points: readonly TargetCountPoint[], min: number, endMs: number): Interval[] {
+export function intervalsAtLeast(
+	points: readonly TargetCountPoint[],
+	min: number,
+	endMs: number,
+	/**
+	 * How much of each stretch's **closing** edge is window lag rather than measurement, for a caller
+	 * that must not be handed it. Zero — no trim — for every caller that wants the stretches as the
+	 * series states them.
+	 *
+	 * The number to pass is `windowMs` less whatever grace the caller owes, and that it lands exactly
+	 * rather than approximately is the whole reason this is a subtraction: the count can only *fall* at
+	 * a moment some hit ages out, which is `hit + windowMs`. So a stretch closed by a fall closes at
+	 * exactly `windowMs` past the last hit on the `min`-th enemy — the last moment the count had
+	 * evidence for `min` targets — and taking `windowMs - grace` off it lands on `thatHit + grace` to
+	 * the millisecond. Measured on `elemental/__fixtures__/cleave.json`, the one committed fixture with
+	 * three-target time: seven of its eight three-target stretches close exactly 5 000ms after the last
+	 * hit on their third enemy, and the eighth is the one the pull ended inside.
+	 *
+	 * **Why a caller would want it.** A stretch used to *band a press* wants the lag and must keep it:
+	 * the player pressed on what they knew, and a third enemy hit a second ago is still a third enemy.
+	 * A stretch used to **exempt** a clock is the other thing — it hands time back with nothing charged,
+	 * and a window's worth of that at the end of every add wave is boss-only time forgiven. On `cleave`
+	 * that is 34 934ms of the 109 869ms its three-target stretches cover — 31.8% of the exemption — of
+	 * which 28 378ms falls after the last hit any add in that stretch ever took. A third of that pull's
+	 * exemption is the window rather than the adds.
+	 *
+	 * **A stretch the pull ended inside is never trimmed**, which is the judgement `spawnLives` already
+	 * makes at the bell. Its close is `endMs` — the fight stopping, not the count falling — so there is
+	 * no lag in it to take off, and cutting one would charge a player for adds that were still up when
+	 * the fight ended. `cleave`'s eighth stretch is exactly that: it closes 1 179ms after its third
+	 * enemy's last hit because the boss died, and a blind trim would take 3 500ms off a 1 232ms stretch.
+	 *
+	 * A stretch left with nothing by the trim is dropped, which is the reading of it rather than a
+	 * rounding: no moment of it was within the grace of `min`-target contact.
+	 */
+	trimTrailingMs = 0,
+): Interval[] {
 	const out: Interval[] = [];
 	let open: number | null = null;
 	for (const [t, count] of points) {
@@ -291,7 +333,10 @@ export function intervalsAtLeast(points: readonly TargetCountPoint[], min: numbe
 			// a `[lastHit + windowMs, 0]` point, which is up to a window past the end of the fight — so a
 			// stretch closed by that point used to be emitted unclamped, and `contactMs` came out longer
 			// than the pull it was measured over.
-			const close = Math.min(t, endMs);
+			const clamped = Math.min(t, endMs);
+			// Trimmed only where the count fell inside the pull: at `endMs` the close is the bell and not
+			// a fall, so it carries no window lag to take off — see `trimTrailingMs`.
+			const close = clamped < endMs ? Math.max(open, clamped - trimTrailingMs) : clamped;
 			if (close > open) out.push([open, close]);
 			open = null;
 		}

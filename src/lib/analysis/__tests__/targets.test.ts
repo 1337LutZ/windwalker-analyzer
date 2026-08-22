@@ -179,6 +179,85 @@ describe('intervalsAtLeast', () => {
 });
 
 /**
+ * The closing edge of a stretch, and how much of it is the window rather than the pull.
+ *
+ * A trailing window counts an enemy from the instant it is hit and drops it a window later, so a
+ * stretch's *open* is a hit and its *close* is a hit plus the window. That is right for banding a
+ * press and wrong for exempting a clock, and `trimTrailingMs` is the difference. Every case here runs
+ * through `targetCounts` rather than a hand-written series, because the claim being tested is what the
+ * window does to real hits.
+ */
+describe('intervalsAtLeast, trailing edge trimmed', () => {
+	const WINDOW = 5000;
+	const GCD = 1500;
+	/** A window less one global: the grace a press decided under the old count is owed, and no more. */
+	const TRIM = WINDOW - GCD;
+
+	/**
+	 * The boss all pull, two adds for the first ten seconds — the shape the whole measurement is about.
+	 *
+	 * The third enemy's last hit is at 10 000. The untrimmed stretch runs to 15 000, a full window past
+	 * it, and every millisecond from 10 000 on is one the player was demonstrably on the boss alone.
+	 */
+	const mixedPull = [
+		...Array.from({ length: 31 }, (_, i) => ({ t: i * 1000, target: 1 })),
+		...Array.from({ length: 10 }, (_, i) => ({ t: 1000 + i * 1000, target: 2 })),
+		...Array.from({ length: 9 }, (_, i) => ({ t: 2000 + i * 1000, target: 3 })),
+	];
+
+	it('closes a stretch one grace past the last hit on the third enemy, not one window past it', () => {
+		const points = targetCounts(mixedPull, WINDOW);
+		// Untrimmed: opens on the hit that made three and closes a whole window after the hit that
+		// stopped keeping it.
+		expect(intervalsAtLeast(points, 3, 30_000)).toEqual([[2000, 15_000]]);
+		// Trimmed: the same open, and a close of `10 000 + GCD` — the last three-wide hit plus its grace.
+		expect(intervalsAtLeast(points, 3, 30_000, TRIM)).toEqual([[2000, 11_500]]);
+	});
+
+	/**
+	 * The bell case, and the one the trim must not touch.
+	 *
+	 * Three enemies still being hit a second before the pull ends: the stretch closes because the fight
+	 * stopped, not because the count fell, so there is no window lag in that close to take off. A blind
+	 * subtraction would delete the stretch outright and charge the player for adds that were still up.
+	 */
+	// Deliberate no-change guard: the bell case has to read the same trimmed and untrimmed, so this is
+	// green before the trim as well as after it. It is here to catch a trim that reaches into it.
+	it('leaves a stretch the pull ended inside exactly as long as the pull allows', () => {
+		const points = targetCounts(
+			[
+				{ t: 9000, target: 1 },
+				{ t: 9000, target: 2 },
+				{ t: 9000, target: 3 },
+			],
+			WINDOW,
+		);
+		expect(intervalsAtLeast(points, 3, 10_000, TRIM)).toEqual([[9000, 10_000]]);
+	});
+
+	/**
+	 * A stretch that was lag from end to end: three in the window, never three in a global.
+	 *
+	 * The first enemy's only hit is at 0 and the third's is at 4 000, so the count reaches three at
+	 * 4 000 on evidence four seconds old and falls back at 5 000 when that evidence ages out. No moment
+	 * inside it was within a global of three-target contact, so an exemption clock is owed none of it.
+	 */
+	it('drops a stretch with nothing left after the trim', () => {
+		const points = targetCounts(
+			[
+				{ t: 0, target: 1 },
+				{ t: 1000, target: 2 },
+				{ t: 4000, target: 3 },
+				{ t: 8000, target: 1 },
+			],
+			WINDOW,
+		);
+		expect(intervalsAtLeast(points, 3, 20_000)).toEqual([[4000, 5000]]);
+		expect(intervalsAtLeast(points, 3, 20_000, TRIM)).toEqual([]);
+	});
+});
+
+/**
  * The Stormlash overlap, and the two cases the hand-written boundary sweep it replaced got wrong.
  *
  * Measured against the old sweep rather than assumed: it handled the plain cases correctly, and got

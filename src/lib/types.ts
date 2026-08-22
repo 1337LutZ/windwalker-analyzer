@@ -2796,6 +2796,137 @@ export interface LightningShieldAudit {
 	badSpends: LightningShieldBadSpend[];
 }
 
+/**
+ * One stretch the pool sat below a line, and the lowest it got inside it.
+ *
+ * `pct` is the deepest reading in the stretch rather than its average or its edge: what a reader
+ * wants from a row is how bad it got, and the edges of a stretch are both sitting on the line by
+ * construction.
+ */
+export interface ManaLowStretch {
+	start: number;
+	end: number;
+	/** The lowest reading inside the stretch, as a share of the ceiling. */
+	pct: number;
+	link: string;
+}
+
+/**
+ * One of the Mana section's two faults: the pool below a line with the button for it in hand.
+ *
+ * **An omission, which is why the fields below are four numbers rather than one.** The player is
+ * charged for not pressing something, so the pull has to be shown to have offered the press before a
+ * second of it can be charged — and the three ways it can fail to offer one are all real and all
+ * different. Time below the line with the button provably coming back is the fight taking the mana
+ * and is never a fault; time inside the opening no press can be placed in is a fact about how much
+ * the log carries; and a sliver too short for the priority list to have looked at the pool even once
+ * is not a press anybody passed over. Only what is left is `ms`.
+ *
+ * Neither tool is in the model — both are named in `EXTRA_NAMES` as off-rotation globals — so there
+ * is no cooldown series to read and availability comes out of the presses themselves. See
+ * `manaFault` in `specs/elemental/lib/index.ts` for the two rules that turns into.
+ */
+export interface ManaFault {
+	/** Time below this fault's line over the whole pull, whatever was or was not in hand. */
+	lowMs: number;
+	/** Of it, the time the button was provably in hand across a stretch at least one global long. */
+	ms: number;
+	/** How many such stretches — one per press the priority list asked for and did not get. */
+	stretches: number;
+	/** Of `lowMs`, the part the button was provably still coming back. Never charged. */
+	onCooldownMs: number;
+	/** Of `lowMs`, the part inside the opening no press can be placed either side of. Never charged. */
+	unprovenMs: number;
+	/**
+	 * The clock this fault was actually graded over: time below the line with the button provably in hand,
+	 * before the one-global floor is applied.
+	 *
+	 * **Published so the score module can refuse to grade an empty one**, which is the same hazard
+	 * `lightningShieldOvercap`'s comment names and could not fix for want of exactly this number: `0ms of
+	 * starvation` measured over no time at all is `good`, a free full mark rather than the honest "this
+	 * pull never asked". Zero here covers three different pulls that must all read the same way — the pool
+	 * never went near the line, it went low only while both buttons were away, and it went low only inside
+	 * the opening the log cannot speak for — and in none of them did the player decline a press.
+	 *
+	 * `ms` can still be zero with this above zero, and that one *is* a real full mark: the pool dipped
+	 * under the line with the button up, and never for long enough for the list to look at it.
+	 */
+	gradedMs: number;
+	/** The charged stretches, in time order, each with the lowest reading it reached. */
+	windows: ManaLowStretch[];
+}
+
+/**
+ * The pool an Elemental casts from, and the two buttons that refill it.
+ *
+ * `cleave.apl.json` is the only one of the spec's three priority lists that hand-codes either of
+ * them — `:15` casts Thunderstorm at `mana <= 15%`, `:0` casts Shamanistic Rage at `mana <= 70%`,
+ * both `OpLe` — and that is itself the evidence that mana binds on a multi-target pull and not on a
+ * single-target one, where `autocastOtherCooldowns` is left to find the Rage on its own.
+ *
+ * **Read off the bar the cast log already draws** (`resources.mana`) rather than walked out of the
+ * events a second time. Two independent readings of one pool is how this report has already produced
+ * a share above 100%, and the windows below are the same arrays the two figures were measured over,
+ * so the chart shades exactly what was charged.
+ */
+export interface ManaAudit {
+	/** Readings the bar was built from. Zero means the log carried none and nothing here is measurable. */
+	samples: number;
+	/** The ceiling, straight off the samples. */
+	max: number;
+	/** The lowest reading of the pull, as a share of the ceiling. Null with no samples. */
+	minPct: number | null;
+	/** The two lines, as shares of the ceiling, so the copy names the numbers it was measured against. */
+	starvedPct: number;
+	strainedPct: number;
+	/** The shortest stretch either fault charges for: one global, the cadence the list re-reads the pool at. */
+	floorMs: number;
+	/** Thunderstorm's fault — at or under 15%, the rescue in hand and not taken. */
+	starved: ManaFault;
+	/** Shamanistic Rage's fault — at or under 70%, the cost reduction in hand and not taken. */
+	strained: ManaFault;
+	/**
+	 * Time at or under 15% with **both** tools provably coming back.
+	 *
+	 * Published separately from either fault's `onCooldownMs` because it is the one number that says
+	 * "the fight took this mana": at 15% the list wants both buttons, so a stretch with neither of them
+	 * available is a stretch the player could not have rescued by any press. Nothing charges it, and
+	 * the section says so in as many words.
+	 */
+	bothOnCooldownMs: number;
+	/**
+	 * The same stretches as an array, so the chart shades exactly what the figure above was measured
+	 * over rather than a second guess at it — the identity `exemptTrack.test.ts` exists to enforce,
+	 * after three charts each derived the same idea differently.
+	 */
+	bothOnCooldownWindows: Window[];
+	/**
+	 * Thunderstorm presses taken above the starvation line.
+	 *
+	 * **Stated and never graded, deliberately.** Thunderstorm costs a global, so pressing it on a full
+	 * pool trades a Lightning Bolt for mana nobody needed — a small waste, and a real one. But charging
+	 * for it would build the mirror of the fault above and the two together would push a player toward
+	 * pressing it exactly once per starved stretch and never otherwise, which is a precision no reader
+	 * has and no log can confirm they had. So the count is on the page, uncoloured, with the trade named
+	 * beside it, and it reaches no scorecard. The section must not be made to reward spamming the button
+	 * either: nothing here counts a press as a credit.
+	 */
+	earlyThunderstorms: number;
+	/**
+	 * Of `starved.ms`, the part the Lightning Shield was down through.
+	 *
+	 * Amendment 1's link to Amendment 3, and it is a cause rather than a coincidence: Rolling Thunder
+	 * (88765) returns 2% of maximum mana per charge it grants and only fires while the shield is up
+	 * (`sim/shaman/talents_elemental.go:137`, `ExtraCondition` on the shield being Lightning Shield), off
+	 * Lightning Bolt, Chain Lightning and Lava Beam — the bottom rung of all three lists. So a shield
+	 * that fell off is a mana fault as well as a damage one.
+	 *
+	 * Zero is the common case and the section says nothing about the shield when it is zero. A pull whose
+	 * starvation did not coincide with shield downtime must not be told it did.
+	 */
+	shieldDownMs: number;
+}
+
 /** The Elemental half of the analysis. See the `SpecAuditResult` fields for the shared half. */
 export interface ElementalAuditResult {
 	flameShock: FlameShockAudit;
@@ -2804,6 +2935,8 @@ export interface ElementalAuditResult {
 	snapshots: SnapshotsAudit;
 	ascendance: AscendanceAudit;
 	lavaBurst: LavaBurstAudit;
+	/** The pool, and the two buttons that refill it — see `ManaAudit`. */
+	mana: ManaAudit;
 	/** Elemental Mastery's presses, judged against the sync-with-Ascendance rule rather than drift. */
 	elementalMastery: {
 		presses: ElementalMasteryPress[];

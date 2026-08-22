@@ -54,7 +54,7 @@ import { damageByTarget } from '~/lib/analysis/damage';
 import { readTalents } from '~/lib/analysis/gear';
 import { raidSourceLanes, windowsBySource } from '~/lib/analysis/raidCasters';
 import { median } from '~/lib/analysis/format';
-import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
+import { lastIndexAtOrBefore, stampAtOrBefore, valueAtOrBefore } from '~/lib/analysis/search';
 import { intervalsAtLeast, isJudgeableTarget, overlapPoints } from '~/lib/analysis/targets';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
@@ -70,6 +70,10 @@ import type {
 	FlameShockPress,
 	FlameShockPressKind,
 	ElementalAuditResult,
+	ManaAudit,
+	ManaFault,
+	ManaLowStretch,
+	ResourceCurve,
 	FightDataset,
 	Miss,
 	SearingTotemPress,
@@ -398,6 +402,30 @@ const EARTH_ELEMENTAL_COOLDOWN_MS = 300_000;
  * a summon made before the bell.
  */
 const EARTH_ELEMENTAL_DURATION_MS = 60_000;
+
+/**
+ * The two buttons that refill the pool, and the two lines the cleave list presses them at.
+ *
+ * Read out of `ui/shaman/elemental/apls/cleave.apl.json` and the sim, not recalled:
+ *
+ *   - **Thunderstorm 51490.** `:15` casts it at `currentManaPercent OpLe 15%`. It restores 15% of
+ *     maximum mana (`sim/shaman/elemental/thunderstorm.go:14`, `:41` — `AddMana(MaxMana()*0.15)`),
+ *     costs nothing (`BaseCostPercent: 0`) and takes a global (`GCD: core.GCDDefault`), on a 45s
+ *     timer (`:32`).
+ *   - **Shamanistic Rage 30823.** `:0` casts it at `currentManaPercent OpLe 70%`. Fifteen seconds of
+ *     `SpellMod_PowerCost_Pct` (`sim/shaman/shamanistic_rage.go:16-19`), off the global — the one
+ *     Elemental press that genuinely is — on a 60s timer (`:28`), registered as `CooldownTypeMana`.
+ *
+ * Both operators are `OpLe`, so both lines are "at or under" and not "under". Only the cleave list
+ * writes either of them out; `p5` and `aoe` leave `autocastOtherCooldowns` to find the Rage, which is
+ * itself the evidence that mana binds on a multi-target pull and not on a single-target one.
+ */
+const THUNDERSTORM_ID = 51_490;
+const THUNDERSTORM_CD_MS = 45_000;
+const MANA_STARVED_PCT = 15;
+const SHAMANISTIC_RAGE_ID = 30_823;
+const SHAMANISTIC_RAGE_CD_MS = 60_000;
+const MANA_STRAINED_PCT = 70;
 
 /**
  * How little of the fight may be left for a Searing Totem placement to still be worth the global.
@@ -1454,6 +1482,108 @@ export const ascendanceFault = (sync: AscendancePressVerdict): AscendanceFault |
 };
 
 /**
+ * The stretches a sampled pool sat at or under a share of its ceiling.
+ *
+ * Two adjacent readings both under the line means the bar was under it between them — the same
+ * convention `emptiedOf` (`components/charts/capped.ts:42`) draws the empty stretches with, and
+ * deliberately the same: a bar is read from readings stamped onto events at about three a second, and
+ * anything between two readings is not measured. So a dip that opened and closed inside one gap is
+ * missed, and these figures under-report rather than over-report. That is the right direction for a
+ * fault: nothing is charged that was not seen.
+ *
+ * `pct` on each stretch is the **deepest** reading in it, not its edges, which sit on the line by
+ * construction.
+ */
+function lowStretches(curve: ResourceCurve, pct: number, link: (t: number) => string): ManaLowStretch[] {
+	const out: ManaLowStretch[] = [];
+	if (curve.max <= 0) return out;
+	const line = (curve.max * pct) / 100;
+	const points = curve.points;
+	for (let i = 1; i < points.length; i += 1) {
+		const prev = points[i - 1];
+		const cur = points[i];
+		if (prev === undefined || cur === undefined) continue;
+		if (prev[1] > line || cur[1] > line) continue;
+		const deepest = (Math.min(prev[1], cur[1]) / curve.max) * 100;
+		const last = out[out.length - 1];
+		// Merged as they are found, as `emptiedOf` does: consecutive readings under the line are one
+		// stretch rather than one band per gap between them.
+		if (last !== undefined && last.end === prev[0]) {
+			last.end = cur[0];
+			last.pct = Math.min(last.pct, deepest);
+		} else out.push({ start: prev[0], end: cur[0], pct: deepest, link: link(prev[0]) });
+	}
+	return out;
+}
+
+/**
+ * One of the two mana faults: the pool under a line with the button for it provably in hand.
+ *
+ * **Availability is derived from the presses, because neither button is in the model.** Thunderstorm
+ * and Shamanistic Rage are both named in `EXTRA_NAMES` as off-rotation globals and neither carries a
+ * `cooldownMs`, so there is no cooldown series to read. Two rules turn presses into availability, and
+ * the second one is what keeps this from charging a player for something they could not have done:
+ *
+ *   - **A press at `p` puts the button away until `p + cooldown`.** Those stretches are `onCooldownMs`
+ *     wherever the pool was low through them, and nothing charges them. This is the both-tools-down
+ *     case the plan names: at 15% the list wants both buttons, and a stretch with neither of them back
+ *     yet is the fight taking the mana rather than the player misplaying.
+ *   - **Nothing before `cooldown` can be proved either way.** A log holds nothing from before its own
+ *     first event, so a press taken a second before the bell is invisible here — and a press taken any
+ *     earlier than that has already come back by `cooldown`. From `cooldown` onwards the presses inside
+ *     the pull are therefore the whole story, and before it they are not. That opening is reported as
+ *     `unprovenMs` rather than guessed at in either direction. It costs the first 45s of a pull for
+ *     Thunderstorm and the first 60s for the Rage, which is the honest price of the log's own horizon.
+ *
+ * **And a stretch has to be at least one global long to be charged.** The priority list re-reads the
+ * pool once a global, so a shorter overlap is a stretch the list never got to look at the pool inside —
+ * charging it would fault a press nobody was offered. One global rather than a reaction time invented
+ * for the purpose: it is the list's own evaluation cadence and no wider a grace than that.
+ */
+function manaFault(
+	low: readonly ManaLowStretch[],
+	presses: readonly number[],
+	cooldownMs: number,
+	duration: number,
+	gcdMs: number,
+	link: (t: number) => string,
+): { fault: ManaFault; ready: Interval[]; busy: Interval[] } {
+	const lowIntervals = low.map(({ start, end }): Interval => [start, end]);
+	// Provably away: every press's own cooldown. Provably in hand: the rest of the pull from `cooldownMs`
+	// on. Between them sits the opening, which is neither.
+	const busy = mergeIntervals(presses.map((p): Interval => [p, p + cooldownMs]));
+	const provable: Interval[] = duration > cooldownMs ? [[cooldownMs, duration]] : [];
+	const ready = intersect(complementOf(busy, duration), provable);
+	const charged = intersect(lowIntervals, ready).filter(([start, end]) => end - start >= gcdMs);
+	// The deepest reading of whichever low stretch a charged sliver came out of — read back rather than
+	// recomputed, so a row's percentage is the same number the stretch was found with.
+	const deepestIn = (start: number, end: number): number => {
+		const overlapping = low.filter((w) => w.start < end && w.end > start).map((w) => w.pct);
+		// `charged` is an intersection with `low`, so there is always at least one — the fallback is the
+		// line itself rather than `Infinity`, which would render as a percentage nothing produced.
+		return overlapping.length > 0 ? Math.min(...overlapping) : 0;
+	};
+	return {
+		fault: {
+			lowMs: unionMs(lowIntervals),
+			ms: unionMs(charged),
+			stretches: charged.length,
+			onCooldownMs: unionMs(intersect(lowIntervals, busy)),
+			unprovenMs: unionMs(intersect(lowIntervals, complementOf([...busy, ...provable], duration))),
+			gradedMs: unionMs(intersect(lowIntervals, ready)),
+			windows: charged.map(([start, end]) => ({
+				start,
+				end,
+				pct: deepestIn(start, end),
+				link: link(start),
+			})),
+		},
+		ready,
+		busy,
+	};
+}
+
+/**
  * The Elemental's half of the analysis, from the engine's `Handles` and nothing else.
  *
  * The core has already assembled the press marks, the contact and engaged clocks, the primary
@@ -2410,6 +2540,109 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		end,
 	}));
 	const fellOff = downWindows.length;
+
+	// ------------------------------------------------------------------ mana
+	/**
+	 * The pool, and the two buttons that refill it — Amendment 1's section.
+	 *
+	 * **Read off the bar the cast log already draws**, not walked out of the events a second time. The
+	 * engine samples every bar the spec declares and publishes the full audit as `h.resourceAudits`
+	 * (`analyseCore.ts:804`), and `resources.mana` is the same object the timeline's row and the section's
+	 * chart are drawn from — so the figures below and the line a reader is looking at cannot disagree.
+	 * Two independent readings of one pool is how this report has already produced a share above 100%.
+	 *
+	 * **`samples === 0` is a log that carried no `classResources` at all, and it is not a clean pull.**
+	 * Two of the three committed fixtures are exactly that: `phased` and `unbroken` were captured without
+	 * `includeResources: true` and hold no reading of the bar, so every figure here is zero on them and
+	 * means nothing. The score module reads `samples` and returns null rather than a free full mark —
+	 * without that clause the two pulls with no mana data would be the two best-graded mana pulls in the
+	 * report.
+	 *
+	 * Both buttons come out of the raw casts rather than out of the registry, because neither is in it:
+	 * `EXTRA_NAMES` names both ids as off-rotation globals, knowingly unpriced, so that `gcdUtilisationPct`
+	 * keeps answering "of the globals the rotation wanted, how many did you fill" rather than "was this
+	 * player busy". **This section does not overturn that**, and is written so it cannot: nothing here
+	 * counts a press as a credit or reaches `cpm`. What it grades is the omission at a pool the cleave
+	 * list names a number for, which leaves Thunderstorm off the ladder and out of the global count
+	 * exactly where it was.
+	 */
+	const manaBar = h.resourceAudits.mana;
+	const manaCurve: ResourceCurve =
+		manaBar !== undefined && manaBar.kind === 'pool' ? manaBar.curve : { points: [], max: 0 };
+	const manaSamples = manaBar !== undefined && manaBar.kind === 'pool' ? manaBar.samples : 0;
+	const pressesOf = (id: number): number[] =>
+		h.events.filter((e) => isCast(e) && e.sourceID === actor.id && abilityIdOf(e) === id).map((e) => e.timestamp - t0);
+	const starvedLow = lowStretches(manaCurve, MANA_STARVED_PCT, link);
+	const strainedLow = lowStretches(manaCurve, MANA_STRAINED_PCT, link);
+	const thunderstormPresses = pressesOf(THUNDERSTORM_ID);
+	const starved = manaFault(starvedLow, thunderstormPresses, THUNDERSTORM_CD_MS, duration, GCD_MS, link);
+	const strained = manaFault(
+		strainedLow,
+		pressesOf(SHAMANISTIC_RAGE_ID),
+		SHAMANISTIC_RAGE_CD_MS,
+		duration,
+		GCD_MS,
+		link,
+	);
+	/**
+	 * The starved stretches with **both** tools provably still coming back.
+	 *
+	 * The one number that says "the fight took this mana". At 15% the cleave list wants both buttons, so a
+	 * stretch with neither of them back is a stretch no press could have rescued — the same refusal as the
+	 * exempt band and the surge wasted inside a submerge. Nothing charges it, and the section says so.
+	 */
+	const bothOnCooldownWindows = mergeIntervals(
+		intersect(
+			starvedLow.map(({ start, end }): Interval => [start, end]),
+			intersect(starved.busy, strained.busy),
+		),
+	);
+	const bothOnCooldownMs = unionMs(bothOnCooldownWindows);
+	/**
+	 * The overlap between a charged starved stretch and the shield being down — Amendment 1's link to
+	 * Amendment 3, and a cause rather than a coincidence.
+	 *
+	 * Rolling Thunder (88765) returns 2% of maximum mana per charge it grants, off Lightning Bolt, Chain
+	 * Lightning and Lava Beam, and only while Lightning Shield is up — the `ExtraCondition` at
+	 * `sim/shaman/talents_elemental.go:131`. So a shield that fell off stopped the pool refilling as well
+	 * as stopping the damage, which is the whole reason `lightningShieldFellOff` stays graded at every
+	 * target count while `lightningShieldOvercap` does not.
+	 *
+	 * Against `downWindows` — the array the shield's own `fellOff` is counted from — rather than a second
+	 * derivation of when the buff was down. Zero on a pull whose starvation did not coincide with shield
+	 * downtime, and the section says nothing about the shield when it is zero: the connection is only made
+	 * where the numbers make it.
+	 */
+	const manaShieldDownMs = unionMs(
+		intersect(
+			starved.fault.windows.map(({ start, end }): Interval => [start, end]),
+			downWindows.map(({ start, end }): Interval => [start, end]),
+		),
+	);
+	const manaLine = (manaCurve.max * MANA_STARVED_PCT) / 100;
+	const mana: ManaAudit = {
+		samples: manaSamples,
+		max: manaCurve.max,
+		minPct:
+			manaSamples > 0 && manaCurve.max > 0 && manaCurve.points.length > 0
+				? (Math.min(...manaCurve.points.map(([, amount]) => amount)) / manaCurve.max) * 100
+				: null,
+		starvedPct: MANA_STARVED_PCT,
+		strainedPct: MANA_STRAINED_PCT,
+		floorMs: GCD_MS,
+		starved: starved.fault,
+		strained: strained.fault,
+		bothOnCooldownMs,
+		bothOnCooldownWindows: bothOnCooldownWindows.map(([start, end]): Window => ({ start, end })),
+		// Stated, never graded — see the field's own docstring for why pressing it early is named and not
+		// charged. Read at the press against the last reading at or before it, so a press with no reading
+		// behind it at all is not counted as early.
+		earlyThunderstorms: thunderstormPresses.filter((at) => {
+			const reading = valueAtOrBefore(manaCurve.points, at);
+			return reading !== null && reading > manaLine;
+		}).length,
+		shieldDownMs: manaShieldDownMs,
+	};
 	// Bad spends: an Earth Shock that spent fewer stacks than the list it was under asks for.
 	//
 	// **Read off the press's own reasons rather than re-tested here, and that is the fix as much as the
@@ -3423,6 +3656,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			scoredMs: inContactMs,
 			contactUptimeMs: fsContactMs,
 		},
+		mana,
 		lavaBurst: {
 			procs: lavaSurgeProcs,
 			presses: lavaBurstPresses,

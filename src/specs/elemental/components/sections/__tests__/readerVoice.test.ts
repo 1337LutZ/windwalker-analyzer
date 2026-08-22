@@ -96,6 +96,10 @@ const SECTIONS = [
 	'searingTotem',
 	'lightningShield',
 	'stormlash',
+	// The Mana section joins the sweep with the section itself. Its `intent` had to be rewritten to get
+	// in — the string this file's own banned list would have caught said mana "refills on a clock", which
+	// is our vocabulary for a denominator and not a thing a reader presses.
+	'mana',
 ];
 
 // `read` joins the four when the Ascendance verdict column landed: those sentences are the newest

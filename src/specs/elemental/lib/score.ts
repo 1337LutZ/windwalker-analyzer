@@ -191,6 +191,57 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 	);
 	const lightningShieldFellOff = metric('lightningShieldFellOff', lightningShield.fellOff);
 
+	/**
+	 * The pool's two faults, and both of them are omissions — the player is charged for *not* pressing
+	 * something, so the evidence bar is higher than it is for a press that went out at the wrong moment.
+	 *
+	 * **Unmeasurable, not zero, on a log that carried no readings.** Two of the three committed fixtures
+	 * hold no `classResources` at all — `phased` and `unbroken` were captured without the flag — and
+	 * without this clause they would be the two best-graded mana pulls in the report, on no data. The
+	 * same refusal `flameShockMultiDot` makes on a single-target pull, and the same one this spec's
+	 * Fire Elemental threshold spells out at length: a metric that cannot be answered leaves
+	 * `overall()`'s weighted denominator rather than reading as a free full mark.
+	 *
+	 * **And unmeasurable on a pull that never put the pool below the line with the button in hand**, which
+	 * is the second half of the same guard and the one the plan asked for by name: *"if none of them ever
+	 * drops under 15% the section grades nothing and the metric must be unmeasurable, not a free 100%."*
+	 * `gradedMs` is the length of the clock the fault was measured over — time below the line with the
+	 * tool provably available — and a zero there covers the pull that never got low, the pull that got low
+	 * only while both buttons were away, and the pull too short to prove availability across at all. None
+	 * of them is a pull where a press was declined, so none of them earns the mark for not declining one.
+	 * This is the hazard `lightningShieldOvercap`'s own comment names two blocks below and could not fix
+	 * for want of exactly this number.
+	 *
+	 * Optional though the type requires it, for the reason the `timeline?` read above is: an `Analysis`
+	 * is serialised, and a report captured before this audit existed arrives without the field. Absent is
+	 * the same answer as no readings.
+	 */
+	const mana = el.mana as ElementalAnalysis['mana'] | undefined;
+	const manaRead = mana !== undefined && mana.samples > 0;
+	/**
+	 * Thunderstorm's fault, in milliseconds: the pool at or under 15% with the rescue in hand.
+	 *
+	 * A duration and not a count, because what the fault costs is time — every second at 15% is a second
+	 * the next Lava Burst might not go out, and a stretch twice as long is twice as bad. The count of
+	 * stretches is on the page beside it; the graded number is the clock.
+	 */
+	const thunderstormMissed = metric(
+		'thunderstormMissed',
+		manaRead && mana.starved.gradedMs > 0 ? mana.starved.ms : null,
+	);
+	/**
+	 * Shamanistic Rage's fault, as a count of presses the priority list asked for and did not get.
+	 *
+	 * A count and not a duration, and the difference is the point: the Rage lasts fifteen seconds off a
+	 * sixty-second timer, so it can only be pressed once a minute and "how long you were under 70%" is
+	 * mostly a fact about the fight rather than about the press. What the player controls is whether the
+	 * button went down each time it came back to a pool already under the line, and that is a count.
+	 */
+	const shamanisticRageMissed = metric(
+		'shamanisticRageMissed',
+		manaRead && mana.strained.gradedMs > 0 ? mana.strained.stretches : null,
+	);
+
 	const all = [
 		gcdUtilisation,
 		flameShockUptime,
@@ -203,6 +254,8 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		snapshotRate,
 		lightningShieldOvercap,
 		lightningShieldFellOff,
+		thunderstormMissed,
+		shamanisticRageMissed,
 	];
 
 	return {
@@ -221,6 +274,10 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 			// The shield's section carries both of its faults; neither is primary-weighted enough to
 			// carry a headline, but the section still reads a verdict off them for its own copy.
 			lightningShield: section([lightningShieldOvercap, lightningShieldFellOff]),
+			// The pool's own section, and both of its faults are omissions — see the metrics above. Neither is
+			// primary-weighted enough to carry the headline on its own; the section reads its verdict off
+			// both so its copy can say which of the two buttons was the one left on the bar.
+			mana: section([thunderstormMissed, shamanisticRageMissed]),
 			casts: section([gcdUtilisation]),
 		},
 	};
@@ -362,6 +419,45 @@ export const THRESHOLDS = {
 	 * Lower is better.
 	 */
 	lightningShieldFellOff: { good: 0, ok: 1, higherIsBetter: false },
+
+	/**
+	 * Time spent at or under 15% mana with Thunderstorm in hand, in milliseconds.
+	 *
+	 * 15% is the sim's own trigger and not a number invented here: `cleave.apl.json:15` casts 51490 at
+	 * `currentManaPercent OpLe 15%`, and the press returns 15% of maximum mana for no mana at all
+	 * (`sim/shaman/elemental/thunderstorm.go:14`, `:41`). So zero is genuinely achievable — one instant
+	 * global lifts the pool clear of the line — and anything above the grace is a rescue that was sitting
+	 * on the bar unused.
+	 *
+	 * The grace is the same five seconds `lightningShieldOvercap` uses, and for the same reason: a player
+	 * watching a bar drop needs a global or two to notice and press, and charging the first of those would
+	 * be charging reaction time. Beyond it the pool was low, the button was up, and nothing happened.
+	 *
+	 * **This does not grade pressing Thunderstorm too early, and that is deliberate.** The press costs a
+	 * global, so taking it on a full pool trades a Lightning Bolt for mana nobody needed — a real if small
+	 * waste, which the section states as a count and leaves uncoloured. Grading it as well would build the
+	 * mirror of this threshold, and the two together would ask a player to press the button exactly once
+	 * per starved stretch and never otherwise. Nothing here counts a press as a credit either, so no part
+	 * of this rewards pressing it more often. Lower is better.
+	 */
+	thunderstormMissed: { good: 0, ok: 5000, higherIsBetter: false },
+
+	/**
+	 * Stretches at or under 70% mana with Shamanistic Rage in hand and never pressed.
+	 *
+	 * 70% is again the list's own number — `cleave.apl.json:0`, `currentManaPercent OpLe 70%` — and the
+	 * press is the cheapest one an Elemental owns: fifteen seconds of reduced cost
+	 * (`SpellMod_PowerCost_Pct`, `sim/shaman/shamanistic_rage.go:16-19`) off a sixty-second timer, and the
+	 * one press in this spec that genuinely does not take a global. So a stretch under the line with the
+	 * button up is a press that would have cost nothing at all.
+	 *
+	 * **Counted and graded more gently than Thunderstorm's clock, because it saves less.** Thunderstorm is
+	 * a rescue — 15% of the pool back in one press; the Rage is a discount on what you cast next, and the
+	 * plan's own summary of it is "2% a cast rather than a rescue". Zero is achievable on any pull, one is a
+	 * lapse and two is a habit, which is where `lightningShieldFellOff` and `searingTotemOverlaps` sit for
+	 * the same shape of miss. Lower is better.
+	 */
+	shamanisticRageMissed: { good: 0, ok: 1, higherIsBetter: false },
 } as const satisfies Record<string, Threshold>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
@@ -389,6 +485,25 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	fireElementalPrepull: 1,
 	lightningShieldOvercap: 1,
 	lightningShieldFellOff: 1,
+	/**
+	 * Mana starvation with the rescue in hand, at the same weight as filling globals and the Flame Shock
+	 * economy — above the shield's habits, below the two things that define the spec.
+	 *
+	 * Two rather than one because a pool at 15% stops the rotation outright: the list's own Lava Burst
+	 * rung will not fire without the mana for it, so starving is not a habit that costs a little damage
+	 * but a stretch where the ladder cannot run at all. Two rather than three or four because the
+	 * snapshot catch and the dot's uptime are what an Elemental controls on *every* pull, and mana only
+	 * binds on some of them — `p5` does not even name a mana button, which is the sim's own statement
+	 * that on a single-target pull this is not the constraint.
+	 */
+	thunderstormMissed: 2,
+	/**
+	 * The lightest weight there is, deliberately. What the Rage saves is 2% a cast rather than a rescue,
+	 * and the plan that asked for this section said so in as many words — so a player who never presses
+	 * it has left something on the table and has not lost the pull. Same weight as the shield's two
+	 * faults, which are the same kind of "wake up and press it" habit.
+	 */
+	shamanisticRageMissed: 1,
 };
 
 /**

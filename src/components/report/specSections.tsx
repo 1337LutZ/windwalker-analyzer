@@ -18,7 +18,6 @@ import type { ComponentType } from 'react';
 
 import type { Analysis, TargetMode } from '~/lib/types';
 import { WW_SPEC } from '~/specs/windwalker';
-import { ELEMENTAL_SPEC } from '~/specs/elemental';
 
 import type { ReportSection } from './SectionNav';
 import { excludedButtons, pressedButtons } from '~/specs/windwalker/lib/view/rotationFlow';
@@ -63,6 +62,7 @@ import {
 	KpiTiles as ElementalKpiTiles,
 	LavaBurst,
 	LightningShield,
+	Mana as ElementalMana,
 	PullTimeline as ElementalPullTimeline,
 	Rotation as ElementalRotation,
 	SearingTotem,
@@ -323,20 +323,15 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// The dot's payoff, directly under it: the proc-window reapplies are the whole reason the dot is
 		// snapshotted rather than merely kept up.
 		{ id: 'snapshots', titleKey: 'flameShockSnapshots.title', group: 'core', Component: Snapshots },
-		// The pool the casts are paid from, beside the dot it gates — the one bar an Elemental has, and
-		// the one that is never overcap but is sometimes empty.
-		{
-			id: 'mana',
-			titleKey: 'mana.title',
-			group: 'core',
-			Component: resourceSection({
-				id: 'mana',
-				barKey: 'mana',
-				copyPrefix: 'mana',
-				tone: 'kick',
-				color: ELEMENTAL_SPEC.colors.primary,
-			}),
-		},
+		// The pool the casts are paid from, beside the dot it feeds — the one bar an Elemental has, and the
+		// one that is never overcap but is sometimes empty.
+		//
+		// **The spec's own section rather than the generic `resourceSection` wrapper it used to be.** The
+		// generic one drew the bar and graded nothing, which is what Amendment 1 was raised about: the user
+		// asked for the two mana buttons to be checked, and neither a pool's cap split nor its empty
+		// duration can say whether Thunderstorm was sitting unpressed. `Mana` draws the same
+		// `resources.mana` bar and adds the two faults over it.
+		{ id: 'mana', titleKey: 'mana.title', group: 'core', Component: ElementalMana },
 
 		// The rotational presses, one section each: Flame Shock is the dot everything else is gated
 		// on, Earth Shock spends the Lightning Shield counter, and Searing Totem is the fire-and-forget.
@@ -481,6 +476,7 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			searingTotem: 'searing-totem',
 			flameShockSnapshots: 'snapshots',
 			fireElemental: 'fire-elemental',
+			mana: 'mana',
 		},
 	},
 };
