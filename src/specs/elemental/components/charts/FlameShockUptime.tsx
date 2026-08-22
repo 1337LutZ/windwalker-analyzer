@@ -7,6 +7,7 @@ import type { Analysis, ElementalAuditResult } from '~/lib/types';
 import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
+import { exemptRows } from '~/components/charts/exempt';
 import { EXEMPT } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import WindowTracks from '~/components/charts/WindowTracks';
@@ -21,29 +22,46 @@ import WindowTracks from '~/components/charts/WindowTracks';
  * down row below is clipped to `contactSegments`), so a submerge came out of the percentage and stayed
  * in the picture as an unexplained empty stretch: a reader looking at `phased` saw fifty seconds with
  * no band at all above a tile reading 88.67%, and no way to tell that gap from one the player caused.
+ *
+ * **One exempt cause here and not two, deliberately.** `lightningShield.aoeWindows` is the stretches
+ * with three or more enemies up, it is reachable from `analysis`, and the Lightning Shield chart shades
+ * it — because that section's own denominator drops it (`shieldGradedSpans`). Nothing drops it out of
+ * `flameShock.uptimePct`, which is still measured over the whole of `contact`. Shading a stretch this
+ * chart's own tile still counts would be the worse of the two errors: a wrong percentage is a number a
+ * reader can argue with, while grey looks deliberate, so it would read as a promise the figure does not
+ * keep. The row goes in the same commit that cuts the clock, not before it — the tone, the label and the
+ * partitioner are all already here, so what is missing is the exemption itself.
  */
 export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { flameShock } = el;
 	const windows = flameShock.windows;
-	const { up, dropped, away } = useMemo(() => {
+	const { up, dropped, exempt } = useMemo(() => {
 		const up = windows.map((w): [number, number] => [w.start, w.end]);
 		// "Down" is the dot missing while the player was in contact — the complement of the dot,
 		// clipped to the contact clock, so an intermission the fight took is not drawn as a dot the
 		// player dropped. The fallback (the whole pull) keeps the chart unchanged on a fixture captured
 		// before the core carried the contact clock.
 		const contact = analysis.timeline?.contactSegments ?? [[0, analysis.durationMs]];
-		// And "away" is the rest of the pull: exactly the stretches the clip above threw out of the
-		// denominator, taken off the same `contact` array in the same breath rather than rebuilt from
-		// somewhere else. Two derivations of one fact is how a band and a percentage end up disagreeing
-		// about which seconds were forgiven. On the fallback it is empty, which drops the row.
+		// And the exempt row is the rest of the pull: exactly the stretches the clip above threw out of
+		// the denominator, taken off the same `contact` array in the same breath rather than rebuilt
+		// from somewhere else. Two derivations of one fact is how a band and a percentage end up
+		// disagreeing about which seconds were forgiven. On the fallback it is empty, which drops the row.
+		//
+		// Through `exemptRows` even though this chart has one cause, and for the same reason
+		// `LightningShield` does: the day a second cause arrives the overlap is settled by the one
+		// precedence rule every other exempt row uses rather than by a fourth hand-rolled intersection.
+		// See the note above the component for which second cause that is and what has to land first.
 		return {
 			up,
 			dropped: intersect(complementOf(up, analysis.durationMs), contact),
-			away: complementOf(contact, analysis.durationMs),
+			exempt: exemptRows(
+				[{ label: t('flameShock.track.away'), windows: complementOf(contact, analysis.durationMs) }],
+				analysis.durationMs,
+			),
 		};
-	}, [analysis.durationMs, windows, analysis.timeline?.contactSegments]);
+	}, [analysis.durationMs, windows, analysis.timeline?.contactSegments, t]);
 
 	/**
 	 * The three rows, in the order the argument runs: up, down, then the ground both were measured
@@ -72,9 +90,15 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				lengthLabel: 'without it for',
 				widen: false,
 			},
-			{ label: t('flameShock.track.away'), tone: EXEMPT, windows: away, lengthLabel: 'for', widen: false },
+			...exempt.map((row): Track => ({
+				label: row.label,
+				tone: EXEMPT,
+				windows: row.windows,
+				lengthLabel: 'for',
+				widen: false,
+			})),
 		],
-		[t, up, dropped, away],
+		[t, up, dropped, exempt],
 	);
 
 	if (up.length === 0 && dropped.length === 0) {
@@ -88,7 +112,13 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				<>
 					<ChartKey tone="kick">{t('flameShock.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('flameShock.track.dropped')}</ChartKey>
-					{away.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('flameShock.track.away')}</ChartKey>}
+					{exempt.map((row) =>
+						row.windows.length === 0 ? null : (
+							<ChartKey key={row.label} tone={EXEMPT}>
+								{row.label}
+							</ChartKey>
+						),
+					)}
 				</>
 			}
 		>

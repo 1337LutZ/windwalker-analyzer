@@ -7,6 +7,7 @@ import type { Analysis, ElementalAuditResult } from '~/lib/types';
 import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
+import { exemptRows } from '~/components/charts/exempt';
 import { EXEMPT } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import WindowTracks from '~/components/charts/WindowTracks';
@@ -21,6 +22,11 @@ import WindowTracks from '~/components/charts/WindowTracks';
  * the player's own cooldown, while nothing in reach is the fight. A reader can act on the first and
  * not on the second. Either way a stretch with no band at all reads as a rendering fault instead of an
  * answer, which is what both rows are here to stop.
+ *
+ * Two exempt causes and not three, on the same terms `FlameShockUptime` sets out: the AoE stretches are
+ * published and reachable, and `searingTotem.uptimePct` still counts every one of them, so a third row
+ * would shade time this chart's own tile charges for. The partitioner below already takes a list, so
+ * adding the cause is one entry once the clock drops it.
  */
 export default function SearingTotemUptime({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
@@ -28,7 +34,7 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 	const { searingTotem } = el;
 	const windows = searingTotem.windows;
 	const feWindows = searingTotem.feWindows;
-	const { up, dropped, away, elemental } = useMemo(() => {
+	const { up, dropped, exempt } = useMemo(() => {
 		const up = windows.map((w): [number, number] => [w.start, w.end]);
 		const elemental = feWindows.map((w): [number, number] => [w.start, w.end]);
 		// "Down" is the totem missing while the player was in contact and the slot was theirs to fill —
@@ -41,12 +47,32 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 		const placeable = intersect(contact, slotFree);
 		// Everything `placeable` threw out, which is the same array read from the other side: exempt is
 		// `complementOf(placeable)`, and the two rows that draw it are that one set split by cause —
-		// `elemental` is the half the slot row already carries, `away` is the rest. Split off the
+		// `elemental` is the half the slot row carries, the intermission is the rest. Split off the
 		// denominator's own complement rather than derived a second way, so the two rows between them
 		// account for every second the percentage forgave and for no second it charged.
-		const away = intersect(complementOf(placeable, analysis.durationMs), slotFree);
-		return { up, dropped: intersect(complementOf(up, analysis.durationMs), placeable), away, elemental };
-	}, [analysis.durationMs, windows, feWindows, analysis.timeline?.contactSegments]);
+		//
+		// **The split is `exemptRows` now and was two hand-rolled intersections before, and the answer is
+		// the same one.** Argument order is precedence, strongest claim first, so the Fire Elemental's
+		// slot keeps an overlap and the intermission row keeps what falls outside it — which is exactly
+		// what `intersect(complementOf(placeable), slotFree)` used to say, and `exemptTrack.test.ts`
+		// already pinned the two as equal before either moved. Precedence is not the drawing order: the
+		// rows below put the intermission above the slot, and that is a legibility choice with no claim
+		// in it.
+		return {
+			up,
+			dropped: intersect(complementOf(up, analysis.durationMs), placeable),
+			exempt: exemptRows(
+				[
+					{ label: t('searingTotem.track.elemental'), windows: elemental },
+					{ label: t('searingTotem.track.away'), windows: complementOf(placeable, analysis.durationMs) },
+				],
+				analysis.durationMs,
+			),
+		};
+	}, [analysis.durationMs, windows, feWindows, analysis.timeline?.contactSegments, t]);
+	// Precedence order, so the slot is first and the intermission second; the rows and the key below
+	// draw them the other way round.
+	const [slot, away] = exempt;
 
 	/**
 	 * The four rows, in the order the argument runs: up, down, then the two grounds they were measured
@@ -79,13 +105,13 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				lengthLabel: 'without it for',
 				widen: false,
 			},
-			{ label: t('searingTotem.track.away'), tone: EXEMPT, windows: away, lengthLabel: 'for', widen: false },
-			{ label: t('searingTotem.track.elemental'), tone: EXEMPT, windows: elemental, lengthLabel: 'out for' },
+			{ label: away?.label ?? '', tone: EXEMPT, windows: away?.windows ?? [], lengthLabel: 'for', widen: false },
+			{ label: slot?.label ?? '', tone: EXEMPT, windows: slot?.windows ?? [], lengthLabel: 'out for' },
 		],
-		[t, up, dropped, away, elemental],
+		[t, up, dropped, away, slot],
 	);
 
-	if (up.length === 0 && dropped.length === 0 && elemental.length === 0) {
+	if (up.length === 0 && dropped.length === 0 && (slot?.windows.length ?? 0) === 0) {
 		return <ChartEmpty>{t('searingTotem.none')}</ChartEmpty>;
 	}
 
@@ -96,8 +122,13 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				<>
 					<ChartKey tone="kick">{t('searingTotem.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('searingTotem.track.dropped')}</ChartKey>
-					{away.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('searingTotem.track.away')}</ChartKey>}
-					{elemental.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('searingTotem.track.elemental')}</ChartKey>}
+					{[away, slot].map((row) =>
+						row === undefined || row.windows.length === 0 ? null : (
+							<ChartKey key={row.label} tone={EXEMPT}>
+								{row.label}
+							</ChartKey>
+						),
+					)}
 				</>
 			}
 		>

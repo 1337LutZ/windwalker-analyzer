@@ -145,6 +145,21 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 				<Prose>
 					{verdict('lightningShield', { overcap: lightningShield.overcapMs, fellOff: lightningShield.fellOff })}
 				</Prose>
+				{/* What the grey band means, on the pulls that have one.
+
+				    The key names the band — "AoE — not graded" — which is what keeps it from reading as the
+				    same thing as an intermission on another chart. What a key cannot carry is the *reason*,
+				    and the reason is most of what a reader needs here: the AoE list has no Earth Shock in it,
+				    so sitting at seven was the only state available and those seconds left the overcap
+				    figure. Without the sentence the tile prints a duration with grey stretches beside it and
+				    no way to tell which of the two the number is over — the same complaint the Earth Shock
+				    section answers by counting its unjudged presses out loud.
+
+				    Gated on the band rather than printed always, for the reason that section gives: a note on
+				    every pull tells a reader nothing about this one. It is also the only place the two-target
+				    case is stated, which matters more than the rest of it — the band covers three or more
+				    enemies, and a reader who takes it to cover every add is owed that sentence. */}
+				{aoeBand.length === 0 ? null : <Note>{t('lightningShield.aoeNote')}</Note>}
 				<Note>{t('lightningShield.leeway', { leeway: formatSeconds(lightningShield.leewayMs) })}</Note>
 			</div>
 		</Section>

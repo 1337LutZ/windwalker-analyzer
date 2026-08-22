@@ -7,6 +7,7 @@ import type { Analysis } from '~/lib/types';
 import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
+import { exemptRows } from '~/components/charts/exempt';
 import { EXEMPT } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import WindowTracks from '~/components/charts/WindowTracks';
@@ -70,6 +71,28 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 		debuff.engagedSegments,
 		analysis.durationMs,
 	]);
+
+	/**
+	 * The exempt row, through the partitioner every other chart's exempt row goes through.
+	 *
+	 * One cause, so the partition is the identity and nothing about what this chart draws moves. What it
+	 * buys is the seam: `exemptRows` is where a second cause is added, and the day one is, the overlap
+	 * between it and this row is decided by the same precedence rule the Elemental uptime charts use
+	 * rather than by a fourth complement written out here.
+	 *
+	 * **The filter stays outside it, and the difference is worth knowing about.** `gapsBetween` drops
+	 * gaps of a second or less before the windows ever reach here, so this row is the seconds the
+	 * denominator dropped *less the slivers* — while `FlameShockUptime` draws the complement whole. Two
+	 * charts of one pull can therefore print exempt totals a few hundred milliseconds apart. That is
+	 * deliberate on both sides for reasons in each file, not a bug either has, and `exemptRows` cannot
+	 * reconcile it because it is a question about what `contactSegments` measures rather than about how
+	 * overlapping causes divide.
+	 */
+	const exempt = useMemo(
+		() => exemptRows([{ label: t('debuff.track.away'), windows: tracks.away }], analysis.durationMs),
+		[t, tracks, analysis.durationMs],
+	);
+	const away = exempt[0]?.windows ?? [];
 	const totalOf = (windows: ReadonlyArray<readonly [number, number]>) =>
 		windows.reduce((ms, [start, end]) => ms + (end - start), 0);
 
@@ -103,9 +126,15 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 				lengthLabel: 'without it for',
 				widen: false,
 			},
-			{ label: t('debuff.track.away'), tone: EXEMPT, windows: tracks.away, lengthLabel: 'for', widen: false },
+			...exempt.map((row): Track => ({
+				label: row.label,
+				tone: EXEMPT,
+				windows: row.windows,
+				lengthLabel: 'for',
+				widen: false,
+			})),
 		],
-		[t, tracks],
+		[t, tracks, exempt],
 	);
 
 	// Gated on the tracks rather than on `debuff.windows`, which is the primary target's. A player who
@@ -125,7 +154,13 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 				<>
 					<ChartKey tone="kick">{t('debuff.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
-					{tracks.away.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('debuff.track.away')}</ChartKey>}
+					{exempt.map((row) =>
+						row.windows.length === 0 ? null : (
+							<ChartKey key={row.label} tone={EXEMPT}>
+								{row.label}
+							</ChartKey>
+						),
+					)}
 				</>
 			}
 			note={t('debuff.chartCaption', { context, target })}
@@ -139,7 +174,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 					target,
 					up: totalOf(tracks.up),
 					down: totalOf(tracks.down),
-					away: totalOf(tracks.away),
+					away: totalOf(away),
 					drops: tracks.down.length,
 				})}
 			/>

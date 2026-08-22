@@ -371,7 +371,10 @@ const MAX_TARGET_LANES = 12;
  *
  * `contactSegments` is measured from direct damage, so a segment ends wherever the last hit landed
  * and a sliver either side of that boundary is the sampling rather than a phase — `DebuffTimeline`
- * draws the same complement and discards the same slivers. Three seconds rather than one: the pull
+ * draws the same complement and discards the same slivers (at a second rather than three, and the
+ * Elemental uptime charts discard none of it at all, which makes three answers to "which slivers
+ * count" across one report — see the note beside `exemptRows` in `DebuffTimeline`). Three seconds
+ * rather than one: the pull
  * itself opens with a run-up before the first cast lands, and a sub-second lead-in is a player
  * pressing on the bell, not a phase worth a band across the whole chart.
  */
@@ -2743,7 +2746,22 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 						    are all things the player did.
 
 						    The layer is inert and each band is not, so the hit test finds a band under an
-						    empty stretch of track and finds the mark first everywhere else. */}
+						    empty stretch of track and finds the mark first everywhere else.
+
+						    **`muted/10` and not `EXEMPT`, which is the one exempt stretch in the report drawn
+						    outside the shared vocabulary — on purpose.** `charts/tones.ts` rejected `muted` for
+						    exempt bands and it was right to on every chart it was talking about: there the
+						    exempt stretch is a *row of its own*, so the tone can be an opaque ground, and
+						    `--color-track` is one. Here it is a full-height wash over twenty lanes of marks,
+						    and the vocabulary has no translucent value for `track` — deliberately, because
+						    `track` is already a ground and `tones.ts` allows one wash per tone precisely so a
+						    mechanic cannot end up drawn at two strengths. Reaching for `bg-track` would bury
+						    the lanes it is drawn over; inventing `bg-track/10` would be the second strength
+						    that rule exists to forbid. So this stays, and the thing the vocabulary is actually
+						    for still holds: there is one exempt cause on this chart, it is named in the
+						    tooltip and in the note under the chart, and no reader has two greys to tell apart.
+						    A second cause here — an AoE stretch — would need a key and a value for the wash
+						    before it could be drawn at all, and neither is a thing to settle in this file. */}
 						{intermissions.length === 0 ? null : (
 							<div className="pointer-events-none absolute inset-0">
 								{intermissions.map(([start, end]) => (
