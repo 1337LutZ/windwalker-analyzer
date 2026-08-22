@@ -6,9 +6,9 @@
 // The thresholds that turn the audit's measurements into judgements, the weights that turn those
 // judgements into a headline, and the reading aids that colour the tiles.
 
-import type { Analysis, ElementalAuditResult, TargetMode } from '~/lib/types';
+import type { Analysis, ElementalAuditResult } from '~/lib/types';
 import { GRADE_ORDER, gradeOf, metricOf, overall, section, sharePct } from '~/lib/score';
-import type { Grade, Metric, Scorecard, Threshold } from '~/lib/score';
+import type { Grade, Metric, Scorecard, ScoreView, Threshold } from '~/lib/score';
 
 import { registry } from './index';
 
@@ -63,7 +63,7 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
  * Section keys match the report's section ids, so a component asks for its own verdict by the name
  * it already has.
  */
-export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null): Scorecard {
+export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
 	const el = analysis as ElementalAnalysis;
 	const { flameShock, earthShock, searingTotem, snapshots, lightningShield, fireElemental, cpm } = el;
 
@@ -259,7 +259,7 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 	];
 
 	return {
-		overall: overall(all, weightsFor(mode)),
+		overall: overall(all, weightsFor(view)),
 		sections: {
 			flameShock: section([flameShockUptime, flameShockWaste], [flameShockMultiDot]),
 			earthShock: section([earthShockGood]),
@@ -513,7 +513,13 @@ export const WEIGHTS: Record<MetricKey, number> = {
  * snapshot windows are all primary-target readings that stand regardless of how many enemies were
  * up. The signature is kept so the registry's `weightsFor` contract is met, and so a mode-aware
  * weight is a one-line change here rather than a registry change.
+ *
+ * A `ScoreView` and not a mode, because that is what the seam now hands over: `useReportCopy` resolves
+ * a `BandView`, and a function typed on the mode would have taken the object and compared it against
+ * `'multi'` — always false, silently, with the type system satisfied by method bivariance. `viewMode` in
+ * `lib/score` is the accessor for the half of a view that is a mode, and is what the first mode-aware
+ * weight here reads. Nothing reads it yet, which is exactly why the type had to be right first.
  */
-export function weightsFor(_mode: 'single' | 'multi' | null): Record<MetricKey, number> {
+export function weightsFor(_view: ScoreView): Record<MetricKey, number> {
 	return WEIGHTS;
 }
