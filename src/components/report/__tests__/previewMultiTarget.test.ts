@@ -19,13 +19,21 @@
 //
 // **Not a numeric guard.** Nothing here asserts a figure the report shows. The two `analyse()` calls
 // exist to establish which reading each pull detects, and the detection is the whole subject.
+//
+// The detection is read off `TargetSummary.detected` rather than through `resolveTargetMode`, which is
+// the more obvious call and the wrong one: that function reconciles the detection with a *reader's*
+// override, and there is no reader here. Its `auto` branch hands the detection straight back, so routing
+// through it adds nothing but a way to get the argument order wrong — which is what the first draft of
+// this file did, passing the whole `TargetSummary` where a `TargetMode` string belongs. Vitest ran it
+// green (the function passes the value through) and `tsc --noEmit` was what caught it, which is the
+// argument for the type check being part of the gate rather than a formality after it.
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { FightDataset } from '~/lib/types';
-import { bandsInPull, resolveTargetMode } from '~/lib/view/targetMode';
+import { bandsInPull } from '~/lib/view/targetMode';
 import { analyse } from '~/specs/elemental/lib';
 
 const raw = (name: string): FightDataset =>
@@ -56,7 +64,7 @@ describe('the multi-target reading is reachable without a token', () => {
 			expect(targets?.counts.max, `${name}: counts.max`).toBe(1);
 			expect(targets?.multiTargetMs, `${name}: multiTargetMs`).toBe(0);
 			expect(bandsInPull(targets), `${name}: bands`).toEqual([1]);
-			expect(resolveTargetMode(targets, 'auto').detected.detected, `${name}: detected`).toBe('single');
+			expect(targets?.detected, `${name}: detected`).toBe('single');
 		}
 	});
 
@@ -68,7 +76,7 @@ describe('the multi-target reading is reachable without a token', () => {
 		// 57.3% of the pull against a 33% threshold — not a pull that could flip on a tuning change.
 		expect(targets?.multiTargetPct).toBeGreaterThan(50);
 		expect(bandsInPull(targets)).toEqual([1, 2, 3, 4]);
-		expect(resolveTargetMode(targets, 'auto').detected.detected).toBe('multi');
+		expect(targets?.detected).toBe('multi');
 	});
 
 	/**
