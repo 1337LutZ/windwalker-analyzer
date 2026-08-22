@@ -7,8 +7,8 @@
 // judgements into a headline, and the reading aids that colour the tiles.
 
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
-import { GRADE_ORDER, gradeOf, metricOf, overall, section, sharePct } from '~/lib/score';
-import type { Grade, Metric, Scorecard, ScoreView, Threshold } from '~/lib/score';
+import { GRADE_ORDER, gradeOf, grader, overallOf, section, shareOf, sharePct } from '~/lib/score';
+import type { Grade, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
 
 import { registry } from './index';
 
@@ -23,10 +23,11 @@ import { registry } from './index';
  */
 type ElementalAnalysis = Analysis & ElementalAuditResult;
 
-// The four helpers that used to be copied here live in `~/lib/score`; only `metric`'s binding to this
-// spec's thresholds stays.
-const metric = (key: MetricKey, value: number | null, context?: string): Metric =>
-	metricOf(THRESHOLDS, key, value, context);
+// The four helpers that used to be copied here live in `~/lib/score`. The binding to this spec's
+// thresholds moved *into* `scoreAnalysis` as `grader(THRESHOLDS, view)`: it now carries the pull's
+// reading as well as the table, and a module-level constant cannot, because the reading arrives per
+// call. That is the point of binding it once — the reading is the half it would be easy to leave off
+// exactly one metric, which is the failure mode the whole mechanism replaces.
 
 /**
  * How a share of a wasted pool reads as a colour.
@@ -66,6 +67,8 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
 export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
 	const el = analysis as ElementalAnalysis;
 	const { flameShock, earthShock, searingTotem, snapshots, lightningShield, fireElemental, cpm } = el;
+	// Bound once, so no metric below can be built outside the exemption. See `grader`.
+	const metric = grader(THRESHOLDS, view);
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 
@@ -75,11 +78,27 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * into a dot that is still running. Over the refreshes taken, never over the applies, which were
 	 * correct by construction (there was no dot to clip).
 	 *
-	 * **Not nullable, and that is the point.** A press the log cannot measure a snapshot delta for keeps
-	 * whatever kind it would have had without one, so it lands in `refreshes` and in none of the three
-	 * excuses — charged, which is the old verdict, rather than quietly forgiven. The unmeasurable case
-	 * is per press; there is no pull-level "cannot say" for this figure to carry, and `sharePct` already
-	 * returns null for the only pull that genuinely cannot answer, the one with no refreshes at all.
+	 * **Not nullable per press, and that is the point.** A press the log cannot measure a snapshot delta
+	 * for keeps whatever kind it would have had without one, so it lands in `refreshes` and in none of the
+	 * three excuses — charged, which is the old verdict, rather than quietly forgiven.
+	 *
+	 * **This still wants `shareOf` and does not have it, which is the one piece of this adoption left
+	 * undone rather than blocked on an engine field.** `sharePct` declines only at zero refreshes, and one
+	 * or two refreshes are worse than none: at a denominator of two the reachable values are 0, 50 and
+	 * 100, so the verdict is one press from a different one in either direction. `cleave` is the pull that
+	 * found it and the pull the whole exercise came off — **two** refreshes all fight, of which the single
+	 * faulted one was made at **four** enemies (57 499ms), where `aoe.apl.json` rung 1 refuses to refresh
+	 * a live dot at all and none of the three excuses above is on the list. 50% is the worst grade on that
+	 * card and it is that one press, judged against a rule that was not running. `MIN_GRADED_SAMPLE`
+	 * exists for exactly this row and names it.
+	 *
+	 * What holds it back is two assertions rather than a measurement: `flameShockClearcasting.test.ts`
+	 * and `flameShockSnapshot.test.ts` both read this share off `metric.value`, and `metricOf` zeroes the
+	 * value of a metric it refuses. Both are asserting the *audit's* attribution — which press got which
+	 * kind — through the grading surface, which is the join that needs breaking; the share they want is
+	 * `refreshes - windowed - ascPrep - snapshotGain` over `refreshes`, straight off the audit and
+	 * independent of whether the scorecard chose to grade it. Those files belong to another lane, so the
+	 * floor lands with them.
 	 */
 	const flameShockWaste = metric(
 		'flameShockWaste',
@@ -105,14 +124,18 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * ladder graded them against Chain Lightning, which is the two halves of the report disagreeing about
 	 * one press. See `EarthShockPress.good`, which is null for exactly those presses.
 	 *
-	 * Null when nothing is judged — a pull spent entirely at three or more enemies has no shock this can
-	 * speak about, and a nullable metric leaves `overall()`'s weighted denominator (§75 decision 2) rather
-	 * than reading as a free 0%.
+	 * **This metric was band-aware before `bands` existed, and `judged` is the half that made it real.**
+	 * The declaration on the rule below says which counts the number means anything at; this counter is
+	 * what actually removes the presses made at the other counts. Measured on `cleave`: twelve presses, of
+	 * which four were at one enemy and three at two, and `judged` is exactly those seven. That pairing —
+	 * a declared scope and a narrowed sample — is what every other count metric in this table still owes,
+	 * and the reason it is worth naming here is that the declaration alone would not have done it.
+	 *
+	 * `shareOf` rather than the old `judged > 0 ?` guard, which said the same thing in one of the two
+	 * cases: a denominator of zero still declines, and one of two judged presses now declines as well.
+	 * Two shocks cannot separate a habit from a coin toss — see `MIN_GRADED_SAMPLE`.
 	 */
-	const earthShockGood = metric(
-		'earthShockGood',
-		earthShock.judged > 0 ? sharePct(earthShock.good, earthShock.judged) : null,
-	);
+	const earthShockGood = metric('earthShockGood', shareOf(earthShock.good, earthShock.judged));
 
 	const searingTotemUptime = metric(
 		'searingTotemUptime',
@@ -122,6 +145,23 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// Placements under the Fire Elemental: the one case the list forbids outright, so it is counted on
 	// its own rather than folded into the uptime figure. Null when the totem was never cast, so the
 	// section reads "none" rather than "good" on a pull with nothing to grade.
+	//
+	// **No band, and this is the one metric here where an earlier plan asked for one.** That plan wanted
+	// band 3 and up exempt, by the same argument that carries `searingTotemUptime`: `aoe.apl.json` has no
+	// Searing Totem rung, so above two enemies the totem is not a press the list asks for. The argument
+	// does not reach this number, because this number is not about the list. One fire totem stands at a
+	// time and the elemental supersedes the totem — `SearingTotemAudit.windows` are already cut short
+	// wherever `feWindows` took the slot — so a totem pressed under the elemental bought nothing at
+	// *every* target count. The count changes which button the global should have gone to; it does not
+	// change that this global bought a totem that was replaced the instant it landed. Same shape as
+	// `lightningShieldFellOff` below, and the opposite shape from the shield's *spending*.
+	//
+	// And a band here would forgive in two places at once. A totem pressed at five enemies is already
+	// faulted by the priority ladder, where `searing-totem` is `bands: [1, 2]` and the press falls
+	// through to Chain Lightning. Exempting it here as well would leave the one press that is wrong on
+	// both counts — no rung asked for it *and* the slot it claimed was occupied — carrying no verdict
+	// anywhere. `feOverlaps` is 0 on all three committed pulls, so this ruling costs nothing measurable
+	// today; it is written down because the plan it overrules is still readable.
 	const searingTotemOverlaps = metric(
 		'searingTotemOverlaps',
 		searingTotem.windows.length > 0 ? searingTotem.feOverlaps : null,
@@ -161,7 +201,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// an Elemental can act on.
 	const snapshotRate = metric(
 		'flameShockSnapshots',
-		sharePct(snapshots.refreshed, snapshots.refreshed + snapshots.missed),
+		shareOf(snapshots.refreshed, snapshots.refreshed + snapshots.missed),
 	);
 
 	// Lightning Shield's own two faults: sitting at the ceiling so long the Rolling Thunder has
@@ -169,7 +209,8 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// the summary as cards; neither is weighted heavily enough to swing the headline, because both are
 	// "wake up and spend it" habits rather than the snapshots the spec is built on.
 	//
-	// **The two halves of one aura are graded on two different clocks, and that is deliberate.**
+	// **The two halves of one aura are graded on two different clocks and declare different bands, and
+	// that is deliberate.**
 	// Amendment 3: Rolling Thunder (88765) returns 2% of maximum mana per charge granted, doubled by
 	// the T16 four-piece, and it only runs while the buff is up — so the shield's *uptime* is the
 	// spec's mana engine at every target count and `fellOff` is graded over the whole pull, banded or
@@ -179,12 +220,28 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// (`atCapWindowsIn`, restarted at every regime boundary), and this site takes it as given — the
 	// clock is the audit's to cut, not the score's to second-guess.
 	//
-	// One hazard that is *not* handled here yet, and needs the audit to say so rather than this file
-	// to infer it: a pull with no single-target stretch at all has an empty graded clock, and `0ms of
-	// overcap` over no time is `good` — a free pass rather than the honest "cannot say". `maxStacks >
-	// 0` is the wrong guard for it, because the shield was up and counting the whole time. A nullable
-	// metric already leaves `overall()`'s weighted denominator (§75 decision 2), so the fix is one
-	// more clause here as soon as the audit publishes the length of the clock it graded.
+	// **The one hazard in this file that a band declaration makes worse rather than better, and it is
+	// still open.** A pull with no single-target stretch at all has an empty graded clock, and `0ms of
+	// overcap` over no time is `good` — the best mark on the card, handed to exactly the pull the
+	// exemption just excused, which is a free pass rather than the honest "cannot say". `maxStacks > 0`
+	// is the wrong guard for it, because the shield was up and counting the whole time; every proxy for
+	// "was the thing present" answers a different question from "was anything graded".
+	//
+	// The mechanism for it exists and is one call: `gradedOver(overcapMs, gradedMs)` instead of the bare
+	// number, and `metricOf` nulls on a graded length of zero. What is missing is the number itself. The
+	// audit already computes the array — `shieldGradedSpans = complementOf(aoeWindows, duration)` in
+	// `specs/elemental/lib/index.ts`, which is what `overcapMs` is measured inside — and publishes every
+	// other part of it (`aoeWindows`, `overcapWindows`, `leewayMs`) while never publishing its length. So
+	// this needs `gradedMs: unionMs(shieldGradedSpans)` on that object and `gradedMs: number` on
+	// `LightningShieldAudit`, both of which are another lane's files. `ManaAudit`'s two clocks already
+	// carry a field of that name for this exact purpose, so the name has precedent in this audit rather
+	// than being invented here.
+	//
+	// Deriving it locally from `aoeWindows` and `durationMs` was considered and rejected: it would be a
+	// second computation of a span the audit already has, free to disagree with the one the overcap was
+	// actually measured in, and the whole reason `gradedMs` is a published field rather than an inference
+	// is that a guard reconstructed at the reader is a guard that can drift out of step with what it
+	// guards.
 	const lightningShieldOvercap = metric(
 		'lightningShieldOvercap',
 		lightningShield.maxStacks > 0 ? lightningShield.overcapMs : null,
@@ -258,8 +315,13 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		shamanisticRageMissed,
 	];
 
+	// `overallOf` rather than `overall`: the denominator travels with the verdict, so a headline drawn
+	// over a pull most of whose weight went unjudged says so instead of reading as a whole-pull claim.
+	const { grade, judged } = overallOf(all, weightsFor(view));
+
 	return {
-		overall: overall(all, weightsFor(view)),
+		overall: grade,
+		judged,
 		sections: {
 			flameShock: section([flameShockUptime, flameShockWaste], [flameShockMultiDot]),
 			earthShock: section([earthShockGood]),
@@ -289,6 +351,35 @@ export { GRADE_ORDER };
 //
 // These are the only numbers in the app that turn a measurement into a judgement, so each carries
 // the reasoning that put it where it is. The same convention the Windwalker thresholds keep.
+//
+// ## What `bands` on a rule here does, and what it does not
+//
+// Read this before adding one, because the name invites a stronger reading than the mechanism has.
+//
+// A declaration is a statement about *which target counts this number means anything at*. `metricOf`
+// reads it exactly one way: it intersects the rule's bands with the bands the pull was read at, and if
+// that intersection is **empty** the metric is `unmeasurable` with `exempt` beside it. So a declaration
+// speaks only to a pull that never entered the rule's bands at all — a pull read wholly as multi-target,
+// or one whose counts never left the range the rule is not about.
+//
+// **It does not cut a clock, and on the mixed pull this whole exercise is about it therefore changes
+// nothing.** `cleave` resolves to `[1, 2, 3, 4]`, so every declaration below intersects non-empty and
+// every metric below carries on grading its full clock exactly as it did before. `lib/score/bands.ts`
+// says so in its own words — "Nothing here decides *how much* of a clock to cut" — and the half that
+// does is the audit's: the numerator and the denominator of a ratio both intersected with
+// `complementOf(aoeWindows)`, which is what `specs/elemental/lib/index.ts` already does for the shield
+// (`shieldGradedSpans`) and does for none of the other three. Clipping one half and not the other is how
+// an uptime above 100% happens, which is why it is one edit at the site and not a subtraction here.
+//
+// So each declaration below is necessary and not sufficient, and the two halves are worth keeping
+// straight when reading a verdict: an `exempt` metric was never asked of this pull, while a graded
+// metric on a mixed pull may still be graded over stretches its own rule did not apply to. The second
+// of those is the reported bug, and it is not fixed in this file.
+//
+// What earns a declaration: a rung only some target counts' lists contain, where the *number this
+// metric is* is a reading of that rung. What does not: a resource, a slot, a global or a pre-pull press
+// that exists identically at every count — those stay graded everywhere, however many enemies were up.
+// Seven of the thirteen entries below carry one; the six that do not each say why beside them.
 
 export const THRESHOLDS = {
 	/**
@@ -297,8 +388,13 @@ export const THRESHOLDS = {
 	 * Elemental is a cooldown- and proc-driven rotation on a 1.5s global: there is no resource bar
 	 * to overcap, so the ceiling is the boss's uptime rather than a pool refilling. Between casts the
 	 * list genuinely wants to stand still — waiting for a Lava Surge or a cooldown is correct play,
-	 * not a missed global — so the bands are cut looser than the Windwalker's energy-gated rotation
+	 * not a missed global — so the thresholds are cut looser than the Windwalker's energy-gated rotation
 	 * and a high number is not the target the way it is there.
+	 *
+	 * **No band.** Every one of the three lists fills every global, and none of them has a rung that says
+	 * to stand still — the standing still this forgives is the *absence* of a ready rung, which happens
+	 * at all four counts. Filling globals is the one thing this spec is asked for identically however many
+	 * enemies are up, and the aoe list is if anything the easiest of the three to fill them from.
 	 */
 	gcdUtilisation: { good: 80, ok: 65, higherIsBetter: true },
 
@@ -309,8 +405,25 @@ export const THRESHOLDS = {
 	 * the sim's own Lava Burst rule refuses to cast Lava Burst unless the dot outlives its cast, so a
 	 * dropped Flame Shock is not one global but a cascade. The bar is therefore high, like the
 	 * Windwalker's Rising Sun Kick debuff.
+	 *
+	 * **`bands: [1, 2]`, and the argument is about the bar rather than about the button.** It would be
+	 * wrong to say the aoe list does not want the dot: `aoe.apl.json` rung 1 casts it, on
+	 * `auraIsKnown(138898) AND not(dotIsActive(8050))`. What that list does not have is the thing the
+	 * 95%/85% bar is *derived from* — it carries **no Lava Burst rung at all**, so the cascade in the
+	 * paragraph above, a dropped dot costing far more than the global that would have replaced it, does
+	 * not exist above two enemies. All the aoe list asks is that the dot go back up when it is down,
+	 * once, at a rung below the beam; a 95% clock is not that rule stated in percent. The p5 rules this
+	 * bar was written from — 7, 12 and 16 — are band 1, and `cleave.apl.json`'s rung 9 is band 2, so
+	 * those two counts keep it.
+	 *
+	 * **The declaration does not shorten the clock, and on `cleave` that is the whole of what is still
+	 * wrong.** `uptimePct` is `contactUptimeMs / scoredMs` over the *whole* of the contact clock, and
+	 * `cleave`'s 72.3% is measured across 261 572ms of which 82 858ms was spent at three enemies or more.
+	 * Both halves want intersecting with `complementOf(aoeWindows)` in `specs/elemental/lib/index.ts`,
+	 * together and not one at a time. Until that lands, this rule declares its scope and grades outside
+	 * it on any pull that also visits band 1 or 2 — which is every mixed pull.
 	 */
-	flameShockUptime: { good: 95, ok: 85, higherIsBetter: true },
+	flameShockUptime: { good: 95, ok: 85, higherIsBetter: true, bands: [1, 2] },
 
 	/**
 	 * Share of Flame Shock refreshes that bought nothing.
@@ -319,16 +432,55 @@ export const THRESHOLDS = {
 	 * while the dot is already up: its last tick window, the Ascendance prep, or a new application worth
 	 * more than 10% more damage per millisecond of dot than the one it replaced. Everything else clips a
 	 * healthy dot for no gain. Lower is better.
+	 *
+	 * **`bands: [1]`, and band 2 is out as well as band 3+ — which is the answer that needed measuring.**
+	 * The reason is that this number's *numerator* is p5's, clause by clause. `cleave.apl.json` rung 9 is
+	 * `multidot(8050, maxDots: 2, maxOverlap: 2s)` and that is its whole Flame Shock rule: it carries
+	 * neither p5's snapshot reapply (7) nor its Ascendance prep (12), so two of the three excuses
+	 * subtracted above are not excuses the two-target list ever granted. Nor does the third survive
+	 * intact — `windowed` is measured against the dot's own tick cadence, which ran at 1 349, 1 748 and
+	 * 2 275ms on one committed pull, so a refresh with 2 400ms left is excused here and faulted by rung
+	 * 9's flat 2 000ms. The excuse set is wrong in *both* directions at band 2, not merely too generous,
+	 * and grading against it is the same defect `apl.ts` already fixed for this rung: applying p5's
+	 * Ascendance-prep clause above one target "was this ladder asking for a press the sim's own list
+	 * never asks for".
+	 *
+	 * **What that costs, stated rather than left to be found.** At band 3+ `aoe.apl.json` rung 1 refuses
+	 * to refresh a live dot at all, so a band-3+ refresh is a fault by a *stricter* rule than this one,
+	 * and declaring the band means the score says "cannot say" about it instead of faulting it. That is
+	 * the forgiving direction, which is the dangerous one. It is acceptable only because the press is not
+	 * thereby unattributed: the priority ladder's `flame-shock` rung switches lists per press, so a live-dot
+	 * refresh at three enemies fails its condition there and is charged against Chain Lightning or Lava
+	 * Beam — the same disposal `apl.ts` argues for Earth Shock. The fix that would let this metric speak
+	 * at bands 2 and 3+ is a numerator per band in the audit, not a wider declaration here.
 	 */
-	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false },
+	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1] },
 
 	/**
 	 * The dot's uptime on the secondary target while two or more enemies were up — the cleave preset's
 	 * multi-dot rule. A second target that stays undotted for the whole multi-target stretch is a dot
 	 * the player never put where it would tick for free; keeping both up is the skill the fight asks
 	 * for. Unmeasurable on a single-target pull.
+	 *
+	 * **`bands: [2]` — one band, and the only entry in this table with a hole in the middle of it.** The
+	 * second dot is `cleave.apl.json` rung 9's `maxDots: 2` and appears in neither of the other two
+	 * lists: p5's rung 16 is `maxDots: 1` and never leaves the unit it is aimed at, and `aoe.apl.json`
+	 * rung 1 has no `multidot` at all. So band 1 is excluded for the reason the metric already declined
+	 * there — there was no second target — and band 3+ is excluded because from three enemies up the list
+	 * stops asking for a second dot and starts asking for Lava Beam and Chain Lightning. Two enemies is
+	 * the one count at which spreading the dot is the rule.
+	 *
+	 * The band and the old `multiTargetMs > 0` guard say different things, and both are kept: the guard
+	 * says the pull offered no second target worth dotting, the band says the list did not ask for one.
+	 * On `phased` and `unbroken` the two now agree and the metric reads `exempt` where before it read only
+	 * "cannot say" — the same number, a better reason.
+	 *
+	 * `multiTargetMs` is still the time **two or more** enemies were up, so on a mixed pull the clock
+	 * runs through band 3 and 4 as well and this declaration does not shorten it. `multiDotUptimeMs` and
+	 * `multiTargetMs` both want intersecting with `complementOf(aoeWindows)`; on `cleave` that clock is
+	 * 148 865ms today and band 2 is the smaller part of it.
 	 */
-	flameShockMultiDot: { good: 85, ok: 60, higherIsBetter: true },
+	flameShockMultiDot: { good: 85, ok: 60, higherIsBetter: true, bands: [2] },
 
 	/**
 	 * Share of Earth Shock presses the sim's rule wanted.
@@ -338,8 +490,17 @@ export const THRESHOLDS = {
 	 * Ascendance not about to demand the shock timer; with the proc up, the shield at the ceiling, the
 	 * proc's debuff inside its last four seconds and the dot outliving two ticks. A press that passes its
 	 * own branch is the list's own call; a press that fails a condition of it is a shock spent early.
+	 *
+	 * **`bands: [1, 2]`, migrated from the bespoke counter that has been doing this job since `0de530e`.**
+	 * `aoe.apl.json` has no Earth Shock rung, so from three enemies up there is no branch a press can pass
+	 * or fail, and the ladder already declares `earth-shock` the same way. The counter is
+	 * `EarthShockAudit.judged` and it stays exactly as it is — it is the narrowed *sample*, which is the
+	 * half a declaration cannot supply, and on `cleave` it is the seven presses made at one or two enemies
+	 * out of twelve made. What the declaration adds is the case the counter cannot express: a pull read
+	 * wholly above two enemies now reads `exempt` — the rule was not asked — rather than merely arriving at
+	 * a denominator of zero, which is "the log could not say" and is a different sentence.
 	 */
-	earthShockGood: { good: 85, ok: 65, higherIsBetter: true },
+	earthShockGood: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2] },
 
 	/**
 	 * Searing Totem's uptime against the time it could have been up.
@@ -350,8 +511,23 @@ export const THRESHOLDS = {
 	 * stretch the player could have had a totem in. Held against engaged time the thresholds below
 	 * were unreachable on any pull that used the elemental on cooldown — a low number now means the
 	 * totem genuinely sat unsummoned while the slot was free.
+	 *
+	 * **`bands: [1, 2]`, and this is the plainest transcription in the table.** `aoe.apl.json` is five
+	 * rungs long and Searing Totem is not one of them, nor is Magma Totem — after the pre-pull Fire
+	 * Elemental that slot has no rung anywhere in that list, and `apl.ts` has already banded the ladder's
+	 * `searing-totem` rung `[1, 2]` on exactly this reading. Band 2 stays in because
+	 * `cleave.apl.json` not only keeps the totem but promotes it *above* Flame Shock, Lava Burst,
+	 * Elemental Blast and Earth Shock, so the two-target list is the one that asks for it hardest.
+	 *
+	 * **This is the cheapest of the four clocks to cut, and it is still not cut here.** `scoredMs` is
+	 * already `intersect(contact, complementOf(feWindows))` — the site composes an exempt cause into the
+	 * denominator and the numerator follows it by construction, which its own comment says in as many
+	 * words ("the numerator is intersected with the same clock rather than taken raw, so it follows this
+	 * line without a second edit"). Adding `aoeWindows` to that complement is one array literal in
+	 * `specs/elemental/lib/index.ts`. Until it lands, `cleave`'s 78.7% is measured over 204 835ms
+	 * including 82 858ms the list had no totem rung in.
 	 */
-	searingTotemUptime: { good: 85, ok: 65, higherIsBetter: true },
+	searingTotemUptime: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2] },
 
 	/**
 	 * Placements made while the Fire Elemental was out.
@@ -359,6 +535,13 @@ export const THRESHOLDS = {
 	 * The list keeps the two summons apart — the Fire Elemental replaces the totem, so a totem placed
 	 * under it is a global that bought a totem the elemental already superseded. Zero is the target and
 	 * is genuinely achievable; more than one is the habit. Lower is better.
+	 *
+	 * **No band, against an earlier plan that asked for band 3+ exempt here.** The whole argument for
+	 * that is the one directly above, and it does not reach this number: the rung's absence from
+	 * `aoe.apl.json` says the totem was not the button to press, while this says the button bought
+	 * nothing when it was pressed. One fire totem stands at a time and the elemental supersedes it at
+	 * every target count, so the global was wasted whichever list was running — a slot fact, not a list
+	 * fact, and the same shape as `lightningShieldFellOff`. See the note at the metric.
 	 */
 	searingTotemOverlaps: { good: 0, ok: 1, higherIsBetter: false },
 
@@ -388,6 +571,11 @@ export const THRESHOLDS = {
 	 * one at the lightest weight the table has, and it is never called a mistake. Three of this audit's
 	 * bugs so far — plan steps 26, 31a and 31b — were faults invented by charging a player for
 	 * something they could not have done, and a `bad` band here would have been the fourth.
+	 *
+	 * **No band, and it is the clearest case in the table.** This is a question about a single instant —
+	 * the bell — and it is asked before any target count exists to read. All three lists pre-pull the
+	 * elemental, `autocastOtherCooldowns` in the aoe list casts it as a registered major cooldown, and
+	 * the pull's counts say nothing about what was standing when it started.
 	 */
 	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true },
 
@@ -398,8 +586,22 @@ export const THRESHOLDS = {
 	 * reapplied while a trigger and an int proc overlap. A missed window is a snapshot that never got
 	 * its multiplier; catching most of them is the skill being measured, catching under half means
 	 * the pairing is not being played at all.
+	 *
+	 * **`bands: [1]`: the rule this measures is p5 rung 7, and neither other list carries it.** `apl.ts`
+	 * states it directly — "neither list carries p5's snapshot reapplies (7) or its Ascendance prep (12)"
+	 * — so a snapshot window that opened while three enemies were up was never a refresh the running list
+	 * asked for, and at the weight this metric carries that matters more here than anywhere else in the
+	 * table.
+	 *
+	 * **And it cannot be shown to change anything on the fixtures we hold, which is stated rather than
+	 * implied.** All three committed pulls audit `refreshed: 0, missed: 0` — none of them wore a trigger
+	 * and an int proc at the same time — so the metric is already unmeasurable on every one of them, at
+	 * every reading, before and after this declaration. `shareOf` on the same line is in the same
+	 * position: it refuses a denominator under three, and the denominator here is zero. Both are
+	 * therefore untested against a real pull and both are the same claim the other six entries make.
+	 * The first fixture with a live snapshot window will be the first evidence either way.
 	 */
-	flameShockSnapshots: { good: 70, ok: 45, higherIsBetter: true },
+	flameShockSnapshots: { good: 70, ok: 45, higherIsBetter: true, bands: [1] },
 
 	/**
 	 * Time the shield sat at the ceiling past the reader's leeway, in milliseconds.
@@ -408,8 +610,19 @@ export const THRESHOLDS = {
 	 * Thunder with nowhere to put its charge. Zero is genuinely achievable — the shield is spent by a
 	 * one-global instant — so anything above the grace is a real miss; a handful of seconds is a slow
 	 * reaction, more than that is the habit. Lower is better.
+	 *
+	 * **`bands: [1, 2]`, and this is the one metric whose clock is already cut to match.** Nothing in
+	 * `aoe.apl.json` spends the shield — no Earth Shock rung at all — so sitting at seven through an add
+	 * wave is the only state the list leaves available. Band 2 stays in because `cleave.apl.json` does
+	 * spend it, at six stacks rather than seven, and exempting a pull from a list that is *stricter* would
+	 * be the wrong way round. The audit builds `shieldGradedSpans = complementOf(aoeWindows, duration)`
+	 * and measures the overcap inside it, per segment, so the leeway restarts at every boundary.
+	 *
+	 * So the declaration here is the honest scope for a number that is honestly measured — and it is also
+	 * the one entry that makes the missing guard reachable: see the note at the metric, and
+	 * `gradedMs`.
 	 */
-	lightningShieldOvercap: { good: 0, ok: 5000, higherIsBetter: false },
+	lightningShieldOvercap: { good: 0, ok: 5000, higherIsBetter: false, bands: [1, 2] },
 
 	/**
 	 * How many times the shield came all the way off.
@@ -417,6 +630,13 @@ export const THRESHOLDS = {
 	 * A full removal is not a stack spent — it is the whole counter thrown away, and the shield has to
 	 * be re-applied and rebuilt from one. Zero is the target; one is usually a death, two is a habit.
 	 * Lower is better.
+	 *
+	 * **No band, and it is the deliberate counterpart of the entry above.** The two halves of one aura
+	 * are scoped differently on purpose. Rolling Thunder (88765) returns 2% of maximum mana per charge
+	 * granted, doubled by the T16 four-piece, and it only runs while the buff is up — so the shield's
+	 * *uptime* is this spec's mana engine at every target count, and the aoe list needs that mana as much
+	 * as p5 does. What the target count changes is only whether the *stacks* are spendable, which is the
+	 * entry above. The resource exists identically at every count; only the rung that spends it does not.
 	 */
 	lightningShieldFellOff: { good: 0, ok: 1, higherIsBetter: false },
 
@@ -439,6 +659,11 @@ export const THRESHOLDS = {
 	 * mirror of this threshold, and the two together would ask a player to press the button exactly once
 	 * per starved stretch and never otherwise. Nothing here counts a press as a credit either, so no part
 	 * of this rewards pressing it more often. Lower is better.
+	 *
+	 * **No band.** The 15% trigger is `cleave.apl.json`'s own line, so the rule is not even band 1's to
+	 * begin with, and an empty pool stops every one of the three lists — `aoe.apl.json`'s Lava Beam and
+	 * Chain Lightning cost mana like anything else. The rescue is on the bar and off the global at every
+	 * count. This is the shape the module doc calls a resource rather than a rung.
 	 */
 	thunderstormMissed: { good: 0, ok: 5000, higherIsBetter: false },
 
@@ -456,9 +681,14 @@ export const THRESHOLDS = {
 	 * plan's own summary of it is "2% a cast rather than a rescue". Zero is achievable on any pull, one is a
 	 * lapse and two is a habit, which is where `lightningShieldFellOff` and `searingTotemOverlaps` sit for
 	 * the same shape of miss. Lower is better.
+	 *
+	 * **No band**, for the reason directly above and one more of its own: the Rage is a registered major
+	 * cooldown, so `aoe.apl.json`'s `autocastOtherCooldowns` rung presses it there even though that list
+	 * names no mana button of its own. It is the one press in this spec that is asked for at every count
+	 * by every list.
 	 */
 	shamanisticRageMissed: { good: 0, ok: 1, higherIsBetter: false },
-} as const satisfies Record<string, Threshold>;
+} as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
 
@@ -509,16 +739,25 @@ export const WEIGHTS: Record<MetricKey, number> = {
 /**
  * What changes when the pull is read as multi-target.
  *
- * None of the metrics are mode-dependent yet: the Flame Shock dot, the Earth Shock clock and the
- * snapshot windows are all primary-target readings that stand regardless of how many enemies were
- * up. The signature is kept so the registry's `weightsFor` contract is met, and so a mode-aware
- * weight is a one-line change here rather than a registry change.
+ * **No weight changes, and that is now a decision rather than a gap.** The claim this docstring used to
+ * make — "none of the metrics are mode-dependent" — was already false when it was written and is plainly
+ * false now: `earthShockGood` has been scoped to bands 1 and 2 since `0de530e`, `lightningShieldOvercap`
+ * grades on a clock with the aoe stretches cut out of it, and seven of the thirteen rules above declare
+ * their bands. Seven mode-dependent metrics is what this table is about.
  *
- * A `ScoreView` and not a mode, because that is what the seam now hands over: `useReportCopy` resolves
- * a `BandView`, and a function typed on the mode would have taken the object and compared it against
+ * They are dependent the *other* way, though, which is why nothing here moves. The Windwalker's one
+ * entry discounts Rising Sun Kick uptime on a multi-target pull — a whole-pull judgement that a
+ * single-target number matters less when the job is spreading, which only a mode can express. The
+ * Elemental's seven make a different claim: not that the number is worth less, but that at some counts it
+ * is not a number at all. `MetricRule.bands` is where that belongs, and an exempt metric leaves
+ * `overallOf`'s denominator entirely rather than being counted at a discount — so pricing it here as
+ * well would charge the same pull twice for one fact.
+ *
+ * A `ScoreView` and not a mode, because that is what the seam hands over: `useReportCopy` resolves a
+ * `BandView`, and a function typed on the mode would have taken the object and compared it against
  * `'multi'` — always false, silently, with the type system satisfied by method bivariance. `viewMode` in
- * `lib/score` is the accessor for the half of a view that is a mode, and is what the first mode-aware
- * weight here reads. Nothing reads it yet, which is exactly why the type had to be right first.
+ * `lib/score` is the accessor for the half of a view that is a mode, and is what a whole-pull weight here
+ * would read if this spec ever grows one.
  */
 export function weightsFor(_view: ScoreView): Record<MetricKey, number> {
 	return WEIGHTS;
