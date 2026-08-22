@@ -6,7 +6,10 @@
 // `a:qHRAFwdGzaB6MPYC` #14 and at 31.0s on `a:xB3kh7v9pF2AHRtq` #16) and both report
 // `{ shamans: [], overlaps: [], totems: 0 }`, because the field was never fetched into the fixture.
 // So the raid view is synthetic here, and the real pulls are used for the one thing they can answer:
-// the player's own totem on the timeline, which comes off their cast list rather than off the raid's.
+// the totem's row on the timeline, which comes off the *buff* the player was given rather than off the
+// raid-wide placement fetch — the two sources answer different questions and only one of them was
+// fetched. What the rows themselves say, on all three pulls and for Skull Banner beside them, is
+// `raidBuffLanes.test.ts`.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -37,14 +40,24 @@ describe('a pull whose raid-wide placements were never fetched', () => {
 	});
 
 	/**
-	 * The player's own totem is still on the timeline, off their cast list and the buff's fixed ten
-	 * seconds. This lane and the raid section answer different questions and are drawn from different
-	 * sources on purpose.
+	 * The player's own totem is still on the timeline with `raidStormlash` absent — but as the **buff**
+	 * they got, not as their cast plus ten seconds.
+	 *
+	 * This assertion used to read `{ start: 1620, end: 11_620 }`: the press at 1.620s and the totem's
+	 * fixed duration, from `castTimes(STORMLASH_TOTEM)`. It is now `{ start: 2427, end: 12_141 }`,
+	 * which is when 120676 went on this shaman and came off again — 807ms later, because the summon
+	 * lands before the totem gets its first pulse out. The section's own numbers are untouched by that
+	 * (the test above), and the reason for the move is that this row now sits beside the *other*
+	 * shamans' rows: `Player (7)`'s totem can only be read off the buff, so reading the player's own off
+	 * the press would have put two different clocks in one block. The press is still marked — it keeps
+	 * its own cast lane, exactly as the merge already does for a key several lanes share.
+	 *
+	 * One row per instance, so this is `filter` and not `find`: `phased` has two Stormlash totems on
+	 * this player and `find` would have quietly answered for the first of them.
 	 */
-	it('still draws the player’s own totem', () => {
-		expect(el.timeline?.lanes.find((l) => l.key === 'stormlash-totem')?.windows).toEqual([
-			{ start: 1620, end: 11_620 },
-		]);
+	it('draws the player’s own totem as the buff they got, not as the press', () => {
+		const own = el.timeline?.lanes.filter((l) => l.key === 'stormlash-totem' && l.source?.id === 2) ?? [];
+		expect(own.map((l) => l.windows)).toEqual([[{ start: 2427, end: 12_141 }]]);
 	});
 });
 

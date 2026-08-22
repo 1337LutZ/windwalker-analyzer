@@ -1973,6 +1973,18 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	};
 
 	/**
+	 * A row's React key, which is the aura's key except where several rows share one.
+	 *
+	 * The per-enemy block has always composed its keys from the lane and the enemy (`${key}@${target.id}`
+	 * below) because a bare key reconciles two enemies' rows into each other. A raid buff drawn per caster
+	 * is the same situation one field along, and worse: two totems from *one* shaman share the key and the
+	 * caster both, so the instance itself has to be in the key. Its window's start is what identifies it —
+	 * one lane carries one instance — and it is stable across renders, which a list index is not.
+	 */
+	const blockKey = (lane: AuraLane): string =>
+		lane.source === undefined ? lane.key : `${lane.key}^${lane.source.id}@${lane.windows[0]?.start ?? 0}`;
+
+	/**
 	 * The rows the declared order names, in that order — press rows and aura rows in one sequence.
 	 *
 	 * Ranked and sorted rather than assembled by walking `ROW_ORDER`, so a row can be in the list at
@@ -1984,7 +1996,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * a second rule for the gutter and the track to keep in step over.
 	 */
 	const lead: Block[] = [
-		...auraRows.map((row) => ({ rank: rowRank(namesOf(row), rowOrder), block: { key: row.lane.key, row } as Block })),
+		...auraRows.map((row) => ({
+			rank: rowRank(namesOf(row), rowOrder),
+			block: { key: blockKey(row.lane), row } as Block,
+		})),
 		...(showCasts ? pressed.loose : []).map((press) => ({
 			rank: rowRank([press.lane.name], rowOrder),
 			block: { key: press.lane.name, press } as Block,
@@ -2005,7 +2020,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 */
 	const restBlocks: Block[] = auraRows
 		.filter((row) => !led(namesOf(row), rowOrder))
-		.map((row) => ({ key: row.lane.key, row }));
+		.map((row) => ({ key: blockKey(row.lane), row }));
 	const targetBlocks: Block[] = [];
 	let heading: number | null = null;
 	for (const row of targetRows) {
@@ -2031,7 +2046,10 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	const hiddenCount = analysis.timeline?.hiddenTargets ?? 0;
 	const undrawnTargets =
 		targetLanes.filter(({ target }) => !shownTargets.has(target.id)).length +
-		Math.max(0, hiddenCount - spareLanes.length);
+		// Only the *enemy* lanes count against `hiddenTargets`, which is a count of enemies and feeds a
+		// sentence that says so. `hiddenLanes` now also carries the raid-buff instances past their own cap,
+		// and counting those here would silently cancel out the recovery term for an old analysis.
+		Math.max(0, hiddenCount - spareLanes.filter((lane) => lane.target !== undefined).length);
 	// Whether the collapse actually merged anything, which is when its caption has something to explain.
 	const collapsed = grouping === 'off' && targetLanes.filter(({ target }) => shownTargets.has(target.id)).length > 1;
 
@@ -2063,10 +2081,27 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * row labelled only "Tiger Palm" leaves the bars under it unexplained. When the names agree, as
 	 * they do for both brews, saying it twice is noise.
 	 */
-	const rowLabel = (lane: AuraLane, press: CastRow | undefined): string =>
-		press === undefined || press.lane.name === lane.name
-			? lane.name
-			: t('castLog.mergedLane', { ability: press.lane.name, aura: lane.name });
+	/*
+	 * ...and who cast it, on a raid buff drawn per caster.
+	 *
+	 * Without the name the rows are indistinguishable: four bars labelled "Stormlash Totem" is exactly the
+	 * merged row this replaced, spread over four lines. The buff leads and the caster follows it, so the
+	 * four rows still read as one group when the eye runs down the gutter.
+	 *
+	 * A caster the actor list could not name gets the buff's name alone rather than an invented label — the
+	 * same rule `LaneSource.name` states. **The separator is composed here rather than translated**, and it
+	 * is the one place in this file that happens: `castLog.mergedLane` is `{{ability}} · {{aura}}` and
+	 * neither half is what this is. A `castLog.source.lane` string of its own belongs in `report.json`,
+	 * which is not this lane's file, so it is reported rather than taken — the middot is the same
+	 * convention the merged label already sets, and both halves are proper nouns the log wrote.
+	 */
+	const rowLabel = (lane: AuraLane, press: CastRow | undefined): string => {
+		const aura =
+			press === undefined || press.lane.name === lane.name
+				? lane.name
+				: t('castLog.mergedLane', { ability: press.lane.name, aura: lane.name });
+		return lane.source?.name == null ? aura : `${aura} · ${lane.source.name}`;
+	};
 
 	// One renderer per column, called for every block. Written out once because the leading rows, the
 	// rows nobody ranked and the per-enemy block have to be identical in every respect but where they

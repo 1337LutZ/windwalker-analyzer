@@ -313,6 +313,38 @@ export interface LaneTarget {
 }
 
 /**
+ * The player who cast the raid buff a lane's window came from.
+ *
+ * **Deliberately not `LaneTarget`, and deliberately not reusing `target`.** The per-enemy row machinery
+ * is the right *pattern* for this — several rows sharing one aura key, told apart by a field, capped and
+ * carried past the cap — but `target` means "enemy" in every other file that reads it, so a caster
+ * arriving in that field would read as a victim and would sink into the per-enemy block at the foot of
+ * the chart, which is where rows about enemies go.
+ *
+ * Only a raid buff somebody else pressed has one. Stormlash Totem and Skull Banner are cast by another
+ * player, land on the whole raid and do not stack, so "whose was this one" is the only question about
+ * either that a single merged bar cannot answer — and it is the question `stormlashOverlaps` already
+ * measures a number for. A buff the player put up themselves has no source worth naming.
+ */
+export interface LaneSource {
+	/**
+	 * The report actor id of the *player* who cast it, not the object that applied it.
+	 *
+	 * Both of these buffs are applied by a summon — the totem, the banner — so the event's own `sourceID`
+	 * is a pet, and a row labelled `Pet (39)` names nothing a reader can act on. This is that pet's
+	 * `petOwner` resolved, falling back to the id the event carried where the actor list cannot answer.
+	 */
+	id: number;
+	/**
+	 * The caster's name, or null when the report's actor list did not name them.
+	 *
+	 * Never invented, for the reason `LaneTarget.name` is not: a row named after the wrong raid-mate is
+	 * worse than a row that only names the buff, which is what the chart draws when this is null.
+	 */
+	name: string | null;
+}
+
+/**
  * One window of a lane: the engine's `AuraWindow`, with both of its extras optional.
  *
  * The engine builds most lanes through `auraWindows`, so at the moment of measurement both fields
@@ -356,6 +388,16 @@ export interface AuraLane {
 	 * only by target, which is why the chart composes its React key from both.
 	 */
 	target?: LaneTarget;
+	/**
+	 * Which raid-mate cast this instance, when the aura is a raid buff somebody else pressed.
+	 *
+	 * Absent on everything the player put up themselves, and absent on any analysis captured before
+	 * per-caster lanes existed — so read it for truthiness, never against null. A lane that carries one
+	 * is **one instance**: several lanes then share the aura's key and each holds a single window, which
+	 * is what makes two staggered Stormlash totems two rows a reader can see stacking. The chart
+	 * composes its React key from the key and the instance for the same reason it does for `target`.
+	 */
+	source?: LaneSource;
 	/**
 	 * The counter behind the window, when the aura stacks and the log actually counted it.
 	 *
@@ -2602,7 +2644,25 @@ export interface ElementalAuditResult {
 	ascendance: AscendanceAudit;
 	lavaBurst: LavaBurstAudit;
 	/** Elemental Mastery's presses, judged against the sync-with-Ascendance rule rather than drift. */
-	elementalMastery: { presses: ElementalMasteryPress[] };
+	elementalMastery: {
+		presses: ElementalMasteryPress[];
+		/**
+		 * Whether the player took the talent: true, false, or **null for a log that could not say**.
+		 *
+		 * The same three-state field as `ChiBrewAudit.talented` and for the same reason. A `combatantinfo`
+		 * list that does not name 16166 is a real "not talented" and a section gated on it should vanish;
+		 * a report with no list at all has said nothing, and rendering that as a choice the player made
+		 * would be the report inventing a decision. Read it against `null` rather than for truthiness:
+		 * `false` is an answer.
+		 *
+		 * **Optional, and that is a fourth case rather than a fourth answer.** An `Analysis` is serialised
+		 * — every captured fixture in this repository is one — so a pull audited before this field existed
+		 * arrives without it. Absent has to read as `null` for the same reason a missing list does, which
+		 * is what `elementalMasteryTalented` in the sections' `gates.ts` already does with `?? null`. The
+		 * audit itself always publishes one of the three.
+		 */
+		talented?: boolean | null;
+	};
 	/** Fire Elemental's presses, judged against the sync-with-Ascendance rule rather than drift. */
 	fireElemental: {
 		presses: FireElementalPress[];

@@ -134,12 +134,6 @@ const LEDGER: Record<number, string> = {
 	// one thing that module says it must never print. `cleave` carries it.
 	61316:
 		'Dalaran Brilliance: a MISSING PROVIDER, not an exemption. The mage supplies +10% spell power and +5% crit under either 1459 or 61316 and `raidBuffs.ts` EFFECTS lists only 1459, so this raid reads as unbuffed. Belongs in that roster; this entry goes when it is there.',
-	// Declared and drawn on the Elemental (`stormlash-totem`), and the Windwalker's own aura list has
-	// never named it. The buff is raid-wide and cast by another player, exactly like Skull Banner, so
-	// the asymmetry is in the model rather than in the game — plan §79 asks for both of them
-	// generically, for both specs.
-	120676:
-		'Stormlash Totem: declared and drawn on the Elemental, ABSENT from the Windwalker model. A raid-wide buff from another player, the same shape as Skull Banner. Belongs in the shared model or in specs/windwalker/lib/index.ts (plan §79); this entry goes when it is declared.',
 
 	// -------------------------------------------------------- the player's own
 	// Off-rotation presses and passives. All are named in the Elemental's `EXTRA_NAMES` where they are

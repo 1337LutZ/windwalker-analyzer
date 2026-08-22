@@ -51,6 +51,8 @@ import {
 } from '~/lib/analysis/ticks';
 import { complementOf, intersect, mergeIntervals, overlapMs, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { damageByTarget } from '~/lib/analysis/damage';
+import { readTalents } from '~/lib/analysis/gear';
+import { raidSourceLanes, windowsBySource } from '~/lib/analysis/raidCasters';
 import { median } from '~/lib/analysis/format';
 import { lastIndexAtOrBefore, stampAtOrBefore } from '~/lib/analysis/search';
 import { intervalsAtLeast, isJudgeableTarget, overlapPoints } from '~/lib/analysis/targets';
@@ -298,9 +300,19 @@ const ELEMENTAL_MASTERY_DURATION_MS = 20_000;
 /**
  * Fire Elemental's cooldown: five minutes, or three with Primal Elementalist.
  *
- * The sim grants the three minutes (`sim/shaman/talents_elemental.go`); this report cannot read the
- * talent reliably off a log, so the drift figure is measured against five and the section says so
- * when a log's own Fire Elemental windows read three.
+ * The sim grants the three minutes (`sim/shaman/talents_elemental.go`); the drift figure is measured
+ * against five, and the section says so when a log's own Fire Elemental windows read three.
+ *
+ * **The reason given here for measuring against five was wrong and is corrected rather than kept.** It
+ * said the report "cannot read the talent reliably off a log". It can: Primal Elementalist is 117013 and
+ * it is in the `combatantinfo` talent list of all three committed fixtures, which `readTalents` answers
+ * directly — the same read that now publishes `elementalMastery.talented`. So the five minutes is a
+ * *measurement this lane did not change*, not a limit of the data, and the window-length detection below
+ * is a dance around a fact that is now available.
+ *
+ * Left alone deliberately: `FIRE_ELEMENTAL_COOLDOWN_MS` feeds `cooldownDrift`, so moving it moves a
+ * graded figure on every pull and wants a before/after per fixture of its own. It is also the blocker
+ * for the queued Primal Fire Elemental uptime rule, which is where that measurement belongs.
  */
 const FIRE_ELEMENTAL_COOLDOWN_MS = 300_000;
 /** And its duration, from `sim/shaman/fire_elemental_totem.go` — the other half of the PE detection. */
@@ -815,6 +827,15 @@ const EARTH_SHOCK = registry.ability('earth-shock');
 const SEARING_TOTEM = registry.ability('searing-totem');
 const ASCENDANCE = registry.ability('ascendance');
 const ELEMENTAL_MASTERY = registry.ability('elemental-mastery');
+/**
+ * The talent row Elemental Mastery occupies, which is the same number the button casts under.
+ *
+ * Tier 4 column 0 of the shaman tree (`ui/core/talents/trees/shaman.json:87-93`), gated at
+ * `sim/shaman/talents.go:37`. Named rather than read off `castIds[0]` because the two are separate facts
+ * that happen to agree — a `combatantinfo` talent id and a cast id — and an ability that gained a second
+ * cast id would silently start asking about the wrong one.
+ */
+const ELEMENTAL_MASTERY_TALENT_ID = 16_166;
 const FIRE_ELEMENTAL = registry.ability('fire-elemental');
 const EARTH_ELEMENTAL = registry.ability('earth-elemental');
 const LAVA_BURST = registry.ability('lava-burst');
@@ -827,7 +848,9 @@ const LIGHTNING_SHIELD = registry.aura('lightning-shield');
 const SEARING_TOTEM_DOT = registry.aura('searing-totem');
 const FIRE_ELEMENTAL_AURA = registry.aura('fire-elemental');
 const EARTH_ELEMENTAL_AURA = registry.aura('earth-elemental');
-const STORMLASH_AURA = registry.aura('stormlash-totem');
+// No `STORMLASH_AURA` binding: the buff's rows are resolved out of the registry by key alongside Skull
+// Banner's, because the two are one mechanism and the second is not declared in every model — see
+// `RAID_SOURCE_AURAS` in the timeline block.
 const T15_4PC = registry.aura('t15-4pc');
 const T16_2PC_DEBUFF = registry.aura('t16-2pc-debuff');
 const UNERRING_VISION = registry.aura('unerring-vision');
@@ -2404,6 +2427,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// with the dot under 16s, or a tier-15 four-piece window, or — without that four-piece — Ascendance
 	// far away or imminent. Fire Elemental (rule 19) is the pull's last sixty seconds, or synced with
 	// Ascendance inside 150s, or pressed early enough that it will be back before the pull ends.
+	// The talent list the log carried at the bell, or null where it carried none. One read for the file:
+	// `combatantinfo` is a single event and the only thing that can answer "was this button even taken".
+	const talents = readTalents(events, actor.id);
 	const t15Windows = selfWindows(T15_4PC);
 	const emPresses = castTimes(ELEMENTAL_MASTERY).map((t) => {
 		const ascReady = ascendanceReadyInSec(ascCasts, t);
@@ -2546,24 +2572,27 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// ------------------------------------------------------------ Stormlash
 	// The raid's totems, one window per placement, grouped by the shaman who laid it. The buff does not
 	// stack, so the overlaps are the section's argument: a totem laid on top of a running one is wasted.
-	const stormlashByShaman = new Map<number, Window[]>();
-	for (const e of raidStormlash) {
-		const at = e.timestamp - t0;
-		const source = e.sourceID ?? -1;
-		const list = stormlashByShaman.get(source) ?? [];
-		// Clamped, for the reason `untilFightEnd` exists: a totem laid with five seconds of fight left
-		// does not run its full ten. Its two neighbours already clamp — the player's own timeline lane
-		// through `untilFightEnd`, and `stormlashOverlaps` because `intervalsAtLeast` closes at
-		// `duration` — so leaving this one unclamped had the section's three numbers measured three
-		// different ways, and `StormlashTotems.tsx` drawing a bar past the end of its own axis.
-		const [start, end] = untilFightEnd(at, STORMLASH_DURATION_MS);
-		list.push({ start, end });
-		stormlashByShaman.set(source, list);
-	}
-	const stormlashShamans: StormlashAudit['shamans'] = [...stormlashByShaman.entries()].map(([id, windows]) => ({
-		id,
-		name: h.actors.find((a) => a.id === id)?.name ?? null,
-		windows: windows.sort((a, b) => a.start - b.start),
+	//
+	// **The bucketing is `windowsBySource`' now, not this file's.** It was written here — a loop into a
+	// `Map<sourceID, Window[]>` — and Skull Banner is the same walk over a different id, so a second copy
+	// of it was the alternative to lifting it. The section's three numbers are unchanged by construction:
+	// the shared walk opens a window at every placement and, with no removal in a stream of casts, closes
+	// each at `min(start + holdsMs, pullMs)`, which is exactly what `untilFightEnd` did here. Clamped for
+	// the same reason it was: a totem laid with five seconds of fight left does not run its full ten, and
+	// its two neighbours clamp too — the timeline rows below and `stormlashOverlaps`, which closes at
+	// `duration` — so an unclamped reading had the section's three numbers measured three different ways.
+	//
+	// `raidStormlash` goes in branded, which is the point of the brand: a walk that buckets by *caster* is
+	// meaningless on a stream narrowed to one actor and would answer with one bucket rather than fail.
+	// **No `onTarget`** — a placement lands on nobody, and the fetch is already narrowed to the one id.
+	const stormlashShamans: StormlashAudit['shamans'] = windowsBySource(raidStormlash, STORMLASH_TOTEM.castIds, {
+		t0,
+		pullMs: duration,
+		holdsMs: STORMLASH_DURATION_MS,
+	}).map(({ source, windows }) => ({
+		id: source,
+		name: h.actors.find((a) => a.id === source)?.name ?? null,
+		windows,
 	}));
 	const stormlashTotems = stormlashShamans.reduce((s, shaman) => s + shaman.windows.length, 0);
 	// The stretches two totems were up at once. `overlapPoints` + `intervalsAtLeast` rather than the
@@ -2772,6 +2801,33 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		target: { id: target.id, name: target.name, primary: target.id === primaryID },
 	});
 	/**
+	 * One row per raid buff another player cast on this shaman, per instance.
+	 *
+	 * **This replaces the merged `stormlash-totem` lane, which was the player's own cast plus ten seconds.**
+	 * Two rows for one totem was the alternative and it would have been two readings of one fact: the press
+	 * row said "you laid a totem here" and the buff row says "the totem you laid was on you from here to
+	 * here", and only the second is the same currency as the other shamans' rows beside it. The press is
+	 * still marked — its own cast lane, exactly as every other button's is — and the row it used to merge
+	 * into is now one of several, which `mergeRows` already handles by keeping the press its own lane.
+	 *
+	 * `raidScoped(h.events)` is the fight's whole stream, and `raidSourceLanes` narrows it to what landed on
+	 * *this* player. That narrowing is load-bearing rather than tidy: `phased` carries 38 applications of one
+	 * shaman's totem going out across the raid, of which one is on this shaman, and bucketing all 38 by
+	 * caster would report one caster with 38 instances.
+	 *
+	 * **Which buffs, and why by key.** Both are raid-wide, cast by somebody else, and do not stack — the
+	 * shape `LaneSource` exists for. Resolved out of the registry rather than named as constants so that a
+	 * buff the model has not declared is simply absent instead of a crash: `skull-banner` belongs in
+	 * `game/shared.ts` (it lands on a monk exactly as it lands on a shaman) and the day it is declared there
+	 * both specs draw it with no further edit here.
+	 */
+	const RAID_SOURCE_AURAS = ['stormlash-totem', 'skull-banner'];
+	const raidLanes = raidSourceLanes(
+		events,
+		registry.auras.filter((a) => RAID_SOURCE_AURAS.includes(a.key)),
+		{ t0, pullMs: duration, actorID: actor.id, actors: h.actors },
+	);
+	/**
 	 * **The §6 audit of this file's `auraWindows` calls, written down because the calls that did _not_
 	 * change are the more useful half.**
 	 *
@@ -2804,17 +2860,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// One row per enemy that carried the dot, sharing the aura's key and separated by their target —
 		// the primary first, which is the row that used to stand for the whole pull on its own.
 		...fsTargets.targets.map(targetLane),
-		// The player's own Stormlash, not the raid's: the timeline is this player's story, and the raid
-		// view lives in the Stormlash section. The cast carries the window because the totem lasts a
-		// fixed ten seconds.
-		lane(
-			STORMLASH_AURA,
-			'buff',
-			mergeIntervals(castTimes(STORMLASH_TOTEM).map((t) => untilFightEnd(t, STORMLASH_DURATION_MS))).map(([s, e]) => ({
-				start: s,
-				end: e,
-			})),
-		),
+		// One row per Stormlash and per Skull Banner this shaman was actually given, whoever cast it — the
+		// player's own first. Where the single merged Stormlash row used to be, so the declared order finds
+		// them in the same place; see `raidLanes`.
+		...raidLanes.drawn,
 		lane(
 			ASCENDANCE_AURA,
 			'buff',
@@ -2898,9 +2947,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// what actually happened.
 	].filter((l) => l.windows.length > 0);
 
-	// The enemies past the cap, in the same shape. Not in `lanes`, deliberately: that array is what the
-	// chart draws, and these are what it may be asked to draw instead.
-	const hiddenLanes: AuraLane[] = fsTargets.rest.map(targetLane);
+	// The enemies past the cap, in the same shape, and the raid-buff instances past theirs. Not in `lanes`,
+	// deliberately: that array is what the chart draws, and these are what it may be asked to draw instead.
+	// `hiddenTargets` stays a count of *enemies* — the caption it feeds says "enemies" — so the raid-buff
+	// overflow is carried without being counted there.
+	const hiddenLanes: AuraLane[] = [...fsTargets.rest.map(targetLane), ...raidLanes.hidden];
 
 	// -------------------------------------------------------------- assembly
 	// The globals this audit found spent on a press that bought nothing: a Flame Shock refresh that
@@ -2977,7 +3028,19 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			missed: snapMissed,
 		},
 		ascendance: { presses: ascPresses, atPull: ascendanceAtPull, grade: ascSync.grade },
-		elementalMastery: { presses: emPresses },
+		elementalMastery: {
+			// A talent list the log carried with 16166 absent is a real "not talented"; no list at all is a
+			// report that cannot say, and must not render as a choice the player made. Same three-state
+			// field and same reasoning as the Windwalker's Chi Brew (`windwalker/lib/index.ts:2244`).
+			//
+			// **16166 really is a talent and Ascendance really is not**, which is why only this button gets
+			// the field: Elemental Mastery is tier 4 column 0 of the shaman tree
+			// (`ui/core/talents/trees/shaman.json:87-93`) and gated at `sim/shaman/talents.go:37`, while
+			// 114049 appears in none of the tree's eighteen entries and is registered unconditionally at
+			// `sim/shaman/shaman.go:245`. All three committed fixtures carry a list *without* 16166.
+			talented: talents === null ? null : talents.has(ELEMENTAL_MASTERY_TALENT_ID),
+			presses: emPresses,
+		},
 		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined },
 		earthElemental: {
 			presses: eePresses,

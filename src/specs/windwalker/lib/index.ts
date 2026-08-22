@@ -84,6 +84,10 @@ import {
 	type Handles,
 	type SpecConfig,
 } from '~/lib/analysis';
+// Straight from the two modules rather than through the barrel above, which this lane does not own.
+// `raidScoped` is the brand `raidSourceLanes` demands, and it is applied at the call site on purpose.
+import { raidScoped } from '~/lib/analysis/auras';
+import { raidSourceLanes } from '~/lib/analysis/raidCasters';
 
 // ------------------------------------------------------------------ constants
 //
@@ -1011,6 +1015,28 @@ const AURAS: Aura[] = [
 		durationMs: 6000,
 		appliedBy: 'diffuse-magic',
 	},
+	{
+		/**
+		 * The shaman's raid buff, which lands on a monk exactly as it lands on the shaman who cast it.
+		 *
+		 * **120676 is the aura, not the press.** The Elemental model records the split and the measurement:
+		 * 120668 is what a shaman presses, 120687 is the damage each lash deals, and 120676 is the buff the
+		 * raid gets — 7 447 applications across three raid nights, while 120668 never appears as a buff at
+		 * all. No `appliedBy`, for the honest reason: nothing in *this* model presses it.
+		 *
+		 * Declared for the timeline's per-caster rows and nothing else — no figure in this audit reads it.
+		 * `dataset-ironJuggernaut` carries two of them on the monk from two different shamans, and the
+		 * report had no row for either: the same class of gap `drawnAuras.test.ts` exists to catch. Skull
+		 * Banner is its twin and belongs beside it in `game/shared.ts` rather than here, since it lands on
+		 * both specs; this one is a spec declaration only because that file is not this lane's to edit.
+		 */
+		key: 'stormlash-totem',
+		name: 'Stormlash Totem',
+		ids: [120676],
+		kind: 'buff',
+		// `sim/core/buffs.go`: `StormLashDuration = time.Second * 10`.
+		durationMs: 10_000,
+	},
 ];
 
 export const WINDWALKER: GameData = {
@@ -1662,6 +1688,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		link,
 		selfEvents,
 		castTimes,
+		castBeginTimes,
 		castCount,
 		channels,
 		damageEvents,
@@ -3231,6 +3258,31 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	});
 
 	/**
+	 * One row per raid buff another player cast on this monk, per instance.
+	 *
+	 * The same call the Elemental audit makes, and that is the whole of what "generic implementation"
+	 * bought: neither spec owns the walk, so a monk gets rows for Stormlash and Skull Banner without either
+	 * buff appearing in a single metric here. `dataset-ironJuggernaut` had two totems and three banners on
+	 * the player and drew none of them.
+	 *
+	 * `raidScoped(events)` widens the handle to the brand the walk demands, explicitly and here rather than
+	 * inside it: bucketing by *caster* is meaningless on a stream narrowed to one actor — it would answer
+	 * with one bucket and look like it had worked — and `raidSourceLanes` then narrows back to what landed
+	 * on this monk. That narrowing is load-bearing: the fight's stream carries these buffs going out to
+	 * every raider, and bucketing all of them by caster reports one caster with a row per raid member.
+	 *
+	 * Resolved out of the registry by key so that a buff the model has not declared is absent rather than a
+	 * crash. `skull-banner` belongs in `game/shared.ts` — it lands on both specs — and the day it is
+	 * declared there this draws it with no further edit.
+	 */
+	const RAID_SOURCE_AURAS = ['stormlash-totem', 'skull-banner'];
+	const raidLanes = raidSourceLanes(
+		raidScoped(events),
+		registry.auras.filter((a) => RAID_SOURCE_AURAS.includes(a.key)),
+		{ t0, pullMs: duration, actorID: actor.id, actors },
+	);
+
+	/**
 	 * Capacitance as the counter it is, so its lane can be drawn as a charge rather than as a window.
 	 *
 	 * `trackStackBank` unchanged and unwrapped: the meta gem's counter is read by the very function the
@@ -3382,14 +3434,20 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		lane(BLOODLUST, 'buff', hasteWindows),
 		lane(BERSERKING, 'buff', berserkingWindows),
 		lane(BLOOD_FURY, 'buff', auraWindows(selfEvents, BLOOD_FURY, t0, fight.endTime)),
+		// One row per raid buff somebody else cast on this monk, per instance — see `raidLanes`. Beside the
+		// racials and Bloodlust because they answer the same question: what the raid was giving the player,
+		// as against what the player pressed.
+		...raidLanes.drawn,
 		// One lane per enemy, sharing the aura's key and separated by their target — the primary first,
 		// which is the row that used to stand for the whole pull.
 		...rskTargets.targets.map(targetLane),
 	].filter((l) => l.windows.length > 0);
 
-	// The enemies past the cap, in the same shape. Not in `lanes`, deliberately: that array is what the
-	// chart draws, and these are what it may be asked to draw instead.
-	const hiddenLanes: AuraLane[] = rskTargets.rest.map(targetLane);
+	// The enemies past the cap, in the same shape, and the raid-buff instances past theirs. Not in `lanes`,
+	// deliberately: that array is what the chart draws, and these are what it may be asked to draw instead.
+	// `hiddenTargets` stays a count of *enemies* — the caption it feeds says "enemies" — so the raid-buff
+	// overflow is carried without being counted there.
+	const hiddenLanes: AuraLane[] = [...rskTargets.rest.map(targetLane), ...raidLanes.hidden];
 
 	// ----------------------------------------------------------- Blackout Kick
 	/**
@@ -3421,7 +3479,21 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		// charged here is a second that row has already counted. Rising Sun Kick is in `NEEDS_TARGET`, so
 		// `engaged` is what it passes, and the fallback is the one it makes for a log that measured none.
 		const live: Interval[] = engaged.length ? engaged : [[0, duration]];
-		const drift = cooldownDrift(castTimes(RISING_SUN_KICK), RISING_SUN_KICK, live, duration, cooldownLeewayMs);
+		// Both clocks, so this call reads the cooldown the way `analyseCore`'s lost-cast row does (`:804`).
+		// **Nothing here moves and nothing can be made to fail if the sixth argument were dropped**, which
+		// is why it is passed rather than tested: a drift window opens at a completion and closes at the
+		// next *commit*, and this spec declares no `castTimeMs` at all, so its landings are its commits and
+		// `commits` defaults to exactly the array now passed explicitly. What it buys is the day that stops
+		// being true — a Windwalker cooldown with a cast time would otherwise be charged its own cast time
+		// as drift on every press, and 1500ms of `minWindowMs` cannot forgive a 2000ms cast.
+		const drift = cooldownDrift(
+			castTimes(RISING_SUN_KICK),
+			RISING_SUN_KICK,
+			live,
+			duration,
+			cooldownLeewayMs,
+			castBeginTimes(RISING_SUN_KICK),
+		);
 
 		// Presses that cost a global. An off-GCD trinket is not a global spent instead of the kick, so a
 		// wait that ran through one was not waiting on a decision.
