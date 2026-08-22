@@ -241,28 +241,32 @@ describe('the ladder rung carries the same two-target form', () => {
 	 * condition: at band 2 it drops the Ascendance hold and the two-piece clause and lowers the stack
 	 * floor, so it claims globals the single-target form refused.
 	 *
-	 * Bands 1, 3 and 4 are asserted equal to each other on purpose. The rung is deliberately **not**
-	 * band-gated out of 3 and 4 — `aoe.apl.json` has no Earth Shock at all, so the honest shape is
-	 * `bands: [1, 2]`, but taking it out moves every verdict below it and belongs with §64's item 3.
-	 * Until then bands 3 and 4 keep the single-target form, and this is the pin that says so out loud.
+	 * **Bands 3 and 4 used to be asserted equal to band 1, and that pin has now been redeemed.** It said
+	 * out loud that the rung was deliberately not band-gated out of them although `aoe.apl.json` has no
+	 * Earth Shock at all, because taking it out moves every verdict below it and belonged with §64's item
+	 * 3. Item 3 landed: the rung is `bands: [1, 2]`, so the columns are 0 and the third question this rung
+	 * answers is now "which list is this press even under" rather than only "how strict is it".
 	 */
 	it.each([
 		['phased', 8, 28],
 		['unbroken', 5, 30],
 		['cleave', 13, 25],
-	] as const)('%s wants Earth Shock more often at two targets than at one', (name, single, two) => {
+	] as const)('%s wants Earth Shock at two targets, more than at one and not at all above', (name, single, two) => {
 		const el = fx(name);
 		const wanted = (band: 1 | 2 | 3 | 4): number =>
 			(el.aplForced?.[band]?.presses ?? []).filter((p) => p.wanted === 'earth-shock').length;
 		expect(wanted(1)).toBe(single);
 		expect(wanted(2)).toBe(two);
-		expect(wanted(3)).toBe(single);
-		expect(wanted(4)).toBe(single);
+		// `aoe.apl.json` has no Earth Shock rung, so above two targets the walk cannot want the button —
+		// and a press of it is charged against Chain Lightning, which that list does press.
+		expect(wanted(3)).toBe(0);
+		expect(wanted(4)).toBe(0);
 	});
 
 	/**
-	 * And the *live* walk does not move on any fixture, which is a fact about the ladder's shape rather
-	 * than a sign the rung is unwired.
+	 * And the *two-target rule* moves the live walk on no fixture, which is a fact about the ladder's
+	 * shape rather than a sign the rung is unwired. (The **band gate** does move it, by exactly one press
+	 * on `cleave` — asserted below and attributed there, so the two changes are not read as one.)
 	 *
 	 * Earth Shock sits below Flame Shock and Lava Burst, so the walk only reaches it where neither of
 	 * those wanted the global. `cleave`'s flipped press is the case: at 47.3s the live walk names
@@ -270,10 +274,16 @@ describe('the ladder rung carries the same two-target form', () => {
 	 * condition cannot change the verdict. The section's own reading of that press does move — see above —
 	 * because it judges the shock that was pressed rather than the rung above it.
 	 */
-	it('leaves the live walk’s Earth Shock verdicts alone, and names why', () => {
+	it('leaves the live walk’s two-target Earth Shock verdicts alone, and names why', () => {
 		const live = (cleave.apl?.presses ?? []).filter((p) => p.pressed === 8042);
 		expect(live).toHaveLength(12);
-		expect(live.filter((p) => p.verdict === 'followed')).toHaveLength(4);
+		// 4 until the rung left bands 3 and 4. The press at 208.4s was credited against the single-target
+		// rung at a moment the pull was on three targets or more, where the sim's list has no Earth Shock
+		// at all; it now reads as a skip against Chain Lightning. **That flip is the band gate and not this
+		// describe block's two-target rule**, which is why it is named here rather than folded into the
+		// count — the two-target form still moves nothing on the live walk.
+		expect(live.filter((p) => p.verdict === 'followed')).toHaveLength(3);
+		expect(live.find((p) => p.t === 208_430)?.wanted).toBe('chain-lightning');
 		const flipped = live.find((p) => p.t === FLIPPED);
 		expect(flipped?.wanted).toBe('lava-burst');
 		expect(flipped?.verdict).toBe('skipped');

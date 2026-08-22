@@ -309,8 +309,14 @@ const SILENT_AURAS: Record<string, string[]> = {
  */
 const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped: number } | null> = {
 	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
-	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`.
-	'elemental/cleave.json': { presses: 204, followed: 83, skipped: 121 },
+	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
+	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
+	// `[1, 2]`. That last move is the largest of the three and it is all one mechanism: Earth Shock, Lava
+	// Burst and Searing Totem stood *above* Lava Beam and Chain Lightning at bands 3 and 4, so at three
+	// targets and up one of them claimed nearly every global and the two rungs the aoe list actually has
+	// were almost unreachable — 11 Lava Beams and not one graded `followed`. The 16 presses that changed
+	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
+	'elemental/cleave.json': { presses: 204, followed: 99, skipped: 105 },
 	'elemental/phased.json': { presses: 159, followed: 107, skipped: 52 },
 	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 45 },
 	'windwalker/dataset-ironJuggernaut.json': null,

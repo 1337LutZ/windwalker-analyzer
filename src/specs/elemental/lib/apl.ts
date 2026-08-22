@@ -57,15 +57,55 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  *   **Searing Totem** → Flame Shock → Lava Burst → Elemental Blast → Earth Shock → Chain Lightning →
  *   Lightning Bolt. So Searing Totem sits *above* Flame Shock, Lava Burst, Elemental Blast and Earth
  *   Shock there and *below* all four in p5 (index 20). **Not modelled, and it cannot be**: one list
- *   has one order. The cost is bounded and measured — `searing-totem` takes 4 of `cleave`'s skips.
- *   Its Unleash Elements rung is also a different rule, `Unleashed Fury known AND Lava Surge active`
- *   rather than p5's `not(Ascendance active)`, and it carries **no Lava Beam at all**.
+ *   has one order. The cost is bounded and measured, and banding the rung to `[1, 2]` shrank it rather
+ *   than fixed it: on `cleave`'s natural walk `searing-totem` took **5** skips when the rung stood in
+ *   every band and takes **1** now (the earlier "4" here was its forced-band-1 figure, not its natural
+ *   one). Band 2 is the only band the ordering conflict can occur in. Its Unleash Elements rung
+ *   is also a different rule, `Unleashed Fury known AND Lava Surge active` rather than p5's
+ *   `not(Ascendance active)`, and it carries **no Lava Beam at all**.
  * - **`aoe.apl.json`** (three or more), and it is five rungs long: `autocastOtherCooldowns`, Flame
  *   Shock, the potion, Lava Beam, Chain Lightning. **No Earth Shock, no Lava Burst, no Elemental
- *   Blast, no Searing Totem, no Unleash Elements.** Five of this ladder's nine rungs are therefore in
- *   bands 3 and 4 on this report's authority rather than the sim's. Banding them out moves the verdict
- *   of every press below them, which is plan §64's item 3 and lands on its own; until it does, the note
- *   is the honest record of the gap.
+ *   Blast, no Searing Totem, no Unleash Elements** — and no Lightning Bolt either. All five of the named
+ *   rungs are now banded `[1, 2]`, one reason each written beside the rung, and this is plan §64's item 3.
+ *
+ *   **The list's own first rung does not quietly supply them.** `autocastOtherCooldowns` casts the
+ *   character's registered *major cooldowns* and nothing else (`sim/core/apl_actions_casting.go:500`,
+ *   `getFirstReadyMCD`), and the shaman registers exactly eight: Bloodlust, Fire Elemental Totem,
+ *   Ascendance, Earth Elemental Totem, Shamanistic Rage, Elemental Mastery, Ancestral Swiftness and
+ *   Stormlash Totem (`AddMajorCooldown` in `sim/shaman/`). None of the five is one of them, so the aoe
+ *   list's omission is total rather than delegated — which is the fact that makes banding them out a
+ *   transcription rather than a reading.
+ *
+ *   **Why banding out is right here and was not right for Lava Beam.** A rung outside its band is
+ *   *absent* from the list at that press, so the press falls through to whatever the list does want —
+ *   and from three targets up that is always a real rung. Lava Beam's condition is `Ascendance active`
+ *   and Chain Lightning's is `not active`, so exactly one of the two claims every global at bands 3
+ *   and 4. An Earth Shock at five targets is therefore faulted **against Chain Lightning**: the sim's
+ *   own answer, and a sentence a reader can act on. That is a different thing from the unattributable
+ *   fault a button with no rung at *any* band produces, which is what banding Lava Beam to `[3, 4]`
+ *   would have created at two targets. The bottom rung stays unbanded for the mirror-image reason:
+ *   `aoe.apl.json` has no Lightning Bolt, but the walk can never reach it there, so banding it would
+ *   declare a gate that changes nothing.
+ *
+ *   **One residual, and its direction is named rather than left to be discovered.** A rung's band is
+ *   stamped at the press instant, and Searing Totem is a sixty-second commitment — 39 ticks of 1.52s
+ *   (`sim/shaman/fire_totems.go:40-41`, `:66`). On a pull that swings counts, a totem dropped during a
+ *   brief three-target spike is now faulted although most of its ticks land in single-target time. That
+ *   is the same class of question §41 flagged for `SEF_SECOND_TARGET_MS` — a duration no band can
+ *   express — and it is the one place this change could over-fault rather than under-fault. Measured, it
+ *   bites nothing today: all seven Searing Totem presses in the three committed fixtures are at bands 1
+ *   and 2, and not one of them changed either its verdict or the rung it was charged against. It is the
+ *   rung's *demand* that moved, not its own presses' verdicts.
+ *
+ *   **And the sim's AoE fire totem is not this one, which is why the omission is not a preset slip.**
+ *   Searing Totem's dot is applied to `sim.Encounter.ActiveTargetUnits[0]`, one unit
+ *   (`sim/shaman/fire_totems.go:62-63`), while **Magma Totem (8190)** carries `SpellFlagAoE`, `IsAOE:
+ *   true` and `CalcPeriodicAoeDamage` (`:76`, `:91`, `:101`). The two share the fire totem slot and
+ *   deactivate each other, and `aoe.apl.json` presses **neither** — after the prepull Fire Elemental
+ *   that slot has no rung anywhere in that list. So banding 3599 out of bands 3 and 4 says only what the
+ *   sim says, that the single-target totem is not the AoE list's totem. It also leaves a real gap
+ *   standing: **8190 is on no rung and in no `ROTATION` row**, so a player who drops Magma Totem at five
+ *   targets is graded against Chain Lightning. Closing that needs the ability registry, not this file.
  * - **Flame Shock is a different rule in each of the three**, and the `flame-shock` rung below is
  *   banded accordingly. See `FS_CLEAVE_OVERLAP_MS`.
  * - **Lava Beam is banded `[2, 3, 4]` while `cleave.apl.json` has no Lava Beam rung**, so band 2 is
@@ -194,11 +234,13 @@ const ES_ASC_HOLD_SEC = 6;
  * because `x >= 8 AND x >= 8` is `x >= 8`. Nobody should "fix" this into two different numbers on the
  * assumption that the second one was meant to be something else.
  *
- * The rung is **not** band-gated away above two targets, and that is deliberate rather than an oversight:
- * `aoe.apl.json` has no Earth Shock at all, so the honest shape there is `bands: [1, 2]` — but taking the
- * rung out of bands 3 and 4 moves the ladder's own verdicts for every press below it, which is §64's
- * item 3 and is meant to land on its own. Until it does, bands 3 and 4 keep the single-target form, the
- * same choice the Earth Shock section makes for the same reason.
+ * **And above two targets there is no rung at all**, which used to be a documented departure and is now
+ * the declaration: `aoe.apl.json` has no Earth Shock, so the rung is `bands: [1, 2]`. This is the row
+ * §64's own per-metric table already called exempt at bands 3–4 ("no rung exists, so there is nothing to
+ * be good against"), and the reason survives contact with a real player's bars: Earth Shock is a
+ * single-target shock spending a stack counter that nothing in the aoe list spends, it is on the bar at
+ * every count, and no window swaps it out. So a shock at five targets is a choice the player made and
+ * the sim's list refuses — and it is now faulted against Chain Lightning rather than left unattributable.
  */
 const ES_CLEAVE_STACKS = 6;
 const ES_CLEAVE_FS_MIN_MS = 8000;
@@ -216,12 +258,22 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// 0 — `Unleashed Fury Talented and not(auraIsActive(114049))`. A talent-gated 15s cooldown
 		// pressed whenever it is back, with Ascendance the one thing that waits. On the GCD, so it is
 		// a filler-slot press and a ladder rung rather than a cooldown-section ability.
+		//
+		// **`bands: [1, 2]`, and the reason is in the buff's own spell mask rather than in a judgement
+		// about AoE.** `aoe.apl.json` has no Unleash Elements rung. Unleash Flame's damage mod covers
+		// `SpellMaskLavaBurst | SpellMaskFlameShock | SpellMaskFireNova | SpellMaskElementalBlast` at
+		// +30% (`sim/shaman/unleash_elements.go:11`, `:32-36`), and the Unleashed Fury talent it is
+		// pressed for multiplies Lightning Bolt by 1.3, Lava Burst by 1.1 and **everything else by 1.0**
+		// (`sim/shaman/talents.go:201-208`). Chain Lightning and Lava Beam are in neither mask, and from
+		// three targets up they are the only buttons the aoe list presses. So the press costs a global
+		// and buffs nothing that global's list will cast.
 		key: 'unleash-elements',
 		id: ID.unleashElements,
 		chiCost: 0,
 		energyCost: 0,
 		talent: true,
 		cooldownMs: 15000,
+		bands: [1, 2],
 		condition: (_state, auras) => !auras.active('ascendance'),
 	},
 	{
@@ -253,23 +305,46 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// gated on still outlives its cast. Its 8s cooldown is not a bare clock: Lava Surge (77762)
 		// and Ascendance each reset it, and the ladder reads those resets off the auras rather than
 		// calling the player's press a skip.
+		//
+		// **`bands: [1, 2]`: `aoe.apl.json` carries no Lava Burst rung at all** — not a relaxed one,
+		// none. `cleave.apl.json` is the opposite and that is what makes the omission a judgement rather
+		// than a thin preset: it carries *two* Lava Burst rungs and puts the Lava-Surge one (rung 7)
+		// above Searing Totem, Flame Shock, Elemental Blast and Earth Shock, so the sim's own view of
+		// this button steps *up* at two targets and to zero at three. The spell is single-target — one
+		// `spell.CalcDamage(sim, target, …)` on the action's own unit, plus an overload on the same unit
+		// (`sim/shaman/elemental/lavaburst.go:69-85`) — it is on the bar at every count, and no window
+		// swaps it away, so nothing here is a bar the sim cannot see. Measured: 5 of `cleave`'s 43 Lava
+		// Bursts move from `followed` to `skipped`, every one against Chain Lightning.
 		key: 'lava-burst',
 		id: ID.lavaBurst,
 		chiCost: 0,
 		energyCost: 0,
 		cooldownMs: 8000,
+		bands: [1, 2],
 		readyWhen: (auras) => auras.active('lava-surge') || auras.active('ascendance'),
 		condition: (_state, auras) => auras.remainingMs('flame-shock') > LAVA_BURST_CAST_MS,
 	},
 	{
 		// 17 — `Elemental Blast Talented`, and nothing else: a talent-gated 12s cooldown pressed
 		// whenever it is back.
+		//
+		// **`bands: [1, 2]`: not in `aoe.apl.json`, and rung 0 of that list does not supply it either.**
+		// `autocastOtherCooldowns` casts registered major cooldowns only, and Elemental Blast is not one
+		// (see the module doc's list of the eight that are). It is a single-target nuke with an
+		// eight-second stat buff (`sim/shaman/elemental_blast.go:22-26`, `:42`), on the bar at every
+		// count.
+		//
+		// **This gate moves no committed figure, and that is said rather than implied.** `talent: true`
+		// means the rung is only demanded of a player the log shows pressed the button, and no fixture
+		// carries a 117014 press — so the rung charges 0 skips at all four bands before and after. The
+		// gate is shown to separate against a synthetic pull instead; see `multiTargetRungs.test.ts`.
 		key: 'elemental-blast',
 		id: ID.elementalBlast,
 		chiCost: 0,
 		energyCost: 0,
 		talent: true,
 		cooldownMs: 12000,
+		bands: [1, 2],
 		condition: () => true,
 	},
 	{
@@ -288,11 +363,13 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// silent log is read at the sim's own opening state rather than as an unreadable bar.
 		//
 		// **And at two targets none of the above applies** — `cleave.apl.json` rung 13 is a different
-		// rule with two terms, transcribed in the condition below. See `ES_CLEAVE_STACKS`.
+		// rule with two terms, transcribed in the condition below. **Above two there is no rule at all**,
+		// hence `bands: [1, 2]`. See `ES_CLEAVE_STACKS` for both halves.
 		key: 'earth-shock',
 		id: ID.earthShock,
 		chiCost: 0,
 		energyCost: 0,
+		bands: [1, 2],
 		condition: (state, auras, cooldowns) => {
 			const stacks = auras.stacks('lightning-shield');
 			// Two targets is `cleave.apl.json` rung 13 and nothing else — see `ES_CLEAVE_STACKS`. Read off
@@ -313,10 +390,25 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// 20 — `Fire Elemental is not active`: Searing Totem only while no Fire Elemental is up and
 		// no totem is already ticking. Both halves are read off windows the audit builds from casts,
 		// because neither is an aura a log is guaranteed to carry.
+		//
+		// **`bands: [1, 2]`, and this is the one of the five whose absence from `aoe.apl.json` needed the
+		// sim read rather than the list read.** Searing Totem is the *single-target* fire totem — its dot
+		// goes on `sim.Encounter.ActiveTargetUnits[0]`, one unit — and **Magma Totem (8190)** is the AoE
+		// one, `SpellFlagAoE` and `CalcPeriodicAoeDamage`. The aoe list presses neither, so the omission
+		// is not "no fire totem belongs here"; it is "this is not the totem". Banding it out therefore
+		// states only what the sim states, and leaves 8190's missing rung as the named gap it is. Full
+		// citations, plus the sixty-second-commitment residual this trades for, in the module doc.
+		//
+		// **Its `cleave.apl.json` ordering conflict is untouched by this** and could not be touched by it:
+		// that list puts Searing Totem *above* Flame Shock, Lava Burst, Elemental Blast and Earth Shock
+		// while p5 puts it below all four, and one ordered list cannot hold both orders. The band gate
+		// narrows *where* the departure applies, not the departure — on `cleave`'s natural walk it costs 1
+		// skip now, at band 2, rather than the 5 it cost while the rung stood in every band.
 		key: 'searing-totem',
 		id: ID.searingTotem,
 		chiCost: 0,
 		energyCost: 0,
+		bands: [1, 2],
 		condition: (_state, auras) => !auras.active('fire-elemental') && !auras.active('searing-totem'),
 	},
 	// The two multi-target fillers, and **they do not come from the p5 list** — that list is

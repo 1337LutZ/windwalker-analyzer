@@ -61,9 +61,14 @@ const SPECS = [
  *
  * **The Elemental's list is empty, and that is a measurement.** All seven of its on-GCD conditional
  * abilities have a rung — the last two, Chain Lightning and Lava Beam, since `e2f31a2`. So the remaining
- * half of plan §41 is *bands*, not rungs: that ladder declares `bands` on those two entries and on no
- * other, which is why all four forced walks collapse to the same verdicts (`phased` 107/52 then 53/106
- * ×3, `unbroken` 97/45 then 46/96 ×3, `cleave` 78/126 then 58/146 ×3).
+ * half of plan §41 was *bands*, not rungs, and that half has since been done: the ladder declared `bands`
+ * on those two entries and on no other, which is why all four forced walks used to collapse to the same
+ * verdicts. They no longer do. Flame Shock became a per-band rule in `bf3e594`, and the five rungs
+ * `aoe.apl.json` has no counterpart for are banded `[1, 2]`, so the forced walks now read `phased`
+ * 107/52 · 56/103 · 4/155 · 4/155, `unbroken` 97/45 · 50/92 · 0/142 · 0/142 and `cleave` 78/126 ·
+ * 58/146 · 51/153 · 51/153. The two single-target pulls collapsing to almost nothing at bands 3 and 4 is
+ * the counterfactual being honest rather than a defect: they are Lightning Bolt and Lava Burst pulls, and
+ * `aoe.apl.json` asks for neither.
  *
  * The three Windwalker entries are the ones the ladder's own module doc argues, and that citation used
  * to be partial: `windwalker/lib/apl.ts` named Touch of Death outright and left Storm, Earth and Fire
