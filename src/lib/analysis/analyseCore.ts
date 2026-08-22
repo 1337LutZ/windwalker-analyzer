@@ -186,6 +186,8 @@ export interface Handles {
 	 */
 	spawnLives: ReadonlyMap<string, SpawnLife>;
 	multiTargetWindows: Interval[];
+	/** The stretches the aoe list applied to — band 3 or more. See where it is built for why three. */
+	aoeWindows: Interval[];
 	multiTargetMs: number;
 	/** The time with at least one enemy in the count window — the target mode's denominator. */
 	contactMs: number;
@@ -707,6 +709,21 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
 	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
+	 * The stretches the **aoe** priority list was the applicable one — three enemies or more.
+	 *
+	 * Off `aplTargetPoints` and deliberately not `targetPoints` beside it, because this is a question
+	 * about which *ladder band* applied and those two series are not the same: the APL one excludes the
+	 * spec's own area damage (`aplTargetCountExclude`), so a spec that cleaves with its filler would
+	 * otherwise read as fighting a pack it created. Plan §41 found the two disagreeing and nothing
+	 * saying why; this is the side that has to be the ladder's.
+	 *
+	 * Three and not two, because the two lists differ: at two targets the *cleave* list still spends
+	 * Lightning Shield and multi-dots Flame Shock, so those stretches stay graded. It is only from three
+	 * that the aoe list stops asking for either, which is what makes a single-target clock unable to
+	 * count them.
+	 */
+	const aoeWindows = intervalsAtLeast(aplTargetPoints, 3, duration);
+	/**
 	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
 	 * alternatives.
 	 *
@@ -1128,6 +1145,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		landedHits,
 		spawnLives: spawnLifeByKey,
 		multiTargetWindows,
+		aoeWindows,
 		multiTargetMs,
 		contactMs,
 		aplTargetCountAt,
