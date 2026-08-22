@@ -527,6 +527,64 @@ const ABILITIES: Ability[] = [
 		applies: ['searing-totem'],
 	},
 	{
+		/**
+		 * The fire totem slot's other occupant, declared so a press of it is not priced at zero.
+		 *
+		 * **Confirmed in the simulator rather than assumed.** `sim/shaman/fire_totems.go:71-108` registers
+		 * it: `:73` is `ActionID{SpellID: 8190}`, `:76` is `Flags: core.SpellFlagAoE | core.SpellFlagAPL |
+		 * SpellFlagShamanSpell`, `:91` is `IsAOE: true` and `:101` calls `CalcPeriodicAoeDamage`. So this is
+		 * the sim's actual AoE fire totem, where Searing Totem (`:14-16`, `3599`) puts its dot on one unit.
+		 * A `GCD: time.Second` and 21.1% of base mana, 30 ticks of 2s. `ApplyEffects` deactivates Searing
+		 * Totem's dot and disables the Fire Elemental, because all three share one totem slot.
+		 * `assets/database/db.json` names 8190 "Magma Totem" with an icon, which is the second source and
+		 * the one that matters most here — see below.
+		 *
+		 * **It appears in no committed fixture: zero events of 8190 on `phased`, `unbroken` and `cleave`,
+		 * against 4, 4 and 6 casts of 3599.** That is declared and not dressed up. Three single-target and
+		 * light-cleave pulls are exactly where nobody drops a five-target totem, so the absence is a
+		 * statement about the fixture set rather than about the id — and it is emphatically *not* the 144998
+		 * shape, which was the simulator's `ExposeToAPL` handle for a proc the game never writes at all.
+		 * 8190 is a `RegisterSpell` with a real `ActionID` and a real icon in the item database. What it
+		 * means in practice is that nothing here can be tested against a real press, so this entry claims
+		 * the least it can.
+		 *
+		 * **Why it is worth declaring anyway, with no log to check it against.** An undeclared cast id is
+		 * not merely unnamed: `fixtureCoverage.test.ts`s own header records what happens: `castSeries`
+		 * files it under `#8190`, `buildCastTable` labels it off-GCD because that is the safe default for a
+		 * trinket, and the core's GCD walk asks `abilityByCastId` and `continue`s. So every press is priced
+		 * at **zero occupied time**, which deflates `gcdUtilisationPct` — a graded metric — for the one
+		 * player who uses the button. That is the Chain Lightning failure verbatim, and it does not need a
+		 * fixture to be true.
+		 *
+		 * **Three things this deliberately does not do**, each because the evidence is not there:
+		 *
+		 *   - **No `damageIds`.** Searing Totem's damage logs under 3606 rather than 3599, so Magma's is
+		 *     very likely its own id too — and nothing available says which. `db.json`s `spellIcons` carries
+		 *     cast ids only (3606 is absent from it as well), and guessing is how 120687 came to be wrong
+		 *     for three fixtures. Its ticks therefore stay unattributed in the damage table, exactly as
+		 *     they are today; that is a smaller error than a wrong id, and it is an honest one.
+		 *   - **No rung on the ladder.** 8190 appears in **none** of the five Elemental presets —
+		 *     `aoe`, `cleave`, `default`, `p4`, `p5` — so the sim's own AoE list really is Flame Shock,
+		 *     potion, Lava Beam, Chain Lightning with no Magma Totem in it. §91 took five rungs *out* of
+		 *     bands 3 and 4 for not being in `aoe.apl.json`; inventing one would be that mistake in
+		 *     reverse. A press of it is still measured against Chain Lightning, and that is what the list
+		 *     we transcribe says, not an oversight of ours.
+		 *   - **No aura, and no row in the Rotation reference.** The aura is the useful missing half — Magma
+		 *     occupies the fire totem slot, so the `searing-totem` rung would stop demanding a Searing Totem
+		 *     the player already replaced — but a declared aura that fires in no fixture belongs on
+		 *     `fixtureCoverage.test.ts`s `SILENT_AURAS` ledger, and that file is another lane's. The
+		 *     reference row is refused for the same reason as the rung: it prints a `condition` beside each
+		 *     entry, and there is no list to quote one from.
+		 */
+		key: 'magma-totem',
+		name: 'Magma Totem',
+		castIds: [8190],
+		onGcd: true,
+		// The same gate as Searing Totem, and for the same reason: no cooldown, and the press is decided by
+		// what is already in the fire totem slot.
+		gate: 'conditional',
+	},
+	{
 		key: 'lightning-bolt',
 		name: 'Lightning Bolt',
 		castIds: [403],

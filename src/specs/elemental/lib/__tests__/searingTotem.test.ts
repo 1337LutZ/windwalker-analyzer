@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
-import { analyse } from '../index';
+import { LADDER_ENTRIES, ROTATION } from '../apl';
+import { analyse, registry } from '../index';
 
 const T0 = 100_000;
 const DURATION = 240_000;
@@ -201,5 +204,78 @@ describe('a placement made too late to be worth the global', () => {
 	it('leaves the placements with a minute of pull ahead of them alone', () => {
 		expect(press(0)?.late).toBe(false);
 		expect(press(100_000)?.late).toBe(false);
+	});
+});
+
+// ------------------------------------------------------------------ Magma Totem
+
+/**
+ * Magma Totem (8190), the fire totem slot's other occupant — declared so a press of it is not priced
+ * at zero, and declared no further than the evidence goes.
+ *
+ * Found as a gap by an earlier lane: `3599` puts its dot on one unit, and 8190 is the sim's actual AoE
+ * fire totem. Confirmed in `sim/shaman/fire_totems.go:71-108` — `:73` `ActionID{SpellID: 8190}`, `:76`
+ * `Flags: core.SpellFlagAoE | core.SpellFlagAPL | SpellFlagShamanSpell`, `:91` `IsAOE: true`, `:101`
+ * `CalcPeriodicAoeDamage` — and named "Magma Totem" in `assets/database/db.json`s `spellIcons`.
+ *
+ * The reason to declare it at all is the Chain Lightning failure, which needs no fixture to be true:
+ * an undeclared cast id is skipped by the core's GCD walk, so every press is priced at zero occupied
+ * time and `gcdUtilisationPct` — a graded metric — reads low for whoever uses the button.
+ *
+ * The reason to declare it *no further* is that no committed pull presses it, which the second test
+ * here states as a number rather than implies.
+ */
+describe('Magma Totem is on the model, and no further', () => {
+	it('resolves as an on-GCD button in the fire totem slot', () => {
+		const magma = registry.ability('magma-totem');
+		expect([magma.castIds, magma.onGcd, magma.gate]).toEqual([[8190], true, 'conditional']);
+		// **No `damageIds`, on purpose.** Searing Totem's damage logs under 3606 rather than its cast id,
+		// so Magma's is very likely its own id too and nothing available says which — `db.json` carries
+		// cast ids only. Guessing one is how 120687 was wrong for three fixtures. Asserted rather than
+		// left implicit, so adding an unsourced id has to come through this line.
+		expect(magma.damageIds).toBeUndefined();
+		// And no aura: an aura that fires in no fixture belongs on `fixtureCoverage.test.ts`s ledger, and
+		// the fire-totem-slot interaction it would fix is named in the declaration rather than half-built.
+		expect(registry.auras.some((a) => a.ids.includes(8190))).toBe(false);
+	});
+
+	/**
+	 * **Not a red against the old behaviour — a measurement of the fixture set**, labelled on the line as
+	 * `ascendance.test.ts` labels its own. It is the whole reason this entry claims so little: three
+	 * single-target and light-cleave pulls are where nobody drops a five-target totem, so the absence
+	 * says something about the fixtures and nothing about the id. It is also what makes the declaration
+	 * safe — no committed figure can move on an id no committed pull writes.
+	 */
+	it('appears in no committed pull, while Searing Totem appears in all three', () => {
+		for (const [name, searing] of [
+			['phased', 4],
+			['unbroken', 4],
+			['cleave', 6],
+		] as const) {
+			const events = JSON.parse(
+				readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
+			) as { events: Array<{ abilityGameID?: number }> };
+			expect([name, events.events.filter((e) => e.abilityGameID === 8190).length]).toEqual([name, 0]);
+			expect([name, events.events.filter((e) => e.abilityGameID === 3599 && 'type' in e).length]).toEqual([
+				name,
+				searing,
+			]);
+		}
+	});
+
+	/**
+	 * **No rung, and that is the sim's answer rather than an omission of ours.**
+	 *
+	 * 8190 is in none of the five Elemental presets, so the AoE list really is Flame Shock, potion, Lava
+	 * Beam, Chain Lightning. §91 took five rungs *out* of bands 3 and 4 for not being in `aoe.apl.json`;
+	 * putting one in that no list contains would be that mistake in reverse. A deliberate no-change guard,
+	 * not a red.
+	 */
+	it('is on no rung and in no reference row', () => {
+		// Widened to `string` on purpose: `ELE_AplRuleKey` is a closed union, so the comparison is a
+		// *compile* error while the rung does not exist — which is a stronger guard than this assertion and
+		// the reason the cast is here rather than the check being dropped.
+		expect((LADDER_ENTRIES as ReadonlyArray<{ key: string }>).some((e) => e.key === 'magma-totem')).toBe(false);
+		expect(ROTATION.some((r) => r.key === 'magma-totem' || r.id === 8190)).toBe(false);
 	});
 });

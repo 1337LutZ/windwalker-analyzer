@@ -59,8 +59,9 @@ const SPECS = [
  * "add it to the list": a button the rotation presses belongs on the ladder, and one the ladder cannot
  * fairly judge belongs here with the argument written out.
  *
- * **The Elemental's list is empty, and that is a measurement.** All seven of its on-GCD conditional
- * abilities have a rung — the last two, Chain Lightning and Lava Beam, since `e2f31a2`. So the remaining
+ * **The Elemental's list has exactly one entry, and it is the odd one out.** Seven of its eight on-GCD
+ * conditional abilities have a rung — the last two, Chain Lightning and Lava Beam, since `e2f31a2` — and
+ * the eighth is Magma Totem, which no Elemental list in the simulator presses at all. So the remaining
  * half of plan §41 was *bands*, not rungs, and that half has since been done: the ladder declared `bands`
  * on those two entries and on no other, which is why all four forced walks used to collapse to the same
  * verdicts. They no longer do. Flame Shock became a per-band rule in `bf3e594`, and the five rungs
@@ -77,7 +78,21 @@ const SPECS = [
  * below is a one-line pointer at the argument rather than a second copy of it.
  */
 const NOT_RUNGS: Record<string, Record<string, string>> = {
-	elemental: {},
+	elemental: {
+		// **8190 is in none of the five Elemental presets** — `aoe`, `cleave`, `default`, `p4`, `p5` — so
+		// there is no rule to transcribe. The sim's own AoE list is Flame Shock, potion, Lava Beam, Chain
+		// Lightning, and a press of Magma Totem is measured against Chain Lightning because that is what
+		// the list we transcribe says, not because we overlooked a rung. §91 took five rungs *out* of bands
+		// 3 and 4 for having no counterpart in `aoe.apl.json`; inventing one for a button no list contains
+		// would be that mistake in reverse.
+		//
+		// Declared as an ability regardless, and the argument for that is on the entry in
+		// `elemental/lib/index.ts`: an undeclared cast id is skipped by the core's GCD walk, so every press
+		// is priced at zero occupied time and `gcdUtilisationPct` — a graded metric — reads low. It appears
+		// in no committed fixture (0 events against 4, 4 and 6 casts of Searing Totem), so nothing measured
+		// can move on it either way.
+		'magma-totem': 'in none of the five simulator lists — there is no rule to transcribe',
+	},
 	windwalker: {
 		// `windwalker/lib/apl.ts:16-19`. Priority 3 tests `spellCanCast`, which in 5.4 means the target is
 		// under 10% health. Health is not in the event stream this report fetches, so the condition is
