@@ -8,6 +8,7 @@ import { pageShellClass } from '~/components/primitives/pageShell';
 import Base from '~/layouts/Base.astro';
 import type { FightDataset } from '~/lib/types';
 import { analyse as analyseElemental } from '~/specs/elemental';
+import cleaveRaw from '~/specs/elemental/__fixtures__/cleave.json';
 import phasedRaw from '~/specs/elemental/__fixtures__/phased.json';
 import unbrokenRaw from '~/specs/elemental/__fixtures__/unbroken.json';
 import mixed from '~/specs/windwalker/__fixtures__/mixed.json';
@@ -65,12 +66,41 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  * two translucent washes stacked read darker than either, and the fix chosen for that was one band per
  * stretch rather than a lower alpha, so the composite is a *drawing* decision with no route from a
  * fixture until now. `cleave` overlaps too (Time Warp 941–40 947 over Berserking 3 482–13 487) and is
- * not here — one pull is enough to look at a composite, and the cost below is per entry.
+ * not here *for that* — one pull is enough to look at a composite, and the cost below is per entry.
+ *
+ * `cleave` third, and the argument the paragraph above demands of a third entry is **not the haste
+ * band — it is the target count.** Both entries above are single-target pulls and not marginally so:
+ * `targets.counts.max` is 1 on each, `multiTargetMs` is 0 on each, and `bandsInPull` is `[1]` on each,
+ * so `resolveTargetMode` detects `single` for both and there is no reading in which either does
+ * anything else. `cleave` is Siegecrafter Blackfuse: `counts.max` 13, `multiTargetMs` 148 865 of
+ * 263 233 (57.3%, against a 33% threshold), `bandsInPull` `[1, 2, 3, 4]`, detected `multi`.
+ *
+ * That gap is a **layout** gap and not a numbers one, which is why it belongs to this page rather than
+ * to a test. Three things on the report only exist over a pull like this one: the cast timeline stacks
+ * a lane per target rather than the single lane the two pulls above can draw, `TargetModeControl` has
+ * four bands to lay out on one line instead of one, and every section that reads differently at three
+ * or more enemies renders its other branch. None of it was reachable from a fixture, so none of it had
+ * ever been measured at ~390px — the whole subject of `docs/conventions.md`'s Layout section. Rendered
+ * markup is 549 340 characters against `phased`'s 364 888, and that difference is the thing a narrow
+ * viewport has to survive.
+ *
+ * Its price, measured the same way the second entry's was: `dist/preview/index.html` goes
+ * **2 943 573 → 3 319 162 bytes**, +375 589 (+12.8%), three interleaved builds a side in a clean
+ * worktree. Larger than the second entry's +235 293 because this pull is the biggest of the three
+ * (`cleave.json` is 1.2MB of raw events against `phased`'s 661KB), and still paid by a dev harness that
+ * ships to nobody.
+ *
+ * **Not a numeric guard, and it cannot become one.** Like the two above it this entry is analysed at
+ * build time and rendered; nothing here asserts a figure, and the sweep it exists for reads
+ * `scrollWidth` against `clientWidth`. It is a layout specimen. What *is* pinned, because it is the
+ * argument rather than the pixels, is which reading each of the three pulls detects —
+ * `components/report/__tests__/previewMultiTarget.test.ts`.
  */
 const phased = analyseElemental(phasedRaw as unknown as FightDataset);
 const unbroken = analyseElemental(unbrokenRaw as unknown as FightDataset);
+const cleave = analyseElemental(cleaveRaw as unknown as FightDataset);
 
-const fixtures = { poor, mixed, strong, weave, phased, unbroken } as never;
+const fixtures = { poor, mixed, strong, weave, phased, unbroken, cleave } as never;
 ---
 
 <Base title="Report preview" description="Fixture-driven render for chart and copy validation.">

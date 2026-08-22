@@ -118,10 +118,11 @@ overflow — it will send you hunting for a bug that is not there. Measure inste
 390px-wide iframe from a same-origin page and read `scrollWidth` against `clientWidth` from inside it.
 
 Point it at **`/preview`**, not at the landing page: that is the only route that renders a real report
-without a WarcraftLogs token, and it now carries both specs — four stored Windwalker analyses and one
-Elemental pull analysed at build time — so one pass over its fixture picker reaches every section
-either spec ships. (`src` is relative to `BASE_PATH`: empty on the Pages builds, `/<repo>/` on a
-GitHub Pages one.)
+without a WarcraftLogs token, and it now carries both specs — four stored Windwalker analyses and three
+Elemental pulls analysed at build time — so one pass over its fixture picker reaches every section
+either spec ships, in both target readings: `cleave` is the only entry that detects multi-target, so it
+is the only one that draws the per-target lanes. (`src` is relative to `BASE_PATH`: empty on the Pages
+builds, `/<repo>/` on a GitHub Pages one.)
 
 ```html
 <iframe id="f" src="/preview" style="width:390px;height:900px"></iframe>
