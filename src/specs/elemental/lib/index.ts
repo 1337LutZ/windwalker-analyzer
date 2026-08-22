@@ -2570,6 +2570,43 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		 * under. `earthShockGood` on that pull moves 6/12 = 50% to 4/7 = 57.14%; `unbroken` and `phased`
 		 * are entirely band 1 and do not move at all. No grade and no band changes: 57.14% is still under
 		 * the 65% `ok` boundary.
+		 *
+		 * ## What those five presses are, now that the exemption clock has been measured against them
+		 *
+		 * **The band is deliberately not trimmed, and this paragraph is the price of that decision stated
+		 * rather than left implicit.** `analyseCore`'s `aoeWindows` now cuts a full window of trailing lag
+		 * off each exempt stretch, because a stretch closed by the count *falling* closes at
+		 * `lastHitOnThirdEnemy + targetWindowMs`, and a clock that forgives that tail is forgiving boss-only
+		 * time. `aplTargetCountAt` here keeps the untrimmed reading, on two arguments: a clock charges or
+		 * forgives what was *true* at a moment, while a band labels a press by what the player **knew**,
+		 * and an add hit a second ago is still an add to the person pressing; and `0de530e` deliberately
+		 * made this section read the same series as the ladder so the two cannot disagree about one press,
+		 * which trimming one of them would break on purpose.
+		 *
+		 * So the two readings now differ, and this is by how much. Against the *trimmed* stretches — one
+		 * measured global past three-wide contact rather than a full window — **three of the five fall
+		 * outside**, shown with the distance from each press back to the last hit on its third enemy and
+		 * back to the last hit on any add at all:
+		 *
+		 * | press | band | inside trimmed | since 3rd enemy | since any add |
+		 * | --- | --- | --- | --- | --- |
+		 * | 84 144 | 4 | no | 1 681ms | 1 651ms |
+		 * | 104 984 | 4 | **yes** | 724ms | 724ms |
+		 * | 208 430 | 3 | no | 4 469ms | 4 469ms |
+		 * | 220 746 | 3 | **yes** | 1 085ms | 1 085ms |
+		 * | 244 241 | 3 | no | 1 304ms | **59ms** |
+		 *
+		 * **And only one of the three is clearly the window rather than the adds.** 208 430 is 4 469ms past
+		 * any add hit — nine tenths of a full window of pure boss time — and nothing defends banding it at
+		 * three. 84 144 is marginal, 527ms past the trim boundary. 244 241 argues the *other* way, which is
+		 * why this is a measurement and not an error to correct: it is 1 304ms past its third enemy's last
+		 * hit but only **59ms** past a hit on an add, so an add was being struck essentially at the instant
+		 * of the press. That is a real multi-target moment the *count* had lost rather than boss-only time
+		 * being excused — and it is the press inside [244 182, 247 937], the one exempt stretch the trim
+		 * drops whole.
+		 *
+		 * Recorded, not acted on. Nothing here changes a band, a grade or a figure, and `earthShockGood` on
+		 * `cleave` stays 4/7 = 57.14%.
 		 */
 		const band = bandOf(aplTargetCountAt(t));
 		const reasons: EarthShockReason[] = [];

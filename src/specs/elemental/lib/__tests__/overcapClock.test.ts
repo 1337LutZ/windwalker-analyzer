@@ -38,35 +38,71 @@ describe('the shield overcap clock', () => {
 
 	it('drops the AoE stretches on the multi-target pull', () => {
 		const cleave = load('cleave');
-		// 119 313ms before this clock existed — so **76% of the old figure was time the list did not ask the
-		// player to spend the shield in**. The exempt stretches are 109 869ms of a 263 233ms pull, a little
-		// over 40%, and they carried nearly all of the fault.
-		expect(cleave.lightningShield.overcapMs).toBe(28_625);
-		expect(ms(cleave.lightningShield.aoeWindows)).toBe(109_869);
-		expect(cleave.lightningShield.aoeWindows).toHaveLength(8);
+		// 119 313ms before this clock existed — so **65% of the old figure was time the list did not ask the
+		// player to spend the shield in**. The exempt stretches are 82 858ms of a 263 233ms pull, a little
+		// under a third, and they still carry most of the fault.
+		//
+		// All three numbers moved with the trailing-edge trim, and every one of them in the direction that
+		// forgives *less*: the exemption used to read 109 869ms over eight stretches and left the overcap at
+		// 28 625ms. A stretch closed by the count falling closed a full 5 000ms window past the last hit
+		// that made it, so a window of boss-only time was handed back at the end of every add wave — 28
+		// 378ms of the old total was time after the last hit any add in its stretch ever took.
+		// `analyseCore`'s `aoeWindows` now cuts that tail to one measured global, and
+		// `targetTails.test.ts` derives the 27 011ms that removes and reproduces this array from the
+		// fixture's raw damage rows.
+		expect(cleave.lightningShield.overcapMs).toBe(42_157);
+		expect(ms(cleave.lightningShield.aoeWindows)).toBe(82_858);
+		expect(cleave.lightningShield.aoeWindows).toHaveLength(7);
 	});
 
+	/**
+	 * The property, re-derived off the two published arrays rather than off a number the rejected form
+	 * produced.
+	 *
+	 * It used to read `33_125 - overcapMs === 3 * leewayMs`, where 33 125 was the subtract-after
+	 * measurement recorded by hand. The trim moves both sides *and* the boundary count, and renumbering
+	 * two hardcoded figures would have passed while proving nothing — so the assertion is now the
+	 * behaviour's own **signature**, which needs no number from an implementation that does not exist.
+	 *
+	 * The grace comes off the **front** of each merged capped stretch. So a stretch that continues across
+	 * a regime boundary shows up, under the segmented clock, as a graded window opening exactly one leeway
+	 * *after* an exempt stretch closed — the grace being taken again on the far side. Subtract-after gives
+	 * the opposite shape: that stretch arrives at the boundary with its grace already spent, and its
+	 * graded piece opens **at** the boundary. One of those two sets is non-empty and the other is empty,
+	 * whichever clock is running, and the count of the first is exactly how many extra leeways the
+	 * segmented reading forgives.
+	 *
+	 * Four boundaries now, where the old series had three: the trim moved six closes earlier, and a capped
+	 * stretch that used to sit wholly inside an exempt tail now straddles the boundary the tail's removal
+	 * created. Read off the pull rather than asserted as a bare 4 — the `toBe` below is the count the
+	 * signature finds, and the empty set beside it is the contrast guard.
+	 */
 	it('restarts the grace at each boundary rather than subtracting afterwards', () => {
-		// The difference between the two readings is exactly one leeway per boundary that a capped stretch
-		// spans — 4 500ms across three of `cleave`'s seven. Asserted as the *gap* rather than by
-		// reimplementing the rejected form, so this cannot drift into testing its own arithmetic.
 		const cleave = load('cleave');
-		expect(cleave.lightningShield.leewayMs).toBe(1500);
-		// Subtract-after measures 33 125ms; the segmented clock measures 28 625ms.
-		expect(33_125 - cleave.lightningShield.overcapMs).toBe(3 * cleave.lightningShield.leewayMs);
+		const { leewayMs, aoeWindows, overcapWindows } = cleave.lightningShield;
+		expect(leewayMs).toBe(1500);
+		const exemptCloses = new Set(aoeWindows.map((w) => w.end));
+		const graceRestarted = overcapWindows.filter((w) => exemptCloses.has(w.start - leewayMs));
+		const graceAlreadySpent = overcapWindows.filter((w) => exemptCloses.has(w.start));
+		expect(graceRestarted).toHaveLength(4);
+		// The rejected form's own signature, and it must be absent: a graded window opening flush against a
+		// boundary is a stretch that crossed one and was charged from the first millisecond of the far side.
+		expect(graceAlreadySpent).toEqual([]);
 	});
 
 	it('keeps falling off graded on every band, because the shield is a mana engine', () => {
 		// Rolling Thunder returns 2% of maximum mana per charge and only while the buff is up, so keeping it
-		// up is right at any target count. `cleave` drops it once and that stays a fault even though most of
+		// up is right at any target count. `cleave` drops it once and that stays a fault even though much of
 		// the pull is exempt from the *overcap* clock — the two halves of one aura on two clocks, which is
 		// the thing a reader would otherwise read as a bug.
 		const cleave = load('cleave');
 		expect(cleave.lightningShield.fellOff).toBe(1);
-		// Two fifths of the pull is exempt from the overcap clock and none of it is exempt from this one.
+		// Just under a third of the pull is exempt from the overcap clock and none of it is exempt from this
+		// one. Was two fifths before the trailing-edge trim; the bounds moved with it and the point did not
+		// — the gap between the two clocks is what this case is about, not its size.
 		const exemptShare = ms(cleave.lightningShield.aoeWindows) / cleave.durationMs;
-		expect(exemptShare).toBeGreaterThan(0.4);
-		expect(exemptShare).toBeLessThan(0.5);
+		expect(exemptShare).toBeGreaterThan(0.3);
+		expect(exemptShare).toBeLessThan(0.35);
 	});
 
 	it('publishes the exempt array rather than leaving the chart to re-derive it', () => {

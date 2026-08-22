@@ -811,7 +811,54 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * that the aoe list stops asking for either, which is what makes a single-target clock unable to
 	 * count them.
 	 */
-	const aoeWindows = intervalsAtLeast(aplTargetPoints, 3, duration);
+	/**
+	 * **The trailing edge is cut to one global, because a stretch otherwise runs a full window past the
+	 * last hit that made it.** `targetCounts`' count can only *fall* at the moment some hit ages out, so
+	 * a stretch closed by a fall closes at exactly `lastHitOnThirdEnemy + targetWindowMs`. That is not a
+	 * distribution with a tail — measured on `cleave` it is exactly one window, seven stretches out of
+	 * eight, the eighth being shorter only because the kill clamped it.
+	 *
+	 * What that cost before the trim: **28 378ms of `cleave`'s 109 869ms exempt total was time after the
+	 * last hit any add in that stretch ever took** — boss-only time being forgiven. The opening edge has
+	 * no such lag (a trailing window admits an enemy on the very hit that made the count), so the error
+	 * was one-directional and always in the direction of forgiving.
+	 *
+	 * **A shorter window was the wrong fix and was measured as such.** Rebuilding the series at 3000ms
+	 * gives 13 stretches, at 1500ms nineteen, at 750ms fifty-seven — a short window does not trim tails,
+	 * it punches holes mid-wave, which is the flicker the window exists to suppress. Trimming the close
+	 * instead lands one global past the last three-wide hit while keeping every mid-wave millisecond
+	 * smoothed.
+	 *
+	 * One global of grace rather than none: the priority list re-reads its conditions once a global, and
+	 * nothing a player does answers faster. **`effectiveGcd` and not `spec.gcdMs`, so it is the global
+	 * this pull was actually played on — and the arithmetic below is in that global, not the declared
+	 * one.** On `cleave` the median observed gap measures **1 124ms** (floored at `GCD_MIN_MS`, capped at
+	 * the Elemental's declared 1 500), so the trim is `5 000 - 1 124 = 3 876ms` and each close lands on
+	 * `h3 + 1 124` — inside where even a 1 500ms window would have closed. Written against the declared
+	 * global the trim would be 3 500ms and every figure below would be a few hundred milliseconds per
+	 * stretch out; `targetTails.test.ts` recovers the grace from the audit rather than naming it, for
+	 * exactly that reason.
+	 *
+	 * **What it removes, at that measured trim.** Six of `cleave`'s eight stretches lose 3 876ms each
+	 * (23 256ms); a seventh — [244 182, 247 937], 3 755ms long — is shorter than the trim and so drops
+	 * whole; the eighth is the one the kill clamped and is left alone by design. 27 011ms in total,
+	 * taking the exemption from **109 869ms to 82 858ms** and its share of the 263 233ms pull from
+	 * **41.7% to 31.5%**. Downstream the Lightning Shield's overcap figure rises from **28 625ms to
+	 * 42 157ms** across nine graded windows rather than eight — less forgiven, which is the point.
+	 * `phased` and `unbroken` never reach three enemies and do not move at all.
+	 *
+	 * **The per-press band is deliberately *not* trimmed, and `earthShockGood` therefore does not move.**
+	 * A clock charges or forgives what was *true* at a moment; a band labels a press by what the player
+	 * *knew*, and an add hit a second ago is still an add to the person pressing. `0de530e` also made the
+	 * section read the same series as the ladder so the two cannot disagree about one press, and trimming
+	 * one of them would break that on purpose. What the five presses `cleave` exempts by band actually
+	 * are is measured at the Earth Shock `band` docblock in `specs/elemental/lib/index.ts`.
+	 *
+	 * **`multiTargetWindows` and the contact clock deliberately keep the default 0.** They are evidence
+	 * and a denominator, not exemptions — trimming them would shrink the very clock the mode share is
+	 * measured against.
+	 */
+	const aoeWindows = intervalsAtLeast(aplTargetPoints, 3, duration, spec.thresholds.targetWindowMs - effectiveGcd);
 	/**
 	 * Against the time the player was hitting *anything*, and deliberately neither of the two obvious
 	 * alternatives.
