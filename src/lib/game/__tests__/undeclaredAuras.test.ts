@@ -120,16 +120,6 @@ const LEDGER: Record<number, string> = {
 	// has to change and dies the moment it does: `declaredLedgerIds` fails naming the id, which is the
 	// handoff.
 
-	// The Elemental's own +20% Elemental-school damage buff, and by far the largest thing this sweep
-	// found. `sim/shaman/talents_elemental.go:143-190` registers Clearcasting as a 2-stack, 15s aura on
-	// spell id 16246 that attaches `SpellMod_DamageDone_Pct` +0.2 for the Elemental school (and again
-	// for Earthquake) alongside its -25% power cost, triggered on any crit from the elemental spell mask
-	// and consumed a stack per cast. 728 events across the three Elemental pulls — the busiest id in the
-	// whole sweep. `elemental/lib/index.ts:903` names it "Elemental Focus" so the damage table can
-	// label the row, and that is the only thing in the repository that knows the number exists.
-	16246:
-		'Clearcasting: NOT MODELLED, and it is a damage multiplier. The Elemental Focus proc — +20% Elemental-school damage, 2 stacks, 15s, consumed per cast (sim/shaman/talents_elemental.go:143). Needs an aura in specs/elemental/lib/index.ts; this entry goes when it has one.',
-
 	// -------------------------------------------------------- the player's own
 	// Off-rotation presses and passives. All are named in the Elemental's `EXTRA_NAMES` where they are
 	// casts, so the press is labelled; what is not modelled is the buff window, and none of these
@@ -249,9 +239,11 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 		expect(staleLedgerIds(LEDGER, sweeps)).toEqual([]);
 		// And the other direction, which is the one that matters for the gap entries above: an entry
 		// saying "nothing declares this yet" that outlives the declaration tells the next reader not to
-		// look. It has fired for real once already — declaring 61316 Dalaran Brilliance in `raidBuffs.ts`
-		// turned this red naming that id, and deleting its entry is what closed it, which is the handoff
-		// working. When it fails naming 16246, the model gained that one and its entry is what to delete.
+		// look. It has now fired for real twice, which is the handoff working rather than a theory about it:
+		// declaring 61316 Dalaran Brilliance in `raidBuffs.ts` turned this red naming that id, and
+		// declaring 16246 Clearcasting in the Elemental's model turned it red naming that one. Each time,
+		// deleting the entry is what closed it. The remaining gap entries are live in the same way — when
+		// this fails naming one of them, the model gained it and its entry is what to delete.
 		expect(declaredLedgerIds(LEDGER, sweeps)).toEqual([]);
 	});
 });

@@ -384,6 +384,18 @@ const UNLEASH_ELEMENTS_COOLDOWN_MS = 15_000;
 const LIGHTNING_SHIELD_MAX_STACKS = 7;
 
 /**
+ * Clearcasting's two stacks and fifteen seconds, both off `sim/shaman/talents_elemental.go` — `maxStacks
+ * := int32(2)` at :150 and `Duration: time.Second * 15` on the aura at :153.
+ *
+ * Stated as constants for the reason `LIGHTNING_SHIELD_MAX_STACKS` is: the ceiling is what a drawn bar's
+ * stack shading is measured against, so reading it off a pull's own peak would draw a pull that never
+ * doubled up as though two were never available. The three fixtures happen to reach two on every one, so
+ * a peak-derived ceiling would agree today and drift silently on the first pull that does not.
+ */
+const CLEARCASTING_MAX_STACKS = 2;
+const CLEARCASTING_DURATION_MS = 15_000;
+
+/**
  * How long the shield may sit at the ceiling before the time counts as overcapped.
  *
  * The shield is spent by Earth Shock's Fulmination, so sitting at seven stacks is a shock the player
@@ -656,6 +668,44 @@ const AURAS: Aura[] = [
 		ids: [77762],
 		kind: 'buff',
 	},
+	/**
+	 * **Clearcasting — the Elemental Focus proc, and a +20% damage multiplier nothing in this report knew
+	 * about.** Found by the undeclared-aura sweep (`68671a5`, plan §82) with **728 events across the three
+	 * committed pulls**, the busiest id it turned up; until now the only thing in the repository that knew
+	 * the number existed was `EXTRA_NAMES` below, labelling a damage-table row.
+	 *
+	 * `sim/shaman/talents_elemental.go`. The aura is registered at :153 as `Label: "Clearcasting"`,
+	 * `ActionID{SpellID: 16246}`, `Duration: time.Second * 15`, `MaxStacks: maxStacks` where
+	 * `maxStacks := int32(2)` at :150. It attaches three spell mods: `SpellMod_PowerCost_Pct` −0.25 over
+	 * `canConsumeSpells`, `SpellMod_DamageDone_Pct` **+0.2 for `School: core.SpellSchoolElemental`**, and
+	 * the same +0.2 again for `SpellMaskEarthquake` — which needs its own mod because Earthquake is
+	 * Physical and so outside the school mask. `SpellSchoolElemental` is
+	 * `SpellSchoolFire | SpellSchoolNature | SpellSchoolFrost` (`sim/core/flags.go:221`), so **every
+	 * damaging spell this spec presses is inside it**.
+	 *
+	 * A `MakeProcTriggerAura` at :179 puts it up: `CallbackOnSpellHitDealt`, `Outcome: OutcomeCrit`, over
+	 * `canTriggerSpells`, and its handler calls `SetStacks(sim, maxStacks)` — so **any crit refills it to
+	 * two** rather than adding one. The aura's own `OnCastComplete` at :157 spends one stack per cast
+	 * matching `canConsumeSpells`, skipping echoes and skipping the cast that just triggered it.
+	 *
+	 * **Both numbers are the log's as well as the sim's**, measured on the three fixtures: no pull ever
+	 * shows a third stack, and of 361 drops, 291 coincide with a cast of a consuming spell — 403, 421,
+	 * 51505, 8042, 8050 and 114074, exactly `canConsumeSpells` — while 70 fell off unspent.
+	 *
+	 * `durationMs` and `maxStacks` and nothing else. No `appliedBy`, because what puts it up is a crit and
+	 * not a press. And **no grading**, because no rotation asks for it: 16246, "Clearcasting" and
+	 * "Elemental Focus" appear in none of the five `ui/shaman/elemental/apls/*.apl.json` lists, the three
+	 * this spec reads (`p5`, `cleave`, `aoe`) included. A metric nobody's rotation asks for is one this
+	 * report should not invent.
+	 */
+	{
+		key: 'clearcasting',
+		name: 'Clearcasting',
+		ids: [16_246],
+		kind: 'buff',
+		maxStacks: CLEARCASTING_MAX_STACKS,
+		durationMs: CLEARCASTING_DURATION_MS,
+	},
 	{
 		key: 'lightning-shield',
 		name: 'Lightning Shield',
@@ -844,6 +894,7 @@ const STORMLASH_TOTEM = registry.ability('stormlash-totem');
 const FS_DEBUFF = registry.aura('flame-shock');
 const ASCENDANCE_AURA = registry.aura('ascendance');
 const LAVA_SURGE = registry.aura('lava-surge');
+const CLEARCASTING = registry.aura('clearcasting');
 const LIGHTNING_SHIELD = registry.aura('lightning-shield');
 const SEARING_TOTEM_DOT = registry.aura('searing-totem');
 const FIRE_ELEMENTAL_AURA = registry.aura('fire-elemental');
@@ -2916,6 +2967,35 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// verdicts above keep the plain reading: `earthElemental.presses` is unchanged either way.
 		lane(EARTH_ELEMENTAL_AURA, 'buff', laneWindows(EARTH_ELEMENTAL_AURA, eeCasts)),
 		lane(LAVA_SURGE, 'proc', laneWindows(LAVA_SURGE)),
+		/**
+		 * **Clearcasting, as one row on the cast log and deliberately not on the summary timeline.**
+		 *
+		 * The drawn-aura guard gives two ways out — a row, or a `NOT_LANES` entry with a reason — and the
+		 * argument for a row is that this is the largest *unseen* multiplier on the spec. A reader looking at
+		 * a Flame Shock press wants to know whether it snapshotted +20%, and this row is the only place in
+		 * the report that can tell them.
+		 *
+		 * **Which chart it lands on is what makes the row affordable, and it is not this line that decides
+		 * it.** `lanes` is what the cast log draws; the summary timeline draws
+		 * `SUMMARY_LANE_KEYS` — an allow-list in `lib/view/timelineBanks.ts` that this key is not on and
+		 * should not be added to. So the noise objection is answered by where it is drawn rather than by
+		 * whether: on the cast log the row is zoomable, per-press, and toggleable with the rest of its group,
+		 * which is exactly the reading it is for; on the four-minute summary those 40–46 windows would be a
+		 * picket fence beside five rows a reader is trying to line up. Measured per pull, this row carries
+		 * **40, 38 and 46 windows** on `unbroken`, `phased` and `cleave` — the same order as the
+		 * `lava-surge` row directly above it, which is why that row is the precedent rather than a
+		 * counter-example.
+		 *
+		 * **Not a bank either, which was the other option.** Lightning Shield is drawn as a counter because
+		 * something fills it, it holds a ceiling, and a press spends it whole — so sitting at the cap and
+		 * falling off are faults worth reddening. None of that is true here: the stacks are consumed by the
+		 * casts the player was making anyway, no rotation asks for them (see the aura's own declaration),
+		 * and a bank with fault windows would print a fault this proc cannot have. Two stacks read off the
+		 * `stacks` field on the bar is the whole of what there is to say.
+		 *
+		 * `'proc'` and not `'buff'`: a crit puts it up, not a press — the same call `lava-surge` makes.
+		 */
+		lane(CLEARCASTING, 'proc', laneWindows(CLEARCASTING)),
 		// The two-piece debuff the proc leaves on the primary target, so the Ascendance two-piece window
 		// can be read off the timeline rather than only off the cooldowns section. One lane, where there
 		// used to be this and an empty `t16-2pc-proc` beside it.
