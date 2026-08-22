@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { GCD_MIN_MS } from '~/lib/analysis/analyseCore';
 import { isDamage } from '~/lib/events';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse as analyseElemental } from '~/specs/elemental/lib';
@@ -86,6 +87,46 @@ describe('gcdUtilisationPct is measured against the contact clock', () => {
 		expect(el.cpm.activeMs).toBe(261_572);
 		expect(contactMs(el)).toBe(261_572);
 		expect(pct(el.cpm.gcdUtilisationPct)).toBe(87.32);
+	});
+
+	/**
+	 * The mechanism plan §44 records the user suspecting — a sub-second cast charged less than a global —
+	 * measured on the pull it was reported from, and refuted.
+	 *
+	 * 62 of `cleave`'s 158 measured casts complete inside that pull's own global, 31 of them Chain
+	 * Lightnings at 856–1 157ms. Occupancy is `max(effectiveGcd, duration)`, so every one of them is
+	 * charged in full — and the pin above is what falls if that stops being true. Measured on an isolated
+	 * copy: charging the measured cast length instead reads **cleave 87.32 → 83.82, phased 94.08 → 93.37,
+	 * unbroken 91.94 → 90.39, and the Windwalker unmoved at 88.55**, which is §36's finding (it recorded
+	 * 3.66pp against the old `activeTime` denominator; it is 3.50pp against contact). So the assertions
+	 * here are no-change guards on the *inputs* that figure moves with — how many presses are fast enough
+	 * for the question to arise, and the size of the global they are charged against. The lines those
+	 * presses draw are pinned in `components/charts/__tests__/gcdRules.test.ts`, which is the half of §44
+	 * the user could see.
+	 *
+	 * **And the floor is not what is doing the work on this pull**, which is worth pinning because it is
+	 * what a reader assumes. `effectiveGcd` is the measured median gap, floored at `GCD_MIN_MS` and
+	 * capped at the spec's own 1 500: here it lands between 1 122.6 and 1 127.5ms — bracketed by the
+	 * published slot count, since `gcdSlots` is `floor(activeMs / effectiveGcd)` — so a 856ms Chain
+	 * Lightning is charged the ~1 127ms global this player was playing on and not the 1 000ms floor.
+	 * The floor binds on the Windwalker instead, whose declared global *is* 1 000 and whose whole bar is
+	 * instant: 167 on-GCD presses on that fixture and not one measured cast, which is why no rule about
+	 * cast length can move that spec.
+	 */
+	it('charges a full global for a cast that finished inside one', () => {
+		const el = analyseElemental(load(EL('cleave')));
+		const measured = (el.timeline?.casts ?? []).filter((c) => c.onGcd && c.castTimeMs !== undefined);
+		const inside = measured.filter((c) => (c.castTimeMs ?? 0) < GCD_MIN_MS);
+		expect(measured.length).toBe(158); // no-change guard
+		expect(inside.length).toBe(62); // no-change guard
+		expect(inside.filter((c) => c.id === 421).length).toBe(31); // no-change guard: Chain Lightning
+		expect(el.cpm.gcdSlots).toBe(232);
+		expect(+(el.cpm.activeMs / el.cpm.gcdSlots).toFixed(1)).toBe(1127.5);
+		expect(el.cpm.activeMs / (el.cpm.gcdSlots + 1)).toBeGreaterThan(GCD_MIN_MS);
+
+		const ww = analyseWindwalker(load(WW));
+		expect((ww.timeline?.casts ?? []).filter((c) => c.castTimeMs !== undefined)).toEqual([]);
+		expect((ww.timeline?.casts ?? []).filter((c) => c.onGcd).length).toBe(167);
 	});
 
 	/** 90.80 until two of this pull's four early refreshes were found to be the list's own play. */
