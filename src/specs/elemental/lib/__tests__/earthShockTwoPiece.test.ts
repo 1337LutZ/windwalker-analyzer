@@ -100,15 +100,24 @@ describe('the branch on the committed pulls', () => {
 	 * change can move it: B drops one of A's conditions and loosens another.
 	 *
 	 * `phased` gains two good shocks because five of its faults were `fsLow` and `ascReady`, charged
-	 * against a player whose rotation contains neither. `unbroken` and `cleave` do not move: their faults
-	 * were already `belowFull` and `twoPiece`, and every other in-window press sits 9 to 26 seconds from
-	 * its window's end, so `twoPiece` is still right for all of them.
+	 * against a player whose rotation contains neither. `unbroken` and `cleave` did not move for the
+	 * two-piece change: their faults were already `belowFull` and `twoPiece`, and every other in-window
+	 * press sits 9 to 26 seconds from its window's end, so `twoPiece` is still right for all of them.
 	 *
-	 * All three stay `bad` — the `ok` boundary is 65 (`score.ts:242`).
+	 * **`cleave` has since moved 41.6667 → 50 for a different reason**, and this test is where the two
+	 * changes meet, which is why the number is restated rather than relaxed. Earth Shock is now judged
+	 * against the list the *press's own target count* puts it under (§64), and three of `cleave`'s twelve
+	 * shocks land at two enemies, where `cleave.apl.json` rung 13 asks for six stacks and eight seconds
+	 * of dot and asks nothing at all about the two-piece debuff. One of those three had been charged
+	 * `twoPiece` under a branch that is not in its list. `phased` and `unbroken` are single-target
+	 * throughout — `targets.counts.max` is 1 on both — so neither can move, and both are pinned here as
+	 * the guard for that.
+	 *
+	 * All three stay `bad` — the `ok` boundary is 65 (`score.ts`'s `earthShockGood` threshold).
 	 */
 	it('moves earthShockGood on phased alone, and upward', () => {
 		expect(goodPct(unbroken)).toBeCloseTo(38.4615, 3);
-		expect(goodPct(analysed('cleave'))).toBeCloseTo(41.6667, 3);
+		expect(goodPct(analysed('cleave'))).toBeCloseTo(50, 3);
 		expect(goodPct(analysed('phased'))).toBeCloseTo(58.3333, 3);
 	});
 

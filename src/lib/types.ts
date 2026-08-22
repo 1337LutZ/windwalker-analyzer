@@ -2234,8 +2234,26 @@ export interface FlameShockAudit {
  *                  the shock held for its tail. The proc-up branch only.
  *   - `fsTail`     a proc was up and the dot would not have outlived two of its own ticks. The proc-up
  *                  branch's dot floor, which is two measured tick periods and not `fsLow`'s six seconds.
+ *
+ * **And at two targets none of those five apply, because it is a different list.**
+ * `ui/shaman/elemental/apls/cleave.apl.json` rung 13 asks for `auraNumStacks(324) >= 6` and
+ * `dotRemainingTime(8050) >= 8s` and nothing else — no Ascendance hold, no two-piece term, and no
+ * branch for the set to pick. So the Cleave regime has its own two reasons rather than looser
+ * versions of the five above, because a reader told "below 7 stacks" about a press the list wanted at
+ * six has been told the opposite of the truth:
+ *
+ *   - `cleaveStacks` the shield was under **six**, which is the count the two-target list spends at.
+ *   - `cleaveDot`    the dot had under **eight** seconds, which is that list's own floor and higher
+ *                    than the single-target one, not lower.
  */
-export type EarthShockReason = 'belowFull' | 'fsLow' | 'ascReady' | 'twoPiece' | 'fsTail';
+export type EarthShockReason =
+	| 'belowFull'
+	| 'fsLow'
+	| 'ascReady'
+	| 'twoPiece'
+	| 'fsTail'
+	| 'cleaveStacks'
+	| 'cleaveDot';
 
 /** One Earth Shock press, with everything the sim's rule reads, at the press. */
 export interface EarthShockPress {
@@ -2249,7 +2267,18 @@ export interface EarthShockPress {
 	/** Whether the tier-16 two-piece proc was up under the press. */
 	twoPiece: boolean;
 	/**
-	 * Whether either branch of the sim's rule wanted the press — see `EarthShockReason` for the two.
+	 * How many enemies the player was damaging at this press, banded the way the sim's lists band.
+	 *
+	 * **Per press, never per pull**, and that is the whole reason it is a field on the press rather than
+	 * one number on the audit. `cleave` runs from one enemy to thirteen inside a single pull, so a
+	 * whole-pull verdict would judge four of its twelve shocks against a list that was not in play.
+	 * Which list a press is judged against is decided from here: band 1 is `p5.apl.json`, band 2 is
+	 * `cleave.apl.json`.
+	 */
+	band: Band;
+	/**
+	 * Whether the applicable branch of the sim's rule wanted the press — see `EarthShockReason` for all
+	 * of them.
 	 *
 	 * A press inside a two-piece window is **not** automatically bad: the proc's own branch asks for the
 	 * shock in the debuff's last four seconds, which is the one thing this used to fault outright.
@@ -2406,12 +2435,55 @@ export interface FireElementalPress {
 	inferred: boolean;
 }
 
-/** One Earth Elemental press and whether it was the list's own end-of-fight rule. */
+/**
+ * What the list's own Earth Elemental rule says about one press — three-valued, and it has to be.
+ *
+ * `Earth Elemental Rules` in `ui/shaman/elemental/apls/p5.apl.json` is an **or of three** branches, and
+ * a log can read them to three different depths:
+ *
+ * ```
+ * A  remainingTime <= 62s
+ * B  NOT auraIsActive(2894) AND remainingTime >= 5s AND spellTimeToReady(114049) <= 20s
+ *    AND shamanFireElementalDuration == 60s AND spellTimeToReady(114206 Skull Banner) < 20s
+ *    AND spellTimeToReady(2894) > 60s
+ * C  shamanFireElementalDuration < 60s AND NOT auraIsActive(2894) AND spellTimeToReady(2894) < 65s
+ * ```
+ *
+ *   - `'near-end'` — **branch A**, which is the only one a log can read all the way to *true*. The
+ *     pull's own clock, and nothing else.
+ *   - `'off-rule'` — every branch was **refuted** by something the log does say. A real fault.
+ *   - `'unknown'` — A was false and at least one of B and C came down to a term this log cannot
+ *     answer, so nothing can be said. `spellTimeToReady(114206 Skull Banner)` is **another player's
+ *     cooldown**, which no combat log carries; `spellTimeToReady(2894)` needs the instant the Fire
+ *     Elemental was pressed, which a pre-pull summon does not log, and the Primal Elementalist talent,
+ *     which decides whether that clock is three minutes or five.
+ *
+ * `unknown` rather than a fault, deliberately: an unreadable rule silences the press instead of
+ * guessing, the same three-valued discipline the priority-list engine documents at `lib/spec/apl.ts`.
+ * A wrong "you misplayed here" costs a reader more than a missing one.
+ *
+ * **There is no verdict for a press branch B or C wanted**, and that is a statement about the log
+ * rather than an omission. Neither branch can be read to *true*: B always ends at the Skull Banner
+ * term, and C opens on the player having Glyph of Fire Elemental Totem — a 30-second summon — which
+ * an observed window can refute (a summon that ran 57 seconds was not a 30-second one) but never
+ * confirm, because a short window is also what a long one looks like when a Searing Totem or the kill
+ * cut it off.
+ */
+export type EarthElementalVerdict = 'near-end' | 'off-rule' | 'unknown';
+
+/** One Earth Elemental press and what the list's own three-branch rule says about it. */
 export interface EarthElementalPress {
 	/** Fight-relative, and **0 on an inferred use** — a pre-pull press's real instant is not in the log. */
 	t: number;
-	/** The p5 list presses it almost entirely in end-of-fight terms (`remainingTime <= 62s`). */
-	nearEnd: boolean;
+	/**
+	 * What the list's rule says about this press. See `EarthElementalVerdict` for the three branches.
+	 *
+	 * Computed for an inferred use as well as a read one — one expression cannot disagree with itself
+	 * about whether a summon that predates the bell was inside a 50-second pull's end window — but an
+	 * inferred use is **not counted into `good` or `graded`**: the list has no pre-pull Earth Elemental
+	 * play, so grading one would invent a rule (§75).
+	 */
+	verdict: EarthElementalVerdict;
 	/** Whether this use was recovered from a pre-pull window rather than read off a cast. */
 	inferred: boolean;
 }
@@ -2527,7 +2599,7 @@ export interface ElementalAuditResult {
 		presses: FireElementalPress[];
 		/** Whether it was already out when the bell went. */ prepull: boolean;
 	};
-	/** Earth Elemental's presses, judged against the end-of-fight rule rather than drift. */
+	/** Earth Elemental's presses, judged against the list's own three-branch rule rather than drift. */
 	earthElemental: {
 		presses: EarthElementalPress[];
 		/**
@@ -2538,6 +2610,22 @@ export interface ElementalAuditResult {
 		 * pulls: a cooldown nobody used, and one used before the log starts.
 		 */
 		prepull: boolean;
+		/**
+		 * Presses the rule wanted: branch A, the only branch a log can read to true.
+		 *
+		 * Over `graded`, never over `presses.length` — the same numerator-and-its-own-denominator pairing
+		 * `EarthShockAudit` publishes, so a reader can derive the share rather than being handed one.
+		 */
+		good: number;
+		/**
+		 * Presses the log could answer at all: `good` plus the ones every branch refuted.
+		 *
+		 * Excludes both the `unknown` verdicts and every inferred pre-pull use, which is what makes this
+		 * a denominator rather than a count of rows. An `unknown` in the denominator would charge the
+		 * player for a Skull Banner cooldown nobody can read; a pre-pull use in it would grade a play the
+		 * list does not contain.
+		 */
+		graded: number;
 	};
 	/** The raid's Stormlash placements, for the coordination section. */
 	stormlash: StormlashAudit;

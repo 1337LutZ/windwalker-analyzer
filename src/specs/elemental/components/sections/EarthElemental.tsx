@@ -2,17 +2,36 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock } from '~/lib/format';
-import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import type { Analysis, EarthElementalVerdict, ElementalAuditResult } from '~/lib/types';
 
-import { DataGrid, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
+import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
 
 /**
- * Earth Elemental: the end-of-fight summon.
+ * Earth Elemental, against the three branches its rule actually has.
  *
- * The p5 list presses it almost entirely in end-of-fight terms (`remainingTime <= 62s`), so the
- * section is about whether it went out at all and whether each press was the list's own window — a
- * press with a minute and a half left is a summon the pull's last stretch never got.
+ * `Earth Elemental Rules` (p5, priority 21) is an **or of three**, and this section used to describe
+ * the first one as though it were the whole rule. Branch A is the pull's last sixty-two seconds and is
+ * the only one a log can read all the way to *true*. Branch B ends at `spellTimeToReady(114206 Skull
+ * Banner)` — another player's cooldown, which no combat log carries — and branch C opens on Glyph of
+ * Fire Elemental Totem, which an observed summon can refute but never confirm.
+ *
+ * So the table has three states rather than two, and the third one is the point: a press only B or C
+ * could have justified reads **cannot say**, not "too early". A wrong fault costs a reader more than a
+ * missing one, which is the same discipline the priority list runs on.
  */
+/**
+ * The copy key each verdict reads under, spelled out rather than derived.
+ *
+ * The verdicts carry the sim's own hyphenated names and the copy file is camel-cased, so one of the two
+ * has to bend. A lookup that fails to compile when a verdict is added is the safer place for that than a
+ * template string, which would silently ask for a key nobody wrote.
+ */
+const STATE_KEY: Record<EarthElementalVerdict, string> = {
+	'near-end': 'nearEnd',
+	'off-rule': 'offRule',
+	unknown: 'unknown',
+};
+
 export default function EarthElemental({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { earthElemental } = el;
@@ -24,10 +43,12 @@ export default function EarthElemental({ analysis }: { analysis: Analysis }) {
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => ({
 					key: `${press.t}-${i}`,
-					band: press.nearEnd ? undefined : ('warn' as const),
+					// Only a refuted press is marked. An `unknown` is not a fault and must not be coloured as
+					// one, and an inferred pre-pull row is not graded at all — the list has no pre-pull play.
+					band: press.verdict === 'off-rule' && !press.inferred ? ('warn' as const) : undefined,
 					cells: {
-						at: formatClock(press.t),
-						state: press.nearEnd ? t('earthElemental.state.nearEnd') : t('earthElemental.state.early'),
+						at: press.inferred ? t('earthElemental.inferred') : formatClock(press.t),
+						state: t(`earthElemental.state.${STATE_KEY[press.verdict]}`),
 					},
 				})),
 		[earthElemental.presses, t],
@@ -45,9 +66,16 @@ export default function EarthElemental({ analysis }: { analysis: Analysis }) {
 			<div className="mt-4.5">
 				<StatTiles>
 					<StatTile value={`${earthElemental.presses.length}`} label={t('earthElemental.kpi.used')} />
+					{/* The graded share, with its own denominator beside it — the `unknown` presses and any
+					    inferred pre-pull use are in neither half, which is what `graded` is for. */}
 					<StatTile
-						value={`${earthElemental.presses.filter((p) => p.nearEnd).length}`}
+						value={`${earthElemental.good}`}
+						suffix={`/${earthElemental.graded}`}
 						label={t('earthElemental.kpi.nearEnd')}
+					/>
+					<StatTile
+						value={`${earthElemental.presses.filter((p) => p.verdict === 'unknown').length}`}
+						label={t('earthElemental.kpi.unknown')}
 					/>
 				</StatTiles>
 			</div>
@@ -62,6 +90,10 @@ export default function EarthElemental({ analysis }: { analysis: Analysis }) {
 					rows={rows}
 					empty={t('earthElemental.none')}
 				/>
+			</div>
+
+			<div className="mt-5">
+				<Note>{t('earthElemental.unreadable')}</Note>
 			</div>
 		</Section>
 	);

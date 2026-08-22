@@ -29,9 +29,10 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  * - **Elemental Mastery** (9): an off-GCD talent cooldown, synced with Ascendance; the cooldowns
  *   section's business.
  * - **Fire Elemental** (19, prepull), **Earth Elemental** (21): pets. Fire Elemental is the
- *   cooldowns section's business; Earth Elemental's own rule is written almost entirely in
- *   end-of-fight terms (`remainingTime <= 62s` first), so a drift verdict would call the sim's own
- *   plan a fault.
+ *   cooldowns section's business; Earth Elemental's own rule opens in end-of-fight terms
+ *   (`remainingTime <= 62s`), so a drift verdict would call the sim's own plan a fault. Its other two
+ *   branches are graded per press by its own section, which has the room to say that one of them ends
+ *   at another player's cooldown and cannot be read.
  * - **Flame Shock's snapshot refreshes** (7, 12): the two Flame Shock rules above the filler — the
  *   proc-window reapplies (`Flame Shock Rules`) and the refresh just before Ascendance (`Flame
  *   Shock Refresh Prior to Ascendance`). They are judged by the Flame Shock section, which reads
@@ -108,6 +109,34 @@ const FS_ASC_PREP_MS = 16000;
 /** Ascendance coming back within this — the `spellTimeToReady(114049) >= 6s` of the Earth Shock rule. */
 const ES_ASC_HOLD_SEC = 6;
 
+/**
+ * What Earth Shock's rung becomes at **two** targets, taken from `cleave.apl.json` rung 13.
+ *
+ * That rung is the whole rule there and it is a *different* rule, not a relaxed one:
+ *
+ * ```
+ * auraNumStacks(324) >= 6  AND  dotRemainingTime(8050) >= 8s  AND  dotRemainingTime(8050) >= 8s
+ * ```
+ *
+ * Six stacks rather than seven, an **eight**-second dot floor rather than six — the multi-target floor
+ * is higher — and neither the Ascendance hold nor the two-piece clause appears at all. The single-target
+ * list's `spellTimeToReady(114049) >= 6s` and `not(auraIsActive(144998))` have no counterpart here, so
+ * the rung asks two questions at band 2 and four at band 1.
+ *
+ * **`dotRemainingTime >= 8s` is stated twice in the preset**, verbatim, and that is a redundant term in
+ * the source rather than a slip in this transcription — read off the file. It is written once here
+ * because `x >= 8 AND x >= 8` is `x >= 8`. Nobody should "fix" this into two different numbers on the
+ * assumption that the second one was meant to be something else.
+ *
+ * The rung is **not** band-gated away above two targets, and that is deliberate rather than an oversight:
+ * `aoe.apl.json` has no Earth Shock at all, so the honest shape there is `bands: [1, 2]` — but taking the
+ * rung out of bands 3 and 4 moves the ladder's own verdicts for every press below it, which is §64's
+ * item 3 and is meant to land on its own. Until it does, bands 3 and 4 keep the single-target form, the
+ * same choice the Earth Shock section makes for the same reason.
+ */
+const ES_CLEAVE_STACKS = 6;
+const ES_CLEAVE_FS_MIN_MS = 8000;
+
 type ELE_AplRule = AplRule & { key: ELE_AplRuleKey };
 
 /**
@@ -181,12 +210,22 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// The stack reading defaults to the ceiling when the log never carried the aura: the sim
 		// opens the fight with the shield at seven stacks (`sim/shaman/lightning_shield.go`), so a
 		// silent log is read at the sim's own opening state rather than as an unreadable bar.
+		//
+		// **And at two targets none of the above applies** — `cleave.apl.json` rung 13 is a different
+		// rule with two terms, transcribed in the condition below. See `ES_CLEAVE_STACKS`.
 		key: 'earth-shock',
 		id: ID.earthShock,
 		chiCost: 0,
 		energyCost: 0,
-		condition: (_state, auras, cooldowns) => {
+		condition: (state, auras, cooldowns) => {
 			const stacks = auras.stacks('lightning-shield');
+			// Two targets is `cleave.apl.json` rung 13 and nothing else — see `ES_CLEAVE_STACKS`. Read off
+			// `state.band`, which is this rule's own per-press count, so the rung switches lists at the
+			// press rather than for the pull.
+			if (state.band === 2) {
+				if (stacks !== null && stacks < ES_CLEAVE_STACKS) return false;
+				return auras.remainingMs('flame-shock') >= ES_CLEAVE_FS_MIN_MS;
+			}
 			if (stacks !== null && stacks < 7) return false;
 			if (auras.remainingMs('flame-shock') < 6000) return false;
 			if (cooldowns.readyInSec(ID.ascendance) < ES_ASC_HOLD_SEC) return false;

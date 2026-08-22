@@ -972,7 +972,7 @@
       },
       "earth-shock": {
         "name": "Earth Shock",
-        "condition": "When the shield is full, the dot has 6s or more, Ascendance is 6s or more away, and no two-piece proc is up."
+        "condition": "At one target: the shield full, the dot 6s or more, Ascendance 6s or more away and no two-piece proc up. At two: six stacks and 8s of dot, and nothing else."
       },
       "fire-elemental": {
         "name": "Fire Elemental",
@@ -984,7 +984,7 @@
       },
       "earth-elemental": {
         "name": "Earth Elemental",
-        "condition": "Near the end — 62s or less remaining."
+        "condition": "An or of three: the last 62s of the pull; or the Fire Elemental down with Ascendance inside 20s, its own cooldown over a minute out and a Skull Banner due; or the glyphed Fire Elemental’s gap. Only the first is readable off a log."
       },
       "lava-beam": {
         "name": "Lava Beam",
@@ -1312,7 +1312,7 @@
   },
   "earthShock": {
     "title": "Earth Shock",
-    "intent": "Earth Shock spends the Lightning Shield, and the priority list has two rules for it. With no tier-16 two-piece proc up: press when the shield is full, the Flame Shock dot has over six seconds and Ascendance is not about to need the shock timer. While a proc is up: hold the shock until the proc’s debuff is inside its last four seconds, then press it with the shield full and the dot outliving two ticks. A press inside a proc window is therefore not early by itself — only one taken too soon in it is.",
+    "intent": "Earth Shock spends the Lightning Shield, and which rule judges a press depends on how many enemies were up at that press. At one target the list has two branches. With no tier-16 two-piece proc up: press when the shield is full, the Flame Shock dot has over six seconds and Ascendance is not about to need the shock timer. While a proc is up: hold the shock until the proc’s debuff is inside its last four seconds, then press it with the shield full and the dot outliving two ticks. A press inside a proc window is therefore not early by itself — only one taken too soon in it is. At two targets it is a different list with one form: six stacks, and eight seconds of dot rather than six. No Ascendance hold, no two-piece term, and nothing for the set to change.",
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them.",
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them; the rest went out early.",
     "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them — most were spent before they were right.",
@@ -1331,7 +1331,9 @@
       "fsLow": "Flame Shock under 6s",
       "ascReady": "Ascendance ready within 6s",
       "twoPiece": "T16 2P proc with over 4s left",
-      "fsTail": "Flame Shock under two ticks"
+      "fsTail": "Flame Shock under two ticks",
+      "cleaveStacks": "Below 6 stacks (Cleave list)",
+      "cleaveDot": "Flame Shock under 8s (Cleave list)"
     },
     "caption": "Every Earth Shock the sim's rule refused, and which of its conditions failed",
     "none": "Every Earth Shock matched the sim's rule.",
@@ -1462,21 +1464,25 @@
   },
   "earthElemental": {
     "title": "Earth Elemental",
-    "intent": "The end-of-fight summon. The p5 list presses it almost entirely in end-of-fight terms — the last sixty-two seconds — so a press with a minute and a half left is a summon the pull's last stretch never got.",
+    "intent": "The list's rule for this summon is an or of three, and only one of them is about the end of the fight. A is the pull's last sixty-two seconds. B is a window before Ascendance with the Fire Elemental down and its cooldown over a minute away — and it also asks when a *warrior's* Skull Banner comes back, which no combat log carries. C is the glyphed thirty-second Fire Elemental's gap, and the glyph is something an observed summon can rule out but never prove. So a press is graded against A, refuted where every readable term of B and C says no, and otherwise left as cannot say.",
     "kpi": {
       "used": "Summons",
-      "nearEnd": "In the window"
+      "nearEnd": "In the window",
+      "unknown": "Cannot say"
     },
     "columns": {
       "at": "at",
-      "state": "rule"
+      "state": "what the rule says"
     },
     "state": {
-      "nearEnd": "Near the end",
-      "early": "Too early"
+      "nearEnd": "Near the end — branch A",
+      "offRule": "No branch wanted it",
+      "unknown": "Cannot say — Skull Banner"
     },
-    "caption": "Every Earth Elemental press and whether it was the end-of-fight window",
-    "none": "Earth Elemental was never pressed in this pull."
+    "caption": "Every Earth Elemental use and which branch of the list’s rule it answers",
+    "none": "Earth Elemental was never pressed in this pull.",
+    "inferred": "before the pull",
+    "unreadable": "Branch B reads spellTimeToReady(114206 Skull Banner), which is another player’s cooldown — a combat log has no way to answer it, and neither has this report. A press that only that branch could have justified is left as cannot say rather than called a mistake, and it is in neither half of the graded count. A summon made before the pull is drawn but never graded: the list has no pre-pull Earth Elemental play to grade it against."
   },
   "lightningShield": {
     "title": "Lightning Shield",

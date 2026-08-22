@@ -522,12 +522,19 @@ describe('a multi-target pull', () => {
  * inside a window's **last four seconds**, which is where that branch asks for the shock rather than
  * forbidding it — so the window is no longer a reason against that one press. The other seven are 9 to 26
  * seconds from their window's end and are still shocks taken too soon. See `earthShockTwoPiece.test.ts`.
+ *
+ * `cleave` reads three and not four since Earth Shock became band-aware (§64). The debuff windows are
+ * untouched — still eight — but one of those four presses lands at **two** enemies, and
+ * `cleave.apl.json` rung 13 has no two-piece clause in it: the shock is judged on six stacks and eight
+ * seconds of dot there and nothing else. So the fourth press is not a `twoPiece` fault that was forgiven,
+ * it is a press the two-piece branch never applied to. The window count and the reason count moving
+ * apart is the assertion worth having here.
  */
 describe('the T16 two-piece', () => {
 	for (const [name, windows, shocks] of [
 		['phased', 8, 4],
 		['unbroken', 5, 7],
-		['cleave', 8, 4],
+		['cleave', 8, 3],
 	] as const) {
 		it(`${name} sees the debuff and reads it as an Earth Shock condition`, () => {
 			const el = fx(name);

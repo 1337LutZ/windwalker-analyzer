@@ -7,19 +7,26 @@ import type { Analysis, ElementalAuditResult } from '~/lib/types';
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
 
 /**
- * Earth Shock: the Lightning Shield spender, judged against the sim's own rule.
+ * Earth Shock: the Lightning Shield spender, judged against the sim's own rule — and there is more than
+ * one of those.
  *
- * The p5 list's Earth Shock rule is an **or of two branches**, and the tier-16 two-piece proc decides
- * which one a press is judged against. With the proc down it wants Lightning Shield at the ceiling (a
- * stack spent is a stack of Fulmination the shield must rebuild), the Flame Shock dot above six seconds
- * and Ascendance more than six seconds from demanding the shared shock timer. With the proc up it wants
- * the shield at the ceiling, the proc's debuff inside its last four seconds, and the dot outliving two
- * of its own ticks — Ascendance is not asked about at all.
+ * **Which list a press is judged against comes off the target count at that press.** At one enemy it is
+ * `p5.apl.json`, whose Earth Shock rule is an **or of two branches** picked by the tier-16 two-piece. With
+ * the proc down it wants Lightning Shield at the ceiling (a stack spent is a stack of Fulmination the
+ * shield must rebuild), the Flame Shock dot above six seconds and Ascendance more than six seconds from
+ * demanding the shared shock timer. With the proc up it wants the shield at the ceiling, the proc's debuff
+ * inside its last four seconds, and the dot outliving two of its own ticks — Ascendance is not asked about
+ * at all.
  *
- * A press that fails a condition of *its* branch is a shock spent early; the section reports which. Note
- * that the table is the fault ledger — a press the rule wanted has no row — so a shock taken correctly
- * inside a two-piece window shows up here by its absence rather than by a marker, the same way every
- * other correct press does.
+ * At **two** enemies it is `cleave.apl.json`, which has one form and two terms: six stacks and eight
+ * seconds of dot. Not a looser rule — the dot floor is *higher* — and no branch for the set to pick,
+ * because that list never mentions the two-piece. Per press rather than per pull, because a pull swings:
+ * four of `cleave`'s twelve shocks are at one enemy and three at two.
+ *
+ * A press that fails a condition of *its* list is a shock spent early; the section reports which, and the
+ * reason names the list so the two thresholds cannot be read as one. Note that the table is the fault
+ * ledger — a press the rule wanted has no row — so a shock taken correctly inside a two-piece window shows
+ * up here by its absence rather than by a marker, the same way every other correct press does.
  */
 export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;

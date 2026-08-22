@@ -60,6 +60,7 @@ import type {
 	Analysis,
 	AuraLane,
 	EarthElementalPress,
+	EarthElementalVerdict,
 	EarthShockReason,
 	FireElementalPress,
 	FlameShockPress,
@@ -80,7 +81,7 @@ import type { Ability, Aura, Dot, GameData } from '~/lib/game/model';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
-import { aplAudit, type AplInputs, ALL_BANDS } from '~/lib/spec/apl';
+import { aplAudit, type AplInputs, ALL_BANDS, bandOf } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
 import { ascendanceSync } from './ascendance';
@@ -201,6 +202,44 @@ const ES_FS_MIN_MS = 6000;
 const ES_ASC_HOLD_SEC = 6;
 
 /**
+ * What the **two-target** list asks of an Earth Shock, and it is a different rule rather than a looser one.
+ *
+ * `ui/shaman/elemental/apls/cleave.apl.json` rung 13 is the whole of it:
+ *
+ * ```
+ * auraNumStacks(324) >= 6  AND  dotRemainingTime(8050) >= 8s  AND  dotRemainingTime(8050) >= 8s
+ * ```
+ *
+ * Three things about that, each of which the single-target transcription gets wrong at two enemies:
+ *
+ *   - **Six stacks, not seven.** A spend at six is the list's own call there, and it was being reported
+ *     as Fulmination thrown away — a correct press marked wrong, the same class of error as the early
+ *     Flame Shock refresh (§62).
+ *   - **Eight seconds of dot, not six.** The multi-target floor is *higher*, so this is not the
+ *     single-target rule with the numbers relaxed.
+ *   - **No Ascendance hold and no two-piece term at all.** There is no `spellTimeToReady(114049)` clause
+ *     and no `auraIsActive(144998)` clause, which means there is no branch for the set to pick either:
+ *     the two-target list has exactly one form, whatever gear the player is in.
+ *
+ * **`dotRemainingTime >= 8s` really is stated twice in the preset**, character for character, and it is
+ * a redundant term in the source rather than a slip in this transcription — checked against the file.
+ * Written once here because `x >= 8 AND x >= 8` is `x >= 8`; nobody should "fix" this into two different
+ * numbers on the assumption that the second one was meant to be something else.
+ */
+const ES_CLEAVE_STACKS = 6;
+const ES_CLEAVE_FS_MIN_MS = 8000;
+
+/**
+ * The Earth Shock reasons that mean "spent under the stacks this band's list asks for".
+ *
+ * Two entries because the two lists ask for different counts and the section has to be able to say
+ * which one it means — see `EarthShockReason`. Named here so `lightningShield.badSpends` can read the
+ * press's own verdict instead of re-testing the stack count against a second, band-blind copy of the
+ * rule.
+ */
+const ES_STACK_REASONS: readonly EarthShockReason[] = ['belowFull', 'cleaveStacks'];
+
+/**
  * The opener: how far into the pull a press may land and still be judged as one of its first globals.
  *
  * The sim's own horizon — `priorityList[14]`'s second condition is literally `currentTime <= 5s`, and
@@ -266,12 +305,31 @@ const ELEMENTAL_MASTERY_DURATION_MS = 20_000;
 const FIRE_ELEMENTAL_COOLDOWN_MS = 300_000;
 /** And its duration, from `sim/shaman/fire_elemental_totem.go` — the other half of the PE detection. */
 const FIRE_ELEMENTAL_DURATION_MS = 60_000;
+/**
+ * The same summon with Glyph of Fire Elemental Totem, which halves it — `sim/shaman/apl_values.go`
+ * builds `shamanFireElementalDuration` as exactly `Ternary(HasMajorGlyph(GlyphOfFireElementalTotem),
+ * 30, 60) * time.Second`, and two branches of the Earth Elemental rule are written against it.
+ */
+const FE_GLYPHED_DURATION_MS = 30_000;
+/**
+ * How much longer than its declared length an observed aura window may read before the difference is
+ * evidence rather than bookkeeping.
+ *
+ * A `removebuff` and the tick that preceded it share a millisecond, `applybuff` can land either side of
+ * the cast, and a pre-pull window is clamped to the bell — none of which moves a window by seconds. Two
+ * of them is generous, and it is only ever asked in the direction that makes the answer *less* certain.
+ */
+const AURA_WINDOW_JITTER_MS = 2_000;
 
 /** Searing Totem's duration, from `sim/shaman/fire_totems.go`: forty ticks of about 1.5s. */
 const SEARING_TOTEM_DURATION_MS = 60_000;
 
-/** The Earth Elemental's end-of-fight window, from the p5 list (`remainingTime <= 62s`). */
+/** The Earth Elemental's end-of-fight window, from the p5 list (`remainingTime <= 62s`) — branch A. */
 const EE_END_MS = 62_000;
+/** Branch B's floor on what is left of the pull: `remainingTime >= 5s`. */
+const EE_MIN_REMAINING_MS = 5_000;
+/** Branch B's Ascendance window: `spellTimeToReady(114049) <= 20s`. */
+const EE_ASC_SOON_SEC = 20;
 
 /**
  * The Earth Elemental's own cooldown: five minutes, the same as the Fire Elemental's.
@@ -1956,12 +2014,43 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		 */
 		const esSpawn = spawnAt(t);
 		const tickMs = tickWindowAt(esSpawn === null ? [] : (fsTicks.get(esSpawn) ?? []), t, FLAME_SHOCK_DOT).cadenceMs;
+		/**
+		 * **Which of the sim's three lists judges this press, read at the press.**
+		 *
+		 * There are three priority lists in `ui/shaman/elemental/apls/` and this audit used to transcribe
+		 * one of them onto every pull. `cleave.apl.json` rung 13 spends the shield at **six** stacks with
+		 * an **eight**-second dot floor and neither an Ascendance hold nor a two-piece term, so a shock
+		 * taken at six on a two-target pull was being faulted for following the rotation.
+		 *
+		 * **The per-press count, not the pull's mode.** `detectedMode` is one verdict for a whole pull off
+		 * a 33% share, and `cleave` runs from one enemy to thirteen inside its four minutes — four of its
+		 * twelve shocks land at one target and three at two. A whole-pull band would have judged either
+		 * the single-target stretches against the two-target list or the reverse, and both are wrong in
+		 * the same way the thing being fixed here is wrong. `aplTargetCountAt` is the same reading the
+		 * priority ladder bands each rung on, so the section and the ladder cannot disagree about which
+		 * list a press was under.
+		 *
+		 * **Bands 3 and 4 keep the single-target form, and that is a known gap rather than a reading.**
+		 * `aoe.apl.json` has five rungs and Earth Shock is not one of them — nothing in that list spends
+		 * the shield, so at three or more enemies there is no rule for a press to be good or bad against
+		 * and the honest answer is to take those presses out of the denominator entirely. That is §64's
+		 * item 3, which is a clock-and-exempt-band change across four other metrics as well, and it was
+		 * deliberately not folded in here: it moves more graded figures than anything else in that
+		 * section and is meant to land on its own.
+		 */
+		const band = bandOf(aplTargetCountAt(t));
 		const reasons: EarthShockReason[] = [];
-		if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
-		if (twoPieceOwned) {
+		if (band === 2) {
+			// The Cleave list, and its two terms are the whole rule — see `ES_CLEAVE_STACKS`. No branch on
+			// the set, because rung 13 does not mention it.
+			if (stacks !== null && stacks < ES_CLEAVE_STACKS) reasons.push('cleaveStacks');
+			if (fsRemaining < ES_CLEAVE_FS_MIN_MS) reasons.push('cleaveDot');
+		} else if (twoPieceOwned) {
+			if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
 			if (remainingIn(t, twoPieceWindows) > ES_TWO_PIECE_TAIL_MS) reasons.push('twoPiece');
 			if (fsRemaining < 2 * tickMs) reasons.push('fsTail');
 		} else {
+			if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
 			if (fsRemaining < ES_FS_MIN_MS) reasons.push('fsLow');
 			if (ascReadyInSec < ES_ASC_HOLD_SEC) reasons.push('ascReady');
 		}
@@ -1971,6 +2060,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			fsRemainingMs: fsRemaining,
 			ascReadyInSec,
 			twoPiece,
+			band,
 			good: reasons.length === 0,
 			reasons,
 		};
@@ -1997,20 +2087,26 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		end,
 	}));
 	const fellOff = downWindows.length;
-	// Bad spends: an Earth Shock that spent fewer than the ceiling. A spend at the ceiling is the
-	// whole game and is not shown — the section only lists the ones that threw Fulmination away.
-	// Computed once and counted from here: the same predicate used to be written out three times over
-	// this one array, and three copies of a rule are three places for it to drift.
-	// **Listed, deliberately not graded.** A shock spent under the ceiling already fails one of the four
-	// conditions behind `earthShockGood` — `belowFull` is pushed as a reason a press is not good — so it
-	// has already cost the reader a graded metric in the Earth Shock section. Grading it a second time
-	// here would mark one mistake down twice and make the summary read worse than the pull was.
+	// Bad spends: an Earth Shock that spent fewer stacks than the list it was under asks for.
+	//
+	// **Read off the press's own reasons rather than re-tested here, and that is the fix as much as the
+	// band is.** The predicate used to be `p.lsStacks < lightningShieldCap` written out over this array —
+	// the aura's ceiling of seven, on every pull, at every target count. `cleave.apl.json` spends the
+	// shield at **six**, so a shock taken at six on a two-target stretch was listed here as Fulmination
+	// thrown away while the rotation it was following had asked for exactly that. Two copies of one rule
+	// is two places for it to drift, and it had already drifted the moment the rule became band-aware; so
+	// the rule now lives once, up at the press, and this reads its answer.
+	//
+	// **Listed, deliberately not graded.** A shock spent under its band's floor already fails one of the
+	// conditions behind `earthShockGood` — the reasons below are pushed as reasons a press is not good —
+	// so it has already cost the reader a graded metric in the Earth Shock section. Grading it a second
+	// time here would mark one mistake down twice and make the summary read worse than the pull was.
 	//
 	// Which is why this section shows the *table* and no grade on the tile: the row is the evidence, and
 	// the verdict on it lives where the press is judged. A review read the missing grade as an oversight;
 	// it is the double-count being avoided, and this comment exists so the next one does not have to ask.
 	const badSpends = esPresses
-		.filter((p) => p.lsStacks !== null && p.lsStacks < lightningShieldCap)
+		.filter((p) => p.reasons.some((reason) => ES_STACK_REASONS.includes(reason)))
 		.map((p) => ({ t: p.t, stacks: p.lsStacks }));
 
 	// ---------------------------------------------------------- Searing Totem
@@ -2047,9 +2143,35 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// recovered expiry can only be that, since no shaman presses this twice inside one minute.
 	const stCasts = castTimes(SEARING_TOTEM);
 	const feCasts = castTimes(FIRE_ELEMENTAL);
-	const fePrepullWindow = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
-		(w) => w.preexisting === true && !feCasts.some((t) => t <= w.end),
-	);
+	const feAuraWindows = auraWindows(selfEvents, FIRE_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true });
+	const fePrepullWindow = feAuraWindows.find((w) => w.preexisting === true && !feCasts.some((t) => t <= w.end));
+	/**
+	 * `shamanFireElementalDuration` — the summon's declared length, which two branches of the Earth
+	 * Elemental rule are written in, or **null when this log cannot say**.
+	 *
+	 * The sim's value is a flat fact about the character rather than about the pull: 30 seconds with
+	 * Glyph of Fire Elemental Totem, 60 without (`sim/shaman/apl_values.go`,
+	 * `TernaryDuration(HasMajorGlyph(GlyphOfFireElementalTotem), 30, 60)`). A log carries no glyph list,
+	 * so the pet's **observed** window is the second source, and it answers in one direction only:
+	 *
+	 *   - A summon that was up for longer than thirty seconds **cannot** have been a thirty-second one,
+	 *     so the glyph is not taken and the value is sixty. Definite.
+	 *   - Anything shorter is **not** evidence of the glyph, because a sixty-second summon looks exactly
+	 *     the same once a Searing Totem takes the fire slot back off it (one Fire totem stands at a time,
+	 *     which is why `feWindows` is cut by the slot walk above) or the kill lands inside its minute.
+	 *
+	 * So it reads sixty or it reads nothing, and the branch that wants `< 60s` can therefore be refuted
+	 * but never confirmed. That is stated on `EarthElementalVerdict` too, because it is the reason one of
+	 * that rule's three branches has no verdict of its own.
+	 *
+	 * Off the aura's own windows and not off `feWindows`: the latter gives a cast-derived placement the
+	 * *declared* sixty seconds, so reading the glyph out of it would be this constant proving itself.
+	 * These are `applybuff`→`removebuff` pairs, and a pre-pull one is clamped at the bell — which only
+	 * ever shortens it, so a window past thirty seconds is still proof.
+	 */
+	const feObservedMs = feAuraWindows.reduce((longest, w) => Math.max(longest, w.end - w.start), 0);
+	const feDeclaredDurationMs: number | null =
+		feObservedMs > FE_GLYPHED_DURATION_MS + AURA_WINDOW_JITTER_MS ? FIRE_ELEMENTAL_DURATION_MS : null;
 	type FireTotem = 'searing' | 'elemental';
 	const placements: Array<{ t: number; kind: FireTotem }> = [
 		...stCasts.map((t): { t: number; kind: FireTotem } => ({ t, kind: 'searing' })),
@@ -2320,28 +2442,82 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	];
 
 	/**
-	 * The Earth Elemental, judged against the list's own end-of-fight rule (`remainingTime <= 62s`) —
-	 * the one branch the p5 list actually uses, the Skull Banner and no-Primal-Elementalist edges aside.
+	 * The Earth Elemental, judged against **all three** branches of the list's own rule, to whatever
+	 * depth this log can read each of them.
 	 *
-	 * Recovered the same way and for the sharper version of the same reason. This cooldown had **no**
-	 * pre-pull inference at all, so a pull with no 2062 cast read as an unused cooldown whether it was
-	 * unused or summoned before the bell, and nothing in the report could tell those apart. `cleave` is
-	 * that pull: zero presses and no evidence either way until now.
+	 * `Earth Elemental Rules` (priority 21 of `p5.apl.json`) is an or of three, and the section used to
+	 * transcribe the first one and describe the pull as if it were the whole rule. It is not:
 	 *
-	 * `nearEnd` is the same expression for an inferred use as for a real one rather than a hardcoded
-	 * `false`. On a pull shorter than the end window a pre-pull summon really is inside it, and one
-	 * expression cannot disagree with itself about that.
+	 * ```
+	 * A  remainingTime <= 62s
+	 * B  NOT auraIsActive(2894) AND remainingTime >= 5s AND spellTimeToReady(114049) <= 20s
+	 *    AND shamanFireElementalDuration == 60s AND spellTimeToReady(114206 Skull Banner) < 20s
+	 *    AND spellTimeToReady(2894) > 60s
+	 * C  shamanFireElementalDuration < 60s AND NOT auraIsActive(2894) AND spellTimeToReady(2894) < 65s
+	 * ```
+	 *
+	 * **Nothing in it wants the summon before the bell**, which is why this is graded per press and not
+	 * by symmetry with `fireElementalPrepull`: at the pull `remainingTime` is maximal so A is false, and
+	 * B needs the Fire Elemental's own cooldown more than a minute away, which it is not at the start of
+	 * a pull. So the pre-pull *inference* below stays — it is how the row gets drawn (§68) — and it is
+	 * not the graded question (§75).
+	 *
+	 * **Two of the three branches can be refuted and neither can be confirmed**, and the report says so
+	 * rather than resolving it:
+	 *
+	 *   - **B ends at another player's cooldown.** `spellTimeToReady(114206)` is Skull Banner, a warrior's
+	 *     button, and no combat log answers when somebody else's cooldown comes back. `spellTimeToReady(2894)`
+	 *     is unreadable for a second reason — a pre-pull Fire Elemental logs no press instant, and Primal
+	 *     Elementalist decides whether that clock is three minutes or five, neither of which a log states.
+	 *   - **C opens on a glyph.** `shamanFireElementalDuration < 60s` is Glyph of Fire Elemental Totem,
+	 *     and `feDeclaredDurationMs` above can only ever prove its *absence* — see the argument there.
+	 *
+	 * So a press that only B or C could have justified reads **`'unknown'`, never a fault**: the nullable
+	 * answer §75 decision 2 accepted, and the three-valued discipline `lib/spec/apl.ts` documents. A
+	 * press every readable term refutes is `'off-rule'`, which is a real fault. Collapsing the two is how
+	 * a report starts inventing them.
+	 *
+	 * Recovered the same way as the Fire Elemental and for the sharper version of the same reason. This
+	 * cooldown had **no** pre-pull inference at all, so a pull with no 2062 cast read as an unused
+	 * cooldown whether it was unused or summoned before the bell, and nothing in the report could tell
+	 * those apart. `cleave` is that pull: zero presses and no evidence either way until now.
+	 *
+	 * The verdict is the same expression for an inferred use as for a read one rather than a hardcoded
+	 * value. On a pull shorter than the end window a pre-pull summon really is inside branch A, and one
+	 * expression cannot disagree with itself about that — the *grading* excludes it, not the reading.
 	 */
 	const eeCasts = castTimes(EARTH_ELEMENTAL);
 	const eePrepullWindow = auraWindows(selfEvents, EARTH_ELEMENTAL_AURA, t0, fightEnd, { openAtPull: true }).find(
 		(w) => w.preexisting === true && !eeCasts.some((t) => t <= w.end),
 	);
+	const eeVerdictAt = (t: number): EarthElementalVerdict => {
+		const remaining = duration - t;
+		// A. The one branch a log reads all the way to true.
+		if (remaining <= EE_END_MS) return 'near-end';
+		const feActive = inWindow(
+			t,
+			feWindows.map(([start, end]) => ({ start, end })),
+		);
+		// B's readable terms. `spellTimeToReady(114206)` and `spellTimeToReady(2894)` are not among them,
+		// so B can never be true — it is false when one of these refutes it and `unknown` otherwise.
+		const bRefuted =
+			feActive ||
+			remaining < EE_MIN_REMAINING_MS ||
+			ascendanceReadyInSec(ascCasts, t) > EE_ASC_SOON_SEC ||
+			(feDeclaredDurationMs !== null && feDeclaredDurationMs !== FIRE_ELEMENTAL_DURATION_MS);
+		// C's readable terms, on the same footing: `spellTimeToReady(2894)` is unreadable here too, and
+		// the glyph term can only come back false or unreadable.
+		const cRefuted = feActive || (feDeclaredDurationMs !== null && feDeclaredDurationMs >= FIRE_ELEMENTAL_DURATION_MS);
+		return bRefuted && cRefuted ? 'off-rule' : 'unknown';
+	};
 	const eePresses: EarthElementalPress[] = [
 		...(eePrepullWindow === undefined
 			? []
-			: [{ t: 0, nearEnd: duration <= EE_END_MS, inferred: true } satisfies EarthElementalPress]),
-		...eeCasts.map((t): EarthElementalPress => ({ t, nearEnd: duration - t <= EE_END_MS, inferred: false })),
+			: [{ t: 0, verdict: eeVerdictAt(0), inferred: true } satisfies EarthElementalPress]),
+		...eeCasts.map((t): EarthElementalPress => ({ t, verdict: eeVerdictAt(t), inferred: false })),
 	];
+	// The graded half: read presses only, and `unknown` out of the denominator rather than into it.
+	const eeGradable = eePresses.filter((p) => !p.inferred && p.verdict !== 'unknown');
 	// Whether the Fire Elemental was already out when the bell went — the prepull press the list makes
 	// when Heroism is going up on the pull. The window itself is recovered up at the Fire totem slot
 	// walk, which needs it to seed the slot; asking `auraWindows` a second time here would be a second
@@ -2783,7 +2959,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		ascendance: { presses: ascPresses, atPull: ascendanceAtPull, grade: ascSync.grade },
 		elementalMastery: { presses: emPresses },
 		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined },
-		earthElemental: { presses: eePresses, prepull: eePrepullWindow !== undefined },
+		earthElemental: {
+			presses: eePresses,
+			prepull: eePrepullWindow !== undefined,
+			good: eeGradable.filter((p) => p.verdict === 'near-end').length,
+			graded: eeGradable.length,
+		},
 		stormlash: { shamans: stormlashShamans, overlaps: stormlashOverlaps, totems: stormlashTotems },
 		lightningShield: {
 			points: lsPoints,

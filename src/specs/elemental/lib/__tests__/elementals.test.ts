@@ -28,20 +28,52 @@ const load = (name: string): FightDataset =>
 const fx = (name: string): Analysis & ElementalAuditResult => analyse(load(name)) as Analysis & ElementalAuditResult;
 
 describe('the Earth Elemental on two real pulls', () => {
-	/** `a:qHRAFwdGzaB6MPYC` #14: pressed at 240.2s of a 258.3s pull, 18.1s left — the list's own rule. */
+	/** `a:qHRAFwdGzaB6MPYC` #14: pressed at 240.2s of a 258.3s pull, 18.1s left — branch A of the rule. */
 	it('reads a press inside the last sixty-two seconds as the plan', () => {
 		const el = fx('phased');
-		expect(el.earthElemental.presses).toEqual([{ t: 240_166, nearEnd: true, inferred: false }]);
+		expect(el.earthElemental.presses).toEqual([{ t: 240_166, verdict: 'near-end', inferred: false }]);
 		expect(el.durationMs - 240_166).toBeLessThanOrEqual(62_000);
 		expect(el.earthElemental.prepull).toBe(false);
+		// Branch A is the only one a log reads to true, so a `near-end` press is the graded numerator and
+		// its own denominator.
+		expect([el.earthElemental.good, el.earthElemental.graded]).toEqual([1, 1]);
 	});
 
-	/** `a:xB3kh7v9pF2AHRtq` #16: pressed at 66.7s of a 184.4s pull, 117.8s left — not that rule. */
-	it('reads a press with two minutes of pull left as something else', () => {
+	/**
+	 * `a:xB3kh7v9pF2AHRtq` #16: pressed at 66.7s of a 184.4s pull, 117.8s left — and **every** branch of
+	 * the rule refuses it, which is what makes it a fault rather than a "cannot say".
+	 *
+	 * Each refutation is asserted from the log's own facts below rather than taken on trust, because the
+	 * whole point of the three-valued verdict is that `off-rule` and `unknown` are different claims.
+	 */
+	it('refutes a press with two minutes of pull left on every branch of the rule', () => {
 		const el = fx('unbroken');
-		expect(el.earthElemental.presses).toEqual([{ t: 66_657, nearEnd: false, inferred: false }]);
-		expect(el.durationMs - 66_657).toBeGreaterThan(62_000);
+		expect(el.earthElemental.presses).toEqual([{ t: 66_657, verdict: 'off-rule', inferred: false }]);
 		expect(el.earthElemental.prepull).toBe(false);
+		expect([el.earthElemental.good, el.earthElemental.graded]).toEqual([0, 1]);
+
+		// A: 117.8s left, and the branch wants 62 or less.
+		expect(el.durationMs - 66_657).toBeGreaterThan(62_000);
+		// B: `spellTimeToReady(114049) <= 20s`. Ascendance was pressed at 3.7s and its cooldown is 180s,
+		// so it is 117.0 seconds away at the press. Read off the cast stream, not off the audit.
+		const ascCasts = (el.timeline?.casts ?? []).filter((c) => c.id === 114_049).map((c) => c.t);
+		expect(ascCasts[0]).toBe(3676);
+		expect((ascCasts[0]! + 180_000 - 66_657) / 1000).toBeGreaterThan(20);
+		// C: `shamanFireElementalDuration < 60s` is Glyph of Fire Elemental Totem, and this shaman's
+		// summon was up for 58.0 seconds — which no thirty-second summon can be. Off the aura lane.
+		const fe = (el.timeline?.lanes ?? []).find((l) => l.key === 'fire-elemental')?.windows ?? [];
+		expect(fe).toHaveLength(1);
+		expect(fe[0]!.end - fe[0]!.start).toBeGreaterThan(30_000);
+	});
+
+	/**
+	 * `cleave` never presses it, so it has nothing to grade — and `graded` says zero rather than the
+	 * section quietly reading a perfect share off an empty list.
+	 */
+	it('grades nothing on the pull that never pressed it', () => {
+		const el = fx('cleave');
+		expect(el.earthElemental.presses).toEqual([]);
+		expect([el.earthElemental.good, el.earthElemental.graded]).toEqual([0, 0]);
 	});
 
 	/**
@@ -165,7 +197,7 @@ const make = (extra: readonly WclEvent[]): FightDataset => ({
  * The same pull cut short, for the one branch a 400-second fight cannot reach.
  *
  * A wipe or an early kill is a real pull, and the end-of-fight window is 62 seconds, so a fight shorter
- * than that is the only place `nearEnd` can be true of a summon made before the bell. Built by trimming
+ * than that is the only place branch A can be true of a summon made before the bell. Built by trimming
  * `make` rather than by a second dataset literal, so the two cannot drift apart in anything but length.
  */
 const shortPull = (ms: number, extra: readonly WclEvent[]): FightDataset => {
@@ -192,17 +224,17 @@ const shortPull = (ms: number, extra: readonly WclEvent[]): FightDataset => {
  *   280s   120s left, Ascendance back inside 5s — `sync`
  *   380s   20s left — `near-end`, and *also* inside the sync window, so this is the precedence test
  */
-const el = analyse(
-	make([
-		e(100_000, 'cast', ASCENDANCE),
-		e(50_000, 'cast', FIRE_ELEMENTAL),
-		e(260_000, 'cast', FIRE_ELEMENTAL),
-		e(280_000, 'cast', FIRE_ELEMENTAL),
-		e(380_000, 'cast', FIRE_ELEMENTAL),
-		e(200_000, 'cast', EARTH_ELEMENTAL),
-		e(338_000, 'cast', EARTH_ELEMENTAL),
-	]),
-) as Analysis & ElementalAuditResult;
+const FOUR_SUMMONS: readonly WclEvent[] = [
+	e(100_000, 'cast', ASCENDANCE),
+	e(50_000, 'cast', FIRE_ELEMENTAL),
+	e(260_000, 'cast', FIRE_ELEMENTAL),
+	e(280_000, 'cast', FIRE_ELEMENTAL),
+	e(380_000, 'cast', FIRE_ELEMENTAL),
+	e(200_000, 'cast', EARTH_ELEMENTAL),
+	e(338_000, 'cast', EARTH_ELEMENTAL),
+];
+const fourSummons = make(FOUR_SUMMONS);
+const el = analyse(fourSummons) as Analysis & ElementalAuditResult;
 
 describe('which of the list’s branches each Fire Elemental press hit', () => {
 	it('reads the pull the way it was built', () => {
@@ -240,9 +272,53 @@ describe('the Earth Elemental’s threshold', () => {
 	it('includes a press at exactly sixty-two seconds left', () => {
 		expect(DURATION - 338_000).toBe(62_000);
 		expect(el.earthElemental.presses).toEqual([
-			{ t: 200_000, nearEnd: false, inferred: false },
-			{ t: 338_000, nearEnd: true, inferred: false },
+			{ t: 200_000, verdict: 'unknown', inferred: false },
+			{ t: 338_000, verdict: 'near-end', inferred: false },
 		]);
+		// One graded press, one `unknown` out of the denominator entirely.
+		expect([el.earthElemental.good, el.earthElemental.graded]).toEqual([1, 1]);
+	});
+
+	/**
+	 * *** The 200s press reads `unknown` even though branch B is plainly refuted, and that is the
+	 * inference refusing to prove itself. ***
+	 *
+	 * B is refuted here: Ascendance is pressed once at 100s against a 180-second cooldown, so it is
+	 * eighty seconds away at 200s and B's `spellTimeToReady(114049) <= 20s` is false off the log. But the
+	 * verdict is an **or**, so branch C has to be refuted too, and C opens on
+	 * `shamanFireElementalDuration < 60s` — Glyph of Fire Elemental Totem.
+	 *
+	 * This pull carries four Fire Elemental **casts** and no Fire Elemental buff events at all. The
+	 * timeline still draws four sixty-second bars, because the fire-slot walk gives a cast-derived
+	 * placement the duration this module *declares* — so reading the glyph out of that lane would be
+	 * `FIRE_ELEMENTAL_DURATION_MS` proving `FIRE_ELEMENTAL_DURATION_MS`. The inference reads the aura's
+	 * own `applybuff`→`removebuff` windows instead, this stream has none, and the honest answer is that
+	 * the glyph is unreadable and so is C.
+	 *
+	 * Asserted as the pair — the drawn lane long, the aura windows absent — because the two agreeing
+	 * would be the bug, and a future change that repointed the inference at `feWindows` would turn this
+	 * `unknown` into a fault nobody measured.
+	 */
+	it('refuses a cast-derived window as evidence about the glyph', () => {
+		expect(el.earthElemental.presses.find((p) => p.t === 200_000)?.verdict).toBe('unknown');
+		// Ascendance, off the cast stream: one press at 100s, 180s cooldown, so 80s away at the press —
+		// branch B really is refutable here, and the `unknown` is C's doing rather than B's.
+		const ascCasts = (el.timeline?.casts ?? []).filter((c) => c.id === ASCENDANCE).map((c) => c.t);
+		expect(ascCasts).toEqual([100_000]);
+		expect((100_000 + 180_000 - 200_000) / 1000).toBeGreaterThan(20);
+		// The drawn lane is long, and it is drawn from casts.
+		const drawn = (el.timeline?.lanes ?? []).find((l) => l.key === 'fire-elemental')?.windows ?? [];
+		expect(drawn.some((w) => w.end - w.start > 30_000)).toBe(true);
+		expect((el.timeline?.casts ?? []).filter((c) => c.id === FIRE_ELEMENTAL)).toHaveLength(4);
+		// And the stream carries no Fire Elemental aura event for any of them, which is why the glyph is
+		// unreadable — the events this pull is built from are casts only. Read off the dataset itself.
+		expect(
+			fourSummons.events.filter(
+				(ev) =>
+					(ev as { abilityGameID?: number }).abilityGameID === FIRE_ELEMENTAL &&
+					(ev as { type: string }).type !== 'cast',
+			),
+		).toEqual([]);
 	});
 });
 
@@ -311,19 +387,30 @@ describe('an Earth Elemental that was already out at the pull', () => {
 	it('reads a bare expiry inside its own minute as a use with no press', () => {
 		const el2 = analyse(make([e(40_000, 'removebuff', EARTH_ELEMENTAL_BUFF)])) as Analysis & ElementalAuditResult;
 		expect(el2.earthElemental.prepull).toBe(true);
-		// `nearEnd` false because this pull is 400s long, so the summon was nowhere near the kill — the
+		// Not `near-end`, because this pull is 400s long and the summon was nowhere near the kill — the
 		// same expression a real press gets, not a hardcoded verdict.
-		expect(el2.earthElemental.presses).toEqual([{ t: 0, nearEnd: false, inferred: true }]);
+		//
+		// **And `unknown` rather than `off-rule`, which is this pull earning its keep.** There is no Fire
+		// Elemental anywhere in this event stream, so `shamanFireElementalDuration` has no observed window
+		// to be read off and branch B's `== 60s` term cannot be answered — nor can branch C's `< 60s`. With
+		// nothing left to refute either branch, the honest verdict is silence. It is the only place in the
+		// suite the third value is reached, because every real pull in the fixtures summons the elemental.
+		expect(el2.earthElemental.presses).toEqual([{ t: 0, verdict: 'unknown', inferred: true }]);
+		// Inferred, so it is graded neither way: the list has no pre-pull Earth Elemental play (§75).
+		expect([el2.earthElemental.good, el2.earthElemental.graded]).toEqual([0, 0]);
 	});
 
 	it('counts a pre-pull summon as inside the window on a pull shorter than the window', () => {
-		// The reason `nearEnd` is *computed* for an inferred use rather than pinned to false. A 50s pull is
+		// The reason the verdict is *computed* for an inferred use rather than pinned. A 50s pull is
 		// shorter than the list's own 62s end-window, so a summon that predates the bell really was inside
 		// it — and a hardcoded `false` would say the opposite on exactly the pull where it matters.
 		const el2 = analyse(shortPull(50_000, [e(20_000, 'removebuff', EARTH_ELEMENTAL_BUFF)])) as Analysis &
 			ElementalAuditResult;
 		expect(el2.durationMs).toBe(50_000);
-		expect(el2.earthElemental.presses).toEqual([{ t: 0, nearEnd: true, inferred: true }]);
+		expect(el2.earthElemental.presses).toEqual([{ t: 0, verdict: 'near-end', inferred: true }]);
+		// Read as branch A and still not graded — the reading and the grading are separate decisions, and
+		// only the second one excludes a pre-pull use.
+		expect([el2.earthElemental.good, el2.earthElemental.graded]).toEqual([0, 0]);
 	});
 
 	it('refuses the inference once the stream has shown the summon being made', () => {
@@ -334,7 +421,12 @@ describe('an Earth Elemental that was already out at the pull', () => {
 			make([e(10_000, 'cast', EARTH_ELEMENTAL), e(70_000, 'removebuff', EARTH_ELEMENTAL_BUFF)]),
 		) as Analysis & ElementalAuditResult;
 		expect(el2.earthElemental.prepull).toBe(false);
-		expect(el2.earthElemental.presses).toEqual([{ t: 10_000, nearEnd: false, inferred: false }]);
+		// `unknown` for the same reason as the pre-pull case above: this stream carries no Fire Elemental,
+		// so neither branch B nor branch C can be refuted, and a press at 10s of a 400-second pull is
+		// nowhere near branch A.
+		expect(el2.earthElemental.presses).toEqual([{ t: 10_000, verdict: 'unknown', inferred: false }]);
+		// And an `unknown` is out of the denominator, not into it — the press is neither good nor graded.
+		expect([el2.earthElemental.good, el2.earthElemental.graded]).toEqual([0, 0]);
 	});
 
 	it('refuses an expiry that arrives too late to be a pre-pull one', () => {
