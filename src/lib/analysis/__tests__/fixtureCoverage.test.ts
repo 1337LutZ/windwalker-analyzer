@@ -20,12 +20,11 @@
 // that supplies its own input tests the assertion and not the engine: it would stay green while the
 // path a real pull takes through the engine broke, which is exactly how a revert-check elsewhere in
 // this branch came back green against a value nothing observed.
-import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, FightDataset } from '~/lib/types';
 import { unmodelledPresses } from '~/lib/analysis/casts';
+import { capturedAnalyses, rawFixtures } from '~/lib/analysis/fixtures';
 import { RAID_BUFF_NAMES } from '~/lib/analysis/raidBuffs';
 import { analyse as analyseElemental, ELEMENTAL_SPEC } from '~/specs/elemental';
 import { analyse as analyseWindwalker, WW_SPEC } from '~/specs/windwalker';
@@ -44,25 +43,32 @@ const SPECS = [
 ] as const;
 
 /**
- * The raw `FightDataset` fixtures under a spec, found rather than listed.
+ * What each spec has committed, by shape — the assertion that keeps the shared discovery honest.
  *
- * Found on purpose: a listed set would need editing by whoever adds the next fixture, which is the
- * same person who would forget. Both `__fixtures__` directories also hold pre-analysed `Analysis`
- * objects, which carry no `events` and cannot answer this question — `events` is what tells them
- * apart, and it is the field this guard needs anyway.
+ * `rawFixtures` used to live in this file and was the only one of the three aura guards that found its
+ * own input; the other two carried literal name lists, so a newly committed fixture was swept here
+ * automatically and by them never. The reading now lives in `~/lib/analysis/fixtures`, which argues its
+ * own location, and all three call it.
+ *
+ * **This grid is what stops that sharing from going quiet.** The discovery classifies each `.json` as a
+ * raw `FightDataset` or a captured `Analysis`, and the guards need different halves — the drawn-aura
+ * sweep wants an `Analysis`, this file and `undeclaredAuras.test.ts` want raw events. A classifier that
+ * put a pull in the wrong half would leave a guard sweeping *nothing*, which passes. So both halves are
+ * named per spec, from the literal side, against a list read off the directory. Adding a fixture fails
+ * here by name, which is one line to acknowledge and the moment to say which shape it is; every sweep
+ * below then picks it up with no further wiring.
  */
-function rawFixtures(dir: string): Array<{ name: string; dataset: FightDataset }> {
-	const root = resolve(import.meta.dirname, `../../../specs/${dir}/__fixtures__`);
-	return readdirSync(root)
-		.filter((file) => file.endsWith('.json'))
-		.sort()
-		.map((file) => ({ name: file, parsed: JSON.parse(readFileSync(resolve(root, file), 'utf8')) as unknown }))
-		.filter((entry): entry is { name: string; parsed: FightDataset } => {
-			const candidate = entry.parsed as Partial<FightDataset>;
-			return Array.isArray(candidate.events) && candidate.actor !== undefined;
-		})
-		.map((entry) => ({ name: entry.name, dataset: entry.parsed }));
-}
+const FIXTURE_CENSUS: Record<string, { raw: string[]; captured: string[] }> = {
+	// Three raw pulls and no captures.
+	elemental: { raw: ['cleave.json', 'phased.json', 'unbroken.json'], captured: [] },
+	// One raw pull, and six captures written by `__fixtures__/capture.test.ts` — `analyse()`'s output
+	// rather than its input, which is why they carry no `events` and cannot answer half of these
+	// questions.
+	windwalker: {
+		raw: ['dataset-ironJuggernaut.json'],
+		captured: ['cleave.json', 'mixed.json', 'poor.json', 'strong.json', 'waves.json', 'weave.json'],
+	},
+};
 
 describe('every cast id a committed fixture presses is modelled or declared', () => {
 	for (const spec of SPECS) {
@@ -70,7 +76,13 @@ describe('every cast id a committed fixture presses is modelled or declared', ()
 
 		// A spec whose fixtures all silently stopped being raw datasets would make every assertion below
 		// vacuous, and vacuous is the failure mode this whole file exists to rule out.
-		it(`${spec.dir} has raw fixtures to check`, () => {
+		it(`${spec.dir} discovers both shapes of fixture it has committed`, () => {
+			expect({
+				raw: fixtures.map((fixture) => fixture.name),
+				captured: capturedAnalyses(spec.dir).map((fixture) => fixture.name),
+			}).toEqual(FIXTURE_CENSUS[spec.dir]);
+			// Stated separately, and not derivable from the line above: the grid could be "corrected" to two
+			// empty lists and would then agree with a discovery that had stopped finding anything.
 			expect(fixtures.length).toBeGreaterThan(0);
 		});
 
@@ -150,6 +162,18 @@ describe('every aura a spec declares either fires in a committed fixture or is o
 
 /**
  * Declared, and absent from every committed pull. Read the note above before editing this.
+ *
+ * **This is a census and not an allowlist, so an entry cannot arrive before its declaration.** The
+ * assertion above is `expect(silent.sort()).toEqual(SILENT_AURAS[spec.dir])` — an exact match against the
+ * declared auras that fire nowhere — so a line here naming an aura no registry declares fails
+ * *immediately*, in the direction nobody expects: the computed list is short by one and the diff reads
+ * `- 'the-key [id]'`. It was asked of Magma Totem (`2b41adb` declared 8190 as an ability with no aura,
+ * and a lane wanted the ledger side landed ahead of the aura so the aura could follow without a red).
+ * Measured, not reasoned: adding `'magma-totem [8190]'` here turns `elemental` red with
+ * `expected [ Array(38) ] to deeply equal [ Array(39) ]`. So the entry belongs in the **same commit** as
+ * the aura, in `specs/elemental/lib/index.ts`, and nowhere earlier — which is the same rule
+ * `staleExcuses` and `declaredLedgerIds` enforce from the other end, one commit ahead of time instead of
+ * one behind.
  *
  * Most of these are the honest kind: trinkets, racials and set bonuses that none of the four players in
  * the raw fixtures happened to be wearing. `re-origination` is a Windwalker trinket and is silent on the

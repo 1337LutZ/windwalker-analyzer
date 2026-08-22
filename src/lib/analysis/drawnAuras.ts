@@ -24,6 +24,12 @@
 // id. It is not exported from `index.ts`, because the guards are its only callers and a barrel entry
 // would advertise it to the engine.
 //
+// **Which fixtures the guards sweep is shared too, and separately.** `./fixtures.ts` is the neighbouring
+// half: it walks both `__fixtures__` directories and classifies each `.json` as a raw `FightDataset` or a
+// captured `Analysis`, because two of the three guards used to name their pulls as literals while the
+// third walked the directory — so a newly committed fixture was swept by one of them and by the other two
+// never. This file answers "what does the pull say"; that one answers "which pulls are there".
+//
 // **Evidence, not application.** "The log put this aura on the player" is the question, and every
 // event that *moves* an aura answers it. An application is one kind of answer; a removal with no
 // application in front of it is another, and is the ordinary signature of a raid cooldown, a pre-pull

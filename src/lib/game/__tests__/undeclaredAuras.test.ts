@@ -37,8 +37,6 @@
 // they name the file that has to change and go the moment it does, which `declaredLedgerIds`
 // enforces.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -48,28 +46,38 @@ import {
 	unmodelledAuraIds,
 	type IdSweep,
 } from '~/lib/analysis/drawnAuras';
+import { rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
 import { RAID_BUFF_NAMES } from '~/lib/analysis/raidBuffs';
 import type { Registry } from '~/lib/game/registry';
 import type { FightDataset } from '~/lib/types';
 import { registry as elemental } from '~/specs/elemental/lib';
 import { registry as windwalker } from '~/specs/windwalker/lib';
 
-const fixture = (spec: string, file: string): FightDataset =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/${spec}/__fixtures__/${file}.json`), 'utf8'));
-
 /**
  * Every pull in the repository that carries raw events, with the spec that analyses it.
  *
- * The six pre-analysed Windwalker fixtures are absent because they have no `events` array at all —
- * the capture harness writes `analyse()`'s output rather than its input — which that spec's
- * `drawnAuras.test.ts` asserts rather than works around.
+ * **Found rather than listed, and the listing was a hole in this guard family.** This was four literal
+ * names, while `analysis/__tests__/fixtureCoverage.test.ts` walked the fixture directories — so a newly
+ * committed pull was swept by that guard the moment it landed and by this one never. A guard that cannot
+ * see a new pull is the same failure as a guard that draws nothing, and it is the failure this file
+ * exists to catch one level down.
+ *
+ * The six pre-analysed Windwalker fixtures are still absent, and now by classification rather than by
+ * omission: they have no `events` array at all — the capture harness writes `analyse()`'s output rather
+ * than its input — so `rawFixtures` files them as captures and hands back none of them. `fixtures.ts`
+ * throws on a `.json` that answers to neither shape, which is what keeps "no raw events" from arriving
+ * here as an empty sweep.
  */
-const PULLS: Array<[string, FightDataset, Registry]> = [
-	['elemental/phased', fixture('elemental', 'phased'), elemental],
-	['elemental/unbroken', fixture('elemental', 'unbroken'), elemental],
-	['elemental/cleave', fixture('elemental', 'cleave'), elemental],
-	['windwalker/ironJuggernaut', fixture('windwalker', 'dataset-ironJuggernaut'), windwalker],
+const SPEC_REGISTRIES: Array<[string, Registry]> = [
+	['elemental', elemental],
+	['windwalker', windwalker],
 ];
+
+const PULLS: Array<[string, FightDataset, Registry]> = SPEC_REGISTRIES.flatMap(([spec, registry]) =>
+	rawFixtures(spec).map(
+		({ name, dataset }) => [`${spec}/${name}`, dataset, registry] as [string, FightDataset, Registry],
+	),
+);
 
 /**
  * The raid-buff roster counts as declaring an id, and it is the one exemption that is not a ledger
@@ -87,10 +95,23 @@ const PULLS: Array<[string, FightDataset, Registry]> = [
 const modelled = (registry: Registry, id: number): boolean =>
 	registry.auraById(id) !== undefined || RAID_BUFF_NAMES.has(id);
 
-const sweeps: IdSweep[] = PULLS.map(([, dataset, registry]) => ({
-	ids: auraIdsPutOnPlayer(dataset),
-	declares: (id) => modelled(registry, id),
+const SWEPT: Array<{ key: string; sweep: IdSweep }> = PULLS.map(([key, dataset, registry]) => ({
+	key,
+	sweep: { ids: auraIdsPutOnPlayer(dataset), declares: (id) => modelled(registry, id) },
 }));
+
+const sweeps: IdSweep[] = SWEPT.map((entry) => entry.sweep);
+
+/**
+ * One reading per pull, keyed by pull.
+ *
+ * Keyed and not positional, because discovery decides the order and a pinned array would then be read
+ * against whichever pull happened to sort into that slot. A new fixture arrives as a named extra key
+ * rather than as a length mismatch, which is the difference between a failure that says what to write
+ * down and one that says a number moved.
+ */
+const byPull = <T>(read: (sweep: IdSweep) => T): Record<string, T> =>
+	Object.fromEntries(SWEPT.map(({ key, sweep }) => [key, read(sweep)]));
 
 // ---------------------------------------------------------------- the ledger
 //
@@ -214,7 +235,12 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	 * aura ids land on the player across the four pulls.
 	 */
 	it('really does sweep four pulls with dozens of ids each', () => {
-		expect(sweeps.map((sweep) => sweep.ids.size)).toEqual([42, 48, 53, 53]);
+		expect(byPull((sweep) => sweep.ids.size)).toEqual({
+			'elemental/cleave.json': 53,
+			'elemental/phased.json': 42,
+			'elemental/unbroken.json': 48,
+			'windwalker/dataset-ironJuggernaut.json': 53,
+		});
 	});
 
 	/**
@@ -227,7 +253,7 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	 * is the shape of failure this whole file exists to catch.
 	 */
 	it('sees the ids whose only evidence is a removal or a stack change', () => {
-		const phased = fixture('elemental', 'phased');
+		const phased = rawFixture('elemental', 'phased.json');
 		expect(auraIdsPutOnPlayer(phased).get(118_291)).toBe(1);
 		expect(auraIdsPutOnPlayer(phased, ['applied', 'refreshed', 'stacked']).has(118_291)).toBe(false);
 		expect(auraIdsPutOnPlayer(phased).get(324)).toBe(86);
@@ -266,7 +292,12 @@ describe('Skull Banner, the id this guard was written for', () => {
 
 	/** Measured on the player, apply and remove in equal numbers on every pull. */
 	it('fires on all four committed pulls', () => {
-		expect(sweeps.map((sweep) => sweep.ids.get(114_206))).toEqual([8, 4, 8, 6]);
+		expect(byPull((sweep) => sweep.ids.get(114_206))).toEqual({
+			'elemental/cleave.json': 8,
+			'elemental/phased.json': 8,
+			'elemental/unbroken.json': 4,
+			'windwalker/dataset-ironJuggernaut.json': 6,
+		});
 	});
 
 	/**
