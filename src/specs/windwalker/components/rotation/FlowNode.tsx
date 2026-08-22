@@ -134,48 +134,73 @@ export default function FlowNode({
 				    that discloses the prose: a reader who wants to know why presses the thing they were
 				    being told to press. */}
 				<Heading className={`m-0 ${horizontal ? 'lg:min-w-72 lg:flex-1 lg:basis-0' : ''}`}>
-					<button
-						type="button"
-						id={buttonId}
-						aria-expanded={open}
-						aria-controls={panelId}
-						onClick={onToggle}
+					{/* The frame, which is not the button.
+
+					    `SpellIcon` is an anchor, to Wowhead, and it used to sit *inside* this disclosure's
+					    `<button>`. A link inside a button is interactive content inside interactive content:
+					    invalid HTML, and — unlike the `<a>`-in-`<a>` case — one the parser keeps, so it costs
+					    nothing at hydration time and nothing in the console. What it costs is the control. The
+					    anchor is not reachable as a link, and a pointer press on those 24 pixels fired *both*:
+					    the browser followed the href and the click bubbled to the button, so one press toggled
+					    the rung and opened Wowhead. Twelve of those per pull.
+
+					    So the two become siblings, which is what `ItemIcon` does with its gems and what
+					    `CastsPerMinute`'s name cell now does with its section link: the frame is a plain `span`
+					    carrying the border, the icon is a link, and the button is everything the reader is being
+					    asked to press. **The keyboard is untouched** — the anchor was already `aria-hidden` and
+					    `tabIndex={-1}`, so it was never a tab stop, and the button keeps its id, its
+					    `aria-expanded`, its `aria-controls`, its handler and its place inside the heading. The
+					    one thing that changes is that clicking the icon now does only the one thing it depicts. */}
+					<span
 						// Open is `kick`, the same border every pick-one control in this app wears when it is the
 						// chosen one — see `selectionPalette` in `primitives/controls`. It is never the only
 						// signal: `aria-expanded`, the chevron and the panel itself all say the same thing, so
 						// nothing here is carried by colour alone.
-						className={`flex min-h-11 w-full items-center gap-2.5 rounded-sm border px-3 py-2.5 text-left transition-colors ${
+						//
+						// The vertical padding is on the button rather than here, so the button is as tall as the
+						// frame it fills. With `py` on the frame the press target would have been the 24px the
+						// text needs rather than the 44 the box already reserves.
+						className={`flex items-center gap-2.5 rounded-sm border px-3 transition-colors ${
 							open ? 'border-kick bg-raised' : 'border-line bg-surface hover:border-muted hover:bg-raised'
 						}`}
 					>
 						<SpellIcon id={entry.id} size="sm" />
-						<span className="flex min-w-0 flex-1 flex-col gap-1">
-							<span className="font-mono text-base font-semibold text-ink">
-								{t(`rotation.entry.${entry.key}.name`)}
-							</span>
-							{/* A gate naming something other than the target count — whether the Rune is equipped,
-							    which half of a split rung this is. The target-count gates on rungs that own a whole
-							    row are drawn across the line instead, by `FlowChart`, because there they are a
-							    boundary in the chart rather than a label on a box. */}
-							{entry.gated && showGate ? (
-								<span className="-mb-1.5">
-									<Pill>{t(`rotation.gate.${entry.key}`)}</Pill>
+						<button
+							type="button"
+							id={buttonId}
+							aria-expanded={open}
+							aria-controls={panelId}
+							onClick={onToggle}
+							className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-2.5 text-left"
+						>
+							<span className="flex min-w-0 flex-1 flex-col gap-1">
+								<span className="font-mono text-base font-semibold text-ink">
+									{t(`rotation.entry.${entry.key}.name`)}
 								</span>
-							) : null}
-						</span>
-						{/* The affordance, named rather than left as a bare glyph: the one way this chart could be
-						    worse than the list it replaced is a reader not realising the paragraphs are still
-						    here. The word is the same word the panel labels its second paragraph with. */}
-						<span className="flex shrink-0 items-center gap-1.5">
-							<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
-								{t('rotation.flow.details')}
+								{/* A gate naming something other than the target count — whether the Rune is equipped,
+								    which half of a split rung this is. The target-count gates on rungs that own a whole
+								    row are drawn across the line instead, by `FlowChart`, because there they are a
+								    boundary in the chart rather than a label on a box. */}
+								{entry.gated && showGate ? (
+									<span className="-mb-1.5">
+										<Pill>{t(`rotation.gate.${entry.key}`)}</Pill>
+									</span>
+								) : null}
 							</span>
-							<span
-								aria-hidden="true"
-								className={`h-2 w-2 border-r border-b border-muted transition-transform ${open ? 'rotate-[225deg]' : 'rotate-45'}`}
-							/>
-						</span>
-					</button>
+							{/* The affordance, named rather than left as a bare glyph: the one way this chart could be
+							    worse than the list it replaced is a reader not realising the paragraphs are still
+							    here. The word is the same word the panel labels its second paragraph with. */}
+							<span className="flex shrink-0 items-center gap-1.5">
+								<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
+									{t('rotation.flow.details')}
+								</span>
+								<span
+									aria-hidden="true"
+									className={`h-2 w-2 border-r border-b border-muted transition-transform ${open ? 'rotate-[225deg]' : 'rotate-45'}`}
+								/>
+							</span>
+						</button>
+					</span>
 				</Heading>
 			</div>
 

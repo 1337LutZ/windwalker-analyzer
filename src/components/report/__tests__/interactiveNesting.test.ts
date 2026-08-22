@@ -35,19 +35,40 @@ initI18n();
  * The tags a parser closes on sight of themselves, so a tree that nests one is a tree no browser can
  * reproduce.
  *
- * **This is a hydration rule, not an HTML-validity one, and the difference is the whole reason the set
- * is three tags long.** An anchor inside a *button* is also invalid HTML — interactive content inside
- * interactive content — but the parser keeps that tree exactly as written, so React hydrates it without
- * complaint and it costs nothing at hydration time. It is an accessibility fault to be argued about
- * where the markup lives; it is not this file's business, and a sweep that conflated the two would fail
- * on markup that hydrates perfectly and teach the next reader to widen the ledger rather than fix the
- * bug. What is in here is only what the parser *rewrites*: those, and only those, make the served HTML
- * a different tree from the one React built.
+ * **This is a hydration rule, and it is deliberately not the same rule as the one below.** What is in
+ * here is only what the parser *rewrites*: those, and only those, make the served HTML a different tree
+ * from the one React built, which is the fault that discards a hydrated island. An anchor inside a
+ * *button* is invalid HTML too, but the parser keeps that tree exactly as written and React hydrates it
+ * without complaint — so it is a real fault of a different kind, swept separately and reported in its
+ * own words rather than folded in here. Two rules, two failures, because a reader who sees one of them
+ * needs to know which one they are looking at.
  *
  * `\b` after each name is what keeps `<article>`, `<aside>` and `<abbr>` out of the anchor case.
  */
 const SELF_CLOSING_ON_SIGHT = ['a', 'button', 'form'] as const;
 const TAGS = new RegExp(`<(/?)(${SELF_CLOSING_ON_SIGHT.join('|')})\\b`, 'g');
+
+/**
+ * The tags that are interactive content, which may not contain each other however the parser feels
+ * about it.
+ *
+ * A link inside a button is not a hydration fault — that is the whole point of the note above — but it
+ * is still a control the reader cannot use. The anchor is unreachable as a link, and a pointer press
+ * lands on both: the browser follows the href *and* the click bubbles to the button, so one press does
+ * two things and nothing on screen said it would.
+ *
+ * `rotation/FlowNode.tsx` had twelve of these per pull, from a `SpellIcon` — an anchor to Wowhead —
+ * sitting inside a disclosure's `<button>`. **This sweep was added after that was fixed and not
+ * before**, which is the only order that works: a guard landed over known-failing markup is a guard
+ * somebody skips.
+ *
+ * `form` is not in here. It cannot legally contain another form and the sweep above already says so;
+ * it is not interactive content, so it has no business in this rule. Void tags stay out for a
+ * mechanical reason as well as a semantic one — `<input>` never emits a close tag, so a stack would
+ * never pop it.
+ */
+const INTERACTIVE = ['a', 'button'] as const;
+const INTERACTIVE_TAGS = new RegExp(`<(/?)(${INTERACTIVE.join('|')})\\b`, 'g');
 
 /** Where the offending tag sits, with enough of its surroundings to name the component. */
 const around = (html: string, at: number): string => html.slice(Math.max(0, at - 240), at + 160);
@@ -69,6 +90,30 @@ function reparsedNesting(html: string): string[] {
 			if (at !== -1) open.splice(at, 1);
 		} else {
 			if (open.includes(tag)) found.push(`<${tag}> inside <${tag}>: …${around(html, match.index)}…`);
+			open.push(tag);
+		}
+	}
+	return found;
+}
+
+/**
+ * Every interactive element this markup opens while another one is still open, whichever tags they are.
+ *
+ * The same stack as above, over one set rather than one tag at a time: "inside" is again the claim and
+ * depth is again the only way to see it. The innermost still-open ancestor is the one named, because it
+ * is the one that makes the press ambiguous.
+ */
+function interactiveNesting(html: string): string[] {
+	const found: string[] = [];
+	const open: string[] = [];
+	for (const match of html.matchAll(INTERACTIVE_TAGS)) {
+		const tag = match[2] ?? '';
+		if (match[1] === '/') {
+			const at = open.lastIndexOf(tag);
+			if (at !== -1) open.splice(at, 1);
+		} else {
+			const inside = open.at(-1);
+			if (inside !== undefined) found.push(`<${tag}> inside <${inside}>: …${around(html, match.index)}…`);
 			open.push(tag);
 		}
 	}
@@ -112,6 +157,12 @@ describe('the served report is the tree a browser parses back', () => {
 	});
 });
 
+describe('no control in the served report contains another one', () => {
+	it.each(PULLS)('%s', (name, analysis) => {
+		expect(interactiveNesting(markup(name, analysis)), name).toEqual([]);
+	});
+});
+
 describe('the sweep above is not vacuous', () => {
 	it('sees the nesting it is looking for, and does not see siblings', () => {
 		expect(reparsedNesting('<a href="#x"><a href="#y"></a></a>')).toHaveLength(1);
@@ -123,6 +174,15 @@ describe('the sweep above is not vacuous', () => {
 		expect(reparsedNesting('<button><a href="#x"></a></button>')).toEqual([]);
 	});
 
+	it('sees a control inside a control, at any depth, and does not see siblings', () => {
+		expect(interactiveNesting('<button><a href="#x"></a></button>')).toHaveLength(1);
+		// The shape `FlowNode` actually had: the icon's anchor a couple of spans down inside the button.
+		expect(interactiveNesting('<button><span><span><a href="#x"></a></span></span></button>')).toHaveLength(1);
+		expect(interactiveNesting('<a href="#x"><button></button></a>')).toHaveLength(1);
+		expect(interactiveNesting('<button></button><a href="#x"></a>')).toEqual([]);
+		expect(interactiveNesting('<a href="#x"><article><abbr></abbr></article></a>')).toEqual([]);
+	});
+
 	it('renders every committed pull, and each one really does draw anchors', () => {
 		// A pull that rendered nothing would satisfy the sweep, and so would a fixture directory this
 		// file failed to find. Both fixture dirs are covered, and every pull draws the links the report
@@ -131,6 +191,10 @@ describe('the sweep above is not vacuous', () => {
 		expect(new Set(PULLS.map(([name]) => name.split('/')[0]))).toEqual(new Set(['windwalker', 'elemental']));
 		for (const [name, analysis] of PULLS) {
 			expect(markup(name, analysis).match(/<a\b/g)?.length ?? 0, name).toBeGreaterThan(5);
+			// And the buttons, for the same reason: a sweep for a link inside a button has said nothing at
+			// all about a page that rendered no buttons. Every pull draws the section nav and the chart's
+			// own controls.
+			expect(markup(name, analysis).match(/<button\b/g)?.length ?? 0, name).toBeGreaterThan(5);
 		}
 	});
 });
