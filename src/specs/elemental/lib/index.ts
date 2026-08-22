@@ -62,6 +62,7 @@ import type {
 	Analysis,
 	AscendanceFault,
 	AuraLane,
+	ElementalMasteryPress,
 	EarthElementalPress,
 	EarthElementalVerdict,
 	EarthShockReason,
@@ -2570,16 +2571,22 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const fsRemaining = fsRemainingAt(t);
 		const t15Active = inWindow(t, t15Windows);
 		const ascActive = inWindow(t, ascActiveWindows);
-		const reason: 'opener' | 'sync' | 't15' | 'off' | null = isOpener(t)
+		// `off` split in two, and the split is the whole of the change: the old arm was
+		// `!t15Active && (ascReady >= 85 || ascReady < 4)`, whose two disjuncts are opposite situations that
+		// the rotation permits for opposite reasons. No press changes side — 4 < 85, so the conditions
+		// cannot both hold — and the report gains the ability to say which one it is looking at.
+		const reason: ElementalMasteryPress['reason'] = isOpener(t)
 			? 'opener'
 			: ascReady <= 2 && fsRemaining <= FS_ASC_PREP_MS
 				? 'sync'
 				: t15Active && (ascActive || ascReady >= 90 || ascReady < 2)
 					? 't15'
-					: !t15Active && (ascReady >= 85 || ascReady < 4)
-						? 'off'
-						: null;
-		return { t, reason };
+					: !t15Active && ascReady < 4
+						? 'off-near'
+						: !t15Active && ascReady >= 85
+							? 'off-far'
+							: null;
+		return { t, reason, ascReadySec: ascReady };
 	});
 	/**
 	 * Every Fire Elemental **use**, which is not the same list as every cast event.

@@ -160,14 +160,48 @@ describe('the two cooldown states the complaint named', () => {
 		);
 	});
 
-	/** The permissive arm stays permissive: it is not a fault, and it still names the thing to do. */
-	it('keeps a press clear of Ascendance a suggestion rather than a fault', () => {
+	/**
+	 * The permissive arm, and it is now **two** arms because one label could not be honest.
+	 *
+	 * `off` was `!t15Active && (ascReady >= 85 || ascReady < 4)`: Ascendance a minute and a half away, or
+	 * Ascendance about to come up. Both are allowed and for opposite reasons, so a single sentence had to
+	 * be vague to stay true — the neutral wording this file shipped in `51acbc6` was the symptom rather
+	 * than the fix. Each arm now names the gap, off `ascReadySec`, which is the same number the branch
+	 * classified on and so cannot disagree with it.
+	 */
+	it('tells a press near Ascendance why it is fine, with the gap in the sentence', () => {
 		const html = render(ElementalMastery, {
 			...unbroken,
-			elementalMastery: { presses: [{ t: 60_000, reason: 'off' }], talented: true },
+			elementalMastery: { presses: [{ t: 60_000, reason: 'off-near', ascReadySec: 3 }], talented: true },
 		} as Analysis);
 		expect(html).toContain(
-			'Pressed on its own, with no Ascendance to pair it with — press the two together when you can',
+			'Pressed with Ascendance 3s out — it comes back inside the haste, so the two overlap anyway',
 		);
+	});
+
+	it('tells a press far from Ascendance the opposite reason, and neither reads as a fault', () => {
+		const html = render(ElementalMastery, {
+			...unbroken,
+			elementalMastery: { presses: [{ t: 60_000, reason: 'off-far', ascReadySec: 120 }], talented: true },
+		} as Analysis);
+		expect(html).toContain(
+			'Pressed with Ascendance 120s away — far too long to hold a ninety-second cooldown for, so spending it now is right',
+		);
+	});
+
+	/**
+	 * The stranded-key check `report.json` has no guard for. i18next renders a missing key as the key
+	 * itself, so a `state.off` left behind — or an arm whose copy was never written — shows up here as
+	 * literal dotted text in the table rather than as a blank nobody would notice. This caught the real
+	 * thing: the rename went red with `elementalMastery.state.off` printed in the cell.
+	 */
+	it('has copy for every Elemental Mastery arm, none falling through to its key', () => {
+		for (const reason of ['opener', 'sync', 't15', 'off-near', 'off-far'] as const) {
+			const html = render(ElementalMastery, {
+				...unbroken,
+				elementalMastery: { presses: [{ t: 60_000, reason, ascReadySec: 12 }], talented: true },
+			} as Analysis);
+			expect(html, reason).not.toContain(`elementalMastery.state.${reason}`);
+		}
 	});
 });

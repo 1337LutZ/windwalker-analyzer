@@ -41,8 +41,13 @@ export default function ElementalMastery({ analysis }: { analysis: Analysis }) {
 					key: `${press.t}-${i}`,
 					cells: {
 						at: formatClock(press.t),
+						// `ascReady` is passed on every row and read only by the two `off-*` sentences, which are
+						// the ones that need it: an interpolation an arm does not name is simply not printed,
+						// and branching the call per reason would be a second copy of the reason table.
 						state:
-							press.reason === null ? t('elementalMastery.state.plain') : t(`elementalMastery.state.${press.reason}`),
+							press.reason === null
+								? t('elementalMastery.state.plain')
+								: t(`elementalMastery.state.${press.reason}`, { ascReady: press.ascReadySec }),
 					},
 				})),
 		[elementalMastery.presses, t],

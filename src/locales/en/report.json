@@ -1457,7 +1457,8 @@
       "opener": "Pressed in the opener",
       "sync": "Pressed with Ascendance",
       "t15": "Pressed on a tier-15 four-piece proc",
-      "off": "Pressed on its own, with no Ascendance to pair it with — press the two together when you can",
+      "off-near": "Pressed with Ascendance {{ascReady, seconds}} out — it comes back inside the haste, so the two overlap anyway",
+      "off-far": "Pressed with Ascendance {{ascReady, seconds}} away — far too long to hold a ninety-second cooldown for, so spending it now is right",
       "plain": "Pressed with Ascendance on cooldown and not far enough out to spend on its own — hold the haste for Ascendance"
     },
     "caption": "Every Elemental Mastery press and whether it landed on Ascendance",

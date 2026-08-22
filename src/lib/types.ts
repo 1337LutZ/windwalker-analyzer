@@ -2494,8 +2494,28 @@ export interface AscendanceAudit {
 /** One Elemental Mastery press and the branch of the list's rule it hit. */
 export interface ElementalMasteryPress {
 	t: number;
-	/** The first branch this press satisfied, or null when none did — a press the list would not have made. */
-	reason: 'opener' | 'sync' | 't15' | 'off' | null;
+	/**
+	 * The first branch this press satisfied, or null when none did — a press the rotation would not have
+	 * made.
+	 *
+	 * **`off` used to be one name for two opposite situations**, and no honest sentence could be written
+	 * for it: the arm is `!t15Active && (ascReady >= 85 || ascReady < 4)`, which covers Ascendance being a
+	 * minute and a half away *and* Ascendance being about to come up. Both are fine and they are fine for
+	 * opposite reasons — one because a ninety-second cooldown should not be held that long for a
+	 * three-minute one, the other because Ascendance lands inside the haste anyway — so the copy for a
+	 * single label had to be vague to stay true. The two conditions are disjoint, so splitting the name
+	 * changes no press's classification; only what the report can say about it.
+	 */
+	reason: 'opener' | 'sync' | 't15' | 'off-near' | 'off-far' | null;
+	/**
+	 * How long until Ascendance was back, in seconds, at this press — 0 where it was already up.
+	 *
+	 * Published so the sentence can name the gap rather than gesture at it: "Ascendance {{n}}s away" is
+	 * what makes the `off-far` arm's reasoning legible to a reader who cannot see the cooldown. Read off
+	 * `ascendanceReadyInSec`, the same helper the branch above uses, so the number in the copy is the
+	 * number the classification was made on and cannot disagree with it.
+	 */
+	ascReadySec: number;
 }
 
 /** One Fire Elemental press and the branch of the list's rule it hit. */
