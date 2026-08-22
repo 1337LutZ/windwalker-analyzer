@@ -9,7 +9,7 @@
     "good": "You played this pull close to the spec's ceiling. The notes below are small refinements, not real mistakes.",
     "ok": "Some parts were solid and others lost damage. The sections marked below show where the damage went.",
     "bad": "Several core habits of the spec are missing here. The sections marked below are the best place to start.",
-    "none": "This pull was too short or too quiet to grade."
+    "none": "Too little of this pull could be measured to call it either way. The sections below show what could be read and what could not."
   },
   "snapshots": {
     "title": "Snapshots",
@@ -194,7 +194,9 @@
     "verdict_good": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Every press bought something.",
     "verdict_ok": "{{casts}} presses: {{onProc}} on a proc, {{applied}} applying Tiger Power, {{refresh}} refreshing it, {{wasted}} wasted — globals with nothing to show for them.",
     "verdict_bad": "{{casts}} presses and {{wasted}} of them bought nothing: only {{onProc}} spent a proc, {{applied}} put Tiger Power up and {{refresh}} refreshed it. This happened repeatedly, not just once.",
-    "verdict_none": "Tiger Palm was never pressed in this pull.",
+    "verdict_none": "Tiger Palm is your single-target filler, and only {{sample}} of your {{casts}} presses went out with one enemy up — too few to judge the habit on. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
+    "verdict_exempt": "This pull is being read as multi-target, and Tiger Palm is not your filler there — so its {{casts}} presses are drawn above but not judged. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
+    "unpressed": "Tiger Palm was never pressed in this pull.",
     "uptime": "Tiger Power held {{uptime, percent}} uptime.",
     "key": {
       "proc": "Combo Breaker",
@@ -1030,6 +1032,8 @@
   },
   "summary": {
     "title": "Summary",
+    "judged": "Judged on {{measured}} of {{total}} points.",
+    "judged_partial": "Judged on only {{measured}} of {{total}} points — too little of this pull to call.",
     "warning": {
       "runeMissing": {
         "title": "Rune of Re-Origination not detected",

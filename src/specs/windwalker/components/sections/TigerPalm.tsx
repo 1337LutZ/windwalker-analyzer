@@ -25,14 +25,27 @@ import { Note, Pill, Prose, Section, StatTile } from '~/components/primitives';
 export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 	const { filler, comboBreaker } = analysis;
 	const { t, card, verdict } = useReportCopy(analysis);
-	// Whether there is a verdict to print at all, which is now a different question from whether the
-	// button was pressed. Tiger Palm is a band-1 rule, so a pull read above one target — or one that made
-	// too few presses at one target to judge the habit on — has no verdict on it, and the presses it did
-	// make are still drawn above. `verdict_none` reads "Tiger Palm was never pressed in this pull", which
-	// was the only way to be unmeasurable when it was written and is a false sentence on those pulls, so
-	// the clause is dropped rather than printed wrong. It wants a key of its own — one that says the
-	// filler rule was not what this pull was doing — and the uptime clause beside it is true either way.
-	const graded = card.sections['tigerPalm']?.unmeasurable === false;
+	/**
+	 * How many presses the single-target habit could be read off, which the sentence below has to name.
+	 *
+	 * There are now three ways this section can have nothing to grade, and they need three sentences —
+	 * which is what `f832015` left owed. It dropped the clause rather than print "Tiger Palm was never
+	 * pressed in this pull" over twelve drawn presses, and a silence is better than a falsehood and worse
+	 * than the reason.
+	 *
+	 *   - No presses at all: the branch below, which keeps that sentence on its own key.
+	 *   - Too few presses made with one enemy up to tell a habit from chance: `verdict_none`, which names
+	 *     this number against the press count, so the sentence cannot disagree with the cards above it.
+	 *   - The pull being read as multi-target, where the single-target filler is not the question:
+	 *     `verdict_exempt`, chosen by `gradeOf` and deliberately *not* naming this number — `strong` read
+	 *     that way has twenty-six presses with one enemy up and still no grade, so "too few" would be a
+	 *     plain falsehood there.
+	 *
+	 * Read off the metric's own `sampleSize` rather than counted again here, for the reason the dropped
+	 * clause exists: a component that re-derives what the scorer already published is how the two got out
+	 * of step in the first place.
+	 */
+	const sample = card.sections['tigerPalm']?.metrics.find((m) => m.key === 'tigerPalmWaste')?.sampleSize;
 
 	const counts = {
 		casts: filler.casts,
@@ -40,6 +53,7 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 		applied: filler.applied,
 		refresh: filler.refresh,
 		wasted: filler.wasted,
+		sample,
 	};
 
 	// Written out rather than mapped from `reason`, because Tailwind only ships a class it can see
@@ -64,7 +78,7 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 
 			{filler.casts === 0 ? (
 				<div className="mt-5">
-					<Note>{t('tigerPalm.verdict', { context: 'none' })}</Note>
+					<Note>{t('tigerPalm.unpressed')}</Note>
 				</div>
 			) : (
 				<>
@@ -90,8 +104,12 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 					</div>
 
 					<div className="mt-5 flex flex-col gap-3.5">
+						{/* Always a sentence now, whichever of the four it is: three grades and the two ways to have
+						    none each have their own wording, so there is no reading of this pull the section goes
+						    quiet on. The uptime clause beside it is true either way and has never depended on the
+						    grade. */}
 						<Prose>
-							{graded ? `${verdict('tigerPalm', counts)} ` : ''}
+							{`${verdict('tigerPalm', counts)} `}
 							{t('tigerPalm.uptime', { uptime: filler.buffUptimePct })}
 						</Prose>
 						{comboBreaker.length > 0 ? (

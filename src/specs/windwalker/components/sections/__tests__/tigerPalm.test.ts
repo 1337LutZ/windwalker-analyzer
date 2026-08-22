@@ -12,8 +12,10 @@ import { describe, expect, it } from 'vitest';
 import i18n, { initI18n } from '~/lib/i18n/config';
 import type { Analysis } from '~/lib/types';
 
+import { ScoreViewContext } from '~/components/report/scoreViewContext';
 import { SpecContext } from '~/components/report/specContext';
 import { getSpec } from '~/lib/spec';
+import { resolveBands } from '~/lib/view/targetMode';
 
 import TigerPalm from '../TigerPalm';
 
@@ -33,7 +35,21 @@ const tUi = i18n.getFixedT('en', 'ui');
 const fx = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'));
 
-const render = (analysis: Analysis) => renderToStaticMarkup(asWindwalker(createElement(TigerPalm, { analysis })));
+/**
+ * The reading defaults to `auto`, which is what a reader gets until they touch the switch, and is
+ * resolved through `resolveBands` rather than assembled here — so the band set the section is graded at
+ * is the one the page would hand it.
+ */
+const render = (analysis: Analysis, choice: 'auto' | 'single' | 'multi' = 'auto') =>
+	renderToStaticMarkup(
+		asWindwalker(
+			createElement(
+				ScoreViewContext.Provider,
+				{ value: resolveBands(analysis.targets, choice) },
+				createElement(TigerPalm, { analysis }),
+			),
+		),
+	);
 
 /**
  * 30 wasted presses of 41. Every branch of the section is live on this pull, which is why it is the
@@ -117,25 +133,47 @@ describe('Tiger Palm summary cards', () => {
 	it('says nothing was pressed rather than drawing an empty chart', () => {
 		const empty: Analysis = { ...poor, filler: { ...poor.filler, casts: 0, castList: [] } };
 		const html = render(empty);
-		expect(html).toContain(t('tigerPalm.verdict', { context: 'none' }));
+		expect(html).toContain(t('tigerPalm.unpressed'));
 	});
 
 	/**
-	 * A pull the filler rule was not asked of must not be told it never pressed the button.
+	 * A pull the single-target habit could not be read off is told how many presses were readable.
 	 *
 	 * `cleave` presses Tiger Palm twelve times and exactly two of them with one enemy up, which is under
-	 * the sample floor — so the metric has no verdict, and `verdict_none` reads "Tiger Palm was never
-	 * pressed in this pull". That sentence was written when a zero press count was the only way to be
-	 * unmeasurable and is now false on every pull the band declaration reaches. The presses are still
-	 * drawn and the uptime clause beside it is still true; the verdict clause is dropped until there is a
-	 * key that says the filler rule was not what this pull was doing.
+	 * the sample floor — so there is no grade. It used to print "Tiger Palm was never pressed in this
+	 * pull" under four cards totalling twelve presses and a timeline of all twelve; `f832015` dropped that
+	 * clause, which stopped the falsehood and left a silence where the reason is owed. The numbers in the
+	 * sentence are the sample and the press count, so it cannot disagree with the cards above it.
 	 */
-	it('prints no verdict at all on a pull the filler rule was not asked of', () => {
-		const html = render(fx('cleave'));
-		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none' }));
-		// And it is the *verdict* that is missing, not the section: the twelve presses are still drawn and
-		// still counted, which is what makes the dropped sentence a silence rather than a hidden section.
+	it('says how few of the presses the single-target habit could be read off', () => {
+		const cleave = fx('cleave');
+		const html = render(cleave);
+		expect(cleave.filler.casts).toBe(12);
+		expect(html).toContain(t('tigerPalm.verdict', { context: 'none', sample: 2, casts: 12 }));
+		// The sentence this replaced, which stopped being true the moment a press count stopped being the
+		// only way to have no grade.
+		expect(html).not.toContain(t('tigerPalm.unpressed'));
+		// And it is a clause on the section rather than a replacement for it: the twelve presses are still
+		// drawn, still counted, and the uptime beside it is still true.
 		expect(html).toContain(t('tigerPalm.key.wasted'));
-		expect(html).toContain(t('tigerPalm.uptime', { uptime: fx('cleave').filler.buffUptimePct }));
+		expect(html).toContain(t('tigerPalm.uptime', { uptime: cleave.filler.buffUptimePct }));
+	});
+
+	/**
+	 * And a pull read as multi-target gets a different sentence, because "too few presses to tell" would
+	 * be a falsehood there.
+	 *
+	 * Tiger Palm is the one Windwalker rule only one target count's list contains, so a reader forcing the
+	 * multi-target reading has said this pull is not about the single-target filler at all. `strong` under
+	 * that reading has **26** in-band presses and still no grade — so the two ways to have no grade cannot
+	 * share a sentence.
+	 */
+	it('says the single-target habit is not the question when the pull is read as multi-target', () => {
+		const strong = fx('strong');
+		const html = render(strong, 'multi');
+		expect(html).toContain(t('tigerPalm.verdict', { context: 'exempt', casts: strong.filler.casts }));
+		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none', sample: 26, casts: 33 }));
+		// Not a raw key, which is what a context arm with no copy behind it renders as.
+		expect(html).not.toContain('tigerPalm.verdict');
 	});
 });

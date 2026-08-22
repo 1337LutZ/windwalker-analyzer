@@ -25,6 +25,20 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 	// The analysis already carries the mode's name as the zone gave it, so the header needs no table
 	// and no second query — just the one entry, keyed by the id it belongs to.
 	const difficultyNames = analysis.difficultyName === null ? {} : { [analysis.difficulty]: analysis.difficultyName };
+	// How much of what the spec asks for the letter above was actually taken over. Absent on a scorecard
+	// captured before the field existed and on any spec that has not adopted it, and an absent
+	// denominator prints nothing rather than a guessed one.
+	const judged = card.judged;
+	/**
+	 * Whether the report has a reading of the pull at all.
+	 *
+	 * `overallOf` parks the grade at `ok` when too little of the weight survived to make the letter a
+	 * claim, which is the right thing for the arithmetic to do and the wrong thing to print: "some parts
+	 * were solid and others lost damage" is a confident sentence about a pull the report could barely
+	 * read. So the flag beside the grade decides the wording, and the rule loses its colour with it —
+	 * amber down the side of a refusal reads as a middling verdict, which is the claim being withdrawn.
+	 */
+	const cannotSay = judged?.unmeasurable === true;
 
 	return (
 		<header>
@@ -43,12 +57,29 @@ export default function ReportHeader({ analysis }: { analysis: Analysis }) {
 			</h1>
 			{/* The only line that answers "how did this pull go", so it is set as a verdict rather than as
 			    a caption: brightest ink, above body size, and a rule in the grade's own colour. Everything
-			    below it is detail that this sentence has already framed. */}
-			<p
-				className={`mt-4 mb-0 max-w-[56ch] border-l-2 pl-4 text-lg leading-snug font-semibold text-balance text-ink sm:text-xl ${gradeClass('border', card.overall)}`}
-			>
-				{t(`overall.${card.overall}`)}
-			</p>
+			    below it is detail that this sentence has already framed.
+
+			    The denominator goes inside the same rule rather than somewhere below it, because the two
+			    lines are one claim — a grade, and how much of the pull it was drawn over. A reader who gets
+			    no further than the top of the report has to be able to tell a `good` over ten thirteenths of
+			    the weight from a `good` over all of it, and anywhere else on the page is a place to hunt. */}
+			<div className={`mt-4 max-w-[56ch] border-l-2 pl-4 ${gradeClass('border', cannotSay ? null : card.overall)}`}>
+				<p className="m-0 text-lg leading-snug font-semibold text-balance text-ink sm:text-xl">
+					{cannotSay ? t('overall.none') : t(`overall.${card.overall}`)}
+				</p>
+				{/* Printed on every pull, including the ones judged in full. A line that appeared only when the
+				    reckoning was short would be indistinguishable from a line that was never built, and "judged
+				    on all of it" is only readable as reassurance if it is said. */}
+				{judged === undefined ? null : (
+					<p className="mt-2 mb-0 font-mono text-sm leading-snug text-muted">
+						{t('summary.judged', {
+							context: judged.unmeasurable ? 'partial' : undefined,
+							measured: judged.measured,
+							total: judged.total,
+						})}
+					</p>
+				)}
+			</div>
 		</header>
 	);
 }

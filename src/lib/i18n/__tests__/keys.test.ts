@@ -102,11 +102,23 @@ type Namespace = 'report' | 'ui' | 'both';
  * Searching both namespaces passes a key that exists in the wrong one — which is exactly how the
  * section nav shipped rendering the literal text `nav.label` at readers while this test stayed
  * green. `useReportCopy` is a wrapper around the `report` namespace.
+ *
+ * **A file can read both, and then the question is which of the two owns the bare name.** `literalKeys`
+ * only ever captures `t(`, so a file that renames the shell translator out of the way — `ReportHeader`
+ * destructures it as `tUi` for exactly that reason — has report keys under `t(` and nothing of the
+ * `ui` namespace to check. Answering `'ui'` on the strength of the hook call alone reported two live
+ * `report` keys as missing; answering `'both'` would have passed them for the wrong reason, which is
+ * the failure this function's first paragraph is about. So the alias decides, and every file that reads
+ * one namespace is answered exactly as before.
  */
+const UI_HOOK = /useTranslation\(\s*'ui'\s*\)/;
+/** `const { t: tUi } = useTranslation('ui')` — renamed, so a bare `t(` in this file is not the shell's. */
+const UI_RENAMED = /\bt:\s*\w+\s*\}\s*=\s*useTranslation\(\s*'ui'\s*\)/;
+
 function namespaceOf(source: string): Namespace {
-	if (/useTranslation\(\s*'ui'\s*\)/.test(source)) return 'ui';
+	if (UI_HOOK.test(source) && !UI_RENAMED.test(source)) return 'ui';
 	if (/useTranslation\(\s*'report'\s*\)/.test(source) || /useReportCopy/.test(source)) return 'report';
-	return 'both';
+	return UI_HOOK.test(source) ? 'ui' : 'both';
 }
 
 describe('translation keys', () => {

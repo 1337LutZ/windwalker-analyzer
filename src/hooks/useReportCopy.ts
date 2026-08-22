@@ -16,14 +16,28 @@ import type { Analysis } from '~/lib/types';
 import { useSpec } from '~/components/report/specContext';
 import { ScoreViewContext } from '~/components/report/scoreViewContext';
 
-/** `none` is not a grade — it means the pull could not answer the question at all. */
-export type CopyGrade = Grade | 'none';
+/**
+ * Neither of the last two is a grade, and they are not each other either.
+ *
+ * `none` means the pull could not answer the question — the log is silent, or there was too little of
+ * it to read. `exempt` means the question was never asked: every rule the section is made of belongs
+ * to target counts this pull is not being read at, so there is nothing here that went ungraded. An add
+ * wave has not failed to keep a single-target filler honest, and a reader who is shown "cannot say"
+ * for that is being told the report tried and could not, which is not what happened.
+ *
+ * Both sit beside the three grades rather than among them, for the reason `Grade`'s own note gives:
+ * neither is worse than `bad` nor better than `good`, so neither belongs on the scale.
+ */
+export type CopyGrade = Grade | 'none' | 'exempt';
 
 export interface ReportCopy {
 	/** Raw translator, for keys that are not verdicts (titles, intents, captions). */
 	t: ReturnType<typeof useTranslation>['t'];
 	card: Scorecard;
-	/** This section's grade, or `none` when nothing in it could be measured. */
+	/**
+	 * This section's grade, or one of the two non-grades: `none` when nothing in it could be measured,
+	 * `exempt` when nothing in it was asked of this pull. See `CopyGrade`.
+	 */
 	gradeOf: (section: string) => CopyGrade;
 	/**
 	 * The grade behind one *metric*, by its key, or null where there is none to show.
@@ -46,6 +60,11 @@ export interface ReportCopy {
 	 * Values are interpolated, so a verdict can name the numbers that produced it. Pass `count` when
 	 * the sentence needs plural agreement — i18next resolves context and plural together, which is
 	 * why the keys are `verdict_good_one` / `verdict_good_other` where both matter.
+	 *
+	 * Five arms rather than four: `verdict_exempt` is the sentence for a pull the section's rules were
+	 * never a claim about, and it is a different sentence from `verdict_none` rather than a politer one.
+	 * "We could not tell" and "this did not apply to you" are not the same admission, and only one of
+	 * them is a hedge about the log.
 	 */
 	verdict: (section: string, values?: Record<string, unknown>) => string;
 }
@@ -104,8 +123,16 @@ export function useReportCopy(analysis: Analysis): ReportCopy {
 	const gradeOf = useCallback(
 		(section: string): CopyGrade => {
 			const score = card.sections[section];
-			if (score === undefined || score.unmeasurable) return 'none';
-			return score.grade;
+			if (score === undefined) return 'none';
+			if (!score.unmeasurable) return score.grade;
+			// Not measurable, and not *asked*: every metric in the section is outside its own target-count
+			// scope on this reading, so the section has no grade because this is not the pull those rules
+			// were ever a claim about. `every` rather than `some` — a section holding one exempt metric
+			// beside one the log simply could not answer has not been excused, and saying so would
+			// overclaim in the one direction this whole mechanism exists to avoid.
+			// `length > 0` because `[].every()` is true: a section with no metrics at all has not been
+			// excused from anything, and there is nothing to read an exemption off.
+			return score.metrics.length > 0 && score.metrics.every((metric) => metric.exempt === true) ? 'exempt' : 'none';
 		},
 		[card],
 	);
@@ -122,8 +149,16 @@ export function useReportCopy(analysis: Analysis): ReportCopy {
 	);
 
 	const verdict = useCallback(
-		(section: string, values: Record<string, unknown> = {}) =>
-			t(`${section}.verdict`, { context: gradeOf(section), ...values }),
+		(section: string, values: Record<string, unknown> = {}) => {
+			const grade = gradeOf(section);
+			// An exempt section falls back to its plain "cannot say" wording where it has none of its own,
+			// because i18next resolves a missing context to the bare `<section>.verdict` — which no section
+			// has — and renders the key itself at the reader. Only `tigerPalm` declares bands today, so every
+			// other section would print `flameShock.verdict` the day one of its rules gains a scope. A key
+			// list is i18next's own fallback and keeps the context mechanism for the four that use it.
+			if (grade === 'exempt') return t([`${section}.verdict_exempt`, `${section}.verdict_none`], values);
+			return t(`${section}.verdict`, { context: grade, ...values });
+		},
 		[t, gradeOf],
 	);
 
