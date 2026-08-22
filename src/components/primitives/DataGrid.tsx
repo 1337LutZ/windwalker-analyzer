@@ -97,7 +97,20 @@ export default function DataGrid({
 										<span className="text-sm text-ink-2">{row.cells[column.key]}</span>
 									</div>
 								) : (
-									<div key={column.key} className="flex items-baseline justify-between gap-2 border-t border-line pt-2">
+									// Below 360px the value drops under its label instead of out of the card. Both spans shrink
+									// only as far as their own longest word, so the 125px cell a two-column card gives at 320px
+									// could not hold "Unholy Aura, Swiftblade's Cunning" — it pushed 10px past the card's edge,
+									// over the border and into the page gutter. Wrapping is the shape `card: 'wide'` already
+									// uses for values known to be long.
+									//
+									// Bounded at 360 rather than left unconditional on purpose: an unconditional `flex-wrap`
+									// breaks on the *max*-content of the value, not on what actually fits, so it stacked 22-58
+									// pairs per fixture at 390px — a redesign of every folded card, to fix a 320px overhang.
+									// Measured at 360, 375, 390, 768 and 1440: zero pairs change.
+									<div
+										key={column.key}
+										className="flex items-baseline justify-between gap-2 border-t border-line pt-2 max-[360px]:flex-wrap"
+									>
 										<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-muted">
 											{column.label}
 										</span>

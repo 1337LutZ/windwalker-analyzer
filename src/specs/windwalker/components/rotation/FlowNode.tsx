@@ -171,7 +171,12 @@ export default function FlowNode({
 							aria-expanded={open}
 							aria-controls={panelId}
 							onClick={onToggle}
-							className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 py-2.5 text-left"
+							// `flex-wrap` so the **details** affordance drops below the name rather than widening the box
+							// past its column. The name stack's floor is its widest gate chip — "Rune of Re-Origination
+							// equipped" — and with the affordance beside it that floor was 3px more than the `1fr` rung
+							// track has at 320px, which made the whole section scroll sideways. Wrapping changes nothing at
+							// any width where the two already fit on one line.
+							className="flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-2.5 py-2.5 text-left"
 						>
 							<span className="flex min-w-0 flex-1 flex-col gap-1">
 								<span className="font-mono text-base font-semibold text-ink">

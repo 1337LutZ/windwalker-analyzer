@@ -110,12 +110,35 @@ spacing carry it too, and they do not cost legibility.
 
 ## Layout
 
-Mobile first, and genuinely: check ~390px, ~768px and ~1440px before calling anything done.
+Mobile first, and genuinely: check **320px, 360px, 390px, 768px and 1440px** before calling anything
+done.
+
+The floor used to be 390px and that was the wrong number. A sweep of every section of every fixture at
+exactly 390 came back clean, and 15px narrower an enchant's name was being _destroyed_ — 7px of it at
+375, 22px at 360, 62px at 320, cut off inside an `overflow-hidden` grid with no scrollbar and nothing to
+say it had gone. 390 was not a safe floor with margin under it; it was the exact width at which the
+layout stopped being broken. 375 is an iPhone SE and a 12/13 mini, 360 is the commonest Android width
+there is, and any 390 device is a 375 device the moment a classic scrollbar or a larger text setting
+takes its 15px. So 360 is the narrowest width the design is _composed_ for, and **320 is a hard floor:
+below 360 a layout may fold further than it does at 390, but at 320 nothing may clip, overlap or
+scroll.** 320 is an SE 1st gen, a split-view pane, and a 390 phone at 120% text zoom.
 
 **Headless screenshots lie about narrow viewports.** `chrome --headless --window-size=390,844` renders
 at a wider layout viewport and clips the image, which is visually indistinguishable from horizontal
-overflow — it will send you hunting for a bug that is not there. Measure instead: load the app in a
-390px-wide iframe from a same-origin page and read `scrollWidth` against `clientWidth` from inside it.
+overflow — it will send you hunting for a bug that is not there. Measure instead: load the app in an
+iframe of the target width from a same-origin page, so the layout viewport genuinely is that width, and
+read the geometry from inside it.
+
+**Read it per element, not per section.** `scrollWidth` against `clientWidth` is nearly blind to the
+defect that actually matters. A section whose card grid is `overflow-hidden` reported `clientW === 343
+=== scrollW` while a child inside it stuck 6px out and 7px of an enchant's name was being cut off: the
+ancestor swallowed the overflow, so the page did not scroll and the section did not measure wide. **A
+silent clip is worse than a visible overflow** — the reader cannot tell truncation-by-design from
+content a layout bug destroyed. So walk every element, compare its bounding rect against its container's,
+and separately flag every `overflow-x: hidden|clip` box whose `scrollWidth` exceeds its `clientWidth`.
+Skip subtrees under an `overflow-x: auto|scroll` ancestor — a wide table or timeline is _supposed_ to
+scroll inside its own container — and do not flag a box that is `text-overflow: ellipsis` +
+`white-space: nowrap`, because `truncate` hiding text is the point of `truncate`.
 
 Point it at **`/preview`**, not at the landing page: that is the only route that renders a real report
 without a WarcraftLogs token, and it now carries both specs — four stored Windwalker analyses and three
@@ -137,7 +160,17 @@ builds, `/<repo>/` on a GitHub Pages one.)
 
 Drop it in `public/`, screenshot it at a comfortable desktop size, read the numbers, then delete it.
 The same page can list every element wider than the viewport, which names the offender instead of
-leaving you to guess.
+leaving you to guess. Two details are load-bearing: pass `--hide-scrollbars`, or Chrome's classic
+scrollbar makes a 390px iframe measure 375 and you will chase the wrong width; and **prove the
+instrument before trusting a clean result** — append a 600px box and a 100px `overflow-x: hidden` box
+holding a 400px child, confirm the sweep catches both, then remove them. A sweep that reports "nothing
+overflows" because it silently measured nothing is the failure mode here.
+
+When a narrow width needs a layout to fold further than 390 does, bound the change to that width rather
+than restyling the common ones: an unconditional `flex-wrap` on a label/value pair breaks on the value's
+_max_-content rather than on what fits, which restyled 22–58 folded card rows per fixture at 390 to fix
+a 320px overhang. `max-[360px]:flex-wrap` fixes the same overhang and is provably identical at 360, 375,
+390, 768 and 1440.
 
 Dense tables must reflow into stacked cards or drop non-essential columns on a narrow viewport.
 Horizontal page scroll is a bug. Tap targets are at least 44px.

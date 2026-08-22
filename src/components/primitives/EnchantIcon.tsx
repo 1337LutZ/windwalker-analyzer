@@ -26,7 +26,13 @@ export default function EnchantIcon({ id }: { id: number }) {
 			target="_blank"
 			rel="noreferrer noopener"
 			aria-label={enchant.name}
-			className="inline-flex items-center gap-1.5 rounded-sm text-muted transition-colors hover:text-ink-2"
+			// `max-w-full` and the `min-w-0` below are one fix, and it is the flexbox minimum-size trap:
+			// an `inline-flex` box is sized to `max-content`, and a flex item defaults to
+			// `min-width: auto`, so *neither* box could shrink and `truncate` had nothing to truncate.
+			// The name then ran past the slot's `min-w-0` column and out of the grid, which is
+			// `overflow-hidden` — so below 390px the tail of an enchant's name was not ellipsised, it was
+			// silently cut off: 62px of it at 320px, with no scrollbar and nothing to say it had gone.
+			className="inline-flex max-w-full items-center gap-1.5 rounded-sm text-muted transition-colors hover:text-ink-2"
 		>
 			<img
 				src={enchantIconUrl(enchant.icon)}
@@ -41,7 +47,7 @@ export default function EnchantIcon({ id }: { id: number }) {
 			{/* The name is trimmed of its category, which the slot beside it already says: every chest
 			    enchant is called "Enchant Chest — …" and repeating that costs the width the actual name
 			    needs. */}
-			<span className="truncate font-mono text-xs">{enchant.name.replace(/^Enchant [A-Za-z ]+ - /, '')}</span>
+			<span className="min-w-0 truncate font-mono text-xs">{enchant.name.replace(/^Enchant [A-Za-z ]+ - /, '')}</span>
 		</a>
 	);
 }
