@@ -338,6 +338,38 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const t0 = fight.startTime;
 	const duration = fight.endTime - fight.startTime;
 	const entry = table.damageDone.entries.find((x) => x.name === actor.name);
+	/**
+	 * WarcraftLogs' own `activeTime` for this player, off the damage table — **not a clock this engine
+	 * builds**, and the last figure in the report that can be checked against the WCL site.
+	 *
+	 * What it actually measures, established on the four raw fixtures rather than assumed. It is a
+	 * *presence* span, not an occupancy one: on `cleave` and the Windwalker's `ironJuggernaut` it equals
+	 * the span from the player's first damage event to their last **to the millisecond** (261 572ms and
+	 * 189 735ms), across gaps of up to 3 985ms in which nothing of theirs landed, and it counts the DoT
+	 * ticks and the pet damage this engine's contact clock rejects. So it answers "did the log see
+	 * something of yours land inside this window", which is close to "were they in the fight" and a long
+	 * way from "were they pressing something". On `phased` — the only committed fixture with real downtime
+	 * — it keeps 32 689ms that `inContactMs` drops: the submerge from 142.3s to 192.5s the player spent
+	 * healing, 370 heal events between 145 219ms and 245 954ms.
+	 *
+	 * Four readers, and the clock each one should be on is argued where it is assembled (`cpm`, below).
+	 *
+	 * **The fallback is loud, following `uptimePct`'s precedent in `auras.ts`.** A player with no row in
+	 * the damage table — a healer, or someone who died before landing a hit; `resolvePlayer` will hand
+	 * either of them over, since the only gate is `friendlyPlayers` — silently moved all four readers
+	 * onto the pull length, and `activePct` printed exactly 100.00% for the one player it can say nothing
+	 * at all about. That reads as a flawless pull rather than as a missing row. Measured on `cleave` with
+	 * the actor renamed: `activePct` 99.37 → 100.00 and `totalCpm` 46.79 → 46.50. A warning rather than a
+	 * throw for the reason `uptimePct` gives — a report is a read-only view of a log and the rest of the
+	 * page is unaffected — and it names both spans, so the substitution is visible rather than inferred.
+	 */
+	if (entry === undefined && import.meta.env.DEV) {
+		console.warn(
+			`[analyseCore] no damage-table row for ${actor.name}: WarcraftLogs' activeTime is unavailable, so the ` +
+				`${duration}ms pull length is standing in for it. activePct will read 100%, and totalCpm, gcdSlots ` +
+				`and every per-ability rate are per pull minute rather than per active minute.`,
+		);
+	}
 	const activeMs = entry?.activeTime ?? duration;
 
 	const tableNames: Record<number, string> = {};
@@ -1180,12 +1212,69 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			dps: duration > 0 ? (entry?.total ?? eventTotal) / (duration / 1000) : 0,
 			abilities,
 		},
+		// ------------------------------------------------ the two clocks, one field at a time
+		//
+		// `gcdUtilisationPct` is measured against `inContactMs`, this engine's own clock, and the four
+		// fields here are measured against WarcraftLogs' `activeTime`. **Which of the two each figure
+		// belongs on is decided per field below rather than left to be discovered**, because the failure
+		// mode of the move that put the GCD figure on contact is half the report following it and nobody
+		// being able to say which half. Audited across all four raw fixtures; every reason is a
+		// measurement.
 		cpm: {
+			// **Should be per contact minute, and cannot move in isolation.** This is the two-clock shape
+			// the GCD figure had — our own count of presses over WarcraftLogs' estimate of how busy the
+			// player was — and it is wrong in the same direction: on `phased` it reads 39.88 where the
+			// player's own clock says 46.18, understating the rate by 6.30 cpm because it charges the
+			// 32.7s submerge as time they could have been casting. It is not urgent, because a rate has
+			// no 100% to cross and so cannot print a value that is not a value.
+			//
+			// Blocked on copy this change does not own: `report.json`'s `casts.presses` prints `activeMs`
+			// as the span the cast count was taken over, `casts.verdict_*` prints this rate in the same
+			// breath as the GCD share, and `CastsPerMinute.tsx` converts the per-ability rates back
+			// through the same clock to print a cast count. Moving the number without those three says
+			// "46.18 casts per minute over 261 572ms of a 263 233ms pull", which is arithmetically false.
 			totalCpm: activeMs > 0 ? onGcdCasts / (activeMs / 60000) : 0,
 			onGcdCasts,
 			offGcdCasts,
+			// **Stays, because the clock very nearly cancels out of its only printed reader.** Two readers:
+			// `PaceTiles.tsx` divides this by `activeMs / 60_000` — so the `activeMs` cancels and what
+			// survives is ≈`60_000 / effectiveGcd` plus the floor — and each spec's `score.ts` gates the
+			// GCD metric on `> 0`. Measured: rebuilding it from `inContactMs` gives 182/232/174/188 slots
+			// against today's 211/232/176/189, which moves the printed target rate by less than 0.4 cpm
+			// (52.92→52.85, 53.22→53.22, 57.62→57.36, 59.77→59.45). A moved number on both specs to buy
+			// four hundredths of a cast per minute is not worth it, and the gate is true on both clocks
+			// wherever it is true on either.
+			//
+			// What *was* wrong here was the reason written at that call site, which claimed this figure
+			// prices a hard cast at more than one global. It does not — `effectiveGcd` is the median gap
+			// measured **after an instant press only**, deliberately excluding cast time — and the claim
+			// is corrected in `PaceTiles.tsx` rather than papered over here.
 			gcdSlots: Math.floor(activeMs / effectiveGcd),
 			activeMs,
+			// **Stays on the pull length, and this is the one figure that should.**
+			//
+			// It looks like the pairing `gcdUtilisationPct` had and it is not one. Both halves are
+			// WarcraftLogs', for the same fight: `duration` is `fight.endTime - fight.startTime` off
+			// `reportFights`, and `activeTime` comes off `table(dataType: DamageDone, fightIDs: [id])` —
+			// the same fight window, measured by the same party. The numerator is that party's measure of
+			// a sub-span of the denominator's own span, which is exactly the arithmetic relationship
+			// `productiveMs / activeTime` lacked. And nothing in this engine can push either half: the
+			// headroom §44 watched being spent was being spent because *we* were growing the numerator by
+			// pricing more abilities, and here we compute neither number.
+			//
+			// **Moving it to `inContactMs` — the obvious repair — is measurably the defect, not the fix.**
+			// `activeMs / inContactMs` reads 115.83% on `phased`, 100.83% on `unbroken` and 100.06% on the
+			// Windwalker: three of the four raw fixtures over 100, which is the reading `fe3d7ad` removed.
+			// Contact is *narrower* than WarcraftLogs' clock, so it cannot be the denominator of a
+			// numerator that WarcraftLogs measured.
+			//
+			// So it stays, and it stays for the reason §2 gave for keeping `activeMs` published at all:
+			// the gap between the two clocks is itself the signal. On `phased` this prints 92.62% where
+			// contact says 79.97% — 12.65 points, one pull in four, and the pull where a reader most needs
+			// to know the difference. Deleting the comparison would delete the evidence. What is genuinely
+			// wrong is the sentence drawn from it: `report.json`'s `casts.activeTime` says "You were active
+			// for X% of the pull", and on the measurement above this number cannot support "active".
+			// Headroom to 100, for anyone watching it: 7.38 / 0.63 / 0.63 / 0.30 points.
 			activePct: duration > 0 ? (activeMs / duration) * 100 : 0,
 			// The audit's two fields are merged in below, once it has run; the price it sets for
 			// wasted globals has to be the merged figure, not a guess made before it.

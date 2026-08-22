@@ -219,7 +219,16 @@ export function gapStats(times: readonly number[]): {
 }
 
 export interface CastTableOptions {
-	/** WarcraftLogs' active time for the player: CPM against it is the fair read. */
+	/**
+	 * WarcraftLogs' active time for the player: CPM against it is the fair read.
+	 *
+	 * **Not an independent choice of clock — it has to be whichever one `cpm.totalCpm` uses.** These rows
+	 * are the same count of presses cut per ability, and two things join the two figures at the hip: the
+	 * suite asserts Σ of the on-GCD rows' `cpm` equals `totalCpm` (two code paths, so it fails the moment
+	 * one side moves alone), and `CastsPerMinute.tsx` multiplies a row's rate back by this same span to
+	 * print a cast count. So when `totalCpm` moves onto the contact clock — argued at its own line in
+	 * `analyseCore` — this moves in the same change, and never before it.
+	 */
 	activeMs: number;
 	/** Names for ids the registry does not model, usually taken from the damage table. */
 	nameOf(id: number): string;

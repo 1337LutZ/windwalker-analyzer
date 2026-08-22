@@ -20,7 +20,7 @@
 // All fixtures are raw `FightDataset`s from anonymous (`a:`) reports, so `analyse` really runs.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GCD_MIN_MS } from '~/lib/analysis/analyseCore';
 import { isDamage } from '~/lib/events';
@@ -240,5 +240,155 @@ describe('the readers that stay on WarcraftLogs active time', () => {
 			const summed = a.casts.filter((row) => row.onGcd).reduce((sum, row) => sum + row.cpm, 0);
 			expect(pct(summed)).toBe(pct(a.cpm.totalCpm));
 		}
+	});
+});
+
+/**
+ * `activePct`, and why it is the one figure that should stay on WarcraftLogs' clock.
+ *
+ * §44 left it as the last open box, on the reading that `activeMs / duration` is the same pairing of two
+ * independently estimated clocks that `productiveMs / activeMs` was. Measured, it is not, and the repair
+ * that reading implies would put three of these four fixtures over 100%.
+ *
+ * The two halves share an origin and a scale. `duration` is `fight.endTime - fight.startTime` off
+ * `reportFights`; `activeTime` comes off `table(dataType: DamageDone, fightIDs: [$fightID])`, the same
+ * fight window measured by the same party. The numerator is WarcraftLogs' measure of a sub-span of the
+ * denominator's own span — the arithmetic relationship the GCD figure lacked — and this engine computes
+ * neither half, so no amount of pricing more abilities can push it the way it was pushing the other one.
+ *
+ * What is left wrong is the sentence, not the sum, and the sentence is in `report.json`.
+ */
+describe('activePct stays on the pull length, and the obvious repair is the defect', () => {
+	const raw = {
+		phased: load(EL('phased')),
+		cleave: load(EL('cleave')),
+		unbroken: load(EL('unbroken')),
+		iron: load(WW),
+	};
+	const analysed = {
+		phased: analyseElemental(raw.phased),
+		cleave: analyseElemental(raw.cleave),
+		unbroken: analyseElemental(raw.unbroken),
+		iron: analyseWindwalker(raw.iron),
+	};
+
+	/**
+	 * The measurement the whole decision rests on: contact is *narrower* than WarcraftLogs' clock, so it
+	 * cannot be the denominator of a numerator WarcraftLogs measured.
+	 *
+	 * This is the guard that goes red if someone repairs `activePct` the way §44's box reads, and it is
+	 * deliberately expressed as the percentage that repair would print rather than as an inequality
+	 * between the two millisecond figures — an inequality would still pass at 100.0001%.
+	 */
+	it('would print over 100% on three of four fixtures if the denominator moved to contact', () => {
+		const against = (a: Analysis): number => pct((a.cpm.activeMs / contactMs(a)) * 100);
+		expect(against(analysed.phased)).toBe(115.83);
+		expect(against(analysed.unbroken)).toBe(100.83);
+		expect(against(analysed.iron)).toBe(100.06);
+		// The one pull where the two clocks agree to the millisecond, so it alone would survive the move.
+		expect(against(analysed.cleave)).toBe(100);
+		// Tied to the published field, so the counterfactual above is a guard rather than a note: this is
+		// the line that falls if the denominator is ever moved onto that clock.
+		for (const a of Object.values(analysed)) expect(a.cpm.activePct).toBeLessThanOrEqual(100);
+	});
+
+	/**
+	 * What `activeTime` actually is, measured rather than taken from its name.
+	 *
+	 * On two of the four fixtures it equals the span from the player's first damage event to their last
+	 * **to the millisecond**, and the span is built here from the raw event stream rather than from
+	 * anything the analysis publishes, so the two sides of the assertion have no shared derivation. That
+	 * makes it a presence clock: it does not shrink for a player who has stopped pressing things, as long
+	 * as a DoT tick or a pet swing keeps landing. `unbroken` is 438ms wider than its own damage span,
+	 * which is the residue of whatever WarcraftLogs pads the ends with, and is the reason this is pinned
+	 * as a measurement rather than asserted as a formula.
+	 */
+	it('is the span the log saw something of the player land in, not the time they were pressing', () => {
+		const damageSpan = (ds: FightDataset): number => {
+			const t = ds.events
+				.filter((e) => e.sourceID === ds.actor.id && isDamage(e))
+				.map((e) => e.timestamp - ds.fight.startTime);
+			return Math.max(...t) - Math.min(...t);
+		};
+		expect(damageSpan(raw.cleave)).toBe(analysed.cleave.cpm.activeMs);
+		expect(damageSpan(raw.iron)).toBe(analysed.iron.cpm.activeMs);
+		expect(analysed.unbroken.cpm.activeMs - damageSpan(raw.unbroken)).toBe(438);
+		// And on the pull with real downtime it keeps 32 689ms the contact clock rejects — the submerge
+		// the player spent healing. So "active" here includes a stretch with no modelled press in it.
+		expect(analysed.phased.cpm.activeMs - damageSpan(raw.phased)).toBe(-17_591);
+		expect(analysed.phased.cpm.activeMs - contactMs(analysed.phased)).toBe(32_689);
+	});
+
+	/**
+	 * The headroom, per fixture, the way §44 asked for it — and the reading that matters beside it.
+	 *
+	 * 7.38 points on `phased` and under a point on the other three, which sounds like the same thin
+	 * margin the GCD figure was living on. It is not the same situation: that one was thin *and*
+	 * shrinking, because this engine owned its numerator. This one has no moving part on our side.
+	 *
+	 * The second half of each pair is the point of keeping both clocks published. On `phased` the
+	 * sentence drawn from `activePct` credits the player with 92.62% of the pull while their own rotation
+	 * clock says 79.97% — 12.65 points, on the one fixture in four where a reader needs the difference.
+	 */
+	it('pins the headroom to 100 and the gap to our own clock', () => {
+		const rows = [
+			['phased', 92.62, 79.97],
+			['cleave', 99.37, 99.37],
+			['unbroken', 99.37, 98.55],
+			['iron', 99.7, 99.64],
+		] as const;
+		for (const [key, wcl, ours] of rows) {
+			const a = analysed[key];
+			expect(pct(a.cpm.activePct)).toBe(wcl);
+			expect(pct((contactMs(a) / a.durationMs) * 100)).toBe(ours);
+		}
+		expect(rows.map(([key]) => analysed[key].durationMs - analysed[key].cpm.activeMs)).toEqual([
+			19_058, 1_661, 1_163, 574,
+		]);
+	});
+
+	/**
+	 * The only route by which `activePct` reaches 100, and it is not a perfect pull.
+	 *
+	 * A player with no row in the damage table falls through to the pull length, which used to happen in
+	 * silence: `activePct` printed exactly 100.00% for the one player it can say nothing about, and
+	 * `totalCpm`, `gcdSlots` and every per-ability rate quietly became per *pull* minute. Reachable —
+	 * `resolvePlayer` gates only on `friendlyPlayers`, so a healer or someone who died before landing a
+	 * hit gets here. Reproduced by renaming the actor, which is the whole of what the lookup keys on.
+	 */
+	it('warns instead of silently substituting the pull length for a missing damage row', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const orphan = analyseElemental({ ...raw.cleave, actor: { ...raw.cleave.actor, name: 'Notinthetable' } });
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('no damage-table row for Notinthetable'));
+		// Both spans named, which is the `uptimePct` precedent: the substitution is visible, not inferred.
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('263233ms pull length'));
+		warn.mockRestore();
+		expect(pct(orphan.cpm.activePct)).toBe(100);
+		expect(pct(orphan.cpm.totalCpm)).toBe(46.5);
+		// The real reading, for contrast — same pull, same presses, one name.
+		expect(pct(analysed.cleave.cpm.activePct)).toBe(99.37);
+		expect(pct(analysed.cleave.cpm.totalCpm)).toBe(46.79);
+	});
+
+	/**
+	 * The CPM tile against the GCD tile, which `PaceTiles` claimed were the same ratio.
+	 *
+	 * They are not, and the gap is the §2 failure mode made concrete: since the GCD figure moved to the
+	 * contact clock, the two tiles sit on different clocks *and* on different notions of a global, while
+	 * carrying the same grade. All four assertions are **no-change guards** on the numbers now written in
+	 * `PaceTiles.tsx` — nothing here should move, and if someone makes the tiles agree, this is where the
+	 * comment gets found and corrected rather than left lying.
+	 */
+	it('measures how far the CPM tile is from the GCD tile it was said to match', () => {
+		const tileRatio = (a: Analysis): number => {
+			const targetCpm = a.cpm.gcdSlots / (a.cpm.activeMs / 60_000);
+			return pct((a.cpm.totalCpm / targetCpm) * 100);
+		};
+		expect([tileRatio(analysed.phased), pct(analysed.phased.cpm.gcdUtilisationPct)]).toEqual([75.36, 94.08]);
+		expect([tileRatio(analysed.unbroken), pct(analysed.unbroken.cpm.gcdUtilisationPct)]).toEqual([80.68, 91.94]);
+		// The two that do agree, and the reason: an all-instant bar with nothing wasted is the case where
+		// counting presses and counting milliseconds give the same answer.
+		expect([tileRatio(analysed.iron), pct(analysed.iron.cpm.gcdUtilisationPct)]).toEqual([88.36, 88.55]);
+		expect([tileRatio(analysed.cleave), pct(analysed.cleave.cpm.gcdUtilisationPct)]).toEqual([87.93, 87.32]);
 	});
 });
