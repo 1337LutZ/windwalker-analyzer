@@ -5,6 +5,8 @@
 // function of the numbers rather than of whoever wrote the component — and a pull that goes badly
 // reads differently from one that goes well without anybody hard-coding either.
 
+import type { Band } from '~/lib/spec/apl';
+
 /**
  * Three levels, not five.
  *
@@ -12,6 +14,12 @@
  * it, and calling them failures would be wrong. More than three would need thresholds finer than the
  * data supports: the difference between 78% and 81% GCD utilisation is fight movement, not skill,
  * and a grading scheme that claims to tell them apart is lying.
+ *
+ * No fourth level for "cannot say" either. That is not a worse verdict than `bad` nor a better one
+ * than `good` — it is not on the scale at all, and putting it there would make the `worst` fold below
+ * produce nonsense and force every `Record<Grade, …>` in the app (a tone, a colour, a piece of copy)
+ * to invent an appearance for it. It travels beside the grade instead: `Metric.unmeasurable`,
+ * `SectionScore.unmeasurable`, `Judged.unmeasurable`.
  */
 export type Grade = 'good' | 'ok' | 'bad';
 
@@ -31,7 +39,38 @@ export interface Threshold {
 	higherIsBetter: boolean;
 }
 
-export interface Metric extends Threshold {
+/**
+ * A threshold plus the conditions under which it may be applied at all.
+ *
+ * Split from `Threshold` rather than folded into it because a threshold is only three numbers and is
+ * used for things that are not metrics — `wasteTone`'s reading aid is a `Threshold` and has no bands,
+ * no sample and no grade. A rule is what a spec's `THRESHOLDS` table holds: the numbers *and* the
+ * scope they are honest over.
+ */
+export interface MetricRule extends Threshold {
+	/**
+	 * The target-count bands this rule belongs to. Omitted means every band, which is most of them.
+	 *
+	 * The same `Band` the APL ladder gates its entries with, imported rather than re-spelled. Three
+	 * things in this tree are already called a band — a target count, a chart's shaded stretch
+	 * (`TrackBand`), and the good/ok/bad thresholds this file's prose calls bands — and a fourth
+	 * vocabulary for the first of those would be one too many. A metric's scope is the *same question*
+	 * the ladder answers per entry ("is this rung in the list at this count"), so it gets the same
+	 * four values and the same `bandOf` saturation.
+	 *
+	 * Read like the ladder's `AplRule.bands` and for the same reason: a band gate is not a false
+	 * condition. A rule outside its bands was never asked of this pull, so a pull that never entered
+	 * its bands has no verdict on it — not a passing one. `metricOf` turns that into `unmeasurable`
+	 * with `exempt` beside it, never into a grade.
+	 *
+	 * What earns a declaration: a rung only one target-count's list contains. What does not: a
+	 * resource, a global, a proc window or a pre-pull press that exists identically at every count —
+	 * those stay graded everywhere, however many enemies were up.
+	 */
+	bands?: readonly Band[];
+}
+
+export interface Metric extends MetricRule {
 	/** Stable id — also the i18n key stem for this metric's wording. */
 	key: string;
 	/** The measured number, in the unit the threshold is written in. */
@@ -53,6 +92,31 @@ export interface Metric extends Threshold {
 	 * where `undefined` selects the base key.
 	 */
 	context?: string;
+	/**
+	 * How much of the pull this value was actually measured over, in ms, for a metric graded on a clock
+	 * some of whose stretches its bands can cut.
+	 *
+	 * **This is the field that keeps an exemption from becoming a free pass.** A metric whose clock can
+	 * be emptied has to publish the clock it graded, because `0ms of overcap` over `0ms` of graded time
+	 * is indistinguishable from a flawless pull if only the value is looked at — and the flawless
+	 * reading is the one a threshold will pick. `maxStacks > 0`, `casts > 0` and every other proxy for
+	 * "was the thing present" answer a different question: the shield was up and counting all pull, and
+	 * still nothing about its spending was judged.
+	 *
+	 * Absent on the metrics whose clock nothing can cut, and absent on every scorecard captured before
+	 * the field existed.
+	 */
+	gradedMs?: number;
+	/** The denominator behind a count or share value — see `MIN_GRADED_SAMPLE`. Absent when it has none. */
+	sampleSize?: number;
+	/**
+	 * True when this pull is outside the rule's bands, so it was not judged rather than judged well.
+	 *
+	 * Distinct from the plain `unmeasurable` beside it, which says the log could not answer. This says
+	 * the question was not asked: an add wave is not a pull that failed to multi-dot. Omitted rather
+	 * than `false`, so a metric nothing exempted carries no field at all.
+	 */
+	exempt?: true;
 }
 
 /**
@@ -74,8 +138,39 @@ export interface SectionScore {
 	unmeasurable: boolean;
 }
 
+/**
+ * How much of what the spec cares about the headline was actually able to look at.
+ *
+ * `overall()` renormalises over the metrics it could measure, which is right — an unmeasurable metric
+ * should not count as half marks — but it means a `good` can be a `good` over half the spec. The two
+ * numbers travel with the verdict so the report can say *judged on 7 of 22 points* rather than
+ * present a minority reading as a whole-pull one.
+ */
+export interface Judged {
+	/** Summed weight of the metrics that could be judged. */
+	measured: number;
+	/** Summed weight of every metric offered, judged or not. */
+	total: number;
+	/**
+	 * True when too little of that weight survived for the grade to be a claim about the pull.
+	 *
+	 * The generalisation of the old `no measurable metric at all → 'ok'` clause: that was this
+	 * condition at exactly zero, which was never the only place it can bite. See
+	 * `MIN_JUDGED_WEIGHT_SHARE`.
+	 */
+	unmeasurable: boolean;
+}
+
 export interface Scorecard {
 	overall: Grade;
+	/**
+	 * The denominator `overall` was taken over.
+	 *
+	 * Optional because a scorecard captured before it existed has none, and because a caller that only
+	 * wants the letter should not have to thread it. A reader shown a headline without it is being
+	 * asked to assume it was 22 of 22.
+	 */
+	judged?: Judged;
 	sections: Record<string, SectionScore>;
 }
 

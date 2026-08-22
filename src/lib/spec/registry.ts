@@ -17,8 +17,8 @@ import type { RaidBuffEffect } from '~/lib/analysis/raidBuffs';
 import type { GameData } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { SpecColors } from '~/lib/game/classes';
-import type { Grade, Scorecard } from '~/lib/score';
-import type { Analysis, FightDataset, TargetMode } from '~/lib/types';
+import type { Grade, Scorecard, ScoreView } from '~/lib/score';
+import type { Analysis, FightDataset } from '~/lib/types';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/timelineBanks';
 import { analyse, registry as windwalkerRegistry, WINDWALKER, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker';
@@ -71,13 +71,29 @@ export interface SpecDefinition {
 	gcdMs: number;
 	/** Whether a pull's events are actually this spec — the refusal hook. */
 	identify(h: Handles): boolean;
-	/** Turns one analysis into a scorecard. */
-	score(analysis: Analysis, mode?: TargetMode | null): Scorecard;
+	/**
+	 * Turns one analysis into a scorecard, read at the target counts the pull was fought at.
+	 *
+	 * `ScoreView` and not a `TargetMode`, because a mode is a whole-pull binary and the pull the report
+	 * gets this wrong on is not binary: add waves and then a boss is one pull whose dot clocks run
+	 * through stretches no priority list asked a dot of. A mode cannot say that — whichever of its two
+	 * words wins, one of those stretches is graded against a list that never applied to it — so the seam
+	 * carries the *bands*, which can. `~/lib/view/targetMode.resolveBands` is what builds one.
+	 *
+	 * `TargetMode` stays in the union rather than being replaced, and only for sequencing: every caller
+	 * today hands over a mode, both engines take one, and the conversion is one caller at a time. It is
+	 * the lossy arm of the union and `viewBands` says exactly how it loses.
+	 */
+	score(analysis: Analysis, view?: ScoreView): Scorecard;
 	/**
 	 * How much each metric moves the summary, for the reading's own ranking. Typed loose on purpose:
 	 * the keys are this spec's `MetricKey`s, and a generic consumer only ever looks them up by string.
+	 *
+	 * Takes the same `ScoreView` as `score` and for the same reason — a weight that changes with the
+	 * target count is answering the banded question, and the two must not be able to disagree about
+	 * what the pull was.
 	 */
-	weightsFor(mode: TargetMode | null): Record<string, number>;
+	weightsFor(view: ScoreView): Record<string, number>;
 	/**
 	 * How a share of wasted resource reads as a colour — the spec's own reading aid, and not a grade.
 	 *

@@ -13,8 +13,9 @@
 // So it lives where the selection does: in the component that renders the report, for as long as that
 // report is on screen.
 
-import type { Band } from '~/lib/spec/apl';
-import type { TargetMode } from '~/lib/types';
+import type { BandView } from '~/lib/score';
+import { type Band, bandOf } from '~/lib/spec/apl';
+import type { TargetMode, TargetSummary } from '~/lib/types';
 
 /** What the reader can ask for: the detected answer, or one of the two readings outright. */
 export type TargetModeChoice = 'auto' | TargetMode;
@@ -63,8 +64,53 @@ export function resolveTargetMode(
  *
  * Null when nothing detected a reading and the reader has not chosen one, which is the same null
  * `resolveTargetMode` returns and means the same thing: no basis to pick, so do not pick.
+ *
+ * **One band per pull, which is the limit of what a mode can say.** Two sections want exactly that —
+ * they print one list and judge against one list — so this is the right answer for them. It is the
+ * wrong answer for scoring, because a metric is graded over a clock and a pull's clock can run through
+ * several bands: every committed multi-target fixture visits all four. `resolveBands` below is the
+ * reading that keeps them.
  */
 export function bandForMode(mode: TargetMode | null): Band | null {
 	if (mode === null) return null;
 	return mode === 'single' ? 1 : 3;
+}
+
+/**
+ * Every band the pull's counts actually visited.
+ *
+ * Off `TargetSummary.counts`, which is already a trailing-window count — so one point is a window of
+ * that many enemies rather than an instant, and a band in this set was held for long enough to be
+ * counted at all. No dwell floor on top of that, deliberately: it would be an invented threshold, and
+ * it would push in the dangerous direction. A generous set makes a rule *harder* to exempt (the
+ * intersection stays non-empty and the clock is cut stretch by stretch instead), and erring towards
+ * judging too much is recoverable in a way that erring towards excusing is not.
+ *
+ * Null for a pull with no counts at all — every fixture captured before they existed. Not the empty
+ * array: see `BandView.bands`.
+ */
+export function bandsInPull(targets: TargetSummary | undefined): readonly Band[] | null {
+	const points = targets?.counts.points ?? [];
+	if (points.length === 0) return null;
+	const seen = new Set<Band>(points.map(([, enemies]) => bandOf(enemies)));
+	return [...seen].sort((a, b) => a - b);
+}
+
+/**
+ * The bands to score a pull at: what it was fought at, or the one reading the reader forced.
+ *
+ * The counterpart of `resolveTargetMode` for everything downstream of a grade, and the reason it is a
+ * separate function rather than a field on that one: the reader's override genuinely is a mode — their
+ * switch has two positions and they are saying "read the whole pull as this" — while the detection is
+ * a set, and a mixed pull is only expressible as the set. Forcing therefore narrows to one band
+ * through `bandForMode`, and that narrowing is the reader's own claim rather than this module's guess.
+ *
+ * The three committed Elemental fixtures make the difference concrete: `phased` and `unbroken` never
+ * exceed one enemy, so both readings agree on band 1 and nothing here can change them, while `cleave`
+ * reads `[1, 2, 3, 4]` under detection and would be flattened to `[3]` by its detected mode alone.
+ */
+export function resolveBands(targets: TargetSummary | undefined, choice: TargetModeChoice): BandView {
+	if (choice === 'auto') return { bands: bandsInPull(targets), forced: false };
+	const forced = bandForMode(choice);
+	return { bands: forced === null ? null : [forced], forced: true };
 }
