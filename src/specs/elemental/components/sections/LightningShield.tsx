@@ -5,8 +5,10 @@ import { formatClock, formatSeconds } from '~/lib/format';
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
 
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
-import ResourceChart from '~/components/charts/ResourceChart';
+import ResourceChart, { type TrackBand } from '~/components/charts/ResourceChart';
 import { resourceCurveFromPoints } from '~/components/charts/resourceCurve';
+import { exemptRows } from '~/components/charts/exempt';
+import { EXEMPT } from '~/components/charts/tones';
 
 /**
  * Lightning Shield: the counter every Earth Shock is spent from.
@@ -22,6 +24,27 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { lightningShield } = el;
 	const { t, verdict } = useReportCopy(analysis);
+
+	/**
+	 * The stretches left out of the overcap figure, as the chart's exempt row.
+	 *
+	 * Straight off `lightningShield.aoeWindows`, which is the array the audit's own denominator dropped —
+	 * not a second derivation of "when was it AoE". That identity is the rule `exemptTrack.test.ts` was
+	 * written to enforce, after three charts each guessed at the same idea differently.
+	 */
+	const aoeBand = useMemo(
+		() =>
+			exemptRows(
+				[
+					{
+						label: t('lightningShield.key.aoe'),
+						windows: el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]),
+					},
+				],
+				analysis.durationMs,
+			)[0]?.windows ?? [],
+		[el.lightningShield.aoeWindows, analysis.durationMs, t],
+	);
 
 	const curve = useMemo(
 		() => resourceCurveFromPoints(lightningShield.points, lightningShield.maxStacks),
@@ -71,6 +94,19 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 						tone="kick"
 						legend={t('lightningShield.key.shield')}
 						bands={[
+							// Widest claim first, so the red paints on top of the ground it is measured against.
+							// Through `exemptRows` even though there is only one cause here: the day this chart also
+							// shades an intermission, the overlap is resolved by the same precedence every other
+							// exempt row uses rather than two washes stacking darker than either.
+							...(aoeBand.length === 0
+								? []
+								: ([
+										{
+											tone: EXEMPT,
+											windows: aoeBand.map(([start, end]) => ({ start, end })),
+											legend: t('lightningShield.key.aoe'),
+										},
+									] satisfies TrackBand[])),
 							{
 								// The three faults share one colour and now one key entry: fell off, overcapped,
 								// or spent below the ceiling are all "the shield went wrong" in the same red.

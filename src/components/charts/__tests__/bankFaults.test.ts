@@ -52,7 +52,10 @@ describe("the Lightning Shield bank's faults", () => {
 		const shield = cleave.lightningShield;
 		// Pinned so the fixture cannot quietly stop covering a fault and leave the rest of this suite
 		// asserting over an empty list.
-		expect([shield.downWindows.length, shield.overcapWindows.length, shield.badSpends.length]).toEqual([1, 9, 1]);
+		// Nine overcap windows until the clock learned to drop this pull's AoE stretches; eight now. The bank
+		// reads `overcapWindows` pass-through, so its red shrank with the section's — which is the point, not
+		// a drift: the two drawings of one aura cannot disagree about the pull.
+		expect([shield.downWindows.length, shield.overcapWindows.length, shield.badSpends.length]).toEqual([1, 8, 1]);
 
 		const bank = timelineBanks(cleave)[0]!;
 		expect(bank.faultWindows).toEqual([
@@ -79,7 +82,10 @@ describe("the Lightning Shield bank's faults", () => {
 		// `lsLevels`, which are stretches with their own ends — the same reason `atCapWindows` is passed
 		// those rather than the points, so that a window at the ceiling cannot be run across an absence.
 		expect(cappedOf(bank.curve)).toEqual([]);
-		expect(cleave.lightningShield.overcapMs).toBe(119_313);
+		// 119 313ms before the overcap clock dropped the stretches the AoE list applied to. The comparison
+		// this test makes is unaffected — `cappedOf` still finds *nothing* on this series, whatever the
+		// audit's figure is, because a stretch at the ceiling is a single point in `lsPoints`.
+		expect(cleave.lightningShield.overcapMs).toBe(28_625);
 	});
 
 	it('reach the cast log as shaded rects, one per fault', () => {

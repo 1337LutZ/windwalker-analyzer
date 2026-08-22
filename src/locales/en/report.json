@@ -1506,9 +1506,11 @@
     "chart": "Lightning Shield charges over the pull, with overcapping and fell-off stretches in red",
     "key": {
       "shield": "Charges",
-      "fault": "Fell off, overcapped, or spent early"
+      "fault": "Fell off, overcapped, or spent early",
+      "aoe": "AoE — not graded"
     },
-    "noBadSpends": "No Earth Shock was spent below the ceiling in this pull."
+    "noBadSpends": "No Earth Shock was spent below the ceiling in this pull.",
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. Two enemies is still graded, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield is graded throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
   },
   "stormlash": {
     "title": "Stormlash Totem",

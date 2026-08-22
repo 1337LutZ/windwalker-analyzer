@@ -2574,6 +2574,15 @@ export interface LightningShieldAudit {
 	overcapMs: number;
 	/** The leeway the overcap was measured beyond, so the section can name the number it used. */
 	leewayMs: number;
+	/**
+	 * The stretches the aoe list applied to — three enemies or more — which `overcapMs` drops.
+	 *
+	 * Published so the chart shades the same array the denominator refused. Not `fellOff`'s clock: that
+	 * stays graded at every band, because Rolling Thunder returns 2% of maximum mana per charge and only
+	 * while the buff is up. Keeping the shield up is always right; spending its stacks is only right where
+	 * a rung spends them, and from three targets none does.
+	 */
+	aoeWindows: Window[];
 	/** The overcap stretches, for drawing red. */
 	overcapWindows: Window[];
 	/** How many times the shield came all the way off. */

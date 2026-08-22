@@ -39,7 +39,7 @@ import {
 	toIntervals,
 	uptimePct,
 } from '~/lib/analysis/auras';
-import { atCapWindows } from '~/lib/analysis/counters';
+import { atCapWindowsIn } from '~/lib/analysis/counters';
 import {
 	dotSnapshotIn,
 	dotTickBudgetIn,
@@ -1249,6 +1249,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		landedHits,
 		spawnLives,
 		multiTargetWindows,
+		aoeWindows,
 		multiTargetMs,
 		contact,
 		inContactMs,
@@ -2076,7 +2077,26 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// walk of its own. `lsLevels` is already `CounterStretch`-shaped, and passing the stretches rather
 	// than `lsPoints` is deliberate: the shield's series has gaps, and inferring a stretch's end from the
 	// next entry's start would run a 3s window at the ceiling across a 40s absence.
-	const overcapWindows = atCapWindows(lsLevels, lightningShieldCap, lightningShieldOvercapMs);
+	/**
+	 * The clock the overcap is graded on: the pull **less** the stretches the aoe list applied to.
+	 *
+	 * Nothing in `aoe.apl.json` spends the shield — no Earth Shock rung at all — so sitting at seven
+	 * through an add wave is the only state available and cannot be a fault. Band 2 stays in, because the
+	 * cleave list still spends it, at `stacks >= 6` rather than 7.
+	 *
+	 * **`atCapWindowsIn` and not `atCapWindows` clipped afterwards**, which is the half of this that is
+	 * easy to get wrong: the leeway comes off the *front* of each merged stretch, so a stretch that began
+	 * during the adds and ran on into the boss phase would arrive at the boundary with its grace already
+	 * spent and be faulted from the first millisecond of single-target play. Cut and restarted per segment,
+	 * the swap back to the boss gets its own press's worth of grace. Worth 4 500ms on `cleave` — three of
+	 * its seven interior boundaries — and the two readings differ by exactly one leeway per boundary.
+	 *
+	 * `fellOff` is deliberately **not** on this clock: Rolling Thunder returns 2% of maximum mana per
+	 * charge and only while the buff is up, so keeping the shield up is right at every target count and
+	 * only spending its stacks is band-dependent.
+	 */
+	const shieldGradedSpans = complementOf(aoeWindows, duration);
+	const overcapWindows = atCapWindowsIn(lsLevels, shieldGradedSpans, lightningShieldCap, lightningShieldOvercapMs);
 	const overcapMs = unionMs(toIntervals(overcapWindows));
 	// Fell off: the stretches the shield was down, which is the complement of the stretches it was up.
 	// `complementOf` rather than the walk that was written here — same merge, same gap-push, same tail,
@@ -2971,6 +2991,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			maxStacks: lightningShieldCap,
 			overcapMs,
 			leewayMs: lightningShieldOvercapMs,
+			// The stretches `overcapMs` above dropped, so the chart can grey exactly what the denominator
+			// refused rather than a second guess at it — the rule `exemptTrack.test.ts` exists to enforce.
+			aoeWindows: aoeWindows.map(([start, end]): Window => ({ start, end })),
 			overcapWindows,
 			fellOff,
 			downWindows,
