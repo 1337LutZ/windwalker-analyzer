@@ -1689,6 +1689,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		selfEvents,
 		castTimes,
 		castBeginTimes,
+		castPresses,
 		castCount,
 		channels,
 		damageEvents,
@@ -2284,8 +2285,20 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	// twice is what would let it.
 	const tigerPowerWindows = auraWindows(selfEvents, TIGER_POWER, t0, fight.endTime);
 
-	const tigerPalmCasts = castTimes(TIGER_PALM).map((t) => {
+	// The commit, because every question in this map is about the **choice**: was there a Combo Breaker
+	// proc up when the player pressed, and how much Tiger Power were they clipping when they decided to.
+	// Both were true or false at the instant the finger went down, which `Handles`' ruling sends to
+	// `castBeginTimes`. Nothing downstream joins on this instant — `TigerPalmTimeline` plots it, the miss
+	// ledger links it, and the rest of the map is counted into `cpm.wastedGcds` — so unlike Blackout
+	// Kick's below it is free to be the commit, and it matters that it is: `wastedGcds` reaches
+	// `overall()`, and on the landing a press made inside a proc that expired mid-cast would be scored a
+	// wasted global, which is a mistake the player did not make. Identical to the landing today, because
+	// Tiger Palm is an instant; `castClocks.test.ts` is where the two come apart.
+	const tigerPalmCasts = castBeginTimes(TIGER_PALM).map((t) => {
 		const proc = inWindow(t, cbTigerPalmWindows);
+		// The commit is also the cleaner instant for the self-refresh problem named above: that refresh
+		// is stamped a millisecond before the `cast`, so on a press with a cast bar it lands *after* this
+		// `t` and is excluded outright rather than by `remainingAtCast`'s 250 ms guard.
 		const buffLeftMs = remainingAtCast(tigerPowerTimeline, t, TIGER_POWER);
 		// Putting the buff up is not refreshing it, and the two were indistinguishable here: both read
 		// zero remaining, so the opening Tiger Palm of a pull — and every one after the buff had
@@ -2974,13 +2987,31 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	// Jade Wind in the build and the damage spread across enemies the priority list genuinely does
 	// want Energizing Brew inside Bloodlust, so faulting it there would invent a mistake.
 	const rjwKnown = castCount(RUSHING_JADE_WIND_CAST) > 0;
-	const ebCasts = castTimes(ENERGIZING_BREW_CAST);
-	const ebUses = ebCasts.map((t) => {
-		// The buff is stamped at the same millisecond as the press, and occasionally a hair before it,
-		// which is what `SELF_EVENT_MS` exists for — a strict `t >= w.start` drops the window entirely
-		// and reports a six-second buff as never having gone up.
+	/**
+	 * Both of the press's instants, because this block asks one question of each kind — the mixed site
+	 * `Handles`' ruling keeps `castPresses` for.
+	 *
+	 * The Bloodlust clause grades a **choice**: whether the player pressed the brew into raid haste
+	 * without the talent that would excuse it. That was true or false at the moment they committed, so
+	 * it reads `begin`. Everything else here measures the **effect** the press had — the buff window it
+	 * opened, the channels that started inside it, the energy it poured onto a bar that was already
+	 * full — and the game decides all of that at the completion, so those read `t`. Picking one clock
+	 * for the whole block would get one of the two halves wrong the day this button grows a cast bar;
+	 * both instants are the same today, because Energizing Brew is an instant. Pinned either way in
+	 * `castClocks.test.ts`, which is the only place the two can be told apart.
+	 */
+	const ebPresses = castPresses(ENERGIZING_BREW_CAST);
+	const ebUses = ebPresses.map(({ t, begin }) => {
+		// The landing, and a join against the buff's own events rather than arithmetic on the press: the
+		// buff is stamped at the same millisecond as the `cast`, and occasionally a hair before it, which
+		// is what `SELF_EVENT_MS` exists for — a strict `t >= w.start` drops the window entirely and
+		// reports a six-second buff as never having gone up. A 250 ms guard cannot absorb a cast bar, so
+		// asking this at `begin` would not shift the window, it would lose it: `lengthMs` would read 0
+		// and `wasted` would read null on a press whose buff plainly went up.
 		const window = ebWindows.find((w) => t >= w.start - SELF_EVENT_MS && t <= w.end) ?? null;
-		const haste = hasteAt(t);
+		// The commit. The fault this feeds says "you pressed this into Bloodlust", so the raid cooldown
+		// has to be checked at the instant the finger went down and not at the one the brew arrived on.
+		const haste = hasteAt(begin);
 		// Channels that began inside this window. Counted from the channel audit's own rows rather
 		// than recomputed, so the two sections cannot disagree about which channel was where — and
 		// deliberately *not* raised as a fault here, because that audit already raises it and the miss
@@ -3478,6 +3509,25 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	 * press that survives all three stays in `starvedMs` and is never blamed on this button.
 	 */
 	const blackoutKick = ((): BlackoutKickAudit => {
+		/**
+		 * The landings, and deliberately both halves of this block on that one clock.
+		 *
+		 * The two halves do ask different questions, and only one of them looks like a choice: selecting
+		 * the press below — "the last Blackout Kick pressed while the kick was coming back" — reads like
+		 * the choice the ruling sends to `castBeginTimes`. It is not one. Nothing here judges a press
+		 * (see above); what it measures is when two chi *left the bar*, which is the completion, and
+		 * every consumer of the instant this hands out is stamped on completions too. `chiAudit.walk`'s
+		 * points are keyed by the `cast` event, so the counterfactual's `t <= pressAt` bound is a
+		 * landing-keyed comparison; and `view/blackoutKick.ts` joins `StarvedKick.pressAt` against
+		 * `apl.presses[].t` by equality, which the ruling fixes as a landing.
+		 *
+		 * That join is the map-key trap the ruling names. Moving this to the commit for a Blackout Kick
+		 * with a cast bar would make every `followedList` lookup miss in silence, and it would also let
+		 * in a press whose chi left the bar *after* the kick came up — which cannot have starved it, and
+		 * whose own drain point the surplus walk would then skip. So if this button ever grows a cast
+		 * time the selection bound is the only half that moves, and it moves to `castPresses`. Both
+		 * instants are the same today: Blackout Kick is an instant.
+		 */
 		const bkTimes = castTimes(BLACKOUT_KICK);
 		// The same clock and the same function the lost-cast row uses for this button, so every second
 		// charged here is a second that row has already counted. Rising Sun Kick is in `NEEDS_TARGET`, so
@@ -3788,12 +3838,12 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		energizing: {
 			// Carried so the section can draw the overlap rather than only name it per row.
 			hasteWindows,
-			casts: ebCasts.length,
+			casts: ebPresses.length,
 			// The same reading Touch of Karma gets: the opener plus one per full recharge inside the
 			// pull. It is a ceiling on presses, not a target — the priority list holds this button.
 			available: ENERGIZING_BREW_CAST.cooldownMs
 				? Math.floor(duration / ENERGIZING_BREW_CAST.cooldownMs) + 1
-				: ebCasts.length,
+				: ebPresses.length,
 			uptimeMs: unionMs(toIntervals(ebWindows)),
 			uptimePct: uptimePct(ebWindows, duration),
 			duringHaste: ebUses.filter((u) => u.haste !== null).length,

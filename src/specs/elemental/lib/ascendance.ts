@@ -509,7 +509,23 @@ export interface AscendanceSyncVerdict {
  * `Handles.contact` is built from the same clock.
  */
 export interface AscendanceSyncInput {
-	/** Every Ascendance press in the pull, ascending — `castTimes(ASCENDANCE)`. */
+	/**
+	 * Every Ascendance press in the pull, ascending, each on the instant it *landed*.
+	 *
+	 * Named as an instant rather than as whichever accessor the caller happens to reach for, because
+	 * the contract is the clock and not the function — a field pinned to `castTimes(ASCENDANCE)` goes
+	 * stale the moment its caller moves, and says nothing about what should have moved with it.
+	 *
+	 * The landing is what every rule in this module needs. All of them measure the fifteen seconds a
+	 * press bought — its overlap with the haste cooldown, with a Skull Banner, with the two-piece
+	 * discharge, and the tail it wastes past the kill — and the buff starts when the cast completes.
+	 * `readyAtMs` wants the same instant for a second reason: a cooldown is armed at the landing and not
+	 * at the commit (`wowsims-mop` `sim/core/cast.go:184-205`, `:258-268`).
+	 *
+	 * Ascendance is an instant, so its caller's two clocks coincide and no fixture — and no synthetic
+	 * built out of this one array — can tell them apart. Nothing here can guard the choice; the guard
+	 * would have to sit at the call site, on the accessor it reads.
+	 */
 	ascendanceCasts: readonly number[];
 	/**
 	 * Whether Ascendance was already running when the bell went.
