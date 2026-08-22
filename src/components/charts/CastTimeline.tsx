@@ -732,7 +732,7 @@ function castNodesOf(
 	rowOf: Map<CastMark, number>,
 	sentTo: (c: CastMark) => string | undefined,
 ) {
-	return casts.flatMap((c) => {
+	return casts.flatMap((c, i) => {
 		const url = spellIconUrl(c.id);
 		const size = GCD_ICON_PX;
 		// The enemy a press aimed at, where the press is one that aims. On the `title` as well as in the
@@ -743,7 +743,23 @@ function castNodesOf(
 		// instant press does not, and a reader whose pointer never fires still deserves to see it.
 		const castTime = c.castTimeMs === undefined || c.castTimeMs <= 0 ? undefined : formatGap(c.castTimeMs);
 		const title = `${c.name} · ${formatStamp(c.t)}${castTime === undefined ? '' : ` · ${castTime}`}${target === undefined ? '' : ` · ${target}`}`;
-		const key = `${c.t}-${c.id}`;
+		/**
+		 * The mark's identity, and **the index is the part that carries it**.
+		 *
+		 * `${t}-${id}` reads like a key and is not one. A swing is not a press: auto-attacks land on the
+		 * weapon's own timer, and a dual-wielding monk lands two of them in the same millisecond — which is
+		 * the case `packCasts` documents and then draws on one row, so the two icons sit exactly on top of
+		 * each other. Same `t`, same `id`, same key, and React is handed two siblings it cannot tell apart:
+		 * 58 of them on the `poor` pull, 20 to 29 on most of the others, 0 on Elemental, which does not
+		 * dual-wield. Duplicate keys are not a console complaint — React is free to drop one of the pair or
+		 * to reuse the wrong node for it, in a chart whose whole claim is that every swing it draws happened.
+		 *
+		 * Nothing on the mark tells the two swings apart — `CastMark` has no hand, and inventing one to key
+		 * by would be a claim the log did not make. Position in the lane is what actually distinguishes them,
+		 * so position is what the key says. `t` and `id` stay in front of it because they are what makes the
+		 * key legible in the tree the reader is inspecting.
+		 */
+		const key = `${c.t}-${c.id}-${i}`;
 		// The icon's *left* edge is its moment, not its centre.
 		//
 		// A press occupies the global that begins when it goes out, so the icon should start on that
