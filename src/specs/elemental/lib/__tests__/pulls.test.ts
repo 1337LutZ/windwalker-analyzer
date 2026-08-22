@@ -529,12 +529,18 @@ describe('a multi-target pull', () => {
  * seconds of dot there and nothing else. So the fourth press is not a `twoPiece` fault that was forgiven,
  * it is a press the two-piece branch never applied to. The window count and the reason count moving
  * apart is the assertion worth having here.
+ *
+ * `cleave` reads **two** and not three since the band-3 and band-4 presses stopped being judged at all.
+ * `aoe.apl.json` has no Earth Shock rung, so nothing asks the shield to be spent or held at three or more
+ * enemies, and one of those three `twoPiece` charges was at band 3 — a press the aoe list has no opinion
+ * about, charged under the single-target branch. Its debuff windows are still eight, which is the same
+ * "the reason count moves and the window count does not" reading as the paragraph above.
  */
 describe('the T16 two-piece', () => {
 	for (const [name, windows, shocks] of [
 		['phased', 8, 4],
 		['unbroken', 5, 7],
-		['cleave', 8, 3],
+		['cleave', 8, 2],
 	] as const) {
 		it(`${name} sees the debuff and reads it as an Earth Shock condition`, () => {
 			const el = fx(name);

@@ -1340,6 +1340,8 @@
     },
     "caption": "Every Earth Shock the priority list would not have pressed, and what was wrong when you pressed it",
     "none": "Every Earth Shock matched the sim's rule.",
+    "aoeUnjudged_one": "One more shock went out while three or more enemies were up, and it is not in the count above. At that many targets the priority list has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so there is no right or wrong press to report.",
+    "aoeUnjudged_other": "{{count}} more shocks went out while three or more enemies were up, and they are not in the count above. At that many targets the priority list has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so there is no right or wrong press to report.",
     "fulmination": "A stack spent early is a stack of the shield’s Fulmination the shield must rebuild before the next shock."
   },
   "searingTotem": {

@@ -189,10 +189,18 @@ describe('the two-target list judges the two-target presses', () => {
 	 *
 	 * `phased` and `unbroken` are band 1 from end to end, so they cannot move and are pinned as the guard
 	 * for that. All three stay `bad`: the `ok` boundary is 65.
+	 *
+	 * **`cleave`'s figure moved again afterwards, for a different reason, and both are stated here.** When
+	 * this was written it read 6 of 12 = 50%. It now reads 4 of 7 = **57.14%**, because the band-3 and
+	 * band-4 presses left the denominator: `aoe.apl.json` has no Earth Shock rung, so nothing judges a
+	 * shock at three or more enemies (`EarthShockPress.good` is null there, and
+	 * `earthShockAoeBand.test.ts` measures the whole of it). The two other pulls are unaffected, which is
+	 * what makes them still the guard they were written to be.
 	 */
 	it('moves earthShockGood on cleave alone', () => {
-		expect(goodPct(cleave)).toBeCloseTo(50, 3);
-		expect(cleave.earthShock.good).toBe(6);
+		expect(goodPct(cleave)).toBeCloseTo(57.1429, 3);
+		expect(cleave.earthShock.good).toBe(4);
+		expect(cleave.earthShock.judged).toBe(7);
 		expect(goodPct(fx('phased'))).toBeCloseTo(58.3333, 3);
 		expect(goodPct(fx('unbroken'))).toBeCloseTo(38.4615, 3);
 		expect(scoreAnalysis(cleave).sections['earthShock']?.grade).toBe('bad');

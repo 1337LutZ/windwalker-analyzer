@@ -113,11 +113,17 @@ describe('the branch on the committed pulls', () => {
 	 * throughout — `targets.counts.max` is 1 on both — so neither can move, and both are pinned here as
 	 * the guard for that.
 	 *
+	 * **And `cleave` has moved once more, 50 → 57.1429**, for a third reason that belongs in the same
+	 * ledger: its band-3 and band-4 presses have left the denominator entirely, because `aoe.apl.json`
+	 * carries no Earth Shock rung and so nothing judges a shock at three or more enemies. Five of its
+	 * twelve presses, three of which this branch had been charging with `twoPiece` or `fsTail` under a
+	 * list that does not contain either. Measured in `earthShockAoeBand.test.ts`.
+	 *
 	 * All three stay `bad` — the `ok` boundary is 65 (`score.ts`'s `earthShockGood` threshold).
 	 */
 	it('moves earthShockGood on phased alone, and upward', () => {
 		expect(goodPct(unbroken)).toBeCloseTo(38.4615, 3);
-		expect(goodPct(analysed('cleave'))).toBeCloseTo(50, 3);
+		expect(goodPct(analysed('cleave'))).toBeCloseTo(57.1429, 3);
 		expect(goodPct(analysed('phased'))).toBeCloseTo(58.3333, 3);
 	});
 

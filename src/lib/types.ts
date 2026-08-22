@@ -2377,8 +2377,14 @@ export interface EarthShockPress {
 	 *
 	 * A press inside a two-piece window is **not** automatically bad: the proc's own branch asks for the
 	 * shock in the debuff's last four seconds, which is the one thing this used to fault outright.
+	 *
+	 * **Null at bands 3 and 4, meaning no list had anything to say about the press.** `aoe.apl.json` has
+	 * five rungs and Earth Shock is not one of them, so at three or more enemies there is no rule for a
+	 * shock to be good or bad against; a null press is left out of `EarthShockAudit.judged` and therefore
+	 * out of `earthShockGood` rather than counted as either. Read it as "cannot say", never as "fine":
+	 * `press.good === false` is the fault ledger's test and `!press.good` is not.
 	 */
-	good: boolean;
+	good: boolean | null;
 	/** Which conditions of the applicable branch failed, in the order the section reads them; empty when good. */
 	reasons: EarthShockReason[];
 }
@@ -2386,6 +2392,15 @@ export interface EarthShockPress {
 export interface EarthShockAudit {
 	presses: EarthShockPress[];
 	good: number;
+	/**
+	 * How many presses a list had a rule for — the denominator `earthShockGood` is taken over, and not
+	 * `presses.length`.
+	 *
+	 * The two differ by the band-3 and band-4 presses, which no list judges (see `EarthShockPress.good`).
+	 * Published rather than recomputed at each reader because the section's tile, its verdict sentence, the
+	 * summary tile and the scorecard all have to be over the same set or the report contradicts itself.
+	 */
+	judged: number;
 	/** Shocks spent below the ceiling — the whole Fulmination the player left on the table. */
 	belowFull: number;
 }

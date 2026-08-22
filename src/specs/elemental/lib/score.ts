@@ -96,9 +96,22 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 		flameShock.multiTargetMs > 0 ? flameShock.multiDotUptimePct : null,
 	);
 
+	/**
+	 * Over `judged` and not `presses.length`: the band-3 and band-4 presses are not in the denominator.
+	 *
+	 * `aoe.apl.json` has no Earth Shock rung, so at three or more enemies there is no rule for a shock to
+	 * be good or bad against, and since `0de530e` the priority ladder says the same thing — `earth-shock`
+	 * is `bands: [1, 2]`. Counting those presses here graded them against the single-target rule while the
+	 * ladder graded them against Chain Lightning, which is the two halves of the report disagreeing about
+	 * one press. See `EarthShockPress.good`, which is null for exactly those presses.
+	 *
+	 * Null when nothing is judged — a pull spent entirely at three or more enemies has no shock this can
+	 * speak about, and a nullable metric leaves `overall()`'s weighted denominator (§75 decision 2) rather
+	 * than reading as a free 0%.
+	 */
 	const earthShockGood = metric(
 		'earthShockGood',
-		earthShock.presses.length > 0 ? sharePct(earthShock.good, earthShock.presses.length) : null,
+		earthShock.judged > 0 ? sharePct(earthShock.good, earthShock.judged) : null,
 	);
 
 	const searingTotemUptime = metric(

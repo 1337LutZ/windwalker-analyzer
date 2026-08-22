@@ -2254,17 +2254,38 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		 * priority ladder bands each rung on, so the section and the ladder cannot disagree about which
 		 * list a press was under.
 		 *
-		 * **Bands 3 and 4 keep the single-target form, and that is a known gap rather than a reading.**
-		 * `aoe.apl.json` has five rungs and Earth Shock is not one of them — nothing in that list spends
-		 * the shield, so at three or more enemies there is no rule for a press to be good or bad against
-		 * and the honest answer is to take those presses out of the denominator entirely. That is §64's
-		 * item 3, which is a clock-and-exempt-band change across four other metrics as well, and it was
-		 * deliberately not folded in here: it moves more graded figures than anything else in that
-		 * section and is meant to land on its own.
+		 * **Bands 3 and 4 are not judged at all, and the paragraph this replaces is worth keeping in
+		 * mind.** It said the two bands kept the single-target form, called that a known gap, and pointed
+		 * at §64 item 3 as the change that would close it — correctly, at the time. Item 3 has since landed
+		 * on the ladder side (`0de530e`): `earth-shock` in `apl.ts` is now `bands: [1, 2]`, so at three or
+		 * more enemies the ladder has no Earth Shock rung and a shock there is weighed against Chain
+		 * Lightning instead. Leaving the single-target form here would have made this section and the
+		 * ladder disagree about the same press — the section faulting it for a shield it did not spend
+		 * under a list that never asks for the shield to be spent — and the docblock above states exactly
+		 * why they must not: `aplTargetCountAt` is the same reading the ladder bands each rung on.
+		 *
+		 * So the honest answer that paragraph already named is taken: **out of the denominator entirely**,
+		 * as `good: null`. `aoe.apl.json` is five rungs and Earth Shock is not one of them — nothing in
+		 * that list spends the shield, so there is no rule for the press to be good or bad against and
+		 * neither answer is available. It is the same exemption `shieldGradedSpans` below already applies
+		 * to the shield's own overcap clock, for the same reason and off the same windows.
+		 *
+		 * Measured, per §90's rule that a declared control has to be shown to separate: on the committed
+		 * fixtures this is **five presses, all on `cleave`** — three at band 3 and two at band 4, of which
+		 * two read good and three read faults under the single-target form they should never have been
+		 * under. `earthShockGood` on that pull moves 6/12 = 50% to 4/7 = 57.14%; `unbroken` and `phased`
+		 * are entirely band 1 and do not move at all. No grade and no band changes: 57.14% is still under
+		 * the 65% `ok` boundary.
 		 */
 		const band = bandOf(aplTargetCountAt(t));
 		const reasons: EarthShockReason[] = [];
-		if (band === 2) {
+		// No list, no verdict. Ahead of the branches rather than inside them, so nothing below can push a
+		// reason onto a press nothing is entitled to judge.
+		const judged = band === 1 || band === 2;
+		if (!judged) {
+			// Nothing to test. Left with no reasons, which is what keeps it out of `badSpends` as well: a
+			// shock the aoe list never asked to be held cannot be Fulmination thrown away.
+		} else if (band === 2) {
 			// The Cleave list, and its two terms are the whole rule — see `ES_CLEAVE_STACKS`. No branch on
 			// the set, because rung 13 does not mention it.
 			if (stacks !== null && stacks < ES_CLEAVE_STACKS) reasons.push('cleaveStacks');
@@ -2285,7 +2306,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			ascReadyInSec,
 			twoPiece,
 			band,
-			good: reasons.length === 0,
+			good: judged ? reasons.length === 0 : null,
 			reasons,
 		};
 	});
@@ -3278,7 +3299,11 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		},
 		earthShock: {
 			presses: esPresses,
-			good: esPresses.filter((p) => p.good).length,
+			// `=== true` and `!== null`, not the truthiness of either: `good` is nullable now, and `!p.good`
+			// would fold the unjudged presses in with the faulted ones — which is the exact reading the band
+			// exemption exists to stop.
+			good: esPresses.filter((p) => p.good === true).length,
+			judged: esPresses.filter((p) => p.good !== null).length,
 			belowFull: badSpends.length,
 		},
 		searingTotem: {

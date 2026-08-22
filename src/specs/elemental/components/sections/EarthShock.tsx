@@ -38,7 +38,11 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 			[...earthShock.presses]
 				// The table is the bad-shock ledger, not the log: a shock the rule wanted needs no row, and
 				// the reasons below are why the rest went out.
-				.filter((press) => !press.good)
+				//
+				// `=== false` and not `!press.good`, because `good` is nullable: a press at three or more
+				// enemies has no list to be judged by and reads null, and truthiness would put it in this
+				// ledger with an empty reasons cell — a row accusing a player of nothing in particular.
+				.filter((press) => press.good === false)
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => ({
 					key: `${press.t}-${i}`,
@@ -63,11 +67,7 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-4.5">
 				<StatTiles>
-					<StatTile
-						value={`${earthShock.good}`}
-						suffix={`/${earthShock.presses.length}`}
-						label={t('earthShock.kpi.good')}
-					/>
+					<StatTile value={`${earthShock.good}`} suffix={`/${earthShock.judged}`} label={t('earthShock.kpi.good')} />
 					<StatTile value={`${earthShock.belowFull}`} label={t('earthShock.kpi.belowFull')} />
 				</StatTiles>
 			</div>
@@ -86,7 +86,18 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">
-				<Prose>{verdict('earthShock', { good: earthShock.good, casts: earthShock.presses.length })}</Prose>
+				<Prose>{verdict('earthShock', { good: earthShock.good, casts: earthShock.judged })}</Prose>
+				{/*
+				 * The presses this section is *not* judging, said out loud on the pulls that have any.
+				 *
+				 * A reader who counts twelve shocks on the timeline and reads "4 of 7" here has been given a
+				 * fraction they cannot reconstruct, and the missing five are the interesting part: the aoe
+				 * list has no Earth Shock at all, so nothing asked the shield to be spent or held while
+				 * three or more enemies were up.
+				 */}
+				{earthShock.presses.length > earthShock.judged ? (
+					<Note>{t('earthShock.aoeUnjudged', { count: earthShock.presses.length - earthShock.judged })}</Note>
+				) : null}
 				<Note>{t('earthShock.fulmination')}</Note>
 			</div>
 		</Section>
