@@ -92,7 +92,7 @@ describe('the cooldowns are one section per button', () => {
 		expect(section('ascendance')?.when).toBeUndefined();
 		const html = render(Ascendance, withTalent(false));
 		expect(html).toContain('Ascendance');
-		expect(html).toContain('In the opener');
+		expect(html).toContain('Pressed in the opener');
 	});
 });
 

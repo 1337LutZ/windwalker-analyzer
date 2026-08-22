@@ -1,0 +1,164 @@
+// The voice the Elemental sections speak in, asserted rather than agreed to.
+//
+// This is the third time the same complaint has been made about the same strings: the copy describes
+// our model instead of the player's pull. `6818cdf` rewrote a batch of them and moved two from one
+// abstraction to another — `ascendance.state.plain` went from "No rule" to "…pressed on the clock
+// alone", and `elementalMastery.state.plain` to "…pressed while Ascendance was still coming back".
+// Both sentences are about the audit's own branch structure. A player reading a red cell needs the
+// buttons to press together, not the name of the arm they failed.
+//
+// Two guards, because they fail in different ways:
+//
+//   1. A sweep over the locale file, so the next rewrite cannot re-introduce the vocabulary in a
+//      string no rendering test happens to cover. Scoped to the Elemental sections' own `state.*`,
+//      `kpi.*`, `caption` and `intent` keys — the four kinds a reader is shown as prose or as a table
+//      cell. Method notes (`unreadable`, `notGraded`, `measurable`, `resolution`) are deliberately
+//      about our method and are *not* in scope: a hedge has to be allowed to explain itself.
+//   2. Literal render assertions on the two strings the complaint named, so the sweep cannot be
+//      satisfied by copy that avoids the banned words and still says nothing actionable.
+//
+// The literals are spelled out here rather than fetched with a second `t()` call, for the reason the
+// sibling copy tests give: a test whose two sides both come out of the locale file passes whatever the
+// locale file happens to say.
+//
+// `createElement` rather than JSX so this stays a `.ts` file and is picked up by the project's own
+// vitest include patterns.
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+
+import { initI18n } from '~/lib/i18n/config';
+import { getSpec } from '~/lib/spec';
+import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
+
+import { SpecContext } from '~/components/report/specContext';
+import { analyse } from '~/specs/elemental/lib';
+
+import Ascendance from '../Ascendance';
+import ElementalMastery from '../ElementalMastery';
+
+const ELEMENTAL_SPEC = getSpec('elemental')!;
+
+initI18n();
+
+type El = Analysis & ElementalAuditResult;
+
+const unbroken: El = analyse(
+	JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/unbroken.json'), 'utf8')) as FightDataset,
+) as El;
+
+const render = (Component: (props: { analysis: Analysis }) => unknown, analysis: Analysis) =>
+	renderToStaticMarkup(
+		createElement(SpecContext.Provider, { value: ELEMENTAL_SPEC }, createElement(Component as never, { analysis })),
+	);
+
+// ------------------------------------------------------------------ 1. the locale sweep
+
+/**
+ * Words that name the audit rather than the game. `clock` is here because "pressed on the clock alone"
+ * is the complaint verbatim; the fight timeline is legitimately called a clock elsewhere in the file,
+ * which is why the sweep is scoped to these sections' four reader-facing key kinds rather than run
+ * across all 1109 strings.
+ */
+const MODEL_WORDS = [
+	'clock',
+	'the list',
+	'p5',
+	'branch',
+	'predicate',
+	'verdict',
+	'judg',
+	'gate',
+	'band',
+	'satisfied',
+	'rule',
+	'condition',
+	'graded',
+	'the section',
+	'on offer',
+	'opportunit',
+];
+
+/** The Elemental sections. Every one of them had at least one string in this shape. */
+const SECTIONS = [
+	'ascendance',
+	'elementalMastery',
+	'fireElemental',
+	'earthElemental',
+	'cooldownDrift',
+	'flameShock',
+	'flameShockSnapshots',
+	'earthShock',
+	'lavaBurst',
+	'searingTotem',
+	'lightningShield',
+	'stormlash',
+];
+
+const READER_KEYS = /(^|\.)(state|kpi|caption|intent)(\.|$)/;
+
+const copyStrings = (): [string, string][] => {
+	const locale = JSON.parse(
+		readFileSync(resolve(import.meta.dirname, '../../../../../locales/en/report.json'), 'utf8'),
+	) as Record<string, unknown>;
+	const out: [string, string][] = [];
+	const walk = (node: unknown, path: string[]) => {
+		if (typeof node === 'string') out.push([path.join('.'), node]);
+		else if (node && typeof node === 'object')
+			for (const [key, value] of Object.entries(node)) walk(value, [...path, key]);
+	};
+	walk(locale, []);
+	return out.filter(([key]) => SECTIONS.includes(key.split('.')[0]!) && READER_KEYS.test(key));
+};
+
+describe('the Elemental copy is about the pull, not about the audit', () => {
+	it('has reader-facing strings in every section, so the sweep is not vacuous', () => {
+		const found = new Set(copyStrings().map(([key]) => key.split('.')[0]!));
+		expect([...found].sort()).toEqual([...SECTIONS].sort());
+		expect(copyStrings().length).toBeGreaterThan(60);
+	});
+
+	it('names no part of our own model in a state, tile, caption or intent', () => {
+		for (const [key, value] of copyStrings())
+			for (const word of MODEL_WORDS) expect(value.toLowerCase(), `${key}: "${value}"`).not.toContain(word);
+	});
+});
+
+// ------------------------------------------------------------------ 2. the two named strings
+
+describe('the two cooldown states the complaint named', () => {
+	/** A press that is neither the opener nor a two-piece press — the cell that said "on the clock alone". */
+	it('tells an unpaired Ascendance which buttons to line it up with', () => {
+		const press = unbroken.ascendance.presses[0]!;
+		const html = render(Ascendance, {
+			...unbroken,
+			ascendance: { ...unbroken.ascendance, presses: [{ ...press, opener: false, twoPiece: false }] },
+		} as Analysis);
+		expect(html).toContain('Pressed outside the opener with no tier-16 proc up — save it for one of those');
+	});
+
+	/** `reason: null` — the cell that said "pressed while Ascendance was still coming back". */
+	it('tells an unpaired Elemental Mastery to hold the haste for Ascendance', () => {
+		const html = render(ElementalMastery, {
+			...unbroken,
+			elementalMastery: { presses: [{ t: 60_000, reason: null }], talented: true },
+		} as Analysis);
+		expect(html).toContain(
+			'Pressed with Ascendance on cooldown and not far enough out to spend on its own — hold the haste for Ascendance',
+		);
+	});
+
+	/** The permissive arm stays permissive: it is not a fault, and it still names the thing to do. */
+	it('keeps a press clear of Ascendance a suggestion rather than a fault', () => {
+		const html = render(ElementalMastery, {
+			...unbroken,
+			elementalMastery: { presses: [{ t: 60_000, reason: 'off' }], talented: true },
+		} as Analysis);
+		expect(html).toContain(
+			'Pressed on its own, with no Ascendance to pair it with — press the two together when you can',
+		);
+	});
+});

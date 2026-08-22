@@ -207,7 +207,7 @@
   },
   "fistsOfFury": {
     "title": "Fists of Fury",
-    "intent": "A channel that locks you in place, so where it goes matters more than how often. The rotation uses it under a brew or a proc, and not while a higher-priority ability is ready.",
+    "intent": "A channel that locks you in place, so where it goes matters more than how often you press it. Put it under a brew or a proc, and never while something higher in the priority list is ready.",
     "summary_one": "{{casts}} channel, {{seconds, seconds}} in total.",
     "summary_other": "{{casts}} channels, {{seconds, seconds}} in total.",
     "clean_good": "All of them were placed cleanly.",
@@ -427,7 +427,7 @@
     "title": "Timeline",
     "intent": "Every press as its own icon at the moment it went out, with buffs, procs and the Rising Sun Kick debuff drawn as bars underneath. Read down from a button to see what was up when you pressed it. Turn off what you are not looking at, zoom to separate one global from the next, and scroll sideways through the pull.",
     "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to lay on a clock.",
-    "caption": "Colour marks the category, not a verdict — nothing here is graded. A press that cost a global is drawn at full size; an off-global press, like a brew or a trinket, is drawn smaller so it never reads as a global you spent.",
+    "caption": "Colour marks what kind of button it was, and nothing here counts for or against you. A press that cost a global is drawn at full size; an off-global press, like a brew or a trinket, is drawn smaller so it never reads as a global you spent.",
     "expand": "Open full width",
     "close": "Close",
     "zoomIn": "Zoom in",
@@ -578,7 +578,7 @@
   },
   "xuen": {
     "title": "Invoke Xuen",
-    "intent": "Xuen fights alongside you for 45 seconds on a three-minute cooldown, and the rotation presses it the moment it is ready — nothing else gates it. So the only questions here are how often the tiger was summoned and how much of the fight it was active.",
+    "intent": "Xuen fights alongside you for 45 seconds on a three-minute cooldown, and you press it the moment it is ready — nothing holds it back. So all that matters here is how many times the tiger came out and how much of the fight it was up for.",
     "summary_one": "{{count}} summon, with the tiger out for {{uptime, percent}} of the pull.",
     "summary_other": "{{count}} summons, with the tiger out for {{uptime, percent}} of the pull.",
     "onCooldown": "Every summon the pull had room for went out.",
@@ -731,7 +731,7 @@
   },
   "rotation": {
     "title": "The rotation",
-    "intent": "This is the priority list that every section above compares you against. Nothing here is graded and none of it is about your pull — it is the reference to check when a number looks wrong.",
+    "intent": "This is the priority list every section above compares you against. None of it is about your pull — read it when a number above looks wrong to you.",
     "economy": "Two things shape the list. Your global cooldown is a flat second — haste never shortens it, because none of these is a spell; haste buys energy instead. And chi comes slower than globals: Jab costs 40 energy for 2 chi, and energy refills at about ten a second, so a global earns you two thirds of a chi. Two presses in three have to be chi-free. The rest is about caps. Energy caps at 100 and the bank at 20, and nine entries do nothing but keep energy from overcapping. A full bar earns you nothing.",
     "field": {
       "when": "press it when",
@@ -1098,7 +1098,7 @@
   },
   "priority": {
     "title": "Priority list",
-    "intent": "Every other section measures one thing on its own. This one walks the priority list alongside your pull and asks, at each global you spent: was a better button available right then?",
+    "intent": "Every other section measures one thing on its own. This one reads the priority list down your pull and asks, at every global you spent: was a better button ready right then?",
     "summary": "On {{followed}} of {{judged}} globals the priority list could judge, you pressed the highest-priority ability available. On {{skipped}} of them, a higher-priority ability was available and affordable.",
     "unjudged": "{{unknown}} presses could not be judged, because a rule above them needs something this log does not carry. Another {{offList}} were buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
     "clean": "On every global the priority list could judge, no higher-priority ability was available.",
@@ -1111,7 +1111,7 @@
     "kpi": {
       "followed": "Followed the priority list",
       "skipped": "Passed over",
-      "unknown": "Could not judge"
+      "unknown": "Can't tell"
     },
     "columns": {
       "button": "Button",
@@ -1151,7 +1151,7 @@
     "opportunities": "The priority list identified {{opportunities}} opportunities; {{used}} were used correctly.",
     "overuse": "You made {{extra}} more RJW presses than opportunities.",
     "decisions": {
-      "caption": "Every RJW press and every priority-list opportunity, in time order",
+      "caption": "Every Rushing Jade Wind press, and every moment the priority list asked for one, in time order",
       "columns": {
         "at": "At",
         "event": "Event",
@@ -1198,11 +1198,11 @@
   },
   "blackoutKick": {
     "title": "Blackout Kick",
-    "intent": "Blackout Kick is where spare chi goes. The priority list reaches it twice: free the moment Combo Breaker procs, and last of all as the chi dump. Each press costs two chi — the same as Rising Sun Kick — but it has no cooldown, so nothing limits how much chi it uses.",
+    "intent": "Blackout Kick is where spare chi goes. The rotation reaches it twice: free the moment Combo Breaker procs, and last of all as the chi dump. Each press costs two chi — the same as Rising Sun Kick — but it has no cooldown, so nothing limits how much chi it uses.",
     "none": "Blackout Kick was never pressed here. There is nothing to judge.",
     "kpi": {
       "casts": "Presses",
-      "followed": "Pressed as the priority list says",
+      "followed": "Pressed where the rotation says",
       "starved": "Rising Sun Kick left waiting"
     },
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals to spend.",
@@ -1259,7 +1259,7 @@
   },
   "flameShock": {
     "title": "Flame Shock",
-    "intent": "A thirty-second snapshot dot with no cooldown and no cast time. Its remaining time gates Lava Burst, and its refresh timing is what the snapshot section grades — so a dropped Flame Shock is not one global but a cascade.",
+    "intent": "A thirty-second snapshot dot, no cooldown and no cast time. Lava Burst needs it on the target, and the dot keeps whatever spellpower you applied it with for its whole duration — so letting Flame Shock drop costs you far more than the one global it takes to put it back.",
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and every refresh bought something.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes threw away a tick of the running dot with no stronger snapshot to show for it.",
     "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot was off the target for the rest of the time you had something to hit. {{wasted, integer}} refreshes also threw away a tick of the running dot with no stronger snapshot to show for it.",
@@ -1282,15 +1282,15 @@
     },
     "state": {
       "apply": "First application",
-      "reapply": "Reapplied",
-      "late": "Late refresh",
+      "reapply": "Put back up the moment it dropped",
+      "late": "Put back up after the dot had been down over a second",
       "duringAscendance": "Refresh during Ascendance",
       "ascPrep": "Refreshed early to carry the dot into Ascendance",
       "windowed": "Last-tick refresh",
-      "snapshot": "Early, for a stronger dot",
+      "snapshot": "Refreshed early into a dot over 10% stronger — worth the tick",
       "early": "Early — a tick thrown away"
     },
-    "caption": "Every Flame Shock press, what the dot still owed, and what the press bought",
+    "caption": "Every Flame Shock press, what was left on the dot, and what the press bought you",
     "none": "Flame Shock was never pressed in this pull.",
     "snapshotNote": "A refresh with one tick still to come throws nothing away — that tick rolls over into the new application, which is what “Last-tick refresh” and the “ticks left” column mean. An earlier one is not automatically a mistake either. The priority list wants one when the new application snapshots a dot more than 10% stronger per second — more spellpower, more crit, or a faster tick cadence — and those presses read “Early, for a stronger dot” above and are not counted as waste. Only the size of the gain is checked, not the proc that usually causes it, so a lucky press reads the same as a read one. The proc windows themselves are graded in the Snapshots section.",
     "chart": {
@@ -1313,7 +1313,7 @@
   },
   "earthShock": {
     "title": "Earth Shock",
-    "intent": "Earth Shock spends the Lightning Shield, and what makes a press good depends on how many enemies were up when you pressed it. Against one enemy with no tier-16 two-piece proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance not about to want the shock's own timer. While a tier-16 proc is running the press waits instead — hold the shock until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. A press inside a proc window is therefore not early just for being there; only one taken before that last four seconds is. Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
+    "intent": "Earth Shock spends the Lightning Shield, and what makes a press good depends on how many enemies were up when you pressed it. Against one enemy with no tier-16 two-piece proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance more than six seconds away, because Ascendance wants the same shock timer. While a tier-16 proc is running, hold the shock instead — wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. So a shock pressed while the proc is running is not early just for being there; only one pressed before the proc's last four seconds is. Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them.",
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them; the rest went out early.",
     "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them — most were spent before they were right.",
@@ -1330,7 +1330,7 @@
     "state": {
       "belowFull": "Shield below 7 charges",
       "fsLow": "Flame Shock had under 6s left",
-      "ascReady": "Ascendance was due within 6s — it wants this timer",
+      "ascReady": "Ascendance was up within 6s — hold the shock for it",
       "twoPiece": "Spent with over 4s still on the tier-16 proc — wait for its last four seconds",
       "fsTail": "Flame Shock had under two ticks left",
       "cleaveStacks": "Shield below 6 charges, with two enemies up",
@@ -1342,7 +1342,7 @@
   },
   "searingTotem": {
     "title": "Searing Totem",
-    "intent": "One global buys a minute of ticks. Only one Fire totem stands at a time, so the section is uptime against the engaged time the Fire Elemental was not holding the slot, the dot-time a re-press threw away, and the placements that came too late to matter.",
+    "intent": "One global buys a minute of ticks. Only one Fire totem stands at a time, so keep Searing Totem up for every second the Fire Elemental is not holding the slot, never re-press a totem that still has time on it, and do not spend a global on one in the pull's last ten seconds.",
     "verdict_good": "{{uptime, percent}} uptime, and no press landed over a live totem.",
     "verdict_ok": "{{uptime, percent}} uptime. {{clipped, integer}} presses clipped a healthy totem, throwing away {{wasted, duration}} of its dot.",
     "verdict_bad": "{{uptime, percent}} uptime, and {{clipped, integer}} presses clipped a healthy totem — {{wasted, duration}} of ticks the earlier press had already bought.",
@@ -1363,7 +1363,7 @@
       "fresh": "Fresh placement",
       "clip": "Clipped a totem",
       "refresh": "Early refresh",
-      "feOverlap": "Under Fire Elemental",
+      "feOverlap": "Placed under the Fire Elemental, which holds the slot",
       "late": "Late placement"
     },
     "caption": "Every Searing Totem placement, what the previous totem still had on it, and what the press bought",
@@ -1381,7 +1381,7 @@
   },
   "flameShockSnapshots": {
     "title": "Snapshots",
-    "intent": "When a trigger proc (UVLS, Wushoolay’s counter, or Black Blood’s counter) overlaps an intellect proc, the sim wants Flame Shock reapplied inside it so the snapshot freezes the proc’s spellpower. A window the dot was up through with no refresh inside is a missed snapshot.",
+    "intent": "When a trigger proc (UVLS, Wushoolay’s counter, or Black Blood’s counter) overlaps an intellect proc, refresh Flame Shock inside the overlap: the dot freezes the spellpower you applied it with and keeps it for the rest of its duration. A stretch you had both procs up, with the dot running and no refresh in it, is a snapshot you gave away.",
     "verdict_good": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
     "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
     "verdict_bad": "Only {{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh — the rest let the proc pass without a snapshot.",
@@ -1399,13 +1399,13 @@
       "uvls-stacks": "Wushoolay’s at ten stacks",
       "black-blood": "Black Blood at ten stacks"
     },
-    "caption": "Every proc window the sim would have claimed a refresh in, and what opened it",
+    "caption": "Every stretch of overlapping procs worth a refresh, and which trinket opened it",
     "none": "No proc window was offered in this pull.",
     "measurable": "The \"dot grew by 10%\" half of the sim’s rule *is* readable off a log, and the Flame Shock section now reads it: every tick reports its damage before the crit roll and before the target’s own debuffs, so one application’s snapshot is a single number and the change across a refresh is that number over its tick period. What this section adds is the other half — which procs were on offer to be snapshotted in the first place."
   },
   "ascendance": {
     "title": "Ascendance",
-    "intent": "Fifteen seconds in which Lava Burst has no cooldown, and every Elemental shaman has it — this one is not a talent, so the section is here on every pull. The priority list presses it in the opener, or inside a tier-16 two-piece window, so what is judged here is where the press landed rather than how promptly the button came off cooldown. The dot column is the other half of that: with Lava Burst as your filler for fifteen seconds, Flame Shock wants to be on the target for all fifteen.",
+    "intent": "Fifteen seconds in which Lava Burst has no cooldown. Every Elemental shaman has Ascendance — it is not a talent — so what matters is not how fast you press it off cooldown but what you press it with: open with it, or spend it on a tier-16 two-piece proc. And because Lava Burst is your filler for all fifteen seconds, keep Flame Shock on the target for every one of them.",
     "kpi": {
       "presses": "Ascendance presses"
     },
@@ -1415,26 +1415,26 @@
       "state": "what it was"
     },
     "state": {
-      "opener": "In the opener",
-      "twoPiece": "In a tier-16 two-piece window",
-      "plain": "Neither the opener nor a tier-16 window — pressed on the clock alone"
+      "opener": "Pressed in the opener",
+      "twoPiece": "Pressed on a tier-16 two-piece proc",
+      "plain": "Pressed outside the opener with no tier-16 proc up — save it for one of those"
     },
-    "caption": "Every Ascendance press, what the Flame Shock dot had left, and where the press landed",
+    "caption": "Every Ascendance press, how much Flame Shock was left on the target, and what you paired it with",
     "none": "Ascendance was never pressed in this pull."
   },
   "elementalMastery": {
     "title": "Elemental Mastery",
-    "intent": "Thirty percent haste for twenty seconds on a ninety-second cooldown — and a talent, taken instead of Ancestral Swiftness or Echo of the Elements, so this section appears only when your log says you took it. The priority list spends it on Ascendance: in the opener, or with Ascendance a second or two out and the Flame Shock dot inside sixteen seconds, so the haste lands on the window that spends it. A tier-15 four-piece changes that pairing; without one, a press taken a long way from Ascendance is allowed rather than wasted.",
+    "intent": "Thirty percent haste for twenty seconds, on a ninety-second cooldown. It is a talent, taken instead of Ancestral Swiftness or Echo of the Elements, so you only see this when your log shows you took it. Press it with Ascendance: in the opener, or with Ascendance a second or two out and under sixteen seconds of Flame Shock left, so the haste lands on the Lava Bursts that spend it. With a tier-15 four-piece you spend it on the set's own proc instead; without one, a press a long way from Ascendance costs you nothing.",
     "columns": {
       "at": "at",
       "state": "what it was"
     },
     "state": {
-      "opener": "In the opener",
-      "sync": "Pressed onto Ascendance",
-      "t15": "Inside a tier-15 four-piece window",
-      "off": "Pressed clear of Ascendance, which the list allows when the sync is not on offer",
-      "plain": "Neither with Ascendance nor clear of it — pressed while Ascendance was still coming back"
+      "opener": "Pressed in the opener",
+      "sync": "Pressed with Ascendance",
+      "t15": "Pressed on a tier-15 four-piece proc",
+      "off": "Pressed on its own, with no Ascendance to pair it with — press the two together when you can",
+      "plain": "Pressed with Ascendance on cooldown and not far enough out to spend on its own — hold the haste for Ascendance"
     },
     "caption": "Every Elemental Mastery press and whether it landed on Ascendance",
     "noneTalented": "You took Elemental Mastery and never pressed it — twenty seconds of haste that stayed on the bar all pull.",
@@ -1443,7 +1443,7 @@
   },
   "cooldownDrift": {
     "title": "Held cooldowns",
-    "intent": "The buttons the list only ever says “press it when it is up” about — Unleash Elements, Elemental Blast if you took it, and anything else on a timer that the sections above do not judge on placement. One row each: how many presses the pull had room for, how many of those you did not make, and how long the button stood ready and unpressed. Ascendance, Elemental Mastery and the two elementals are judged on where the press landed instead, so they are not in here.",
+    "intent": "The buttons the rotation only ever says “press it when it is up” about — Unleash Elements, Elemental Blast if you took it, and anything else on a timer that no section above places for you. One row each: how many presses the pull had room for, how many you did not make, and how long the button stood ready and unpressed. Ascendance, Elemental Mastery and the two elementals are about where you put them, so they get their own sections.",
     "kpi": {
       "lost": "Presses missed"
     },
@@ -1458,23 +1458,23 @@
   },
   "fireElemental": {
     "title": "Fire Elemental",
-    "intent": "The five-minute summon. The p5 list presses it prepull when Heroism is going up on the pull, synced with Ascendance, or in the pull's last minute — a press anywhere else is a summon the pull's best window never got.",
+    "intent": "The five-minute summon, and where you put it is all of its value. Press it prepull when Heroism is going up as the pull starts, with Ascendance, or in the fight's last minute — press it anywhere else and one of those three goes without an elemental.",
     "kpi": {
       "used": "Summons",
-      "inWindow": "In a window"
+      "inWindow": "Well-timed summons"
     },
     "columns": {
       "at": "at",
       "state": "what it was"
     },
     "state": {
-      "prepull": "Prepulled (no cast logged)",
-      "near-end": "Near the end",
-      "sync": "Synced with Ascendance",
-      "early": "Early enough to come back and be spent again",
-      "plain": "Too late to come back before the end, too far from Ascendance to pair with it"
+      "prepull": "Already out at the bell — no cast in your log",
+      "near-end": "Pressed in the last minute — it lives to the end",
+      "sync": "Pressed with Ascendance",
+      "early": "Early, but with over three minutes left it comes back for a second summon",
+      "plain": "No Ascendance to pair with, and too late to come back before the end — press it with Ascendance or hold it for the last minute"
     },
-    "caption": "Every Fire Elemental press and which window it was",
+    "caption": "Every Fire Elemental summon, and what you pressed it with",
     "none": "Fire Elemental was never pressed in this pull.",
     "prepullYes": "It was already out when the bell went — the prepull press the list makes under Heroism.",
     "prepullNo": "It was not out when the bell went. Summoning it just before the pull is free: the elemental works from the first second and its five-minute cooldown starts turning earlier. Whether it was still down from the attempt before is not something this log can see, so nothing here counts it as a mistake.",
@@ -1482,29 +1482,29 @@
   },
   "earthElemental": {
     "title": "Earth Elemental",
-    "intent": "Hold this summon for the end of the pull. The priority list wants it in the fight's last sixty-two seconds, and lets it out earlier for one reason only: to stand in for the Fire Elemental in a burst window the Fire Elemental cannot be part of — that one already spent and over a minute from coming back, with Ascendance and a warrior's Skull Banner both about to go up. Two things that window waits on are invisible to a combat log: when another player's Skull Banner comes back, and whether the Fire Elemental is glyphed down to thirty seconds. So a press in the last sixty-two seconds is right; a press outside it that the log shows was standing in for nothing is a mistake; and a press that window might have wanted is left unjudged rather than called a mistake.",
+    "intent": "Hold this summon for the end of the fight. Press it in the last sixty-two seconds, and let it out earlier for one reason only: to stand in for the Fire Elemental in a burst the Fire Elemental cannot join — that one already spent and over a minute from coming back, with Ascendance and a warrior's Skull Banner both about to go up. Two things that call waits on never reach a combat log: when another player's Skull Banner comes back, and whether the Fire Elemental is glyphed down to thirty seconds. So a press in the last sixty-two seconds is right; a press outside it that was standing in for nothing is a mistake; and a press that might have been standing in for something is left alone rather than called a mistake.",
     "kpi": {
       "used": "Summons",
       "nearEnd": "In the last minute",
-      "unknown": "This log can't judge"
+      "unknown": "Your log can't say"
     },
     "columns": {
       "at": "at",
       "state": "what it was"
     },
     "state": {
-      "nearEnd": "In the fight's last minute, where it belongs",
+      "nearEnd": "Pressed in the fight's last minute, where it belongs",
       "offRule": "Too early — hold it for the fight's last minute",
-      "unknown": "Early — right only in a burst window this log cannot see"
+      "unknown": "Early — only right if you were standing in for a Fire Elemental that could not be up, and your log does not show the Skull Banner cooldown that call waits on"
     },
-    "caption": "Every Earth Elemental summon and what its timing was worth",
+    "caption": "Every Earth Elemental summon, and where in the fight it went out",
     "none": "Earth Elemental was never pressed in this pull.",
     "inferred": "before the pull",
     "unreadable": "Pressing this summon early is only ever right as a stand-in for the Fire Elemental in a burst window, and one of the things that window waits on is a warrior's Skull Banner coming off cooldown — another player's button, which your combat log does not record. So an early press that window might have wanted is marked as one this report cannot judge: it is not held against you, and it counts in neither half of the graded figure. A summon made before the pull is drawn as a row and never graded either — the priority list has no pre-pull play for this button to be measured against."
   },
   "lightningShield": {
     "title": "Lightning Shield",
-    "intent": "A seven-charge counter that builds on Rolling Thunder and is spent whole by Earth Shock’s Fulmination. The section draws the counter and marks its two faults: sitting at seven so long the Rolling Thunder has nowhere to put its charge, and coming all the way off. Only the bad spends are listed — a spend at seven is the whole game.",
+    "intent": "A seven-charge counter that builds on Rolling Thunder and is spent whole by Earth Shock’s Fulmination. Two things cost you charges: sitting at seven, where the next Rolling Thunder has nowhere to put one, and letting the shield fall off altogether. Always spend it at seven — so the only shocks listed below are the ones you spent below that.",
     "verdict_good": "The shield never sat at seven past the leeway and never fell off.",
     "verdict_ok": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times.",
     "verdict_bad": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times — both are charges the next spend lost.",
@@ -1532,7 +1532,7 @@
   },
   "stormlash": {
     "title": "Stormlash Totem",
-    "intent": "A raid cooldown the buff of which does not stack. With several shamans the assignment is to stagger the totems — first, then second, then third — so a totem laid on top of a running one is a totem wasted.",
+    "intent": "Stormlash does not stack. With more than one shaman in the raid you stagger the totems — first, then second, then third — so a totem dropped on top of one that is still running is a totem wasted.",
     "kpi": {
       "totems": "Totems placed",
       "overlaps": "Overlapping stretches"
@@ -1552,7 +1552,7 @@
   },
   "lavaBurst": {
     "title": "Lava Burst",
-    "intent": "Lava Surge makes one Lava Burst free, and Ascendance resets its cooldown — those two are the whole way the button comes off cooldown early. The section is about the free cast a cast count cannot see: a surge that expired with no Lava Burst inside was a free cast thrown away.",
+    "intent": "Lava Surge makes one Lava Burst free, and Ascendance takes its cooldown away entirely — those are the only two ways the button comes back early. Press Lava Burst while the surge is still up: a surge that expires with no Lava Burst inside it is a free cast thrown away, and a cast count will never show it to you.",
     "kpi": {
       "casts": "Lava Bursts",
       "procs": "Lava Surge procs",
@@ -1563,10 +1563,10 @@
       "state": "what it was"
     },
     "state": {
-      "wasted": "Expired unused",
+      "wasted": "The proc expired with no Lava Burst pressed",
       "noDot": "Cast with no Flame Shock on the target"
     },
-    "caption": "What this pull gave away: the Lava Surge procs that expired with no Lava Burst inside them, and the Lava Bursts committed with no Flame Shock on the enemy they were aimed at",
+    "caption": "What this pull gave away: Lava Surge procs that expired with no Lava Burst inside them, and Lava Bursts you pressed with no Flame Shock on the enemy you aimed at",
     "none": "Nothing given away — every Lava Surge was spent, and every Lava Burst went out with Flame Shock already on its target.",
     "note": "Flame Shock is what makes Lava Burst hit hard: a ×1.5 on the damage, and the crit is unconditional, so the two are one bonus and not two. The bonus is settled when the cast goes out, not when the missile lands — a dot that runs out during the ~0.8s of travel has already paid for the hit, so a press this section leaves alone can still look wrong if you expect the dot to survive to impact. Only a press committed with no dot at all is listed here; a dot that expires mid-cast is charged as a lost cast instead, because the priority list refuses that press in the first place."
   }
