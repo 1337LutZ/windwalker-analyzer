@@ -142,4 +142,24 @@ describe('a credited early refresh names the term that made the dot stronger', (
 		expect(html).toContain('Last-tick refresh');
 		expect(html).not.toContain('6.26% stronger');
 	});
+
+	/**
+	 * The note under the table quotes two of the column's own labels, and the quotes have to be labels
+	 * that exist. A `“Last-tick refresh”` in the prose beside a cell reading something else is the same
+	 * class of error as the wrong reason: text a reader cannot line up with what they are looking at.
+	 *
+	 * Two stale quotes are held out. `“Early, for a stronger dot”` is a string this section has never
+	 * rendered and the note promised it for a long time; that one went with the copy rewrite, so its line
+	 * here is a regression guard. `“worth the tick”` is the one this test was written for: the rewrite gave
+	 * a credited row three forms and only one of them carries that phrase, so the note went on quoting a
+	 * label two thirds of its own rows do not print.
+	 */
+	it('quotes only labels the table actually prints', () => {
+		expect(html).toContain('which is what “Last-tick refresh” and the “ticks left” column mean');
+		expect(html).toContain('>Last-tick refresh<');
+		expect(html).toContain('>ticks left<');
+		expect(html).not.toContain('Early, for a stronger dot');
+		// And the note no longer claims a credited row reads a phrase two of the three forms do not carry.
+		expect(html).not.toContain('those presses read “worth the tick” above');
+	});
 });
