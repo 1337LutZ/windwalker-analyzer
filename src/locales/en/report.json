@@ -440,6 +440,7 @@
       "debuffs": "Debuffs"
     },
     "mergedLane": "{{ability}} · {{aura}}",
+    "sourceLane": "{{aura}} · {{caster}}",
     "tip": {
       "at": "Pressed",
       "swing": "Swung",

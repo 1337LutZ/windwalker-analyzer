@@ -21,5 +21,6 @@ export * from './gear';
 export * from './intervals';
 export * from './links';
 export * from './raidBuffs';
+export * from './raidCasters';
 export * from './stacks';
 export * from './targets';

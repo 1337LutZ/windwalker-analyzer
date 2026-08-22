@@ -2100,7 +2100,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 			press === undefined || press.lane.name === lane.name
 				? lane.name
 				: t('castLog.mergedLane', { ability: press.lane.name, aura: lane.name });
-		return lane.source?.name == null ? aura : `${aura} · ${lane.source.name}`;
+		return lane.source?.name == null ? aura : t('castLog.sourceLane', { aura, caster: lane.source.name });
 	};
 
 	// One renderer per column, called for every block. Written out once because the leading rows, the
