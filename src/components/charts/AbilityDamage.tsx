@@ -1,4 +1,6 @@
 import { useCallback, useMemo } from 'react';
+
+import { useNarrow } from '~/hooks/useNarrow';
 import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis } from '~/lib/types';
@@ -8,7 +10,7 @@ import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
 import TrackLabels, { type Track } from './TrackLabels';
-import { baseChart, baseGrid, baseTooltip, LABEL_FONT_SIZE, NARROW_QUERY } from './apex';
+import { baseChart, baseGrid, baseTooltip, LABEL_FONT_SIZE } from './apex';
 
 /**
  * Row height, on a 4px grid shared by every chart in the report.
@@ -152,7 +154,7 @@ export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
 
 	// Matched to `build`'s own `narrow`, which ApexCharts is handed at draw time: the label column and
 	// the padding the chart reserves for it have to agree, or the labels sit over the plot.
-	const narrow = typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches;
+	const narrow = useNarrow();
 	const tracks: Track[] = abilities.map((a) => ({ iconId: a.id, label: a.name }));
 
 	return (

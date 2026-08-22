@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+
+import { useNarrow } from '~/hooks/useNarrow';
 import type { ApexOptions } from 'apexcharts';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +16,7 @@ import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import TrackLabels, { type Track } from '~/components/charts/TrackLabels';
 import type { ChartTheme, TipContent } from '~/components/charts/apex';
-import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from '~/components/charts/apex';
+import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip, timeAxis } from '~/components/charts/apex';
 
 /** Charts in this group share their zoom, pan and crosshair. */
 const FIGHT_GROUP = 'ww-fight';
@@ -412,7 +414,7 @@ export default function FightTimeline({ analysis }: { analysis: Analysis }) {
 
 	// Only the tracks that actually drew a row, in the order the chart stacks them — an empty track
 	// draws nothing, so labelling it would shift every label below it onto the wrong row.
-	const narrow = typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches;
+	const narrow = useNarrow();
 	const names = narrow ? TRACK_NARROW : TRACK;
 	const tracks: Track[] = (
 		[

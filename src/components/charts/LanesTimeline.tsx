@@ -1,4 +1,6 @@
 import { useCallback, useMemo } from 'react';
+
+import { useNarrow } from '~/hooks/useNarrow';
 import { useTranslation } from 'react-i18next';
 import type { ApexOptions } from 'apexcharts';
 
@@ -15,7 +17,7 @@ import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
 import ChartEmpty from './ChartEmpty';
 import type { ChartTheme, TipContent } from './apex';
-import { LABEL_FONT_SIZE, NARROW_QUERY, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
+import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip, timeAxis } from './apex';
 import { useSpec } from '~/components/report/specContext';
 import { rowRank } from './timelineOrder';
 
@@ -304,7 +306,7 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 		return <ChartEmpty>{t('timeline.lanes.empty')}</ChartEmpty>;
 	}
 
-	const narrow = typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches;
+	const narrow = useNarrow();
 	const tracks: Track[] = rows.map((row) => ({ iconId: row.id, label: row.name }));
 
 	return (
