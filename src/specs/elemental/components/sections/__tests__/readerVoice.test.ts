@@ -98,7 +98,10 @@ const SECTIONS = [
 	'stormlash',
 ];
 
-const READER_KEYS = /(^|\.)(state|kpi|caption|intent)(\.|$)/;
+// `read` joins the four when the Ascendance verdict column landed: those sentences are the newest
+// reader-facing copy in the spec and the most tempting place to name a rule arm, which is the exact
+// mistake this file exists to stop repeating.
+const READER_KEYS = /(^|\.)(state|kpi|caption|intent|read)(\.|$)/;
 
 const copyStrings = (): [string, string][] => {
 	const locale = JSON.parse(
@@ -119,6 +122,12 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 		const found = new Set(copyStrings().map(([key]) => key.split('.')[0]!));
 		expect([...found].sort()).toEqual([...SECTIONS].sort());
 		expect(copyStrings().length).toBeGreaterThan(60);
+		// Each key kind the pattern claims to cover has to actually match something, or widening it is a
+		// no-op that reads as coverage. `read` is the one this caught: the Ascendance verdict sentences are
+		// the newest copy in the spec and were outside the sweep until the pattern named them.
+		const kinds = new Set(copyStrings().flatMap(([key]) => key.split('.')));
+		for (const kind of ['state', 'kpi', 'caption', 'intent', 'read']) expect(kinds, kind).toContain(kind);
+		expect(copyStrings().filter(([key]) => key.startsWith('ascendance.read.')).length).toBe(14);
 	});
 
 	it('names no part of our own model in a state, tile, caption or intent', () => {

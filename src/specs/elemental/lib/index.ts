@@ -60,6 +60,7 @@ import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
 import { defaultSettings } from '~/lib/settings';
 import type {
 	Analysis,
+	AscendanceFault,
 	AuraLane,
 	EarthElementalPress,
 	EarthElementalVerdict,
@@ -86,7 +87,7 @@ import { CLASS_COLOR } from '~/lib/game/classes';
 import { aplAudit, type AplInputs, ALL_BANDS, bandOf } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { LADDER } from './apl';
-import { ascendanceSync } from './ascendance';
+import { ascendanceSync, OPENER_DEADLINE_MS, type AscendancePressVerdict } from './ascendance';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 
 // ------------------------------------------------------------------- constants
@@ -1299,6 +1300,53 @@ function ascendanceReadyInSec(ascCasts: readonly number[], t: number): number {
 }
 
 /**
+ * **Which of the demands a bad press actually failed** — the field the table needs and the grade
+ * cannot supply.
+ *
+ * `ascendanceSync` publishes `grade: 'bad'` as the `and` of two or three conditions, and a reader
+ * looking at a red cell needs the one that broke, because each has a different thing to do about it:
+ * press it in the opener, press it sooner, press it into the haste, wait for the discharge, press it
+ * under the banner. So this decomposes the verdict rather than re-computing it — `grade` stays the
+ * authority on *whether* a press was bad and this only ever names *why*, which is why every arm
+ * below is guarded on `grade === 'bad'` and there is no path that can invent a fault on a good press.
+ *
+ * **The order is the rule's own conjunction order, not a preference.** More than one demand can fail
+ * on one press, and the sim asks them in a fixed sequence per arm — rule 1 then entry 14 then rule 3
+ * on the opener, rule 2 then entry 15 then rule 3 on a later press — so naming the first that failed
+ * is naming the same one the grade expression short-circuits on.
+ *
+ * **Rule 2 is read structurally rather than arithmetically**, which is the part worth knowing. Its
+ * branch in `ascendanceSync` returns before the two-piece is ever consulted, so it is the only bad
+ * `t16-2pc` verdict that reports no `dischargeRemainingMs` at all — the entry-15 branch always sets
+ * a number there, zero included. Testing for that null is therefore reading the shape the module
+ * published, not guessing at the predicate behind it.
+ *
+ * The final `'no-banner'` is a fallback with an argument: `grade === 'bad'` means at least one
+ * conjunct failed, and every other conjunct has been excluded by the time control reaches it. The
+ * suite asserts the invariant in both directions rather than trusting that reasoning — a named fault
+ * always has its own quantity offside, and a bad press always has a fault.
+ */
+export const ascendanceFault = (sync: AscendancePressVerdict): AscendanceFault | null => {
+	if (sync.grade !== 'bad') return null;
+	// Rule 2, and the one that is not a threshold comparison at all: the window ran past the kill.
+	if (sync.rule === 't16-2pc' && sync.dischargeRemainingMs === null) return 'window-past-the-kill';
+	if (sync.rule === 'bloodlust') {
+		// Rule 1 first: the opener press is not optional, so being outside the opener at all is the
+		// fault, before anything about what it was pressed into.
+		if (sync.t > OPENER_DEADLINE_MS) return 'opener-late';
+		if (sync.delayMs !== null && sync.delayMs > sync.limitMs) return 'late-into-haste';
+		return 'no-banner';
+	}
+	if (sync.dischargeRemainingMs !== null && sync.dischargeRemainingMs < sync.limitMs) return 'discharge-too-short';
+	// Rule 3 by exclusion, and the exclusion is what makes it safe. Rule 3's own availability guard —
+	// a press with less pull left than the 9 000 ms it wants is not faulted for missing them — lives
+	// inside `bannerOk` in `ascendanceSync`, and reaching this line means that expression is the only
+	// conjunct left that can have failed. Re-testing `bannerOverlapMs` here would be a second copy of
+	// that guard, free to drift from the first; inheriting it costs nothing and cannot.
+	return 'no-banner';
+};
+
+/**
  * The Elemental's half of the analysis, from the engine's `Handles` and nothing else.
  *
  * The core has already assembled the press marks, the contact and engaged clocks, the primary
@@ -2440,6 +2488,26 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 */
 	const ascendanceAtPull = laneWindows(ASCENDANCE_AURA, ascCasts).some((w) => w.preexisting === true);
 	/**
+	 * The raid's own buffs, bucketed per caster — **hoisted above the Ascendance block because the grade
+	 * needs them, not just the chart.**
+	 *
+	 * This used to sit in the timeline block several hundred lines below, which was fine while its only
+	 * reader was the row it draws. §80's rules 3 and 4 made Skull Banner a grading input, and
+	 * `ascendanceSync` takes it as an optional parameter that nothing passed — so both rules were correct,
+	 * tested and inert. Moving the declaration is the whole of the wiring, and it avoids the alternative,
+	 * which was a second walk of the same raid stream for the same windows.
+	 *
+	 * Unchanged otherwise: `raidLanes.drawn` still feeds the timeline from here, and the argument for
+	 * resolving the auras by key rather than naming constants is on that block below.
+	 */
+	const RAID_SOURCE_AURAS = ['stormlash-totem', 'skull-banner'];
+	const raidLanes = raidSourceLanes(
+		events,
+		registry.auras.filter((a) => RAID_SOURCE_AURAS.includes(a.key)),
+		{ t0, pullMs: duration, actorID: actor.id, actors: h.actors },
+	);
+
+	/**
 	 * The press rules, from `./ascendance` — the opener against the raid's haste cooldown, every later
 	 * press against the T16 two-piece.
 	 *
@@ -2456,12 +2524,25 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		contact,
 		durationMs: duration,
 		t16TwoPieceWindows: twoPieceWindows.length > 0 ? twoPieceWindows : null,
+		// Rules 3 and 4's input, and two things in this expression are load-bearing.
+		//
+		// **`drawn` and `hidden` both.** `raidSourceLanes` caps drawn rows at `RAID_SOURCE_LANES`, because
+		// a chart has a row budget. A grade must not inherit one: a seventh warrior's banner is evidence
+		// about the pull whether or not there is screen space for it.
+		//
+		// **`l.source?.id` and not the event's `sourceID`.** That id is the `petOwner`-resolved caster, which
+		// is what makes `windows[1]` a warrior's *second press* rather than the second banner object in the
+		// stream — the distinction rule 4 turns on, and worth three minutes of error on `cleave`.
+		skullBannerWindows: [...raidLanes.drawn, ...raidLanes.hidden]
+			.filter((l) => l.key === 'skull-banner')
+			.map((l) => ({ source: l.source?.id ?? -1, windows: l.windows })),
 	});
 	// Mapped over the verdicts rather than over `ascCasts`, so a press and its verdict cannot come
 	// apart: `ascendanceSync` maps the cast list one-to-one, and taking the `t` off the verdict is what
 	// makes that guarantee structural rather than an index both sides have to agree about.
 	const ascPresses = ascSync.presses.map((sync) => ({
 		t: sync.t,
+		fault: ascendanceFault(sync),
 		// Per spawn: "Ascendance pressed without a fresh Flame Shock" is a claim about the enemy the
 		// player was about to spend the window on, and the list's own rule reads `dotRemainingTime`,
 		// which the sim evaluates against the current target.
@@ -2884,12 +2965,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * `game/shared.ts` (it lands on a monk exactly as it lands on a shaman) and the day it is declared there
 	 * both specs draw it with no further edit here.
 	 */
-	const RAID_SOURCE_AURAS = ['stormlash-totem', 'skull-banner'];
-	const raidLanes = raidSourceLanes(
-		events,
-		registry.auras.filter((a) => RAID_SOURCE_AURAS.includes(a.key)),
-		{ t0, pullMs: duration, actorID: actor.id, actors: h.actors },
-	);
 	/**
 	 * **The §6 audit of this file's `auraWindows` calls, written down because the calls that did _not_
 	 * change are the more useful half.**

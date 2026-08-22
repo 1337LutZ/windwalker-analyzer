@@ -2412,8 +2412,38 @@ export interface SnapshotsAudit {
 }
 
 /** One Ascendance press and the dot it found, for the cooldowns section. */
+/**
+ * Which single demand a faulted Ascendance press failed, for the table's verdict column.
+ *
+ * **Not a second grade.** `sync.grade` decides whether a press was bad; this only ever names why, and
+ * is null on every press that was not. It exists because `grade: 'bad'` is the `and` of two or three
+ * conditions and each has a different thing for a reader to do about it — the decomposition, and the
+ * argument for reading rule 2 off the published shape rather than re-deriving it, are on
+ * `ascendanceFault` in `specs/elemental/lib/index.ts`.
+ *
+ * Declared here beside `AscendancePress` rather than in `specs/elemental/lib/ascendance.ts`, which owns
+ * the grade itself: that module is a pure function over the rules and says nothing about how a report
+ * draws them, and this is a presentation split of its answer.
+ */
+export type AscendanceFault =
+	/** Rule 1 (§80.1). Outside the opener entirely — the one press the list treats as mandatory. */
+	| 'opener-late'
+	/** Rule 2 (§80.2). The fifteen seconds ran past the kill, on a press that could have come sooner. */
+	| 'window-past-the-kill'
+	/** Entry 14. In the opener, but too long after the haste cooldown opened to be spent into it. */
+	| 'late-into-haste'
+	/** Entry 15. Pressed with less Elemental Discharge left than the sync demands. */
+	| 'discharge-too-short'
+	/** Rule 3. The window held less Skull Banner than the rule's own floor, with pull enough to hold it. */
+	| 'no-banner';
+
 export interface AscendancePress {
 	t: number;
+	/**
+	 * Which demand this press failed, or null when it failed none — including on a press that could not
+	 * be judged at all, where `sync.reason` is the field with something to say.
+	 */
+	fault: AscendanceFault | null;
 	/** The dot's remaining time at the press; null when the dot was down. */
 	fsRemainingMs: number | null;
 	/**

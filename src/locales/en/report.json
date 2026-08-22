@@ -1412,7 +1412,8 @@
     "columns": {
       "at": "at",
       "dotLeft": "dot left",
-      "state": "what it was"
+      "state": "what it was",
+      "read": "how it read"
     },
     "state": {
       "opener": "Pressed in the opener",
@@ -1420,7 +1421,30 @@
       "plain": "Pressed outside the opener with no tier-16 proc up — save it for one of those"
     },
     "caption": "Every Ascendance press, how much Flame Shock was left on the target, and what you paired it with",
-    "none": "Ascendance was never pressed in this pull."
+    "none": "Ascendance was never pressed in this pull.",
+    "read": {
+      "good": "Well placed",
+      "fault": {
+        "opener-late": "Pressed after the opening five seconds — open with Ascendance instead",
+        "window-past-the-kill": "{{wasted, duration}} of the fifteen seconds ran past the kill — press it sooner",
+        "late-into-haste": "Too long after the haste went up to be spent inside it — press it with Bloodlust",
+        "discharge-too-short": "Only {{discharge, duration}} of the tier-16 proc left — hold it for a fresher one",
+        "no-banner": "Barely any Skull Banner inside the window — spend Ascendance while the raid's banner is up"
+      },
+      "reason": {
+        "ascendance-up-at-the-pull": "Already running at the bell, so this press is not in your log",
+        "first-press-past-one-cooldown": "Over a full cooldown into the pull — this may be a second use, so nothing is held against it",
+        "nothing-to-hit": "Nothing was in reach when this press was due, so it cannot be read either way",
+        "no-two-piece-evidence": "No tier-16 two-piece in your gear, so there was no proc to pair it with",
+        "t16-2pc-not-in-log": "Your tier-16 two-piece never procced on this pull, so there was nothing to pair it with",
+        "pull-ends-too-soon": "Less pull left than the pairing needs — nothing you could press would have met it"
+      },
+      "secondBanner": {
+        "synced": "Your second Ascendance landed on a warrior's second Skull Banner, which is the pairing to aim for.",
+        "missed": "Your second Ascendance did not land on a warrior's second Skull Banner. That pairing is worth having rather than owed, so nothing here counts against you."
+      }
+    },
+    "noneMissed": "Ascendance was never pressed. Every Elemental shaman has it, it costs one global, and the opener wants it — this is the biggest thing to fix on this pull."
   },
   "elementalMastery": {
     "title": "Elemental Mastery",

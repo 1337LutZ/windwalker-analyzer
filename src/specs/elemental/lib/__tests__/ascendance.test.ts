@@ -287,11 +287,14 @@ describe('the wiring, end to end', () => {
 				syncStartMs: 785,
 				limitMs: 5000,
 				wastedMs: null,
-				// **This is the deliverable's own evidence that `index.ts` does not pass the banner windows
-				// yet.** `unbroken` carries two Skull Banners covering 2 884–23 372 ms, which is the whole
-				// of this opener's fifteen seconds — so a wired audit would publish 15 000 here. It
-				// publishes null, and rule 3 is silent rather than passing on a value it never read.
-				bannerOverlapMs: null,
+				// **The wiring this assertion used to record the absence of.** `unbroken` carries two Skull
+				// Banners covering 2 884–23 372 ms, which is the whole of this opener's fifteen seconds, and
+				// `index.ts` now passes them — so rule 3 reads the 15 000 it always should have. The null it
+				// published before was the module being silent about an input it never received; this is the
+				// same rule with the input in hand, and the opener grades `good` either way.
+				bannerOverlapMs: 15_000,
+				// Still null, and not for want of wiring: rule 4 reads each caster's *own* second banner, and
+				// `unbroken`'s two warriors pressed once each. It is also press 0, which the rule never asks.
 				secondBannerOverlapMs: null,
 				secondBannerSynced: null,
 			},
@@ -305,7 +308,13 @@ describe('the wiring, end to end', () => {
 				syncStartMs: null,
 				limitMs: 10_000,
 				wastedMs: 14_286,
-				bannerOverlapMs: null,
+				// Zero, and it is a real reading rather than a silence: this press is 714 ms from the kill, so
+				// its fifteen seconds are almost entirely past the end and no banner can be inside them. Rule
+				// 2's availability guard has already exempted the press, which is why a zero here faults
+				// nothing — the case rule 3's own guard exists for, arriving from the other direction.
+				bannerOverlapMs: 0,
+				// `unbroken` is the pull where no warrior pressed twice, so rule 4 has nothing to compare
+				// even on the press it asks about.
 				secondBannerOverlapMs: null,
 				secondBannerSynced: null,
 			},
