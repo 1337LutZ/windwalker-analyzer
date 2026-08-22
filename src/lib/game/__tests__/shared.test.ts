@@ -105,6 +105,14 @@ describe('the stacking trinkets are a window and a counter, and the counter carr
 	 * `db.json`. The window opens once per proc; the counter gains a stack on a fixed period inside it.
 	 * Putting the cap on the window is what `wrath-of-darkspear` did, and it made a graded input — the
 	 * Elemental snapshot audit's "at ten stacks" trigger — ask a non-stacking aura for ten stacks.
+	 *
+	 * **Each row asserts the window is declared before it asserts the window does not stack**, and that
+	 * line is not ceremony. `auraById(window)?.maxStacks` is `undefined` for an aura that does not stack
+	 * *and* for an id nothing declares at all, so without it a row pointed at the sim's payload half —
+	 * `138758` for Ji-Kun rather than `138759` — passed this table while being exactly the inversion the
+	 * table exists to name. The `simOnly` list below did catch that one, from the other side, and that
+	 * is what hid the hole: the pair stayed covered while the pairs table was asserting nothing about
+	 * it. The counter side needs no such line, `toBe(cap)` already failing on an `undefined`.
 	 */
 	const pairs: Array<[string, number, number, number]> = [
 		// [item, window id, counter id, counter cap]
@@ -117,6 +125,7 @@ describe('the stacking trinkets are a window and a counter, and the counter carr
 
 	for (const [item, window, counter, cap] of pairs) {
 		it(`${item}: the window does not stack and the counter caps at ${cap}`, () => {
+			expect(registry.auraById(window), `${window} is the window, and has to be declared`).toBeDefined();
 			expect(registry.auraById(window)?.maxStacks, `${window} is the window`).toBeUndefined();
 			expect(registry.auraById(counter)?.maxStacks, `${counter} is the counter`).toBe(cap);
 		});
