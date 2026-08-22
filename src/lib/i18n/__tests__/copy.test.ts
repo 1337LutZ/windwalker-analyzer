@@ -69,6 +69,56 @@ describe('report copy', () => {
 	});
 
 	/**
+	 * The Casts-per-minute prose, after both of its spans changed meaning under it.
+	 *
+	 * Three of these four sentences render side by side and each names a *different* stretch of the same
+	 * pull, which is why the wording carries the weight here rather than the numbers:
+	 *
+	 *   - `activeTime` prints WarcraftLogs' own figure off the damage table — **92.62%** of `phased`. It
+	 *     said "You were active for …", which is not what it measures: on `cleave` it equals the span from
+	 *     the player's first damage to their last to the millisecond and swallows a 3 283ms gap, while on
+	 *     `phased` it is 239 246ms against a 257 126ms span, 17 880ms *short* of it, with that pull's two
+	 *     largest interior gaps at 13 131 and 8 318ms. So it forgives short pauses and drops long ones,
+	 *     and it is nobody's measure of time on task. Plan §44 carries the correction and supersedes
+	 *     `f6b8903`s commit message, which repeats an earlier overstatement that it is a pure
+	 *     first-to-last span; the same message's claim that it counts dot ticks and pet damage is also
+	 *     unconfirmed, because on all four fixtures the first and last damage events are the player's own
+	 *     non-tick hits and the endpoints cannot discriminate. The copy therefore asserts neither.
+	 *   - `presses` is handed the **contact** span since `f6b8903` — 79.97% of the same pull — so the
+	 *     sentence had two spans called "active" printing two different numbers a paragraph apart.
+	 *   - `verdict_*` end on a rate that is now per minute of contact, so "casts per minute" alone left a
+	 *     reader who divides presses by pull length with a different number and no way to tell which was
+	 *     wrong.
+	 *
+	 * The interpolation is still named `active` in all of these. Renaming it is a change to
+	 * `windwalker/components/sections/CastsPerMinute.tsx`, which this lane does not own; the placeholder
+	 * name is invisible to a reader and the sentence is not.
+	 */
+	it('says which span each Casts-per-minute figure is measured over', () => {
+		const active = t('casts.activeTime', { active: 92.62 });
+		expect(active).toContain('WarcraftLogs counts 92.62% of the pull as active time for you');
+		// The claim that was wrong, gone — and the two it must not have picked up in exchange.
+		expect(active).not.toContain('You were active for');
+		expect(active).not.toContain('first');
+		expect(active).not.toContain('tick');
+
+		// The contact span, named as itself rather than as a second "active".
+		const presses = t('casts.presses', { onGcd: 180, offGcd: 12, active: 207_000, total: 258_304 });
+		expect(presses).toContain('you spent on a target in a');
+		expect(presses).not.toContain('active');
+		// Both clocks still printed: the gap between them is the signal, so neither may be dropped.
+		expect(presses).toContain('3:27');
+		expect(presses).toContain('4:18');
+
+		// And the rate ties to the span the sentence under it names.
+		for (const context of ['good', 'ok', 'bad']) {
+			const text = t('casts.verdict', { context, used: 83.6, cpm: 31.59 });
+			expect(text, context).toContain('31.6 casts per minute of the time you spent on a target');
+		}
+		expect(t('casts.intent')).toContain('the time you spent on a target');
+	});
+
+	/**
 	 * The potion copy, whose whole job is to name the slot that went unfilled.
 	 *
 	 * The two variants have to resolve and have to be different sentences: the metric's value is `1 of
