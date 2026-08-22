@@ -308,7 +308,9 @@ const SILENT_AURAS: Record<string, string[]> = {
  * reached from them a third time.
  */
 const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped: number } | null> = {
-	'elemental/cleave.json': { presses: 204, followed: 81, skipped: 123 },
+	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
+	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`.
+	'elemental/cleave.json': { presses: 204, followed: 83, skipped: 121 },
 	'elemental/phased.json': { presses: 159, followed: 107, skipped: 52 },
 	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 45 },
 	'windwalker/dataset-ironJuggernaut.json': null,

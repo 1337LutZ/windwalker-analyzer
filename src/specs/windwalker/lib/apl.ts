@@ -21,6 +21,24 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  *   not filler decisions, and each already has a section that judges it against the same conditions
  *   with far more room than a per-press verdict would give it. Grading them twice would double-count
  *   one mistake.
+ * - **Storm, Earth and Fire** and **Touch of Karma** are the same call, and they are named here
+ *   because they used to fall under the bullet above's *category* without appearing in its list —
+ *   which is a citation the next reader cannot check. `lib/analysis/__tests__/ladderCoverage.test.ts`
+ *   sweeps every on-GCD conditional button for a rung and points at these lines for the three it
+ *   excuses, so all three have to actually be here.
+ *
+ *   Storm, Earth and Fire is priority 4 in the sim's list (the `SEF: Use` group), and its condition
+ *   there is a target count — `numberTargets == 2`, or `Targets: More than 2`, plus a spirit-stack
+ *   check. That much *is* a band and a rung could hold it. What a rung could not hold is the sharper
+ *   question `analysis.sef` asks: `SEF_SECOND_TARGET_MS` tests whether the second target lived long
+ *   enough to repay the spirit, and no band expresses a duration. So a rung here would restate the
+ *   easy half of the question and lose the half that decides the answer.
+ *
+ *   Touch of Karma is a stronger case still: **`122470` appears nowhere in the sim's Windwalker list
+ *   at all**, not in the priority list and not in any group. It is a mitigation press, and
+ *   `analysis.karma` scores it on what it reflected and absorbed against the cap the log reveals — a
+ *   press is right or wrong by the damage that was incoming, which is not a rotational condition and
+ *   not a thing a filler rung can read.
  * - **The elixir, weapon-swap, potion and trinket groups** are off-GCD item presses, and the audit
  *   only ever sees on-GCD ones — it filters on `onGcd` before judging. They cost none of the globals
  *   the ladder is arbitrating, so there is nothing here to judge them against.

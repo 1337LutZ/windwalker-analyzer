@@ -38,9 +38,43 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  *   Shock Refresh Prior to Ascendance`). They are judged by the Flame Shock section, which reads
  *   the proc windows and the dot's own measured tick window against them; the ladder carries
  *   only the keep-it-up half of the story (see the `flame-shock` rung below).
- * - **The multi-target Flame Shock rule** (16): refreshes on a *secondary* target when its dot has
- *   less than a tick left. The ladder grades the primary target; the multi-target caveat is the
- *   report's own.
+ * - **Flame Shock's tick-window refresh** (16): `multidot(8050, maxDots: 1, maxOverlap:
+ *   dotTickFrequency(8050))` under `dotRemainingTime(8050) < dotTickFrequency(8050)`. Read off the
+ *   file, because this module used to call it "the multi-target Flame Shock rule" and it is not one:
+ *   **`maxDots` is 1**, so the action never leaves the unit it is aimed at. It is a refresh window
+ *   measured in ticks rather than seconds, and the `flame-shock` rung below carries it as
+ *   `FS_KEEP_UP_MS`. The list with a genuine second dot is `cleave.apl.json`, not this one — see the
+ *   next section.
+ *
+ * ## The other two lists, and where they disagree with this one
+ *
+ * The sim ships three Elemental presets, and this ladder is one ordered list with `bands` per rung —
+ * so it can express *which* rungs a target count has and cannot express a different *order* per count.
+ * Where the two shapes collide the preset is the authority and the departure is written down here
+ * rather than left for the next reader to rediscover:
+ *
+ * - **`cleave.apl.json`** (two targets), eighteen rungs. Its fillers run Lava Burst-on-Lava-Surge →
+ *   **Searing Totem** → Flame Shock → Lava Burst → Elemental Blast → Earth Shock → Chain Lightning →
+ *   Lightning Bolt. So Searing Totem sits *above* Flame Shock, Lava Burst, Elemental Blast and Earth
+ *   Shock there and *below* all four in p5 (index 20). **Not modelled, and it cannot be**: one list
+ *   has one order. The cost is bounded and measured — `searing-totem` takes 4 of `cleave`'s skips.
+ *   Its Unleash Elements rung is also a different rule, `Unleashed Fury known AND Lava Surge active`
+ *   rather than p5's `not(Ascendance active)`, and it carries **no Lava Beam at all**.
+ * - **`aoe.apl.json`** (three or more), and it is five rungs long: `autocastOtherCooldowns`, Flame
+ *   Shock, the potion, Lava Beam, Chain Lightning. **No Earth Shock, no Lava Burst, no Elemental
+ *   Blast, no Searing Totem, no Unleash Elements.** Five of this ladder's nine rungs are therefore in
+ *   bands 3 and 4 on this report's authority rather than the sim's. Banding them out moves the verdict
+ *   of every press below them, which is plan §64's item 3 and lands on its own; until it does, the note
+ *   is the honest record of the gap.
+ * - **Flame Shock is a different rule in each of the three**, and the `flame-shock` rung below is
+ *   banded accordingly. See `FS_CLEAVE_OVERLAP_MS`.
+ * - **Lava Beam is banded `[2, 3, 4]` while `cleave.apl.json` has no Lava Beam rung**, so band 2 is
+ *   this report's reading and not a transcription. The reason is a game mechanic the sim does not
+ *   model: Ascendance *replaces* Chain Lightning on the bars (`elemental/lava_beam.go` gates the spell
+ *   on `AscendanceAura.IsActive()`, and nothing gates Chain Lightning off), so the sim's cleave preset
+ *   can keep pressing 421 through the window while a real player at two targets cannot. Banding the
+ *   beam to `[3, 4]` would leave a two-target Ascendance beam with no rung — and a button with no rung
+ *   can never be graded as correct, which is the exact defect these two rungs exist to remove.
  *
  * ## What the ladder reads instead of bars
  *
@@ -106,6 +140,38 @@ const LAVA_BURST_CAST_MS = 2000;
 /** The `Flame Shock Refresh Prior to Ascendance` rule's own threshold: `dotRemainingTime < 16s`. */
 const FS_ASC_PREP_MS = 16000;
 
+/**
+ * What the Flame Shock rung becomes above one target, and it is **two** changes rather than a relaxed
+ * threshold.
+ *
+ * At two targets the whole of `cleave.apl.json`'s Flame Shock is rung 9,
+ * `multidot(8050, maxDots: 2, maxOverlap: 2s)`, and at three or more the whole of `aoe.apl.json`'s is
+ * rung 1, `auraIsKnown(138898) AND not(dotIsActive(8050))`. Neither list carries p5's snapshot
+ * reapplies (7) or its Ascendance prep (12), so **the Ascendance-prep clause is a band-1 rule** and
+ * applying it above one target was this ladder asking for a press the sim's own list never asks for.
+ * Measured on `cleave`: 67 presses were graded as skips against Flame Shock before this and 59 after,
+ * with `phased` and `unbroken` — and every `aplForced[1]` walk — unmoved.
+ *
+ * **Two halves of those two rules are unreadable, and they fail in opposite directions.** Written down
+ * because the next reader will want to know which way the remaining error points:
+ *
+ * - `maxDots: 2` puts the dot on a *second* enemy, and the ladder has no reader for "how many engaged
+ *   enemies carry Flame Shock" — `auraRemainingAt` answers for the one enemy the press was aimed at
+ *   (that is the whole reason it exists) and `auras['flame-shock']` is the union, which cannot count.
+ *   So band 2 **under-**demands Flame Shock: a press the sim would have made for a bare second target
+ *   reads as a skip. Closing it needs a per-press dot count on `AplInputs`, which is
+ *   `lib/spec/apl.ts` plus the wiring in `elemental/lib/index.ts`.
+ * - `auraIsKnown(138898)` is Breath of the Hydra, and the band-3 branch reads it as **owned**. The
+ *   alternative is worse in a way that matters: a player without the trinket is never asked for Flame
+ *   Shock at three targets, so every Flame Shock they press there has no rung and is a fault whatever
+ *   they did. Reading the trinket for real is plan §64's item 4 — `gear.ts` already parses
+ *   `combatantinfo`, and §51a confirmed 138898 is an id logs actually carry.
+ *
+ * The 2s is the preset's own `maxOverlap`, not a tuned number, and the band-3 branch is written as
+ * `remaining <= 0` because that is what `not(dotIsActive)` means on a clock.
+ */
+const FS_CLEAVE_OVERLAP_MS = 2000;
+
 /** Ascendance coming back within this — the `spellTimeToReady(114049) >= 6s` of the Earth Shock rule. */
 const ES_ASC_HOLD_SEC = 6;
 
@@ -164,13 +230,23 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// drop. The Ascendance prep (12, first branch: no Elemental Mastery, `spellTimeToReady(114049)
 		// < 2s`, `dotRemainingTime < 16s`) is transcribed because it is pure clock reading; the second
 		// branch's Elemental Mastery condition is a talent check and stays with the section.
+		//
+		// **And all of that is the band-1 rule.** Neither of the other two presets carries either Flame
+		// Shock rule above, and both replace it with one of their own — see `FS_CLEAVE_OVERLAP_MS`. The
+		// condition reads `state.band`, this rule's own per-press count, so the rung switches lists at
+		// the press rather than for the pull.
 		key: 'flame-shock',
 		id: ID.flameShock,
 		chiCost: 0,
 		energyCost: 0,
-		condition: (_state, auras, cooldowns) =>
-			auras.remainingMs('flame-shock') <= FS_KEEP_UP_MS ||
-			(cooldowns.readyInSec(ID.ascendance) <= 2 && auras.remainingMs('flame-shock') < FS_ASC_PREP_MS),
+		condition: (state, auras, cooldowns) => {
+			const remaining = auras.remainingMs('flame-shock');
+			// `aoe.apl.json` rung 1: cast it when the dot is not up, and never to refresh one that is.
+			if (state.band >= 3) return remaining <= 0;
+			// `cleave.apl.json` rung 9: the multidot's `maxOverlap`, and nothing else.
+			if (state.band === 2) return remaining <= FS_CLEAVE_OVERLAP_MS;
+			return remaining <= FS_KEEP_UP_MS || (cooldowns.readyInSec(ID.ascendance) <= 2 && remaining < FS_ASC_PREP_MS);
+		},
 	},
 	{
 		// 13 — `dotRemainingTime(8050) > spellCastTime(51505)`: Lava Burst only while the dot it is

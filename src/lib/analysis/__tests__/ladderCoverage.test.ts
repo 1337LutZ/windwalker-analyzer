@@ -65,11 +65,11 @@ const SPECS = [
  * other, which is why all four forced walks collapse to the same verdicts (`phased` 107/52 then 53/106
  * ×3, `unbroken` 97/45 then 46/96 ×3, `cleave` 78/126 then 58/146 ×3).
  *
- * The three Windwalker entries are the ones the ladder's own module doc argues, and the citation is
- * partial in a way worth knowing: `windwalker/lib/apl.ts:16-19` names Touch of Death outright, and
- * `:20-23` gives the cooldown-decisions argument the other two rest on while enumerating only Chi Brew,
- * Tigereye Brew, Energizing Brew and Xuen. Storm, Earth and Fire and Touch of Karma are covered by that
- * bullet's category and not by its list, so the reasons are restated here rather than pointed at.
+ * The three Windwalker entries are the ones the ladder's own module doc argues, and that citation used
+ * to be partial: `windwalker/lib/apl.ts` named Touch of Death outright and left Storm, Earth and Fire
+ * and Touch of Karma covered by the cooldown-decisions bullet's *category* while its list enumerated
+ * only Chi Brew, Tigereye Brew, Energizing Brew and Xuen. Both are named there now, so each reason
+ * below is a one-line pointer at the argument rather than a second copy of it.
  */
 const NOT_RUNGS: Record<string, Record<string, string>> = {
 	elemental: {},
@@ -80,16 +80,12 @@ const NOT_RUNGS: Record<string, Record<string, string>> = {
 		// a ladder poisons every press below it into "cannot say". One press a pull, excluded rather than
 		// guessed at.
 		'touch-of-death': 'condition undecidable — target health is not in the event stream',
-		// A cooldown decision rather than a filler decision, and the sharper half of that argument is what
-		// its own section asks: `SEF_SECOND_TARGET_MS` (`windwalker/lib/index.ts:356`) tests whether the
-		// second target lives long enough to repay the spirit. That is a duration, and no band can express a
-		// duration — so a rung here could not restate the question, only a worse version of it. Judged by
-		// `analysis.sef`; grading it twice would double-count one mistake.
+		// `windwalker/lib/apl.ts`, the Storm, Earth and Fire paragraph. The sim's own condition is a target
+		// count and a rung could hold it; `SEF_SECOND_TARGET_MS` asks whether the second target lived long
+		// enough to repay the spirit, and no band expresses a duration. Judged by `analysis.sef`.
 		'storm-earth-and-fire': 'cooldown judged by its own section, on a duration no band can express',
-		// The same double-counting argument, on a mitigation question the ladder has no shape for at all.
-		// `analysis.karma` scores it on what it reflected and absorbed against the cap the log reveals — a
-		// press is right or wrong by the damage that was incoming, which is not a rotational condition and
-		// not a thing a filler rung can read.
+		// `windwalker/lib/apl.ts`, the Touch of Karma paragraph — and `122470` is in no part of the sim's
+		// Windwalker list at all. Judged by `analysis.karma`, on absorbed damage rather than a rotation.
 		'touch-of-karma': 'defensive judged by its own section, on absorbed damage rather than a rotation',
 	},
 };

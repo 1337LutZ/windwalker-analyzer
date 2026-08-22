@@ -101,19 +101,22 @@ describe('what the rungs change on cleave', () => {
 	});
 
 	it('leaves the faults the list really does name', () => {
-		// **Green before this change and after it, deliberately — a pin, not a guard.** These two counts
-		// were 33+10 and 17+1 across the two buttons before the rungs existed and are 43 and 18 now, which
-		// is the same presses attributed the same way. What the rungs bought is not fewer faults here: it
-		// is that a reader can now be told *which* rung wanted the global. A Chain Lightning or a beam
-		// pressed while the dot was down is a mistake at any target count.
+		// **A pin, not a guard**, and it has moved twice for two different reasons. Before the rungs
+		// existed these two counts were 33+10 and 17+1 across the two buttons, and the rungs took them to
+		// 43 and 18 — the same presses attributed the same way, because what a rung buys is not fewer
+		// faults here but a reader being told *which* rung wanted the global. Banding the Flame Shock rung
+		// then took them to 39 and 20: four of the presses the ladder used to charge against Flame Shock
+		// are ones neither `cleave.apl.json` nor `aoe.apl.json` asks for at all, and they fall through to
+		// the rung below. A Chain Lightning or a beam pressed while the dot was genuinely down is still a
+		// mistake at any target count.
 		const wanted = new Map<string, number>();
 		for (const p of presses) {
 			if (p.pressed !== CHAIN_LIGHTNING && p.pressed !== LAVA_BEAM) continue;
 			if (p.verdict !== 'skipped') continue;
 			wanted.set(p.wanted ?? '?', (wanted.get(p.wanted ?? '?') ?? 0) + 1);
 		}
-		expect(wanted.get('flame-shock')).toBe(43);
-		expect(wanted.get('lava-burst')).toBe(18);
+		expect(wanted.get('flame-shock')).toBe(39);
+		expect(wanted.get('lava-burst')).toBe(20);
 	});
 
 	it('fires every beam inside an Ascendance window, which is why its rung tests that and not a clock', () => {
@@ -139,5 +142,62 @@ describe('single-target grading does not move', () => {
 		expect(presses.filter((p) => p.verdict === 'followed')).toHaveLength(followed as number);
 		expect(presses.filter((p) => p.verdict === 'skipped')).toHaveLength(skipped as number);
 		expect((analysis as Analysis).targets?.counts?.max).toBe(1);
+	});
+});
+
+describe('the Flame Shock rung is a different rule at each band', () => {
+	// `p5.apl.json` is not the only list with a Flame Shock rule, and the other two are not relaxed
+	// versions of it. At two targets `cleave.apl.json` rung 9 is the whole of it —
+	// `multidot(8050, maxDots: 2, maxOverlap: 2s)` — and at three or more `aoe.apl.json` rung 1 is
+	// `auraIsKnown(138898) AND not(dotIsActive(8050))`. Neither carries p5's snapshot reapplies or its
+	// refresh before Ascendance, so the Ascendance-prep clause is a **band-1** rule and this ladder was
+	// asking for a press the sim's own list never asks for at any higher count.
+	//
+	// The forced walks are what makes this measurable without a `band` on `AplPress`: each one is the
+	// same pull judged at one fixed count, so the four numbers below are four different code paths
+	// through one condition rather than four readings of one value.
+	const fsSkips = (audit: unknown): number =>
+		((audit as { skippedBy?: Array<{ key: string; count: number }> } | null)?.skippedBy ?? []).find(
+			(s) => s.key === 'flame-shock',
+		)?.count ?? 0;
+	const forced = (analysis: Analysis, band: 1 | 2 | 3 | 4): unknown =>
+		(analysis as unknown as { aplForced?: Record<string, unknown> }).aplForced?.[String(band)];
+
+	it('demands Flame Shock less often the more enemies there are, on every fixture', () => {
+		// **This is the assertion that was impossible before.** The Flame Shock rung's demand used to be
+		// band-invariant: `cleave` charged 67 presses against it at bands 1, 2, 3 *and* 4, `phased` 12 at
+		// all four and `unbroken` 2 at all four — the reader's target-mode control provably could not move
+		// a Flame Shock verdict. The p5 rule stays exactly where it was, which is why every band-1 column
+		// is unchanged.
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(cleave, b as 1)))).toEqual([67, 62, 54, 54]);
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(phased, b as 1)))).toEqual([12, 9, 4, 4]);
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(unbroken, b as 1)))).toEqual([2, 1, 1, 1]);
+	});
+
+	it('reads the two lists as one rule each, so bands 3 and 4 answer alike', () => {
+		// `aoe.apl.json` is the list from three targets up and it draws no line above three, so a
+		// difference between these two would mean a band gate this ladder never declared.
+		for (const analysis of [cleave, phased, unbroken]) {
+			expect(fsSkips(forced(analysis, 3))).toBe(fsSkips(forced(analysis, 4)));
+		}
+	});
+
+	it('leaves the single-target pulls exactly where they were', () => {
+		// Both are max-one-target pulls, so their natural walk *is* the band-1 walk and the change must
+		// not reach them. Counted off the natural audit rather than the forced one, so this is the figure
+		// a reader of those two reports actually sees.
+		expect(fsSkips(phased.apl)).toBe(12);
+		expect(fsSkips(unbroken.apl)).toBe(2);
+	});
+
+	it("collapses eight of cleave's faults into two more followed presses", () => {
+		// The pull's own numbers, natural band. 81/123 before, and the eight presses that stopped being
+		// charged against Flame Shock did not all become `followed` — six of them moved to a lower rung
+		// that still wanted the global, which is the honest outcome rather than an amnesty.
+		const apl = cleave.apl as { followed: number; skipped: number } | null;
+		expect(apl).not.toBeNull();
+		expect(apl!.followed).toBe(83);
+		expect(apl!.skipped).toBe(121);
+		expect(fsSkips(cleave.apl)).toBe(59);
 	});
 });
