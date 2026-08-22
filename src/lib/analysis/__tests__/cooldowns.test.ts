@@ -36,6 +36,22 @@ const FISTS_OF_FURY: Ability = {
 	channel: { tickId: 117418 },
 };
 
+/**
+ * A 12s cooldown behind a **2s cast** — the only shape that can tell the two clocks apart, and the
+ * only one either spec declares (`specs/elemental/lib/index.ts:425-435`, Elemental Blast). Every other
+ * cooldown-gated button in this report is an instant, where the commit and the landing are the same
+ * millisecond and nothing below could see a difference.
+ */
+const ELEMENTAL_BLAST: Ability = {
+	key: 'elemental-blast',
+	name: 'Elemental Blast',
+	castIds: [117014],
+	onGcd: true,
+	castTimeMs: 2000,
+	gate: 'cooldown',
+	cooldownMs: 12_000,
+};
+
 describe('cooldownDrift', () => {
 	it('reports nothing for an ability that was never cast', () => {
 		expect(cooldownDrift([], RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS)).toEqual({
@@ -178,5 +194,69 @@ describe('cooldownDrift', () => {
 		const drift = cooldownDrift([0, 23000], RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS);
 		expect(drift.driftMs).toBe(15000);
 		expect(drift.lostCasts).toBe(1);
+	});
+
+	/**
+	 * A window closes at the **commit** and opens at the **completion**, and the asymmetry is the whole
+	 * point — see the docblock on `cooldownDrift` for the argument.
+	 *
+	 * Every case here is built from a *pair* of clocks that a real log would produce for a 2s cast: the
+	 * landings and the begincasts two seconds ahead of them. The independent fact each one is anchored on
+	 * is what perfect play looks like, not the arithmetic of the function: a button pressed the instant it
+	 * came back has drifted by nothing, and a metric that says otherwise is broken however consistently
+	 * it says it.
+	 */
+	describe('on a cast-time cooldown', () => {
+		it('charges nothing when every cast was committed the instant the button came back', () => {
+			// Flawless play on a 12s cooldown behind a 2s cast: commit at 0, land at 2s, the cooldown
+			// starts there and is back at 14s, commit again at 14s. Seven casts, no held button.
+			const commits = [0, 14000, 28000, 42000, 56000, 70000, 84000];
+			const landings = commits.map((t) => t + 2000);
+			const drift = cooldownDrift(landings, ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500, commits);
+			expect(drift.windows).toEqual([]);
+			expect(drift.driftMs).toBe(0);
+			expect(drift.lostCasts).toBe(0);
+		});
+
+		it('charges a held button only up to the moment the next press was committed', () => {
+			// Ready at 14s, committed at 48s, landed at 50s. 34s was spent not pressing it; the last two
+			// seconds were spent pressing it, and charging those says the cast itself was the mistake.
+			const drift = cooldownDrift([2000, 50000], ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500, [0, 48000]);
+			expect(drift.windows).toEqual([{ start: 14000, end: 48000, ms: 34000 }]);
+			expect(drift.driftMs).toBe(34000);
+			expect(drift.lostCasts).toBe(2);
+		});
+
+		it('ends the opener at the first commit, not at the first landing', () => {
+			// The button stopped sitting unused when the player started casting it.
+			const drift = cooldownDrift([30000], ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500, [28000]);
+			expect(drift.openerMs).toBe(28000);
+		});
+
+		it('keeps the tail on the completion clock, because that is when the last cooldown started', () => {
+			// The other end is not symmetric and must not be made so: a cooldown starts when the cast
+			// *lands*, so the button in this pull came back at 50s + 12s and sat there to the bell.
+			const drift = cooldownDrift([2000, 50000], ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500, [0, 48000]);
+			expect(drift.tailMs).toBe(58000);
+		});
+
+		it('falls back to the landings when no commit clock is supplied', () => {
+			// The contract a caller with one clock relies on: `specs/windwalker/lib/index.ts` passes five
+			// arguments for Xuen, and its spec declares no `castTimeMs` at all, so the landings *are* the
+			// commits there. Omitting the clock must therefore mean "they are the same", not "guess".
+			const landings = [2000, 50000];
+			expect(cooldownDrift(landings, ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500)).toEqual(
+				cooldownDrift(landings, ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500, landings),
+			);
+		});
+
+		it('is identical on an instant however the clock is passed', () => {
+			// The claim that no committed figure moves, asserted rather than reasoned: for a button with no
+			// cast time the two clocks are one, so every figure in this file is clock-independent.
+			const times = [0, 20000, 24000, 60000];
+			expect(cooldownDrift(times, RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS, 1500, times)).toEqual(
+				cooldownDrift(times, RISING_SUN_KICK, WHOLE_FIGHT, FIGHT_MS),
+			);
+		});
 	});
 });

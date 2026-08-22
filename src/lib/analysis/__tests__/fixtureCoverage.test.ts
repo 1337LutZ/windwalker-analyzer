@@ -171,20 +171,27 @@ describe('every aura a spec declares either fires in a committed fixture or is o
  * talented none of them. That is a statement about the fixture set, not about the model, and it is a
  * decent argument for a second Windwalker dataset.
  *
- * **The item sweep (plan §51a) grew both lists, and what it took *off* them is the finding.** Two
- * entries left, and neither because anything was deleted:
+ * **The item sweep (plan §51a) grew both lists, and what it took *off* them is the finding.** One entry
+ * left the lists and one was re-keyed on them, and neither because anything was deleted:
  *
  *   `synapse-springs [96228]` is gone from the Elemental list because the tinker's buff logs a different
  *   id per stat granted and only the agility one was declared. All three Elemental pulls press 126734 and
  *   all three write **96230** (intellect), so the press had a lane and the buff window it opened had
  *   none. It fires now.
  *
- *   `unerring-vision-stacks [138786]` still reads the same, and the entry behind it no longer says the
- *   same thing: 138786 was never Unerring Vision's, and Unerring Vision has no counter for a key of this
- *   name to mean. It is Wushoolay's Final Choice's proc window, whose ten-stack counter is the separate
- *   `wushoolays-lightning-stacks [138788]` two lines down. The key is a misnomer held in place by one
- *   reader; `lib/game/shared.ts` carries the whole of it, and the rename is one change across four
- *   files rather than a declaration this file can fix.
+ *   `wushoolays-lightning [138786]` is the same id under a corrected key — the rename landed in
+ *   `7319f15`, one of five wrong declarations the sweep caught. It read `unerring-vision-stacks`, and
+ *   138786 was never Unerring Vision's: it is Wushoolay's Final Choice's proc window, non-stacking and
+ *   ten seconds long, whose ten-stack counter is the separate `wushoolays-lightning-stacks [138788]` on
+ *   the next line. Unerring Vision has no counter in either source, so there was no aura for the old key
+ *   to be named after.
+ *
+ *   The finding behind that one is about the two sources rather than about the key. The sim's rule looks
+ *   coherent because its *hand-written* Wushoolay's override inverts the pair — it puts the stacks on the
+ *   window's id and the payload on the tracker's — so a faithful transcription of it asks a non-stacking
+ *   id for ten stacks. And where the sim and `db.json` disagreed about which id is the payload and which
+ *   the tracker, **`db.json` was right five times out of five**. `lib/game/shared.ts` carries the whole
+ *   of it.
  *
  * `jade-spirit`, `lightweave`, `essence-of-yulon` and `toxic-power` never reach this list on the
  * Elemental side, and `dancing-steel` never reaches it on the Windwalker side: all five fire on a
@@ -274,3 +281,97 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'wushoolays-lightning-stacks [138788]',
 	],
 };
+
+/**
+ * What the priority ladder returns on every committed pull, as a grid.
+ *
+ * Plan §47 asked for exactly this before and after the commit-instant change, and only "1-2 presses
+ * reorder per pull" was ever written down — so the counts themselves went unpinned for two waves.
+ * `specs/elemental/lib/__tests__/multiTargetRungs.test.ts` holds `phased` and `unbroken` from one
+ * direction, because it needs them fixed to prove the multi-target rungs do not leak into a one-target
+ * pull. Nothing held `cleave`, which is the pull those rungs were built for and the only one that can
+ * move when they change, and nothing anywhere held `unknown`.
+ *
+ * `unknown` is the column to read. It is zero on all three, which is the property
+ * `spec/__tests__/aplFixtures.test.ts` asserts only loosely (under 10%) and only on the Windwalker's
+ * pre-analysed pulls: a ladder that answers "cannot say" is as useless as one that cries wolf, and a
+ * rung quietly losing its inputs surfaces as verdicts moving into that column rather than as anything
+ * failing.
+ *
+ * **`dataset-ironJuggernaut` is `null`, and not for the reason two lane briefs gave.** It is not that
+ * the pull carries no `classResources`. `phased` and `unbroken` carry none either — the counts below
+ * are 0 of 3454 and 0 of 2848, against `cleave`'s 3237 of 4642 — and both audit fine. What separates
+ * them is a per-spec setting: the Elemental ladder passes `barsRequired: false`
+ * (`specs/elemental/lib/index.ts:2619`), which lifts the `null` gate at `spec/apl.ts:686-687`, and the
+ * Windwalker's ladder does not — so on that spec no `classResources` means no `energy.points` and the
+ * whole audit bails. The resource counts are pinned below precisely so the wrong explanation cannot be
+ * reached from them a third time.
+ */
+const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped: number } | null> = {
+	'elemental/cleave.json': { presses: 204, followed: 81, skipped: 123 },
+	'elemental/phased.json': { presses: 159, followed: 107, skipped: 52 },
+	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 45 },
+	'windwalker/dataset-ironJuggernaut.json': null,
+};
+
+/** `[events carrying `classResources`, events in the pull]`, straight off the raw fixture. */
+const RESOURCE_EVENTS: Record<string, [number, number]> = {
+	'elemental/cleave.json': [3237, 4642],
+	'elemental/phased.json': [0, 3454],
+	'elemental/unbroken.json': [0, 2848],
+	'windwalker/dataset-ironJuggernaut.json': [0, 3181],
+};
+
+describe('the priority ladder grades every committed pull the same way it did', () => {
+	for (const spec of SPECS) {
+		for (const { name, dataset } of rawFixtures(spec.dir)) {
+			const key = `${spec.dir}/${name}`;
+			it(key, () => {
+				const apl = (spec.analyse(dataset) as Analysis).apl ?? null;
+				const expected = APL_VERDICTS[key];
+				expect(
+					expected,
+					`${key} is not on the grid above — add it, with the reason if it audits to null`,
+				).not.toBeUndefined();
+				if (expected === null) {
+					expect(apl).toBeNull();
+					return;
+				}
+				expect(apl).not.toBeNull();
+				if (apl === null) return;
+				expect({
+					presses: apl.presses.length,
+					followed: apl.followed,
+					skipped: apl.skipped,
+				}).toEqual(expected);
+				// Every press is judged or declined, and none is declined. Asserted as the sum rather than
+				// as three numbers so a verdict moving *between* columns cannot cancel out.
+				expect(apl.unknown, `${key} unknown`).toBe(0);
+				expect(apl.offList, `${key} offList`).toBe(0);
+				expect(apl.followed + apl.skipped).toBe(apl.presses.length);
+			});
+		}
+	}
+
+	/**
+	 * The measurement that refutes the resource-count explanation above, read off the raw events rather
+	 * than off the analysis — so it is a fact about the fixtures and not a restatement of the grid.
+	 */
+	it('carries no resource readings on two pulls that audit fine', () => {
+		const counts: Record<string, [number, number]> = {};
+		for (const spec of SPECS) {
+			for (const { name, dataset } of rawFixtures(spec.dir)) {
+				const withResources = dataset.events.filter(
+					(event) => (event as { classResources?: unknown }).classResources !== undefined,
+				).length;
+				counts[`${spec.dir}/${name}`] = [withResources, dataset.events.length];
+			}
+		}
+		expect(counts).toEqual(RESOURCE_EVENTS);
+		// The whole of the point: three pulls with zero readings, and only one of them audits to null.
+		for (const key of ['elemental/phased.json', 'elemental/unbroken.json', 'windwalker/dataset-ironJuggernaut.json'])
+			expect(RESOURCE_EVENTS[key]?.[0], key).toBe(0);
+		expect(APL_VERDICTS['elemental/phased.json']).not.toBeNull();
+		expect(APL_VERDICTS['windwalker/dataset-ironJuggernaut.json']).toBeNull();
+	});
+});
