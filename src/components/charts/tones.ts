@@ -68,13 +68,35 @@ export type Tone = keyof typeof SWATCH;
  * overlapping bands is the order they are painted in, not their strength: widest claim first, the
  * thing being looked for last and therefore on top.
  *
- * Only the three tones a band is ever drawn in. `kick` is a bar, never a wash behind one, and
- * `missSoft` is already `miss` mixed into the ground — washing it again would leave nothing to see.
+ * `kick` is a bar, never a wash behind one, and `missSoft` is already `miss` mixed into the ground —
+ * washing it again would leave nothing to see. Which leaves the three judgements and `track`.
  */
 export const BAND = {
 	brew: { fill: 'fill-[var(--color-band-brew)]', swatch: 'bg-brew', text: 'text-brew' },
 	rune: { fill: 'fill-[var(--color-band-rune)]', swatch: 'bg-rune', text: 'text-rune' },
 	miss: { fill: 'fill-[var(--color-band-miss)]', swatch: 'bg-miss', text: 'text-miss' },
+	/**
+	 * The exempt ground, washed under a bar rather than given a row of its own — see `EXEMPT` below.
+	 *
+	 * The gap this fills: a chart built from `WindowTracks` can hand an exempt stretch its own lane,
+	 * and both charts that had one did. A chart built from `ResourceChart` cannot — the shield's step
+	 * chart *is* the counter, so a stretch the denominator dropped has to be shaded behind it — and
+	 * until this entry there was no exempt wash to reach for. The one chart that most needs to say
+	 * "these seconds were not graded" was the one chart with no way to say it.
+	 *
+	 * **No `--color-band-track`, and that is not an oversight.** The three above are their tone mixed
+	 * against the surface in `styles/global.css`, because a translucent band borrows the colour of
+	 * whatever it is drawn over. `--color-track` is already an opaque ground — a flat `#2b3833`, not
+	 * derived from a spec hue — so it has nothing to mix and the wash and the mark are the same value.
+	 * That is also what keeps the chip identical to `SWATCH.track`: one grey means exempt whether it is
+	 * a row on a track chart or a band under a bar, which is the whole reason there is one `EXEMPT`.
+	 *
+	 * `text` is `ink-2` rather than the tone, which breaks this table's own "the note is the
+	 * full-strength token" rule in the one case where following it would be unreadable — `--color-track`
+	 * written on `--color-track` is nothing at all. An exempt band names itself in the key rather than
+	 * inside itself, so this is a fallback for a caller that passes a note, not how the band is read.
+	 */
+	track: { fill: 'fill-[var(--color-track)]', swatch: 'bg-track', text: 'text-ink-2' },
 } as const satisfies Partial<Record<Tone, { fill: string; swatch: string; text: string }>>;
 
 export type BandTone = keyof typeof BAND;
@@ -111,14 +133,26 @@ export const VAR: Record<Tone, string> = {
  * chart can name it; `muted` is not, and adding a text token to the mark table would break the
  * pairing rule this module exists to hold.
  *
- * **One tone, two labels.** Exempt is one concept for everything a chart decides about it — the
- * colour, the order, the fact that it is a ground — because every such stretch is exactly "a second
- * the denominator dropped", and a reader comparing two charts should not have to learn two visual
- * languages for that. It is two *labels* wherever a chart has two causes, because the causes are not
- * the same fact about the pull: the fight taking the target away is nothing the player did, while the
- * Fire Elemental holding the one Fire totem slot is the player's own cooldown. Neither is a fault and
- * both are uncounted, so they share the tone; only one of them is a thing the reader chose, so they
- * keep their own names.
+ * **One tone, one label per cause.** Exempt is one concept for everything a chart decides about it —
+ * the colour, the order, the fact that it is a ground — because every such stretch is exactly "a
+ * second the denominator dropped", and a reader comparing two charts should not have to learn two
+ * visual languages for that. It is a *label* per cause wherever a chart has more than one, because
+ * the causes are not the same fact about the pull. There are three:
+ *
+ * - **the fight taking the target away** — an intermission, nothing the player did;
+ * - **the Fire Elemental holding the one Fire totem slot** — the player's own cooldown;
+ * - **an AoE phase** — the player acting correctly, against a different priority list.
+ *
+ * None is a fault and all are uncounted, so they share the tone; they are not the same thing to know
+ * about a pull, so they keep their own names. That is also the answer to "can the existing vocabulary
+ * carry a third kind": it can, and a third kind is a third label rather than a third grey. What it
+ * could not carry was an exempt *wash* on a resource bar, which is what `BAND.track` above adds.
+ *
+ * The names have to do the distinguishing, because the colour deliberately does not. An intermission
+ * and an AoE phase are the same grey and both mean "not your fault", but one is "you could not act"
+ * and the other is "you were acting, against a different list" — a reader who cannot tell them apart
+ * learns the wrong lesson from the same colour. Which is why a chart that draws both must name both in
+ * its key, and why `exemptRows` in `./exempt` takes the label with the windows rather than after them.
  *
  * Widening is *not* part of the concept, and `SearingTotemUptime` is the exception that shows why: an
  * exempt row is a ground and so takes `widen: false`, unless a tile above the chart counts its spans

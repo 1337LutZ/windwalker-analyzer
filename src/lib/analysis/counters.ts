@@ -1,3 +1,4 @@
+import type { Interval } from './intervals';
 import { mergeIntervals } from './intervals';
 import type { Window } from '~/lib/types';
 
@@ -86,7 +87,63 @@ export function counterWindows(
 	});
 }
 
+/**
+ * The same question asked separately inside each of `segments`, and the answers unioned.
+ *
+ * For a counter whose *rules change mid-pull*. A pull that swings between target regimes — General
+ * Nazgrim, boss then adds then boss then adds — is graded against the single-target list only where
+ * that list applied, so the ceiling clock has to stop at each regime boundary and start again on the
+ * far side.
+ *
+ * **Not the same as running `counterWindows` over the pull and subtracting the exempt stretches**,
+ * which is the shape this exists instead of. Subtracting afterwards gives
+ * the same total *time* and the wrong *grace*: a stretch that began during the adds and continued
+ * into the boss phase arrives at the boundary with its leeway already spent, and is faulted from the
+ * first millisecond of single-target play. The player has just swapped targets; they get a fresh
+ * press's worth of grace, exactly as they would after any other interruption. On a four-boundary
+ * pull that is a silent one-press error four times over, and nothing about the total would show it.
+ *
+ * So the level series is *cut* at each boundary and each piece is asked its own question. A stretch
+ * spanning a boundary becomes one clipped stretch per side, and each side is charged from its own
+ * start. `segments` are merged first, so a caller may hand over whatever its regime walk produced.
+ */
+export function counterWindowsIn(
+	stretches: readonly CounterStretch[],
+	segments: ReadonlyArray<readonly [number, number]>,
+	holds: (level: number) => boolean,
+	leewayMs = 0,
+): Window[] {
+	const within = mergeIntervals(segments.map(([start, end]): Interval => [start, end])).flatMap(
+		([from, to]): Interval[] => {
+			const clipped = stretches.flatMap((s): CounterStretch[] => {
+				const start = Math.max(s.start, from);
+				const end = Math.min(s.end, to);
+				return end > start ? [{ start, end, level: s.level }] : [];
+			});
+			return counterWindows(clipped, holds, leewayMs).map(({ start, end }): Interval => [start, end]);
+		},
+	);
+
+	// Merged across segments as well as within them: two segments that abut after the merge above
+	// cannot happen, but a caller passing the whole pull as one segment must get exactly what
+	// `counterWindows` would have given it, and that is the property the tests pin.
+	return mergeIntervals(within).map(([start, end]) => ({ start, end }));
+}
+
 /** The stretches a counter sat at or above its cap — generation with nowhere to go. */
 export function atCapWindows(stretches: readonly CounterStretch[], cap: number, leewayMs = 0): Window[] {
 	return counterWindows(stretches, (level) => level >= cap, leewayMs);
+}
+
+/**
+ * `atCapWindows`, restarted at every regime boundary. See `counterWindowsIn` for why subtracting the
+ * exempt stretches from the whole-pull answer is not the same thing.
+ */
+export function atCapWindowsIn(
+	stretches: readonly CounterStretch[],
+	segments: ReadonlyArray<readonly [number, number]>,
+	cap: number,
+	leewayMs = 0,
+): Window[] {
+	return counterWindowsIn(stretches, segments, (level) => level >= cap, leewayMs);
 }

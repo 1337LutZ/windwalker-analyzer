@@ -155,6 +155,23 @@ export function scoreAnalysis(analysis: Analysis, mode: TargetMode | null = null
 	// nowhere to put its charge, and letting the shield come all the way off. Both are carried into
 	// the summary as cards; neither is weighted heavily enough to swing the headline, because both are
 	// "wake up and spend it" habits rather than the snapshots the spec is built on.
+	//
+	// **The two halves of one aura are graded on two different clocks, and that is deliberate.**
+	// Amendment 3: Rolling Thunder (88765) returns 2% of maximum mana per charge granted, doubled by
+	// the T16 four-piece, and it only runs while the buff is up — so the shield's *uptime* is the
+	// spec's mana engine at every target count and `fellOff` is graded over the whole pull, banded or
+	// not. Its *spending* is what the target count changes: nothing in the aoe list spends the
+	// charges, so sitting at seven through an add wave is the only possible state and cannot be a
+	// fault. `overcapMs` therefore arrives already measured against the single-target stretches alone
+	// (`atCapWindowsIn`, restarted at every regime boundary), and this site takes it as given — the
+	// clock is the audit's to cut, not the score's to second-guess.
+	//
+	// One hazard that is *not* handled here yet, and needs the audit to say so rather than this file
+	// to infer it: a pull with no single-target stretch at all has an empty graded clock, and `0ms of
+	// overcap` over no time is `good` — a free pass rather than the honest "cannot say". `maxStacks >
+	// 0` is the wrong guard for it, because the shield was up and counting the whole time. A nullable
+	// metric already leaves `overall()`'s weighted denominator (§75 decision 2), so the fix is one
+	// more clause here as soon as the audit publishes the length of the clock it graded.
 	const lightningShieldOvercap = metric(
 		'lightningShieldOvercap',
 		lightningShield.maxStacks > 0 ? lightningShield.overcapMs : null,

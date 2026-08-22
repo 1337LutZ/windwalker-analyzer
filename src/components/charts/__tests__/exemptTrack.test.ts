@@ -26,6 +26,7 @@ import { complementOf, intersect } from '~/lib/analysis/intervals';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
+import { exemptRows } from '~/components/charts/exempt';
 import { EXEMPT } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import DebuffTimeline from '~/specs/windwalker/components/charts/DebuffTimeline';
@@ -107,6 +108,48 @@ describe('the exempt row', () => {
 		// the whole of what the denominator forgave, and no second of it is on both.
 		expect(away).toEqual(intersect(SUBMERGE, complementOf(slot, phased.durationMs)));
 		expect(intersects(away, slot)).toBe(false);
+	});
+
+	/**
+	 * The split above, from `exemptRows` instead of by hand — and identical.
+	 *
+	 * This is the seam a **third** exempt cause arrives through. Amendment 2 adds an AoE band beside the
+	 * intermission and the Fire Elemental's slot, and the causes overlap: an AoE stretch can sit inside
+	 * an intermission or straddle its edge, and step 57a settled that such an overlap is drawn as one
+	 * band rather than two washes. Hand-rolling that a third time across four charts is how this file
+	 * came to exist in the first place, so the rule is one function and this test is the proof that the
+	 * function *is* the rule the committed charts already follow — not a second opinion beside them.
+	 *
+	 * Precedence order, strongest claim first: the Fire Elemental's slot wins over the intermission
+	 * here, exactly as `SearingTotemUptime` decided it. Note that this is not the order the rows are
+	 * drawn in — the intermission is drawn above the slot — which is why the two orders are separate
+	 * facts and why passing them the wrong way round is worth pinning against.
+	 */
+	it('is the split `exemptRows` produces from the same two causes', () => {
+		const rows = rowsOf(createElement(SearingTotemUptime, { analysis: phased }));
+		const away = rows.find((row) => row.label === 'Nothing to hit')?.windows ?? [];
+		const slot = rows.find((row) => row.label === 'Fire Elemental out')?.windows ?? [];
+
+		// Neither row is empty on this fixture, so nothing below passes for want of data.
+		expect(slot).not.toHaveLength(0);
+		expect(away).not.toHaveLength(0);
+
+		// What the denominator dropped, whole: everything outside the stretches a totem was placeable in.
+		const placeable = intersect(phased.timeline?.contactSegments ?? [], complementOf(slot, phased.durationMs));
+		const dropped = complementOf(placeable, phased.durationMs);
+
+		expect(
+			exemptRows(
+				[
+					{ label: 'Fire Elemental out', windows: slot },
+					{ label: 'Nothing to hit', windows: dropped },
+				],
+				phased.durationMs,
+			),
+		).toEqual([
+			{ label: 'Fire Elemental out', windows: slot },
+			{ label: 'Nothing to hit', windows: away },
+		]);
 	});
 
 	it('is one tone across every chart that has one', () => {
