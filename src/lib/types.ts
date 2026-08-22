@@ -342,6 +342,19 @@ export interface LaneSource {
 	 * worse than a row that only names the buff, which is what the chart draws when this is null.
 	 */
 	name: string | null;
+	/**
+	 * True on the row for the player the report is about — the totem or banner they pressed themselves.
+	 *
+	 * **The chart cannot work this out and that is why the engine says it.** `CastTimeline` reads an
+	 * `Analysis`, which carries no actor id, so "is this row mine" is not a question it can answer by
+	 * comparing anything it holds. It needs the answer to merge the player's own press into their own
+	 * row: their cast lane and their buff row are one fact about one totem, and the merge rule cannot
+	 * pick which of several same-key rows to fold the press into without being told.
+	 *
+	 * `LaneSource.id === actor.id` is what this is, resolved through `petOwner` like the id itself —
+	 * so a totem is credited to the shaman who placed it rather than to the totem.
+	 */
+	own: boolean;
 }
 
 /**

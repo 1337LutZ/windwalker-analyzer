@@ -911,6 +911,21 @@ const appliedByCastOf = (registry: Registry): Map<number, string> => {
  * the consumables. That is one row's worth of movement for the button and it buys the aura rows
  * staying one list.
  */
+/**
+ * One row's identity, where the aura's key is no longer enough to be one.
+ *
+ * A raid buff draws a row per *caster* — four shamans' Stormlash totems are four rows all keyed
+ * `stormlash-totem` — so anything that has to speak about one of those rows needs a name for it that the
+ * others do not answer to. The caster's id is that name, and it is stable across renders in a way a list
+ * index is not.
+ *
+ * **Shared between the merge and the React keys deliberately.** Both ask the same question — which row is
+ * this — and two spellings of it were free to disagree, which is how a press would merge into a row while
+ * being drawn against a different one.
+ */
+export const rowKey = (lane: AuraLane): string =>
+	lane.source === undefined ? lane.key : `${lane.key}^${lane.source.id}`;
+
 export function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[], appliedByCast: Map<number, string>) {
 	const lanesPerKey = new Map<string, number>();
 	for (const lane of lanes) lanesPerKey.set(lane.key, (lanesPerKey.get(lane.key) ?? 0) + 1);
@@ -935,20 +950,43 @@ export function mergeRows(pressed: readonly CastRow[], lanes: readonly AuraLane[
 		else if (seen !== lane.key) keyByName.set(lane.name, null);
 	}
 
+	/**
+	 * The one row a press belongs in, out of however many carry its aura's key.
+	 *
+	 * One lane with the key is the ordinary case and it is that lane. Several is a raid buff drawn per
+	 * caster, and then the press belongs in the row for the player who pressed it — **their own totem's
+	 * bar and their own cast of it are one fact about one totem**, which is the user's report: "stormlash
+	 * cast of yourself is not merged with the buff aura". `source.own` is the engine's answer to which row
+	 * that is, because this component reads an `Analysis` and has no actor id to compare against.
+	 *
+	 * `null` where no row is the player's own — every totem came from somebody else, so the press being
+	 * merged is a press that did not happen — and where more than one claims to be, which is a
+	 * contradiction the engine should never emit and is not worth guessing through.
+	 */
+	const rowFor = (key: string): AuraLane | null => {
+		const sharing = lanes.filter((lane) => lane.key === key);
+		if (sharing.length === 1) return sharing[0] ?? null;
+		const own = sharing.filter((lane) => lane.source?.own === true);
+		return own.length === 1 ? (own[0] ?? null) : null;
+	};
+
 	const into = new Map<string, CastRow>();
 	const loose: CastRow[] = [];
 	for (const press of pressed) {
 		// The model's answer first, the name only when it has none: an `appliedBy` that disagrees with a
 		// shared name is the model being explicit, and it wins.
 		const key = appliedByCast.get(press.lane.id) ?? keyByName.get(press.lane.name) ?? undefined;
+		const row = key === undefined ? null : rowFor(key);
 		// `into.has` guards a loss rather than an impossibility: two cast lanes claiming one aura would
 		// overwrite each other, and the marks of whichever lost would leave the chart without a trace.
-		if (key !== undefined && lanesPerKey.get(key) === 1 && !into.has(key)) into.set(key, press);
+		// Keyed by the row and not by the aura, so the three other shamans' rows do not answer to it.
+		if (row !== null && !into.has(rowKey(row))) into.set(rowKey(row), press);
 		else loose.push(press);
 	}
-	// `lanesPerKey` travels out with the split rather than being counted again beside it. "Exactly one
-	// lane carries this key" is the question the merge turns on, and it is the same question the
-	// single-target debuff row turns on below — two counts of it would be two answers free to disagree.
+	// `lanesPerKey` travels out with the split rather than being counted again beside it. It is no longer
+	// the question the merge turns on — `rowFor` asks a sharper one, because a press can now merge into one
+	// of several rows sharing a key — but it is still the question the single-target debuff row turns on
+	// below, and one count of it there and here would be two answers free to disagree.
 	return { into, loose, lanesPerKey };
 }
 
@@ -1651,7 +1689,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 								// One icon's width when this row also draws press marks, and nothing when it does not.
 								// The marks are painted after the bars so an icon sits on top of the bar it opened, so
 								// a label starting at the bar's own edge starts underneath that icon.
-								pressed.into.has(lane.key) ? GCD_ICON_PX : 0,
+								pressed.into.has(rowKey(lane)) ? GCD_ICON_PX : 0,
 							)
 						: chargeNodesOf(lane, lane.stacks, span),
 			})),
@@ -1861,7 +1899,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * a buff row the reader kept. Turning `buff` off takes the bars away and leaves the press lane
 	 * exactly as it was before the merge.
 	 */
-	const shownRow = (lane: AuraLane): boolean => shown[lane.group] || (showCasts && pressed.into.has(lane.key));
+	const shownRow = (lane: AuraLane): boolean => shown[lane.group] || (showCasts && pressed.into.has(rowKey(lane)));
 	// Sorted here rather than in the engine: the order is a reading decision about this chart, and the
 	// same lanes are consumed elsewhere by components that want them grouped their own way.
 	//
@@ -1968,7 +2006,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 * not the pull happened to put the aura up.
 	 */
 	const namesOf = (row: (typeof rows)[number]): string[] => {
-		const press = pressed.into.get(row.lane.key);
+		const press = pressed.into.get(rowKey(row.lane));
 		return press === undefined ? [row.lane.name] : [row.lane.name, press.lane.name];
 	};
 
@@ -1977,12 +2015,15 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 *
 	 * The per-enemy block has always composed its keys from the lane and the enemy (`${key}@${target.id}`
 	 * below) because a bare key reconciles two enemies' rows into each other. A raid buff drawn per caster
-	 * is the same situation one field along, and worse: two totems from *one* shaman share the key and the
-	 * caster both, so the instance itself has to be in the key. Its window's start is what identifies it —
-	 * one lane carries one instance — and it is stable across renders, which a list index is not.
+	 * is the same situation one field along, and `rowKey` is that composition — shared with the merge so
+	 * the row a press is folded into is the row it is drawn against.
+	 *
+	 * **It used to carry the first window's start as well**, because a row was one totem and two totems
+	 * from one shaman shared both the key and the caster. Rows are per caster now, so the caster is once
+	 * again enough to tell them apart, and a key that moved when a shaman's earliest bar moved was a key
+	 * that remounted the row for a reason the reader never asked about.
 	 */
-	const blockKey = (lane: AuraLane): string =>
-		lane.source === undefined ? lane.key : `${lane.key}^${lane.source.id}@${lane.windows[0]?.start ?? 0}`;
+	const blockKey = (lane: AuraLane): string => rowKey(lane);
 
 	/**
 	 * The rows the declared order names, in that order — press rows and aura rows in one sequence.
@@ -2115,7 +2156,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		// The press that opens this row's windows, when one merged into it. Looked up in both columns
 		// rather than carried on the block, because the two have to agree on the height and a row taking
 		// its height from anywhere else is how the gutter drifts off the track.
-		const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
+		const press = block.head === undefined ? pressed.into.get(rowKey(block.row.lane)) : undefined;
 		return block.head === undefined ? (
 			<div
 				key={block.key}
@@ -2147,7 +2188,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	};
 	const laneTrack = (block: Block) => {
 		if (block.press !== undefined) return castTrack(block.press);
-		const press = block.head === undefined ? pressed.into.get(block.row.lane.key) : undefined;
+		const press = block.head === undefined ? pressed.into.get(rowKey(block.row.lane)) : undefined;
 		return block.head === undefined ? (
 			<div key={block.key} className={`relative ${LANE_RULE}`} style={{ height: rowHeight(press) }}>
 				{/* The bars are the aura's half of the row and answer to the aura's toggle; the marks

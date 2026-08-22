@@ -126,19 +126,37 @@ export function windowsBySource(
  * screen are the player's own rotation. A 25-man raid can field four shamans and three warriors, and the
  * two buffs together would then be seven rows before a single press is drawn.
  *
+ * **It counts casters now, not instances**, which is the same number meaning something steadier: the bound
+ * is the size of the raid's roster of one buff rather than how many times they pressed it, so a long pull
+ * no longer pushes rows off the screen just by lasting.
+ *
  * The cap decides what is drawn *by default* and nothing else — the instances past it travel out as
  * `hidden` and into `timeline.hiddenLanes`, so nothing is discarded and the chart can still be asked.
  */
 export const RAID_SOURCE_LANES = 6;
 
 /**
- * One timeline row per instance of each raid buff the player was actually given.
+ * One timeline row per *caster* of each raid buff the player was actually given.
  *
- * **Per instance, not per caster, and that is the whole request.** Two shamans dropping totems three
- * seconds apart is two rows a reader can see stacking; one merged row hides it, and one row per *caster*
- * hides a shaman who laid two. So a caster with three totems gets three rows, sharing the aura's key and
- * separated by their `source` — which is the same arrangement the per-enemy debuff rows already use, with
- * the field that means "enemy" left alone.
+ * **Per caster, and a caster who pressed twice gets two bars in their own single row.** This is the
+ * correction the user asked for after the first version shipped per *instance*: "multi stormlash casts of
+ * the same player show up in new rows, not 1 row per player containing 2 buffs". Per instance was defensible
+ * on its own terms — a row is one totem, and two rows for one shaman are the evidence of a shaman who laid
+ * two — but it reads badly on a real pull, because a row's identity stops being anything the reader can
+ * hold. Four rows all labelled with the same shaman's name is four things to scan to answer "what did this
+ * shaman do", and the block grows with presses rather than with the raid.
+ *
+ * A row per caster answers both questions at once: the row names who, and the bars in it are when. Nothing
+ * is lost, because the windows are still separate windows — a shaman who laid two totems has two bars with
+ * the gap between them drawn, which is the fact per-instance rows were spending four rows to show.
+ * Overlap between *different* casters is still one row against another, which is what a reader compares.
+ *
+ * **The grouping happens after `petOwner`, not on the event's `sourceID`, and that is load-bearing.** Every
+ * one of these buffs is applied by a summon, and each summon is its own actor: a shaman's second totem is a
+ * *different* pet id from their first. Bucketing on the raw source would therefore have kept one row per
+ * totem under a new name, which is the reported bug rather than a fix for it. `windowsBySource` still
+ * buckets by the id the events carried — it has no actor list and cannot resolve owners — so the join back
+ * to one caster is done here, where the actors are.
  *
  * **The caster is the player, not the object the log named.** Every one of these buffs is applied by a
  * summon: Stormlash by the totem the shaman placed, Skull Banner by the banner the warrior planted. The
@@ -164,25 +182,42 @@ export function raidSourceLanes(
 		const object = actors.find((a) => a.id === source);
 		const ownerID = object?.petOwner ?? null;
 		const owner = ownerID === null ? undefined : actors.find((a) => a.id === ownerID);
-		return { id: owner?.id ?? source, name: owner?.name ?? object?.name ?? null };
+		const id = owner?.id ?? source;
+		return { id, name: owner?.name ?? object?.name ?? null, own: id === actorID };
 	};
 
 	const drawn: AuraLane[] = [];
 	const hidden: AuraLane[] = [];
 	for (const aura of auras) {
-		const instances = windowsBySource(events, aura.ids, {
+		// Keyed by the *resolved* caster, so two of one shaman's totems — two pet ids — land in one entry.
+		// A `Map` and not a sort-then-group because insertion order is already the order the stream
+		// introduced each caster, which is the tie-break the sort below leans on for equal starts.
+		const byCaster = new Map<number, { caster: LaneSource; windows: Window[] }>();
+		for (const { source, windows } of windowsBySource(events, aura.ids, {
 			t0,
 			pullMs,
 			holdsMs: aura.durationMs,
 			onTarget: actorID,
-		})
-			.flatMap(({ source, windows }) => {
-				const caster = casterOf(source);
-				return windows.map((window) => ({ caster, window, own: caster.id === actorID }));
-			})
-			.sort((a, b) => Number(b.own) - Number(a.own) || a.window.start - b.window.start);
+		})) {
+			const caster = casterOf(source);
+			const row = byCaster.get(caster.id);
+			if (row === undefined) byCaster.set(caster.id, { caster, windows: [...windows] });
+			else row.windows.push(...windows);
+		}
 
-		for (const [i, { caster, window }] of instances.entries()) {
+		const rows = [...byCaster.values()]
+			// Each caster's own bars in clock order: two pet buckets merged above arrive concatenated, so
+			// the second totem of a shaman whose pets paged out of order would otherwise draw backwards.
+			.map(({ caster, windows }) => ({ caster, windows: [...windows].sort((a, b) => a.start - b.start) }))
+			// The player's own row first — the analogue of the primary enemy leading its block, and the one
+			// row on the chart whose timing they chose — then by each caster's first bar, which is what makes
+			// a staircase of staggered totems read in the order they were laid.
+			.sort(
+				(a, b) =>
+					Number(b.caster.own) - Number(a.caster.own) || (a.windows[0]?.start ?? 0) - (b.windows[0]?.start ?? 0),
+			);
+
+		for (const [i, { caster, windows }] of rows.entries()) {
 			// `group: 'buff'` by construction rather than off `aura.kind`: something another player cast on
 			// the raid is a buff, and calling one a debuff would sink it into the per-enemy block at the foot
 			// of the chart — which is where rows about *enemies* go.
@@ -191,7 +226,7 @@ export function raidSourceLanes(
 				name: aura.name,
 				id: aura.ids[0] ?? 0,
 				group: 'buff',
-				windows: [window],
+				windows,
 				source: caster,
 			};
 			(i < RAID_SOURCE_LANES ? drawn : hidden).push(row);

@@ -1,11 +1,22 @@
-// One timeline row per Stormlash totem and per Skull Banner, and the walk they both come out of.
+// One timeline row per Stormlash caster and per Skull Banner caster, and the walk they both come out of.
 //
-// **The claim under test is "per instance", and the failure it replaces was "per pull".** Stormlash had a
-// single merged row built from the player's own casts, so a pull where four shamans staggered their totems
-// drew one bar and said "a totem was up here" — the weaker claim, and the one that hides exactly the fact
-// `stormlashOverlaps` puts a number on. Skull Banner had no row at all: 114206 is declared in
-// `game/shared.ts`, goes up on every committed pull from a warrior's three-minute raid cooldown, and was
-// drawn nowhere.
+// **The claim under test is "per caster", and it has replaced two failures rather than one.** First was
+// "per pull": Stormlash had a single merged row built from the player's own casts, so a pull where four
+// shamans staggered their totems drew one bar and said "a totem was up here" — the weaker claim, and the
+// one that hides exactly the fact `stormlashOverlaps` puts a number on. Skull Banner had no row at all:
+// 114206 is declared in `game/shared.ts`, goes up on every committed pull from a warrior's three-minute
+// raid cooldown, and was drawn nowhere.
+//
+// Second was "per instance", which is what fixed the first and was itself reported: "multi stormlash casts
+// of the same player show up in new rows, not 1 row per player containing 2 buffs". Four rows carrying one
+// warrior's name is four things to scan to answer what that warrior did, and the block then grew with
+// presses rather than with the raid. A row per caster keeps every window — the bars are still separate
+// bars with the gap between them drawn — while the row itself names somebody.
+//
+// **The grouping is on the resolved caster, and `cleave` is the fixture that can tell the difference.** Two
+// warriors banner twice each there, so a walk that bucketed on the event's own `sourceID` would draw four
+// rows whenever the second banner came from a second summon actor. Two rows of two bars is the assertion
+// that the `petOwner` join happened before the grouping and not after.
 //
 // **Anchored on each fixture's own event stream**, not on a remembered figure. Every count below was read
 // off the raw `applybuff`/`removebuff` pairs for the two ids first and the audit second, and the first two
@@ -45,68 +56,93 @@ const appliedToPlayer = (dataset: FightDataset, id: number): number =>
 	dataset.events.filter((e) => e.abilityGameID === id && e.type === 'applybuff' && e.targetID === dataset.actor.id)
 		.length;
 
-describe('a row per instance, counted against the fixture’s own stream', () => {
+/** Every caster the log credits with putting `id` on the player, straight off the fixture's stream. */
+const castersOnPlayer = (dataset: FightDataset, id: number): Set<number> => {
+	const owners = new Set<number>();
+	for (const e of dataset.events) {
+		if (e.abilityGameID !== id || e.type !== 'applybuff' || e.targetID !== dataset.actor.id) continue;
+		const object = dataset.actors.find((a) => a.id === e.sourceID);
+		owners.add(object?.petOwner ?? e.sourceID ?? -1);
+	}
+	return owners;
+};
+
+describe('a row per caster, counted against the fixture’s own stream', () => {
 	/**
-	 * The count that used to be one, whatever the pull did.
+	 * The count that used to be one whatever the pull did, then one per totem.
 	 *
-	 * `unbroken` and `cleave` each carry four totems on this shaman from four different shamans and drew a
-	 * single bar for the player's own; `phased` carries two. Re-derived from the stream rather than
-	 * written down, so the assertion cannot outlive the fixture.
+	 * `unbroken` and `cleave` each carry four totems on this shaman from four *different* shamans, so per
+	 * caster and per instance agree there and only the Skull Banner tests below can tell them apart.
+	 * `phased` carries two. Re-derived from the stream rather than written down, so the assertion cannot
+	 * outlive the fixture.
 	 */
-	it('draws one Stormlash row per totem the player was given', () => {
+	it('draws one Stormlash row per shaman who put a totem on the player', () => {
 		const counts = FIXTURES.map((name) => {
 			const dataset = load(name);
 			return {
 				name,
 				rows: rowsFor(analyse(dataset), 'stormlash-totem').length,
+				casters: castersOnPlayer(dataset, STORMLASH_BUFF).size,
 				applications: appliedToPlayer(dataset, STORMLASH_BUFF),
 			};
 		});
 		// Not vacuous: every pull really does put more than one totem on this shaman.
 		for (const c of counts) expect(c.applications, c.name).toBeGreaterThan(1);
-		expect(counts.map((c) => c.rows)).toEqual(counts.map((c) => c.applications));
+		expect(counts.map((c) => c.rows)).toEqual(counts.map((c) => c.casters));
 		expect(counts.map((c) => c.rows)).toEqual([2, 4, 4]);
 	});
 
 	/**
-	 * The buff that had no row at all, now one per banner.
+	 * The buff that had no row at all, now one per warrior — and this is the count that moved.
 	 *
-	 * Four, two and four — the same numbers `game/shared.ts` cites for the declaration, measured
-	 * independently here off the stream.
+	 * Four, two and four banners land on the player across the three pulls, from two, two and two
+	 * warriors. So `phased` and `cleave` drew four rows apiece under the per-instance rule and draw two
+	 * now, which is the reported bug measured rather than described.
 	 */
-	it('draws one Skull Banner row per banner the player was given', () => {
+	it('draws one Skull Banner row per warrior, not one per banner', () => {
 		const counts = FIXTURES.map((name) => {
 			const dataset = load(name);
 			return {
 				name,
 				rows: rowsFor(analyse(dataset), 'skull-banner').length,
+				casters: castersOnPlayer(dataset, SKULL_BANNER).size,
 				applications: appliedToPlayer(dataset, SKULL_BANNER),
 			};
 		});
-		for (const c of counts) expect(c.applications, c.name).toBeGreaterThan(0);
-		expect(counts.map((c) => c.rows)).toEqual(counts.map((c) => c.applications));
-		expect(counts.map((c) => c.rows)).toEqual([4, 2, 4]);
+		expect(counts.map((c) => c.rows)).toEqual(counts.map((c) => c.casters));
+		expect(counts.map((c) => c.rows)).toEqual([2, 2, 2]);
+		// The guard that makes the line above mean something: two of these pulls really do carry more
+		// banners than warriors, so a per-instance rule would have drawn four rows and not two.
+		expect(counts.map((c) => c.applications)).toEqual([4, 2, 4]);
 	});
 
 	/**
-	 * **Per instance and not per caster**, which is the difference a count alone cannot show.
+	 * **Per caster and not per instance**, which is the difference a count alone cannot show.
 	 *
-	 * `cleave` has two warriors banner twice each. Grouping by caster would draw two rows for four
-	 * banners and hide the second pair; grouping by instance draws four, and the two rows that share a
-	 * caster are the evidence that the row is the banner rather than the warrior.
+	 * `cleave` has two warriors banner twice each, once in the pull's opening seconds and once past three
+	 * minutes. One row apiece, each carrying both bars in clock order, with the gap between them intact —
+	 * that gap is the whole fact the second row per warrior used to be spent showing.
 	 */
-	it('gives a caster who pressed twice two rows, not one', () => {
+	it('gives a caster who pressed twice one row with two bars', () => {
 		const rows = rowsFor(fx('cleave'), 'skull-banner');
-		expect(rows).toHaveLength(4);
+		expect(rows).toHaveLength(2);
 		expect(new Set(rows.map((r) => r.source?.id)).size).toBe(2);
-		// Each row is exactly one instance — one window, and the windows do not overlap between the two
-		// presses of one caster.
-		expect(rows.map((r) => r.windows.length)).toEqual([1, 1, 1, 1]);
-		expect(rows.map((r) => [r.source?.id, r.windows[0]?.start, r.windows[0]?.end])).toEqual([
-			[52, 2814, 13_243],
-			[46, 14_299, 24_568],
-			[52, 184_448, 194_721],
-			[46, 203_392, 213_744],
+		expect(rows.map((r) => r.windows.length)).toEqual([2, 2]);
+		expect(rows.map((r) => [r.source?.id, r.windows.map((w) => [w.start, w.end])])).toEqual([
+			[
+				52,
+				[
+					[2814, 13_243],
+					[184_448, 194_721],
+				],
+			],
+			[
+				46,
+				[
+					[14_299, 24_568],
+					[203_392, 213_744],
+				],
+			],
 		]);
 	});
 });
@@ -132,9 +168,45 @@ describe('whose row it is', () => {
 		for (const id of sources) expect(dataset.actors.find((a) => a.id === id)?.type).toBe('Pet');
 
 		expect(rowsFor(analyse(dataset), 'stormlash-totem').map((r) => r.source)).toEqual([
-			{ id: 2, name: 'Player (2)' },
-			{ id: 7, name: 'Player (7)' },
+			{ id: 2, name: 'Player (2)', own: true },
+			{ id: 7, name: 'Player (7)', own: false },
 		]);
+	});
+
+	/**
+	 * `own` marks the player's own row, and it exists because the chart cannot work it out.
+	 *
+	 * `CastTimeline` reads an `Analysis`, which carries no actor id, so "which of these four Stormlash rows
+	 * is mine" is not a question it can answer from anything it holds — and it has to answer it to merge
+	 * the player's own cast of the totem into the row for the totem they laid. Exactly one row per buff may
+	 * claim it, which is what makes the merge unambiguous; a pull where nobody else's banner reached the
+	 * player would have none, which is why the assertion is "at most one" rather than "one".
+	 */
+	it('marks exactly the player’s own row, and never two', () => {
+		for (const name of FIXTURES) {
+			for (const key of ['stormlash-totem', 'skull-banner']) {
+				const rows = rowsFor(fx(name), key);
+				const own = rows.filter((r) => r.source?.own === true);
+				expect(own.length, `${name}/${key}`).toBeLessThanOrEqual(1);
+				// Whoever is marked is the actor the report is about, and they lead the block.
+				for (const r of own) expect(r.source?.id, `${name}/${key}`).toBe(load(name).actor.id);
+				if (own.length === 1) expect(rows[0]?.source?.own, `${name}/${key}`).toBe(true);
+			}
+		}
+	});
+
+	/**
+	 * The shaman's own totem is the only one of the four the player pressed, and Skull Banner is nobody's.
+	 *
+	 * Concrete rather than only structural: this shaman lays one totem on every pull and no committed
+	 * fixture has the player carrying a warrior's banner, so Stormlash has an own row on all three and
+	 * Skull Banner has one on none. If a future fixture puts a warrior in the seat that flips, and it
+	 * should flip here rather than somewhere downstream.
+	 */
+	it('owns a Stormlash row on every pull and a Skull Banner row on none', () => {
+		const owned = (name: string, key: string) => rowsFor(fx(name), key).some((r) => r.source?.own === true);
+		expect(FIXTURES.map((n) => owned(n, 'stormlash-totem'))).toEqual([true, true, true]);
+		expect(FIXTURES.map((n) => owned(n, 'skull-banner'))).toEqual([false, false, false]);
 	});
 
 	/**
@@ -144,7 +216,7 @@ describe('whose row it is', () => {
 	 * timing the reader chose. `unbroken` is the pull that shows both halves — this shaman's totem is the
 	 * *third* of four chronologically and is drawn first, and the other three keep their own order.
 	 */
-	it('leads with the player’s own instance, then runs chronologically', () => {
+	it('leads with the player’s own row, then runs chronologically', () => {
 		const rows = rowsFor(fx('unbroken'), 'stormlash-totem');
 		expect(rows.map((r) => [r.source?.id, r.windows[0]?.start])).toEqual([
 			[2, 31_142],
@@ -168,7 +240,9 @@ describe('whose row it is', () => {
 				for (const row of rowsFor(fx(name), key)) {
 					expect(row.target, `${name}/${key}`).toBeUndefined();
 					expect(row.group, `${name}/${key}`).toBe('buff');
-					expect(row.windows, `${name}/${key}`).toHaveLength(1);
+					// Not a window count — a row holds one bar per press now — but a row with no bars at all
+					// would be a caster invented out of nothing.
+					expect(row.windows.length, `${name}/${key}`).toBeGreaterThan(0);
 				}
 			}
 		}
@@ -189,6 +263,8 @@ describe('the raid-wide stream, narrowed to the player', () => {
 		const all = dataset.events.filter((e) => e.abilityGameID === STORMLASH_BUFF && e.type === 'applybuff');
 		expect(all).toHaveLength(38);
 		expect(all.filter((e) => e.targetID === dataset.actor.id)).toHaveLength(2);
+		// Two totems from two different shamans, so two rows either way here — the number that would have
+		// given the bug away is 38, and it is the one the narrowing prevents.
 		expect(rowsFor(analyse(dataset), 'stormlash-totem')).toHaveLength(2);
 	});
 });

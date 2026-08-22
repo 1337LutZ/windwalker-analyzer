@@ -2801,14 +2801,26 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		target: { id: target.id, name: target.name, primary: target.id === primaryID },
 	});
 	/**
-	 * One row per raid buff another player cast on this shaman, per instance.
+	 * One row per raid buff another player cast on this shaman, per caster.
 	 *
 	 * **This replaces the merged `stormlash-totem` lane, which was the player's own cast plus ten seconds.**
-	 * Two rows for one totem was the alternative and it would have been two readings of one fact: the press
-	 * row said "you laid a totem here" and the buff row says "the totem you laid was on you from here to
-	 * here", and only the second is the same currency as the other shamans' rows beside it. The press is
-	 * still marked — its own cast lane, exactly as every other button's is — and the row it used to merge
-	 * into is now one of several, which `mergeRows` already handles by keeping the press its own lane.
+	 * The row is now the shaman rather than the pull, so four shamans staggering totems read as four rows a
+	 * reader can see stacking instead of one bar saying "a totem was up here".
+	 *
+	 * **Per caster and not per instance, which is a correction to what shipped first.** The first version drew
+	 * a row per totem, on the argument that a row is one totem and two rows for one shaman are the evidence
+	 * of a shaman who laid two. The user reported it: "multi stormlash casts of the same player show up in
+	 * new rows, not 1 row per player containing 2 buffs". They are right — a row whose name repeats three
+	 * times down the block stops identifying anything, and the block then grows with presses rather than
+	 * with the raid. Both bars still exist inside the one row, with the gap between them drawn, which is the
+	 * fact the extra rows were being spent on.
+	 *
+	 * **The player's own press merges into their own row, which is the other half of that report:** "stormlash
+	 * cast of yourself is not merged with the buff aura". The earlier reasoning here — that the press and the
+	 * window are two readings of one fact and only the window is the same currency as the other shamans'
+	 * rows — was wrong about what a reader wants. Their cast of the totem and the totem's bar are one totem,
+	 * and splitting them puts the same event on two rows. `LaneSource.own` is how the chart knows which of
+	 * several same-key rows is the player's, because `CastTimeline` reads an `Analysis` and has no actor id.
 	 *
 	 * `raidScoped(h.events)` is the fight's whole stream, and `raidSourceLanes` narrows it to what landed on
 	 * *this* player. That narrowing is load-bearing rather than tidy: `phased` carries 38 applications of one

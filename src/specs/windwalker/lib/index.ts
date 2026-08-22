@@ -3258,7 +3258,11 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	});
 
 	/**
-	 * One row per raid buff another player cast on this monk, per instance.
+	 * One row per raid buff another player cast on this monk, per caster.
+	 *
+	 * A caster who pressed twice gets both bars in their own single row — see the Elemental's call site for
+	 * why that is per caster rather than per instance; it is a user correction to what shipped first, and
+	 * the monk inherits it for free because the walk is shared.
 	 *
 	 * The same call the Elemental audit makes, and that is the whole of what "generic implementation"
 	 * bought: neither spec owns the walk, so a monk gets rows for Stormlash and Skull Banner without either
@@ -3434,7 +3438,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		lane(BLOODLUST, 'buff', hasteWindows),
 		lane(BERSERKING, 'buff', berserkingWindows),
 		lane(BLOOD_FURY, 'buff', auraWindows(selfEvents, BLOOD_FURY, t0, fight.endTime)),
-		// One row per raid buff somebody else cast on this monk, per instance — see `raidLanes`. Beside the
+		// One row per raid buff somebody else cast on this monk, per caster — see `raidLanes`. Beside the
 		// racials and Bloodlust because they answer the same question: what the raid was giving the player,
 		// as against what the player pressed.
 		...raidLanes.drawn,
@@ -3443,7 +3447,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		...rskTargets.targets.map(targetLane),
 	].filter((l) => l.windows.length > 0);
 
-	// The enemies past the cap, in the same shape, and the raid-buff instances past theirs. Not in `lanes`,
+	// The enemies past the cap, in the same shape, and the raid-buff casters past theirs. Not in `lanes`,
 	// deliberately: that array is what the chart draws, and these are what it may be asked to draw instead.
 	// `hiddenTargets` stays a count of *enemies* — the caption it feeds says "enemies" — so the raid-buff
 	// overflow is carried without being counted there.
