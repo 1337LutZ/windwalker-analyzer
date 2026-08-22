@@ -2218,7 +2218,7 @@ export interface FlameShockAudit {
 	uptimeMs: number;
 	/**
 	 * `contactUptimeMs / scoredMs`, as a percentage — the dot on **whichever spawn was being hit**,
-	 * over the time the player was in contact with anything.
+	 * over the time the player was in contact with anything *and* a list asked for the dot at this bar.
 	 *
 	 * Neither half of it is `uptimeMs`. Both of its own halves are published beside it precisely so
 	 * this can be checked rather than taken on trust, which is the whole of plan §29.
@@ -2276,8 +2276,27 @@ export interface FlameShockAudit {
 	 */
 	multiTargetMs: number;
 	/**
-	 * What `uptimePct` is a share of: the **contact** clock — every stretch the player was in contact with
-	 * an enemy they could damage, which is the same clock the chart beneath it shades against.
+	 * What `uptimePct` is a share of: the contact clock **less every stretch three or more enemies were
+	 * up** — the seconds the player was on an enemy they could damage under a list this figure's bar was
+	 * written from.
+	 *
+	 * **The band cut, and why the dot's clock carries one at all**, since `aoe.apl.json` plainly does want
+	 * the dot up: rung 1 casts it whenever it is down. What that list has no rung for is the thing the
+	 * 95%/85% bar is *derived* from — it carries no Lava Burst at all, so the cascade the threshold rests
+	 * on, a dropped dot costing far more than the global that would have replaced it, does not exist above
+	 * two enemies. A 95% clock is not "put it back up once, below the beam" stated in percent. Band 2
+	 * keeps the bar, because `cleave.apl.json` rung 9 is a Flame Shock rule and Lava Burst is in that
+	 * list twice. The whole argument is at `flameShockUptime` in the Elemental's `score.ts`.
+	 *
+	 * **`contactUptimeMs` is cut by the identical array**, not by a second reading of it — each spawn's dot
+	 * is clipped to this clock before the walk sums it, so the numerator is inside the denominator by
+	 * construction. Two halves of one ratio measured over two different spans is how this very field once
+	 * produced 100.21%, and clipping one half of a band cut and not the other is that defect with a new
+	 * cause.
+	 *
+	 * **Also the graded length the score refuses an empty one on.** A pull spent wholly at three or more
+	 * enemies arrives here at zero, and `gradedOver` makes that "cannot say" instead of a dot clock nobody
+	 * measured reading as one nobody dropped.
 	 *
 	 * It was the engaged clock, scoped to the primary target. That is a different question, and dividing a
 	 * dot measured across every spawn by a denominator scoped to one of them is the mismatched-halves
@@ -2292,7 +2311,7 @@ export interface FlameShockAudit {
 	scoredMs: number;
 	/**
 	 * `uptimePct`'s **numerator**: the dot's up-time on the spawn the player was actually hitting,
-	 * clipped to the contact clock.
+	 * clipped to the same graded clock `scoredMs` is the length of.
 	 *
 	 * Published because `scoredMs` alone did not close §29. With the denominator visible and the
 	 * numerator invisible, `uptimeMs / scoredMs` still did not come to `uptimePct / 100` — `uptimeMs`
@@ -2416,10 +2435,19 @@ export interface SearingTotemAudit {
 	/** How much of `scoredMs` the totem was up for. */
 	uptimeMs: number;
 	/**
-	 * The clock `uptimePct` is taken against: engaged time, less every Fire Elemental window.
+	 * The clock `uptimePct` is taken against: contact time, less every Fire Elemental window, less every
+	 * stretch three or more enemies were up.
 	 *
-	 * The elemental owns the slot while it is out, so that time was never a totem the player could
-	 * have had up — scoring it would fault correct play.
+	 * Three exempt causes composed into one array, and none of them is a totem the player could have had
+	 * up. The elemental owns the slot while it is out. An intermission is not time the player was in the
+	 * fight. And from three enemies the running list has no fire-totem rung at all — neither Searing
+	 * Totem nor Magma Totem appears in `aoe.apl.json` — so the empty slot was not a press anything asked
+	 * for; the ladder bands its own `searing-totem` rung `[1, 2]` off that same reading. Two enemies stay
+	 * in the clock, because `cleave.apl.json` keeps the totem and ranks it above four other rungs.
+	 *
+	 * **Also the graded length the score refuses an empty one on.** A pull spent wholly above two enemies
+	 * arrives here at zero, and `gradedOver` turns that into "cannot say" rather than into a totem clock
+	 * the player kept perfectly.
 	 */
 	scoredMs: number;
 	uptimePct: number;
@@ -2773,8 +2801,23 @@ export interface LightningShieldAudit {
 	points: Array<[number, number]>;
 	/** The ceiling, from the game model rather than from this pull's peak. */
 	maxStacks: number;
-	/** Time spent at the ceiling past the reader's leeway, summed across the pull. */
+	/** Time spent at the ceiling past the reader's leeway, summed across `gradedMs`. */
 	overcapMs: number;
+	/**
+	 * The length of the clock `overcapMs` was measured inside — the pull less `aoeWindows`.
+	 *
+	 * **The field that keeps this exemption from becoming a free pass**, and the reason it is a published
+	 * number rather than something the score infers. `overcapMs` is a fault counted only inside the
+	 * stretches a list spends the shield in, so a pull that never left three-plus enemies has `0ms` of
+	 * overcap over `0ms` of gradable time — and zero against a `good: 0` threshold is the best mark on
+	 * the card, awarded to precisely the pull the exemption just excused. No proxy detects that:
+	 * `maxStacks > 0` is true there, because the shield was up and counting throughout. Only the graded
+	 * length distinguishes "nothing to fault" from "nothing judged", which is what `gradedOver` hands
+	 * `metricOf` so it can null instead of grading.
+	 *
+	 * Same name and same job as `ManaAudit`'s two clocks, which is where the name comes from.
+	 */
+	gradedMs: number;
 	/** The leeway the overcap was measured beyond, so the section can name the number it used. */
 	leewayMs: number;
 	/**

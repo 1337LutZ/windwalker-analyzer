@@ -1614,7 +1614,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		aoeWindows,
 		multiTargetMs,
 		contact,
-		inContactMs,
 		hasteWindows,
 	} = h;
 	const { lightningShieldOvercapMs, searingTotemRefreshMs } = h.settings;
@@ -1820,6 +1819,39 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		return (at === -1 ? landedHits[0] : landedHits[at])?.key ?? null;
 	};
 
+	/**
+	 * The stretches of this pull a band-1-or-2 rule is honest over: everything **less** the time three
+	 * or more enemies were up.
+	 *
+	 * **This is the half of the exemption that changes a number, and it belongs here rather than in the
+	 * score.** `lib/score/bands.ts` says so in its own words — "Nothing here decides *how much* of a
+	 * clock to cut" — and `MetricRule.bands` only nulls a metric when the band intersection comes out
+	 * *empty*. On the pull this whole exercise is about, that intersection is never empty: `cleave`
+	 * resolves to `[1, 2, 3, 4]`, so a declaration on its own leaves every clock grading add-wave time
+	 * exactly as it did before while presenting as band-aware. Cutting is the audit's job because the
+	 * audit is the only thing that holds the stretches.
+	 *
+	 * Three clocks are cut with it, and **each cuts both halves of its own ratio with this same array.**
+	 * Clipping a numerator and not its denominator is how a percentage above 100 happens, and this file
+	 * has already produced one that way — see `fsContactMs` and the 100.21% its docblock dissects. So the
+	 * rule is: intersect the denominator, and intersect the numerator with the identical array, never
+	 * with a second derivation of "when was it AoE". That second derivation is the mistake
+	 * `exemptTrack.test.ts` was written after three charts each made differently.
+	 *
+	 * Band 3 up and not band 2. `cleave.apl.json` still spends the shield — at six stacks rather than
+	 * seven — still keeps the totem, which it promotes above four other rungs, and still asks for the dot
+	 * on both targets. Exempting two enemies would excuse a pull from a list that is *stricter* rather
+	 * than absent. `aoeWindows` is the core's own three-or-more series, already trimmed of the trailing
+	 * window of boss-only time that closes a stretch when the count merely falls (`fbc4963`), so nothing
+	 * here re-derives that boundary either.
+	 *
+	 * Not every clock wants it, and the ones that decline say why at their own threshold: a slot fact, a
+	 * global, a resource or a pre-pull press exists identically at every count. `lightningShieldFellOff`
+	 * is the sharpest of those — Rolling Thunder pays 2% of maximum mana per charge and only while the
+	 * buff is up, so keeping the shield up is right at every count and only *spending* it is banded.
+	 */
+	const gradedSpans = complementOf(aoeWindows, duration);
+
 	// --------------------------------------------------------- Flame Shock
 	// The dot on the enemy the pull was about. Without a primary there is nothing to measure — the
 	// section reads zero rather than inventing a target.
@@ -1873,7 +1905,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * `engaged` the numerator is 212 026ms on `phased`, which is *more* than contact's 206 557ms: divide
 	 * one by the other and `uptimePct` clamps to 100 and warns. So the numerator is rebuilt on the same
 	 * terms the denominator is — the dot on the enemy the player was demonstrably hitting, each landed
-	 * hit owning the time until the next, intersected with `contact`. This is the Windwalker's own
+	 * hit owning the time until the next, intersected with the graded clock. This is the Windwalker's own
 	 * reading of its Rising Sun Kick debuff (`specs/windwalker/lib/index.ts`, `contactUpSegments` over
 	 * `inContactMs`), built here off the same two pieces: a per-spawn dot map, and the hit list `spawnAt`
 	 * already reads.
@@ -1906,13 +1938,36 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// one scope wider.
 	const fsAnywhere = dotWindowsBySpawn(events, FS_DEBUFF, t0, fightEnd, actor.id);
 	const fsDotAnywhere = fsAnywhere.byInstance;
+	/**
+	 * The clock this share is taken over: contact time, **less** the stretches three or more enemies
+	 * were up — the second exempt cause composed into the same array the first one already was.
+	 *
+	 * `searingTotem`'s `stScored` is the pattern, and this now reads the same way: one `intersect` whose
+	 * complement carries every reason a stretch is not this rule's to grade. Adding the third cause there
+	 * was one array literal for exactly this reason, and adding the second one here is one `intersect`.
+	 *
+	 * **Both halves of the ratio come off this, and that is not a tidiness point.** `fsDotOn` below clips
+	 * every spawn's dot to this array, so the numerator is inside it by construction, and `fsGradedMs` is
+	 * its own union — one array, one denominator, and no second reading of "when was it AoE" to disagree
+	 * with. The block above spent four paragraphs on the 100.21% that a numerator and a denominator
+	 * measured over different spans produced, and clipping one half of this pair and not the other is the
+	 * same defect with a new cause.
+	 *
+	 * **Why the dot's clock is banded at all**, since `aoe.apl.json` plainly does want the dot: what that
+	 * list has no rung for is the thing the 95%/85% bar is *derived* from. It carries no Lava Burst at
+	 * all, so the cascade the threshold is written on — a dropped dot costing far more than the global
+	 * that would have replaced it — does not exist above two enemies. The full argument, and the reason
+	 * band 2 keeps the bar, is at `flameShockUptime` in `score.ts`.
+	 */
+	const fsGraded = intersect(contact, gradedSpans);
+	const fsGradedMs = unionMs(fsGraded);
 	const fsContactDotBySpawn = new Map<string, Interval[]>();
 	const fsDotOn = (key: string): Interval[] => {
 		const known = fsContactDotBySpawn.get(key);
 		if (known !== undefined) return known;
 		// Merged and clipped once per spawn rather than once per hit: a boss carried through a whole pull
 		// is thousands of hits against the same handful of windows.
-		const windows = mergeIntervals(intersect(toIntervals(fsDotAnywhere.get(key) ?? []), contact));
+		const windows = mergeIntervals(intersect(toIntervals(fsDotAnywhere.get(key) ?? []), fsGraded));
 		fsContactDotBySpawn.set(key, windows);
 		return windows;
 	};
@@ -1921,8 +1976,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const hit = landedHits[i];
 		if (hit === undefined) continue;
 		// Each hit owns the time until the next one — that is how long the player was demonstrably on
-		// that enemy — and the last one owns the rest of the pull, which the intersection with contact
-		// has already clipped back to nothing past the final window.
+		// that enemy — and the last one owns the rest of the pull, which the intersection with the graded
+		// clock has already clipped back to nothing past the final window.
 		const until = landedHits[i + 1]?.t ?? duration;
 		for (const [start, end] of fsDotOn(hit.key)) {
 			if (start >= until) break;
@@ -2561,8 +2616,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		 * So the honest answer that paragraph already named is taken: **out of the denominator entirely**,
 		 * as `good: null`. `aoe.apl.json` is five rungs and Earth Shock is not one of them — nothing in
 		 * that list spends the shield, so there is no rule for the press to be good or bad against and
-		 * neither answer is available. It is the same exemption `shieldGradedSpans` below already applies
-		 * to the shield's own overcap clock, for the same reason and off the same windows.
+		 * neither answer is available. It is the same exemption `gradedSpans` already applies to the
+		 * shield's overcap clock, the dot's uptime clock and the totem's, for the same reason and off the
+		 * same windows.
 		 *
 		 * Measured, per §90's rule that a declared control has to be shown to separate: on the committed
 		 * fixtures this is **five presses, all on `cleave`** — three at band 3 and two at band 4, of which
@@ -2659,6 +2715,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * through an add wave is the only state available and cannot be a fault. Band 2 stays in, because the
 	 * cleave list still spends it, at `stacks >= 6` rather than 7.
 	 *
+	 * **`gradedSpans` and no longer a `complementOf` of its own.** This was the first clock in the file to
+	 * be cut and it derived its own array; now that the dot's clock and the totem's are cut by the same
+	 * rule, three copies of `complementOf(aoeWindows, duration)` would be three chances for one of them to
+	 * drift — the identity `exemptTrack.test.ts` exists to enforce, one level in from the charts. So the
+	 * array is hoisted to the top of the audit and this is one of its three readers.
+	 *
 	 * **`atCapWindowsIn` and not `atCapWindows` clipped afterwards**, which is the half of this that is
 	 * easy to get wrong: the leeway comes off the *front* of each merged stretch, so a stretch that began
 	 * during the adds and ran on into the boss phase would arrive at the boundary with its grace already
@@ -2670,9 +2732,26 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * charge and only while the buff is up, so keeping the shield up is right at every target count and
 	 * only spending its stacks is band-dependent.
 	 */
-	const shieldGradedSpans = complementOf(aoeWindows, duration);
-	const overcapWindows = atCapWindowsIn(lsLevels, shieldGradedSpans, lightningShieldCap, lightningShieldOvercapMs);
+	const overcapWindows = atCapWindowsIn(lsLevels, gradedSpans, lightningShieldCap, lightningShieldOvercapMs);
 	const overcapMs = unionMs(toIntervals(overcapWindows));
+	/**
+	 * The length of the clock above — the number that keeps this exemption from becoming a free pass.
+	 *
+	 * `overcapMs` is a fault measured *inside* `gradedSpans`, so on a pull with no band-1-or-2 stretch at
+	 * all it is `0ms` of overcap over `0ms` of gradable time — and `0` against a `good: 0` threshold is
+	 * the best mark on the card, handed to exactly the pull the exemption just excused. Every proxy for
+	 * "was the thing present" answers a different question: `maxStacks > 0` is true of such a pull,
+	 * because the shield was up and counting the whole way through. Only the graded length can say that
+	 * nothing was judged, which is why `score.ts` passes it through `gradedOver` and `metricOf` nulls on
+	 * a zero.
+	 *
+	 * Published rather than left for the score to rebuild from `aoeWindows` and `durationMs`. A guard
+	 * reconstructed at the reader is a guard free to drift out of step with the thing it guards, and the
+	 * whole reason the shield's exempt stretches are published at all is that a second derivation of them
+	 * is what `exemptTrack.test.ts` was written after. `ManaAudit`'s two clocks already carry a field of
+	 * this name for this exact purpose, so the name is this audit's own rather than invented here.
+	 */
+	const shieldGradedMs = unionMs(gradedSpans);
 	// Fell off: the stretches the shield was down, which is the complement of the stretches it was up.
 	// `complementOf` rather than the walk that was written here — same merge, same gap-push, same tail,
 	// and it is imported into this file already. `auraLevels` only ever emits stretches at level 1 or
@@ -2977,8 +3056,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * without a second edit. Two halves of one ratio measured over two different stretches is how a
 	 * percentage above 100 happens — a totem ticking through an intermission would have counted up
 	 * against a denominator the intermission was already out of.
+	 *
+	 * **And a third cause, `gradedSpans` — the stretches three or more enemies were up.** The same shape
+	 * as the two above and composed the same way, which is the point: `aoe.apl.json` is five rungs and
+	 * neither Searing Totem nor Magma Totem is one of them, so above two enemies there is no fire-totem
+	 * rung anywhere in the running list and the slot sitting empty is not a totem the player dropped.
+	 * The ladder already reads it this way — `apl.ts` bands its `searing-totem` rung `[1, 2]` off the
+	 * same sim fact, that Searing Totem is the *single-target* fire totem — so the section and the ladder
+	 * cannot now disagree about the same empty slot. Band 2 stays in the clock because `cleave.apl.json`
+	 * keeps the totem and promotes it above Flame Shock, Lava Burst, Elemental Blast and Earth Shock.
+	 *
+	 * Because the numerator follows the denominator here by construction, this really was the one array
+	 * literal `searingTotemUptime`'s threshold predicted it would be. Worth 82 858ms on `cleave` and
+	 * nothing at all on `phased` or `unbroken`, neither of which ever exceeds one enemy.
 	 */
-	const stScored = intersect(contact, complementOf(feWindows, duration));
+	const stScored = intersect(intersect(contact, complementOf(feWindows, duration)), gradedSpans);
 	const stScoredMs = unionMs(stScored);
 	const stUptimeMs = unionMs(intersect(stIntervals, stScored));
 
@@ -3603,11 +3695,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * if it were the only one available.
 	 *
 	 * **Nothing computed here reaches a number, and that is the constraint rather than a remark.**
-	 * `flameShock.uptimePct` is the contact clock's reading (`fsContactWindows` over `inContactMs`) and
-	 * it is measured a long way above this; the primary's row is `dotLaneWindows(FS_DEBUFF)` — the very
-	 * array the lane already drew — so the row the reader compares the figure against is unchanged, and
-	 * the enemies added beside it are rows the figure was never measured over. The three reference pulls
-	 * read 98.2015%, 100% and 72.2979% before this block existed and read the same after it.
+	 * `flameShock.uptimePct` is the graded clock's reading (`fsContactWindows` over `fsGradedMs`) and it is
+	 * measured a long way above this; the primary's row is `dotLaneWindows(FS_DEBUFF)` — the very array the
+	 * lane already drew — so the row the reader compares the figure against is unchanged, and the enemies
+	 * added beside it are rows the figure was never measured over. The three reference pulls read 98.2015%,
+	 * 100% and 72.2979% before this block existed and read the same after it. `cleave`'s third figure has
+	 * since become 83.8989% by a change to that clock rather than to these rows, and
+	 * `flameShockTargetLanes.test.ts` keeps the other two pinned as the evidence of which cause it was.
 	 *
 	 * **Per enemy id, not per spawn**, even though `byTarget` is built out of the per-spawn walk.
 	 * `LaneTarget.id` is a report actor id and `CastTimeline` keys its rows `${lane.key}@${target.id}`,
@@ -3879,7 +3973,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		flameShock: {
 			windows: fsMerged,
 			uptimeMs: fsUptimeMs,
-			uptimePct: uptimePct(fsContactWindows, inContactMs),
+			// Over `fsGradedMs` and not `inContactMs`: the same clock `fsContactWindows` was clipped to, so
+			// the two halves of this share are one array's numerator and that array's own length.
+			uptimePct: uptimePct(fsContactWindows, fsGradedMs),
 			applies,
 			refreshes,
 			windowed: fsPresses.filter((p) => p.windowed).length,
@@ -3894,7 +3990,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			multiDotUptimeMs,
 			multiDotUptimePct,
 			multiTargetMs: multiDotMs,
-			scoredMs: inContactMs,
+			scoredMs: fsGradedMs,
 			contactUptimeMs: fsContactMs,
 		},
 		mana,
@@ -3963,6 +4059,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			points: lsPoints,
 			maxStacks: lightningShieldCap,
 			overcapMs,
+			gradedMs: shieldGradedMs,
 			leewayMs: lightningShieldOvercapMs,
 			// The stretches `overcapMs` above dropped, so the chart can grey exactly what the denominator
 			// refused rather than a second guess at it — the rule `exemptTrack.test.ts` exists to enforce.

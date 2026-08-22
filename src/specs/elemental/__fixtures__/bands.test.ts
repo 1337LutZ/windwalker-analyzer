@@ -93,27 +93,43 @@ const UNBANDED = [
 
 describe('the reported bug, on the pull it was reported from', () => {
 	/**
-	 * **The reported bug still stands on the reading it was reported from, and this pins that it does.**
+	 * **The reported bug, and what each half of the fix did to it.**
 	 *
-	 * `cleave` is an encounter with add waves and then a boss, and its three summary cards are all about
-	 * the Flame Shock dot. None of the seven declarations moves them, and the reason is the one thing a
-	 * declaration cannot do: it nulls a metric only when the intersection with the pull's own bands is
-	 * *empty*, and `cleave` visits all four bands, so every rule intersects non-empty and every clock is
-	 * still graded end to end.
+	 * `cleave` is an encounter with add waves and then a boss, and when it was reported its three summary
+	 * cards were all about the Flame Shock dot: `flameShockUptime`, `flameShockMultiDot`, `flameShockWaste`.
 	 *
-	 * What removes these cards is the clock cut — both halves of each ratio intersected with
-	 * `complementOf(aoeWindows)`, 82 858ms of this pull's 263 233ms — and that lives in
-	 * `specs/elemental/lib/index.ts`. Asserted as an equality rather than left out so that nobody reads
-	 * the declarations below as the fix; the day the clocks are cut, this is the test that says so.
+	 * **The seven band declarations moved none of them**, and this test was written in that state to say
+	 * so — a declaration nulls a metric only when the intersection with the pull's own bands comes out
+	 * *empty*, and `cleave` visits all four bands, so every rule intersected non-empty and every clock was
+	 * still graded end to end. That assertion has now gone red, which is exactly what it was for.
 	 *
-	 * **Passes against the old behaviour too, and has to.** Every assertion here is a statement that this
-	 * change did *not* reach this pull's own reading, so a red here would mean it had.
+	 * **What moved it was the clock cut**, in `specs/elemental/lib/index.ts`: one `gradedSpans`, both
+	 * halves of each ratio intersected with it, 82 858ms of this pull's 263 233ms. Two consequences reach
+	 * this panel, and they are worth telling apart:
+	 *
+	 *   - `flameShockUptime` stays, and stays `bad`. Its clock lost the add waves and the figure went from
+	 *     72.30% to 83.90% — a real improvement, and still 1.1 points under the 85% `ok` line. The dot was
+	 *     dropped on the boss too, and the exemption does not hide that.
+	 *   - `flameShockWaste` **leaves**, and not by exemption. Cutting the clocks let `shareOf`'s sample
+	 *     floor be applied to it, and this pull made two Flame Shock refreshes all fight — under
+	 *     `MIN_GRADED_SAMPLE`, so the metric now declines instead of grading a 50% that was one press. Its
+	 *     place on the panel goes to `lightningShieldOvercap`, which is a genuine fault on its own clock.
+	 *
+	 * So two of the three cards are still the dot, which is the honest outcome: `flameShockMultiDot` reads
+	 * 16.64% and cutting its clock too was measured at 18.73% — see its threshold. That card is a real
+	 * fault rather than an artefact, and the report should keep saying so.
 	 */
-	it('still hands cleave three Flame Shock cards, because no clock was cut', () => {
+	it('replaces one of cleave three Flame Shock cards once the clocks are cut', () => {
 		expect(resolveBands(fixture('cleave').targets, 'auto').bands).toEqual([1, 2, 3, 4]);
-		expect(panel('cleave', 'auto')).toEqual(['flameShockUptime', 'flameShockMultiDot', 'flameShockWaste']);
+		expect(panel('cleave', 'auto')).toEqual(['flameShockUptime', 'flameShockMultiDot', 'lightningShieldOvercap']);
 		expect(card('cleave', 'auto').overall).toBe('bad');
+		// Still not one `exempt` among them: this pull visits every band, so the declarations remain inert
+		// here and the whole of the movement above is the clock. That is the claim this file began with and
+		// it is still true — it is only the panel that moved.
 		for (const key of BANDED) expect(metric('cleave', 'auto', key)?.exempt, key).toBeUndefined();
+		// And the metric that left did so by refusing, not by grading well.
+		expect(metric('cleave', 'auto', 'flameShockWaste')?.unmeasurable).toBe(true);
+		expect(metric('cleave', 'auto', 'flameShockUptime')?.value).toBeCloseTo(83.899, 3);
 	});
 
 	/**
@@ -200,14 +216,34 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * move with them.
 	 *
 	 * The 16.6% multi-dot uptime used to be charged to a pull the reader had just declared was fought at
-	 * one enemy — a rule about spreading the dot, applied to a reading with nothing to spread to. It is
-	 * now unasked, and `cleave` read as single-target still grades `bad`, over 13 of 22 rather than 15.
-	 * Worth pinning precisely because a headline that stays put is the outcome most easily mistaken for
-	 * nothing having happened.
+	 * one enemy — a rule about spreading the dot, applied to a reading with nothing to spread to. It is now
+	 * unasked. The name of this test is kept from when that was the whole story; the letter has since moved,
+	 * and it moved for the reason below rather than for this one.
+	 *
+	 * **11 of 22 and not 13**, which is two changes and not one. The multi-dot rule's two points leave
+	 * because the reader declared one enemy — that is this test's own subject. `flameShockWaste`'s two leave
+	 * for a different reason entirely: cutting the graded clocks let `shareOf`'s sample floor apply, and this
+	 * pull's two refreshes are under it, so the metric declines at every reading rather than grading a 50%
+	 * decided by one press. 11 of 22 is exactly half, and `MIN_JUDGED_WEIGHT_SHARE` is read `>=`, so the
+	 * letter still prints — the tie judges rather than refusing, which is the boundary this pull now sits
+	 * precisely on.
+	 *
+	 * **And the letter is `ok`, up from `bad`.** This is the one letter the whole exercise moves on a
+	 * committed fixture, so the arithmetic is written out rather than left to be re-derived. Before, over
+	 * 13 points: the dot's uptime `bad` at weight 3, the waste `bad` at 2, Earth Shock `bad` and the shield's
+	 * overcap `bad` at 1 each, the totem `ok` at 1, its overlaps and the pre-pull `good` at 1 each, the
+	 * shield's fall-off `ok` at 1, globals `good` at 2 — 5.0 of 13, which is 38% and under the 45% line.
+	 * After, over 11: the waste's two points are gone and the totem's uptime has crossed to `good` on its own
+	 * cut clock, giving 5.5 of 11, which is exactly 50%.
+	 *
+	 * Both halves of that are the intended change and neither is a threshold being flattered: the totem
+	 * genuinely was up for 88.5% of the time a list asked for one, and the waste genuinely cannot be graded
+	 * off two presses. What the reader now sees on this pull is a fair `ok` over a smaller, honest
+	 * denominator instead of a `bad` half of whose weight was add-wave time.
 	 */
-	it('drops the spreading rule from a pull read as single-target without moving its letter', () => {
-		expect(card('cleave', 'single').judged).toEqual({ measured: 13, total: 22, unmeasurable: false });
-		expect(card('cleave', 'single').overall).toBe('bad');
+	it('drops the spreading rule from a pull read as single-target and lifts its letter', () => {
+		expect(card('cleave', 'single').judged).toEqual({ measured: 11, total: 22, unmeasurable: false });
+		expect(card('cleave', 'single').overall).toBe('ok');
 	});
 });
 
@@ -297,32 +333,37 @@ describe('the denominator travels with the verdict', () => {
 	/**
 	 * `overallOf` rather than `overall`, so a `good` over half the spec cannot print as a whole-pull one.
 	 *
-	 * Under its own reading `cleave` judges 15 of 22 and the two single-target pulls judge 13 — they never
-	 * offered a second target, a snapshot window or a mana reading, and `flameShockMultiDot` is now unasked
-	 * on them rather than merely unanswerable. All three are above `MIN_JUDGED_WEIGHT_SHARE`, so every real
-	 * pull we hold keeps its grade, which is the claim that floor was chosen to make.
+	 * Under its own reading `cleave` judges **13** of 22 and the two single-target pulls judge 13 — they
+	 * never offered a second target, a snapshot window or a mana reading, and `flameShockMultiDot` is now
+	 * unasked on them rather than merely unanswerable. All three are above `MIN_JUDGED_WEIGHT_SHARE`, so
+	 * every real pull we hold keeps its grade, which is the claim that floor was chosen to make.
+	 *
+	 * `cleave` was 15 when the declarations landed and is 13 now: `flameShockWaste` carries weight 2 and has
+	 * left the denominator, because cutting the graded clocks let `shareOf`'s sample floor apply and this
+	 * pull made only two Flame Shock refreshes. **That is the honest direction for it to move** — the two
+	 * points were being spent on a 50% that one press decided — but it is a real narrowing of what the
+	 * header can claim, and 13 of 22 is 59%, so the grade still prints.
 	 */
 	it('publishes what each pull was judged on', () => {
-		expect(card('cleave', 'auto').judged).toEqual({ measured: 15, total: 22, unmeasurable: false });
+		expect(card('cleave', 'auto').judged).toEqual({ measured: 13, total: 22, unmeasurable: false });
 		for (const name of ['phased', 'unbroken'] as const) {
 			expect(card(name, 'auto').judged, name).toEqual({ measured: 13, total: 22, unmeasurable: false });
 		}
 	});
 
 	/**
-	 * **The free pass this file documents is still open, and this pins how far out of reach it is.**
+	 * **The free pass this file documented is now closed, and this still pins how far out of reach it is on
+	 * what we hold.**
 	 *
-	 * `lightningShieldOvercap` grades a clock the audit already cuts — `shieldGradedSpans` — and on a pull
-	 * with no single-target stretch at all that clock is empty, where `0ms of overcap over 0ms` grades
-	 * `good`. It cannot happen on anything we hold: all three pulls spend most of themselves at one or
-	 * two enemies, so `duration` less `aoeWindows` is 258 304ms, 184 448ms and 180 375ms. The guard is
-	 * `gradedOver(overcapMs, gradedMs)`, and `gradedMs` is the one field the audit computes and does not
-	 * publish. Asserted from the two arrays it does publish, so the day a wholly-AoE fixture lands this
-	 * test is what fails.
+	 * `lightningShieldOvercap` grades a clock the audit cuts, and on a pull with no band-1-or-2 stretch at
+	 * all that clock is empty, where `0ms of overcap over 0ms` grades `good`. The guard is
+	 * `gradedOver(overcapMs, gradedMs)` and `gradedMs` is now a published field, so the refusal happens.
 	 *
-	 * **Cannot go red against the old behaviour**, and that is what it is for: the hazard is unchanged by
-	 * this commit, and this records that no pull we hold can reach it, so a later reader can tell an
-	 * unfixed hazard from an untested one.
+	 * It still cannot be *exercised* here: all three pulls spend most of themselves at one or two enemies,
+	 * so the graded clock is 258 304ms, 184 448ms and 180 375ms. So this test keeps its original job — it
+	 * records that no committed pull reaches the hazard, which is how a later reader tells an untested
+	 * guard from an absent one. The pull that does reach it is synthetic and lives in
+	 * `lib/__tests__/bandedClocks.test.ts`, which is where the refusal itself is asserted.
 	 */
 	it('has no pull whose shield clock the exemption could empty', () => {
 		for (const name of ALL) {

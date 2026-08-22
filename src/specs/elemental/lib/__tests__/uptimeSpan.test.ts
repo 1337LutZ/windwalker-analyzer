@@ -27,7 +27,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
-import { unionMs } from '~/lib/analysis/intervals';
+import { complementOf, intersect, unionMs } from '~/lib/analysis/intervals';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
@@ -249,11 +249,22 @@ describe('a dot that outlives the last hit and dropped once besides', () => {
  * of them today, and it is still not an invariant, so it is gone rather than pinned.
  *
  * What replaces it is stronger and exact: `scoredMs` must be the union of the contact segments the same
- * analysis published. That is the whole content of "a share of a span it names" — wire the denominator to
- * `duration`, to `engagedMs`, or to anything else, and all three pulls fail on the identity rather than on
- * a bound. `engagedMs` is not published, but it does not have to be: it is a different number on every one
- * of these three pulls (239 246 against 206 557 on `phased` alone), so equality with the contact clock
- * excludes it.
+ * analysis published, **less the stretches it also published as exempt**. That is the whole content of "a
+ * share of a span it names" — wire the denominator to `duration`, to `engagedMs`, or to anything else, and
+ * all three pulls fail on the identity rather than on a bound. `engagedMs` is not published, but it does
+ * not have to be: it is a different number on every one of these three pulls (239 246 against 206 557 on
+ * `phased` alone), so equality with the contact clock excludes it.
+ *
+ * **The exempt term is new and the identity is the same shape it was.** The clock is now the contact
+ * segments intersected with the complement of `lightningShield.aoeWindows`, because from three enemies up
+ * the bar this figure is graded against is not a rule any running list carries — the argument is at
+ * `flameShockUptime` in `score.ts`. Both arrays were already published for the chart, so this is still the
+ * reader's own view of the pull rebuilt and handed back, not a second reading invented in the test. And it
+ * degenerates to exactly the old assertion where there is nothing to drop: `phased` and `unbroken` never
+ * exceed one enemy, so `complementOf([])` is the whole pull, the intersection is the contact clock itself,
+ * and both keep the figure they were pinned to before the cut. That is what makes this a re-derivation
+ * rather than a renumbering — one fixture moves, and the two that cannot move are proof the shape is
+ * right.
  *
  * **And the numerator is now published too, so the ratio itself is finally assertable here.** While only
  * `scoredMs` was published this block could not catch a numerator measured over a different span from its
@@ -275,8 +286,11 @@ describe('the published denominator', () => {
 			const fs = el.flameShock;
 			expect(fs.scoredMs).toBeGreaterThan(0);
 			expect(fs.uptimePct).toBeLessThanOrEqual(100);
-			// The clock `scoredMs` names, read off the array the same analysis published for the chart.
-			expect(fs.scoredMs).toBe(unionMs(el.timeline?.contactSegments ?? []));
+			// The clock `scoredMs` names, read off the two arrays the same analysis published for the charts.
+			const exempt = el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]);
+			expect(fs.scoredMs).toBe(
+				unionMs(intersect(el.timeline?.contactSegments ?? [], complementOf(exempt, el.durationMs))),
+			);
 		});
 	}
 });
@@ -287,8 +301,9 @@ describe('the published denominator', () => {
  * Measured once and written down, because the identity on its own would hold just as well if both halves
  * moved together. Each numerator is the dot on whichever spawn was being hit, clipped to contact; the
  * gap to `uptimeMs` is the dot's time on an enemy the player was not hitting, plus dot outside contact.
- * On `cleave` that gap is 45 896ms — 17% of the pull — which is the size of the mistake a reader was
- * invited to make while the field was invisible.
+ * On `cleave` that gap is 84 984ms — 32% of the pull — which is the size of the mistake a reader was
+ * invited to make while the field was invisible. It widened when the graded clock was cut: the numerator
+ * now also excludes the dot that was up while three or more enemies were, and `uptimeMs` still counts it.
  *
  * `unbroken`'s 100% is arithmetic and not the clamp: numerator and denominator are the same 181 775ms.
  * That is worth an assertion of its own, because the one fixture whose dot never dropped is exactly the
@@ -298,7 +313,11 @@ describe('the published numerator', () => {
 	const measured = {
 		phased: { contactUptimeMs: 202_842, scoredMs: 206_557, uptimeMs: 212_151 },
 		unbroken: { contactUptimeMs: 181_775, scoredMs: 181_775, uptimeMs: 182_846 },
-		cleave: { contactUptimeMs: 189_111, scoredMs: 261_572, uptimeMs: 235_007 },
+		// `cleave` is the one pull with band-3+ time, so it is the only row the clock cut moves: the
+		// denominator drops 82 758ms of add-wave contact and the numerator drops the 39 088ms of dot that
+		// was up inside it. `uptimeMs` is untouched by design — it is the drawn bar, the dot's whole life on
+		// the primary target, and clipping it would put a seam in the timeline where a list merely changed.
+		cleave: { contactUptimeMs: 150_023, scoredMs: 178_814, uptimeMs: 235_007 },
 	} as const;
 
 	for (const [name, want] of Object.entries(measured)) {

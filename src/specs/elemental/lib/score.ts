@@ -7,7 +7,7 @@
 // judgements into a headline, and the reading aids that colour the tiles.
 
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
-import { GRADE_ORDER, gradeOf, grader, overallOf, section, shareOf, sharePct } from '~/lib/score';
+import { GRADE_ORDER, gradeOf, gradedOver, grader, overallOf, section, shareOf } from '~/lib/score';
 import type { Grade, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
 
 import { registry } from './index';
@@ -72,7 +72,20 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 
 	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
 
-	const flameShockUptime = metric('flameShockUptime', flameShock.windows.length > 0 ? flameShock.uptimePct : null);
+	/**
+	 * **`gradedOver` and not the bare percentage, which is the half of the exemption that the declaration
+	 * cannot supply.** `scoredMs` is the contact clock less the stretches three or more enemies were up, so
+	 * on a pull spent wholly above two enemies it is zero — and a share taken over no time at all is not a
+	 * dot nobody dropped, it is a dot nobody measured. `windows.length > 0` does not catch that: the dot
+	 * was applied, its windows exist, and every one of them fell outside the graded clock.
+	 *
+	 * Both guards, because they answer different questions. The window count says the log holds no dot at
+	 * all; the clock says no stretch of this pull was this rule's to grade. `metricOf` nulls on either.
+	 */
+	const flameShockUptime = metric(
+		'flameShockUptime',
+		gradedOver(flameShock.windows.length > 0 ? flameShock.uptimePct : null, flameShock.scoredMs),
+	);
 	/**
 	 * The refreshes that bought nothing — none of the three reasons the list has to press the button
 	 * into a dot that is still running. Over the refreshes taken, never over the applies, which were
@@ -92,17 +105,24 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * card and it is that one press, judged against a rule that was not running. `MIN_GRADED_SAMPLE`
 	 * exists for exactly this row and names it.
 	 *
-	 * What holds it back is two assertions rather than a measurement: `flameShockClearcasting.test.ts`
+	 * **`shareOf` and not `sharePct`, which is what applies that floor.** The denominator is a count of
+	 * presses rather than a span of milliseconds, so the floor means something here: three is the first
+	 * denominator with an interior, and below it every grade this metric can produce is one press away from
+	 * a different one. On `cleave` it refuses, and the refusal removes the worst card in the Flame Shock
+	 * panel — a card that was one band-4 press wearing a band-1 rule.
+	 *
+	 * What used to hold it back was two assertions rather than a measurement: `flameShockClearcasting.test.ts`
 	 * and `flameShockSnapshot.test.ts` both read this share off `metric.value`, and `metricOf` zeroes the
 	 * value of a metric it refuses. Both are asserting the *audit's* attribution — which press got which
-	 * kind — through the grading surface, which is the join that needs breaking; the share they want is
-	 * `refreshes - windowed - ascPrep - snapshotGain` over `refreshes`, straight off the audit and
-	 * independent of whether the scorecard chose to grade it. Those files belong to another lane, so the
-	 * floor lands with them.
+	 * kind — through the grading surface, and that was the join to break: they now take the share straight
+	 * off the audit, so each measures what it was written to measure whether or not the scorecard chose to
+	 * grade it. The reconstruction was checked rather than assumed — `refreshes` equals the count of presses
+	 * with a live dot under them, and the subtraction equals a direct press-by-press count of the faulted
+	 * ones, on all three fixtures.
 	 */
 	const flameShockWaste = metric(
 		'flameShockWaste',
-		sharePct(
+		shareOf(
 			flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
 			flameShock.refreshes,
 		),
@@ -137,9 +157,12 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 */
 	const earthShockGood = metric('earthShockGood', shareOf(earthShock.good, earthShock.judged));
 
+	// `gradedOver` for the reason `flameShockUptime` above gives: `scoredMs` here composes three exempt
+	// causes — the elemental's window, the intermissions and the add waves — and a pull that is all three
+	// arrives with an empty clock. A totem clock nobody measured must not read as a totem nobody dropped.
 	const searingTotemUptime = metric(
 		'searingTotemUptime',
-		searingTotem.windows.length > 0 ? searingTotem.uptimePct : null,
+		gradedOver(searingTotem.windows.length > 0 ? searingTotem.uptimePct : null, searingTotem.scoredMs),
 	);
 
 	// Placements under the Fire Elemental: the one case the list forbids outright, so it is counted on
@@ -220,31 +243,28 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// (`atCapWindowsIn`, restarted at every regime boundary), and this site takes it as given — the
 	// clock is the audit's to cut, not the score's to second-guess.
 	//
-	// **The one hazard in this file that a band declaration makes worse rather than better, and it is
-	// still open.** A pull with no single-target stretch at all has an empty graded clock, and `0ms of
-	// overcap` over no time is `good` — the best mark on the card, handed to exactly the pull the
-	// exemption just excused, which is a free pass rather than the honest "cannot say". `maxStacks > 0`
-	// is the wrong guard for it, because the shield was up and counting the whole time; every proxy for
-	// "was the thing present" answers a different question from "was anything graded".
+	// **The one hazard a band declaration makes worse rather than better, and it is closed here.** A pull
+	// with no single-target stretch at all has an empty graded clock, and `0ms of overcap` over no time is
+	// `good` — the best mark on the card, handed to exactly the pull the exemption just excused, which is
+	// a free pass rather than the honest "cannot say". `maxStacks > 0` is the wrong guard for it, because
+	// the shield was up and counting the whole time; every proxy for "was the thing present" answers a
+	// different question from "was anything graded".
 	//
-	// The mechanism for it exists and is one call: `gradedOver(overcapMs, gradedMs)` instead of the bare
-	// number, and `metricOf` nulls on a graded length of zero. What is missing is the number itself. The
-	// audit already computes the array — `shieldGradedSpans = complementOf(aoeWindows, duration)` in
-	// `specs/elemental/lib/index.ts`, which is what `overcapMs` is measured inside — and publishes every
-	// other part of it (`aoeWindows`, `overcapWindows`, `leewayMs`) while never publishing its length. So
-	// this needs `gradedMs: unionMs(shieldGradedSpans)` on that object and `gradedMs: number` on
-	// `LightningShieldAudit`, both of which are another lane's files. `ManaAudit`'s two clocks already
-	// carry a field of that name for this exact purpose, so the name has precedent in this audit rather
-	// than being invented here.
+	// So the value arrives through `gradedOver` and `metricOf` nulls on a graded length of zero. The
+	// `maxStacks` clause stays in front of it because the two guards say different things — no shield in
+	// the log at all, against no stretch of the pull this rule could speak about — and `maxStacks` is the
+	// game model's ceiling rather than this pull's peak, so it was never the clock question in disguise.
 	//
-	// Deriving it locally from `aoeWindows` and `durationMs` was considered and rejected: it would be a
-	// second computation of a span the audit already has, free to disagree with the one the overcap was
-	// actually measured in, and the whole reason `gradedMs` is a published field rather than an inference
-	// is that a guard reconstructed at the reader is a guard that can drift out of step with what it
-	// guards.
+	// `gradedMs` is `unionMs(gradedSpans)`, published by the audit next to the array the overcap was
+	// measured inside. Deriving it here from `aoeWindows` and `durationMs` was considered and rejected: it
+	// would be a second computation of a span the audit already holds, free to disagree with the one the
+	// overcap was actually measured in, and the whole reason it is a published field rather than an
+	// inference is that a guard reconstructed at the reader is a guard that can drift out of step with the
+	// thing it guards. `bandedClocks.test.ts` is where the empty-clock pull is built and the refusal
+	// asserted, since no committed fixture has that shape.
 	const lightningShieldOvercap = metric(
 		'lightningShieldOvercap',
-		lightningShield.maxStacks > 0 ? lightningShield.overcapMs : null,
+		gradedOver(lightningShield.maxStacks > 0 ? lightningShield.overcapMs : null, lightningShield.gradedMs),
 	);
 	const lightningShieldFellOff = metric('lightningShieldFellOff', lightningShield.fellOff);
 
@@ -362,19 +382,24 @@ export { GRADE_ORDER };
 // speaks only to a pull that never entered the rule's bands at all — a pull read wholly as multi-target,
 // or one whose counts never left the range the rule is not about.
 //
-// **It does not cut a clock, and on the mixed pull this whole exercise is about it therefore changes
-// nothing.** `cleave` resolves to `[1, 2, 3, 4]`, so every declaration below intersects non-empty and
-// every metric below carries on grading its full clock exactly as it did before. `lib/score/bands.ts`
-// says so in its own words — "Nothing here decides *how much* of a clock to cut" — and the half that
-// does is the audit's: the numerator and the denominator of a ratio both intersected with
-// `complementOf(aoeWindows)`, which is what `specs/elemental/lib/index.ts` already does for the shield
-// (`shieldGradedSpans`) and does for none of the other three. Clipping one half and not the other is how
-// an uptime above 100% happens, which is why it is one edit at the site and not a subtraction here.
+// **It does not cut a clock**, and on its own — on the mixed pull this whole exercise is about — it
+// therefore changes nothing. `cleave` resolves to `[1, 2, 3, 4]`, so every declaration below intersects
+// non-empty. `lib/score/bands.ts` says so in its own words: "Nothing here decides *how much* of a clock
+// to cut."
 //
-// So each declaration below is necessary and not sufficient, and the two halves are worth keeping
-// straight when reading a verdict: an `exempt` metric was never asked of this pull, while a graded
-// metric on a mixed pull may still be graded over stretches its own rule did not apply to. The second
-// of those is the reported bug, and it is not fixed in this file.
+// **The half that does is the audit's, and it has landed.** `specs/elemental/lib/index.ts` hoists one
+// `gradedSpans = complementOf(aoeWindows, duration)` and cuts three clocks with it — the dot's uptime,
+// the totem's uptime and the shield's overcap — intersecting the numerator and the denominator of each
+// ratio with the same array, because clipping one half and not the other is how an uptime above 100%
+// happens. It publishes the length of each, so `metricOf` can null on a clock that came out empty rather
+// than grading `0ms of fault` over `0ms of time` as a perfect pull.
+//
+// So a declaration is necessary and not sufficient, and both halves have to be present for a rule to be
+// honest. Three of the seven declarations below have a cut clock behind them; the other four are rules
+// whose *sample* is already narrowed instead (`earthShockGood`'s `judged` counter, `flameShockMultiDot`'s
+// `multiTargetMs` gate) or whose clock nothing has yet cut — `flameShockMultiDot` is the live one, and its
+// entry says so. Reading a verdict, the two states to keep apart are: an `exempt` metric was never asked
+// of this pull at all, and a graded metric whose clock has been narrowed to the stretches that did ask.
 //
 // What earns a declaration: a rung only some target counts' lists contain, where the *number this
 // metric is* is a reading of that rung. What does not: a resource, a slot, a global or a pre-pull press
@@ -416,12 +441,17 @@ export const THRESHOLDS = {
 	 * bar was written from — 7, 12 and 16 — are band 1, and `cleave.apl.json`'s rung 9 is band 2, so
 	 * those two counts keep it.
 	 *
-	 * **The declaration does not shorten the clock, and on `cleave` that is the whole of what is still
-	 * wrong.** `uptimePct` is `contactUptimeMs / scoredMs` over the *whole* of the contact clock, and
-	 * `cleave`'s 72.3% is measured across 261 572ms of which 82 858ms was spent at three enemies or more.
-	 * Both halves want intersecting with `complementOf(aoeWindows)` in `specs/elemental/lib/index.ts`,
-	 * together and not one at a time. Until that lands, this rule declares its scope and grades outside
-	 * it on any pull that also visits band 1 or 2 — which is every mixed pull.
+	 * **The declaration does not shorten the clock; the audit does, and it now has.** `uptimePct` is
+	 * `contactUptimeMs / scoredMs`, and both halves are intersected with `gradedSpans` in
+	 * `specs/elemental/lib/index.ts` — together, in one array, because clipping one and not the other is
+	 * how a share above 100% happens. On `cleave` the denominator went from 261 572ms to 178 814ms and the
+	 * numerator from 189 111ms to 150 023ms, taking the figure from **72.30% to 83.90%**. Both single-target
+	 * fixtures are unmoved, which is what says the cut found the add waves and nothing else.
+	 *
+	 * It is still `bad`: 83.90% is 1.1 points under the 85% `ok` line. That is the honest outcome and worth
+	 * stating plainly, because the point of the cut was never to make the number pass — it was to measure
+	 * it over the stretches a list asked for the dot. This player dropped the dot on the boss too, and the
+	 * exemption does not hide it.
 	 */
 	flameShockUptime: { good: 95, ok: 85, higherIsBetter: true, bands: [1, 2] },
 
@@ -475,10 +505,20 @@ export const THRESHOLDS = {
 	 * On `phased` and `unbroken` the two now agree and the metric reads `exempt` where before it read only
 	 * "cannot say" — the same number, a better reason.
 	 *
-	 * `multiTargetMs` is still the time **two or more** enemies were up, so on a mixed pull the clock
-	 * runs through band 3 and 4 as well and this declaration does not shorten it. `multiDotUptimeMs` and
-	 * `multiTargetMs` both want intersecting with `complementOf(aoeWindows)`; on `cleave` that clock is
-	 * 148 865ms today and band 2 is the smaller part of it.
+	 * **This is the one clock in the table still uncut, and the measurement says cutting it would change no
+	 * verdict.** `multiTargetMs` is the time **two or more** enemies were up, so on a mixed pull it runs
+	 * through bands 3 and 4 as well and the declaration above does not shorten it: `multiDotUptimeMs` and
+	 * `multiTargetMs` both want intersecting with `gradedSpans`, which would leave the band-2 stretches
+	 * alone. Measured on `cleave` by doing exactly that and then reverting it: the clock goes from 148 865ms
+	 * to 66 007ms and the figure from **16.64% to 18.73%** — still far under the 60% `ok` line, so the
+	 * metric stays `bad`, the section stays `bad` and the pull's verdict does not move.
+	 *
+	 * Which makes it worth saying plainly what that measurement means: on this pull the undotted second
+	 * target is a **real** fault and not an artefact of a clock that ran too long. The player dotted the
+	 * secondary for under a fifth of the time two enemies were up whichever way the stretch is counted.
+	 * The cut is still the right change — the number should be measured over the stretches the rule was
+	 * asked at — but it is a correctness change with no verdict behind it, so it is left for a lane that
+	 * can also give `multiTargetMs` its own published graded length rather than being folded in here.
 	 */
 	flameShockMultiDot: { good: 85, ok: 60, higherIsBetter: true, bands: [2] },
 
@@ -519,13 +559,17 @@ export const THRESHOLDS = {
 	 * `cleave.apl.json` not only keeps the totem but promotes it *above* Flame Shock, Lava Burst,
 	 * Elemental Blast and Earth Shock, so the two-target list is the one that asks for it hardest.
 	 *
-	 * **This is the cheapest of the four clocks to cut, and it is still not cut here.** `scoredMs` is
-	 * already `intersect(contact, complementOf(feWindows))` — the site composes an exempt cause into the
-	 * denominator and the numerator follows it by construction, which its own comment says in as many
-	 * words ("the numerator is intersected with the same clock rather than taken raw, so it follows this
-	 * line without a second edit"). Adding `aoeWindows` to that complement is one array literal in
-	 * `specs/elemental/lib/index.ts`. Until it lands, `cleave`'s 78.7% is measured over 204 835ms
-	 * including 82 858ms the list had no totem rung in.
+	 * **This was the cheapest of the clocks to cut, and it really was the one edit predicted.** `scoredMs`
+	 * was already `intersect(contact, complementOf(feWindows))` — the site composes exempt causes into the
+	 * denominator and the numerator follows by construction, which its own comment says in as many words
+	 * ("the numerator is intersected with the same clock rather than taken raw, so it follows this line
+	 * without a second edit"). `gradedSpans` went in as a third term.
+	 *
+	 * `cleave` moves from 78.72% over 204 835ms to **88.50% over 127 378ms**, which crosses the 85% line:
+	 * the section goes `ok` to `good` and the totem stops appearing among the pull's faults. That is the
+	 * change working as intended rather than a threshold being flattered — 77 457ms of the old denominator
+	 * was time no list had a fire-totem rung in, and the player kept the totem up through most of what was
+	 * left. Neither single-target fixture moves.
 	 */
 	searingTotemUptime: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2] },
 
@@ -618,9 +662,13 @@ export const THRESHOLDS = {
 	 * be the wrong way round. The audit builds `shieldGradedSpans = complementOf(aoeWindows, duration)`
 	 * and measures the overcap inside it, per segment, so the leeway restarts at every boundary.
 	 *
-	 * So the declaration here is the honest scope for a number that is honestly measured — and it is also
-	 * the one entry that makes the missing guard reachable: see the note at the metric, and
-	 * `gradedMs`.
+	 * So the declaration here is the honest scope for a number that is honestly measured — and it is the
+	 * entry that made the empty-clock guard reachable, which is now closed: the audit publishes
+	 * `lightningShield.gradedMs` and the metric goes through `gradedOver`, so a pull with no band-1-or-2
+	 * stretch reads "cannot say" instead of collecting a free zero. See the note at the metric.
+	 *
+	 * `overcapMs` itself does not move on any fixture — this clock was already cut — so `cleave` stays at
+	 * 42 157ms and `bad`. What changed is only that an empty one can no longer pass for a perfect one.
 	 */
 	lightningShieldOvercap: { good: 0, ok: 5000, higherIsBetter: false, bands: [1, 2] },
 

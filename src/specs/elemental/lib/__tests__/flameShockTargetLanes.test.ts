@@ -11,10 +11,16 @@
 //      as the primary. Asserted against facts the lane code cannot supply itself — the number of
 //      distinct enemies the fixture's own event stream carries, an enemy named out of its actor list,
 //      and `primaryTarget.id`, which the core decides and this file only reads.
-//   2. **The rows must not reach the graded figure.** Flame Shock's uptime is the contact clock's
+//   2. **The rows must not reach the graded figure.** Flame Shock's uptime is the graded clock's
 //      reading and is measured a long way above the timeline section; the three reference pulls read
 //      98.2015%, 100% and 72.2979% before these rows existed. They are pinned here, in the file that
 //      added the rows, because that is where a change to them would come from.
+//
+//      `cleave`'s figure has since moved once, to 83.8989%, and **not** because a row reached it: the
+//      graded clock itself was cut to drop the stretches three or more enemies were up, which is a change
+//      to the denominator and the numerator together, made in the audit and asserted in
+//      `bandedClocks.test.ts`. The two single-target pulls did not move, and that is the evidence the
+//      cause was the clock and not the rows — a row leaking in would have moved all three.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -35,14 +41,21 @@ describe('the reference pulls, and the figure the rows must not move', () => {
 	/**
 	 * The hard constraint of the change, in the one assertion that can catch it failing.
 	 *
-	 * These three are the contact-clock uptime — `fsContactWindows` over `inContactMs` — and no part of
-	 * the per-enemy row set is an input to either. If a row ever becomes one, this is where it shows,
-	 * and the answer is to take the row back out rather than to re-baseline these numbers.
+	 * These three are the graded-clock uptime — `fsContactWindows` over `fsGradedMs` — and no part of the
+	 * per-enemy row set is an input to either. If a row ever becomes one, this is where it shows, and the
+	 * answer is to take the row back out rather than to re-baseline these numbers.
+	 *
+	 * **That instruction still stands, and re-baselining `cleave` here did not break it.** The rule is that
+	 * a *row* must never move these figures. What moved this one is the clock both halves of the share are
+	 * measured over, named at the top of this file and pinned by its own file. The tell is that the other
+	 * two pulls are untouched to the last digit: they never exceed one enemy, so a clock cut cannot reach
+	 * them, while anything leaking out of the row set would reach all three. So the two unchanged literals
+	 * are load-bearing here, not decoration.
 	 */
-	it('leaves Flame Shock uptime exactly where it was on all three pulls', () => {
+	it('leaves Flame Shock uptime where the rows found it on all three pulls', () => {
 		expect(fx('phased').flameShock.uptimePct).toBe(98.20146497092811);
 		expect(fx('unbroken').flameShock.uptimePct).toBe(100);
-		expect(fx('cleave').flameShock.uptimePct).toBe(72.29787591944093);
+		expect(fx('cleave').flameShock.uptimePct).toBe(83.89891171832183);
 	});
 
 	/**

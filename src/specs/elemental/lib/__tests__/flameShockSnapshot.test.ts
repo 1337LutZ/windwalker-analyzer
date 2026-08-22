@@ -57,11 +57,18 @@ const pressAt = (el: Analysis & ElementalAuditResult, t: number): FlameShockPres
 	return press;
 };
 
-/** `flameShockWaste` as the report grades it, in percent. */
-const wasteOf = (el: Analysis & ElementalAuditResult): number | null => {
-	const metric = scoreAnalysis(el).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockWaste');
-	if (metric === undefined) throw new Error('flameShockWaste is not on the scorecard');
-	return metric.value;
+/**
+ * The waste share, **off the audit rather than off the scorecard** — see the twin of this helper in
+ * `flameShockClearcasting.test.ts` for the whole argument.
+ *
+ * In short: what this file asserts is that crediting a justified refresh moves the *attribution*, and
+ * reading that through `metric.value` made it hostage to whether the metric was graded. `cleave` has two
+ * refreshes, which is under `MIN_GRADED_SAMPLE`, so the scorecard now declines it and would have handed
+ * this a zero for an attribution that had not moved at all.
+ */
+const wasteOf = (el: Analysis & ElementalAuditResult): number => {
+	const fs = el.flameShock;
+	return ((fs.refreshes - fs.windowed - fs.ascPrep - fs.snapshotGain) / fs.refreshes) * 100;
 };
 
 describe('the instrument: what one dot tick says about the application it came from', () => {

@@ -31,7 +31,6 @@ import { describe, expect, it } from 'vitest';
 import type { Analysis, ElementalAuditResult, FightDataset, FlameShockPress } from '~/lib/types';
 
 import { analyse } from '../index';
-import { scoreAnalysis } from '../score';
 
 const FIXTURES = ['unbroken', 'phased', 'cleave'] as const;
 type Fixture = (typeof FIXTURES)[number];
@@ -93,11 +92,24 @@ const pressAt = (name: Fixture, t: number): FlameShockPress => {
 const graded = (): FlameShockPress[] =>
 	FIXTURES.flatMap((name) => el[name].flameShock.presses.filter((p) => p.kind === 'early' || p.kind === 'snapshot'));
 
-/** `flameShockWaste` as the scorecard grades it, in percent. */
-const wasteOf = (name: Fixture): number | null => {
-	const metric = scoreAnalysis(el[name]).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockWaste');
-	if (metric === undefined) throw new Error('flameShockWaste is not on the scorecard');
-	return metric.value;
+/**
+ * The waste share, **off the audit rather than off the scorecard**.
+ *
+ * This used to read `metric.value`, and that was a join this file had no business having. What it asserts
+ * is the audit's *attribution* — which press the walk called windowed, which it called a snapshot gain —
+ * and routing that through the grading surface made it depend on whether the scorecard chose to grade the
+ * metric at all. It does not, on `cleave`: two refreshes is under `MIN_GRADED_SAMPLE`, so `metricOf`
+ * refuses and zeroes the value, and this file would have read `0` for an attribution that had not changed.
+ *
+ * The numerator is the same expression `score.ts` hands `shareOf`, and it was checked against the presses
+ * rather than assumed: `refreshes` equals the count of presses with a live dot under them, and the
+ * subtraction equals a direct count of the refreshes carrying none of the three excuses, on all three
+ * fixtures. So this is the same number the tile shows whenever the tile shows one — it just does not go
+ * blank when the tile does.
+ */
+const wasteOf = (name: Fixture): number => {
+	const fs = el[name].flameShock;
+	return ((fs.refreshes - fs.windowed - fs.ascPrep - fs.snapshotGain) / fs.refreshes) * 100;
 };
 
 describe('the proc state each Flame Shock press froze', () => {
