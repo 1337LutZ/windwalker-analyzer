@@ -119,4 +119,23 @@ describe('Tiger Palm summary cards', () => {
 		const html = render(empty);
 		expect(html).toContain(t('tigerPalm.verdict', { context: 'none' }));
 	});
+
+	/**
+	 * A pull the filler rule was not asked of must not be told it never pressed the button.
+	 *
+	 * `cleave` presses Tiger Palm twelve times and exactly two of them with one enemy up, which is under
+	 * the sample floor — so the metric has no verdict, and `verdict_none` reads "Tiger Palm was never
+	 * pressed in this pull". That sentence was written when a zero press count was the only way to be
+	 * unmeasurable and is now false on every pull the band declaration reaches. The presses are still
+	 * drawn and the uptime clause beside it is still true; the verdict clause is dropped until there is a
+	 * key that says the filler rule was not what this pull was doing.
+	 */
+	it('prints no verdict at all on a pull the filler rule was not asked of', () => {
+		const html = render(fx('cleave'));
+		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none' }));
+		// And it is the *verdict* that is missing, not the section: the twelve presses are still drawn and
+		// still counted, which is what makes the dropped sentence a silence rather than a hidden section.
+		expect(html).toContain(t('tigerPalm.key.wasted'));
+		expect(html).toContain(t('tigerPalm.uptime', { uptime: fx('cleave').filler.buffUptimePct }));
+	});
 });

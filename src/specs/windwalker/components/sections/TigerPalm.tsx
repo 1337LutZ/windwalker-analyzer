@@ -24,7 +24,15 @@ import { Note, Pill, Prose, Section, StatTile } from '~/components/primitives';
  */
 export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 	const { filler, comboBreaker } = analysis;
-	const { t, verdict } = useReportCopy(analysis);
+	const { t, card, verdict } = useReportCopy(analysis);
+	// Whether there is a verdict to print at all, which is now a different question from whether the
+	// button was pressed. Tiger Palm is a band-1 rule, so a pull read above one target — or one that made
+	// too few presses at one target to judge the habit on — has no verdict on it, and the presses it did
+	// make are still drawn above. `verdict_none` reads "Tiger Palm was never pressed in this pull", which
+	// was the only way to be unmeasurable when it was written and is a false sentence on those pulls, so
+	// the clause is dropped rather than printed wrong. It wants a key of its own — one that says the
+	// filler rule was not what this pull was doing — and the uptime clause beside it is true either way.
+	const graded = card.sections['tigerPalm']?.unmeasurable === false;
 
 	const counts = {
 		casts: filler.casts,
@@ -83,7 +91,8 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 
 					<div className="mt-5 flex flex-col gap-3.5">
 						<Prose>
-							{verdict('tigerPalm', counts)} {t('tigerPalm.uptime', { uptime: filler.buffUptimePct })}
+							{graded ? `${verdict('tigerPalm', counts)} ` : ''}
+							{t('tigerPalm.uptime', { uptime: filler.buffUptimePct })}
 						</Prose>
 						{comboBreaker.length > 0 ? (
 							<p className="m-0">
