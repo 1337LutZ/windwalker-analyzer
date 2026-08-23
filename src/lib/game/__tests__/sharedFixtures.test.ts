@@ -60,13 +60,32 @@ describe('the tinker buff on an Elemental pull', () => {
 
 describe('the item effects three Elemental pulls wear and nothing declared', () => {
 	/**
-	 * Four effects, each confirmed by events on a committed fixture rather than by a sim citation. None
-	 * of them is drawn yet — both specs build their timeline from a curated list of aura keys, and adding
-	 * a key to those lists is a change in `specs/*​/lib/index.ts` — but the model can now see them, which
-	 * is the half that was missing.
+	 * Four effects, each confirmed by events on a committed fixture rather than by a sim citation.
 	 *
-	 * `essence-of-yulon` is the one worth naming twice: it is an **enemy debuff**, so a Buffs sweep
-	 * cannot see it at all, and it is the busiest of the four.
+	 * **This block used to end "none of them is drawn yet", and that has stopped being true — corrected
+	 * rather than deleted, because a reader who remembers the old sentence is owed the reason it changed.**
+	 * It said the model could now see these four but no chart could, since "both specs build their
+	 * timeline from a curated list of aura keys, and adding a key to those lists is a change in
+	 * `specs/*​/lib/index.ts`". That was an accurate description of the state `0e4f07c` left, and it was
+	 * the description of a *queue*: the declaration had landed and the rows had not. `3745c92` drew them.
+	 * All four are lanes in `specs/elemental/lib/index.ts` now — `JADE_SPIRIT`, `LIGHTWEAVE`,
+	 * `TOXIC_POWER`, `EXPANDED_MIND` — and the test below asserts it, so the claim in this paragraph is
+	 * checked rather than remembered.
+	 *
+	 * The sentence mattered because of where a reader arrives from: this is the file an audit of the item
+	 * sweep is pointed at, so "not drawn yet" here reads as "the drawing never landed" — the same
+	 * queue-that-was-emptied trap `index.ts`' `FIRE_ELEMENTAL_COOLDOWN_MS` docblock names, where a note
+	 * explaining why something was left undone outlived the doing of it.
+	 *
+	 * **The Windwalker half of the old sentence is still true and is not a gap.** `3745c92` added rows to
+	 * the Elemental only, and that spec's list is the one these four needed: all five keys in this block
+	 * appear in the *Windwalker* column of `analysis/__tests__/fixtureCoverage.test.ts`' `SILENT_AURAS`,
+	 * which is that guard saying they fire on no committed Windwalker pull. A row for an effect the
+	 * fixture never procs would draw nothing.
+	 *
+	 * `essence-of-yulon` is the one worth naming twice: it is an **enemy debuff**, so a Buffs sweep cannot
+	 * see it at all, and it is the busiest of the four. It is also the one this correction does *not*
+	 * cover — see the block that follows the assertion below.
 	 */
 	const expected: Array<[string, [number, number, number]]> = [
 		// [aura key, windows on cleave / phased / unbroken]
@@ -86,6 +105,26 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 			expect(measured).toEqual(counts);
 		});
 	}
+
+	/**
+	 * And each of the four has a row, which is the half the paragraph above used to say was missing.
+	 *
+	 * Read off the analysed pull rather than off the lane list in `index.ts`, so this is the same set a
+	 * reader would see on the chart. Every declared-and-firing effect in this block is asserted on every
+	 * pull that procs it — `lightweave` does not proc on `phased` (0 windows above), and an empty lane is
+	 * dropped from the timeline, so that one pull is asked only for the other three.
+	 */
+	it('draws all four of them on the Elemental timeline', () => {
+		for (const file of ELEMENTAL) {
+			const analysis = analyseElemental(fixture('elemental', file)) as Analysis;
+			const drawn = new Set(analysis.timeline?.lanes.map((l) => l.key) ?? []);
+			for (const [key, counts] of expected) {
+				// Only where the effect actually fired on this pull; a lane with no window is not drawn.
+				if (counts[ELEMENTAL.indexOf(file)] === 0) continue;
+				expect(drawn.has(key), `${file} ${key}`).toBe(true);
+			}
+		}
+	});
 
 	/**
 	 * The debuff, counted on the enemy rather than on the player — which is why it needs its own reading
