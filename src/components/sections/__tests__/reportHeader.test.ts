@@ -133,3 +133,61 @@ describe('the headline says how much of the pull it judged', () => {
 		expect(html).not.toContain('border-brew');
 	});
 });
+
+/**
+ * What a `good` headline is actually allowed to contain — and what it used to deny.
+ *
+ * `overall.good` said "The notes below are small refinements, not real mistakes", which is an absolute
+ * claim about copy the letter never covered. Three things make it false, and none of them is
+ * hypothetical:
+ *
+ *   1. The letter is a **weighted mean**, so 75% of the points is enough. A quarter of the measured
+ *      weight can be scoring zero.
+ *   2. A section's own letter is the *worst* of its metrics, not their mean, so a whole section can
+ *      letter `bad` under a `good` headline.
+ *   3. The mean is taken over the weight that survived, which `MIN_JUDGED_WEIGHT_SHARE` only requires
+ *      to be half — so the sentence can be a claim about copy from sections it never read.
+ *
+ * `strong` is the proof and it is committed: `good` over **15 of 15** points — nothing unread at all,
+ * so (3) is not even needed — with `brew` and `karma` both lettering `bad` and three metrics scoring
+ * zero. A reader of that pull was told the two red sections below were not real mistakes.
+ */
+describe('the good headline does not deny the faults under it', () => {
+	it('is printed over a pull two of whose sections it grades bad', () => {
+		const strong = fx('strong');
+		const card = scoreAnalysis(strong, resolveBands(strong.targets, 'auto'));
+		expect(card.overall).toBe('good');
+		// Judged in full, so this is the worst case the letter permits with nothing excused.
+		expect(card.judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
+		const bad = Object.entries(card.sections)
+			.filter(([, score]) => !score.unmeasurable && score.grade === 'bad')
+			.map(([key]) => key)
+			.sort();
+		expect(bad).toEqual(['brew', 'karma']);
+
+		// The apostrophe in "spec's" comes back HTML-escaped out of `renderToStaticMarkup`, which is why
+		// the two assertions above this block could compare the raw string and this one cannot.
+		const html = render(strong);
+		expect(html).toContain(t('overall.good').replaceAll("'", '&#x27;'));
+		expect(html).not.toContain(t('overall.ok'));
+	});
+
+	/**
+	 * The property rather than the phrasing: all four sentences hand the reader the same next move, and
+	 * the `good` one was the only one that did not — because it was telling them there was nothing to
+	 * go and look at.
+	 */
+	it('sends the reader down the page on every grade, the good one included', () => {
+		for (const grade of ['good', 'ok', 'bad', 'none']) {
+			expect(t(`overall.${grade}`), grade).toContain('Read down the page');
+		}
+	});
+
+	/** And the claim itself, named, so it cannot come back in a rewrite. */
+	it('claims nothing about notes the letter did not cover', () => {
+		const good = t('overall.good');
+		for (const denial of ['not real mistakes', 'small refinements']) {
+			expect(good, denial).not.toContain(denial);
+		}
+	});
+});
