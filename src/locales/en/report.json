@@ -11,12 +11,12 @@
     "chartEmpty": "Re-Origination never fired in this pull, so there is nothing to snapshot.",
     "verdict_good": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). You used the two together well.",
     "verdict_ok": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). You lost more by skipping procs than by brewing late on the ones you took.",
-    "verdict_bad": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). This is the spec's largest single source of damage, and most of it was missed.",
+    "verdict_bad": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). Re-Origination is the spec's largest single source of damage, and most of these procs went past without a brew on them.",
     "verdict_tooFew": "A Re-Origination proc did arrive with enough Tigereye Brew banked to be worth spending on — {{total, integer}} catchable in total, with {{caught, integer}} of those taken. That is too few to tell a habit from a coincidence: one proc either way would swing the share. So nothing here counts for or against you. Every proc still has its own row on the chart above — read them one at a time rather than as a fraction.",
     "verdict_none": "No Re-Origination proc arrived with enough Tigereye Brew banked to be worth spending on, so there was nothing to catch.",
     "depth_good": "On average you brewed {{depth, percent}} of the way into the proc — late in the window, which extends the buff the longest.",
     "depth_ok": "On average you brewed {{depth, percent}} of the way in. Waiting until the last global would extend each snapshot further.",
-    "depth_bad": "On average you brewed {{depth, percent}} of the way in, so most of the proc was already over before the brew locked the stats in.",
+    "depth_bad": "On average you brewed {{depth, percent}} of the way in, so the rest of each proc ran alongside the brew rather than after it.",
     "lastGcd_one": "{{count}} landed on the final global of its proc.",
     "lastGcd_other": "{{count}} landed on the final global of their procs.",
     "lastGcdNone": "None landed on the final global of a proc.",
@@ -146,7 +146,7 @@
   "debuff": {
     "title": "Rising Sun Kick",
     "intent": "The debuff increases the damage of everything you and your Storm, Earth and Fire clones do to that target — it does not affect the rest of the raid. It lasts 15 seconds on an 8-second cooldown, so only a missed global can let it drop. Uptime asks whether the enemy you were hitting had the debuff, measured against the time you had something to hit — so add waves and phases with nothing in reach never count against you.",
-    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. Effectively never off the enemy in front of you.",
+    "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. {{lost, seconds}} of the time you had something to hit went by without it, and everything you did outside those stretches landed with the debuff up.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it.",
     "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it — and everything you did during that time hit for less.",
     "verdict_noContact": "Rising Sun Kick was cast in this pull — {{casts, integer}} in total — but no time with an enemy in front of you was recorded to measure the debuff against, and uptime is a share of exactly that time. With nothing for the share to come out of, there is no uptime to report, so nothing here counts for or against you.",
@@ -214,20 +214,20 @@
     "intent": "A channel that locks you in place, so where it goes matters more than how often you press it. Put it under a brew or a proc, and never while something higher in the priority list is ready.",
     "summary_one": "{{casts}} channel, {{seconds, seconds}} in total.",
     "summary_other": "{{casts}} channels, {{seconds, seconds}} in total.",
-    "clean_good": "All of them were placed cleanly.",
+    "clean_good": "Every channel was placed cleanly.",
     "clean_ok": "{{faulted}} of {{casts}} started at the wrong time.",
     "clean_bad": "{{faulted}} of {{casts}} were badly timed.",
     "none": "Fists of Fury was never channelled in this pull.",
     "energyCaveat": "The rotation's energy condition is not checked here: this section grades each channel against what buffs were running, not against your energy bar. A channel marked clean may still have started on a full bar.",
-    "withBrew_all": "Every one of them had a brew running.",
+    "withBrew_all": "Every channel had a brew running.",
     "withBrew_some": "{{withBrew}} of {{casts}} had a brew running.",
-    "caption": "Every Fists of Fury channel, and where each one went wrong",
+    "caption": "Every Fists of Fury channel, and how each one went",
     "columns": {
       "at": "at",
       "channel": "channel",
       "brew": "brew",
       "rune": "rune left",
-      "verdict": "what went wrong"
+      "verdict": "how it went"
     },
     "cells": {
       "yes": "yes",
@@ -245,7 +245,7 @@
     "none": "Energizing Brew was never pressed, and the cooldown allowed {{available}} uses.",
     "haste_good": "None of them were used under a haste cooldown — the rotation holds Energizing Brew through those.",
     "haste_ok": "{{duringHaste}} of them went out under one, which is allowed here because Rushing Jade Wind was selected.",
-    "haste_bad": "{{faulted}} of {{casts}} were used under a haste cooldown that the rotation would have waited out.",
+    "haste_bad": "{{faulted}} of {{casts}} landed under a haste cooldown that the rotation would have waited out.",
     "channels_one": "One Fists of Fury channel started inside a window; the Fists of Fury section says whether Rushing Jade Wind covered it.",
     "channels_other": "{{count}} Fists of Fury channels started inside a window; the Fists of Fury section says which of them Rushing Jade Wind covered.",
     "energyCaveat": "The other half of the condition — energy at least five seconds from filling — is not checked here. What the last column shows as wrong covers the haste clause and nothing else, so a use marked clean may still have gone out on a nearly full bar.",
@@ -601,7 +601,7 @@
     },
     "capSummary_one": "One use drained its pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
     "capSummary_other": "{{count}} uses drained their pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
-    "capSoleUse": "One use drained its pool completely, which is what states the pool's size: {{health, compact}} health. It is also the only press on the pull, so the pool was measured off the same press that a share of it would divide. A lone press that drains its pool has returned everything it could by definition, and that is arithmetic rather than anything you did. Its row in the table above is the whole of what happened here.",
+    "capSoleUse": "One use drained its pool completely, which puts the pool at {{health, compact}} health. It is also the only press on the pull, and a lone press that drains its pool has returned everything it could by definition — that is arithmetic rather than anything you did. Its row in the table above is the whole of what happened here.",
     "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and the only thing that states your pool is a use that drains it — none here did. Guessing from a bar that only reports whole percent would be a guess, not a measurement.",
     "fortifying_one": "One of them ran under Fortifying Brew.",
     "fortifying_other": "{{count}} of them ran under Fortifying Brew.",
@@ -902,7 +902,7 @@
       "tigerPalmProc": {
         "name": "Tiger Palm",
         "test": "A free palm, past the opener, with room to spend it",
-        "why": "The same free-global logic as the kick, several rungs lower. Tiger Palm is a weak hit, so a free one only earns its global when there is nothing better to put in it."
+        "why": "The same free-global logic as the kick, several rungs lower. Tiger Palm hits weakly, so a free one only earns its global when there is nothing better to put in it."
       },
       "jab": {
         "name": "Jab",
@@ -1152,7 +1152,7 @@
     "title": "Priority list",
     "intent": "Every other section measures one thing on its own. This one reads the priority list down your pull and asks, at every global you spent: was a better button ready right then?",
     "summary": "On {{followed}} of the {{judged}} globals this log could check against the priority list, you pressed the highest-priority ability available. On {{skipped}} of them, a higher-priority ability was available and affordable.",
-    "unjudged": "{{unknown}} presses could not be checked, because an entry above them needs something this log does not carry. Another {{offList}} were buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
+    "unjudged": "Left out of that count: {{unknown}} where an entry above needed something this log does not carry, and {{offList}} spent on buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
     "clean": "On every global this log could check against the priority list, no higher-priority ability was available.",
     "noResources": "This log carried no resource readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing here counts for or against you.",
     "noCharacter": "This log carried no equipment record, so the report cannot tell what you had equipped or which talents you took. A few entries above depend on one or the other, and the presses beneath them are the ones it could not check.",
@@ -1245,7 +1245,7 @@
       "opportunities": "Presses / asked for"
     },
     "choice": {
-      "value": "Damage loss",
+      "value": "Non-optimal",
       "label": "Single-target choice"
     }
   },
@@ -1315,7 +1315,7 @@
     "intent": "A thirty-second snapshot dot, no cooldown and no cast time. Lava Burst needs it on the target, and the dot freezes everything you had up at the instant you applied it — spellpower, your haste, and Clearcasting’s +20% — then keeps all of it for the full thirty seconds. So letting Flame Shock drop costs you far more than the one global it takes to put it back.",
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts, and every refresh bought something.",
     "verdict_goodSome": "{{uptime, percent}} uptime across {{casts}} casts, and the dot is not what is holding this pull back. {{wasted, integer}} of the refreshes still threw away a tick of the running dot with no stronger snapshot to show for it — hold Flame Shock until the dot’s last tick and that goes too.",
-    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} refreshes threw away a tick of the running dot with no stronger snapshot to show for it.",
+    "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. {{wasted, integer}} of the refreshes threw away a tick of the running dot with no stronger snapshot to show for it.",
     "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts — the dot was off the target for the rest of the time you had something to hit. {{wasted, integer}} refreshes also threw away a tick of the running dot with no stronger snapshot to show for it.",
     "verdict_good_full": "The dot was up for every second you had something to hit, across {{casts}} casts — a perfect keep-up.",
     "verdict_goodSome_full": "The dot was up for every second you had something to hit, across {{casts}} casts — a perfect keep-up. {{wasted, integer}} of the refreshes still threw away a tick of the running dot with no stronger snapshot to show for it; hold Flame Shock until the dot’s last tick and that goes too.",
@@ -1683,7 +1683,7 @@
     "none": "No Stormlash Totem reached you in this pull.",
     "sourceNote": "The two tiles and the chart above read where the raid laid its totems, which comes from a separate fetch this pull does not carry — so they count zero. The table below asks the other half of the question and needs no extra fetch: every totem whose buff landed on you, and who laid it.",
     "ascendanceNote": "Dropping Stormlash costs you a global, and during Ascendance you want that global on Lava Beam — so lay the totem before you press Ascendance, or after the window closes. Treat this as a preference rather than a requirement: nothing in your score moves either way, and a totem still running through Ascendance is a good thing, because Stormlash pays out on what the raid does while it is up.",
-    "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the chart only shows where the raid spent two totems on one stretch."
+    "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the second totem in one of those stretches bought the raid nothing."
   },
   "lavaBurst": {
     "title": "Lava Burst",

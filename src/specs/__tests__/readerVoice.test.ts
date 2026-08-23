@@ -1139,33 +1139,160 @@ describe('no string in either locale sounds machine-written', () => {
 // other exception list in this file takes.
 const MAGNITUDE = /\b(most|repeatedly|almost|nearly|hardly|barely|the majority|effectively never)\b/i;
 
+/**
+ * **The scope was `key.includes('verdict')`, and that is the key-kind selector this file spends four
+ * hundred lines condemning.** It is drawn from the three spec scopes now, for the reason every other
+ * block here gives for the same move.
+ *
+ * A graded arm is not a `verdict_*` key. It is any leaf i18next resolves by a grade the scorer handed
+ * it, and the report names those arms after the sentence they are rather than after their kind:
+ * `snapshots.depth_bad`, `brew.cap_good`, `fistsOfFury.clean_ok`, `energizingBrew.haste_bad`. The
+ * substring missed every one of them, and one was a live violation — `snapshots.depth_bad` said "most
+ * of the proc was already over" on a band running 0 to 65% depth, where "most" is false below 50.
+ * Verified by mutation before this was changed: a magnitude clause added to `brew.cap_good` passed the
+ * old scope, and the same clause on `casts.verdict_ok` failed it.
+ *
+ * So the selector is the grade suffix i18next itself resolves — `_good`, `_ok`, `_bad`, each with any
+ * further context after it (`verdict_good_other`, `verdict_ok_noOvercap`, `verdict_bad_full`) — taken
+ * over the three spec scopes rather than over the raw file, so a leaf outside every scope cannot carry
+ * a claim this never reads. The three names are `Grade`'s own, from `lib/score`, which is what stops
+ * this being a second list of kinds somebody grew one discovery at a time.
+ */
+const GRADED_ARM = /_(good|ok|bad)(_|$)/;
+
+const gradedArms = (): [string, string][] =>
+	[...elementalStrings(), ...windwalkerStrings(), ...sharedStrings()].filter(([key]) =>
+		GRADED_ARM.test(key.split('.').pop()!),
+	);
+
+/**
+ * The families the selector reaches, written out for the reason every scope in this file writes its
+ * own out: a family that *loses* its arms to a refactor would leave this sweep with every count still
+ * passing, and a family that gains one outside a scope would never arrive.
+ *
+ * Twelve of the seventeen are `verdict_*` and the substring would have found those. The other five are
+ * the point, and they hold fifteen arms between them: `brew.cap`, `energizingBrew.haste`,
+ * `fistsOfFury.clean`, `snapshots.depth` and `summary.takeaways.title`. The last is a heading rather
+ * than a sentence and it belongs here anyway — `Takeaways.tsx:143` picks it with `context:
+ * card.overall`, so it renders across a band exactly as a verdict arm does.
+ */
+const GRADED_FAMILIES = [
+	'brew.cap',
+	'brew.verdict',
+	'casts.verdict',
+	'debuff.verdict',
+	'earthShock.verdict',
+	'energizingBrew.haste',
+	'fistsOfFury.clean',
+	'flameShock.verdict',
+	'flameShockSnapshots.verdict',
+	'karma.verdict',
+	'lightningShield.verdict',
+	'mana.verdict',
+	'searingTotem.verdict',
+	'snapshots.depth',
+	'snapshots.verdict',
+	'summary.takeaways.title',
+	'tigerPalm.verdict',
+];
+
+/**
+ * One sentence per alternative, in that word's own idiom, so the pattern is executed against prose
+ * rather than against a string spun out of itself. Three are the real removed arms; the other five are
+ * the shapes those words would arrive in.
+ */
+const MAGNITUDE_PROBES: [string, string][] = [
+	['most', 'most went out early'],
+	['repeatedly', 'This happened repeatedly, not just once.'],
+	['almost', 'Almost nothing went unused.'],
+	['nearly', 'Nearly a third of the pull produced nothing useful.'],
+	['hardly', 'The bank hardly ever reached the cap.'],
+	['barely', 'The dot barely stayed up between refreshes.'],
+	['the majority', 'The majority of your globals went to filler.'],
+	['effectively never', 'Effectively never off the enemy in front of you.'],
+];
+
 describe('a graded sentence claims no magnitude its own band cannot carry', () => {
-	it('carries only the three whose arithmetic is written out here', () => {
-		const claims = localeStrings()
-			.filter(([key, value]) => key.includes('verdict') && MAGNITUDE.test(prose(value)))
-			.map(([key]) => key);
-		// `snapshots.verdict_bad` — "most of it was missed". `snapshotRate` is `ok: 45`, so the arm ends
-		//   below 45% caught and more than half was missed at every value it can take. Sound.
-		// `debuff.verdict_good` — "Effectively never off the enemy in front of you". `rskUptime` is
-		//   `good: 95`, so the arm is at most 5% off. Sound.
-		// `casts.verdict_good` was the third and is gone. It ended "Almost nothing went unused" on a band
-		//   that opens at `good: 85` for the Windwalker and **80** for the Elemental — one global in five
-		//   at worst — and the string is shared, so any claim in it has to hold at the looser of the two.
-		//   The sentence already prints the exact share, which is what made the trailing claim both
-		//   redundant and wrong at the low end. It now closes on something true at 80: "The globals left
-		//   over are the ones hardest to fill." Dropping the clause outright was not available — it would
-		//   have left `verdict_good` word-for-word identical to `verdict_bad`, so a reader could not tell
-		//   the two apart.
-		expect(claims.sort()).toEqual(['debuff.verdict_good', 'snapshots.verdict_bad']);
+	it('reads every graded arm in the file, not the ones whose key happens to say verdict', () => {
+		// The grade and everything i18next resolves after it, cut off the leaf: `verdict_bad_noRage` and
+		// `verdict_one` belong to the same family as `verdict_good`, and a family is what this list can
+		// be read against.
+		const families = [
+			...new Set(
+				gradedArms().map(([key]) => {
+					const leaf = key.split('.').pop()!;
+					return `${key.slice(0, key.length - leaf.length)}${leaf.replace(/_(good|ok|bad)(_.*)?$/, '')}`;
+				}),
+			),
+		].sort();
+		expect(families).toEqual([...GRADED_FAMILIES].sort());
+		// A floor rather than the live count, in the shape the three scopes above use: an honest deletion
+		// does not red it and a selector that stops selecting does.
+		expect(gradedArms().length).toBeGreaterThan(70);
+		// And the measurement that justifies the change, executed rather than left in the comment above.
+		// The retired scope reached twelve of the seventeen families and none of the other five, which is
+		// the same arithmetic `KIND_SELECTOR` is kept alive for further up this file. Fifteen arms of
+		// eighty-one today, and asserted as a floor for the reason the line above it gives.
+		const bySubstring = new Set(gradedArms().filter(([key]) => key.includes('verdict')));
+		expect(gradedArms().length - bySubstring.size).toBeGreaterThan(12);
 	});
 
-	it('fires on the two that were removed, so the list is not passing on a broken pattern', () => {
-		// Non-vacuity, in the shape the block above uses: the pattern is executed against the two
-		// sentences this guard exists because of, rather than only against copy that is already clean.
+	it('carries only the one whose arithmetic is written out here', () => {
+		const claims = gradedArms()
+			.filter(([, value]) => MAGNITUDE.test(prose(value)))
+			.map(([key]) => key);
+		// `snapshots.verdict_bad` — "most of these procs went past without a brew on them". `snapshotRate`
+		//   is `ok: 45`, so the arm ends below 45% caught and more than half was missed at every value it
+		//   can take. Sound.
+		// `debuff.verdict_good` was the second and is gone, and the reasoning that kept it is the reason
+		//   it went. "Effectively never off the enemy in front of you" was priced in percent — `rskUptime`
+		//   is `good: 95`, so at most 5% off — and the band has to be judged in the unit the page prints.
+		//   5% of a 300-second contact window is 15 seconds, one whole debuff duration, and
+		//   `RisingSunKick.tsx` renders `debuff.drops` under the verdict unconditionally: the page could
+		//   read "Effectively never off the enemy in front of you. It dropped 3 times on the boss." The
+		//   arm carries `{{lost, seconds}}` now, the way `verdict_ok` one tenth of a point away already
+		//   did.
+		// `snapshots.depth_bad` was the violation this re-scoping found. It said "most of the proc was
+		//   already over" on `snapshotDepth: { good: 80, ok: 65 }`, a band running down to zero, and
+		//   "most" needs more than half. `score.ts:564` records the observed sample at 51.6% to 96.2%, so
+		//   it was true of every pull measured — but the standard here is the band and not the sample,
+		//   which is the whole of what this block asserts. Reworded rather than listed: the arm now says
+		//   the rest of each proc ran alongside the brew rather than after it, which holds at every depth.
+		// `casts.verdict_good` was the third and went in 4b-ii. It ended "Almost nothing went unused" on a
+		//   band that opens at `good: 85` for the Windwalker and **80** for the Elemental — one global in
+		//   five at worst — and the string is shared, so any claim in it has to hold at the looser of the
+		//   two. Dropping the clause outright was not available: it would have left `verdict_good`
+		//   word-for-word identical to `verdict_bad`, so a reader could not tell the two apart.
+		expect(claims.sort()).toEqual(['snapshots.verdict_bad']);
+	});
+
+	it('has no alternative in the pattern that fires on nothing at all', () => {
+		// **Four of the eight were dead** — `almost`, `hardly`, `barely` and `the majority` were never
+		// executed by anything, because the three sentences below happen to carry `repeatedly`, `most`
+		// and `nearly` and nothing tested the rest. That is the same silent-forever failure the voice
+		// lists' own non-vacuity test names, one block down from where it was already solved.
+		//
+		// Two halves, and both are needed. The **roster** is read out of the alternation itself, so a
+		// ninth alternative added without a probe reds here rather than joining the four that drifted
+		// out of coverage. The **probes** are written by hand, in each word's own idiom, because a probe
+		// built from the alternative it is testing cannot fail: `hardlyy` matches "a sentence that says
+		// hardlyy" every time, which is exactly the self-fulfilling shape the voice lists' loop still
+		// has. A hand-written sentence goes red the moment its alternative is mistyped.
+		const alternatives = (/\\b\((.+)\)\\b/.exec(MAGNITUDE.source)?.[1] ?? '').split('|');
+		expect([...alternatives].sort()).toEqual(MAGNITUDE_PROBES.map(([word]) => word).sort());
+		const dead = MAGNITUDE_PROBES.filter(([, sentence]) => !MAGNITUDE.test(sentence)).map(([word]) => word);
+		expect(dead).toEqual([]);
+	});
+
+	it('fires on the three that were removed, so the list is not passing on a broken pattern', () => {
+		// The other half of the same guard, and the one the alternation cannot give: these are the real
+		// sentences this block exists because of, in the shape they shipped in.
 		const removed: [string, string][] = [
 			['tigerPalm.verdict_bad@2026-08-23', 'This happened repeatedly, not just once.'],
 			['earthShock.verdict_bad@2026-08-23', 'most went out early'],
 			['casts.verdict_bad@phase-3', 'Nearly a third of the pull produced nothing useful.'],
+			['debuff.verdict_good@2026-08-24', 'Effectively never off the enemy in front of you.'],
+			['snapshots.depth_bad@2026-08-24', 'most of the proc was already over before the brew locked the stats in'],
 		];
 		expect(removed.filter(([, value]) => !MAGNITUDE.test(value)).map(([key]) => key)).toEqual([]);
 	});
@@ -1176,16 +1303,23 @@ describe('a graded sentence claims no magnitude its own band cannot carry', () =
 	 *
 	 * `brew.verdict_good_other` ends "near the cap every time", which no band could guarantee — a mean
 	 * of 9.5 grades `good` with one brew of six spent at seven, and the sentence was live over exactly
-	 * that. `BrewBankTimeline` now reaches this arm only on `lean === 0`, where stacks are integers and
-	 * a drain takes ten, so the mean is exactly ten. The argument is written at the call site; this
-	 * assertion is here so that deleting the gate reddens the voice guard as well as the render tests.
+	 * that. `BrewBankTimeline` reaches this arm only on `lean === 0`, where stacks are integers and a
+	 * drain takes ten, so the mean is exactly ten.
+	 *
+	 * **What this assertion does is pin the sentence, and the docstring used to claim more.** It said
+	 * that deleting the gate would redden the voice guard — and it would not: this file reads
+	 * `report.json` and imports nothing but `node:fs`, `node:path` and `vitest`, so no edit to a
+	 * component can reach it. The gate is guarded where it is written, by
+	 * `windwalker/components/sections/__tests__/brewBankTimeline.test.ts`. What is guarded here is the
+	 * other direction — that the sentence the gate was argued for is still the sentence in the file, so
+	 * a copy edit that widens the claim has to come past this line.
 	 */
 	it('leaves the one claim a call site guards where its call site can be checked', () => {
 		expect(value_of('brew.verdict_good_other')).toContain('near the cap every time');
 	});
 });
 
-/** One leaf by key, for the two assertions above that name a string rather than sweep for one. */
+/** One leaf by key, for the assertion above that names a string rather than sweeping for one. */
 function value_of(key: string): string {
 	const hit = localeStrings().find(([name]) => name === key);
 	expect(hit, `no such key: ${key}`).toBeDefined();
