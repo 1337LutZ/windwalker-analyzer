@@ -114,7 +114,7 @@
   "casts": {
     "title": "Casts per minute",
     "intent": "How much of the time you spent on a target went into presses that achieved something. Windwalker is limited by energy and has real downtime, so 100% is not the ceiling — but every gap is a global the fight took from you or one that went unused.",
-    "verdict_good": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. Almost nothing went unused.",
+    "verdict_good": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. The globals left over are the ones hardest to fill.",
     "verdict_ok": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. The remaining globals are worth working on.",
     "verdict_bad": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target.",
     "verdict_none": "Too few globals passed to measure a rate.",

@@ -875,7 +875,8 @@ describe('stripping the templates hides no violation', () => {
  *   - **`however`** — 6 uses, **4 of 6** authors. Also present, also banned, same reason.
  *
  * Neither is an exemption, and neither gets one. `casts.verdict_good` said "Very little went unused"
- * and reads better as "Almost nothing went unused"; `lightningShield.verdict_good_noOvercap` said "it
+ * and read better as "Almost nothing went unused" until that arm was priced against its own band and
+ * reworded again; `lightningShield.verdict_good_noOvercap` said "it
  * pays however many enemies are in front of you" and reads the same with "no matter how many". An
  * exemption for an idiom is a hole in a list that has none, and both rewords lose nothing.
  */
@@ -1147,12 +1148,15 @@ describe('a graded sentence claims no magnitude its own band cannot carry', () =
 		//   below 45% caught and more than half was missed at every value it can take. Sound.
 		// `debuff.verdict_good` — "Effectively never off the enemy in front of you". `rskUptime` is
 		//   `good: 95`, so the arm is at most 5% off. Sound.
-		// `casts.verdict_good` — "Almost nothing went unused". `gcdUtilisation` is `good: 85` for the
-		//   Windwalker and **80** for the Elemental, so this is said at up to one global in five.
-		//   **The weakest survivor, listed rather than endorsed.** Phase 3 reached it only to take `very`
-		//   out of "Very little went unused" and did not price the band; the honest fix needs a sentence
-		//   that names the share, and that is a decision rather than an edit.
-		expect(claims.sort()).toEqual(['casts.verdict_good', 'debuff.verdict_good', 'snapshots.verdict_bad']);
+		// `casts.verdict_good` was the third and is gone. It ended "Almost nothing went unused" on a band
+		//   that opens at `good: 85` for the Windwalker and **80** for the Elemental — one global in five
+		//   at worst — and the string is shared, so any claim in it has to hold at the looser of the two.
+		//   The sentence already prints the exact share, which is what made the trailing claim both
+		//   redundant and wrong at the low end. It now closes on something true at 80: "The globals left
+		//   over are the ones hardest to fill." Dropping the clause outright was not available — it would
+		//   have left `verdict_good` word-for-word identical to `verdict_bad`, so a reader could not tell
+		//   the two apart.
+		expect(claims.sort()).toEqual(['debuff.verdict_good', 'snapshots.verdict_bad']);
 	});
 
 	it('fires on the two that were removed, so the list is not passing on a broken pattern', () => {
