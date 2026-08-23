@@ -213,16 +213,55 @@ const FS_ASC_PREP_MS = 16000;
  *   So band 2 **under-**demands Flame Shock: a press the sim would have made for a bare second target
  *   reads as a skip. Closing it needs a per-press dot count on `AplInputs`, which is
  *   `lib/spec/apl.ts` plus the wiring in `elemental/lib/index.ts`.
- * - `auraIsKnown(138898)` is Breath of the Hydra, and the band-3 branch reads it as **owned**. The
- *   alternative is worse in a way that matters: a player without the trinket is never asked for Flame
- *   Shock at three targets, so every Flame Shock they press there has no rung and is a fault whatever
- *   they did. Reading the trinket for real is plan §64's item 4 — `gear.ts` already parses
- *   `combatantinfo`, and §51a confirmed 138898 is an id logs actually carry.
+ * - `auraIsKnown(138898)` is Breath of the Hydra, and the band-3 branch **reads the kit for it** — this
+ *   is the half that is no longer a departure. It used to resolve to *owned* on every pull, which was a
+ *   constant standing in for a question no input could ask, and the leniency was defended on the ground
+ *   that the alternative was worse: a player without the trinket is never asked for Flame Shock at three
+ *   targets, so every Flame Shock they press there has no rung and is a fault whatever they did. That
+ *   cost is real and is now paid rather than avoided — the same disposal Earth Shock takes above three
+ *   targets, and for the same reason: a press the sim's own list refuses is a choice the player made, and
+ *   faulting it against Chain Lightning is more honest than excusing every pull to spare the pulls that
+ *   deserve the excuse. The gear read is `AplInputs.equippedItems`, filled from the `combatantinfo`
+ *   `gear.ts` already parses, and `null` there is `'unknown'` rather than "not owned".
+ *
+ *   **It is `auraIsKnown` that was doing two jobs, and only one of them is this.** The two ids the
+ *   Elemental presets test through that verb are 117012 and 138898: the Unleashed Fury *talent* on rung 0
+ *   of p5 and of `cleave.apl.json`, and this *trinket*. One verb, two different questions, answered by
+ *   two different fields of the same `combatantinfo` — the talent list and the gear array — which is why
+ *   the input added for this is item ids and not a set of "known auras" that would have to hold both.
+ *
+ *   The talent half stays where it was, on `AplRule.talent`, which gates the rung on the log showing the
+ *   button pressed. That is a proxy and it is worth naming as one: `readTalents` reads the same event and
+ *   `index.ts` already uses it for Primal Elementalist, so "did this shaman bring Unleashed Fury" is
+ *   answerable outright rather than inferred from a press. Not changed here — it is a second question with
+ *   a second answer, it moves no committed figure (no fixture carries a 73680 press), and folding it into
+ *   the gear field would be the same conflation the sim's own vocabulary made.
  *
  * The 2s is the preset's own `maxOverlap`, not a tuned number, and the band-3 branch is written as
  * `remaining <= 0` because that is what `not(dotIsActive)` means on a clock.
  */
 const FS_CLEAVE_OVERLAP_MS = 2000;
+
+/**
+ * Breath of the Hydra, by **item** id — the base and its four upgrade steps.
+ *
+ * `aoe.apl.json` rung 1 opens `auraIsKnown(138898)`, and 138898 is the trinket's proc buff. The rung is
+ * not asking whether it fired: `auraIsKnown` is answered off the auras *registered* on the unit, and a
+ * trinket registers its proc when it is equipped, so the question the log has to answer is "was this
+ * trinket in the kit". `combatantinfo`'s gear array answers that on its own, with no proc required —
+ * which is why this list is item ids and why nothing here reads the 138898 windows. A pull where the
+ * trinket was worn and never fired still owns it, and reading the proc would call that pull unequipped.
+ *
+ * **All five, because a fixture wears an upgraded id rather than the base one**: `addsThenBoss.json`'s
+ * shaman carries **96455**, the heroic Throne of Thunder id, three upgrade steps above 94521. Sourced
+ * the way `game/__tests__/sharedFixtures.test.ts` sources its own gear table — the simulator's
+ * `assets/database/db.json`, `items[].itemEffects[].buffId === 138898` — and that test carries the same
+ * five under `breath-of-hydra`. **The two copies cannot see each other**, which is a real seam and is
+ * recorded rather than hidden: there is no non-test home in this repo for "which items grant which
+ * effect", `lib/game/shared.ts` keeping aura ids only. `lib/spec/__tests__/aoeFlameShockGear.test.ts`
+ * pins this copy against the committed kits instead, in both directions.
+ */
+const BREATH_OF_HYDRA_ITEM_IDS: readonly number[] = [94_521, 95_711, 96_083, 96_455, 96_827];
 
 /** Ascendance coming back within this — the `spellTimeToReady(114049) >= 6s` of the Earth Shock rule. */
 const ES_ASC_HOLD_SEC = 6;
@@ -323,8 +362,27 @@ export const LADDER: readonly ELE_AplRule[] = [
 		energyCost: 0,
 		condition: (state, auras, cooldowns) => {
 			const remaining = auras.remainingMs('flame-shock');
-			// `aoe.apl.json` rung 1: cast it when the dot is not up, and never to refresh one that is.
-			if (state.band >= 3) return remaining <= 0;
+			// `aoe.apl.json` rung 1, both halves: `auraIsKnown(138898) AND not(dotIsActive(8050))`. Cast it
+			// when the dot is not up and never to refresh one that is — and only for a shaman who owns
+			// Breath of the Hydra, which is what the `auraIsKnown` half asks. Read off the kit rather than
+			// off the proc: see `BREATH_OF_HYDRA_ITEM_IDS`.
+			//
+			// **The dot is asked first, and the order is load-bearing** even though `AND` does not care.
+			// The trinket half is the one that can be unreadable, and a rung another term has already
+			// refused is not a rung the walk should stop at: answering `'unknown'` there would silence every
+			// press below Flame Shock on a gear-less log at bands 3 and 4, including every press whose own
+			// rung was perfectly readable. So the unreadable term is only reached when it is the term that
+			// decides.
+			if (state.band >= 3) {
+				if (remaining > 0) return false;
+				const kit = state.equippedItems;
+				// No `combatantinfo`, so the pull cannot say what was worn — which is not "did not own it".
+				// `'unknown'` is what the walk does with a rung it cannot read, and either alternative is a
+				// claim: reading silence as unequipped faults a press the list may well have wanted, and
+				// reading it as owned is the constant this whole rung was written to stop making.
+				if (kit === null) return 'unknown';
+				return BREATH_OF_HYDRA_ITEM_IDS.some((id) => kit.has(id));
+			}
 			// `cleave.apl.json` rung 9: the multidot's `maxOverlap`, and nothing else.
 			if (state.band === 2) return remaining <= FS_CLEAVE_OVERLAP_MS;
 			return remaining <= FS_KEEP_UP_MS || (cooldowns.readyInSec(ID.ascendance) <= 2 && remaining < FS_ASC_PREP_MS);

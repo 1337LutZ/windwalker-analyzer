@@ -317,11 +317,18 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 			'lava-beam': 5,
 		});
 		// **The property, not the numbers.** 91.4% against `cleave`'s 56.2% was the whole reason to suspect
-		// the reading rather than the player; 56.7% against 55.8% is what two pulls under one rule look
-		// like. Half a point apart, on pulls whose multi-target shares are 73.73% and 57.25%.
+		// the reading rather than the player; 56.7% against 55.8% was what two pulls under one rule looked
+		// like, on pulls whose multi-target shares are 73.73% and 57.25%.
+		//
+		// **The two are no longer alike, and the gap is now a fact about the two players' bags rather than
+		// about the reading.** `aoe.apl.json` rung 1 is `auraIsKnown(138898) AND not(dotIsActive(8050))` and
+		// the ladder resolved the first half to *owned* on every pull until it could read `combatantinfo`:
+		// this shaman wears Breath of the Hydra (96455) and `cleave`'s wears no variant of it, so at three
+		// enemies and up the rung is in this pull's list and absent from that one. This pull's share is
+		// therefore unmoved at 56.8% and `cleave`'s falls to 33.3% — the same 24 Chain Lightning faults it
+		// always had, over 72 faults instead of 103.
 		expect(topRungShare(addsThenBoss)).toBeCloseTo(0.568, 3);
-		expect(topRungShare(cleave)).toBeCloseTo(0.563, 3);
-		expect(Math.abs(topRungShare(addsThenBoss) - topRungShare(cleave))).toBeLessThan(0.05);
+		expect(topRungShare(cleave)).toBeCloseTo(0.333, 3);
 		// And the same held as a ceiling across every committed pull, which is the shape of the claim: no
 		// single rung may own most of a pull's faults. `phased` reads 0.240 and `unbroken` 0.395 — the two
 		// pulls that never exceed one enemy — and this pull used to read 0.914.
@@ -329,7 +336,9 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 			const a = name === 'addsThenBoss' ? addsThenBoss : name === 'cleave' ? cleave : load(name);
 			expect(topRungShare(a), name).toBeLessThan(0.6);
 		}
-		expect(skipsBy(cleave)['flame-shock']).toBe(58);
+		// 58 until that gear read; 40 of them were band-3-or-4 presses charged against a rung `cleave`'s
+		// shaman was never offered. See `lib/spec/__tests__/aoeFlameShockGear.test.ts`.
+		expect(skipsBy(cleave)['flame-shock']).toBe(18);
 		// The rung's share still tracks the add churn, which is what dates the cause: `cleave` puts up 8 dot
 		// applications over 263.2s and this pull 18 over 560.3s.
 		//
@@ -427,12 +436,18 @@ describe('what the ladder can reach now that one rung has stopped claiming every
 		const credited = beams.filter((p) => p.verdict === 'followed');
 		expect(credited).toHaveLength(11);
 		expect(credited.every((p) => p.wanted === 'lava-beam')).toBe(true);
+		// **And `cleave` credits all eleven of its beams since the gear read**, where it credited 4. The two
+		// counts stop being alike there and the reason is the rung above the beam: Flame Shock is in this
+		// pull's aoe list because this shaman owns Breath of the Hydra, and absent from `cleave`'s because
+		// that one does not. So `cleave` has nothing above the beam at bands 3 and 4 and credits 11 of 11,
+		// while this pull still has one rung to lose the global to and credits 11 of 24.
 		const cleaveBeams = pressesOf(cleave).filter((p) => p.pressed === LAVA_BEAM);
-		expect(cleaveBeams.filter((p) => p.verdict === 'followed')).toHaveLength(4);
-		// The property behind the two counts: a declared rung no press on a nine-enemy pull can reach is the
-		// same defect as no rung, and the two multi-target pulls now agree it is reachable at a like rate.
+		expect(cleaveBeams.filter((p) => p.verdict === 'followed')).toHaveLength(11);
+		// The property behind the counts, and it is the one that survives the two pulls no longer agreeing:
+		// a declared rung no press on a nine-enemy pull can reach is the same defect as no rung, so both
+		// pulls have to credit a real share of the button the aoe list puts first.
 		expect(11 / 24).toBeGreaterThan(0.25);
-		expect(Math.abs(11 / 24 - 4 / 11)).toBeLessThan(0.15);
+		expect(cleaveBeams.filter((p) => p.verdict === 'followed').length / cleaveBeams.length).toBeGreaterThan(0.25);
 	});
 
 	it('credits presses at every band instead of eleven at each of the three multi-target ones', () => {
@@ -454,11 +469,15 @@ describe('what the ladder can reach now that one rung has stopped claiming every
 			{ n: 74, followed: 33, fsSkips: 21 },
 			{ n: 157, followed: 45, fsSkips: 91 },
 		]);
+		// `cleave`'s two multi-target rows carry no Flame Shock fault at all since the gear read: that rung
+		// is not in the aoe list for a shaman without Breath of the Hydra, and the 40 presses it was
+		// charging are credited or charged to Chain Lightning and the beam instead. Bands 1 and 2 are
+		// untouched — neither rule reads gear.
 		expect(table(cleave)).toEqual([
 			{ n: 88, followed: 57, fsSkips: 11 },
 			{ n: 33, followed: 15, fsSkips: 7 },
-			{ n: 21, followed: 9, fsSkips: 4 },
-			{ n: 62, followed: 19, fsSkips: 36 },
+			{ n: 21, followed: 11, fsSkips: 0 },
+			{ n: 62, followed: 48, fsSkips: 0 },
 		]);
 		// **The property, and the red against the old reading.** Every band credits at least a fifth of its
 		// presses on both multi-target pulls. Under the primary-keyed map this pull read 12.6%, 14.9% and
@@ -536,7 +555,7 @@ describe('what the ladder can reach now that one rung has stopped claiming every
 		// takes presses out of `skipped` and puts them in `offList`, and it cannot manufacture credit.
 		for (const [name, followed] of [
 			['addsThenBoss', 140],
-			['cleave', 100],
+			['cleave', 131],
 			['phased', 107],
 			['unbroken', 97],
 		] as const) {

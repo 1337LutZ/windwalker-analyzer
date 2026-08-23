@@ -375,7 +375,14 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
 	// 100/104 since `fsRemainingAt` stopped reading the primary-scoped dot map — one press, which is the
 	// scale of the same defect on a pull with 8 dot applications instead of 24. See the entry above.
-	'elemental/cleave.json': { presses: 204, followed: 100, skipped: 103, offList: 1 },
+	// 131/72 since the band-3 Flame Shock rung stopped assuming the trinket. `aoe.apl.json` rung 1 is
+	// `auraIsKnown(138898) AND not(dotIsActive(8050))` and the first half is Breath of the Hydra, which
+	// this shaman does not own — read off the `combatantinfo` gear array, not off a proc window. So 40 of
+	// the 58 Flame Shock skips were charged against a rung that list never offered them, and the presses
+	// they were charged from are Chain Lightnings and beams the aoe list does ask for. **Only this pull
+	// moves**: `phased` and `unbroken` never exceed one enemy, so a band-3 rung is not in their list at
+	// any press, and `addsThenBoss` wears the trinket. See `lib/spec/__tests__/aoeFlameShockGear.test.ts`.
+	'elemental/cleave.json': { presses: 204, followed: 131, skipped: 72, offList: 1 },
 	'elemental/phased.json': { presses: 159, followed: 107, skipped: 50, offList: 2 },
 	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 43, offList: 2 },
 	'windwalker/dataset-ironJuggernaut.json': null,

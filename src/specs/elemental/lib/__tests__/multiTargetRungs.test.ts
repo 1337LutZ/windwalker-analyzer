@@ -100,8 +100,12 @@ describe('what the rungs change on cleave', () => {
 		// charged against Flame Shock because the spawn the player was hitting was an add, whose dot that
 		// map could not see. One press is the whole of the defect on this pull — 166 of them on
 		// `addsThenBoss`, whose file has the mechanism.
+		//
+		// **53 since the band-3 Flame Shock rung learned to read Breath of the Hydra off `combatantinfo`.** This shaman
+		// owns no variant of it, so `aoe.apl.json` rung 1 never asks them for the dot and the rung is not in
+		// the list at bands 3 and 4 — where 27 of these Chain Lightnings were being faulted against it.
 		const followed = presses.filter((p) => p.pressed === CHAIN_LIGHTNING && p.verdict === 'followed');
-		expect(followed).toHaveLength(26);
+		expect(followed).toHaveLength(53);
 		expect(followed.every((p) => p.wanted === 'chain-lightning')).toBe(true);
 	});
 
@@ -111,10 +115,14 @@ describe('what the rungs change on cleave', () => {
 		// `e2f31a2` — and *none* of them was ever graded `followed`, because Lava Burst, Earth Shock and
 		// Searing Totem were still in the list above it at bands 3 and 4 and one of them always wanted
 		// the global first. A declared rung that no press can reach is the same defect as no rung.
+		//
+		// **All eleven since the band-3 Flame Shock rung learned to read Breath of the Hydra off `combatantinfo`** — the last
+		// seven were still being charged to a Flame Shock rung this shaman's kit does not open. The rung was
+		// reachable; the reading above it was a constant.
 		const beams = presses.filter((p) => p.pressed === LAVA_BEAM);
 		expect(beams).toHaveLength(11);
 		const followed = beams.filter((p) => p.verdict === 'followed');
-		expect(followed).toHaveLength(4);
+		expect(followed).toHaveLength(11);
 		expect(followed.every((p) => p.wanted === 'lava-beam')).toBe(true);
 	});
 
@@ -146,7 +154,10 @@ describe('what the rungs change on cleave', () => {
 			if (p.verdict !== 'skipped') continue;
 			wanted.set(p.wanted ?? '?', (wanted.get(p.wanted ?? '?') ?? 0) + 1);
 		}
-		expect(Object.fromEntries(wanted)).toEqual({ 'flame-shock': 38, 'lightning-bolt': 7, 'lava-burst': 6 });
+		// Flame Shock's share is 4 since the band-3 Flame Shock rung learned to read Breath of the Hydra off `combatantinfo`:
+		// 34 of the 38 were band-3-or-4 presses charged against a rung that list does not offer a shaman
+		// without it. The other two keys do not move — neither rung reads gear.
+		expect(Object.fromEntries(wanted)).toEqual({ 'flame-shock': 4, 'lightning-bolt': 7, 'lava-burst': 6 });
 		const followed = presses.filter(
 			(p) => (p.pressed === CHAIN_LIGHTNING || p.pressed === LAVA_BEAM) && p.verdict === 'followed',
 		);
@@ -224,9 +235,17 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		// A rung's demand falling by the *same* press at every band is a button leaving the walk, not a
 		// gate opening. `unbroken`'s two and `cleave`'s columns are unmoved because their own delegated
 		// presses were charged to `lightning-bolt` and `chain-lightning` instead.
-		expect([1, 2, 3, 4].map((b) => fsSkips(forced(cleave, b as 1)))).toEqual([66, 61, 53, 53]);
-		expect([1, 2, 3, 4].map((b) => fsSkips(forced(phased, b as 1)))).toEqual([11, 8, 3, 3]);
-		expect([1, 2, 3, 4].map((b) => fsSkips(forced(unbroken, b as 1)))).toEqual([2, 1, 1, 1]);
+		//
+		// **And the three columns' band-3 and band-4 entries are now zero, because none of these three
+		// shamans owns Breath of the Hydra.** `aoe.apl.json` rung 1 opens `auraIsKnown(138898)`, which the
+		// ladder resolved to owned on every pull until it could read the kit; `addsThenBoss` does own it and
+		// its column keeps 144 at both counts. That is a gear fact rather than a band one, which is why it
+		// reaches `phased` and `unbroken` here — a *forced* band is the reader's override, and the trinket
+		// answer is real at whatever band the reader asks for. Their **natural** walks are untouched, and
+		// `leaves the single-target pulls exactly where they were` below is that assertion.
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(cleave, b as 1)))).toEqual([66, 61, 0, 0]);
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(phased, b as 1)))).toEqual([11, 8, 0, 0]);
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(unbroken, b as 1)))).toEqual([2, 1, 0, 0]);
 	});
 
 	it('reads the two lists as one rule each, so bands 3 and 4 answer alike', () => {
@@ -248,7 +267,7 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		expect(fsSkips(unbroken.apl)).toBe(2);
 	});
 
-	it("holds Flame Shock's own share at 58 while the pull's totals move around it", () => {
+	it("moves Flame Shock's own share to 18 along with the pull's totals", () => {
 		// The pull's own numbers, natural band. 81/123 before the rungs, 83/121 after the Flame Shock
 		// banding — and the eight presses that stopped being charged against Flame Shock did not all
 		// become `followed`: six moved to a lower rung that still wanted the global, which is the honest
@@ -265,9 +284,15 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		// 100/103 since the Stormlash press at 22.7s became `off-list` rather than a skipped
 		// `lightning-bolt`, which again leaves the 58 alone — this pull's one delegated press was never
 		// charged to Flame Shock.
-		expect(apl!.followed).toBe(100);
-		expect(apl!.skipped).toBe(103);
-		expect(fsSkips(cleave.apl)).toBe(58);
+		//
+		// **131/72 and 18, and this is the first change to move the share and the totals together** —
+		// because it is the first one to take the rung *out of the list* rather than change what it asks.
+		// the band-3 Flame Shock rung learned to read Breath of the Hydra off `combatantinfo`, and this shaman owns none of its
+		// five ilvl variants, so the 40 presses charged to it at bands 3 and 4 are charged to Chain
+		// Lightning and the beam instead or credited outright. See `lib/spec/__tests__/aoeFlameShockGear.test.ts`.
+		expect(apl!.followed).toBe(131);
+		expect(apl!.skipped).toBe(72);
+		expect(fsSkips(cleave.apl)).toBe(18);
 	});
 });
 
@@ -371,10 +396,16 @@ describe('the rungs aoe.apl.json has no counterpart for', () => {
 		expect(faulted).toHaveLength(25);
 		const by = new Map<string, number>();
 		for (const p of faulted) by.set(p.wanted ?? '?', (by.get(p.wanted ?? '?') ?? 0) + 1);
+		//
+		// 16 name Chain Lightning and one the beam since the band-3 Flame Shock rung learned to read Breath of the Hydra off `combatantinfo`:
+		// five of the seven that named Flame Shock were at bands 3 and 4, where this shaman's list has no
+		// such rung. The tally is still 25 — the presses did not stop being faults, they stopped being
+		// faults against a button the aoe list never asks them for.
 		expect(Object.fromEntries(by)).toEqual({
-			'chain-lightning': 12,
-			'flame-shock': 7,
+			'chain-lightning': 16,
+			'flame-shock': 2,
 			'lightning-bolt': 5,
+			'lava-beam': 1,
 			'lava-burst': 1,
 		});
 	});
@@ -597,10 +628,10 @@ describe('the band-2 beam could never be reached', () => {
 				name,
 			).toHaveLength(0);
 		}
-		// And `cleave`'s eleven beams are all at band 4, so its four credited ones are untouched by a band-2
-		// gate in either direction.
+		// And `cleave`'s eleven beams are all at band 4, so its credited ones are untouched by a band-2
+		// gate in either direction. All eleven since the band-3 Flame Shock rung learned to read Breath of the Hydra off `combatantinfo`.
 		const beams = pressesOf(cleave).filter((p) => p.pressed === LAVA_BEAM);
 		expect(beams).toHaveLength(11);
-		expect(beams.filter((p) => p.verdict === 'followed')).toHaveLength(4);
+		expect(beams.filter((p) => p.verdict === 'followed')).toHaveLength(11);
 	});
 });

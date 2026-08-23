@@ -246,6 +246,30 @@ export interface AplInputs {
 	 */
 	stackLevels?: Readonly<Partial<Record<string, readonly AuraLevel[]>>>;
 	/**
+	 * The item ids `combatantinfo` says the player had equipped, or **null** when it said nothing.
+	 *
+	 * Here because a preset list can gate a rung on owning a *thing* rather than on anything happening
+	 * in the pull: `aoe.apl.json` rung 1 is `auraIsKnown(138898) AND not(dotIsActive(8050))`, and the
+	 * first half is Breath of the Hydra being in the kit. The sim answers it off the unit's registered
+	 * auras, which for a trinket means the item is equipped — no proc required — so a design that waited
+	 * for a proc window would answer a different question, and answer it wrong on every pull where the
+	 * trinket was worn and simply did not fire.
+	 *
+	 * **A set of ids and not a set of aura keys**, which is the one design decision worth defending. The
+	 * sim spells both jobs `auraIsKnown` — a talent (`auraIsKnown(117012)`) and an equipped item
+	 * (`auraIsKnown(138898)`) — and the log answers them from two different fields of the same
+	 * `combatantinfo`: the talent list and the gear array. Naming a gear question with an aura key would
+	 * inherit that conflation into this seam, and `auras` above already means "windows the log carried",
+	 * which is exactly what this must not be read as. The talent half needs no field here: `AplRule.talent`
+	 * already gates a rung on the log showing the button pressed.
+	 *
+	 * **Null is not an empty kit.** A log with no `combatantinfo` cannot say what was worn, and a rung
+	 * that reads this must answer `'unknown'` there rather than "not owned" — the same three-valued
+	 * discipline the nullable bars on `State` keep. Absent here means the spec never wired it, which for
+	 * a ladder with no gear-gated rung costs nothing.
+	 */
+	equippedItems?: ReadonlySet<number> | null;
+	/**
 	 * Cooldown clocks for buttons that are not rungs but that a rule reads.
 	 *
 	 * `readyInSec` is otherwise built from the ladder's own cooldowns and the on-GCD presses this
@@ -418,6 +442,14 @@ export interface State {
 	fofChannelSec: number;
 	regenPerSec: number;
 	/**
+	 * The kit, as item ids — the same set at every press, and null when the log carried no gear at all.
+	 *
+	 * On the state for the reason `pullMs` is: a rule reads every fact it needs from one place, and this
+	 * one is a fact about the pull rather than about the moment. See `AplInputs.equippedItems` for why it
+	 * is ids rather than an aura key, and for why null has to stay distinguishable from an empty kit.
+	 */
+	equippedItems: ReadonlySet<number> | null;
+	/**
 	 * Enemies engaged at this press, banded as the list bands them.
 	 *
 	 * **The band for the rule being evaluated**, which is not the same number for every rule at one
@@ -514,6 +546,9 @@ function stateAt(decidedAt: number, landedAt: number, inputs: AplInputs): State 
 		gcdSec: inputs.gcdMs / 1000,
 		fofChannelSec: inputs.fofChannelSec,
 		regenPerSec: inputs.regenPerSec,
+		// `?? null` and not `?? new Set()`: a spec that wired no gear has said nothing about the kit, which
+		// is the same answer as a log with no `combatantinfo` and not the same as a player wearing nothing.
+		equippedItems: inputs.equippedItems ?? null,
 		// The reader's override wins outright when there is one: it answers a question the log cannot,
 		// namely that ignoring the adds was a decision rather than an oversight.
 		//

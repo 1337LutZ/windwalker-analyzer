@@ -3915,6 +3915,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		fofChannelSec: 0,
 		targetsAt: aplTargetCountAt,
 		stackLevels: { 'lightning-shield': lsLevels },
+		// The kit, for the one rung that is gated on owning a thing rather than on anything in the pull —
+		// `aoe.apl.json`'s Flame Shock. `readGear` returns an empty slot list and only an empty one when the
+		// pull carried no `combatantinfo`, so that is the null: eighteen slots is what a real kit reads as,
+		// including the ones holding `id: 0` for a slot the player left bare, and those are dropped because
+		// an empty slot is not an item anything can be gated on.
+		equippedItems:
+			h.gear.slots.length === 0 ? null : new Set(h.gear.slots.map((slot) => slot.id).filter((id) => id > 0)),
 		offLadderCooldowns: { [ASCENDANCE.castIds[0]!]: { cooldownMs: ASCENDANCE_COOLDOWN_MS, casts: ascCasts } },
 		barsRequired: false,
 		// The three on-GCD buttons the ladder declares off its own business, so their presses read
