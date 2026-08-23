@@ -348,15 +348,19 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// targets and up one of them claimed nearly every global and the two rungs the aoe list actually has
 	// were almost unreachable — 11 Lava Beams and not one graded `followed`. The 16 presses that changed
 	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
-	// **The outlier, and the number to argue with rather than to re-baseline.** 69 of 408 followed is a
-	// 16.9% follow rate against `cleave`'s 48.5%, on a pull that is 73.73% multi-target and reaches nine
-	// enemies. It is this pull's own first reading and it moves nothing above it — every figure on the
-	// three older pulls is byte-identical with this fixture committed — so it is recorded, not smoothed.
-	// Two candidate causes and neither is measured here: 408 presses over 560s is nine minutes of add
-	// waves graded against `aoe.apl.json`'s two-rung list, and `FS_CLEAVE_OVERLAP_MS`' own docstring
-	// already names the band-2/band-3 readers this ladder does not have (no per-press dot count, and
-	// `auraIsKnown(138898)` assumed owned). This is the first pull that can settle the second of those.
-	'elemental/addsThenBoss.json': { presses: 408, followed: 69, skipped: 339 },
+	// **69/339 when this pull was committed, and the 271 presses in between were a defect rather than a
+	// player.** That first reading was a 16.9% follow rate against `cleave`'s 48.5%, and
+	// `addsThenBossLadder.test.ts` pinned its decomposition rather than smoothing it: 91.4% of the faults
+	// were one rung, because `fsRemainingAt` answered the ladder's `dotRemainingTime` out of a map keyed
+	// only by the *primary's* spawns. On a nine-enemy pull the spawn the player was hitting was usually an
+	// add, the lookup missed, and the miss returned a fabricated 0 — indistinguishable from "this add had
+	// no dot". Pointing it at `fsDotAnywhere`, the every-spawn map declared sixty lines above it and
+	// already used by the graded uptime numerator for exactly this reason, moves 166 verdicts here and 1 on
+	// `cleave`, and moves nothing at all on the two single-target pulls. The pull now reads 34.3% against
+	// `cleave`'s 49.0%, and its Flame Shock share of faults is 56.7% against `cleave`'s 55.8%. What is left
+	// is the player: see that file for the add-phase/tail split and for the Searing Totem this pull never
+	// laid.
+	'elemental/addsThenBoss.json': { presses: 408, followed: 140, skipped: 268 },
 	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
 	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
 	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
@@ -365,7 +369,9 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// targets and up one of them claimed nearly every global and the two rungs the aoe list actually has
 	// were almost unreachable — 11 Lava Beams and not one graded `followed`. The 16 presses that changed
 	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
-	'elemental/cleave.json': { presses: 204, followed: 99, skipped: 105 },
+	// 100/104 since `fsRemainingAt` stopped reading the primary-scoped dot map — one press, which is the
+	// scale of the same defect on a pull with 8 dot applications instead of 24. See the entry above.
+	'elemental/cleave.json': { presses: 204, followed: 100, skipped: 104 },
 	'elemental/phased.json': { presses: 159, followed: 107, skipped: 52 },
 	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 45 },
 	'windwalker/dataset-ironJuggernaut.json': null,

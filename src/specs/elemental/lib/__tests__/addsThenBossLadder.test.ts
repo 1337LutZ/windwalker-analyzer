@@ -7,54 +7,59 @@
 // never resolves there. That tail is what makes this file possible, because it is a within-pull control:
 // the same player, the same log, the same ladder, judged either side of the moment the adds stop.
 //
-// **The pull reads 408 presses / 69 followed / 339 skipped — a 16.9% follow rate, against `cleave`'s
-// 48.5%.** This file is the decomposition of that number, pinned so it cannot drift unnoticed, and the
-// short version is that it is a reading of the *band* rather than of the player:
+// ## The defect this file was written to pin, and which is now closed
+//
+// The pull first read **408 presses / 69 followed / 339 skipped — a 16.9% follow rate, against `cleave`'s
+// 48.5%** — and 91.4% of every fault on it was one rung. That rung was `flame-shock`, whose condition
+// reads `auras.remainingMs('flame-shock')`, which the Elemental audit answers with `fsRemainingAt`. That
+// closure looked the spawn `spawnAt(t)` names up in `fsDot.byInstance` — a map built by
+// `dotWindowsOnTarget(..., primaryID, ...)` and therefore **keyed only by spawns of the primary enemy.**
+// Through the add waves `spawnAt(t)` returns an *add's* key, the lookup misses, and `remainingIn(t, [])`
+// answers **0** — a fabricated zero indistinguishable from "this add had no dot".
+//
+// The sharpest proof of that is `flameShock.windows` below: on this pull the primary's dot is a single
+// window opening at **442.0s**, because Galakras is on the tower for the whole add phase and cannot be
+// dotted at all. So for the first 442 of 560 seconds — 318 of the 408 presses — a primary-keyed lookup
+// had no window to find and could only ever answer zero, whatever the player did. It credited 24 of those
+// 318 presses. It now credits 92.
+//
+// The fix is one identifier: `fsDotAnywhere`, the every-spawn map declared sixty lines above
+// `fsRemainingAt` and already used by the graded uptime numerator, on an argument that block spells out
+// in its own words — "Over every spawn, not `fsDot.byInstance`, and the difference is 47 seconds." The
+// same defect and the same fix sat in `downBefore` beside it, feeding the Flame Shock section's press
+// `kind`; that half moves no ladder verdict at all, and six of this pull's `apply` presses become
+// `reapply` plus one `late`.
+//
+// It moves **166 verdicts here and 1 on `cleave`**, and **nothing** on `phased` or `unbroken` — neither
+// ever exceeds one enemy, so the two maps are the same map there. No graded clock moves either:
+// `flameShock.uptimePct` (73.68%), `contactUptimeMs` (240 421) and `flameShockWaste` (80% of 5) are
+// unchanged, because they were already built off `fsDotAnywhere`. One graded figure does move —
+// `earthShockGood` on this pull, 30% to 50% of the same 20 shocks — and it moves for the same reason, its
+// `fsLow` reason being the other reader of `fsRemainingAt`.
 //
 // | window                        |   n | followed |   rate | Flame Shock skips |
 // | ----------------------------- | --- | -------- | ------ | ----------------- |
-// | up to the last add (503.3s)   | 369 |       45 |  12.2% |               309 |
+// | up to the last add (503.3s)   | 369 |      116 |  31.4% |               151 |
 // | the boss-only tail after it   |  39 |       24 |  61.5% |                 1 |
 //
-// 61.5% is the same pull's player graded at one target, and it sits between `phased`'s 67.3% and
-// `unbroken`'s 68.3% — the two max-one-target fixtures — rather than anywhere near 16.9%. So the collapse
-// is not a bad player: it is the ladder's reading of add-wave time, and **91.4% of every fault on this
-// pull is one rung.**
+// ## What is left, which is the player
 //
-// ## What that rung is, and why this file pins the defect instead of fixing it
-//
-// `flame-shock` claims 310 of the 339 skips. Its condition reads `auras.remainingMs('flame-shock')`, which
-// the Elemental audit answers with `fsRemainingAt` — the dot on the spawn `spawnAt(t)` says the player was
-// on. That reading is right for one enemy and arbitrary for nine: an area hit lands on every enemy at one
-// stamp, and `spawnAt`'s own note settles the tie by taking the last hit in the sorted stream on the
-// grounds that "it is the same dot on each of them". On this pull that is false — **40 of the 310 skips
-// land while exactly two of the nine enemies carry the dot, and 235 of the 310 land while at least one
-// does.** So three quarters of this pull's faults say "the dot was down" about a unit picked by a coin
-// flip, while the dot was in fact ticking on something.
-//
-// The sim's own question is narrower still and the report cannot ask it. `aoe.apl.json` rung 1 is
-// `castSpell(8050)` under `auraIsKnown(138898) AND not(dotIsActive(8050))`, and `dotIsActive` with no
-// `targetUnit` resolves to `CurrentTarget` (`sim/core/apl_helpers.go:72-74`); that list carries no
-// `changeTarget`, so the sim maintains exactly **one** dot on **one** fixed unit for the whole encounter
-// and rung 1 fires about once per dot expiry. It is not `dotIsActiveOnAllTargets`, which the core has and
-// this list declines to use.
-//
-// Neither reading available here reproduces that. `auras.remainingMs` is the churning spawn.
-// `auras.active('flame-shock')` is no help either: `elemental/lib/index.ts` hands the ladder `fsMerged`,
-// which is `dotWindowsOnTarget(..., primaryID, ...)` — the **primary's** dot and not the union — and on
-// this pull the primary carries it only from 442.0s, because Galakras is on the tower for the add phase
-// and cannot be dotted at all. So the honest per-press answer needs a *contact-scoped* dot reading that
-// only `index.ts` can build, and the fix is reported rather than reached for: see the lane note. Silencing
-// the rung from `apl.ts` instead would throw away the 75 skips where no enemy carried the dot, which are
-// the real ones.
+// The tail does not move by a single verdict — 24 of 39 either side of the fix — so every one of the 166
+// is add-phase time, which is exactly where the missing map was. And the add phase still grades **31.4%**
+// against the same player's **61.5%** in the same pull's own boss-only tail, so about half the original
+// gap was the defect and about half is real play. The largest single residual claim is **Searing Totem,
+// which this player laid zero times in 560 seconds** — 0ms of uptime over a 226.9s gradable clock, and 34
+// skips charged to that rung where the Flame Shock reading used to swallow 29 of them. That is a nameable
+// fault, not an artefact, and this file stops there rather than chasing the rest.
 //
 // ## What is asserted, and what these assertions are for
 //
-// **This file is a pin, not a regression guard.** Nothing in it fails against the behaviour it was written
-// against — that is the point: it records the defect's size so that closing it has to move these numbers
-// and say so. The two rung changes that landed with it (`unleash-elements`'s band-2 rule and the beam's
-// unreachable band 2) move no verdict on any fixture, which `multiTargetRungs.test.ts` proves from the
-// other side.
+// **This file was a pin and is now a guard.** Every assertion below either fails against the
+// primary-scoped reading or is labelled on its own line as a control that must *not* move — the tail, and
+// the two single-target fixtures. Where a number can be re-derived it is: the credit share over the
+// stretch the boss could not carry a dot, the Flame Shock rung's share of faults measured against
+// `cleave`'s, and the share of Flame Shock faults charged at an instant some enemy demonstrably carried
+// the dot, which comes off the per-enemy timeline lanes rather than off the verdicts.
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -67,6 +72,7 @@ import { LADDER } from '~/specs/elemental/lib/apl';
 const LAVA_BEAM = 114_074;
 const STORMLASH = 120_668;
 const FIRE_ELEMENTAL = 2894;
+const SEARING_TOTEM = 3599;
 
 const load = (name: string): Analysis =>
 	analyse(
@@ -90,11 +96,36 @@ const pressesOf = (a: Analysis): Press[] => ((a.apl as { presses?: Press[] } | n
  * The Elemental's own Flame Shock block, which `Analysis` does not declare.
  *
  * `Analysis` is the shared shape and `flameShock` is a spec field, so it is reached through a cast the
- * same way `apl.presses` and `aplForced` are above. Only the three members this file reads are named.
+ * same way `apl.presses` and `aplForced` are above. Only the two members this file reads are named.
  */
 const flameShockOf = (a: Analysis): { applies: number; windows: ReadonlyArray<{ start: number; end: number }> } =>
 	(a as unknown as { flameShock: { applies: number; windows: ReadonlyArray<{ start: number; end: number }> } })
 		.flameShock;
+/** The same cast for the totem block, whose two clocks are the residual claim this file ends on. */
+const searingTotemOf = (a: Analysis): { uptimeMs: number; scoredMs: number } =>
+	(a as unknown as { searingTotem: { uptimeMs: number; scoredMs: number } }).searingTotem;
+
+/** How many faults each rung claimed on a pull — the whole map, so a fault moving cannot hide. */
+const skipsBy = (a: Analysis): Record<string, number> => {
+	const by: Record<string, number> = {};
+	for (const p of pressesOf(a)) {
+		if (p.verdict !== 'skipped') continue;
+		by[p.wanted ?? '(none)'] = (by[p.wanted ?? '(none)'] ?? 0) + 1;
+	}
+	return by;
+};
+/** The largest share of one pull's faults any single rung claims. */
+const topRungShare = (a: Analysis): number => Math.max(...Object.values(skipsBy(a))) / Math.max(1, auditOf(a).skipped);
+
+/** Presses, credits and Flame Shock faults in one window, so the three always come off one filter. */
+const split = (a: Analysis, keep: (p: Press) => boolean): { n: number; followed: number; fsSkips: number } => {
+	const sel = pressesOf(a).filter(keep);
+	return {
+		n: sel.length,
+		followed: sel.filter((p) => p.verdict === 'followed').length,
+		fsSkips: sel.filter((p) => p.verdict === 'skipped' && p.wanted === 'flame-shock').length,
+	};
+};
 
 /**
  * The band a press was judged at, re-derived from the published count series.
@@ -135,180 +166,222 @@ describe('the pull the regime resolves on', () => {
 		expect(lastMultiTargetPoint(cleave)).toBeGreaterThan(cleave.durationMs ?? 0);
 	});
 
-	it('reads 408 / 69 / 339, with nothing hiding in the other two verdicts', () => {
+	it('reads 408 / 140 / 268, with nothing hiding in the other two verdicts', () => {
+		// 69 / 339 while `fsRemainingAt` read the primary-scoped dot map; 140 / 268 since it reads
+		// `fsDotAnywhere`. 34.3% against `cleave`'s 49.0%, on a pull that is 73.73% multi-target.
 		const apl = auditOf(addsThenBoss);
 		expect(pressesOf(addsThenBoss)).toHaveLength(408);
-		expect(apl.followed).toBe(69);
-		expect(apl.skipped).toBe(339);
+		expect(apl.followed).toBe(140);
+		expect(apl.skipped).toBe(268);
 		// **Both zero, and neither is trivially so.** `unknown` at 0 says no rule on this ladder ever failed
-		// to read — which is the finding, not a reassurance: the Flame Shock rung answers confidently 408
-		// times about a unit it cannot identify. `offList` at 0 is structural and is its own case below.
+		// to read. `offList` at 0 is structural and is its own case below.
 		expect(apl.unknown).toBe(0);
 		expect(apl.offList).toBe(0);
-		expect(apl.followed / pressesOf(addsThenBoss).length).toBeCloseTo(0.169, 3);
+		expect(apl.followed / pressesOf(addsThenBoss).length).toBeCloseTo(0.343, 3);
 	});
 });
 
-describe('the follow rate is a reading of the band, not of the player', () => {
-	/** Presses, credits and Flame Shock faults in one window, so the three always come off one filter. */
-	const split = (a: Analysis, keep: (p: Press) => boolean): { n: number; followed: number; fsSkips: number } => {
-		const sel = pressesOf(a).filter(keep);
-		return {
-			n: sel.length,
-			followed: sel.filter((p) => p.verdict === 'followed').length,
-			fsSkips: sel.filter((p) => p.verdict === 'skipped' && p.wanted === 'flame-shock').length,
-		};
-	};
-
-	it('collapses across the add phase and recovers in the boss-only tail', () => {
-		// **The within-pull control, and the single most load-bearing assertion in this file.** Same player,
-		// same log, same ladder, split at the last instant two enemies were up. 12.2% against 61.5% — and the
-		// tail's 24 credits are more than a third of the pull's 69 in under a tenth of its presses.
-		const end = lastMultiTargetPoint(addsThenBoss);
-		expect(split(addsThenBoss, (p) => p.decidedAt <= end)).toEqual({ n: 369, followed: 45, fsSkips: 309 });
-		expect(split(addsThenBoss, (p) => p.decidedAt > end)).toEqual({ n: 39, followed: 24, fsSkips: 1 });
+describe('the dot the ladder reads is the one on the enemy in front of the player', () => {
+	it('credits the add phase over the 442s the boss could not carry a dot at all', () => {
+		// **The assertion that proves the mechanism rather than the size.** `flameShock.windows` is the
+		// primary's own dot — the array the ladder is handed as `auras['flame-shock']` — and on this pull it
+		// is a single window opening at 442.0s, because Galakras is untargetable for the whole add phase.
+		// So over the 318 presses decided before that instant, a lookup keyed by the *primary's* spawns had
+		// no window to find and could only ever answer zero. It credited 24 of the 318; the every-spawn map
+		// credits 92, and charges 141 against Flame Shock where the primary-keyed one charged 294.
+		const windows = flameShockOf(addsThenBoss).windows;
+		expect(windows).toHaveLength(1);
+		expect(windows[0]!.start).toBe(442_020);
+		const opens = windows[0]!.start;
+		expect(split(addsThenBoss, (p) => p.decidedAt < opens)).toEqual({ n: 318, followed: 92, fsSkips: 141 });
+		// Better than a quarter of them, where the primary-keyed reading credited 7.5% — asserted as a share
+		// as well as a count, because the count alone cannot say the reading stopped being structural.
+		expect(92 / 318).toBeGreaterThan(0.25);
+		// And the stretch the primary *was* dottable barely moves, which is the other half of the same
+		// claim: 45 credits became 48.
+		expect(split(addsThenBoss, (p) => p.decidedAt >= opens)).toEqual({ n: 90, followed: 48, fsSkips: 11 });
 	});
 
-	it('puts the tail beside the two single-target fixtures rather than beside its own pull', () => {
-		// 61.5% is what this player grades at one target. `phased` reads 67.3% and `unbroken` 68.3% on their
-		// whole pulls, and those are the reference for "a normally played single-target log". A tail that
-		// landed at 16.9% would have said the player was the cause; it lands within seven points of both.
-		const end = lastMultiTargetPoint(addsThenBoss);
-		const tail = split(addsThenBoss, (p) => p.decidedAt > end);
-		expect(tail.followed / tail.n).toBeCloseTo(0.615, 3);
-		for (const name of ['phased', 'unbroken'] as const) {
-			const a = load(name);
-			const rate = auditOf(a).followed / pressesOf(a).length;
-			expect(rate, name).toBeGreaterThan(0.6);
-			expect(Math.abs(rate - tail.followed / tail.n), name).toBeLessThan(0.08);
-		}
-	});
-
-	it('falls monotonically with the band on both multi-target pulls', () => {
-		// The same fact per band instead of per window, and asserted on `cleave` beside it so that it reads
-		// as a property of the ladder rather than of one fixture. `cleave` is the milder case for the reason
-		// its own file gives — 57.25% multi-target against 73.73%, and no tail at all — and it shows the same
-		// slope: 64.8% → 42.4% → 42.9% → 30.6%.
-		const table = (a: Analysis): Array<{ n: number; followed: number; fsSkips: number }> => {
-			const band = banderFor(a);
-			return [1, 2, 3, 4].map((b) => split(a, (p) => band(p) === b));
-		};
-		expect(table(addsThenBoss)).toEqual([
-			{ n: 90, followed: 36, fsSkips: 38 },
-			{ n: 87, followed: 11, fsSkips: 65 },
-			{ n: 74, followed: 11, fsSkips: 63 },
-			{ n: 157, followed: 11, fsSkips: 144 },
-		]);
-		expect(table(cleave)).toEqual([
-			{ n: 88, followed: 57, fsSkips: 11 },
-			{ n: 33, followed: 14, fsSkips: 8 },
-			{ n: 21, followed: 9, fsSkips: 4 },
-			{ n: 62, followed: 19, fsSkips: 36 },
-		]);
-		// Eleven credits at each of the three multi-target bands on a pull that spends 318 of its 408 presses
-		// there. That is the ceiling the Flame Shock rung leaves, not a choice the player made.
-		expect(
-			table(addsThenBoss)
-				.slice(1)
-				.map((r) => r.followed),
-		).toEqual([11, 11, 11]);
-	});
-});
-
-describe('one rung owns the faults', () => {
-	const skipsBy = (a: Analysis): Record<string, number> => {
-		const by: Record<string, number> = {};
-		for (const p of pressesOf(a)) {
-			if (p.verdict !== 'skipped') continue;
-			by[p.wanted ?? '(none)'] = (by[p.wanted ?? '(none)'] ?? 0) + 1;
-		}
-		return by;
-	};
-
-	it('charges 310 of 339 against Flame Shock, and names the other 29', () => {
+	it('puts the Flame Shock rung back in family with cleave instead of owning nine faults in ten', () => {
 		// Asserted as the whole map rather than the one key, so a fault moving between rungs cannot hide.
-		// The other five rungs together take 29 — fewer than a tenth of what the top rung takes — and that
-		// asymmetry is the finding: this is not a ladder grading a pull, it is one condition answering.
+		// The five rungs that shared 29 faults between them now share 116, which is the finding: this was
+		// one condition answering, and the rungs under it were unreachable behind it.
 		expect(skipsBy(addsThenBoss)).toEqual({
-			'flame-shock': 310,
-			'lava-burst': 8,
-			'chain-lightning': 6,
+			'flame-shock': 152,
+			'chain-lightning': 39,
+			'searing-totem': 34,
+			'lava-burst': 20,
+			'earth-shock': 12,
 			'lightning-bolt': 6,
-			'searing-totem': 5,
-			'earth-shock': 4,
+			'lava-beam': 5,
 		});
-		expect(310 / 339).toBeCloseTo(0.914, 3);
-	});
-
-	it('is the same rung on cleave, at half the share, which is the comparison that dates the cause', () => {
-		// 59 of 105 — 56.2% against 91.4%. The rung's share **tracks the add churn**, not the regime
-		// resolving: `cleave` has 8 dot applications over 263.2s and `addsThenBoss` has 24 over 560.3s, and
-		// the more spawns the player dots the more often `spawnAt` picks one that is not carrying it.
-		expect(skipsBy(cleave)['flame-shock']).toBe(59);
-		expect(59 / 105).toBeCloseTo(0.562, 3);
+		// **The property, not the numbers.** 91.4% against `cleave`'s 56.2% was the whole reason to suspect
+		// the reading rather than the player; 56.7% against 55.8% is what two pulls under one rule look
+		// like. Half a point apart, on pulls whose multi-target shares are 73.73% and 57.25%.
+		expect(topRungShare(addsThenBoss)).toBeCloseTo(0.567, 3);
+		expect(topRungShare(cleave)).toBeCloseTo(0.558, 3);
+		expect(Math.abs(topRungShare(addsThenBoss) - topRungShare(cleave))).toBeLessThan(0.05);
+		// And the same held as a ceiling across every committed pull, which is the shape of the claim: no
+		// single rung may own most of a pull's faults. `phased` reads 0.231 and `unbroken` 0.378 — both
+		// **no-change guards**, neither exceeding one enemy — and this pull used to read 0.914.
+		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken'] as const) {
+			const a = name === 'addsThenBoss' ? addsThenBoss : name === 'cleave' ? cleave : load(name);
+			expect(topRungShare(a), name).toBeLessThan(0.6);
+		}
+		expect(skipsBy(cleave)['flame-shock']).toBe(58);
+		// The rung's share still tracks the add churn, which is what dates the cause: `cleave` puts up 8 dot
+		// applications over 263.2s and this pull 24 over 560.3s.
 		expect(flameShockOf(addsThenBoss).applies).toBe(24);
 		expect(flameShockOf(cleave).applies).toBe(8);
 	});
 
-	it('answers about a unit whose dot the primary lane cannot see, for 442 seconds', () => {
-		// The evidence that the union is no substitute for the missing reading. `flameShock.windows` is the
-		// primary's own dot — the array the ladder is handed as `auras['flame-shock']` — and on this pull it
-		// is a single window that opens at 442.0s. Galakras is untargetable for the add phase, so
-		// `not(dotIsActive(8050))` on the sim's `CurrentTarget` would be true for the whole of it too. Both
-		// available readings are wrong, in the same direction, and that is why the fix is a third one.
-		const windows = flameShockOf(addsThenBoss).windows;
-		expect(windows).toHaveLength(1);
-		expect(windows[0]!.start).toBe(442_020);
-		// And the dot was demonstrably up somewhere for most of the pull, which is what makes 310 wrong
-		// rather than merely unlucky: the per-enemy timeline rows cover 425.1s of the 560.3s.
+	it('stops charging three faults in four at an instant some enemy demonstrably carried the dot', () => {
+		// Derived off the **per-enemy timeline lanes** rather than off the verdicts, so this is a second
+		// source disagreeing with the first: 235 of the primary-keyed reading's 310 Flame Shock faults were
+		// charged while at least one of the nine enemies was carrying the dot — 75.8%, on a pull whose lanes
+		// cover 425.1s of 560.3s. It is now 90 of 152.
+		//
+		// **Not zero, and it should not be.** The fix is contact-scoped by design: a dot ticking on an add
+		// the player is not hitting does not excuse the press, which is the split `fsRemainingAt`'s own
+		// docblock draws between a graded press and anything drawn. What had to go was the *fabricated*
+		// zero, and 59.2% here is what remains of the union's own reading.
 		const lanes = (addsThenBoss.timeline?.lanes ?? []).filter((l) => l.key === 'flame-shock');
 		expect(lanes.length).toBeGreaterThan(1);
-		const all = lanes.flatMap((l) => l.windows).sort((x, y) => x.start - y.start);
+		const all = lanes.flatMap((l) => l.windows);
+		const dotUpAt = (t: number): boolean => all.some((w) => w.start <= t && t <= w.end);
+		const fsSkips = pressesOf(addsThenBoss).filter((p) => p.verdict === 'skipped' && p.wanted === 'flame-shock');
+		expect(fsSkips).toHaveLength(152);
+		expect(fsSkips.filter((p) => dotUpAt(p.decidedAt))).toHaveLength(90);
+		expect(90 / 152).toBeLessThan(0.65);
+		// The lanes' own coverage, unchanged by any of this and asserted so the share above has a
+		// denominator a reader can check.
 		let covered = 0;
 		let until = -1;
-		for (const w of all) {
+		for (const w of [...all].sort((x, y) => x.start - y.start)) {
 			covered += Math.max(0, w.end - Math.max(w.start, until));
 			until = Math.max(until, w.end);
 		}
 		expect(Math.round(covered / 100) / 10).toBe(425.1);
 	});
+
+	it('leaves the boss-only tail untouched, which is the control that must not move', () => {
+		// **Not a red against the old behaviour, and deliberately so.** Every one of the 166 verdicts the
+		// fix moved is add-phase time — the tail reads 24 of 39 either side of it, with the same single
+		// Flame Shock fault in it — which is what says the fix reached the missing map and not the grader.
+		// The tail is 56.9s of single-target play by the same player in the same pull, so a fix that moved it
+		// would have been changing the answer at one enemy, where nothing was ever wrong.
+		const end = lastMultiTargetPoint(addsThenBoss);
+		expect(split(addsThenBoss, (p) => p.decidedAt > end)).toEqual({ n: 39, followed: 24, fsSkips: 1 });
+		const tailSkips: Record<string, number> = {};
+		for (const p of pressesOf(addsThenBoss)) {
+			if (p.verdict !== 'skipped' || p.decidedAt <= end) continue;
+			tailSkips[p.wanted ?? '(none)'] = (tailSkips[p.wanted ?? '(none)'] ?? 0) + 1;
+		}
+		expect(tailSkips).toEqual({
+			'lava-burst': 5,
+			'chain-lightning': 3,
+			'earth-shock': 2,
+			'lightning-bolt': 2,
+			'searing-totem': 2,
+			'flame-shock': 1,
+		});
+	});
+
+	it('moves nothing on the two pulls that never exceed one enemy', () => {
+		// **The no-change guards.** On a pull with one enemy `fsDot.byInstance` and `fsDotAnywhere` are the
+		// same map, so the fix is provably a no-op — `counts.max` is asserted beside the figures rather than
+		// trusted, because that identity is the whole reason these two cannot move.
+		for (const [name, followed, presses] of [
+			['phased', 107, 159],
+			['unbroken', 97, 142],
+		] as const) {
+			const a = load(name);
+			expect(a.targets?.counts?.max, `${name} is a single-target pull`).toBe(1);
+			expect(pressesOf(a), name).toHaveLength(presses);
+			expect(auditOf(a).followed, name).toBe(followed);
+		}
+	});
 });
 
-describe('what the top rung crowds out', () => {
-	it('leaves every one of the 24 Lava Beams uncredited, which is the third time this rung class has done that', () => {
-		// **The defect in its sharpest form.** All 24 beams fire at bands 3 and 4 — the two bands where
-		// `aoe.apl.json` puts Lava Beam above Chain Lightning and where the only rung standing above it is
-		// Flame Shock — and not one is graded `followed`. Every one is charged against Flame Shock. `cleave`
-		// credits 4 of its 11 at the same bands with the same rung above, so this is the reading of the dot
-		// crowding the beam out rather than the beam's own rule being wrong.
+describe('what the ladder can reach now that one rung has stopped claiming every global', () => {
+	it('credits eleven of the twenty-four Lava Beams, where it credited none', () => {
+		// **The defect in its sharpest form, and the third time this rung class has been buried.** All 24
+		// beams fire at bands 3 and 4 — the two bands where `aoe.apl.json` puts Lava Beam above Chain
+		// Lightning and where the only rung standing above it is Flame Shock — and under the primary-keyed
+		// reading not one was graded `followed`: every single one was charged against Flame Shock, on a dot
+		// reading that could not see the add being hit. 11 of 24 now stand, at 45.8% against `cleave`'s 4 of
+		// 11 at the same bands under the same rung above, where the two shares used to be 0% and 36.4%.
 		const beams = pressesOf(addsThenBoss).filter((p) => p.pressed === LAVA_BEAM);
 		const band = banderFor(addsThenBoss);
 		expect(beams).toHaveLength(24);
 		expect(beams.map(band).filter((b) => b >= 3)).toHaveLength(24);
-		expect(beams.filter((p) => p.verdict === 'followed')).toHaveLength(0);
-		expect(new Set(beams.map((p) => p.wanted))).toEqual(new Set(['flame-shock']));
-		// The counterpart, so this cannot be read as "the rung is unreachable anywhere".
+		const credited = beams.filter((p) => p.verdict === 'followed');
+		expect(credited).toHaveLength(11);
+		expect(credited.every((p) => p.wanted === 'lava-beam')).toBe(true);
 		const cleaveBeams = pressesOf(cleave).filter((p) => p.pressed === LAVA_BEAM);
 		expect(cleaveBeams.filter((p) => p.verdict === 'followed')).toHaveLength(4);
+		// The property behind the two counts: a declared rung no press on a nine-enemy pull can reach is the
+		// same defect as no rung, and the two multi-target pulls now agree it is reachable at a like rate.
+		expect(11 / 24).toBeGreaterThan(0.25);
+		expect(Math.abs(11 / 24 - 4 / 11)).toBeLessThan(0.15);
+	});
+
+	it('credits presses at every band instead of eleven at each of the three multi-target ones', () => {
+		// The same fact per band instead of per window, and asserted on `cleave` beside it so that it reads
+		// as a property of the ladder rather than of one fixture.
+		//
+		// **The old table's flat 11 / 11 / 11 was the tell.** Eleven credits at each of bands 2, 3 and 4 on
+		// a pull spending 318 of its 408 presses there was a ceiling, not three readings of a player, and
+		// the collapse was monotone in the band because the primary-keyed miss grew likelier the more adds
+		// were up. It is 21 / 33 / 45 now and no longer monotone — band 3 grades *better* than band 2 —
+		// which is what a band table looks like when it is reading play.
+		const table = (a: Analysis): Array<{ n: number; followed: number; fsSkips: number }> => {
+			const band = banderFor(a);
+			return [1, 2, 3, 4].map((b) => split(a, (p) => band(p) === b));
+		};
+		expect(table(addsThenBoss)).toEqual([
+			{ n: 90, followed: 41, fsSkips: 6 },
+			{ n: 87, followed: 21, fsSkips: 32 },
+			{ n: 74, followed: 33, fsSkips: 22 },
+			{ n: 157, followed: 45, fsSkips: 92 },
+		]);
+		expect(table(cleave)).toEqual([
+			{ n: 88, followed: 57, fsSkips: 11 },
+			{ n: 33, followed: 15, fsSkips: 7 },
+			{ n: 21, followed: 9, fsSkips: 4 },
+			{ n: 62, followed: 19, fsSkips: 36 },
+		]);
+		// **The property, and the red against the old reading.** Every band credits at least a fifth of its
+		// presses on both multi-target pulls. Under the primary-keyed map this pull read 12.6%, 14.9% and
+		// 7.0% at the three multi-target bands — rates no single-target fixture comes within 45 points of.
+		for (const [name, a] of [
+			['addsThenBoss', addsThenBoss],
+			['cleave', cleave],
+		] as const) {
+			for (const row of table(a)) expect(row.followed / row.n, `${name} band row`).toBeGreaterThan(0.2);
+		}
 	});
 
 	it('can never return off-list, so a button the ladder excludes on purpose is graded as a fault', () => {
-		// **A second, smaller defect, pinned here because this pull is where it is visible.** The engine has
-		// an `off-list` verdict for "nothing on this ladder wanted the global — a cooldown, a defensive". It
-		// is unreachable for this spec: `lightning-bolt` is unconditional and unbanded, so some rung always
-		// claims. The consequence is that the three on-GCD buttons the ladder's own module doc *delegates*
-		// elsewhere — Stormlash Totem (a raid cooldown the doc calls off-GCD, while the registry declares
-		// `onGcd: true`), Fire Elemental (the cooldowns section's business) and Earth Elemental (whose rule
-		// opens in end-of-fight terms) — are each graded as a priority mistake against a filler rung.
+		// **A second, smaller defect, pinned here because this pull is where it is visible and because the
+		// dot-map fix does not touch it.** The engine has an `off-list` verdict for "nothing on this ladder
+		// wanted the global — a cooldown, a defensive". It is unreachable for this spec: `lightning-bolt` is
+		// unconditional and unbanded, so some rung always claims. The consequence is that the three on-GCD
+		// buttons the ladder's own module doc *delegates* elsewhere — Stormlash Totem (a raid cooldown the
+		// doc calls off-GCD, while the registry declares `onGcd: true`), Fire Elemental (the cooldowns
+		// section's business) and Earth Elemental (whose rule opens in end-of-fight terms) — are each graded
+		// as a priority mistake against a filler rung.
 		//
-		// Four presses here and nine across the four fixtures, so it is ~1% of this pull's faults and not an
-		// answer to 16.9%. Pinned as the whole tally rather than a count, because the fix is a declaration
-		// the ladder does not yet carry and the next reader needs to see which buttons it has to cover.
+		// Four presses here and nine across the four fixtures, so it is ~1.5% of this pull's faults and was
+		// never an answer to 16.9%. Pinned as the whole tally rather than a count, because the fix is a
+		// declaration the ladder does not yet carry and the next reader needs to see which buttons it has to
+		// cover. Only the rung *named* moved with the dot map — one of the two Fire Elementals is now charged
+		// against Lava Burst rather than Flame Shock — which is the same fault, better attributed.
 		const rungIds = new Set(LADDER.map((r) => r.id));
 		const unarbitrated = pressesOf(addsThenBoss).filter((p) => !rungIds.has(p.pressed));
 		expect(unarbitrated.map((p) => `${p.pressed}:${p.verdict}<-${p.wanted ?? '?'}`)).toEqual([
 			`${STORMLASH}:skipped<-flame-shock`,
-			`${FIRE_ELEMENTAL}:skipped<-flame-shock`,
+			`${FIRE_ELEMENTAL}:skipped<-lava-burst`,
 			`${STORMLASH}:skipped<-flame-shock`,
 			`${FIRE_ELEMENTAL}:skipped<-lightning-bolt`,
 		]);
@@ -324,5 +397,54 @@ describe('what the top rung crowds out', () => {
 				name,
 			).toBe(true);
 		}
+	});
+});
+
+describe('what is left of the gap is the player', () => {
+	it("still grades the add phase at half the rate of the same pull's own boss-only tail", () => {
+		// **The within-pull control, and the single most load-bearing assertion in this file.** Same player,
+		// same log, same ladder, split at the last instant two enemies were up. It was 12.2% against 61.5%
+		// and it is 31.4% against 61.5% — the tail did not move, so roughly half of the original 49-point
+		// gap was the dot map and roughly half is play. That remainder is the finding this file ends on
+		// rather than a number to chase: the ladder is now reading the dot the player was maintaining.
+		const end = lastMultiTargetPoint(addsThenBoss);
+		const add = split(addsThenBoss, (p) => p.decidedAt <= end);
+		const tail = split(addsThenBoss, (p) => p.decidedAt > end);
+		expect(add).toEqual({ n: 369, followed: 116, fsSkips: 151 });
+		expect(add.followed / add.n).toBeCloseTo(0.314, 3);
+		expect(tail.followed / tail.n).toBeCloseTo(0.615, 3);
+		expect(add.followed / add.n / (tail.followed / tail.n)).toBeCloseTo(0.51, 2);
+	});
+
+	it('puts the tail beside the two single-target fixtures rather than beside its own pull', () => {
+		// 61.5% is what this player grades at one target, and the two max-one-target fixtures are the
+		// reference for "a normally played single-target log" — 67.3% and 68.3%, both **no-change guards**
+		// for the dot map. A tail that landed at 16.9% would have said the player was the cause; it lands
+		// within seven points of both, which is what said the band was.
+		const end = lastMultiTargetPoint(addsThenBoss);
+		const tail = split(addsThenBoss, (p) => p.decidedAt > end);
+		expect(tail.followed / tail.n).toBeCloseTo(0.615, 3);
+		for (const name of ['phased', 'unbroken'] as const) {
+			const a = load(name);
+			const rate = auditOf(a).followed / pressesOf(a).length;
+			expect(rate, name).toBeGreaterThan(0.6);
+			expect(Math.abs(rate - tail.followed / tail.n), name).toBeLessThan(0.08);
+		}
+	});
+
+	it('names Searing Totem, which this player laid zero times in 560 seconds', () => {
+		// **The largest nameable residual, and the reason the remainder is not another artefact.** The totem
+		// is a filler rung with a 226.9s gradable clock on this pull and the log carries not one cast of it,
+		// so its 0% uptime is a fact about the player and its 34 faults are honest. Under the primary-keyed
+		// dot map it took 5 — the Flame Shock reading was swallowing the other 29 — which is the shape of
+		// what this fix bought: faults that are real, attributed to the rung that wanted the global.
+		expect((addsThenBoss.timeline?.casts ?? []).filter((c) => c.id === SEARING_TOTEM)).toHaveLength(0);
+		const totem = searingTotemOf(addsThenBoss);
+		expect(totem.uptimeMs).toBe(0);
+		expect(Math.round(totem.scoredMs / 100) / 10).toBe(226.9);
+		expect(skipsBy(addsThenBoss)['searing-totem']).toBe(34);
+		// And it is this pull's own fault rather than the ladder's: the same rung takes 1 on `cleave`, where
+		// the totem was up for 88.5% of its clock.
+		expect(skipsBy(cleave)['searing-totem']).toBe(1);
 	});
 });

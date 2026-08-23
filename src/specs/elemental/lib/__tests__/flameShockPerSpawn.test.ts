@@ -185,3 +185,140 @@ describe('the Flame Shock dot, per spawn and merged', () => {
 		expect(at70?.wanted).toBe('flame-shock');
 	});
 });
+
+// --------------------------------------------------------------------------------------------------
+// The same split one scope wider: two **different enemies**, not two spawns of one.
+//
+// Everything above holds a single actor id with two spawns, and on that shape the primary-scoped map
+// `dotWindowsOnTarget(..., primaryID, ...)` builds already covers both — the add *is* the primary — so
+// the two per-spawn readings this file was written for are the same map. That hid a second defect for as
+// long as this file was the only demonstration of them.
+//
+// `fsRemainingAt` and `downBefore` both keyed into `fsDot.byInstance`, which is that primary-scoped map.
+// So when the enemy in front of the player was a *different actor id* the lookup missed and both closures
+// answered from an empty array: `remainingIn(t, [])` is **0** and `downBefore`'s walk finds no previous
+// window and returns **null**. Neither is a measurement. The zero is indistinguishable from "the enemy
+// being hit had no dot" and charged `fsLow` on a shock fired into a dot with 29.5s left; the null is
+// indistinguishable from "this spawn never had one" and read a Flame Shock ten seconds late as an opener.
+//
+// Both now read `fsDotAnywhere`, the every-spawn map the graded uptime numerator already used. This pull
+// is the minimum shape that can tell the two maps apart: a boss the player is mostly hitting and never
+// dots, and one add that carries the dot for forty seconds. It is `addsThenBoss` in miniature — see
+// `addsThenBossLadder.test.ts`, where the primary is untargetable for the first 442 of 560 seconds and
+// the same missing map cost 166 verdicts.
+const BOSS = 30;
+
+const bossHit = (t: number): WclEvent =>
+	e(t, 'damage', LIGHTNING_BOLT, { targetID: BOSS, targetInstance: 1, amount: 1000, hitType: 1 });
+const addHit = (t: number): WclEvent =>
+	e(t, 'damage', LIGHTNING_BOLT, { targetID: ADD, targetInstance: 1, amount: 1000, hitType: 1 });
+
+/**
+ * The player is on the boss every two seconds all pull, and steps to the add for the three globals it
+ * matters for.
+ *
+ * The boss therefore takes 55 hits to the add's 3 and is unambiguously `primaryID`, which is the whole
+ * point — and the contact clock is one unbroken segment, so `downBefore` charges the full gap rather than
+ * forgiving part of it as time away. Each add hit is stamped 400ms before the press it belongs to, so
+ * `spawnAt` resolves that press to the add and not to the boss hit two seconds earlier.
+ */
+const crossContact: WclEvent[] = [
+	...Array.from({ length: 55 }, (_, i) => bossHit(i * 2000)),
+	addHit(30_100),
+	addHit(70_100),
+	addHit(74_100),
+];
+
+/**
+ * The dot, on the **add** and never on the boss, from 20s to 60s.
+ *
+ * So the primary-scoped map is empty for the whole pull — `flameShock.windows` is `[]` — which is the
+ * shape `addsThenBoss` has for its first 442 seconds and the reason a primary-keyed lookup there could
+ * only ever answer zero.
+ */
+const crossDot: WclEvent[] = [
+	e(20_000, 'applydebuff', FLAME_SHOCK, { targetID: ADD, targetInstance: 1 }),
+	e(40_000, 'refreshdebuff', FLAME_SHOCK, { targetID: ADD, targetInstance: 1 }),
+	e(60_000, 'removedebuff', FLAME_SHOCK, { targetID: ADD, targetInstance: 1 }),
+];
+
+/**
+ * One shock into the live dot, one Flame Shock ten seconds after it lapsed.
+ *
+ * Ascendance at 1s for the reason the pull above states — without it `ascReady` lands on every shock.
+ */
+const crossPresses: WclEvent[] = [
+	e(1000, 'cast', ASCENDANCE),
+	e(2000, 'cast', LAVA_BURST, { targetID: BOSS, targetInstance: 1 }),
+	e(30_500, 'cast', EARTH_SHOCK, { targetID: ADD, targetInstance: 1 }),
+	e(70_500, 'cast', FLAME_SHOCK, { targetID: ADD, targetInstance: 1 }),
+];
+
+const crossDataset: FightDataset = {
+	...dataset,
+	code: 'ele997',
+	// **Both enemies declared as actors, and that is load-bearing here rather than tidy.** `analyseCore`
+	// builds the contact clock from hits whose target is in the NPC set it takes off this list, so a pull
+	// that names no NPC has an empty `contact` — and `downBefore` charges only the part of a gap the player
+	// was present for, which would then be none of it. The pull above never reads that clock; this one
+	// grades an `exposedMs` off it.
+	actors: [
+		{ id: ME, name: 'Sparkstorm', type: 'Player' },
+		{ id: BOSS, name: 'Galakras', type: 'NPC' },
+		{ id: ADD, name: "Kor'kron Reaver", type: 'NPC' },
+	],
+	events: [...crossContact, ...crossDot, ...crossPresses],
+	table: {
+		...dataset.table,
+		fight: {
+			...dataset.table.fight,
+			enemyNPCs: [
+				{ id: BOSS, gameID: 68_078 },
+				{ id: ADD, gameID: 68_079 },
+			],
+		},
+	},
+};
+
+const cross = analyse(crossDataset) as Analysis & ElementalAuditResult;
+
+describe('the Flame Shock dot on an enemy that is not the primary', () => {
+	it('is the pull this file claims: the primary never carries the dot at all', () => {
+		// The premise every assertion below rests on, so a drifting fixture has to fail here first. An
+		// empty `windows` is the primary-scoped reading, and it is empty because the boss was never dotted.
+		expect(cross.isSpec).toBe(true);
+		expect(cross.primaryTarget?.id).toBe(BOSS);
+		expect(cross.flameShock.windows).toEqual([]);
+		expect(cross.flameShock.uptimeMs).toBe(0);
+	});
+
+	it('grades an Earth Shock against the dot on the add it was fired at', () => {
+		// `fsRemainingAt`'s half. The shock at 30.5s is aimed at the add, whose dot runs to 60s, so it sees
+		// 29.5s and is a good shock. Against `fsDot.byInstance` the lookup missed the add entirely and
+		// `remainingIn(t, [])` answered 0 — `fsRemainingMs: 0`, `reasons: ['fsLow']`, `good: false`, and
+		// `earthShock.good` 0 of 1. A fault invented by a map that could not see the enemy being hit.
+		expect(cross.earthShock.presses.map((p) => [p.t, p.fsRemainingMs, p.reasons, p.good])).toEqual([
+			[30_500, 29_500, [], true],
+		]);
+		expect(cross.earthShock.good).toBe(1);
+	});
+
+	it('charges a Flame Shock ten seconds late as late, not as an opener', () => {
+		// `downBefore`'s half, and it is the same defect with the other fallback value. The add's dot fell
+		// off at 60s and the press is at 70.5s with the player in contact throughout, so 10 500ms of it was
+		// exposed and `DROP_MS` is 1 000. Against `fsDot.byInstance` the walk found no window before the
+		// press, returned `null`, and `null` means "this spawn never had the dot" — so the press was graded
+		// `apply` with `exposedMs: 0`, an opener, on an add that had been carrying the dot for forty seconds.
+		expect(cross.flameShock.presses.map((p) => [p.t, p.kind, p.remainingMs, p.exposedMs])).toEqual([
+			[70_500, 'late', null, 10_500],
+		]);
+	});
+
+	it('moves the ladder verdict on the shock, since the rung above it no longer claims the global', () => {
+		// The consequence for the report. With the dot read off the add the Flame Shock rung has nothing to
+		// ask for at 30.5s; against the primary-scoped map it read the dot as down and took the global,
+		// which is the 152-of-268 mechanism `addsThenBossLadder.test.ts` measures at scale.
+		const shock = cross.apl?.presses.find((p) => p.t === 30_500);
+		expect(shock?.wanted).not.toBe('flame-shock');
+	});
+});

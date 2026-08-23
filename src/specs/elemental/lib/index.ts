@@ -1924,11 +1924,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// The dot on the enemy the pull was about. Without a primary there is nothing to measure — the
 	// section reads zero rather than inventing a target.
 	//
-	// **Two readings out of one walk, and which one a consumer gets is the whole of this block.**
+	// **Two readings, and which one a consumer gets is the whole of this block.**
 	//
-	// `fsMerged` is the union across every spawn of that enemy id. It is the honest reading for the
-	// uptime figure, the timeline lane, the drop ledger and the snapshot windows: a row labelled with
-	// one enemy's name should say whether that enemy had the dot.
+	// `fsMerged` is this walk's union across every spawn of that enemy id, and it is the only thing
+	// this walk is for. It is the honest reading for the uptime figure, the timeline lane, the drop
+	// ledger and the snapshot windows: a row labelled with one enemy's name should say whether that
+	// enemy had the dot.
 	//
 	// `fsRemainingAt` is the other reading — the dot on the spawn `spawnAt` says the player was on —
 	// and every rule that grades a press takes it instead: the Earth Shock `fsLow` reason, the
@@ -1937,6 +1938,15 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// question none of them asked: an Earth Shock pressed while a *different* spawn carried the dot
 	// read as "dot up" when the enemy in front of the player had nothing on it. This is the split the
 	// Windwalker already draws — `rskByInstance` for a graded press, `rskByTarget` for anything drawn.
+	//
+	// **But `fsRemainingAt` is not taken off `fsDot`, and that is the correction rather than a detail.**
+	// `byInstance` here is keyed only by spawns of the *primary*, so on a pull with adds the spawn
+	// `spawnAt` names is usually not in it, the lookup misses, and an empty array reads as **zero
+	// remaining** — a fabricated figure indistinguishable from "the enemy being hit had no dot". Both
+	// per-spawn readers therefore key into `fsDotAnywhere` below, which is the same walk one scope
+	// wider, on the argument the graded numerator already makes there at length. Measured: 166 of
+	// `addsThenBoss`' 408 ladder verdicts, on a pull whose primary is untargetable — and so provably
+	// undotted — for its first 442 of 560 seconds. See `addsThenBossLadder.test.ts`.
 	const fsDot = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, primaryID, actor.id);
 	const fsMerged: Window[] = fsDot.merged.map(([start, end]) => ({ start, end }));
 	const fsUptimeMs = unionMs(toIntervals(fsMerged));
@@ -2064,10 +2074,16 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * whichever the tile happened to call.
 	 */
 	const fsContactMs = unionMs(fsContactMerged);
-	/** The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none. */
+	/**
+	 * The dot's remaining time on the spawn the player was on at `t`; zero when that spawn had none.
+	 *
+	 * **`fsDotAnywhere` and not `fsDot.byInstance`**, for the reason that block gives: a map keyed by the
+	 * primary's spawns cannot answer about an add, and a miss here returns a zero no reader can tell
+	 * apart from a measured one.
+	 */
 	const fsRemainingAt = (t: number): number => {
 		const key = spawnAt(t);
-		return key === null ? 0 : remainingIn(t, fsDot.byInstance.get(key) ?? []);
+		return key === null ? 0 : remainingIn(t, fsDotAnywhere.get(key) ?? []);
 	};
 
 	/**
@@ -2237,10 +2253,18 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * The three down-states hang off this. `null` means the dot had never been up on that spawn at all —
 	 * an opener, which is a different fact from "it lapsed and you were there", and the difference is
 	 * what stops the report accusing a player of a late refresh on their first press of the pull.
+	 *
+	 * **`fsDotAnywhere`, the same correction `fsRemainingAt` carries and for the same reason.** Off
+	 * `fsDot.byInstance` a spawn that is not the primary's misses, the walk finds no window, and the
+	 * `null` it returns is the *opener* verdict — so a dot that lapsed ten seconds ago on the add being
+	 * hit was graded as a first press. This half feeds press `kind` rather than a ladder verdict: on
+	 * `addsThenBoss` it moves seven of the 31 Flame Shock presses and no graded figure, `flameShockWaste`
+	 * included, which counts refreshes and these are all applications. `flameShockPerSpawn.test.ts` holds
+	 * both halves on a two-enemy pull.
 	 */
 	const downBefore = (spawn: string | null, t: number): number | null => {
 		if (spawn === null) return null;
-		const windows = fsDot.byInstance.get(spawn) ?? [];
+		const windows = fsDotAnywhere.get(spawn) ?? [];
 		let previousEnd: number | null = null;
 		for (const w of windows) {
 			if (w.start >= t) break;

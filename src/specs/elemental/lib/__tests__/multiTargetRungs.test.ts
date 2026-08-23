@@ -95,8 +95,13 @@ describe('what the rungs change on cleave', () => {
 		// Lightning, and at three targets and up one of them wanted the global at almost every press, so
 		// a rung that existed could still almost never be reached. Banding them to `[1, 2]` is what makes
 		// this number a reading of Chain Lightning's own rule rather than of the five above it.
+		//
+		// 26 since `fsRemainingAt` stopped reading a primary-scoped dot map: one Chain Lightning here was
+		// charged against Flame Shock because the spawn the player was hitting was an add, whose dot that
+		// map could not see. One press is the whole of the defect on this pull — 166 of them on
+		// `addsThenBoss`, whose file has the mechanism.
 		const followed = presses.filter((p) => p.pressed === CHAIN_LIGHTNING && p.verdict === 'followed');
-		expect(followed).toHaveLength(25);
+		expect(followed).toHaveLength(26);
 		expect(followed.every((p) => p.wanted === 'chain-lightning')).toBe(true);
 	});
 
@@ -128,7 +133,9 @@ describe('what the rungs change on cleave', () => {
 		// them to 43 and 18 — the same presses attributed the same way, because what a rung buys is not
 		// fewer faults here but a reader being told *which* rung wanted the global. Banding the Flame
 		// Shock rung took them to 39 and 20. Banding the five single-target rungs out of bands 3 and 4
-		// takes Lava Burst's share to 6 and empties Earth Shock's and Searing Totem's entirely.
+		// takes Lava Burst's share to 6 and empties Earth Shock's and Searing Totem's entirely. Flame
+		// Shock's own share is 38 since `fsRemainingAt` was pointed at `fsDotAnywhere` — the one press this
+		// pull's version of that defect was worth.
 		//
 		// Asserted as the **whole** map rather than two of its entries, and the two lines below it are why:
 		// the map plus the two `followed` counts has to account for all 81 presses, so a fault moving to a
@@ -139,7 +146,7 @@ describe('what the rungs change on cleave', () => {
 			if (p.verdict !== 'skipped') continue;
 			wanted.set(p.wanted ?? '?', (wanted.get(p.wanted ?? '?') ?? 0) + 1);
 		}
-		expect(Object.fromEntries(wanted)).toEqual({ 'flame-shock': 39, 'lightning-bolt': 7, 'lava-burst': 6 });
+		expect(Object.fromEntries(wanted)).toEqual({ 'flame-shock': 38, 'lightning-bolt': 7, 'lava-burst': 6 });
 		const followed = presses.filter(
 			(p) => (p.pressed === CHAIN_LIGHTNING || p.pressed === LAVA_BEAM) && p.verdict === 'followed',
 		);
@@ -192,11 +199,16 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 
 	it('demands Flame Shock less often the more enemies there are, on every fixture', () => {
 		// **This is the assertion that was impossible before.** The Flame Shock rung's demand used to be
-		// band-invariant: `cleave` charged 67 presses against it at bands 1, 2, 3 *and* 4, `phased` 12 at
+		// band-invariant: `cleave` charged 66 presses against it at bands 1, 2, 3 *and* 4, `phased` 12 at
 		// all four and `unbroken` 2 at all four — the reader's target-mode control provably could not move
 		// a Flame Shock verdict. The p5 rule stays exactly where it was, which is why every band-1 column
 		// is unchanged.
-		expect([1, 2, 3, 4].map((b) => fsSkips(forced(cleave, b as 1)))).toEqual([67, 62, 54, 54]);
+		//
+		// `cleave`'s column fell by one at every band when `fsRemainingAt` stopped reading a primary-scoped
+		// dot map — the same press at all four counts, which is what a fix to the *dot reading* rather than
+		// to a band should look like here. `phased` and `unbroken` never exceed one enemy, so nothing in
+		// their columns can move and nothing did.
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(cleave, b as 1)))).toEqual([66, 61, 53, 53]);
 		expect([1, 2, 3, 4].map((b) => fsSkips(forced(phased, b as 1)))).toEqual([12, 9, 4, 4]);
 		expect([1, 2, 3, 4].map((b) => fsSkips(forced(unbroken, b as 1)))).toEqual([2, 1, 1, 1]);
 	});
@@ -217,7 +229,7 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		expect(fsSkips(unbroken.apl)).toBe(2);
 	});
 
-	it("holds Flame Shock's own share at 59 while the pull's totals move around it", () => {
+	it("holds Flame Shock's own share at 58 while the pull's totals move around it", () => {
 		// The pull's own numbers, natural band. 81/123 before the rungs, 83/121 after the Flame Shock
 		// banding — and the eight presses that stopped being charged against Flame Shock did not all
 		// become `followed`: six moved to a lower rung that still wanted the global, which is the honest
@@ -226,11 +238,13 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		const apl = cleave.apl as { followed: number; skipped: number } | null;
 		expect(apl).not.toBeNull();
 		// 83/121 when this suite was written; 99/105 since the five single-target rungs left bands 3 and
-		// 4. Flame Shock's own share is untouched by that — its rung is in every band — so the 59 is the
-		// figure this describe block is actually about and it is asserted separately for that reason.
-		expect(apl!.followed).toBe(99);
-		expect(apl!.skipped).toBe(105);
-		expect(fsSkips(cleave.apl)).toBe(59);
+		// 4, and 100/104 since `fsRemainingAt` was pointed at `fsDotAnywhere`. The five-rung banding left
+		// Flame Shock's own share untouched — its rung is in every band — and the dot-map fix is the first
+		// change to move it, by exactly the one press it moved out of the totals, which is why the 58 is
+		// asserted beside them rather than inferred from them.
+		expect(apl!.followed).toBe(100);
+		expect(apl!.skipped).toBe(104);
+		expect(fsSkips(cleave.apl)).toBe(58);
 	});
 });
 
