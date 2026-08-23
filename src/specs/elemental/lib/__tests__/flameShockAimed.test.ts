@@ -659,3 +659,108 @@ describe('another shaman’s dot on the add this player is dotting', () => {
 		expect(el.cpm.wastedGcds).toBe(1);
 	});
 });
+
+/**
+ * **The fourth site of the same exposure, and the only thing that holds it.**
+ *
+ * `beganAsRefresh` was already source-filtered when this suite was written — `fsRefreshedAt` carries
+ * `e.sourceID !== actor.id` — so this is a guard on a correct line rather than a fix. It exists because
+ * the line was **provably unheld**: deleting that clause leaves all 2 309 tests green, which is exactly
+ * how the first three members of this family were introduced in the first place.
+ *
+ * The mechanism is not the one the suite above holds, and that is why it needs its own pull.
+ * `remainingAtCast` is fooled by a foreign *window*; this is fooled by a foreign **stamp**.
+ * `beganAsRefresh(spawn, bounds.previous)` asks whether a `refreshdebuff` sits within `SELF_EVENT_MS`
+ * of the press that *opened* the application being graded, and the answer is worth a whole scheduled
+ * tick (`dot.remainingTicks++`, `dotTickBudgetIn`'s `refreshed ? 1 : 0`). So a second shaman refreshing
+ * their own dot on the same add within 250ms of this player's apply inflates `scheduled` from 10 to 11,
+ * `ticksLeft` from 1 to 2, and `inLastTick` flips false.
+ *
+ * **The direction matters: it invents fault rather than flattering the pull.** The press at 38s is a
+ * textbook last-tick refresh — the one press that throws nothing away — and the foreign stamp turns it
+ * into an `early` one and charges a wasted global. Ascendance is spent at 0.4s deliberately, so
+ * `ascPrep` cannot absorb the verdict and the charge reaches `cpm.wastedGcds`; without that line the
+ * press merely lands on the other excuse and the graded consequence is masked.
+ *
+ * **The vector reaches this site and no other, which is what makes the test surgical.** Every other
+ * reader of a Flame Shock aura event in `index.ts` is independently sourced to the player —
+ * `fsTimelines` by its own pre-filtered bucket, `fsTicks` and `fsTickSnapshots` and `fsDotAnywhere` and
+ * `fsDot` by the `sourceID` argument they are handed. A foreign `refreshdebuff` is therefore invisible
+ * to all of them, so a difference between the two pulls below can only have come through
+ * `fsRefreshedAt`.
+ *
+ * Nine ticks at a flat 3 000ms cadence rather than a measured one: `applicationCadence` keeps a gap of
+ * exactly `dot.tickMs` and drops anything longer, so the period is 3 000ms, `roundToEven(30 000/3 000)`
+ * is 10, and nine delivered leaves exactly one owed. One tick of margin is the whole width of the rule
+ * being tested, so the arithmetic is stated rather than measured off a fixture.
+ */
+describe('another shaman’s Flame Shock refresh beside this player’s apply', () => {
+	const dotTick = (t: number): WclEvent =>
+		at(t, 'damage', FLAME_SHOCK, { targetID: ADD, amount: 5000, unmitigatedAmount: 5000, tick: true, hitType: 1 });
+
+	/** Nine of the ten ticks the application was scheduled, so exactly one is still owed at 38s. */
+	const ticks = Array.from({ length: 9 }, (_, i) => dotTick(13_000 + i * 3000));
+
+	const pull = (extra: WclEvent[]) =>
+		analyse(
+			dataset([
+				// Spent, so `ascReadyInSec` is past the fight and `ascPrep` cannot excuse the press at 38s.
+				at(400, 'cast', ASCENDANCE),
+				at(500, 'cast', LAVA_BURST, { targetID: BOSS }),
+				// This player's application on the add: applied at 10s, refreshed in its last tick at 38s.
+				at(10_000, 'cast', FLAME_SHOCK, { targetID: ADD }),
+				at(10_000, 'applydebuff', FLAME_SHOCK, { targetID: ADD }),
+				...ticks,
+				at(38_000, 'cast', FLAME_SHOCK, { targetID: ADD }),
+				at(38_000, 'refreshdebuff', FLAME_SHOCK, { targetID: ADD }),
+				at(68_000, 'removedebuff', FLAME_SHOCK, { targetID: ADD }),
+				...extra,
+			]),
+		) as Analysis & ElementalAuditResult;
+
+	/**
+	 * The other shaman's refresh of *their* dot on the same add, stamped on this player's apply. Inside
+	 * `SELF_EVENT_MS` of 10s, which is the only arrangement `beganAsRefresh` can be fooled by.
+	 */
+	const foreignRefresh: WclEvent = {
+		timestamp: T0 + 10_000,
+		type: 'refreshdebuff',
+		abilityGameID: FLAME_SHOCK,
+		sourceID: OTHER_SHAMAN,
+		targetID: ADD,
+	};
+
+	const alone = pull([]);
+	const withOther = pull([foreignRefresh]);
+
+	/** The premise this pull stands in for, restated at this site: no committed pull can show it. */
+	it('is a case no committed pull carries', () => {
+		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken']) {
+			expect(foreignDotEvents(name), name).toBe(0);
+		}
+	});
+
+	/**
+	 * The reading the pull is built to produce, asserted on its own so that a change breaking the
+	 * *arrangement* fails here rather than silently making the comparison below vacuous — two pulls that
+	 * agree because neither has anything to say would pass it.
+	 */
+	it('is a last-tick refresh with exactly one tick owed', () => {
+		expect(alone.flameShock.presses.map((p) => [p.t, p.kind, p.windowed, p.ticksLeft])).toEqual([
+			[10_000, 'apply', false, null],
+			[38_000, 'windowed', true, 1],
+		]);
+		expect(alone.cpm.wastedGcds).toBe(0);
+	});
+
+	/**
+	 * The guard. Drop `e.sourceID !== actor.id` from `fsRefreshedAt` and this is the only failure in the
+	 * suite: the press at 38s reads `early` / `ticksLeft: 2` and a global is charged.
+	 */
+	it('grades the press against this player’s own apply and not the other shaman’s refresh', () => {
+		expect(withOther.flameShock.presses.map((p) => [p.t, p.kind, p.windowed, p.ticksLeft])).toEqual(
+			alone.flameShock.presses.map((p) => [p.t, p.kind, p.windowed, p.ticksLeft]),
+		);
+		expect(withOther.cpm.wastedGcds).toBe(0);
+	});
+});
