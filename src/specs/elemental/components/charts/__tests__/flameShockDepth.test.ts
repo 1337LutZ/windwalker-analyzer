@@ -206,6 +206,43 @@ describe('the geometry agrees with the verdict', () => {
 		expect([credited, early]).toEqual([5, 7]);
 	});
 
+	/**
+	 * The split is a **partition** of the bar, not merely two numbers that add up to it.
+	 *
+	 * `held + tail === elapsed` is asserted above and it is not enough on its own: an overlong tail and a
+	 * negative segment beneath it are equal and opposite, so the sum survives the one drawing fault the
+	 * split can have. A stacked bar with a negative segment draws backwards past zero.
+	 *
+	 * The floor is what could do it — `rawTailMs` is clamped to the bar, `durationMs / 400` is not — and no
+	 * committed fixture reaches it, because their presses are 27-31s apart and the floor is 75ms on a 30s
+	 * dot. So the fixtures carry the invariant and one synthetic press carries the case, built by
+	 * overriding two fields of a real one so nothing else about it is invented.
+	 */
+	it('splits each bar into two lengths that are both real, and not merely into two that sum', () => {
+		for (const name of fixtures) {
+			const audit = el[name].flameShock;
+			const series = buildBars(audit, THEME);
+			series.held.forEach((bar, i) => {
+				expect(bar.y, `${name} held ${i}`).toBeGreaterThanOrEqual(0);
+				expect(series.lastTick[i]!.y, `${name} tail ${i}`).toBeGreaterThanOrEqual(0);
+			});
+		}
+
+		// 50ms into the dot with 20ms of last tick behind it: under the 75ms floor, so the floor is the only
+		// thing that can decide the tail's length here.
+		const real = unbroken.flameShock.presses.find((p) => p.ticksLeft === 1)!;
+		const audit = {
+			...unbroken.flameShock,
+			presses: [{ ...real, remainingMs: unbroken.flameShock.durationMs - 50, intoLastTickMs: 20 }],
+		};
+		expect(audit.durationMs).toBe(30_000);
+		const short = buildBars(audit, THEME);
+		expect(short.held[0]!.y + short.lastTick[0]!.y).toBeCloseTo(0.05, 6);
+		// Both halves of the partition. The floor wanted 75ms of tail out of a 50ms bar; it gets the bar.
+		expect(short.held[0]!.y).toBe(0);
+		expect(short.lastTick[0]!.y).toBeCloseTo(0.05, 6);
+	});
+
 	it("measures the tail off the log's own last tick, to the millisecond", () => {
 		const seen: Array<[string, number, number]> = [];
 		for (const name of fixtures) {

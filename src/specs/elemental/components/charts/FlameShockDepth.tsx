@@ -130,8 +130,18 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 			 * width". **The bar's total length is preserved**: the floor is taken out of the segment below it,
 			 * so only the split moves and never the end. The tooltip carries the true figure to the
 			 * millisecond, so nothing here is the only statement of it.
+			 *
+			 * **Clamped to the bar as well as floored, because the two together are a partition and the floor
+			 * alone was not.** `rawTailMs` is already bounded by `elapsed`; the floor is not, so a press taken
+			 * less than `durationMs / 400` into its own last tick — 75ms on a 30s dot — got a tail longer than
+			 * the bar it sits in, and the segment below it went *negative* to keep the total. A stacked bar
+			 * with a negative segment draws backwards past zero, and the sum `held + tail === elapsed` the
+			 * suite asserts survives it unchanged, because the two errors are equal and opposite. So the two
+			 * segments are asserted disjoint and not merely summing: `flameShockDepth.test.ts` reads both off
+			 * every bar of all three fixtures and off a synthetic press short enough to reach the floor, which
+			 * is the case no committed pull has — the presses on them are 27-31s apart.
 			 */
-			const tailMs = rawTailMs > 0 ? Math.max(rawTailMs, flameShock.durationMs / 400) : 0;
+			const tailMs = rawTailMs > 0 ? Math.min(elapsed, Math.max(rawTailMs, flameShock.durationMs / 400)) : 0;
 			const meta: TipContent = {
 				title: `Refresh ${String(i + 1).padStart(2, '0')}`,
 				tone,
@@ -198,6 +208,47 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 	return { held, lastTick, lastTickZone, axisMaxMs: Math.max(longestBar, lastTickZone?.to ?? 0) };
 }
 
+/**
+ * The refresh ledger, drawn.
+ *
+ * ## Why this chart has no unmeasured row, when the other three grew one
+ *
+ * `FlameShockUptime`, `SearingTotemUptime` and the Lightning Shield step chart all shade the stretches
+ * their own figure stopped counting, because each of those figures is a **share of pull time** and the
+ * add waves came out of the denominator. This one is not a share of anything and its axis is not the
+ * pull: `x` is milliseconds since *each application*, 0 to `axisMaxMs`, so the same instant of the fight
+ * appears at a different `x` on every row and most instants appear on none. `exemptRows` returns
+ * intervals in fight time; there is no coordinate on this axis to put one at. A vertical band here would
+ * mean "this many seconds into a dot", which is not a fact about the pull at all.
+ *
+ * **And the figures beside it lost nothing to shade.** The rows are `presses.filter(remainingMs !== null)`
+ * — the presses made into a live dot — which is `flameShock.refreshes` exactly: 6 on `unbroken`, 2 on
+ * `cleave`, 4 on `phased`, asserted in `exemptTrack.test.ts` beside the clocks that do have a row. That
+ * same count is the denominator of `flameShockWaste` (`(refreshes − windowed − ascPrep − snapshotGain) /
+ * refreshes`) and the numerator of the section's `In the last tick` tile. So the drawn set *is* the
+ * counted set, press for press, at every target count — nothing was dropped from the number for the
+ * picture to be honest about.
+ *
+ * **The one press that tests this, and why shading it would be the `SearingTotemUptime` defect in
+ * reverse.** `cleave`'s refresh at 57 499 lands inside the add wave `[52 997, 83 587]` — band 4, where
+ * `aoe.apl.json` rung 1 refuses to refresh a live dot at all — and it is drawn amber here. It is also
+ * counted: `refreshes` is 2 and the verdict sentence's `wasted` is 1, and that 1 is this press. Greying
+ * its row would leave the picture saying "not measured" beside a tile that still says one refresh was
+ * wasted, which is exactly the disagreement the other three charts were fixed to remove, pointing the
+ * other way.
+ *
+ * **What is genuinely outstanding is a number and not a drawing.** `flameShockWaste` declares
+ * `bands: [1]`, but a declaration does not cut a clock — `cleave` reads as `[1, 2, 3, 4]`, so it
+ * intersects non-empty and narrows nothing — and the counts above are taken at every band. `score.ts`
+ * names the fix at that threshold in its own words: "a numerator per band in the audit, not a wider
+ * declaration here", the shape `earthShockGood.judged` already has. This chart cannot run ahead of it,
+ * because it has nothing to run on: `FlameShockPress` publishes no target count and no graded flag, so
+ * the amber at 57 499 is the only verdict available to draw. **The field that would change this chart is
+ * a per-press `judged: boolean` on `FlameShockPress`** (true where the press was made at a count this
+ * rule exists at) — with it, the rows the share stopped counting could be greyed as
+ * "Three or more enemies" and the identity above would become `drawn rows === refreshes` still, with the
+ * grey ones excluded from both sides. Until the numerator moves, the honest drawing is this one.
+ */
 export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	const el = analysis as Analysis & ElementalAuditResult;

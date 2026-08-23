@@ -27,11 +27,14 @@ import { intervalsAtLeast } from '~/lib/analysis/targets';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
+import { fmt } from '~/components/format';
+import type { ChartTheme } from '~/components/charts/apex';
 import { exemptRows } from '~/components/charts/exempt';
 import { EXEMPT } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import DebuffTimeline from '~/specs/windwalker/components/charts/DebuffTimeline';
 import FlameShockUptime from '~/specs/elemental/components/charts/FlameShockUptime';
+import { buildBars } from '~/specs/elemental/components/charts/FlameShockDepth';
 import SearingTotemUptime from '~/specs/elemental/components/charts/SearingTotemUptime';
 import { analyse } from '~/specs/elemental/lib';
 
@@ -298,6 +301,70 @@ describe('the exempt row', () => {
 			cleave.durationMs - cleave.flameShock.multiTargetMs,
 		);
 		expect(cleave.flameShock.multiTargetMs).toBe(66_007);
+	});
+
+	/**
+	 * **The fourth chart, which has no exempt row and needs none — the one shape of answer this file did
+	 * not yet hold.** `FlameShockDepth` was the last chart with zero exempt shading, and the reason is not
+	 * an omission.
+	 *
+	 * Two grounds, and the first alone settles it. Its `x` is milliseconds since **each application**, so
+	 * one instant of the fight lands at a different `x` on every row and most instants land on none;
+	 * `exemptRows` returns fight-time intervals and there is no coordinate on that axis to put one at. A
+	 * band there would say "this far into a dot", which is not a statement about the pull.
+	 *
+	 * The second is the one worth asserting, because it is the check the other three charts failed: the
+	 * drawn set and the counted set are the same set. The rows are the presses made into a live dot, which
+	 * is `flameShock.refreshes` exactly, which is the denominator of `flameShockWaste` — so nothing came
+	 * out of the figure for a grey row to be honest about. Asserted on `cleave` above all, the only
+	 * committed fixture with band-3+ time: its refresh at 57 499 is inside the add wave `[52 997, 83 587]`
+	 * and is drawn in the fault tone, and the tile counts it in the same breath. Greying that row would put
+	 * the picture at odds with the number beside it — the `SearingTotemUptime` defect pointing the other
+	 * way.
+	 *
+	 * What would change this is a per-press `judged` flag on `FlameShockPress`, which the audit does not
+	 * publish; `score.ts` names it at `flameShockWaste`'s threshold as "a numerator per band in the audit,
+	 * not a wider declaration here". The day it lands, the equality below is what has to move first.
+	 */
+	it('draws no exempt row on the refresh chart, whose rows are the presses its share counts', () => {
+		const THEME = { miss: '#m', kick: '#k', brew: '#b', rune: '#r' } as unknown as ChartTheme;
+		const unbroken = elemental('unbroken');
+
+		for (const [name, el] of [
+			['unbroken', unbroken],
+			['cleave', cleave],
+			['phased', phased],
+		] as const) {
+			const audit = el.flameShock;
+			const series = buildBars(audit, THEME);
+			// The drawn set is the counted set: one row per press the share divides by.
+			expect(series.held, name).toHaveLength(audit.refreshes);
+			// And no row of it is drawn as unmeasured, at either target count. // no-change guard
+			expect(
+				series.held.every((bar) => bar.meta.tone !== EXEMPT),
+				name,
+			).toBe(true);
+			expect(
+				series.lastTick.every((bar) => bar.meta.tone !== EXEMPT),
+				name,
+			).toBe(true);
+		}
+		// The counts the equality is against, so a fixture recapture that moved them says so here.
+		expect([unbroken.flameShock.refreshes, cleave.flameShock.refreshes, phased.flameShock.refreshes]).toEqual([
+			6, 2, 4,
+		]);
+
+		// `cleave`'s band-4 refresh: inside an add wave, drawn, and charged by the tile in the same breath.
+		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
+		const press = cleave.flameShock.presses.find((p) => p.t === 57_499)!;
+		expect(press.remainingMs).not.toBeNull();
+		expect(unionMs(intersect([[press.t, press.t + 1]], aoe))).toBe(1);
+		const drawn = buildBars(cleave.flameShock, THEME);
+		expect(drawn.held.some((bar) => bar.x.includes(fmt(press.t)))).toBe(true);
+		// The `wasted` figure the section prints under it — one press, and this is the one.
+		const audit = cleave.flameShock;
+		expect(audit.refreshes - audit.windowed - audit.ascPrep - audit.snapshotGain).toBe(1);
+		expect(audit.presses.filter((p) => p.remainingMs !== null && p.kind === 'early').map((p) => p.t)).toEqual([57_499]);
 	});
 
 	/**
