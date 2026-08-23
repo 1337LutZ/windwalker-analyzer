@@ -211,8 +211,33 @@ const FS_ASC_PREP_MS = 16000;
  *   enemies carry Flame Shock" — `auraRemainingAt` answers for the one enemy the press was aimed at
  *   (that is the whole reason it exists) and `auras['flame-shock']` is the union, which cannot count.
  *   So band 2 **under-**demands Flame Shock: a press the sim would have made for a bare second target
- *   reads as a skip. Closing it needs a per-press dot count on `AplInputs`, which is
- *   `lib/spec/apl.ts` plus the wiring in `elemental/lib/index.ts`.
+ *   reads as a skip.
+ *
+ *   **Left open deliberately, and this is what closing it was measured to cost.** The obvious shape was
+ *   built and run: a per-press reading on `AplInputs` beside `auraRemainingAt` — the *least* remaining
+ *   time the dot has across the enemies engaged at the press, which is parameter-free where a count is
+ *   not (`multidot`'s predicate is `!IsActive() || remaining < maxOverlap`, so "how many carry it" answers
+ *   a different question) — with the band-2 branch reading it instead of the aimed enemy alone. It moves
+ *   `cleave` 131/72 to **126/77** and its band-2 walk 59/144 to **49/154**, and `addsThenBoss` 140/264 to
+ *   **124/280** with band 2 at 79/325 to **54/350**. `phased` and `unbroken` are band 1 throughout and do
+ *   not move on any walk. No graded metric moves on any of the four — `score.ts` still does not read
+ *   `analysis.apl`.
+ *
+ *   **It is not landed because it trades the under-demand for a worse over-demand, and the numbers say
+ *   which.** `multidot` iterates `sim.Encounter.AllTargetUnits[0 .. maxDots-1]`
+ *   (`sim/core/apl_actions_casting.go:186-208`) — a roster fixed for the whole encounter. A log has no
+ *   such roster; the nearest thing is the engaged set, which *turns over*. So on a pull with rolling adds
+ *   the rule stops meaning "keep two dots up on the two enemies standing there" and starts meaning "dot
+ *   every new add as it arrives": `addsThenBoss`' band-2 Flame Shock skips go 154 to **291** out of 404
+ *   presses, one rung claiming 72% of the band's globals. That is a bigger error than the one being
+ *   fixed, pointing the other way.
+ *
+ *   Two things are missing before it can be right. `analyseCore` publishes the target *count* at a press
+ *   and not the target *set*, so any reader must re-derive the set from `landedHits` — a third reading of
+ *   a series this repo already refuses to re-derive (see `mdGraded` in `index.ts`). And the roster wants
+ *   to be *fixed* the way the sim's is: the audit's own `secondaryID` — the second-busiest judgeable
+ *   enemy, which `multiDotUptimePct` already grades against — is the analogue, which makes this a
+ *   `secondaryID`-shaped question rather than a count. Both are outside `lib/spec/apl.ts`.
  * - `auraIsKnown(138898)` is Breath of the Hydra, and the band-3 branch **reads the kit for it** — this
  *   is the half that is no longer a departure. It used to resolve to *owned* on every pull, which was a
  *   constant standing in for a question no input could ask, and the leniency was defended on the ground
