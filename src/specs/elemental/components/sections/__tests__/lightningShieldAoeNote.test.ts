@@ -70,8 +70,8 @@ describe('the shield chart says what its grey band means', () => {
 	 * exempt; a two-target stretch is graded and is not shaded, so a reader who reads the grey as "adds
 	 * were forgiven" has to be corrected in the same paragraph.
 	 */
-	it('says out loud that two enemies is still graded', () => {
-		expect(render(cleave)).toContain('Two enemies is still graded');
+	it('says out loud that two enemies is still counted', () => {
+		expect(render(cleave)).toContain('Two enemies is still counted');
 	});
 
 	/**

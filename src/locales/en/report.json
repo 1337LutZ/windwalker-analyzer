@@ -1612,7 +1612,7 @@
       "aoe": "AoE — not counted"
     },
     "noBadSpends": "No Earth Shock was spent below the ceiling in this pull.",
-    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. Two enemies still counts, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. Two enemies is still counted, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
   },
   "stormlash": {
     "title": "Stormlash Totem",

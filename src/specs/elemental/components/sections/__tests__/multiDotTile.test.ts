@@ -228,14 +228,14 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 	 * and for the totem. A reader comparing the tile against the graph sees the ceiling shaded and nothing
 	 * for the floor, so the floor is stated in copy instead. This asserts it is stated wherever the tile is.
 	 */
-	it('says what the second dot’s clock is, wherever the tile appears', () => {
+	it('says how much of the pull the second dot is measured over, wherever the tile appears', () => {
 		for (const [name, analysis] of [
 			['allAoe', allAoe],
 			['cleave', cleave],
 		] as const) {
 			const html = render(analysis);
 			expect(html, name).toContain('only the stretches where exactly two enemies were up');
-			expect(html, name).toContain('no band on the graph for its floor');
+			expect(html, name).toContain('no shaded stretch on the graph for its floor');
 		}
 		// And nowhere else: a pull with no second target is not owed an explanation of the second dot's clock.
 		expect(render(unbroken)).not.toContain('only the stretches where exactly two enemies were up');
@@ -249,6 +249,6 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 	 */
 	it('is gated with the tile and not with the add waves', () => {
 		expect(unbroken.lightningShield.aoeWindows).toEqual([]); // no add waves and no tile: no note
-		expect(render(unbroken)).not.toContain('no band on the graph for its floor');
+		expect(render(unbroken)).not.toContain('no shaded stretch on the graph for its floor');
 	});
 });
