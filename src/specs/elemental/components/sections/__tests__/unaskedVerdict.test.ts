@@ -189,6 +189,13 @@ describe('a section none of whose rules were asked', () => {
 	 * fully unasked, so the context came out `exempt_full`; i18next resolves a missing context to the bare
 	 * `flameShock.verdict`, which no section has, and renders the key. The verdict paragraph on that page
 	 * was the literal text `flameShock.verdict`.
+	 *
+	 * **This covers one section, and the defect is not one section's.** The same key came out of `mana` by a
+	 * different route — a grade with no arm stored rather than a context with no arm stored — and nothing
+	 * here would have seen it, because mana declares no bands and so never reaches this file's premise.
+	 * That instance is rendered in `mana.test.ts`; the arm inventory that catches the *next* one without a
+	 * render is `it('holds a sentence for every grade a section can be handed')` in
+	 * `lib/i18n/__tests__/keys.test.ts`.
 	 */
 	it('never prints a key where a verdict belongs', () => {
 		expect(unbroken.flameShock.uptimePct).toBeGreaterThan(99.995); // the pull that reaches `_full`

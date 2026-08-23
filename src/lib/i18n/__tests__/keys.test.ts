@@ -530,9 +530,11 @@ describe('report copy with no reader', () => {
 	 *
 	 *   - `brew` and `flameShock` are graded through a literal `t('brew.verdict', { context })` rather
 	 *     than through `verdict()`, which is why they are here and not in `verdict()`'s own list.
-	 *   - `mana` has no `verdict_none`, and `verdict()` falls back to the bare `<section>.verdict` for a
-	 *     pull it cannot measure. That is a missing-key defect in the forward direction, not dead copy,
-	 *     and it is left for the lane that owns the Mana section.
+	 *   - `mana` had no `verdict_none`, and `verdict()` falls back to the bare `<section>.verdict` for a
+	 *     pull it cannot measure — a missing-key defect in the forward direction rather than dead copy, and
+	 *     the one this list recorded without failing on. `it('holds a sentence for every grade a section
+	 *     can be handed')` below is the forward half, so the next section to arrive an arm short fails here
+	 *     rather than getting a line in this comment.
 	 */
 	const VERDICT_ARMS: Record<string, string[]> = {
 		brew: [
@@ -572,7 +574,14 @@ describe('report copy with no reader', () => {
 			'verdict_bad_noOvercap',
 			'verdict_none',
 		],
-		mana: ['verdict_good', 'verdict_good_noRage', 'verdict_good_noThunderstorm', 'verdict_ok', 'verdict_bad'],
+		mana: [
+			'verdict_good',
+			'verdict_good_noRage',
+			'verdict_good_noThunderstorm',
+			'verdict_ok',
+			'verdict_bad',
+			'verdict_none',
+		],
 		searingTotem: [
 			'verdict_good',
 			'verdict_ok',
@@ -645,5 +654,39 @@ describe('report copy with no reader', () => {
 		}
 		const unreached = Object.keys(VERDICT_ARMS).filter((section) => !graded.has(section));
 		expect(unreached, `graded sentences no section asks for:\n${unreached.join('\n')}`).toEqual([]);
+	});
+
+	/**
+	 * The forward direction of the same question, which nothing was asking: every grade a section can be
+	 * handed has a sentence stored for it.
+	 *
+	 * The test above holds that every stored arm is *reached*. This one holds the reverse — that every arm
+	 * a reader can reach is *stored* — and the two are not the same guard. `mana` stored five arms, all of
+	 * them reached, and had no `verdict_none`; `verdict()` resolves a `none` grade to
+	 * `t('mana.verdict', { context: 'none' })`, i18next resolves a missing context to the bare
+	 * `mana.verdict`, no section stores that, and the reader gets the dotted key where the sentence
+	 * belongs. That is the same defect shape as `flameShock`'s `exempt_full` — see
+	 * `specs/elemental/components/sections/__tests__/unaskedVerdict.test.ts` — and it shipped a second
+	 * time because the only thing looking at the arms was a hand-written list this file could add a
+	 * comment to.
+	 *
+	 * Four grades and not five: `verdict()` resolves `exempt` through an explicit key list ending in
+	 * `verdict_none`, so a section with no band declaration needs no `verdict_exempt` and one with bands
+	 * degrades to the "cannot say" wording rather than to a key. Matched by stem, because the grade shares
+	 * its path segment with a plural or a narrowing — `brew` stores `verdict_good_one` and never a bare
+	 * `verdict_good`, and both are the `good` arm.
+	 */
+	it('holds a sentence for every grade a section can be handed', () => {
+		const missing: string[] = [];
+		for (const [section, node] of Object.entries(REPORT)) {
+			if (typeof node !== 'object' || node === null) continue;
+			const arms = Object.keys(node).filter((key) => key === 'verdict' || key.startsWith('verdict_'));
+			if (arms.length === 0) continue;
+			for (const grade of ['good', 'ok', 'bad', 'none']) {
+				const stem = `verdict_${grade}`;
+				if (!arms.some((arm) => arm === stem || arm.startsWith(`${stem}_`))) missing.push(`${section}.${stem}`);
+			}
+		}
+		expect(missing, `grades with no sentence behind them:\n${missing.join('\n')}`).toEqual([]);
 	});
 });

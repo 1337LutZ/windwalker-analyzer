@@ -137,29 +137,48 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 	const starvedRead = mana.starved.gradedMs > 0;
 	const strainedRead = mana.strained.gradedMs > 0;
 	const narrowed = gradeOf('mana') === 'good' && starvedRead !== strainedRead;
+	/**
+	 * Time under either line whatever was or was not in hand — the number that tells the three pulls an
+	 * empty pair of clocks covers apart from each other.
+	 *
+	 * `gradedMs` is zero on all three: the pool never went near a line, it went low only while the button
+	 * for it was still coming back, or it went low only inside the opening where no press can be placed
+	 * either side of it. Only the first is clean, and `mana.clean` was printed over all three. The 70% line
+	 * contains the 15% one, so the wider `lowMs` is the time spent under either of them and a maximum is
+	 * the right join rather than a sum.
+	 */
+	const lowMs = Math.max(mana.starved.lowMs, mana.strained.lowMs);
 	const graded = {
 		starved: mana.starvedPct,
 		strained: mana.strainedPct,
 		starvedMs: mana.starved.ms,
 		rage: mana.strained.stretches,
+		low: lowMs,
 	};
 	/**
 	 * The sentence, and the two narrowed arms are whole keys rather than a `context` — deliberately.
 	 *
-	 * `keys.test.ts` reads literal `t('…')` keys out of the source, and for a bare `<section>.verdict` it
-	 * checks all four grades exist. `mana` has no `verdict_none`, because "cannot say" here is not a grade
-	 * at all: no readings is `mana.none` and readings with nothing charged is `mana.clean`, both of them
-	 * above and below. Naming the arm in the key keeps the guard pointed at the two strings that actually
-	 * exist, which is stronger than a context it cannot resolve — and these two are chosen by a
-	 * measurement rather than by the grade, so the context mechanism was never the right fit.
+	 * `keys.test.ts` reads literal `t('…')` keys out of the source and joins them to `verdict()`'s own
+	 * template, so the arms `verdict()` can resolve are hunted from both halves. These two are chosen by a
+	 * measurement rather than by the grade, so the context mechanism was never the right fit for them and
+	 * naming them in the key keeps the guard pointed at strings that exist.
 	 *
-	 * Both empty is `mana.clean`: with readings in hand and no graded stretch on either side, the pull
-	 * genuinely never asked for a press, which is what that string says and what `narrowed` therefore
-	 * cannot be about.
+	 * **Both clocks empty is two different pulls and used to be one sentence.** With no time under either
+	 * line the pull genuinely never asked for a press, which is `mana.clean`. With time under a line that
+	 * none of the three availability tests could charge — the opening, or the button still coming back —
+	 * the pull asked and this log cannot answer, and `mana.clean`'s *"Mana was not what limited this
+	 * pull"* was a claim about a bar that had sat at 10%. That second pull is what `verdict()` is asked
+	 * for here: both metrics are unmeasurable, so `gradeOf` answers `none` and the arm is
+	 * `mana.verdict_none`. It had no copy behind it until this branch existed to need it, and i18next
+	 * renders a missing context as the bare `mana.verdict` — the key itself, where the sentence belongs.
+	 *
+	 * `narrowed` cannot be about either of them: it needs a `good`, and a `good` needs a clock.
 	 */
 	const sentence =
 		!starvedRead && !strainedRead
-			? t('mana.clean')
+			? lowMs === 0
+				? t('mana.clean')
+				: verdict('mana', graded)
 			: narrowed && starvedRead
 				? t('mana.verdict_good_noRage', graded)
 				: narrowed
@@ -230,10 +249,11 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">
-				{/* `mana.clean` rather than a `verdict_none` variant, because "cannot say" and "there was nothing
-				    to say" are the same state here and only one of them is true: with readings in hand, an empty
-				    graded stretch means the pool never went under either number while the button for it was up.
-				    Saying that plainly beats a hedge about missing data the log did not have. */}
+				{/* Three sentences can land here and the difference between them is what this section is for:
+				    the pull that was judged, the pull that never went under either number with the button for it
+				    up, and the pull that went under one and gave this log nothing it could charge. Only the
+				    middle one is clean, and saying so plainly beats a hedge; only the last one is a hedge, and
+				    it beats telling a bar that sat at 10% that mana was not what limited it. */}
 				<Prose>{sentence}</Prose>
 				{/* Each of these appears only where its own number is non-zero, which is the whole discipline of
 				    this section. A pull whose starvation did not coincide with shield downtime must not be told

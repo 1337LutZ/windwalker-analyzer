@@ -162,6 +162,7 @@ describe('every clause has copy behind it', () => {
 		['strained only', withLowMana(90_000, 120_000, 50)],
 		['nothing to say', analyse(raw('cleave')) as El],
 		['no readings', analyse(raw('unbroken')) as El],
+		['went low only where no press can be placed', withLowMana(0, 20_000, 10)],
 	] as const) {
 		it(`falls through to no key on a pull that ${name}`, () => {
 			const html = render(analysis);
@@ -274,5 +275,61 @@ describe('a good mana verdict speaks only for the halves the log answered', () =
 		expect(ELEMENTAL_SPEC.score(withLowMana(90_000, 120_000, 50)).sections['mana']?.grade).toBe('ok');
 		expect(html).toContain('let Shamanistic Rage come back to a pool already under 70%'); // no-change guard
 		expect(html).not.toContain('This log never puts you under');
+	});
+});
+
+/**
+ * The pull an empty pair of clocks does *not* excuse, and the one arm of this section with no copy.
+ *
+ * `gradedMs` is zero on three different pulls — the module comment on `ManaFault` writes all three out —
+ * and only the first of them is clean: the pool never went near the line, it went low only while both
+ * buttons were away, or it went low only inside the opening where no press can be placed either side of
+ * it. `mana.clean` was printed over all three, and on the last two it says something the log did not
+ * show: *"The pool never reached either number with the button for it up ... Mana was not what limited
+ * this pull."* On this pull the bar sat at 10% for 18.8s.
+ *
+ * So the pull below is the state that reaches `verdict()` with nothing to answer — and `mana` was the one
+ * graded section in the file with no `verdict_none` behind it, which is what i18next renders as the
+ * literal `mana.verdict`. No committed fixture gets here: `unbroken` and `phased` carry no readings at
+ * all and `cleave` never drops below 77.7%, so all three take the two arms above this one. The pull is
+ * `cleave`'s event stream with the pool held at 10% across the first twenty seconds, which is the same
+ * synthetic every other case in this file uses, moved into the opening so that nothing about it can be
+ * charged.
+ *
+ * `low` is `strained.lowMs` rather than a sum: the 70% line contains the 15% one, so the wider of the two
+ * is the time the pull spent under either of them.
+ */
+describe('a pull whose low mana this log cannot speak for', () => {
+	/** 18.8s at 10% mana, all of it inside the opening: both halves unanswerable, neither of them clean. */
+	const unprovable = withLowMana(0, 20_000, 10);
+
+	/** The premise, so nothing below is vacuous. */
+	it('has real time under both numbers and not a second of it chargeable', () => {
+		const card = ELEMENTAL_SPEC.score(unprovable);
+		expect(card.sections['mana']?.unmeasurable).toBe(true);
+		expect(unprovable.mana?.samples).toBeGreaterThan(0);
+		expect(unprovable.mana?.minPct).toBe(10);
+		expect(unprovable.mana?.starved.gradedMs).toBe(0);
+		expect(unprovable.mana?.strained.gradedMs).toBe(0);
+		expect(unprovable.mana?.strained.lowMs).toBeGreaterThan(18_000);
+		// All of it inside the opening, which is why none of it is a press anybody passed over.
+		expect(unprovable.mana?.strained.unprovenMs).toBe(unprovable.mana?.strained.lowMs);
+	});
+
+	it('does not tell a pull that sat at 10% that mana never limited it', () => {
+		const html = render(unprovable);
+		// `mana.clean`, verbatim — the sentence this pull used to be handed.
+		expect(html).not.toContain('The pool never reached either number with the button for it up');
+		expect(html).not.toContain('Mana was not what limited this pull');
+	});
+
+	it('says what it cannot answer, and still names both buttons and both numbers', () => {
+		const html = render(unprovable);
+		expect(html).toContain(t('mana.verdict_none', { starved: 15, strained: 70, low: unprovable.mana!.strained.lowMs }));
+		expect(html).toContain('none of it is a press you passed over');
+		expect(html).toContain('Press Thunderstorm as the bar reaches 15% and Shamanistic Rage as it reaches 70%');
+		// The whole point of the arm: without it i18next resolves `context: none` to the bare
+		// `mana.verdict`, which no section stores, and prints the key where the sentence belongs.
+		expect(html).not.toContain('mana.verdict');
 	});
 });
