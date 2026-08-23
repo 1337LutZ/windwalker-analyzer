@@ -1,0 +1,297 @@
+// Which graded sentences a committed pull has ever actually shown a reader — measured, and pinned.
+//
+// **Why this exists.** `keys.test.ts` holds `VERDICT_ARMS`, an explicit registry of every arm of every
+// graded sentence, and it is a strong guard in the two directions it points: every stored arm is reached
+// by *some* route in the source, and every grade a section can be handed has an arm stored for it.
+// Neither of those is the question a reader's defect asks. A copy defect is a sentence that is wrong at
+// the values it is rendered with, and the only thing that can see one is a render. Every copy defect
+// found in this report to date — *"Earth Shock was never cast in this pull"* over a table of shocks,
+// *"1 of 2 catchable procs taken (0%)"*, *"No proc window was offered in this pull"* above six listed
+// windows — was in a sentence some fixture reached. That is not a coincidence about which sentences are
+// bad; it is a fact about which sentences anyone has read.
+//
+// So the useful number is the complement: the arms **no committed pull renders**, which is the set
+// nobody has ever read on a page. This file measures it and pins it.
+//
+// **A pinned set rather than a count, and rather than a floor.** A count in a comment rots — this
+// project has watched one drift three times inside a day — and a floor ("at least 39 arms are reached")
+// passes a fixture that goes missing as long as another arrives. The set moves visibly in both
+// directions instead: commit a fixture that reaches a new arm and its name leaves the list; add an arm
+// nothing renders and its name joins. Either way the diff names the sentence.
+//
+// **What the list is not.** It is not a list of untested sentences. Most of these are rendered by a
+// hand-built audit somewhere under a `__tests__` directory — the whole `mana` family by `mana.test.ts`,
+// the `flameShock` `_full` arms by `flameShock.test.ts`, the thin-sample arms by the two
+// `thin*Sample.test.ts` files. Measured against the entire suite rather than against the fixtures, only
+// a handful of arms had never been rendered by anything at all, and those are the ones
+// `specs/elemental/components/sections/__tests__/unreadArms.test.ts` was written for. What being on this
+// list means is narrower and still worth knowing: **no pull a reader can open reaches this sentence**, so
+// whatever is true of it is true only of a state some test constructed by hand.
+//
+// Three kinds of entry are in here, and the distinction is the point of reading it:
+//
+//   - **Structurally unreachable.** The section can never be handed the grade the arm hangs off.
+//     `karma.verdict_none` is byte-identical to `karma.none` and exists only because the arm test
+//     requires the stem; the shield's plain arm was in that state until `LightningShield.tsx` began
+//     reaching it by name. `lightningShield.verdict_ok_other` is the live one: the drop count is the
+//     plural's `count`, nought takes the `_zero` arm, one takes the `_one` arm, and two or more grades
+//     the metric `bad` — so the `ok` plural has no count left to be given.
+//   - **Merely unfixtured.** True, correct, and waiting for a pull with the shape. Every `_full` Flame
+//     Shock arm, the totem's overlap arms, the shield's second drop.
+//   - **Never read by anyone, which is where the defects were.** `mana`'s un-narrowed plurals were on
+//     this list and had never been rendered by any test either; at their only reachable count they
+//     faulted a player for a press they had not passed over. See `unreadArms.test.ts`.
+//
+// **The instrument.** i18next resolves a graded sentence by trying the context- and plural-suffixed keys
+// in order and keeping the one that hit, and it reports that key back as `exactUsedKey`. Nothing else in
+// the render can tell you which arm was chosen — the rendered text has had its interpolations filled in,
+// and two arms of the same section routinely differ by one clause. So `Translator.resolve` is wrapped
+// for the length of the sweep. That is a reach into a dependency's internals, and it is guarded rather
+// than trusted: `it('records the arm i18next actually chose')` resolves a key whose arm is known and
+// fails if the wrapper saw anything else, so the day i18next stops reporting the suffixed key this file
+// says so instead of quietly reporting every arm as unreached.
+//
+// **Anti-vacuity, which is the same trap `specVocabulary.test.ts` names.** A report that rendered to
+// nothing would reach no arms and make this list as long as the registry. So the sweep asserts that each
+// pull rendered a real page and that the reached set is a substantial part of the registry, before the
+// list means anything.
+//
+// **Discovery is `lib/analysis/fixtures.ts`'s**, not a second walk of the same two directories. That
+// module already classifies both committed shapes — the Elemental's raw `FightDataset`s and the
+// Windwalker's captured `Analysis` objects — throws on a `.json` that is neither and on a directory with
+// no `.json` at all, and its own header explains why a listed set of fixture names is the wrong thing to
+// hold. A fixture added under this test joins the sweep by the fact of being committed.
+//
+// `createElement` rather than JSX so this stays a `.ts` file and is picked up by the project's own
+// vitest include patterns.
+
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+
+import { capturedAnalyses, rawFixtures } from '~/lib/analysis/fixtures';
+import { SPECS, type SpecDefinition } from '~/lib/spec';
+import type { Analysis } from '~/lib/types';
+import type { TargetModeChoice } from '~/lib/view/targetMode';
+
+import Report from '~/components/Report';
+
+import i18n, { initI18n } from '../config';
+
+initI18n();
+
+/** Every reading a reader can put the report into, because a branch only one of them draws is still copy. */
+const READINGS: TargetModeChoice[] = ['auto', 'single', 'multi'];
+
+/**
+ * Every pull a spec has committed, analysed if it needs analysing, named by its file.
+ *
+ * Both shapes, because both are committed and a third spec will pick whichever suits it. The names are
+ * carried so a failure can say which pull rendered nothing rather than only that one did.
+ */
+const pullsOf = (spec: SpecDefinition): [string, Analysis][] => [
+	...rawFixtures(spec.key).map(({ name, dataset }): [string, Analysis] => [name, spec.analyse(dataset)]),
+	...capturedAnalyses(spec.key).map(({ name, analysis }): [string, Analysis] => [name, analysis]),
+];
+
+/** Every arm of every graded sentence the locale file stores — the denominator, off the file itself. */
+const storedArms = (): string[] => {
+	const bundle = i18n.getResourceBundle('en', 'report') as Record<string, unknown>;
+	const arms: string[] = [];
+	for (const [section, node] of Object.entries(bundle)) {
+		if (typeof node !== 'object' || node === null) continue;
+		for (const key of Object.keys(node as Record<string, unknown>)) {
+			if (key === 'verdict' || key.startsWith('verdict_')) arms.push(`${section}.${key}`);
+		}
+	}
+	return arms.sort();
+};
+
+interface Resolution {
+	exactUsedKey?: string;
+	usedNS?: string;
+	res?: unknown;
+}
+
+/**
+ * Runs `sweep` with the translator reporting every arm it resolves, and puts it back afterwards.
+ *
+ * Restored in a `finally` because this module is one vitest file and the tests below share the
+ * translator with each other — a wrapper left in place would make the self-test's own resolution part of
+ * the sweep's evidence.
+ */
+function recording(sweep: () => void): Set<string> {
+	const seen = new Set<string>();
+	const translator = (i18n as unknown as { translator: { resolve: (...args: unknown[]) => unknown } }).translator;
+	const original = translator.resolve.bind(translator);
+	translator.resolve = (...args: unknown[]) => {
+		const resolved = original(...args) as Resolution;
+		// `res !== undefined` is what makes `exactUsedKey` the key that *answered* rather than the last one
+		// tried: i18next assigns it on every attempt and only the successful attempt leaves a value behind.
+		if (resolved?.exactUsedKey !== undefined && resolved.res !== undefined && resolved.usedNS === 'report') {
+			seen.add(resolved.exactUsedKey);
+		}
+		return resolved;
+	};
+	try {
+		sweep();
+	} finally {
+		translator.resolve = original;
+	}
+	return seen;
+}
+
+const rendered = (): { text: Map<string, string>; arms: Set<string> } => {
+	const text = new Map<string, string>();
+	const arms = recording(() => {
+		for (const spec of SPECS) {
+			for (const [name, analysis] of pullsOf(spec)) {
+				let all = '';
+				for (const targetChoice of READINGS) {
+					all += renderToStaticMarkup(createElement(Report, { analysis, targetChoice, spec }));
+				}
+				text.set(`${spec.key}/${name}`, all);
+			}
+		}
+	});
+	return { text, arms };
+};
+
+const SWEEP = rendered();
+
+/**
+ * The arms no committed pull reaches, as they stand.
+ *
+ * Sorted, so the diff on a change is one line rather than a reordering. Every name here is asserted to
+ * be a real stored arm below, which is what stops this decaying into a list of typos: an arm renamed in
+ * the locale file leaves this list stale in both directions and both are reds.
+ */
+const UNREACHED: string[] = [
+	'brew.verdict_bad_one',
+	'brew.verdict_bad_other',
+	'brew.verdict_good_one',
+	'brew.verdict_good_other',
+	'brew.verdict_none',
+	'brew.verdict_ok_one',
+	'casts.verdict_none',
+	'debuff.verdict_noContact',
+	'debuff.verdict_none',
+	'earthShock.verdict_good',
+	'earthShock.verdict_none',
+	'earthShock.verdict_ok',
+	'earthShock.verdict_tooFew',
+	'flameShock.verdict_good',
+	'flameShock.verdict_goodSome',
+	'flameShock.verdict_goodSome_full',
+	'flameShock.verdict_good_full',
+	'flameShock.verdict_none',
+	'flameShock.verdict_ok_full',
+	'flameShockSnapshots.verdict_bad',
+	'flameShockSnapshots.verdict_good',
+	'flameShockSnapshots.verdict_noneClaimable',
+	'flameShockSnapshots.verdict_ok',
+	'karma.verdict_bad',
+	'karma.verdict_none',
+	'lightningShield.verdict_bad_noOvercap',
+	'lightningShield.verdict_bad_other',
+	'lightningShield.verdict_good',
+	'lightningShield.verdict_none',
+	'lightningShield.verdict_ok_one',
+	'lightningShield.verdict_ok_other',
+	'lightningShield.verdict_ok_zero',
+	'mana.verdict_bad_noRage',
+	'mana.verdict_bad_noThunderstorm',
+	'mana.verdict_bad_one',
+	'mana.verdict_bad_other',
+	'mana.verdict_bad_zero',
+	'mana.verdict_good',
+	'mana.verdict_good_noRage',
+	'mana.verdict_good_noThunderstorm',
+	'mana.verdict_none',
+	'mana.verdict_ok_noRage',
+	'mana.verdict_ok_one',
+	'mana.verdict_ok_other',
+	'mana.verdict_ok_zero',
+	'searingTotem.verdict_bad_noUptime',
+	'searingTotem.verdict_bad_one',
+	'searingTotem.verdict_bad_other',
+	'searingTotem.verdict_good_other',
+	'searingTotem.verdict_good_zero',
+	'searingTotem.verdict_ok_noUptime',
+	'searingTotem.verdict_ok_one',
+	'searingTotem.verdict_ok_other',
+	'snapshots.verdict_none',
+	'snapshots.verdict_tooFew',
+	'tigerPalm.verdict_none',
+];
+
+describe('the graded sentences a committed pull actually renders', () => {
+	/**
+	 * The instrument, checked before anything is measured with it.
+	 *
+	 * `brew.verdict` at the `ok` grade and a count of two resolves to `brew.verdict_ok_other`, and that
+	 * suffixed name is what has to come back — not the key that was asked for. If i18next ever stops
+	 * reporting the arm it chose, every arm in the file reads as unreached and the list below becomes the
+	 * whole registry; this is the assertion that says so in one line instead.
+	 */
+	it('records the arm i18next actually chose, and not the key it was asked for', () => {
+		const seen = recording(() => {
+			i18n.t('brew.verdict', { ns: 'report', context: 'ok', count: 2, avg: 8, cap: 10 });
+		});
+		expect([...seen]).toContain('brew.verdict_ok_other');
+		expect([...seen]).not.toContain('brew.verdict');
+	});
+
+	/** Every spec in the registry has a pull, so a third spec cannot be silently left out of the sweep. */
+	it.each(SPECS.map((spec) => [spec.key] as const))('%s has a pull to sweep', (key) => {
+		expect(pullsOf(SPECS.find((spec) => spec.key === key)!).length).toBeGreaterThan(0);
+	});
+
+	/**
+	 * The anti-vacuity half. A report that rendered to nothing reaches no arm and would make the list
+	 * below as long as the registry, passing for exactly the wrong reason.
+	 */
+	it.each([...SWEEP.text.keys()].map((name) => [name] as const))('%s rendered a real report', (name) => {
+		expect(SWEEP.text.get(name)!.length, `${name} rendered almost nothing`).toBeGreaterThan(10_000);
+	});
+
+	/** And that the instrument saw a substantial part of the file, not one arm off one section. */
+	it('reaches a real share of the registry, across more than one section', () => {
+		const arms = storedArms();
+		const reached = arms.filter((arm) => SWEEP.arms.has(arm));
+		expect(reached.length, 'graded arms reached by a committed pull').toBeGreaterThan(25);
+		expect(new Set(reached.map((arm) => arm.split('.')[0])).size, 'sections reached').toBeGreaterThan(8);
+	});
+
+	/** Every pinned name is a real arm, so a rename cannot leave this list quietly describing nothing. */
+	it('pins nothing the locale file does not store', () => {
+		const stored = new Set(storedArms());
+		const ghosts = UNREACHED.filter((arm) => !stored.has(arm));
+		expect(ghosts, `pinned arms that no longer exist:\n${ghosts.join('\n')}`).toEqual([]);
+	});
+
+	/**
+	 * And the list itself.
+	 *
+	 * Both directions in one assertion because both are news. A name that leaves it is a sentence a
+	 * reader can now reach — read it, because nobody has. A name that joins it is a sentence that has
+	 * just stopped being reachable, or one that arrived with no pull behind it.
+	 */
+	it('leaves exactly these graded sentences with no pull behind them', () => {
+		const arms = storedArms();
+		const unreached = arms.filter((arm) => !SWEEP.arms.has(arm));
+		const gained = unreached.filter((arm) => !UNREACHED.includes(arm));
+		const lost = UNREACHED.filter((arm) => !unreached.includes(arm));
+		expect(
+			unreached,
+			[
+				'The set of graded sentences no committed pull renders has moved.',
+				gained.length === 0 ? '' : `No longer reached by any pull:\n  ${gained.join('\n  ')}`,
+				lost.length === 0 ? '' : `Now reached by a pull — read these, nobody has:\n  ${lost.join('\n  ')}`,
+				'Update UNREACHED above once you have read what changed.',
+			]
+				.filter(Boolean)
+				.join('\n'),
+		).toEqual(UNREACHED);
+	});
+});

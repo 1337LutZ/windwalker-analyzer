@@ -1101,11 +1101,26 @@ describe('report copy with no reader', () => {
 			'verdict_good',
 			'verdict_good_noRage',
 			'verdict_good_noThunderstorm',
-			// Two arms and no `_zero`: the un-narrowed pair is reached with both halves answered, and the
-			// Rage's half is answered by a count of presses passed over that a sub-global overlap can leave at
-			// nought. So nought is reachable and reads correctly — English takes the plural arm for it — while
-			// one needs its own, and no committed pull has the sub-global shape a `_zero` sentence would be
-			// written for.
+			// **Three arms, and the nought one is here because the plural arm above it can be handed nothing
+			// else.** This comment used to say there were two and that nought "reads correctly — English takes
+			// the plural arm for it". English does; the sentence does not. What the un-narrowed plural arms
+			// print at nought is *"let Shamanistic Rage come back to a pool already under 70% 0 times without
+			// pressing it"* and then, in the same breath, the instruction to fix it — a fault the pull did not
+			// commit and advice for a habit it already has. That is the identical defect the `searingTotem` and
+			// `lightningShield` comments below call a false fault and give a nought arm to; only this section
+			// had the reading judged the other way.
+			//
+			// And on the `ok` letter nought is not one of the counts that arm can be given, it is the *only*
+			// one. `shamanisticRageMissed` is `good` at nought and `ok` at exactly one, so two or more presses
+			// passed over makes the section `bad` outright — while exactly one takes the singular arm. So the
+			// un-narrowed `ok` plural was reachable at a count of nought and at no other, which is to say every
+			// reader it could ever have had would have been read a fault they did not commit.
+			//
+			// `bad` takes the same arm for the same reason from the other side: there the letter can come off
+			// the Thunderstorm's clock alone, so a pull with a clean Rage reaches it and printed the same
+			// nought. Both nought arms say what the Rage actually did — no stretch went by unpressed — and drop
+			// the instruction, which is the wording `verdict_good` already uses for that half.
+			'verdict_ok_zero',
 			'verdict_ok_one',
 			'verdict_ok_other',
 			// The narrowed arms went from the `good` grade to all three when `addsThenBoss` landed and became
@@ -1119,6 +1134,7 @@ describe('report copy with no reader', () => {
 			// used to be given read "1 times".
 			'verdict_ok_noRage',
 			'verdict_ok_noThunderstorm',
+			'verdict_bad_zero',
 			'verdict_bad_one',
 			'verdict_bad_other',
 			'verdict_bad_noRage',

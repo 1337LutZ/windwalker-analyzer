@@ -167,30 +167,62 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-5 flex flex-col gap-3.5">
 				<Prose>
-					{narrowed
-						? t('lightningShield.verdict', {
-								context: `${grade}_noOvercap`,
-								overcap: lightningShield.overcapMs,
-								fellOff: lightningShield.fellOff,
-							})
-						: /*
-							 * `count` is the drop count, so the sentence agrees with it. *"came all the way off 1
-							 * times"* is what `cleave` printed and *"0 times"* what the other three did, and both
-							 * arms of the un-narrowed pair could be handed either: this section's letter is the worse
-							 * of two metrics, so an overcap on its own is enough to reach `bad` with the shield never
-							 * once off you.
+					{curve === null
+						? /*
+							 * The shield was never up, and until this branch the section said the opposite of that
+							 * twice over in one sentence.
 							 *
-							 * The narrowed route needs nothing, and the reason is worth having written down. There
-							 * the overcap is out of scope and the letter comes off the drop count alone, whose
-							 * thresholds make `good` no drops, `ok` exactly one and `bad` two or more — so its three
-							 * arms already say "never came off", "came off once" and a plural, each of them the only
-							 * count that arm can be given.
+							 * `maxStacks` is the registry's cap and not a reading — `lightningShieldCap` is
+							 * `LIGHTNING_SHIELD.maxStacks ?? 0`, seven on every pull including one where the buff never
+							 * landed — and `fellOff` counts the stretches the shield was *down*, which on such a pull is
+							 * the one stretch that is the whole fight. So the overcap grades a clean nought over a
+							 * ceiling nobody sat at, the drop count grades one, and the pull came out `ok` reading *"The
+							 * shield sat at seven for 0s past the leeway, and came all the way off once."* — printed
+							 * over the chart's own *"No charges to draw."* Neither clause is true of a buff that was
+							 * never applied, and the two halves of the section contradicted each other on one screen.
+							 * Measured by stripping every Lightning Shield event out of `phased` and re-analysing;
+							 * `__tests__/neverUpShield.test.ts` builds that pull.
+							 *
+							 * The plain arm is the sentence for exactly this state and was stored all along — it was
+							 * unreachable, because `verdict()` picks its arm off a grade and this section can never be
+							 * handed the nothing-measured one: `section()` is unmeasurable only when every primary is,
+							 * and `lightningShieldFellOff` is a bare count that is never refused. So it is reached by
+							 * name, the same call `EarthShock`, `Snapshots` and `TouchOfKarma` make where a state their
+							 * letter cannot express needed a sentence of its own.
+							 *
+							 * Gated on the curve rather than on a second reading of the audit, so the sentence and the
+							 * chart cannot come apart: `curve === null` is the same condition that prints "No charges to
+							 * draw." fifty lines above.
+							 *
+							 * **The grade is left where it is, and that is a report rather than a decision.**
+							 * `lightningShieldFellOff` reading one on a pull that never wore the buff is a fault in the
+							 * metric rather than in the copy, and moving it moves a published letter.
 							 */
-							verdict('lightningShield', {
-								overcap: lightningShield.overcapMs,
-								fellOff: lightningShield.fellOff,
-								count: lightningShield.fellOff,
-							})}
+							t('lightningShield.verdict', { context: 'none' })
+						: narrowed
+							? t('lightningShield.verdict', {
+									context: `${grade}_noOvercap`,
+									overcap: lightningShield.overcapMs,
+									fellOff: lightningShield.fellOff,
+								})
+							: /*
+								 * `count` is the drop count, so the sentence agrees with it. *"came all the way off 1
+								 * times"* is what `cleave` printed and *"0 times"* what the other three did, and both
+								 * arms of the un-narrowed pair could be handed either: this section's letter is the worse
+								 * of two metrics, so an overcap on its own is enough to reach `bad` with the shield never
+								 * once off you.
+								 *
+								 * The narrowed route needs nothing, and the reason is worth having written down. There
+								 * the overcap is out of scope and the letter comes off the drop count alone, whose
+								 * thresholds make `good` no drops, `ok` exactly one and `bad` two or more — so its three
+								 * arms already say "never came off", "came off once" and a plural, each of them the only
+								 * count that arm can be given.
+								 */
+								verdict('lightningShield', {
+									overcap: lightningShield.overcapMs,
+									fellOff: lightningShield.fellOff,
+									count: lightningShield.fellOff,
+								})}
 				</Prose>
 				{/* What the grey band means, on the pulls that have one.
 
