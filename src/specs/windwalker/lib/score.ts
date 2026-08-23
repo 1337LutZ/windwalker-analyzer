@@ -255,7 +255,50 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// `shareOf` rather than `sharePct`: the denominator is a count of procs, so the sample floor applies.
 	// One or two affordable procs cannot separate a habit from a coin toss — see `MIN_GRADED_SAMPLE`.
 	const snapshotRate = metric('snapshotRate', shareOf(procs.snapshotted, procs.opportunities));
-	// Averaged over caught procs only, so with none caught there is nothing to average.
+	/**
+	 * The mean depth of the procs that were caught — and the first of two metrics checked against
+	 * `MIN_GRADED_SAMPLE` and deliberately left without one.
+	 *
+	 * Averaged over caught procs only, so with none caught there is nothing to average. `procs.snapshotted`
+	 * is the sample and it is **not** passed. That is a measurement rather than an oversight, and
+	 * `__tests__/thinMean.test.ts` holds every number below so the argument cannot rot into a claim.
+	 *
+	 * **The floor's own argument does not reach a mean.** `MIN_GRADED_SAMPLE` is three because a share
+	 * over one or two observations has no interior: at a denominator of one the reachable values are
+	 * nought and a hundred, at two they are nought, fifty and a hundred, so the middle band is
+	 * unreachable and every letter such a rule can award sits at an end of its own scale. A mean is not
+	 * shaped that way. One caught proc reads its own depth, anywhere in nought to a hundred, and the
+	 * interior is not merely reachable but occupied by a real observation — `poor`'s second catch is
+	 * 75.18%, which this rule grades `ok` off a sample of one. The charge that closed `karmaEmpty` and
+	 * `karmaCapShare` is simply not available here.
+	 *
+	 * **And three would separate no pull from the instability it is meant to prevent.** The committed
+	 * samples are `poor` 2, `mixed` 4, `weave` 4, `cleave` 5, `waves` 5 and `strong` 12. One observation
+	 * moves a mean of n by up to 100/n, and this rule's steps are 15 points apart, so the letter is one
+	 * proc away from a different one at every n below seven — five of the six pulls. A floor of three
+	 * refuses exactly one of those five and leaves four printing letters just as thin. `waves` is the
+	 * demonstration: five procs, 64.42%, `bad`, and swapping one of its own depths for a depth another
+	 * committed pull really recorded carries it to `ok`. A declaration that presents as a control and
+	 * controls a sixth of the set is the failure this project has already shipped twice — the band-1
+	 * transcription in `__fixtures__/bands.test.ts`, and Entry 13's opener allowance above. The floor
+	 * that would actually hold is seven, and seven silences every pull but `strong`.
+	 *
+	 * **What is wrong with this metric is real, and the sample is not it.** Depth averages the procs the
+	 * player caught, and *which* procs those are is the question `snapshotRate` beside it grades — so the
+	 * denominator is selected by performance on the sibling metric, and the selection runs the wrong way.
+	 * `strong` caught 12 of its 14 affordable procs, the awkward ones included, and averages 61.18%:
+	 * `bad`. `poor` caught 2 of 8, both of them late, and averages 86.13%: `good`. The pull that missed
+	 * six of its eight chances is the one this rule praises for its timing. `snapshots.depthCaveat`
+	 * already says so in the reader's own words — "catching two procs and timing both perfectly scored
+	 * better than catching twelve" — which is the tell: the defect was known and answered with a
+	 * disclaimer. No sample floor touches it, because the inversion is there at twelve as much as at two.
+	 *
+	 * The letter is kept out of every verdict in the meantime: weight nought in `WEIGHTS`, and secondary
+	 * in `section()`, so neither a section grade nor the whole-pull grade is drawn through it. What it
+	 * still colours is the `RoRo snapshots` tile in `KpiTiles`, which is the one place the inversion
+	 * reaches a reader: `poor` shows 1 of 9 held to the last global in the good colour and `strong` shows
+	 * 6 of 16 in the bad one.
+	 */
 	const snapshotDepth = metric('snapshotDepth', procs.snapshotted > 0 ? procs.meanDepthPct : null);
 	// Graded on every pull that cast it, add fight or not.
 	//
@@ -276,6 +319,29 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		gradedOver(debuff.casts > 0 ? debuff.engagedUptimePct : null, debuff.contactMs ?? debuff.engagedMs),
 	);
 	const tigerPalmWaste = metric('tigerPalmWaste', tigerPalmShare(filler, analysis.targets));
+	/**
+	 * The mean stacks a brew was spent at, and the second metric checked against `MIN_GRADED_SAMPLE` and
+	 * left without one. `brew.uses` is the sample and it is not passed.
+	 *
+	 * **The same interior argument, and it is cleaner here than on `snapshotDepth`.** Stacks are integers
+	 * and a drain takes at most ten, so a single brew reads its own count: `strong` spent one at 10, one
+	 * at 9, two at 8 and one at 5, and this rule grades those `good`, `ok`, `bad` and `bad` off a sample
+	 * of one apiece. Every letter the rule can award is reachable — and occupied by a real brew — at one
+	 * observation, which is precisely what no share can manage below three.
+	 *
+	 * **A floor of three would refuse nothing we hold, and would not catch the unstable pulls either.**
+	 * The committed use counts are `weave` 5, `poor` 6, `cleave` 6, `mixed` 7, `waves` 9 and `strong` 16,
+	 * so the smallest is five and the declaration fires on no pull in the set. One brew moves a mean of n
+	 * by up to ten stacks over n and this rule's steps are one stack apart, so the letter is one brew away
+	 * from a different one below eleven — again five of the six. `weave` is five brews at 8, 10, 10, 10, 8
+	 * for a mean of 9.2 and `ok`; one of those eights spent at ten reads 9.6 and `good`.
+	 *
+	 * **And unlike depth, nothing selects the denominator.** This averages every brew the pull spent
+	 * rather than the ones the player got right, so no sibling metric chooses its sample and there is no
+	 * inversion to find. The failure a mean does have here — that an average cannot bound its own worst
+	 * member — is already bounded beside it by `brewShortUses`, which is primary in the same section and
+	 * does carry a sample floor. See `shortBrews`.
+	 */
 	const brewStacks = metric('brewStacks', brew.uses > 0 ? brew.avgConsumed : null);
 	// Graded on the stacks that were avoidable, not on every stack the cap refused. A stack lost while
 	// holding a brew for a Re-Origination proc, on a proc where holding was the cheaper of the two
