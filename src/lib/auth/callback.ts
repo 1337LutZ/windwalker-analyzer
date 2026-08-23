@@ -1,7 +1,12 @@
 // Step 2 of the flow: the landing back from WarcraftLogs.
 
+import { i18n } from '~/lib/i18n';
+
 import { exchangeCode } from './exchange';
 import { rememberToken, takeAuthorization } from './storage';
+
+/** The shell copy, off the instance: no component here either. See `wcl/client.ts` for the reasoning. */
+const t = (key: string, values?: Record<string, unknown>): string => i18n.t(key, { ns: 'ui', ...values });
 
 /** Everything WarcraftLogs may add to the redirect URI, and everything that must not stay in it. */
 const CALLBACK_PARAMS = ['code', 'state', 'error', 'error_description', 'error_uri'] as const;
@@ -85,20 +90,20 @@ export async function completeSignIn(): Promise<string | null> {
 	// between this and a callback URL someone else constructed and got clicked.
 	if (pending === null || returnedState === null || returnedState !== pending.state) {
 		stripCallbackParams(pending?.search);
-		throw new Error('That sign-in did not start in this tab, so it was refused. Start it again from this page.');
+		throw new Error(t('errors.signIn.wrongTab'));
 	}
 
 	if (refusal !== null) {
 		stripCallbackParams(pending?.search);
 		throw new Error(
 			refusal === 'access_denied'
-				? 'You cancelled the sign-in at WarcraftLogs. Nothing was shared.'
-				: (refusalDetail ?? `WarcraftLogs would not authorize this app (${refusal}).`),
+				? t('errors.signIn.cancelled')
+				: (refusalDetail ?? t('errors.signIn.notAuthorized', { refusal })),
 		);
 	}
 	if (code === null) {
 		stripCallbackParams(pending?.search);
-		throw new Error('WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.');
+		throw new Error(t('errors.signIn.noCode'));
 	}
 
 	// Stripped before the exchange, not after: the exchange is a network round trip, and for its whole

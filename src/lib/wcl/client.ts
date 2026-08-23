@@ -12,6 +12,7 @@
 import type { Actor, DamageAbilityRow, DamageEntry, Fight, FightNpc } from '~/lib/types';
 import { cleanToken, inspectToken } from '~/lib/auth/token';
 import { parseEvents, type WclEvent } from '~/lib/events';
+import { i18n } from '~/lib/i18n';
 import type {
 	FightDamageTableQuery,
 	FightDamageTableQueryVariables,
@@ -44,6 +45,22 @@ import {
 	type PhaseTransition,
 } from './phases';
 import { readRateLimit, type ApiCredits } from './rateLimit';
+
+/**
+ * Every message raised below, read off the i18next instance rather than a hook.
+ *
+ * This module is not a component, so there is no render to hang `useTranslation` off — the same
+ * constraint `fetchFight.ts` answers the same way, and `describeFailure.ts` answers by taking `t` as
+ * a parameter because it has two callers and no `~/lib/i18n` import of its own. Threading `t` through
+ * seven public methods and a constructor to reach eighteen strings would put the transport's copy in
+ * every caller's signature, so the instance it is.
+ *
+ * Importing `~/lib/i18n` is what makes that safe: the barrel calls `initI18n()` as a module side
+ * effect, and every call below happens at throw time, long after this module was evaluated. A message
+ * therefore cannot leave here as a raw key path — `errorCopy.test.ts` imports the client and nothing
+ * else, so that claim fails if this import is ever narrowed to `~/lib/i18n/config`.
+ */
+const t = (key: string, values?: Record<string, unknown>): string => i18n.t(key, { ns: 'ui', ...values });
 
 /** A stuck request would otherwise leave the UI's progress indicator frozen with no way out. */
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -163,7 +180,7 @@ export class WclClient {
 	constructor({ token, onCredits }: WclClientOptions) {
 		// People paste the whole "Bearer eyJ0…" line out of the docs as often as they paste the token.
 		const cleaned = cleanToken(token);
-		if (!cleaned) throw new WclError('auth', 'No WarcraftLogs API token was given.');
+		if (!cleaned) throw new WclError('auth', t('errors.wcl.auth.noToken'));
 		this.#token = cleaned;
 		this.#onCredits = onCredits;
 		// Reading the payload picks the path this token most likely works on. It is a guess and never
@@ -244,41 +261,28 @@ export class WclClient {
 				signal: abort.signal,
 			});
 		} catch {
+			// Two keys at one throw site, because these are two different failures wearing one `catch`.
+			// A timed-out request and one that never left the machine take the reader to different fixes,
+			// and one string covering both would describe a DNS failure as a slow answer.
 			throw new WclError(
 				'network',
 				abort.signal.aborted
-					? `WarcraftLogs did not answer within ${REQUEST_TIMEOUT_MS / 1000} seconds. Check your connection and try again.`
-					: 'Could not reach WarcraftLogs. Check your connection, and whether a content blocker is stopping the request.',
+					? t('errors.wcl.network.timeout', { seconds: REQUEST_TIMEOUT_MS / 1000 })
+					: t('errors.wcl.network.unreachable'),
 			);
 		}
 
 		if (response.status === 401) {
-			throw new WclError(
-				'auth',
-				'WarcraftLogs rejected the token (401). Tokens expire, so the most likely fix is a fresh one: sign in again, or paste a newly generated token.',
-				401,
-			);
+			throw new WclError('auth', t('errors.wcl.auth.rejected'), 401);
 		}
 		if (response.status === 403) {
-			throw new WclError(
-				'auth',
-				"WarcraftLogs refused the request (403). The token is valid but is not allowed to read this: a client-credentials token reads public logs only, and a report private to another account is off limits to any token but that account's own.",
-				403,
-			);
+			throw new WclError('auth', t('errors.wcl.auth.refused'), 403);
 		}
 		if (response.status === 429) {
-			throw new WclError(
-				'rate-limit',
-				'WarcraftLogs rate-limited the request (429). The hourly point budget is spent, or too many queries went out at once. Wait a minute and try again.',
-				429,
-			);
+			throw new WclError('rate-limit', t('errors.wcl.rateLimit.spent'), 429);
 		}
 		if (!response.ok) {
-			throw new WclError(
-				'server',
-				`WarcraftLogs returned HTTP ${response.status}. Nothing is wrong on your side; try again shortly.`,
-				response.status,
-			);
+			throw new WclError('server', t('errors.wcl.server.http', { status: response.status }), response.status);
 		}
 
 		let payload: {
@@ -288,13 +292,12 @@ export class WclClient {
 		try {
 			payload = (await response.json()) as typeof payload;
 		} catch {
+			// The same timeout, from the other half of the exchange: the body can stall after the headers
+			// arrive, and the reader is owed the same sentence either way. One key, read from both sites.
 			if (abort.signal.aborted) {
-				throw new WclError(
-					'network',
-					`WarcraftLogs did not answer within ${REQUEST_TIMEOUT_MS / 1000} seconds. Check your connection and try again.`,
-				);
+				throw new WclError('network', t('errors.wcl.network.timeout', { seconds: REQUEST_TIMEOUT_MS / 1000 }));
 			}
-			throw new WclError('server', 'WarcraftLogs returned a response that was not JSON.', response.status);
+			throw new WclError('server', t('errors.wcl.server.notJson'), response.status);
 		}
 
 		// WCL answers HTTP 200 with a populated `errors` array for archived reports, permission
@@ -312,14 +315,14 @@ export class WclClient {
 				.filter((message): message is string => Boolean(message))
 				.join('; ');
 			if (/authenticat|authoriz|permission|token/i.test(detail)) {
-				throw new WclError(
-					'auth',
-					`WarcraftLogs rejected the token: ${detail}. An expired token is the usual cause — generate a new one and paste it again.`,
-				);
+				throw new WclError('auth', t('errors.wcl.auth.rejectedDetail', { detail }));
 			}
-			throw new WclError('graphql', `WarcraftLogs rejected the query: ${detail || 'no reason given'}.`);
+			throw new WclError(
+				'graphql',
+				t('errors.wcl.graphql.rejected', { detail: detail || t('errors.wcl.graphql.noReason') }),
+			);
 		}
-		if (!payload.data) throw new WclError('graphql', 'WarcraftLogs returned an empty response.');
+		if (!payload.data) throw new WclError('graphql', t('errors.wcl.graphql.empty'));
 
 		// After the failure checks, so a budget is only ever read off a response that was accepted.
 		// `readRateLimit` answers null for anything it does not recognise, which is what a document
@@ -342,7 +345,7 @@ export class WclClient {
 		const data = await this.#graphql<RateLimitQuery, RateLimitQueryVariables>(RATE_LIMIT_QUERY, {});
 		const credits = readRateLimit(data);
 		if (credits === null) {
-			throw new WclError('missing', 'WarcraftLogs did not report the hourly point budget for this token.');
+			throw new WclError('missing', t('errors.wcl.missing.credits'));
 		}
 		return credits;
 	}
@@ -351,14 +354,14 @@ export class WclClient {
 		const data = await this.#graphql<ReportFightsQuery, ReportFightsQueryVariables>(REPORT_FIGHTS_QUERY, { code });
 		const report = data.reportData?.report;
 		if (!report) {
+			const notFound = t('errors.wcl.missing.report', { code, host: WCL_HOST });
+			// The endpoint decides what "not found" means here, and saying so is the difference between
+			// re-typing a code that was right all along and going to make the log public. Its own key
+			// rather than a clause bolted onto the one above: it is a second sentence, and it was written
+			// as one for as long as it was a `+`.
 			throw new WclError(
 				'missing',
-				`No report "${code}" on ${WCL_HOST}. Check the code — this analyser only reads Mists of Pandaria Classic logs, and a code from another WarcraftLogs site does not exist here.` +
-					// The endpoint decides what "not found" means here, and saying so is the difference
-					// between re-typing a code that was right all along and going to make the log public.
-					(this.#endpoint === WCL_CLIENT_ENDPOINT
-						? ' This token also reads public logs only, and a private report answers "not found" rather than saying it is private — so if the code is right, the log may not be public.'
-						: ''),
+				this.#endpoint === WCL_CLIENT_ENDPOINT ? `${notFound} ${t('errors.wcl.missing.reportPublicOnly')}` : notFound,
 			);
 		}
 
@@ -391,7 +394,7 @@ export class WclClient {
 			data = await read();
 			actors = data.reportData?.report?.masterData?.actors;
 		}
-		if (!actors) throw new WclError('missing', `Report "${code}" has no actor list, so nothing in it can be named.`);
+		if (!actors) throw new WclError('missing', t('errors.wcl.missing.actors', { code }));
 
 		// An actor with no report id cannot be matched to an event, so it is dropped rather than
 		// given a placeholder that would silently never match anything.
@@ -422,10 +425,7 @@ export class WclClient {
 		});
 		const roles = unwrapPlayerDetails(data.reportData?.report?.playerDetails);
 		if (!roles) {
-			throw new WclError(
-				'missing',
-				`WarcraftLogs returned no player list for fight ${fightID} of report "${code}", so nothing in it can be matched to a spec.`,
-			);
+			throw new WclError('missing', t('errors.wcl.missing.players', { code, fightID }));
 		}
 		// The three buckets are the API's own split by role; a Windwalker is always under `dps`, but
 		// reading all three means a mis-bucketed player is still found rather than silently missing.
@@ -453,10 +453,7 @@ export class WclClient {
 		// in it. Reading it as "this fight had no events" is how a pull gets analysed as zero casts and
 		// 0% uptime and printed as fact; `fetchReport` and `fetchActors` both refuse the same shape.
 		if (!events) {
-			throw new WclError(
-				'missing',
-				`Report "${params.code}" returned no event stream for fight ${params.fightID}. It may have been made private or archived while it was being read.`,
-			);
+			throw new WclError('missing', t('errors.wcl.missing.events', { code: params.code, fightID: params.fightID }));
 		}
 		return {
 			// `data` is the JSON scalar, so it arrives as `unknown`: it is parsed, never asserted.

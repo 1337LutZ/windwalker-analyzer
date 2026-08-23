@@ -107,7 +107,51 @@
     "graphql": "WarcraftLogs rejected the query",
     "unknownTitle": "That failure did not come from WarcraftLogs",
     "unknownDetail": "Nothing came back that could be read as a WarcraftLogs answer, so there is nothing more to say about it. Reload the page and try the same pull again.",
-    "signOutAction": "Sign out and try again"
+    "signOutAction": "Sign out and try again",
+    "wcl": {
+      "auth": {
+        "noToken": "No WarcraftLogs API token was given.",
+        "rejected": "WarcraftLogs rejected the token (401). Tokens expire, so the most likely fix is a fresh one: sign in again, or paste a newly generated token.",
+        "refused": "WarcraftLogs refused the request (403). The token is valid but is not allowed to read this: a client-credentials token reads public logs only, and a report private to another account is off limits to any token but that account's own.",
+        "rejectedDetail": "WarcraftLogs rejected the token: {{detail}}. An expired token is the usual cause — generate a new one and paste it again."
+      },
+      "rateLimit": {
+        "spent": "WarcraftLogs rate-limited the request (429). The hourly point budget is spent, or too many queries went out at once. Wait a minute and try again."
+      },
+      "network": {
+        "timeout": "WarcraftLogs did not answer within {{seconds}} seconds. Check your connection and try again.",
+        "unreachable": "Could not reach WarcraftLogs. Check your connection, and whether a content blocker is stopping the request."
+      },
+      "server": {
+        "http": "WarcraftLogs returned HTTP {{status}}. Try again shortly.",
+        "notJson": "WarcraftLogs returned a response that was not JSON."
+      },
+      "graphql": {
+        "rejected": "WarcraftLogs rejected the query: {{detail}}.",
+        "noReason": "no reason given",
+        "empty": "WarcraftLogs returned an empty response."
+      },
+      "missing": {
+        "credits": "WarcraftLogs did not report the hourly point budget for this token.",
+        "report": "No report \"{{code}}\" on {{host}}. Check the code — this analyser only reads Mists of Pandaria Classic logs, and a code from another WarcraftLogs site does not exist here.",
+        "reportPublicOnly": "This token also reads public logs only, and a private report answers \"not found\" rather than saying it is private. If the code is right, the log may not be public.",
+        "actors": "Report \"{{code}}\" has no actor list, so nothing in it can be named.",
+        "players": "WarcraftLogs returned no player list for fight {{fightID}} of report \"{{code}}\", so nothing in it can be matched to a spec.",
+        "events": "Report \"{{code}}\" returned no event stream for fight {{fightID}}. It may have been made private or archived while it was being read."
+      }
+    },
+    "signIn": {
+      "wrongTab": "That sign-in did not start in this tab, so it was refused. Start it again from this page.",
+      "cancelled": "You cancelled the sign-in at WarcraftLogs. Nothing was shared.",
+      "notAuthorized": "WarcraftLogs would not authorize this app ({{refusal}}).",
+      "noCode": "WarcraftLogs sent this page back without an authorization code, so there is nothing to exchange.",
+      "timeout": "WarcraftLogs did not answer within {{seconds}} seconds. Try signing in again.",
+      "unreachable": "Could not reach WarcraftLogs to finish signing in. Check your connection, and whether a content blocker is stopping the request.",
+      "notJson": "WarcraftLogs answered the sign-in with something that was not JSON (HTTP {{status}}).",
+      "refused": "WarcraftLogs refused the sign-in ({{error}}).",
+      "refusedStatus": "WarcraftLogs refused the sign-in (HTTP {{status}}).",
+      "noAccessToken": "WarcraftLogs completed the sign-in but returned no access token."
+    }
   },
   "chart": {
     "drawing": "Drawing chart"
