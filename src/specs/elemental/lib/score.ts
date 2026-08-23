@@ -1036,6 +1036,14 @@ export type MetricKey = keyof typeof THRESHOLDS;
  * they describe a habit more than a headline.
  */
 export const WEIGHTS: Record<MetricKey, number> = {
+	// Heaviest weight on the card, and the one that has never decided anything: it is `unmeasurable` on
+	// all four committed pulls. Three fail on an empty denominator; `addsThenBoss` fails on
+	// `MIN_GRADED_SAMPLE` with a sample of one, which is a *real* 100% share the floor refuses. So the
+	// fixture that would wake it needs three snapshot windows **with the dot already up** — six windows
+	// is what that pull already has, and five of them opened with the dot down.
+	//
+	// Read `snapshotRate` in this file as the local name for `flameShockSnapshots`; the Windwalker owns
+	// `snapshotRate` as a metric key, and the two must not collide in takeaway copy.
 	flameShockSnapshots: 4,
 	flameShockUptime: 3,
 	gcdUtilisation: 2,

@@ -51,9 +51,14 @@ const unbroken: El = analyse(
  * The audit with the refresh ledger rewritten, and with the *whole* ledger rewritten.
  *
  * `snapshotGain` is zeroed unless a case sets it, because the verdict's `wasted` is
- * `refreshes - windowed - ascPrep - snapshotGain` and this fixture's own `snapshotGain` is 2. A case
- * that forces `windowed` without also clearing that would be describing a pull where eight of six
- * refreshes were excused, and one of them below would print a negative count.
+ * `refreshes - windowed - ascPrep - snapshotGain` and this fixture's own `snapshotGain` is **3**. A case
+ * that forces `windowed` to all six without also clearing that would be describing a pull where nine of
+ * six refreshes were excused, and one of them below would print a negative count.
+ *
+ * The number was written as 2 and measured as 3 — the four raw pulls read 3 / 0 / 0 / 2 for
+ * `unbroken` / `phased` / `cleave` / `addsThenBoss`. Nothing turned on it, because every case here
+ * zeroes the field rather than reading it, which is exactly why it could drift: **a figure quoted in
+ * prose to justify a line of code is not checked by that line of code.**
  */
 const withFlameShock = (over: Partial<El['flameShock']>): El => ({
 	...unbroken,
