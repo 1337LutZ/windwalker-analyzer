@@ -8,6 +8,7 @@
   "snapshots": {
     "title": "Snapshots",
     "intent": "A Re-Origination proc converts your stats for 10 seconds. A Tigereye Brew spent inside the proc keeps those stats for the brew's full 15 seconds, so they last well past the proc itself. Catching the procs matters most; catching them late matters less.",
+    "chartEmpty": "Re-Origination never fired in this pull, so there is nothing to snapshot.",
     "verdict_good": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). You used the two together well.",
     "verdict_ok": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). You lost more by skipping procs than by brewing late on the ones you took.",
     "verdict_bad": "{{caught}} of {{total}} catchable procs taken ({{rate, percent}}). This is the spec's largest single source of damage, and most of it was missed.",
@@ -43,7 +44,12 @@
     "unholdable_one": "One proc converted into {{stat}}, which Tigereye Brew cannot freeze: the brew’s multiplier reads mastery and nothing else, so it could not be snapshotted. It is left out of the total above rather than counted as a chance missed.",
     "unholdable_other": "{{count}} procs converted into a stat Tigereye Brew cannot freeze. Its multiplier reads mastery and nothing else, so none of them could be snapshotted. They are left out of the total above rather than counted as chances missed.",
     "key": {
-      "unholdable": "Cannot be snapshotted: the Rune returned a stat Tigereye Brew cannot freeze"
+      "held": "Held into the last global — the whole tail kept",
+      "early": "Brewed early — part of the proc left to run",
+      "missed": "Never snapshotted: the full proc went past",
+      "unholdable": "Cannot be snapshotted: the Rune returned a stat Tigereye Brew cannot freeze",
+      "backToBack": "Bracketed rows are one back-to-back roll: the second proc landed while the first was still being carried",
+      "narrowlyMissed": "The tail past a bar: a brew that went out just too late"
     }
   },
   "brew": {
@@ -335,6 +341,7 @@
     "summary": "{{total, compact}} damage at {{dps, compact}} DPS across {{count}} abilities.",
     "top": "{{name}} led at {{share, percent}} of the total.",
     "none": "The log recorded no damage from this player in this pull.",
+    "chartEmpty": "No button did any damage in this pull.",
     "passive": "Passive and gear damage, excluded above because no button produced it:"
   },
   "misses": {
@@ -424,7 +431,8 @@
     "notAsked": "not measured at this many enemies"
   },
   "empty": {
-    "section": "Nothing to report here for this pull."
+    "section": "Nothing to report here for this pull.",
+    "grid": "Nothing to show for this pull."
   },
   "timeline": {
     "title": "The pull, end to end",

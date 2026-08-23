@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface GridColumn {
 	key: string;
@@ -69,12 +70,13 @@ export default function DataGrid({
 	minWidth?: string;
 	empty?: ReactNode;
 }) {
+	const { t } = useTranslation('report');
 	const head = columns[0];
 	if (!head) return null;
 	const rest = columns.slice(1);
 
 	if (rows.length === 0) {
-		return <p className="m-0 text-base text-muted">{empty ?? 'Nothing to show for this pull.'}</p>;
+		return <p className="m-0 text-base text-muted">{empty ?? t('empty.grid')}</p>;
 	}
 
 	return (

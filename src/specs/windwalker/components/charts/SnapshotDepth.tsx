@@ -395,7 +395,7 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 	);
 
 	if (procs.windows.length === 0) {
-		return <ChartEmpty>Re-Origination never fired in this pull, so there is nothing to snapshot.</ChartEmpty>;
+		return <ChartEmpty>{t('snapshots.chartEmpty')}</ChartEmpty>;
 	}
 
 	return (
@@ -405,9 +405,9 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 			// Naming them in the prose above was enough while one of them was green; it is not now.
 			caption={
 				<>
-					<ChartKey tone="kick">Held into the last global — the whole tail kept</ChartKey>
-					<ChartKey tone="brew">Brewed early, with proc left on the clock</ChartKey>
-					<ChartKey tone="miss">Never snapshotted: the full proc went past</ChartKey>
+					<ChartKey tone="kick">{t('snapshots.key.held')}</ChartKey>
+					<ChartKey tone="brew">{t('snapshots.key.early')}</ChartKey>
+					<ChartKey tone="miss">{t('snapshots.key.missed')}</ChartKey>
 					{/* Violet is the Rune's own colour everywhere else in the report, and it is not otherwise
 					    used on this chart — so it is free here, and it says "the Rune did what you asked it
 					    to" rather than borrowing a verdict from another mark. Gated on the pull having one,
@@ -423,12 +423,10 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 								<span>┌</span>
 								<span>└</span>
 							</span>
-							Bracketed rows are one back-to-back roll: the second proc landed while the first was still being carried
+							{t('snapshots.key.backToBack')}
 						</span>
 					) : null}
-					{procs.narrowlyMissed > 0 ? (
-						<ChartKey tone="missSoft">The tail past a bar: a brew that went out just too late</ChartKey>
-					) : null}
+					{procs.narrowlyMissed > 0 ? <ChartKey tone="missSoft">{t('snapshots.key.narrowlyMissed')}</ChartKey> : null}
 				</>
 			}
 		>

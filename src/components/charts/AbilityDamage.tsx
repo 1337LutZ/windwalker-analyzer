@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useNarrow } from '~/hooks/useNarrow';
 import type { ApexOptions } from 'apexcharts';
@@ -56,6 +57,8 @@ const GRID_PADDING = { top: 0, right: 8, bottom: 0 };
  * something outside it. The report lists those separately underneath.
  */
 export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
+	// `useTranslation`, not `useReportCopy`: a chart draws what it is handed and asks for no verdict.
+	const { t } = useTranslation('report');
 	const abilities = useMemo(
 		() => analysis.damage.abilities.filter((a) => !a.passive && !a.utility && a.total > 0).slice(0, ROWS),
 		[analysis.damage.abilities],
@@ -149,7 +152,7 @@ export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
 	);
 
 	if (abilities.length === 0) {
-		return <ChartEmpty>No button did any damage in this pull.</ChartEmpty>;
+		return <ChartEmpty>{t('damage.chartEmpty')}</ChartEmpty>;
 	}
 
 	// Matched to `build`'s own `narrow`, which ApexCharts is handed at draw time: the label column and
