@@ -1146,6 +1146,7 @@
     "unjudged": "{{unknown}} presses could not be checked, because an entry above them needs something this log does not carry. Another {{offList}} were buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
     "clean": "On every global this log could check against the priority list, no higher-priority ability was available.",
     "noResources": "This log carried no resource readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing here counts for or against you.",
+    "noCharacter": "This log carried no equipment record, so the report cannot tell what you had equipped or which talents you took. A few entries above depend on one or the other, and the presses beneath them are the ones it could not check.",
     "forced_single": "You are reading this pull as one target, so every press below is checked against the single-target order — including the stretches where the log counted more enemies.",
     "forced_multi": "You are reading this pull as multi-target, so every press below is checked against the multi-target order — including the stretches where the log counted one enemy.",
     "caption": "Buttons that were available and passed over, most often first",

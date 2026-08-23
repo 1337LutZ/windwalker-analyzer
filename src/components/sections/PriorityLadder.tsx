@@ -124,6 +124,25 @@ export default function PriorityLadder({
 				</div>
 			)}
 
+			{/* The walk read the log but not the character sheet. Two of the ladder's terms — what was
+			    equipped and which talents were taken — are answered by one `combatantinfo` event, and
+			    when it is missing the presses that depend on them come back unread rather than wrong.
+
+			    Said once, as a property of the walk, rather than left for the reader to infer from a pile
+			    of per-press unknowns: on a pull without that event this already withholds 112 of 408
+			    globals, counted under "not read" with nothing on the page naming the cause.
+
+			    Not tied to a verdict actually being withheld. A pull that never leaves one enemy sets the
+			    flag and loses nothing, because the terms only appear in the multi-target list — and a note
+			    that appeared only where the reader could already see the damage would be no use to the
+			    reader who cannot. The wording is `gear.none`'s, deliberately: the same fact should read
+			    the same in both sections. */}
+			{apl.characterUnread === true ? (
+				<div className="mt-5">
+					<Note>{t('priority.noCharacter')}</Note>
+				</div>
+			) : null}
+
 			<div className="mt-4.5">
 				<StatTiles>
 					<StatTile
