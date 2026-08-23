@@ -21,9 +21,12 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  *
  * **A press with no Flame Shock on its target is a fault, so it joins that ledger rather than bringing
  * the press list back.** Flame Shock is Lava Burst's ×1.5, and the audit reads it at the instant the
- * cast was committed — see the note there for why that is the sim's instant and not the impact. Both
- * kinds of row are "something the player gave away", so they interleave in one time-ordered ledger
- * instead of asking a reader to cross-reference two tables.
+ * cast **completed** — not at the commit the row's own `t` is, and not at the impact either. The
+ * docblock on `LavaBurstPress.flameShock` carries the argument for all three instants; what matters
+ * here is that a press committed onto a dot with less than a cast time left is in this table, because
+ * the game had already decided against it by the time the cast landed. Both kinds of row are "something
+ * the player gave away", so they interleave in one time-ordered ledger instead of asking a reader to
+ * cross-reference two tables.
  */
 export default function LavaBurst({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
