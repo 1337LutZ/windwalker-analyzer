@@ -35,7 +35,7 @@ function walk(dir: string): string[] {
  *
  * Matched by shape rather than by name, so the next one is covered by the fact of being written: a
  * declaration that names its first parameter `key: string` **and** passes that same `key` to `t`. Both
- * halves are load-bearing — seven other helpers in the tree take a `key: string` and none of them is a
+ * halves are load-bearing — six other helpers in the tree take a `key: string` and none of them is a
  * translator, and one of those is `param('code')`, which as an asked key would fail the check below
  * over the name of a URL parameter.
  */
