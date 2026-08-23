@@ -712,3 +712,42 @@ export const SHARED_AURAS: Aura[] = [
 		durationMs: 10_000,
 	},
 ];
+
+/**
+ * Which **items** grant a shared aura, every ilvl variant of each — the join an `Aura` cannot make.
+ *
+ * An effect is identified by an aura id; *ownership* of it is a question about an **item** id, and the
+ * two are different facts with nothing joining them. `combatantinfo`'s gear array is what answers the
+ * second, and two readers outside any test already need it. `elemental/lib/apl.ts` gates `aoe.apl.json`
+ * rung 1 on owning Breath of the Hydra — `auraIsKnown(138898)` is answered off the auras *registered*
+ * on the unit, and a trinket registers its proc the moment it is equipped, so the question is the kit
+ * and not the proc, and a pull that wore the trinket and never fired it still owns it.
+ * `windwalker/lib/view/rotationFlow.ts` asks the same of Rune of Re-Origination before it will warn
+ * that the Rune is missing. Each carried its own copy of the ids, and
+ * `game/__tests__/sharedFixtures.test.ts`' gear census carried a third and a fourth.
+ *
+ * **All five variants of each, because the fixtures wear an upgraded id and not the base one.**
+ * `elemental/addsThenBoss.json`'s shaman carries **96455**, the heroic Throne of Thunder id, three
+ * upgrade steps above 94521; `windwalker/dataset-ironJuggernaut.json`'s monk carries **96546**. That is
+ * the failure worth naming, because it is silent: a narrowed or mistyped list throws nothing, it makes
+ * the ladder stop demanding a rung and the pull reads as compliant.
+ *
+ * Keyed by aura key, and only that direction, because it is the only one either reader asks in —
+ * "which items grant this effect", never "what does this item grant" — and because the key is the one
+ * `SHARED_AURAS` and the registry already use, so a row here names an aura declared above.
+ *
+ * **Only the effects something joins on.** `sharedFixtures.test.ts` sources all thirty-nine
+ * gear-granted shared auras from `db.json` for its equipped-iff-fired census; that transcription is
+ * that test's own instrument and stays there. A row earns a place here when a reader outside a test
+ * asks whether the player owned the thing.
+ */
+export const SHARED_ITEM_SOURCES = {
+	// `db.json` `items[].itemEffects[].buffId === 138898`, base id first.
+	'breath-of-hydra': [94_521, 95_711, 96_083, 96_455, 96_827],
+	// Named by hand: `db.json` carries no player-visible buff for the Rune, its only item effect there
+	// being the hidden 139116 "Item - Attacks Proc Highest Rating" marker.
+	're-origination': [94_532, 95_802, 96_174, 96_546, 96_918],
+} as const satisfies Record<string, readonly number[]>;
+
+/** A shared aura whose granting items are declared above, so a reader cannot ask for a key with none. */
+export type ItemSourcedAura = keyof typeof SHARED_ITEM_SOURCES;

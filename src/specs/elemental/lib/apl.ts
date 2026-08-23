@@ -1,3 +1,4 @@
+import { SHARED_ITEM_SOURCES } from '~/lib/game/shared';
 import { type AplRule, ladderEntries } from '~/lib/spec/apl';
 
 /**
@@ -289,16 +290,18 @@ const FS_CLEAVE_OVERLAP_MS = 2000;
  * which is why this list is item ids and why nothing here reads the 138898 windows. A pull where the
  * trinket was worn and never fired still owns it, and reading the proc would call that pull unequipped.
  *
- * **All five, because a fixture wears an upgraded id rather than the base one**: `addsThenBoss.json`'s
- * shaman carries **96455**, the heroic Throne of Thunder id, three upgrade steps above 94521. Sourced
- * the way `game/__tests__/sharedFixtures.test.ts` sources its own gear table — the simulator's
- * `assets/database/db.json`, `items[].itemEffects[].buffId === 138898` — and that test carries the same
- * five under `breath-of-hydra`. **The two copies cannot see each other**, which is a real seam and is
- * recorded rather than hidden: there is no non-test home in this repo for "which items grant which
- * effect", `lib/game/shared.ts` keeping aura ids only. `lib/spec/__tests__/aoeFlameShockGear.test.ts`
- * pins this copy against the committed kits instead, in both directions.
+ * **The ids are declared in `lib/game/shared.ts`, beside the aura the item grants, and this is the
+ * local name for them.** They used to be written out here, and `game/__tests__/sharedFixtures.test.ts`
+ * carried the identical five in its gear census with no way for either to see the other — a real seam,
+ * because all five are needed and a narrowed list fails silently: the ladder simply stops demanding the
+ * rung and the pull reads as compliant. `addsThenBoss.json`'s shaman carries **96455**, the heroic
+ * Throne of Thunder id, three upgrade steps above 94521, so the fixture cannot catch a list holding
+ * only the base one. `SHARED_ITEM_SOURCES` is now the one home for "which items grant which effect",
+ * this reads it, and the census sources its row from it too.
+ * `lib/spec/__tests__/aoeFlameShockGear.test.ts` pins the rung against the committed kits in both
+ * directions, and `lib/game/__tests__/itemSources.test.ts` pins the list itself.
  */
-const BREATH_OF_HYDRA_ITEM_IDS: readonly number[] = [94_521, 95_711, 96_083, 96_455, 96_827];
+const BREATH_OF_HYDRA_ITEM_IDS: readonly number[] = SHARED_ITEM_SOURCES['breath-of-hydra'];
 
 /**
  * The two level-90 rows this ladder gates a rung on, as **talent** ids — the other half of that split.

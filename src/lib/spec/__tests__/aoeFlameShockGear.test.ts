@@ -27,14 +27,25 @@ import { describe, expect, it } from 'vitest';
 import type { Analysis, CastMark, FightDataset, ResourceCurve } from '~/lib/types';
 import { aplAudit, type AplInputs, type AplRule, type State } from '~/lib/spec/apl';
 import { analyse } from '~/specs/elemental/lib';
+import { SHARED_ITEM_SOURCES } from '~/lib/game/shared';
 import { LADDER } from '~/specs/elemental/lib/apl';
 
 const CHAIN_LIGHTNING = 421;
 /** The heroic Throne of Thunder id `addsThenBoss.json`'s shaman actually wears. */
 const HYDRA_HEROIC = 96_455;
-/** The base id and the top upgrade step, so a list that carried only the fixture's id would fail. */
-const HYDRA_BASE = 94_521;
-const HYDRA_TOP = 96_827;
+/**
+ * Every ilvl variant of the trinket, read from the one place that declares them.
+ *
+ * This file used to write the five out again — the base id, the two middle steps and the top upgrade —
+ * which made it a third copy beside `elemental/lib/apl.ts`' and the gear census in
+ * `game/__tests__/sharedFixtures.test.ts`, none of the three able to see the others. They are all
+ * `SHARED_ITEM_SOURCES` now, so the rows below ask about the list the rung actually reads rather than
+ * about a transcription of it that could have been narrowed on its own.
+ * `game/__tests__/itemSources.test.ts` is what pins that list against an independent copy.
+ */
+const HYDRA_ITEMS = SHARED_ITEM_SOURCES['breath-of-hydra'];
+/** One number away from the fixture's id and not a variant of anything: the loop must refuse it. */
+const NEAR_MISS = 96_454;
 /** Kardris' Toxic Totem, which three of the four pulls do wear — a trinket that is not this one. */
 const NOT_HYDRA = 104_544;
 
@@ -99,12 +110,18 @@ describe('the aoe list asks for Flame Shock only from a shaman who owns the trin
 		expect(judge(3, {})).toEqual({ wanted: null, verdict: 'unknown' });
 	});
 
-	it('accepts every upgrade step of the trinket, not only the id the fixture happens to wear', () => {
+	it('accepts every upgrade step the shared list declares, not only the id the fixture happens to wear', () => {
 		// A list carrying 96455 alone would pass the fixture rows below and be wrong for every player on a
-		// normal-mode or fully upgraded one.
-		for (const id of [HYDRA_BASE, HYDRA_TOP]) {
+		// normal-mode or fully upgraded one. Driven off `SHARED_ITEM_SOURCES` rather than off two ids named
+		// here, so a variant added to that list has to be honoured by this rung to stay green — which is
+		// the half that makes the two lists one.
+		expect(HYDRA_ITEMS.length).toBeGreaterThan(1);
+		for (const id of HYDRA_ITEMS) {
 			expect(judge(3, { equippedItems: new Set([id]) }).wanted, `item ${id}`).toBe('flame-shock');
 		}
+		// And not vacuous in the other direction: a number beside the fixture's own id is not the trinket,
+		// so the loop above is reading the list and not answering `flame-shock` to everything.
+		expect(judge(3, { equippedItems: new Set([NEAR_MISS]) }).wanted).toBe('chain-lightning');
 	});
 
 	it('leaves bands 1 and 2 alone, where the rung is not the aoe list at all', () => {
@@ -171,7 +188,7 @@ describe('the four committed pulls, read off their own `combatantinfo`', () => {
 			['unbroken', unbroken],
 		] as const) {
 			expect(
-				[HYDRA_BASE, 95_711, 96_083, HYDRA_HEROIC, HYDRA_TOP].some((id) => wears(a, id)),
+				HYDRA_ITEMS.some((id) => wears(a, id)),
 				name,
 			).toBe(false);
 		}

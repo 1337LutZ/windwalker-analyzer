@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { auraWindows } from '~/lib/analysis/auras';
 import { rawFixtures } from '~/lib/analysis/fixtures';
 import { createRegistry } from '~/lib/game/registry';
-import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
+import { SHARED_ABILITIES, SHARED_AURAS, SHARED_ITEM_SOURCES } from '~/lib/game/shared';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse as analyseElemental } from '~/specs/elemental/lib';
 import { analyse as analyseWindwalker } from '~/specs/windwalker';
@@ -372,6 +372,14 @@ describe('the two shared haste bands that can be up at once', () => {
  * player-visible buff for them — the Rune's only item effect there is the hidden `139116` "Item -
  * Attacks Proc Highest Rating" marker, which is the sweep's own finding one table over.
  *
+ * **Two rows are not this table's own transcription, and read `SHARED_ITEM_SOURCES` instead.**
+ * `breath-of-hydra` and `re-origination` are the two whose ids something outside a test joins on — the
+ * Elemental ladder gates `aoe.apl.json` rung 1 on owning the first, and the Windwalker rotation
+ * reference warns on not owning the second — so they live in `game/shared.ts` beside the auras they
+ * grant, and each had a hand-written copy here that could not see the reader's. Deriving them makes
+ * the biconditional below a statement about the list those readers actually use: a variant narrowed
+ * out of it stops matching a committed kit here, where narrowing it used to be silent.
+ *
  * Five shared auras are deliberately outside the table. `blood-fury` and `berserking` are racials,
  * `bloodlust` and `skull-banner` are other players' raid cooldowns: none of the four is gear and none
  * has a slot to be read out of. `synapse-springs` is the one that is gear and still cannot be read,
@@ -387,7 +395,9 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 	// `auraIsKnown(138898)` as owned at three targets and up because nothing here could show otherwise.
 	['wushoolays-lightning', [94_513, 95_669, 96_041, 96_413, 96_785], ['elemental/addsThenBoss.json']],
 	['wushoolays-lightning-stacks', [94_513, 95_669, 96_041, 96_413, 96_785], ['elemental/addsThenBoss.json']],
-	['breath-of-hydra', [94_521, 95_711, 96_083, 96_455, 96_827], ['elemental/addsThenBoss.json']],
+	// Sourced from `game/shared.ts` rather than written out again: `elemental/lib/apl.ts` gates a rung on
+	// owning it, so the ids are a fact a reader outside this file joins on. See `SHARED_ITEM_SOURCES`.
+	['breath-of-hydra', [...SHARED_ITEM_SOURCES['breath-of-hydra']], ['elemental/addsThenBoss.json']],
 	['chayes', [94_531, 95_772, 96_144, 96_516, 96_888], []],
 	['juju-madness', [94_523, 95_665, 96_037, 96_409, 96_781], []],
 	['rampage', [94_519, 95_757, 96_129, 96_501, 96_873], []],
@@ -397,8 +407,10 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 	['feathers-of-fury', [94_515, 95_726, 96_098, 96_470, 96_842], []],
 	['feathers-of-fury-stacks', [94_515, 95_726, 96_098, 96_470, 96_842], []],
 	['cloudburst', [94_514, 95_641, 96_013, 96_385, 96_757], []],
-	// Rune of Re-Origination, and the one row `db.json` cannot source: see the docblock.
-	['re-origination', [94_532, 95_802, 96_174, 96_546, 96_918], ['windwalker/dataset-ironJuggernaut.json']],
+	// Rune of Re-Origination, and the one row `db.json` cannot source: see the docblock. Sourced from
+	// `game/shared.ts` for the same reason the row above is — `windwalker/lib/view/rotationFlow.ts` asks
+	// whether the monk owned it before it will warn that they did not.
+	['re-origination', [...SHARED_ITEM_SOURCES['re-origination']], ['windwalker/dataset-ironJuggernaut.json']],
 
 	// --------------------------------------------------- Siege of Orgrimmar trinkets
 	['wrath-of-darkspear', [102_310, 104_652, 104_901, 105_150, 105_399, 105_648], []],

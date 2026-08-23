@@ -11,6 +11,7 @@
 // to assert. A component cannot be asked what it would render at three targets for a monk who took
 // Rushing Jade Wind without mounting it.
 
+import { SHARED_ITEM_SOURCES } from '~/lib/game/shared';
 import { LADDER_ENTRIES } from '~/specs/windwalker/lib/apl';
 import type { WW_AplRuleKey } from '~/specs/windwalker/lib/apl';
 import type { Band } from '~/lib/spec/apl';
@@ -222,8 +223,17 @@ const TALENT_ROWS: readonly (readonly number[])[] = [
 	[116847, 123904], // 90: Rushing Jade Wind / Invoke Xuen
 ];
 
-/** Every item version that supplies the Rune of Re-Origination in Mists Classic. */
-const RUNE_OF_REORIGINATION_ITEMS = new Set([95802, 94532, 96546, 96174, 96918]);
+/**
+ * Every item version that supplies the Rune of Re-Origination in Mists Classic.
+ *
+ * The five ids are `game/shared.ts`' rather than this module's, on the same argument the `replacedBy`
+ * pairs above are read off the ladder for: a second copy of a fact is the drift this module exists to
+ * prevent, and it had one — `game/__tests__/sharedFixtures.test.ts`' gear census carried the identical
+ * five with no way for either list to see the other. Which ilvl variants an item has is not a fact
+ * about this reference table, and narrowing the set here would silently stop the warning firing for a
+ * monk wearing any step but the one the fixture happens to wear.
+ */
+const RUNE_OF_REORIGINATION_ITEMS = new Set<number>(SHARED_ITEM_SOURCES['re-origination']);
 
 /** Whether the reported gear contains the Rune, or null when gear was not reported at all. */
 export function runeOfReOriginationEquipped(slots: readonly Pick<GearSlot, 'id'>[]): boolean | null {
