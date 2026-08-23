@@ -3930,8 +3930,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// `readTalents` call here would be a second answer to one question, which is the objection
 		// `components/sections/gates.ts` already states about reading the tree twice — and the two answers
 		// would be free to disagree about a pull with no `combatantinfo`. `null` travels through as `null`:
-		// a pull that said nothing about the tree is not a pull with an empty one, and the ladder reads it
-		// as `'unknown'` on a rung whose press could otherwise have settled it.
+		// a pull that said nothing about the tree is not a pull with an empty one, and the ladder falls back
+		// to the press on such a rung rather than withholding the verdict — `knowsTalent` argues why, and
+		// `AplAudit.characterUnread` is how the pull says the event was missing without saying it per press.
 		knownTalents: talents,
 		offLadderCooldowns: { [ASCENDANCE.castIds[0]!]: { cooldownMs: ASCENDANCE_COOLDOWN_MS, casts: ascCasts } },
 		barsRequired: false,

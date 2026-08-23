@@ -145,6 +145,36 @@ export interface AplAudit {
 	 * copy of the ladder that could disagree with it.
 	 */
 	skippedBy: Array<{ key: AplRuleKey; id: number; count: number }>;
+	/**
+	 * True when this walk was handed no character sheet — the log carried no `combatantinfo`.
+	 *
+	 * **One fact about the pull, published once, so the section does not have to infer it from a pile of
+	 * per-press `unknown`s.** Both halves of the sim's `auraIsKnown` are answered off that one event:
+	 * `equippedItems` from its gear array and `knownTalents` from its talent list. When it is missing,
+	 * every rung gated on either is reading a blank, and the presses below them come out unreadable — but
+	 * *why* they are unreadable is not a property of any one press, and `priority.unjudged` counting them
+	 * is the report declining to say the thing it knows.
+	 *
+	 * **The size of it, measured on the four committed pulls with the event stripped out.** The gear half
+	 * is already three-valued, so this is today's behaviour and not a projection: `aoe.apl.json` rung 1
+	 * opens on a trinket, and a pull with no gear array withholds the presses under it — `cleave` goes
+	 * from 0 `unknown` to **40** and `addsThenBoss` from 0 to **112 of 408 globals**. `unbroken` and
+	 * `phased` never leave band 1, where that rung is not in the list, so they stay at 0. Two of the four
+	 * pulls therefore already render a quarter of themselves as "could not be checked" with nothing on
+	 * screen naming the cause. That is what this field is for, and it is earned before any further rung
+	 * turns strict.
+	 *
+	 * **What it is not.** It does not say the walk actually withheld anything: `unbroken` and `phased`
+	 * would set it and lose nothing, because the rungs that read the sheet are out of their band. Tying
+	 * it to a withheld verdict was the tighter design and is the wrong one — the fact a reader needs is
+	 * "the report was not told what you brought", which is true of those two pulls as well, and a flag
+	 * that vanished on the pulls where it happened to cost nothing would be a flag that only appears when
+	 * the reader can already see the damage.
+	 *
+	 * Set from the inputs the spec wired, so a ladder that reads neither — the Windwalker's — never sets
+	 * it, and `undefined` on an audit captured before this existed reads the same way as `false`.
+	 */
+	characterUnread?: boolean;
 }
 
 export interface AplInputs {
@@ -307,9 +337,24 @@ export interface AplInputs {
 	 * nearly every global, and one missing event becomes a verdict withheld on all of them.
 	 *
 	 * And it withholds the wrong thing. "This log carried no `combatantinfo`" is one fact about the pull,
-	 * and rendering it as 125 per-press `unknown`s is the report declining to say the thing it knows. The
-	 * strict arm belongs here once the section has a per-pull disposal to hang it on; until then such a
-	 * log is left with the proxy, exactly where it was before this field existed.
+	 * and rendering it as 125 per-press `unknown`s is the report declining to say the thing it knows. That
+	 * reading stands, and it is now published — `AplAudit.characterUnread` is the per-pull disposal, and
+	 * the gear half had already earned it on its own.
+	 *
+	 * **The strict arm was re-measured behind that disposal and rejected a second time**, on a finding the
+	 * first pass did not have. A note cannot repair the numbers printed above it. At 15 followed / 0
+	 * skipped / 125 unknown, `unbroken`'s section renders a "Followed the priority list" tile reading
+	 * **100%** and the `priority.clean` sentence — *no higher-priority ability was available on any global
+	 * this log could check* — over 15 of its 142 globals. The strict arm's own silence is what produces
+	 * that: with almost every press withheld, the handful left are the ones nothing outranked, so the
+	 * pull reads as flawless precisely because it could not be read. The proxy's complete reading of the
+	 * same pull is 97 / 43 / 0, and the headline it prints is true.
+	 *
+	 * So the two nulls keep their different disposals, and the reason is unchanged and now has a second
+	 * leg under it. The kit has no second witness. The tree's two rungs are a 15s and a 12s cooldown that
+	 * a shaman who took either presses on any pull of length, so the proxy is wrong only where all three
+	 * of "no `combatantinfo`", "took the row" and "never once pressed it" hold at once — and buying that
+	 * corner costs 59% to 88% of every other such pull's verdicts, plus a headline that flatters.
 	 *
 	 * Absent (rather than null) means the spec never wired the field at all, which reads the same way.
 	 */
@@ -738,8 +783,10 @@ function affordable(rule: AplRule, state: State, auras: AuraReader, reduction: n
  * **A log with no talent list is left on the proxy rather than answered `'unknown'`**, which is the one
  * place this departs from the kit's three-valued discipline and the reason it is not `Truth`. The
  * argument and the numbers are at `AplInputs.knownTalents`; the short of it is that a talent has a second
- * witness in the cast stream where a trinket has none, and that the strict arm was measured to silence up
- * to 88% of a pull's globals off one missing event.
+ * witness in the cast stream where a trinket has none, that the strict arm was measured to silence up to
+ * 88% of a pull's globals off one missing event, and that at that silence the section's own headline
+ * turns into a 100% and a "nothing was passed over" — so the per-pull note the strict arm was waiting on
+ * (`AplAudit.characterUnread`) does not rescue it. The note landed; this did not.
  *
  * A spec that supplied no `knownTalents`, or a rung that named no `talentId`, is on the proxy too, so
  * nothing about such a ladder moves — the Windwalker's three talent rungs included.
@@ -943,5 +990,9 @@ export function aplAudit(inputs: AplInputs, ladder: readonly AplRule[]): AplAudi
 		skippedBy: [...skips]
 			.map(([key, count]) => ({ key, id: ladder.find((r) => r.key === key)?.id ?? 0, count }))
 			.sort((a, b) => b.count - a.count),
+		// Wired-and-null, on either half. `undefined` is the spec never having asked the question, which is
+		// not the log declining to answer it — the Windwalker ladder gates no rung on the sheet and must
+		// not start claiming its logs are missing one.
+		characterUnread: inputs.equippedItems === null || inputs.knownTalents === null,
 	};
 }
