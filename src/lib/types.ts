@@ -982,6 +982,32 @@ export interface TargetSummary {
 	 */
 	counts: ResourceCurve;
 	/**
+	 * The same count with the spec's own area damage taken out — the series the priority list bands on.
+	 *
+	 * Two series, because the two questions are different and this project has already shipped one
+	 * consumer reading the wrong one. `counts` above is the **evidence**: was there an enemy there.
+	 * This is the **ladder's**: which rung of the priority list applied. They differ by
+	 * `SpecConfig.aplTargetCountExclude` — the damage a spec may not use to establish multi-target
+	 * evidence *for itself*, which today is the Windwalker's Rushing Jade Wind and nothing else. The
+	 * exclusion exists so a button cannot justify itself on the ladder; it is not a claim that the
+	 * enemies were imaginary, which is why `counts`, `multiTargetPct` and `detected` keep every hit.
+	 *
+	 * The rule, in one line: **a question about which rung applied reads this one; a question about
+	 * whether there was an enemy there reads `counts`.** `view/targetMode.bandsInPull` and the
+	 * Windwalker's `tigerPalmShare` are both band questions and both read this field.
+	 *
+	 * Optional, and the fallback is `counts` rather than an empty series. Every committed fixture is
+	 * captured `analyse()` output from before this field existed and is cast to `Analysis` rather than
+	 * migrated, so on a fixture it arrives as `undefined` — and an empty series read as "the ladder
+	 * never saw an enemy" would band every one of those pulls at 1 by accident. Falling back to
+	 * `counts` reproduces exactly the behaviour those fixtures were captured under, which is what makes
+	 * this a correctness change that moves no committed number. `analyse()` always fills it in.
+	 *
+	 * For a spec that declares no exclusion — every Elemental fixture — this is the same series as
+	 * `counts`, point for point, by construction.
+	 */
+	aplCounts?: ResourceCurve;
+	/**
 	 * Time spent damaging two or more enemies, and its share of the time anything was being damaged.
 	 *
 	 * Contact time is the denominator, not engaged time and not pull length: engaged time is the boss's

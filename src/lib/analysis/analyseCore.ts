@@ -1458,18 +1458,24 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		// intermissions against — the spec's audit merges its own presses and lanes over this.
 		timeline: { deaths, contactSegments: contact, cancels, hasteWindows, berserkingWindows },
 		lostCasts,
-		// **The published series is `targetPoints` — the evidence one, not the ladder's.** For a spec with
-		// no `aplTargetCountExclude` they are the same array and this says nothing; for one that declares an
-		// exclusion the ladder is banding on `aplTargetPoints` and this is a different number, so a reader
-		// who wants the count *the priority list saw* cannot get it from here. Nothing on `Analysis` carries
-		// the APL series today, which is why `view/targetMode`'s `bandsInPull` and the Windwalker's
-		// `tigerPalmShare` — both band questions — read this one. See `multiTargetWindows` above for the
-		// split, and `aoeWindows` for the rule about which side a band question belongs on.
+		// **Both series are published, because both questions are asked downstream.** `counts` is
+		// `targetPoints`, the evidence one — what the target-count section draws, and the half of
+		// `multiTargetPct` a reader can see. `aplCounts` is `aplTargetPoints`, the one the ladder bands on.
+		// For a spec with no `aplTargetCountExclude` they are the same array and the second says nothing;
+		// for one that declares an exclusion they are different numbers, and a band question that read the
+		// first would be scoring a rung the priority list never presented. `view/targetMode`'s
+		// `bandsInPull` and the Windwalker's `tigerPalmShare` are the two band questions, and they read
+		// `aplCounts`. See `multiTargetWindows` above for the split, and `aoeWindows` for the rule about
+		// which side a band question belongs on.
 		targets: {
 			windowMs: spec.thresholds.targetWindowMs,
 			counts: {
 				max: targetPoints.reduce((most, [, count]) => Math.max(most, count), 0),
 				points: targetPoints,
+			},
+			aplCounts: {
+				max: aplTargetPoints.reduce((most, [, count]) => Math.max(most, count), 0),
+				points: aplTargetPoints,
 			},
 			multiTargetMs,
 			multiTargetPct,

@@ -142,10 +142,26 @@ export function defensiveUseTone(used: number, possible: number): Grade | null {
  */
 function tigerPalmShare(filler: FillerAudit, targets: TargetSummary | undefined): Measured {
 	if (filler.castList.length !== filler.casts) return shareOf(filler.wasted, filler.casts);
-	// Zero before the first counted hit, and `bandOf` reads zero as band 1 — so a pull with no counts at
-	// all (every fixture captured before they existed) keeps every press, which is the reading that
-	// grades everything rather than the one that excuses everything.
-	const enemiesAt = countAt(targets?.counts.points ?? []);
+	// **`aplCounts` — the ladder's series — and not `counts` beside it.** This narrows a press sample by
+	// band, so it is a question about which rung of the priority list applied, and that question reads
+	// the series the ladder was handed. The difference is the spec's own area damage, which for this spec
+	// is Rushing Jade Wind: on a pull whose only fan-out is the wind, the evidence series reads three and
+	// the ladder reads none, and `bandOf(0)` is 1 — so the ladder spent that stretch in its single-target
+	// branch, asking for exactly the filler this rule is about.
+	//
+	// **And the direction it was wrong in is the one that matters.** Read off `counts`, a press made
+	// while the wind was fanning into a pack leaves the sample entirely — numerator and denominator — so
+	// a monk who clipped a healthy Tiger Power all through an add wave has those presses excused and
+	// grades on whatever is left. That is excusing more, not judging more: `targetSeries.aplBands.test.ts`
+	// holds the pull where it is 0% waste under the old reading and 67% under this one, on one set of
+	// events. The exclusion exists so the wind cannot justify *itself* on the ladder; it was never a
+	// claim that the enemies stopped being there, and least of all a reason to stop counting presses.
+	//
+	// Falls back to `counts` when `aplCounts` is absent, and zero before the first counted hit with
+	// `bandOf` reading zero as band 1 — so a pull with no counts at all (every fixture captured before
+	// they existed) keeps every press, which is the reading that grades everything rather than the one
+	// that excuses everything.
+	const enemiesAt = countAt(targets?.aplCounts?.points ?? targets?.counts.points ?? []);
 	const presses = filler.castList.filter((press) => appliesAt(THRESHOLDS.tigerPalmWaste, bandOf(enemiesAt(press.t))));
 	return shareOf(presses.filter((press) => press.reason === 'wasted').length, presses.length);
 }

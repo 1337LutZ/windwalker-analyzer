@@ -79,18 +79,45 @@ export function bandForMode(mode: TargetMode | null): Band | null {
 /**
  * Every band the pull's counts actually visited.
  *
- * Off `TargetSummary.counts`, which is already a trailing-window count — so one point is a window of
- * that many enemies rather than an instant, and a band in this set was held for long enough to be
- * counted at all. No dwell floor on top of that, deliberately: it would be an invented threshold, and
- * it would push in the dangerous direction. A generous set makes a rule *harder* to exempt (the
- * intersection stays non-empty and the clock is cut stretch by stretch instead), and erring towards
- * judging too much is recoverable in a way that erring towards excusing is not.
+ * **Off `TargetSummary.aplCounts` — the ladder's series — and not `counts` beside it.** This answers
+ * "does this rung of the priority list apply anywhere in this pull" (see `BandView.bands`, and
+ * `gradedBands`, the only thing that consumes the answer), and by the rule the two series were
+ * separated under, a question about which rung applied reads the ladder's series. The evidence series
+ * answers a different question — was there an enemy there — and `detected`, `multiTargetPct` and the
+ * whole-pull mode the weights ride on all still read that one, correctly.
+ *
+ * **Why the swap, given that the evidence series is the more generous reading.** It is, and the
+ * generous direction is the safe one — that argument is made below about dwell floors and it stands.
+ * But it is an argument against inventing a *threshold*, not a licence to read a different
+ * measurement. `aplCounts` is not a stingier `counts`; it is the count the ladder was actually handed,
+ * and a rule graded at a band the ladder never presented is a fault invented for not pressing a button
+ * the priority list did not ask for. Two further reasons it is this way round:
+ *
+ *   - **The two band consumers have to agree.** The Windwalker's `tigerPalmShare` narrows its press
+ *     sample with the same vocabulary at the same instants. Reading one series here and the other there
+ *     lets the exemption and the sample argue about the same moment — the failure `resolveBands` below
+ *     already names about the grade and the weights.
+ *   - **It costs no exemption on anything in the tree.** Only the Windwalker declares an exclusion, and
+ *     its only banded rule is `tigerPalmWaste`'s `bands: [1]`. `bandOf(0)` is 1, so a stretch the
+ *     exclusion empties still reports band 1 and the intersection stays non-empty either way. Every
+ *     Elemental declaration is on a spec with no exclusion, where the two series are the same array. So
+ *     this closes the mismatch without moving a grade.
+ *
+ * Falls back to `counts` when `aplCounts` is absent — every fixture captured before that field existed
+ * — which is what keeps their band sets exactly what they were captured under.
+ *
+ * Either series is already a trailing-window count — so one point is a window of that many enemies
+ * rather than an instant, and a band in this set was held for long enough to be counted at all. No
+ * dwell floor on top of that, deliberately: it would be an invented threshold, and it would push in the
+ * dangerous direction. A generous set makes a rule *harder* to exempt (the intersection stays non-empty
+ * and the clock is cut stretch by stretch instead), and erring towards judging too much is recoverable
+ * in a way that erring towards excusing is not.
  *
  * Null for a pull with no counts at all — every fixture captured before they existed. Not the empty
  * array: see `BandView.bands`.
  */
 export function bandsInPull(targets: TargetSummary | undefined): readonly Band[] | null {
-	const points = targets?.counts.points ?? [];
+	const points = targets?.aplCounts?.points ?? targets?.counts.points ?? [];
 	if (points.length === 0) return null;
 	const seen = new Set<Band>(points.map(([, enemies]) => bandOf(enemies)));
 	return [...seen].sort((a, b) => a - b);
