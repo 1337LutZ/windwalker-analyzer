@@ -16,7 +16,7 @@
 // pull simply is not looked at.
 //
 // **Why the two shapes are classified rather than filtered.** Both `__fixtures__` directories hold
-// `.json` under one extension and two entirely different types. `specs/elemental/__fixtures__` is three
+// `.json` under one extension and two entirely different types. `specs/elemental/__fixtures__` is four
 // raw `FightDataset`s; `specs/windwalker/__fixtures__` is one raw dataset and six captured `Analysis`
 // objects, because that spec's capture harness writes `analyse()`'s *output* rather than its input. A
 // raw dataset has `events` and an `actor`; a capture has neither, and carries `casts` and an `actorID`

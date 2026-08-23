@@ -19,13 +19,30 @@
 // **The clip closed the clock half and left the subject half, and that half is now a row too.** Clipped,
 // the dot's row was still the *primary target's* while the tile's numerator is the dot on whichever spawn
 // was being hit, so on `cleave` it read 160 293ms against 150 023. Sourcing green from `contactWindows`
-// instead was measured and refused: that array sits wholly inside the clipped row, so the swap would have
-// deleted 10 270ms of real primary-target dot time inside the graded clock. Green is now that array and
-// the difference is a fifth row of its own — the dot up, graded, on an enemy the player had left.
+// instead was measured and refused *on the three pulls then committed*: on each of them that array sits
+// wholly inside the clipped row, so the swap would have deleted 10 270ms of real primary-target dot time
+// inside the graded clock. Green is now that array and the difference is a fifth row of its own — the dot
+// up, graded, on an enemy the player had left.
+//
+// **And then the containment turned round, which is the defect this file most recently carried.** Green
+// became `contactWindows` and the *red* row stayed the complement of `flameShock.windows` — the primary
+// target's dot. On `addsThenBoss` the primary is on a tower for seven minutes and cannot be dotted, so
+// `windows` is one late 118 198ms span while the numerator is 71 spans totalling 240 421ms, and **146 615ms
+// of green was painted red underneath itself**: the up and down rows overlapped by that much, the three
+// claim rows summed to 472 922ms of a 326 307ms clock, and the chart drew under half the uptime its own
+// tile reported. Red is now the complement of *both* series, and `up + elsewhere + dropped` is the graded
+// clock again on all four pulls.
+//
+// **That is why the grid below is discovered and not listed.** The three assertions this file makes were
+// each written "on every pull" and each spelled `['phased', 'unbroken', 'cleave']`, and `addsThenBoss.json`
+// landed without any of them being re-asked — the same mechanism, and the same fixture, that
+// `uptimeSpan.test.ts` documents at its own `FIXTURES`. The pull that broke the partition is the one pull
+// the grid never ran.
 //
 // What is asserted below is that the four rows partition the pull with no pair overlapping, that the aura
-// survives the split whole, that the up row **is** its tile's numerator to the millisecond on both charts,
-// and that the 0 / 0 / 10 270 the residual used to be is now the size of the row that carries it.
+// survives the split whole — restated as the union of *both* dot series, because on a multi-spawn pull it
+// is no longer `uptimeMs` — that the up row **is** its tile's numerator to the millisecond on both charts,
+// and that the 0 / 0 / 10 270 / 9 150 the residual used to be is now the size of the row that carries it.
 //
 // `createElement` rather than JSX so this stays a `.ts` file and is picked up by the project's own vitest
 // include patterns; the `WindowTracks` mock is the seam, as in `charts/__tests__/exemptTrack.test.ts`.
@@ -36,6 +53,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
@@ -79,8 +97,26 @@ const rowOf = (rows: readonly Track[], label: string): Interval[] =>
 const exemptOf = (rows: readonly Track[], uncountedLabel: string): Interval[] =>
 	rows.filter((r) => r.tone === EXEMPT && r.label !== uncountedLabel).flatMap((r) => spans(r.windows));
 
-const fixtures = { phased: elemental('phased'), unbroken: elemental('unbroken'), cleave: elemental('cleave') };
-const names = ['phased', 'unbroken', 'cleave'] as const;
+/**
+ * Every raw Elemental pull, found rather than listed — and the analysis memoised, the way
+ * `specs/elemental/lib/__tests__/uptimeSpan.test.ts` does it for the same two reasons.
+ *
+ * The literal this replaced (`['phased', 'unbroken', 'cleave']`) stopped being the committed set when
+ * `addsThenBoss.json` landed, and every claim in this file is of the form "on every pull". Two of the three
+ * loops were true of the fourth pull anyway; the partition was not, and a list is a claim nobody re-asks
+ * when the directory grows. The cache is not tidiness either: `addsThenBoss.json` is 4.4 MB and the loops
+ * below render both charts several times over.
+ */
+const names = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
+const analysed = new Map<string, El>();
+const fx = (name: string): El => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = elemental(name);
+	analysed.set(name, el);
+	return el;
+};
 
 /** The two charts, described by the four things this file needs to know about each of them. */
 const charts = [
@@ -98,8 +134,21 @@ const charts = [
 		 */
 		elsewhere: 'Dot up on an enemy you left' as string | null,
 		uncounted: 'Dot up, not measured',
-		/** The array the row is cut from, and the length of the clock it is cut to. */
-		drawnMs: (a: El) => unionMs(a.flameShock.windows.map((w): Interval => [w.start, w.end])),
+		/**
+		 * **Every second either published series says the aura was up**, and the length of the clock the rows
+		 * are cut to.
+		 *
+		 * The union of two arrays and not one, because the dot has two: `flameShock.windows` is the primary
+		 * target's and `contactWindows` is the numerator's, and neither contains the other across the committed
+		 * set — `cleave`'s numerator sits inside the primary's dot, `addsThenBoss`' overruns it by 146 615ms.
+		 * `uptimeMs` was the right-hand side of the aura identity while green was cut from `windows`; the moment
+		 * green became the numerator it stopped being, and the three up-ish rows sum to this instead.
+		 */
+		auraMs: (a: El) =>
+			unionMs([
+				...a.flameShock.windows.map((w): Interval => [w.start, w.end]),
+				...a.flameShock.contactWindows.map((w): Interval => [w.start, w.end]),
+			]),
 		scoredMs: (a: El) => a.flameShock.scoredMs,
 		/** The tile's own numerator — the figure the up row must now equal to the millisecond. */
 		numeratorMs: (a: El) => a.flameShock.contactUptimeMs,
@@ -112,7 +161,8 @@ const charts = [
 		down: 'Totem down',
 		elsewhere: null as string | null,
 		uncounted: 'Totem up, not measured',
-		drawnMs: (a: El) => unionMs(a.searingTotem.windows.map((w): Interval => [w.start, w.end])),
+		// One series, so the union of "every series" is that array — and the identity is the one it always was.
+		auraMs: (a: El) => unionMs(a.searingTotem.windows.map((w): Interval => [w.start, w.end])),
 		scoredMs: (a: El) => a.searingTotem.scoredMs,
 		numeratorMs: (a: El) => a.searingTotem.uptimeMs,
 		pct: (a: El) => a.searingTotem.uptimePct,
@@ -123,7 +173,7 @@ describe('the up row is the clock the percentage is taken over', () => {
 	/**
 	 * The identity, and the strongest guard in this file: the **four** rows — up and counted, up on an enemy
 	 * the player had left, down, and the grounds — partition the pull. Nothing overlaps and nothing is
-	 * missing, on either chart, on all three fixtures.
+	 * missing, on either chart, on every committed pull.
 	 *
 	 * Before the clip this was false by exactly the size of the gap — the up row overlapped the grounds, so
 	 * the rows summed to more than the pull (337 947ms of a 263 233ms `cleave` on the dot chart). It was
@@ -133,10 +183,18 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 * of the pull by the same amount. Measured, not asserted from the shape: that substitution fails five
 	 * of the fifteen cases in this file, and this one first.
 	 *
-	 * Every pair is checked, all six of them, because the sums alone survive an equal-and-opposite overlap.
+	 * **And it was false again the moment green stopped being cut from `flameShock.windows`, on the one pull
+	 * this grid did not run.** Green became the numerator and red stayed the primary dot's complement, so on
+	 * `addsThenBoss` the two rows overlapped by 146 615ms and the three claim rows summed to 472 922ms of a
+	 * 326 307ms clock — 145% of its own denominator, and 706 876ms of a 560 261ms pull. `cleave` cannot see
+	 * it: its numerator sits inside its primary dot, so red is the same array either way and all fifteen of
+	 * the old cases stayed green. That is why this grid is `rawFixtures` and not a literal.
+	 *
+	 * Every pair is checked, all six of them, because the sums alone survive an equal-and-opposite overlap —
+	 * and `up`/`down` is the pair that caught this one.
 	 */
 	it.each(names)('draws up, elsewhere, down and the grounds as a partition of %s', (name) => {
-		const analysis = fixtures[name];
+		const analysis = fx(name);
 		for (const c of charts) {
 			const rows = rowsOf(createElement(c.chart, { analysis }));
 			const up = rowOf(rows, c.up);
@@ -162,19 +220,21 @@ describe('the up row is the clock the percentage is taken over', () => {
 
 	/**
 	 * The question the whole file exists for, and the answer the Searing Totem chart already gave: **the up
-	 * row is the tile's percentage's own numerator, to the millisecond, on both charts and all three
-	 * fixtures.**
+	 * row is the tile's percentage's own numerator, to the millisecond, on both charts and every committed
+	 * pull.**
 	 *
-	 * The dot's used to be 10 270ms over on `cleave`, and the fix was not to clip it — `contactWindows` sits
-	 * wholly inside the old row, so clipping would have deleted real primary-target dot time inside the
-	 * graded clock. Green is now the published numerator array itself and the difference is the `elsewhere`
-	 * row, so the two claims are one claim.
+	 * The dot's used to be 10 270ms over on `cleave`, and the fix was not to clip it — on that pull
+	 * `contactWindows` sits wholly inside the old row, so clipping would have deleted real primary-target dot
+	 * time inside the graded clock. Green is now the published numerator array itself and the difference is
+	 * the `elsewhere` row, so the two claims are one claim. This assertion held on `addsThenBoss` throughout
+	 * the overlap defect and is exactly why the defect was invisible from here: green was already right, and
+	 * it was red that had been left behind on the other series.
 	 *
 	 * The ratio is asserted as well as the length, because a numerator that matches over a denominator the
 	 * chart cut differently is the mismatched-halves defect this section has produced twice.
 	 */
 	it.each(names)('draws the tile’s own numerator as its up row on %s', (name) => {
-		const analysis = fixtures[name];
+		const analysis = fx(name);
 		for (const c of charts) {
 			const rows = rowsOf(createElement(c.chart, { analysis }));
 			const up = unionMs(rowOf(rows, c.up));
@@ -192,9 +252,15 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 * Three rows on the dot chart now, not two — up and counted, up on an enemy the player had left, and up
 	 * outside the clock — and this is the assertion that catches a re-partition that lost a millisecond
 	 * somewhere in the middle. On the totem chart the middle row does not exist and the sum is the same.
+	 *
+	 * **The right-hand side is the union of both dot series and not `uptimeMs`.** It used to be the latter,
+	 * and it was right while green was cut from `windows`; once green became the numerator the three rows
+	 * cover `windows ∪ contactWindows`, which is `uptimeMs` only where the numerator is inside the primary's
+	 * dot. On `addsThenBoss` it is 118 198 + 146 615 = 264 813ms, and pinning `uptimeMs` there would fail a
+	 * correct chart — the second remainder of the re-partition, restated as an identity rather than dropped.
 	 */
 	it.each(names)('keeps the unmeasured half of the aura as a row of its own on %s', (name) => {
-		const analysis = fixtures[name];
+		const analysis = fx(name);
 		for (const c of charts) {
 			const rows = rowsOf(createElement(c.chart, { analysis }));
 			const up = rowOf(rows, c.up);
@@ -203,8 +269,9 @@ describe('the up row is the clock the percentage is taken over', () => {
 			const exempt = exemptOf(rows, c.uncounted);
 			const label = `${c.name} on ${name}`;
 
-			// Nothing about the aura is lost: the rows together are the array the audit published.
-			expect(unionMs(up) + unionMs(elsewhere) + unionMs(uncounted), label).toBe(c.drawnMs(analysis));
+			// Nothing about the aura is lost: the rows together are every second either published series says it
+			// was up. Equality, not containment — a bound here would have passed a row that drew half of it.
+			expect(unionMs(up) + unionMs(elsewhere) + unionMs(uncounted), label).toBe(c.auraMs(analysis));
 			// It is time the denominator dropped, so it sits inside the grounds and adds nothing to their union
 			// — which is why the `durationMs - scoredMs` identity in `exemptTrack.test.ts` is untouched by it.
 			expect(unionMs(intersect(uncounted, exempt)), label).toBe(unionMs(uncounted));
@@ -215,16 +282,22 @@ describe('the up row is the clock the percentage is taken over', () => {
 	});
 
 	/**
-	 * **The 0 / 0 / 10 270 pin, kept and turned the right way round.** It used to measure how far the green
-	 * row overshot the tile's numerator; it now measures the row that difference became. The three numbers
-	 * are the same three numbers, which is the point of not letting them go to zero: they are the guard that
-	 * made this findable, and a guard reading `0` on every fixture guards nothing.
+	 * **The 0 / 0 / 10 270 pin, kept and turned the right way round — and grown to 9 150 on the fourth pull.**
+	 * It used to measure how far the green row overshot the tile's numerator; it now measures the row that
+	 * difference became. The numbers are the same numbers, which is the point of not letting them go to zero:
+	 * they are the guard that made this findable, and a guard reading `0` on every fixture guards nothing.
 	 *
 	 * What the row *is*, verified from the audit's own walk rather than inferred from the subtraction: on
 	 * `cleave` all 10 270ms of it lie inside `contactSegments` and inside the graded clock, and every
 	 * millisecond is owned by a landed hit on a **non-primary** spawn — never the boss, and never the
 	 * stretch before the first hit. So the dot was up on the primary target while the player was hitting
 	 * something that did not have it, which is what the row is named.
+	 *
+	 * `addsThenBoss` is the same state on a pull whose primary spends seven minutes untargetable: 20 spans,
+	 * 9 150ms, the primary's late dot overlapping contact with a spawn that had none. **It is the small half
+	 * of that pull's disagreement and always was** — the large half runs the other way, 146 615ms of numerator
+	 * on spawns the primary-keyed array never sees, and it is pinned below rather than here because it is not
+	 * this row. Sizing the re-partition off this figure alone would have missed it by a factor of sixteen.
 	 *
 	 * Both zeroes are load-bearing rather than inert. `phased` and `unbroken` have one spawn each, so "the
 	 * enemy being hit" and "the primary target" are the same enemy and this row *cannot* exist — while their
@@ -233,11 +306,12 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 * being about contact.
 	 */
 	it.each([
+		['addsThenBoss', 9_150],
+		['cleave', 10_270],
 		['phased', 0],
 		['unbroken', 0],
-		['cleave', 10_270],
 	] as const)('draws the per-spawn residual as its own row on %s', (name, residualMs) => {
-		const analysis = fixtures[name];
+		const analysis = fx(name);
 		const rows = rowsOf(createElement(FlameShockUptime, { analysis }));
 		const up = rowOf(rows, 'Dot up');
 		const elsewhere = rowOf(rows, 'Dot up on an enemy you left');
@@ -276,7 +350,7 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 * time, so it is the only one where the clock half of the gap is visible at all.
 	 */
 	it('pins the sizes of the gap on cleave', () => {
-		const { cleave } = fixtures;
+		const cleave = fx('cleave');
 		expect(cleave.flameShock.uptimeMs).toBe(235_007); // the whole dot on the primary target, unclipped
 		expect(cleave.flameShock.contactUptimeMs).toBe(150_023); // the tile's numerator
 		const dot = rowsOf(createElement(FlameShockUptime, { analysis: cleave }));
@@ -289,23 +363,120 @@ describe('the up row is the clock the percentage is taken over', () => {
 	});
 
 	/**
+	 * **Both remainders, per pull, and the row each one ends up in.**
+	 *
+	 * The two published dot series disagree in two directions and the re-partition has to place both, which
+	 * is the thing the old three-name grid could not say because on all three of its pulls one direction was
+	 * empty:
+	 *
+	 *   - **`outsideMs`** — numerator the primary-keyed array never sees, `contactWindows` less its overlap
+	 *     with `flameShock.windows`. Zero on three pulls and **146 615ms** on `addsThenBoss`. It belongs to
+	 *     green, because it is the tile's own numerator; the defect was that red claimed it as well.
+	 *   - **`elsewhereMs`** — the primary's dot inside the graded clock that the numerator does not count.
+	 *     **10 270ms** on `cleave`, **9 150ms** on `addsThenBoss`, zero on the two single-spawn pulls. It
+	 *     belongs to the `missSoft` row.
+	 *
+	 * Red is then the graded clock less both of the up-ish claims, and that subtraction is asserted here as
+	 * the closing identity rather than as a pinned literal per pull — `226 113` and friends move with a
+	 * fixture recapture, the identity does not. The one literal is `addsThenBoss`' red row, pinned because
+	 * the number the chart used to draw there (223 351ms) is exactly this plus `outsideMs`, and keeping both
+	 * visible is what stops the fix reading as a renumbering.
+	 *
+	 * **The negative remainder is sixteen times the positive one on the pull that has both**, which is the
+	 * argument against sizing any of this off `cleave`.
+	 */
+	it.each([
+		['addsThenBoss', 146_615, 9_150],
+		['cleave', 0, 10_270],
+		['phased', 0, 0],
+		['unbroken', 0, 0],
+	] as const)('places both remainders between the up rows on %s', (name, outsideMs, elsewhereMs) => {
+		const analysis = fx(name);
+		const fs = analysis.flameShock;
+		const drawnSpans = spans(fs.windows.map((w): Interval => [w.start, w.end]));
+		const numerator = spans(fs.contactWindows.map((w): Interval => [w.start, w.end]));
+		const rows = rowsOf(createElement(FlameShockUptime, { analysis }));
+		const up = rowOf(rows, 'Dot up');
+		const elsewhere = rowOf(rows, 'Dot up on an enemy you left');
+		const down = rowOf(rows, 'Dot down');
+		const uncounted = rowOf(rows, 'Dot up, not measured');
+
+		// The two remainders, measured off the published arrays and not off the rows they end up in.
+		expect(unionMs(numerator) - unionMs(intersect(numerator, drawnSpans)), name).toBe(outsideMs);
+		expect(unionMs(elsewhere), name).toBe(elsewhereMs);
+
+		// Where the negative one goes: wholly inside green, and nowhere near red. The second line is the whole
+		// defect as an identity — red used to hold all 146 615ms of it, and a `toBeGreaterThan` would not care.
+		expect(unionMs(intersect(up, numerator)), name).toBe(unionMs(numerator));
+		expect(unionMs(intersect(down, numerator)), name).toBe(0);
+		// Non-vacuity: every pull keeps the dot up for minutes, so neither side of those two is an empty set.
+		expect(unionMs(numerator), name).toBeGreaterThan(0);
+		expect(unionMs(drawnSpans), name).toBeGreaterThan(0);
+
+		// And the closing identity: red is the graded clock less both up-ish claims, so the three claim rows
+		// are that clock exactly. Stated as a subtraction rather than a literal so a recapture moves with it.
+		expect(unionMs(down), name).toBe(fs.scoredMs - unionMs(up) - unionMs(elsewhere));
+		// The aura's own total, which is where `outsideMs` shows up a second time: `uptimeMs` plus it.
+		expect(unionMs(up) + unionMs(elsewhere) + unionMs(uncounted), name).toBe(fs.uptimeMs + outsideMs);
+	});
+
+	/**
+	 * The fourth pull's own numbers, pinned — the pull the defect was found on, and the only one that moves.
+	 *
+	 * `flameShock.windows` is **one** span of 118 198ms because the primary target is on a tower and cannot be
+	 * dotted for seven minutes, while the numerator is 71 spans of 240 421ms taken on whichever spawn was
+	 * being hit. Red drawn as that one span's complement came to 223 351ms, of which 146 615ms was green
+	 * repainted underneath itself; drawn as the complement of both series it is 76 736ms. The two figures are
+	 * pinned together because their difference *is* the defect, and a single number would read as a recapture.
+	 *
+	 * Nothing else on this pull moves, which is the other half of the pin: the tile's numerator, the graded
+	 * clock, the published percentage and the two grounds rows are all what they were.
+	 */
+	it('pins the re-partitioned rows on addsThenBoss', () => {
+		const analysis = fx('addsThenBoss');
+		const fs = analysis.flameShock;
+		expect(fs.windows).toHaveLength(1);
+		expect(fs.uptimeMs).toBe(118_198); // the whole dot on the primary target, unclipped
+		expect(fs.contactWindows).toHaveLength(71);
+		expect(fs.contactUptimeMs).toBe(240_421); // the tile's numerator
+		expect(fs.scoredMs).toBe(326_307);
+
+		const rows = rowsOf(createElement(FlameShockUptime, { analysis }));
+		expect(unionMs(rowOf(rows, 'Dot up'))).toBe(240_421);
+		expect(unionMs(rowOf(rows, 'Dot up on an enemy you left'))).toBe(9_150);
+		// 223 351 before, and the 146 615ms difference is the green row it was drawn over.
+		expect(unionMs(rowOf(rows, 'Dot down'))).toBe(76_736);
+		expect(76_736 + 146_615).toBe(223_351);
+		expect(unionMs(rowOf(rows, 'Dot up, not measured'))).toBe(15_242);
+		// The grounds, unmoved: this was never an arithmetic defect.
+		expect(unionMs(rowOf(rows, 'Nothing to hit'))).toBe(7_841);
+		expect(unionMs(rowOf(rows, 'Three or more enemies'))).toBe(226_113);
+		expect(fs.uptimePct).toBeCloseTo(73.679_387_815_768_58, 9);
+	});
+
+	/**
 	 * A no-change guard, labelled: `phased`'s totem never ticks outside its own clock, so that chart may not
-	 * grow a row there. The dot chart *does* grow one on all three fixtures, which is the point about the
+	 * grow a row there. The dot chart *does* grow one on every committed pull, which is the point about the
 	 * gap predating the add-wave cut, stated from the other side.
 	 */
 	it('grows no unmeasured row where the aura never left the clock', () => {
-		const { phased } = fixtures;
+		const phased = fx('phased');
 		const totem = rowsOf(createElement(SearingTotemUptime, { analysis: phased })).map((r) => r.label);
 		expect(totem).not.toContain('Totem up, not measured'); // no-change guard
 		for (const name of names) {
-			const dot = rowsOf(createElement(FlameShockUptime, { analysis: fixtures[name] })).map((r) => r.label);
+			const dot = rowsOf(createElement(FlameShockUptime, { analysis: fx(name) })).map((r) => r.label);
 			expect(dot, name).toContain('Dot up, not measured');
 		}
 	});
 
 	/**
-	 * And the mirror of it for the fifth row: it is drawn only where the pull had another enemy to be on,
-	 * so it appears on `cleave` alone and never on a chart that cannot have it.
+	 * And the mirror of it for the fifth row: it is drawn only where the pull had another enemy to be on, so
+	 * it appears on the two multi-spawn pulls and never on a chart that cannot have it.
+	 *
+	 * The condition is `targets.counts.max`, re-read per pull rather than the fixture's name. It used to be
+	 * `name === 'cleave'` on a three-name literal, and `addsThenBoss` has nine enemies at its peak: written
+	 * as a name this would have asserted the row *absent* on a pull that draws 9 150ms of it, so the grid
+	 * growing would have turned a stale premise into a false one rather than into a red test.
 	 *
 	 * Gated rather than drawn empty for the reason `exemptTrack.test.ts` gives about the AoE row: an empty
 	 * row reads as a rendering fault, and it is also what keeps that file's pinned row list for `phased`
@@ -314,9 +485,10 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 */
 	it('draws the per-spawn row only where another enemy was being hit', () => {
 		for (const name of names) {
-			const rows = rowsOf(createElement(FlameShockUptime, { analysis: fixtures[name] }));
+			const analysis = fx(name);
+			const rows = rowsOf(createElement(FlameShockUptime, { analysis }));
 			const row = rows.find((r) => r.label === 'Dot up on an enemy you left');
-			if (name === 'cleave') {
+			if ((analysis.targets?.counts.max ?? 1) > 1) {
 				expect(row?.tone, name).toBe('missSoft');
 				expect(row?.widen, name).toBe(false);
 			} else {
@@ -325,7 +497,7 @@ describe('the up row is the clock the percentage is taken over', () => {
 		}
 		// Never the exempt tone on any pull: the grounds are time the denominator dropped and this is not.
 		for (const name of names) {
-			const rows = rowsOf(createElement(FlameShockUptime, { analysis: fixtures[name] }));
+			const rows = rowsOf(createElement(FlameShockUptime, { analysis: fx(name) }));
 			expect(
 				rows.filter((r) => r.tone === EXEMPT).map((r) => r.label),
 				name,

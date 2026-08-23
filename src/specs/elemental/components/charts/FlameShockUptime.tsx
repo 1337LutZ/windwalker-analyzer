@@ -58,12 +58,45 @@ import WindowTracks from '~/components/charts/WindowTracks';
  *
  * That residual is now a row rather than a discrepancy, and the shape of the fix is a **re-partition and
  * not a substitution**. `84d41f8` published `contactWindows` — the numerator's own spans, union exactly
- * `contactUptimeMs` — and simply sourcing green from it was measured and refused: `contactWindows` sits
- * *wholly inside* the clipped row, so swapping the source would have deleted 10 270ms of dot the player
- * really did have on the primary target *inside the graded clock*, which is `8e011ac`'s rule — an
- * unmeasured figure is not a deleted one — pointed the other way. So green becomes the published
- * numerator and the difference becomes a row of its own: `flameShock.track.elsewhere`, the dot up inside
- * the graded clock on an enemy the player had left.
+ * `contactUptimeMs` — and simply sourcing green from it was measured and refused: on `cleave`
+ * `contactWindows` sits *wholly inside* the clipped row, so swapping the source would have deleted
+ * 10 270ms of dot the player really did have on the primary target *inside the graded clock*, which is
+ * `8e011ac`'s rule — an unmeasured figure is not a deleted one — pointed the other way. So green becomes
+ * the published numerator and the difference becomes a row of its own: `flameShock.track.elsewhere`, the
+ * dot up inside the graded clock on an enemy the player had left.
+ *
+ * **And then the containment turned round, which is what red was left behind by.** "`contactWindows` sits
+ * wholly inside the clipped row" is a fact about the three pulls then committed, and `addsThenBoss` is not
+ * one of them. Its primary target is on a tower for seven minutes and cannot be dotted, so
+ * `flameShock.windows` is a **single** late span of 118 198ms while the numerator is **71** spans totalling
+ * 240 421ms, taken on whichever of the six other spawns the player was actually hitting. Green moved to the
+ * numerator; red stayed the complement of `windows`. So **146 615ms of green was painted red underneath
+ * itself** — the up and down rows overlapped by that much, the three claim rows summed to 472 922ms of a
+ * 326 307ms clock, and the chart drew *under half* the uptime its own tile reported. On the three pulls that
+ * do contain, red is the same array either way, which is why nothing went red until the fourth pull was
+ * asked.
+ *
+ * **The fix is the complement of both series, and both remainders are placed.** Red is now
+ * `graded − (windows ∪ contactWindows)`: the graded clock less every second either published series says the
+ * dot was up. The two disagreements between the series then land in named rows rather than on top of each
+ * other —
+ *
+ *   - the **positive** one, primary dot inside the clock that the numerator does not count, is
+ *     `flameShock.track.elsewhere`: 10 270ms on `cleave`, 9 150ms on `addsThenBoss`, zero on both
+ *     single-spawn pulls;
+ *   - the **negative** one, numerator on spawns the primary-keyed array never sees, belongs to green and
+ *     to nothing else: 146 615ms on `addsThenBoss`, zero on the other three, and sixteen times the positive
+ *     one on the pull that has both. Sizing this off `cleave`'s 10 270 would have missed it entirely.
+ *
+ * Red falls from 223 351ms to 76 736ms on `addsThenBoss` and does not move on any other pull. **No
+ * published figure moves anywhere** — `uptimePct` still reads 73.68% of 326 307ms — because this was only
+ * ever which series a row was drawn from. `uptimeRow.test.ts` asserts both remainders and the closing
+ * identity, and it asserts them on every pull `rawFixtures` finds rather than on a named three: the literal
+ * grid is the mechanism that hid this, not an incidental.
+ *
+ * The other identity the split moved is the aura's own total. `up + elsewhere + uncounted` used to be
+ * `uptimeMs`; it is now `windows ∪ contactWindows`, which is `uptimeMs` plus the negative remainder —
+ * 264 813ms on `addsThenBoss`, unchanged on the rest.
  *
  * **It is not a ground, and that is the whole reason it needs its own tone.** The two grey causes below
  * are time the denominator *dropped*; this is time the denominator **kept**. It sits inside `scoredMs`
@@ -104,14 +137,20 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	const contactSpans = flameShock.contactWindows;
 	const aoeWindows = el.lightningShield.aoeWindows;
 	const { up, elsewhere, uncounted, dropped, exempt } = useMemo(() => {
-		// The dot's whole life on the primary target, before any clip below. Not a row on its own any
-		// more: the three rows it splits into are, and `up + elsewhere + uncounted` is this back again.
+		// The dot's whole life on the primary target, before any clip below. Not a row on its own any more,
+		// and no longer the whole of what the three rows it feeds cover either: `up + elsewhere + uncounted`
+		// is `drawn ∪ counted`, which is this array only on a pull where the numerator never left it.
 		const drawn = windows.map((w): [number, number] => [w.start, w.end]);
+		// The numerator's own spans as intervals. Mapped once and used twice on purpose: green *is* this
+		// array, and the red row's complement has to be taken over it as well as over `drawn`. Two mappings
+		// of one published field is two chances for the row a reader sees and the row it is subtracted from
+		// to stop being the same set.
+		const counted = contactSpans.map((w): [number, number] => [w.start, w.end]);
 		// "Down" is the dot missing while the player was in contact and a list asked for the dot — the
-		// complement of the dot, clipped to the same clock the percentage is taken over, so neither an
-		// intermission the fight took nor an add wave the multi-target order has no Lava Burst in is drawn
-		// as a dot the player dropped. The fallback (the whole pull) keeps the chart unchanged on a fixture
-		// captured before the core carried the contact clock.
+		// complement of **both** dot series, clipped to the same clock the percentage is taken over, so
+		// neither an intermission the fight took nor an add wave the multi-target order has no Lava Burst in
+		// is drawn as a dot the player dropped. The fallback (the whole pull) keeps the chart unchanged on a
+		// fixture captured before the core carried the contact clock.
 		const contact = analysis.timeline?.contactSegments ?? [[0, analysis.durationMs]];
 		const aoe = aoeWindows.map((w): [number, number] => [w.start, w.end]);
 		// `intersect(contact, complementOf(aoe))` is `fsGraded` in the audit, spelled the same way round.
@@ -137,23 +176,28 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 			// **Green is the published array and not an intersection of it.** `contactWindows` *is*
 			// `contactUptimeMs`'s own spans (its union is that field exactly, off one merge in the audit), so
 			// drawing it makes the row the tile's numerator to the millisecond rather than something that
-			// happens to sum to it. Deliberately not clipped to `graded` or to `drawn` here even though it is
-			// inside both by construction: a clip would silently absorb an escape, and the partition below is
-			// what has to catch one. If it ever left the graded clock, `up + elsewhere + dropped` would exceed
+			// happens to sum to it. Deliberately not clipped to `graded` here even though it is inside it on
+			// every committed pull: a clip would silently absorb an escape, and the partition below is what has
+			// to catch one. If it ever left the graded clock, `up + elsewhere + dropped` would exceed
 			// `scoredMs` and green would overlap the grounds — both asserted.
-			up: contactSpans.map((w): [number, number] => [w.start, w.end]),
+			//
+			// It is emphatically **not** inside `drawn`, which is the thing this row was mistakenly assumed to
+			// be a subset of. See the red row.
+			up: counted,
 			// The other half of the old green row: the dot up on the primary target, inside the graded clock,
 			// while the enemy actually being hit had no dot on it. Time the denominator kept and the numerator
 			// did not, so it is a shortfall rather than a ground — see the tone argument in the docblock.
-			elsewhere: intersect(
-				intersect(drawn, graded),
-				complementOf(
-					contactSpans.map((w): [number, number] => [w.start, w.end]),
-					analysis.durationMs,
-				),
-			),
+			elsewhere: intersect(intersect(drawn, graded), complementOf(counted, analysis.durationMs)),
 			uncounted: intersect(drawn, complementOf(graded, analysis.durationMs)),
-			dropped: intersect(complementOf(drawn, analysis.durationMs), graded),
+			// **The complement of both series and not of `drawn` alone.** Red is "the dot was on nothing", so
+			// it has to be the graded clock less every second either series says the dot was up — and green is
+			// the series that is *not* a subset of the other one. Taken over `drawn` alone it re-drew every
+			// second of the numerator that sat on a spawn the primary-keyed array knows nothing about: on
+			// `addsThenBoss` the primary is on a tower for seven minutes, `drawn` is one late 118 198ms window,
+			// and 146 615ms of green was painted red underneath itself. That is the whole of the two rows'
+			// overlap, and subtracting `counted` here is what removes it. Nothing moves on a pull where the
+			// numerator is inside the primary's dot, which is all three of the others.
+			dropped: intersect(complementOf([...drawn, ...counted], analysis.durationMs), graded),
 			exempt: exemptRows(
 				[
 					{ label: t('flameShock.track.away'), windows: complementOf(contact, analysis.durationMs) },
