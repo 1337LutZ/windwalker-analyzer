@@ -61,6 +61,29 @@ const MODEL_WORDS = [
 ];
 
 /**
+ * ***`counted` is deliberately not on that list, and the measurement is why.***
+ *
+ * It looks like it belongs. It is the word the last two rewrites in this file reached for when they dropped
+ * `graded`, which is vocabulary laundering — a model word wearing plainer clothes, and worse than the
+ * original because it hides. An audit recommended banning it on the strength of a count.
+ *
+ * Measured before acting: **41 in-scope leaves use the exact word**, 63 across the whole `count*` family.
+ * Read rather than counted, almost all of them are ordinary English and correct — *"not counted against
+ * you"* is how a reader actually talks, and it appears in the Mana, energy, chi, snapshot, brew and
+ * priority copy in that exact idiomatic sense. **Banning the word would have reddened forty strings to fix
+ * five, and the fix for the other thirty-five would have been to make them worse.**
+ *
+ * The five that really were laundering are rewritten instead: three `aoeNote` leaves reading "Two enemies
+ * is still counted" (now "At two enemies the figure still holds you to it"), the Lightning Shield legend
+ * key reading "AoE — not counted" (now "AoE — left out"), and one "counted time" in the multi-dot note.
+ * Four of the five were written earlier in the same session that banned `graded`, which is the whole
+ * mechanism on display: **a sweep that bans a word teaches the next writer a synonym.**
+ *
+ * So the guard against laundering is not a longer list. It is that a replacement has to say what happens
+ * to the reader's figure — left out, still holds you to it — rather than name what we did to it.
+ */
+
+/**
  * The reader sees the rendered sentence, not the template, so the template's own names are not copy.
  *
  * `{{active, clock}}` renders as `4:39` and `{{rule, duration}}` as `15s`: `clock` there is a
@@ -544,15 +567,21 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		// non-vacuity guard rather than a budget, so it follows the file down when the file loses copy that
 		// had no reader.
 		//
-		// **The scope is 304 today and the floor stays at 300, deliberately.** It was 311 when that
-		// sentence was written and 306 when the next lane read it; the two most recent strings to go were
-		// `summary.takeaways.metric.fireElementalHasteUptime.label` and `.fix`, dead copy the orphan hunt
-		// found once it started resolving each computed family against its own key source. Every drop so
-		// far has been a deletion of exactly that kind, which is what the gap between 300 and the count is
-		// for: raising the floor to 303 would make the next honest deletion a red run in the one file whose
-		// recent history *is* honest deletions, and that is a budget. What this line has to catch is the
-		// scope going dark — a selector that stops selecting, a root that leaves `SHARED_SECTIONS` — and it
-		// catches that at 300 exactly as well as it would at 303.
+		// **The floor stays at 300, and this comment no longer quotes the count.**
+		//
+		// It used to, and the number was wrong every time somebody checked: 311 when the sentence was first
+		// written, 304 when a later lane rewrote it, 306 now. Worse, the *argument* was inverted. It read
+		// that `summary.takeaways.metric.fireElementalHasteUptime.label` and `.fix` were "the two most
+		// recent strings to go", dead copy the orphan hunt had deleted — and that every drop so far had
+		// been a deletion of that kind, so the gap down to 300 was a budget for the next honest deletion.
+		//
+		// **Both those leaves are back.** `738f77f` gave the haste-cooldown rule its own card, so the
+		// paired-guard rule demanded them again. The file has grown, not shrunk, and a floor justified
+		// entirely as deletion headroom was defending against the wrong direction.
+		//
+		// What this line has to catch is the scope **going dark** — a selector that stops selecting, a root
+		// that quietly leaves `SHARED_SECTIONS`. It catches that at 300 whatever the live count is, and the
+		// gap is headroom in both directions rather than a deletion budget.
 		expect(sharedStrings().length).toBeGreaterThan(300);
 		// The measurement, done before the selector was chosen rather than after. Copying the Elemental
 		// key-kind selector here would have selected 25 of these 304 strings and caught **three** of the
@@ -585,12 +614,16 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		// ever falls away, the exemption has become a no-op and should be deleted rather than left as
 		// cover for whatever gets written there next.
 		//
-		// Taken over the section *less* its two in-scope leaves, so the count that keeps the exemption
-		// load-bearing is a count of copy the exemption actually still covers. It is 20, and it is 20 with
-		// the two leaves back in as well: they were 22 between them until coming into scope cost them the
-		// phrase "This is the list at …", and a leaf with no banned word left in it adds nothing here. So
-		// the carve-outs did not buy their way past this line, and there is no longer a number that says
-		// they might have.
+		// Taken over the section *less* its two in-scope leaves, so the figure that keeps the exemption
+		// load-bearing is drawn from copy the exemption actually still covers.
+		//
+		// **It is 19, and 19 with the two leaves back in as well** — this comment said 20 for both, and
+		// nothing executed it, which is the failure this whole file exists to name. It is asserted only as
+		// `> 15`, so the drift was invisible. The equality across the two readings is the part that
+		// matters: the carve-outs bought nothing past this line, because a leaf with no banned word left in
+		// it adds nothing here.
+		//
+		// If a future reader needs the exact figure, derive it — do not read it here.
 		const reference = localeStrings().filter(
 			(entry) => entry[0].split('.')[0] === 'rotation' && !isReferenceReader(entry),
 		);

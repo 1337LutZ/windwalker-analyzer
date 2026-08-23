@@ -1354,8 +1354,8 @@
       "away": "Nothing to hit",
       "aoe": "Three or more enemies"
     },
-    "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no Lava Burst in it at all, and Lava Burst is why a dropped Flame Shock costs far more than the global that puts it back — so nothing there holds you to a dot uptime, and those seconds leave the percentage instead of counting against you. Two enemies is still counted, because that list casts both Flame Shock and Lava Burst. Put the dot back up when it is off the enemy in front of you either way: that is the AoE list's first rung.",
-    "multiDotNote": "The second-target figure is measured over less of the pull than the greyed stretches above explain: only the stretches where exactly two enemies were up. Below two there is no second target to put a dot on, and from three enemies up the multi-target order has no second-dot rung in it at all, so both ends leave that figure rather than counting against it. Which is why the grey above accounts for only half of it — that grey is the ceiling, and the dot uptime beside it is still measured at one enemy as well as at two. This figure is measured at two alone, and there is no shaded stretch on the graph for its floor because one enemy is counted time for every other figure in this section."
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no Lava Burst in it at all, and Lava Burst is why a dropped Flame Shock costs far more than the global that puts it back — so nothing there holds you to a dot uptime, and those seconds leave the percentage instead of counting against you. At two enemies the figure still holds you to it, because that list casts both Flame Shock and Lava Burst. Put the dot back up when it is off the enemy in front of you either way: that is the AoE list's first rung.",
+    "multiDotNote": "The second-target figure is measured over less of the pull than the greyed stretches above explain: only the stretches where exactly two enemies were up. Below two there is no second target to put a dot on, and from three enemies up the multi-target order has no second-dot rung in it at all, so both ends leave that figure rather than counting against it. Which is why the grey above accounts for only half of it — that grey is the ceiling, and the dot uptime beside it is still measured at one enemy as well as at two. This figure is measured at two alone, and there is no shaded stretch on the graph for its floor because one enemy is measured time for every other figure in this section."
   },
   "earthShock": {
     "title": "Earth Shock",
@@ -1431,7 +1431,7 @@
       "elemental": "Fire Elemental out",
       "aoe": "Three or more enemies"
     },
-    "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no fire totem in it at all — neither Searing Totem nor Magma Totem — so an empty slot there is not a totem you dropped, and those seconds leave the percentage instead of counting against you. Two enemies is still counted, because that list keeps Searing Totem and ranks it above Flame Shock, Lava Burst, Elemental Blast and Earth Shock.",
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no fire totem in it at all — neither Searing Totem nor Magma Totem — so an empty slot there is not a totem you dropped, and those seconds leave the percentage instead of counting against you. At two enemies the figure still holds you to it, because that list keeps Searing Totem and ranks it above Flame Shock, Lava Burst, Elemental Blast and Earth Shock.",
     "gate": "The Fire Elemental takes the one Fire totem slot while it is out, destroying the totem — so that stretch is left out of both the graph and the percentage rather than counted as a totem dropped. A placement under the elemental is the one case the priority list forbids outright: it kills the elemental to buy a totem."
   },
   "flameShockSnapshots": {
@@ -1609,10 +1609,10 @@
     "key": {
       "shield": "Charges",
       "fault": "Fell off, overcapped, or spent early",
-      "aoe": "AoE — not counted"
+      "aoe": "AoE — left out"
     },
     "noBadSpends": "No Earth Shock was spent below the ceiling in this pull.",
-    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. Two enemies is still counted, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. At two enemies the figure still holds you to it, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
   },
   "stormlash": {
     "title": "Stormlash Totem",
