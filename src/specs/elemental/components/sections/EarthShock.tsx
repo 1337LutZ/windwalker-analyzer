@@ -91,6 +91,18 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				{t('earthShock.intent')}
 			</Prose>
 
+			{/* The three cases, one per line, because they were one paragraph.
+			    `earthShock.intent` carried a hundred and fifty-six words holding a rule with three arms —
+			    one enemy, one enemy under a tier-16 proc, two enemies — each with its own charge count and
+			    its own dot floor, run together as prose. `docs/conventions.md`'s third density rule is that
+			    a rule with cases is a table and not a paragraph; three lines is the table this section has
+			    room for, and it is the only shape a reader can check a single press against. */}
+			<div className="mt-4.5 flex flex-col gap-2">
+				<Note>{t('earthShock.rule.single')}</Note>
+				<Note>{t('earthShock.rule.tier')}</Note>
+				<Note>{t('earthShock.rule.multi')}</Note>
+			</div>
+
 			<div className="mt-4.5">
 				<StatTiles>
 					<StatTile
