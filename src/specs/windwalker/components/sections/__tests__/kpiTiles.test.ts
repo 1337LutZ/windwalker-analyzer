@@ -180,6 +180,44 @@ describe('KPI tiles', () => {
 	 * procs that were caught, so the sibling metric selects its denominator. The lines below are what
 	 * that put on the page.
 	 */
+	/**
+	 * The denominator, read off the page rather than rebuilt from the same field.
+	 *
+	 * The case below pins the tile's hue and states the fraction in its message — but both sides of that
+	 * comparison come from `procs.procs`, so it cannot see the denominator change and did not: this tile
+	 * divided by every proc that fired while the section beneath it divides by `opportunities`, and the
+	 * page carried `/16` directly above a sentence reading "12 of 14 catchable". On all six pulls: 9v8,
+	 * 16v14, 7v6, 6v5, 8v6, 5v4.
+	 *
+	 * So this reads the rendered fraction out of the HTML and holds it against the figure the section
+	 * argues for, which is the only way the two can be shown to agree. The subset that makes it sound is
+	 * asserted beside it: `couldSnapshot` is true whenever a proc was snapshotted, and a proc graded
+	 * `last-gcd` was snapshotted, so the numerator is always inside the denominator.
+	 */
+	it('divides by the procs the section says are buyable, not by every proc that fired', () => {
+		const drawn = PULLS.map((name) => {
+			const { procs } = fixture(name);
+			const html = tile(render(fixture(name)), 'RoRo snapshots');
+			const shown = /(\d+)\s*<[^>]*>\s*\/(\d+)/.exec(html.replaceAll(/<\/?b[^>]*>/g, ''));
+			const fraction =
+				shown === null
+					? html
+							.replaceAll(/<[^>]+>/g, ' ')
+							.replaceAll(/\s+/g, ' ')
+							.trim()
+					: `${shown[1]}/${shown[2]}`;
+			return { name, fraction, procs };
+		});
+		// Every pull's drawn fraction is the leeway count over the buyable procs — never over `procs`.
+		expect(drawn.map((d) => `${d.name} ${d.fraction}`)).toEqual(
+			drawn.map((d) => `${d.name} ${d.procs.lastGcd}/${d.procs.opportunities}`),
+		);
+		// And the denominators really do differ, so the line above is not two names for one number.
+		expect(drawn.filter((d) => d.procs.opportunities !== d.procs.procs).length).toBeGreaterThan(3);
+		// Sound by construction, not only on these six.
+		for (const d of drawn) expect(d.procs.lastGcd, d.name).toBeLessThanOrEqual(d.procs.opportunities);
+	});
+
 	it('leaves the snapshot tile ungraded on every committed pull', () => {
 		const painted = PULLS.map((name) => {
 			const analysis = fixture(name);

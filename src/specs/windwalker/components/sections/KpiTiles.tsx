@@ -59,10 +59,19 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 				    a colour would invent a verdict the report never makes. The catch rate the reader wants a
 				    colour for is graded, in words, in the section below. The label still carries the leeway
 				    actually used, because "last GCD" is only its name at the default — the same reason the depth
-				    chart's band is labelled the way it is. */}
+				    chart's band is labelled the way it is.
+
+				    Over `opportunities`, not over every proc that fired, because the section this tile sits
+				    above is emphatic that the unbuyable ones do not belong in a denominator — counting them
+				    "would tell the reader they missed something unbuyable". The tile used to divide by all of
+				    them and contradicted its own section on every committed pull: `/16` above a sentence
+				    reading "12 of 14 catchable", and the same mismatch on the other five. Sound by
+				    construction as well as by measurement — `couldSnapshot` is true whenever a proc was
+				    snapshotted at all, and a proc graded `last-gcd` was snapshotted, so what this counts is
+				    always inside what it now divides by. */}
 				<StatTile
 					value={`${procs.lastGcd}`}
-					suffix={`/${procs.procs}`}
+					suffix={`/${procs.opportunities}`}
 					label={t('kpi.snapshots', { leeway: formatSeconds(procs.lastGcdMs) })}
 				/>
 				{/* A tile rather than a sentence somewhere, and a tile that appears whatever the answer is.
