@@ -3020,6 +3020,31 @@ export interface ElementalAuditResult {
 	fireElemental: {
 		presses: FireElementalPress[];
 		/** Whether it was already out when the bell went. */ prepull: boolean;
+		/**
+		 * How much of the raid's on-pull haste cooldown the Primal Fire Elemental was standing for.
+		 *
+		 * The user's fifth scoring rule (plan §80), "100% uptime during Bloodlust", as a numerator and its
+		 * own denominator rather than as a percentage. The share is the score's to take, the same pairing
+		 * `EarthShockAudit` and `LightningShieldAudit` publish, so a reader can derive the figure instead of
+		 * being handed one — and so the two halves cannot be measured over different stretches.
+		 *
+		 * **`gradedMs` is a clock that is legitimately empty, and that is the field's whole point.** It is
+		 * zero on three different pulls, all of which must read "cannot say" and none of which may read
+		 * 100%: a player who did not take Primal Elementalist, a log with no `combatantinfo` to say either
+		 * way, and a pull whose haste cooldown did not go out on the pull. `metricOf` nulls on
+		 * `gradedMs <= 0`, which is where all three are refused; the argument for each is on the audit.
+		 *
+		 * Not optional, unlike `elementalMastery.talented` beside it. That field hedges against a stored
+		 * `Analysis` captured before it existed, and this spec has none — `__fixtures__/previewRoute.test.ts`
+		 * pins that the Elemental commits raw `FightDataset`s and analyses them, which is why its own
+		 * preview page had to be built that way.
+		 */
+		hasteUptime: {
+			/** ms of that cooldown the summon's own aura windows covered. */
+			coveredMs: number;
+			/** ms of cooldown this rule was allowed to grade. Zero grades nothing. */
+			gradedMs: number;
+		};
 	};
 	/** Earth Elemental's presses, judged against the list's own three-branch rule rather than drift. */
 	earthElemental: {

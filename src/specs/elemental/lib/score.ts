@@ -7,7 +7,7 @@
 // judgements into a headline, and the reading aids that colour the tiles.
 
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
-import { GRADE_ORDER, gradeOf, gradedOver, grader, overallOf, section, shareOf } from '~/lib/score';
+import { GRADE_ORDER, gradeOf, gradedOver, grader, overallOf, section, shareOf, sharePct } from '~/lib/score';
 import type { Grade, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
 
 import { registry } from './index';
@@ -237,6 +237,32 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		el.durationMs >= elementalMinuteMs && inFightForTheOpening ? (fireElemental.prepull ? 1 : 0) : null,
 	);
 
+	/**
+	 * Rule 5 — the summon's uptime inside the haste cooldown the raid brought on the pull.
+	 *
+	 * **`gradedOver` and no second guard in front of it, which is the whole shape of this metric.** The
+	 * audit hands over a numerator and the clock it was measured on, and every reason this pull might have
+	 * nothing to say has already been folded into that clock: the talent not taken, the talent unreadable,
+	 * and a haste cooldown that did not go out on the pull. So there is exactly one place the refusal can
+	 * come from, and no proxy in front of it that could answer a different question — "the summon was out",
+	 * "the raid lusted", "the talent list was read" are all true of pulls this rule cannot grade.
+	 *
+	 * `sharePct` is belt to the same braces: it declines at a whole of zero, so the value is null on the
+	 * identical condition `metricOf` refuses on. Both, because they say it in different places, and
+	 * neither is load-bearing alone.
+	 *
+	 * **Not `shareOf`.** The denominator is a span of milliseconds and `MIN_GRADED_SAMPLE` is a floor on
+	 * *events* — three milliseconds of lust is not a sample of three, and `sharePct` is what
+	 * `lib/score/build.ts` says to reach for when the whole is a clock.
+	 */
+	const fireElementalHasteUptime = metric(
+		'fireElementalHasteUptime',
+		gradedOver(
+			sharePct(fireElemental.hasteUptime.coveredMs, fireElemental.hasteUptime.gradedMs),
+			fireElemental.hasteUptime.gradedMs,
+		),
+	);
+
 	// Against the windows the pull could actually have claimed, not every proc window that fired. A
 	// window the dot was down through was never a chance to refresh it. Named `flameShockSnapshots`
 	// rather than the Windwalker's `snapshotRate` so the two specs' takeaway copy does not collide:
@@ -348,6 +374,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		searingTotemUptime,
 		searingTotemOverlaps,
 		fireElementalPrepull,
+		fireElementalHasteUptime,
 		snapshotRate,
 		lightningShieldOvercap,
 		lightningShieldFellOff,
@@ -371,7 +398,11 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 			// `casts` card already does. It is a section here because the scorecard is the only route into
 			// the summary — `Takeaways` walks these sections — and the page's Fire Elemental section reads
 			// the same metric back through `toneOf` for its own note.
-			fireElemental: section([fireElementalPrepull]),
+			// Both of the summon's rules, and `fireElementalPrepull` stays first: the section's own note and
+			// `firePrepull.test.ts` both read `metrics[0]`, and the pre-pull grade is the one that answers
+			// "was it out at all". Rule 5 is primary beside it rather than secondary, because it is a graded
+			// absolute — a section that could not go worse than `ok` cannot carry one.
+			fireElemental: section([fireElementalPrepull, fireElementalHasteUptime]),
 			flameShockSnapshots: section([snapshotRate]),
 			// The shield's section carries both of its faults; neither is primary-weighted enough to
 			// carry a headline, but the section still reads a verdict off them for its own copy.
@@ -655,6 +686,52 @@ export const THRESHOLDS = {
 	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true },
 
 	/**
+	 * The Primal Fire Elemental's uptime inside the haste cooldown the raid brought on the pull.
+	 *
+	 * **`good` and `ok` are both 100, and that is the rule the user wrote rather than a line chosen near
+	 * it.** "Primal Fire Elemental should have 100% uptime during Bloodlust" names no middle, so inventing
+	 * one would be this table asserting a tolerance the request does not contain. An absolute grades
+	 * binary, which is exactly how rules 1 and 2 grade — `AscendancePressVerdict.grade` is
+	 * `'good' | 'bad' | 'none'` and has no third band either. The `none` of that pair is `unmeasurable`
+	 * here, and it is the empty clock that produces it.
+	 *
+	 * A binary rule is only defensible because the two halves of the share come off the *same* clock and
+	 * neither is an inference. `coveredMs` is `overlapMs` of the aura's own `applybuff`/`removebuff` pairs
+	 * against the haste window, both fight-relative, so containment gives exactly 100 and not 99.99 —
+	 * measured on all three committed pulls, which read 40 008/40 008, 40 005/40 005 and 40 006/40 006 ms.
+	 * The declared-duration reading this deliberately does not use (`feWindows`, the Fire totem slot walk)
+	 * is where a rounding tolerance would have been needed, and the argument against it is on the audit.
+	 *
+	 * ## What this measures on the pulls we hold: nothing, and it is worth saying so plainly
+	 *
+	 * **All three committed fixtures read exactly 100.00% and the figure has no variance at all.** Every
+	 * one of them took Primal Elementalist (117013 is in all three `combatantinfo` lists), every one had
+	 * the elemental out before the bell — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
+	 * lusted inside the first two seconds for forty seconds, under a different spell each time (Heroism,
+	 * Bloodlust, Time Warp). A pre-pull summon's minute contains an on-pull lust's forty seconds by
+	 * construction, so this is structural rather than three players getting it right.
+	 *
+	 * §80's own box warned about exactly this — *"a metric that reads a flat 100% everywhere carries weight
+	 * while discriminating nothing"* — and the warning is upheld rather than waved through. It carries
+	 * **no** weight (see `WEIGHTS`, where the two headlines a weight of 1 moved are written out), and the
+	 * fault side of the rule is carried on synthetic pulls in `lib/__tests__/firePrimalHaste.test.ts`
+	 * rather than by moving this line until a fixture failed it.
+	 * What it is **not** is the free-pass shape, which is a `good` handed out over an empty clock: the
+	 * clock here is forty real seconds of haste on all three pulls, and the three pulls that have no clock
+	 * are refused rather than credited.
+	 *
+	 * **No band, and the argument is that the summon is the same job at every target count.** A band
+	 * declaration says "this figure means nothing at these counts", and there is no count at which a
+	 * standing Primal Fire Elemental means nothing: it is a pet that attacks whatever is in front of it,
+	 * the haste that makes its window worth aiming at is raid-wide, and none of the three priority lists
+	 * has a rung that would rather the slot were empty — `aoe.apl.json` no more asks for the fire totem
+	 * slot to be free than `p5.apl.json` does. That is the shape of argument the six unbanded rules share:
+	 * the opportunity exists identically however many enemies are up, so declining to grade it at some of
+	 * them would be silence bought with nothing.
+	 */
+	fireElementalHasteUptime: { good: 100, ok: 100, higherIsBetter: true },
+
+	/**
 	 * Share of proc-window Flame Shock refreshes caught.
 	 *
 	 * The Elemental's whole payoff: the p5 list's Flame Shock rule (priority 7) wants the dot
@@ -792,6 +869,40 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// a headline is half of one part in thirteen. Deliberate: what it measures is real, and what it can
 	// prove about whose fault it was is nothing.
 	fireElementalPrepull: 1,
+	/**
+	 * **Measured, graded, shown — and deliberately not counted.** Zero, on the Windwalker
+	 * `snapshotDepth`'s terms: the metric goes on carrying a grade for the section and the copy to read,
+	 * and the reason it does not move the headline lives beside every weight that does.
+	 *
+	 * **This is a measurement and not a caution.** At weight 1 the metric reads a flat `good` on every
+	 * pull in the repository, and adding a constant `good` to a weighted mean does not describe pulls, it
+	 * pushes all of them upward. Two of the three moved, at every reading:
+	 *
+	 * ```
+	 *                     without        with weight 1
+	 *   phased      73.08% of 13  ->  75.00% of 14   ok -> good
+	 *   unbroken    61.54% of 13  ->  64.29% of 14   ok -> ok
+	 *   cleave      42.31% of 13  ->  46.43% of 14   bad -> ok
+	 * ```
+	 *
+	 * `phased` lands on **exactly** the 75% `good` line and `cleave` clears the 45% one. Both headlines
+	 * were bought with a rule neither player could have failed: the summon was out before the bell and the
+	 * raid lusted on the pull, so 100% was structural on all three. `cleave` is the pull this whole
+	 * exercise began from and it is a `bad` pull; a rule that discriminates nothing must not be what
+	 * upgrades it.
+	 *
+	 * Zero rather than deleting the metric, and rather than not grading it: the user's sentence is an
+	 * absolute and absolutes grade (see `THRESHOLDS`), so the rule keeps its verdict and its refusal — it
+	 * simply does not price them. Rules 1 and 2 are the same shape seen from further away: they grade every
+	 * Ascendance press through `AscendancePressVerdict` and appear in no weight at all.
+	 *
+	 * **What to revisit, and with what.** A captured pull that actually fails this rule is the argument
+	 * for a weight above zero, and the numbers above are what it has to beat. Until one exists the honest
+	 * price of a rule that has never separated two pulls is nothing. Note the one thing zero costs, so it
+	 * is a known price rather than a discovery: `Takeaways` filters on `weight > 0`, so a failing pull's
+	 * card would carry the `bad` without the summary panel naming it.
+	 */
+	fireElementalHasteUptime: 0,
 	lightningShieldOvercap: 1,
 	lightningShieldFellOff: 1,
 	/**

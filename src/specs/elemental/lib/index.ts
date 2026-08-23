@@ -1025,6 +1025,24 @@ const ELEMENTAL_MASTERY = registry.ability('elemental-mastery');
  * cast id would silently start asking about the wrong one.
  */
 const ELEMENTAL_MASTERY_TALENT_ID = 16_166;
+/**
+ * The talent row Primal Elementalist occupies, and the gate on the summon's haste-cooldown uptime.
+ *
+ * The level-90 row of the shaman tree, next to Unleashed Fury — the pairing the `AURAS` table above
+ * already records, where 117012 and 117013 sit side by side. The id the `combatantinfo` list carries is
+ * the same one: all three committed pulls name **117013** in it.
+ *
+ * Named here for the reason `ELEMENTAL_MASTERY_TALENT_ID` above is — a talent id and a cast id are
+ * separate facts — and with one difference that matters more here: this talent has *no* button of its
+ * own, so there is no cast list it could have been read off even in principle, and `readTalents` is the
+ * only route to it.
+ *
+ * The declared `primal-elementalist` aura (117012's neighbour in the `AURAS` table) is deliberately not
+ * what this reads. That entry exists so the coverage ledger can ask whether a log ever *applied* the
+ * buff; the question here is whether the player brought the talent, which a pull that never got the
+ * buff up still answers.
+ */
+const PRIMAL_ELEMENTALIST_TALENT_ID = 117_013;
 const FIRE_ELEMENTAL = registry.ability('fire-elemental');
 const EARTH_ELEMENTAL = registry.ability('earth-elemental');
 const LAVA_BURST = registry.ability('lava-burst');
@@ -3397,6 +3415,68 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	];
 
 	/**
+	 * **Rule 5 of the user's six (plan §80): the Primal Fire Elemental should be out for the whole of
+	 * Bloodlust.** The numerator, its own denominator, and the three ways this pull can decline to answer.
+	 *
+	 * Phrased as an absolute — "100% uptime" — so it grades, on the same reading of the user's wording
+	 * that made rules 1 and 2 grades and left 3, 4 and 6 shown: see the header of `./ascendance`, where
+	 * the sentence-by-sentence split is argued. Unlike those four this is not a rule about an Ascendance
+	 * press, so it is measured here, on the summon, rather than there.
+	 *
+	 * ## The clock, and why it is one haste cooldown rather than all of them
+	 *
+	 * **The cooldown that opened inside the opener, and no other** — `isOpener`, this file's own
+	 * definition of "on the pull", which is the same narrowing `ascendanceSync` already makes with
+	 * `w.start <= ASCENDANCE_INTO_HASTE_MS` and for a reason that binds harder here: *"one that went out
+	 * at 90s is a different tactical situation and is not read as the pull's"*.
+	 *
+	 * That is not tidiness, it is the availability guard. A raid that lusts at three minutes may be
+	 * lusting into a stretch where this player's five- or three-minute summon is simply not up, and
+	 * faulting them for it would be the "charged the player for something they could not have done" shape
+	 * this audit has shipped four times. On a lust *on the pull* there is nothing to guard: nothing has
+	 * consumed the cooldown yet, so the summon was available to whoever wanted it, pre-pull or pressed at
+	 * the bell. So the one window this rule speaks about is the one window it can speak about honestly,
+	 * and a pull whose only haste cooldown came later says nothing at all.
+	 *
+	 * ## And why the talent gates the clock rather than the value
+	 *
+	 * §80 states the gate: *"this is only a fault for a player who took the talent"*. Without Primal
+	 * Elementalist there is no Primal Fire Elemental to have 100% of — the summon is the ordinary one —
+	 * so a shaman who took Unleashed Fury or Elemental Blast instead has not failed this rule, they were
+	 * never asked it. Read against `true` and not for truthiness, because `readTalents` answers three
+	 * ways and only one of them is "did not take it": a log with no `combatantinfo` has said nothing, and
+	 * grading that pull would be the report inventing a talent choice. Both non-answers land on the same
+	 * empty clock, which is the right place for them — `metricOf` nulls on `gradedMs <= 0`, so the score
+	 * says "cannot say" instead of handing an unasked pull a free full mark.
+	 *
+	 * ## The numerator is the aura's own windows, not the Fire totem slot's
+	 *
+	 * `feAuraWindows` and deliberately not `feWindows`. The slot walk stamps every placement with the
+	 * *declared* sixty seconds (`untilFightEnd(t, FIRE_ELEMENTAL_DURATION_MS)`), and `feDeclaredDurationMs`
+	 * above spells out that Glyph of Fire Elemental Totem halves that and no log carries a glyph list —
+	 * so a glyphed player's slot window claims thirty seconds the pet was not standing for, and this
+	 * figure would read 100% off a summon that expired halfway through the lust. The aura's windows have
+	 * evidence at both ends: an `applybuff`/`removebuff` pair, or the pre-pull recovery clamped at the
+	 * bell, which only ever shortens. Merged first, because `overlapMs` sums its ranges and a
+	 * re-application inside a window that never closed would otherwise be counted twice.
+	 *
+	 * ## No contact clock on either half
+	 *
+	 * Every other uptime in this audit divides by engaged time, and this one does not. The question is
+	 * whether the pet was standing, and a phase transition does not despawn it — cutting the stretches
+	 * with nothing to hit would shorten both halves of a ratio that is already about the summon rather
+	 * than about damage, and would let a pull whose lust landed wholly in a transition read 100% off no
+	 * clock at all.
+	 */
+	const primalElementalist = talents === null ? null : talents.has(PRIMAL_ELEMENTALIST_TALENT_ID);
+	const feHasteWindow = primalElementalist === true ? hasteWindows.find((w) => isOpener(w.start)) : undefined;
+	const feAuraSpans = mergeIntervals(feAuraWindows.map((w): Interval => [w.start, w.end]));
+	const feHasteUptime = {
+		gradedMs: feHasteWindow === undefined ? 0 : feHasteWindow.end - feHasteWindow.start,
+		coveredMs: feHasteWindow === undefined ? 0 : overlapMs(feHasteWindow.start, feHasteWindow.end, feAuraSpans),
+	};
+
+	/**
 	 * The Earth Elemental, judged against **all three** branches of the list's own rule, to whatever
 	 * depth this log can read each of them.
 	 *
@@ -4097,7 +4177,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			talented: talents === null ? null : talents.has(ELEMENTAL_MASTERY_TALENT_ID),
 			presses: emPresses,
 		},
-		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined },
+		fireElemental: { presses: fePresses, prepull: fePrepullWindow !== undefined, hasteUptime: feHasteUptime },
 		earthElemental: {
 			presses: eePresses,
 			prepull: eePrepullWindow !== undefined,
