@@ -158,8 +158,14 @@ export default function PriorityLadder({
 				<Prose>{t('priority.summary', { followed, judged, skipped })}</Prose>
 				{/* Named rather than folded into the percentage above, because they are the opposite of a
 				    mistake: presses the ladder deliberately declines to judge, and a reader who cannot see
-				    how many there were cannot tell a confident answer from a thin one. */}
-				<Prose>{t('priority.unjudged', { unknown, offList })}</Prose>
+				    how many there were cannot tell a confident answer from a thin one.
+
+				    Gated on there being something to leave out. The sentence names what was set aside, so
+				    with nothing set aside it has no subject — and it was rendering "Left out of that count:
+				    0 … and 0 … Neither counts against you" on four of the eleven committed fixtures, which
+				    is a paragraph spent saying that a paragraph was not needed. A zero on *one* side still
+				    renders, because "none of them, and three of those" is a real reading of a pull. */}
+				{unknown + offList > 0 ? <Prose>{t('priority.unjudged', { unknown, offList })}</Prose> : null}
 			</div>
 
 			{rows.length === 0 ? (

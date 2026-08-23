@@ -1041,6 +1041,14 @@ describe('report copy with no reader', () => {
 		// table of presses; with one demonstrated the ceiling share supplies a letter on its own, and
 		// `verdict_good` at it claims every press ran while damage was coming in — the exact reading the
 		// scorer had refused. `weave`, at one press, is that second pull.
+		// `verdict_none` here is **structural and unreachable**, and its string is byte-identical to
+		// `karma.none`. Recorded so the duplication is not rediscovered as dead copy and "fixed": the
+		// section short-circuits on `casts === 0` and renders `karma.none` instead, so `verdict()` is never
+		// called at a grade of `none`, and `verdict_tooFew` covers every path where `gradeOf` could return
+		// one. The key exists because the test below requires a `verdict_none` stem on every section that
+		// stores arms at all — the same judged-and-left case as `tigerPalm.verdict_none` below, for the same
+		// reason: removing it means reaching the section by name and carrying a second guard, to delete a
+		// string no reader can reach.
 		karma: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_tooFew', 'verdict_none'],
 		// Three arms each on the un-narrowed pair, and none on the narrowed three, which is the shape a
 		// measurement left rather than a preference. The drop count is one of two metrics here, so an

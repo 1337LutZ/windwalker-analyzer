@@ -132,6 +132,13 @@ describe('the section says one thing about a refresh it did not measure', () => 
 	 * Both figures are asserted as derivations of the audit rather than as pinned digits: `1` and `1`
 	 * here are the same number by coincidence on this pull, and a test that pinned them could not tell
 	 * "the count of wasted refreshes" from "the count of them nothing measured".
+	 *
+	 * **Both sentences are phrased so a count of one is grammatical**, which is why they read "of the
+	 * refreshes" and "of them" rather than putting the number in front of a bare plural. `cleave` is the
+	 * pull that makes it visible — it reaches this arm at exactly one — and "1 refreshes" was shipping
+	 * here, pinned by this test. i18next resolves plurals off a `count` value and neither call site has
+	 * one to give, so the fix is the wording rather than a `_one` arm; `flameShock.test.ts` already
+	 * documents that pattern.
 	 */
 	it('names the pull-wide count and then how much of it is measured', () => {
 		const cleave = fixture('cleave');
@@ -139,7 +146,7 @@ describe('the section says one thing about a refresh it did not measure', () => 
 		const html = render(cleave);
 
 		// What the dot did: still every refresh that bought nothing, at every target count.
-		expect(html).toContain('1 refreshes also threw away a tick of the running dot');
+		expect(html).toContain('1 of the refreshes also threw away a tick of the running dot');
 		// How much of it counted.
 		expect(html).toContain(
 			t('flameShock.wasteSplit', {
@@ -150,7 +157,7 @@ describe('the section says one thing about a refresh it did not measure', () => 
 		expect(html).toContain(
 			'1 of those came with more than one enemy up, where the multi-target order stops asking you',
 		);
-		expect(html).toContain('What is measured is the 1 refreshes you made with one enemy in front of you');
+		expect(html).toContain('What is measured is the 1 of them you made with one enemy in front of you');
 	});
 
 	/**
