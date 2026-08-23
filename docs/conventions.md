@@ -138,7 +138,11 @@ content a layout bug destroyed. So walk every element, compare its bounding rect
 and separately flag every `overflow-x: hidden|clip` box whose `scrollWidth` exceeds its `clientWidth`.
 Skip subtrees under an `overflow-x: auto|scroll` ancestor — a wide table or timeline is _supposed_ to
 scroll inside its own container — and do not flag a box that is `text-overflow: ellipsis` +
-`white-space: nowrap`, because `truncate` hiding text is the point of `truncate`.
+`white-space: nowrap`, because `truncate` hiding text is the point of `truncate`. Exclude `.sr-only`
+for the same reason: it is a 1px box that hides its text on purpose, and at 768 and above — where the
+`md:` tables render and each one carries a `<caption class="sr-only">` — leaving it in reports 9 to 11
+phantom clips per fixture, of 176 to 1345px each. A sweep that cries wolf on every width is as useless
+as one that measures nothing, because you stop reading it.
 
 Point it at **`/preview`**, not at the landing page: that is the only route that renders a real report
 without a WarcraftLogs token, and it now carries both specs — four stored Windwalker analyses and three
