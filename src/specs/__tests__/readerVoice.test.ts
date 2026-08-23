@@ -88,10 +88,26 @@ const localeStrings = (): [string, string][] => {
 	return out;
 };
 
+/**
+ * Matched at a **left** word boundary, not as a bare substring.
+ *
+ * Every entry above is either a whole word, a phrase, or a stem meant to catch its own inflections
+ * (`judg` for judged/judgement, `opportunit` for opportunity/opportunities), so a match that starts
+ * mid-word is never our vocabulary — it is an ordinary English word that happens to end in one of
+ * ours. Across all 1182 leaves in the file the boundary drops **exactly two** strings, and both are
+ * the same word: `lavaBurst.note`'s "the crit is unconditional" and
+ * `rotation.fork.risingSunKick.detail`'s "its unconditional rung". Neither is a claim about our model.
+ *
+ * No boundary on the right, deliberately — the inflections are the point, and `rule` has to keep
+ * catching "rules" and "ruled".
+ */
+const namesTheModel = (value: string): boolean => {
+	const text = prose(value).toLowerCase();
+	return MODEL_WORDS.some((word) => new RegExp(`\\b${word}`).test(text));
+};
+
 const violations = (strings: [string, string][]): string[] =>
-	strings
-		.filter(([, value]) => MODEL_WORDS.some((word) => prose(value).toLowerCase().includes(word)))
-		.map(([key, value]) => `${key}: "${value}"`);
+	strings.filter(([, value]) => namesTheModel(value)).map(([key, value]) => `${key}: "${value}"`);
 
 // ================================================================= Elemental
 //
@@ -118,31 +134,94 @@ const ELEMENTAL_SECTIONS = [
 	'mana',
 ];
 
-// Scoped to these sections' own `state.*`, `kpi.*`, `caption`, `intent`, `read.*` and `verdict_*` keys
-// — the kinds a reader is shown as prose or as a table cell. Method notes (`unreadable`, `notGraded`,
-// `measurable`, `resolution`) are deliberately about our method and are *not* in scope: a hedge has to
-// be allowed to explain itself.
+// ---------------------------------------------------------------------------------------------------
+// **This scope was a key-kind selector and is now the Windwalker's shape: everything under the
+// sections, less the method notes.** The history is worth keeping, because the selector it replaced was
+// not obviously wrong and the way it failed is the recurring failure of this whole file.
 //
-// `read` joined the four when the Ascendance verdict column landed: those sentences are the newest
-// reader-facing copy in the spec and the most tempting place to name a rule arm.
+// It named six kinds — `state.*`, `kpi.*`, `caption`, `intent`, `read.*`, `verdict_*` — the kinds a
+// reader is shown as prose or as a table cell, and it grew one name at a time as each new one was
+// caught. `read` joined when the Ascendance verdict column landed. `verdict` needed its own alternative
+// rather than a sixth name in the first, because a graded sentence stores its grade inside the same
+// path segment (`verdict_good`, `verdict_ok_noOvercap`), so `verdict` in the alternation matched on
+// neither a `.` nor an end of string and selected exactly nothing — which is how
+// `earthShock.verdict_good` shipped telling a reader their shocks "matched the rule the list had for
+// them", in the one sentence a section is judged by, past every green run of the suite.
 //
-// **`verdict` is the sixth, and it needed its own alternative rather than a sixth name in the first
-// one.** A graded sentence is stored with its grade inside the same path segment — `verdict_good`,
-// `verdict_ok_noOvercap` — so `verdict` in the alternation above matches on neither a `.` nor an end of
-// string and selects exactly nothing. That is not a small bug in this pattern: it is why the loudest
-// remaining instance of the complaint this file was written about survived every green run of the
-// suite. `earthShock.verdict_good` told a reader their shocks "matched the rule the list had for them"
-// — our own model's vocabulary, in the one sentence a section is judged by — and no guard could see it.
-const ELEMENTAL_READER_KEYS = /(^|\.)(state|kpi|caption|intent|read)(\.|$)|(^|\.)verdict(_|\.|$)/;
+// **That is the tell: a selector that has to be widened once per discovery is not a sweep, it is a list
+// of the things somebody already found.** The Windwalker scope below was drawn wide for exactly this
+// reason and its comment says so — a key-kind selector would have selected 25 of its 304 strings. The
+// same arithmetic here: the six kinds selected **166** strings, the wide scope selects **292**, and the
+// 126 it was blind to held **ten** violations. Two of them are the loudest kind there is:
+//
+//   - `lightningShield.key.aoe` was the two words **"AoE — not graded"** — a *chart legend key*, the
+//     same shape as the two column headers reading "verdict" that the Windwalker scope was opened for.
+//   - `earthShock.none` was "Every Earth Shock matched the sim's rule." — the sentence shown to a
+//     reader who did it **perfectly**, and the only sentence that section has for them.
+//
+// The rest were chart labels and long notes: "the measured clock" twice, "the pull clock", a figure
+// that "has a clock of its own", "the one case the list forbids", "the prepull press the list makes",
+// and two more "graded"s in the Lightning Shield AoE note. None of them lived under a kind the selector
+// named, and none of them could have.
+//
+// The exemption is the Windwalker's, unchanged in principle — a section explaining what it could and
+// could not measure is allowed to name the measurement — and it is the same four leaves the old comment
+// already named as out of scope. **Nothing new was exempted to make this pass**: across all thirteen
+// sections the only method-note leaves that trip at all are `flameShockSnapshots.measurable` and the
+// two `unreadable`s, which is why the list below is four names and not a growing tally.
+/**
+ * **The retired selector, kept as a control rather than deleted.**
+ *
+ * This was the Elemental scope until the widening above. It is now what **all three** spec scopes
+ * measure against, to show that a key-kind selector would not have reached their strings: 25 of the
+ * shared scope's 304, under 100 of the Windwalker's, and none at all of the ten reds above.
+ *
+ * Keeping the real regex means that argument is executed rather than asserted in a comment. It was the
+ * one thing in this file that could rot silently — a comment quoting "25 of 304" stays convincing long
+ * after the selector it describes has changed, and this selector has now changed.
+ */
+const KIND_SELECTOR = /(^|\.)(state|kpi|caption|intent|read)(\.|$)|(^|\.)verdict(_|\.|$)/;
+
+const ELEMENTAL_METHOD_KEYS = ['unreadable', 'notGraded', 'measurable', 'resolution'];
 
 const elementalStrings = (): [string, string][] =>
-	localeStrings().filter(([key]) => ELEMENTAL_SECTIONS.includes(key.split('.')[0]!) && ELEMENTAL_READER_KEYS.test(key));
+	localeStrings().filter(
+		([key]) =>
+			ELEMENTAL_SECTIONS.includes(key.split('.')[0]!) && !ELEMENTAL_METHOD_KEYS.includes(key.split('.').pop()!),
+	);
 
 describe('the Elemental copy is about the pull, not about the audit', () => {
 	it('has reader-facing strings in every section, so the sweep is not vacuous', () => {
 		const found = new Set(elementalStrings().map(([key]) => key.split('.')[0]!));
 		expect([...found].sort()).toEqual([...ELEMENTAL_SECTIONS].sort());
-		expect(elementalStrings().length).toBeGreaterThan(60);
+		// The strings this widening was for, **listed rather than counted** — the same discipline the shared
+		// scope below uses for its own reds, and for the same reason: a count survives a refactor that drops
+		// the strings, and then the scope is dark again with the number still green. Every one of these was
+		// invisible to the six-kind selector, and every one of them held a banned word until this landed.
+		const ELEMENTAL_REDS = [
+			'earthShock.none',
+			'fireElemental.prepullYes',
+			'flameShock.chart.uptimeLabel',
+			'flameShock.multiDotNote',
+			'flameShock.snapshotNote',
+			'lightningShield.aoeNote',
+			'lightningShield.key.aoe',
+			'searingTotem.chart.uptimeLabel',
+			'searingTotem.gate',
+			'stormlash.chart.label',
+		];
+		const scoped = new Set(elementalStrings().map(([key]) => key));
+		expect(ELEMENTAL_REDS.filter((key) => !scoped.has(key))).toEqual([]);
+		// And none of them is reachable by a key-kind selector, which is the claim that justifies the shape
+		// of this scope rather than a wider list of kind names. Asserted against the selector this replaced,
+		// so the argument cannot rot into a comment nobody rechecks.
+		expect(ELEMENTAL_REDS.filter((key) => KIND_SELECTOR.test(key))).toEqual([]);
+		// **The floor is 280 against a scope of 292, and the gap is the point.** A count alone passes a
+		// re-narrowing that loses a whole kind of copy, which is exactly what happened here: the selector
+		// this replaced sat at 166 and read as coverage for as long as nobody counted what it left out. Set
+		// close enough that a selector regressing to key kinds cannot pass, and loose enough that deleting a
+		// retired string is not a test failure.
+		expect(elementalStrings().length).toBeGreaterThan(280);
 		// Each key kind the pattern claims to cover has to actually match something, or widening it is a
 		// no-op that reads as coverage. `read` is the one this caught: the Ascendance verdict sentences are
 		// the newest copy in the spec and were outside the sweep until the pattern named them.
@@ -260,7 +339,7 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
 		// The measurement behind the boundary note above. Borrowing the Elemental selector would leave
 		// three quarters of this copy unread, and the number is pinned so that a later lane tempted to
 		// "unify the two selectors" sees what unifying them costs.
-		expect(windwalkerStrings().filter(([key]) => ELEMENTAL_READER_KEYS.test(key)).length).toBeLessThan(100);
+		expect(windwalkerStrings().filter(([key]) => KIND_SELECTOR.test(key)).length).toBeLessThan(100);
 		// Both label kinds the Elemental sweep never reached, and the ones two shipped violations were in.
 		const kinds = new Set(windwalkerStrings().flatMap(([key]) => key.split('.')));
 		for (const kind of ['intent', 'kpi', 'caption', 'columns', 'cells', 'key']) expect(kinds, kind).toContain(kind);
@@ -480,10 +559,10 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		// 27 below — the three that happen to be called `intent`. The other 24 are `note`, `empty`,
 		// `body`, `fix`, `clean`, `mergedNote` and the six bare `priority` leaves: prose at ad-hoc names,
 		// the same shape the Windwalker's turned out to be.
-		expect(sharedStrings().filter(([key]) => ELEMENTAL_READER_KEYS.test(key)).length).toBeLessThan(30);
+		expect(sharedStrings().filter(([key]) => KIND_SELECTOR.test(key)).length).toBeLessThan(30);
 		const scoped = new Set(sharedStrings().map(([key]) => key));
 		expect(SHARED_REDS.filter((key) => !scoped.has(key))).toEqual([]);
-		expect(SHARED_REDS.filter((key) => ELEMENTAL_READER_KEYS.test(key))).toEqual([
+		expect(SHARED_REDS.filter((key) => KIND_SELECTOR.test(key))).toEqual([
 			'gear.intent',
 			'misses.intent',
 			'timeline.intent',
@@ -623,6 +702,10 @@ describe('stripping the templates hides no violation', () => {
 			'casts.presses: {{total, clock}}',
 			'energy.summary: {{duration, clock}}',
 			'energy.summaryNoRate: {{duration, clock}}',
+			// The tenth, and it arrived the same way `priority.summary` did — not with a new string, but with
+			// a scope widening to reach a string that was always there. `wasteSplit` renders a count of
+			// presses; `judged` is the variable holding it, and a reader sees the number.
+			'flameShock.wasteSplit: {{judged, integer}}',
 			'priority.summary: {{judged}}',
 			'sef.justified: {{rule, duration}}',
 			'sef.lanes.shortLived_one: {{rule, duration}}',

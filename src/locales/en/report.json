@@ -1332,7 +1332,7 @@
     },
     "caption": "Every Flame Shock press, what was left on the dot, and what the press bought you",
     "none": "Flame Shock was never pressed in this pull.",
-    "snapshotNote": "A refresh with one tick still to come throws nothing away — that tick rolls over into the new application, which is what “Last-tick refresh” and the “ticks left” column mean. An earlier one is not automatically a mistake either. The priority list wants one when the new application snapshots a dot more than 10% stronger per second, and every one of those presses is spelled out in the “what it was” column above and none of them is counted as waste. Four things can make the new dot stronger: more spellpower, more crit, a faster tick cadence, and Clearcasting, which is +20% on its own — twice the bar, and up for more than half of a normal pull. So where Clearcasting was frozen into one of the two dots and not the other, the row says so and gives you the second figure with the proc divided back out: that is the part your timing bought. Only the size of the gain decides the row, never which proc produced it, so a lucky press reads the same as a read one. The procs worth timing a refresh around are graded in the Snapshots section.",
+    "snapshotNote": "A refresh with one tick still to come throws nothing away — that tick rolls over into the new application, which is what “Last-tick refresh” and the “ticks left” column mean. An earlier one is not automatically a mistake either. The priority list wants one when the new application snapshots a dot more than 10% stronger per second, and every one of those presses is spelled out in the “what it was” column above and none of them is counted as waste. Four things can make the new dot stronger: more spellpower, more crit, a faster tick cadence, and Clearcasting, which is +20% on its own — twice the bar, and up for more than half of a normal pull. So where Clearcasting was frozen into one of the two dots and not the other, the row says so and gives you the second figure with the proc divided back out: that is the part your timing bought. Only the size of the gain decides the row, never which proc produced it, so a lucky press reads the same as a read one. The procs worth timing a refresh around are scored in the Snapshots section.",
     "chart": {
       "key": {
         "windowed": "In the last tick",
@@ -1344,7 +1344,7 @@
       "zone": "last tick",
       "label": "How much of the Flame Shock dot was left at each refresh, against the dot’s last tick, with the refreshes you made with more than one enemy up greyed out because they are not measured",
       "empty": "Flame Shock was never refreshed in this pull.",
-      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up on the enemy you were hitting and counted, the stretches it was up on an enemy you had left, the stretches it was down while you had something to hit, the stretches it was up outside the measured clock, and the stretches left out of the percentage — nothing to hit, and three or more enemies up"
+      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up on the enemy you were hitting and counted, the stretches it was up on an enemy you had left, the stretches it was down while you had something to hit, the stretches it was up outside the measured time, and the stretches left out of the percentage — nothing to hit, and three or more enemies up"
     },
     "track": {
       "up": "Dot up",
@@ -1355,7 +1355,7 @@
       "aoe": "Three or more enemies"
     },
     "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no Lava Burst in it at all, and Lava Burst is why a dropped Flame Shock costs far more than the global that puts it back — so nothing there holds you to a dot uptime, and those seconds leave the percentage instead of counting against you. Two enemies is still counted, because that list casts both Flame Shock and Lava Burst. Put the dot back up when it is off the enemy in front of you either way: that is the AoE list's first rung.",
-    "multiDotNote": "The second-target figure has a clock of its own, and it is narrower than the one the greyed stretches above explain: only the stretches where exactly two enemies were up. Below two there is no second target to put a dot on, and from three enemies up the multi-target order has no second-dot rung in it at all, so both ends leave that figure rather than counting against it. Which is why the grey above accounts for only half of it — that band is the ceiling, and the dot uptime beside it is still measured at one enemy as well as at two. This figure is measured at two alone, and there is no band on the graph for its floor because one enemy is counted time for every other figure in this section."
+    "multiDotNote": "The second-target figure is measured over less of the pull than the greyed stretches above explain: only the stretches where exactly two enemies were up. Below two there is no second target to put a dot on, and from three enemies up the multi-target order has no second-dot rung in it at all, so both ends leave that figure rather than counting against it. Which is why the grey above accounts for only half of it — that grey is the ceiling, and the dot uptime beside it is still measured at one enemy as well as at two. This figure is measured at two alone, and there is no shaded stretch on the graph for its floor because one enemy is counted time for every other figure in this section."
   },
   "earthShock": {
     "title": "Earth Shock",
@@ -1384,7 +1384,7 @@
       "cleaveDot": "Flame Shock had under 8s left, with two enemies up"
     },
     "caption": "Every Earth Shock the priority list would not have pressed, and what was wrong when you pressed it",
-    "none": "Every Earth Shock matched the sim's rule.",
+    "none": "Every Earth Shock went out where it should have.",
     "aoeUnjudged_one": "One more shock went out while three or more enemies were up, and it is not in the count above. At that many targets the priority list has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so there is no right or wrong press to report.",
     "aoeUnjudged_other": "{{count}} more shocks went out while three or more enemies were up, and they are not in the count above. At that many targets the priority list has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so there is no right or wrong press to report.",
     "fulmination": "A stack spent early is a stack of the shield’s Fulmination the shield must rebuild before the next shock."
@@ -1421,7 +1421,7 @@
     "caption": "Every Searing Totem placement, what the previous totem still had on it, and what the press bought",
     "none": "Searing Totem was never cast in this pull.",
     "chart": {
-      "uptimeLabel": "Searing Totem uptime over the pull: the stretches it was ticking and counted, the stretches it was down while the slot was yours to fill, the stretches it was ticking outside the measured clock, and the stretches left out of the percentage — nothing to hit, three or more enemies up, and the Fire Elemental holding the slot"
+      "uptimeLabel": "Searing Totem uptime over the pull: the stretches it was ticking and counted, the stretches it was down while the slot was yours to fill, the stretches it was ticking outside the measured time, and the stretches left out of the percentage — nothing to hit, three or more enemies up, and the Fire Elemental holding the slot"
     },
     "track": {
       "up": "Totem up",
@@ -1432,7 +1432,7 @@
       "aoe": "Three or more enemies"
     },
     "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no fire totem in it at all — neither Searing Totem nor Magma Totem — so an empty slot there is not a totem you dropped, and those seconds leave the percentage instead of counting against you. Two enemies is still counted, because that list keeps Searing Totem and ranks it above Flame Shock, Lava Burst, Elemental Blast and Earth Shock.",
-    "gate": "The Fire Elemental takes the one Fire totem slot while it is out, destroying the totem — so that stretch is left out of both the graph and the percentage rather than counted as a totem dropped. A placement under the elemental is the one case the list forbids outright: it kills the elemental to buy a totem."
+    "gate": "The Fire Elemental takes the one Fire totem slot while it is out, destroying the totem — so that stretch is left out of both the graph and the percentage rather than counted as a totem dropped. A placement under the elemental is the one case the priority list forbids outright: it kills the elemental to buy a totem."
   },
   "flameShockSnapshots": {
     "title": "Snapshots",
@@ -1557,7 +1557,7 @@
     },
     "caption": "Every Fire Elemental summon, and what you pressed it with",
     "none": "Fire Elemental was never pressed in this pull.",
-    "prepullYes": "It was already out when the bell went — the prepull press the list makes under Heroism.",
+    "prepullYes": "It was already out when the bell went — the prepull press the priority list makes under Heroism.",
     "prepullNo": "It was not out when the bell went. Summoning it just before the pull is free: the elemental works from the first second and its five-minute cooldown starts turning earlier. Whether it was still down from the attempt before is not something this log can see, so nothing here counts it as a mistake. What the elemental covered once it was up is scored beside this.",
     "prepullUnknown": "Whether it was out at the bell is not a question this pull can answer. A pre-pull elemental leaves only the expiry it logs a minute later, and this fight either ended or had not yet reached this player before that could land."
   },
@@ -1609,10 +1609,10 @@
     "key": {
       "shield": "Charges",
       "fault": "Fell off, overcapped, or spent early",
-      "aoe": "AoE — not graded"
+      "aoe": "AoE — not counted"
     },
     "noBadSpends": "No Earth Shock was spent below the ceiling in this pull.",
-    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. Two enemies is still graded, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield is graded throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
+    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so there is nothing there to spend the shield into and sitting at seven is the only state available — those seconds are left out of the overcap figure rather than counted against you. Two enemies still counts, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
   },
   "stormlash": {
     "title": "Stormlash Totem",
@@ -1629,7 +1629,7 @@
       "overlap": "Two totems at once"
     },
     "chart": {
-      "label": "The raid's Stormlash Totems on the pull clock, a row per shaman, with the stretches where two totems ran at once"
+      "label": "The raid's Stormlash Totems across the pull, a row per shaman, with the stretches where two totems ran at once"
     },
     "empty": "No Stormlash Totem was placed in this pull.",
     "columns": {
