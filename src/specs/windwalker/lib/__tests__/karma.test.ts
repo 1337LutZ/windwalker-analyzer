@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { MIN_GRADED_SAMPLE } from '~/lib/score';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import { WEIGHTS } from '~/specs/windwalker/lib/score';
 import type { Analysis } from '~/lib/types';
@@ -103,16 +104,49 @@ describe('Touch of Karma', () => {
 	 * A press that returned nothing is a fault; a charge held through a quiet phase is not.
 	 *
 	 * So the empty share is taken over the presses *taken*, never over the presses the cooldown
-	 * allowed — `strong` took two of a possible six and is graded on the two.
+	 * allowed — `poor` took three of a possible three and `waves` one of a possible five, and neither
+	 * denominator is the cooldown's.
 	 */
 	it('faults the presses taken, not the charges left on the cooldown', () => {
+		const empty = (analysis: Analysis) =>
+			scoreAnalysis(analysis).sections.karma?.metrics.find((m) => m.key === 'karmaEmpty');
+
+		const poor = fixture('poor');
+		expect(poor.karma.available).toBe(3);
+		expect(empty(poor)?.sampleSize).toBe(3);
+		expect(empty(poor)?.value).toBe(0);
+		expect(empty(poor)?.grade).toBe('good');
+
+		// The charges left on the cooldown are not in the denominator, which is what this pull shows: one
+		// press of a possible five, and the sample the metric publishes is the one press.
+		const waves = fixture('waves');
+		expect(waves.karma.available).toBe(5);
+		expect(empty(waves)?.sampleSize).toBe(1);
+	});
+
+	/**
+	 * And a share of the presses taken is only worth grading over three of them.
+	 *
+	 * `karmaEmpty` was built with `sharePct`, which declines only at a denominator of nought, so it was
+	 * the one share in the spec with no sample floor under it. At two presses the reachable values are
+	 * nought, fifty and a hundred, and `strong` sat on the fifty: two presses, one of them into a quiet
+	 * stretch, graded `bad` and printed as a habit. A ninety-second cooldown makes that the ordinary
+	 * shape rather than the exceptional one — four of the six committed pulls press it once or twice.
+	 *
+	 * The press count is untouched by this and stays on the page; what is withdrawn is the share.
+	 */
+	it('declines to read a habit off one or two presses', () => {
 		const empty = (name: string) =>
 			scoreAnalysis(fixture(name)).sections.karma?.metrics.find((m) => m.key === 'karmaEmpty');
 
-		expect(empty('strong')?.value).toBe(50);
-		expect(empty('strong')?.grade).toBe('bad');
-		expect(empty('poor')?.value).toBe(0);
-		expect(empty('poor')?.grade).toBe('good');
+		expect(MIN_GRADED_SAMPLE).toBe(3);
+		for (const name of ['strong', 'cleave', 'waves', 'weave']) {
+			const karma = fixture(name).karma;
+			expect(karma.casts, `${name} clears the floor, so it does not belong here`).toBeLessThan(MIN_GRADED_SAMPLE);
+			expect(empty(name)?.unmeasurable, name).toBe(true);
+		}
+		// `strong` is the one that was reading `bad`: one empty press of the two it took.
+		expect(fixture('strong').karma.uses.filter((use) => use.reflected === 0)).toHaveLength(1);
 	});
 
 	/** Measured, shown, and deliberately not counted: the encounter decides what a press can be worth. */

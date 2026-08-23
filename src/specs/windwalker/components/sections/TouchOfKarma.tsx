@@ -43,6 +43,30 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 	const capShare = card.sections.karma?.metrics.find((m) => m.key === 'karmaCapShare');
 	const emptyPresses = karma.uses.filter((use) => use.reflected === 0).length;
 
+	/**
+	 * The presses went out and there are too few of them to read a share off. A fifth sentence, and not
+	 * new wording under an existing one.
+	 *
+	 * `karmaEmpty` used to be a bare percentage, which carries no sample floor, so a pull with one press
+	 * was handed `good` or `bad` off that press alone. It goes through `shareOf` now — the denominator is
+	 * a count of presses — and `metricOf` refuses it under `MIN_GRADED_SAMPLE`, which is where a ninety
+	 * second cooldown leaves most real pulls. Five of the six committed captures are under it.
+	 *
+	 * **Read off the metric and not off the section's letter**, which is what stops both of the two wrong
+	 * sentences rather than one of them. This section has a second metric, so the letter and the refusal
+	 * come apart in both directions. On a pull whose ceiling was never demonstrated the letter goes too,
+	 * and the sentence reached was `verdict_none` — "Touch of Karma was never pressed" — printed over a
+	 * table of the presses. On a pull that did demonstrate one, the share of the ceiling supplies a letter
+	 * all by itself, and `verdict_good` at it asserts that *every press ran while damage was coming in*,
+	 * which is the exact claim the scorer had just refused to make. `weave` is that second pull: one
+	 * press, a `good` letter off the ceiling share, and a clean sheet claimed off a sample of one.
+	 *
+	 * `karma.empty` below is deliberately left where it is. It is a count of presses rather than a share
+	 * of them, it is already chosen off that count and never off the letter, and it stays true of exactly
+	 * the pull that prints it. What the floor withdraws is the generalisation, not the observation.
+	 */
+	const tooFew = karma.casts > 0 && empties?.unmeasurable === true;
+
 	const rows = useMemo<GridRow[]>(
 		() =>
 			// The clock, and stated here rather than inherited. The engine builds these from the press
@@ -200,12 +224,24 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 							<span className="inline-flex items-center gap-2 align-middle">
 								<SpellIcon id={122470} size="sm" />
 							</span>{' '}
-							{verdict('karma', {
-								casts: karma.casts,
-								available: karma.available,
-								reflected: karma.reflected,
-								share: karma.sharePct,
-							})}{' '}
+							{/* The thin-sample arm is spelled out at the call rather than assembled, because
+							    `useReportCopy` picks its arm off a grade and a refused metric has none to give it.
+							    The numbers are the same four — the opening clause is the one every arm shares, and
+							    the presses, the charges and the damage are all facts the refusal does not touch. */}
+							{tooFew
+								? t('karma.verdict', {
+										context: 'tooFew',
+										casts: karma.casts,
+										available: karma.available,
+										reflected: karma.reflected,
+										share: karma.sharePct,
+									})
+								: verdict('karma', {
+										casts: karma.casts,
+										available: karma.available,
+										reflected: karma.reflected,
+										share: karma.sharePct,
+									})}{' '}
 							{/* Counted here rather than named in the verdict, because the verdict follows the
 							    section's grade and that grade can come from either metric — a sentence that
 							    asserted empty presses would be wrong on a pull graded down for half-filled ones. */}

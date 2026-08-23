@@ -293,18 +293,49 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// for the cap count. See `shortBrews`.
 	const brewShortUses = metric('brewShortUses', shortBrews(brew, procs, analysis.durationMs));
 
-	// A press that redirected nothing, over the presses taken — never over the presses the cooldown
-	// allowed. Holding Touch of Karma through a phase with nothing incoming is the correct play, and
-	// billing it as a miss would be the fabricated fault this section exists to refuse.
-	const karmaEmpty = metric(
-		'karmaEmpty',
-		sharePct(karma.uses.filter((use) => use.reflected === 0).length, karma.casts),
-	);
-	// Unmeasurable in two different ways, and both have to survive: no presses at all, and presses
-	// whose ceiling the pull never demonstrated. `capPerUse` is null in the second case, which is the
-	// "cannot say" the section prints rather than a share of a pool nobody measured. `absorbed` is
-	// absent on fixtures captured before it existed, and reading it as zero would score those pulls as
-	// having returned nothing — so an absent absorb is an unmeasurable metric, not a failing one.
+	/**
+	 * A press that redirected nothing, over the presses taken — never over the presses the cooldown
+	 * allowed. Holding Touch of Karma through a phase with nothing incoming is the correct play, and
+	 * billing it as a miss would be the fabricated fault this section exists to refuse.
+	 *
+	 * **`shareOf` and not `sharePct`, which is what applies the sample floor.** The denominator is a
+	 * count of presses, so `MIN_GRADED_SAMPLE` is exactly the kind of floor this share needs, and it
+	 * was missing. At one press the only reachable values are nought and a hundred — a quiet press
+	 * grades `bad` and a busy one grades `good`, and neither is a habit — and at two they are nought,
+	 * fifty and a hundred, with no interior either. A ninety-second cooldown on a four-minute pull is
+	 * *typically* under the floor rather than exceptionally so, which is what makes this the worst
+	 * placed of the shares that were missing one: five of the six committed pulls are under it.
+	 * `strong` and `cleave` took two presses each and were handed `bad` off a single quiet one;
+	 * `waves` and `weave` took one each and were handed `good`. Only `mixed` and `poor`, at three
+	 * presses, ever had a sample worth reading, and their grades do not move.
+	 *
+	 * The count of empty presses is not withdrawn from the reader by this — it is a fact about the
+	 * pull and `TouchOfKarma` prints it off the presses rather than off the letter. What is withdrawn
+	 * is the *share*, and with it the sentence that generalised from it; see `karma.verdict_tooFew`.
+	 */
+	const karmaEmpty = metric('karmaEmpty', shareOf(karma.uses.filter((use) => use.reflected === 0).length, karma.casts));
+	/**
+	 * Unmeasurable in two different ways, and both have to survive: no presses at all, and presses
+	 * whose ceiling the pull never demonstrated. `capPerUse` is null in the second case, which is the
+	 * "cannot say" the section prints rather than a share of a pool nobody measured. `absorbed` is
+	 * absent on fixtures captured before it existed, and reading it as zero would score those pulls as
+	 * having returned nothing — so an absent absorb is an unmeasurable metric, not a failing one.
+	 *
+	 * **`sharePct` here on purpose, and it is still worth a second look — recorded, not fixed.** The
+	 * denominator is a quantity of damage rather than a count of events, which is the side of the line
+	 * `sharePct` is for; the Elemental's lust-haste share is the same shape. What is uncomfortable is
+	 * that the *sample* behind it is still `karma.casts`, and on a pull with one press the figure is
+	 * arithmetically forced rather than observed: `capPerUse` is read off a press that drained its
+	 * pool, so a single press that drained one gives `absorbed === karmaCeiling` and a tautological
+	 * hundred percent. `weave` is exactly that pull and is handed `good` for it; `strong`, at two
+	 * presses with one drained, reads a forced fifty and is handed `ok`. That is a circularity rather
+	 * than a thin sample, so it wants its own reasoning and not this one's floor.
+	 *
+	 * Whoever takes it should know the trap: `karma.capSummary` interpolates `capShare?.value ?? 0`,
+	 * and `metricOf` parks a refused metric's `value` at nought — so putting a floor on this metric
+	 * without also computing that percentage in the component would print "returned 890,574 — 0% of
+	 * it", which is a fresh falsehood in place of the old one.
+	 */
 	const karmaCeiling = karma.capPerUse === null || karma.casts === 0 ? null : karma.capPerUse * karma.casts;
 	const karmaCapShare = metric(
 		'karmaCapShare',

@@ -90,7 +90,25 @@ function tile(html: string, label: string): string {
 	return parts.find((part) => part.toLowerCase().includes(needle)) ?? '';
 }
 
-const TONE = { good: 'text-kick', ok: 'text-brew', bad: 'text-miss' } as const;
+const TONE = { good: 'text-kick', ok: 'text-brew', bad: 'text-miss', none: 'text-ink' } as const;
+
+/**
+ * `poor`'s three presses with the last one emptied, and nothing else touched.
+ *
+ * Synthetic, and it has to be: `karmaEmpty` carries a sample floor of three presses now, and no
+ * committed capture has three presses *and* an empty one — `strong` and `cleave` have an empty press
+ * each and only two presses to put it among. So the pull that colours the tile red is built here,
+ * from the one committed pull that clears the floor, by taking the redirect off its last press.
+ * One of three is 33%, which is past the metric's `ok` line of 25.
+ */
+function oneEmptyOfThree(): Analysis {
+	const analysis = structuredClone(fixture('poor'));
+	const uses = analysis.karma.uses.map((use, i) =>
+		i === 2 ? { ...use, reflected: 0, absorbed: 0, exhausted: false, hits: 0, capPct: 0 } : use,
+	);
+	analysis.karma = { ...analysis.karma, uses, reflected: uses.reduce((sum, use) => sum + use.reflected, 0) };
+	return analysis;
+}
 
 describe('the Touch of Karma section', () => {
 	/**
@@ -164,20 +182,43 @@ describe('the Touch of Karma section', () => {
 
 		expect(landed).toContain('2');
 		expect(landed).toContain('/2');
-		expect(landed).toContain(TONE.good);
-		// The old label is gone entirely; a green tile must never be headed by the name of a mistake.
+		// The old label is gone entirely; a tile must never be headed by the name of a mistake.
 		expect(html).not.toContain('Returned nothing');
+		// Uncoloured, and that is the second half of the same fix rather than a loss. This pull took two
+		// presses, and `karmaEmpty` is a share over the presses taken, so it is under `MIN_GRADED_SAMPLE`
+		// and refused — the tile reads its own metric, so it goes neutral with it. It used to be painted
+		// green off a denominator of two.
+		expect(landed).toContain(TONE.none);
+		expect(landed).not.toContain(TONE.good);
+
+		// And the green half of the claim, on the committed pull that has a sample worth colouring: three
+		// presses, all of them landed.
+		const clean = tile(render(fixture('poor')), 'Presses that landed');
+		expect(clean).toContain('3');
+		expect(clean).toContain('/3');
+		expect(clean).toContain(TONE.good);
 	});
 
 	/**
 	 * And the same tile when presses really were empty, so the flip did not just paint everything green.
+	 *
+	 * On a synthetic pull, and the reason is the finding rather than a convenience: `strong` used to be
+	 * the witness here at one empty press of two, and two presses is exactly the sample `karmaEmpty` now
+	 * refuses. No committed capture clears the floor with an empty press among its three, so the red half
+	 * of this tile is reachable only from a hand edit — see `oneEmptyOfThree`.
 	 */
 	it('grades the landed count down when a press returned nothing', () => {
-		const landed = tile(render(fixture('strong')), 'Presses that landed');
+		const landed = tile(render(oneEmptyOfThree()), 'Presses that landed');
 
-		expect(landed).toContain('1');
-		expect(landed).toContain('/2');
+		expect(landed).toContain('2');
+		expect(landed).toContain('/3');
 		expect(landed).toContain(TONE.bad);
+
+		// And `strong`, which used to reach it off two presses, no longer does.
+		const thin = tile(render(fixture('strong')), 'Presses that landed');
+		expect(thin).toContain('1');
+		expect(thin).toContain('/2');
+		expect(thin).toContain(TONE.none);
 	});
 
 	/**

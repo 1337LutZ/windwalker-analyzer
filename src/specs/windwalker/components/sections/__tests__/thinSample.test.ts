@@ -29,17 +29,22 @@
 //     `f832015` moved the plain sentence onto a key of its own and left the graded `none` arm holding
 //     the thin-sample wording, gated on the press count rather than on the letter. `cleave` is the
 //     committed witness: two band-1 presses out of twelve, refused, and the thin sentence printed over
-//     the twelve. The only thing left owed is the arm's *name*, which still says `none`; renaming it
-//     would move a key the forward guard in `lib/i18n/__tests__/keys.test.ts` requires by stem, for no
-//     change a reader can see, so it is recorded rather than done.
+//     the twelve. The only thing left owed is the arm's *name*, which still says `none`. Judged and
+//     left: the name is not a label anyone chose but what `verdict()` assembles from a grade of `none`,
+//     and the forward guard in `lib/i18n/__tests__/keys.test.ts` requires that stem on every section
+//     that stores arms at all — so renaming means reaching it by name from `TigerPalm` and carrying a
+//     second guard, to change a key no reader ever sees. The reason now sits on the key's own line in
+//     that file, so the next reader need not re-open it.
 //   - **`brew`** — can. Its plain arm is chosen on `brew.uses` at the call site and never off the
 //     letter, so a pull whose short-brew sample is thin (`weave`, two required brews) keeps a graded
 //     sentence about the brews it did spend and never reaches the plain one.
-//   - **`karma`** — can. Both its metrics are refused only where the press count is nought, so the
-//     letter and the press count cannot disagree. Its plain arm names the uses the pull allowed, which
-//     is true of exactly the pull that reaches it. Recorded, not fixed: `karmaEmpty` is built with
-//     `sharePct` and so carries no sample floor, which means a single empty press grades `bad` off a
-//     denominator of one — a real defect, a different one, and not this lane's.
+//   - **`karma`** — could not, and it was worse than either of the two above, because the defect was a
+//     level deeper: the two sections here *described* a metric the scorer had refused, while this one
+//     was **a grade the scorer should have refused and did not.** `karmaEmpty` was built with
+//     `sharePct`, which declines only at a denominator of nought, so one empty Touch of Karma press
+//     graded the pull `bad` off a denominator of one. Fixed in `lib/score.ts` by putting it through
+//     `shareOf` like everything else, and by a fifth arm, `karma.verdict_tooFew`, reached by name. See
+//     the judgement below — this is the only one of the three whose witnesses are committed captures.
 //   - **`casts`** — can. Its only metric is refused where the pull recorded no globals at all, and its
 //     plain arm is already written as an admission about the measurement rather than as a claim about
 //     the player. It over-claims in neither direction, so it is justified rather than changed.
@@ -49,14 +54,24 @@
 // its grid above the sentence. Every Windwalker directional phrase was checked against its component's
 // render order and every one of them already pointed the right way.
 //
-// ## Every witness below is synthetic, and the premise test is what keeps that honest
+// ## Which witnesses are synthetic, and the premise tests that keep that honest
 //
 // The six committed Windwalker fixtures are captured `Analysis` output rather than raw datasets, so
-// they cannot be re-captured without a token nobody has. None of them is under either refusal on these
-// two sections — the affordable-proc counts are 4 to 14 and every contact span is minutes long — so
-// every thin pull here is a hand edit of `cleave`'s audit, in the manner
-// `specs/elemental/.../thinShockSample.test.ts` edits its own. The premise test writes the real numbers
-// out so the claim cannot rot, and the last test holds all six to the sentences they print today.
+// they cannot be re-captured without a token nobody has.
+//
+// **On the snapshots and the debuff, every witness is synthetic.** No committed pull is under either
+// refusal there — the affordable-proc counts are 4 to 14 and every contact span is minutes long — so
+// every thin pull for those two is a hand edit of `cleave`'s audit, in the manner
+// `specs/elemental/.../thinShockSample.test.ts` edits its own.
+//
+// **On the karma, every witness is real, and that is the whole weight of it.** A ninety-second
+// cooldown on a four-minute pull leaves most captures under a floor of three presses, and five of
+// these six are: `cleave` and `strong` took two, `waves` and `weave` took one, and only `mixed` and
+// `poor` reached three. So nothing here is hand-edited, the wrong grades quoted below are the ones
+// four committed pulls print today, and no synthetic pull is needed to reach any of them.
+//
+// Each half has a premise test that writes the real numbers out so the claim cannot rot, and each has
+// a no-change test holding the pulls that were right to the sentences they print today.
 //
 // `createElement` rather than JSX so this stays a `.ts` file and is picked up by the project's own
 // vitest include patterns, as its siblings do.
@@ -69,6 +84,7 @@ import { describe, expect, it } from 'vitest';
 
 import { initI18n } from '~/lib/i18n/config';
 import { MIN_GRADED_SAMPLE } from '~/lib/score';
+import { WEIGHTS } from '~/specs/windwalker/lib/score';
 import { getSpec } from '~/lib/spec';
 import { resolveBands, type TargetModeChoice } from '~/lib/view/targetMode';
 import type { Analysis } from '~/lib/types';
@@ -124,6 +140,19 @@ const prose = (html: string): string[] =>
 /** Every `Note`. The two sections that refuse to draw anything at all speak through one of these. */
 const notes = (html: string): string[] =>
 	[...html.matchAll(/<p class="m-0 max-w-\[70ch\][^"]*">([\s\S]*?)<\/p>/g)].map((m) => strip(m[1] ?? ''));
+
+/**
+ * The tone one `StatTile` is painted in, by the label under it: the `line` of `border-l-line` and so on.
+ *
+ * A tile is coloured by the metric it shows rather than by its section's letter, so a floor reaching a
+ * metric changes a colour on the page as well as a sentence. Read off the rendered class because that is
+ * what a reader sees, and split on the tile's own opening so a chunk cannot borrow its neighbour's class.
+ */
+const tileTone = (html: string, label: string): string =>
+	html
+		.split('<div class="border-l-2')
+		.filter((chunk) => chunk.includes(label))
+		.map((chunk) => chunk.match(/border-l-([\w-]+)/)?.[1] ?? '')[0] ?? '';
 
 /**
  * The graded sentence of a section that drew its evidence: the paragraph after the intent.
@@ -393,5 +422,228 @@ describe('the plain sentence, on every graded Windwalker section that has one', 
 		expect(sentence).not.toContain('Tiger Palm was never pressed in this pull.');
 		expect(sentence).toContain('only 2 of your 12 presses went out with one enemy up');
 		expect(sentence).toContain('too few to read the habit from');
+	});
+});
+
+/**
+ * The third defect in the family, and one level deeper than the two above.
+ *
+ * Those were sentences that *described* a metric the scorer had already refused. This is a grade the
+ * scorer should have refused and did not: `karmaEmpty` was a share of the presses that redirected
+ * nothing over the presses taken, built with `sharePct`, which declines only at a denominator of
+ * nought. So the share had no sample floor, and one empty Touch of Karma press graded the pull `bad`
+ * off a denominator of one.
+ *
+ * `MIN_GRADED_SAMPLE`'s own argument applies to it exactly: at one press the reachable values are
+ * nought and a hundred, at two they are nought, fifty and a hundred, and neither scale has an interior.
+ * What makes it the worst-placed of the shares that were missing a floor is the cooldown — ninety
+ * seconds on a pull of a few minutes means being under the floor is the *typical* case rather than the
+ * exceptional one. Every witness below is a committed capture; none is hand-edited.
+ *
+ * Two sentences came off it, not one, and that is why the arm is reached by name rather than off the
+ * section's letter. This section holds a second metric, so a refusal and a missing letter are not the
+ * same event in either direction — see the two tests that separate them.
+ */
+describe('a Windwalker pull with too few Touch of Karma presses to read a share off', () => {
+	/**
+	 * The whole-pull letters, before and after, and they are the same six.
+	 *
+	 * Written out rather than compared to themselves, so the claim is checkable against the commit
+	 * message rather than tautological. Both halves of each entry matter: the letter, and the weight it
+	 * was taken over — a metric dropping out of the denominator would move the second even where it left
+	 * the first alone. Neither moves, because `karmaEmpty` offers nought weight.
+	 */
+	const HEADLINES = {
+		cleave: 'good over 11 of 14',
+		mixed: 'ok over 15 of 15',
+		poor: 'bad over 15 of 15',
+		strong: 'good over 15 of 15',
+		waves: 'ok over 14 of 14',
+		weave: 'good over 14 of 15',
+	};
+
+	const NEVER_PRESSED = 'Touch of Karma was never pressed, and the pull allowed';
+	const TOO_FEW_PRESSES = 'too few presses to tell a habit from a coincidence';
+	const CLEAN_SHEET = 'Every press ran while damage was actually coming in.';
+	const WORTH_FAR_LESS = 'Those presses returned far less than they were worth';
+
+	const karmaOf = (analysis: Analysis) =>
+		WINDWALKER.score(analysis, resolveBands(analysis.targets, 'auto')).sections.karma;
+	const emptyShare = (analysis: Analysis) => karmaOf(analysis)?.metrics.find((m) => m.key === 'karmaEmpty');
+
+	/**
+	 * The premise, and it is the finding rather than a preamble: four of the six committed pulls were
+	 * being graded on a sample the rest of the app would have refused, and two of them were graded `bad`
+	 * off a single quiet press. Written out so a re-capture that moves a press count fails here, where
+	 * the reason is, rather than turning a no-change row below into a test of a pull it was not written
+	 * for.
+	 */
+	it('is where a ninety-second cooldown leaves five of the six committed pulls', () => {
+		expect(MIN_GRADED_SAMPLE).toBe(3);
+		const presses = Object.fromEntries(FIXTURES.map((name) => [name, fixture(name).karma.casts]));
+		expect(presses).toEqual({ cleave: 2, mixed: 3, poor: 3, strong: 2, waves: 1, weave: 1 });
+
+		const thin = FIXTURES.filter((name) => (presses[name] ?? 0) < MIN_GRADED_SAMPLE);
+		expect(thin).toEqual(['cleave', 'strong', 'waves', 'weave']);
+		// And the numerators those four were graded on. One empty press decided two of them.
+		const empties = Object.fromEntries(
+			thin.map((name) => [name, fixture(name).karma.uses.filter((use) => use.reflected === 0).length]),
+		);
+		expect(empties).toEqual({ cleave: 1, strong: 1, waves: 0, weave: 0 });
+	});
+
+	/** The refusal itself, on every committed pull under the floor and on neither of the two above it. */
+	it('refuses the share on the four pulls under the floor and grades the two above it', () => {
+		for (const name of ['cleave', 'strong', 'waves', 'weave'] as const) {
+			const metric = emptyShare(fixture(name));
+			expect(metric?.unmeasurable, `${name} still grades a share off ${fixture(name).karma.casts} presses`).toBe(true);
+			// The denominator is published with the value, which is what let the floor apply at all.
+			expect(metric?.sampleSize, name).toBe(fixture(name).karma.casts);
+		}
+		for (const [name, value, grade] of [
+			['mixed', 0, 'good'],
+			['poor', 0, 'good'],
+		] as const) {
+			const metric = emptyShare(fixture(name));
+			expect(metric?.unmeasurable, name).toBe(false);
+			expect(metric?.value, name).toBe(value);
+			expect(metric?.grade, name).toBe(grade);
+		}
+	});
+
+	/**
+	 * The grade that moved, and the sentence that moved with it.
+	 *
+	 * `strong` and `cleave` each took two presses and each left one of them on a quiet stretch, which is
+	 * a share of fifty percent and, on this metric's line, a `bad`. Two presses cannot tell a habit from
+	 * the fight's own timing, and the sentence printed at that letter told the reader their presses were
+	 * worth far less than they should have been.
+	 */
+	it('does not tell a pull that pressed twice that both presses were worth far less', () => {
+		for (const name of ['strong', 'cleave'] as const) {
+			const analysis = fixture(name);
+			expect(analysis.karma.casts, name).toBe(2);
+			const sentence = verdictOf(render(TouchOfKarma, analysis));
+			expect(sentence, name).not.toContain(WORTH_FAR_LESS);
+			expect(sentence, name).toContain(TOO_FEW_PRESSES);
+			// The presses, the charges and the damage are facts the refusal does not touch, so the arm keeps
+			// the opening clause every graded arm here shares.
+			expect(sentence, name).toContain(`2 of ${analysis.karma.available} uses taken`);
+			noRawKey(sentence);
+		}
+	});
+
+	/**
+	 * The first reason the arm is reached by name: on some pulls the refusal takes the letter with it.
+	 *
+	 * `cleave` and `waves` never demonstrated a health pool, so `karmaCapShare` is unmeasurable too and
+	 * the whole section is — `gradeOf` answers `none` and `verdict()` reaches the never-pressed sentence,
+	 * printed directly under a table with a row for every press. The same fold the two sections above
+	 * had, arrived at from the scorer's side.
+	 *
+	 * **This one is a falsehood the floor would have *introduced*, not one it inherits**, and saying so is
+	 * the point rather than a caveat: before the floor these two had a letter and printed a graded
+	 * sentence. Put the floor in without the arm and `cleave` reads "Touch of Karma was never pressed, and
+	 * the pull allowed 3 uses. One press redirected nothing at all" — two sentences contradicting each
+	 * other in one paragraph, over a table of two presses. Which is why the arm and the floor are one
+	 * change and not two.
+	 */
+	it('does not tell a pull it never pressed the button it has a table of presses for', () => {
+		for (const name of ['cleave', 'waves'] as const) {
+			const analysis = fixture(name);
+			expect(karmaOf(analysis)?.unmeasurable, `${name} keeps a letter, so this pull tests the wrong route`).toBe(true);
+			const sentence = verdictOf(render(TouchOfKarma, analysis));
+			expect(sentence, name).not.toContain(NEVER_PRESSED);
+			// `waves` reached the plain sentence only after the floor took its letter away; before that it
+			// was handed a clean sheet off its single press, which the arm must not print either.
+			expect(sentence, name).not.toContain(CLEAN_SHEET);
+			expect(sentence, name).toContain(TOO_FEW_PRESSES);
+			noRawKey(sentence);
+		}
+	});
+
+	/**
+	 * The second reason, and the one the section's letter cannot catch at all.
+	 *
+	 * `weave` took a single press, and that press drained its pool — which is what states the pool, so
+	 * `karmaCapShare` reads a hundred percent and hands the section a `good` all by itself. The section
+	 * is *not* unmeasurable, `gradeOf` never says `none`, and the arm chosen at that letter asserts that
+	 * every press ran while damage was coming in: the exact reading the scorer had just refused, claimed
+	 * off a sample of one. A gate on the letter would have left this one standing.
+	 */
+	it('does not claim a clean sheet off a single press', () => {
+		const analysis = fixture('weave');
+		expect(analysis.karma.casts).toBe(1);
+		const section = karmaOf(analysis);
+		expect(section?.grade, 'the letter this arm used to be chosen by').toBe('good');
+		expect(section?.unmeasurable, 'and the section is not unmeasurable, so `gradeOf` never said `none`').toBe(false);
+
+		const sentence = verdictOf(render(TouchOfKarma, analysis));
+		expect(sentence).not.toContain(CLEAN_SHEET);
+		expect(sentence).toContain(TOO_FEW_PRESSES);
+		noRawKey(sentence);
+	});
+
+	/**
+	 * And the half the floor must not take away: the count of empty presses is an observation, not a
+	 * share, so it survives the refusal.
+	 *
+	 * `TouchOfKarma` chooses that sentence off the press count and never off the letter, which is why it
+	 * still prints on `strong` beside a refused share. What the floor withdraws is the generalisation
+	 * from one press to a habit — not the press.
+	 */
+	it('still says the empty press happened on the pull whose share it refuses', () => {
+		const drawn = render(TouchOfKarma, fixture('strong'));
+		expect(prose(drawn).join(' ')).toContain('One press redirected nothing at all');
+		// And the tile that took its colour from the refused share goes neutral rather than staying red,
+		// which is the second thing a reader can see change. `TouchOfKarma` already reads the metric rather
+		// than the section for this, so the floor reaches it without the component being touched — the tile
+		// beside it, which takes its tone from a wide press-count band and never from a graded metric,
+		// stays exactly as it was.
+		expect(tileTone(drawn, 'Presses that landed')).toBe('line');
+		expect(tileTone(drawn, 'Uses taken'), 'an ungraded tone, so this one must not move').toBe('miss');
+	});
+
+	/**
+	 * The no-change guard: the two pulls with a sample worth reading keep their letters and sentences.
+	 *
+	 * Three presses is the floor exactly, and both of these clear it with nothing empty, so both grade
+	 * `good` on the share and print the clean-sheet sentence they printed before. A fix that reached past
+	 * the floor and silenced a real reading fails here.
+	 */
+	it('leaves the two pulls above the floor alone', () => {
+		// Each pull's own opening rather than one shared clause, because the two reach different letters:
+		// neither left a press on a quiet stretch, so both grade `good` on the share, and it is the *other*
+		// metric that separates them — `poor` returned 95.8% of its ceiling and `mixed` 64.4%.
+		for (const [name, opening] of [
+			['mixed', 'Only part of their potential came back'],
+			['poor', CLEAN_SHEET],
+		] as const) {
+			const analysis = fixture(name);
+			expect(analysis.karma.casts, name).toBe(MIN_GRADED_SAMPLE);
+			const sentence = verdictOf(render(TouchOfKarma, analysis));
+			expect(sentence, name).toContain(opening); // no-change guard
+			expect(sentence, name).not.toContain(TOO_FEW_PRESSES);
+			noRawKey(sentence);
+		}
+	});
+
+	/**
+	 * Weight nought, so no letter on the page above the section moves with it.
+	 *
+	 * The whole-pull verdict renormalises over the weight it could measure, and a metric offering nought
+	 * weight contributes to neither side of that fraction whether it is refused or not. Asserted rather
+	 * than reasoned about, because it is the claim the commit message makes about the headline.
+	 */
+	it('moves no whole-pull letter, because the metric carries no weight', () => {
+		expect(WEIGHTS.karmaEmpty).toBe(0);
+		const headline = Object.fromEntries(
+			FIXTURES.map((name) => {
+				const analysis = fixture(name);
+				const card = WINDWALKER.score(analysis, resolveBands(analysis.targets, 'auto'));
+				return [name, `${card.overall} over ${card.judged?.measured} of ${card.judged?.total}`];
+			}),
+		);
+		expect(headline).toEqual(HEADLINES);
 	});
 });

@@ -1020,7 +1020,28 @@ describe('report copy with no reader', () => {
 			'verdict_none',
 		],
 		flameShockSnapshots: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_exempt', 'verdict_none'],
-		karma: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
+		// **`verdict_tooFew` is the fifth arm, and it closes the sample floor's last hole rather than a
+		// sentence that quoted one.** `karmaEmpty` was built with `sharePct`, which declines only at a
+		// denominator of nought, so a single empty Touch of Karma press graded the pull `bad` off a
+		// denominator of one — the grade the scorer should have refused and did not. It goes through
+		// `shareOf` now, which is the floor everything else already has, and a ninety-second cooldown puts
+		// most real pulls under it: five of the six committed captures take one or two presses.
+		//
+		// A fifth arm and not a rewording of the plain one, for the reason its two siblings give: "you
+		// never pressed this" asks for the button, "you pressed it and there are too few to read" asks for
+		// the table to be read a press at a time. It repeats the opening clause every graded arm here
+		// shares — the presses, the charges the cooldown allowed, the damage returned and its share of the
+		// pull are all facts the refusal does not touch — and then declines the share of them. Written so
+		// no numeral needs agreement, at one press as at two.
+		//
+		// Reached from `TouchOfKarma` by name, and here that is load-bearing in *both* directions, which
+		// the two earlier arms only had one of each. This section holds a second metric, so the letter and
+		// the refusal come apart either way round: with no ceiling demonstrated the section is
+		// unmeasurable too and `gradeOf` said `none`, printing "Touch of Karma was never pressed" over a
+		// table of presses; with one demonstrated the ceiling share supplies a letter on its own, and
+		// `verdict_good` at it claims every press ran while damage was coming in — the exact reading the
+		// scorer had refused. `weave`, at one press, is that second pull.
+		karma: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_tooFew', 'verdict_none'],
 		// Three arms each on the un-narrowed pair, and none on the narrowed three, which is the shape a
 		// measurement left rather than a preference. The drop count is one of two metrics here, so an
 		// un-narrowed sentence can be handed nought, one or many of them whatever its letter — `cleave`
@@ -1112,7 +1133,23 @@ describe('report copy with no reader', () => {
 		// nothing-decided fallback, and printed the `ok` arm at it: a share of nought beside a numerator of
 		// one, chosen off a letter no metric produced. Reading the metric catches that pull too.
 		snapshots: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_tooFew', 'verdict_none'],
-		tigerPalm: ['verdict_good', 'verdict_goodSome', 'verdict_ok', 'verdict_bad', 'verdict_none', 'verdict_exempt'],
+		tigerPalm: [
+			'verdict_good',
+			'verdict_goodSome',
+			'verdict_ok',
+			'verdict_bad',
+			// Named `none` and holding the *thin-sample* sentence, which `f832015` left behind when it moved
+			// the plain never-pressed wording out to `tigerPalm.unpressed`. Judged and left, so the next
+			// reader need not re-open it: the name is not a label anyone chose, it is what `verdict()`
+			// assembles from a grade of `none`, and the test below requires a `verdict_none` stem on every
+			// section that stores arms at all. Renaming it therefore means reaching it by name from
+			// `TigerPalm` and carrying a second guard, to change a key no reader ever sees — the sentence
+			// under it is already the right one and `cleave` prints it correctly today. The two arms added
+			// beside it (`snapshots`, `debuff`) are reached by name because their sections needed a *sixth*
+			// state their letter could not express; this one does not.
+			'verdict_none',
+			'verdict_exempt',
+		],
 	};
 
 	it('resolves the analysis copy through four routes, and none of them is empty', () => {

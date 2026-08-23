@@ -150,11 +150,19 @@ describe('the headline says how much of the pull it judged', () => {
  *      to be half — so the sentence can be a claim about copy from sections it never read.
  *
  * `strong` is the proof and it is committed: `good` over **15 of 15** points — nothing unread at all,
- * so (3) is not even needed — with `brew` and `karma` both lettering `bad` and three metrics scoring
- * zero. A reader of that pull was told the two red sections below were not real mistakes.
+ * so (3) is not even needed — with `brew` lettering `bad` and two metrics scoring zero. A reader of
+ * that pull was told the red section below was not a real mistake.
+ *
+ * It used to be two sections and three zeroes, and the third zero going is a fix rather than a drift:
+ * `karma` lettered `bad` because `karmaEmpty` was a share with no sample floor, and `strong` took two
+ * Touch of Karma presses and left one of them on a quiet stretch — a `bad` off a denominator of two.
+ * The metric goes through `shareOf` now and is refused on that pull, which leaves `karma` at `ok`. The
+ * headline itself does not move: that metric carries weight nought, so it was never in the mean, and
+ * the 15 of 15 below is the same 15 it always was. One red section under a `good` headline is all this
+ * argument ever needed.
  */
 describe('the good headline does not deny the faults under it', () => {
-	it('is printed over a pull two of whose sections it grades bad', () => {
+	it('is printed over a pull one of whose sections it grades bad', () => {
 		const strong = fx('strong');
 		const card = scoreAnalysis(strong, resolveBands(strong.targets, 'auto'));
 		expect(card.overall).toBe('good');
@@ -165,7 +173,7 @@ describe('the good headline does not deny the faults under it', () => {
 			.filter(([, score]) => !score.unmeasurable && score.grade === 'bad')
 			.map(([key]) => key)
 			.sort();
-		expect(bad).toEqual(['brew', 'karma']);
+		expect(bad).toEqual(['brew']);
 
 		// Any apostrophe in the sentence comes back HTML-escaped out of `renderToStaticMarkup`, which is
 		// why the two assertions above this block could compare the raw string and this one cannot. The
