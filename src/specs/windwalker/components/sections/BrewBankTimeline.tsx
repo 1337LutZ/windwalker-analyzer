@@ -10,7 +10,7 @@ import { Note, Prose, Section, StatTile, StatTiles } from '~/components/primitiv
 /** The bank counter over the pull, sharing its clock with the timeline above it. */
 export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 	const { brew } = analysis;
-	const { t, card, verdict } = useReportCopy(analysis);
+	const { t, card } = useReportCopy(analysis);
 
 	// Cap waste is one of the two metrics behind the section's grade, so its clause reads the metric
 	// rather than the section: a pull can spend full brews every time and still sit at the cap.
@@ -88,17 +88,41 @@ export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 	const shortUses = card.sections.brew?.metrics.find((m) => m.key === 'brewShortUses');
 	const faulted = shortUses === undefined || shortUses.unmeasurable ? null : shortUses.value;
 
+	/**
+	 * The grade for a sentence about the **mean**, which the section's letter is not.
+	 *
+	 * The letter is the worst of `brewStacks`, `brewCapWaste` and `brewShortUses` — so a pull that spent
+	 * a full ten every time and let the bank sit at twenty letters `bad`, and `verdict_bad_other` told
+	 * it "6 brews spent, averaging only 10 of 10 stacks". "Only" about a perfect mean, and the fault it
+	 * was reaching for is named by the cap clause on the next line anyway. `verdict_ok_other` misses the
+	 * same way one step milder: "the gap is stacks you earned but never spent" over a mean with no gap.
+	 *
+	 * This is the correction the `short` clause above already made, applied to the fall-through: the
+	 * sentence is chosen by the number it is about.
+	 *
+	 * **Never `good`, and that is not a hedge.** This grade is only asked for on the arm where the short
+	 * count cannot be read, and `lean > 0` is known there — a brew went out under ten — so
+	 * `verdict_good_other`'s "near the cap every time" is a claim about a brew that was not at the cap.
+	 * `ok` is the sentence that claims neither excuse nor fault, which is the register that arm's whole
+	 * reason for existing asks for.
+	 */
+	const stacks = card.sections.brew?.metrics.find((m) => m.key === 'brewStacks');
+	const meanGrade = stacks === undefined || stacks.unmeasurable || stacks.grade === 'good' ? 'ok' : stacks.grade;
+
 	const summary = [
 		!spent
 			? t('brew.verdict', { context: 'none' })
 			: // Every brew full is the only state that earns "near the cap every time", and it is now the
 				// only state that reaches it: stacks are integers and a drain takes ten, so `lean === 0`
-				// means the mean is exactly ten. A null count lands here too — see above.
-				lean === 0 || faulted === null
-				? verdict('brew', { count: brew.uses, avg: brew.avgConsumed })
-				: faulted === 0
-					? t('brew.verdict', { context: 'shortExcused', count: brew.uses, avg: brew.avgConsumed, lean })
-					: t('brew.verdict', { context: 'short', count: brew.uses, avg: brew.avgConsumed, short: faulted }),
+				// means the mean is exactly ten. Named rather than looked up by letter, which is what used
+				// to let the other two sentences through this arm.
+				lean === 0
+				? t('brew.verdict', { context: 'good', count: brew.uses, avg: brew.avgConsumed })
+				: faulted === null
+					? t('brew.verdict', { context: meanGrade, count: brew.uses, avg: brew.avgConsumed })
+					: faulted === 0
+						? t('brew.verdict', { context: 'shortExcused', count: brew.uses, avg: brew.avgConsumed, lean })
+						: t('brew.verdict', { context: 'short', count: brew.uses, avg: brew.avgConsumed, short: faulted }),
 		// `count`, not `wasted`: the sentence has singular and plural forms, and i18next selects them
 		// off `count` alone. One stack lost at the cap is reachable, so "1 stacks" was too.
 		cap && !cap.unmeasurable ? t('brew.cap', { context: cap.grade, count: brew.wastedAtCap }) : null,

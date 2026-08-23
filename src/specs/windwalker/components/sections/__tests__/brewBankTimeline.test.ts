@@ -292,6 +292,109 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 	});
 
 	/**
+	 * The mean sentence, on the pull whose letter is not about the mean at all.
+	 *
+	 * `lean === 0` and a `bad` cap: every brew spent a full ten — so `brewStacks` grades `good` and the
+	 * mean is exactly ten by arithmetic — while the bank sat at twenty and `brewCapWaste` grades `bad`.
+	 * The section letter is the worst of the three, so it letters `bad`, and asking that letter for a
+	 * sentence about the mean printed "**averaging only 10 of 10 stacks**". "Only" about a perfect mean,
+	 * with the fault it was reaching for named on the very next line by the cap clause.
+	 *
+	 * `poor` is the pull with the cap waste — ten stacks refused, `brewCapWaste` `bad` — and `allFull`
+	 * is the same rewrite the "near the cap" case above uses, because no committed fixture spends ten
+	 * every time. Both halves are asserted, so this cannot pass by the cap quietly grading something
+	 * else.
+	 */
+	it('does not say only about a mean of ten because the bank overflowed', () => {
+		const full = allFull(fixture('poor'));
+		const card = WINDWALKER_SPEC.score(full);
+		expect(full.brew.avgConsumed).toBe(10);
+		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade).toBe('good');
+		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewCapWaste')?.grade).toBe('bad');
+		expect(card.sections['brew']?.grade).toBe('bad');
+
+		const html = render(full);
+		// The sentence the letter used to select here, verbatim.
+		expect(html).not.toContain(t('brew.verdict', { context: 'bad', count: full.brew.uses, avg: 10 }));
+		expect(html).not.toContain('averaging only 10 of 10 stacks');
+		expect(html).not.toContain('averaging only');
+		// The mean's own sentence instead — and the cap fault is still on the page, in the clause whose
+		// number it actually is.
+		expect(html).toContain('6 brews spent, averaging 10 of 10 stacks — near the cap every time.');
+		expect(html).toContain(t('brew.cap', { context: 'bad', count: 10 }));
+	});
+
+	/**
+	 * The same fault one step milder, and the reason the fix is the mean's grade rather than a word
+	 * removed from one sentence: an `ok` letter off the cap put "The gap is stacks you earned but never
+	 * spent" over a mean with no gap in it.
+	 */
+	it('does not name a gap in a mean that has none', () => {
+		const full = allFull(fixture('mixed'));
+		const capped: Analysis = { ...full, brew: { ...full.brew, wastedAtCap: 4, maxStacks: 20 } };
+		const card = WINDWALKER_SPEC.score(capped);
+		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewCapWaste')?.grade).toBe('ok');
+		expect(card.sections['brew']?.grade).toBe('ok');
+
+		const html = render(capped);
+		expect(html).not.toContain(t('brew.verdict', { context: 'ok', count: capped.brew.uses, avg: 10 }));
+		expect(html).not.toContain('The gap is stacks you earned but never spent');
+		expect(html).toContain('7 brews spent, averaging 10 of 10 stacks — near the cap every time.');
+	});
+
+	/**
+	 * The other narrow path into these two sentences, kept: the count of short brews cannot be read, so
+	 * the mean is all there is to report and its own grade is what reports it. `weave` is that pull and
+	 * the sentence it gets is unchanged — what changed is that a `bad` cap can no longer reach in and
+	 * pick a different one.
+	 *
+	 * `bad` needs a mean under 8.5, which no committed pull has on this path, so the synthetic drops
+	 * `weave`'s mean and asserts the sentence follows the mean rather than the letter.
+	 */
+	it('lets the mean pick its own sentence where the short count cannot be read', () => {
+		const weave = fixture('weave');
+		expect(short(weave)?.unmeasurable).toBe(true);
+		expect(render(weave)).toContain(t('brew.verdict', { context: 'ok', count: 5, avg: weave.brew.avgConsumed })); // no-change guard
+
+		const poorMean: Analysis = { ...weave, brew: { ...weave.brew, avgConsumed: 7.2 } };
+		const card = WINDWALKER_SPEC.score(poorMean);
+		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade).toBe('bad');
+		const html = render(poorMean);
+		expect(html).toContain(t('brew.verdict', { context: 'bad', count: 5, avg: 7.2 }));
+		expect(html).toContain('averaging only 7.2 of 10 stacks');
+	});
+
+	/**
+	 * And "near the cap every time" cannot be claimed on that path, where a brew is known to have gone
+	 * out under ten and only the count of the unexcused ones is unreadable. Two brews, one full and one
+	 * at nine, is a mean of 9.5 — which `brewStacks` grades `good` — with `lean` of one.
+	 */
+	it('does not claim every brew was at the cap when the short count is merely unreadable', () => {
+		const weave = fixture('weave');
+		const twoBrews: Analysis = {
+			...weave,
+			brew: {
+				...weave.brew,
+				uses: 2,
+				fullUses: 1,
+				avgConsumed: 9.5,
+				useList: [
+					{ ...weave.brew.useList[0]!, consumed: 10 },
+					{ ...weave.brew.useList[1]!, consumed: 9 },
+				],
+			},
+		};
+		const card = WINDWALKER_SPEC.score(twoBrews);
+		expect(short(twoBrews)?.unmeasurable).toBe(true);
+		expect(twoBrews.brew.uses - twoBrews.brew.fullUses).toBe(1);
+		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade).toBe('good');
+
+		const html = render(twoBrews);
+		expect(html).not.toContain('near the cap every time');
+		expect(html).toContain(t('brew.verdict', { context: 'ok', count: 2, avg: 9.5 }));
+	});
+
+	/**
 	 * One *full* brew is the case the plural split already handled and it stays untouched: with a single
 	 * brew the mean *is* that brew, so a full one means the mean is ten.
 	 */
