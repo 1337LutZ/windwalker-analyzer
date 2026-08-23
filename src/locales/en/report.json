@@ -1314,6 +1314,7 @@
     "verdict_bad_full": "The dot was up for every second you had something to hit, across {{casts}} casts. The grade is about the refreshes, not the uptime: {{wasted, integer}} of them threw away a tick of the running dot with no stronger snapshot to show for it, spending a global for nothing.",
     "verdict_exempt": "From three enemies up the multi-target order asks only that Flame Shock go back up when it is off the enemy in front of you — it holds you to no dot uptime and gives you no reason to refresh a dot that is still running. So your {{uptime, percent}} uptime across {{casts}} casts is drawn above and none of it is measured on this reading. Switch the reading with the control at the top of the page if you want it counted.",
     "verdict_none": "Flame Shock was never cast in this pull.",
+    "wasteSplit": "{{unmeasured, integer}} of those came with more than one enemy up, where the multi-target order stops asking you to refresh a dot that is still running — so none of it is measured, and it is greyed in the chart above. What is measured is the {{judged, integer}} refreshes you made with one enemy in front of you. Once a second enemy is up, put Flame Shock back up only when it has dropped, and spend the rest of those globals on Chain Lightning.",
     "kpi": {
       "uptime": "Dot uptime",
       "applies": "Fresh applies",
@@ -1337,7 +1338,8 @@
       "snapshot": "Refreshed early into a dot {{gain}} stronger — worth the tick",
       "snapshot_froze": "Refreshed early into a dot {{gain}} stronger, with Clearcasting’s +20% frozen into it — {{own}} stronger without the proc",
       "snapshot_gaveUp": "Refreshed early into a dot {{gain}} stronger even though Clearcasting was up on the dot you replaced and not on this one — {{own}} stronger on everything but the proc",
-      "early": "Early — a tick thrown away"
+      "early": "Early — a tick thrown away",
+      "unmeasured": "not measured with more than one enemy up"
     },
     "caption": "Every Flame Shock press, what was left on the dot, and what the press bought you",
     "none": "Flame Shock was never pressed in this pull.",

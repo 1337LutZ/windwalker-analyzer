@@ -285,14 +285,18 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
  * to assert `held.length === refreshes` while the prose beside it claimed to be tracking the
  * denominator, which passed for a commit while being false on `cleave`.
  *
- * **One thing this does not reconcile, stated rather than left for the next reader to trip on.** The
- * tiles and the sentence under this section report the *pull-wide* ledger and are meant to: see
- * `FlameShockAudit.unjudgedRefreshes`, which is published as the correction out of that ledger precisely
- * so the two stay one subtraction apart. So on `cleave` the sentence still reads "1 refreshes threw away
- * a tick" and the press table still marks 0:57 as a fault, while this chart draws that same press grey.
- * The chart follows `flameShockWaste`, which is the graded share; the table follows the ledger, which is
- * every press the reader made. That is a real thing for a reader to notice, and whether the sentence
- * should move to the graded pair is a `score.ts` question and not this file's to answer.
+ * **The thing this used to leave unreconciled, and where it was settled.** For one commit the three
+ * surfaces disagreed about one press: this chart greyed `cleave`'s refresh at 57 499 while the sentence
+ * under the section read "1 refreshes threw away a tick" and the press table tinted that row
+ * `bg-band-warn`. The paragraph here handed the question on as a `score.ts` one. It was not — it was a
+ * copy question, and `FlameShock.tsx` answers it at `verdict`: the sentence keeps the pull-wide count,
+ * because a press that clipped a tick clipped a tick and an unmeasured figure is not a deleted one, and
+ * a second clause names how much of that count is measured. The table's **highlight** gives way where
+ * its words do not, on the Stormlash precedent that a red cell cannot say which of two things it means.
+ * So all three now agree: this chart greys the press, the row says "not measured with more than one
+ * enemy up" with no tint, and the sentence says what the dot did and then how much of it counted.
+ * Nothing here follows the graded pair alone; what changed is that nothing here *faults* what it drew
+ * grey.
  */
 export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');

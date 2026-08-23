@@ -114,9 +114,37 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					 */
 					const faulted =
 						press.kind === 'late' || press.kind === 'early' || (press.duringAscendance && press.remainingMs !== null);
+					/**
+					 * A refresh the report declined to measure, which is the one press a fault colour may not be
+					 * painted on.
+					 *
+					 * `a4936c7` greyed exactly this press in the depth chart above — "More than one enemy, not
+					 * measured" — while this table went on tinting the row and the sentence below went on
+					 * charging it. On `cleave` that is the refresh at 57 499ms with four enemies up, shown three
+					 * ways in one section: a picture saying we did not judge it, a highlight saying you got it
+					 * wrong. **The highlight is the one that gives way**, for the reason plan §80 gives the
+					 * Stormlash table — "a reader cannot tell a hard rule from a preference by looking at a red
+					 * cell", and it cannot tell a press we judged and faulted from one we never judged either.
+					 * The cell keeps its words and gains the same "not measured" the chart's key uses, so the
+					 * row still says what the press did to the dot; only the accusation goes.
+					 *
+					 * **`late` is untouched by this and keeps its tint at every target count**, which is why the
+					 * test is a live dot and not `!press.judged` alone. A `late` press has `remainingMs === null`,
+					 * and putting the dot back up when it is off the enemy in front of you is the multi-target
+					 * order's *first* rung — `flameShock.aoeNote` and `verdict_exempt` both say so to the reader
+					 * already. What that order drops is the timing of a refresh into a dot that is still running,
+					 * and that is exactly the pair `judged` and a live dot select.
+					 */
+					const unmeasuredRefresh = press.remainingMs !== null && !press.judged;
+					const state =
+						press.remainingMs === null
+							? t(`flameShock.state.${press.kind}`)
+							: press.duringAscendance
+								? t('flameShock.state.duringAscendance')
+								: t(`flameShock.state.${press.kind}`, snapshotWording(press));
 					return {
 						key: `${press.t}-${i}`,
-						band: faulted ? ('warn' as const) : undefined,
+						band: faulted && !unmeasuredRefresh ? ('warn' as const) : undefined,
 						cells: {
 							at: formatClock(press.t),
 							// The dot's remaining time where there was one; otherwise how long it had been down on
@@ -133,12 +161,16 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 							// too few ticks to count reads `—` and was graded on `dot left` after all. A press
 							// onto a dot that was already down is not graded on a count at all.
 							ticksLeft: press.remainingMs === null || press.ticksLeft === null ? '—' : `${press.ticksLeft}`,
-							state:
-								press.remainingMs === null
-									? t(`flameShock.state.${press.kind}`)
-									: press.duringAscendance
-										? t('flameShock.state.duringAscendance')
-										: t(`flameShock.state.${press.kind}`, snapshotWording(press)),
+							// Joined to the row's own words rather than replacing them, which is the rule `8e011ac`
+							// set for the tiles: an unmeasured figure is not a deleted one. A press that clipped a
+							// tick clipped a tick whatever was in front of the player, so "Early — a tick thrown
+							// away" stays and the clause says nothing counted it.
+							//
+							// Phrased "more than one enemy" and not with this row's own count, unlike the chart's
+							// per-row tooltip. `band` is `1 | 2 | 3 | 4` where 4 means *four or more*, so a number
+							// here would understate a press made into eight enemies; the chart's key already reads
+							// "More than one enemy, not measured", which is true at two and at thirteen.
+							state: unmeasuredRefresh ? `${state}, ${t('flameShock.state.unmeasured')}` : state,
 						},
 					};
 				}),
@@ -162,6 +194,52 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	// the reader. `unbroken` read as multi-target is exactly that pull: 100% uptime and every rule unasked,
 	// so it printed the literal text `flameShock.verdict` where its verdict belongs.
 	const context = fullUptime && grade !== 'none' && grade !== 'exempt' ? `${grade}_full` : grade;
+
+	/**
+	 * The refreshes the section counts, and the ones it only draws — the last of the three surfaces
+	 * `c93b866` split and `a4936c7` half-repaired.
+	 *
+	 * **The leading count stays pull-wide, and the sentence names how much of it was measured.** The
+	 * comment this replaces claimed the sentence and the grade were "about the identical set of presses",
+	 * which stopped being true the moment `flameShockWaste` moved its denominator to
+	 * `refreshes − unjudgedRefreshes`: on `cleave` the grade is taken over one refresh and this sentence
+	 * printed a count over two. Both halves of the repair were on the table, and the argument decided it
+	 * this way round:
+	 *
+	 *   - Moving `wasted` to the graded pair would have made the sentence read "0 refreshes threw away a
+	 *     tick" beside a chart drawing a bar for a refresh that threw away a tick. That is the rule
+	 *     `8e011ac` set — an unmeasured figure is not a deleted one — broken in the direction it was
+	 *     written to stop: the reader would see a greyed row with no number anywhere accounting for it.
+	 *   - Leaving `wasted` pull-wide and saying nothing is what shipped, and it is a fault claim over a
+	 *     press the report declined to judge. `lightningShield`'s verdict was corrected for exactly that.
+	 *
+	 * So it names both: what the dot did, then how much of it is counted. A pull that never leaves one
+	 * enemy has nothing to split and gets **byte-identical** copy to before — `unjudgedWaste` is 0 on
+	 * `phased` and `unbroken`, which is what keeps this section's four hand-written-ledger render tests on
+	 * the wording they assert.
+	 *
+	 * **Gated on there being a split to describe, and that gate is what keeps `verdict_exempt` clean.** A
+	 * reader who declares the whole pull multi-target leaves *no* judged refresh, so the clause's second
+	 * figure would be zero and its first would be the whole ledger — and `verdict_exempt` already says
+	 * none of it is measured and where the control to change that is. Two counts rather than one, because
+	 * `unjudgedWaste > 0` alone still fires on that reading.
+	 */
+	const judgedRefreshes = flameShock.refreshes - flameShock.unjudgedRefreshes;
+	const verdict =
+		t('flameShock.verdict', {
+			context,
+			uptime: flameShock.uptimePct,
+			casts: flameShock.applies + flameShock.refreshes,
+			// Pull-wide, and the same four terms `score.ts` starts from — the section's own tiles report this
+			// ledger and `FlameShockAudit.unjudgedRefreshes` is published as the correction *out* of it, so
+			// the two stay one subtraction apart rather than drifting as an independent pair.
+			wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
+		}) +
+		(flameShock.unjudgedWaste > 0 && judgedRefreshes > 0
+			? // One string rather than a second child, so the server render has no comment separator in the
+				// middle of a sentence a copy test matches on.
+				` ${t('flameShock.wasteSplit', { unmeasured: flameShock.unjudgedWaste, judged: judgedRefreshes })}`
+			: '');
 
 	return (
 		<Section id="flame-shock" title={t('flameShock.title')}>
@@ -227,16 +305,7 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 			</div>
 
 			<div className="mt-5 flex flex-col gap-3.5">
-				<Prose>
-					{t('flameShock.verdict', {
-						context,
-						uptime: flameShock.uptimePct,
-						casts: flameShock.applies + flameShock.refreshes,
-						// The same subtraction `score.ts` makes for `flameShockWaste`, and it has to stay the same
-						// one: the sentence and the grade underneath it are about the identical set of presses.
-						wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
-					})}
-				</Prose>
+				<Prose>{verdict}</Prose>
 				{/* What the grey band on the uptime graph means, on the pulls that have one.
 
 				    The same gate and the same argument as `lightningShield.aoeNote`: the key names the band
