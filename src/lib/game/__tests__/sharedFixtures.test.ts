@@ -12,6 +12,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { auraWindows } from '~/lib/analysis/auras';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { createRegistry } from '~/lib/game/registry';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import type { Analysis, FightDataset } from '~/lib/types';
@@ -114,6 +115,11 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 * reader would see on the chart. Every declared-and-firing effect in this block is asserted on every
 	 * pull that procs it — `lightweave` does not proc on `phased` (0 windows above), and an empty lane is
 	 * dropped from the timeline, so that one pull is asked only for the other three.
+	 *
+	 * **That 0 is a gear fact and not a dry spell**, which this grid alone cannot say: `phased`'s cloak
+	 * carries enchant 4423, plain Superior Intellect, where the other two carry 4892. The gear sweep at
+	 * the foot of this file is what establishes it, and `docs/item-effect-sweep.md` is why it matters —
+	 * reading a zero as "the declaration is wrong" is the mistake that whole document is about.
 	 */
 	it('draws all four of them on the Elemental timeline', () => {
 		for (const file of ELEMENTAL) {
@@ -263,5 +269,219 @@ describe('the two shared haste bands that can be up at once', () => {
 		expect(map, 'preview.astro no longer declares a `fixtures` object literal').not.toBeNull();
 		const names = map![1]!.split(',').map((n) => n.trim());
 		expect(names).toContain('unbroken');
+	});
+});
+
+// ------------------------------------------- what the four pulls were actually wearing
+
+/**
+ * *** "Absent from every fixture" is not "wrong", and `combatantinfo` is what tells the two apart. ***
+ *
+ * Every guard above this line asks whether a declared effect *fired*. None of them can say why one
+ * did not, and the difference is the whole of the item sweep's second tier: an id nobody wore and an
+ * id declared on the wrong number look identical in a count of zero. That confusion has been made
+ * twice in this repository's own notes — `docs/plan.md` §98's box 5 argued a metric unmeasurable
+ * because "138898 appears zero times in every fixture", and §51's own box warns against exactly that
+ * step — and both times the fact that would have settled it was already in the committed fixture.
+ *
+ * `combatantinfo` carries the player's whole kit: eighteen slots with the item id in each, the gems
+ * socketed into them and the `permanentEnchant` on the slots that have one. So "did this trinket
+ * proc" and "did this player own this trinket" are separate, answerable questions, and this test asks
+ * the second one and lines it up against the first.
+ *
+ * **The result is a biconditional, and it holds on all thirty-nine gear-sourced shared effects: an
+ * effect fires on exactly the pulls whose player equipped it.** There is not one case of equipped-and-
+ * silent anywhere in the committed set, which is what licenses reading every zero above as "not worn".
+ * The sharpest row is `lightweave`: it opens windows on `cleave` and `unbroken` and none on `phased`,
+ * and the reason is not luck — that pull's cloak carries enchant 4423, plain Superior Intellect, where
+ * the other two carry 4892. `sharedFixtures`' own grid pins the 0 and could only ever have said "did
+ * not proc".
+ *
+ * Source ids are the **item, gem and enchant** ids of the thing that grants the effect, taken from
+ * `assets/database/db.json` (`items[].itemEffects[].buffId` and `.stackingAura.buffId`,
+ * `enchants[].enchantEffects[].buffId`, keyed by `effectId` because that is the number
+ * `permanentEnchant` writes) — every ilvl variant of each item, since a fixture wears the upgraded id
+ * and not the base one: the Elemental pulls carry Kardris' Toxic Totem as **104544** and not 102300.
+ * The three meta gems and Rune of Re-Origination are named by hand because `db.json` carries no
+ * player-visible buff for them — the Rune's only item effect there is the hidden `139116` "Item -
+ * Attacks Proc Highest Rating" marker, which is the sweep's own finding one table over.
+ *
+ * Five shared auras are deliberately outside the table. `blood-fury` and `berserking` are racials,
+ * `bloodlust` and `skull-banner` are other players' raid cooldowns: none of the four is gear and none
+ * has a slot to be read out of. `synapse-springs` is the one that is gear and still cannot be read,
+ * which is this instrument's own ceiling and has its own test below.
+ */
+const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]> = [
+	// ------------------------------------------------ Throne of Thunder trinkets
+	['unerring-vision', [94_524, 95_814, 96_186, 96_558, 96_930], []],
+	['wushoolays-lightning', [94_513, 95_669, 96_041, 96_413, 96_785], []],
+	['wushoolays-lightning-stacks', [94_513, 95_669, 96_041, 96_413, 96_785], []],
+	['breath-of-hydra', [94_521, 95_711, 96_083, 96_455, 96_827], []],
+	['chayes', [94_531, 95_772, 96_144, 96_516, 96_888], []],
+	['juju-madness', [94_523, 95_665, 96_037, 96_409, 96_781], []],
+	['rampage', [94_519, 95_757, 96_129, 96_501, 96_873], []],
+	['eye-of-brutality', [94_529, 95_799, 96_171, 96_543, 96_915], []],
+	['blades-of-renataki', [94_512, 95_625, 95_997, 96_369, 96_741], []],
+	['blades-of-renataki-stacks', [94_512, 95_625, 95_997, 96_369, 96_741], []],
+	['feathers-of-fury', [94_515, 95_726, 96_098, 96_470, 96_842], []],
+	['feathers-of-fury-stacks', [94_515, 95_726, 96_098, 96_470, 96_842], []],
+	['cloudburst', [94_514, 95_641, 96_013, 96_385, 96_757], []],
+	// Rune of Re-Origination, and the one row `db.json` cannot source: see the docblock.
+	['re-origination', [94_532, 95_802, 96_174, 96_546, 96_918], ['windwalker/dataset-ironJuggernaut.json']],
+
+	// --------------------------------------------------- Siege of Orgrimmar trinkets
+	['wrath-of-darkspear', [102_310, 104_652, 104_901, 105_150, 105_399, 105_648], []],
+	['wrath-of-darkspear-stacks', [102_310, 104_652, 104_901, 105_150, 105_399, 105_648], []],
+	['cruelty', [102_308, 104_636, 104_885, 105_134, 105_383, 105_632], []],
+	['cruelty-stacks', [102_308, 104_636, 104_885, 105_134, 105_383, 105_632], []],
+	['dextrous', [102_292, 104_476, 104_725, 104_974, 105_223, 105_472], []],
+	['titanic-restoration', [102_299, 104_478, 104_727, 104_976, 105_225, 105_474], []],
+	['tenacious', [102_295, 104_463, 104_712, 104_961, 105_210, 105_459], []],
+	['ferocity', [102_302, 104_584, 104_833, 105_082, 105_331, 105_580], []],
+	['restless-agility', [102_311, 104_616, 104_865, 105_114, 105_363, 105_612], []],
+	['vicious', [102_301, 104_531, 104_780, 105_029, 105_278, 105_527], ['windwalker/dataset-ironJuggernaut.json']],
+	[
+		'expanded-mind',
+		[102_293, 104_426, 104_675, 104_924, 105_173, 105_422],
+		['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json'],
+	],
+	[
+		'toxic-power',
+		[102_300, 104_544, 104_793, 105_042, 105_291, 105_540],
+		['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json'],
+	],
+
+	// ------------------------------------------------------------------ meta gems
+	['fortitude', [95_344], []],
+	['tempus-repit', [95_347], ['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json']],
+	['capacitance', [95_346], ['windwalker/dataset-ironJuggernaut.json']],
+
+	// ----------------------------------------------------------- legendary cloaks
+	['spirit-of-chi-ji', [102_247], []],
+	// Two cloaks, one effect id — `db.json` gives 146194 to both melee legendaries.
+	['flurry-of-xuen', [102_248, 102_249], ['windwalker/dataset-ironJuggernaut.json']],
+	['essence-of-yulon', [102_246], ['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json']],
+
+	// ---------------------------------------------------- weapon and cloak enchants
+	['windsong', [4441], []],
+	['rivers-song', [4446], []],
+	['swordguard-embroidery', [3730, 4118, 4894], []],
+	['lord-blastingtons', [4699], []],
+	['dancing-steel', [4444], ['windwalker/dataset-ironJuggernaut.json']],
+	['jade-spirit', [4442], ['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json']],
+	// The row that makes the point: `phased` wears 4423 on the cloak, the other two wear 4892.
+	['lightweave', [3722, 4115, 4892], ['elemental/cleave.json', 'elemental/unbroken.json']],
+];
+
+/** The pulls that carry raw events, keyed the way the coverage guard's grids are. */
+const RAW_PULLS: Array<[string, FightDataset]> = ['elemental', 'windwalker'].flatMap((spec) =>
+	rawFixtures(spec).map(({ name, dataset }) => [`${spec}/${name}`, dataset] as [string, FightDataset]),
+);
+
+/** Every item, gem and slot-enchant id the pull's `combatantinfo` says the player had on. */
+function equippedIds(dataset: FightDataset): Set<number> {
+	const info = dataset.events.find((event) => (event as { type?: string }).type === 'combatantinfo') as
+		| { gear?: Array<{ id?: number; permanentEnchant?: number; gems?: Array<{ id?: number }> }> }
+		| undefined;
+	const worn = new Set<number>();
+	for (const slot of info?.gear ?? []) {
+		if (slot.id) worn.add(slot.id);
+		if (slot.permanentEnchant) worn.add(slot.permanentEnchant);
+		for (const gem of slot.gems ?? []) if (gem.id) worn.add(gem.id);
+	}
+	return worn;
+}
+
+/**
+ * Events carrying one of the aura's ids, scoped to the audited player either way round.
+ *
+ * `sourceID` as well as `targetID`, and not for tidiness: `essence-of-yulon` is an enemy **debuff**,
+ * so the player is the source and never the target of the one row here that is not a buff. These
+ * streams do carry off-actor events — eleven to twenty ids per pull — so an unscoped count could
+ * credit this player with another raider's identical trinket.
+ */
+function firedOnPlayer(dataset: FightDataset, key: string): number {
+	const ids = new Set(registry.aura(key).ids);
+	const actor = dataset.actor.id;
+	return dataset.events.filter((event) => {
+		const e = event as { abilityGameID?: number; sourceID?: number; targetID?: number };
+		return e.abilityGameID !== undefined && ids.has(e.abilityGameID) && (e.sourceID === actor || e.targetID === actor);
+	}).length;
+}
+
+describe('absent from every fixture, because not one of the four players wore it', () => {
+	/**
+	 * The census half: which pulls equip each effect, read off the gear and pinned.
+	 *
+	 * A grid rather than a per-row `it`, so a fixture arriving with a trinket nobody has worn yet fails
+	 * once, by name, showing what it brought — which is the moment to move that id out of the report's
+	 * second tier and into its first.
+	 */
+	it('reads the same kit out of every pull it did', () => {
+		const measured = Object.fromEntries(
+			GEAR_SOURCES.map(([key, sources]) => [
+				key,
+				RAW_PULLS.filter(([, dataset]) => sources.some((id) => equippedIds(dataset).has(id))).map(([name]) => name),
+			]),
+		);
+		expect(measured).toEqual(Object.fromEntries(GEAR_SOURCES.map(([key, , equippedOn]) => [key, equippedOn])));
+	});
+
+	/**
+	 * And the half that makes the zeros above readable: **equipped if and only if fired.**
+	 *
+	 * Asserted as one biconditional per row rather than as two lists, because the two failures it has to
+	 * separate are opposite. A row that fires where nothing is equipped is a source-id list that has
+	 * gone wrong; a row equipped and silent is the interesting one — a declaration on a number the game
+	 * does not write, which is the 144998 shape and the only thing in this file that could catch it on
+	 * gear the fixtures actually own.
+	 */
+	it('fires on exactly the pulls that equipped it', () => {
+		for (const [key, sources] of GEAR_SOURCES) {
+			for (const [name, dataset] of RAW_PULLS) {
+				const equipped = sources.some((id) => equippedIds(dataset).has(id));
+				expect(firedOnPlayer(dataset, key) > 0, `${name} ${key}: equipped=${equipped}`).toBe(equipped);
+			}
+		}
+	});
+
+	/**
+	 * Not vacuous, and stated as the two totals the assertions above are silent about: a table of
+	 * thirty-nine rows all reading `[]` would satisfy both.
+	 */
+	it('really does sweep four pulls, some of it equipped and most of it not', () => {
+		expect(RAW_PULLS.map(([name]) => name)).toEqual([
+			'elemental/cleave.json',
+			'elemental/phased.json',
+			'elemental/unbroken.json',
+			'windwalker/dataset-ironJuggernaut.json',
+		]);
+		expect(GEAR_SOURCES.length).toBe(39);
+		expect(GEAR_SOURCES.filter(([, , on]) => on.length > 0).length).toBe(11);
+		// Eighteen slots read on every pull, and a kit is dozens of ids — not an empty gear array.
+		for (const [name, dataset] of RAW_PULLS) expect(equippedIds(dataset).size, name).toBeGreaterThan(20);
+	});
+
+	/**
+	 * *** The glove tinker is the hole in this instrument, and it is worth a test rather than a note. ***
+	 *
+	 * Synapse Springs is enchant 4898 and it is gear like any other — but `combatantinfo` reports **one**
+	 * `permanentEnchant` per slot, and on all four of these pulls the hand slot reports 4433, Superior
+	 * Mastery. The tinker is a second enchant on the same item and there is nowhere in this event for it
+	 * to go. So the gear reading says "no tinker" on four pulls that all press 126734 — which means the
+	 * biconditional above is a statement about trinkets, gems, cloaks and slot enchants, and **not** a
+	 * general licence to read gear as the whole of what a player is wearing.
+	 */
+	it('cannot see the glove tinker, which four pulls demonstrably had', () => {
+		for (const [name, dataset] of RAW_PULLS) {
+			const worn = equippedIds(dataset);
+			expect(worn.has(4898), `${name} reports the tinker`).toBe(false);
+			expect(worn.has(4433), `${name} hand slot enchant`).toBe(true);
+			// Pressed all the same, on every pull.
+			const pressed = dataset.events.filter(
+				(event) => (event as { abilityGameID?: number }).abilityGameID === 126_734,
+			).length;
+			expect(pressed, `${name} presses Synapse Springs`).toBeGreaterThan(0);
+		}
 	});
 });
