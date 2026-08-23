@@ -1,10 +1,4 @@
 {
-  "grade": {
-    "good": "Good",
-    "ok": "Mixed",
-    "bad": "Needs work",
-    "none": "Not measured"
-  },
   "overall": {
     "good": "You played this pull close to the spec's ceiling. Read down the page anyway and start with anything flagged — a strong average can still hold a habit that cost you real damage.",
     "ok": "Some parts were solid and others lost damage. Read down the page to see which was which.",

@@ -334,13 +334,18 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
  * section" so that a new root is a visible edit here, and closed by the last test in this file: every
  * root in `report.json` is in exactly one of the four lists, so nothing can be added outside a scope
  * again the way every Windwalker string once was.
+ *
+ * `grade` was the seventeenth and is gone with the copy: four labels — "Good", "Mixed", "Needs work",
+ * "Not measured" — that arrived in the first commit and were never read by anything, at any point in
+ * the file's history. The page draws a grade as a colour and says so (`primitives/grade.ts`: "the
+ * words carry the judgement on their own"), and the closure test below is what turned deleting them
+ * into this edit rather than a silent one.
  */
 const SHARED_SECTIONS = [
 	'castLog',
 	'damage',
 	'empty',
 	'gear',
-	'grade',
 	'kpi',
 	'method',
 	'metric',
