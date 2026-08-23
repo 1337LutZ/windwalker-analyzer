@@ -301,6 +301,35 @@ export default function SnapshotDepth({ analysis }: { analysis: Analysis }) {
 										// at the default 1000ms. `formatSeconds`, so the tile and the chart spell
 										// the same window the same way.
 										text: `snapshot leeway ${formatSeconds(procs.lastGcdMs)}`,
+										/**
+										 * Anchored at its right edge, because ApexCharts places this label at the
+										 * band's **left** edge and the default `middle` then hangs half of it off the
+										 * end of the plot.
+										 *
+										 * `XAxisAnnotations.js` draws the text at `x1` — the band's opening, not its
+										 * middle — and gives it no clip path, while the band rect beside it is masked
+										 * to the grid. The band is the leeway over the whole proc, so `x1` sits
+										 * `lastGcdMs / axisMax` of the plot short of the right-hand end: a tenth of it
+										 * at the default 1s on a 10s window. Measured in Chrome at 768px, the label is
+										 * 161.72px wide against 57.07px of plot left to its right, so centred it ran
+										 * **23.79px past the end of the plot** and 2.23px past the section itself,
+										 * where the SVG's own `overflow: hidden` sliced its background box flat.
+										 * `poor`, `strong` and `weave` all did it; `mixed` escaped only because a near
+										 * miss widens its axis and pushes the band left. Below 640px the label is not
+										 * drawn at all and at 1440 there is plot enough to absorb it, which is why 768
+										 * was the one width that showed it.
+										 *
+										 * `end` puts the label's right edge on the band's opening, so it reads into
+										 * the band from the left and its width is spent over plot that exists. It is
+										 * the label's *width* that is the problem, so nothing here may depend on the
+										 * copy staying this length: at the default leeway the anchor leaves 351.94px of
+										 * plot to the label's left at 768px (570.73 of grid, less the 57.07 to the
+										 * anchor's right and the label's own 161.72). A much longer string, or a reader
+										 * who sets the leeway past about two thirds of the proc, walks off the other
+										 * edge instead — asserted in `snapshotDepth.test.ts` as the arithmetic rather
+										 * than left to a sweep to find.
+										 */
+										textAnchor: 'end',
 										borderColor: 'transparent',
 										// ApexCharts rotates annotation labels vertically by default, which here stands
 										// the text on its end inside the band and across the first rows' bars.
