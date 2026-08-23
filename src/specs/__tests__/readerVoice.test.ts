@@ -1105,3 +1105,77 @@ describe('no string in either locale sounds machine-written', () => {
 		expect(stacked).toEqual([]);
 	});
 });
+
+// ================================================= the magnitude a grade cannot carry
+//
+// **A word list cannot find this one either, and a scoped list of survivors can.**
+//
+// `docs/conventions.md`'s honesty rule — "never hard-code a finding into report prose; derive the
+// claim from the numbers or omit it" — has a shape the plan named once and then missed twice. A
+// graded arm renders across a whole band, so a frequency or magnitude word inside it is a claim about
+// every value the band can take, not about the value in front of the reader. `casts.verdict_bad`
+// appended "Nearly a third of the pull produced nothing useful" to a band starting at 75% used, and
+// Phase 3 deleted it. The same defect was still live in two more arms, and one of them contradicted a
+// number nine words earlier:
+//
+//   - `tigerPalm.verdict_bad` ended "This happened repeatedly, not just once." `tigerPalmWaste` is
+//     `ok: 30, higherIsBetter: false` and `MIN_GRADED_SAMPLE` is 3, so three presses with one wasted
+//     is 33% and reaches this arm — printing "1 of them bought nothing … This happened repeatedly."
+//   - `earthShock.verdict_bad` ended "— most went out early." `earthShockGood` is `ok: 65`, so the arm
+//     starts at 64% good, where 36% went out early and "most" is false.
+//
+// Neither is a word this file could ban outright: `most` is exactly right in the one arm below whose
+// band guarantees it. So the guard is the **survivors**, written out. Adding a magnitude claim to a
+// graded arm means adding its key here with the arithmetic beside it, which is the same shape every
+// other exception list in this file takes.
+const MAGNITUDE = /\b(most|repeatedly|almost|nearly|hardly|barely|the majority|effectively never)\b/i;
+
+describe('a graded sentence claims no magnitude its own band cannot carry', () => {
+	it('carries only the three whose arithmetic is written out here', () => {
+		const claims = localeStrings()
+			.filter(([key, value]) => key.includes('verdict') && MAGNITUDE.test(prose(value)))
+			.map(([key]) => key);
+		// `snapshots.verdict_bad` — "most of it was missed". `snapshotRate` is `ok: 45`, so the arm ends
+		//   below 45% caught and more than half was missed at every value it can take. Sound.
+		// `debuff.verdict_good` — "Effectively never off the enemy in front of you". `rskUptime` is
+		//   `good: 95`, so the arm is at most 5% off. Sound.
+		// `casts.verdict_good` — "Almost nothing went unused". `gcdUtilisation` is `good: 85` for the
+		//   Windwalker and **80** for the Elemental, so this is said at up to one global in five.
+		//   **The weakest survivor, listed rather than endorsed.** Phase 3 reached it only to take `very`
+		//   out of "Very little went unused" and did not price the band; the honest fix needs a sentence
+		//   that names the share, and that is a decision rather than an edit.
+		expect(claims.sort()).toEqual(['casts.verdict_good', 'debuff.verdict_good', 'snapshots.verdict_bad']);
+	});
+
+	it('fires on the two that were removed, so the list is not passing on a broken pattern', () => {
+		// Non-vacuity, in the shape the block above uses: the pattern is executed against the two
+		// sentences this guard exists because of, rather than only against copy that is already clean.
+		const removed: [string, string][] = [
+			['tigerPalm.verdict_bad@2026-08-23', 'This happened repeatedly, not just once.'],
+			['earthShock.verdict_bad@2026-08-23', 'most went out early'],
+			['casts.verdict_bad@phase-3', 'Nearly a third of the pull produced nothing useful.'],
+		];
+		expect(removed.filter(([, value]) => !MAGNITUDE.test(value)).map(([key]) => key)).toEqual([]);
+	});
+
+	/**
+	 * The one claim that is carried by arm selection rather than by a band, named so it is not read as
+	 * an omission from the list above.
+	 *
+	 * `brew.verdict_good_other` ends "near the cap every time", which no band could guarantee — a mean
+	 * of 9.5 grades `good` with one brew of six spent at seven, and the sentence was live over exactly
+	 * that. `BrewBankTimeline` now reaches this arm only on `lean === 0`, where stacks are integers and
+	 * a drain takes ten, so the mean is exactly ten. The argument is written at the call site; this
+	 * assertion is here so that deleting the gate reddens the voice guard as well as the render tests.
+	 */
+	it('leaves the one claim a call site guards where its call site can be checked', () => {
+		expect(value_of('brew.verdict_good_other')).toContain('near the cap every time');
+	});
+});
+
+/** One leaf by key, for the two assertions above that name a string rather than sweep for one. */
+function value_of(key: string): string {
+	const hit = localeStrings().find(([name]) => name === key);
+	expect(hit, `no such key: ${key}`).toBeDefined();
+	return hit?.[1] ?? '';
+}

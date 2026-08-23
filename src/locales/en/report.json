@@ -114,9 +114,9 @@
   "casts": {
     "title": "Casts per minute",
     "intent": "How much of the time you spent on a target went into presses that achieved something. Windwalker is limited by energy and has real downtime, so 100% is not the ceiling — but every gap is a global the fight took from you or one that went unused.",
-    "verdict_good": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. Almost nothing went unused.",
-    "verdict_ok": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. The remaining globals are worth working on.",
-    "verdict_bad": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target.",
+    "verdict_good": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. Almost nothing went unused.",
+    "verdict_ok": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. The remaining globals are worth working on.",
+    "verdict_bad": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target.",
     "verdict_none": "Too few globals passed to measure a rate.",
     "activeTime": "WarcraftLogs counts {{active, percent}} of the pull as active time for you. It comes off the damage table and forgives pauses of a few seconds, so it reads wider than the time you actually spent pressing something.",
     "wastedGcds_one": "One global went to a Tiger Palm that achieved nothing, and it is not counted above. A Jab or Blackout Kick there costs the same global and does count — this number is not asking you to press less.",
@@ -149,7 +149,7 @@
     "verdict_good": "{{uptime, percent}} uptime across {{casts}} casts. Effectively never off the enemy in front of you.",
     "verdict_ok": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it.",
     "verdict_bad": "{{uptime, percent}} uptime across {{casts}} casts. For {{lost, seconds}} of the time you had something to hit, the enemy in front of you was not carrying it — and everything you did during that time hit for less.",
-    "verdict_noContact": "Rising Sun Kick was cast in this pull — {{casts, integer}} in total — but no time with an enemy in front of you was recorded to measure the debuff against, and uptime is a share of exactly that time. With nothing for the share to come out of there is no uptime to report, so nothing here counts for or against you. The casts are real; it is the time to read them against that this log does not carry.",
+    "verdict_noContact": "Rising Sun Kick was cast in this pull — {{casts, integer}} in total — but no time with an enemy in front of you was recorded to measure the debuff against, and uptime is a share of exactly that time. With nothing for the share to come out of, there is no uptime to report, so nothing here counts for or against you.",
     "verdict_none": "Rising Sun Kick was never cast in this pull.",
     "target": "the primary target",
     "target_boss": "the boss",
@@ -196,7 +196,7 @@
     "verdict_good": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Every press bought something.",
     "verdict_goodSome": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Tiger Palm is not what is holding this pull back, and {{wasted}} of those presses still bought nothing — each one a global that belonged to Jab or Blackout Kick. Press it on a Combo Breaker proc, or with Tiger Power about to drop, and leave it alone otherwise.",
     "verdict_ok": "{{casts}} presses: {{onProc}} on a proc, {{applied}} applying Tiger Power, {{refresh}} refreshing it, {{wasted}} wasted — globals with nothing to show for them.",
-    "verdict_bad": "{{casts}} presses and {{wasted}} of them bought nothing: only {{onProc}} spent a proc, {{applied}} put Tiger Power up and {{refresh}} refreshed it. This happened repeatedly, not just once.",
+    "verdict_bad": "{{casts}} presses and {{wasted}} of them bought nothing: only {{onProc}} spent a proc, {{applied}} put Tiger Power up and {{refresh}} refreshed it. Press it on a Combo Breaker proc, or with Tiger Power about to drop, and leave it alone otherwise.",
     "verdict_none": "Tiger Palm is your single-target filler, and only {{sample}} of your {{casts}} presses went out with one enemy up — too few to read the habit from. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
     "verdict_exempt": "This pull is being read as multi-target, and Tiger Palm is not your filler there — so its {{casts}} presses are drawn above but do not count towards your score. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
     "unpressed": "Tiger Palm was never pressed in this pull.",
@@ -227,7 +227,7 @@
       "channel": "channel",
       "brew": "brew",
       "rune": "rune left",
-      "verdict": "what was wrong"
+      "verdict": "what went wrong"
     },
     "cells": {
       "yes": "yes",
@@ -255,7 +255,7 @@
       "held": "buff lasted",
       "under": "under",
       "channels": "fists",
-      "verdict": "what was wrong",
+      "verdict": "what went wrong",
       "wasted": "energy lost"
     },
     "cells": {
@@ -364,14 +364,14 @@
     "verdict_good": "No stretch under {{starved, percent}} went by with Thunderstorm sitting unpressed, and none under {{strained, percent}} with Shamanistic Rage. The pool was never the thing holding your casts back.",
     "verdict_good_noRage": "No stretch under {{starved, percent}} went by with Thunderstorm sitting unpressed. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
     "verdict_good_noThunderstorm": "No stretch under {{strained, percent}} went by with Shamanistic Rage sitting unpressed. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
-    "verdict_ok_one": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. Press Thunderstorm the moment you hit {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum — and put the Rage down every time it is up and you are under {{strained, percent}}.",
-    "verdict_ok_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. Press Thunderstorm the moment you hit {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum — and put the Rage down every time it is up and you are under {{strained, percent}}.",
+    "verdict_ok_one": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. Press Thunderstorm the moment you hit {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum. And put the Rage down every time it is up and you are under {{strained, percent}}.",
+    "verdict_ok_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. Press Thunderstorm the moment you hit {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum. And put the Rage down every time it is up and you are under {{strained, percent}}.",
     "verdict_ok_noRage": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up. Press it the moment you hit {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
     "verdict_ok_noThunderstorm": "You let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. Put it down every time it is up and you are under {{strained, percent}} — it does not even take a global. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
-    "verdict_bad_one": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional — press it the moment you get there. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
-    "verdict_bad_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional — press it the moment you get there. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
+    "verdict_bad_one": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional — press it the moment you get there. The Rage costs no global at all: press it whenever it is up and you are under {{strained, percent}}.",
+    "verdict_bad_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional — press it the moment you get there. The Rage costs no global at all: press it whenever it is up and you are under {{strained, percent}}.",
     "verdict_bad_noRage": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional — press it the moment you get there. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
-    "verdict_bad_noThunderstorm": "You let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. It costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
+    "verdict_bad_noThunderstorm": "You let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. It costs no global at all: press it whenever it is up and you are under {{strained, percent}}. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
     "verdict_none": "Your pool spent {{low, duration}} under {{strained, percent}}, and none of it is a press you passed over: every second of it fell inside the opening of the pull, or ran while the button for it was still coming back. So nothing here counts for or against you. Press Thunderstorm as you hit {{starved, percent}} and Shamanistic Rage as you hit {{strained, percent}} anyway — the Rage costs you no global at all, and the Thunderstorm hands back {{starved, percent}} of your maximum.",
     "kpi": {
       "lowest": "Lowest mana",
@@ -1045,7 +1045,7 @@
       },
       "runeNoMastery": {
         "title": "Check your gems and reforges",
-        "body": "All {{count}} Re-Origination procs converted into {{stat}} instead of Mastery. Check your gems and reforges so Mastery is your highest secondary stat."
+        "body": "All {{count}} Re-Origination procs converted into {{stat}} instead of Mastery. Reforge or regem until Mastery is your highest secondary stat."
       }
     },
     "takeaways": {
@@ -1077,7 +1077,7 @@
         },
         "brewShortUses": {
           "label": "Wait for the tenth stack",
-          "fix": "You spent {{value, integer}} of your Tigereye Brews with the bank under ten, with no Re-Origination proc about to run out and more than fifteen seconds of fight still to come. Hold the brew until the bank reads ten — a proc on its last global and the closing seconds of the fight are the only two times a short brew is the right press."
+          "fix": "You spent {{value, integer}} of your Tigereye Brews with the bank under ten, with no Re-Origination proc about to run out and more than fifteen seconds of fight still to come. Those two are the only reasons to brew short. Hold the rest until the bank reads ten."
         },
         "brewCapWaste": {
           "label": "Stop overflowing the bank",
@@ -1119,7 +1119,7 @@
         },
         "fireElementalPrepull": {
           "label": "Summon before the pull",
-          "fix": "The Fire Elemental was not out when the pull started. Summoning it in the last second before the pull gets you its whole minute from the first second and starts its five-minute cooldown turning that much earlier. This log cannot see whether it was still down from the attempt before, so the summon being late is not counted against the pull. What the elemental covered once it was up is scored beside this."
+          "fix": "The Fire Elemental was not out when the pull started. Summoning it in the last second before the pull gets you its whole minute from the first second, and starts its five-minute cooldown that much earlier. This log cannot see whether it was still down from the attempt before, so a late summon is not counted against the pull."
         },
         "flameShockSnapshots": {
           "label": "Catch the proc windows",
@@ -1139,11 +1139,11 @@
         },
         "shamanisticRageMissed": {
           "label": "Put Shamanistic Rage down",
-          "fix": "Shamanistic Rage came back to a pool already at or under 70% and went unpressed, on {{value, integer}} of its returns. It costs no global and cuts what your casts cost for fifteen seconds, so there is nothing to weigh up — press it whenever it is up and you are under 70%."
+          "fix": "Shamanistic Rage came back to a pool already at or under 70% and went unpressed, on {{value, integer}} of its returns. It costs no global and cuts what your casts cost for fifteen seconds. Press it whenever it is up and you are under 70%."
         },
         "fireElementalHasteUptime": {
           "label": "Cover the haste cooldown",
-          "fix": "The Fire Elemental was out for {{value, percent}} of your raid's haste cooldown, against {{target, percent}}. Its minute is longer than the lust's forty seconds, so a summon already standing when the lust lands covers all of it — the press wants to be the last thing you do before the pull, not the first thing after it. A summon that goes up after the lust, or comes off inside it, is pet damage taken out from under the haste. Do not glyph it: thirty seconds cannot cover forty, and the second elemental it buys is worth less than the procs the first one gives up."
+          "fix": "The Fire Elemental was out for {{value, percent}} of your raid's haste cooldown, against {{target, percent}}. Its minute outlasts the lust's forty seconds, so a summon already standing when the lust lands covers all of it — press it last before the pull, not first after it. Do not glyph it: thirty seconds cannot cover forty, and the second elemental the glyph buys is worth less than the procs the first one gives up."
         }
       }
     }
@@ -1351,7 +1351,7 @@
       "unmeasured": "not measured with more than one enemy up"
     },
     "caption": "Every Flame Shock press, what was left on the dot, and what the press bought you",
-    "none": "Flame Shock was never pressed in this pull.",
+    "none": "No presses to list.",
     "snapshotNote": "A refresh with one tick still to come throws nothing away — that tick rolls over into the new dot, which is what “Last-tick refresh” and the “ticks left” column mean. An earlier one is not automatically a mistake either. The priority list wants one when the new cast snapshots a dot more than 10% stronger per second, and every one of those presses is spelled out in the “what it was” column above and none of them is counted as waste. Four things can make the new dot stronger: more spellpower, more crit, a faster tick cadence, and Clearcasting, which is +20% on its own — twice the bar, and up for more than half of a normal pull. So where Clearcasting was frozen into one of the two dots and not the other, the row says so and gives you the second figure with the proc divided back out: that is the part your timing bought. Only the size of the gain decides the row, never which proc produced it, so a lucky press reads the same as a read one. The procs worth timing a refresh around are scored in the Snapshots section.",
     "chart": {
       "key": {
@@ -1382,7 +1382,7 @@
     "intent": "Earth Shock spends the Lightning Shield, and what makes a press good depends on how many enemies were up when you pressed it. Against one enemy with no tier-16 two-piece proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance more than six seconds away, because Ascendance wants the same shock timer. While a tier-16 proc is running, hold the shock instead — wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. So a shock pressed while the proc is running is not early just for being there; only one pressed before the proc's last four seconds is. Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long.",
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long. The rest went out early, and the table above says what was short on each one.",
-    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long — most went out early. The table above says what was short on each one: hold the shock until the charges are back and the dot is ahead of it.",
+    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long. The table above says what was short on each of the rest: hold the shock until the charges are back and the dot is ahead of it.",
     "verdict_exempt": "From three enemies up the multi-target order has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so none of your shocks is right or wrong on this reading. That is {{presses, integer}} in total, and nothing asked for any of them.",
     "verdict_tooFew": "Earth Shock was pressed in this pull — {{presses, integer}} in total — but only {{counted, integer}} of those came with one or two enemies up, and that is too few to tell a habit from a coincidence: one press either way would swing the share. So nothing here counts for or against you. Any shock that went out early still has its own row in the table. Read them one at a time rather than as a fraction.",
     "verdict_none": "Earth Shock was never cast in this pull.",
@@ -1446,7 +1446,7 @@
       "late": "Late placement"
     },
     "caption": "Every Searing Totem you dropped, what the last one still had left, and what the press bought",
-    "none": "Searing Totem was never cast in this pull.",
+    "none": "No presses to list.",
     "chart": {
       "uptimeLabel": "Searing Totem uptime over the pull: the stretches it was ticking and counted, the stretches it was down while the slot was yours to fill, the stretches it was ticking outside the measured time, and the stretches left out of the percentage — nothing to hit, three or more enemies up, and the Fire Elemental holding the slot"
     },
@@ -1465,7 +1465,7 @@
     "title": "Snapshots",
     "intent": "When a trigger proc (UVLS, Wushoolay’s counter, or Black Blood’s counter) overlaps an intellect proc, refresh Flame Shock inside the overlap: the dot freezes the spellpower you applied it with and keeps it for the rest of its duration. A stretch you had both procs up, with the dot running and no refresh in it, is a snapshot you gave away.",
     "verdict_good": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
-    "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh.",
+    "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh. The rest passed without one.",
     "verdict_bad": "Only {{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh — the rest let the proc pass without a snapshot.",
     "verdict_exempt": "From three enemies up the multi-target order has no Flame Shock refresh in it, so there is no proc window here you were meant to snapshot: the {{caught, integer}} of {{offered, integer}} above is not measured on this reading.",
     "verdict_none": "No proc window was offered in this pull.",
@@ -1483,7 +1483,7 @@
       "black-blood": "Black Blood at ten stacks"
     },
     "caption": "Every stretch of overlapping procs worth a refresh, and which trinket opened it",
-    "none": "No proc window was offered in this pull.",
+    "none": "No windows to list.",
     "measurable": "The \"dot grew by 10%\" half of the sim’s rule *is* readable off a log, and the Flame Shock section now reads it: every tick reports its damage before the crit roll and before the target’s own debuffs, so one dot’s snapshot is a single number and the change across a refresh is that number over its tick period. What this section adds is the other half — which procs were on offer to be snapshotted in the first place."
   },
   "ascendance": {
@@ -1634,7 +1634,7 @@
       "stacks": "spent at"
     },
     "caption": "Every Earth Shock spent below the ceiling — a spend that threw Fulmination away",
-    "none": "Lightning Shield was never up in this pull.",
+    "none": "No charges to draw.",
     "leeway": "Overcap is measured past a {{leeway}} grace, so a shock being finished is never charged.",
     "chart": "Lightning Shield charges over the pull, with overcapping and fell-off stretches in red",
     "key": {

@@ -434,6 +434,35 @@ prose words sit in the longest 9% of the strings. Six rules follow from that:
    subject is. Do not shorten it — if an edit aimed at another string would also "improve" that one,
    the rule being applied is length, and length is the wrong rule.
 
+**Rule 4 is about the reader, not about the file, and reading it the other way undoes the
+front-loading.** Exactly one grade arm renders, so a clause that appears in all three of `verdict_good`
+`_ok` `_bad` is not something anybody reads twice — and when that clause is the reader's own number, it
+is there because every arm has to open on it. What rule 4 catches is the clause a reader meets twice
+**on one page**: the seventeen words of "switch the reading with the control at the top of the page"
+that nine strings ended on, which a multi-target reading printed in five sections at once. Count pages,
+not keys. Two families were deferred to a split on the key count alone and neither pays — `brew`'s
+"{{count}} brews spent, averaging {{avg}} of 10 stacks" and `flameShock`'s "The dot was up for every
+second you had something to hit" are the front-loaded result, and `castLog.lust.note_*` differs by spec
+in the middle of a sentence, where three keys assembled into one sentence is worse than the repetition.
+
+**An empty state and the verdict under it must not be the same sentence.** Four sections shipped the
+pair: `searingTotem.none` and `searingTotem.verdict_none` were both "Searing Totem was never cast in
+this pull", printed ten words apart on a pull that never cast it, and `flameShock`'s two differed by one
+word — "pressed" against "cast" — which reads as a rendering fault rather than as writing. The table's
+empty state says what the _table_ has nothing of ("No presses to list"); the sentence under it says what
+the _pull_ did. `earthShock.none` had it right from the start: the table lists only the faults, so its
+empty state is "Every Earth Shock went out where it should have."
+
+**A magnitude word inside a graded arm is a claim about the whole band.** This is the honesty rule
+below, in the one shape that keeps getting past it. An arm renders across every value its band can take,
+so "most", "repeatedly", "almost" and "nearly" have to be true at the band's _worst_ end or they are
+false on the page. `casts.verdict_bad` said "Nearly a third of the pull produced nothing useful" on a
+band starting at 75% used; `tigerPalm.verdict_bad` said "This happened repeatedly, not just once" on a
+band three presses and one wasted press can reach, printing the contradiction nine words apart; and
+`earthShock.verdict_bad` said "most went out early" on a band starting at 64% good. Derive the claim or
+drop it — the grade already carries the colour. The survivors are listed in `readerVoice.test.ts` with
+the arithmetic that earns each one, so adding a fourth is a visible edit.
+
 **`specs/__tests__/readerVoice.test.ts` is the mechanical half, and it carries two kinds of list on
 purpose.** `MODEL_WORDS` — internal jargon that must not reach a reader — is surrounded by carve-outs
 (`WINDWALKER_METHOD_KEYS`, `SHARED_METHOD_KEYS`, `REFERENCE_SECTIONS`, `REFERENCE_READER_KEYS`),
