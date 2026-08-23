@@ -48,12 +48,22 @@ const QUALITY: Record<number, string> = {
 	5: 'border-brew/80',
 };
 
-const SIZES = {
-	sm: { box: 'h-6 w-6', gem: 'h-2.5 w-2.5', text: 'text-[9px]' },
-	md: { box: 'h-11 w-11', gem: 'h-3 w-3', text: 'text-[10px]' },
-	lg: { box: 'h-14 w-14', gem: 'h-3.5 w-3.5', text: 'text-[11px]' },
-} as const;
-
+/**
+ * One size, and it is `h-14`. There used to be three — `sm` at `h-6`, `md` at `h-11`, `lg` at `h-14`
+ * — and the gear list, the only place this is drawn, took the default. So two of them were dead, and
+ * *the smaller of the dead two could not have worked*: the box has to hold the item level badge at
+ * the top and the gem strip at the bottom, and at `h-6` it does not. Border-box, `border-2`, so
+ * 24 − 4 = **20 px inside**; the badge is `text-[9px]` at `leading-tight`, so 9 × 1.25 = **11.25 px**;
+ * the gems are `h-2.5`, so **10 px**. 11.25 + 10 = **21.25 px into a 20 px box** — the badge lands on
+ * the gems. (`md` cleared it — 40 px inside against 24.5 — but nothing asked for it either.)
+ *
+ * That is arithmetic and not a rendered measurement on purpose: the suite runs under
+ * `environment: 'node'`, a component test renders to a string, and a string has no boxes — see the
+ * overlap section of `docs/conventions.md`, which lists this component's badge and strip among the
+ * handful of things in the tree that are positioned out of flow at all. An option that no caller can
+ * reach and that no test in this repo could ever catch is worth less than the line it costs, so the
+ * numbers below are written where they are used rather than picked from a map.
+ */
 export default function ItemIcon({
 	id,
 	icon,
@@ -61,7 +71,6 @@ export default function ItemIcon({
 	itemLevel = null,
 	gems = [],
 	setPieceIds = [],
-	size = 'lg',
 	label,
 }: {
 	id: number;
@@ -76,13 +85,11 @@ export default function ItemIcon({
 	 * captured before the field was read. Empty means the tooltip is left exactly as it was.
 	 */
 	setPieceIds?: readonly number[];
-	size?: keyof typeof SIZES;
 	/** What the link announces, since the icon itself carries no name to read. */
 	label: string;
 }) {
 	if (id === 0) return null;
 
-	const scale = SIZES[size];
 	const border = QUALITY[quality ?? 0] ?? 'border-line';
 
 	return (
@@ -94,7 +101,7 @@ export default function ItemIcon({
 		// placed against its container's *padding* box, so with the border here the item level and the
 		// gems land inside the frame instead of on top of it.
 		<span
-			className={`relative inline-flex shrink-0 overflow-hidden rounded-[3px] border-2 ${border} bg-raised ${scale.box}`}
+			className={`relative inline-flex shrink-0 overflow-hidden rounded-[3px] border-2 ${border} bg-raised h-14 w-14`}
 		>
 			<a
 				href={itemUrl(id)}
@@ -125,9 +132,7 @@ export default function ItemIcon({
 			    prints it, and it keeps the row's text column for things the icon cannot show.
 			    `pointer-events-none` so it does not punch a hole in the item's own hover target. */}
 			{itemLevel === null ? null : (
-				<span
-					className={`pointer-events-none absolute top-0 left-0 z-10 rounded-br-[3px] bg-bg/85 px-1 font-mono ${scale.text} leading-tight font-semibold text-ink tabular`}
-				>
+				<span className="pointer-events-none absolute top-0 left-0 z-10 rounded-br-[3px] bg-bg/85 px-1 font-mono text-[11px] leading-tight font-semibold text-ink tabular">
 					{itemLevel}
 				</span>
 			)}
@@ -147,7 +152,7 @@ export default function ItemIcon({
 							className="inline-flex transition-opacity hover:opacity-80"
 						>
 							{gem.icon === null ? (
-								<span className={`${scale.gem} rounded-[2px] border border-bg/70 bg-raised`} aria-hidden="true" />
+								<span className="h-3.5 w-3.5 rounded-[2px] border border-bg/70 bg-raised" aria-hidden="true" />
 							) : (
 								<img
 									src={iconUrl(gem.icon)}
@@ -157,7 +162,7 @@ export default function ItemIcon({
 									height={56}
 									loading="lazy"
 									decoding="async"
-									className={`${scale.gem} rounded-[2px] border border-bg/70`}
+									className="h-3.5 w-3.5 rounded-[2px] border border-bg/70"
 								/>
 							)}
 						</a>

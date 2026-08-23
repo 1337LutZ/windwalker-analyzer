@@ -55,4 +55,29 @@ describe('ItemIcon', () => {
 	it('renders nothing for an empty slot', () => {
 		expect(render({ id: 0 })).toBe('');
 	});
+
+	/**
+	 * The size axis is gone, and this is the only way a string-rendering suite can say so. There were
+	 * three boxes and one call site taking the default, and the smallest of them could not have held
+	 * its own chrome: `h-6` with `border-2` leaves 20 px inside, and the item level badge
+	 * (`text-[9px]` at `leading-tight` = 11.25 px) plus the gem strip (`h-2.5` = 10 px) want 21.25.
+	 * There is no layout engine here to catch that — `environment: 'node'`, and a string has no boxes
+	 * — so the guard is that the option cannot be asked for at all.
+	 *
+	 * Deliberately off-type: `size` is no longer a prop, so the only thing that can catch the axis
+	 * growing back is passing what a caller used to pass. Against the three-size version the left side
+	 * renders `h-6 w-6` and the right `h-14 w-14`, and this fails.
+	 */
+	it('draws one box, whatever size a caller asks for', () => {
+		expect(render({ size: 'sm' } as never)).toBe(render());
+		expect(render({ size: 'md' } as never)).toBe(render());
+
+		// And the box is the gear list's. Pinned in the same test rather than beside it, because on its
+		// own this half passes against the three-size version too — the three numbers are now literals
+		// in the markup instead of entries in a map, and a stray edit to one would otherwise be silent.
+		const html = render({ itemLevel: 553, gems: [{ id: 76884, icon: null }] });
+		expect(html).toContain('h-14 w-14');
+		expect(html).toContain('text-[11px]');
+		expect(html).toContain('h-3.5 w-3.5');
+	});
 });
