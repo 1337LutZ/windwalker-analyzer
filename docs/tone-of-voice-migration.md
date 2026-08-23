@@ -2,21 +2,60 @@
 
 Working plan for the reader-voice pass across every user-facing string. Tracked rather than left in a session, because the work is phased, the phases have an order that carries meaning, and the previous three attempts at this complaint each lost what the one before it had learned.
 
-**Status:** planned, not started. **New here? Read "Before you start" below first** — it covers the dirty tree this was planned against, how to load the voice skill, and which sweeps already returned nothing. Do not begin a phase without reading the one before it; Phase 2 and Phase 3 in particular are a red-then-green pair and are meaningless apart.
+**Status:** Phases 1, 2, 3 and the `bell` source half of 4b-i have landed. **New here? Read "Before you start" below first**, then "What the landed phases actually found" — the plan was measured against a tree that has since moved, and four of its numbers were wrong. Do not begin a phase without reading the one before it; Phase 2 and Phase 3 in particular are a red-then-green pair and are meaningless apart.
 
-| #     | Phase                                                         | State         | Ships as                                     |
-| ----- | ------------------------------------------------------------- | ------------- | -------------------------------------------- |
-| 1     | Record the standard (`docs/conventions.md`, README staleness) | ☐ not started | own PR                                       |
-| 2     | Widen the guard vocabulary — **deliberately red**             | ☐ not started | PR with Phase 3, commit 1                    |
-| 3     | Fix the copy — green                                          | ☐ not started | PR with Phase 2, commit 2                    |
-| 4     | Front-load the two worst verdict families                     | ☐ not started | own PR                                       |
-| 4b-i  | The construction + density classes (locale)                   | ☐ not started | own commit                                   |
-| 4b-i  | `bell` in source comments (179 sites)                         | ☐ not started | **separate commit**                          |
-| 4b-ii | Read-through + density splits, 44 sections                    | ☐ not started | own PR, iterative — **the bulk of the work** |
-| 5     | `ui.json` under the guard; centralise auth + errors           | ☐ not started | 5a then 5b, own PR                           |
-| 6     | The `WclError` messages                                       | ☐ not started | own PR, needs a design                       |
+| #     | Phase                                                         | State                                                    | Ships as                                     |
+| ----- | ------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------- |
+| 1     | Record the standard (`docs/conventions.md`, README staleness) | ☑ landed `386abd7`                                       | own PR                                       |
+| 2     | Widen the guard vocabulary — **deliberately red**             | ☑ landed `eadefd9`                                       | PR with Phase 3, commit 1                    |
+| 3     | Fix the copy — green                                          | ☑ landed `4caf20b` + `3d679f8` (swept)                   | PR with Phase 2, commit 2                    |
+| 4     | Front-load the worst verdict families                         | ☐ not started                                            | own PR                                       |
+| 4b-i  | The construction + density classes (locale)                   | ◐ **partly done** — 12 idiom strings landed with Phase 3 | own commit                                   |
+| 4b-i  | `bell` in source comments (160 sites, 39 files)               | ☑ landed `48b06e3`                                       | **separate commit**                          |
+| 4b-ii | Read-through + density splits, 44 sections                    | ☐ not started                                            | own PR, iterative — **the bulk of the work** |
+| 5     | `ui.json` under the guard; centralise auth + errors           | ☐ not started                                            | 5a then 5b, own PR                           |
+| 6     | The `WclError` messages                                       | ☐ not started — **design now written**, see Phase 6      | own PR                                       |
 
 When a phase lands, tick it and record what it actually found — especially in 4b-ii, whose whole premise is that it will find classes this document does not yet name.
+
+---
+
+# What the landed phases actually found
+
+Recorded because four of this plan's numbers were wrong, and one of its rules contradicts its own examples. Read this before trusting a figure below.
+
+## The contraction contradiction — resolved: do NOT contract
+
+**"Locked decisions" → "The contraction gap" wins. "# Worked examples" is wrong and has not been rewritten.**
+
+Worked examples 2, 4 and 7 show contractions in their "After" (`didn't`, `it's`, `wasn't`). "Locked decisions" rules that contractions are undecided, need a decision before 4b-ii, and are **"not in any phase's scope until then."** Those examples were written before that ruling and were never reconciled.
+
+Until someone takes the contraction decision explicitly, **use the non-contracted form** and read the worked examples for their _structure_ — where the point lands, what gets deleted — not their punctuation. Phase 3 did exactly this. The decision itself is still open and still belongs before 4b-ii.
+
+## Corrections to this document's own numbers
+
+| what the plan says                                     | what it actually is                                                                                                                                                                                                                                                                       | who found it |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Phase 2 census `11 / 0 / 3 / 0`                        | **14 / 0 / 3 / 1**, plus **12 `OFF_DOMAIN`**. `mana.verdict_bad` is now three arms (`_one`, `_other`, `_noRage`) → +2; `lightningShield.verdict_good_noOvercap` carried the only live `however` → +1                                                                                      | Phase 2      |
+| the em-dash `≥3` test is "prophylactic"                | **It is not.** `earthShock.verdict_tooFew` arrived after planning carrying three, and was a real red                                                                                                                                                                                      | Phase 2      |
+| "only **one** assertion pins a string Phases 2–3 edit" | **Two.** `mana.test.ts:71` _and_ `ascendanceRead.test.ts:133`. The second only binds once 4b-i's locale half comes forward, which it did                                                                                                                                                  | Phase 3      |
+| 240 em-dashes, 19.7% of prose sentences                | **270**, 21.9%. The ceiling of 2 with nothing at 3 still holds, so the locked decision stands                                                                                                                                                                                             | Phase 1      |
+| "524 prose leaves of `report.json` (927 sentences)"    | Does **not** reproduce from this document's own §4 snippet, which gives **623 / 1,058** today. Growth accounts for ~20 leaves at most, so the context table used a different, unrecorded filter. `docs/conventions.md` now records the reproducible numbers with the filter stated inline | Phase 1      |
+| `bell`: 179 sites                                      | **160** in `src` across 39 files (the 179 counted `docs/plan.md`'s 20, which is excluded)                                                                                                                                                                                                 | 4b-i         |
+| README stale spec path at ~line 270                    | **L301.** And `src/lib/spec/registry.ts` at L255/257 is **not** stale — that path still exists                                                                                                                                                                                            | Phase 1      |
+
+Also re-measured and unchanged: locale leaves 1,233 → 1,255, prose words 19,578 → 20,679, sentence median 17, past-25 21.7%, the stock-clutter sweep still zero, and every named long string (`snapshotNote` 196w, `earthShock.intent` 156w, `lavaBurst.note` 160w, `rotation.economy` 97w).
+
+## Classes the plan named wrongly, and one it missed
+
+- **`bell` does not always mean the pull's start.** The mapping table assumes it does. In `targets.ts`, `timelineBanks.ts` and four test files it means the fight's **end** — the boxing-round close. Applying `at the bell → at the pull` there would have inverted the meaning of five load-bearing traps. Fifteen sites were rewritten as "the fight ending" instead. **Treat every class in this document as a hypothesis about a set of strings, not a licence to replace them.**
+- **Phase 4 is missing a third verdict family.** `casts.verdict_{good,ok,bad}` share an identical **137-character** preamble — the same class as `lightningShield` (354) and `searingTotem` (292). Worked example 1 front-loads `verdict_bad` alone, which would diverge it from its two siblings, so it is a three-arm reorder or nothing.
+
+## A process finding, for whoever runs the next batch
+
+**Twice, a lane committed another lane's files** by running a broad `git add` on a shared working tree: Phase 3's whole `report.json` half is inside `3d679f8` ("Stop reading a Touch of Karma habit off a share of its own biggest press"), and an earlier unrelated batch was swept the same way. No work was lost either time and every edit was verified intact, but the history attributes two lanes' work to the wrong commits.
+
+If you run lanes in parallel on one checkout: stage only your own paths, assert the staged set in the _same_ shell command as the commit, and never `git add -A`. Never `git restore` or `git checkout --` — that has destroyed unstaged work in this project.
 
 ---
 
@@ -294,9 +333,9 @@ The economic family — `bought`, `pays`, `costs`, `spent`, `worth` — is **160
 
 ## Locked decisions
 
-- **Em-dash: keep — but the justification is narrower than first written.** 240 in `report.json`, 19.7% of prose sentences, ceiling of 2 with nothing at 3. They do genuine appositive work: defining a measurement mid-sentence, where a following sentence would put the definition after the claim that needed it. It is house punctuation, present in `ui.json`, the README, every code comment and `readerVoice.test.ts`'s own prose, and a 240-instance sweep against a rule the repo breaks in every file is theatre.
+- **Em-dash: keep — but the justification is narrower than first written.** 240 in `report.json` when this was written, **270 as re-measured at Phase 1**; 19.7% of prose sentences, **21.9%** re-measured. Ceiling of 2 with nothing at 3, which still holds and is what the decision rests on. They do genuine appositive work: defining a measurement mid-sentence, where a following sentence would put the definition after the claim that needed it. It is house punctuation, present in `ui.json`, the README, every code comment and `readerVoice.test.ts`'s own prose, and a 270-instance sweep against a rule the repo breaks in every file is theatre.
 
-  **What the 12-page corpus added:** the genre barely uses em-dashes at all — **6 in 18,889 words**, none of them a spaced appositive pair, two authors using none. Where these writers interrupt a sentence to define a term they use **parentheses** (317/100k, up to 750/100k for one author) or a colon (179/100k). So this is an override of `SKILL.md` §15 **and** of the audience corpus, not a register-native choice. Record it that way in `docs/conventions.md` — an honest override survives the next reviewer; a false claim of genre support does not. The `≥3` test still goes in.
+  **What the 12-page corpus added:** the genre barely uses em-dashes at all — **6 in 18,889 words**, none of them a spaced appositive pair, two authors using none. Where these writers interrupt a sentence to define a term they use **parentheses** (317/100k, up to 750/100k for one author) or a colon (179/100k). So this is an override of `SKILL.md` §15 **and** of the audience corpus, not a register-native choice. Record it that way in `docs/conventions.md` — an honest override survives the next reviewer; a false claim of genre support does not. The `≥3` test still goes in — and it was **not** prophylactic: `earthShock.verdict_tooFew` tripped it on the first run.
 
 - **Sentence length: documented target, no gate.** Record the measured numbers so they bind new copy; let the file converge as sections are touched. A gate's honest floor is today's number, which makes it a budget, and it cannot tell a 40-word sentence that earns it from one that does not.
 - **README: fix the factual staleness, leave the prose.** It measures clean (median 17, zero banned vocabulary) and passes §15.12 harder than any file in the repo — `README.md:99-103` and `326-328` are a self-correction and a named past failure, the two least fakeable moves in the standard. A rewrite would destroy value.
@@ -314,7 +353,7 @@ The economic family — `bought`, `pays`, `costs`, `spent`, `worth` — is **160
 ## Non-constraints — verified, do not plan around these
 
 - **`oxfmt` does not bind string edits.** 391 lines of `report.json` already exceed `printWidth: 120`, longest 1,062; oxfmt does not wrap JSON string values. A string-value edit changes one line and `--check` stays green. **Adding a nested key can** reflow layout — run `npx oxfmt src/locales/en/ui.json` before committing Phase 5.
-- **The 265 exact-string assertions barely bind this work.** Only **one** pins a string Phases 2–3 edit: `src/specs/elemental/components/sections/__tests__/mana.test.ts:71`. `src/components/auth/` has no `__tests__` directory and no test anywhere greps its copy.
+- **The 265 exact-string assertions barely bind this work — but the count was wrong.** **Two** pin a string Phases 2–3 edit: `src/specs/elemental/components/sections/__tests__/mana.test.ts:71`, and `src/specs/elemental/components/sections/__tests__/ascendanceRead.test.ts:133`, which binds once 4b-i's locale half is pulled forward (it was). Sweep every before-string you are about to change against `*.test.ts`/`*.tsx`/`*.astro` rather than trusting this number. `src/components/auth/` has no `__tests__` directory and no test anywhere greps its copy.
 - **`person-density.py` must NOT be run as a gate here — it fails correct copy.** Verified: a clean four-sentence second-person report draft trips _"no author present: zero first-person words"_ and _"opening carries no author… The hook is the one block that should be I-led"_, and `--strict` exits 1. That is `SKILL.md` §7 guidance for personal long-form essays, and it is **inverted for this genre** — six independent guide authors wrote 18,889 words with zero first-person singular. An agent that runs the script as a gate and "fixes" the failures will insert an author into a report that must not have one. Its underlying claim — person is the load-bearing axis, check it deterministically — is taken as the `AUTHOR_WORDS` list in Phase 2 instead. See `references/audience-wow-players.md` §2 for the full override.
 
 ---
@@ -550,13 +589,29 @@ The part no list can do. Two halves, and the second is the real deliverable.
 - **No safety net on auth.** Zero existing tests means zero assertions to update _and_ zero to catch a regression. Worth a thin `src/components/auth/__tests__/signInPanel.test.ts` — `renderToStaticMarkup` over the three branches, following `previewRoute.test.ts`'s `createElement` pattern to stay in `.ts`. ~40 lines, and the only _new_ machinery in this plan.
 - **Adding nested keys can reflow `ui.json`** — run `npx oxfmt src/locales/en/ui.json` before committing.
 
-## Phase 6 — The `WclError` messages. Needs a design.
+## Phase 6 — The `WclError` messages. **Design below; no longer blocked.**
 
 The 16 `new WclError(...)` messages in `src/lib/wcl/client.ts` (lines 166, 247, 256, 263, 270, 277, 292, 297, 315, 320, 322, 345, 354, 394, 425, 456) and 5 in `src/lib/auth/{callback,exchange}.ts`.
 
 Last and separate **not** because of size but because it is a design decision rather than a move: a `WclError` message is built at the failure site with the failing detail interpolated in, and `describeFailure.ts:11` documents that the message is _"passed through untouched"_. Moving them needs a key-per-`kind`-per-call-site design plus interpolation for the runtime detail. Bundling it into Phase 5 makes an unreviewable PR; doing it after means the naming convention is already set.
 
 On merit these strings are **good** — `client.ts:265` (_"a client-credentials token reads public logs only, and a report private to another account is off limits to any token but that account's own"_) is among the best copy in the repo. Two exceptions to handle while moving: `client.ts:279` (_"Nothing is wrong on your side"_ — reassurance-shaped, assistant register) and `client.ts:356` (60+ words with a conditional clause concatenated on, two sentences pretending to be one string).
+
+### The design, measured off the current tree
+
+Surveyed 2026-08-23. **16 `WclError` sites in `src/lib/wcl/client.ts`**, across six kinds: `auth` 4 (L166, 256, 263, 315), `missing` 5 (L345, 354, 394, 425, 456), `network` 2 (L247, 292), `server` 2 (L277, 297), `graphql` 2 (L320, 322), `rate-limit` 1 (L270).
+
+**Nine of the sixteen interpolate a runtime detail** — `response.status`, `detail`, `code`, `fightID`, `params.code`, `params.fightID`, `WCL_HOST`, `REQUEST_TIMEOUT_MS / 1000`. So this is **not** one key per `kind`: it is `errors.wcl.<kind>.<slug>` with i18next interpolation, and the interpolated value keeps its current name so the call site reads the same.
+
+Three things the earlier sketch of this phase did not account for:
+
+1. **`client.ts:247` is a ternary, not a message.** It picks between a timeout message and a transport message on `abort.signal.aborted`. That is **two keys at one throw site**, and writing it as one is how the timeout text would end up describing a DNS failure.
+2. **`client.ts:292` is verbatim identical to L247's timeout arm.** One key read from two sites — the same duplicate-copy case as `SignInPanel.tsx:53`/`:93` in Phase 5, and the ui-orphan hunt will treat it the same way.
+3. **`describeFailure.ts` needs no new titles.** All six kinds are already handled in its switch; `'Something went wrong'` is reached only by a non-`WclError` throw, so it genuinely is the single dead string this plan calls it. Fix it in Phase 5 while moving the file, not here.
+
+The five `src/lib/auth/{callback,exchange}.ts` messages are plain `Error`, not `WclError` (`callback.ts:88,93,101`, `exchange.ts:47,60,69`). One more, `exchange.ts:64`, delegates to `describeRefusal(payload, response.status)` — a message _builder_, so it needs the same treatment as a throw site rather than a single key.
+
+Two copy defects to fix while moving, both already named: `client.ts:279`'s "Nothing is wrong on your side" (reassurance-shaped, assistant register) and `client.ts:356`'s 60+ words with a conditional clause concatenated on — two sentences pretending to be one string.
 
 **Also deferred here, with the reason on the record:** the miss-ledger `kind`/`detail` templates at `src/specs/windwalker/lib/index.ts:3072-3158` and `src/specs/elemental/lib/index.ts:3852-3878`. Reader-facing prose built by interpolation mid-pipeline, pinned by `src/specs/windwalker/lib/__tests__/castClocks.test.ts:138,206`, and needing real `count` plurals to move correctly.
 
