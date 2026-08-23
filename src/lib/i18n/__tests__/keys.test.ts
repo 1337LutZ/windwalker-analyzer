@@ -1048,10 +1048,15 @@ describe('report copy with no reader', () => {
 		// And the whole file, so a route going dark cannot be hidden by another that grew.
 		expect(counts.written + counts.verdict + counts.copyPrefix + counts.computed).toBeGreaterThan(1150);
 		// Five sixths of the file is reached at a named key — the whole path, no `*` anywhere in it, no
-		// suffix peeled off the leaf. It was 694 of 1184 while the computed families resolved to a shape and
-		// is 963 of 1182 now that each one resolves against its own key source, so the remaining 219 are
-		// leaves reached only by peeling an i18next context off the end. Asserted because the peel is the
-		// last loose half of the model and is where a false green would now come from.
+		// suffix peeled off the leaf. It was **694** while the computed families resolved to a shape, and
+		// rose past 960 once each one resolved against its own key source; the remainder are leaves reached
+		// only by peeling an i18next context off the end, and that peel is the last loose half of the model.
+		//
+		// **Deliberately no total quoted.** The earlier version of this comment read "963 of 1182" and
+		// "the remaining 219", and both were stale within a day of being written — the file gains leaves
+		// whenever a section gains copy. A number in a comment that nothing executes is the failure mode
+		// this file exists to prevent, so the live claim is the assertion below and the only figure kept in
+		// prose is the historic one, which cannot rot because it is the past.
 		expect(leaves().length - shaped, 'leaves reached at a named key, with no suffix peeled').toBeGreaterThan(900);
 	});
 
