@@ -26,12 +26,23 @@ import { describe, expect, it } from 'vitest';
  * is the original complaint verbatim; the fight timeline is legitimately called a clock elsewhere in
  * the file, which is why neither spec's sweep runs across all 1109 strings.
  *
- * One list for both specs, and deliberately not extended by this lane: widening the *vocabulary* and
- * widening the *coverage* are two changes, and doing both at once would make it impossible to say
- * which of them a red run came from.
+ * One list for both specs, and it went three lanes without being extended, for a reason that has now
+ * been spent: widening the *vocabulary* and widening the *coverage* are two changes, and doing both at
+ * once would make it impossible to say which of them a red run came from. The coverage work is
+ * finished — every root in the file is in a scope, and the closure test at the foot holds it there — so
+ * `exempt` is the first word added since, on its own and with nothing else moving.
+ *
+ * **`exempt` catches nothing today, and that is stated rather than discovered.** It appears in no value
+ * anywhere in `report.json` or `ui.json`, only in five key *names* — `tigerPalm.verdict_exempt` and
+ * four Elemental siblings — which a reader never sees. So it is prophylactic, and the test at the foot
+ * of this file pins that it fires on nothing so the next lane knows it is a guard against a sentence
+ * not yet written rather than a fix for one already there. It belongs in the list because it is our
+ * word for a decision the report made about a rule's scope, and the five keys are exactly the route by
+ * which it would arrive in the copy under them.
  */
 const MODEL_WORDS = [
 	'clock',
+	'exempt',
 	'the list',
 	'p5',
 	'branch',
@@ -326,8 +337,9 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
 //     scopes above already use: both are literally about method, and `reconstructed` opens "Nothing
 //     here is graded, and this is why".
 //
-// `MODEL_WORDS` is deliberately untouched again, for the reason given above it: widening the
-// vocabulary and widening the coverage are two changes.
+// `MODEL_WORDS` was untouched by the lane that drew this scope, for the reason given above it:
+// widening the vocabulary and widening the coverage are two changes. This scope is what finished the
+// coverage half, which is what let `exempt` in as a change of its own.
 
 /**
  * The roots both specs render. Written out rather than derived as "everything that is not a spec
@@ -527,6 +539,44 @@ describe('no string in report.json sits outside every scope', () => {
 		].sort();
 		expect(new Set(classified).size).toBe(classified.length);
 		expect(roots).toEqual(classified);
+	});
+});
+
+// ================================================================= the vocabulary, measured
+
+describe('the one prophylactic word in the vocabulary', () => {
+	/**
+	 * `exempt` was left out of `MODEL_WORDS` for three lanes under the standing rule that widening the
+	 * vocabulary and widening the coverage are two changes. The coverage is finished, so this is the
+	 * change on its own — and the measurement that says what it did.
+	 *
+	 * It caught nothing. That is fine and it is the reason this test exists: a word added to a sweep
+	 * that fires on nothing is a guard against a sentence not yet written, and the next lane reading a
+	 * green run needs to know which of the two it is looking at. What it is *not* is idle — it is our
+	 * name for a decision the report makes about a rule's scope, and it already exists in the file as
+	 * five key names whose own copy is the obvious place for it to leak into.
+	 */
+	it('fires on no string in the file, which is what makes it prophylactic', () => {
+		expect(MODEL_WORDS).toContain('exempt');
+		const anywhere = localeStrings()
+			.filter(([, value]) => prose(value).toLowerCase().includes('exempt'))
+			.map(([key]) => key);
+		expect(anywhere).toEqual([]);
+	});
+
+	/** The five key names it is guarding the copy under, so "it appears nowhere" is not the whole claim. */
+	it('is already our word, in five keys a reader never sees', () => {
+		const keys = localeStrings()
+			.map(([key]) => key)
+			.filter((key) => key.toLowerCase().includes('exempt'))
+			.sort();
+		expect(keys).toEqual([
+			'earthShock.verdict_exempt',
+			'flameShock.verdict_exempt',
+			'flameShockSnapshots.verdict_exempt',
+			'mana.key.exempt',
+			'tigerPalm.verdict_exempt',
+		]);
 	});
 });
 
