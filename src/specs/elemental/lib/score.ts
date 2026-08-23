@@ -821,7 +821,8 @@ export const THRESHOLDS = {
 	 *
 	 * ## What this measures on the pulls we hold, and what it does not
 	 *
-	 * **All three committed fixtures read exactly 100.00% and the figure has no variance at all.** Every
+	 * **Three of the four committed fixtures read exactly 100.00% and the figure has no variance at all.**
+	 * Every
 	 * one of them took Primal Elementalist (117013 is in all three `combatantinfo` lists), every one had
 	 * the elemental out before the bell — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
 	 * lusted inside the first two seconds for forty seconds, under a different spell each time (Heroism,
@@ -830,6 +831,14 @@ export const THRESHOLDS = {
 	 * side of the rule is carried on synthetic pulls in `lib/__tests__/firePrimalHaste.test.ts`, every one
 	 * of them a real fixture with named events moved or removed, never a threshold moved until something
 	 * fired.
+	 *
+	 * **The fourth, `addsThenBoss.json`, is the first committed pull that makes this rule decline — and it
+	 * declines for the reason the refusal was built for.** Its raid lusted at **438 207ms**, seven minutes
+	 * in and nowhere near the pull, so `gradedMs` arrives at 0 and `metricOf` nulls. That pull also never
+	 * had the elemental out at the bell (`prepull: false`, first press at 173 290ms), which makes it the
+	 * one real log we hold where the pair a reader sees is rule 4's `ok` beside this rule's silence. Until
+	 * it landed, every refusal this rule makes was exercised only on synthetic pulls; one of the four is
+	 * now a captured one. Pinned in `firePrimalHaste.test.ts`.
 	 *
 	 * §80's own box warned about the shape this used to have — *"a metric that reads a flat 100% everywhere
 	 * carries weight while discriminating nothing"* — and `WEIGHTS` is where that is now answered rather

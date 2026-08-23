@@ -14,6 +14,12 @@
 // forty seconds. So the fault side of this rule is carried on synthetic pulls below, every one of them
 // a real fixture with named events moved or removed — never a threshold lowered until something fired.
 //
+// **A fourth fixture has since landed — `addsThenBoss.json` — and it does not change that.** It is the
+// first committed pull this rule *declines* on, because its raid lusted seven minutes in rather than on the
+// pull, so the fault side is still carried on synthetics. What it does add is the refusal path exercised on
+// a captured log instead of a built one; see `says nothing about the pull whose raid lusted seven minutes
+// in`.
+//
 // **The weight is now 1 and the rule has a band, and the paragraph above is kept as written because it is
 // still the reason the fixtures cannot exercise the fault side.** What changed is the two arguments the
 // zero rested on. The first was that a glyphed player is capped however well they play, so faulting one
@@ -320,6 +326,40 @@ describe('the three ways this rule declines, and none of them is a full mark', (
 		const el = run(edited('phased', (events) => events.filter((e) => !HASTE_IDS.has(e.abilityGameID ?? -1))));
 		expect(el.timeline?.hasteWindows ?? []).toEqual([]);
 		expectSilence(el, 'no haste');
+	});
+
+	/**
+	 * **And the same refusal on a captured pull rather than a built one.**
+	 *
+	 * `addsThenBoss.json` is the fourth Elemental fixture and the first one this rule declines on. Its raid
+	 * lusted at 438 207ms — seven minutes in, on the boss after the add phase — so there is no on-pull haste
+	 * cooldown, the graded clock is empty and the metric refuses. Every other refusal in this file is built
+	 * by moving or deleting events; this one is what a real log does, which is the difference between
+	 * "the guard works" and "the guard fires".
+	 *
+	 * It is also the one committed pull where the two rules' reader-facing pair can be read off a real
+	 * fight: `fireElementalPrepull` at `ok` (the elemental was not out at the bell — its first press is at
+	 * 173 290ms) beside this rule saying nothing at all. Neither calls the pull a mistake, which is the
+	 * whole of the reconciliation seen from the fixtures.
+	 *
+	 * **This is new coverage of behaviour that did not change, so it cannot be shown to fail against the
+	 * old weight or the old band — DELIBERATE NO-CHANGE GUARD.** The refusal is `gradedMs <= 0` and it
+	 * predates both. What is new is the fixture that reaches it.
+	 */
+	it('says nothing about the pull whose raid lusted seven minutes in', () => {
+		const el = fx('addsThenBoss');
+		expect(el.timeline?.hasteWindows?.[0]).toMatchObject({ start: 438_207, variant: 'Heroism' });
+		expect(el.fireElemental.prepull).toBe(false);
+		expect(el.fireElemental.presses[0]?.t).toBe(173_290);
+		expectSilence(el, 'addsThenBoss');
+		// The pair, on a real pull: a half-mark for the bell and silence for the window. Not a fault on
+		// either side, and the section says so.
+		const card = scoreAnalysis(el, resolveBands(el.targets, 'auto'));
+		expect(card.sections['fireElemental']?.metrics.map((m) => `${m.key}=${m.unmeasurable ? 'unm' : m.grade}`)).toEqual([
+			'fireElementalPrepull=ok',
+			'fireElementalHasteUptime=unm',
+		]);
+		expect(card.sections['fireElemental']?.grade).toBe('ok');
 	});
 
 	/**
