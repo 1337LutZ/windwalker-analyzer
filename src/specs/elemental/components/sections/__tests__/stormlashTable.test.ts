@@ -127,7 +127,9 @@ describe('the table, on the pulls whose placement fetch is missing', () => {
 		for (const name of FIXTURES) {
 			const missing = fx(name).stormlash.shamans.length === 0;
 			expect(
-				render(fx(name)).includes('totem placements, which come from a separate fetch this pull does not carry'),
+				render(fx(name)).includes(
+					'where the raid laid its totems, which comes from a separate fetch this pull does not carry',
+				),
 				`${name} explains the zero`,
 			).toBe(missing);
 		}
@@ -147,9 +149,12 @@ describe('the table, on the pulls whose placement fetch is missing', () => {
 	});
 
 	it('explains why the tiles above read zero while the table has rows', () => {
-		// The apostrophe in "the raid's" renders escaped, so the assertion starts after it rather than
-		// pinning an HTML entity.
-		expect(html).toContain('totem placements, which come from a separate fetch this pull does not carry');
+		// `placements` was a nominalization inside a sentence, which `docs/conventions.md` rules out where a
+		// verb will do — the label exemption covers a table cell and a tile, not this. The clause is quoted
+		// from its verb on, which also keeps the assertion clear of the escaped apostrophe it used to dodge.
+		expect(html).toContain(
+			'where the raid laid its totems, which comes from a separate fetch this pull does not carry',
+		);
 	});
 
 	it('says the preference is a preference, not a requirement', () => {

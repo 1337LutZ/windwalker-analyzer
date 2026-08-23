@@ -360,7 +360,7 @@
   },
   "mana": {
     "title": "Mana",
-    "intent": "Everything you cast comes out of this pool, so a full bar is exactly where it should be — the only fault is the floor. Two buttons refill it, and on two targets you press both on a number: Thunderstorm at {{starved, percent}} mana, which hands back {{starved, percent}} of your maximum for free, and Shamanistic Rage at {{strained, percent}}, which cuts what your casts cost for fifteen seconds and does not even take a global. What is flagged below is sitting under one of those numbers with the button for it up and unpressed.",
+    "intent": "Everything you cast comes out of this pool, so a full bar is exactly where it should be — the only fault is the floor. Two buttons refill it, and you press each of them on a number. Thunderstorm at {{starved, percent}} mana hands back {{starved, percent}} of your maximum, for free. Shamanistic Rage at {{strained, percent}} cuts what your casts cost for fifteen seconds and does not even take a global. What is flagged below is sitting under one of those numbers with the button for it up and unpressed.",
     "verdict_good": "No stretch under {{starved, percent}} went by with Thunderstorm sitting unpressed, and none under {{strained, percent}} with Shamanistic Rage. The pool was never the thing holding your casts back.",
     "verdict_good_noRage": "No stretch under {{starved, percent}} went by with Thunderstorm sitting unpressed. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
     "verdict_good_noThunderstorm": "No stretch under {{strained, percent}} went by with Shamanistic Rage sitting unpressed. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
@@ -638,7 +638,7 @@
   },
   "sef": {
     "title": "Storm, Earth and Fire",
-    "intent": "Each press sends a spirit onto an enemy of your choosing, up to two at a time, and it mirrors your damaging abilities onto that enemy. While they are out your own damage is cut — to 60% with one spirit, 45% with two. So it is only worth pressing when there is a second thing to put a spirit on, and once a spirit is out, the only way to waste it is to attack an enemy that the spirit is already on.",
+    "intent": "Each press sends a spirit onto an enemy of your choosing, up to two at a time, and it mirrors your damaging abilities onto that enemy. While they are out your own damage is cut — to 60% with one spirit, 45% with two. So it is only worth pressing when there is a second thing to put a spirit on. And once a spirit is out, the only way to waste it is to attack an enemy that the spirit is already on.",
     "summary_one": "{{count}} spirit sent out, out for {{uptime, percent}} of the pull.",
     "summary_other": "{{count}} spirits sent out, with at least one of them out for {{uptime, percent}} of the pull.",
     "uptimeMeans": "Spirit uptime is the share of the pull, timer to kill, with at least one spirit out. It is not a target to push to 100%, and it cannot tell one spirit from two. A stretch with one enemy calls for no spirit at all, and this figure counts none of that either way. What the pull actually called for is described in the sentence below about second targets.",
@@ -1409,7 +1409,7 @@
       "cleaveStacks": "Shield below 6 charges, with two enemies up",
       "cleaveDot": "Flame Shock had under 8s left, with two enemies up"
     },
-    "caption": "Every Earth Shock the priority list would not have pressed, and what was wrong when you pressed it",
+    "caption": "Every Earth Shock the priority list would not have pressed, and what went wrong when you pressed it",
     "none": "Every Earth Shock went out where it should have.",
     "aoeUnjudged_one": "One more shock went out while three or more enemies were up, and it is not in the count above. At that many targets the priority list has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so there is no right or wrong press to report.",
     "aoeUnjudged_other": "{{count}} more shocks went out while three or more enemies were up, and they are not in the count above. At that many targets the priority list has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so there is no right or wrong press to report.",
@@ -1617,7 +1617,7 @@
   },
   "lightningShield": {
     "title": "Lightning Shield",
-    "intent": "A seven-charge counter that builds on Rolling Thunder and is spent whole by Earth Shock’s Fulmination. Two things cost you charges: sitting at the ceiling, where the next Rolling Thunder has nowhere to put one, and letting the shield fall off altogether. Spend it at seven against one enemy and at six against two — both are hard numbers and not preferences, they are just different numbers, and the only shocks listed below are the ones you spent under whichever of the two your list was running.",
+    "intent": "A seven-charge counter that builds on Rolling Thunder and is spent whole by Earth Shock’s Fulmination. Two things cost you charges: sitting at the ceiling, where the next Rolling Thunder has nowhere to put one, and letting the shield fall off altogether. Spend it at seven against one enemy and at six against two — both are hard numbers and not preferences. The only shocks listed below are the ones you spent under whichever of the two your list was running.",
     "verdict_good": "The shield never sat at seven past the leeway and never fell off.",
     "verdict_ok_zero": "The shield sat at seven for {{overcap, duration}} past the leeway, and never came all the way off.",
     "verdict_ok_one": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off once.",
@@ -1681,7 +1681,7 @@
     "you": "You",
     "caption": "Every Stormlash Totem that reached you in this pull, whoever laid it, and whether your own went down during Ascendance",
     "none": "No Stormlash Totem reached you in this pull.",
-    "sourceNote": "The two tiles and the chart above read the raid's totem placements, which come from a separate fetch this pull does not carry — so they count zero. The table below asks the other half of the question and needs no extra fetch: every totem whose buff landed on you, and who laid it.",
+    "sourceNote": "The two tiles and the chart above read where the raid laid its totems, which comes from a separate fetch this pull does not carry — so they count zero. The table below asks the other half of the question and needs no extra fetch: every totem whose buff landed on you, and who laid it.",
     "ascendanceNote": "Dropping Stormlash costs you a global, and during Ascendance you want that global on Lava Beam — so lay the totem before you press Ascendance, or after the window closes. Treat this as a preference rather than a requirement: nothing in your score moves either way, and a totem still running through Ascendance is a good thing, because Stormlash pays out on what the raid does while it is up.",
     "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the chart only shows where the raid spent two totems on one stretch."
   },

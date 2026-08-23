@@ -973,8 +973,16 @@ const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'I'];
  * forward into the Phase 3 commit: all twelve are in-place string edits, and three of them are the
  * plan's own worked examples 3, 4 and 5. 4b-i keeps the source-comment `bell` sites, which were always
  * a separate commit for a separate reason.
+ *
+ * **`what was wrong` joined in 4b-ii, and it is the same phrase as `if anything`.** Both come off
+ * `fistsOfFury.caption`'s "what, if anything, was wrong with its placement", which 4b-i rewrote to
+ * "where each one went wrong" — and then left the phrase standing in three more places it had not
+ * looked: the `verdict` column head of the Fists of Fury table, the same head in Energizing Brew, and
+ * `earthShock.caption`. All three now say "what went wrong", which is a verb where a copula was. It is
+ * at **0** across the corpus, like the four above it, and it is in this list rather than in a register
+ * note because a column head is the one place a rewrite is most likely to put it back.
  */
-const OFF_DOMAIN = ['bell', 'on the table', 'in the same breath', 'if anything'];
+const OFF_DOMAIN = ['bell', 'on the table', 'in the same breath', 'if anything', 'what was wrong'];
 
 /**
  * Anchored on **both** sides, which is the one place these lists deliberately differ from
