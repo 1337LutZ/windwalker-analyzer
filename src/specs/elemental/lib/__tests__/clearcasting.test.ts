@@ -16,21 +16,55 @@
 // It grades nothing, and that is asserted too: no rotation asks for this proc, so no figure here is a
 // verdict on a press.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { drawnLaneKeys } from '~/lib/analysis/drawnAuras';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { SUMMARY_LANE_KEYS } from '~/specs/elemental/lib/view/timelineBanks';
 
 import { analyse, registry } from '..';
 
-const FIXTURES = ['unbroken', 'phased', 'cleave'] as const;
-type Fixture = (typeof FIXTURES)[number];
+/**
+ * Every raw Elemental pull, found rather than listed.
+ *
+ * The literal this replaced was `['unbroken', 'phased', 'cleave']`, and the header two paragraphs up
+ * still says "the three committed pulls" because that is what the sweep reported at the time. Every
+ * claim below is of the form "on any committed pull" — the declared ceiling, the consume mask, the
+ * drawn row, the absence of a published figure — so the moment `addsThenBoss.json` landed each of them
+ * was being asked of three quarters of the evidence, and a list is the one input nobody re-reads when
+ * the directory grows. The two pinned counts are keyed by name rather than positional for the same
+ * reason: an array in `FIXTURES` order says nothing when the order is discovered, and an object makes
+ * a fifth pull fail here instead of slipping past.
+ */
+type Fixture = string;
+const FIXTURES: Fixture[] = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
-const load = (name: Fixture): FightDataset =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
+/**
+ * The datasets and their analyses, both memoised.
+ *
+ * Not tidiness: `addsThenBoss.json` is 4.4 MB, `load` is called once per `raw()` and `raw()` runs inside
+ * every event walk in this file, and three separate tests call `analyse` per pull. Parsing and analysing
+ * once per pull is what keeps a four-pull grid cheaper than the three-pull one it replaced.
+ */
+const datasets = new Map<string, FightDataset>();
+const load = (name: Fixture): FightDataset => {
+	const hit = datasets.get(name);
+	if (hit !== undefined) return hit;
+	const found = rawFixtures('elemental').find((fixture) => fixture.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw Elemental fixture ${name}`);
+	datasets.set(name, found.dataset);
+	return found.dataset;
+};
+
+const analyses = new Map<string, Analysis>();
+const analysed = (name: Fixture): Analysis => {
+	const hit = analyses.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(load(name));
+	analyses.set(name, el);
+	return el;
+};
 
 /** The raw shape, which is what an event-stream claim has to be made against. */
 type Raw = {
@@ -120,11 +154,21 @@ describe('Clearcasting is declared with the ceiling and duration the sim states'
 		}
 	});
 
-	/** 728, the figure the sweep reported — recounted here so the header is a measurement and not a memory. */
-	it('is the busiest id in the sweep, at 728 events over the three pulls', () => {
-		const counts = FIXTURES.map((name) => auraEvents(name).length);
-		expect(counts).toEqual([210, 219, 299]);
-		expect(counts.reduce((a, b) => a + b, 0)).toBe(728);
+	/**
+	 * 728, the figure the sweep reported — recounted here so the header is a measurement and not a memory,
+	 * and now recounted over the pull the sweep never saw.
+	 *
+	 * Keyed rather than positional, because the grid is discovered: an array of three numbers said nothing
+	 * about which pull each belonged to, and said nothing at all about a fourth. The 728 is kept as the
+	 * three-pull subtotal it was reported as, beside the total the directory actually holds — a busiest-id
+	 * claim that quietly re-based itself on a bigger corpus would stop being the sweep's finding.
+	 */
+	it('is the busiest id in the sweep, and stays the busiest as the corpus grows', () => {
+		const counts = Object.fromEntries(FIXTURES.map((name) => [name, auraEvents(name).length]));
+		expect(counts).toEqual({ addsThenBoss: 612, cleave: 299, phased: 219, unbroken: 210 });
+		// The sweep's own figure, over the three pulls it swept.
+		expect(counts.unbroken! + counts.phased! + counts.cleave!).toBe(728);
+		expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(1340);
 	});
 });
 
@@ -163,7 +207,7 @@ describe('what spends a stack is what the sim says spends one', () => {
 			totals.unspent += unspent;
 		}
 		// The pull-level figures, so a change in the walk shows up as a number rather than as a shrug.
-		expect(totals).toEqual({ consumed: 291, unspent: 70 });
+		expect(totals).toEqual({ consumed: 474, unspent: 199 });
 	});
 });
 
@@ -187,44 +231,84 @@ describe('what spends a stack is what the sim says spends one', () => {
  * *at the application* would not. The log says the opposite, both ways round.
  */
 describe('Flame Shock snapshots it, which the fixtures say as loudly as the sim does', () => {
-	/** Every Flame Shock tick, bucketed onto the application it belongs to. */
+	/**
+	 * Every Flame Shock tick, bucketed onto the application it belongs to — **on its own enemy**.
+	 *
+	 * **The target key is the correction, and the fourth pull is what made it visible.** This walk used to
+	 * own a tick to the latest Flame Shock cast at or before it, full stop, with no regard for who was
+	 * being ticked. On a pull with one dot target that is the same thing; on `cleave`, with two, it is
+	 * nearly the same thing. On `addsThenBoss` the player dots **nine distinct enemies**, so a tick from
+	 * the dot on one add was routinely credited to the most recent cast on a *different* add — and since
+	 * the two casts sit on either side of the proc as often as not, that shuffles snapshotted ticks across
+	 * the very partition this walk exists to draw.
+	 *
+	 * It is a measurement fault and not a report fault: nothing the audit publishes goes through here. But
+	 * it cost the file's central claim most of its signal. Bucketed globally, `addsThenBoss` reads **1.1500**
+	 * — *below* the 1.15 bar two lines down, on the pull with the most evidence in the directory — and the
+	 * grid that would have said so was three names long. Keyed by target it reads **1.2082**, which is the
+	 * +20% the mod grants, and `cleave` firms from 1.2621 to 1.3399. The two single-target pulls are
+	 * bit-for-bit unmoved, which is what says the change is the target key and nothing else.
+	 */
 	const dots = (name: Fixture) => {
 		const r = raw(name);
-		const casts = r.events
-			.filter((e) => e.type === 'cast' && e.sourceID === r.actor.id && e.abilityGameID === FLAME_SHOCK)
-			.map((e) => e.timestamp);
 		const up = windows(name).map(([a, b]): [number, number] => [a + r.fight.startTime, b + r.fight.startTime]);
 		const upAt = (t: number) => up.some(([a, b]) => t >= a && t <= b);
-		const out = casts.map((t) => ({ t, underProc: upAt(t), ticks: [] as number[] }));
+		const out = r.events
+			.filter((e) => e.type === 'cast' && e.sourceID === r.actor.id && e.abilityGameID === FLAME_SHOCK)
+			.map((e) => ({ t: e.timestamp, target: e.targetID, underProc: upAt(e.timestamp), ticks: [] as number[] }));
 		for (const e of r.events) {
 			if (e.abilityGameID !== FLAME_SHOCK || e.type !== 'damage' || e.tick !== true) continue;
 			if (e.sourceID !== r.actor.id) continue;
 			let owner: (typeof out)[number] | undefined;
-			for (const dot of out) if (dot.t <= e.timestamp && (owner === undefined || dot.t > owner.t)) owner = dot;
+			for (const dot of out)
+				if (dot.target === e.targetID && dot.t <= e.timestamp && (owner === undefined || dot.t > owner.t)) owner = dot;
 			owner?.ticks.push(e.unmitigatedAmount ?? e.amount ?? 0);
 		}
 		return out.filter((d) => d.ticks.length > 0);
 	};
 
+	/** A pull can be asked the ratio question only if it applied the dot under the proc more than once. */
+	const CAN_COMPARE = 2;
+
 	/**
-	 * Grouped by the aura's state at **application**. `unbroken` and `cleave` both land within a couple of
-	 * points of the +20% the mod grants; `phased` has one single application under the proc and is stated
-	 * here as the pull that cannot answer, rather than averaged in as though it could.
+	 * Grouped by the aura's state at **application**. Pulls with applications on both sides land within a
+	 * couple of points of the +20% the mod grants; a pull with a single application under the proc is
+	 * stated as one that cannot answer, rather than averaged in as though it could.
+	 *
+	 * **The gate is the sample and not the name.** It read `ratios.get('unbroken')` and
+	 * `ratios.get('cleave')` with `phased` excused by name, which is a claim about which files exist
+	 * rather than about which pulls have the evidence. Written that way, a new fixture with one lone
+	 * application under the proc would either be asserted to clear 1.15 off a sample of one, or — if it
+	 * were simply left out of the two named lines — contribute nothing at all and say so nowhere. Now the
+	 * partition is derived and pinned, so a fifth pull has to fall on one side of `CAN_COMPARE` and the
+	 * pin is what tells the reader which.
 	 */
 	it('separates dots by whether the proc was up when they were applied', () => {
 		const ratios = new Map<Fixture, number>();
+		const under = new Map<Fixture, number>();
 		for (const name of FIXTURES) {
 			const all = dots(name);
-			const under = all.filter((d) => d.underProc).map((d) => mean(d.ticks));
-			const clear = all.filter((d) => !d.underProc).map((d) => mean(d.ticks));
-			expect(under.length + clear.length, name).toBeGreaterThan(5);
-			ratios.set(name, mean(under) / mean(clear));
+			const on = all.filter((d) => d.underProc).map((d) => mean(d.ticks));
+			const off = all.filter((d) => !d.underProc).map((d) => mean(d.ticks));
+			expect(on.length + off.length, name).toBeGreaterThan(5);
+			under.set(name, on.length);
+			ratios.set(name, mean(on) / mean(off));
 		}
-		// The two pulls with enough applications on both sides to compare.
-		expect(ratios.get('unbroken')!).toBeGreaterThan(1.15);
-		expect(ratios.get('cleave')!).toBeGreaterThan(1.15);
-		// And the pull that cannot say, named rather than hidden: one application under the proc.
-		expect(dots('phased').filter((d) => d.underProc).length).toBe(1);
+
+		// Which pulls carry the evidence, derived — and pinned, so a fifth cannot join either side quietly.
+		const comparable = FIXTURES.filter((name) => (under.get(name) ?? 0) >= CAN_COMPARE);
+		expect(comparable).toEqual(['addsThenBoss', 'cleave', 'unbroken']);
+		expect(FIXTURES.filter((name) => (under.get(name) ?? 0) < CAN_COMPARE)).toEqual(['phased']);
+
+		// Every pull that can answer, does — rather than the two that were named.
+		for (const name of comparable) expect(ratios.get(name)!, name).toBeGreaterThan(1.15);
+		// And the pull that cannot say, named by its sample rather than hidden: one application under the proc.
+		expect(Object.fromEntries(FIXTURES.map((name) => [name, under.get(name)]))).toEqual({
+			addsThenBoss: 20,
+			cleave: 7,
+			phased: 1,
+			unbroken: 3,
+		});
 	});
 
 	/**
@@ -253,8 +337,7 @@ describe('Flame Shock snapshots it, which the fixtures say as loudly as the sim 
 
 describe('where the proc is drawn, and where it is not', () => {
 	it('has a row on every pull, so the drawn-aura ledger needs no excuse for it', () => {
-		for (const name of FIXTURES)
-			expect(drawnLaneKeys(analyse(load(name)) as Analysis).has('clearcasting'), name).toBe(true);
+		for (const name of FIXTURES) expect(drawnLaneKeys(analysed(name)).has('clearcasting'), name).toBe(true);
 	});
 
 	/**
@@ -262,12 +345,14 @@ describe('where the proc is drawn, and where it is not', () => {
 	 * The counts are stated rather than bounded: this is the figure the "picket fence" argument rests on,
 	 * and a change in the walk should have to restate it.
 	 */
-	it('carries 40, 38 and 46 windows — the same order as the Lava Surge row beside it', () => {
-		const counted = FIXTURES.map((name) => {
-			const lanes = analyse(load(name)).timeline?.lanes ?? [];
-			return lanes.find((l) => l.key === 'clearcasting')?.windows.length ?? 0;
-		});
-		expect(counted).toEqual([40, 38, 46]);
+	it('carries forty-odd windows on every pull, none of them a summary-sized count', () => {
+		const counted = Object.fromEntries(
+			FIXTURES.map((name) => {
+				const lanes = analysed(name).timeline?.lanes ?? [];
+				return [name, lanes.find((l) => l.key === 'clearcasting')?.windows.length ?? 0];
+			}),
+		);
+		expect(counted).toEqual({ addsThenBoss: 110, cleave: 46, phased: 38, unbroken: 40 });
 	});
 
 	/** And stays off the summary timeline, which draws an allow-list this key is deliberately not on. */
@@ -286,7 +371,7 @@ describe('nothing grades it, because no rotation asks for it', () => {
 	 */
 	it('publishes no Clearcasting figure on any pull', () => {
 		for (const name of FIXTURES) {
-			const analysis = analyse(load(name)) as Analysis & Record<string, unknown>;
+			const analysis = analysed(name) as Analysis & Record<string, unknown>;
 			expect(Object.keys(analysis), name).not.toContain('clearcasting');
 			const drawn = JSON.stringify(analysis.timeline);
 			// It reaches the report as a drawn row and as nothing else.

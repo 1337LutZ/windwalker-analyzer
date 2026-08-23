@@ -24,32 +24,51 @@
 // multiplier, so the list this report grades against refreshes early under Clearcasting because of
 // Clearcasting. Netting it out of the grade would put the report at odds with the rotation it cites.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset, FlameShockPress } from '~/lib/types';
 
 import { analyse } from '../index';
 
-const FIXTURES = ['unbroken', 'phased', 'cleave'] as const;
-type Fixture = (typeof FIXTURES)[number];
+/**
+ * Every raw Elemental pull, found rather than listed.
+ *
+ * The literal was `['unbroken', 'phased', 'cleave']` and every claim in this file is "every press on
+ * every pull" — the independent walk, the closing-millisecond set, the bit-for-bit equality, the graded
+ * seven. `addsThenBoss.json` carries 31 more Flame Shock presses and 612 more Clearcasting events than
+ * anything else in the directory, and none of them were ever put to any of it. The counts below moved
+ * accordingly; they are the coverage, so they are restated rather than loosened.
+ */
+type Fixture = string;
+const FIXTURES: Fixture[] = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 /** The sim's own +20%, restated here so a change to the constant has to change this file too. */
 const CLEARCASTING_MULT = 1.2;
 /** The sim's `dotPercentIncrease(8050) > 10%`, likewise restated rather than imported. */
 const BAR = 0.1;
 
-const load = (name: Fixture): FightDataset =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
+/**
+ * The datasets and their analyses, memoised — `addsThenBoss.json` is 4.4 MB and both the raw walk and the
+ * audit are wanted several times over per pull.
+ */
+const datasets = new Map<string, FightDataset>();
+const load = (name: Fixture): FightDataset => {
+	const hit = datasets.get(name);
+	if (hit !== undefined) return hit;
+	const found = rawFixtures('elemental').find((fixture) => fixture.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw Elemental fixture ${name}`);
+	datasets.set(name, found.dataset);
+	return found.dataset;
+};
 
-const analysed = (name: Fixture): Analysis & ElementalAuditResult =>
-	analyse(load(name)) as Analysis & ElementalAuditResult;
-
-const el: Record<Fixture, Analysis & ElementalAuditResult> = {
-	unbroken: analysed('unbroken'),
-	phased: analysed('phased'),
-	cleave: analysed('cleave'),
+const analyses = new Map<string, Analysis & ElementalAuditResult>();
+const el = (name: Fixture): Analysis & ElementalAuditResult => {
+	const hit = analyses.get(name);
+	if (hit !== undefined) return hit;
+	const analysis = analyse(load(name)) as Analysis & ElementalAuditResult;
+	analyses.set(name, analysis);
+	return analysis;
 };
 
 /** The raw shape, because every claim about the proc has to be made against the event stream itself. */
@@ -83,14 +102,14 @@ const ccWindows = (name: Fixture): [number, number][] => {
 };
 
 const pressAt = (name: Fixture, t: number): FlameShockPress => {
-	const press = el[name].flameShock.presses.find((p) => p.t === t);
+	const press = el(name).flameShock.presses.find((p) => p.t === t);
 	if (press === undefined) throw new Error(`no Flame Shock press at ${t} on ${name}`);
 	return press;
 };
 
 /** Every press the snapshot rule can grade: an early refresh, credited or faulted. */
 const graded = (): FlameShockPress[] =>
-	FIXTURES.flatMap((name) => el[name].flameShock.presses.filter((p) => p.kind === 'early' || p.kind === 'snapshot'));
+	FIXTURES.flatMap((name) => el(name).flameShock.presses.filter((p) => p.kind === 'early' || p.kind === 'snapshot'));
 
 /**
  * The waste share, **off the audit rather than off the scorecard**.
@@ -112,30 +131,42 @@ const graded = (): FlameShockPress[] =>
  * every pull that never leaves one enemy.
  */
 const wasteOf = (name: Fixture): number => {
-	const fs = el[name].flameShock;
+	const fs = el(name).flameShock;
 	return ((fs.refreshes - fs.windowed - fs.ascPrep - fs.snapshotGain) / fs.refreshes) * 100;
 };
 
 describe('the proc state each Flame Shock press froze', () => {
 	/**
-	 * Every press on every pull, against a walk of the raw 16246 stream — 25 presses, of which 11 were
-	 * made with the proc up. If this ever disagrees, one of the two walks has changed and the attribution
-	 * printed beside a credited refresh is describing the wrong dot.
+	 * Every press on every pull, against a walk of the raw 16246 stream. If this ever disagrees, one of the
+	 * two walks has changed and the attribution printed beside a credited refresh is describing the wrong
+	 * dot.
+	 *
+	 * **25 of these 56 presses were being checked.** The other 31 are `addsThenBoss`', on the pull that
+	 * carries more Clearcasting events than the other three put together — the single densest piece of
+	 * evidence the directory holds for this file's subject, and the grid was three names long. It agrees.
 	 */
-	it('agrees with an independent walk of the raw stream on all 25 presses', () => {
+	it('agrees with an independent walk of the raw stream on every press', () => {
 		let total = 0;
 		let under = 0;
 		for (const name of FIXTURES) {
 			const windows = ccWindows(name);
 			const upAt = (t: number) => windows.some(([start, end]) => t >= start && t <= end);
-			for (const press of el[name].flameShock.presses) {
+			for (const press of el(name).flameShock.presses) {
 				expect(press.snapshotClearcasting, `${name} @ ${press.t}`).toBe(upAt(press.t));
 				total++;
 				if (press.snapshotClearcasting) under++;
 			}
 		}
-		expect(total).toBe(25);
-		expect(under).toBe(11);
+		expect(total).toBe(56);
+		expect(under).toBe(31);
+		// Per pull as well as in total, so the fourth pull cannot carry the sample on its own and a pull that
+		// stopped contributing any press under the proc would say so here.
+		expect(Object.fromEntries(FIXTURES.map((name) => [name, el(name).flameShock.presses.length]))).toEqual({
+			addsThenBoss: 31,
+			cleave: 10,
+			phased: 8,
+			unbroken: 7,
+		});
 	});
 
 	/**
@@ -144,24 +175,32 @@ describe('the proc state each Flame Shock press froze', () => {
 	 * Flame Shock is on the sim's `canConsumeSpells` mask and `applyEffects` runs *before*
 	 * `OnCastComplete` (`sim/core/cast.go:329-332`), so a press that spends the last stack is applied
 	 * with the multiplier still attached — and the log stamps that `removebuff` in the very millisecond
-	 * of the cast. Five presses across the three pulls are exactly that, and `unbroken`'s at 83 852 is
-	 * one of the three the report credits: read half-open, its row would drop the proc from its wording
-	 * and quote +56.2% as though the player's timing had bought all of it.
+	 * of the cast. **Ten** presses across the committed pulls are exactly that — five of them
+	 * `addsThenBoss`', which the three-name grid never looked at — and `unbroken`'s at 83 852 is one of the
+	 * five the report credits: read half-open, its row would drop the proc from its wording and quote
+	 * +56.2% as though the player's timing had bought all of it.
 	 *
 	 * The set is computed from the raw stream and then stated, so a fixture that stopped containing this
 	 * case would fail here rather than quietly stop testing anything.
 	 */
-	it('counts the proc up on the five presses that land on a window’s closing millisecond', () => {
+	it('counts the proc up on every press that lands on a window’s closing millisecond', () => {
 		const onTheEdge = FIXTURES.flatMap((name) => {
 			const ends = new Set(ccWindows(name).map(([, end]) => end));
-			return el[name].flameShock.presses.filter((p) => ends.has(p.t)).map((p) => [name, p.t] as const);
+			return el(name)
+				.flameShock.presses.filter((p) => ends.has(p.t))
+				.map((p) => [name, p.t] as const);
 		});
 		expect(onTheEdge).toEqual([
-			['unbroken', 83_852],
-			['phased', 121_512],
+			['addsThenBoss', 147_244],
+			['addsThenBoss', 179_024],
+			['addsThenBoss', 223_193],
+			['addsThenBoss', 299_996],
+			['addsThenBoss', 328_555],
 			['cleave', 29_777],
 			['cleave', 120_415],
 			['cleave', 259_722],
+			['phased', 121_512],
+			['unbroken', 83_852],
 		]);
 		for (const [name, t] of onTheEdge) expect(pressAt(name, t).snapshotClearcasting, `${name} @ ${t}`).toBe(true);
 		// And the one of them the snapshot rule actually credits, named on its own.
@@ -171,15 +210,20 @@ describe('the proc state each Flame Shock press froze', () => {
 
 describe('what is left of the gain once the proc is divided back out', () => {
 	/**
-	 * The three credited presses, both readings side by side — and this is the measurement that decided
-	 * §87 against controlling for the proc and against raising the threshold.
+	 * The credited presses, both readings side by side — and this is the measurement that decided §87
+	 * against controlling for the proc and against raising the threshold.
 	 *
 	 * Every one of them still clears ten per cent with the +20% removed. So the copy was wrong about
 	 * *why* and the number was right about *whether*, which is a copy fix and not a re-grade.
+	 *
+	 * **There are five, not three.** `addsThenBoss` credits two more, at 200 291 and 532 772, and neither
+	 * had ever been put to the "still over the bar with the proc divided out" question — the question this
+	 * whole test exists to answer. They clear it. `unbroken`'s three keep their pinned pairs because they
+	 * are the measurement §87 was decided on; the loop at the bottom is what covers all five.
 	 */
-	it('leaves all three credited refreshes over the bar without the proc', () => {
+	it('leaves every credited refresh over the bar without the proc', () => {
 		const credited = graded().filter((p) => p.kind === 'snapshot');
-		expect(credited.map((p) => p.t)).toEqual([28_628, 83_852, 140_025]);
+		expect(credited.map((p) => p.t)).toEqual([200_291, 532_772, 28_628, 83_852, 140_025]);
 
 		expect(pressAt('unbroken', 28_628).snapshotDeltaPct).toBeCloseTo(0.4244, 3);
 		expect(pressAt('unbroken', 28_628).snapshotDeltaWithoutClearcastingPct).toBeCloseTo(0.187, 3);
@@ -220,20 +264,20 @@ describe('what is left of the gain once the proc is divided back out', () => {
 	 * hair apart. A component deciding "is the proc worth naming here" by comparing them would otherwise
 	 * name it on every row.
 	 *
-	 * 20 of the 25 presses are in that state, so the check is not vacuous.
+	 * 47 of the 56 presses are in that state, so the check is not vacuous.
 	 */
 	it('holds the two figures bit-for-bit equal where the proc is not a term', () => {
 		let same = 0;
 		for (const name of FIXTURES)
-			for (const press of el[name].flameShock.presses) {
+			for (const press of el(name).flameShock.presses) {
 				if (press.snapshotDeltaWithoutClearcastingPct !== press.snapshotDeltaPct) continue;
 				same++;
 				expect(Object.is(press.snapshotDeltaWithoutClearcastingPct, press.snapshotDeltaPct)).toBe(true);
 			}
-		expect(same).toBe(20);
+		expect(same).toBe(47);
 		// And the field is null in exactly the cases the delta is, never in others.
 		for (const name of FIXTURES)
-			for (const press of el[name].flameShock.presses)
+			for (const press of el(name).flameShock.presses)
 				expect(press.snapshotDeltaWithoutClearcastingPct === null, `${name} @ ${press.t}`).toBe(
 					press.snapshotDeltaPct === null,
 				);
@@ -244,27 +288,47 @@ describe('what is left of the gain once the proc is divided back out', () => {
 	 * could overturn it.
 	 *
 	 * Controlling for the proc — comparing like for like on its state instead of measuring the total —
-	 * would change **not one** of the seven graded presses. The two readings differ on four of them, by
-	 * up to 26 points, and still fall on the same side of ten per cent every time. A control that changes
-	 * no outcome while looking like one is plan §90's finding verbatim, so it is not added; the proc is
-	 * named in the copy instead.
+	 * would change **not one** graded press. The two readings differ on several of them and still fall on
+	 * the same side of ten per cent every time. A control that changes no outcome while looking like one
+	 * is plan §90's finding verbatim, so it is not added; the proc is named in the copy instead.
+	 *
+	 * **Seven of these nineteen were being checked, and the premise the other twelve broke is stated here
+	 * rather than patched over.** The loop asserted `snapshotDeltaPct` was non-null on *every* graded
+	 * press. That was a property of the three pulls it ran on, not of the field: `FlameShockPress`'
+	 * contract says null means "the log could not say" — fewer than three ticks on the application the
+	 * press created, or no previous application to compare against — and `addsThenBoss` has one, an early
+	 * refresh at 159 410 whose new dot never got three ticks. Written as it was, the assertion would have
+	 * called a correctly-published `null` a failure. So the presses are partitioned by whether the log
+	 * could read them: the ones it could must not change side, and the one it could not is named, counted,
+	 * and required to be null in *both* readings — which is the contract
+	 * `snapshotDeltaWithoutClearcastingPct` states ("null exactly when `snapshotDeltaPct` is null"), now
+	 * exercised by a press that actually is.
 	 */
-	it('would put all seven graded presses on the same side of the bar either way', () => {
+	it('would put every readable graded press on the same side of the bar either way', () => {
 		const seven = graded();
-		expect(seven).toHaveLength(7);
+		expect(seven).toHaveLength(19);
+
+		// The presses the log could not read: null in both readings, so they have no side to change.
+		const unread = seven.filter((p) => p.snapshotDeltaPct === null);
+		expect(unread.map((p) => p.t)).toEqual([159_410]);
+		for (const press of unread) expect(press.snapshotDeltaWithoutClearcastingPct, `@ ${press.t}`).toBeNull();
+
+		const readable = seven.filter((p) => p.snapshotDeltaPct !== null);
+		expect(readable).toHaveLength(18); // non-vacuous, and the bulk of the sample
 		let differing = 0;
-		for (const press of seven) {
+		for (const press of readable) {
 			const total = press.snapshotDeltaPct;
 			const own = press.snapshotDeltaWithoutClearcastingPct;
-			expect(total).not.toBeNull();
-			expect(own).not.toBeNull();
+			expect(own, `@ ${press.t}`).not.toBeNull();
 			expect((own ?? 0) > BAR, `@ ${press.t}`).toBe((total ?? 0) > BAR);
 			if (own !== total) differing++;
 		}
-		expect(differing).toBe(4);
-		// The largest single disagreement between the two readings, so "up to 26 points" is measured.
-		const gaps = seven.map((p) => Math.abs((p.snapshotDeltaWithoutClearcastingPct ?? 0) - (p.snapshotDeltaPct ?? 0)));
-		expect(Math.max(...gaps)).toBeCloseTo(0.2654, 3);
+		expect(differing).toBe(8);
+		// The largest single disagreement between the two readings, measured rather than described.
+		const gaps = readable.map((p) =>
+			Math.abs((p.snapshotDeltaWithoutClearcastingPct ?? 0) - (p.snapshotDeltaPct ?? 0)),
+		);
+		expect(Math.max(...gaps)).toBeCloseTo(0.4387, 3);
 	});
 });
 
@@ -278,7 +342,7 @@ describe('nothing graded moves, and that is the point', () => {
 	it('leaves every press kind and every waste figure where it was — no-change guard', () => {
 		const kinds = (name: Fixture) => {
 			const out: Record<string, number> = {};
-			for (const press of el[name].flameShock.presses) out[press.kind] = (out[press.kind] ?? 0) + 1;
+			for (const press of el(name).flameShock.presses) out[press.kind] = (out[press.kind] ?? 0) + 1;
 			return out;
 		};
 		expect(kinds('unbroken')).toEqual({ apply: 1, snapshot: 3, early: 2, windowed: 1 });
@@ -297,8 +361,8 @@ describe('nothing graded moves, and that is the point', () => {
 	 */
 	it('publishes no Clearcasting figure of its own', () => {
 		for (const name of FIXTURES) {
-			expect(Object.keys(el[name]), name).not.toContain('clearcasting');
-			const audit = el[name].flameShock as unknown as Record<string, unknown>;
+			expect(Object.keys(el(name)), name).not.toContain('clearcasting');
+			const audit = el(name).flameShock as unknown as Record<string, unknown>;
 			expect(
 				Object.keys(audit).filter((k) => k.toLowerCase().includes('clearcasting')),
 				name,

@@ -13,6 +13,8 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
+import { unionMs } from '~/lib/analysis/intervals';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 
@@ -96,11 +98,18 @@ describe('a pull that consumed every surge it was given', () => {
  */
 function fsDownStretches(dataset: FightDataset, target: number): Array<[number, number]> {
 	const t0 = dataset.fight.startTime;
-	const fightEnd = dataset.fight.endTime - t0;
+	return downStretchesOf(
+		dataset.events.filter((e) => e.abilityGameID === 8050 && e.sourceID === dataset.actor.id && e.targetID === target),
+		t0,
+		dataset.fight.endTime - t0,
+	);
+}
+
+/** The walk itself, over one already-filtered stream — shared with the per-spawn union below. */
+function downStretchesOf(events: readonly WclEvent[], t0: number, fightEnd: number): Array<[number, number]> {
 	const out: Array<[number, number]> = [];
 	let down: number | null = 0;
-	for (const e of dataset.events) {
-		if (e.abilityGameID !== 8050 || e.sourceID !== dataset.actor.id || e.targetID !== target) continue;
+	for (const e of events) {
 		const t = e.timestamp - t0;
 		if (e.type === 'removedebuff') down ??= t;
 		else if ((e.type === 'applydebuff' || e.type === 'refreshdebuff') && down !== null) {
@@ -112,6 +121,69 @@ function fsDownStretches(dataset: FightDataset, target: number): Array<[number, 
 	return out;
 }
 
+/**
+ * The stretches **no enemy at all** carried the player's Flame Shock, walked off the same three event
+ * types and unioned across every target the dot was ever on.
+ *
+ * **Why the primary-keyed walk above cannot be the independent side on a multi-spawn pull.** On
+ * `addsThenBoss` the primary is a Galakras tower that cannot be dotted for the first 442 020ms of a
+ * 560 261ms pull, so `fsDownStretches(dataset, primaryTarget.id)` returns `[[0, 442 020], [560 218,
+ * 560 261]]` and would call almost every Lava Burst on the pull dot-less. The audit is not reading the
+ * primary — it reads the dot on the spawn the press was aimed at — so a primary-keyed comparison there
+ * is not a second opinion about the same thing, it is a different and wrong question. That is the same
+ * mistake `components/charts/__tests__/uptimeRow.test.ts` found in the dot chart's red row, arrived at
+ * from the other end.
+ *
+ * This walk is target-agnostic and therefore askable of every pull. It is a **necessary** condition and
+ * not the audit's claim restated: the audit says the dot was on the enemy being hit, and this says the
+ * dot was on *some* enemy. Where they differ the audit is the stricter of the two, so a press this walk
+ * calls dot-less is one the audit must also call dot-less — which is the direction asserted.
+ */
+function fsDownEverywhere(dataset: FightDataset): Array<[number, number]> {
+	const t0 = dataset.fight.startTime;
+	const fightEnd = dataset.fight.endTime - t0;
+	// **Keyed by spawn and not by target id**, which is the difference between agreeing with the audit and
+	// arguing with it. `addsThenBoss` puts 17 distinct `id:instance` spawns under the dot across only 9
+	// distinct ids, so two instances of the same add interleave their applies and removes; folded onto one
+	// key the walk reads a dot as down while the *other* instance still carries it, and it invents a
+	// 11 643ms dark stretch at 200 644 that never happened. One Lava Burst sits in it. The audit's
+	// `dotWindowsBySpawn` is per spawn, so this is a walk bug and not a disagreement.
+	const spawns = new Map<string, WclEvent[]>();
+	for (const e of dataset.events) {
+		if (e.abilityGameID !== 8050 || e.sourceID !== dataset.actor.id || e.targetID === undefined) continue;
+		const key = `${e.targetID}:${e.targetInstance ?? 0}`;
+		const bucket = spawns.get(key);
+		if (bucket === undefined) spawns.set(key, [e]);
+		else bucket.push(e);
+	}
+	// Every instant any spawn holds the dot, as the union of the per-spawn walks.
+	const up: Array<[number, number]> = [];
+	for (const events of spawns.values()) {
+		const down = downStretchesOf(events, t0, fightEnd);
+		let cursor = 0;
+		for (const [start, end] of down) {
+			if (start > cursor) up.push([cursor, start]);
+			cursor = end;
+		}
+		if (cursor < fightEnd) up.push([cursor, fightEnd]);
+	}
+	up.sort((a, b) => a[0] - b[0]);
+	const merged: Array<[number, number]> = [];
+	for (const span of up) {
+		const last = merged.at(-1);
+		if (last !== undefined && span[0] <= last[1]) last[1] = Math.max(last[1], span[1]);
+		else merged.push([span[0], span[1]]);
+	}
+	const out: Array<[number, number]> = [];
+	let cursor = 0;
+	for (const [start, end] of merged) {
+		if (start > cursor) out.push([cursor, start]);
+		cursor = Math.max(cursor, end);
+	}
+	if (cursor < fightEnd) out.push([cursor, fightEnd]);
+	return out;
+}
+
 function rawDataset(name: string): FightDataset {
 	return JSON.parse(
 		readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
@@ -119,47 +191,96 @@ function rawDataset(name: string): FightDataset {
 }
 
 /**
- * **No committed fixture has a Lava Burst committed with the dot down — and none of them is vacuous.**
+ * **The dot-less ledger is no longer empty on committed data, and the sentence that used to stand here
+ * was the three-name grid speaking.**
  *
- * The point of pinning this rather than only testing the synthetic pull below: a reader who sees "zero
- * faults on every real pull" should be able to tell "the check never fires" apart from "the check had
- * no chance to fire". `cleave` and `phased` give it plenty of chance — walked off their own event
- * streams the dot is absent from the primary for eight and six stretches, the longest 11.5s and 41.9s
- * (the submerge) — and `unbroken` gives it almost none, which is what its name says: 1553ms of pre-pull
- * ramp and one 49ms seam, and no Lava Burst within either.
+ * What this block said was: "No committed fixture has a Lava Burst committed with the dot down — and
+ * none of them is vacuous", closing with "which is why the field is published and not graded, and why
+ * the case is covered synthetically below". Both halves were true of `['cleave', 'phased', 'unbroken']`
+ * and neither survived `addsThenBoss.json`. That pull commits **eight** Lava Bursts with no Flame Shock
+ * on the enemy in front of the player — at 17 204, 43 491, 73 165, 175 810, 177 344, 342 917, 360 987 and
+ * 437 544 — so the real case the synthetic pull below was built to cover has been sitting in the
+ * fixture directory, unexamined, behind a literal three names long. The synthetic pull is kept, because
+ * what it isolates is the *completion-instant* edge (a dot that expires inside the cast) and no
+ * committed pull carries that shape; but it is no longer the only evidence, and "the field is not
+ * graded because nothing ever trips it" is not a reason anyone can still give.
+ *
+ * **The audit is right and it is the stricter of the two readings.** The independent walk below asks
+ * whether *any* enemy carried the dot; the audit asks whether the enemy actually being hit did. So the
+ * walk's answer is a necessary condition on the audit's, and that containment — not an equality — is
+ * what is asserted: two of the eight are moments when the player had no dot out anywhere at all
+ * (73 165 and 360 987, both a Lava Burst landing about a second before the next application), and the
+ * other six are presses onto an add that had none while some other add still did.
+ *
+ * How much chance the check had, per pull, is still stated rather than left implicit — a reader seeing
+ * "zero on three pulls" has to be able to tell "the check never fires" from "the check had no chance to
+ * fire". `cleave` and `phased` give it plenty — the dot is absent from the primary for eight and six
+ * stretches, the longest 11.5s and 41.9s (the submerge) — and `unbroken` gives it almost none, which is
+ * what its name says: 1553ms of pre-pull ramp and one 49ms seam, and no Lava Burst within either.
  *
  * The tightest near-miss anywhere is `cleave`'s press at 118 136, committed 264ms before the dot fell
  * at 118 400. That is one of the three hits §67a measured, and it reads as buffed here for the reason
  * §67a settled: the multiplier is decided at the cast and not at the impact.
- *
- * So the whole ledger of dot-less presses is empty on committed data, which is why the field is
- * published and not graded, and why the case is covered synthetically below.
  */
-describe('Flame Shock under every Lava Burst the fixtures carry', () => {
-	/** Per fixture: the primary's id, the press count, and the dot's down stretches read off the log. */
-	const pulls = {
-		cleave: { primary: 470, presses: 43, stretches: 8, longest: 11_496 },
-		phased: { primary: 216, presses: 49, stretches: 6, longest: 41_914 },
-		unbroken: { primary: 308, presses: 41, stretches: 2, longest: 1553 },
-	} as const;
+describe('Flame Shock under every Lava Burst the fixtures carry, or the absence of it', () => {
+	/**
+	 * Per fixture: the press count, and the dot's down stretches on the primary read off the log.
+	 *
+	 * **The grid is discovered and the primary is derived.** It was `['cleave', 'phased', 'unbroken']` with
+	 * three hand-copied actor ids beside it, so `addsThenBoss.json` — 49 more presses, on the pull where a
+	 * Lava Burst is most likely to go out with no dot under it — was never asked. The id now comes from
+	 * `primaryTarget.id`, because an integer transcribed into a test is a second place the fixture has to
+	 * be re-read by hand when it changes.
+	 */
+	const pulls: Record<
+		string,
+		{ presses: number; stretches: number; longest: number; dotLess: number[]; inDark: number[] }
+	> = {
+		addsThenBoss: {
+			presses: 58,
+			stretches: 2,
+			longest: 442_020,
+			dotLess: [17_204, 43_491, 73_165, 175_810, 177_344, 342_917, 360_987, 437_544],
+			inDark: [73_165, 360_987],
+		},
+		cleave: { presses: 43, stretches: 8, longest: 11_496, dotLess: [], inDark: [] },
+		phased: { presses: 49, stretches: 6, longest: 41_914, dotLess: [], inDark: [] },
+		unbroken: { presses: 41, stretches: 2, longest: 1553, dotLess: [], inDark: [] },
+	};
 
-	for (const name of ['cleave', 'phased', 'unbroken'] as const) {
-		it(`${name}: every press committed inside a dot window`, () => {
+	for (const name of rawFixtures('elemental').map(({ name: file }) => file.replace(/\.json$/, ''))) {
+		it(`${name}: the dot under every press, against a second walk of the log`, () => {
 			const dataset = rawDataset(name);
-			const down = fsDownStretches(dataset, pulls[name].primary);
-			const { lavaBurst } = analyse(dataset) as Analysis & ElementalAuditResult;
+			const analysis = analyse(dataset) as Analysis & ElementalAuditResult;
+			const primary = analysis.primaryTarget?.id;
+			expect(primary, `${name} has a primary target`).not.toBeUndefined();
+			const down = fsDownStretches(dataset, primary!);
+			const { lavaBurst } = analysis;
+			const pinned = pulls[name];
+			expect(pinned, `${name} is pinned here`).toBeDefined();
 
-			// How much chance the check had on this pull, stated rather than left implicit.
-			expect(down).toHaveLength(pulls[name].stretches);
-			expect(Math.max(...down.map(([s, e]) => e - s))).toBe(pulls[name].longest);
+			// How much chance the check had on this pull, stated rather than left implicit — and on
+			// `addsThenBoss` this is also the figure that disqualifies the primary as the comparison's other
+			// side: 442 020ms of a 560 261ms pull, on a tower the player could not have dotted.
+			expect(down).toHaveLength(pinned!.stretches);
+			expect(Math.max(...down.map(([s, e]) => e - s))).toBe(pinned!.longest);
 
-			expect(lavaBurst.presses).toHaveLength(pulls[name].presses);
-			// The independent side of the comparison: no commit instant lies inside a down stretch.
-			const insideAGap = lavaBurst.presses.filter((p) => down.some(([s, e]) => p.t > s && p.t < e));
-			expect(insideAGap).toEqual([]);
-			// And the audit says the same thing in its own terms, with nothing unreadable.
-			expect(lavaBurst.presses.filter((p) => p.flameShock === false)).toEqual([]);
+			expect(lavaBurst.presses).toHaveLength(pinned!.presses);
+			// The audit's own ledger of dot-less presses, per pull — no longer empty everywhere, and pinned by
+			// instant so that a press joining or leaving it is a diff and not a shrug.
+			expect(lavaBurst.presses.filter((p) => p.flameShock === false).map((p) => p.t)).toEqual(pinned!.dotLess);
+			// Nothing unreadable on any committed pull: every press resolved to an enemy to be judged against.
 			expect(lavaBurst.presses.filter((p) => p.flameShock === null)).toEqual([]);
+
+			// The independent side of the comparison, unioned over every **spawn** the dot was ever on so
+			// that it means the same thing on one enemy and on seventeen. It is the weaker question — "did
+			// anything carry the dot" against the audit's "did the enemy being hit" — so what it can assert
+			// is containment: every press it calls dark, the audit must already call dot-less.
+			const dark = fsDownEverywhere(dataset);
+			expect(unionMs(dark), `${name} has dot-less stretches to test against`).toBeGreaterThan(0);
+			const inDark = lavaBurst.presses.filter((p) => dark.some(([s, e]) => p.t > s && p.t < e));
+			expect(inDark.map((p) => p.t)).toEqual(pinned!.inDark);
+			for (const press of inDark) expect(press.flameShock, `${name} @ ${press.t}`).toBe(false);
 		});
 	}
 
