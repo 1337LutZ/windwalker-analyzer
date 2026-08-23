@@ -84,8 +84,9 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 * fixture never procs would draw nothing.
 	 *
 	 * `essence-of-yulon` is the one worth naming twice: it is an **enemy debuff**, so a Buffs sweep cannot
-	 * see it at all, and it is the busiest of the four. It is also the one this correction does *not*
-	 * cover — see the block that follows the assertion below.
+	 * see it at all, and it is the busiest of the four. It was the last of the five without a row, and it
+	 * outlasted the other four for a structural reason rather than by being forgotten — the guard that
+	 * found them walks auras put on the *player*. Its own block below carries that finding.
 	 */
 	const expected: Array<[string, [number, number, number]]> = [
 		// [aura key, windows on cleave / phased / unbroken]
@@ -129,6 +130,14 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	/**
 	 * The debuff, counted on the enemy rather than on the player — which is why it needs its own reading
 	 * and why `windowCount` above would have found nothing for it.
+	 *
+	 * **That "why" is the finding, not a caveat about this test's shape.** Three of the four guards that
+	 * are supposed to make a missing row impossible read the player's own stream: `aurasPutOnPlayer` and
+	 * `auraIdsPutOnPlayer` in `lib/analysis/drawnAuras`, and `windowCount` here. So an item effect that
+	 * lands on the enemy is not merely unnoticed by them, it is *unreachable*, and this proc sat undrawn
+	 * on all three pulls after the other four had rows. `specs/elemental/lib/__tests__/drawnAuras.test.ts`
+	 * proves the blindness and proves that the `NOT_LANES` ledger has no slot for the class either; the
+	 * resolution here was a row.
 	 */
 	it("Essence of Yu'lon lands on the enemy on all three pulls", () => {
 		const counts = ELEMENTAL.map((file) => {
@@ -143,6 +152,30 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 		});
 		expect(counts).toEqual([13, 18, 16]);
 		expect(registry.auraById(146_198)?.kind).toBe('debuff');
+	});
+
+	/**
+	 * And it has a row now — the last of the five, and the one no player-scoped guard could have asked for.
+	 *
+	 * Built from the union across every spawn that carried it rather than from the primary target alone,
+	 * because a cloak proc lands on whatever the spell hit: `cleave` burns adds as readily as Iron Qon, and
+	 * a primary-scoped walk would draw part of the row and label it the proc's uptime.
+	 *
+	 * Counts rather than a bare `has`, so a walk that silently collapsed the row to one long window fails
+	 * here. They come out **equal to the application counts above on all three pulls, and that is a
+	 * coincidence rather than a rule** — worth saying because it invites the wrong inference. The walk
+	 * opens on refresh, so a refresh extends a window instead of adding one (`unbroken`'s first is
+	 * 3 096 → 10 113 ms, well past the aura's declared four seconds), and windows on two spawns burning at
+	 * once are merged. Both effects are live here and happen to cancel. Asserting the pair is the point:
+	 * the two numbers are read by different walks and are free to disagree.
+	 */
+	it("draws Essence of Yu'lon on the Elemental timeline", () => {
+		const drawn = ELEMENTAL.map((file) => {
+			const analysis = analyseElemental(fixture('elemental', file)) as Analysis;
+			return analysis.timeline?.lanes.find((l) => l.key === 'essence-of-yulon')?.windows.length;
+		});
+		// cleave / phased / unbroken, the order `ELEMENTAL` is in.
+		expect(drawn).toEqual([13, 18, 16]);
 	});
 });
 

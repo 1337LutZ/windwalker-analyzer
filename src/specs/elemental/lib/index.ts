@@ -1070,6 +1070,14 @@ const WRATH_OF_DARKSPEAR_STACKS = registry.aura('wrath-of-darkspear-stacks');
 const TEMPUS_REPIT = registry.aura('tempus-repit');
 // The gear effects that actually fired on every committed pull and had no row until now. Each one is a
 // buff a reader can see in their own log and could not find in this report — see the lane list below.
+/**
+ * The caster legendary cloak's proc — and the one item effect in this list that lands on the *enemy*.
+ *
+ * Xing-Ho, Breath of Yu'lon, declared in `lib/game/shared.ts` with `kind: 'debuff'` and the whole of the
+ * evidence written out there. It is bound here for the reason the four below it are: it fires on every
+ * committed pull — 13, 18 and 16 `applydebuff` of 146198 — and had no row.
+ */
+const ESSENCE_OF_YULON = registry.aura('essence-of-yulon');
 const JADE_SPIRIT = registry.aura('jade-spirit');
 const LIGHTWEAVE = registry.aura('lightweave');
 const TOXIC_POWER = registry.aura('toxic-power');
@@ -1748,6 +1756,33 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		const dot = dotWindowsOnTarget(events, aura, t0, fightEnd, primaryID, actor.id, { openAtPull: true });
 		return pullSpansAsWindows(dot.merged, dot.inferredAtPull);
 	};
+	/**
+	 * And the same thing again for a debuff that is **not aimed anywhere** — a proc that lands on whatever
+	 * the player's spell happened to hit.
+	 *
+	 * `dotLaneWindows` above scopes to `primaryID`, which is right for Flame Shock and for the two-piece:
+	 * both are things the player put on a chosen enemy, and a figure labelled with the boss's name has to
+	 * be the boss's. A cloak proc chooses nothing. On `cleave` it lands on add spawns as readily as on the
+	 * boss, so a primary-scoped walk draws part of the row and calls it the proc's uptime.
+	 *
+	 * **Measured rather than argued from the shape:** through `dotLaneWindows` the Essence of Yu'lon row
+	 * reads **11** windows on `cleave` against 13 here, and is identical on the two single-target pulls
+	 * (18 and 16 either way). So the difference is exactly the two procs that burned an add, and it is only
+	 * visible on the pull that has adds — which is why the choice needs a fixture behind it and not a
+	 * paragraph.
+	 *
+	 * So this one drops the target filter and keeps the source filter, which `dotWindowsBySpawn` already
+	 * splits apart for exactly this reason — `.merged` is then the union across every spawn that carried
+	 * it, on the same argument `ascendanceSync` makes for unioning Skull Banner: the effect was running or
+	 * it was not, and two enemies burning at once is one proc rather than two.
+	 *
+	 * No `openAtPull`. The inference needs a duration bound and this aura declares four seconds, so all it
+	 * could ever recover is a proc that expired in the pull's first four milliseconds-to-seconds — a
+	 * stretch no reader is looking for, bought at the cost of a bar drawn from `00:00` on evidence of one
+	 * event. The graded readings do not touch this walk at all; nothing but the chart reads it.
+	 */
+	const procDebuffLaneWindows = (aura: Aura): Window[] =>
+		dotWindowsBySpawn(events, aura, t0, fightEnd, actor.id).merged.map(([start, end]) => ({ start, end }));
 	// A cast's fixed-duration window (a totem, the Fire Elemental) runs until the spell would expire,
 	// but the fight may end first — clamp it so a Searing Totem laid in the last global does not draw a
 	// sixty-second tail past the pull.
@@ -4052,6 +4087,29 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// Split by group on purpose: a proc is something the pull gave you and an on-use is something you
 		// pressed, and the tone should not claim you chose the first or were handed the second.
 		lane(TEMPUS_REPIT, 'proc', laneWindows(TEMPUS_REPIT)),
+		/**
+		 * **The fifth of that group, and the one the drawn-aura guard was structurally unable to ask for.**
+		 *
+		 * `essence-of-yulon` fires plainly — 13, 18 and 16 `applydebuff` of 146198 across the three
+		 * committed pulls, asserted in `lib/game/__tests__/sharedFixtures.test.ts` — and had neither a row
+		 * nor a `NOT_LANES` entry. It went missing for a reason worth writing down rather than fixing
+		 * quietly: **it is an enemy debuff, and the guard walks auras put on the *player***
+		 * (`aurasPutOnPlayer`). So the sweep that caught the four rows above could not have flagged this
+		 * one however busy it got, and neither could the undeclared-id ledger beside it, which reads the
+		 * same player-scoped stream. Same class as the third failure mode that ledger was built for,
+		 * wearing a different hat — and `shared.ts`' own declaration already records the *declaration* half
+		 * of it: "a Buffs sweep is structurally incapable of finding one".
+		 *
+		 * A row rather than a ledger entry, and the ledger is not merely the lazier option — it is
+		 * unavailable. `staleExcuses` fails any `NOT_LANES` key that fires on no pull's player-scoped
+		 * sweep, and this key fires on none of them, so writing the reason down would break the guard that
+		 * keeps reasons honest. `drawnAuras.test.ts` records that dead end where a reader would look for it.
+		 *
+		 * `'proc'` and not `'debuff'`: the group is what the row's tone claims about agency, and this is
+		 * something the cloak did, not something the player aimed. The two rows on this timeline that are
+		 * `'debuff'` — Flame Shock and Elemental Discharge — are both presses.
+		 */
+		lane(ESSENCE_OF_YULON, 'proc', procDebuffLaneWindows(ESSENCE_OF_YULON)),
 		lane(JADE_SPIRIT, 'proc', laneWindows(JADE_SPIRIT)),
 		lane(LIGHTWEAVE, 'proc', laneWindows(LIGHTWEAVE)),
 		lane(TOXIC_POWER, 'proc', laneWindows(TOXIC_POWER)),
