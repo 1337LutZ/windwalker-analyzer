@@ -39,8 +39,24 @@
 //
 // | window                        |   n | followed |   rate | Flame Shock skips |
 // | ----------------------------- | --- | -------- | ------ | ----------------- |
-// | up to the last add (503.3s)   | 369 |      116 |  31.4% |               151 |
+// | up to the last add (503.3s)   | 369 |      116 |  31.4% |               149 |
 // | the boss-only tail after it   |  39 |       24 |  61.5% |                 1 |
+//
+// ## The second, smaller defect this file pinned, and which is now also closed
+//
+// `off-list` — the engine's verdict for "nothing on this list wanted the global" — was **0 on every
+// fixture at every band**, and that zero was structural rather than a finding: `lightning-bolt` is the
+// bottom rung, unconditional and unbanded, so the walk always stopped somewhere. The three on-GCD buttons
+// the ladder's own module doc *delegates* elsewhere — Stormlash Totem, Fire Elemental, Earth Elemental —
+// were therefore each charged to whichever filler rung the band left standing: **9 presses across the four
+// fixtures**, 4 of them here.
+//
+// The fix is a declaration the walk can read (`UNARBITRATED` in `../apl.ts`, through
+// `AplInputs.unarbitrated`), and what it moves is bounded: 4 / 1 / 2 / 2 presses out of `skipped` and into
+// `offList`, `followed` unchanged on all four pulls, no graded metric touched. `flame-shock`'s own share
+// falls 152 → 150 here and 12 → 11 on `phased`, `lava-burst` 20 → 19 and `lightning-bolt` 6 → 5. **It is
+// not an amnesty**: an on-GCD button with no rung and no declaration is still a fault, which is what the
+// second half of that block asserts and what Magma Totem still is.
 //
 // ## What is left, which is the player
 //
@@ -66,13 +82,17 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, FightDataset } from '~/lib/types';
+import { aplAudit, type AplInputs } from '~/lib/spec/apl';
 import { analyse } from '~/specs/elemental/lib';
-import { LADDER } from '~/specs/elemental/lib/apl';
+import { LADDER, UNARBITRATED } from '~/specs/elemental/lib/apl';
 
 const LAVA_BEAM = 114_074;
 const STORMLASH = 120_668;
 const FIRE_ELEMENTAL = 2894;
+const EARTH_ELEMENTAL = 2062;
 const SEARING_TOTEM = 3599;
+/** The one on-GCD Elemental button that has no rung and is *not* delegated — see `UNARBITRATED`. */
+const MAGMA_TOTEM = 8190;
 
 const load = (name: string): Analysis =>
 	analyse(
@@ -82,16 +102,78 @@ const load = (name: string): Analysis =>
 const addsThenBoss = load('addsThenBoss');
 const cleave = load('cleave');
 
+/** The four committed Elemental pulls, and one analysis each — these fixtures are slow to parse. */
+const FIXTURES = ['addsThenBoss', 'cleave', 'phased', 'unbroken'] as const;
+const loaded = new Map<string, Analysis>([
+	['addsThenBoss', addsThenBoss],
+	['cleave', cleave],
+]);
+const fixture = (name: (typeof FIXTURES)[number]): Analysis => {
+	const known = loaded.get(name);
+	if (known !== undefined) return known;
+	const a = load(name);
+	loaded.set(name, a);
+	return a;
+};
+
 interface Press {
 	t: number;
 	decidedAt: number;
 	pressed: number;
 	wanted: string | null;
+	/** Read here for one thing only: which of the two kinds of `off-list` a press is. See that block below. */
+	reason?: string | null;
 	verdict: string;
 }
 const auditOf = (a: Analysis): { followed: number; skipped: number; unknown: number; offList: number } =>
 	a.apl as unknown as { followed: number; skipped: number; unknown: number; offList: number };
 const pressesOf = (a: Analysis): Press[] => ((a.apl as { presses?: Press[] } | null)?.presses ?? []) as Press[];
+/**
+ * The same two accessors against a forced-band walk, which `Analysis` does not declare either.
+ *
+ * `aplForced` is the reader's target-mode counterfactual: the same pull judged at one fixed count. It is
+ * how a claim about a *band* gate is separated from a claim about a press, and how the block below shows
+ * a verdict does **not** move with the band.
+ */
+type Audit = { followed: number; skipped: number; unknown: number; offList: number; presses?: Press[] };
+const forcedAuditOf = (a: Analysis, band: 1 | 2 | 3 | 4): Audit =>
+	((a as unknown as { aplForced?: Record<string, Audit> }).aplForced?.[String(band)] ?? {
+		followed: 0,
+		skipped: 0,
+		unknown: 0,
+		offList: 0,
+	}) as Audit;
+const forcedPressesOf = (a: Analysis, band: 1 | 2 | 3 | 4): Press[] => forcedAuditOf(a, band).presses ?? [];
+
+/**
+ * One synthetic press, walked straight down `LADDER` — the only way to ask about a button no committed
+ * log contains.
+ *
+ * Everything the real audit supplies is empty or constant here, and it costs nothing: this ladder reads
+ * no resource bar at all, which is what `barsRequired: false` says, so the two curves are formalities.
+ * The point of the helper is that its two call sites differ **only** by `unarbitrated` — an assertion
+ * whose two sides came off the same value would prove nothing, and this way each side is a separate walk.
+ */
+const walkOnePress = (id: number, unarbitrated?: AplInputs['unarbitrated']): Press | null => {
+	const empty = { max: 0, points: [] as Array<[number, number]> };
+	const audit = aplAudit(
+		{
+			casts: [{ t: 10_000, id, name: 'probe', onGcd: true }],
+			energy: empty,
+			chi: empty,
+			regenPerSec: 0,
+			gcdMs: 1500,
+			pullMs: 300_000,
+			auras: {},
+			fofChannelSec: 0,
+			targetsAt: () => 1,
+			barsRequired: false,
+			...(unarbitrated === undefined ? {} : { unarbitrated }),
+		},
+		LADDER,
+	);
+	return (audit?.presses[0] ?? null) as Press | null;
+};
 /**
  * The Elemental's own Flame Shock block, which `Analysis` does not declare.
  *
@@ -166,17 +248,21 @@ describe('the pull the regime resolves on', () => {
 		expect(lastMultiTargetPoint(cleave)).toBeGreaterThan(cleave.durationMs ?? 0);
 	});
 
-	it('reads 408 / 140 / 268, with nothing hiding in the other two verdicts', () => {
+	it('reads 408 / 140 / 264 / 4, with nothing hiding in the fourth verdict', () => {
 		// 69 / 339 while `fsRemainingAt` read the primary-scoped dot map; 140 / 268 since it reads
-		// `fsDotAnywhere`. 34.3% against `cleave`'s 49.0%, on a pull that is 73.73% multi-target.
+		// `fsDotAnywhere`; 140 / 264 / 4 since the ladder declared the three on-GCD buttons it does not
+		// arbitrate. 34.3% against `cleave`'s 49.0%, on a pull that is 73.73% multi-target.
 		const apl = auditOf(addsThenBoss);
 		expect(pressesOf(addsThenBoss)).toHaveLength(408);
 		expect(apl.followed).toBe(140);
-		expect(apl.skipped).toBe(268);
-		// **Both zero, and neither is trivially so.** `unknown` at 0 says no rule on this ladder ever failed
-		// to read. `offList` at 0 is structural and is its own case below.
+		expect(apl.skipped).toBe(264);
+		// `unknown` at 0 says no rule on this ladder ever failed to read, and that one is still not
+		// trivially so. `offList` used to be pinned at 0 beside it and that *was* trivial — it is now four,
+		// and the block below is what they are.
 		expect(apl.unknown).toBe(0);
-		expect(apl.offList).toBe(0);
+		expect(apl.offList).toBe(4);
+		// Every press lands in exactly one column, so a verdict moving between two of them cannot cancel.
+		expect(apl.followed + apl.skipped + apl.unknown + apl.offList).toBe(408);
 		expect(apl.followed / pressesOf(addsThenBoss).length).toBeCloseTo(0.343, 3);
 	});
 });
@@ -188,18 +274,19 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 		// is a single window opening at 442.0s, because Galakras is untargetable for the whole add phase.
 		// So over the 318 presses decided before that instant, a lookup keyed by the *primary's* spawns had
 		// no window to find and could only ever answer zero. It credited 24 of the 318; the every-spawn map
-		// credits 92, and charges 141 against Flame Shock where the primary-keyed one charged 294.
+		// credits 92, and charges 140 against Flame Shock where the primary-keyed one charged 294 — 141 until
+		// the Stormlash press at 33.2s stopped being one of them.
 		const windows = flameShockOf(addsThenBoss).windows;
 		expect(windows).toHaveLength(1);
 		expect(windows[0]!.start).toBe(442_020);
 		const opens = windows[0]!.start;
-		expect(split(addsThenBoss, (p) => p.decidedAt < opens)).toEqual({ n: 318, followed: 92, fsSkips: 141 });
+		expect(split(addsThenBoss, (p) => p.decidedAt < opens)).toEqual({ n: 318, followed: 92, fsSkips: 140 });
 		// Better than a quarter of them, where the primary-keyed reading credited 7.5% — asserted as a share
 		// as well as a count, because the count alone cannot say the reading stopped being structural.
 		expect(92 / 318).toBeGreaterThan(0.25);
 		// And the stretch the primary *was* dottable barely moves, which is the other half of the same
 		// claim: 45 credits became 48.
-		expect(split(addsThenBoss, (p) => p.decidedAt >= opens)).toEqual({ n: 90, followed: 48, fsSkips: 11 });
+		expect(split(addsThenBoss, (p) => p.decidedAt >= opens)).toEqual({ n: 90, followed: 48, fsSkips: 10 });
 	});
 
 	it('puts the Flame Shock rung back in family with cleave instead of owning nine faults in ten', () => {
@@ -207,23 +294,23 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 		// The five rungs that shared 29 faults between them now share 116, which is the finding: this was
 		// one condition answering, and the rungs under it were unreachable behind it.
 		expect(skipsBy(addsThenBoss)).toEqual({
-			'flame-shock': 152,
+			'flame-shock': 150,
 			'chain-lightning': 39,
 			'searing-totem': 34,
-			'lava-burst': 20,
+			'lava-burst': 19,
 			'earth-shock': 12,
-			'lightning-bolt': 6,
+			'lightning-bolt': 5,
 			'lava-beam': 5,
 		});
 		// **The property, not the numbers.** 91.4% against `cleave`'s 56.2% was the whole reason to suspect
 		// the reading rather than the player; 56.7% against 55.8% is what two pulls under one rule look
 		// like. Half a point apart, on pulls whose multi-target shares are 73.73% and 57.25%.
-		expect(topRungShare(addsThenBoss)).toBeCloseTo(0.567, 3);
-		expect(topRungShare(cleave)).toBeCloseTo(0.558, 3);
+		expect(topRungShare(addsThenBoss)).toBeCloseTo(0.568, 3);
+		expect(topRungShare(cleave)).toBeCloseTo(0.563, 3);
 		expect(Math.abs(topRungShare(addsThenBoss) - topRungShare(cleave))).toBeLessThan(0.05);
 		// And the same held as a ceiling across every committed pull, which is the shape of the claim: no
-		// single rung may own most of a pull's faults. `phased` reads 0.231 and `unbroken` 0.378 — both
-		// **no-change guards**, neither exceeding one enemy — and this pull used to read 0.914.
+		// single rung may own most of a pull's faults. `phased` reads 0.240 and `unbroken` 0.395 — the two
+		// pulls that never exceed one enemy — and this pull used to read 0.914.
 		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken'] as const) {
 			const a = name === 'addsThenBoss' ? addsThenBoss : name === 'cleave' ? cleave : load(name);
 			expect(topRungShare(a), name).toBeLessThan(0.6);
@@ -239,20 +326,20 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 		// Derived off the **per-enemy timeline lanes** rather than off the verdicts, so this is a second
 		// source disagreeing with the first: 235 of the primary-keyed reading's 310 Flame Shock faults were
 		// charged while at least one of the nine enemies was carrying the dot — 75.8%, on a pull whose lanes
-		// cover 425.1s of 560.3s. It is now 90 of 152.
+		// cover 425.1s of 560.3s. It is now 88 of 150.
 		//
 		// **Not zero, and it should not be.** The fix is contact-scoped by design: a dot ticking on an add
 		// the player is not hitting does not excuse the press, which is the split `fsRemainingAt`'s own
 		// docblock draws between a graded press and anything drawn. What had to go was the *fabricated*
-		// zero, and 59.2% here is what remains of the union's own reading.
+		// zero, and 58.7% here is what remains of the union's own reading.
 		const lanes = (addsThenBoss.timeline?.lanes ?? []).filter((l) => l.key === 'flame-shock');
 		expect(lanes.length).toBeGreaterThan(1);
 		const all = lanes.flatMap((l) => l.windows);
 		const dotUpAt = (t: number): boolean => all.some((w) => w.start <= t && t <= w.end);
 		const fsSkips = pressesOf(addsThenBoss).filter((p) => p.verdict === 'skipped' && p.wanted === 'flame-shock');
-		expect(fsSkips).toHaveLength(152);
-		expect(fsSkips.filter((p) => dotUpAt(p.decidedAt))).toHaveLength(90);
-		expect(90 / 152).toBeLessThan(0.65);
+		expect(fsSkips).toHaveLength(150);
+		expect(fsSkips.filter((p) => dotUpAt(p.decidedAt))).toHaveLength(88);
+		expect(88 / 150).toBeLessThan(0.65);
 		// The lanes' own coverage, unchanged by any of this and asserted so the share above has a
 		// denominator a reader can check.
 		let covered = 0;
@@ -342,8 +429,8 @@ describe('what the ladder can reach now that one rung has stopped claiming every
 		expect(table(addsThenBoss)).toEqual([
 			{ n: 90, followed: 41, fsSkips: 6 },
 			{ n: 87, followed: 21, fsSkips: 32 },
-			{ n: 74, followed: 33, fsSkips: 22 },
-			{ n: 157, followed: 45, fsSkips: 92 },
+			{ n: 74, followed: 33, fsSkips: 21 },
+			{ n: 157, followed: 45, fsSkips: 91 },
 		]);
 		expect(table(cleave)).toEqual([
 			{ n: 88, followed: 57, fsSkips: 11 },
@@ -362,40 +449,128 @@ describe('what the ladder can reach now that one rung has stopped claiming every
 		}
 	});
 
-	it('can never return off-list, so a button the ladder excludes on purpose is graded as a fault', () => {
-		// **A second, smaller defect, pinned here because this pull is where it is visible and because the
-		// dot-map fix does not touch it.** The engine has an `off-list` verdict for "nothing on this ladder
-		// wanted the global — a cooldown, a defensive". It is unreachable for this spec: `lightning-bolt` is
-		// unconditional and unbanded, so some rung always claims. The consequence is that the three on-GCD
-		// buttons the ladder's own module doc *delegates* elsewhere — Stormlash Totem (a raid cooldown the
-		// doc calls off-GCD, while the registry declares `onGcd: true`), Fire Elemental (the cooldowns
-		// section's business) and Earth Elemental (whose rule opens in end-of-fight terms) — are each graded
-		// as a priority mistake against a filler rung.
+	it('reads off-list for the three buttons it does not arbitrate, and names where each is judged', () => {
+		// **The rung the ladder had no room for, and so charged as a mistake.** The engine has an `off-list`
+		// verdict for "nothing on this list wanted the global — a cooldown, a defensive", and it was
+		// unreachable for this spec: `lightning-bolt` is unconditional and unbanded, so some rung always
+		// claimed. The consequence was that the three on-GCD buttons the ladder's own module doc *delegates*
+		// elsewhere — Stormlash Totem (a raid cooldown the doc calls off-GCD, while the registry declares
+		// `onGcd: true`), Fire Elemental (the cooldowns section's business) and Earth Elemental (whose rule
+		// opens in end-of-fight terms) — were each graded as a priority mistake against a filler rung. Four
+		// presses here and nine across the four fixtures.
 		//
-		// Four presses here and nine across the four fixtures, so it is ~1.5% of this pull's faults and was
-		// never an answer to 16.9%. Pinned as the whole tally rather than a count, because the fix is a
-		// declaration the ladder does not yet carry and the next reader needs to see which buttons it has to
-		// cover. Only the rung *named* moved with the dot map — one of the two Fire Elementals is now charged
-		// against Lava Burst rather than Flame Shock — which is the same fault, better attributed.
+		// **The clearest sign it was an artefact is that the rung named moved with the band and nothing
+		// else.** The Fire Elemental at 479.9s was a skipped `lightning-bolt` at band 1, a skipped
+		// `chain-lightning` at bands 2-4 and a skipped `lava-burst` on the natural walk — three different
+		// accusations about one press, on a button no list mentions at any count. `UNARBITRATED` in
+		// `../apl.ts` is the declaration that ends it, and `AplInputs.unarbitrated` is the seam it reaches
+		// the verdict through.
 		const rungIds = new Set(LADDER.map((r) => r.id));
 		const unarbitrated = pressesOf(addsThenBoss).filter((p) => !rungIds.has(p.pressed));
-		expect(unarbitrated.map((p) => `${p.pressed}:${p.verdict}<-${p.wanted ?? '?'}`)).toEqual([
-			`${STORMLASH}:skipped<-flame-shock`,
-			`${FIRE_ELEMENTAL}:skipped<-lava-burst`,
-			`${STORMLASH}:skipped<-flame-shock`,
-			`${FIRE_ELEMENTAL}:skipped<-lightning-bolt`,
+		expect(unarbitrated.map((p) => `${p.pressed}:${p.verdict}<-${p.reason ?? '?'}`)).toEqual([
+			`${STORMLASH}:off-list<-stormlash`,
+			`${FIRE_ELEMENTAL}:off-list<-fire-elemental`,
+			`${STORMLASH}:off-list<-stormlash`,
+			`${FIRE_ELEMENTAL}:off-list<-fire-elemental`,
 		]);
-		// Never `off-list`, on any fixture, at any band — including the single-target two, where the same
-		// three buttons are pressed and faulted just the same.
-		for (const name of ['cleave', 'addsThenBoss', 'phased', 'unbroken'] as const) {
-			const a = name === 'cleave' ? cleave : name === 'addsThenBoss' ? addsThenBoss : load(name);
-			expect(auditOf(a).offList, name).toBe(0);
+		// **`wanted` is null on all four, which is the half that says the fault is gone** rather than merely
+		// relabelled: there is no rung the press is still being measured against.
+		expect(unarbitrated.every((p) => p.wanted === null)).toBe(true);
+
+		// The whole tally, across all four fixtures — the nine presses, and all three buttons, so the next
+		// reader can see the declaration covers the class and not just this pull.
+		const tally: Record<string, number> = {};
+		for (const name of FIXTURES) {
+			for (const p of pressesOf(fixture(name)).filter((q) => !rungIds.has(q.pressed))) {
+				tally[`${name}/${p.pressed}/${p.verdict}`] = (tally[`${name}/${p.pressed}/${p.verdict}`] ?? 0) + 1;
+			}
+		}
+		expect(tally).toEqual({
+			[`addsThenBoss/${STORMLASH}/off-list`]: 2,
+			[`addsThenBoss/${FIRE_ELEMENTAL}/off-list`]: 2,
+			[`cleave/${STORMLASH}/off-list`]: 1,
+			[`phased/${STORMLASH}/off-list`]: 1,
+			[`phased/${EARTH_ELEMENTAL}/off-list`]: 1,
+			[`unbroken/${STORMLASH}/off-list`]: 1,
+			[`unbroken/${EARTH_ELEMENTAL}/off-list`]: 1,
+		});
+
+		// **The property, and it is the one the old reading provably failed.** The verdict on a delegated
+		// button must not depend on how many enemies were up: which section judges a button is a fact about
+		// the button. The declaration is read ahead of every band gate in `judge`, so all four forced walks
+		// must agree press for press — and this pull is the one that can ask, because its four off-list
+		// presses land one in each band.
+		const band = banderFor(addsThenBoss);
+		expect(unarbitrated.map(band).sort()).toEqual([1, 2, 3, 4]);
+		for (const b of [1, 2, 3, 4] as const) {
+			const forced = forcedPressesOf(addsThenBoss, b).filter((p) => !rungIds.has(p.pressed));
 			expect(
-				pressesOf(a)
-					.filter((p) => !rungIds.has(p.pressed))
-					.every((p) => p.verdict === 'skipped'),
-				name,
-			).toBe(true);
+				forced.map((p) => `${p.pressed}:${p.verdict}<-${p.reason ?? '?'}`),
+				`band ${b}`,
+			).toEqual(unarbitrated.map((p) => `${p.pressed}:${p.verdict}<-${p.reason ?? '?'}`));
+		}
+
+		// And `followed` did not move on any fixture, which bounds what the declaration is allowed to do: it
+		// takes presses out of `skipped` and puts them in `offList`, and it cannot manufacture credit.
+		for (const [name, followed] of [
+			['addsThenBoss', 140],
+			['cleave', 100],
+			['phased', 107],
+			['unbroken', 97],
+		] as const) {
+			expect(auditOf(fixture(name)).followed, name).toBe(followed);
+		}
+	});
+
+	it('still faults a button with no rung and no declaration, so off-list is not an amnesty', () => {
+		// **What separates the two kinds of `off-list`, stated because conflating them is the way this fix
+		// could go wrong.**
+		//
+		//  - *Delegated elsewhere*: the ladder declared it, and the press carries the section that judges it
+		//    instead in `reason`. All nine presses above.
+		//  - *Genuinely off this list*: the engine's own fall-through at the bottom of `judge`, `reason:
+		//    null` — the list had nothing to say. **This ladder cannot reach it**, because `lightning-bolt`
+		//    is unconditional and unbanded, so on this spec a null reason beside an `off-list` verdict would
+		//    mean the walk had stopped working.
+		//
+		// So: every off-list press on every fixture must carry a reason, and a button that is on no rung and
+		// in no declaration has to come back a **fault** rather than a shrug. The only Elemental button in
+		// that state is Magma Totem, which appears in no committed log (`ladderCoverage.test.ts` carries the
+		// argument for why it has no rung), so the question is put to `aplAudit` directly with one synthetic
+		// press. Both arms below differ by the declaration alone.
+		const undeclared = walkOnePress(MAGMA_TOTEM);
+		expect(undeclared).toMatchObject({ pressed: MAGMA_TOTEM, verdict: 'skipped', reason: null });
+		// Charged to *a* rung rather than to a named one: which rung claims a synthetic pull's single global
+		// is a fact about the empty aura set it was walked against, and the property under test is that some
+		// rung does — that an undeclared button is measured against the list at all.
+		expect(LADDER.map((r) => r.key)).toContain(undeclared?.wanted);
+		expect(walkOnePress(MAGMA_TOTEM, { [MAGMA_TOTEM]: 'somewhere' })).toMatchObject({
+			pressed: MAGMA_TOTEM,
+			verdict: 'off-list',
+			wanted: null,
+			reason: 'somewhere',
+		});
+		// The real declaration covers the three and not the fourth, read off the export rather than restated.
+		expect(
+			Object.keys(UNARBITRATED)
+				.map(Number)
+				.sort((a, b) => a - b),
+		).toEqual([EARTH_ELEMENTAL, FIRE_ELEMENTAL, STORMLASH].sort((a, b) => a - b));
+		expect(UNARBITRATED[MAGMA_TOTEM]).toBeUndefined();
+		// Nothing arrived by fall-through on any fixture, at any band — so nothing was quietly forgiven.
+		for (const name of FIXTURES) {
+			const a = fixture(name);
+			for (const audit of [auditOf(a), ...([1, 2, 3, 4] as const).map((b) => forcedAuditOf(a, b))]) {
+				expect(audit.offList, name).toBeGreaterThan(0);
+			}
+			for (const b of [null, 1, 2, 3, 4] as const) {
+				const presses = b === null ? pressesOf(a) : forcedPressesOf(a, b);
+				const offList = presses.filter((p) => p.verdict === 'off-list');
+				expect(
+					offList.every((p) => typeof p.reason === 'string' && p.reason.length > 0),
+					`${name}/${b}`,
+				).toBe(true);
+			}
 		}
 	});
 });
@@ -410,7 +585,7 @@ describe('what is left of the gap is the player', () => {
 		const end = lastMultiTargetPoint(addsThenBoss);
 		const add = split(addsThenBoss, (p) => p.decidedAt <= end);
 		const tail = split(addsThenBoss, (p) => p.decidedAt > end);
-		expect(add).toEqual({ n: 369, followed: 116, fsSkips: 151 });
+		expect(add).toEqual({ n: 369, followed: 116, fsSkips: 149 });
 		expect(add.followed / add.n).toBeCloseTo(0.314, 3);
 		expect(tail.followed / tail.n).toBeCloseTo(0.615, 3);
 		expect(add.followed / add.n / (tail.followed / tail.n)).toBeCloseTo(0.51, 2);

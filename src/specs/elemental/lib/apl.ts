@@ -167,6 +167,12 @@ const ID = {
 	chainLightning: 421,
 	lavaBeam: 114074,
 	ascendance: 114049,
+	// Not rungs and never will be — the three on-GCD buttons `UNARBITRATED` below declares off this
+	// ladder. Here rather than as literals down there for the reason this map exists: one place in this
+	// module knows a cast id.
+	stormlashTotem: 120668,
+	fireElemental: 2894,
+	earthElemental: 2062,
 } as const;
 
 /**
@@ -455,7 +461,8 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// **`replacedBy` is the wrong tool for this**, which is worth saying because it looks like the
 		// right one. That field asks `seen.has(id)` — whether the player ever pressed the replacement —
 		// which models a talent or a glyph swapping a button permanently. Ascendance swaps this one for
-		// forty seconds at a time, so the relation is per-press and belongs in the conditions: this rung
+		// fifteen seconds at a time — the aura's own duration in `sim/shaman/ascendance.go`, not the forty
+		// this comment used to claim — so the relation is per-press and belongs in the conditions: this rung
 		// wants the window, and Chain Lightning's rung below refuses it.
 		//
 		// Measured on `cleave`: 11 presses, **11 of them inside an Ascendance window**, every one at
@@ -536,6 +543,50 @@ export const LADDER: readonly ELE_AplRule[] = [
  * second, fictional pull sitting inside a reference table.
  */
 export const LADDER_ENTRIES = ladderEntries(LADDER);
+
+/**
+ * The on-GCD buttons this ladder does not arbitrate, each naming the section that judges the press.
+ *
+ * The three exclusions in this module's doc above that the **walk could not see**. Everything else that
+ * doc excludes is off-GCD, and the engine only ever offers a verdict on an on-GCD press, so prose was
+ * enough for those. These three are on the GCD as the registry declares them — `stormlash-totem` and
+ * `earth-elemental` on `gate: 'other'`, `fire-elemental` on `gate: 'cooldown'` — so before this
+ * declaration existed each press was walked down the ladder like any other and charged to whichever
+ * filler rung claimed the global. Nine presses across the four committed fixtures, every one a
+ * `skipped`: Stormlash 5, Fire Elemental 2, Earth Elemental 2.
+ *
+ * **The rung it was charged to depended only on the band**, which is the clearest sign the fault was an
+ * artefact rather than a reading: the same Fire Elemental press at 479.9s on `addsThenBoss` is a skipped
+ * `lightning-bolt` at band 1, a skipped `chain-lightning` at bands 2-4, and a skipped `lava-burst` on the
+ * natural walk. A verdict that moves with the target count on a button no list mentions at any count is
+ * not a judgement about the press.
+ *
+ * **And this ladder can reach `off-list` no other way**, which is why the declaration was the whole fix
+ * rather than a third of it. The engine's own fall-through — "nothing on the list wanted this global" —
+ * needs a bottom rung that can decline, and `lightning-bolt` below is unconditional and unbanded, so the
+ * walk always stops somewhere. `offList` was 0 on all four fixtures at all four bands.
+ *
+ * **Not an amnesty.** Each value names a section this report really has —
+ * `components/sections/Stormlash.tsx`, `FireElemental.tsx`, `EarthElemental.tsx` — and travels out on the
+ * press as `AplPress.reason`, so an entry here moves a press from one verdict to another rather than
+ * excusing it. A button with no rung and no entry here is still a fault, which is what Magma Totem (8190)
+ * still is: it belongs to no list at any count, and `analysis/__tests__/ladderCoverage.test.ts` carries
+ * that argument on its ledger rather than here.
+ */
+export const UNARBITRATED: Readonly<Partial<Record<number, string>>> = {
+	// A raid cooldown. This module's doc calls the totem off-GCD while the registry declares
+	// `onGcd: true`; whichever is right about the game, the log's press occupies a global in this walk, and
+	// `Stormlash.tsx` grades it on where the press sits relative to the player's own Ascendance — rule 6's
+	// question, which no rung's condition can hold.
+	[ID.stormlashTotem]: 'stormlash',
+	// "the cooldowns section's business", in the doc's words, and it has two graded rules of its own: the
+	// pre-pull summon and the haste window the summon buys.
+	[ID.fireElemental]: 'fire-elemental',
+	// Its own rule in the p5 list opens in end-of-fight terms (`remainingTime <= 62s`), so a rung would
+	// grade the sim's own plan as drift. Judged per press by its own section, which has room to say that
+	// one of its branches ends at another player's cooldown and cannot be read.
+	[ID.earthElemental]: 'earth-elemental',
+};
 
 /**
  * The whole priority list, as the reference reads it — the ladder above plus the off-GCD cooldowns

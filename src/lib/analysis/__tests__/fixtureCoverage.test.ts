@@ -339,7 +339,7 @@ const SILENT_AURAS: Record<string, string[]> = {
  * whole audit bails. The resource counts are pinned below precisely so the wrong explanation cannot be
  * reached from them a third time.
  */
-const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped: number } | null> = {
+const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped: number; offList: number } | null> = {
 	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
 	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
 	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
@@ -360,7 +360,11 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// `cleave`'s 49.0%, and its Flame Shock share of faults is 56.7% against `cleave`'s 55.8%. What is left
 	// is the player: see that file for the add-phase/tail split and for the Searing Totem this pull never
 	// laid.
-	'elemental/addsThenBoss.json': { presses: 408, followed: 140, skipped: 268 },
+	// 140/264/4 since the ladder gained a declaration for the three on-GCD buttons it does not arbitrate —
+	// `UNARBITRATED` in `elemental/lib/apl.ts`. The four presses that moved are two Stormlash Totems and
+	// two Fire Elementals, and they moved out of `skipped` and into `offList` without touching `followed`,
+	// which is the whole of what that declaration can do.
+	'elemental/addsThenBoss.json': { presses: 408, followed: 140, skipped: 264, offList: 4 },
 	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
 	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
 	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
@@ -371,9 +375,9 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
 	// 100/104 since `fsRemainingAt` stopped reading the primary-scoped dot map — one press, which is the
 	// scale of the same defect on a pull with 8 dot applications instead of 24. See the entry above.
-	'elemental/cleave.json': { presses: 204, followed: 100, skipped: 104 },
-	'elemental/phased.json': { presses: 159, followed: 107, skipped: 52 },
-	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 45 },
+	'elemental/cleave.json': { presses: 204, followed: 100, skipped: 103, offList: 1 },
+	'elemental/phased.json': { presses: 159, followed: 107, skipped: 50, offList: 2 },
+	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 43, offList: 2 },
 	'windwalker/dataset-ironJuggernaut.json': null,
 };
 
@@ -410,12 +414,19 @@ describe('the priority ladder grades every committed pull the same way it did', 
 					presses: apl.presses.length,
 					followed: apl.followed,
 					skipped: apl.skipped,
+					offList: apl.offList,
 				}).toEqual(expected);
-				// Every press is judged or declined, and none is declined. Asserted as the sum rather than
-				// as three numbers so a verdict moving *between* columns cannot cancel out.
+				// **`offList` is on the grid rather than pinned at zero, and that is the correction rather
+				// than a loosened assertion.** It used to be asserted `0` on every row, which was true and
+				// was not a property: the Elemental ladder's bottom rung is unconditional, so nothing could
+				// reach the engine's fall-through, and the three on-GCD buttons that ladder delegates
+				// elsewhere were being charged to a filler rung instead. A column pinned at zero is exactly
+				// where that hid. `unknown` stays pinned, because an unreadable rule really is a thing no
+				// committed pull produces.
 				expect(apl.unknown, `${key} unknown`).toBe(0);
-				expect(apl.offList, `${key} offList`).toBe(0);
-				expect(apl.followed + apl.skipped).toBe(apl.presses.length);
+				// Every press lands in exactly one column. Asserted as the sum rather than as four numbers
+				// so a verdict moving *between* columns cannot cancel out.
+				expect(apl.followed + apl.skipped + apl.unknown + apl.offList).toBe(apl.presses.length);
 			});
 		}
 	}

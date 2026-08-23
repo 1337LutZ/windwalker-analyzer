@@ -93,7 +93,15 @@ export type AplVerdict =
 	| 'skipped'
 	/** A rule above the press could not be read off this log, so nothing can be said about it. */
 	| 'unknown'
-	/** Not a rotational button — a cooldown, a defensive, a taunt. Never a fault. */
+	/**
+	 * Not a rotational button — a cooldown, a defensive, a taunt. Never a fault.
+	 *
+	 * Two ways in, and `reason` is what tells them apart. Null: the walk reached the bottom of the ladder
+	 * and nothing there wanted the global, which only a ladder whose last rung can decline can produce.
+	 * Non-null: the spec declared the button unarbitrated (`AplInputs.unarbitrated`) and the string names
+	 * the section that judges it instead — a pointer at a second verdict rather than the absence of a
+	 * first.
+	 */
 	| 'off-list';
 
 export interface AplPress {
@@ -245,6 +253,29 @@ export interface AplInputs {
 	 * Elemental ladder's Earth Shock rule is written in units of when it is coming back.
 	 */
 	offLadderCooldowns?: Readonly<Partial<Record<number, { cooldownMs: number; casts: readonly number[] }>>>;
+	/**
+	 * On-GCD buttons this ladder does not arbitrate, keyed by cast id, each naming the section that does.
+	 *
+	 * The engine already has a verdict for "nothing on this list wanted the global" — `off-list` at the
+	 * bottom of `judge`'s walk. But that path is only reachable for a ladder whose **last rung can
+	 * decline**: the Windwalker's can, on a bar it cannot pay from, and the Elemental's cannot, because
+	 * its `lightning-bolt` rung is unconditional and unbanded. On such a ladder every press matches
+	 * something, so a button the spec's own module doc excludes in prose is still walked down the list and
+	 * charged to whichever filler rung claimed the global. Measured on the Elemental's three excluded
+	 * on-GCD buttons: **9 presses across four committed fixtures**, every one a `skipped`.
+	 *
+	 * Prose cannot fix that and neither can the registry's `gate`. The walk sees a cast id, and a
+	 * cooldown-gated button still costs one of the globals this ladder arbitrates — so being judged by a
+	 * clock elsewhere does not stop it being judged by the list here. Only a declaration the walk can read
+	 * does, which is this one: checked ahead of the first rung, so the verdict is `off-list` at every band
+	 * and cannot depend on which band the press landed in.
+	 *
+	 * **The value is what keeps this from becoming an amnesty.** It names where the button *is* judged, it
+	 * travels out on the press as `reason`, and it is what distinguishes a delegated press from one that
+	 * fell off the bottom of a ladder. A button with no rung and no entry here stays a fault — the class
+	 * `analysis/__tests__/ladderCoverage.test.ts` sweeps both declarations for.
+	 */
+	unarbitrated?: Readonly<Partial<Record<number, string>>>;
 }
 
 /** Reads cooldown state at a moment, keyed by cast id — what the bars cannot say on their own. */
@@ -616,6 +647,21 @@ function judge(
 	ladder: readonly AplRule[],
 	inputs: AplInputs,
 ): AplPress {
+	// Declared off this ladder's business, so the walk never starts: there is no rung to measure the press
+	// against, and the section named here is the one that answers for it. Ahead of every gate below on
+	// purpose — which section judges a button is a fact about the button, not about how many enemies were
+	// up when it was pressed, so this verdict has to be the same at all four bands.
+	const delegatedTo = inputs.unarbitrated?.[cast.id];
+	if (delegatedTo !== undefined)
+		return {
+			t: cast.t,
+			decidedAt: state.t,
+			pressed: cast.id,
+			wanted: null,
+			reason: delegatedTo,
+			verdict: 'off-list',
+		};
+
 	for (const rule of ladder) {
 		// The band *this rule* is judged at, which is not one number per press: a hit-count trigger bands
 		// on the units hit and everything else on the units damaged. Resolved per rule and substituted
@@ -680,6 +726,10 @@ function judge(
 	// Nothing on the ladder wanted the global. A cooldown, a defensive, a taunt — or a rotational
 	// button the player could not afford, which is a resource problem the energy and chi sections
 	// already argue about rather than a priority mistake.
+	//
+	// `reason: null`, and that is the difference from the declared case at the top of this function: this
+	// arm is the *list* having nothing to say, and it is only reachable at all for a ladder whose bottom
+	// rung can refuse. A ladder ending in an unconditional filler never gets here.
 	return { t: cast.t, decidedAt: state.t, pressed: cast.id, wanted: null, reason: null, verdict: 'off-list' };
 }
 

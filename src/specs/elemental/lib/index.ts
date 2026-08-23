@@ -95,7 +95,7 @@ import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { aplAudit, type AplInputs, ALL_BANDS, bandOf } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
-import { LADDER } from './apl';
+import { LADDER, UNARBITRATED } from './apl';
 import { ascendanceSync, OPENER_DEADLINE_MS, type AscendancePressVerdict } from './ascendance';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 
@@ -3851,6 +3851,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		stackLevels: { 'lightning-shield': lsLevels },
 		offLadderCooldowns: { [ASCENDANCE.castIds[0]!]: { cooldownMs: ASCENDANCE_COOLDOWN_MS, casts: ascCasts } },
 		barsRequired: false,
+		// The three on-GCD buttons the ladder declares off its own business, so their presses read
+		// `off-list` with the section that judges them named, instead of being charged to whichever filler
+		// rung the band happened to leave standing. The declaration lives on the ladder and is read here:
+		// `LADDER` and this belong to the same transcription, and a second copy of the id list in this file
+		// could disagree with it.
+		unarbitrated: UNARBITRATED,
 	};
 	const apl = aplAudit(aplInputs, LADDER);
 	const aplForced: Partial<Record<Band, AplAudit | null>> = {};

@@ -167,14 +167,23 @@ describe('what the rungs change on cleave', () => {
 describe('single-target grading does not move', () => {
 	// Both rungs are banded out of a one-target pull entirely, so these two must be untouched. They are
 	// the guard against the rungs leaking into the single-target verdicts.
+	//
+	// **`followed` is the column that carries that claim, and `offList` is why it is now three numbers
+	// and not two.** Since the ladder declared the three on-GCD buttons it does not arbitrate
+	// (`UNARBITRATED` in `../apl.ts`), two presses on each of these pulls read `off-list` instead of
+	// `skipped` — Stormlash and Earth Elemental on both. That is not the rungs leaking: `followed` is
+	// unchanged at 107 and 97, and the two presses moved between two columns neither of which is the
+	// rungs'. `counts.max` is asserted on the same line for the reason it always was, and it does double
+	// duty here — a pull that never sees a second enemy is one where a band gate provably cannot fire.
 	it.each([
-		['phased', phased, 159, 107, 52],
-		['unbroken', unbroken, 142, 97, 45],
-	])('%s grades exactly as before', (_name, analysis, total, followed, skipped) => {
+		['phased', phased, 159, 107, 50, 2],
+		['unbroken', unbroken, 142, 97, 43, 2],
+	])('%s grades exactly as before', (_name, analysis, total, followed, skipped, offList) => {
 		const presses = pressesOf(analysis as Analysis);
 		expect(presses).toHaveLength(total as number);
 		expect(presses.filter((p) => p.verdict === 'followed')).toHaveLength(followed as number);
 		expect(presses.filter((p) => p.verdict === 'skipped')).toHaveLength(skipped as number);
+		expect(presses.filter((p) => p.verdict === 'off-list')).toHaveLength(offList as number);
 		expect((analysis as Analysis).targets?.counts?.max).toBe(1);
 	});
 });
@@ -207,9 +216,16 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		// `cleave`'s column fell by one at every band when `fsRemainingAt` stopped reading a primary-scoped
 		// dot map — the same press at all four counts, which is what a fix to the *dot reading* rather than
 		// to a band should look like here. `phased` and `unbroken` never exceed one enemy, so nothing in
-		// their columns can move and nothing did.
+		// their columns can move for a band reason and nothing has.
+		//
+		// **`phased` then fell by one at every band for a reason that is not a band either**, and the shape
+		// of the move is the argument: its Stormlash press at 1.6s used to be charged to this rung at all
+		// four counts, and the declaration in `../apl.ts` took it out of the ladder's hands at all four.
+		// A rung's demand falling by the *same* press at every band is a button leaving the walk, not a
+		// gate opening. `unbroken`'s two and `cleave`'s columns are unmoved because their own delegated
+		// presses were charged to `lightning-bolt` and `chain-lightning` instead.
 		expect([1, 2, 3, 4].map((b) => fsSkips(forced(cleave, b as 1)))).toEqual([66, 61, 53, 53]);
-		expect([1, 2, 3, 4].map((b) => fsSkips(forced(phased, b as 1)))).toEqual([12, 9, 4, 4]);
+		expect([1, 2, 3, 4].map((b) => fsSkips(forced(phased, b as 1)))).toEqual([11, 8, 3, 3]);
 		expect([1, 2, 3, 4].map((b) => fsSkips(forced(unbroken, b as 1)))).toEqual([2, 1, 1, 1]);
 	});
 
@@ -225,7 +241,10 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		// Both are max-one-target pulls, so their natural walk *is* the band-1 walk and the change must
 		// not reach them. Counted off the natural audit rather than the forced one, so this is the figure
 		// a reader of those two reports actually sees.
-		expect(fsSkips(phased.apl)).toBe(12);
+		//
+		// 12 until the ladder declared Stormlash unarbitrated; `phased`'s opener press was one of the
+		// twelve. The band story this file is about did not move either number.
+		expect(fsSkips(phased.apl)).toBe(11);
 		expect(fsSkips(unbroken.apl)).toBe(2);
 	});
 
@@ -242,8 +261,12 @@ describe('the Flame Shock rung is a different rule at each band', () => {
 		// Flame Shock's own share untouched — its rung is in every band — and the dot-map fix is the first
 		// change to move it, by exactly the one press it moved out of the totals, which is why the 58 is
 		// asserted beside them rather than inferred from them.
+		//
+		// 100/103 since the Stormlash press at 22.7s became `off-list` rather than a skipped
+		// `lightning-bolt`, which again leaves the 58 alone — this pull's one delegated press was never
+		// charged to Flame Shock.
 		expect(apl!.followed).toBe(100);
-		expect(apl!.skipped).toBe(104);
+		expect(apl!.skipped).toBe(103);
 		expect(fsSkips(cleave.apl)).toBe(58);
 	});
 });
