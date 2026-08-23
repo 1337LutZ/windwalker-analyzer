@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { complementOf, intersect, unionMs } from '~/lib/analysis/intervals';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
@@ -274,13 +275,33 @@ describe('a dot that outlives the last hit and dropped once besides', () => {
  * identity cannot be satisfied by both halves drifting together. The synthetic pulls above and below stay
  * for what they still hold alone: the overrun, and the choice of clock.
  */
-const fx = (name: string): Analysis & ElementalAuditResult =>
-	analyse(
+/**
+ * Every raw Elemental pull, found rather than listed — and the analysis **memoised**.
+ *
+ * The four literals this replaced (`['phased', 'unbroken', 'cleave']`, three times over) each swept a set
+ * that stopped being the committed set when `addsThenBoss.json` landed, and a claim of the form "on every
+ * committed pull" that is written as a list is a claim nobody re-asks when the list grows. Three of the
+ * four loops below turned out to be true of the fourth pull as well; one did not, and it is the one that
+ * would never have gone red — see `sits inside the drawn row`.
+ *
+ * The cache is not tidiness. `addsThenBoss.json` is 4.4 MB and four loops over four fixtures re-parsed it
+ * a dozen times; `bands.test.ts` had to do the same for the same reason.
+ */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
+const analysed = new Map<string, Analysis & ElementalAuditResult>();
+const fx = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(
 		JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset,
 	) as Analysis & ElementalAuditResult;
+	analysed.set(name, el);
+	return el;
+};
 
 describe('the published denominator', () => {
-	for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+	for (const name of FIXTURES) {
 		it(`${name} reports a share of a span it names`, () => {
 			const el = fx(name);
 			const fs = el.flameShock;
@@ -351,7 +372,7 @@ describe('the published numerator', () => {
 	 * `mergeIntervals` rather than two readings of the same parts — the same discipline the ratio above is
 	 * asserted with. A second walk here would be free to disagree with the number the tile prints.
 	 */
-	it.each(['phased', 'unbroken', 'cleave'] as const)('publishes the numerator as spans on %s', (name) => {
+	it.each(FIXTURES)('publishes the numerator as spans on %s', (name) => {
 		const fs = fx(name).flameShock;
 		const spans = fs.contactWindows.map((w): [number, number] => [w.start, w.end]);
 		// Not vacuous: every pull keeps the dot up for minutes, so this is a real array and not an empty one.
@@ -367,13 +388,20 @@ describe('the published numerator', () => {
 	 * `multiTargetMs === 0` has meant two opposite things since the clock was cut at both ends: no other
 	 * enemy worth dotting, and a second target every one of whose two-enemy seconds fell inside an add
 	 * wave. The tile shows one caption for both. `secondaryID` splits them, and the split is checkable on
-	 * the committed set because `cleave` is the only pull with a second enemy at all.
+	 * the committed set because two of the four pulls carry a second enemy and two do not.
+	 *
+	 * **That sentence used to read "`cleave` is the only pull with a second enemy at all", and it stopped
+	 * being true when `addsThenBoss.json` landed** — nine enemies at its peak, 73.73% of the pull at two or
+	 * more, a `secondaryID` of 224 and 174 748 ms of two-enemy clock. It is the better half of the split,
+	 * too: `cleave` holds one shape throughout, so it cannot show that the field survives a pull whose
+	 * target count moves. Nothing about the branch changed; the premise the branch was checked against had
+	 * simply gone stale, which is why the count is now derived from `rawFixtures` rather than named.
 	 *
 	 * The premise is re-derived per pull rather than written down — the maximum target count off the same
 	 * `targets` reading the band resolver uses — so a fixture recapture that puts a second enemy into
 	 * `phased` fails here instead of quietly inverting the claim.
 	 */
-	it.each(['phased', 'unbroken', 'cleave'] as const)('says whether the second dot had a subject on %s', (name) => {
+	it.each(FIXTURES)('says whether the second dot had a subject on %s', (name) => {
 		const el = fx(name);
 		const fs = el.flameShock;
 		const maxTargets = el.targets?.counts.max ?? 1;
@@ -393,24 +421,43 @@ describe('the published numerator', () => {
 	});
 
 	/**
-	 * **And it is a strict subset of what the chart draws today, which is the finding the chart lane needs.**
+	 * *** It is a strict subset of what the chart draws on three of the four pulls, and on the fourth the
+	 * containment runs the other way — by 146 615 ms. ***
 	 *
-	 * Measured: `contactWindows` sits entirely inside `FlameShockUptime`'s green row on all three pulls, and
-	 * the row is larger by exactly 0 / 0 / **10 270**ms — the residual `uptimeRow.test.ts` pins. So the
-	 * field closes the gap arithmetically, and swapping the row's source is **not** how to spend it: the
-	 * 10 270ms is real dot time on the primary target inside the graded clock, and a substitution would
-	 * delete it from the picture. `8e011ac`'s rule for this exact shape is that an unmeasured figure is not
-	 * a deleted one, so closing the residual is a re-partition — the per-spawn dot as the counted row and
-	 * that remainder as a row of its own — which needs a fifth track and a copy key, not a one-line change.
+	 * This block used to say "sits entirely inside `FlameShockUptime`'s green row on all three pulls, and
+	 * the row is larger by exactly 0 / 0 / **10 270**ms", with a hardcoded `['phased', 'unbroken',
+	 * 'cleave']` grid under it. `addsThenBoss.json` landed, the grid did not grow, and the pull that breaks
+	 * the claim is the one pull the grid never asked. **This is the defect the literal was hiding, not a
+	 * renumbering.**
+	 *
+	 * What the fourth pull measures: `flameShock.windows` — the primary target's own dot, which is what the
+	 * row is drawn from — is **one** window of 118 198 ms, while `contactWindows`, the published numerator,
+	 * is 71 windows totalling 240 421 ms. **146 615 ms of the numerator falls outside the drawn row
+	 * altogether**, because that pull's dot lives mostly on the six other spawns in its target lanes (224,
+	 * 225, 233, 238, 239, 249) and the row represents only the primary. So the reader is shown a green row
+	 * covering less than half of the uptime the tile beside it reports.
+	 *
+	 * **Which half of the old argument survives.** The re-partition is still the resolution and still not a
+	 * substitution — `8e011ac`'s rule that an unmeasured figure is not a deleted one is unaffected, and on
+	 * `cleave` the row still holds 10 270 ms of real primary-target dot inside the graded clock that a swap
+	 * would delete. What does **not** survive is the premise it was argued from: "the field closes the gap
+	 * arithmetically" was a statement about a residual that is only ever positive, and on a multi-spawn
+	 * pull it is negative and eleven times larger. The re-partition therefore needs both remainders, not
+	 * one, and sizing it off the 10 270 ms figure would size it off the smallest case in the set. That is a
+	 * change to `FlameShockUptime` and to `uptimeRow.test.ts`, neither of which this suite owns; what it
+	 * owns is the measurement, and the measurement is now on every pull rather than on the three that
+	 * agreed.
 	 *
 	 * The graded clock is rebuilt here the way the chart rebuilds it, so this measures the chart's row and
 	 * not a restatement of the audit's own array.
 	 */
 	it.each([
-		['phased', 0],
-		['unbroken', 0],
-		['cleave', 10_270],
-	] as const)('sits inside the drawn row on %s, short by the per-spawn residual', (name, residualMs) => {
+		// [pull, ms of the numerator outside the drawn row, unionMs(green) - contactUptimeMs]
+		['addsThenBoss', 146_615, -137_465],
+		['cleave', 0, 10_270],
+		['phased', 0, 0],
+		['unbroken', 0, 0],
+	] as const)('measures the drawn row against the numerator on %s', (name, outsideMs, residualMs) => {
 		const el = fx(name);
 		const fs = el.flameShock;
 		const drawn = fs.windows.map((w): [number, number] => [w.start, w.end]);
@@ -419,10 +466,25 @@ describe('the published numerator', () => {
 		const graded = intersect(contact, complementOf(aoe, el.durationMs));
 		const green = intersect(drawn, graded);
 		const spans = fs.contactWindows.map((w): [number, number] => [w.start, w.end]);
-		// Wholly inside: nothing in the per-spawn numerator is outside the row the chart already draws.
-		expect(unionMs(intersect(spans, green))).toBe(unionMs(spans));
-		// And the row is bigger by the residual, which is what a re-partition would have to find a home for.
+		// Zero on the three that contain, and the size of the hole on the one that does not.
+		expect(unionMs(spans) - unionMs(intersect(spans, drawn))).toBe(outsideMs);
+		// Signed on purpose: a positive residual is dot the row draws and the tile does not count, and a
+		// negative one is dot the tile counts and the row does not draw. Reporting the magnitude alone
+		// would have let the fourth pull look like the third.
 		expect(unionMs(green) - fs.contactUptimeMs).toBe(residualMs);
+		// Not vacuous: every pull carries minutes of both.
+		expect(unionMs(spans)).toBeGreaterThan(0);
+		expect(unionMs(green)).toBeGreaterThan(0);
+	});
+
+	/**
+	 * And the grid above is the whole committed set, so the next fixture cannot slip past it.
+	 *
+	 * The literal it replaced could not say this, which is the entire mechanism: a list of three in a file
+	 * whose subject is "on every committed pull" fails by staying green.
+	 */
+	it('measures every committed pull and not a chosen three', () => {
+		expect(FIXTURES).toEqual(['addsThenBoss', 'cleave', 'phased', 'unbroken']);
 	});
 });
 

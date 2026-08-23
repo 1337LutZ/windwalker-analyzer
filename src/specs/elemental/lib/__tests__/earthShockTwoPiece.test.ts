@@ -19,20 +19,28 @@
 // rotation does not contain. And B's debuff clause is genuinely satisfied when the debuff is down, because
 // `auraRemainingTime` returns 0 for an inactive aura (`sim/core/apl_values_aura.go:108-111`) and `0 <= 4s`.
 //
-// **What the committed fixtures can and cannot show.** All three carry the debuff (144999, Elemental
-// Discharge) and therefore all three own the set, so **branch A is unexercised by real data in this
-// repository** — the synthetic pull at the bottom is the only cover it has. `earthShockGood` moves on
-// `phased` alone (41.6667 → 58.3333, still `bad`), because that pull's five other faults were `fsLow` and
-// `ascReady` on presses whose debuff was down. `fsLow` and `ascReady` now appear on no fixture at all.
-// None of the three has a shock in the last four seconds of a window *with the shield full*:
-// `unbroken`'s press at 180 744 is the only one inside a tail and it spent two stacks, so it stays a fault
-// on `belowFull`. The press B rescues outright is synthetic, and that is stated rather than dressed up as
-// a real-log finding.
+// **What the committed fixtures can and cannot show.** Three of the four carry the debuff (144999,
+// Elemental Discharge) and therefore own the set. `earthShockGood` moves on `phased` alone
+// (41.6667 → 58.3333, still `bad`), because that pull's five other faults were `fsLow` and `ascReady` on
+// presses whose debuff was down. None of those three has a shock in the last four seconds of a window
+// *with the shield full*: `unbroken`'s press at 180 744 is the only one inside a tail and it spent two
+// stacks, so it stays a fault on `belowFull`. The press B rescues outright is synthetic, and that is stated
+// rather than dressed up as a real-log finding.
+//
+// *** This block used to say "branch A is unexercised by real data in this repository" and "`fsLow` and
+// `ascReady` now appear on no fixture at all". Half of that is false. *** `addsThenBoss.json` is the
+// fourth committed pull and its shaman writes 144999 **zero** times, so it does not own the set and its
+// presses are judged by branch A — `fsLow` is charged on it for real. `ascReady` still reaches no press on
+// any pull, so the synthetic remains that half's only cover. The two are separated in `charges branch A's
+// conditions on exactly the pulls that lack the set`, which sweeps the fixture directory rather than a
+// list of three; the old list is the reason this correction is arriving now rather than when the fixture
+// landed.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
 import { analyse } from '../index';
@@ -41,8 +49,18 @@ import { scoreAnalysis } from '../score';
 const load = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
 
-const analysed = (name: string): Analysis & ElementalAuditResult =>
-	analyse(load(name)) as Analysis & ElementalAuditResult;
+/** Memoised: the branch-A sweep below walks every committed pull and `addsThenBoss.json` is 4.4 MB. */
+const cache = new Map<string, Analysis & ElementalAuditResult>();
+const analysed = (name: string): Analysis & ElementalAuditResult => {
+	const hit = cache.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(load(name)) as Analysis & ElementalAuditResult;
+	cache.set(name, el);
+	return el;
+};
+
+/** Every raw Elemental pull, found rather than listed. See the branch-A test for why that matters here. */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 /** `earthShockGood` as the report grades it, in percent. */
 const goodPct = (el: Analysis & ElementalAuditResult): number | null => {
@@ -128,20 +146,47 @@ describe('the branch on the committed pulls', () => {
 	});
 
 	/**
-	 * Branch A's two conditions reach no press on any committed pull, because all three own the set.
+	 * *** The prediction in this block came true and the block could not see it. ***
 	 *
-	 * Asserted rather than left implicit: it is the reason the synthetic pull below is not optional
-	 * garnish but the only cover branch A has, and if a future fixture arrives without the set this goes
-	 * red and says so.
+	 * It used to read "Branch A's two conditions reach no press on any committed pull, because all three
+	 * own the set", and it ended: *"if a future fixture arrives without the set this goes red and says
+	 * so."* A future fixture arrived without the set — `addsThenBoss.json`, whose shaman writes 144999 zero
+	 * times — and **nothing went red**, because the pull list under that sentence was the literal
+	 * `['phased', 'unbroken', 'cleave']`. The guard was correct about what it would find and wrong about
+	 * where it would look.
+	 *
+	 * **What the fourth pull actually charges.** `fsLow` **fires**, on a real press: `addsThenBoss`'
+	 * Earth Shock reasons are `cleaveDot`, `cleaveStacks`, `fsLow` and `belowFull`. `ascReady` still
+	 * reaches no press on any pull. So half the old claim is false and half of it survives, and they are
+	 * separated here rather than averaged into a weaker sentence.
+	 *
+	 * That is the *right* outcome and not a defect in the audit: branch A is the no-two-piece branch, and
+	 * `addsThenBoss` is a pull with no two-piece, so a rotation judged by it *should* see branch A's
+	 * conditions. What was defective was the evidence — the synthetic pull below spent this whole time
+	 * being "the only cover branch A has" while a captured log had been covering half of it in silence.
+	 *
+	 * The set is discovered now, so the fifth fixture is asked the same question automatically.
 	 */
-	it('charges no fixture with a condition from the branch they do not have', () => {
-		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
-			const reasons = analysed(name).earthShock.presses.flatMap((p) => p.reasons);
-			expect(reasons).not.toContain('fsLow');
-			expect(reasons).not.toContain('ascReady');
+	it('charges branch A’s conditions on exactly the pulls that lack the set', () => {
+		const withFsLow: string[] = [];
+		for (const name of FIXTURES) {
+			const el = analysed(name);
+			const reasons = el.earthShock.presses.flatMap((p) => p.reasons);
+			// `ascReady` is the half that is still true of every committed pull — branch A's other condition
+			// reaches no press anywhere, so the synthetic below remains its only cover.
+			expect(reasons, name).not.toContain('ascReady');
 			// And the pull really does have presses to charge, so this is not vacuous.
-			expect(analysed(name).earthShock.presses.length).toBeGreaterThan(0);
+			expect(el.earthShock.presses.length, name).toBeGreaterThan(0);
+			if (reasons.includes('fsLow')) withFsLow.push(name);
 		}
+		// The one pull whose log carries no 144999 at all is the one pull branch A speaks on, and it is the
+		// pull the old literal did not name. Asserted as the whole list rather than as a membership test, so
+		// a fifth fixture without the set has to be added here deliberately.
+		expect(withFsLow).toEqual(['addsThenBoss']);
+		const dischargeEvents = (name: string) =>
+			load(name).events.filter((e) => (e as { abilityGameID?: number }).abilityGameID === 144_999).length;
+		expect(dischargeEvents('addsThenBoss')).toBe(0);
+		for (const name of ['cleave', 'phased', 'unbroken']) expect(dischargeEvents(name), name).toBeGreaterThan(0);
 	});
 });
 

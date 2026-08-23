@@ -12,6 +12,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 import { scoreAnalysis, THRESHOLDS } from '../score';
@@ -266,15 +267,35 @@ describe('what the summary is willing to say about the pre-pull', () => {
 	 * reported pull the trap is concrete: the elemental's buff came off at 57.204s, its Immolate went on
 	 * ticking until 68.361s, and the player placed a Searing Totem at 59.256s. A window drawn to the
 	 * last event the pet appears in rather than to the expiry would have invented an overlap there. So
-	 * every placement on all three pulls has to sit clear of the recovered window, and the overlap count
-	 * has to stay at zero.
+	 * every placement on every committed pull has to sit clear of every recovered window, and the overlap
+	 * count has to stay at zero.
+	 *
+	 * **Three changes here, and two of them are why the list stopped being `['phased', 'unbroken',
+	 * 'cleave']`.** The sweep is the fixture directory, so a fifth pull is asked automatically. The
+	 * containment is checked against **every** `feWindow` and not `feWindows[0]` alone, because
+	 * `addsThenBoss` is the first committed pull that summons the elemental twice — 173 290–233 290 and
+	 * 479 923–539 923 — and a walk that only cleared the first window would have said nothing about the
+	 * second. And the placement count is asserted rather than assumed: `addsThenBoss` places **no** Searing
+	 * Totem at all in 560 seconds, so on that pull the `every` is vacuously true and the zero overlap is
+	 * the only real reading. Saying so on the line is the point — `undeclaredAuras.test.ts` carries an
+	 * explicit non-vacuity test because this repository has already been bitten by assertions with nothing
+	 * behind them.
 	 */
-	it.each(['phased', 'unbroken', 'cleave'])('charges %s no overlap for the slot the elemental held', (name) => {
-		const el = fx(name);
-		const held = el.searingTotem.feWindows[0]!.end;
-		expect(el.searingTotem.presses.map((p) => p.t).every((t) => t > held)).toBe(true);
-		expect(el.searingTotem.feOverlaps).toBe(0);
-	});
+	it.each(rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, '')))(
+		'charges %s no overlap for the slot the elemental held',
+		(name) => {
+			const el = fx(name);
+			const held = el.searingTotem.feWindows.map((w): [number, number] => [w.start, w.end]);
+			// Not a window count — one pull summons twice — so every press is asked about every window.
+			for (const t of el.searingTotem.presses.map((p) => p.t))
+				for (const [start, end] of held) expect(t < start || t > end, `${name} press ${t}`).toBe(true);
+			expect(el.searingTotem.feOverlaps, name).toBe(0);
+			// The pull really did hold a window to be clear of, on every pull; and the three that place a
+			// totem really do place one, so only `addsThenBoss` reaches the `for` above with nothing in it.
+			expect(held.length, name).toBeGreaterThan(0);
+			expect(el.searingTotem.presses.length === 0, name).toBe(name === 'addsThenBoss');
+		},
+	);
 
 	/**
 	 * A press the stream witnessed is not a pre-pull, even when its `applybuff` is missing.

@@ -15,18 +15,28 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 import { scoreAnalysis } from '../score';
 
 const STORMLASH = 120_668;
 
+/** Memoised: the rule-6 sweep reads every committed pull twice over and one of them is 4.4 MB. */
+const analysedPulls = new Map<string, Analysis & ElementalAuditResult>();
 const fx = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysedPulls.get(name);
+	if (hit !== undefined) return hit;
 	const dataset = JSON.parse(
 		readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
 	) as FightDataset;
-	return analyse(dataset) as Analysis & ElementalAuditResult;
+	const el = analyse(dataset) as Analysis & ElementalAuditResult;
+	analysedPulls.set(name, el);
+	return el;
 };
+
+/** Every raw Elemental pull, found rather than listed — see rule 6's suite for why it had to change. */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 describe('a pull whose raid-wide placements were never fetched', () => {
 	const el = fx('phased');
@@ -252,8 +262,8 @@ describe('the stretches two totems were up at once', () => {
  *
  * ## The cast, not the overlap
  *
- * Lane F measured both readings. The player's own **cast** inside an Ascendance window is **0 of 3**
- * committed pulls; their own totem merely **overlapping** one is 1 of 3, `phased` at 7 136 of that
+ * Lane F measured both readings. The player's own **cast** inside an Ascendance window is **0 of 4**
+ * committed pulls; their own totem merely **overlapping** one is 1 of 4, `phased` at 7 136 of that
  * totem's 9 714 ms. The overlap has the bigger number and is the wrong question, for a reason no
  * amount of data settles: **an overlap is not a fault at all.** Stormlash pays out on what the raid
  * does while it is up, so a totem running through a burst window is worth more rather than less. What
@@ -262,40 +272,75 @@ describe('the stretches two totems were up at once', () => {
  * Ascendance. Reporting the overlap as an improvement would print a benefit as a problem.
  *
  * So the reading is the press, it fires on nothing committed, and that is the honest answer rather
- * than a hole: these three pulls did not make this mistake, and the table says so on the rows it does
+ * than a hole: these four pulls did not make this mistake, and the table says so on the rows it does
  * have. `a press inside Ascendance` below is the proof it can fire.
+ *
+ * *** The counts above read "0 of 3" and "1 of 3" until now, and the suite below swept the literal
+ * `['phased', 'unbroken', 'cleave']`. *** `addsThenBoss.json` is the fourth pull and it is the one this
+ * rule most wanted asked, for two reasons: it lays **two** of its own totems rather than one, so the rule
+ * has two presses to speak about instead of one, and it is the only committed pull that carries a
+ * `raidStormlash` fetch at all — ten placements from five shamans — so it is the first pull on which the
+ * placement audit and the received-buff audit are both populated. Neither of its own presses is inside any
+ * of its four Ascendance windows, so the count is 0 of 4 rather than 0 of 3 and the conclusion is
+ * unchanged; what changed is that it is now measured over the fixture directory instead of a list.
  */
 describe('rule 6: the player’s own press, inside their own Ascendance', () => {
-	const pulls = ['phased', 'unbroken', 'cleave'] as const;
+	const pulls = FIXTURES;
 
 	/**
 	 * **Not a red against the old behaviour — a measurement of the fixtures**, and labelled so on the
 	 * line, exactly as `ascendance.test.ts` labels its two. `received` did not exist before this change,
 	 * so of course it fails; what earns the test its place is the *numbers*, which are what decide that
-	 * the table has rows to show at all. 2, 4 and 4 — against `stormlash.totems`, which is 0 on all
-	 * three, because the placement fetch is not in any fixture.
+	 * the table has rows to show at all.
+	 *
+	 * **Both of the old universals in this test were wrong about the fourth pull.** It asserted
+	 * `stormlash.totems === 0` "on all three, because the placement fetch is not in any fixture" —
+	 * `addsThenBoss` fetches it, and reads 10. And it asserted "one own totem apiece, so the rule has
+	 * exactly one press to speak about on each pull" — `addsThenBoss` lays two. Both are now per-pull
+	 * figures rather than universals, and the sweep is the fixture directory.
 	 */
-	it('has rows on all three pulls where the placement audit has none', () => {
+	it('has rows on every pull, and the placement audit only where it was fetched', () => {
+		// [received rows, own totems, placements fetched] — `rawFixtures` order.
+		const expected: Record<string, [number, number, number]> = {
+			addsThenBoss: [10, 2, 10],
+			cleave: [4, 1, 0],
+			phased: [2, 1, 0],
+			unbroken: [4, 1, 0],
+		};
+		expect(Object.keys(expected).sort()).toEqual([...pulls].sort());
 		for (const name of pulls) {
 			const el = fx(name);
-			expect([name, el.stormlash.totems]).toEqual([name, 0]);
-			expect([name, el.stormlash.received?.length]).toEqual([name, { phased: 2, unbroken: 4, cleave: 4 }[name]]);
-			// One own totem apiece, so the rule has exactly one press to speak about on each pull.
-			expect([name, el.stormlash.received?.filter((r) => r.source.own).length]).toEqual([name, 1]);
+			const [received, own, totems] = expected[name]!;
+			expect([name, el.stormlash.totems]).toEqual([name, totems]);
+			expect([name, el.stormlash.received?.length]).toEqual([name, received]);
+			// At least one own totem on every pull, so the rule has a press to speak about everywhere.
+			expect([name, el.stormlash.received?.filter((r) => r.source.own).length]).toEqual([name, own]);
 		}
 	});
 
-	/** Also a fixture measurement rather than a red: this is the 0 of 3, stated as a number. */
+	/**
+	 * Also a fixture measurement rather than a red: this is the 0 of **4**, stated as a number.
+	 *
+	 * `addsThenBoss` carries two own rows and both read `false`, which is what makes the count 0 of 4 and
+	 * not 0 of 3 — and it is the only pull where the rule is asked twice.
+	 */
 	it('finds no press inside Ascendance on any committed pull', () => {
+		const expected: Record<string, Array<boolean | null>> = {
+			addsThenBoss: [null, null, false, null, null, null, null, false, null, null],
+			cleave: [null, null, false, null],
+			phased: [false, null],
+			unbroken: [null, null, false, null],
+		};
 		for (const name of pulls) {
 			const el = fx(name);
 			// `false` on the player's own row, `null` on everybody else's — never `false` on a raid-mate's,
 			// which would be a column of reassurance about a press this player did not make.
-			expect([name, el.stormlash.received?.map((r) => r.duringAscendance)]).toEqual([
-				name,
-				{ phased: [false, null], unbroken: [null, null, false, null], cleave: [null, null, false, null] }[name],
-			]);
+			expect([name, el.stormlash.received?.map((r) => r.duringAscendance)]).toEqual([name, expected[name]]);
 		}
+		// The count the docblock quotes, derived rather than restated: no `true` anywhere.
+		expect(
+			pulls.flatMap((name) => fx(name).stormlash.received ?? []).filter((r) => r.duringAscendance === true),
+		).toEqual([]);
 	});
 
 	/**
@@ -306,7 +351,7 @@ describe('rule 6: the player’s own press, inside their own Ascendance', () => 
 	 * was 3 385 ms before the Ascendance press. So the overlap reading fires here and the cast reading
 	 * does not, and the row reads `false`. A row built off the overlap could not pass this.
 	 */
-	it('reads false on the one pull where the overlap reading would fire', () => {
+	it('reads false on the one pull of the four where the overlap reading would fire', () => {
 		const el = fx('phased');
 		const own = el.stormlash.received?.find((r) => r.source.own);
 		expect([own?.t, own?.end]).toEqual([2427, 12_141]);

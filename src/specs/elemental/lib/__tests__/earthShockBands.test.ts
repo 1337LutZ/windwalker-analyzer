@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '~/specs/elemental/lib';
 import { scoreAnalysis } from '~/specs/elemental/lib/score';
@@ -35,7 +36,24 @@ const FLIPPED = 47_322;
 
 const dataset = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
-const fx = (name: string): Analysis & ElementalAuditResult => analyse(dataset(name)) as Analysis & ElementalAuditResult;
+
+/**
+ * Memoised, because the ledger loop below now walks every committed pull and one of them is 4.4 MB.
+ *
+ * `bands.test.ts` made the same change for the same reason and got *faster* doing it. Nothing here mutates
+ * an analysis, so one instance per pull is safe; a guard family sharing a mutable dataset would not be.
+ */
+const analysed = new Map<string, Analysis & ElementalAuditResult>();
+const fx = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(dataset(name)) as Analysis & ElementalAuditResult;
+	analysed.set(name, el);
+	return el;
+};
+
+/** Every raw Elemental pull, found rather than listed — see the ledger test below for why it matters. */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 const cleave = fx('cleave');
 const cleaveData = dataset('cleave');
@@ -229,8 +247,18 @@ describe('the bad-spend ledger reads the press’s own verdict', () => {
 		expect(press!.lsStacks!).toBeLessThan(6);
 	});
 
-	/** The ledger and the reasons are one list, on every fixture — the drift this change closes. */
-	it.each(['phased', 'unbroken', 'cleave'] as const)('%s: the ledger is exactly the stack faults', (name) => {
+	/**
+	 * The ledger and the reasons are one list, on every fixture — the drift this change closes.
+	 *
+	 * **"On every fixture" is now what the loop does rather than what the sentence says.** It read
+	 * `['phased', 'unbroken', 'cleave']`, which stopped being every fixture when `addsThenBoss.json`
+	 * landed, and the pull it left out is the only one that exercises the `cleaveStacks` half of the filter
+	 * on real data: its four faults are charged across both reasons, where the other three carry
+	 * `belowFull` alone. So the fourth pull is the first evidence that the two-reason union and the
+	 * single-number `belowFull` count agree when both reasons are actually in play — which is the claim,
+	 * and it was previously checked only where half of it was vacuous.
+	 */
+	it.each(FIXTURES)('%s: the ledger is exactly the stack faults', (name) => {
 		const el = fx(name);
 		const faulted = el.earthShock.presses.filter((p) =>
 			p.reasons.some((r) => r === 'belowFull' || r === 'cleaveStacks'),

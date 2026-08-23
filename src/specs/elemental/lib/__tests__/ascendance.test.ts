@@ -1,37 +1,64 @@
 // The two Ascendance press rules: the opener against the raid's haste cooldown, and every later
 // press against the T16 two-piece debuff.
 //
-// The three committed anonymous pulls are worth more than any synthetic case here, because between
+// The four committed anonymous pulls are worth more than any synthetic case here, because between
 // them they carry three *different* members of the shared haste group — `phased`
 // (`a:qHRAFwdGzaB6MPYC` #14) takes a **Heroism** cast by another player, `unbroken`
-// (`a:xB3kh7v9pF2AHRtq` #16) a **Bloodlust** the shaman cast himself, and `cleave`
-// (Siegecrafter Blackfuse #46) a **Time Warp** — and all three read identically through
-// `Handles.hasteWindows` without this module naming a spell.
+// (`a:xB3kh7v9pF2AHRtq` #16) a **Bloodlust** the shaman cast himself, `cleave`
+// (Siegecrafter Blackfuse #46) a **Time Warp**, and `addsThenBoss` (Galakras heroic-25) a Heroism
+// again — and all four read identically through `Handles.hasteWindows` without this module naming a
+// spell.
 //
-// They also happen to cover both arms and one exemption on real data: two of the three second
-// presses are genuinely unsynced, and `unbroken`'s is 714 ms from the kill and therefore exempt.
+// They also cover both arms and three of the six exemptions on real data: two of `phased`/`cleave`/
+// `unbroken`'s second presses are genuinely unsynced, `unbroken`'s is 714 ms from the kill and
+// therefore exempt, and `addsThenBoss` is exempt four times over — see below.
 //
-// Everything else is synthetic, because not one of the three exercises a refusal on its opener — and,
-// for the two absolute rules plan §80 added, **neither fault fires on any committed fixture**. Every
-// opener is inside the pull-anchored bound (5 006, 3 676, 3 487 ms), so rule 1 grades all three good;
-// and only `unbroken` has a press whose window runs past the kill at all, which rule 2 excuses because
-// the button came back 58 ms before it. Both faults are therefore covered synthetically, and the real
-// pulls are pinned as the *unchanged* side of the change — `good` / `bad` / `bad`, before and after.
+// *** Everything in this file that said "all three" was written when there were three, and the fourth
+// pull contradicts several of them. *** The paragraphs that follow are the corrected versions; the
+// literal `['phased', 'unbroken', 'cleave']` lists that used to sweep the committed set are now
+// `rawFixtures('elemental')`, because a claim of the form "on every committed pull" written as a list
+// of names is a claim that stops being asked the day a name is added.
 //
-// **Rules 3 and 4 (Skull Banner) are the same story, and this time it is a measurement.** All three
-// pulls carry banners on the player from two warriors apiece, so both rules have real input on all six
-// presses — but on the union reading rule 3 uses, the six overlaps are 15 000, 10 149, 15 000, 0,
-// 13 944 and 10 273 ms against a 9 000 bound, and the single zero is on a press rule 2's guard has
-// already exempted. So no committed press fails rule 3, both grade movements are synthetic again, and
-// `good` / `bad` / `bad` survives a third change. Two tests in the last suite pin real numbers without
-// being reds against the old behaviour, and say so on the line: they measure the fixtures rather than
-// the rules.
+// **`addsThenBoss` is the pull that breaks the old summary, and it breaks it four ways.**
+//
+//   - It does **not** open with Ascendance. Its first press is at 17 101 ms of a 560 261 ms pull, past
+//     both the haste bound and `OPENER_DEADLINE_MS`. So "every opener is inside the pull-anchored bound
+//     (5 006, 3 676, 3 487 ms)" is false; the fourth is twelve seconds outside it. What keeps rule 1
+//     from faulting it is the `'nothing-to-hit'` exemption — that pull's contact clock does not open
+//     until 7 004 ms, itself past the deadline — so **the opener refusal this file could only build
+//     synthetically now has a captured log behind it.**
+//   - It carries **no T16 two-piece at all** (144999 appears zero times), so its three later presses
+//     come back `'no-two-piece-evidence'`. That refusal, too, was synthetic-only.
+//   - Its only haste cooldown opens at **438 207 ms**, which the anchor search declines, so it is the
+//     first committed pull to read as "no haste cooldown on the pull" with one plainly in the log.
+//   - Every press being exempt makes the pull's grade **`none`** — a pull-level verdict no committed
+//     fixture had. The headline row is therefore `bad` / `good` / `bad` / `none` and not three letters.
+//
+// **For the two absolute rules plan §80 added, neither fault still fires on any committed fixture** —
+// but the reason has changed for the fourth pull and is worth stating rather than inheriting: rule 1
+// does not fault `addsThenBoss` because an exemption runs first, not because the press was in the
+// opener. Rule 2 fires on nothing: only `unbroken` has a press whose window runs past a kill at all,
+// which rule 2 excuses because the button came back 58 ms before it.
+//
+// **Rules 3 and 4 (Skull Banner) are the same story, and this time it is a measurement.** All four
+// pulls carry banners on the player from two warriors apiece, so both rules have real input on all ten
+// presses — but on the union reading rule 3 uses, the ten overlaps are 15 000, 10 149 (`phased`),
+// 15 000, 0 (`unbroken`), 13 944, 10 273 (`cleave`) and 11 373, 0, 1 499, 0 (`addsThenBoss`) against a
+// 9 000 bound. **No committed press fails rule 3 — and on the fourth pull that is only because three of
+// its presses are exempt for a reason that has nothing to do with banners.** Three `addsThenBoss`
+// overlaps are under the bound and would have been charged had entry 15 applied to that player, which
+// is a narrower claim than the one this paragraph used to make and is asserted as such below.
+//
+// Two tests in the last suite pin real numbers without being reds against the old behaviour, and say so
+// on the line: they measure the fixtures rather than the rules.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { auraWindows } from '~/lib/analysis/auras';
+import { rawFixtures } from '~/lib/analysis/fixtures';
+import { mergeIntervals } from '~/lib/analysis/intervals';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Interval } from '~/lib/analysis/intervals';
 import { eventsOn } from '~/lib/events';
@@ -66,7 +93,26 @@ import { analyse, isOpener, registry } from '../index';
  * would make the wiring suite below assert a value against itself. The suite pins the two against
  * each other instead, which is the check worth having — see `the wiring, end to end`.
  */
+const pulls = new Map<string, { input: AscendanceSyncInput; analysis: Analysis & ElementalAuditResult }>();
+
+/** Every raw Elemental pull, found rather than listed. */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
 function pull(name: string): { input: AscendanceSyncInput; analysis: Analysis & ElementalAuditResult } {
+	const cached = pulls.get(name);
+	if (cached !== undefined) return cached;
+	const built = buildPull(name);
+	pulls.set(name, built);
+	return built;
+}
+
+/**
+ * The uncached body. **Memoised through `pull` above, and the cache is not tidiness:** several suites
+ * here call `pull(name)` many times over and `addsThenBoss.json` is 4.4 MB, so a sweep of the committed
+ * set re-parsed it dozens of times. `bands.test.ts` hit the same wall and got faster for fixing it.
+ * Nothing in this file mutates an analysis or an input, so one instance per pull is safe.
+ */
+function buildPull(name: string): { input: AscendanceSyncInput; analysis: Analysis & ElementalAuditResult } {
 	const dataset = JSON.parse(
 		readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
 	) as FightDataset;
@@ -113,25 +159,88 @@ function banners(analysis: Analysis & ElementalAuditResult): BannerCasterWindows
 		.map((l) => ({ source: l.source?.id ?? -1, windows: l.windows }));
 }
 
-describe('the three committed anonymous pulls', () => {
+describe('the committed anonymous pulls', () => {
 	it('reads three different members of the haste group without naming one', () => {
 		expect(pull('phased').input.hasteWindows).toEqual([{ start: 1777, end: 41_785, id: 32_182, variant: 'Heroism' }]);
 		expect(pull('unbroken').input.hasteWindows).toEqual([{ start: 785, end: 40_790, id: 2825, variant: 'Bloodlust' }]);
 		expect(pull('cleave').input.hasteWindows).toEqual([{ start: 941, end: 40_947, id: 80_353, variant: 'Time Warp' }]);
+		// The fourth, and the one the anchor search declines: same walk, same shape, a start seven minutes
+		// in. Three distinct members across four pulls — the group claim is about the walk, not the count.
+		expect(pull('addsThenBoss').input.hasteWindows).toEqual([
+			{ start: 438_207, end: 478_216, id: 32_182, variant: 'Heroism' },
+		]);
+		// And every committed pull comes back with exactly one window, so none of the four is silent for
+		// want of a reading.
+		for (const name of FIXTURES) expect(pull(name).input.hasteWindows.length, name).toBe(1);
 	});
 
-	it('finds the two-piece in evidence on all three, through the id the game actually logs', () => {
-		// 144999 and not 144998. If the audit's `t16-2pc-proc` lane were the one carrying this, all three
-		// would come back `null` — it is filtered out of every one of them for being empty.
-		for (const name of ['phased', 'unbroken', 'cleave']) {
-			const { analysis, input } = pull(name);
-			expect(input.t16TwoPieceWindows).not.toBeNull();
-			expect(input.t16TwoPieceWindows?.length ?? 0).toBeGreaterThan(4);
-			expect(analysis.timeline?.lanes?.some((l) => l.key === 't16-2pc-proc')).toBe(false);
+	/**
+	 * *** The haste cooldown that is in the log and is still not the pull's. ***
+	 *
+	 * `ascendanceSync` looks for `hasteWindows.find((w) => w.start <= ASCENDANCE_INTO_HASTE_MS)`, so
+	 * `addsThenBoss`' Heroism at 438 207 ms is not the anchor and its opener has no `delayMs` and no
+	 * `syncStartMs` to report. Every synthetic case for that branch in this file moves or deletes events;
+	 * this is what a captured log does, and it is the difference between "the guard works" and "the guard
+	 * fires".
+	 *
+	 * **A measurement of the fixtures rather than a red against the old behaviour**, labelled on the line
+	 * the way the two tests at the foot of this file are: the anchor search predates the fourth fixture.
+	 */
+	it('declines a haste cooldown that opened seven minutes into the pull', () => {
+		const { input } = pull('addsThenBoss');
+		expect(input.hasteWindows[0]!.start).toBeGreaterThan(ASCENDANCE_INTO_HASTE_MS);
+		const opener = ascendanceSync(input).presses[0];
+		expect([opener?.delayMs, opener?.syncStartMs]).toEqual([null, null]);
+		// And the three pulls whose cooldown *is* the pull's, for contrast — the anchor is found on all
+		// three and the delta is reported.
+		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+			expect(pull(name).input.hasteWindows[0]!.start).toBeLessThanOrEqual(ASCENDANCE_INTO_HASTE_MS);
+			expect(ascendanceSync(pull(name).input).presses[0]?.delayMs, name).not.toBeNull();
 		}
 	});
 
-	it('grades every opener good, none of them pre-pull', () => {
+	/**
+	 * *** This test used to be called "finds the two-piece in evidence on all three" and swept the literal
+	 * `['phased', 'unbroken', 'cleave']`. The fourth committed pull has no two-piece at all. ***
+	 *
+	 * `addsThenBoss`' shaman writes 144999 **zero** times, so its `t16-2pc-debuff` lane is empty, is
+	 * filtered off the timeline, and `t16TwoPieceWindows` is the honest `null` — the reading `index.ts`
+	 * makes for "this player does not have the set". That is a different thing from the dead 144998 id
+	 * reading zero, and the pair is what separates them: 144998 is empty on a pull that *does* own the set,
+	 * 144999 is empty on a pull that does not. `sharedFixtures.test.ts`' equipped-iff-fired grid is the
+	 * instrument that settles which.
+	 *
+	 * So the sweep is the fixture directory and the classification is asserted as two named groups, which
+	 * is what makes a fifth fixture pick a side rather than land in neither.
+	 */
+	it('finds the two-piece on exactly the pulls whose shaman owns it, through the id the game logs', () => {
+		const owned: string[] = [];
+		const absent: string[] = [];
+		for (const name of FIXTURES) (pull(name).input.t16TwoPieceWindows === null ? absent : owned).push(name);
+		expect([owned, absent]).toEqual([['cleave', 'phased', 'unbroken'], ['addsThenBoss']]);
+
+		// 144999 and not 144998. If the audit's `t16-2pc-proc` lane were the one carrying this, all four
+		// would come back `null` — it is filtered out of every one of them for being empty.
+		for (const name of FIXTURES) {
+			const { analysis, input } = pull(name);
+			expect(
+				analysis.timeline?.lanes?.some((l) => l.key === 't16-2pc-proc'),
+				name,
+			).toBe(false);
+			if (absent.includes(name)) continue;
+			expect(input.t16TwoPieceWindows, name).not.toBeNull();
+			expect(input.t16TwoPieceWindows?.length ?? 0, name).toBeGreaterThan(4);
+		}
+	});
+
+	/**
+	 * **Deliberately three, and the reason is on the line:** the pulls whose opener is *graded* at all.
+	 * `addsThenBoss` opens at 17 101 ms with its contact clock starting at 7 004, so its opener is exempt
+	 * before either half of the grade is asked — asserted in `exempts the opener of a pull that had nothing
+	 * to hit inside it` below, which is the other side of this partition. Sweeping the fourth pull in here
+	 * would assert a `good` and a delta on the one opener that has neither.
+	 */
+	it('grades every graded opener good, none of them pre-pull', () => {
 		// The three deltas from the haste cooldown opening: 3229, 2891 and 2546 ms. All inside the bound,
 		// and pinned individually so a change to any one pull is visible rather than averaged away.
 		const expected = [
@@ -227,18 +336,115 @@ describe('the three committed anonymous pulls', () => {
 	});
 
 	it('rolls the pull up to its worst gradeable press', () => {
-		// `unbroken` is a good opener plus one exempt press, so the pull is good; the other two carry a
+		// `unbroken` is a good opener plus one exempt press, so the pull is good; two others carry a
 		// real fault and are bad. An exemption must not drag a pull down and must not lift one up.
 		//
-		// **These three are the graded figure the two new rules were measured against, and none of them
-		// moved.** Rule 1 grades every opener good because every opener is inside the pull-anchored
-		// bound; rule 2 fires on no committed press. The one press either rule could have reached is
+		// **These are the graded figures the two new rules were measured against, and none of them
+		// moved.** Rule 1 grades every *graded* opener good; rule 2 fires on no committed press. The
+		// fourth pull's opener is not inside the pull-anchored bound at all and is exempt instead — the
+		// old wording here claimed it was, which was true of three fixtures rather than of the set. The one press either rule could have reached is
 		// `unbroken`'s second, and the availability guard leaves it exempt — so the pull stays `good`
 		// rather than becoming `bad`, which is the whole difference between the rule and a bare
 		// `fightEnd - 15s` comparison.
 		expect(ascendanceSync(pull('unbroken').input).grade).toBe('good');
 		expect(ascendanceSync(pull('phased').input).grade).toBe('bad');
 		expect(ascendanceSync(pull('cleave').input).grade).toBe('bad');
+		// And the fourth, which is the case the reduce's `'none'` seed was written for and had never been
+		// reached by a committed pull: every press exempt, so the pull has not failed to take a chance it
+		// never had. A pull-level `none` on real data.
+		expect(ascendanceSync(pull('addsThenBoss').input).grade).toBe('none');
+	});
+
+	/**
+	 * *** The opener exemption, on a captured log rather than a built one. ***
+	 *
+	 * This file's synthetic suite has a case called *"says nothing when there was nothing reachable inside
+	 * the graded window"* — a pull that opened on an intermission — and it was the only cover the
+	 * `'nothing-to-hit'` refusal had on the opener arm. `addsThenBoss` is that pull for real: it presses
+	 * Ascendance at 17 101 ms, which rule 1 would fault outright, and its contact clock does not open until
+	 * 7 004 ms. There is no haste anchor to widen the deadline, so the deadline is `OPENER_DEADLINE_MS`
+	 * itself and 7 004 is past it — nothing was reachable inside the stretch being judged, and the press is
+	 * exempt rather than bad.
+	 *
+	 * **This is the claim the old header got wrong.** It said "not one of the three exercises a refusal on
+	 * its opener" and "every opener is inside the pull-anchored bound (5 006, 3 676, 3 487 ms)". Both were
+	 * true of three fixtures and false of the committed set.
+	 *
+	 * **A measurement of the fixtures rather than a red against the old behaviour** — the exemption and its
+	 * ordering predate this pull. What is new is the log that reaches it.
+	 */
+	it('exempts the opener of a pull that had nothing to hit inside it', () => {
+		const { input } = pull('addsThenBoss');
+		expect(input.ascendanceCasts[0]).toBe(17_101);
+		// Past both bounds, so rule 1 would fault it if it were reached.
+		expect(input.ascendanceCasts[0]! > OPENER_DEADLINE_MS).toBe(true);
+		// And the reason it is not reached: first contact after the deadline, with no haste anchor to push
+		// the deadline out — the cooldown this pull brought opens at 438 207.
+		expect(input.contact[0]![0]).toBe(7004);
+		expect(input.contact[0]![0]! > OPENER_DEADLINE_MS).toBe(true);
+		const opener = ascendanceSync(input).presses[0];
+		expect([opener?.rule, opener?.grade, opener?.reason]).toEqual(['bloodlust', 'none', 'nothing-to-hit']);
+	});
+
+	/**
+	 * *** And the two-piece arm's refusal, on the same log: `'no-two-piece-evidence'` on three real
+	 * presses. ***
+	 *
+	 * The other refusal this file could only build. `addsThenBoss`' shaman has no T16 two-piece, so entry
+	 * 15 does not apply to him at all — and rule 2 has nothing to charge either, because all three of those
+	 * windows fit inside a 560 261 ms pull. So the three later presses are exempt and not faulted, which is
+	 * exactly the ordering `ascendanceSync` documents: rule 2 is asked first and independently of the set,
+	 * and stands down before the set is consulted.
+	 *
+	 * **A measurement of the fixtures rather than a red** — the arm's order predates this pull.
+	 */
+	it('exempts three later presses on the pull whose shaman has no two-piece', () => {
+		const { input } = pull('addsThenBoss');
+		expect(input.t16TwoPieceWindows).toBeNull();
+		const { presses } = ascendanceSync(input);
+		expect(presses.map((p) => [p.t, p.rule, p.grade, p.reason])).toEqual([
+			[17_101, 'bloodlust', 'none', 'nothing-to-hit'],
+			[173_985, 't16-2pc', 'none', 'no-two-piece-evidence'],
+			[395_244, 't16-2pc', 'none', 'no-two-piece-evidence'],
+			[539_625, 't16-2pc', 'none', 'no-two-piece-evidence'],
+		]);
+		// Rule 2 is silent because nothing was wasted, not because the set was missing: every window fits.
+		expect(presses.map((p) => p.wastedMs)).toEqual([null, null, null, null]);
+	});
+
+	/**
+	 * *** The logs do not agree with `ASCENDANCE_COOLDOWN_MS`, and this is the measurement that says so.
+	 * ***
+	 *
+	 * `addsThenBoss` presses 114049 four times and two consecutive gaps are **shorter than the three
+	 * minutes the module asserts** — 156 884 ms and 144 381 ms. The constant is quoted from the simulator
+	 * (`sim/shaman/ascendance.go:112`) and it has two readers here: the `first-press-past-one-cooldown`
+	 * guard, which this pull does not reach, and rule 2's availability guard, which computes
+	 * `readyAtMs = 395 244 + 180 000 = 575 244` for the last press while the log proves the button was back
+	 * by 539 625.
+	 *
+	 * **No grade moves today** — the last press wastes nothing, so rule 2 never consults the guard — which
+	 * is why this is a pinned fact rather than a change to `ascendanceSync`. It is pinned because the next
+	 * reader of that guard needs to find the measurement rather than the assumption; fixing the guard means
+	 * reading the previous press's own recovery out of the log, and that wants its own red.
+	 *
+	 * **A measurement of the fixtures rather than a red against the old behaviour.**
+	 */
+	it('records the two committed press gaps that are shorter than the stated cooldown', () => {
+		const casts = pull('addsThenBoss').input.ascendanceCasts;
+		expect(casts).toEqual([17_101, 173_985, 395_244, 539_625]);
+		const gaps = casts.slice(1).map((t, i) => t - casts[i]!);
+		expect(gaps).toEqual([156_884, 221_259, 144_381]);
+		expect(gaps.filter((g) => g < ASCENDANCE_COOLDOWN_MS)).toEqual([156_884, 144_381]);
+		// The guard's own arithmetic on the last press, against what the log shows.
+		const readyAtMs = casts[2]! + ASCENDANCE_COOLDOWN_MS;
+		expect(readyAtMs).toBe(575_244);
+		expect(casts[3]!).toBeLessThan(readyAtMs);
+		// And the other three pulls, where the two readings agree: one gap each, both over the cooldown.
+		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+			const own = pull(name).input.ascendanceCasts;
+			expect(own[1]! - own[0]!, name).toBeGreaterThanOrEqual(ASCENDANCE_COOLDOWN_MS);
+		}
 	});
 });
 
@@ -258,12 +464,22 @@ describe('the three committed anonymous pulls', () => {
  */
 describe('the wiring, end to end', () => {
 	it('publishes one grade per pull, and it is the grade the rules give', () => {
-		// `unbroken` is a good opener plus one press exempted 714ms from the kill; the other two carry a
+		// `unbroken` is a good opener plus one press exempted 714ms from the kill; two others carry a
 		// real unsynced second press. Section 53's three known values, asserted at the level that was
-		// missing rather than by recomputing them.
+		// missing rather than by recomputing them — plus the fourth pull's, which §53 never saw.
 		expect(pull('unbroken').analysis.ascendance.grade).toBe('good');
 		expect(pull('phased').analysis.ascendance.grade).toBe('bad');
 		expect(pull('cleave').analysis.ascendance.grade).toBe('bad');
+		// `addsThenBoss`: every press exempt, so the pull is `none` — published as well as computed, which
+		// is the whole point of this suite. A wiring that dropped the input would also produce `none` here,
+		// which is why the presses and reasons are pinned separately above rather than only the letter.
+		expect(pull('addsThenBoss').analysis.ascendance.grade).toBe('none');
+		expect(pull('addsThenBoss').analysis.ascendance.presses.map((pr) => pr.sync.reason)).toEqual([
+			'nothing-to-hit',
+			'no-two-piece-evidence',
+			'no-two-piece-evidence',
+			'no-two-piece-evidence',
+		]);
 	});
 
 	it('grades each press with the rule that governs it, off the audit alone', () => {
@@ -338,11 +554,13 @@ describe('the wiring, end to end', () => {
 
 	it('publishes the pre-pull guard, and agrees with a raw walk of the stream', () => {
 		// Not one committed pull has Ascendance up at the bell, so the published flag is `false` on all
-		// three — and it is published anyway, because it is the difference between a press that was not
+		// **four** — and it is published anyway, because it is the difference between a press that was not
 		// made and a press the log cannot see. The audit's reading is the *guarded* one (a press at or
 		// before the recovered expiry vouches for the window), so it can only be narrower than this
-		// walk; on all three both come out false and the two are pinned against each other.
-		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+		// walk; on all four both come out false and the two are pinned against each other. The list was
+		// `['phased', 'unbroken', 'cleave']`; it is the fixture directory now, because "not one committed
+		// pull" is the claim and a literal cannot make it.
+		for (const name of FIXTURES) {
 			const { analysis, input } = pull(name);
 			expect(analysis.ascendance.atPull).toBe(false);
 			expect(input.ascendanceAtPull).toBe(false);
@@ -426,10 +644,12 @@ describe('the opener bound, and which side of it a press falls on', () => {
 	 * bites alone.
 	 *
 	 * **That band is narrow, and deliberately not widened.** Entry 14 can only be the binding constraint
-	 * when the haste cooldown opened within `OPENER_GRACE_MS` of the bell; the three committed pulls open
-	 * theirs at 1 777, 785 and 941 ms, so on all three rule 1 is the tighter of the two and `delayMs` is
-	 * reported rather than decisive. Keeping both is what plan §39 argued and what publishes the delay at
-	 * all — see `ASCENDANCE_INTO_HASTE_MS`.
+	 * when the haste cooldown opened within `OPENER_GRACE_MS` of the bell; three of the four committed pulls
+	 * open theirs at 1 777, 785 and 941 ms, so on those three rule 1 is the tighter of the two and `delayMs`
+	 * is reported rather than decisive. The fourth, `addsThenBoss`, opens its cooldown at 438 207 ms — the
+	 * anchor search declines it, so entry 14 has nothing to bind with and rule 1 is the only half left.
+	 * Keeping both is what plan §39 argued and what publishes the delay at all — see
+	 * `ASCENDANCE_INTO_HASTE_MS`.
 	 */
 	it('passes a press exactly on the bound', () => {
 		const v = first({ hasteWindows: [lust(0, 40_000)], ascendanceCasts: [ASCENDANCE_INTO_HASTE_MS] });
@@ -626,7 +846,13 @@ describe('precedence: one rule per press, decided once', () => {
  * Rule 1 — Ascendance is *always* used in the opener (plan §80, rule 1).
  *
  * The absolute half of the opener press's grade, and the half that needs no haste cooldown. Every case
- * here is synthetic because no committed pull fails it: all three open at 5 006, 3 676 and 3 487 ms.
+ * here is synthetic because no committed pull is *faulted* by it — but the reason is not the one this
+ * docblock used to give. It said "all three open at 5 006, 3 676 and 3 487 ms"; the fourth committed
+ * pull opens at **17 101 ms**, which rule 1 would fault, and is exempted by `'nothing-to-hit'` before the
+ * grade is reached. So the rule's fault side is still synthetic and the *premise* has changed: three of
+ * four openers are inside the bound, and the fourth is outside it and unjudged. See `exempts the opener of
+ * a pull that had nothing to hit inside it`.
+ *
  * The boundary is the one §52 settled and `isOpener` applies, pinned against that predicate below
  * rather than restated as a number this suite believes on its own.
  */
@@ -708,7 +934,14 @@ describe('rule 1: the opener press is not optional', () => {
  * The boundary is Ascendance's own duration, `sim/shaman/ascendance.go:61`'s `Duration: time.Second *
  * 15`, and not the sync's ten seconds. Every fault here is synthetic: the only committed press whose
  * window runs past a kill is `unbroken`'s second, and the availability guard excuses it, which the real-
- * pull suite above pins.
+ * pull suite above pins. Still the only one after the fourth fixture — `addsThenBoss` presses at
+ * 539 625 ms of a 560 261 ms pull, so even its latest press has its whole fifteen seconds, and all four of
+ * its `wastedMs` are null.
+ *
+ * **The availability guard's arithmetic is not safe on that pull, though, and the guard is why.** It adds
+ * `ASCENDANCE_COOLDOWN_MS` to the previous press, and two of `addsThenBoss`' three press gaps are shorter
+ * than that — see `records the two committed press gaps that are shorter than the stated cooldown`. No
+ * verdict turns on it today because `wastedMs` is null throughout.
  */
 describe('rule 2: a later press must not spend the window past the kill', () => {
 	/** A pull with an opener and one later press at 200s, the two-piece in evidence around it. */
@@ -802,9 +1035,16 @@ describe('rule 2: a later press must not spend the window past the kill', () => 
  * and the constants below only restate the duration the arithmetic runs on.
  *
  * Every fault here is synthetic, and this time that is a measurement rather than a convention: on the
- * union reading these rules use, **no committed press fails rule 3** — the six real overlaps are 15 000,
- * 10 149, 15 000, 0 (on a press already exempt), 13 944 and 10 273 ms. The real pulls are therefore
- * pinned as the unchanged side, and both faults are built.
+ * union reading these rules use, **no committed press fails rule 3**. The **ten** real overlaps are
+ * 15 000 and 10 149 (`phased`), 15 000 and 0 (`unbroken`, the zero on a press already exempt), 13 944 and
+ * 10 273 (`cleave`), and 11 373, 0, 1 499 and 0 (`addsThenBoss`).
+ *
+ * *** That sentence used to say "the six real overlaps" and to mean something stronger than it now can.
+ * *** Three of `addsThenBoss`' four overlaps are **under** the 9 000 bound, and rule 3 does not charge
+ * them only because those three presses are already exempt for a reason that has nothing to do with
+ * banners — its shaman has no two-piece. So "no committed press fails rule 3" is true of the grade and no
+ * longer true of the measurement, and the two are asserted separately in `measures rule 3 on all ten
+ * presses` below. The real pulls are still pinned as the unchanged side, and both faults are built.
  */
 describe('Skull Banner: rule 3 is graded and rule 4 is shown', () => {
 	/** One warrior's banners, as `raidSourceLanes` buckets them — resolved caster, windows in press order. */
@@ -1034,14 +1274,18 @@ describe('Skull Banner: rule 3 is graded and rule 4 is shown', () => {
 });
 
 /**
- * Rules 3 and 4 on the three committed pulls, with the argument the wiring hunk would pass.
+ * Rules 3 and 4 on the committed pulls, with the argument the wiring hunk would pass.
  *
  * **The rules can be exercised on real data, and the answer is measured rather than assumed.** No
  * committed pull has the *player* as the banner's caster — every banner comes from another raider — but
  * that does not matter to either rule: both read the banner as the player **received** it, which is what
- * `raidSourceLanes` narrows the stream to. What does matter is that all three pulls carry banners on the
- * player from two warriors apiece, so rule 3 has something to measure on all six presses and rule 4 has a
- * second banner to find on two of the three.
+ * `raidSourceLanes` narrows the stream to. What does matter is that all four pulls carry banners on the
+ * player from two warriors apiece, so rule 3 has something to measure on all **ten** presses and rule 4
+ * has a second banner to find on three of the four.
+ *
+ * The three literal `['phased', 'unbroken', 'cleave']` grids this suite used to run on are per-pull grids
+ * now, keyed by name and checked against `rawFixtures`, so a fifth pull fails by name rather than being
+ * left out.
  */
 describe('Skull Banner on the committed pulls', () => {
 	const wired = (name: string) => {
@@ -1053,51 +1297,137 @@ describe('Skull Banner on the committed pulls', () => {
 		// **A measurement of the fixtures, not a red against the old behaviour** — it reads the lanes and
 		// no verdict, so it passed before this change too. It is here because it is the fact that decides
 		// whether rules 3 and 4 are exercisable at all, and the answer had to be measured rather than
-		// assumed: `phased` and `cleave` carry four banners from two warriors, `unbroken` two from two.
-		// None of the six lanes is the player's own — a shaman does not plant a banner — which is why
-		// every one has `own: false`, and why both rules read the buff the player *received* rather than a
-		// press of theirs. Had this come back empty, both rules would have been synthetic-only.
-		const expected = [
-			['phased', [2, 2]],
-			['unbroken', [1, 1]],
-			['cleave', [2, 2]],
-		] as const;
-		for (const [name, counts] of expected) {
+		// assumed: `phased` and `cleave` carry four banners from two warriors, `unbroken` two from two, and
+		// `addsThenBoss` **six from two** — three presses apiece, which is the only committed pull where a
+		// warrior banners more than twice. None of the eight lanes is the player's own — a shaman does not
+		// plant a banner — which is why every one has `own: false`, and why both rules read the buff the
+		// player *received* rather than a press of theirs. Had this come back empty, both rules would have
+		// been synthetic-only.
+		const expected: Record<string, [number, number]> = {
+			addsThenBoss: [3, 3],
+			cleave: [2, 2],
+			phased: [2, 2],
+			unbroken: [1, 1],
+		};
+		// The grid is the committed set, so a fifth pull cannot be swept by neither half of this suite.
+		expect(Object.keys(expected).sort()).toEqual([...FIXTURES].sort());
+		for (const name of FIXTURES) {
 			const { analysis } = pull(name);
-			expect(banners(analysis).map((c) => c.windows.length)).toEqual(counts);
+			expect(
+				banners(analysis).map((c) => c.windows.length),
+				name,
+			).toEqual(expected[name]);
 			const lanes = [...(analysis.timeline?.lanes ?? []), ...(analysis.timeline?.hiddenLanes ?? [])];
-			expect(lanes.filter((l) => l.key === 'skull-banner').map((l) => l.source?.own)).toEqual([false, false]);
+			expect(
+				lanes.filter((l) => l.key === 'skull-banner').map((l) => l.source?.own),
+				name,
+			).toEqual([false, false]);
 		}
 	});
 
-	it('measures rule 3 on all six presses, and faults none of them', () => {
-		// The six overlaps, pinned individually. Five are comfortable; the sixth is `unbroken`s second
-		// press, 714ms from the kill, which sees no banner at all — reported as 0 and charged for nothing,
-		// because that press is exempt under rule 2's own guard before rule 3 is reached.
-		const expected = [
-			['phased', [15_000, 10_149]],
-			['unbroken', [15_000, 0]],
-			['cleave', [13_944, 10_273]],
-		] as const;
-		for (const [name, overlaps] of expected) {
-			expect(wired(name).verdict.presses.map((p) => p.bannerOverlapMs)).toEqual(overlaps);
+	/**
+	 * *** `mergeIntervals` joins bars that merely touch, and the claim that this happens on every committed
+	 * pull was false before the fourth one arrived. ***
+	 *
+	 * `ascendance.ts`' own comment beside the union said the touching case "is the case on all three
+	 * committed pulls: one warrior's banner comes off on the same millisecond the next goes up". Measured:
+	 * `phased` hands off at 13 760, `unbroken` at 13 196 and `addsThenBoss` at 234 719 — but **`cleave`
+	 * never does**. Its four bars are 2 814–13 243, 14 299–24 568, 184 448–194 721 and 203 392–213 744, so
+	 * its union is its input and the merge is a no-op there. The universal was wrong about the third
+	 * fixture, not the fourth.
+	 *
+	 * The mechanism is unaffected — a no-op merge is what a pull with no hand-off should get — so this is a
+	 * correction to a stated fact rather than to behaviour, and it is pinned here so the next reader finds
+	 * the measurement instead of the sentence.
+	 *
+	 * **A measurement of the fixtures rather than a red against the old behaviour.**
+	 */
+	it('merges touching banners on three of the four pulls, and finds nothing to merge on cleave', () => {
+		const merged: string[] = [];
+		for (const name of FIXTURES) {
+			const flat = banners(pull(name).analysis)
+				.flatMap((c) => c.windows.map(({ start, end }): Interval => [start, end]))
+				.sort((a, b) => a[0] - b[0]);
+			const union = mergeIntervals(flat);
+			// Non-vacuous: every pull carries bars to merge or not merge.
+			expect(flat.length, name).toBeGreaterThan(1);
+			if (union.length < flat.length) merged.push(name);
 		}
+		expect(merged).toEqual(['addsThenBoss', 'phased', 'unbroken']);
 	});
 
-	it('reports rule 4 on two of the three, and says nothing on the third', () => {
+	it('measures rule 3 on all ten presses, and faults none of them', () => {
+		// The ten overlaps, pinned individually. `unbroken`s second press is 714ms from the kill and sees no
+		// banner at all — reported as 0 and charged for nothing, because that press is exempt under rule 2's
+		// own guard before rule 3 is reached.
+		//
+		// **`addsThenBoss` is why "faults none of them" is now a narrower claim than it reads.** Three of
+		// its four overlaps are under the 9 000 bound — 0, 1 499 and 0 — and rule 3 would have charged every
+		// one of them. It does not, because those three presses are already exempt for having no two-piece
+		// to sync against, which is a refusal that says nothing about banners. So the grade is unmoved and
+		// the *measurement* is no longer comfortable everywhere, and the two are asserted apart below.
+		const expected: Record<string, Array<number | null>> = {
+			addsThenBoss: [11_373, 0, 1499, 0],
+			cleave: [13_944, 10_273],
+			phased: [15_000, 10_149],
+			unbroken: [15_000, 0],
+		};
+		expect(Object.keys(expected).sort()).toEqual([...FIXTURES].sort());
+		for (const name of FIXTURES) {
+			expect(
+				wired(name).verdict.presses.map((p) => p.bannerOverlapMs),
+				name,
+			).toEqual(expected[name]);
+		}
+
+		// No *gradeable* press is short of the bound — which is the claim, stated over the whole set.
+		const short = FIXTURES.flatMap((name) =>
+			wired(name)
+				.verdict.presses.filter(
+					(p) => p.grade !== 'none' && (p.bannerOverlapMs ?? Infinity) < SKULL_BANNER_OVERLAP_MIN_MS,
+				)
+				.map((p) => [name, p.t] as const),
+		);
+		expect(short).toEqual([]);
+		// And the presses that *are* short exist and are all exempt, so the line above is not vacuous.
+		const exemptAndShort = FIXTURES.flatMap((name) =>
+			wired(name)
+				.verdict.presses.filter((p) => (p.bannerOverlapMs ?? Infinity) < SKULL_BANNER_OVERLAP_MIN_MS)
+				.map((p) => [name, p.t, p.reason] as const),
+		);
+		expect(exemptAndShort).toEqual([
+			['addsThenBoss', 173_985, 'no-two-piece-evidence'],
+			['addsThenBoss', 395_244, 'no-two-piece-evidence'],
+			['addsThenBoss', 539_625, 'no-two-piece-evidence'],
+			['unbroken', 183_734, 'pull-ends-too-soon'],
+		]);
+	});
+
+	it('reports rule 4 on three of the four, and says nothing on the fourth', () => {
 		// `phased`s second Ascendance at 196 197 finds the second banner of the warrior who opened at
 		// 13 760 (196 649–206 798); `cleave`s at 184 240 finds the one at 184 448–194 721, 208ms later.
 		// `unbroken` has two warriors who each pressed once, so there is no second banner and the answer is
 		// null rather than false.
-		const expected = [
-			['phased', 10_149, true],
-			['unbroken', null, null],
-			['cleave', 10_273, true],
-		] as const;
-		for (const [name, overlap, synced] of expected) {
+		//
+		// **`addsThenBoss` is the first committed pull to read rule 4 `false`.** Both its warriors pressed
+		// three times, so second banners exist — at 228 626 and 234 719 — and its second Ascendance is at
+		// 173 985, between their first and second rotations. The overlap is 0 and the rule says so. It
+		// grades nothing, which is the hedge working: that press is `none` for having no two-piece, and a
+		// rule 4 that participated in the grade would have had an opinion about a press nothing else would
+		// judge.
+		const expected: Record<string, [number | null, boolean | null]> = {
+			addsThenBoss: [0, false],
+			cleave: [10_273, true],
+			phased: [10_149, true],
+			unbroken: [null, null],
+		};
+		expect(Object.keys(expected).sort()).toEqual([...FIXTURES].sort());
+		for (const name of FIXTURES) {
 			const second = wired(name).verdict.presses[1];
-			expect([second?.secondBannerOverlapMs, second?.secondBannerSynced]).toEqual([overlap, synced]);
+			expect([second?.secondBannerOverlapMs, second?.secondBannerSynced], name).toEqual(expected[name]);
 		}
+		// The hedge, on the one real `false`: shown and never graded.
+		expect(wired('addsThenBoss').verdict.presses[1]?.grade).toBe('none');
 	});
 
 	it('moves no grade on any pull, and no press verdict either', () => {
@@ -1111,17 +1441,22 @@ describe('Skull Banner on the committed pulls', () => {
 		// one alternative reading with real support, and which `phased` measurably does not survive. See
 		// below.
 		//
+		// `addsThenBoss`' row is `none` throughout and is the fourth pull's own headline: it did not move
+		// either, and it could not have — rule 3 can only fault, and every press on that pull is exempt
+		// before rule 3 is asked.
+		//
 		// Pinned as literals rather than against the unwired run, which would compare two computations
 		// over the same five values and pass whatever they were.
-		const expected = [
-			['phased', 'bad', ['good', 'bad']],
-			['unbroken', 'good', ['good', 'none']],
-			['cleave', 'bad', ['good', 'bad']],
-		] as const;
-		for (const [name, grade, presses] of expected) {
+		const expected: Record<string, [string, string[]]> = {
+			addsThenBoss: ['none', ['none', 'none', 'none', 'none']],
+			cleave: ['bad', ['good', 'bad']],
+			phased: ['bad', ['good', 'bad']],
+			unbroken: ['good', ['good', 'none']],
+		};
+		expect(Object.keys(expected).sort()).toEqual([...FIXTURES].sort());
+		for (const name of FIXTURES) {
 			const { verdict } = wired(name);
-			expect(verdict.grade).toBe(grade);
-			expect(verdict.presses.map((p) => p.grade)).toEqual(presses);
+			expect([verdict.grade, verdict.presses.map((p) => p.grade)], name).toEqual(expected[name]);
 		}
 	});
 

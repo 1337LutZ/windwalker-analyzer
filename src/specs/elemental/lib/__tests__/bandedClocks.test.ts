@@ -19,7 +19,14 @@
 //      up and counting the whole way through.
 //
 // `phased` and `unbroken` never exceed one enemy, so every assertion about them here is a no-change guard
-// and is labelled as one. `cleave` is the only committed fixture with band-3+ time.
+// and is labelled as one.
+//
+// **`cleave` used to be "the only committed fixture with band-3+ time", and it is not any more.**
+// `addsThenBoss.json` peaks at nine enemies with 73.73% of the pull at two or more, so it carries band-3
+// and band-4 presses too — and it is the better half of the pair, because `cleave` holds one shape for its
+// whole 263 s while `addsThenBoss` runs add waves out to 503 s and then a boss-only tail. The loops below
+// are derivations rather than pinned figures, so they now run over both; the per-pull literals beside them
+// are still `cleave`'s and are still labelled as its own.
 //
 // **The fourth clock is shaped differently from the other three and has its own describe block.**
 // `flameShockMultiDot` declares `bands: [2]` and not `[1, 2]`, so `gradedSpans` is a *ceiling* over a clock
@@ -37,19 +44,39 @@ import { intervalsAtLeast } from '~/lib/analysis/targets';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset, Window } from '~/lib/types';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { analyse, ELEMENTAL_SPEC } from '../index';
 import { scoreAnalysis } from '../score';
 
-const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
-type Fixture = (typeof FIXTURES)[number];
+/**
+ * Every raw Elemental pull, found rather than listed.
+ *
+ * **This was `['phased', 'unbroken', 'cleave']` with a three-entry `Record` built eagerly beside it**, and
+ * the seven loops below all swept it. Every one of them is a derivation — the audit's published clock
+ * against the clock rebuilt from the arrays the chart reads — so they are exactly the assertions a fourth
+ * pull should be asked, and exactly the ones a literal list stopped asking the day `addsThenBoss.json`
+ * landed. The pinned figures beside them stay per-pull literals, because those are facts about one log.
+ */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 const load = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
 
-const el: Record<Fixture, Analysis & ElementalAuditResult> = {
-	phased: analyse(load('phased')) as Analysis & ElementalAuditResult,
-	unbroken: analyse(load('unbroken')) as Analysis & ElementalAuditResult,
-	cleave: analyse(load('cleave')) as Analysis & ElementalAuditResult,
+/**
+ * One analysed pull, **memoised** — and the memo is what makes the sweep affordable.
+ *
+ * The `Record` this replaced parsed and analysed three fixtures at module load whether a test wanted them
+ * or not. Sweeping four means one of them is the 4.4 MB `addsThenBoss.json`, and seven loops over it would
+ * re-parse the file dozens of times; `bands.test.ts` hit the same wall and got *faster* for memoising.
+ * Nothing here mutates an analysis, so one instance per pull is safe.
+ */
+const cache = new Map<string, Analysis & ElementalAuditResult>();
+const fx = (name: string): Analysis & ElementalAuditResult => {
+	const hit = cache.get(name);
+	if (hit !== undefined) return hit;
+	const analysis = analyse(load(name)) as Analysis & ElementalAuditResult;
+	cache.set(name, analysis);
+	return analysis;
 };
 
 const toIntervals = (windows: readonly Window[]): Interval[] => windows.map((w) => [w.start, w.end]);
@@ -81,17 +108,17 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	 */
 	it('measures the dot over contact time less the AoE stretches', () => {
 		for (const name of FIXTURES) {
-			expect(el[name].flameShock.scoredMs, name).toBe(unionMs(gradedContact(el[name])));
+			expect(fx(name).flameShock.scoredMs, name).toBe(unionMs(gradedContact(fx(name))));
 		}
 		// And the figure itself, so a derivation that quietly went to zero on both sides cannot pass.
 		// 82 758 and not the 82 858 of the exempt array: 100ms of it lies outside the contact clock, which
 		// was already dropping that stretch for its own reason. Subtracting the array's whole length here
 		// would be the double-count `intersect` exists to avoid.
-		expect(el.cleave.flameShock.scoredMs).toBe(261_572 - 82_758);
+		expect(fx('cleave').flameShock.scoredMs).toBe(261_572 - 82_758);
 		// The two single-target pulls: unchanged, because there is nothing to drop. Non-vacuous — both
 		// carry a real clock, and `phased`'s is 32.7s short of its engaged time for a different reason.
-		expect(el.phased.flameShock.scoredMs).toBe(206_557);
-		expect(el.unbroken.flameShock.scoredMs).toBe(181_775);
+		expect(fx('phased').flameShock.scoredMs).toBe(206_557);
+		expect(fx('unbroken').flameShock.scoredMs).toBe(181_775);
 	});
 
 	/**
@@ -100,13 +127,13 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	 */
 	it('measures the totem over contact time less the elemental and less the AoE stretches', () => {
 		for (const name of FIXTURES) {
-			const audit = el[name].searingTotem;
-			const slotFree = complementOf(toIntervals(audit.feWindows), el[name].durationMs);
-			expect(audit.scoredMs, name).toBe(unionMs(intersect(gradedContact(el[name]), slotFree)));
+			const audit = fx(name).searingTotem;
+			const slotFree = complementOf(toIntervals(audit.feWindows), fx(name).durationMs);
+			expect(audit.scoredMs, name).toBe(unionMs(intersect(gradedContact(fx(name)), slotFree)));
 		}
 		// `phased` and `unbroken` unchanged — no-change guards, and both are well clear of zero.
-		expect(el.phased.searingTotem.scoredMs).toBe(150_310);
-		expect(el.unbroken.searingTotem.scoredMs).toBe(125_314);
+		expect(fx('phased').searingTotem.scoredMs).toBe(150_310);
+		expect(fx('unbroken').searingTotem.scoredMs).toBe(125_314);
 	});
 
 	/**
@@ -116,15 +143,15 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	 */
 	it('publishes the length of the clock the overcap was measured inside', () => {
 		for (const name of FIXTURES) {
-			const a = el[name];
+			const a = fx(name);
 			expect(a.lightningShield.gradedMs, name).toBe(
 				unionMs(complementOf(toIntervals(a.lightningShield.aoeWindows), a.durationMs)),
 			);
 		}
-		expect(el.cleave.lightningShield.gradedMs).toBe(263_233 - 82_858);
+		expect(fx('cleave').lightningShield.gradedMs).toBe(263_233 - 82_858);
 		// The whole pull on the two that never leave one enemy — no-change guards.
-		expect(el.phased.lightningShield.gradedMs).toBe(el.phased.durationMs);
-		expect(el.unbroken.lightningShield.gradedMs).toBe(el.unbroken.durationMs);
+		expect(fx('phased').lightningShield.gradedMs).toBe(fx('phased').durationMs);
+		expect(fx('unbroken').lightningShield.gradedMs).toBe(fx('unbroken').durationMs);
 	});
 
 	/**
@@ -135,7 +162,7 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	 * `exemptTrack.test.ts` enforces a level out from here, among the charts.
 	 */
 	it('cuts all three clocks with the same stretches', () => {
-		const a = el.cleave;
+		const a = fx('cleave');
 		const exempt = toIntervals(a.lightningShield.aoeWindows);
 		expect(a.lightningShield.gradedMs).toBe(a.durationMs - unionMs(exempt));
 		// The dot's clock is the shield's clock narrowed by contact, and the totem's is that narrowed again
@@ -155,7 +182,7 @@ describe('both halves of every ratio are cut with the same array', () => {
 	 */
 	it('keeps every uptime a real share of its own published clock', () => {
 		for (const name of FIXTURES) {
-			const { flameShock, searingTotem } = el[name];
+			const { flameShock, searingTotem } = fx(name);
 			expect(flameShock.contactUptimeMs, name).toBeLessThanOrEqual(flameShock.scoredMs);
 			expect((flameShock.contactUptimeMs / flameShock.scoredMs) * 100, name).toBe(flameShock.uptimePct);
 			expect(flameShock.uptimePct, name).toBeLessThanOrEqual(100);
@@ -177,10 +204,10 @@ describe('both halves of every ratio are cut with the same array', () => {
 	 * those stretches as the pull's largest fault.
 	 */
 	it('moves the numerator as well as the denominator on the pull that has AoE time', () => {
-		expect(el.cleave.flameShock.contactUptimeMs).toBe(150_023);
+		expect(fx('cleave').flameShock.contactUptimeMs).toBe(150_023);
 		// The two single-target pulls keep theirs to the millisecond — no-change guards.
-		expect(el.phased.flameShock.contactUptimeMs).toBe(202_842);
-		expect(el.unbroken.flameShock.contactUptimeMs).toBe(181_775);
+		expect(fx('phased').flameShock.contactUptimeMs).toBe(202_842);
+		expect(fx('unbroken').flameShock.contactUptimeMs).toBe(181_775);
 	});
 });
 
@@ -234,9 +261,9 @@ describe('the second dot is measured over band 2 alone', () => {
 	 */
 	it('reads one count series under both edges, because this spec excludes nothing from the ladder\u2019s', () => {
 		expect(ELEMENTAL_SPEC.aplTargetCountExclude).toBeUndefined();
-		expect(el.cleave.targets?.counts.max).toBe(13);
+		expect(fx('cleave').targets?.counts.max).toBe(13);
 		for (const name of FIXTURES) {
-			const targets = el[name].targets;
+			const targets = fx(name).targets;
 			expect(targets?.aplCounts?.points, name).toEqual(targets?.counts.points);
 			expect(targets?.aplCounts?.max, name).toBe(targets?.counts.max);
 		}
@@ -254,21 +281,25 @@ describe('the second dot is measured over band 2 alone', () => {
 	 */
 	it('measures the second dot over the time two enemies were up, less the AoE stretches', () => {
 		for (const name of FIXTURES) {
-			expect(el[name].flameShock.multiTargetMs, name).toBe(unionMs(bandTwo(el[name])));
+			expect(fx(name).flameShock.multiTargetMs, name).toBe(unionMs(bandTwo(fx(name))));
 		}
 		// 148 865ms was the whole band-2-or-more clock and the figure this field used to publish.
-		expect(unionMs(intervalsAtLeast(el.cleave.targets?.counts.points ?? [], 2, el.cleave.durationMs))).toBe(148_865);
-		expect(el.cleave.flameShock.multiTargetMs).toBe(148_865 - 82_858);
+		expect(unionMs(intervalsAtLeast(fx('cleave').targets?.counts.points ?? [], 2, fx('cleave').durationMs))).toBe(
+			148_865,
+		);
+		expect(fx('cleave').flameShock.multiTargetMs).toBe(148_865 - 82_858);
 		// The exempt array nests inside the band-2-or-more clock, which is why the line above subtracts all
 		// of it rather than the part that overlapped.
-		const exempt = toIntervals(el.cleave.lightningShield.aoeWindows);
+		const exempt = toIntervals(fx('cleave').lightningShield.aoeWindows);
 		expect(
-			unionMs(intersect(intervalsAtLeast(el.cleave.targets?.counts.points ?? [], 2, el.cleave.durationMs), exempt)),
+			unionMs(
+				intersect(intervalsAtLeast(fx('cleave').targets?.counts.points ?? [], 2, fx('cleave').durationMs), exempt),
+			),
 		).toBe(unionMs(exempt));
 		// No-change guards: neither single-target pull ever reaches two enemies, so there was never a clock
 		// here to cut and there is none now.
-		expect(el.phased.flameShock.multiTargetMs).toBe(0);
-		expect(el.unbroken.flameShock.multiTargetMs).toBe(0);
+		expect(fx('phased').flameShock.multiTargetMs).toBe(0);
+		expect(fx('unbroken').flameShock.multiTargetMs).toBe(0);
 	});
 
 	/**
@@ -276,15 +307,15 @@ describe('the second dot is measured over band 2 alone', () => {
 	 * was up while three or more enemies were being hit.
 	 */
 	it('cuts the second dot itself with the same array', () => {
-		expect(el.cleave.flameShock.multiDotUptimeMs).toBe(24_769 - 12_407);
+		expect(fx('cleave').flameShock.multiDotUptimeMs).toBe(24_769 - 12_407);
 		for (const name of FIXTURES) {
-			const { flameShock } = el[name];
+			const { flameShock } = fx(name);
 			expect(flameShock.multiDotUptimeMs, name).toBeLessThanOrEqual(flameShock.multiTargetMs);
 			expect(flameShock.multiDotUptimePct, name).toBeLessThanOrEqual(100);
 		}
 		// A real share of its own published clock, on the one fixture that has one.
-		expect((el.cleave.flameShock.multiDotUptimeMs / el.cleave.flameShock.multiTargetMs) * 100).toBe(
-			el.cleave.flameShock.multiDotUptimePct,
+		expect((fx('cleave').flameShock.multiDotUptimeMs / fx('cleave').flameShock.multiTargetMs) * 100).toBe(
+			fx('cleave').flameShock.multiDotUptimePct,
 		);
 	});
 
@@ -303,10 +334,10 @@ describe('the second dot is measured over band 2 alone', () => {
 	 * unmoved; the headline is pinned underneath them so that it cannot drift unremarked either.
 	 */
 	it('reads 18.73% on the mixed pull and still faults it', () => {
-		expect(+el.cleave.flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
-		const card = scoreAnalysis(el.cleave);
+		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
+		const card = scoreAnalysis(fx('cleave'));
 		const md = card.sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
-		expect(md?.value).toBe(el.cleave.flameShock.multiDotUptimePct);
+		expect(md?.value).toBe(fx('cleave').flameShock.multiDotUptimePct);
 		expect(md?.unmeasurable).toBe(false);
 		expect(md?.grade).toBe('bad');
 		expect(card.sections['flameShock']?.grade).toBe('bad');
@@ -323,7 +354,7 @@ describe('the second dot is measured over band 2 alone', () => {
 	 */
 	it('says nothing about the second dot on a pull that never had a second target', () => {
 		for (const name of ['phased', 'unbroken'] as const) {
-			const md = scoreAnalysis(el[name]).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
+			const md = scoreAnalysis(fx(name)).sections['flameShock']?.metrics.find((m) => m.key === 'flameShockMultiDot');
 			expect(md, name).toBeDefined();
 			expect(md?.unmeasurable, name).toBe(true);
 			expect(md?.gradedMs, name).toBe(0);

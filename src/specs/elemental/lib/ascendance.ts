@@ -28,12 +28,22 @@
 // is the only rule that can. One total decision, no press judged twice — see `ascendanceSync`.
 //
 // This is a deliberate departure from "the two-piece rule replaces the Bloodlust rule outright", and
-// the reason is measurable rather than aesthetic. All three committed pulls press Ascendance in the
-// opener with no Elemental Discharge up at all — `phased` at 5 006 ms, `unbroken` at 3 676 ms,
+// the reason is measurable rather than aesthetic. **Three of the four committed pulls** press Ascendance
+// in the opener with no Elemental Discharge up at all — `phased` at 5 006 ms, `unbroken` at 3 676 ms,
 // `cleave` at 3 487 ms, against first debuff windows opening at 26 490, 23 057 and 24 794 ms. Judging
 // the opener against the discharge would fault every one of them for something entry 14 explicitly
 // sanctions, which is the "charged the player for something they could not have done" bug this audit
 // has already shipped four times.
+//
+// **`addsThenBoss` is the fourth, and it makes the same argument from the far end rather than weakening
+// it.** That shaman has no T16 two-piece at all — 144999 appears **zero** times in the log — so an
+// opener judged against Elemental Discharge would be judged against a debuff the player had no way to
+// apply. It is also the first committed pull that does *not* open with Ascendance: the first press is at
+// **17 101 ms** of a 560 261 ms pull. What excuses it is neither rule: the pull's contact clock does not
+// start until 7 004 ms, past the 5 250 ms deadline, so the opener comes back `'nothing-to-hit'` before
+// rule 1 can fault it for being twelve seconds late. Every claim in this file that reads "all three
+// committed pulls" was written before that pull existed, and several of them were about to say
+// something the fourth log contradicts.
 //
 // **The Flame Shock half of both entries is deliberately not graded here.** `dotRemainingTime(8050) >
 // 15s` is the Flame Shock section's business and the audit already publishes `fsRemainingMs` on every
@@ -160,9 +170,17 @@
 // on `Handles.hasteWindows`, precisely so a spec's audit reads the cooldown instead of walking the
 // stream a second time. This module takes those windows as a parameter and never names a spell.
 //
-// That it works for the whole group is measured, not asserted: the three committed pulls carry three
+// That it works for the whole group is measured, not asserted: the four committed pulls carry three
 // *different* members of it — Heroism (32182) on `phased`, cast by another player; Bloodlust (2825) on
-// `unbroken`, cast by the shaman himself; Time Warp (80353) on `cleave`. All three read identically.
+// `unbroken`, cast by the shaman himself; Time Warp (80353) on `cleave`; Heroism again on
+// `addsThenBoss`. All four read identically through the one `hasteWindows` call.
+//
+// **The fourth is not a repeat, though, and it is the interesting one.** Its Heroism opens at
+// **438 207 ms** — seven minutes into a nine-minute pull — so `ascendanceSync`'s anchor search
+// (`hasteWindows.find((w) => w.start <= ASCENDANCE_INTO_HASTE_MS)`) declines it, and the pull reads as
+// "no haste cooldown on the pull" with a haste cooldown plainly in the log. That is the first committed
+// pull to exercise the *late*-cooldown half of the two bullets below, and the reason `delayMs` and
+// `syncStartMs` are a missing measurement rather than a refusal: rule 1 grades that opener alone.
 //
 // Two consequences of that walk are load-bearing below, and neither is this module's to fix:
 //
@@ -178,7 +196,9 @@
 //
 // ------------------------------------------------- the T16 two-piece, and the id it must NOT read
 //
-// Established from the simulator, the 5.4 client data and all three committed pulls.
+// Established from the simulator, the 5.4 client data and the three committed pulls that carry the set
+// at all. The fourth, `addsThenBoss`, carries neither id — which is its own kind of evidence and is
+// counted below rather than glossed over.
 //
 // The set is `ItemSetCelestialHarmonyRegalia` (`wowsims-mop/sim/shaman/items_mop.go:98`). Its
 // two-piece (`items_mop.go:100-140`) registers **one** aura, on the enemy:
@@ -202,9 +222,22 @@
 // `ExposeToAPL`s it (`items_mop.go:138`), the client's `Spell` row for it has an **empty**
 // `AuraDescription_lang` and a description that merely forwards 144999's numbers, and it is a row in
 // `ItemSetSpell` (SpellID 144998, Threshold 2, ItemSetID 1182). A combat log never writes it. Across
-// all three committed pulls 144998 appears **zero** times, while 144999 appears 20, 18 and 24 times as
+// all **four** committed pulls 144998 appears **zero** times, while 144999 appears 20 times on `phased`,
+// 18 on `unbroken`, 20 on `cleave` and **0** on `addsThenBoss`, as
 // `applydebuff`/`refreshdebuff`/`removedebuff` sourced by the player. In the p5 list `auraIsActive(144998)`
 // is a *"do I own the two-piece"* branch selector for the Earth Shock rules, not a window.
+//
+// **Two corrections in that sentence, and one of them was wrong before the fourth pull arrived.** It
+// used to read "20, 18 and 24": `cleave`'s count is 20 (8 `applydebuff`, 4 `refreshdebuff`, 8
+// `removedebuff`), never 24, so the figure a reader would have checked the id against was a number no
+// fixture ever held.
+//
+// **And `addsThenBoss`' zero is the opposite claim to 144998's zero, which is why it is spelled out.**
+// 144998 reads zero on a pull that *has* the set, so the zero is about the id. 144999 reads zero on
+// `addsThenBoss` because that shaman has no two-piece — `sharedFixtures.test.ts`' equipped-iff-fired
+// grid is what separates the two readings, and it is the reason a lane keyed to 144999 may come back
+// empty without anything being wrong. The audit's own answer for that pull is
+// `'no-two-piece-evidence'`, on three real presses.
 //
 // The audit models **only** 144999, as the `t16-2pc-debuff` aura. It used to carry a `t16-2pc-proc`
 // declaration for 144998 beside it, and `344af23` (plan step 49) deleted that: an aura keyed to an id
@@ -227,8 +260,10 @@ import type { Window } from '~/lib/types';
  *      `currentTime <= 5s`. The anchor differs — the sim measures from the pull and this rule measures
  *      from the haste cooldown opening, because the user's rule is explicitly "into Bloodlust" — so
  *      entry 14 settles the *magnitude* rather than the comparison, and it is quoted for that and
- *      nothing more. On a lust-on-pull the two anchors are within a second of each other anyway: the
- *      three committed pulls open theirs at 1 777, 785 and 941 ms.
+ *      nothing more. On a lust-on-pull the two anchors are within a second of each other anyway: three
+ *      of the four committed pulls open theirs at 1 777, 785 and 941 ms. The fourth,
+ *      `addsThenBoss`, has no lust-on-pull to be within a second of — its only haste cooldown opens at
+ *      438 207 ms and the anchor search declines it — so it constrains this number in neither direction.
  *   2. It is the number this audit already calls "the opener" — `t <= 5000` in `ascPresses`, and the
  *      same `t <= 5000` in `emPresses`' `'opener'` branch. Reusing it is what keeps the report from
  *      calling one press the opener and late into Bloodlust in the same breath, and a second
@@ -241,9 +276,13 @@ import type { Window } from '~/lib/types';
  *      is around 1 150 ms before any gear haste. Five seconds is four such globals — more than the p5
  *      list spends before Ascendance, so a press outside it is a real delay rather than opener jitter.
  *   4. Where the request gave a range, the top of it is the direction this audit is obliged to err in.
- *      The three real presses land at 3 229, 2 891 and 2 546 ms into their cooldowns, so the bound
- *      sits 1.8 s above the latest of them: close enough to bite on a sloppier pull, far enough not to
- *      fault a clean one.
+ *      Three real presses land at 3 229, 2 891 and 2 546 ms into their cooldowns, so the bound sits
+ *      1.8 s above the latest of them: close enough to bite on a sloppier pull, far enough not to fault
+ *      a clean one. Still three and not four: `addsThenBoss` is the fourth committed pull and it
+ *      contributes no delta at all, because the cooldown its opener would have been measured into
+ *      opened at 438 207 ms and is not the pull's. A fourth log has therefore not widened the evidence
+ *      for this number — worth saying plainly, because the count in this bullet is the whole of the
+ *      empirical case for 5 000 over 4 000.
  *
  * It doubles as the definition of **"on the pull"** for the haste cooldown itself — a cooldown that
  * opened after the opener is not the pull's, and Ascendance may well have been down for it. Same
@@ -263,7 +302,9 @@ export const ASCENDANCE_INTO_HASTE_MS = 5000;
  * explicit that it forgives "timestamp jitter and the reaction between them", and nothing that could be
  * called a global of play — and the press it was written for is the press this rule now grades:
  * `phased` opens with Ascendance at **5 006 ms**, which a bare 5 000 called late by six milliseconds.
- * Rule 1 on the raw `OPENER_MS` would fault a clean opener on one of the three committed pulls.
+ * Rule 1 on the raw `OPENER_MS` would fault a clean opener on one of the four committed pulls — still
+ * exactly one, and still `phased`: the other three open at 3 676, 3 487 and 17 101 ms, and the last of
+ * those is past both bounds and exempted by `'nothing-to-hit'` rather than saved by the grace.
  *
  * **A stated copy, pinned by test.** The wiring runs `index.ts` → this module, so importing `isOpener`
  * back out of `index.ts` would close a cycle — the same trade `ASCENDANCE_COOLDOWN_MS` below makes, and
@@ -322,6 +363,21 @@ export const ASCENDANCE_DURATION_MS = 15_000;
  * be one exported constant — `src/specs/elemental/lib/index.ts` is where the Elemental game numbers
  * already live, so exporting it there and importing it here is the resolution. Exported here because
  * rule 2's suite has to be able to name it rather than write 180 000 by hand.
+ *
+ * *** The committed logs do not agree with the sim about this number, and the disagreement is measured
+ * rather than assumed. *** `addsThenBoss` presses 114049 four times — 17 101, 173 985, 395 244 and
+ * 539 625 ms — so two consecutive presses are **156 884 ms** and **144 381 ms** apart, both inside the
+ * three minutes this constant asserts. Whatever the cause, the second reader above is the one that
+ * cares: `readyAtMs` computes 575 244 for that last press and the log proves the button was in fact
+ * back by 539 625, so the guard would answer "no press at this index could have fitted" about a press
+ * that was demonstrably available.
+ *
+ * **No grade moves on any committed pull today** — that press wastes nothing (539 625 + 15 000 is inside
+ * the 560 261 ms pull), so rule 2 never reaches the guard, which is why this is a note and not a change.
+ * `ascendance.test.ts` pins the four presses and the two short gaps so the next reader finds the fact
+ * rather than the assumption. The fix, if a pull ever does turn on it, is to read the previous press's
+ * *own* recovery from the log rather than adding 180 000 to it; that is a change to the guard and wants
+ * its own red.
  */
 export const ASCENDANCE_COOLDOWN_MS = 180_000;
 
@@ -337,7 +393,9 @@ export const ASCENDANCE_COOLDOWN_MS = 180_000;
  * The id is **114206** and never 114207. `sim/core/buffs.go:1118` is `var SkullBannerActionID =
  * ActionID{SpellID: 114206}` and the aura registers under the same number; 114207 occurs once in the
  * simulator, as the icon its buff picker draws (`ui/core/components/inputs/buffs_debuffs.ts:108`). The
- * logs agree with the sim: 114206 lands on the player on all three committed pulls and 114207 on none.
+ * logs agree with the sim: 114206 lands on the player on all **four** committed pulls — 8, 4, 8 and 12
+ * events targeting the shaman on `phased`, `unbroken`, `cleave` and `addsThenBoss` — and 114207 on none
+ * of them.
  * `game/shared.ts` declares exactly that — `ids: [114206]`, `durationMs: 10_000` — so **this module
  * names neither number**, and this note exists only because the split is the trap 144998 already was.
  * The windows arrive as a parameter, walked from the declaration by `raidCasters.ts`.
@@ -474,6 +532,11 @@ export interface AscendancePressVerdict {
 	 *
 	 * Null on every press but the second, and on the second when no caster pressed twice — which is
 	 * `unbroken`, where two warriors banner once each.
+	 *
+	 * `addsThenBoss` is the pull that reads it **false** on real data: both its warriors banner three
+	 * times, and the second Ascendance at 173 985 ms sits between their first and second rotations, so the
+	 * overlap is 0. Rule 4 shows that and grades nothing, which is the hedge working — that press is
+	 * exempt for a different reason entirely.
 	 */
 	secondBannerOverlapMs: number | null;
 	/**
@@ -641,13 +704,25 @@ const GRADE_ORDER = { none: 0, good: 1, bad: 2 } as const;
  * where the log gave it nothing to measure. **Rule 4 is in no grade at all**: the user hedged it, so it
  * rides out on the second press as `secondBannerSynced` and moves nothing.
  *
- * The two exemptions worth naming are the ones that fire on real data, and both are the same
- * principle — never charge a player for a press they could not have made. `unbroken`'s second press is
- * at 183 734 ms of a 184 448 ms pull, 714 ms from the kill, so it wastes 14 286 ms of its window and
- * cannot meet a ten-second sync. Neither is its fault: its own opener went out at 3 676 ms, which put
- * the button back at **183 676 ms**, and the press came **58 ms later**. There was no earlier press to
- * make, so rule 2 stands down and the sync exempts it as `'pull-ends-too-soon'` — the verdict this
- * module already gave it before either rule existed.
+ * The exemptions worth naming are the ones that fire on real data, and all of them are the same
+ * principle — never charge a player for a press they could not have made. **Three of the six reasons now
+ * have a committed pull behind them, where this paragraph used to name one.**
+ *
+ *   - `'pull-ends-too-soon'`, on `unbroken`'s second press, at 183 734 ms of a 184 448 ms pull, 714 ms
+ *     from the kill: it wastes 14 286 ms of its window and cannot meet a ten-second sync. Neither is its
+ *     fault — its own opener went out at 3 676 ms, which put the button back at **183 676 ms**, and the
+ *     press came **58 ms later**. There was no earlier press to make, so rule 2 stands down and the sync
+ *     exempts it, the verdict this module already gave it before either rule existed.
+ *   - `'nothing-to-hit'`, on `addsThenBoss`' **opener**. Its first press is at 17 101 ms, twelve seconds
+ *     past `OPENER_DEADLINE_MS`, so rule 1 would fault it — but the pull's contact clock does not open
+ *     until 7 004 ms, past the same deadline, and there was nothing to spend the cooldown on inside the
+ *     stretch being judged. The one exemption the suite could only build synthetically has a pull.
+ *   - `'no-two-piece-evidence'`, on `addsThenBoss`' other three presses. That shaman has no T16
+ *     two-piece, so entry 15 does not apply to him at all and rule 2 has nothing to charge either
+ *     (all three windows fit inside the pull).
+ *
+ * The consequence is a pull-level grade no committed fixture had: `addsThenBoss` is `none`, every press
+ * exempt, against `bad` / `good` / `bad` on the other three.
  */
 export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdict {
 	const {
@@ -673,9 +748,16 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 	//
 	// Rule 3 unions every caster's banners, because the player felt one buff whoever supplied it, and
 	// `overlapMs` sums its ranges — so merging first is not tidiness, it is what stops two warriors who
-	// overlapped from being counted twice. `mergeIntervals` joins ranges that merely touch, which is the
-	// case on all three committed pulls: one warrior's banner comes off on the same millisecond the
-	// next goes up, and two abutting bars are one unbroken buff.
+	// overlapped from being counted twice. `mergeIntervals` also joins ranges that merely *touch*, and
+	// two abutting bars are one unbroken buff.
+	//
+	// **That touching case is real on three of the four committed pulls and not on all of them, which is
+	// what this comment used to claim.** `phased` hands off at 13 760 ms, `unbroken` at 13 196 and
+	// `addsThenBoss` at 234 719 — one warrior's banner coming off on the same millisecond the next goes
+	// up. `cleave` never does: its four bars are 2 814–13 243, 14 299–24 568, 184 448–194 721 and
+	// 203 392–213 744, so its union is its input and the merge is a no-op there. The universal was
+	// already false on the third fixture, before the fourth arrived; the mechanism it justifies is
+	// unaffected, since a no-op merge is exactly what a pull with no hand-off should get.
 	//
 	// `null` for both the missing parameter and an empty reading, which is the same claim — no banner to
 	// measure against. Not a zero: see the field docs.
@@ -689,8 +771,9 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 	};
 	// Rule 4's set: each caster's *own* second banner, and nothing else. One warrior's second press of a
 	// three-minute button is what "the 2nd Skull Banner" names; the second bar in the pull is a different
-	// banner on every fixture measured. Casters who pressed once contribute nothing rather than their
-	// first.
+	// banner on all four fixtures measured — including `addsThenBoss`, where two warriors banner *three*
+	// times each and the second bar (18 482 ms) is neither caster's second press (228 626 and 234 719).
+	// Casters who pressed once contribute nothing rather than their first.
 	const secondBanners = (skullBannerWindows ?? []).flatMap((c) => (c.windows[1] === undefined ? [] : [c.windows[1]]));
 	// The earliest moment the pull offered anything to spend a cooldown on. Read by the opener's
 	// exemption and by rule 1's no-press-at-all case, which is why it is hoisted out of the map.

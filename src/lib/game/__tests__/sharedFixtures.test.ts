@@ -31,15 +31,29 @@ function windowCount(dataset: FightDataset, key: string): number {
 	return auraWindows(own, registry.aura(key), t0, dataset.fight.endTime - t0).length;
 }
 
-const ELEMENTAL = ['cleave.json', 'phased.json', 'unbroken.json'] as const;
+/**
+ * Every raw Elemental fixture, found rather than listed.
+ *
+ * **This was `['cleave.json', 'phased.json', 'unbroken.json']`.** `RAW_PULLS` at the foot of this file has
+ * always gone through `rawFixtures`, and this constant did not — so the gear census and the
+ * equipped-iff-fired biconditional swept `addsThenBoss.json` from the day it landed while every window
+ * count and the Essence of Yu'lon grids above went on describing three pulls. One of those grids says the
+ * two Yu'lon readings are "free to disagree"; on the fourth pull they do, by six windows, and nothing was
+ * asking.
+ *
+ * The grids below are keyed by file name rather than positional, because the order `rawFixtures` returns
+ * is the directory's and a positional grid silently re-pairs itself when a name sorts before `cleave`.
+ */
+const ELEMENTAL = rawFixtures('elemental').map(({ name }) => name);
 
 describe('the tinker buff on an Elemental pull', () => {
 	/**
 	 * The finding, and the reason a measurement can be right and still be wrong: the aura carried 96228
 	 * alone, which is the *agility* id, and every reference pull it was measured on was a monk's. All
-	 * three committed Elemental fixtures press the tinker (126734) and all three write **96230**, because
+	 * **four** committed Elemental fixtures press the tinker (126734) and all four write **96230**, because
 	 * a shaman's highest stat is intellect. So the press had a row and the buff it opened had nothing —
-	 * on every Elemental pull in the repository, from the day the second spec existed.
+	 * on every Elemental pull in the repository, from the day the second spec existed. `addsThenBoss` opens
+	 * nine such windows and is swept by this automatically now rather than by name.
 	 */
 	for (const file of ELEMENTAL) {
 		it(`${file} opens a Synapse Springs window it could not open before`, () => {
@@ -59,7 +73,7 @@ describe('the tinker buff on an Elemental pull', () => {
 	});
 });
 
-describe('the item effects three Elemental pulls wear and nothing declared', () => {
+describe('the item effects the Elemental pulls wear and nothing declared', () => {
 	/**
 	 * Four effects, each confirmed by events on a committed fixture rather than by a sim citation.
 	 *
@@ -89,21 +103,36 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 * outlasted the other four for a structural reason rather than by being forgotten — the guard that
 	 * found them walks auras put on the *player*. Its own block below carries that finding.
 	 */
-	const expected: Array<[string, [number, number, number]]> = [
-		// [aura key, windows on cleave / phased / unbroken]
-		['jade-spirit', [10, 8, 5]],
-		['toxic-power', [5, 6, 5]],
-		['lightweave', [5, 0, 4]],
+	const expected: Array<[string, Record<string, number>]> = [
+		// [aura key, windows per fixture file]
+		['jade-spirit', { 'addsThenBoss.json': 17, 'cleave.json': 10, 'phased.json': 8, 'unbroken.json': 5 }],
+		['toxic-power', { 'addsThenBoss.json': 0, 'cleave.json': 5, 'phased.json': 6, 'unbroken.json': 5 }],
+		['lightweave', { 'addsThenBoss.json': 0, 'cleave.json': 5, 'phased.json': 0, 'unbroken.json': 4 }],
 		// Purified Bindings of Immerseus, and the only one of the five found by asking the *other*
 		// question: not "which declared aura never fires" but "which id do these pulls carry that nothing
 		// declares". The first hole is what the coverage ledger guards; this was the second, and the same
 		// blind spot held `combatantinfo`'s Leader of the Pack while the raid-buff row read it absent.
-		['expanded-mind', [3, 2, 2]],
+		['expanded-mind', { 'addsThenBoss.json': 0, 'cleave.json': 3, 'phased.json': 2, 'unbroken.json': 2 }],
 	];
 
+	/**
+	 * **Three of the four rows read zero on `addsThenBoss`, and every one of those zeros is a gear fact.**
+	 *
+	 * That pull's shaman wears Wushoolay's Final Choice and Breath of the Hydra where the other three wear
+	 * Kardris' Toxic Totem and Purified Bindings of Immerseus, so `toxic-power` and `expanded-mind` have
+	 * nothing to fire; and its cloak carries enchant **4423**, plain Superior Intellect, exactly as
+	 * `phased`'s does, so `lightweave` has nothing either. None of that is inferred here — the
+	 * equipped-iff-fired biconditional at the foot of this file is what licenses reading a zero that way,
+	 * and it is the reason a grid full of zeros is a measurement rather than a shrug.
+	 */
 	for (const [key, counts] of expected) {
 		it(`${key} opens windows on the committed pulls`, () => {
-			const measured = ELEMENTAL.map((file) => windowCount(fixture('elemental', file), key));
+			// The grid is the whole committed set, so a fifth fixture fails by name rather than being
+			// dropped from a positional list.
+			expect(Object.keys(counts).sort()).toEqual([...ELEMENTAL].sort());
+			const measured = Object.fromEntries(
+				ELEMENTAL.map((file) => [file, windowCount(fixture('elemental', file), key)]),
+			);
 			expect(measured).toEqual(counts);
 		});
 	}
@@ -113,8 +142,9 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 *
 	 * Read off the analysed pull rather than off the lane list in `index.ts`, so this is the same set a
 	 * reader would see on the chart. Every declared-and-firing effect in this block is asserted on every
-	 * pull that procs it — `lightweave` does not proc on `phased` (0 windows above), and an empty lane is
-	 * dropped from the timeline, so that one pull is asked only for the other three.
+	 * pull that procs it — `lightweave` does not proc on `phased` and three of the four do not proc on
+	 * `addsThenBoss` (0 windows above), and an empty lane is dropped from the timeline, so those pulls are
+	 * asked only for what they actually carry.
 	 *
 	 * **That 0 is a gear fact and not a dry spell**, which this grid alone cannot say: `phased`'s cloak
 	 * carries enchant 4423, plain Superior Intellect, where the other two carry 4892. The gear sweep at
@@ -122,15 +152,20 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 * reading a zero as "the declaration is wrong" is the mistake that whole document is about.
 	 */
 	it('draws all four of them on the Elemental timeline', () => {
+		let drawnRows = 0;
 		for (const file of ELEMENTAL) {
 			const analysis = analyseElemental(fixture('elemental', file)) as Analysis;
 			const drawn = new Set(analysis.timeline?.lanes.map((l) => l.key) ?? []);
 			for (const [key, counts] of expected) {
 				// Only where the effect actually fired on this pull; a lane with no window is not drawn.
-				if (counts[ELEMENTAL.indexOf(file)] === 0) continue;
+				if (counts[file] === 0) continue;
 				expect(drawn.has(key), `${file} ${key}`).toBe(true);
+				drawnRows += 1;
 			}
 		}
+		// Not vacuous, which now matters: `addsThenBoss` contributes exactly one of these rows, so a grid
+		// that had gone all-zero would otherwise satisfy the loop above in silence.
+		expect(drawnRows).toBe(12);
 	});
 
 	/**
@@ -145,18 +180,27 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 * proves the blindness and proves that the `NOT_LANES` ledger has no slot for the class either; the
 	 * resolution here was a row.
 	 */
-	it("Essence of Yu'lon lands on the enemy on all three pulls", () => {
-		const counts = ELEMENTAL.map((file) => {
-			const dataset = fixture('elemental', file);
-			const applies = dataset.events.filter(
-				(e) =>
-					(e as { abilityGameID?: number }).abilityGameID === 146_198 &&
-					(e as { type?: string }).type === 'applydebuff' &&
-					(e as { sourceID?: number }).sourceID === dataset.actor.id,
-			);
-			return applies.length;
+	it("Essence of Yu'lon lands on the enemy on all four pulls", () => {
+		const counts = Object.fromEntries(
+			ELEMENTAL.map((file) => {
+				const dataset = fixture('elemental', file);
+				const applies = dataset.events.filter(
+					(e) =>
+						(e as { abilityGameID?: number }).abilityGameID === 146_198 &&
+						(e as { type?: string }).type === 'applydebuff' &&
+						(e as { sourceID?: number }).sourceID === dataset.actor.id,
+				);
+				return [file, applies.length];
+			}),
+		);
+		// `addsThenBoss` is the busiest by a wide margin — a nine-minute pull with add waves, where the
+		// other three are single-regime and under four and a half minutes.
+		expect(counts).toEqual({
+			'addsThenBoss.json': 40,
+			'cleave.json': 13,
+			'phased.json': 18,
+			'unbroken.json': 16,
 		});
-		expect(counts).toEqual([13, 18, 16]);
 		expect(registry.auraById(146_198)?.kind).toBe('debuff');
 	});
 
@@ -168,20 +212,32 @@ describe('the item effects three Elemental pulls wear and nothing declared', () 
 	 * a primary-scoped walk would draw part of the row and label it the proc's uptime.
 	 *
 	 * Counts rather than a bare `has`, so a walk that silently collapsed the row to one long window fails
-	 * here. They come out **equal to the application counts above on all three pulls, and that is a
-	 * coincidence rather than a rule** — worth saying because it invites the wrong inference. The walk
-	 * opens on refresh, so a refresh extends a window instead of adding one (`unbroken`'s first is
-	 * 3 096 → 10 113 ms, well past the aura's declared four seconds), and windows on two spawns burning at
-	 * once are merged. Both effects are live here and happen to cancel. Asserting the pair is the point:
-	 * the two numbers are read by different walks and are free to disagree.
+	 * here. They come out **equal to the application counts above on three of the four pulls, and that was
+	 * always a coincidence rather than a rule** — the walk opens on refresh, so a refresh extends a window
+	 * instead of adding one (`unbroken`'s first is 3 096 → 10 113 ms, well past the aura's declared four
+	 * seconds), and windows on two spawns burning at once are merged. Both effects are live and on those
+	 * three they happen to cancel.
+	 *
+	 * *** On `addsThenBoss` they do not cancel: 40 applications draw 34 windows. *** This docblock already
+	 * said the two numbers "are read by different walks and are free to disagree", and it was right — it
+	 * simply had no pull where they did, because the grid under it was a hardcoded three and the fourth
+	 * fixture was never asked. Six of its forty applications land while a window on another spawn is
+	 * already open, which is the merge doing exactly what the paragraph describes. So the prediction is
+	 * confirmed rather than corrected, and the pair is now pinned per pull instead of as one shared list.
 	 */
 	it("draws Essence of Yu'lon on the Elemental timeline", () => {
-		const drawn = ELEMENTAL.map((file) => {
-			const analysis = analyseElemental(fixture('elemental', file)) as Analysis;
-			return analysis.timeline?.lanes.find((l) => l.key === 'essence-of-yulon')?.windows.length;
+		const drawn = Object.fromEntries(
+			ELEMENTAL.map((file) => {
+				const analysis = analyseElemental(fixture('elemental', file)) as Analysis;
+				return [file, analysis.timeline?.lanes.find((l) => l.key === 'essence-of-yulon')?.windows.length];
+			}),
+		);
+		expect(drawn).toEqual({
+			'addsThenBoss.json': 34,
+			'cleave.json': 13,
+			'phased.json': 18,
+			'unbroken.json': 16,
 		});
-		// cleave / phased / unbroken, the order `ELEMENTAL` is in.
-		expect(drawn).toEqual([13, 18, 16]);
 	});
 });
 
@@ -495,13 +551,19 @@ describe('absent from every fixture, because not one of the five players wore it
 	 * *** The glove tinker is the hole in this instrument, and it is worth a test rather than a note. ***
 	 *
 	 * Synapse Springs is enchant 4898 and it is gear like any other — but `combatantinfo` reports **one**
-	 * `permanentEnchant` per slot, and on all four of these pulls the hand slot reports 4433, Superior
+	 * `permanentEnchant` per slot, and on all **five** of these pulls the hand slot reports 4433, Superior
 	 * Mastery. The tinker is a second enchant on the same item and there is nowhere in this event for it
-	 * to go. So the gear reading says "no tinker" on four pulls that all press 126734 — which means the
+	 * to go. So the gear reading says "no tinker" on five pulls that all press 126734 — which means the
 	 * biconditional above is a statement about trinkets, gems, cloaks and slot enchants, and **not** a
 	 * general licence to read gear as the whole of what a player is wearing.
+	 *
+	 * The count read "four" and the loop below has always walked `RAW_PULLS`, which is `rawFixtures` over
+	 * both specs — four Elemental pulls and one Windwalker. So the sentence was one behind its own
+	 * assertion from the moment `addsThenBoss.json` landed; the loop is asserted against the length now
+	 * rather than counted in prose.
 	 */
-	it('cannot see the glove tinker, which four pulls demonstrably had', () => {
+	it('cannot see the glove tinker, which every committed pull demonstrably had', () => {
+		expect(RAW_PULLS.length).toBe(5);
 		for (const [name, dataset] of RAW_PULLS) {
 			const worn = equippedIds(dataset);
 			expect(worn.has(4898), `${name} reports the tinker`).toBe(false);

@@ -24,9 +24,16 @@
 // passing.
 //
 // **Nothing here is a graded figure and that is the constraint rather than a remark.** `stormlash.totems`
-// and `stormlash.overlaps` come off `raidStormlash` — a separate fetch no committed fixture carries — and
-// they still read `{ shamans: [], overlaps: [], totems: 0 }` on all three pulls, which the last describe
-// asserts alongside the rows to prove the two readings stayed independent through the lift.
+// and `stormlash.overlaps` come off `raidStormlash`, a separate fetch, and the last describe asserts them
+// alongside the rows to prove the two readings stayed independent through the lift.
+//
+// *** That paragraph used to end "a separate fetch no committed fixture carries", and it is false. ***
+// `addsThenBoss.json` carries a `raidStormlash` array of **ten** placements from five shamans, so the
+// fourth committed pull reads `totems: 10` with five `shamans` entries where the other three read `0` and
+// `[]`. The claim survived the fixture landing because the sweep under it was the literal
+// `['phased', 'unbroken', 'cleave']` — the fetch arrived in the repository and the test that says nothing
+// ever fetched it stayed green. The set is discovered from `rawFixtures` now and the two halves are
+// asserted separately.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -34,18 +41,39 @@ import { describe, expect, it } from 'vitest';
 import { RAID_SOURCE_LANES, windowsBySource } from '~/lib/analysis/raidCasters';
 import { raidScoped } from '~/lib/analysis/auras';
 import type { WclEvent } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, AuraLane, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 
 const STORMLASH_BUFF = 120_676;
 const SKULL_BANNER = 114_206;
 
-const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
+/** Every raw Elemental pull, found rather than listed. */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
-const load = (name: string): FightDataset =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
+/**
+ * The dataset and the analysis, both **memoised**, because the sweeps below read each pull several times
+ * over and `addsThenBoss.json` is 4.4 MB. `bands.test.ts` made the same change and got faster for it.
+ */
+const datasets = new Map<string, FightDataset>();
+const load = (name: string): FightDataset => {
+	const hit = datasets.get(name);
+	if (hit !== undefined) return hit;
+	const dataset = JSON.parse(
+		readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8'),
+	) as FightDataset;
+	datasets.set(name, dataset);
+	return dataset;
+};
 
-const fx = (name: string): Analysis & ElementalAuditResult => analyse(load(name)) as Analysis & ElementalAuditResult;
+const analysed = new Map<string, Analysis & ElementalAuditResult>();
+const fx = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(load(name)) as Analysis & ElementalAuditResult;
+	analysed.set(name, el);
+	return el;
+};
 
 /** The drawn rows for one buff, in the order the engine emitted them. */
 const rowsFor = (el: Analysis, key: string): AuraLane[] =>
@@ -75,13 +103,18 @@ describe('a row per caster, counted against the fixture’s own stream', () => {
 	 * caster and per instance agree there and only the Skull Banner tests below can tell them apart.
 	 * `phased` carries two. Re-derived from the stream rather than written down, so the assertion cannot
 	 * outlive the fixture.
+	 *
+	 * **`addsThenBoss` is the pull where the two readings do come apart on Stormlash**: ten totems on this
+	 * shaman from five casters, so per-instance would draw ten rows and per-caster draws five. It was
+	 * outside this sweep entirely until the list stopped being a literal, and it is the strongest evidence
+	 * the grouping has — two totems apiece rather than one, on both halves of a nine-minute pull.
 	 */
 	it('draws one Stormlash row per shaman who put a totem on the player', () => {
 		const counts = FIXTURES.map((name) => {
 			const dataset = load(name);
 			return {
 				name,
-				rows: rowsFor(analyse(dataset), 'stormlash-totem').length,
+				rows: rowsFor(fx(name), 'stormlash-totem').length,
 				casters: castersOnPlayer(dataset, STORMLASH_BUFF).size,
 				applications: appliedToPlayer(dataset, STORMLASH_BUFF),
 			};
@@ -89,31 +122,37 @@ describe('a row per caster, counted against the fixture’s own stream', () => {
 		// Not vacuous: every pull really does put more than one totem on this shaman.
 		for (const c of counts) expect(c.applications, c.name).toBeGreaterThan(1);
 		expect(counts.map((c) => c.rows)).toEqual(counts.map((c) => c.casters));
-		expect(counts.map((c) => c.rows)).toEqual([2, 4, 4]);
+		// `rawFixtures` order: addsThenBoss, cleave, phased, unbroken.
+		expect(counts.map((c) => c.rows)).toEqual([5, 4, 2, 4]);
+		// And the guard the count alone cannot give: one pull really does carry more totems than casters,
+		// so a per-instance rule would have drawn ten rows there and not five.
+		expect(counts.map((c) => c.applications)).toEqual([10, 4, 2, 4]);
 	});
 
 	/**
 	 * The buff that had no row at all, now one per warrior — and this is the count that moved.
 	 *
-	 * Four, two and four banners land on the player across the three pulls, from two, two and two
-	 * warriors. So `phased` and `cleave` drew four rows apiece under the per-instance rule and draw two
-	 * now, which is the reported bug measured rather than described.
+	 * Six, four, four and two banners land on the player across the four pulls, from two warriors apiece.
+	 * So three of them drew four or six rows under the per-instance rule and draw two now, which is the
+	 * reported bug measured rather than described. `addsThenBoss` is the strongest of the four — three
+	 * banners from each of its two warriors, so per-instance would have drawn six.
 	 */
 	it('draws one Skull Banner row per warrior, not one per banner', () => {
 		const counts = FIXTURES.map((name) => {
 			const dataset = load(name);
 			return {
 				name,
-				rows: rowsFor(analyse(dataset), 'skull-banner').length,
+				rows: rowsFor(fx(name), 'skull-banner').length,
 				casters: castersOnPlayer(dataset, SKULL_BANNER).size,
 				applications: appliedToPlayer(dataset, SKULL_BANNER),
 			};
 		});
 		expect(counts.map((c) => c.rows)).toEqual(counts.map((c) => c.casters));
-		expect(counts.map((c) => c.rows)).toEqual([2, 2, 2]);
-		// The guard that makes the line above mean something: two of these pulls really do carry more
-		// banners than warriors, so a per-instance rule would have drawn four rows and not two.
-		expect(counts.map((c) => c.applications)).toEqual([4, 2, 4]);
+		expect(counts.map((c) => c.rows)).toEqual([2, 2, 2, 2]);
+		// The guard that makes the line above mean something: three of these pulls really do carry more
+		// banners than warriors, so a per-instance rule would have drawn six or four rows and not two.
+		// `rawFixtures` order: addsThenBoss, cleave, phased, unbroken.
+		expect(counts.map((c) => c.applications)).toEqual([6, 4, 4, 2]);
 	});
 
 	/**
@@ -198,15 +237,19 @@ describe('whose row it is', () => {
 	/**
 	 * The shaman's own totem is the only one of the four the player pressed, and Skull Banner is nobody's.
 	 *
-	 * Concrete rather than only structural: this shaman lays one totem on every pull and no committed
-	 * fixture has the player carrying a warrior's banner, so Stormlash has an own row on all three and
-	 * Skull Banner has one on none. If a future fixture puts a warrior in the seat that flips, and it
-	 * should flip here rather than somewhere downstream.
+	 * Concrete rather than only structural: this shaman lays at least one totem on every pull and no
+	 * committed fixture has the player carrying a warrior's banner, so Stormlash has an own row on all
+	 * **four** and Skull Banner has one on none. If a future fixture puts a warrior in the seat that flips,
+	 * and it should flip here rather than somewhere downstream — which is why the list is discovered rather
+	 * than written out. `addsThenBoss` lays *two* of its own totems, so "one totem on every pull" is now
+	 * "at least one".
 	 */
 	it('owns a Stormlash row on every pull and a Skull Banner row on none', () => {
 		const owned = (name: string, key: string) => rowsFor(fx(name), key).some((r) => r.source?.own === true);
-		expect(FIXTURES.map((n) => owned(n, 'stormlash-totem'))).toEqual([true, true, true]);
-		expect(FIXTURES.map((n) => owned(n, 'skull-banner'))).toEqual([false, false, false]);
+		expect(FIXTURES.map((n) => owned(n, 'stormlash-totem'))).toEqual(FIXTURES.map(() => true));
+		expect(FIXTURES.map((n) => owned(n, 'skull-banner'))).toEqual(FIXTURES.map(() => false));
+		// Not vacuous — the map above would satisfy an empty fixture set.
+		expect(FIXTURES.length).toBeGreaterThan(3);
 	});
 
 	/**
@@ -475,18 +518,32 @@ describe('the lift did not touch the section’s own numbers', () => {
 	 * player. Two sources, two questions, and the per-caster bucket is now shared between them — so the
 	 * one thing worth asserting after the lift is that sharing it did not cross the two.
 	 *
-	 * No committed fixture carries the placement fetch, so all three still say nothing about the raid
-	 * while drawing rows for what the raid actually gave the player. `stormlash.test.ts`' synthetic pull
-	 * is where `totems` and `overlaps` themselves are pinned, and it passes unchanged.
+	 * *** This test used to assert that **no** committed fixture carries the placement fetch, over a
+	 * hardcoded three. `addsThenBoss.json` does carry it. *** Its `raidStormlash` array holds ten casts of
+	 * 120668 from five sources, so `totems` reads 10 and `shamans` holds five entries — while its rows are
+	 * still built from the buff on the player, which is the independence this describe exists to check. The
+	 * literal list is what let the claim outlive the fixture; the set is discovered now, and the pulls with
+	 * the fetch and the pulls without it are asserted as two named groups so a fifth has to be classified.
+	 *
+	 * `stormlash.test.ts`' synthetic pull is still where `overlaps` is pinned — `addsThenBoss`' five
+	 * shamans staggered their ten totems cleanly, so its `overlaps` is `[]` for a real reason rather than
+	 * for want of a fetch.
 	 */
-	it('still says nothing about the raid on a pull that never fetched it, while drawing the rows', () => {
+	it('keeps the placement fetch and the drawn rows independent, on the pulls that have each', () => {
+		const fetched = FIXTURES.filter((name) => fx(name).stormlash.totems > 0);
+		expect(fetched).toEqual(['addsThenBoss']);
+		// The pull that fetched: ten placements, five casters, and no overlap between them.
+		const adds = fx('addsThenBoss').stormlash;
+		expect([adds.totems, adds.shamans.length, adds.overlaps]).toEqual([10, 5, []]);
+
 		for (const name of FIXTURES) {
 			const el = fx(name);
 			// The three *placement* figures, named one by one rather than through a whole-object equality.
 			// `stormlash.received` now sits beside them, read off the buff on the player rather than off
 			// the fetch — which is the same distinction this test exists to keep — so an equality over the
 			// whole audit would have to restate its rows in order to say the placements are empty.
-			expect([el.stormlash.shamans, el.stormlash.overlaps, el.stormlash.totems], name).toEqual([[], [], 0]);
+			if (!fetched.includes(name))
+				expect([el.stormlash.shamans, el.stormlash.overlaps, el.stormlash.totems], name).toEqual([[], [], 0]);
 			expect(rowsFor(el, 'stormlash-totem').length, name).toBeGreaterThan(0);
 			// And the table's rows come off the same side of the split the lanes do, so the two cannot drift:
 			// one entry per bar drawn, on every pull.

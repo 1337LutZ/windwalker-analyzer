@@ -29,6 +29,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { abilityIdOf, isCast } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset, PoolResourceAudit, WclEvent } from '~/lib/types';
 
 import { analyse } from '../index';
@@ -112,12 +113,40 @@ describe('the three pulls that answer neither fault', () => {
 	 * scorecard flag and a literal, not one number read twice.
 	 */
 	it('grade neither mana fault, on all three, rather than handing out a free full mark', () => {
+		// **Deliberately three, and the reason is on the line.** These are the pulls whose pool never drops
+		// under either line, which is what makes the section unmeasurable on them — the clause the plan asked
+		// for. `addsThenBoss` is the control for the other half and must not be swept in here: its pool
+		// bottoms out at 62.344%, so its Shamanistic Rage clock fills, its section is measurable and its
+		// grade is `ok`. That is the whole subject of `the mixed-regime pull` below.
 		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
 			const card = scoreAnalysis(fx(name));
 			const mana = card.sections['mana'];
 			expect(mana?.unmeasurable, name).toBe(true);
 			for (const metric of mana?.metrics ?? []) expect(metric.unmeasurable, `${name} ${metric.key}`).toBe(true);
 		}
+	});
+
+	/**
+	 * *** The guard a literal three cannot be: every committed pull is on one side of the refusal. ***
+	 *
+	 * The list above is a deliberate three and a deliberate list has one failure mode — a fixture that
+	 * belongs on neither side and is asked by nobody. `addsThenBoss.json` was exactly that until the pull it
+	 * needed was written for it; the sentence "on all three" would have gone on being green however many
+	 * pulls the directory held.
+	 *
+	 * So the split is derived from `rawFixtures` and measured rather than named: a pull is unmeasurable
+	 * exactly when its section is, and the three named above have to be that set. A fifth fixture fails
+	 * here and says which side it belongs on.
+	 */
+	it('puts every committed pull on one side of the refusal, measured rather than listed', () => {
+		const all = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+		const refused: string[] = [];
+		const graded: string[] = [];
+		for (const name of all)
+			(scoreAnalysis(fx(name)).sections['mana']?.unmeasurable === true ? refused : graded).push(name);
+		expect(refused.sort()).toEqual(['cleave', 'phased', 'unbroken']);
+		expect(graded).toEqual(['addsThenBoss']);
+		expect(refused.length + graded.length).toBe(all.length);
 	});
 
 	/**

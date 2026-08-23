@@ -38,11 +38,28 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import { resolveBands, type TargetModeChoice } from '~/lib/view/targetMode';
 import type { Metric, MetricRule } from '~/lib/score';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 import { scoreAnalysis, THRESHOLDS, WEIGHTS, weightsFor } from '../score';
 
+/**
+ * **Deliberately three, and this is the reason on the line.** The three pulls this rule *measures* on —
+ * the ones whose raid lusted on the pull, so there is a graded clock and a real share of it. The fourth
+ * committed pull, `addsThenBoss`, is the one the rule **declines**: its Heroism opens at 438 207 ms, the
+ * graded clock is empty, and the metric comes back unmeasurable. Sweeping it into these five loops would
+ * assert a 100.00% share on the pull whose whole point is that there is no share to take — see `says
+ * nothing about the pull whose raid lusted seven minutes in`.
+ *
+ * The two halves are a partition of the fixture directory rather than two lists, and `every committed pull
+ * is on one side of the rule` below is what makes a fifth fixture pick a side instead of landing in
+ * neither. That is the hole a bare literal leaves: this file is *about* which pulls the rule can speak on,
+ * so a new pull nobody classified is the one thing it must not miss.
+ */
 const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
+
+/** Every raw Elemental pull, found rather than listed — the denominator `FIXTURES` is three of. */
+const ALL_FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 const PRIMAL_ELEMENTALIST = 117_013;
 const FIRE_ELEMENTAL_CAST = 2894;
@@ -360,6 +377,29 @@ describe('the three ways this rule declines, and none of them is a full mark', (
 			'fireElementalHasteUptime=unm',
 		]);
 		expect(card.sections['fireElemental']?.grade).toBe('ok');
+	});
+
+	/**
+	 * *** The guard the literal `FIXTURES` could not be: every committed pull is on one side of the rule.
+	 * ***
+	 *
+	 * `FIXTURES` is deliberately three — the pulls the rule measures on — and a deliberate list has one
+	 * failure mode, which is a fixture that belongs on neither side and is asked by nobody. That is what
+	 * happened when `addsThenBoss.json` landed: it should have been the declining case from the day it was
+	 * committed, and the five loops over the three-name literal went on being green without it.
+	 *
+	 * So the partition is derived rather than assumed. Measured, not named: a pull is on the measured side
+	 * exactly when the metric has a graded clock, and `FIXTURES` has to be that set. A fifth fixture fails
+	 * here and says which side it belongs on.
+	 */
+	it('puts every committed pull on one side of the rule, measured rather than listed', () => {
+		const measured: string[] = [];
+		const declined: string[] = [];
+		for (const name of ALL_FIXTURES) ((metricOn(fx(name))?.gradedMs ?? 0) > 0 ? measured : declined).push(name);
+		expect(measured.sort()).toEqual([...FIXTURES].sort());
+		expect(declined).toEqual(['addsThenBoss']);
+		// Not vacuous: the whole committed set is accounted for and neither half is empty.
+		expect(measured.length + declined.length).toBe(ALL_FIXTURES.length);
 	});
 
 	/**

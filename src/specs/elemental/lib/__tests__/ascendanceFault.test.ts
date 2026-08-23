@@ -21,6 +21,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, AscendanceFault, ElementalAuditResult, FightDataset } from '~/lib/types';
 
 import {
@@ -31,12 +32,26 @@ import {
 } from '../ascendance';
 import { analyse, ascendanceFault } from '..';
 
-const FIXTURES = ['unbroken', 'phased', 'cleave'] as const;
+/**
+ * Every raw Elemental pull, found rather than listed.
+ *
+ * This was `['unbroken', 'phased', 'cleave']`, in a describe block called *"the committed pulls, measured
+ * rather than assumed"* — so the one thing it could not survive was the committed set growing, which it
+ * did. `addsThenBoss.json` publishes four presses and four nulls, and it was outside every assertion here.
+ */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
-const load = (name: string): Analysis & ElementalAuditResult =>
-	analyse(
+/** Memoised: three assertions read every pull and `addsThenBoss.json` is 4.4 MB. */
+const analysed = new Map<string, Analysis & ElementalAuditResult>();
+const load = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(
 		JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset,
 	) as Analysis & ElementalAuditResult;
+	analysed.set(name, el);
+	return el;
+};
 
 /** A verdict with every field explicit, so each case below states only what it is about. */
 const verdict = (over: Partial<AscendancePressVerdict>): AscendancePressVerdict => ({
@@ -126,10 +141,14 @@ describe('each fault is the demand its own quantity actually broke', () => {
 	 * Rule 3, on both arms, and reached by exclusion rather than by re-testing the overlap.
 	 *
 	 * **Wired, and still not reachable on a committed pull — for a better reason than it was.** `index.ts`
-	 * now passes `skullBannerWindows`, so rule 3 reads real overlaps on all six presses: 15 000, 10 149,
-	 * 15 000, 0, 13 944 and 10 273 ms against a 9 000 bound. Five clear it and the single zero is on the
-	 * press rule 2's availability guard has already exempted, so no committed press fails rule 3 and both
-	 * of its faults stay synthetic. That is a property of these three pulls rather than of the wiring.
+	 * now passes `skullBannerWindows`, so rule 3 reads real overlaps on all **ten** presses: 15 000, 10 149
+	 * (`phased`), 15 000, 0 (`unbroken`), 13 944, 10 273 (`cleave`) and 11 373, 0, 1 499, 0
+	 * (`addsThenBoss`) against a 9 000 bound. No committed press *fails* rule 3, so both of its faults stay
+	 * synthetic — but the reason is narrower than this paragraph used to claim over six presses. **Four of
+	 * the ten are under the bound, and every one of them is on a press some other guard has already
+	 * exempted**: `unbroken`'s second, 714 ms from the kill, and all three of `addsThenBoss`' later presses,
+	 * whose shaman has no T16 two-piece to sync against. So it is a property of the four pulls' exemptions
+	 * rather than of their banners, and `ascendance.test.ts` pins both halves.
 	 *
 	 * Rule 3 reads the **union** of every banner the player was given, not the best single one, and
 	 * `phased` is why it must: two warriors handed off mid-window, so its opener's best single banner is
@@ -154,20 +173,30 @@ describe('each fault is the demand its own quantity actually broke', () => {
 
 describe('the committed pulls, measured rather than assumed', () => {
 	/**
-	 * What the three fixtures actually publish. Two of the five faults are exercised by real data — one
-	 * of them by nothing at all — so this table is the record of which cases the pulls can and cannot
-	 * speak to, and the reason the suite above is synthetic where it is.
+	 * What the four fixtures actually publish. **One** of the five faults is exercised by real data, on two
+	 * pulls — so this table is the record of which cases the pulls can and cannot speak to, and the reason
+	 * the suite above is synthetic where it is.
+	 *
+	 * The grid was positional over a hardcoded `['unbroken', 'phased', 'cleave']`; it is keyed by name and
+	 * checked against `rawFixtures` now, because a positional grid re-pairs itself silently when a fixture
+	 * name sorts before the first entry — which `addsThenBoss` does.
 	 */
 	it('faults each pull’s presses the way its own numbers demand', () => {
-		const faults = FIXTURES.map((name) => load(name).ascendance.presses.map((p) => p.fault));
-		expect(faults).toEqual([
+		const faults = Object.fromEntries(
+			FIXTURES.map((name) => [name, load(name).ascendance.presses.map((p) => p.fault)]),
+		);
+		expect(faults).toEqual({
+			// addsThenBoss: four presses and not one graded — an opener exempted for having nothing to hit
+			// inside it, then three presses on a shaman with no T16 two-piece. No fault can be named on a
+			// press the grade never called bad, which is this function's first rule and its only reading here.
+			addsThenBoss: [null, null, null, null],
+			// cleave and phased: a good opener each, and a second press that found no discharge at all.
+			cleave: [null, 'discharge-too-short'],
+			phased: [null, 'discharge-too-short'],
 			// unbroken: a good opener, and a second press rule 2's guard exempts — 58ms after the button
 			// came back, so the 14 286ms it wasted is the pull's length and not the player's choice.
-			[null, null],
-			// phased and cleave: a good opener each, and a second press that found no discharge at all.
-			[null, 'discharge-too-short'],
-			[null, 'discharge-too-short'],
-		] satisfies (AscendanceFault | null)[][]);
+			unbroken: [null, null],
+		} satisfies Record<string, (AscendanceFault | null)[]>);
 	});
 
 	/** The invariant on real data, both directions, which is what a reordered conjunction would break. */
@@ -182,6 +211,8 @@ describe('the committed pulls, measured rather than assumed', () => {
 	 * these three and drawing them must not disturb them.
 	 */
 	it('leaves every pull grade where cbc9259 left it', () => {
-		expect(FIXTURES.map((name) => load(name).ascendance.grade)).toEqual(['good', 'bad', 'bad']);
+		// `rawFixtures` order — and `addsThenBoss`' `none` is a value `cbc9259` never saw, because every one
+		// of its presses is exempt.
+		expect(FIXTURES.map((name) => load(name).ascendance.grade)).toEqual(['none', 'bad', 'bad', 'good']);
 	});
 });

@@ -19,13 +19,25 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse, registry } from '../index';
 
 const load = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
 
-const fx = (name: string): Analysis & ElementalAuditResult => analyse(load(name)) as Analysis & ElementalAuditResult;
+/** Memoised: the sweep below walks every committed pull and `addsThenBoss.json` is 4.4 MB. */
+const analysed = new Map<string, Analysis & ElementalAuditResult>();
+const fx = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(load(name)) as Analysis & ElementalAuditResult;
+	analysed.set(name, el);
+	return el;
+};
+
+/** Every raw Elemental pull, found rather than listed. */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 describe('the Earth Elemental on two real pulls', () => {
 	/** `a:qHRAFwdGzaB6MPYC` #14: pressed at 240.2s of a 258.3s pull, 18.1s left — branch A of the rule. */
@@ -444,23 +456,40 @@ describe('an Earth Elemental that was already out at the pull', () => {
 		expect(el2.earthElemental.prepull).toBe(false);
 	});
 
+	/**
+	 * **"Every committed fixture" is now the fixture directory rather than a list of three.** It read
+	 * `['phased', 'unbroken', 'cleave']`; `addsThenBoss.json` landed and reads `false` too, so the fourth
+	 * log widens the evidence without moving the claim — and the sweep no longer has to be re-edited by
+	 * whoever commits the fifth.
+	 */
 	it('reports every committed fixture as not pre-pulled, which is why this suite is synthetic', () => {
-		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+		for (const name of FIXTURES) {
 			expect(fx(name).earthElemental.prepull, name).toBe(false);
 		}
-		// And `cleave` is the pull the flag exists for: no press, no evidence either way before now.
+		// And two pulls are the ones the flag exists for: no press, no evidence either way before now.
+		// `cleave` was the only one when this was written; `addsThenBoss` is the second, and it is a
+		// nine-minute pull rather than a four-minute one, so silence there is a stronger reading.
 		expect(fx('cleave').earthElemental.presses).toEqual([]);
+		expect(fx('addsThenBoss').earthElemental.presses).toEqual([]);
 	});
 });
 
 /**
  * The Fire Elemental tile counts the pre-pull use, on the real pulls — §68's headline.
  *
- * All three committed pulls summon it before the bell, so all three had `prepull: true` beside a
+ * Three of the four committed pulls summon it before the bell, so all three had `prepull: true` beside a
  * "Summons" tile reading **0**. The count and the table now come off one list, which is what stops them
  * disagreeing again in the other direction.
+ *
+ * **The three are named rather than discovered, and this is the one list in this file that stays a
+ * literal.** `addsThenBoss` is the control for the other half: it summons the elemental *in* the fight, at
+ * 173 290 and 479 923 ms, with two real 2894 `cast` events, so `prepull` is `false` and `presses` carries
+ * two uninferred rows. Sweeping it into this block would assert the pre-pull shape on the one pull that
+ * proves the non-pre-pull shape, and the assertion under `also reads the in-fight summons` is what keeps
+ * the pair honest — a fifth fixture has to be classified into one of the two rather than silently landing
+ * in neither.
  */
-describe('the pre-pull Fire Elemental is counted as a use on every committed pull', () => {
+describe('the pre-pull Fire Elemental is counted as a use on every committed pull that pre-pulled it', () => {
 	for (const name of ['phased', 'unbroken', 'cleave'] as const) {
 		it(`${name} publishes one inferred use and no cast press`, () => {
 			const el2 = fx(name);
@@ -474,4 +503,38 @@ describe('the pre-pull Fire Elemental is counted as a use on every committed pul
 			expect(casts.filter((ev) => (ev as { type: string }).type === 'cast')).toEqual([]);
 		});
 	}
+
+	/**
+	 * *** The half the literal above cannot cover, and the reason the pair is a partition rather than a
+	 * list. ***
+	 *
+	 * `addsThenBoss` is the first committed pull that does **not** pre-pull the Fire Elemental, and it is
+	 * the exact case a hardcoded three hides: the block above would have gone on asserting the pre-pull
+	 * shape on the pulls it names and never noticed that the committed set had grown a counter-example.
+	 * So the classification is derived from `rawFixtures` and every pull has to fall on one side of it —
+	 * a fifth fixture fails here by name rather than being swept by neither block.
+	 *
+	 * The two in-fight presses are read off the pull's own 2894 `cast` events as well as off the audit, so
+	 * the row and the log are two readings rather than one.
+	 */
+	it('also reads the in-fight summons, and every committed pull is on one side or the other', () => {
+		const prepulled: string[] = [];
+		const inFight: string[] = [];
+		for (const name of FIXTURES) (fx(name).fireElemental.prepull ? prepulled : inFight).push(name);
+		expect([prepulled, inFight]).toEqual([['cleave', 'phased', 'unbroken'], ['addsThenBoss']]);
+
+		const el2 = fx('addsThenBoss');
+		expect(el2.fireElemental.presses).toEqual([
+			{ t: 173_290, reason: 'early', inferred: false },
+			{ t: 479_923, reason: null, inferred: false },
+		]);
+		// The independent half, the other way round from the block above: this pull really does carry the
+		// `cast` events, which is why nothing had to be inferred for it.
+		const casts = load('addsThenBoss').events.filter(
+			(ev) =>
+				(ev as { type: string; abilityGameID?: number }).abilityGameID === FIRE_ELEMENTAL &&
+				(ev as { type: string }).type === 'cast',
+		);
+		expect(casts.length).toBe(2);
+	});
 });

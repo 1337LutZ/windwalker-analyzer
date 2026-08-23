@@ -21,11 +21,22 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '../index';
 
 const ELEMENTAL_MASTERY = 16_166;
-const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
+
+/**
+ * Every raw Elemental pull, found rather than listed.
+ *
+ * **This was `['phased', 'unbroken', 'cleave']`, and the literal was the whole of the risk.** The claim
+ * below is a universal over the committed set — "none of them took it" — so a fourth fixture that *had*
+ * taken the talent would have walked past a hardcoded three without a word, which is the failure mode
+ * `analysis/fixtures.ts`' own docblock was written about. `addsThenBoss.json` landed and is swept by this
+ * automatically; so is the fifth.
+ */
+const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 const load = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
@@ -38,10 +49,15 @@ const talentsOf = (dataset: FightDataset): number[] | null => {
 
 describe('the talent the section is gated on', () => {
 	/**
-	 * All three committed pulls carry a talent list and none of them names 16166, so all three read
+	 * All **four** committed pulls carry a talent list and none of them names 16166, so all four read
 	 * `false` — which makes the Elemental Mastery section vanish on every reference report. That is the
 	 * visible consequence of this field and it is asserted rather than discovered: the section used to
 	 * render with an empty table and a note saying the talent could not be read.
+	 *
+	 * `addsThenBoss` did not move it: its shaman took 108271/108273/108285/108283/108281/117013 and no
+	 * fourth-tier Elemental Mastery either, so the fourth log widens the evidence without changing the
+	 * conclusion. The set is now discovered rather than listed, so a fifth pull that *did* take it would
+	 * fail here by name.
 	 *
 	 * The premise is re-derived from each fixture's own `combatantinfo` rather than written down, so a
 	 * fixture recaptured from a shaman who *did* take the talent fails here instead of silently inverting
