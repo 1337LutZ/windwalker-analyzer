@@ -13,10 +13,60 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  * decide what a global is spent on. The entries above it are excluded on purpose, each for its own
  * reason:
  *
- * - **Touch of Death** (priority 3) tests `spellCanCast`, which in 5.4 means the target is under 10%
- *   health. Health is not in the event stream this report fetches, so the condition is undecidable —
- *   and an undecidable rule at the top of a ladder would poison every press below it into "cannot
- *   say". One press a pull, excluded rather than guessed at.
+ * - **Touch of Death** (priority 3) is the one entry here that is a gap *in* the ladder rather than a
+ *   button off it, and the reason it has no rung is not the one this bullet used to give.
+ *
+ *   It used to say the condition is "the target is under 10% health", that health is not in the event
+ *   stream, and that the rule is therefore undecidable. That was wrong twice. **Target health is not
+ *   what the sim tests.** Priority 3's condition is `spellCanCast(115080)`, and what that resolves to is
+ *   `ExtraCastCondition` in `sim/monk/touch_of_death.go:40-42`:
+ *
+ *       (hasGlyph || monk.GetChi() >= 3) && sim.GetRemainingDuration() <= time.Second*1
+ *
+ *   Chi, and how much of the pull is left. Both are already in this ladder's vocabulary: chi is on
+ *   `State` and is the bar every spender below is judged against, and the remaining duration is
+ *   `state.pullMs - state.t`, from the same `pullMs` the short-pull rung at the bottom of this file
+ *   already reads. There is no missing reader and no undecidable term. **The rung is arithmetically
+ *   expressible today**, and a reader who checks only whether the condition can be written will
+ *   conclude it should be written.
+ *
+ *   What stops it is what `GetRemainingDuration` *means*. A wowsims boss has no health pool at all, so
+ *   the sim cannot ask "is the target executable" and asks "is the iteration nearly over" instead. The
+ *   two coincide on a kill — on all six captured pulls the final global lands 185ms to 699ms before the
+ *   end — and they have nothing to do with each other on a **wipe**, where `pullMs` is the instant the
+ *   raid died and the boss was nowhere near execute range. A rung reading `pullMs - t <= 1s` would
+ *   therefore tell every wiping raid to press a button that was not castable, once per pull, whenever
+ *   chi was 3 or more at the final global — a systematic false fault on a whole class of pull, traded
+ *   for a false fault on a press that is nearly never made. The report's own standard is that a wrong
+ *   "you misplayed here" costs a reader more than a missing one, so the trade is the wrong way round.
+ *
+ *   **The missing predicate is whether the pull was a kill, and that is the whole of what is missing.**
+ *   `fight.kill` is fetched (`wcl/reportFights.graphql`) and carried onto the analysis
+ *   (`analysis/analyseCore.ts:1357`), and nothing gates the report on it — wipes are analysed. It is
+ *   simply not on `AplInputs`, so a rung cannot see it. Put it there and this rung becomes writable.
+ *
+ *   Measured before deciding, so the next reader does not re-open this blind. Touch of Death is pressed
+ *   **zero times across all six captured pulls** — `115080` does not appear anywhere in any of the six
+ *   fixture files, nor in the raw `dataset-ironJuggernaut.json` — so the rung would remove no false
+ *   fault at all on the reference sample. What it would add is measurable: it claims the final global of
+ *   `cleave` (Rushing Jade Wind at 208130 with 3 chi and 241ms left, today `followed`) and re-points the
+ *   final global of `weave`, and changes nothing on `poor`, `strong` or `waves`, all three of which end
+ *   on 2 chi — below the 3 the press costs, so the walk steps over the rung without charging anything.
+ *   One new fault and one re-point in 1351 presses, against zero removed.
+ *
+ *   Two residuals worth recording, because both look like the blocker and neither is. The *game's*
+ *   condition — target current health below the monk's own maximum health — really is unreadable here:
+ *   0 of the 3181 events in `dataset-ironJuggernaut.json` carry `hitPoints` or `maxHitPoints`, because
+ *   `includeResources: true` puts `classResources` on the player's own events and says nothing about the
+ *   enemy, and an enemy-side reading would need a query `wcl/fightEvents.graphql` does not make. That is
+ *   true and it is beside the point: it is not the predicate a faithful transcription would read. And
+ *   Glyph of Touch of Death waives the chi entirely while adding two minutes to the 90-second cooldown
+ *   (`touch_of_death.go:11,14`), which the log cannot report either way — so even a kill-gated rung
+ *   would have to assume the unglyphed cost and clock.
+ *
+ *   So it stays charged, and `specs/windwalker/lib/__tests__/unarbitrated.test.ts` presses it 500ms
+ *   before the end of its synthetic pull, on 3 chi and a full bar — the exact state the sim's condition
+ *   asks for — and pins the verdict the ladder gives it today.
  * - **Chi Brew, Tigereye Brew, Energizing Brew, Xuen** (10, 12, 13, 15, 16) are cooldown decisions,
  *   not filler decisions, and each already has a section that judges it against the same conditions
  *   with far more room than a per-press verdict would give it. Grading them twice would double-count

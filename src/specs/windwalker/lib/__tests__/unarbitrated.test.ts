@@ -1,5 +1,9 @@
 // The two buttons this ladder hands to another section, and the four it still charges to a rung.
 //
+// All six are pressed on this pull now. Touch of Death was the one press missing, and it was missing for
+// a stated reason that no longer holds: a synthetic press of it is the only evidence anywhere that it is
+// charged at all — it is pressed in none of the six captured pulls and nowhere in the raw fixture either.
+//
 // `UNARBITRATED` in `../apl.ts` is a declaration, and a declaration on its own does nothing: the walk
 // only reads it because `../index.ts` passes it to `aplAudit` as `AplInputs.unarbitrated`. Those are two
 // edits in two files and the previous lane recorded exactly how they come apart —
@@ -49,6 +53,7 @@ const EXPEL_HARM = 115_072;
 const SERPENT_KICK = 101_545;
 const RISING_SUN_KICK = 107_428;
 const BLACKOUT_KICK = 100_784;
+const TOUCH_OF_DEATH = 115_080;
 
 /**
  * Energy and chi as the log staples them on, so the audit has bars to walk.
@@ -99,9 +104,8 @@ const events: WclEvent[] = [
 	e(1000, 'applybuffstack', 1_247_279, { targetID: ME, stack: 5 }),
 	e(500, 'damage', RISING_SUN_KICK, { amount: 5000, ...bars(60, 3) }),
 	...regenSamples,
-	// One press each of the two declared buttons and of three of the four that stay faults. Touch of Death
-	// is the fourth and is left out on purpose: it is pressed in none of the six captured pulls either, so
-	// a synthetic press of it would be the only evidence anywhere that it is charged at all.
+	// One press each of the two declared buttons and of three of the four that stay faults. The fourth is
+	// Touch of Death, and it is pressed at the very end of the pull rather than here — see below.
 	e(60_000, 'cast', SEF, bars(80, 3)),
 	e(62_000, 'cast', KARMA, bars(80, 3)),
 	e(64_000, 'cast', LEG_SWEEP, bars(80, 3)),
@@ -113,6 +117,25 @@ const events: WclEvent[] = [
 	e(80_000, 'cast', RISING_SUN_KICK, bars(0, 3)),
 	e(82_000, 'cast', BLACKOUT_KICK, bars(0, 1)),
 	e(100_000, 'damage', RISING_SUN_KICK, { amount: 5000, ...bars(40, 2) }),
+	/**
+	 * Touch of Death, 500ms before the pull ends, on three chi and a full bar.
+	 *
+	 * The fourth button that stays a fault, and the only one of the four whose press has to be *placed*
+	 * rather than merely made: it is the one entry that is a gap in the ladder rather than a button off
+	 * it, so the press worth pinning is one the sim's list actually wanted. Priority 3's `spellCanCast`
+	 * resolves to `(hasGlyph || GetChi() >= 3) && GetRemainingDuration() <= 1s` in
+	 * `sim/monk/touch_of_death.go:40-42`, and this press satisfies both halves — three chi, and 500ms of
+	 * the 120-second pull left. So the verdict below is not a press the list had no use for being charged
+	 * for a global; it is the press the list asked for, charged as a priority mistake, which is the fault
+	 * `apl.ts` keeps on purpose and states its reasons for at length.
+	 *
+	 * `bars(100, 3)` and not the 80 the earlier presses carry: the reading at 100_000 is 40 energy and the
+	 * pull's measured regen is 10 a second, so 19.5 seconds later the bar is at the cap. A reading that
+	 * contradicted the rate would be a second, quieter change to this pull — `regenPerSecond` is measured
+	 * across the whole log, and a pair of off-rate samples added here once dragged it far enough to flip
+	 * the Fists of Fury rung and take the Blackout Kick fall-through below with it.
+	 */
+	e(119_500, 'cast', TOUCH_OF_DEATH, bars(100, 3)),
 ];
 
 const dataset: FightDataset = {
@@ -206,6 +229,31 @@ describe('the buttons the Windwalker ladder does not arbitrate', () => {
 			expect(press.verdict, `${id} verdict`).toBe('skipped');
 			expect(press.wanted, `${id} wanted a rung`).not.toBeNull();
 		}
+	});
+
+	/**
+	 * The fourth charged button, and the one whose charge is a gap rather than a judgement.
+	 *
+	 * The other three are off the sim's Windwalker list altogether, so charging them to the rung the list
+	 * would have spent the global on is the best answer available. This one is *priority 3 of that list*,
+	 * and the press below is one the list positively wanted — three chi, 500ms of the pull left, both
+	 * halves of `touch_of_death.go:40-42` satisfied. It is charged anyway, because the ladder has no rung
+	 * for it, and `apl.ts` argues at length for why: the condition is expressible arithmetically
+	 * (`state.pullMs - state.t`, and chi) but `GetRemainingDuration` is the sim's stand-in for execute
+	 * range, and on a wipe the stand-in and the thing it stands for have nothing to do with each other.
+	 *
+	 * Both fields are asserted, and both are load-bearing in opposite directions. `skipped` rather than
+	 * `off-list` is what stops the tidiest available fix — adding 115080 to `UNARBITRATED` — from landing
+	 * silently: it would read as "not a rotational button" about the top press of the list this ladder
+	 * transcribes, and there is no section anywhere in this report that judges Touch of Death to point at
+	 * instead. `wanted` being a real rung is what stops the other fix, a rung of its own, from landing
+	 * without the argument being reopened: with one, this press reads `followed` and names itself.
+	 */
+	it('charges the Touch of Death press the sim list asked for to a filler rung', () => {
+		const press = pressOf(TOUCH_OF_DEATH);
+		expect(press.verdict).toBe('skipped');
+		expect(press.wanted).toBe('tiger-palm-refresh');
+		expect(press.reason ?? null).toBeNull();
 	});
 
 	/**

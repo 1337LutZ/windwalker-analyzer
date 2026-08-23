@@ -153,18 +153,28 @@ const NOT_RUNGS: Record<string, Record<string, string>> = {
 	// it to the rung the list would have spent that global on is the simulator's own answer to what it
 	// should have been, and a worse answer than that is silence rather than a fault.
 	windwalker: {
-		// `windwalker/lib/apl.ts:16-19`. Priority 3 tests `spellCanCast`, which in 5.4 means the target is
-		// under 10% health. Health is not in the event stream this report fetches, so the condition is
-		// undecidable — and `judge` stops at the first unreadable rule, so an undecidable rung at the top of
-		// a ladder poisons every press below it into "cannot say".
-		//
 		// **The one entry here that is a gap in the ladder rather than a button off it, and so the one that
 		// must not be declared.** What this button wants is a rung: it is priority 3 of the sim's own list,
 		// which is a stronger claim on a rung than anything the ladder already carries. `off-list` would
 		// answer the opposite — "not a rotational button" — about the list's top press. Pressed in none of
 		// the six captured pulls (0 cast rows across all six), so nothing measured moves on it either way,
 		// and the entry is here to keep the gap named rather than to account for a figure.
-		'touch-of-death': 'a rung it cannot have — the condition is target health, which this event stream does not carry',
+		//
+		// This reason used to read "the condition is target health, which this event stream does not carry",
+		// and both halves of that were wrong. **Target health is not what the sim tests.** Priority 3's
+		// `spellCanCast(115080)` resolves to `sim/monk/touch_of_death.go:40-42` —
+		// `(hasGlyph || GetChi() >= 3) && GetRemainingDuration() <= 1s` — which is chi and how much of the
+		// pull is left, and the ladder already reads both (`state.chi`, and `state.pullMs - state.t`, the
+		// same `pullMs` the short-pull rung reads). The rung is expressible; it was never the arithmetic.
+		//
+		// What blocks it is that `GetRemainingDuration` is the sim's stand-in for execute range, because a
+		// wowsims boss has no health pool to test. On a kill the stand-in holds; on a **wipe** `pullMs` is
+		// when the raid died and the boss was nowhere near executable, so the rung would tell every wiping
+		// raid to press a button that was not castable. `fight.kill` is fetched and reaches the analysis
+		// (`analyseCore.ts:1357`) but not `AplInputs`, and that missing predicate is the whole of it.
+		// `windwalker/lib/apl.ts` carries the argument and the measured cost of landing it anyway.
+		'touch-of-death':
+			'a rung it cannot have yet — the condition is chi and remaining fight duration, and the walk cannot tell a kill from a wipe',
 		// The three the widened sweep found, and the Magma Totem case in the Elemental ledger above: in no
 		// part of the sim's Windwalker list, so no rule to transcribe, and no section and no clock anywhere
 		// in this report, so nothing to delegate to. Unlike Magma Totem all three are *pressed* on real

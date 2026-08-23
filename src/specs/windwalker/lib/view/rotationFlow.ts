@@ -60,16 +60,20 @@ const ALL_BANDS: readonly Band[] = [1, 2, 3, 4];
  * The rungs above the modelled ladder, which is the one part of this list that stays hand-written.
  *
  * They are hand-written because `apl.ts` refuses to model them, and its opening docstring gives the
- * reason for most: Touch of Death (3) tests a health threshold no event in this report carries, and
- * Chi Brew, Tigereye Brew, Energizing Brew and Xuen (10, 12, 13, 15, 16) are cooldown decisions rather
- * than decisions about a filler global, each already judged by a section of its own. Storm, Earth and
- * Fire (5) is not on that list because it never reached the ladder at all, and it belongs with the
- * cooldowns for the same reason — `StormEarthAndFire` grades its placement with far more room than a
- * per-press verdict would give it.
+ * reason for each: Chi Brew, Tigereye Brew, Energizing Brew and Xuen (10, 12, 13, 15, 16) are cooldown
+ * decisions rather than decisions about a filler global, each already judged by a section of its own.
+ * Storm, Earth and Fire (5) is not on that list because it never reached the ladder at all, and it
+ * belongs with the cooldowns for the same reason — `StormEarthAndFire` grades its placement with far
+ * more room than a per-press verdict would give it.
  *
- * That refusal is deliberate and worth keeping — a ladder that guessed at Touch of Death would poison
- * every press below it into "cannot say" — so the honest arrangement is two lists with a named seam,
- * not one list pretending the ladder models more than it does.
+ * Touch of Death (3) is up here for a different reason, and this comment used to give the wrong one: that
+ * it "tests a health threshold no event in this report carries" and that a ladder guessing at it "would
+ * poison every press below it into cannot say". Neither holds. Priority 3's condition is chi and how much
+ * of the pull is left (`sim/monk/touch_of_death.go:40-42`), both of which the ladder already reads, and it
+ * is false rather than unknown everywhere outside the final second — so nothing below it is poisoned. What
+ * keeps it up here is that the sim's remaining-duration term is a stand-in for execute range, and the walk
+ * cannot tell a kill from a wipe. `apl.ts` carries the argument, the measured cost, and the one input that
+ * would let the rung move down into the modelled half.
  *
  * The seam is held by `rotationFlow.test.ts`, which writes out the whole expected rung order with its
  * APL index beside each. That is a second reader rather than a derivation: a test computing its
