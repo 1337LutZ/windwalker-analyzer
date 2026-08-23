@@ -58,6 +58,7 @@ Capping every sentence at 25 words produces uniform rhythm, and uniform rhythm i
 A useful target for prose written to be read by a person: a median around 11 to 14 words, with about 15% of sentences past 25. Check the spread, not the maximum.
 
 **Do:**
+
 - Short, direct sentences. One idea each. Then occasionally one long one.
 - Fragments when natural. Not every sentence needs a subject.
 - Active voice.
@@ -66,17 +67,18 @@ A useful target for prose written to be read by a person: a median around 11 to 
 - State the reason inside the same sentence rather than in a follow-up. "Because" early beats a separate justifying sentence.
 
 **Don't:**
+
 - Complex compound sentences with multiple clauses.
 - Formal transitions (Furthermore, Moreover, Additionally, In addition).
 - Academic sentence structure.
 - Passive voice.
 
-| Don't | Do |
-|---|---|
-| Furthermore, it would be beneficial to consider the implementation of automated workflows. | So automate it. |
-| There are several factors we should take into consideration before proceeding. | A few things to check first. |
-| The platform provides users with the ability to create custom automations. | You can build your own automations. |
-| Having carefully evaluated the available options, I have determined that this approach yields the most favorable outcome. | This is the best way. Here is why. |
+| Don't                                                                                                                     | Do                                  |
+| ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Furthermore, it would be beneficial to consider the implementation of automated workflows.                                | So automate it.                     |
+| There are several factors we should take into consideration before proceeding.                                            | A few things to check first.        |
+| The platform provides users with the ability to create custom automations.                                                | You can build your own automations. |
+| Having carefully evaluated the available options, I have determined that this approach yields the most favorable outcome. | This is the best way. Here is why.  |
 
 ## 2. Words to avoid
 
@@ -96,10 +98,10 @@ Corporate and academic filler. Each has a plain replacement that always works:
 
 **Clear over clever (load-bearing rule).** Never use a word the reader might have to look up. The plain, literal word wins every time, even when a sharper word feels more precise. Watch unintended connotations: a metaphor that reads as combat, a term with a second meaning. Test: would a non-native English speaker understand it on first read? If not, swap it.
 
-| Don't | Do |
-|---|---|
-| We should utilize an automated workflow for this. | We should automate this. |
-| It's essentially a matter of prioritization. | Basically, pick what matters most. |
+| Don't                                                   | Do                                                   |
+| ------------------------------------------------------- | ---------------------------------------------------- |
+| We should utilize an automated workflow for this.       | We should automate this.                             |
+| It's essentially a matter of prioritization.            | Basically, pick what matters most.                   |
 | Prior to launching, we need to address numerous issues. | Before we launch, there are about ten things to fix. |
 
 ## 3. Openers to avoid
@@ -113,11 +115,11 @@ These are the highest-density signals that a machine wrote it:
 - "I wanted to take a moment to..."
 - Any rhetorical question meant to sound profound.
 
-| Don't | Do |
-|---|---|
-| It's worth noting that automation saves time. | Automation saves time. |
-| As we navigate the changing landscape... | Things are changing. |
-| I wanted to take a moment to share my thoughts on... | Here is what I think. |
+| Don't                                                | Do                     |
+| ---------------------------------------------------- | ---------------------- |
+| It's worth noting that automation saves time.        | Automation saves time. |
+| As we navigate the changing landscape...             | Things are changing.   |
+| I wanted to take a moment to share my thoughts on... | Here is what I think.  |
 
 Jump straight into the point. No preamble.
 
@@ -136,11 +138,11 @@ End on the point. No summary. No recap.
 
 The voice never changes. How much of it shows does. Three rungs, and **the receiver picks the rung, not the channel.**
 
-| Register | Who it is for | What survives | What goes |
-|---|---|---|---|
-| **Formal** | Seniors, anyone above the author, client-facing docs, decks, an upward email | Opinion markers, reasoning stated inline, short sentences, leading with the number | Heavy filler, bare fragments, tag questions, casual transitions |
-| **Casual** | Peers, a working email, a team channel, published writing under their own name | Opinion markers, the softer hedges, one or two signature connectors, an occasional fragment, reasoning inline | Stacked hedges, the loudest verbal tics |
-| **Very casual** | People they know well, direct messages, messaging apps | All of it: every connector, every hedge, fragments carrying whole thoughts | Nothing |
+| Register        | Who it is for                                                                  | What survives                                                                                                 | What goes                                                       |
+| --------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Formal**      | Seniors, anyone above the author, client-facing docs, decks, an upward email   | Opinion markers, reasoning stated inline, short sentences, leading with the number                            | Heavy filler, bare fragments, tag questions, casual transitions |
+| **Casual**      | Peers, a working email, a team channel, published writing under their own name | Opinion markers, the softer hedges, one or two signature connectors, an occasional fragment, reasoning inline | Stacked hedges, the loudest verbal tics                         |
+| **Very casual** | People they know well, direct messages, messaging apps                         | All of it: every connector, every hedge, fragments carrying whole thoughts                                    | Nothing                                                         |
 
 **Sentence shape across all three.** Formal raises the median and thins the fragments. Very casual lowers it and lets fragments carry whole thoughts. What never changes is the variance: uniform sentence length is an AI tell in every register (section 1).
 
@@ -165,10 +167,10 @@ Both move independently of the register. Very casual can be highly polite. Forma
 
 ### Politeness
 
-| Dial | What it does | Markers |
-|---|---|---|
-| **Up** | Softens the ask, widens the room for disagreement | Hedges, opinion framing, joint framing ("we can" rather than "you should"), a question instead of an instruction, a check-in as the close, a minimiser like "just" |
-| **Down** | States the position and stops | Plain declaratives, the imperative, no hedge, a direct accountability follow-up |
+| Dial     | What it does                                      | Markers                                                                                                                                                            |
+| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Up**   | Softens the ask, widens the room for disagreement | Hedges, opinion framing, joint framing ("we can" rather than "you should"), a question instead of an instruction, a check-in as the close, a minimiser like "just" |
+| **Down** | States the position and stops                     | Plain declaratives, the imperative, no hedge, a direct accountability follow-up                                                                                    |
 
 Raise politeness using markers already in the person's captured profile, so it uses more of their real voice rather than importing manners from somewhere else. Joint framing is usually the strongest single lever, and for most people it is genuinely how they talk rather than a softening trick.
 
@@ -188,15 +190,15 @@ Neutral is the default. Excited is a real mode, and for most people it looks not
 
 The receiver picks the register. The **block** picks the person. Never choose one person and hold it for a whole piece: single-person prose is one of the reasons long-form reads manufactured, in either direction.
 
-| Block | Person | Why |
-|---|---|---|
-| Opening, the hook | **I** | The one thing a model cannot generate and a reader cannot mistake for stock |
-| The problem | you | The reader has to recognise themselves in it |
-| What I did, the method | **I** | Credibility lives here. An uncredited method is an assertion |
-| Steps, checks, what to do | you | Otherwise it stays theory |
-| Data, numbers, evidence | neither | Facts do not need a person, and adding one weakens them |
-| What did not work | **I** | Highest-trust block in any piece, and the least fakeable |
-| Close | you | Leave them holding the action |
+| Block                     | Person  | Why                                                                         |
+| ------------------------- | ------- | --------------------------------------------------------------------------- |
+| Opening, the hook         | **I**   | The one thing a model cannot generate and a reader cannot mistake for stock |
+| The problem               | you     | The reader has to recognise themselves in it                                |
+| What I did, the method    | **I**   | Credibility lives here. An uncredited method is an assertion                |
+| Steps, checks, what to do | you     | Otherwise it stays theory                                                   |
+| Data, numbers, evidence   | neither | Facts do not need a person, and adding one weakens them                     |
+| What did not work         | **I**   | Highest-trust block in any piece, and the least fakeable                    |
+| Close                     | you     | Leave them holding the action                                               |
 
 **Two tests.** If a sentence states something only doing the work could teach, it goes in "I" or it is uncredited. If a sentence tells the reader what to do, it goes in "you" or it is abstract.
 
@@ -275,14 +277,14 @@ Where their comparisons come from. Machines, sport, cooking, nature, building. T
 
 How this person actually sounds across each register. Capture their words, not a description of the feeling.
 
-| Register | Their phrasing |
-|---|---|
-| Enthusiasm | [not captured] |
-| Frustration | [not captured] |
-| Curiosity | [not captured] |
-| Satisfaction | [not captured] |
-| Conviction | [not captured] |
-| Surprise | [not captured] |
+| Register          | Their phrasing |
+| ----------------- | -------------- |
+| Enthusiasm        | [not captured] |
+| Frustration       | [not captured] |
+| Curiosity         | [not captured] |
+| Satisfaction      | [not captured] |
+| Conviction        | [not captured] |
+| Surprise          | [not captured] |
 | Admitting a limit | [not captured] |
 | Accepting a point | [not captured] |
 
@@ -370,10 +372,10 @@ State which layers were applied every time. An audit run without a personal prof
 
 ## Reference files
 
-| Task type | Reference file |
-|---|---|
-| Building or updating the personal voice profile: sources, registers, extraction, interview, validation | `references/voice-capture.md` |
-| Checking first-person density on a draft | `scripts/person-density.py` |
+| Task type                                                                                                     | Reference file                       |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Building or updating the personal voice profile: sources, registers, extraction, interview, validation        | `references/voice-capture.md`        |
+| Checking first-person density on a draft                                                                      | `scripts/person-density.py`          |
 | Writing for WoW players (sim output, analyzer reports, rotation notes): audience register, domain conventions | `references/audience-wow-players.md` |
 
 ---
