@@ -11,9 +11,10 @@
 //
 //   1. A sweep over the locale file, so the next rewrite cannot re-introduce the vocabulary in a
 //      string no rendering test happens to cover. Scoped to the Elemental sections' own `state.*`,
-//      `kpi.*`, `caption` and `intent` keys — the four kinds a reader is shown as prose or as a table
-//      cell. Method notes (`unreadable`, `notGraded`, `measurable`, `resolution`) are deliberately
-//      about our method and are *not* in scope: a hedge has to be allowed to explain itself.
+//      `kpi.*`, `caption`, `intent`, `read.*` and `verdict_*` keys — the kinds a reader is shown as
+//      prose or as a table cell. Method notes (`unreadable`, `notGraded`, `measurable`, `resolution`)
+//      are deliberately about our method and are *not* in scope: a hedge has to be allowed to explain
+//      itself.
 //   2. Literal render assertions on the two strings the complaint named, so the sweep cannot be
 //      satisfied by copy that avoids the banned words and still says nothing actionable.
 //
@@ -105,7 +106,15 @@ const SECTIONS = [
 // `read` joins the four when the Ascendance verdict column landed: those sentences are the newest
 // reader-facing copy in the spec and the most tempting place to name a rule arm, which is the exact
 // mistake this file exists to stop repeating.
-const READER_KEYS = /(^|\.)(state|kpi|caption|intent|read)(\.|$)/;
+//
+// **`verdict` is the sixth, and it needed its own alternative rather than a sixth name in the first
+// one.** A graded sentence is stored with its grade inside the same path segment — `verdict_good`,
+// `verdict_ok_noOvercap` — so `verdict` in the alternation above matches on neither a `.` nor an end of
+// string and selects exactly nothing. That is not a small bug in this pattern: it is why the loudest
+// remaining instance of the complaint this file was written about survived every green run of the suite.
+// `earthShock.verdict_good` told a reader their shocks "matched the rule the list had for them" — our
+// own model's vocabulary, in the one sentence a section is judged by — and no guard could see it.
+const READER_KEYS = /(^|\.)(state|kpi|caption|intent|read)(\.|$)|(^|\.)verdict(_|\.|$)/;
 
 const copyStrings = (): [string, string][] => {
 	const locale = JSON.parse(
@@ -132,6 +141,25 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 		const kinds = new Set(copyStrings().flatMap(([key]) => key.split('.')));
 		for (const kind of ['state', 'kpi', 'caption', 'intent', 'read']) expect(kinds, kind).toContain(kind);
 		expect(copyStrings().filter(([key]) => key.startsWith('ascendance.read.')).length).toBe(14);
+		// The graded sentences, counted separately because they cannot be counted the same way: the grade is
+		// part of the segment, so `verdict` never appears in `kinds` and the loop above would pass whether
+		// or not a single one of them was selected.
+		//
+		// Six of the thirteen sections carry one — the six whose section is graded as a whole. The other
+		// seven grade per press and speak through a `state.*` cell on each row instead, which is why the
+		// list is written out: a section that grows a verdict and is left off this line would be swept
+		// anyway, but a section that *loses* its arms to a refactor would quietly leave the sweep with the
+		// count still passing.
+		const verdicts = copyStrings().filter(([key]) => key.split('.')[1]?.startsWith('verdict'));
+		expect(verdicts.length).toBeGreaterThan(30);
+		expect([...new Set(verdicts.map(([key]) => key.split('.')[0]!))].sort()).toEqual([
+			'earthShock',
+			'flameShock',
+			'flameShockSnapshots',
+			'lightningShield',
+			'mana',
+			'searingTotem',
+		]);
 	});
 
 	it('names no part of our own model in a state, tile, caption or intent', () => {

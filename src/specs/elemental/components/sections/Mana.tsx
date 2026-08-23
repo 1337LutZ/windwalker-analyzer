@@ -31,7 +31,7 @@ import LogLink from '~/components/sections/LogLink';
  */
 export default function Mana({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
-	const { t, verdict, toneOf } = useReportCopy(analysis);
+	const { t, gradeOf, verdict, toneOf } = useReportCopy(analysis);
 	const mana = el.mana as ManaAudit | undefined;
 	// The bar itself, for the curve and for the sampling resolution the note quotes. A report captured
 	// before the engine sampled resources carries no bar and one captured mid-refactor carries the curve
@@ -117,6 +117,55 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 				] satisfies TrackBand[])),
 	];
 
+	/**
+	 * Which of the two halves the sentence below is allowed to speak for.
+	 *
+	 * Both primaries answer independently — `thunderstormMissed` is null unless `mana.starved.gradedMs > 0`
+	 * and `shamanisticRageMissed` unless `mana.strained.gradedMs > 0` — and `section()` takes the worst of
+	 * the metrics it *could* decide. So a pull that answered one half and not the other is graded on the
+	 * survivor alone, and `verdict_good` asserted both: "You never sat under 15% with Thunderstorm up, and
+	 * never under 70% with Shamanistic Rage up" printed over a Thunderstorm clock nothing had measured.
+	 * That is the defect `lightningShield.verdict_good_noOvercap` and `searingTotem`'s `_noUptime` exist
+	 * for, in the section that had no such variant.
+	 *
+	 * Only the `good` sentence is narrowed, and the reason is arithmetic rather than restraint: `ms` and
+	 * `stretches` are both cut out of an empty `gradedMs`, so the `ok` and `bad` sentences print a true
+	 * zero for the unread half rather than a figure that contradicts the tile beside it. They are thin
+	 * there, not false. Only `good` turns that zero into an absolute claim about a stretch the log never
+	 * showed.
+	 */
+	const starvedRead = mana.starved.gradedMs > 0;
+	const strainedRead = mana.strained.gradedMs > 0;
+	const narrowed = gradeOf('mana') === 'good' && starvedRead !== strainedRead;
+	const graded = {
+		starved: mana.starvedPct,
+		strained: mana.strainedPct,
+		starvedMs: mana.starved.ms,
+		rage: mana.strained.stretches,
+	};
+	/**
+	 * The sentence, and the two narrowed arms are whole keys rather than a `context` — deliberately.
+	 *
+	 * `keys.test.ts` reads literal `t('…')` keys out of the source, and for a bare `<section>.verdict` it
+	 * checks all four grades exist. `mana` has no `verdict_none`, because "cannot say" here is not a grade
+	 * at all: no readings is `mana.none` and readings with nothing charged is `mana.clean`, both of them
+	 * above and below. Naming the arm in the key keeps the guard pointed at the two strings that actually
+	 * exist, which is stronger than a context it cannot resolve — and these two are chosen by a
+	 * measurement rather than by the grade, so the context mechanism was never the right fit.
+	 *
+	 * Both empty is `mana.clean`: with readings in hand and no graded stretch on either side, the pull
+	 * genuinely never asked for a press, which is what that string says and what `narrowed` therefore
+	 * cannot be about.
+	 */
+	const sentence =
+		!starvedRead && !strainedRead
+			? t('mana.clean')
+			: narrowed && starvedRead
+				? t('mana.verdict_good_noRage', graded)
+				: narrowed
+					? t('mana.verdict_good_noThunderstorm', graded)
+					: verdict('mana', graded);
+
 	return (
 		<Section id="mana" title={t('mana.title')}>
 			<Prose>
@@ -185,16 +234,7 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 				    to say" are the same state here and only one of them is true: with readings in hand, an empty
 				    graded stretch means the pool never went under either number while the button for it was up.
 				    Saying that plainly beats a hedge about missing data the log did not have. */}
-				<Prose>
-					{mana.starved.gradedMs === 0 && mana.strained.gradedMs === 0
-						? t('mana.clean')
-						: verdict('mana', {
-								starved: mana.starvedPct,
-								strained: mana.strainedPct,
-								starvedMs: mana.starved.ms,
-								rage: mana.strained.stretches,
-							})}
-				</Prose>
+				<Prose>{sentence}</Prose>
 				{/* Each of these appears only where its own number is non-zero, which is the whole discipline of
 				    this section. A pull whose starvation did not coincide with shield downtime must not be told
 				    that it did, and a pull nothing was withheld from must not be shown an excuse it did not use. */}

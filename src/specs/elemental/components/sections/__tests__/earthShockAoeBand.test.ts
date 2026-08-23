@@ -61,7 +61,10 @@ describe('the section counts only the presses a list had a rule for', () => {
 		// else in the section.
 		expect(html).toContain('>4<em class="text-sm not-italic text-muted sm:text-base">/7</em>');
 		expect(html).not.toContain('/12');
-		expect(html).toContain('4 of 7 shocks matched the rule the list had for them');
+		// Reworded when `readerVoice.test.ts`'s sweep grew to see `verdict_*` keys: "matched the rule the list
+		// had for them" named our own model at a reader. The fraction is what this case is about and is
+		// unchanged.
+		expect(html).toContain('4 of 7 shocks were spent with the shield charged up');
 	});
 
 	/** And the five it is not counting, named as a count with the reason nothing judged them. */

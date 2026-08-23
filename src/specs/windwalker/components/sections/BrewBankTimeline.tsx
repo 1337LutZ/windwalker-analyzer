@@ -10,7 +10,7 @@ import { Note, Prose, Section, StatTile, StatTiles } from '~/components/primitiv
 /** The bank counter over the pull, sharing its clock with the timeline above it. */
 export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 	const { brew } = analysis;
-	const { t, card, verdict } = useReportCopy(analysis);
+	const { t, card, gradeOf, verdict } = useReportCopy(analysis);
 
 	// Cap waste is one of the two metrics behind the section's grade, so its clause reads the metric
 	// rather than the section: a pull can spend full brews every time and still sit at the cap.
@@ -46,8 +46,32 @@ export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 	 */
 	const spendable = gained === undefined ? null : gained - (brew.wastedProtecting ?? 0);
 
+	/**
+	 * The brews that went out with the bank under ten — the distribution the mean was hiding.
+	 *
+	 * `brewStacks` grades a *mean* of at least 9.5, so nineteen brews at ten and one at half a bank average
+	 * 9.53 and grade `good`, and `verdict_good_other` said "near the cap every time" over the one that was
+	 * nowhere near it. It is live on `mixed`: seven brews averaging 9.7, one of them spent at eight, with
+	 * the chart drawing "8 stacks" directly above the sentence denying it.
+	 *
+	 * Read off `fullUses`, which the audit already publishes as the count of brews that spent the whole ten
+	 * (`u.consumed >= TEB_DRAIN`), rather than re-derived from `useList` here — the same discipline the
+	 * `gained` tile above states. `verdict_good_other` keeps its claim byte for byte and is now only
+	 * reached when every brew really was full; `verdict_goodSome_other` names how many were not and what to
+	 * do about it.
+	 *
+	 * `_other` only, and no `_one`: with one brew the mean *is* that brew, so a `good` grade means it spent
+	 * ten (stacks are integers and the band is 9.5), which leaves this at zero. That is why
+	 * `verdict_good_one` was never making the claim its plural sibling was.
+	 */
+	const lean = brew.uses - brew.fullUses;
+
 	const summary = [
-		spent ? verdict('brew', { count: brew.uses, avg: brew.avgConsumed }) : t('brew.verdict', { context: 'none' }),
+		spent
+			? gradeOf('brew') === 'good' && lean > 0
+				? t('brew.verdict', { context: 'goodSome', count: brew.uses, avg: brew.avgConsumed, lean })
+				: verdict('brew', { count: brew.uses, avg: brew.avgConsumed })
+			: t('brew.verdict', { context: 'none' }),
 		// `count`, not `wasted`: the sentence has singular and plural forms, and i18next selects them
 		// off `count` alone. One stack lost at the cap is reachable, so "1 stacks" was too.
 		cap && !cap.unmeasurable ? t('brew.cap', { context: cap.grade, count: brew.wastedAtCap }) : null,

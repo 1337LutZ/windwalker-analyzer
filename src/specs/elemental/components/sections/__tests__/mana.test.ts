@@ -20,7 +20,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { initI18n } from '~/lib/i18n/config';
+import i18n, { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
 import type { Analysis, ElementalAuditResult, FightDataset, WclEvent } from '~/lib/types';
 
@@ -32,6 +32,9 @@ import Mana from '../Mana';
 const ELEMENTAL_SPEC = getSpec('elemental')!;
 
 initI18n();
+// The verdict arms are matched through the locale as well as by their literal text, the way the sibling
+// copy tests do it: one side of every assertion below is the string a reader is shown.
+const t = i18n.getFixedT('en', 'report');
 
 type El = Analysis & ElementalAuditResult;
 
@@ -102,7 +105,11 @@ describe('a pull whose pool never went near either number', () => {
 	});
 
 	it('shows no fault rows, and no excuse either', () => {
-		expect(html).toContain('You were never under either number with the button for it up in this pull.');
+		// "never under either number" was the same overclaim the verdict made and is fixed with it: the rows
+		// are the *charged* stretches, and a dip too short for the priority order to look at is under the
+		// number with the button up and still has no row. `No stretch` is what the table counts, and the
+		// floor note under it says what a stretch is.
+		expect(html).toContain('No stretch under either number went by with the button for it up in this pull.');
 		expect(html).not.toContain('That is the fight taking your mana');
 	});
 });
@@ -161,4 +168,111 @@ describe('every clause has copy behind it', () => {
 			for (const key of KEYS) expect(html, `${name}: ${key}`).not.toContain(key);
 		});
 	}
+});
+
+/**
+ * Half of this section can go unmeasured, and the `good` sentence spoke for both halves anyway.
+ *
+ * `thunderstormMissed` and `shamanisticRageMissed` answer independently — each is null unless its own
+ * `gradedMs` is above zero — and `section()` takes the worst of the metrics it could *decide*. So a pull
+ * that answered one half and not the other is graded on the survivor alone, and `verdict_good` asserted
+ * both: "You never sat under 15% with Thunderstorm up, and never under 70% with Shamanistic Rage up."
+ * `lightningShield` and `searingTotem` each carry `verdict_good_no…` variants for exactly this shape;
+ * `mana` had none.
+ *
+ * The same sentence overclaimed a second way, on the half it *did* measure. The `good` band is zero on
+ * `ms`, and `ms` is the time below the line with the button in hand **across a stretch at least one global
+ * long** — so a 733ms dip under 70% with the Rage up is a real dip, is inside `gradedMs`, and still scores
+ * a clean zero. "Never sat under 70%" was false about it. The new wording claims what the number is: no
+ * stretch went by with the button sitting unpressed.
+ *
+ * No committed fixture reaches this — all three have both graded clocks empty and print `mana.clean` — so
+ * the pull is `cleave`'s event stream with the pool held at 50% for three seconds, which is the same
+ * synthetic the cases above use, sized to fall under the one-global floor.
+ */
+describe('a good mana verdict speaks only for the halves the log answered', () => {
+	/** 733ms under 70% with Shamanistic Rage in hand: inside the graded clock, under the floor. */
+	const halfMeasured = withLowMana(90_000, 93_000, 50);
+
+	/** The premise, so nothing below is vacuous. */
+	it('is a good pull with one half of it unmeasured and a real dip in the other', () => {
+		const card = ELEMENTAL_SPEC.score(halfMeasured);
+		const metric = (key: string) => card.sections['mana']?.metrics.find((m) => m.key === key);
+		expect(metric('thunderstormMissed')?.unmeasurable).toBe(true);
+		expect(metric('shamanisticRageMissed')?.unmeasurable).toBe(false);
+		expect(metric('shamanisticRageMissed')?.grade).toBe('good');
+		expect(card.sections['mana']?.grade).toBe('good');
+		// The dip the old sentence denied: below the line, button in hand, shorter than one global.
+		expect(halfMeasured.mana?.starved.gradedMs).toBe(0);
+		expect(halfMeasured.mana?.strained.gradedMs).toBeGreaterThan(700);
+		expect(halfMeasured.mana?.strained.ms).toBe(0);
+		expect(halfMeasured.mana?.strained.stretches).toBe(0);
+	});
+
+	it('does not claim a clean Thunderstorm on a pull that never measured one', () => {
+		const html = render(halfMeasured);
+		// The sentence the old code printed here, verbatim.
+		expect(html).not.toContain(
+			'You never sat under 15% with Thunderstorm up, and never under 70% with Shamanistic Rage up.',
+		);
+		expect(html).not.toContain('with Thunderstorm up, and never under');
+		expect(html).toContain(t('mana.verdict_good_noThunderstorm', { starved: 15, strained: 70 }));
+		// What it says instead: the half it measured, then which half it is not speaking for.
+		expect(html).toContain('No stretch under 70% went by with Shamanistic Rage sitting unpressed.');
+		expect(html).toContain('This log never puts you under 15% with Thunderstorm in your hands');
+		expect(html).toContain('only about the Rage');
+		// Not a raw key, which is what a context arm with no copy behind it renders as.
+		expect(html).not.toContain('mana.verdict');
+	});
+
+	/** The mirror image: a Thunderstorm clock with something in it and no Rage clock at all. */
+	it('does not claim a clean Shamanistic Rage on a pull that never measured one', () => {
+		const starvedOnly: El = {
+			...halfMeasured,
+			mana: {
+				...halfMeasured.mana!,
+				starved: { ...halfMeasured.mana!.strained, gradedMs: 733, ms: 0, stretches: 0 },
+				strained: { ...halfMeasured.mana!.strained, gradedMs: 0, ms: 0, stretches: 0, windows: [] },
+			},
+		};
+		const card = ELEMENTAL_SPEC.score(starvedOnly);
+		expect(card.sections['mana']?.grade).toBe('good');
+		const html = render(starvedOnly);
+		expect(html).toContain(t('mana.verdict_good_noRage', { starved: 15, strained: 70 }));
+		expect(html).toContain('No stretch under 15% went by with Thunderstorm sitting unpressed.');
+		expect(html).toContain('This log never puts you under 70% with Shamanistic Rage in your hands');
+		expect(html).not.toContain('mana.verdict');
+	});
+
+	/**
+	 * A pull that answered both halves keeps one sentence, and it is the sentence about presses rather than
+	 * about the bar: both clocks graded, neither of them charging anything.
+	 */
+	it('says both halves when both halves were measured', () => {
+		const both: El = {
+			...halfMeasured,
+			mana: {
+				...halfMeasured.mana!,
+				starved: { ...halfMeasured.mana!.strained, gradedMs: 733, ms: 0, stretches: 0 },
+			},
+		};
+		expect(ELEMENTAL_SPEC.score(both).sections['mana']?.grade).toBe('good');
+		const html = render(both);
+		expect(html).toContain('No stretch under 15% went by with Thunderstorm sitting unpressed, and none under 70%');
+		expect(html).toContain('The pool was never the thing holding your casts back.');
+		expect(html).not.toContain('This log never puts you under');
+	});
+
+	/**
+	 * Only the `good` sentence is narrowed, and the reason is arithmetic: `ms` and `stretches` are both cut
+	 * out of an empty `gradedMs`, so the `ok` and `bad` sentences print a true zero for the unread half
+	 * rather than a figure that contradicts the tile beside it. Thin there, not false — recorded rather
+	 * than papered over, and this is the guard that says so.
+	 */
+	it('leaves the ok and bad sentences to the grade', () => {
+		const html = render(withLowMana(90_000, 120_000, 50));
+		expect(ELEMENTAL_SPEC.score(withLowMana(90_000, 120_000, 50)).sections['mana']?.grade).toBe('ok');
+		expect(html).toContain('let Shamanistic Rage come back to a pool already under 70%'); // no-change guard
+		expect(html).not.toContain('This log never puts you under');
+	});
 });

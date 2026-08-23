@@ -24,7 +24,7 @@ import { Note, Pill, Prose, Section, StatTile } from '~/components/primitives';
  */
 export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 	const { filler, comboBreaker } = analysis;
-	const { t, card, verdict } = useReportCopy(analysis);
+	const { t, card, gradeOf, verdict } = useReportCopy(analysis);
 	/**
 	 * How many presses the single-target habit could be read off, which the sentence below has to name.
 	 *
@@ -46,6 +46,27 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 	 * of step in the first place.
 	 */
 	const sample = card.sections['tigerPalm']?.metrics.find((m) => m.key === 'tigerPalmWaste')?.sampleSize;
+
+	/**
+	 * A `good` pull that still wasted a press gets its own sentence, because the sentence printed its own
+	 * counter-example one clause earlier.
+	 *
+	 * `verdict_good` reads "…{{wasted}} wasted. Every press bought something." — and `{{wasted}}` is
+	 * `filler.wasted`, every press in the pull, while `tigerPalmWaste` grades a share of the presses made
+	 * with one enemy up only (see `tigerPalmShare`). So `waves` grades `good` on a numerator of zero over
+	 * seven band-1 presses and printed "1 wasted. Every press bought something." in one breath.
+	 *
+	 * **No quantifier over the presses is safe here**, which is the trap `flameShock.verdict_goodSome` was
+	 * written around: softening the claim to "almost every press" would be false in the other direction,
+	 * because a pull can grade `good` with a graded numerator of zero while this ledger holds twelve. So the
+	 * fourth sentence makes a claim about the *grade* — Tiger Palm is not what is holding the pull back —
+	 * and names the count rather than quantifying over it. A pull that really wasted nothing keeps
+	 * `verdict_good` byte for byte, which is the half a hedge would have cost.
+	 *
+	 * Chosen on the pull-wide count and not on the graded share, for the same reason: the share is zero on
+	 * pulls whose ledger is not, and it is this ledger the four cards above print.
+	 */
+	const claim = gradeOf('tigerPalm') === 'good' && filler.wasted > 0;
 
 	const counts = {
 		casts: filler.casts,
@@ -109,7 +130,7 @@ export default function TigerPalm({ analysis }: { analysis: Analysis }) {
 						    quiet on. The uptime clause beside it is true either way and has never depended on the
 						    grade. */}
 						<Prose>
-							{`${verdict('tigerPalm', counts)} `}
+							{`${claim ? t('tigerPalm.verdict', { context: 'goodSome', ...counts }) : verdict('tigerPalm', counts)} `}
 							{t('tigerPalm.uptime', { uptime: filler.buffUptimePct })}
 						</Prose>
 						{comboBreaker.length > 0 ? (

@@ -177,3 +177,79 @@ describe('Tiger Palm summary cards', () => {
 		expect(html).not.toContain('tigerPalm.verdict');
 	});
 });
+
+/**
+ * The `good` sentence printed its own counter-example one clause earlier.
+ *
+ * `verdict_good` reads "…{{wasted}} wasted. Every press bought something." — and the two halves of that
+ * are counted over different sets. `{{wasted}}` is `filler.wasted`, every press in the pull, while
+ * `tigerPalmWaste` grades the share of presses made with one enemy up only (`tigerPalmShare`). So a pull
+ * whose waste all happened above one enemy grades `good` on a numerator of zero and printed the absolute
+ * claim over a ledger that contradicts it.
+ *
+ * **Live on `waves`, no synthetic needed**: 22 presses, one wasted, seven of them made in band 1 and none
+ * of those wasted — a flat 0% share, `good`, and the sentence "1 wasted. Every press bought something."
+ * in one breath, with the red `Wasted · 1` card directly above it.
+ *
+ * **No quantifier over the presses is safe**, which is the trap `flameShock.verdict_goodSome` was written
+ * around: "almost every press bought something" would be false in the other direction, because the graded
+ * numerator can be zero while the pull-wide ledger holds twelve. So the fourth sentence claims something
+ * about the *grade* and names the count, and the clean pull keeps its absolute claim byte for byte.
+ */
+describe('a good Tiger Palm verdict claims only what the ledger can support', () => {
+	const waves = fx('waves');
+
+	/** The premise, so nothing below is vacuous. */
+	it('is a good pull with a wasted press in it', () => {
+		const card = getSpec('windwalker')!.score(waves, resolveBands(waves.targets, 'auto'));
+		const waste = card.sections['tigerPalm']?.metrics.find((m) => m.key === 'tigerPalmWaste');
+		expect(waste?.value).toBe(0);
+		expect(waste?.grade).toBe('good');
+		expect(waste?.unmeasurable).toBe(false);
+		expect(waste?.sampleSize).toBe(7);
+		expect(card.sections['tigerPalm']?.grade).toBe('good');
+		expect(waves.filler.casts).toBe(22);
+		expect(waves.filler.wasted).toBe(1);
+	});
+
+	it('does not tell a reader every press bought something when one did not', () => {
+		const html = render(waves);
+		// The sentence the old code printed here, verbatim.
+		expect(html).not.toContain('1 wasted. Every press bought something.');
+		expect(html).not.toContain('Every press bought something');
+		expect(html).toContain(t('tigerPalm.verdict', { context: 'goodSome', ...waves.filler }));
+		// The four counts still lead, then the grade's own tone, then the count and what to do about it.
+		expect(html).toContain(
+			'22 presses: 9 on a Combo Breaker proc, 9 putting Tiger Power up, 3 refreshing it, 1 wasted.',
+		);
+		expect(html).toContain('Tiger Palm is not what is holding this pull back');
+		expect(html).toContain('1 of those presses still bought nothing');
+		expect(html).toContain('a global that belonged to Jab or Blackout Kick');
+		// And the clause beside it, which never depended on the grade, still reads.
+		expect(html).toContain(t('tigerPalm.uptime', { uptime: waves.filler.buffUptimePct }));
+	});
+
+	/**
+	 * The pull that earns the absolute claim keeps it, which is the half a hedge would have cost. `strong`
+	 * is that pull for real — 33 presses, none wasted, graded `good` — so this is a no-change guard rather
+	 * than a hand-written ledger.
+	 */
+	it('still says every press bought something when every press did', () => {
+		const strong = fx('strong');
+		expect(strong.filler.wasted).toBe(0);
+		const html = render(strong);
+		expect(html).toContain(t('tigerPalm.verdict', { context: 'good', ...strong.filler }));
+		expect(html).toContain('Every press bought something.'); // no-change guard
+		expect(html).not.toContain('is not what is holding this pull back');
+	});
+
+	/** The other three arms are chosen on the grade alone and the pull-wide count must not reach them. */
+	it('leaves the ok and bad sentences to the grade', () => {
+		const poorPull = fx('poor');
+		expect(poorPull.filler.wasted).toBe(30);
+		expect(render(poorPull)).toContain(t('tigerPalm.verdict', { context: 'bad', ...poorPull.filler })); // no-change guard
+		const weave = fx('weave');
+		expect(weave.filler.wasted).toBe(2);
+		expect(render(weave)).toContain(t('tigerPalm.verdict', { context: 'ok', ...weave.filler })); // no-change guard
+	});
+});

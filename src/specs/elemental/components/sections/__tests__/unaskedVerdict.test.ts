@@ -204,7 +204,9 @@ describe('a section none of whose rules were asked', () => {
 	 */
 	it('leaves all three alone on the reading nobody forced', () => {
 		expect(verdictOf(render(FlameShock, cleave, 'auto'))).toContain('83.9% uptime across 10 casts'); // no-change guard
-		expect(verdictOf(render(EarthShock, cleave, 'auto'))).toContain('shocks matched the rule the list had for them'); // no-change guard
+		expect(verdictOf(render(EarthShock, cleave, 'auto'))).toContain(
+			'shocks were spent with the shield charged up and the Flame Shock dot still long',
+		); // no-change guard, reworded with the string itself
 		expect(verdictOf(render(Snapshots, cleave, 'auto'))).toContain('No proc window was offered in this pull'); // no-change guard
 		// And the `_full` wording is still chosen where it belongs, so the guard above did not close the raw
 		// key by taking that variant off every pull.

@@ -57,6 +57,7 @@
     "intent": "The bank builds up to twenty stacks and each brew spends ten. Brewing below ten stacks wastes the difference; letting the bank sit at twenty wastes every stack earned there.",
     "verdict_good_one": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks.",
     "verdict_good_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks — near the cap every time.",
+    "verdict_goodSome_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks. {{lean}} of them went out with the bank under ten, and the difference is stacks you earned and never spent — wait for the tenth stack unless a Re-Origination proc is about to run out on you.",
     "verdict_ok_one": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks.",
     "verdict_ok_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks. The gap is stacks you earned but never spent.",
     "verdict_bad_one": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks.",
@@ -192,6 +193,7 @@
     "title": "Tiger Palm",
     "intent": "Tiger Palm is worth its global in two cases: spending a free Combo Breaker proc, or refreshing Tiger Power before it drops. Any other press overwrites a buff that was still fine and uses a global that Jab or Blackout Kick could have used.",
     "verdict_good": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Every press bought something.",
+    "verdict_goodSome": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Tiger Palm is not what is holding this pull back, and {{wasted}} of those presses still bought nothing — each one a global that belonged to Jab or Blackout Kick. Press it on a Combo Breaker proc, or with Tiger Power about to drop, and leave it alone otherwise.",
     "verdict_ok": "{{casts}} presses: {{onProc}} on a proc, {{applied}} applying Tiger Power, {{refresh}} refreshing it, {{wasted}} wasted — globals with nothing to show for them.",
     "verdict_bad": "{{casts}} presses and {{wasted}} of them bought nothing: only {{onProc}} spent a proc, {{applied}} put Tiger Power up and {{refresh}} refreshed it. This happened repeatedly, not just once.",
     "verdict_none": "Tiger Palm is your single-target filler, and only {{sample}} of your {{casts}} presses went out with one enemy up — too few to judge the habit on. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
@@ -358,7 +360,9 @@
   "mana": {
     "title": "Mana",
     "intent": "Everything you cast comes out of this pool, so a full bar is exactly where it should be — the only fault is the floor. Two buttons refill it, and on two targets you press both on a number: Thunderstorm at {{starved, percent}} mana, which hands back {{starved, percent}} of your maximum for free, and Shamanistic Rage at {{strained, percent}}, which cuts what your casts cost for fifteen seconds and does not even take a global. What is flagged below is sitting under one of those numbers with the button for it up and unpressed.",
-    "verdict_good": "You never sat under {{starved, percent}} with Thunderstorm up, and never under {{strained, percent}} with Shamanistic Rage up. The pool was never the thing holding your casts back.",
+    "verdict_good": "No stretch under {{starved, percent}} went by with Thunderstorm sitting unpressed, and none under {{strained, percent}} with Shamanistic Rage. The pool was never the thing holding your casts back.",
+    "verdict_good_noRage": "No stretch under {{starved, percent}} went by with Thunderstorm sitting unpressed. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
+    "verdict_good_noThunderstorm": "No stretch under {{strained, percent}} went by with Shamanistic Rage sitting unpressed. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
     "verdict_ok": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. Press Thunderstorm the moment the bar reaches {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum — and put the Rage down every time it is up and you are under {{strained, percent}}.",
     "verdict_bad": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. At {{starved, percent}} your next Lava Burst may simply not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
     "kpi": {
@@ -380,7 +384,7 @@
       "low": "down to",
       "press": "press"
     },
-    "noRows": "You were never under either number with the button for it up in this pull.",
+    "noRows": "No stretch under either number went by with the button for it up in this pull.",
     "press": {
       "thunderstorm": "Thunderstorm",
       "rage": "Shamanistic Rage"
@@ -1373,9 +1377,9 @@
   "earthShock": {
     "title": "Earth Shock",
     "intent": "Earth Shock spends the Lightning Shield, and what makes a press good depends on how many enemies were up when you pressed it. Against one enemy with no tier-16 two-piece proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance more than six seconds away, because Ascendance wants the same shock timer. While a tier-16 proc is running, hold the shock instead — wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. So a shock pressed while the proc is running is not early just for being there; only one pressed before the proc's last four seconds is. Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
-    "verdict_good": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them.",
-    "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them; the rest went out early.",
-    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks matched the rule the list had for them — most were spent before they were right.",
+    "verdict_good": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long.",
+    "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long. The rest went out early, and the table below says what was short on each one.",
+    "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long — most went out early. The table below says what was short on each one: hold the shock until the charges are back and the dot is ahead of it.",
     "verdict_exempt": "From three enemies up the multi-target order has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so none of your {{presses, integer}} shocks is right or wrong on this reading. Switch the reading with the control at the top of the page if you want them counted.",
     "verdict_none": "Earth Shock was never cast in this pull.",
     "kpi": {
