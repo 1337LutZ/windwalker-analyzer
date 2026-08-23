@@ -88,9 +88,30 @@ describe('the sign-in panel says the same things it did before its copy moved', 
 		);
 	});
 
-	it('renders no raw key path in any of the three', () => {
-		for (const session of [{}, { error: 'gone' }, { token: PUBLIC_TOKEN, status: 'signed-in' as const }]) {
-			expect(html(session)).not.toMatch(/\bauth\.[a-z]+\.[a-zA-Z]+\b/);
+	it('names the button by what it is doing while the flow is opening', () => {
+		// The one branch in `src/components/auth/` no render reached. `signIn.opening` and `signIn.button`
+		// are the pair `SignInButton` chooses between, and until this case only one of them was ever
+		// asked for — so the other could have stopped resolving and rendered as its own key path.
+		expect(html({ status: 'signing-in' })).toContain('Opening WarcraftLogs');
+		expect(html({})).toContain('Sign in with WarcraftLogs');
+	});
+
+	/**
+	 * The middle segment is `\w+` and not `[a-z]+`, which is not a widening for its own sake.
+	 *
+	 * Every root under `auth` that carries a camelCase child — `signIn.intro`, `signIn.button`,
+	 * `signIn.opening` — was invisible to the lowercase form, so the three keys the case above exists
+	 * for were the three this net could not have caught. A guard that cannot fire on the branch beside
+	 * it is worse than none, because it reads as cover.
+	 */
+	it('renders no raw key path in any of the four', () => {
+		for (const session of [
+			{},
+			{ error: 'gone' },
+			{ token: PUBLIC_TOKEN, status: 'signed-in' as const },
+			{ status: 'signing-in' as const },
+		]) {
+			expect(html(session)).not.toMatch(/\bauth\.\w+\.\w+\b/);
 		}
 	});
 });

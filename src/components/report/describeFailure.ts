@@ -14,8 +14,10 @@ export interface Failure {
  * through untouched; the kind only decides the heading above it and whether to offer a way out.
  *
  * `t` is a parameter rather than a hook because this is not a component and there is no render to
- * hang one off. There are two callers, so passing it costs a word at each and keeps this pure — the
- * headings can be asserted without mounting anything.
+ * hang one off. The one caller is `ReportFlow.tsx`, which already holds a `useTranslation('ui')`, so
+ * passing it costs a word there and keeps this pure — the headings can be asserted without mounting
+ * anything. It used to say "two callers", and the count went stale rather than the argument: a
+ * second caller would not change the reason, and a single caller does not make a hook available here.
  *
  * **The fallback is the only branch that is not a WarcraftLogs answer.** All six `WclErrorKind`s are
  * handled above it, so nothing but a throw that is not a `WclError` reaches it — which is what the
