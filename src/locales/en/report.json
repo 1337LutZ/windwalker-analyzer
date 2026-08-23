@@ -1352,11 +1352,12 @@
       "zone": "last tick",
       "label": "How much of the Flame Shock dot was left at each refresh, against the dot’s last tick",
       "empty": "Flame Shock was never refreshed in this pull.",
-      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up and counted, the stretches it was down while you had something to hit, the stretches it was up outside the measured clock, and the stretches left out of the percentage — nothing to hit, and three or more enemies up"
+      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up on the enemy you were hitting and counted, the stretches it was up on an enemy you had left, the stretches it was down while you had something to hit, the stretches it was up outside the measured clock, and the stretches left out of the percentage — nothing to hit, and three or more enemies up"
     },
     "track": {
       "up": "Dot up",
       "dropped": "Dot down",
+      "elsewhere": "Dot up on an enemy you left",
       "uncounted": "Dot up, not measured",
       "away": "Nothing to hit",
       "aoe": "Three or more enemies"
