@@ -13,8 +13,8 @@
 // the instance, reds every assertion below. Initialising here would green them for a reason the app
 // does not have.
 
-import { readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -219,21 +219,50 @@ describe('every WclError message arrives as English, not as its key', () => {
  * `src/lib/auth/callback.ts` reads the address bar and `exchange.ts` reads `localStorage`, so neither
  * can be driven under `environment: 'node'` the way the client above can. Their keys are read out of
  * their own source instead and resolved against the instance the *client* initialised — which is the
- * claim that matters, because all three modules reach for the same one.
+ * claim that matters, because every one of these modules reaches for the same one.
+ *
+ * **The readers are discovered, not listed.** This was `['wcl/client.ts', 'auth/callback.ts',
+ * 'auth/exchange.ts']`, and it stopped being the whole set the moment `auth/config.ts` moved its own
+ * message into the locale — a file asking for a key that nothing checked resolves. A three-name list
+ * cannot grow, and a check that cannot grow cannot fail; the same shape this repository has now been
+ * bitten by in a dozen fixture grids. So the sweep walks `src/lib` for anything that calls
+ * `t('errors.…')` and the count is pinned, which is what makes a fifth reader arrive loudly.
  *
  * The import is dynamic and inside the test on purpose: it has to happen after `../client`, and an
  * import sorter has no way to know that.
  */
 describe('every key the transport and the sign-in flow ask for resolves', () => {
 	const LIB = resolve(import.meta.dirname, '../..');
-	const READERS = ['wcl/client.ts', 'auth/callback.ts', 'auth/exchange.ts'];
+	const KEY = /\bt\('(errors\.[\w.]+)'/g;
 
-	it('resolves all of them, and finds one in each file', async () => {
+	/** Every `.ts` under `src/lib` that asks the locale for an error string, found rather than named. */
+	const readers = (): string[] => {
+		const out: string[] = [];
+		const walk = (dir: string): void => {
+			for (const entry of readdirSync(dir, { withFileTypes: true })) {
+				const full = join(dir, entry.name);
+				if (entry.isDirectory()) {
+					if (entry.name !== '__tests__') walk(full);
+				} else if (entry.name.endsWith('.ts') && KEY.test(readFileSync(full, 'utf8'))) {
+					out.push(relative(LIB, full));
+				}
+				KEY.lastIndex = 0;
+			}
+		};
+		walk(LIB);
+		return out.sort();
+	};
+
+	it('resolves all of them, and finds every file that asks', async () => {
 		const { default: i18n } = await import('~/lib/i18n/config');
+		const found = readers();
 
-		for (const reader of READERS) {
+		// Pinned so a new reader has to be seen here rather than joining a sweep nobody re-reads.
+		expect(found).toEqual(['auth/callback.ts', 'auth/config.ts', 'auth/exchange.ts', 'wcl/client.ts']);
+
+		for (const reader of found) {
 			const source = readFileSync(join(LIB, reader), 'utf8');
-			const keys = [...source.matchAll(/\bt\('(errors\.[\w.]+)'/g)].map((match) => match[1]!);
+			const keys = [...source.matchAll(KEY)].map((match) => match[1]!);
 			expect(keys.length, `no keys read out of ${reader}`).toBeGreaterThan(0);
 
 			const unresolved = keys.filter((key) => i18n.t(key, { ns: 'ui' }) === key);

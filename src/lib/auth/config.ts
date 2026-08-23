@@ -10,9 +10,13 @@
 // runtime configuration — each visitor registers their own client and pastes its id in, and it lives
 // in `localStorage` beside the rest of their setup.
 
+import { i18n } from '~/lib/i18n';
 import { WCL_HOST } from '~/lib/wcl/endpoint';
 
 import { readClientID } from './storage';
+
+/** The shell copy, off the instance: no component here either. See `wcl/client.ts` for the reasoning. */
+const t = (key: string, values?: Record<string, unknown>): string => i18n.t(key, { ns: 'ui', ...values });
 
 // The `www` host serves these endpoints too, and the WarcraftLogs docs describe them there. They are
 // taken from the `classic` host instead for two reasons, both load-bearing:
@@ -59,9 +63,7 @@ export function looksLikeClientID(value: string): boolean {
 export function requireClientID(): string {
 	const id = readClientID();
 	if (id === null) {
-		throw new Error(
-			`No WarcraftLogs client id has been set in this browser. Register one at ${WCL_CLIENTS_URL} and paste its id in, or paste your own access token instead.`,
-		);
+		throw new Error(t('errors.signIn.noClientId', { url: WCL_CLIENTS_URL }));
 	}
 	return id;
 }

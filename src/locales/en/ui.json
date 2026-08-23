@@ -141,6 +141,7 @@
       }
     },
     "signIn": {
+      "noClientId": "No WarcraftLogs client id has been set in this browser. Register one at {{url}} and paste its id in, or paste your own access token instead.",
       "wrongTab": "That sign-in did not start in this tab, so it was refused. Start it again from this page.",
       "cancelled": "You cancelled the sign-in at WarcraftLogs. Nothing was shared.",
       "notAuthorized": "WarcraftLogs would not authorize this app ({{refusal}}).",
