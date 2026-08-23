@@ -118,17 +118,25 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * against the dot's own cadence. The two disagree in both directions, so band 2 is out rather than
 	 * merely generous.
 	 *
-	 * ## What it does to the three committed pulls
+	 * ## What it does to the four committed pulls
 	 *
 	 * Stated per pull, because a declared scope that moves nothing looks like a control and is not one.
 	 *
 	 *   - `phased` and `unbroken` **never exceed one enemy**, so every refresh is judged: 4 of 4 and 6 of
 	 *     6, 25% `ok` and 33.33% `bad`, both unmoved. They are the deliberate no-change guards.
-	 *   - `cleave` is the only committed pull with band-3+ time, and its sample goes from **2 refreshes to
+	 *   - `cleave` has band-3+ time, and its sample goes from **2 refreshes to
 	 *     1** — `unjudgedRefreshes` is 1 and `unjudgedWaste` is 1. The press that leaves is the faulted one,
 	 *     at 57 499ms with **four** enemies up, where `aoe.apl.json` rung 1 refuses to refresh a live dot at
 	 *     all and not one of p5's three excuses is on the list. The numerator goes to 0 and the raw share
 	 *     from 50% to 0%.
+	 *   - **`addsThenBoss` is the pull on which the narrowing changes a grade's evidence rather than only
+	 *     its size, and "`cleave` is the only committed pull with band-3+ time" was the sentence here until
+	 *     it landed.** That pull reaches nine enemies and reads 73.7% multi-target: 13 refreshes, of which
+	 *     `unjudgedRefreshes` is 4 and `unjudgedWaste` 3, so the sample goes from **13 to 9** and the share
+	 *     from 76.92% pull-wide to **77.78%** judged. Both are `bad`, and a sample of nine is the first
+	 *     committed denominator this metric has that is comfortably clear of `MIN_GRADED_SAMPLE` in both
+	 *     readings — so on this pull the two `unjudged` terms are load-bearing on a grade that prints,
+	 *     rather than on one that refuses either way.
 	 *
 	 * **And on `cleave` it still refuses, which is the honest outcome rather than the satisfying one.** One
 	 * judged refresh is under `MIN_GRADED_SAMPLE`, and two refreshes already were — the card was
@@ -239,7 +247,9 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// faulted by the priority ladder, where `searing-totem` is `bands: [1, 2]` and the press falls
 	// through to Chain Lightning. Exempting it here as well would leave the one press that is wrong on
 	// both counts — no rung asked for it *and* the slot it claimed was occupied — carrying no verdict
-	// anywhere. `feOverlaps` is 0 on all three committed pulls, so this ruling costs nothing measurable
+	// anywhere. `feOverlaps` is 0 on all four committed pulls — and on `addsThenBoss` this metric declines
+	// outright rather than reading a clean zero, because that pull never places a Searing Totem at all and
+	// the `windows.length > 0` guard on the line below refuses it — so this ruling costs nothing measurable
 	// today; it is written down because the plan it overrules is still readable.
 	const searingTotemOverlaps = metric(
 		'searingTotemOverlaps',
@@ -354,7 +364,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * The pool's two faults, and both of them are omissions — the player is charged for *not* pressing
 	 * something, so the evidence bar is higher than it is for a press that went out at the wrong moment.
 	 *
-	 * **Unmeasurable, not zero, on a log that carried no readings.** Two of the three committed fixtures
+	 * **Unmeasurable, not zero, on a log that carried no readings.** Two of the four committed fixtures
 	 * hold no `classResources` at all — `phased` and `unbroken` were captured without the flag — and
 	 * without this clause they would be the two best-graded mana pulls in the report, on no data. The
 	 * same refusal `flameShockMultiDot` makes on a single-target pull, and the same one this spec's
@@ -766,8 +776,9 @@ export const THRESHOLDS = {
 	 * millisecond of the window or it was not. Containment really does give exactly 100 rather than 99.99,
 	 * which is what lets the full mark be a literal one — `coveredMs` is `overlapMs` of the aura's own
 	 * `applybuff`/`removebuff` pairs against the haste window, both fight-relative and both integer
-	 * milliseconds off the same clock, and all three committed pulls read 40 008/40 008, 40 005/40 005 and
-	 * 40 006/40 006 ms. The declared-duration reading this deliberately does not use (`feWindows`, the Fire
+	 * milliseconds off the same clock, and the three committed pulls that have a clock at all read
+	 * 40 008/40 008, 40 005/40 005 and 40 006/40 006 ms. The fourth, `addsThenBoss`, reads **0/0** and is
+	 * refused — see the paragraph on it below. The declared-duration reading this deliberately does not use (`feWindows`, the Fire
 	 * totem slot walk) is where a rounding tolerance would have been needed, and the argument against it
 	 * is on the audit.
 	 *
@@ -779,7 +790,8 @@ export const THRESHOLDS = {
 	 * physics imposes on a player whose only lapse is not having pre-pulled:
 	 *
 	 *   - the haste cooldown does not land on the bell. It is a cast like any other, and it lands **0.785s
-	 *     to 1.777s** in on the three pulls we hold;
+	 *     to 1.777s** in on the three pulls that lust on the pull at all — `addsThenBoss` lusts at
+	 *     438 207ms and is refused rather than banded;
 	 *   - the totem pressed as the opening global puts the pet out one cast behind the bell, and the pet is
 	 *     standing from the press.
 	 *
@@ -823,7 +835,8 @@ export const THRESHOLDS = {
 	 *
 	 * **Three of the four committed fixtures read exactly 100.00% and the figure has no variance at all.**
 	 * Every
-	 * one of them took Primal Elementalist (117013 is in all three `combatantinfo` lists), every one had
+	 * one of them took Primal Elementalist — 117013 is in all **four** `combatantinfo` lists, the refused
+	 * pull's included — every one had
 	 * the elemental out before the bell — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
 	 * lusted inside the first two seconds for forty seconds, under a different spell each time (Heroism,
 	 * Bloodlust, Time Warp). A pre-pull summon's minute contains an on-pull lust's forty seconds by
@@ -843,8 +856,8 @@ export const THRESHOLDS = {
 	 * §80's own box warned about the shape this used to have — *"a metric that reads a flat 100% everywhere
 	 * carries weight while discriminating nothing"* — and `WEIGHTS` is where that is now answered rather
 	 * than here. What it is **not**, and never was, is the free-pass shape: a `good` handed out over an
-	 * empty clock. The clock here is forty real seconds of haste on all three pulls, and the pulls that
-	 * have no clock are refused rather than credited.
+	 * empty clock. The clock here is forty real seconds of haste on each of those three pulls, and the
+	 * pull that has no clock — `addsThenBoss` — is refused rather than credited.
 	 *
 	 * **No band, and the argument is that the summon is the same job at every target count.** A band
 	 * declaration says "this figure means nothing at these counts", and there is no count at which a
@@ -872,12 +885,25 @@ export const THRESHOLDS = {
 	 * table.
 	 *
 	 * **And it cannot be shown to change anything on the fixtures we hold, which is stated rather than
-	 * implied.** All three committed pulls audit `refreshed: 0, missed: 0` — none of them wore a trigger
-	 * and an int proc at the same time — so the metric is already unmeasurable on every one of them, at
-	 * every reading, before and after this declaration. `shareOf` on the same line is in the same
-	 * position: it refuses a denominator under three, and the denominator here is zero. Both are
-	 * therefore untested against a real pull and both are the same claim the other six entries make.
-	 * The first fixture with a live snapshot window will be the first evidence either way.
+	 * implied — but the reason is not the same on all four of them, and it used to be written as though it
+	 * were.** This paragraph said "all three committed pulls audit `refreshed: 0, missed: 0` — none of them
+	 * wore a trigger and an int proc at the same time". There are four, and the fourth wears both.
+	 *
+	 *   - `phased`, `unbroken` and `cleave` audit `refreshed: 0, missed: 0` and open **no proc window at
+	 *     all**: none of those players wears a trigger, so the denominator is genuinely empty and both
+	 *     guards refuse for the same reason.
+	 *   - **`addsThenBoss` opens six**, and audits `refreshed: 1, missed: 0`. Wushoolay's Final Choice
+	 *     reaches ten stacks thirteen times, six of those windows overlap Breath of the Hydra or Tempus
+	 *     Repit, and **five of the six opened while the dot was down** — the primary is not dotted until
+	 *     442 020ms — so they were never chances to refresh it and are counted as neither caught nor
+	 *     missed. The sixth, at 532 012ms, was caught. So `shareOf` hands over a sample of **one**, and
+	 *     what refuses this metric there is `MIN_GRADED_SAMPLE`, **not** an empty denominator. The two
+	 *     blockers are independent and only one of them is in play on that pull.
+	 *
+	 * **Which is the distinction a reader deciding whether a new fixture would help actually needs.** Six
+	 * proc windows are not the shortfall; three windows *with the dot up* are, and this pull has one. A
+	 * fixture that merely opens several proc windows would land exactly where this one did. Measured, with
+	 * every figure above asserted, in `__fixtures__/bands.test.ts` and `lib/__tests__/flameShockAimed.test.ts`.
 	 */
 	flameShockSnapshots: { good: 70, ok: 45, higherIsBetter: true, bands: [1] },
 
@@ -1012,16 +1038,23 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	 *   - **The flatness was the binary, and the binary is gone.** `ok: 100` gave the rule two states and
 	 *     no middle; it now has a band (see `THRESHOLDS`) and a measured continuum through it — 100.000%,
 	 *     99.443%, 96.943%, 94.944%, 79.447%, 63.692%, 0.000% across the synthetic pulls, with `good`,
-	 *     `ok` and `bad` all reachable. What the three fixtures are flat *on* is the axis the rule grades:
-	 *     all three shamans pre-pulled, and a pre-pull summon's minute contains an on-pull lust's forty
-	 *     seconds by construction. That is three players on the right side of a real line, not a line with
-	 *     nothing on either side of it.
+	 *     `ok` and `bad` all reachable. What the three fixtures below are flat *on* is the axis the rule
+	 *     grades: all three of those shamans pre-pulled, and a pre-pull summon's minute contains an on-pull
+	 *     lust's forty seconds by construction. That is three players on the right side of a real line, not
+	 *     a line with nothing on either side of it — and `addsThenBoss`, which arrived after this table was
+	 *     written, is on neither side of it: it never pre-pulled and its raid lusted at 438 207ms, so the
+	 *     rule declines on it outright.
 	 *   - **The table already prices two rules the whole test set passes.** `searingTotemOverlaps` reads 0
-	 *     overlaps and therefore `good` on all three committed pulls at this same weight, and
-	 *     `gcdUtilisation` reads `good` on all three at weight **two**. A fixture set of three is not a
-	 *     distribution, and a weight prices the rule rather than the sample.
+	 *     overlaps and therefore `good` on the three pulls that place a totem at this same weight — it
+	 *     declines on `addsThenBoss`, which places none — and `gcdUtilisation` reads `good` on all **four**
+	 *     at weight **two**. A fixture set of four is not a distribution, and a weight prices the rule
+	 *     rather than the sample.
 	 *
 	 * ## What the weight moves, measured at all three readings rather than the default one
+	 *
+	 * The grid below is the three pulls the exercise was run on. `addsThenBoss` is not in it and has not
+	 * been re-run through it: this rule declines on that pull at every reading, so it contributes nothing
+	 * to either side of the weight comparison.
 	 *
 	 * ```
 	 *                          weight 0 / ok 100        weight 1 / ok 95
@@ -1043,7 +1076,7 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	 * **`cleave` is the pull this exercise began from, and this change takes it off `bad`. That is stated
 	 * here rather than discovered later.** Its three summary cards do not move — they are still
 	 * `flameShockUptime`, `flameShockMultiDot` and `lightningShieldOvercap`, none of them this rule — and
-	 * it is still eighteen points the worst of the three. What the old note read as a reason for zero cuts
+	 * it is still eighteen points the worst of the three the grid covers. What the old note read as a reason for zero cuts
 	 * both ways: at weight 0 the choice of weight was equally what was *keeping* `cleave` under the line,
 	 * since 42.31% was 2.69 points short on the other thirteen weights alone. "Is `cleave` a bad pull" is
 	 * a question about the 45% line and about those thirteen weights; it cannot be answered by pricing this

@@ -1,4 +1,4 @@
-// What the Elemental's seven band declarations and its sample floor actually do to the three
+// What the Elemental's seven band declarations and its sample floor actually do to the four
 // committed pulls.
 //
 // Beside the fixtures because that is what these are tests of. A declaration is one line in
@@ -19,17 +19,38 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
-import { GRADE_ORDER, type Metric } from '~/lib/score';
+import { GRADE_ORDER, MIN_GRADED_SAMPLE, type Metric } from '~/lib/score';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { countAt } from '~/lib/analysis/targets';
 import { resolveBands, type TargetModeChoice } from '~/lib/view/targetMode';
 import { analyse } from '~/specs/elemental/lib';
 import { scoreAnalysis, THRESHOLDS, weightsFor } from '~/specs/elemental/lib/score';
 
-const fixture = (name: string): Analysis & ElementalAuditResult =>
-	analyse(JSON.parse(readFileSync(resolve(import.meta.dirname, `${name}.json`), 'utf8')) as FightDataset) as Analysis &
-		ElementalAuditResult;
+// Memoised, which the three-fixture version did not need to be. Every `card`, `metric` and `panel` call
+// below re-reads and re-analyses, and `addsThenBoss.json` is 4.4MB — the loops in this file would parse it
+// dozens of times. Read-only here: nothing in the file mutates a dataset or an analysis.
+const analysed = new Map<string, Analysis & ElementalAuditResult>();
+const fixture = (name: string): Analysis & ElementalAuditResult => {
+	const memo = analysed.get(name);
+	if (memo !== undefined) return memo;
+	const el = analyse(
+		JSON.parse(readFileSync(resolve(import.meta.dirname, `${name}.json`), 'utf8')) as FightDataset,
+	) as Analysis & ElementalAuditResult;
+	analysed.set(name, el);
+	return el;
+};
 
-const ALL = ['phased', 'unbroken', 'cleave'] as const;
+/**
+ * Every raw pull this spec has committed, discovered rather than listed.
+ *
+ * **This was `['phased', 'unbroken', 'cleave']`.** When `addsThenBoss.json` was committed, every loop in
+ * this file went on visiting three pulls, and the test below that claims *"has no pull that can test the
+ * snapshot rule at all"* went on passing while the pull that can had been sitting in this directory. A
+ * literal fixture list in the file that grades fixtures is the same defect the sweeps in
+ * `lib/analysis/fixtures.ts` were written to close, and it fails in the silent direction: nothing goes
+ * red, the new pull is simply not looked at.
+ */
+const ALL = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
 /** One pull's card, read the way a reader with that switch position would see it. */
 const card = (name: string, choice: TargetModeChoice) => {
@@ -269,8 +290,8 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * And the headline refuses to be a headline over what is left: 6 of 23 points, all of them habit
 	 * metrics and the summon's two rules, which is under `MIN_JUDGED_WEIGHT_SHARE`.
 	 *
-	 * One of the three moves letter as well as meaning: `cleave` graded `bad` on that reading before and
-	 * now parks at `ok`. The other two already read `ok`, and what changed for them is that the `ok` is
+	 * One of the first three moves letter as well as meaning: `cleave` graded `bad` on that reading before
+	 * and now parks at `ok`. The other two already read `ok`, and what changed for them is that the `ok` is
 	 * now marked `judged.unmeasurable` — the value the report reads to say "cannot say" rather than
 	 * printing a middling grade. A letter that stays put while its meaning inverts is the case a test on
 	 * `overall` alone would have missed.
@@ -279,10 +300,22 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * and it is one of the rules that survives this reading — it declares no bands, so a pull read wholly
 	 * as multi-target still owes it an answer. 6 of 23 is 26%, further under the floor than 5 of 22 was, so
 	 * the refusal this test is about is if anything more firmly the answer than before.
+	 *
+	 * **`addsThenBoss` measures five and not six, and the missing one is `searingTotemOverlaps`.** That
+	 * pull places no Searing Totem at all, so the `windows.length > 0` guard in front of that metric
+	 * refuses it — a refusal that has nothing to do with bands and survives every reading. 5 of 23 is 22%,
+	 * further under the floor still, so it makes the same point one notch harder rather than a different
+	 * one. Written per pull, because a flat `toEqual` here is how the fourth pull's five would have been
+	 * read as a regression rather than as a fact about its rotation.
 	 */
 	it('stops printing a whole-pull verdict over six of twenty-three points', () => {
+		const measured: Record<string, number> = { addsThenBoss: 5 };
 		for (const name of ALL) {
-			expect(card(name, 'multi').judged, name).toEqual({ measured: 6, total: 23, unmeasurable: true });
+			expect(card(name, 'multi').judged, name).toEqual({
+				measured: measured[name] ?? 6,
+				total: 23,
+				unmeasurable: true,
+			});
 			expect(card(name, 'multi').overall, name).toBe('ok');
 		}
 		expect(panel('cleave', 'multi')).toEqual(['lightningShieldFellOff']);
@@ -403,9 +436,17 @@ describe('what deliberately does not move', () => {
 	 * and this is the ruling against that.
 	 *
 	 * A totem pressed under the Fire Elemental bought nothing at any target count — the elemental owns
-	 * the fire-totem slot — so the fault is a slot fact rather than a list fact. Graded on all three
-	 * pulls at all three readings, and `good` on all of them, so the ruling costs nothing measurable
-	 * today: the three committed pulls placed seven totems and none of them under the elemental.
+	 * the fire-totem slot — so the fault is a slot fact rather than a list fact. Graded on the three pulls
+	 * that place a totem at all, at all three readings, and `good` on every one of them, so the ruling
+	 * costs nothing measurable today: those three placed seven totems (2, 2 and 3) and none of them under
+	 * the elemental.
+	 *
+	 * **`addsThenBoss` places none, and it is asserted as a refusal rather than skipped.** Zero presses
+	 * means `searingTotem.windows` is empty, and the guard in front of the metric returns null — so the
+	 * declaration being tested here is not what makes it unmeasurable on that pull, and the metric's
+	 * `feOverlaps` of 0 is a true zero over an empty clock rather than a clean sheet. This is the
+	 * distinction the whole `Measured` mechanism exists for, and pinning it here is what stops a later
+	 * reader from citing that pull as a fourth `good`.
 	 *
 	 * **Cannot go red against the old behaviour**, for the same reason as the guard above: this is the
 	 * decision *not* to declare, and the old behaviour is the same absence. It is here so that the plan
@@ -413,32 +454,128 @@ describe('what deliberately does not move', () => {
 	 * argument.
 	 */
 	it('grades a totem under the elemental at every count', () => {
+		let graded = 0;
 		for (const name of ALL) {
+			const el = fixture(name);
+			const placed = el.searingTotem.presses.length > 0;
 			for (const choice of ['auto', 'single', 'multi'] as const) {
 				const m = metric(name, choice, 'searingTotemOverlaps');
-				expect(m?.unmeasurable, `${name}/${choice}`).toBe(false);
+				expect(m?.unmeasurable, `${name}/${choice}`).toBe(!placed);
 				expect(m?.value, `${name}/${choice}`).toBe(0);
+				// Never exempt, on any pull: this rule declares no bands, which is the ruling.
+				expect(m?.exempt, `${name}/${choice}`).toBeUndefined();
+				if (placed) graded++;
 			}
-			expect(fixture(name).searingTotem.feOverlaps, name).toBe(0);
+			expect(el.searingTotem.feOverlaps, name).toBe(0);
 		}
+		// Three pulls at three readings, so the loop above is not a set of nine refusals.
+		expect(graded).toBe(9);
+		expect(fixture('addsThenBoss').searingTotem.presses).toEqual([]);
+		expect(ALL.map((name) => fixture(name).searingTotem.presses.length).reduce((a, b) => a + b, 0)).toBe(7);
 	});
 
 	/**
-	 * **A guard that cannot be shown either way on what we hold, stated as such.**
+	 * **The heaviest rule in the table, measured on the one pull that can say anything about it — and the
+	 * two independent reasons it still refuses, told apart.**
 	 *
-	 * `flameShockSnapshots` is the heaviest rule in the table and its declaration is untestable here: all
-	 * three pulls audit `refreshed: 0, missed: 0`, because none of them ever wore a trigger and an int
-	 * proc at the same moment. So the metric is unmeasurable at every reading before and after, `shareOf`
-	 * refuses a denominator of zero the same way `sharePct` did, and the first fixture with a live
-	 * snapshot window will be the first evidence for either half.
+	 * This test was called *"has no pull that can test the snapshot rule at all"* and asserted
+	 * `refreshed + missed === 0` and `sampleSize === 0` across `ALL`. Both halves of that were false as
+	 * soon as `addsThenBoss.json` was committed, and neither went red, because `ALL` was a literal list
+	 * of the three pulls that predate it. The claim that survived on a false premise was *"none of them
+	 * ever wore a trigger and an int proc at the same moment"*: that pull's shaman wears both.
+	 *
+	 * ## What is actually there, per pull
+	 *
+	 * `phased`, `unbroken` and `cleave` open **no window at all**. Nobody on those three wears a trigger
+	 * — Wushoolay's Final Choice and Black Blood of Y'Shaarj are the only two the audit builds a trigger
+	 * series from — so `snapshotWindows` is empty and the denominator is genuinely nothing.
+	 *
+	 * `addsThenBoss` opens **six**, every one of them off `uvls-stacks`:
+	 *
+	 *   - the counter (138788, "Electrified") reaches **ten stacks thirteen times**, each of those a
+	 *     window about a second wide before the whole set falls off;
+	 *   - the int-proc side is Breath of the Hydra (138898, **nine** windows) and Tempus Repit (137590,
+	 *     **sixteen**); Cha-Ye's is not worn. Six of the thirteen trigger windows overlap one of those,
+	 *     and it is the overlap the p5 rung actually asks about;
+	 *   - **five of the six opened with the dot down.** The primary is on a tower for the first seven
+	 *     minutes and `flameShock.windows` is the single span `[442 020, 560 218]`, so the five windows at
+	 *     16 025, 26 834, 163 224, 265 710 and 418 471ms were never chances to refresh anything. The audit
+	 *     counts them as neither caught nor missed, which is the `inWindow(window.start, fsMerged)` line —
+	 *     and that is the right call, not a gap: a window the dot was down through is not a window the
+	 *     player declined;
+	 *   - the sixth, at 532 012ms, was **caught** — the press at 532 772ms with 8 320ms of dot left.
+	 *
+	 * So the audit reads `refreshed: 1, missed: 0` and `shareOf` hands over `1/1`.
+	 *
+	 * ## Which blocker stops it, because they are not the same one
+	 *
+	 * `metricOf` has two independent refusals in play here and the difference is the whole finding:
+	 *
+	 *   - on the three empty pulls the denominator is **zero**, so `sharePct` returns null *and*
+	 *     `sampleSize` is under the floor. Either alone would refuse.
+	 *   - on `addsThenBoss` the denominator is **one**. There is a real share — 100% — and what refuses
+	 *     it is `MIN_GRADED_SAMPLE` alone, asserted against the constant below rather than against a
+	 *     literal 3.
+	 *
+	 * And it is **not** the band declaration on any of the four: `bands: [1]` exempts only on an empty
+	 * intersection, and this pull resolves to `[1, 2, 3, 4]`. `exempt` is asserted absent so a later
+	 * reader cannot mistake the refusal for the declaration doing work.
+	 *
+	 * ## What a fixture would have to have
+	 *
+	 * **Not "several proc windows" — this pull has six.** Three windows *with the dot already up* is the
+	 * bar, and this pull has one. Stated because it is the sentence a reader consults before going
+	 * looking, and the old one pointed at the wrong shortfall.
 	 */
-	it('has no pull that can test the snapshot rule at all', () => {
-		for (const name of ALL) {
-			const audit = fixture(name).snapshots;
-			expect(audit.refreshed + audit.missed, name).toBe(0);
-			expect(metric(name, 'auto', 'flameShockSnapshots')?.unmeasurable, name).toBe(true);
+	it('measures the snapshot rule on the one pull that can, and names what still refuses it', () => {
+		const claimable = (name: string): number[] => {
+			const el = fixture(name);
+			return el.snapshots.windows
+				.filter((w) => el.flameShock.windows.some((dot) => w.start >= dot.start && w.start <= dot.end))
+				.map((w) => w.start);
+		};
+
+		// The three that predate the fourth: no window, so no denominator either way.
+		for (const name of ['phased', 'unbroken', 'cleave'] as const) {
+			const el = fixture(name);
+			expect(el.snapshots.windows, name).toEqual([]);
+			expect([el.snapshots.refreshed, el.snapshots.missed], name).toEqual([0, 0]);
 			expect(metric(name, 'auto', 'flameShockSnapshots')?.sampleSize, name).toBe(0);
 		}
+
+		// And the fourth, which has six windows, one of them claimable, and that one caught.
+		const adds = fixture('addsThenBoss');
+		expect(adds.snapshots.windows.map((w) => w.start)).toEqual([16_025, 26_834, 163_224, 265_710, 418_471, 532_012]);
+		expect([...new Set(adds.snapshots.windows.map((w) => w.source))]).toEqual(['uvls-stacks']);
+		expect(adds.flameShock.windows).toEqual([{ start: 442_020, end: 560_218 }]);
+		expect(claimable('addsThenBoss')).toEqual([532_012]);
+		expect([adds.snapshots.refreshed, adds.snapshots.missed]).toEqual([1, 0]);
+		// Caught, not merely uncounted: the refresh inside the window, with the dot it went into.
+		expect(
+			adds.flameShock.presses
+				.filter((press) => press.remainingMs !== null && press.t >= 532_012 && press.t <= 533_006)
+				.map((press) => [press.t, press.kind, press.remainingMs]),
+		).toEqual([[532_772, 'snapshot', 8320]]);
+		// No fault printed for any of the five the dot was down through.
+		expect(adds.misses.filter((miss) => miss.kind.startsWith('Snapshot'))).toEqual([]);
+
+		// Unmeasurable on all four, at every reading — and for two different reasons.
+		for (const name of ALL) {
+			for (const choice of ['auto', 'single', 'multi'] as const) {
+				const m = metric(name, choice, 'flameShockSnapshots');
+				expect(m?.unmeasurable, `${name}/${choice}`).toBe(true);
+			}
+		}
+		const m = metric('addsThenBoss', 'auto', 'flameShockSnapshots');
+		// A sample of one, which is a real denominator and not an empty one.
+		expect(m?.sampleSize).toBe(1);
+		expect(m?.sampleSize ?? 0).toBeLessThan(MIN_GRADED_SAMPLE);
+		// So the floor is what refuses it — not the band declaration, which intersects non-empty here.
+		expect(resolveBands(adds.targets, 'auto').bands).toEqual([1, 2, 3, 4]);
+		expect(m?.exempt).toBeUndefined();
+		// Two more claimable windows and this rule grades for the first time. Written as the arithmetic so
+		// the bar cannot drift from the constant it is a bar against.
+		expect(MIN_GRADED_SAMPLE - claimable('addsThenBoss').length).toBe(2);
 	});
 });
 
@@ -448,8 +585,11 @@ describe('the denominator travels with the verdict', () => {
 	 *
 	 * Under its own reading `cleave` judges **14** of 23 and the two single-target pulls judge 14 — they
 	 * never offered a second target, a snapshot window or a mana reading, and `flameShockMultiDot` is now
-	 * unasked on them rather than merely unanswerable. All three are above `MIN_JUDGED_WEIGHT_SHARE`, so
-	 * every real pull we hold keeps its grade, which is the claim that floor was chosen to make.
+	 * unasked on them rather than merely unanswerable. `addsThenBoss` also judges 14, off a different set:
+	 * it gains `flameShockWaste` and `shamanisticRageMissed`, and loses both Searing Totem rules and the
+	 * summon's haste, which is worth stating because the same count over a different set is exactly what a
+	 * bare total hides. Both lists are asserted below rather than described. All four are above `MIN_JUDGED_WEIGHT_SHARE`, so every real pull we hold keeps its
+	 * grade, which is the claim that floor was chosen to make.
 	 *
 	 * `cleave` was 15 of 22 when the declarations landed and 13 of 22 after them: `flameShockWaste` carries
 	 * weight 2 and left the denominator, because cutting the graded clocks let `shareOf`'s sample floor apply
@@ -457,16 +597,36 @@ describe('the denominator travels with the verdict', () => {
 	 * the two points were being spent on a 50% that one press decided — but it is a real narrowing of what
 	 * the header can claim.
 	 *
-	 * Both sides then gained one when `fireElementalHasteUptime` was priced at 1, on all three pulls at
-	 * once: it declares no bands and it is measurable on every one of them, so it enters the offered weight
-	 * and the judged weight together. 14 of 23 is 61%, so the grade still prints — and the *share* barely
-	 * moved, which is the point of reading this as a fraction rather than a count.
+	 * Both sides then gained one when `fireElementalHasteUptime` was priced at 1, on the three pulls held
+	 * then: it declares no bands and it is measurable on every one of those, so it enters the offered
+	 * weight and the judged weight together. It is *not* measurable on `addsThenBoss`, whose raid lusted at
+	 * 438 207ms — that pull pays the offered weight and does not collect the judged half. 14 of 23 is 61%,
+	 * so the grade still prints — and the *share* barely moved, which is the point of reading this as a
+	 * fraction rather than a count.
 	 */
 	it('publishes what each pull was judged on', () => {
-		expect(card('cleave', 'auto').judged).toEqual({ measured: 14, total: 23, unmeasurable: false });
-		for (const name of ['phased', 'unbroken'] as const) {
+		for (const name of ALL) {
 			expect(card(name, 'auto').judged, name).toEqual({ measured: 14, total: 23, unmeasurable: false });
 		}
+		// Not the same fourteen. Named so that the equal count above cannot be read as an equal set.
+		const unmeasurableOn = (name: string): string[] =>
+			metrics(name, 'auto')
+				.filter((m) => m.unmeasurable)
+				.map((m) => m.key)
+				.sort();
+		expect(unmeasurableOn('addsThenBoss')).toEqual([
+			'fireElementalHasteUptime',
+			'flameShockSnapshots',
+			'searingTotemOverlaps',
+			'searingTotemUptime',
+			'thunderstormMissed',
+		]);
+		expect(unmeasurableOn('cleave')).toEqual([
+			'flameShockSnapshots',
+			'flameShockWaste',
+			'shamanisticRageMissed',
+			'thunderstormMissed',
+		]);
 	});
 
 	/**
@@ -477,8 +637,9 @@ describe('the denominator travels with the verdict', () => {
 	 * all that clock is empty, where `0ms of overcap over 0ms` grades `good`. The guard is
 	 * `gradedOver(overcapMs, gradedMs)` and `gradedMs` is now a published field, so the refusal happens.
 	 *
-	 * It still cannot be *exercised* here: all three pulls spend most of themselves at one or two enemies,
-	 * so the graded clock is 258 304ms, 184 448ms and 180 375ms. So this test keeps its original job — it
+	 * It still cannot be *exercised* here: all four pulls spend most of themselves at one or two enemies,
+	 * so the graded clock is 258 304ms, 184 448ms, 180 375ms and 334 148ms — `addsThenBoss` reaches nine
+	 * enemies and is still 61% of its own length inside band 1 or 2. So this test keeps its original job — it
 	 * records that no committed pull reaches the hazard, which is how a later reader tells an untested
 	 * guard from an absent one. The pull that does reach it is synthetic and lives in
 	 * `lib/__tests__/bandedClocks.test.ts`, which is where the refusal itself is asserted.

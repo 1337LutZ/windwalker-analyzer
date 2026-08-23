@@ -346,7 +346,7 @@ const ELEMENTAL_MASTERY_DURATION_MS = 20_000;
  *
  * **The reason given here for measuring against five was wrong and is corrected rather than kept.** It
  * said the report "cannot read the talent reliably off a log". It can: Primal Elementalist is 117013 and
- * it is in the `combatantinfo` talent list of all three committed fixtures, which `readTalents` answers
+ * it is in the `combatantinfo` talent list of all four committed fixtures, which `readTalents` answers
  * directly — the same read that now publishes `elementalMastery.talented`. So the five minutes is a
  * *measurement this lane did not change*, not a limit of the data, and the window-length detection below
  * is a dance around a fact that is now available.
@@ -454,8 +454,9 @@ const LIGHTNING_SHIELD_MAX_STACKS = 7;
  *
  * Stated as constants for the reason `LIGHTNING_SHIELD_MAX_STACKS` is: the ceiling is what a drawn bar's
  * stack shading is measured against, so reading it off a pull's own peak would draw a pull that never
- * doubled up as though two were never available. The three fixtures happen to reach two on every one, so
- * a peak-derived ceiling would agree today and drift silently on the first pull that does not.
+ * doubled up as though two were never available. **All four** fixtures happen to reach two and not one of
+ * them a third, so a peak-derived ceiling would agree today and drift silently on the first pull that does
+ * not.
  */
 const CLEARCASTING_MAX_STACKS = 2;
 const CLEARCASTING_DURATION_MS = 15_000;
@@ -810,8 +811,11 @@ const AURAS: Aura[] = [
 	/**
 	 * **Clearcasting — the Elemental Focus proc, and a +20% damage multiplier nothing in this report knew
 	 * about.** Found by the undeclared-aura sweep (`68671a5`, plan §82) with **728 events across the three
-	 * committed pulls**, the busiest id it turned up; until now the only thing in the repository that knew
-	 * the number existed was `EXTRA_NAMES` below, labelling a damage-table row.
+	 * committed pulls held then** — 219, 210 and 299 on `phased`, `unbroken` and `cleave` — the busiest id
+	 * it turned up; until now the only thing in the repository that knew the number existed was
+	 * `EXTRA_NAMES` below, labelling a damage-table row. `addsThenBoss` adds **612** of its own, so the
+	 * sweep's figure is a record of what it found rather than a count of what fires today: 1 340 across the
+	 * four.
 	 *
 	 * `sim/shaman/talents_elemental.go`. The aura is registered at :153 as `Label: "Clearcasting"`,
 	 * `ActionID{SpellID: 16246}`, `Duration: time.Second * 15`, `MaxStacks: maxStacks` where
@@ -827,9 +831,11 @@ const AURAS: Aura[] = [
 	 * two** rather than adding one. The aura's own `OnCastComplete` at :157 spends one stack per cast
 	 * matching `canConsumeSpells`, skipping echoes and skipping the cast that just triggered it.
 	 *
-	 * **Both numbers are the log's as well as the sim's**, measured on the three fixtures: no pull ever
-	 * shows a third stack, and of 361 drops, 291 coincide with a cast of a consuming spell — 403, 421,
-	 * 51505, 8042, 8050 and 114074, exactly `canConsumeSpells` — while 70 fell off unspent.
+	 * **Both numbers are the log's as well as the sim's.** The ceiling is measured on all four fixtures —
+	 * no pull ever shows a third stack — and the drop tally is a reading of the three held when it was
+	 * taken: of 361 drops on those three, 291 coincide with a cast of a consuming spell — 403, 421, 51505,
+	 * 8042, 8050 and 114074, exactly `canConsumeSpells` — while 70 fell off unspent. `addsThenBoss` has not
+	 * been added to that tally, which is why it is stated as three pulls' worth and not as the model.
 	 *
 	 * `durationMs` and `maxStacks` and nothing else. No `appliedBy`, because what puts it up is a crit and
 	 * not a press. And **no grading**, because no rotation asks for it: 16246, "Clearcasting" and
@@ -1030,7 +1036,7 @@ const ELEMENTAL_MASTERY_TALENT_ID = 16_166;
  *
  * The level-90 row of the shaman tree, next to Unleashed Fury — the pairing the `AURAS` table above
  * already records, where 117012 and 117013 sit side by side. The id the `combatantinfo` list carries is
- * the same one: all three committed pulls name **117013** in it.
+ * the same one: all four committed pulls name **117013** in it.
  *
  * Named here for the reason `ELEMENTAL_MASTERY_TALENT_ID` above is — a talent id and a cast id are
  * separate facts — and with one difference that matters more here: this talent has *no* button of its
@@ -1062,20 +1068,29 @@ const EARTH_ELEMENTAL_AURA = registry.aura('earth-elemental');
 const T15_4PC = registry.aura('t15-4pc');
 const T16_2PC_DEBUFF = registry.aura('t16-2pc-debuff');
 const UNERRING_VISION = registry.aura('unerring-vision');
+const WUSHOOLAYS_LIGHTNING = registry.aura('wushoolays-lightning');
 const WUSHOOLAYS_STACKS = registry.aura('wushoolays-lightning-stacks');
 const BREATH_OF_HYDRA = registry.aura('breath-of-hydra');
 const CHAYES = registry.aura('chayes');
 const WRATH_OF_DARKSPEAR = registry.aura('wrath-of-darkspear');
 const WRATH_OF_DARKSPEAR_STACKS = registry.aura('wrath-of-darkspear-stacks');
 const TEMPUS_REPIT = registry.aura('tempus-repit');
-// The gear effects that actually fired on every committed pull and had no row until now. Each one is a
-// buff a reader can see in their own log and could not find in this report — see the lane list below.
+// The gear effects that fired on a committed pull and had no row until now. Each one is a buff a reader
+// can see in their own log and could not find in this report — see the lane list below.
+//
+// **This said "on every committed pull", and `addsThenBoss` is why it cannot.** That pull's shaman wears
+// neither Purified Bindings of Immerseus nor Kardris' Toxic Totem, so `expanded-mind` and `toxic-power`
+// fire on three of the four rather than on all of them; `essence-of-yulon`, `jade-spirit` and
+// `synapse-springs` are the ones that really are universal. Nothing here rests on the universal: the claim
+// these bindings answer is "it fired on a pull we hold and was drawn nowhere", which is the question
+// `lib/__tests__/drawnAuras.test.ts` asks per pull.
 /**
  * The caster legendary cloak's proc — and the one item effect in this list that lands on the *enemy*.
  *
  * Xing-Ho, Breath of Yu'lon, declared in `lib/game/shared.ts` with `kind: 'debuff'` and the whole of the
  * evidence written out there. It is bound here for the reason the four below it are: it fires on every
- * committed pull — 13, 18 and 16 `applydebuff` of 146198 — and had no row.
+ * committed pull — 18, 16, 13 and 40 `applydebuff` of 146198 on `phased`, `unbroken`, `cleave` and
+ * `addsThenBoss` — and had no row.
  */
 const ESSENCE_OF_YULON = registry.aura('essence-of-yulon');
 const JADE_SPIRIT = registry.aura('jade-spirit');
@@ -1122,7 +1137,8 @@ const BLOOD_FURY = registry.aura('blood-fury');
  * lane's change). The denominator is the player's own contact clock and the numerator is a union of
  * occupied spans clipped to it, so the ratio is bounded by construction rather than by luck and cannot
  * exceed 100 however much is priced into it. The baselines are now **94.08% on `phased`, 90.80% on
- * `unbroken` and 86.89% on `cleave`** — measured, and none of the three is the number quoted above.
+ * `unbroken`, 86.89% on `cleave` and 82.90% on `addsThenBoss`** — measured, and none of the four is the
+ * number quoted above.
  *
  * **The six deltas above are therefore history and not evidence.** Every one was measured against the
  * old arithmetic; what pricing these eleven would do to the figure now has not been measured, and it
@@ -1135,7 +1151,7 @@ const BLOOD_FURY = registry.aura('blood-fury');
  * this one is a judgement about what the metric means, and it keeps them named and unpriced.
  *
  * Unpriced is no longer silent, which is the other half of the decision: `unmodelledPresses` counts
- * every press landing here, `pulls.test.ts` pins the count on all three fixtures, and
+ * every press landing here, `pulls.test.ts` pins the count on all four fixtures — 25, 6, 11 and 3 — and
  * `fixtureCoverage.test.ts` fails if a cast id shows up in a fixture that is neither modelled nor
  * named below. That is what was missing when Chain Lightning went unmodelled for 53 tests.
  */
@@ -2656,16 +2672,27 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * truthfully. Neither double-counts the other.
 	 *
 	 * Being published rather than graded makes the literal truth matter more, not less: a figure nobody
-	 * is scored on is read as a fact. Empirically the choice is invisible today — commit and completion
-	 * agree on all 133 presses across the three fixtures — so the synthetic pull is what pins it.
+	 * is scored on is read as a fact. Empirically the choice was invisible on the three fixtures the
+	 * comparison was taken on — commit and completion agree on all 133 presses across `cleave`, `phased`
+	 * and `unbroken` — so the synthetic pull is what pins it. `addsThenBoss`' 58 presses have **not** been
+	 * put through the same comparison, which is why this is stated as three pulls' worth; what is measured
+	 * about that pull is the paragraph below, and it moves the other claim rather than this one.
 	 *
 	 * **Published, not graded, and `overall()` is untouched.** Every millisecond the dot was down is
 	 * already charged by `flameShockUptime` (weight 3), and a Lava Burst inside one of those stretches is
 	 * a consequence of that same dropped dot rather than a second mistake. Grading it would mark one
 	 * error down twice — exactly why `lightningShield.badSpends` is listed and left ungraded next to
 	 * `earthShockGood`. Measured before deciding: **zero** such presses across `cleave`, `phased` and
-	 * `unbroken` (43, 49 and 41 presses, every one committed with the dot up), so a metric would also
-	 * carry weight while reading a perfect 100% on every pull the repo can check it against.
+	 * `unbroken` (43, 49 and 41 presses, every one committed with the dot up).
+	 *
+	 * **`addsThenBoss` is the first pull that is not a flat 100%, and it does not change the ruling.** Its
+	 * 58 presses include **eight** with no dot on the enemy they were aimed at — 50 of 58, 86.2% — because
+	 * the primary is not dotted until 442 020ms and the add-phase Lava Bursts went into whatever was in
+	 * front of them. So the old "a metric here would read a perfect 100% on every pull the repo can check
+	 * it against" is retired as a *reason*: a metric here would now discriminate. What survives is the
+	 * argument that does not depend on the sample — every one of those eight is a millisecond
+	 * `flameShockUptime` (weight 3) already charges, and grading them here would mark one dropped dot down
+	 * twice.
 	 *
 	 * **Over every spawn, not `fsDot.byInstance`.** `fsDot` is scoped to the primary, so a Lava Burst
 	 * aimed at a dotted add would read as undotted — `cleave` already carries a Flame Shock on `478:1`,
@@ -2714,9 +2741,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 *
 	 * Read off the debuff rather than off the gear, and the gear is genuinely the better evidence when it
 	 * is there: `GearSlot.setID` exists (`analysis/gear.ts:113`) and `phased` carries two pieces of set
-	 * 1182. But it is **absent on two of the three committed pulls** — `combatantinfo` simply does not
-	 * carry the field on those captures, which is the case that field's own comment warns about — so a
-	 * gear read would answer "no set" for a player the log proves had one.
+	 * 1182. But it is **absent on three of the four committed pulls** — `phased` is the only one that
+	 * carries it, and `combatantinfo` simply does not carry the field on the other three captures, which is
+	 * the case that field's own comment warns about — so a gear read would answer "no set" for a player the
+	 * log proves had one. `addsThenBoss` is one of those three and the sharper case: it has no `setID`
+	 * **and** no Elemental Discharge window, so the two readings agree there by coincidence rather than by
+	 * evidence.
 	 *
 	 * Elemental Discharge can only exist if the two-piece is equipped: it is applied by the set bonus's
 	 * own proc trigger on Fulmination (`sim/shaman/items_mop.go:126-140`). So one window of it is proof,
@@ -2984,9 +3014,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * Two independent readings of one pool is how this report has already produced a share above 100%.
 	 *
 	 * **`samples === 0` is a log that carried no `classResources` at all, and it is not a clean pull.**
-	 * Two of the three committed fixtures are exactly that: `phased` and `unbroken` were captured without
+	 * Two of the four committed fixtures are exactly that: `phased` and `unbroken` were captured without
 	 * `includeResources: true` and hold no reading of the bar, so every figure here is zero on them and
-	 * means nothing. The score module reads `samples` and returns null rather than a free full mark —
+	 * means nothing. The other two both carry it, and `addsThenBoss` carries the most of it — 6 614
+	 * `classResources` occurrences against `cleave`'s 3 237, 2 627 mana samples against 1 189. The score module reads `samples` and returns null rather than a free full mark —
 	 * without that clause the two pulls with no mana data would be the two best-graded mana pulls in the
 	 * report.
 	 *
@@ -3520,10 +3551,15 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * Every Fire Elemental **use**, which is not the same list as every cast event.
 	 *
 	 * A summon made before the bell logs no cast inside the fight window — that absence is the whole
-	 * reason `fePrepullWindow` exists — so a list built from `castTimes` alone came back empty on all
-	 * three committed fixtures while the same audit drew a 58-second bar and set `prepull: true`. The
-	 * section's "Summons" tile printed that empty length, so two parts of one section disagreed about
-	 * whether the button had been pressed, and the tile is the one a reader believes.
+	 * reason `fePrepullWindow` exists — so a list built from `castTimes` alone came back empty on the three
+	 * committed fixtures that pre-pull the summon while the same audit drew a 58-second bar and set
+	 * `prepull: true`. The section's "Summons" tile printed that empty length, so two parts of one section
+	 * disagreed about whether the button had been pressed, and the tile is the one a reader believes.
+	 *
+	 * **`addsThenBoss` is the fourth fixture and the counter-example that says why this went unseen for
+	 * three pulls**: it never pre-pulled (`prepull: false`), so both of its presses — 173 290 and
+	 * 479 923ms — carry cast events and a `castTimes` list would not have come back empty there at all.
+	 * The bug was invisible precisely because every pull we held made the press before the bell.
 	 *
 	 * A row with provenance rather than `presses.length + (prepull ? 1 : 0)`: the count and the table
 	 * come off one list, so they cannot disagree again in the other direction, and `inferred` says which
@@ -3753,10 +3789,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * ## Which source, because the obvious one is empty
 	 *
 	 * `stormlashShamans` above is the raid's *placements*, off `raidStormlash` — a separate fetch, and
-	 * **no committed fixture carries it**: `shamans` is `[]` and `totems` is `0` on all three. A table
-	 * built off it would render empty on every pull we hold while looking finished, which is the failure
-	 * mode plan §93 named. So the rows come off `raidLanes` instead — the aura walk over the fight's own
-	 * stream, narrowed by `onTarget` to the buff that landed on this player — which has 2, 4 and 4 rows.
+	 * **one committed fixture in four carries it**: `shamans` is `[]` and `totems` is `0` on `phased`,
+	 * `unbroken` and `cleave`, while `addsThenBoss` was fetched with the extra query and carries **10**
+	 * placements from **5** shamans. That is the point rather than a footnote — the argument here used to
+	 * be "no committed fixture carries it", and a table built off it would still render empty on three
+	 * pulls out of four while looking finished, which is the failure mode plan §93 named. So the rows come
+	 * off `raidLanes` instead — the aura walk over the fight's own stream, narrowed by `onTarget` to the
+	 * buff that landed on this player — which has 2, 4, 4 and 10 rows.
 	 * The two are not two readings of one fact: one is what the raid laid, the other is what reached the
 	 * player, and only the second is answerable without the extra fetch. The section says so in as many
 	 * words rather than leaving a reader to reconcile a table of four totems with a tile reading zero.
@@ -3768,10 +3807,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * ## Which question rule 6 asks — the cast, not the overlap
 	 *
 	 * The user's words are "Stormlash should ideally **not be cast** during Ascendance", and this reads
-	 * them literally: the press, inside the player's own Ascendance. Lane F measured that at **0 of 3**
-	 * committed pulls, and measured the *overlap* reading — the player's own totem merely running inside
-	 * the window — at 1 of 3 (`phased`, 7 136 of that totem's 9 714 ms). The overlap has the bigger
-	 * number and is still the wrong question, for a reason no amount of data settles:
+	 * them literally: the press, inside the player's own Ascendance. Measured at **0 of 4** committed
+	 * pulls — `addsThenBoss`' two own-totem rows, at 33 591 and 443 496ms, both read
+	 * `duringAscendance: false` — and Lane F measured the *overlap* reading, the player's own totem merely
+	 * running inside the window, at 1 of the three pulls held then (`phased`, 7 136 of that totem's
+	 * 9 714 ms). The overlap has the bigger number and is still the wrong question, for a reason no amount
+	 * of data settles:
 	 *
 	 * **An overlap is not a fault, it is the good case.** Stormlash procs off what the raid does while it
 	 * is up, so a totem running through a burst window is worth *more*, not less. What costs something is
@@ -3780,8 +3821,8 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * wanted on Lava Burst"). Reporting the overlap as an improvement would have printed a benefit as a
 	 * problem and told a reader to stop doing something right.
 	 *
-	 * **So the row is empty of faults on all three fixtures, deliberately.** That is the honest answer
-	 * and not a hole: these three pulls did not make this mistake, and the table says so on the rows it
+	 * **So the row is empty of faults on all four fixtures, deliberately.** That is the honest answer
+	 * and not a hole: these four pulls did not make this mistake, and the table says so on the rows it
 	 * does have rather than by showing nothing. It can fire — a press eleven seconds into an opener that
 	 * began at five is all it takes, and `stormlash.test.ts` builds exactly that — so this is not the
 	 * 144998 shape of an id the game never writes.
@@ -4182,15 +4223,49 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// used to be this and an empty `t16-2pc-proc` beside it.
 		lane(T16_2PC_DEBUFF, 'debuff', dotLaneWindows(T16_2PC_DEBUFF)),
 		lane(UNERRING_VISION, 'proc', laneWindows(UNERRING_VISION)),
+		/**
+		 * **The sixth of that group, and the one a three-fixture guard could not ask for.**
+		 *
+		 * Wushoolay's Final Choice fires on `addsThenBoss` — 13 windows of 138786, ten seconds each — and
+		 * had no row and no ledger entry. It went missing for the reason the four rows below it went
+		 * missing, with one difference that is the whole reason this comment exists: the guard that catches
+		 * an undrawn aura, `lib/__tests__/drawnAuras.test.ts`, held a literal `['phased', 'unbroken',
+		 * 'cleave']`, and this trinket is worn on **none** of those three. So the guard was not blind to
+		 * the class the way it was blind to `essence-of-yulon`; it simply was not shown the pull. It reads
+		 * `rawFixtures('elemental')` now, and this row is what it found the first time it did.
+		 *
+		 * **And it is the trigger for the heaviest rule in the scorecard**, which is what makes the absence
+		 * worse than a missing trinket row. `WUSHOOLAYS_STACKS` above builds one of `snapshotWindows`'
+		 * trigger series out of the counter beside this window, so a reader looking at a `Snapshot missed`
+		 * row in the miss ledger had nothing on the timeline to line it up against. The window is what a
+		 * reader can see and hover; the counter is the fill underneath it and is excused by name in that
+		 * test rather than drawn, because 13 cycles of a per-second stack are 130 refreshes of picket
+		 * fence for a fact the window already carries.
+		 *
+		 * `'proc'` and not `'buff'`: a spell landing puts it up, not a press — the same call
+		 * `wrath-of-darkspear` directly below makes for the identical window/counter pair on Black Blood.
+		 */
+		lane(WUSHOOLAYS_LIGHTNING, 'proc', laneWindows(WUSHOOLAYS_LIGHTNING)),
 		lane(BREATH_OF_HYDRA, 'proc', laneWindows(BREATH_OF_HYDRA)),
 		lane(CHAYES, 'proc', laneWindows(CHAYES)),
 		lane(WRATH_OF_DARKSPEAR, 'proc', laneWindows(WRATH_OF_DARKSPEAR)),
 		// The gear that fires on every committed pull, and did not have a row.
 		//
-		// **How this was missed is the reason the guard below it exists.** The four rows above are the
-		// trinkets *these fixtures' players did not wear* — declared correctly, filtered out by the
+		// **How this was missed is the reason the guard below it exists.** **Three** of the four rows above
+		// are the trinkets *these fixtures' players did not wear* — `unerring-vision`, `chayes` and
+		// `wrath-of-darkspear`, all three still on this spec's `SILENT_AURAS` list in
+		// `analysis/__tests__/fixtureCoverage.test.ts` — declared correctly, filtered out by the
 		// `windows.length > 0` line at the end of this array, and so invisible in the report and in this
-		// list. The effects that did fire were never added, and nothing failed: the coverage ledger asks
+		// list.
+		//
+		// **`breath-of-hydra` was the fourth of them until `addsThenBoss` landed, and now opens nine
+		// windows.** That pull's shaman wears Throne of Thunder trinkets where all three pulls before it
+		// wore the same two Siege ones, so 138898 fires on a committed pull for the first time and the row
+		// is drawn. Which sharpens the lesson rather than weakening it: the list read as though it covered
+		// gear precisely because every row in it was a row nothing filled, and the one that filled had to
+		// arrive from outside for anybody to notice.
+		//
+		// The effects that did fire were never added, and nothing failed: the coverage ledger asks
 		// "which declared aura never fires", which is the opposite question. A reader with Purified
 		// Bindings and Kardris' Toxic Totem equipped saw neither in their timeline, on a pull where both
 		// procced, and the model had both ids right the whole time.
@@ -4201,8 +4276,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		/**
 		 * **The fifth of that group, and the one the drawn-aura guard was structurally unable to ask for.**
 		 *
-		 * `essence-of-yulon` fires plainly — 13, 18 and 16 `applydebuff` of 146198 across the three
-		 * committed pulls, asserted in `lib/game/__tests__/sharedFixtures.test.ts` — and had neither a row
+		 * `essence-of-yulon` fires plainly — 18, 16, 13 and 40 `applydebuff` of 146198 on `phased`,
+		 * `unbroken`, `cleave` and `addsThenBoss`, asserted in
+		 * `lib/game/__tests__/sharedFixtures.test.ts` — and had neither a row
 		 * nor a `NOT_LANES` entry. It went missing for a reason worth writing down rather than fixing
 		 * quietly: **it is an enemy debuff, and the guard walks auras put on the *player***
 		 * (`aurasPutOnPlayer`). So the sweep that caught the four rows above could not have flagged this
@@ -4356,7 +4432,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// the field: Elemental Mastery is tier 4 column 0 of the shaman tree
 			// (`ui/core/talents/trees/shaman.json:87-93`) and gated at `sim/shaman/talents.go:37`, while
 			// 114049 appears in none of the tree's eighteen entries and is registered unconditionally at
-			// `sim/shaman/shaman.go:245`. All three committed fixtures carry a list *without* 16166.
+			// `sim/shaman/shaman.go:245`. All four committed fixtures carry a list *without* 16166.
 			talented: talents === null ? null : talents.has(ELEMENTAL_MASTERY_TALENT_ID),
 			presses: emPresses,
 		},

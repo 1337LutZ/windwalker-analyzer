@@ -19,7 +19,7 @@
 // of the synthetic pull that stands in for it.
 import { describe, expect, it } from 'vitest';
 
-import { rawFixture } from '~/lib/analysis/fixtures';
+import { rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
 import { abilityIdOf } from '~/lib/events/guards';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
@@ -290,6 +290,16 @@ const PRIMARY_OPENS_AT = 442_020;
 const pull = (name: string): Analysis & ElementalAuditResult =>
 	analyse(rawFixture('elemental', `${name}.json`)) as Analysis & ElementalAuditResult;
 
+/**
+ * Every raw pull this spec has committed, discovered rather than listed.
+ *
+ * The two "no committed pull carries this" premises below were written as a literal
+ * `['addsThenBoss', 'cleave', 'phased', 'unbroken']`. A premise of the form "no pull we hold does X" is
+ * the one claim a hardcoded list cannot be trusted with: the fifth fixture is exactly the pull that might
+ * do X, and it would arrive without turning anything red. `lib/analysis/fixtures.ts` argues the shape.
+ */
+const COMMITTED = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
 const addsThenBoss = pull('addsThenBoss');
 const cleavePull = pull('cleave');
 const phasedPull = pull('phased');
@@ -539,14 +549,39 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 * `fsRefreshWindows` (the reported median tick window, 1762.7ms → 1755.3ms, graded by nothing), the
 	 * snapshot miss ledger, and `snapRefreshed`/`snapMissed` — which **is** graded, as
 	 * `flameShockSnapshots`' catch rate. It does not move, and the reason is the pull rather than the
-	 * mechanism: `addsThenBoss` has exactly one proc window and it was already caught, and the other
-	 * three pulls have none at all. So this is the metric to watch on the next fixture, not a metric this
-	 * change is provably clear of.
+	 * mechanism.
+	 *
+	 * **This said `addsThenBoss` "has exactly one proc window and it was already caught". It has six, and
+	 * naming the wrong count named the wrong blocker.** Six windows open — every one off `uvls-stacks`, at
+	 * 16 025, 26 834, 163 224, 265 710, 418 471 and 532 012ms — and five of them were counted as neither
+	 * caught nor missed because the dot was **down** at their start: `flameShock.windows` is the single
+	 * span `[442 020, 560 218]`, since the primary is on a tower for the first seven minutes. Only the
+	 * sixth was claimable, and that one was caught.
+	 *
+	 * So the metric refuses at `sampleSize: 1` against `MIN_GRADED_SAMPLE`, and **not** on an empty
+	 * denominator — the other three pulls are the empty-denominator case, at zero windows each. Which
+	 * changes what "the metric to watch on the next fixture" means: a fixture with several proc windows
+	 * would land exactly where this one did. What is needed is three windows *with the dot already up*.
+	 * The whole measurement, with the blockers told apart, is in `__fixtures__/bands.test.ts`.
 	 */
 	it('does not move the snapshot catch rate on these four, and says why', () => {
 		expect([addsThenBoss.snapshots.refreshed, addsThenBoss.snapshots.missed]).toEqual([1, 0]);
+		// Six windows, not one — and the five the audit passed over are the dot being down, not a gap in
+		// the walk. Asserted here because this is the file that owns the dot's own timeline.
+		expect(addsThenBoss.snapshots.windows.map((w) => w.start)).toEqual([
+			16_025, 26_834, 163_224, 265_710, 418_471, 532_012,
+		]);
+		expect(addsThenBoss.flameShock.windows).toEqual([{ start: PRIMARY_OPENS_AT, end: 560_218 }]);
+		const claimable = addsThenBoss.snapshots.windows.filter((w) => w.start >= PRIMARY_OPENS_AT);
+		expect(claimable.map((w) => w.start)).toEqual([532_012]);
+		// A sample of one, so the floor is what refuses it rather than an absent denominator.
+		expect(graded(addsThenBoss, 'flameShockSnapshots')?.sampleSize).toBe(1);
+		expect(graded(addsThenBoss, 'flameShockSnapshots')?.unmeasurable).toBe(true);
 		for (const el of [cleavePull, phasedPull, unbrokenPull]) {
 			expect([el.snapshots.refreshed, el.snapshots.missed]).toEqual([0, 0]);
+			// The genuinely empty case, which is the contrast the sentence above rests on.
+			expect(el.snapshots.windows).toEqual([]);
+			expect(graded(el, 'flameShockSnapshots')?.sampleSize).toBe(0);
 		}
 		expect(addsThenBoss.flameShock.tickMs).toBeCloseTo(1755.333, 3);
 	});
@@ -640,7 +675,8 @@ describe('another shaman’s dot on the add this player is dotting', () => {
 	) as Analysis & ElementalAuditResult;
 
 	it('is the premise: no committed pull carries a foreign Flame Shock aura event', () => {
-		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken']) {
+		expect(COMMITTED).toHaveLength(4);
+		for (const name of COMMITTED) {
 			expect(foreignDotEvents(name), name).toBe(0);
 		}
 	});
@@ -735,7 +771,8 @@ describe('another shaman’s Flame Shock refresh beside this player’s apply', 
 
 	/** The premise this pull stands in for, restated at this site: no committed pull can show it. */
 	it('is a case no committed pull carries', () => {
-		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken']) {
+		expect(COMMITTED).toHaveLength(4);
+		for (const name of COMMITTED) {
 			expect(foreignDotEvents(name), name).toBe(0);
 		}
 	});

@@ -1,4 +1,11 @@
-// Three real Elemental pulls, end to end, from raw event streams.
+// Three real Elemental pulls, end to end, from raw event streams — and the cross-pull grids that have to
+// cover the fourth.
+//
+// **There are four committed fixtures and three `describe`s here.** `addsThenBoss.json` has its own file,
+// `__fixtures__/addsThenBoss.test.ts`, because what it is for is the multi-target reading rather than the
+// end-to-end walk. What that split cost is the grids: every "on every committed pull" claim in this file
+// was written when this file *was* the set, and the two at the bottom now go through
+// `rawFixtures('elemental')` so the fourth pull cannot be outside them.
 //
 // The Windwalker's committed fixtures are pre-analysed `Analysis` objects, which means they exercise
 // rendering and cannot re-derive an audit — so a refactor of the engine can be "verified" against them
@@ -21,6 +28,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { unmodelledPresses } from '~/lib/analysis/casts';
 import { analyse, registry } from '../index';
 
@@ -410,12 +418,20 @@ describe('a multi-target pull', () => {
 	});
 
 	/**
-	 * The one fixture whose events carry `classResources`, and the only one where the bars actually run.
+	 * One of the two fixtures whose events carry `classResources`, and the smaller of them.
 	 *
-	 * Deliberately different from its two siblings, which were fetched without `includeResources: true`
-	 * and so read zero samples on every bar. Keeping them here costs ~240KB and buys the only committed
-	 * Elemental pull on which the resource-reading path executes at all — 1189 mana readings about 46ms
-	 * apart, against 0 on `phased` and `unbroken`.
+	 * **This said "the one fixture" and "the only committed Elemental pull on which the resource-reading
+	 * path executes at all", and `addsThenBoss` falsifies both.** That pull carries **6 614**
+	 * `classResources` occurrences against this one's 3 237, and **2 627** mana samples against 1 189 —
+	 * twice the resource data, on the pull that was fetched last. Nor are the siblings two: `phased` and
+	 * `unbroken` are the two that carry none, and they are the ones this pull is deliberately different
+	 * from.
+	 *
+	 * What survives is the reason, which never needed the superlative: `phased` and `unbroken` were fetched
+	 * without `includeResources: true` and read zero samples on every bar, so a resource test written over
+	 * either of them passes while reading nothing. Keeping this fixture costs ~240KB and buys a live
+	 * resource path — 1 189 mana readings about 46ms apart — on a pull whose other numbers are pinned line
+	 * by line in this file.
 	 *
 	 * Asserted rather than assumed, because "the fixture has no resource data" and "the code found no
 	 * resource data" are indistinguishable downstream: a bar with no samples renders its empty state and
@@ -424,7 +440,7 @@ describe('a multi-target pull', () => {
 	 * the ladder it was meant to exercise never ran. So if a future trim of this fixture drops the field
 	 * again, this line goes red instead of the suite quietly losing its only live resource path.
 	 */
-	it('carries the resource samples the other two fixtures do not', () => {
+	it('carries the resource samples the two Iron Juggernaut fixtures do not', () => {
 		const mana = el.resources?.['mana'];
 		// Narrowed rather than cast: `ResourceBarAudit` is a union and only the pool half carries a
 		// sample count, so asserting through a cast would hide a bar declared as the wrong kind.
@@ -532,7 +548,14 @@ describe('a multi-target pull', () => {
 });
 
 /**
- * The two-piece proc is measured, on every committed pull.
+ * The two-piece proc is measured on every committed pull that has the set — and the fourth pull is how we
+ * know the difference between "measured as zero" and "not there".
+ *
+ * **This heading read "on every committed pull".** `addsThenBoss`' shaman has no T16 two-piece: no `setID`
+ * on the capture, no window of 144999 anywhere in the log, and so no `t16-2pc-debuff` lane and no
+ * `twoPiece` reason on any Earth Shock. That is a fourth row in the grid below reading `0, 0`, not a pull
+ * outside it — which matters because 0 windows is precisely the reading the 144998 bug produced on pulls
+ * that *did* have the set, and the only thing that tells the two apart is a grid that names every pull.
  *
  * It was measured on none of them until the aura was repointed: `t16-2pc-proc` carried 144998, the
  * simulator's `ExposeToAPL` handle, which the game never writes — so the windows were empty, Earth
@@ -561,15 +584,47 @@ describe('a multi-target pull', () => {
  * "the reason count moves and the window count does not" reading as the paragraph above.
  */
 describe('the T16 two-piece', () => {
-	for (const [name, windows, shocks] of [
-		['phased', 8, 4],
-		['unbroken', 5, 7],
-		['cleave', 8, 2],
-	] as const) {
+	const GRID: Record<string, [number, number]> = {
+		phased: [8, 4],
+		unbroken: [5, 7],
+		cleave: [8, 2],
+		// No set on this player, so both halves are honest zeroes rather than a silence.
+		addsThenBoss: [0, 0],
+	};
+	// Discovered rather than listed, so a fifth fixture fails here for want of a row instead of walking
+	// past the grid — the exact way `addsThenBoss` walked past it.
+	for (const { name: file } of rawFixtures('elemental')) {
+		const name = file.replace(/\.json$/, '');
 		it(`${name} sees the debuff and reads it as an Earth Shock condition`, () => {
+			const expected = GRID[name];
+			expect(expected, `${name} needs a row in GRID`).toBeDefined();
+			const [windows, shocks] = expected!;
 			const el = fx(name);
-			expect(el.timeline?.lanes?.find((l) => l.key === 't16-2pc-debuff')?.windows).toHaveLength(windows);
+			expect(el.timeline?.lanes?.find((l) => l.key === 't16-2pc-debuff')?.windows ?? []).toHaveLength(windows);
 			expect(el.earthShock.presses.filter((p) => p.reasons.includes('twoPiece'))).toHaveLength(shocks);
+		});
+	}
+});
+
+/**
+ * The presses this report knowingly does not price, on every committed pull rather than on three of them.
+ *
+ * `index.ts`' `EXTRA_NAMES` says "`pulls.test.ts` pins the count on all four fixtures" and that was true
+ * of three until this grid existed. The count is the only warning a reader gets that a *rotational*
+ * button has gone unmodelled — the Chain Lightning failure, invisible through 53 tests — so a pull outside
+ * the grid is a pull where that warning is switched off.
+ *
+ * `addsThenBoss` reads **3**: two Shamanistic Rages and one Thunderstorm, the same off-rotation shape as
+ * the other three and the smallest count of the four, because that shaman spent almost none of the pull
+ * healing.
+ */
+describe('the presses left unpriced', () => {
+	const GRID: Record<string, number> = { phased: 25, unbroken: 6, cleave: 11, addsThenBoss: 3 };
+	for (const { name: file } of rawFixtures('elemental')) {
+		const name = file.replace(/\.json$/, '');
+		it(`${name} counts the presses it declines to price`, () => {
+			expect(GRID[name], `${name} needs a row in GRID`).toBeDefined();
+			expect(unpriced(fx(name))).toBe(GRID[name]);
 		});
 	}
 });

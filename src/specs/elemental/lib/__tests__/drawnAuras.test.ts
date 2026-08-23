@@ -3,14 +3,24 @@
 // **The opposite question to the coverage ledger, and the one nobody was asking.**
 // `analysis/__tests__/fixtureCoverage.test.ts` asks "which declared aura never fires", which catches an
 // id wired to a number the game does not write — the 144998 failure. It cannot catch this: an aura
-// declared with the *right* id, firing on every committed pull, that no chart draws. Both of a reader's
+// declared with the *right* id, firing on a committed pull, that no chart draws. Both of a reader's
 // trinkets went missing that way. Purified Bindings of Immerseus (`expanded-mind`, 146046) and Kardris'
-// Toxic Totem (`toxic-power`, 148906) were declared correctly, procced on all three fixtures, and had no
-// row in the timeline.
+// Toxic Totem (`toxic-power`, 148906) were declared correctly, procced on `phased`, `unbroken` and
+// `cleave` — `addsThenBoss`' shaman wears neither — and had no row in the timeline.
 //
-// It was invisible in the lane list too, because the four item lanes that *were* listed belong to
-// trinkets these fixtures' players did not wear — so they are filtered out by `windows.length > 0` and
-// the list looked as though it covered gear.
+// It was invisible in the lane list too, because **three of the four** item lanes that were listed belong
+// to trinkets these fixtures' players did not wear — `unerring-vision`, `chayes` and `wrath-of-darkspear`
+// — so they are filtered out by `windows.length > 0` and the list looked as though it covered gear. The
+// fourth, `breath-of-hydra`, was one of them until `addsThenBoss` landed: that pull's shaman wears it and
+// it opens **nine** windows, which is the same lesson rather than a correction to it. The list read as
+// though it covered gear precisely because every row in it was a row nothing filled.
+//
+// **And the fourth pull is how the mechanism was found as well as the sentence.** `FIXTURES` below was a
+// literal `['phased', 'unbroken', 'cleave']` — a hardcoded list in the file whose whole subject is a
+// guard with a hole in it — so `addsThenBoss` walked straight through the sweep. It reads
+// `rawFixtures('elemental')` now, and the first run of that found two undrawn keys nothing else in the
+// suite could see: `wushoolays-lightning`, which is worn on that pull and on none of the other three and
+// now has a lane, and its counter `wushoolays-lightning-stacks`, ledgered below.
 //
 // **And it reads both halves of the stream now.** The sweep used to walk `targetID === actor.id` alone,
 // which made an aura the player put on an *enemy* unreachable rather than merely unswept — see `firedOn`
@@ -20,14 +30,16 @@
 // reading now lives in `~/lib/analysis/drawnAuras`, which argues its own location; what matters here is
 // what the copy had got wrong. This guard swept applications and refreshes only, so it could not see an
 // aura whose only event on the pull is a removal — and that is not a corner case on this spec, it is the
-// Fire Elemental on all three fixtures and the pre-pull potion on `unbroken`. The test below names them.
+// Fire Elemental on the three fixtures that pre-pull it and the pre-pull potion on `unbroken`.
+// `addsThenBoss` is the fixture that does *not*: it summons twice inside the pull, so its
+// `fire-elemental` events include a real `applybuff` and it is the control for that half. The test below
+// names them.
 // The Windwalker's copy counted removals and found its missing Bloodlust row that way, so this file was
 // the half-blind one and the widening is the point of the merge rather than a side effect of it.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import {
 	aurasPutOnEnemies,
 	aurasPutOnPlayer,
@@ -56,12 +68,40 @@ const NOT_LANES: Record<string, string> = {
 	'astral-shift': 'defensive, no bearing on the rotation',
 	'spiritwalkers-grace': 'movement, no bearing on the rotation',
 	'ancestral-guidance': 'healing, no bearing on the rotation',
+	// Wushoolay's Final Choice logs its ten-second window (138786) and a per-second counter that fills to
+	// ten (138788) as separate ids. The window is a lane — `index.ts` argues for it at length — and the
+	// counter is the fill underneath it: 13 cycles on `addsThenBoss` are 130 `refreshbuff`s of picket
+	// fence for a fact the window already carries, and the one thing the counter is read *for* is the
+	// snapshot audit's trigger series, which reaches the reader as a `Snapshot missed` row rather than as
+	// a bar. This entry exists because the fixture that wears the trinket arrived after the sweep did.
+	'wushoolays-lightning-stacks': "the same trinket's counter; the window beside it is the row",
 };
 
-const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
+/**
+ * Every raw pull this spec has committed, discovered rather than listed.
+ *
+ * **This was `['phased', 'unbroken', 'cleave']`, and that literal is the reason this file needs a note
+ * about itself.** The whole subject here is a guard that passed while unable to see the row it was
+ * checking; a hardcoded fixture list is the same defect one level up, and it fired the same way. When
+ * `addsThenBoss.json` was committed nothing in this file looked at it, so `wushoolays-lightning` — worn
+ * on that pull and on none of the other three — fired 13 times and was drawn nowhere, with every
+ * assertion below green. `lib/analysis/fixtures.ts` argues discovery over a shared literal for exactly
+ * this reason and the Windwalker's copy of this file already used it.
+ *
+ * Read once at module level, like that copy: `rawFixtures` re-parses the directory on every call and one
+ * of these files is 4.4MB.
+ */
+const RAW = rawFixtures('elemental');
+const FIXTURES = RAW.map(({ name }) => name.replace(/\.json$/, ''));
 
-const load = (name: string): FightDataset =>
-	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
+/** The three that pre-pull the Fire Elemental, which is the half `addsThenBoss` is the control for. */
+const PREPULLED = ['phased', 'unbroken', 'cleave'] as const;
+
+const load = (name: string): FightDataset => {
+	const found = RAW.find((fixture) => fixture.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw fixture elemental/${name}.json`);
+	return found.dataset;
+};
 
 /**
  * Every declared aura the pull moved, by key, with how many events say so — **both halves**.
@@ -69,8 +109,9 @@ const load = (name: string): FightDataset =>
  * The auras the log put on the player, plus the auras the player put on an enemy. The second half is the
  * change this file had been asking for in prose: `aurasPutOnPlayer` scopes to `targetID === actor.id`, so
  * an enemy debuff was not merely absent from the sweep but unreachable by it, and `essence-of-yulon` went
- * missing for exactly that reason — 13, 18 and 16 applications on these three pulls, drawn nowhere, with
- * no guard in the family able to flag it and `staleExcuses` refusing to let this ledger excuse it either.
+ * missing for exactly that reason — 18, 16, 13 and 40 applications on `phased`, `unbroken`, `cleave` and
+ * `addsThenBoss`, drawn nowhere, with no guard in the family able to flag it and `staleExcuses` refusing
+ * to let this ledger excuse it either.
  *
  * **The question stays "is this key drawn", and that is the decision rather than the default.** A debuff
  * is already drawn per enemy — several `AuraLane`s share one `key` and differ by `target` — so
@@ -100,12 +141,18 @@ describe('an aura that fired has somewhere to be drawn', () => {
 	it('counts removals, because two of these auras have no application on the pull at all', () => {
 		// **The blind spot this guard used to share with the bug it guards against.** Sweeping applications
 		// and refreshes only, it could not see an aura the player took before the bell — and on this spec
-		// that is not a hypothetical. The Fire Elemental is pre-pulled on **all three** fixtures: its only
-		// event is a single `removebuff` of 118291 when the summon expires just short of a minute in, with
-		// no `applybuff` anywhere, so the narrow reading missed the spec's own signature cooldown on every
-		// committed pull. `unbroken`'s Jade Serpent Potion is the same shape — and it is the sharper case,
-		// because the other two pulls drink a second one later and the narrow sweep saw the key *there*, so
-		// this was a hole that closed and reopened depending on the pull.
+		// that is not a hypothetical. The Fire Elemental is pre-pulled on **three of the four** fixtures:
+		// its only event there is a single `removebuff` of 118291 when the summon expires just short of a
+		// minute in, with no `applybuff` anywhere, so the narrow reading missed the spec's own signature
+		// cooldown on every committed pull it had. `unbroken`'s Jade Serpent Potion is the same shape — and
+		// it is the sharper case, because the other two pulls drink a second one later and the narrow sweep
+		// saw the key *there*, so this was a hole that closed and reopened depending on the pull.
+		//
+		// **`addsThenBoss` is why "all three" is now "three of the four", and it is the control rather than
+		// an exception.** That shaman does not pre-pull: the summon goes out at 173 290ms and again at
+		// 479 923ms, so its `fire-elemental` stream carries real `applybuff`s and the narrow reading would
+		// have found the key there. The hole was invisible for three pulls precisely because every pull we
+		// held pressed the button before the bell, which is the shape of accident this whole file is about.
 		//
 		// Both are drawn — the engine recovers them with `auraWindows`' `openAtPull`, which is what the
 		// `preexisting` flag on the window records — so the widening added no orphan here. That is the
@@ -113,7 +160,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// the row it was supposed to be checking, and would have gone on passing if the row disappeared.
 		const NARROW = ['applied', 'refreshed', 'stacked'] as const;
 		const removalOnly: Record<string, readonly string[]> = {
-			'fire-elemental': FIXTURES,
+			'fire-elemental': PREPULLED,
 			'jade-serpent-potion': ['unbroken'],
 		};
 
@@ -145,15 +192,30 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// Named rather than left to the sweep above, because these two are the report: a reader saw them in
 		// their own log and could not find them here. `expanded-mind` is Purified Bindings of Immerseus and
 		// `toxic-power` is Kardris' Toxic Totem.
+		//
+		// **Three pulls and not four, and the assertion says which way round that is.** `addsThenBoss`'
+		// shaman wears Throne of Thunder trinkets — Wushoolay's Final Choice and Breath of the Hydra —
+		// so neither of these procs there at all, and the pull is asserted to proc *zero* of them rather
+		// than skipped. That keeps the test two-sided: a re-capture that put these trinkets on that
+		// player, or a filter that started attributing another raider's procs to them, both go red here.
+		let procced = 0;
 		for (const name of FIXTURES) {
 			const dataset = load(name);
 			const fired = firedOn(dataset);
 			const drawn = drawnOn(dataset);
 			for (const key of ['expanded-mind', 'toxic-power'] as const) {
-				expect(fired.get(key), `${name} should proc ${key}`).toBeGreaterThan(0);
+				const count = fired.get(key) ?? 0;
+				if (name === 'addsThenBoss') {
+					expect(count, `${name} wears neither trinket, so ${key} cannot fire`).toBe(0);
+					continue;
+				}
+				expect(count, `${name} should proc ${key}`).toBeGreaterThan(0);
 				expect(drawn.has(key), `${name} should draw ${key}`).toBe(true);
+				procced++;
 			}
 		}
+		// Not vacuous in the direction that matters: six pull/key pairs really were checked.
+		expect(procced).toBe(6);
 	});
 
 	it('gives the haste racials and Bloodlust rows of their own, not just the wash', () => {
@@ -176,9 +238,9 @@ describe('an aura that fired has somewhere to be drawn', () => {
 	});
 
 	it('declares Blood Fury with a lane, though no fixture exercises it', () => {
-		// **Stated rather than asserted as drawn.** Blood Fury is an orc racial and none of the three
+		// **Stated rather than asserted as drawn.** Blood Fury is an orc racial and none of the four
 		// fixture players is an orc, so `windows.length > 0` drops the lane and there is nothing to see. It
-		// is the case with the strongest claim of the three all the same: it grants spell power, so it was
+		// is the case with the strongest claim of the group all the same: it grants spell power, so it was
 		// not in the haste wash either and had no representation anywhere in the report.
 		//
 		// What can be checked without a fixture is that the id is declared and reachable, which is what the
@@ -191,7 +253,8 @@ describe('an aura that fired has somewhere to be drawn', () => {
 	 * **The class of aura this guard could not see, and the assertions that close it.**
 	 *
 	 * `essence-of-yulon` (146198) is the caster legendary cloak's proc, and it fires on every committed
-	 * pull — 13, 18 and 16 `applydebuff`, pinned in `lib/game/__tests__/sharedFixtures.test.ts`. For a
+	 * pull — 18, 16, 13 and 40 `applydebuff` on `phased`, `unbroken`, `cleave` and `addsThenBoss`, pinned
+	 * for the first three in `lib/game/__tests__/sharedFixtures.test.ts`. For a
 	 * long stretch it had no row and no entry above, and that was not an oversight anybody could have
 	 * caught here: the proc lands on the **enemy**, and every reading in this file walked
 	 * `aurasPutOnPlayer`. An enemy debuff was not merely absent from the sweep, it was *unreachable* by it.
@@ -223,8 +286,8 @@ describe('an aura that fired has somewhere to be drawn', () => {
 			// used to be is still blind to it, which is what makes the widening the cause.
 			expect(firedOn(dataset).has('essence-of-yulon'), `${name} sweep`).toBe(true);
 			expect(aurasPutOnPlayer(dataset, registry).has('essence-of-yulon'), `${name} self half`).toBe(false);
-			// Every kind of evidence, so more than the applications: 39, 37 and 26 events against 18, 16 and
-			// 13 applications on `phased`, `unbroken` and `cleave`.
+			// Every kind of evidence, so more than the applications: 39, 37, 26 and 83 events against 18, 16,
+			// 13 and 40 applications on `phased`, `unbroken`, `cleave` and `addsThenBoss`.
 			expect(aurasPutOnEnemies(dataset, registry).get('essence-of-yulon') ?? 0, `${name} enemy half`).toBeGreaterThan(
 				applies.length,
 			);
@@ -252,18 +315,26 @@ describe('an aura that fired has somewhere to be drawn', () => {
 	 * **A guard that sweeps nothing passes**, and the total in the first test cannot tell the halves
 	 * apart: a target filter that stopped matching, or an `actors` list that lost its `type` field and
 	 * took every target into the friendly set, would drop this half to nothing and leave every other
-	 * assertion in the file green. Three keys, and the identity is the point — 8050, 144999 and 146198,
-	 * all three declared and all three drawn. `enemyAuraEvents` is asserted beside them so the reading is
-	 * pinned as events too: a sweep can only be as wide as the stream behind it.
+	 * assertion in the file green. The keys are the point — 8050, 144999 and 146198, all declared and all
+	 * drawn. `enemyAuraEvents` is asserted beside them so the reading is pinned as events too: a sweep can
+	 * only be as wide as the stream behind it.
+	 *
+	 * **`addsThenBoss` has two of the three and not all three, which is a fact about its gear.** This
+	 * asserted a flat three-key list until that pull arrived: its shaman has no T16 two-piece — no `setID`
+	 * on the capture *and* no window of 144999 anywhere — so `t16-2pc-debuff` cannot appear, and the row
+	 * count in `pulls.test.ts` (8, 5, 8 and 0) says the same thing from the other side. Written as a set
+	 * per pull rather than as a subset check, so a key going missing on a pull that should have it is
+	 * still a failure.
 	 */
 	it('reads the enemy half of every pull', () => {
+		const expected: Record<string, string[]> = {
+			addsThenBoss: ['essence-of-yulon', 'flame-shock'],
+		};
 		for (const name of FIXTURES) {
 			const dataset = load(name);
-			expect([...aurasPutOnEnemies(dataset, registry).keys()].sort(), name).toEqual([
-				'essence-of-yulon',
-				'flame-shock',
-				't16-2pc-debuff',
-			]);
+			expect([...aurasPutOnEnemies(dataset, registry).keys()].sort(), name).toEqual(
+				expected[name] ?? ['essence-of-yulon', 'flame-shock', 't16-2pc-debuff'],
+			);
 			expect(enemyAuraEvents(dataset).length, `${name} events`).toBeGreaterThan(50);
 			// Nothing of somebody else's, which is the source filter rather than an accident of these pulls.
 			expect(
@@ -275,7 +346,9 @@ describe('an aura that fired has somewhere to be drawn', () => {
 
 	it('keeps the ledger honest — nothing excused that no longer fires, nothing excused that is drawn', () => {
 		// A reason for an aura that stopped appearing is a reason nobody will ever check. Asserted across
-		// the three pulls together, because a defensive is not pressed on every one.
+		// all four pulls together, because a defensive is not pressed on every one — and
+		// `wushoolays-lightning-stacks` fires on exactly one of them, which is what this check has to
+		// tolerate and `redundantExcuses` below is what stops it from being tolerated too far.
 		expect(
 			staleExcuses(
 				NOT_LANES,
