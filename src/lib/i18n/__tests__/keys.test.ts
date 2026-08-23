@@ -8,6 +8,18 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { RAID_BUFF_EFFECT_KEYS } from '~/lib/analysis/raidBuffs';
+import { GRADE_ORDER } from '~/lib/score/model';
+import type { Analysis } from '~/lib/types';
+import { ELEMENTAL_SPEC } from '~/specs/elemental';
+import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
+import { WEIGHTS as ELE_WEIGHTS } from '~/specs/elemental/lib/score';
+import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
+import { WW_SPEC } from '~/specs/windwalker';
+import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
+import { MULTI_TARGET_WEIGHTS, WEIGHTS as WW_WEIGHTS } from '~/specs/windwalker/lib/score';
+import { CROSSOVERS, flowKeys, rotationFlow } from '~/specs/windwalker/lib/view/rotationFlow';
+import { timelineBanks as windwalkerBanks } from '~/specs/windwalker/lib/view/timelineBanks';
 
 import i18n, { initI18n } from '../config';
 
@@ -244,7 +256,7 @@ describe('shell copy with no reader', () => {
 /**
  * The same question asked of the analysis namespace, which the hunt above declined to ask.
  *
- * `report.json` is 1198 strings and it had no orphan guard at all, which is why four reader-facing
+ * `report.json` is 1182 strings and it had no orphan guard at all, which is why four reader-facing
  * grade labels — `grade.good`, `grade.ok`, `grade.bad`, `grade.unmeasured` — sat in it from the initial
  * commit to the day a human read the file. `git log --all -S"grade.good"` over the components is empty:
  * nothing ever read them, at any point, and nothing in a suite of two thousand tests noticed.
@@ -271,9 +283,12 @@ describe('shell copy with no reader', () => {
  *      arriving as a prop. Both halves are scanned, the same way `copyPrefix.test.ts` scans them.
  *
  * Every one of those is derived from the source rather than listed here, so the guard cannot be quietly
- * out-grown — but two of them resolve a *shape* and not a value, and that is the limit this block states
- * out loud in `it('names the families it can only resolve to a shape')` and in the arm list beside it.
- * A guard that resolves nothing passes an orphan hunt trivially, so the counts are asserted too.
+ * out-grown. Two of them used to resolve a *shape* and not a value — `rotation.entry.<anything>.name` was
+ * read and `<anything>.detail` was not, so a retired rule id's strings survived — and that blind spot is
+ * closed by `KEY_SOURCES` below: every interpolation is now expanded against the declaration that owns
+ * its keys. It found two, and the reason it could is written above `it('holds a card for every metric
+ * that can lead the summary')`. A guard that resolves nothing passes an orphan hunt trivially, so each
+ * source's own values, each family's reach, and the model's totals are all asserted too.
  */
 describe('report copy with no reader', () => {
 	const REPORT = JSON.parse(readFileSync(join(SRC, 'locales/en/report.json'), 'utf8')) as Record<string, unknown>;
@@ -380,6 +395,8 @@ describe('report copy with no reader', () => {
 	interface Pattern {
 		readonly segments: readonly (string | RegExp)[];
 		readonly route: Route;
+		/** The folded shape this came from, on the computed patterns only, so a family's reach can be counted. */
+		readonly family?: string;
 	}
 
 	/** One path segment: itself, or a pattern for the segment a runtime value will fill in. */
@@ -394,14 +411,21 @@ describe('report copy with no reader', () => {
 	/**
 	 * Every route, as a list of patterns to match a stored path against.
 	 *
-	 * `${section}` and `${copyPrefix}` are expanded against the values the source gives them rather than
-	 * folded to a `*`, which is the difference between a guard and a rubber stamp: `*.verdict` would
-	 * accept a graded sentence under a section nothing grades, which is precisely the dead copy being
-	 * hunted. `${s.tKey}` is dropped — those are the settings panel's, and they are `ui`.
+	 * **Every** interpolation is expanded against the values the source gives it rather than folded to a
+	 * `*`, which is the difference between a guard and a rubber stamp: `*.verdict` would accept a graded
+	 * sentence under a section nothing grades, and `rotation.rule.*.name` a rule the Elemental list
+	 * dropped, which is precisely the dead copy being hunted. `${section}` and `${copyPrefix}` were the
+	 * first two; the thirty families in `FAMILY_SOURCE` are the rest, each against the declaration that
+	 * owns its keys. `${s.tKey}` is dropped — those are the settings panel's, and they are `ui`.
+	 *
+	 * A family with no source, or one holding two interpolations, still falls back to the shape. There are
+	 * none of either today and `SHAPE_ONLY` says so; the fallback is what keeps the next one visible
+	 * instead of unreachable.
 	 */
 	function patterns(): Pattern[] {
 		const built: Pattern[] = [];
-		const add = (path: string, route: Route) => built.push({ segments: path.split('.').map(segment), route });
+		const add = (path: string, route: Route, family?: string) =>
+			built.push({ segments: path.split('.').map(segment), route, family });
 		const computed = new Map<string, string>();
 		for (const source of SOURCES) {
 			for (const key of quotedKeys(source)) add(key, 'written');
@@ -414,7 +438,13 @@ describe('report copy with no reader', () => {
 			} else if (raw.startsWith('${section}.')) {
 				for (const section of verdictSections()) add(`${section}${folded.slice(1)}`, 'verdict');
 			} else if (!raw.startsWith('${s.tKey}.')) {
-				add(folded, 'computed');
+				const source = KEY_SOURCES[FAMILY_SOURCE[folded] ?? ''];
+				const live = source === undefined ? [] : source.keys();
+				// One hole, so `folded.replace` puts the value where the interpolation was — which is inside a
+				// segment and not always the whole of one: `castLog.target.*Title` is one of those.
+				if (live.length > 0 && folded.split(HOLE).length === 2) {
+					for (const key of live) add(folded.replace(HOLE, key), 'computed', folded);
+				} else add(folded, 'computed', folded);
 			}
 		}
 		return built;
@@ -475,51 +505,445 @@ describe('report copy with no reader', () => {
 	}
 
 	/**
-	 * The families this hunt resolves to a shape and not to a value, listed so the blind spot has a size.
+	 * A module read for one declaration, with its comments taken out first.
 	 *
-	 * Each of these is a `t(`-side template whose interpolation is a runtime string — a rule id, a metric
-	 * key, a press reason. The guard holds that `rotation.entry.<something>.name` is a key the tree reads
-	 * and that `rotation.entry.<something>.detail` is not; it cannot hold that any particular
-	 * `<something>` is still a rule the spec declares, so a retired entry's three strings would survive
-	 * here. Closing that would mean each family naming its own key source, which is thirty different
-	 * modules and is not this test.
-	 *
-	 * Pinned as a list rather than a count because the list is the alarm: a fifth indirect route appearing
-	 * in the tree is exactly the thing that would make this guard blind, and it cannot appear without
-	 * showing up here.
+	 * The prose in this project quotes example values, and `AscendanceReason`'s own arms are documented
+	 * one doc-comment each — so a scan that read the comments would take "the sim's own rule" for two
+	 * arms named `s own rule` and `nothing-to-hit` would arrive beside a dozen fragments of English.
 	 */
-	const SHAPE_ONLY = [
-		'ascendance.read.fault.*',
-		'ascendance.read.reason.*',
-		'castLog.resource.*',
-		'castLog.resourceAria.*',
-		'castLog.target.*',
-		'castLog.target.*Title',
-		'casts.gate.*',
-		'earthElemental.state.*',
-		'earthShock.state.*',
-		'elementalMastery.state.*',
-		'fireElemental.state.*',
-		'flameShock.state.*',
-		'flameShockSnapshots.source.*',
-		'overall.*',
-		'priority.rule.*',
-		'raidBuffs.effects.*',
-		'raidBuffs.worth.*',
-		'rotation.crossover.*',
-		'rotation.entry.*.name',
-		'rotation.entry.*.test',
-		'rotation.entry.*.why',
-		'rotation.fork.*.detail',
-		'rotation.fork.*.title',
-		'rotation.gate.*',
-		'rotation.group.*',
-		'rotation.rule.*.condition',
-		'rotation.rule.*.name',
-		'stormlash.state.*',
-		'summary.takeaways.metric.*.fix',
-		'summary.takeaways.metric.*.label',
-	];
+	function declaringModule(path: string): string {
+		return readFileSync(join(SRC, path), 'utf8').replaceAll(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
+	}
+
+	/**
+	 * The string literals of one declaration, from the head this finds it by to the `;` that ends it.
+	 *
+	 * For the sources that are a **type** rather than a value, which is most of the press-reason families:
+	 * `AscendanceFault` and `EarthShockReason` are unions, and a union has nothing to import. Read out of
+	 * the module that declares it, so a retired arm takes its copy with it in the same commit or fails
+	 * here — which is the whole point of the exercise and cannot be had from a second list kept in a test.
+	 */
+	function declaredArms(path: string, head: RegExp, pick = /'([\w-]+)'/g): string[] {
+		const source = declaringModule(path);
+		const at = head.exec(source);
+		if (at === null) return [];
+		const rest = source.slice(at.index + at[0].length);
+		const end = rest.indexOf(';');
+		return [...(end < 0 ? rest : rest.slice(0, end)).matchAll(pick)].map((match) => match[1] ?? '');
+	}
+
+	/** The unfiltered flow: every rung of the Windwalker's priority list, at every band, either side of the fork. */
+	const FLOW = rotationFlow({ band: null, pressed: new Set<number>(), rune: null });
+	const FLOW_BRANCHES = FLOW.flatMap((slot) => ('fork' in slot ? slot.branches : [slot.entry]));
+
+	/**
+	 * The literals a family's own interpolation writes down — `${totem.duringAscendance ? 'x' : 'y'}`.
+	 *
+	 * One family's key source is the call site itself: a ternary inside the template chooses between two
+	 * spellings, so the folded `*` has a live set of exactly two and both are already in the tree. Read
+	 * from the call rather than listed here for the same reason as everything else in this table.
+	 */
+	function selfNamed(shape: string): string[] {
+		const out = new Set<string>();
+		for (const source of SOURCES) {
+			for (const { raw, folded } of computedKeys(source)) {
+				if (folded !== shape) continue;
+				for (const hole of raw.matchAll(/\$\{([^}]*)\}/g)) {
+					for (const literal of (hole[1] ?? '').matchAll(/'([\w-]+)'/g)) out.add(literal[1] ?? '');
+				}
+			}
+		}
+		return [...out];
+	}
+
+	/**
+	 * A minimal audit, for the one source that is a function rather than a declaration.
+	 *
+	 * Each spec's counter row is named by its own `timelineBanks`, which takes an `Analysis` and returns
+	 * nothing at all for a pull that never carried the bar. So the key is asked of the live function with
+	 * the least the function reads, and a rename inside it moves this test rather than escaping it. The
+	 * cast is deliberate: an `Analysis` is a whole pull and none of the rest of it is read here.
+	 */
+	function bankKeys(): string[] {
+		const brew = { brew: { bankTimeline: [[0, 1]] } } as unknown as Analysis;
+		const shield = { lightningShield: { maxStacks: 7, points: [[0, 1]], badSpends: [] } } as unknown as Analysis;
+		return [...windwalkerBanks(brew), ...elementalBanks(shield)].map((bank) => bank.key);
+	}
+
+	/** A live set of values one `*` can stand for, and the declaration it is read from. */
+	interface KeySource {
+		/** Where the values live, so the next reader can go and check the claim rather than trusting it. */
+		readonly where: string;
+		readonly keys: () => readonly string[];
+		/**
+		 * The values, written out.
+		 *
+		 * A count survives a refactor that keeps the shape and loses half the arms — the failure
+		 * `VERDICT_ARMS` below is written out against, and the one an orphan hunt cannot see, because
+		 * fewer live keys means fewer reds rather than more. The list is the alarm.
+		 */
+		readonly pinned: readonly string[];
+	}
+
+	/**
+	 * Every key source a computed family resolves against, so the `*` is a live set and not a wildcard.
+	 *
+	 * The blind spot this closes: the guard could hold that `rotation.entry.<x>.name` is read and
+	 * `rotation.entry.<x>.detail` is not, but **not that any particular `<x>` is still something a spec
+	 * declares** — so a retired rule id's or metric key's strings survived it. That is the shape that let
+	 * four `grade.*` labels sit unread from the first commit until a human read the file.
+	 *
+	 * It is the same argument the `${section}` expansion above already makes and for the same reason:
+	 * `*.verdict` would accept a graded sentence under a section nothing grades. `rotation.rule.*.name`
+	 * would accept a rule the Elemental list dropped, and `summary.takeaways.metric.*.fix` a metric the
+	 * model stopped weighing — which is exactly what it was sheltering. See the reds in `it('carries no
+	 * key nothing asks for')`.
+	 */
+	const KEY_SOURCES: Record<string, KeySource> = {
+		ascendanceFault: {
+			where: 'lib/types.ts → AscendanceFault',
+			keys: () => declaredArms('lib/types.ts', /export type AscendanceFault =/),
+			pinned: ['discharge-too-short', 'late-into-haste', 'no-banner', 'opener-late', 'window-past-the-kill'],
+		},
+		ascendanceReason: {
+			where: 'specs/elemental/lib/ascendance.ts → AscendanceReason',
+			keys: () => declaredArms('specs/elemental/lib/ascendance.ts', /export type AscendanceReason =/),
+			pinned: [
+				'ascendance-up-at-the-pull',
+				'first-press-past-one-cooldown',
+				'no-two-piece-evidence',
+				'nothing-to-hit',
+				'pull-ends-too-soon',
+				't16-2pc-not-in-log',
+			],
+		},
+		// The bars the cast log draws a lane for: each spec's own `resources`, and the counter row its
+		// `timelineBanks` adds beside them. Both halves, because both halves reach the same copy.
+		castLogBar: {
+			where: 'both specs’ `SpecConfig.resources`, plus each spec’s `timelineBanks`',
+			keys: () => [
+				...Object.keys(WW_SPEC.resources ?? {}),
+				...Object.keys(ELEMENTAL_SPEC.resources ?? {}),
+				...bankKeys(),
+			],
+			pinned: ['brew', 'chi', 'energy', 'lightningShield', 'mana'],
+		},
+		castLogGrouping: {
+			where: 'components/charts/CastTimeline.tsx → GROUPINGS',
+			keys: () => declaredArms('components/charts/CastTimeline.tsx', /const GROUPINGS: readonly Grouping\[\] =/),
+			pinned: ['auto', 'off', 'on'],
+		},
+		crossover: {
+			where: 'specs/windwalker/lib/view/rotationFlow.ts → CROSSOVERS',
+			keys: () => CROSSOVERS.map((crossover) => crossover.copy),
+			pinned: ['rjw', 'sck', 'sckOverRsk', 'sef'],
+		},
+		earthElementalState: {
+			where: 'specs/elemental/components/sections/EarthElemental.tsx → STATE_KEY',
+			keys: () =>
+				declaredArms(
+					'specs/elemental/components/sections/EarthElemental.tsx',
+					/const STATE_KEY: Record<EarthElementalVerdict, string> =/,
+					// The record's values and not its keys: the copy is filed under the spelling the component
+					// hands the translator, and the verdict names on the left are the audit's own.
+					/:\s*'([\w-]+)'/g,
+				),
+			pinned: ['nearEnd', 'offRule', 'unknown'],
+		},
+		earthShockReason: {
+			where: 'lib/types.ts → EarthShockReason',
+			keys: () => declaredArms('lib/types.ts', /export type EarthShockReason =/),
+			pinned: ['ascReady', 'belowFull', 'cleaveDot', 'cleaveStacks', 'fsLow', 'fsTail', 'twoPiece'],
+		},
+		elementalMasteryReason: {
+			where: 'lib/types.ts → ElementalMasteryPress.reason',
+			keys: () => declaredArms('lib/types.ts', /export interface ElementalMasteryPress \{[\s\S]*?\breason:/),
+			pinned: ['off-far', 'off-near', 'opener', 'sync', 't15'],
+		},
+		fireElementalReason: {
+			where: 'lib/types.ts → FireElementalPress.reason',
+			keys: () => declaredArms('lib/types.ts', /export interface FireElementalPress \{[\s\S]*?\breason:/),
+			pinned: ['early', 'near-end', 'prepull', 'sync'],
+		},
+		flameShockKind: {
+			where: 'lib/types.ts → FlameShockPressKind',
+			keys: () => declaredArms('lib/types.ts', /export type FlameShockPressKind =/),
+			pinned: ['apply', 'ascPrep', 'early', 'late', 'reapply', 'snapshot', 'windowed'],
+		},
+		flowEntry: {
+			where: 'specs/windwalker/lib/view/rotationFlow.ts → rotationFlow at every band',
+			keys: () => flowKeys(FLOW),
+			pinned: [
+				'blackoutKick',
+				'blackoutKickDump',
+				'chiBrew',
+				'chiBurst',
+				'chiWave',
+				'comboBreakerKick',
+				'craneOverKick',
+				'energizingBrew',
+				'fistsOfFury',
+				'invokeXuen',
+				'jab',
+				'risingSunKickCooldown',
+				'risingSunKickHold',
+				'risingSunKickMulti',
+				'rushingJadeWind',
+				'rushingJadeWindMulti',
+				'spinningCraneKick',
+				'stormEarthAndFire',
+				'tigerPalmProc',
+				'tigerPalmRefresh',
+				'tigereyeBrewBank',
+				'tigereyeBrewRune',
+				'touchOfDeath',
+				'zenSphere',
+			],
+		},
+		flowFork: {
+			where: 'specs/windwalker/lib/view/rotationFlow.ts → the forks the unfiltered flow keeps',
+			keys: () => FLOW.flatMap((slot) => ('fork' in slot ? [slot.fork] : [])),
+			pinned: ['blackoutKick', 'risingSunKick', 'talent', 'tigereyeBrew'],
+		},
+		// The chips, and only the rungs that carry one. Not every rung in the flow: a gate chip on a rung
+		// with nothing to gate is dead copy of exactly the kind being hunted, so the narrower set is used.
+		flowGate: {
+			where: 'specs/windwalker/lib/view/rotationFlow.ts → the gated branches of the unfiltered flow',
+			keys: () => FLOW_BRANCHES.filter((entry) => entry.gated).map((entry) => entry.key),
+			pinned: [
+				'blackoutKick',
+				'blackoutKickDump',
+				'craneOverKick',
+				'risingSunKickCooldown',
+				'risingSunKickHold',
+				'rushingJadeWindMulti',
+				'spinningCraneKick',
+				'stormEarthAndFire',
+				'tigereyeBrewBank',
+				'tigereyeBrewRune',
+			],
+		},
+		gate: {
+			where: 'lib/game/model.ts → Gate',
+			keys: () => declaredArms('lib/game/model.ts', /export type Gate =/),
+			pinned: ['chi', 'conditional', 'cooldown', 'energy', 'other'],
+		},
+		grade: {
+			where: 'lib/score/model.ts → GRADE_ORDER',
+			keys: () => GRADE_ORDER,
+			pinned: ['bad', 'good', 'ok'],
+		},
+		// Both specs' ladders, because one shared `priority.rule.*` root holds both lists' rule ids.
+		ladderRule: {
+			where: 'both specs’ `LADDER_ENTRIES`',
+			keys: () => [...WW_LADDER, ...ELE_LADDER].map((entry) => entry.key),
+			pinned: [
+				'blackout-kick',
+				'chain-lightning',
+				'chi-wave',
+				'combo-breaker-kick',
+				'combo-breaker-palm',
+				'earth-shock',
+				'elemental-blast',
+				'fists-of-fury',
+				'flame-shock',
+				'jab',
+				'lava-beam',
+				'lava-burst',
+				'lightning-bolt',
+				'rising-sun-kick',
+				'rising-sun-kick-filler',
+				'rushing-jade-wind',
+				'rushing-jade-wind-open',
+				'searing-totem',
+				'spinning-crane-kick',
+				'spinning-crane-kick-heavy',
+				'tiger-palm-refresh',
+				'unleash-elements',
+			],
+		},
+		raidBuffEffect: {
+			where: 'lib/analysis/raidBuffs.ts → RAID_BUFF_EFFECT_KEYS',
+			keys: () => RAID_BUFF_EFFECT_KEYS,
+			pinned: ['attackPower', 'crit', 'mastery', 'meleeHaste', 'spellHaste', 'spellPower', 'stats'],
+		},
+		rotationGroup: {
+			where: 'specs/elemental/lib/apl.ts → the groups ROTATION files its entries under',
+			keys: () => [...new Set(ROTATION.map((entry) => entry.group))],
+			pinned: ['cooldown', 'dot', 'filler'],
+		},
+		rotationRule: {
+			where: 'specs/elemental/lib/apl.ts → ROTATION',
+			keys: () => ROTATION.map((entry) => entry.key),
+			pinned: [
+				'ascendance',
+				'chain-lightning',
+				'earth-elemental',
+				'earth-shock',
+				'elemental-blast',
+				'elemental-mastery',
+				'fire-elemental',
+				'flame-shock-asc-prep',
+				'flame-shock-multidot',
+				'flame-shock-snapshot',
+				'jade-serpent-potion',
+				'lava-beam',
+				'lava-burst',
+				'lightning-bolt',
+				'searing-totem',
+				'unleash-elements',
+			],
+		},
+		snapshotSource: {
+			where: 'lib/types.ts → ElementalSnapshotWindow.source',
+			keys: () => declaredArms('lib/types.ts', /export interface ElementalSnapshotWindow \{[\s\S]*?\bsource:/),
+			pinned: ['black-blood', 'unerring-vision', 'uvls-stacks'],
+		},
+		stormlashState: {
+			where: 'the ternary inside the call in specs/elemental/components/sections/Stormlash.tsx',
+			keys: () => selfNamed('stormlash.state.*'),
+			pinned: ['duringAscendance', 'yours'],
+		},
+		/**
+		 * The metrics that can lead the summary, which is **not** every metric either spec grades.
+		 *
+		 * `Takeaways` skips a metric whose weight is zero — "a metric the model does not count cannot lead
+		 * the summary either" — so `THRESHOLDS` is the wrong source here by four keys, and the difference is
+		 * the point: three of the four have no card copy at all, and the fourth had two strings no reader
+		 * could ever reach. Both of the Windwalker's readings, because a multi-target pull weighs one metric
+		 * the single-target reading does not.
+		 */
+		takeawayMetric: {
+			where: 'both specs’ `WEIGHTS`, minus the metrics weighted zero',
+			keys: () => [
+				// Through a set because both specs weigh `gcdUtilisation`, and the copy under it is one string.
+				...new Set(
+					[...Object.entries({ ...WW_WEIGHTS, ...MULTI_TARGET_WEIGHTS }), ...Object.entries(ELE_WEIGHTS)]
+						.filter(([, weight]) => weight !== 0)
+						.map(([key]) => key),
+				),
+			],
+			pinned: [
+				'brewCapWaste',
+				'brewShortUses',
+				'brewStacks',
+				'earthShockGood',
+				'fireElementalPrepull',
+				'flameShockMultiDot',
+				'flameShockSnapshots',
+				'flameShockUptime',
+				'flameShockWaste',
+				'gcdUtilisation',
+				'lightningShieldFellOff',
+				'lightningShieldOvercap',
+				'potionsUsed',
+				'rskUptime',
+				'searingTotemOverlaps',
+				'searingTotemUptime',
+				'shamanisticRageMissed',
+				'snapshotRate',
+				'thunderstormMissed',
+				'tigerPalmWaste',
+			],
+		},
+	};
+
+	/**
+	 * Every computed family in the tree, against the source that decides what its `*` can be.
+	 *
+	 * The keys of this map are the folded shapes exactly as the scan above collects them, and
+	 * `it('names the families it resolves and the ones it cannot')` holds that the two sides agree — so a
+	 * fifth indirect route, or a family whose source has been renamed out from under it, cannot arrive
+	 * without showing up here.
+	 */
+	const FAMILY_SOURCE: Record<string, string> = {
+		'ascendance.read.fault.*': 'ascendanceFault',
+		'ascendance.read.reason.*': 'ascendanceReason',
+		'castLog.resource.*': 'castLogBar',
+		'castLog.resourceAria.*': 'castLogBar',
+		'castLog.target.*': 'castLogGrouping',
+		'castLog.target.*Title': 'castLogGrouping',
+		'casts.gate.*': 'gate',
+		'earthElemental.state.*': 'earthElementalState',
+		'earthShock.state.*': 'earthShockReason',
+		'elementalMastery.state.*': 'elementalMasteryReason',
+		'fireElemental.state.*': 'fireElementalReason',
+		'flameShock.state.*': 'flameShockKind',
+		'flameShockSnapshots.source.*': 'snapshotSource',
+		'overall.*': 'grade',
+		'priority.rule.*': 'ladderRule',
+		'raidBuffs.effects.*': 'raidBuffEffect',
+		'raidBuffs.worth.*': 'raidBuffEffect',
+		'rotation.crossover.*': 'crossover',
+		'rotation.entry.*.name': 'flowEntry',
+		'rotation.entry.*.test': 'flowEntry',
+		'rotation.entry.*.why': 'flowEntry',
+		'rotation.fork.*.detail': 'flowFork',
+		'rotation.fork.*.title': 'flowFork',
+		'rotation.gate.*': 'flowGate',
+		'rotation.group.*': 'rotationGroup',
+		'rotation.rule.*.condition': 'rotationRule',
+		'rotation.rule.*.name': 'rotationRule',
+		'stormlash.state.*': 'stormlashState',
+		'summary.takeaways.metric.*.fix': 'takeawayMetric',
+		'summary.takeaways.metric.*.label': 'takeawayMetric',
+	};
+
+	/**
+	 * How many stored leaves each family accounts for, so no family can resolve its keys and reach nothing.
+	 *
+	 * The second half of the non-vacuity argument, and the one a per-source list cannot make: `flowEntry`
+	 * could hold all twenty-four rung names and still match nothing at all, if the copy under them were
+	 * renamed a segment deeper. Counted per family rather than in total, because a total is what hides one
+	 * family going to zero behind another that grew.
+	 */
+	const FAMILY_LEAVES: Record<string, number> = {
+		'ascendance.read.fault.*': 5,
+		'ascendance.read.reason.*': 6,
+		'castLog.resource.*': 5,
+		'castLog.resourceAria.*': 5,
+		'castLog.target.*': 3,
+		'castLog.target.*Title': 3,
+		// Four and not five: `Gate` carries an `other` arm and no section prints a column for it.
+		'casts.gate.*': 4,
+		'earthElemental.state.*': 3,
+		'earthShock.state.*': 7,
+		'elementalMastery.state.*': 5,
+		'fireElemental.state.*': 4,
+		// Nine against seven press kinds: `snapshot` stores two narrowings, and the peel counts both.
+		'flameShock.state.*': 9,
+		'flameShockSnapshots.source.*': 3,
+		'overall.*': 3,
+		'priority.rule.*': 22,
+		// More than the seven effects, on both: each is stored per spec where the two want different words.
+		'raidBuffs.effects.*': 9,
+		'raidBuffs.worth.*': 14,
+		'rotation.crossover.*': 4,
+		'rotation.entry.*.name': 24,
+		'rotation.entry.*.test': 24,
+		'rotation.entry.*.why': 24,
+		'rotation.fork.*.detail': 4,
+		'rotation.fork.*.title': 4,
+		'rotation.gate.*': 10,
+		'rotation.group.*': 3,
+		'rotation.rule.*.condition': 16,
+		'rotation.rule.*.name': 16,
+		'stormlash.state.*': 2,
+		// Twenty cards, two of which store a second wording for a number that needs different advice.
+		'summary.takeaways.metric.*.fix': 22,
+		'summary.takeaways.metric.*.label': 20,
+	};
+
+	/**
+	 * The families still resolved to a shape and not to a value, listed so the blind spot has a size.
+	 *
+	 * It was thirty and is none: every family above names a live set, and the ones whose source is a type
+	 * rather than a value are read out of the declaring module. Kept as an empty list rather than deleted,
+	 * because the next indirect route to arrive in the tree lands here — `it('names the families it
+	 * resolves and the ones it cannot')` fails until whoever wrote it either names its key source or names
+	 * it here with the reason its source cannot be enumerated.
+	 */
+	const SHAPE_ONLY: string[] = [];
 
 	/**
 	 * Every section that stores a graded sentence, with the arms it stores.
@@ -607,7 +1031,7 @@ describe('report copy with no reader', () => {
 			if (hit.shape) shaped++;
 		}
 		// A guard that resolves nothing passes the orphan hunt below, so the model's own reach is the
-		// thing asserted first. The floors are well under the day's figures — 835, 27, 36, 284 — because
+		// thing asserted first. The floors are well under the day's figures — 836, 28, 36, 282 — because
 		// what has to fail here is a route going dark, not a section moving.
 		expect(counts.written, 'written-out keys').toBeGreaterThan(700);
 		expect(counts.verdict, 'keys reached through verdict()').toBeGreaterThan(20);
@@ -615,9 +1039,12 @@ describe('report copy with no reader', () => {
 		expect(counts.computed, 'keys reached through a computed template').toBeGreaterThan(200);
 		// And the whole file, so a route going dark cannot be hidden by another that grew.
 		expect(counts.written + counts.verdict + counts.copyPrefix + counts.computed).toBeGreaterThan(1150);
-		// Rather more than half of it is reached exactly — the same leaf, by a written-out key. Asserted
-		// because the two loose halves of the model are where a false green would come from.
-		expect(leaves().length - shaped, 'leaves reached without a `*` or a suffix peel').toBeGreaterThan(600);
+		// Five sixths of the file is reached at a named key — the whole path, no `*` anywhere in it, no
+		// suffix peeled off the leaf. It was 694 of 1184 while the computed families resolved to a shape and
+		// is 963 of 1182 now that each one resolves against its own key source, so the remaining 219 are
+		// leaves reached only by peeling an i18next context off the end. Asserted because the peel is the
+		// last loose half of the model and is where a false green would now come from.
+		expect(leaves().length - shaped, 'leaves reached at a named key, with no suffix peeled').toBeGreaterThan(900);
 	});
 
 	it('carries no key nothing asks for', () => {
@@ -626,7 +1053,8 @@ describe('report copy with no reader', () => {
 		expect(orphans, `analysis copy nothing reads:\n${orphans.join('\n')}`).toEqual([]);
 	});
 
-	it('names the families it can only resolve to a shape', () => {
+	/** Every folded shape in the tree that is neither `${section}`, `${copyPrefix}` nor the settings panel's. */
+	function familyShapes(): string[] {
 		const shapes = new Set<string>();
 		for (const source of SOURCES) {
 			for (const { raw, folded } of computedKeys(source)) {
@@ -634,7 +1062,63 @@ describe('report copy with no reader', () => {
 				shapes.add(folded);
 			}
 		}
-		expect([...shapes].sort()).toEqual([...SHAPE_ONLY].sort());
+		return [...shapes].sort();
+	}
+
+	it('names the families it resolves and the ones it cannot', () => {
+		// Both directions. A shape in the tree with no entry on either list is a family nothing has decided
+		// about; an entry with no shape behind it is a source kept alive for a call site that has gone.
+		expect(familyShapes()).toEqual([...Object.keys(FAMILY_SOURCE), ...SHAPE_ONLY].sort());
+		expect(SHAPE_ONLY, 'families with no key source, each needing its reason beside it').toEqual([]);
+		// Every family names a source that exists, and every source is named by a family.
+		const named = new Set(Object.values(FAMILY_SOURCE));
+		expect(Object.values(FAMILY_SOURCE).filter((name) => KEY_SOURCES[name] === undefined)).toEqual([]);
+		expect(Object.keys(KEY_SOURCES).filter((name) => !named.has(name))).toEqual([]);
+	});
+
+	it('resolves every family against a live set, and none of them is empty', () => {
+		// A guard that resolves nothing passes an orphan hunt trivially, and a source that has quietly gone
+		// empty resolves nothing — so each one's own values are asserted before anything is hunted with them.
+		for (const [name, source] of Object.entries(KEY_SOURCES)) {
+			expect([...source.keys()].sort(), `${name} — ${source.where}`).toEqual([...source.pinned].sort());
+			expect(source.pinned.length, `${name} — ${source.where}`).toBeGreaterThan(1);
+		}
+	});
+
+	it('accounts for the copy of every family, and says how much each one holds', () => {
+		// What each family actually reaches in the file, which is the other half of non-vacuity: a source can
+		// hold its values and still match nothing, if the copy under it was filed somewhere else.
+		const all = patterns();
+		const held: Record<string, number> = {};
+		for (const family of Object.keys(FAMILY_SOURCE)) {
+			const mine = all.filter((pattern) => pattern.family === family);
+			held[family] = leaves().filter((path) => reached(path, mine) !== null).length;
+		}
+		expect(held).toEqual(FAMILY_LEAVES);
+	});
+
+	/**
+	 * The forward direction of the one family whose copy this tightening deleted.
+	 *
+	 * `summary.takeaways.metric.fireElementalHasteUptime.label` and `.fix` were the reds the sources above
+	 * found: the Elemental weighs that metric at zero, `Takeaways` skips a zero-weight metric outright, and
+	 * two written sentences had no reader from the day they landed. Deleting them is only safe with this
+	 * beside it — the key is computed, so the missing-key check at the top of this file cannot see it, and
+	 * raising the weight would otherwise print `summary.takeaways.metric.fireElementalHasteUptime.label` at
+	 * a reader. The note above `fireElementalHasteUptime` in `specs/elemental/lib/score.ts` says the weight
+	 * is to be revisited when a pull actually fails the rule; this is what makes that revisit ask for the
+	 * copy back rather than ship without it.
+	 */
+	it('holds a card for every metric that can lead the summary', () => {
+		const missing: string[] = [];
+		for (const key of KEY_SOURCES['takeawayMetric']?.keys() ?? []) {
+			for (const part of ['label', 'fix']) {
+				if (!resolves(`summary.takeaways.metric.${key}.${part}`, 'report')) {
+					missing.push(`summary.takeaways.metric.${key}.${part}`);
+				}
+			}
+		}
+		expect(missing, `weighted metrics with no summary card:\n${missing.join('\n')}`).toEqual([]);
 	});
 
 	it('holds every arm of every graded sentence', () => {

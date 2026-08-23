@@ -1102,10 +1102,6 @@
           "label": "Summon before the bell",
           "fix": "The Fire Elemental was not out when the pull started. Summoning it in the last second before the bell gets you its whole minute from the first second and starts its five-minute cooldown turning that much earlier. This log cannot see whether it was still down from the attempt before, so this is not counted against the pull."
         },
-        "fireElementalHasteUptime": {
-          "label": "Cover the haste cooldown",
-          "fix": "The Fire Elemental was out for {{value, percent}} of your raid’s haste cooldown, against {{target, percent}}. Press Fire Elemental Totem just before Bloodlust goes up — the summon lasts a full minute, and a second of it under the haste is worth more than a second outside."
-        },
         "flameShockSnapshots": {
           "label": "Catch the proc windows",
           "fix": "You refreshed Flame Shock inside {{value, percent}} of your proc windows, against {{target, percent}}. A missed window is a snapshot that never got its spellpower."
