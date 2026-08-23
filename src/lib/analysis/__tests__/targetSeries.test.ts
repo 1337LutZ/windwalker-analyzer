@@ -25,12 +25,19 @@
 // that moved.
 //
 // The rule the split follows: a question about **which rung of the priority list applied** reads the
-// ladder's series, and a question about **whether there was an enemy there** reads the evidence one. It
-// is worth knowing that two live consumers do not follow it — `view/targetMode`'s `bandsInPull`, which
-// decides which bands a metric is scored at, and the Windwalker's `tigerPalmShare`, which narrows a
-// press sample by band — because both are band questions and both read the published (evidence) series.
-// Neither can be fixed from here: nothing on `Analysis` carries the ladder's series, so they read the
-// only one there is. Both are noted at the publish site in `analyseCore`.
+// ladder's series, and a question about **whether there was an enemy there** reads the evidence one.
+//
+// When this file was written, two live consumers broke that rule and could not be fixed from here,
+// because nothing on `Analysis` carried the ladder's series. **Both are fixed now** — `TargetSummary`
+// gained `aplCounts`, and `view/targetMode`'s `bandsInPull` and the Windwalker's `tigerPalmShare` read
+// it. `targetSeries.aplBands.test.ts` holds that fixture and the per-fixture coincidence check, and it
+// is where a band question belongs; this file stays the one that separates the two series at all.
+//
+// The measurement that closed it is worth keeping, because it is the one this file could not make:
+// read off the evidence series, a Tiger Palm pressed while the wind was fanning left the sample
+// **entirely**, numerator and denominator, so a pull with three wasted presses scored **0% and `good`**
+// where the ladder's series scores **50% and `bad`**. The direction was excusing, which is the
+// direction that matters.
 import { describe, expect, it } from 'vitest';
 
 import type { FightDataset, WclEvent } from '~/lib/types';
