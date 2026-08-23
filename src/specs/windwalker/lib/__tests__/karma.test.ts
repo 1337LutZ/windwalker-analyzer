@@ -168,7 +168,7 @@ describe('Touch of Karma', () => {
 			expect(karma.capPerUse, `${name} demonstrated no pool, so it witnesses nothing here`).not.toBeNull();
 			// The bound is arithmetic and not a tendency: the ceiling per press *is* one of the absorbs
 			// being summed over it, so the fraction cannot fall under one over the press count.
-			expect(karma.capPerUse).toBe(Math.max(...karma.uses.map((use) => use.absorbed)));
+			expect(karma.capPerUse).toBe(Math.max(...karma.uses.map((use) => use.absorbed ?? 0)));
 			const share = (karma.absorbed ?? 0) / ((karma.capPerUse ?? 1) * karma.casts);
 			expect(share, name).toBeGreaterThanOrEqual(1 / karma.casts);
 		}
