@@ -13,6 +13,17 @@
 // before the bell owns the first minute of the pull, a raid lusts on the pull, and a minute contains
 // forty seconds. So the fault side of this rule is carried on synthetic pulls below, every one of them
 // a real fixture with named events moved or removed — never a threshold lowered until something fired.
+//
+// **The weight is now 1 and the rule has a band, and the paragraph above is kept as written because it is
+// still the reason the fixtures cannot exercise the fault side.** What changed is the two arguments the
+// zero rested on. The first was that a glyphed player is capped however well they play, so faulting one
+// would be a false positive; the user has ruled the other way — *"you never want to glyph your fele for
+// damage. Having a 2nd FEle earlier is almost always worse due to less procs available"* — so the glyphed
+// pull is a pull to fault and there is no exemption to build. The second was the flatness, and the
+// flatness was the binary: `ok: 100` printed *"pressed one second late"* and *"never pressed it at all"*
+// in the same colour. `ok: 95` is two seconds of a forty-second window, and the arms of it are pinned in
+// `the band, and where it was cut` below. The headlines the weight moved are pinned in
+// `what the weight costs the three committed cards`, at all three readings rather than the default one.
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -132,29 +143,64 @@ describe('what the committed pulls can say about rule 5', () => {
 	});
 
 	/**
-	 * And the price of that: nothing. Pinned as the three cards a reader sees, so raising the weight
-	 * cannot be done without this going red and naming what it moved.
+	 * **What the weight costs the three committed cards, at all three readings and not only the default
+	 * one.** A weight change moves `overallOf` by construction, so the price is pinned as the nine cards a
+	 * reader can actually reach rather than the three the switch happens to be on.
 	 *
-	 * **Red against a weight of 1**, measured rather than predicted: `phased` 73.08% of 13 becomes 75.00%
-	 * of 14 and the headline goes `ok` to `good`; `cleave` 42.31% of 13 becomes 46.43% of 14 and goes
-	 * `bad` to `ok`. Two of three headlines bought with a rule neither player could have failed.
+	 * Measured both ways on one tree rather than differenced across two runs:
+	 *
+	 * ```
+	 *                          weight 0 / ok 100        weight 1 / ok 95
+	 *   phased    auto     73.08% of 13  ok        75.00% of 14  good
+	 *   phased    single   73.08% of 13  ok        75.00% of 14  good
+	 *   phased    multi   100.00% of  5  ok       100.00% of  6  ok
+	 *   unbroken  auto     61.54% of 13  ok        64.29% of 14  ok
+	 *   unbroken  single   61.54% of 13  ok        64.29% of 14  ok
+	 *   unbroken  multi   100.00% of  5  ok       100.00% of  6  ok
+	 *   cleave    auto     42.31% of 13  bad       46.43% of 14  ok
+	 *   cleave    single   50.00% of 11  ok        54.17% of 12  ok
+	 *   cleave    multi    90.00% of  5  ok        91.67% of  6  ok
+	 * ```
+	 *
+	 * Two headlines move: `phased` onto **exactly** the 75% `good` line at `auto` and `single`, and
+	 * `cleave` over the 45% one at `auto`. The three `multi` cells read 100%, 100% and 90% and still print
+	 * `ok` at both weights, because 6 of 23 is under `MIN_JUDGED_WEIGHT_SHARE` — a reading whose headline is
+	 * a refusal, and one this pin would have been blind to had it only asked `auto`.
+	 *
+	 * The metric itself is `good` and the section is `good` in all nine cells at both weights, which is the
+	 * other half of what makes the table above the *whole* difference.
 	 */
-	it('costs the three committed cards nothing, because it is weighted at zero', () => {
-		const cards = FIXTURES.map((name) => {
+	it('what the weight costs the three committed cards, at every reading', () => {
+		const cards = FIXTURES.flatMap((name) => {
 			const el = fx(name);
-			const card = scoreAnalysis(el, resolveBands(el.targets, 'auto'));
-			// Not vacuous: the metric really is on the card and really is graded on all three.
-			expect(metricOn(el), name).toMatchObject({ grade: 'good', unmeasurable: false });
-			return { overall: card.overall, ...card.judged };
+			return (['auto', 'single', 'multi'] as const).map((choice) => {
+				const view = resolveBands(el.targets, choice);
+				const card = scoreAnalysis(el, view);
+				// Not vacuous, and not only at `auto`: the metric really is on the card and really is graded
+				// `good` at every reading, so the mean below moved for the weight and nothing else.
+				expect(metricOn(el, choice), `${name}/${choice}`).toMatchObject({
+					value: 100,
+					grade: 'good',
+					unmeasurable: false,
+				});
+				expect(card.sections['fireElemental']?.grade, `${name}/${choice}`).toBe('good');
+				const { judged } = card;
+				expect(judged, `${name}/${choice}`).toBeDefined();
+				return `${name}/${choice} ${card.overall} ${judged?.measured}/${judged?.total}`;
+			});
 		});
-		// The cards first and the weight second, deliberately: under a weight of 1 this is the assertion
-		// that goes red, and its failure text names the headline that moved rather than a table entry.
 		expect(cards).toEqual([
-			{ overall: 'ok', measured: 13, total: 22, unmeasurable: false },
-			{ overall: 'ok', measured: 13, total: 22, unmeasurable: false },
-			{ overall: 'bad', measured: 13, total: 22, unmeasurable: false },
+			'phased/auto good 14/23',
+			'phased/single good 14/23',
+			'phased/multi ok 6/23',
+			'unbroken/auto ok 14/23',
+			'unbroken/single ok 14/23',
+			'unbroken/multi ok 6/23',
+			'cleave/auto ok 14/23',
+			'cleave/single ok 12/23',
+			'cleave/multi ok 6/23',
 		]);
-		expect(WEIGHTS.fireElementalHasteUptime).toBe(0);
+		expect(WEIGHTS.fireElementalHasteUptime).toBe(1);
 	});
 });
 
@@ -210,6 +256,9 @@ describe('the fault, on pulls built to commit it', () => {
 		// to divide by. It swallows the cooldown whole.
 		expect(el.searingTotem.feWindows).toEqual([{ start: 1000, end: 61_000 }]);
 		expect(el.fireElemental.hasteUptime).toEqual({ gradedMs: 40_008, coveredMs: 31_000 - 1777 });
+		// 73.04%, which is `bad` under `ok: 95` and would be `bad` under any band a glyphed summon could
+		// reach — see `no glyphed summon can reach the band` below. The slot walk's 100% is the reading
+		// this rule refuses; that is what the assertion above is for.
 		expect(metricOn(el)).toMatchObject({ grade: 'bad' });
 	});
 });
@@ -323,18 +372,186 @@ describe('the scope this rule deliberately does not declare', () => {
 				const m = metricOn(el, choice);
 				expect(m?.exempt, `${name}/${choice}`).toBeUndefined();
 				expect(m?.unmeasurable, `${name}/${choice}`).toBe(false);
-				expect(weightsFor(resolveBands(el.targets, choice)).fireElementalHasteUptime, choice).toBe(0);
+				expect(weightsFor(resolveBands(el.targets, choice)).fireElementalHasteUptime, choice).toBe(1);
 			}
 		}
 	});
 
 	/**
-	 * The absolute grades binary, which is the user's sentence and not a line chosen near it. "100%
-	 * uptime" names no middle, so `good` and `ok` are the same number and there is nothing between them —
-	 * the same two-sided shape rules 1 and 2 grade with, whose `AscendancePressVerdict` has no third band
-	 * either. Here so that softening it to a range has to be argued rather than typed.
+	 * The line itself, so moving it again has to be argued rather than typed. `good` stays the absolute the
+	 * user's sentence names; `ok` is 95, which on a forty-second window is two seconds. The whole argument
+	 * is on the `THRESHOLDS` entry.
 	 */
-	it('leaves no band between meeting it and not', () => {
-		expect(THRESHOLDS.fireElementalHasteUptime).toEqual({ good: 100, ok: 100, higherIsBetter: true });
+	it('grades the full mark as an absolute and cuts the band at two seconds of the window', () => {
+		expect(THRESHOLDS.fireElementalHasteUptime).toEqual({ good: 100, ok: 95, higherIsBetter: true });
+	});
+});
+
+/**
+ * ## The band, and what each of its arms is for
+ *
+ * Every pull here is `phased` with named events moved or removed, so the haste window is the real one —
+ * **1 777 → 41 785ms, forty seconds and eight milliseconds** — and a press at `t` covers `41 785 − t` of
+ * it once `t` is past the lust's arrival. That one relationship is what the whole band is cut against, and
+ * it is why the arms are stated as press times rather than as percentages.
+ */
+describe('the band, and where it was cut', () => {
+	/** A pull whose only summon is an in-fight press at `at`, standing for `life` from the press. */
+	const press = (at: number, life = 60_000) =>
+		run(
+			edited('phased', (events, t0) => [
+				...events.filter((e) => e.abilityGameID !== FIRE_ELEMENTAL_BUFF),
+				{ timestamp: t0 + at, type: 'cast', abilityGameID: FIRE_ELEMENTAL_CAST, sourceID: 2, targetID: -1 },
+				{ timestamp: t0 + at, type: 'applybuff', abilityGameID: FIRE_ELEMENTAL_BUFF, sourceID: 2, targetID: 2 },
+				{ timestamp: t0 + at + life, type: 'removebuff', abilityGameID: FIRE_ELEMENTAL_BUFF, sourceID: 2, targetID: 2 },
+			]),
+		);
+
+	/** The pre-pull summon `phased` really made, with its one bare expiry moved to `at`. */
+	const expiringAt = (at: number) =>
+		run(
+			edited('phased', (events, t0) =>
+				events.map((e) =>
+					e.abilityGameID === FIRE_ELEMENTAL_BUFF && e.type === 'removebuff' ? { ...e, timestamp: t0 + at } : e,
+				),
+			),
+		);
+
+	/**
+	 * **The defect the band was cut for, and the assertion that goes red without it.**
+	 *
+	 * Under `ok: 100` every one of these read `bad` — a press a fifth of a second behind the lust and a pull
+	 * that never summoned the elemental at all, printed in the same colour. They are not the same mistake
+	 * and the card now says so.
+	 *
+	 * The figures are the window arithmetic and nothing else: 41 785 less the press, over 40 008.
+	 */
+	it('separates a press behind the lust from a summon that never came', () => {
+		const graded = (el: Analysis & ElementalAuditResult) => {
+			const m = metricOn(el);
+			return `${m?.value.toFixed(3)} ${m?.grade}`;
+		};
+		expect(graded(press(2000))).toBe('99.443 ok');
+		expect(graded(press(3000))).toBe('96.943 ok');
+		expect(graded(press(10_000))).toBe('79.447 bad');
+		// No summon anywhere in the log, over forty real seconds of haste. The clock is not empty, so this
+		// is a graded zero rather than a refusal — see `expectSilence` above for what a refusal looks like.
+		const forgot = run(edited('phased', (events) => events.filter((e) => e.abilityGameID !== FIRE_ELEMENTAL_BUFF)));
+		expect(forgot.fireElemental.hasteUptime).toEqual({ gradedMs: 40_008, coveredMs: 0 });
+		expect(graded(forgot)).toBe('0.000 bad');
+	});
+
+	/**
+	 * The band is two seconds of the window, so on this pull the boundary is a press at **3 777ms** — the
+	 * lust's 1 777 plus two. Asserted from both sides at one millisecond of separation, because a band whose
+	 * edge is not pinned is a band that drifts.
+	 *
+	 * Two seconds is what the pull's own physics can impose on a player whose only lapse is not having
+	 * pre-pulled: the lust is itself a cast and lands 0.785–1.777s in on the three pulls we hold, and the
+	 * totem pressed as the opening global puts the pet out one cast behind the bell.
+	 */
+	it('puts the edge of the band two seconds behind the lust', () => {
+		expect(metricOn(press(3777))).toMatchObject({ grade: 'ok' });
+		expect(metricOn(press(3778))).toMatchObject({ grade: 'bad' });
+		// And the edge really is the lust's arrival plus two, not the bell's plus two.
+		expect(hasteWindow(press(3777))?.start).toBe(1777);
+	});
+
+	/**
+	 * **`good` is still containment and nothing less**, which is the half of the user's sentence the band
+	 * does not soften. A press that beats the lust reads a flat 100 — the pet was standing before the window
+	 * opened — and a press two hundred milliseconds behind it does not.
+	 */
+	it('keeps the full mark for containment alone', () => {
+		expect(metricOn(press(1000))).toMatchObject({ value: 100, grade: 'good' });
+		expect(metricOn(press(1777))).toMatchObject({ value: 100, grade: 'good' });
+		expect(metricOn(press(1778))).toMatchObject({ grade: 'ok' });
+	});
+
+	/**
+	 * **The glyph, which is a fault and not a false positive.** *"You never want to glyph your fele for
+	 * damage. Having a 2nd FEle earlier is almost always worse due to less procs available."* — so the
+	 * player who halved the summon to get it back sooner made a trade that loses damage, and the report
+	 * should fault the pull rather than exempt it.
+	 *
+	 * **This cannot go red against the old behaviour and is not meant to — DELIBERATE NO-CHANGE GUARD.**
+	 * `ok: 100` faulted the glyphed pull too, along with everything else short of containment. What is new
+	 * is that it is still faulted *now that there is a band to escape into*, which is the thing the user's
+	 * ruling asked for and the thing a wider band would have quietly undone.
+	 *
+	 * **And it is out of reach of the band by construction, not by measurement.** The glyph halves the
+	 * summon to thirty seconds; thirty seconds cannot cover more than three quarters of a forty-second
+	 * window however it is placed, and three quarters is twenty points below the line. Both placements are
+	 * asserted — the glyphed pre-pull, whose expiry lands mid-lust, and the glyphed press — so the ruling
+	 * does not rest on one arrangement of it.
+	 */
+	it('faults every glyphed summon, and no band a glyphed summon could reach would not', () => {
+		// A glyphed pre-pull: `phased`'s own expiry, thirty seconds earlier than the log carries it.
+		const glyphedPrepull = expiringAt(57_259 - 30_000);
+		expect(glyphedPrepull.fireElemental.prepull).toBe(true);
+		expect(metricOn(glyphedPrepull)?.value).toBeCloseTo(63.692, 3);
+		expect(metricOn(glyphedPrepull)).toMatchObject({ grade: 'bad' });
+
+		const glyphedPress = press(1000, 30_000);
+		expect(metricOn(glyphedPress)?.value).toBeCloseTo(73.043, 3);
+		expect(metricOn(glyphedPress)).toMatchObject({ grade: 'bad' });
+
+		// The construction, stated as arithmetic rather than as a third fixture: the best a thirty-second
+		// summon can do against this forty-second window is 74.99%, and the band is 95.
+		const best = (30_000 / 40_008) * 100;
+		expect(best).toBeLessThan(THRESHOLDS.fireElementalHasteUptime.ok);
+	});
+
+	/**
+	 * A pre-pull pressed far too early still fails, and this is the one arm of the band that a *pre-pulled*
+	 * pull can reach — so `fireElementalPrepull`'s `good` and this rule's `bad` land on the same pull, which
+	 * is the two rules saying different true things rather than disagreeing. It was out at the bell; it left
+	 * before the lust did.
+	 *
+	 * **DELIBERATE NO-CHANGE GUARD** on the grade, for the same reason as the glyph above: 83.04% was `bad`
+	 * under `ok: 100` and is `bad` under `ok: 95`. What is new is the pairing asserted underneath it.
+	 */
+	it('faults a pre-pull made so early the pet leaves inside the lust', () => {
+		const el = expiringAt(35_000);
+		expect(el.fireElemental.prepull).toBe(true);
+		const card = scoreAnalysis(el, resolveBands(el.targets, 'auto'));
+		expect(card.sections['fireElemental']?.metrics.map((m) => `${m.key}=${m.grade}`)).toEqual([
+			'fireElementalPrepull=good',
+			'fireElementalHasteUptime=bad',
+		]);
+		expect(metricOn(el)?.value).toBeCloseTo(83.041, 3);
+	});
+
+	/**
+	 * ## *** The reconciliation with `fireElementalPrepull`, pinned rather than only written down ***
+	 *
+	 * The two rules share a section and both weigh 1, and `fireElementalPrepull` grades a non-pre-pull `ok`
+	 * — *explicitly not a fault*, because nothing in one fight's events bounds the cooldown remaining at the
+	 * bell at zero. If this rule faulted a pull for the pre-pull absence alone it would be reversing that
+	 * ruling, and the section would carry two metrics disagreeing about one press.
+	 *
+	 * It does not, and the band is why: **the pre-pull absence on its own costs nothing here.** A press that
+	 * beats the lust reads this rule's `good`, and a press up to two seconds behind it reads this rule's
+	 * `ok` — the same half-mark rule 4 gives. So on the pull rule 4 declines to fault, rule 5 declines with
+	 * it, and what rule 5 faults is a summon seconds behind the lust, or one that left inside it, or one
+	 * that never came — none of which "the cooldown may still have been down at the bell" explains.
+	 *
+	 * Asserted as the pair of grades a reader gets on one pull, at every reading, because that is the thing
+	 * that must not read as a contradiction.
+	 */
+	it('never reverses the pre-pull ruling on a prompt in-fight press', () => {
+		for (const at of [1000, 1777, 2000, 3000, 3777]) {
+			const el = press(at);
+			expect(el.fireElemental.prepull, `${at}`).toBe(false);
+			for (const choice of ['auto', 'single', 'multi'] as const) {
+				const card = scoreAnalysis(el, resolveBands(el.targets, choice));
+				const grades = card.sections['fireElemental']?.metrics.map((m) => `${m.key}=${m.grade}`);
+				// Rule 4's half-mark for the absence, and rule 5 at the full mark or the same half-mark —
+				// never below it. Not a fault on either side, and the section is never `bad`.
+				expect(grades?.[0], `${at}/${choice}`).toBe('fireElementalPrepull=ok');
+				expect(grades?.[1], `${at}/${choice}`).toMatch(/^fireElementalHasteUptime=(good|ok)$/);
+				expect(card.sections['fireElemental']?.grade, `${at}/${choice}`).toBe('ok');
+			}
+		}
 	});
 });

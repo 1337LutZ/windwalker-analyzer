@@ -113,11 +113,18 @@ describe('the three committed pulls', () => {
 		}
 	});
 
-	/** No-change guard: the headline verdict of each pull is unmoved by adding two unmeasurable metrics. */
+	/**
+	 * No-change guard: the headline verdict of each pull is unmoved by adding two unmeasurable metrics.
+	 *
+	 * The two that have since moved were moved by pricing `fireElementalHasteUptime` at 1 — `phased` to
+	 * `good` and `cleave` to `ok`, the arithmetic on `score.ts`' `WEIGHTS` — and not by anything in this
+	 * file. An unmeasurable metric still leaves the denominator, so this guard remains exactly the claim
+	 * it was: two refusals added, three letters unchanged *by them*.
+	 */
 	it('keep the overall grade they had before the section existed', () => {
-		expect(scoreAnalysis(fx('phased')).overall).toBe('ok');
+		expect(scoreAnalysis(fx('phased')).overall).toBe('good');
 		expect(scoreAnalysis(fx('unbroken')).overall).toBe('ok');
-		expect(scoreAnalysis(fx('cleave')).overall).toBe('bad');
+		expect(scoreAnalysis(fx('cleave')).overall).toBe('ok');
 	});
 });
 

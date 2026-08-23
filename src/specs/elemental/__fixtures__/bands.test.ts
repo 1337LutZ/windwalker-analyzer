@@ -134,11 +134,17 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 * So two of the three cards are still the dot, which is the honest outcome: `flameShockMultiDot` reads
 	 * 16.64% and cutting its clock too was measured at 18.73% — see its threshold. That card is a real
 	 * fault rather than an artefact, and the report should keep saying so.
+	 *
+	 * **The letter under those three cards is now `ok` and not `bad`, and the cards did not move with it.**
+	 * It moved when `fireElementalHasteUptime` was priced at 1: 42.31% of 13 points becomes 46.43% of 14,
+	 * over the 45% line, on a rule this player passed — the argument, and the objection it had to answer,
+	 * are on `score.ts`' `WEIGHTS`. The panel is asserted first here for that reason. This pull's three
+	 * faults are unchanged and rule 5 is not among them; what changed is the mean they are averaged into.
 	 */
 	it('replaces one of cleave three Flame Shock cards once the clocks are cut', () => {
 		expect(resolveBands(fixture('cleave').targets, 'auto').bands).toEqual([1, 2, 3, 4]);
 		expect(panel('cleave', 'auto')).toEqual(['flameShockUptime', 'flameShockMultiDot', 'lightningShieldOvercap']);
-		expect(card('cleave', 'auto').overall).toBe('bad');
+		expect(card('cleave', 'auto').overall).toBe('ok');
 		// Still not one `exempt` among them: this pull visits every band, so the declarations remain inert
 		// here and the whole of the movement above is the clock. That is the claim this file began with and
 		// it is still true — it is only the panel that moved.
@@ -260,18 +266,23 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	});
 
 	/**
-	 * And the headline refuses to be a headline over what is left: 5 of 22 points, all of them habit
-	 * metrics and a pre-pull press, which is under `MIN_JUDGED_WEIGHT_SHARE`.
+	 * And the headline refuses to be a headline over what is left: 6 of 23 points, all of them habit
+	 * metrics and the summon's two rules, which is under `MIN_JUDGED_WEIGHT_SHARE`.
 	 *
 	 * One of the three moves letter as well as meaning: `cleave` graded `bad` on that reading before and
 	 * now parks at `ok`. The other two already read `ok`, and what changed for them is that the `ok` is
 	 * now marked `judged.unmeasurable` — the value the report reads to say "cannot say" rather than
 	 * printing a middling grade. A letter that stays put while its meaning inverts is the case a test on
 	 * `overall` alone would have missed.
+	 *
+	 * **5 of 22 when this was written and 6 of 23 now**, because `fireElementalHasteUptime` was priced at 1
+	 * and it is one of the rules that survives this reading — it declares no bands, so a pull read wholly
+	 * as multi-target still owes it an answer. 6 of 23 is 26%, further under the floor than 5 of 22 was, so
+	 * the refusal this test is about is if anything more firmly the answer than before.
 	 */
-	it('stops printing a whole-pull verdict over five of twenty-two points', () => {
+	it('stops printing a whole-pull verdict over six of twenty-three points', () => {
 		for (const name of ALL) {
-			expect(card(name, 'multi').judged, name).toEqual({ measured: 5, total: 22, unmeasurable: true });
+			expect(card(name, 'multi').judged, name).toEqual({ measured: 6, total: 23, unmeasurable: true });
 			expect(card(name, 'multi').overall, name).toBe('ok');
 		}
 		expect(panel('cleave', 'multi')).toEqual(['lightningShieldFellOff']);
@@ -303,21 +314,26 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * unasked. The name of this test is kept from when that was the whole story; the letter has since moved,
 	 * and it moved for the reason below rather than for this one.
 	 *
-	 * **11 of 22 and not 13**, which is two changes and not one. The multi-dot rule's two points leave
+	 * **12 of 23 and not 14**, which is two changes and not one. The multi-dot rule's two points leave
 	 * because the reader declared one enemy — that is this test's own subject. `flameShockWaste`'s two leave
 	 * for a different reason entirely: cutting the graded clocks let `shareOf`'s sample floor apply, and this
 	 * pull's two refreshes are under it, so the metric declines at every reading rather than grading a 50%
-	 * decided by one press. 11 of 22 is exactly half, and `MIN_JUDGED_WEIGHT_SHARE` is read `>=`, so the
-	 * letter still prints — the tie judges rather than refusing, which is the boundary this pull now sits
-	 * precisely on.
+	 * decided by one press.
 	 *
-	 * **And the letter is `ok`, up from `bad`.** This is the one letter the whole exercise moves on a
-	 * committed fixture, so the arithmetic is written out rather than left to be re-derived. Before, over
-	 * 13 points: the dot's uptime `bad` at weight 3, the waste `bad` at 2, Earth Shock `bad` and the shield's
-	 * overcap `bad` at 1 each, the totem `ok` at 1, its overlaps and the pre-pull `good` at 1 each, the
-	 * shield's fall-off `ok` at 1, globals `good` at 2 — 5.0 of 13, which is 38% and under the 45% line.
-	 * After, over 11: the waste's two points are gone and the totem's uptime has crossed to `good` on its own
-	 * cut clock, giving 5.5 of 11, which is exactly 50%.
+	 * **This read 11 of 22 — exactly half — until `fireElementalHasteUptime` was priced at 1, and the loss
+	 * of that coincidence is worth naming.** The old note leaned on it: 11 of 22 is the `>=` tie, so the
+	 * letter printed by the narrowest possible margin and this pull was the live proof that
+	 * `MIN_JUDGED_WEIGHT_SHARE` judges rather than refuses on a tie. Rule 5 declares no bands and survives
+	 * every reading, so both sides gained a point: 12 of 23 is 52% and clears the floor outright. The tie
+	 * case now has no committed pull sitting on it, and if it is to stay pinned it needs one of its own.
+	 *
+	 * **And the letter is `ok`, up from `bad`.** The arithmetic is written out rather than left to be
+	 * re-derived. Before the declarations, over 13 points: the dot's uptime `bad` at weight 3, the waste
+	 * `bad` at 2, Earth Shock `bad` and the shield's overcap `bad` at 1 each, the totem `ok` at 1, its
+	 * overlaps and the pre-pull `good` at 1 each, the shield's fall-off `ok` at 1, globals `good` at 2 —
+	 * 5.0 of 13, which is 38% and under the 45% line. After, over 12: the waste's two points are gone, the
+	 * totem's uptime has crossed to `good` on its own cut clock, and rule 5 adds a `good` at 1 — 6.5 of 12,
+	 * which is 54.17%.
 	 *
 	 * Both halves of that are the intended change and neither is a threshold being flattered: the totem
 	 * genuinely was up for 88.5% of the time a list asked for one, and the waste genuinely cannot be graded
@@ -325,7 +341,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * denominator instead of a `bad` half of whose weight was add-wave time.
 	 */
 	it('drops the spreading rule from a pull read as single-target and lifts its letter', () => {
-		expect(card('cleave', 'single').judged).toEqual({ measured: 11, total: 22, unmeasurable: false });
+		expect(card('cleave', 'single').judged).toEqual({ measured: 12, total: 23, unmeasurable: false });
 		expect(card('cleave', 'single').overall).toBe('ok');
 	});
 });
@@ -430,21 +446,26 @@ describe('the denominator travels with the verdict', () => {
 	/**
 	 * `overallOf` rather than `overall`, so a `good` over half the spec cannot print as a whole-pull one.
 	 *
-	 * Under its own reading `cleave` judges **13** of 22 and the two single-target pulls judge 13 — they
+	 * Under its own reading `cleave` judges **14** of 23 and the two single-target pulls judge 14 — they
 	 * never offered a second target, a snapshot window or a mana reading, and `flameShockMultiDot` is now
 	 * unasked on them rather than merely unanswerable. All three are above `MIN_JUDGED_WEIGHT_SHARE`, so
 	 * every real pull we hold keeps its grade, which is the claim that floor was chosen to make.
 	 *
-	 * `cleave` was 15 when the declarations landed and is 13 now: `flameShockWaste` carries weight 2 and has
-	 * left the denominator, because cutting the graded clocks let `shareOf`'s sample floor apply and this
-	 * pull made only two Flame Shock refreshes. **That is the honest direction for it to move** — the two
-	 * points were being spent on a 50% that one press decided — but it is a real narrowing of what the
-	 * header can claim, and 13 of 22 is 59%, so the grade still prints.
+	 * `cleave` was 15 of 22 when the declarations landed and 13 of 22 after them: `flameShockWaste` carries
+	 * weight 2 and left the denominator, because cutting the graded clocks let `shareOf`'s sample floor apply
+	 * and this pull made only two Flame Shock refreshes. **That is the honest direction for it to move** —
+	 * the two points were being spent on a 50% that one press decided — but it is a real narrowing of what
+	 * the header can claim.
+	 *
+	 * Both sides then gained one when `fireElementalHasteUptime` was priced at 1, on all three pulls at
+	 * once: it declares no bands and it is measurable on every one of them, so it enters the offered weight
+	 * and the judged weight together. 14 of 23 is 61%, so the grade still prints — and the *share* barely
+	 * moved, which is the point of reading this as a fraction rather than a count.
 	 */
 	it('publishes what each pull was judged on', () => {
-		expect(card('cleave', 'auto').judged).toEqual({ measured: 13, total: 22, unmeasurable: false });
+		expect(card('cleave', 'auto').judged).toEqual({ measured: 14, total: 23, unmeasurable: false });
 		for (const name of ['phased', 'unbroken'] as const) {
-			expect(card(name, 'auto').judged, name).toEqual({ measured: 13, total: 22, unmeasurable: false });
+			expect(card(name, 'auto').judged, name).toEqual({ measured: 14, total: 23, unmeasurable: false });
 		}
 	});
 

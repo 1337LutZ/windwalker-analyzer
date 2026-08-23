@@ -258,10 +258,15 @@ describe('the second dot is measured over band 2 alone', () => {
 	 * The figure itself, before and after, because a correctness change with no verdict behind it is the
 	 * easiest kind to lose.
 	 *
-	 * 16.64% to 18.73% and still `bad` — as is the section, and the pull. That is the honest outcome: the
-	 * player dotted the secondary for under a fifth of the time two enemies were up whichever way the
-	 * stretch is counted, so the undotted second target is a real fault and not an artefact of a clock that
-	 * ran too long.
+	 * 16.64% to 18.73% and still `bad` — as is the section. That is the honest outcome: the player dotted
+	 * the secondary for under a fifth of the time two enemies were up whichever way the stretch is counted,
+	 * so the undotted second target is a real fault and not an artefact of a clock that ran too long.
+	 *
+	 * **The pull's own letter is `ok` and no longer `bad`, and that is not this change.** It moved when
+	 * `fireElementalHasteUptime` was priced at 1 — `cleave` goes 42.31% of 13 points to 46.43% of 14 and
+	 * clears the 45% line, on a rule this player passed. The arithmetic and the argument are in
+	 * `score.ts`' `WEIGHTS`. The three assertions above are the ones this test is about, and they are
+	 * unmoved; the headline is pinned underneath them so that it cannot drift unremarked either.
 	 */
 	it('reads 18.73% on the mixed pull and still faults it', () => {
 		expect(+el.cleave.flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
@@ -271,7 +276,7 @@ describe('the second dot is measured over band 2 alone', () => {
 		expect(md?.unmeasurable).toBe(false);
 		expect(md?.grade).toBe('bad');
 		expect(card.sections['flameShock']?.grade).toBe('bad');
-		expect(card.overall).toBe('bad');
+		expect(card.overall).toBe('ok');
 	});
 
 	/**

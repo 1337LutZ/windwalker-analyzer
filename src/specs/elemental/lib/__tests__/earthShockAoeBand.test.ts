@@ -136,12 +136,19 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 	 * boundary, so the section stays `bad` on all three and the pull grades are where they were. The point
 	 * of the change is that the fraction is now over the presses a list had an opinion about; it is not to
 	 * make a number look better, and this is the assertion that says so.
+	 *
+	 * **Two of the three headlines below have since moved, and neither of them moved here.** `phased` is
+	 * `good` and `cleave` is `ok` because `fireElementalHasteUptime` was priced at 1: 73.08% of 13 points
+	 * becomes 75.00% of 14, and 42.31% of 13 becomes 46.43% of 14. The argument is on `score.ts`' `WEIGHTS`.
+	 * They stay pinned as literals rather than being loosened, because a no-change guard that stops naming
+	 * a number stops guarding — what it now says is "this exemption moved no letter, and here is every
+	 * letter it did not move".
 	 */
 	it('changes no section grade and no pull grade — no-change guard', () => {
 		for (const name of FIXTURES) expect(scoreAnalysis(el[name]).sections['earthShock']?.grade, name).toBe('bad');
 		expect(scoreAnalysis(el.unbroken).overall).toBe('ok');
-		expect(scoreAnalysis(el.phased).overall).toBe('ok');
-		expect(scoreAnalysis(el.cleave).overall).toBe('bad');
+		expect(scoreAnalysis(el.phased).overall).toBe('good');
+		expect(scoreAnalysis(el.cleave).overall).toBe('ok');
 		// And the shield's own ledger is untouched, because all five exempt presses were at the ceiling.
 		expect([el.unbroken.earthShock.belowFull, el.phased.earthShock.belowFull, el.cleave.earthShock.belowFull]).toEqual([
 			2, 0, 1,

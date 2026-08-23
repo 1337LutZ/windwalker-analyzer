@@ -729,43 +729,113 @@ export const THRESHOLDS = {
 	 * the bell — and it is asked before any target count exists to read. All three lists pre-pull the
 	 * elemental, `autocastOtherCooldowns` in the aoe list casts it as a registered major cooldown, and
 	 * the pull's counts say nothing about what was standing when it started.
+	 *
+	 * ## Against rule 5, which grades the same summon and *does* fault it
+	 *
+	 * `fireElementalHasteUptime` stands next to this one in the same section at the same weight, and its
+	 * `bad` is reachable. That is not this entry being overruled, and the line between the two is which
+	 * instant is asked about and what the log can bound:
+	 *
+	 *   - **This rule asks about the bell, and its refusal is about availability.** Nothing in one fight's
+	 *     events bounds the cooldown remaining at the bell at zero, so the absence cannot be traced to a
+	 *     decision, and it is not called one.
+	 *   - **Rule 5 asks what the summon this pull actually made did with the raid's haste cooldown**, and
+	 *     it charges nothing for the absence at the bell on its own. A press that beats the lust reads a
+	 *     flat 100% there — the pet was standing before the window opened, which is the whole of what that
+	 *     rule wants — and a press up to two seconds behind the lust reads that rule's `ok`, the same
+	 *     half-mark this one gives. So on the pull this rule declines to fault, rule 5 declines with it.
+	 *
+	 * What rule 5 does fault is a summon that arrived seconds behind the lust, or came off inside it, or
+	 * never came at all. None of those is explained by "the cooldown may still have been down at the
+	 * bell", and every one of them is a thing the log watched happen. So neither rule charges the player
+	 * for the pre-pull absence, and exactly one of them speaks to what the summon did afterwards.
+	 *
+	 * **The `ok` band here stays at 0 regardless**, and rule 5 carrying a fault is not an argument for
+	 * this one growing one — the plan says in as many words not to "fix" the unreachable `bad`. What the
+	 * pairing does need is a sentence at the reader: `report.json`'s `fireElemental.prepullNo` currently
+	 * ends *"nothing here counts it as a mistake"* full stop, which is true of the bell and not of the
+	 * forty seconds after it. See the note in `WEIGHTS`.
 	 */
 	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true },
 
 	/**
 	 * The Primal Fire Elemental's uptime inside the haste cooldown the raid brought on the pull.
 	 *
-	 * **`good` and `ok` are both 100, and that is the rule the user wrote rather than a line chosen near
-	 * it.** "Primal Fire Elemental should have 100% uptime during Bloodlust" names no middle, so inventing
-	 * one would be this table asserting a tolerance the request does not contain. An absolute grades
-	 * binary, which is exactly how rules 1 and 2 grade — `AscendancePressVerdict.grade` is
-	 * `'good' | 'bad' | 'none'` and has no third band either. The `none` of that pair is `unmeasurable`
-	 * here, and it is the empty clock that produces it.
+	 * **`good` is containment and nothing less.** "Primal Fire Elemental should have 100% uptime during
+	 * Bloodlust" is an absolute, and the full mark stays an absolute: the pet was standing for every
+	 * millisecond of the window or it was not. Containment really does give exactly 100 rather than 99.99,
+	 * which is what lets the full mark be a literal one — `coveredMs` is `overlapMs` of the aura's own
+	 * `applybuff`/`removebuff` pairs against the haste window, both fight-relative and both integer
+	 * milliseconds off the same clock, and all three committed pulls read 40 008/40 008, 40 005/40 005 and
+	 * 40 006/40 006 ms. The declared-duration reading this deliberately does not use (`feWindows`, the Fire
+	 * totem slot walk) is where a rounding tolerance would have been needed, and the argument against it
+	 * is on the audit.
 	 *
-	 * A binary rule is only defensible because the two halves of the share come off the *same* clock and
-	 * neither is an inference. `coveredMs` is `overlapMs` of the aura's own `applybuff`/`removebuff` pairs
-	 * against the haste window, both fight-relative, so containment gives exactly 100 and not 99.99 —
-	 * measured on all three committed pulls, which read 40 008/40 008, 40 005/40 005 and 40 006/40 006 ms.
-	 * The declared-duration reading this deliberately does not use (`feWindows`, the Fire totem slot walk)
-	 * is where a rounding tolerance would have been needed, and the argument against it is on the audit.
+	 * ## `ok` is 95, and what that band is, is two seconds of the lust
 	 *
-	 * ## What this measures on the pulls we hold: nothing, and it is worth saying so plainly
+	 * **What the figure means is what puts the line there.** It is a share of the raid's haste cooldown, so
+	 * a band is not a score but a *duration*: the seconds of the lust that ran with no pet under it. Five
+	 * per cent of a forty-second window is two seconds, and two seconds is the whole of what the pull's own
+	 * physics imposes on a player whose only lapse is not having pre-pulled:
+	 *
+	 *   - the haste cooldown does not land on the bell. It is a cast like any other, and it lands **0.785s
+	 *     to 1.777s** in on the three pulls we hold;
+	 *   - the totem pressed as the opening global puts the pet out one cast behind the bell, and the pet is
+	 *     standing from the press.
+	 *
+	 * So that player reads between a flat 100% — the press beat the lust, which is what `phased`'s 1.777s
+	 * arrival does to a press at 1.000s — and about 96%, one global behind a lust that landed at 0.785s.
+	 * Two seconds covers all of it with a beat to spare, and **below the band the shortfall stops being a
+	 * reaction.** A press a dozen seconds in has spent ten of them somewhere other than the lust. A summon
+	 * that came off inside the window was pre-pulled far too early, or halved by Glyph of Fire Elemental
+	 * Totem — and *"you never want to glyph your fele for damage: having a 2nd FEle earlier is almost
+	 * always worse due to less procs available"*, so faulting the glyphed pull is the ruling rather than a
+	 * false positive to be exempted. That case is out of reach of this band **by construction and not by
+	 * measurement**: the glyph halves the summon to thirty seconds, thirty seconds cannot cover more than
+	 * three quarters of a forty-second window whatever the player does with it, and three quarters is
+	 * twenty points below the line. The one case the user has ruled on is not decided by a couple of
+	 * points of margin.
+	 *
+	 * **What the band buys that the binary did not.** `ok: 100` made 99.998% a fault, so a millisecond of
+	 * jitter on an in-fight press flipped the card — and, worse, it printed *"pressed one second late"* and
+	 * *"never pressed it at all"* in the same colour. Those are not the same mistake. Rules 1 and 2 grade
+	 * `'good' | 'bad' | 'none'` with no middle and that stays right *there*, because an Ascendance press
+	 * either was or was not inside the window it is judged against — there is no continuum to cut. Here
+	 * there is one, and it is measured rather than supposed:
+	 *
+	 * ```
+	 *   pre-pulled, or pressed before the lust landed   100.000%   good
+	 *   pressed at 2.0s (0.2s behind the lust)           99.443%   ok
+	 *   pressed at 3.0s                                  96.943%   ok
+	 *   pressed at 3.8s                                  94.944%   bad
+	 *   pressed at 10.0s                                 79.447%   bad
+	 *   pre-pulled 22s early, off at 35.0s               83.041%   bad
+	 *   glyphed, pre-pulled                              63.692%   bad
+	 *   never summoned at all                             0.000%   bad
+	 * ```
+	 *
+	 * Measured on `phased`, whose lust runs 1 777 → 41 785ms; the boundary there is a press at 3.777s. The
+	 * line is stated as a share rather than as two literal seconds because the clock belongs to the raid
+	 * and not to us — a shorter haste cooldown makes two seconds a larger share of it, and it should. Two
+	 * seconds missing out of twenty is a worse miss than two out of forty.
+	 *
+	 * ## What this measures on the pulls we hold, and what it does not
 	 *
 	 * **All three committed fixtures read exactly 100.00% and the figure has no variance at all.** Every
 	 * one of them took Primal Elementalist (117013 is in all three `combatantinfo` lists), every one had
 	 * the elemental out before the bell — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
 	 * lusted inside the first two seconds for forty seconds, under a different spell each time (Heroism,
 	 * Bloodlust, Time Warp). A pre-pull summon's minute contains an on-pull lust's forty seconds by
-	 * construction, so this is structural rather than three players getting it right.
+	 * construction, so this is structural rather than three players getting it right — and the whole fault
+	 * side of the rule is carried on synthetic pulls in `lib/__tests__/firePrimalHaste.test.ts`, every one
+	 * of them a real fixture with named events moved or removed, never a threshold moved until something
+	 * fired.
 	 *
-	 * §80's own box warned about exactly this — *"a metric that reads a flat 100% everywhere carries weight
-	 * while discriminating nothing"* — and the warning is upheld rather than waved through. It carries
-	 * **no** weight (see `WEIGHTS`, where the two headlines a weight of 1 moved are written out), and the
-	 * fault side of the rule is carried on synthetic pulls in `lib/__tests__/firePrimalHaste.test.ts`
-	 * rather than by moving this line until a fixture failed it.
-	 * What it is **not** is the free-pass shape, which is a `good` handed out over an empty clock: the
-	 * clock here is forty real seconds of haste on all three pulls, and the three pulls that have no clock
-	 * are refused rather than credited.
+	 * §80's own box warned about the shape this used to have — *"a metric that reads a flat 100% everywhere
+	 * carries weight while discriminating nothing"* — and `WEIGHTS` is where that is now answered rather
+	 * than here. What it is **not**, and never was, is the free-pass shape: a `good` handed out over an
+	 * empty clock. The clock here is forty real seconds of haste on all three pulls, and the pulls that
+	 * have no clock are refused rather than credited.
 	 *
 	 * **No band, and the argument is that the summon is the same job at every target count.** A band
 	 * declaration says "this figure means nothing at these counts", and there is no count at which a
@@ -776,7 +846,7 @@ export const THRESHOLDS = {
 	 * the opportunity exists identically however many enemies are up, so declining to grade it at some of
 	 * them would be silence bought with nothing.
 	 */
-	fireElementalHasteUptime: { good: 100, ok: 100, higherIsBetter: true },
+	fireElementalHasteUptime: { good: 100, ok: 95, higherIsBetter: true },
 
 	/**
 	 * Share of proc-window Flame Shock refreshes caught.
@@ -917,39 +987,64 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// prove about whose fault it was is nothing.
 	fireElementalPrepull: 1,
 	/**
-	 * **Measured, graded, shown — and deliberately not counted.** Zero, on the Windwalker
-	 * `snapshotDepth`'s terms: the metric goes on carrying a grade for the section and the copy to read,
-	 * and the reason it does not move the headline lives beside every weight that does.
+	 * The lightest weight there is, and it used to be zero. **What changed is the rule, not the fixtures.**
 	 *
-	 * **This is a measurement and not a caution.** At weight 1 the metric reads a flat `good` on every
-	 * pull in the repository, and adding a constant `good` to a weighted mean does not describe pulls, it
-	 * pushes all of them upward. Two of the three moved, at every reading:
+	 * The zero was argued from two things, and the first of them has been withdrawn by the user. It was
+	 * that a glyphed player is capped at three quarters of the window however well they play, so faulting
+	 * one would be a false positive — and the ruling is the opposite: *"you never want to glyph your fele
+	 * for damage. Having a 2nd FEle earlier is almost always worse due to less procs available."* The
+	 * glyph is a trade that loses damage, so the pull that made it is a pull the report should fault, and
+	 * there is no exemption to build.
+	 *
+	 * The second was that the metric *"reads a flat `good` on every pull in the repository"* and that
+	 * *"adding a constant `good` to a weighted mean does not describe pulls, it pushes all of them
+	 * upward"*. That objection is answered rather than waived, in two parts:
+	 *
+	 *   - **The flatness was the binary, and the binary is gone.** `ok: 100` gave the rule two states and
+	 *     no middle; it now has a band (see `THRESHOLDS`) and a measured continuum through it — 100.000%,
+	 *     99.443%, 96.943%, 94.944%, 79.447%, 63.692%, 0.000% across the synthetic pulls, with `good`,
+	 *     `ok` and `bad` all reachable. What the three fixtures are flat *on* is the axis the rule grades:
+	 *     all three shamans pre-pulled, and a pre-pull summon's minute contains an on-pull lust's forty
+	 *     seconds by construction. That is three players on the right side of a real line, not a line with
+	 *     nothing on either side of it.
+	 *   - **The table already prices two rules the whole test set passes.** `searingTotemOverlaps` reads 0
+	 *     overlaps and therefore `good` on all three committed pulls at this same weight, and
+	 *     `gcdUtilisation` reads `good` on all three at weight **two**. A fixture set of three is not a
+	 *     distribution, and a weight prices the rule rather than the sample.
+	 *
+	 * ## What the weight moves, measured at all three readings rather than the default one
 	 *
 	 * ```
-	 *                     without        with weight 1
-	 *   phased      73.08% of 13  ->  75.00% of 14   ok -> good
-	 *   unbroken    61.54% of 13  ->  64.29% of 14   ok -> ok
-	 *   cleave      42.31% of 13  ->  46.43% of 14   bad -> ok
+	 *                          weight 0 / ok 100        weight 1 / ok 95
+	 *   phased    auto     73.08% of 13  ok        75.00% of 14  good
+	 *   phased    single   73.08% of 13  ok        75.00% of 14  good
+	 *   phased    multi   100.00% of  5  ok       100.00% of  6  ok    (under the judged floor, both)
+	 *   unbroken  auto     61.54% of 13  ok        64.29% of 14  ok
+	 *   unbroken  single   61.54% of 13  ok        64.29% of 14  ok
+	 *   unbroken  multi   100.00% of  5  ok       100.00% of  6  ok    (under the judged floor, both)
+	 *   cleave    auto     42.31% of 13  bad       46.43% of 14  ok
+	 *   cleave    single   50.00% of 11  ok        54.17% of 12  ok
+	 *   cleave    multi    90.00% of  5  ok        91.67% of  6  ok    (under the judged floor, both)
 	 * ```
 	 *
-	 * `phased` lands on **exactly** the 75% `good` line and `cleave` clears the 45% one. Both headlines
-	 * were bought with a rule neither player could have failed: the summon was out before the bell and the
-	 * raid lusted on the pull, so 100% was structural on all three. `cleave` is the pull this whole
-	 * exercise began from and it is a `bad` pull; a rule that discriminates nothing must not be what
-	 * upgrades it.
+	 * The metric itself reads 100.00%/`good` and the section reads `good` in every one of those nine cells,
+	 * before and after; what moves is the mean and two headlines. `phased` lands on **exactly** the 75%
+	 * line at two readings, and `cleave` clears the 45% one at the default reading.
 	 *
-	 * Zero rather than deleting the metric, and rather than not grading it: the user's sentence is an
-	 * absolute and absolutes grade (see `THRESHOLDS`), so the rule keeps its verdict and its refusal — it
-	 * simply does not price them. Rules 1 and 2 are the same shape seen from further away: they grade every
-	 * Ascendance press through `AscendancePressVerdict` and appear in no weight at all.
+	 * **`cleave` is the pull this exercise began from, and this change takes it off `bad`. That is stated
+	 * here rather than discovered later.** Its three summary cards do not move — they are still
+	 * `flameShockUptime`, `flameShockMultiDot` and `lightningShieldOvercap`, none of them this rule — and
+	 * it is still eighteen points the worst of the three. What the old note read as a reason for zero cuts
+	 * both ways: at weight 0 the choice of weight was equally what was *keeping* `cleave` under the line,
+	 * since 42.31% was 2.69 points short on the other thirteen weights alone. "Is `cleave` a bad pull" is
+	 * a question about the 45% line and about those thirteen weights; it cannot be answered by pricing this
+	 * rule at something other than what it is worth.
 	 *
-	 * **What to revisit, and with what.** A captured pull that actually fails this rule is the argument
-	 * for a weight above zero, and the numbers above are what it has to beat. Until one exists the honest
-	 * price of a rule that has never separated two pulls is nothing. Note the one thing zero costs, so it
-	 * is a known price rather than a discovery: `Takeaways` filters on `weight > 0`, so a failing pull's
-	 * card would carry the `bad` without the summary panel naming it.
+	 * **One, and not more.** The same weight as `fireElementalPrepull` beside it, `searingTotemOverlaps`
+	 * and the shield's two habits: real, and not what defines the spec. Two would put the summon's section
+	 * level with the mana pool.
 	 */
-	fireElementalHasteUptime: 0,
+	fireElementalHasteUptime: 1,
 	lightningShieldOvercap: 1,
 	lightningShieldFellOff: 1,
 	/**

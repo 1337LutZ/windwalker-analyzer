@@ -808,10 +808,17 @@ describe('report copy with no reader', () => {
 		 * The metrics that can lead the summary, which is **not** every metric either spec grades.
 		 *
 		 * `Takeaways` skips a metric whose weight is zero — "a metric the model does not count cannot lead
-		 * the summary either" — so `THRESHOLDS` is the wrong source here by four keys, and the difference is
-		 * the point: three of the four have no card copy at all, and the fourth had two strings no reader
-		 * could ever reach. Both of the Windwalker's readings, because a multi-target pull weighs one metric
-		 * the single-target reading does not.
+		 * the summary either" — so `THRESHOLDS` is the wrong source here by three keys, and the difference is
+		 * the point: all three (`snapshotDepth`, `karmaEmpty`, `karmaCapShare`) have no card copy at all.
+		 * Both of the Windwalker's readings, because a multi-target pull weighs one metric the single-target
+		 * reading does not.
+		 *
+		 * **It was four, and the fourth was `fireElementalHasteUptime`** — the metric this file's
+		 * `holds a card for every metric that can lead the summary` was written for. Its weight has since
+		 * gone from 0 to 1 (see `specs/elemental/lib/score.ts`' `WEIGHTS`), so it is now a metric that can
+		 * deal a card and it is pinned below as one. That is the guard doing exactly what it was left here
+		 * to do: it asks for the two deleted strings back rather than letting a computed key print at a
+		 * reader.
 		 */
 		takeawayMetric: {
 			where: 'both specs’ `WEIGHTS`, minus the metrics weighted zero',
@@ -828,6 +835,7 @@ describe('report copy with no reader', () => {
 				'brewShortUses',
 				'brewStacks',
 				'earthShockGood',
+				'fireElementalHasteUptime',
 				'fireElementalPrepull',
 				'flameShockMultiDot',
 				'flameShockSnapshots',
