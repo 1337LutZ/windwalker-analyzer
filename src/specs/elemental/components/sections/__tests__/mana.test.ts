@@ -69,7 +69,11 @@ describe('a pull that starved with Thunderstorm on the bar', () => {
 
 	it('tells the reader which button to press, and why it is not optional', () => {
 		expect(html).toContain('At 15% your next Lava Burst may not go out');
-		expect(html).toContain('press it as the bar reaches the line');
+		expect(html).toContain('press it the moment you get there');
+		// The cue is the mana number, not a widget. "Press it as the bar reaches the line" is what this
+		// sentence said until the deixis sweep, and the bar and the line are this report's own furniture —
+		// a sentence telling a player what to press names the game state. Quoted so it cannot come back.
+		expect(html).not.toContain('the bar reaches the line');
 	});
 
 	it('names Lightning Shield as a cause, with the mana it returns', () => {
@@ -421,7 +425,7 @@ describe('a pull whose low mana this log cannot speak for', () => {
 		const html = render(unprovable);
 		expect(html).toContain(t('mana.verdict_none', { starved: 15, strained: 70, low: unprovable.mana!.strained.lowMs }));
 		expect(html).toContain('none of it is a press you passed over');
-		expect(html).toContain('Press Thunderstorm as the bar reaches 15% and Shamanistic Rage as it reaches 70%');
+		expect(html).toContain('Press Thunderstorm as you hit 15% and Shamanistic Rage as you hit 70%');
 		// The whole point of the arm: without it i18next resolves `context: none` to the bare
 		// `mana.verdict`, which no section stores, and prints the key where the sentence belongs.
 		expect(html).not.toContain('mana.verdict');
