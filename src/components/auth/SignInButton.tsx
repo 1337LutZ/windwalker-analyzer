@@ -1,3 +1,7 @@
+import { useTranslation } from 'react-i18next';
+
+import '~/lib/i18n';
+
 import { useSession } from '~/lib/auth';
 
 import { primaryButtonClass } from '../primitives/controls';
@@ -12,6 +16,7 @@ import { primaryButtonClass } from '../primitives/controls';
  */
 export default function SignInButton() {
 	const { status, clientID, signIn } = useSession();
+	const { t } = useTranslation('ui');
 	const busy = status === 'unknown' || status === 'signing-in';
 
 	return (
@@ -21,7 +26,7 @@ export default function SignInButton() {
 			onClick={signIn}
 			disabled={busy || clientID === null}
 		>
-			{status === 'signing-in' ? 'Opening WarcraftLogs…' : 'Sign in with WarcraftLogs'}
+			{status === 'signing-in' ? t('auth.signIn.opening') : t('auth.signIn.button')}
 		</button>
 	);
 }

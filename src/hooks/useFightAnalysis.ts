@@ -11,6 +11,9 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+
+import '~/lib/i18n';
 
 import type { AnalysisSettings } from '~/lib/settings';
 import type { SpecDefinition } from '~/lib/spec';
@@ -52,6 +55,7 @@ export function useFightAnalysis(
 	settings: AnalysisSettings,
 	spec: SpecDefinition,
 ): FightAnalysisResult {
+	const { t } = useTranslation('ui');
 	const queryKey = ['wcl', 'fight-analysis', request?.code, request?.fightID, request?.playerName];
 	const key = queryKey.join('|');
 
@@ -67,7 +71,7 @@ export function useFightAnalysis(
 		queryFn: async () => {
 			setProgress({
 				key,
-				value: { phase: 'report', message: 'Loading the report…' },
+				value: { phase: 'report', message: t('progress.report') },
 			});
 			// What this pull costs, watched rather than assumed. Every request the fetch makes reports
 			// `pointsSpentThisHour` back, so the figure before the first one and the figure after the
@@ -94,7 +98,7 @@ export function useFightAnalysis(
 				value: {
 					phase: 'done',
 					events: dataset.events.length,
-					message: 'Reading the fight…',
+					message: t('progress.fight'),
 				},
 			});
 			await new Promise((resolve) => setTimeout(resolve, 0));

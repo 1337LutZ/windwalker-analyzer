@@ -13,7 +13,101 @@
     "report": "Point it at a pull",
     "fight": "Pick the fight",
     "player": "Pick the player",
-    "thisTabOnly": "this tab only"
+    "thisTabOnly": "this tab only",
+    "fightsHere": "Load a report above and its boss pulls appear here.",
+    "checkingRoster": "Checking who was in that pull…",
+    "analyse": "Analyse this pull"
+  },
+  "auth": {
+    "signIn": {
+      "intro": "Sign in with your WarcraftLogs account to read your logs, including private and archived ones. You sign in on WarcraftLogs' own page — this one never sees your password, and there is nothing to paste.",
+      "button": "Sign in with WarcraftLogs",
+      "opening": "Opening WarcraftLogs…"
+    },
+    "session": {
+      "oauth": "Signed in",
+      "manual": "Using your token",
+      "tabOnly": "— in this tab only. Closing the tab forgets it, and it goes nowhere but warcraftlogs.com.",
+      "signOut": "Sign out",
+      "forgetToken": "Forget this token"
+    },
+    "failure": {
+      "expiredTitle": "Your session had expired",
+      "unfinishedTitle": "That sign-in did not finish",
+      "signIn": "Signing in to WarcraftLogs failed.",
+      "expired": "Your WarcraftLogs session had expired, so it was not restored. Sign in again for a fresh one — WarcraftLogs issues no refresh token, so there is nothing this page can renew on your behalf.",
+      "expiredManual": "The token you pasted has expired, so it was not restored. Generate a new one and paste it in, or sign in with your WarcraftLogs account instead."
+    },
+    "public": {
+      "title": "This token reads public logs only",
+      "body": "It carries no account with it — a client-credentials token — so WarcraftLogs will not show it anything private. Public logs analyse perfectly well.",
+      "catchBefore": "A private report does not come back refused. It comes back as",
+      "catchEmphasis": "not found",
+      "catchAfter": ", exactly as a mistyped code does. If a report code you know is right is rejected below, that is why: sign in with your account instead, or make the log public."
+    },
+    "client": {
+      "using": "Signing in with your own API client,",
+      "forget": "Forget this client",
+      "titleFirst": "First, register your own API client",
+      "titleAnother": "Use a different API client",
+      "intro": "WarcraftLogs meters its API per client, so this app cannot sign you in with one of its own — everyone using it would share a single hourly budget and run each other out of it. Registering your own takes about a minute and gives you a budget nobody else spends.",
+      "field": "Client ID",
+      "save": "Save client ID",
+      "redirectLabel": "Redirect URL",
+      "kept": "The client ID is kept in this browser so you do not have to paste it again, and unlike your access token it survives closing the tab. It is not a secret — PKCE publishes it with every sign-in — and it goes nowhere but warcraftlogs.com.",
+      "step": {
+        "open": "Open",
+        "link": "warcraftlogs.com/api/clients",
+        "choose": "and choose",
+        "create": "Create Client",
+        "name": "Give it any name. You will see it on the consent screen when you sign in.",
+        "redirect": "Paste this as the redirect URL, exactly as it appears — a URL that differs by so much as a trailing slash is refused, and the refusal blames the client id rather than the URL.",
+        "tick": "Tick",
+        "publicClient": "Public Client",
+        "pkce": "so the client can use PKCE, then save.",
+        "copy": "Copy the",
+        "clientId": "client ID",
+        "paste": "it gives you back and paste it below. Not the client secret — this app has no use for one and should never be given it."
+      },
+      "empty": "Paste the client ID from your WarcraftLogs API client.",
+      "notAnId": "That does not look like a client ID. It should be a UUID, like 01234567-89ab-7cde-8f01-23456789abcd. A long unbroken string of letters and digits is the client secret instead: this app never uses one, so leave it where it is."
+    },
+    "token": {
+      "advanced": "Advanced: use your own access token",
+      "intro": "If you already generate your own WarcraftLogs tokens, paste one here instead. It is kept in this tab exactly like a signed-in one: never written to disk, never logged, sent only to warcraftlogs.com, and gone when the tab closes. A token from the client-credentials flow works too — it reads public logs only, and you will be told so.",
+      "field": "Access token",
+      "placeholder": "Paste the token",
+      "submit": "Use this token",
+      "empty": "Paste the access token WarcraftLogs generated for you.",
+      "expired": "That token expired {{ago}}, on {{date}} at {{time}}. Generate a fresh one and paste that."
+    },
+    "help": {
+      "trigger": "What happens when you sign in?",
+      "title": "Signing in to WarcraftLogs",
+      "description": "You sign in on WarcraftLogs' own page, not this one. You type your password there and this app never sees it. WarcraftLogs asks whether to let the analyser read your logs, and only your answer comes back.",
+      "tokenBefore": "What comes back is an access token. It is held in this browser tab, sent to",
+      "tokenBetween": "as an",
+      "tokenAfter": "header, and sent nowhere else. This page has no server to send it to: it is a folder of static files, and the content-security policy it ships makes your browser enforce that whatever the JavaScript intends.",
+      "tab": "Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab — on a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you can revoke the app’s access from your WarcraftLogs account whenever you like.",
+      "docs": "The underlying API, and what the analyser reads with that token, is documented at",
+      "close": "Close"
+    }
+  },
+  "progress": {
+    "report": "Loading the report…",
+    "table": "Loading the damage table…",
+    "fight": "Reading the fight…"
+  },
+  "errors": {
+    "auth": "WarcraftLogs would not accept that sign-in",
+    "missing": "Could not find that",
+    "rateLimit": "WarcraftLogs is rate-limiting this account",
+    "network": "Could not reach WarcraftLogs",
+    "server": "WarcraftLogs had a problem",
+    "graphql": "WarcraftLogs rejected the query",
+    "unknownTitle": "That failure did not come from WarcraftLogs",
+    "unknownDetail": "Nothing came back that could be read as a WarcraftLogs answer, so there is nothing more to say about it. Reload the page and try the same pull again.",
+    "signOutAction": "Sign out and try again"
   },
   "chart": {
     "drawing": "Drawing chart"

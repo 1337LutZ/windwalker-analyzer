@@ -1,4 +1,7 @@
 import { Collapsible } from '@base-ui/react/collapsible';
+import { useTranslation } from 'react-i18next';
+
+import '~/lib/i18n';
 
 import { useSession } from '~/lib/auth';
 
@@ -19,6 +22,7 @@ import ClientIdSetup from './ClientIdSetup';
  */
 export default function ClientIdPanel() {
 	const { clientID, forgetClientID } = useSession();
+	const { t } = useTranslation('ui');
 
 	if (clientID === null) return <ClientIdSetup />;
 
@@ -26,10 +30,10 @@ export default function ClientIdPanel() {
 		<Collapsible.Root className="flex flex-col gap-3 rounded-sm border border-line bg-surface p-4">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<p className="m-0 leading-relaxed text-ink-2">
-					Signing in with your own API client, <code className="font-mono break-all text-ink">{clientID}</code>.
+					{t('auth.client.using')} <code className="font-mono break-all text-ink">{clientID}</code>.
 				</p>
 				<Collapsible.Trigger className="group inline-flex min-h-11 shrink-0 items-center gap-2 rounded-sm text-left font-mono text-sm font-semibold tracking-[0.1em] text-muted uppercase transition-colors hover:text-ink">
-					Change
+					{t('common.change')}
 					<span aria-hidden="true" className="transition-transform group-data-panel-open:rotate-180">
 						&darr;
 					</span>
@@ -40,7 +44,7 @@ export default function ClientIdPanel() {
 				<ClientIdSetup />
 				<div className="flex justify-end">
 					<button type="button" className={`${buttonClass} w-full sm:w-auto`} onClick={forgetClientID}>
-						Forget this client
+						{t('auth.client.forget')}
 					</button>
 				</div>
 			</Collapsible.Panel>

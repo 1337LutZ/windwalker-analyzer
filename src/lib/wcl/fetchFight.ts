@@ -3,6 +3,10 @@
 // Two entry points: `listReportFights` for the fight picker, `fetchFightDataset` for the run itself.
 
 import type { WclEvent } from '~/lib/events';
+// The shell copy, reached through the instance rather than a hook: this is not a component, and the
+// two phase messages below are the same two sentences `useFightAnalysis` shows before this function
+// is called. One key each, or the pair drifts.
+import { i18n } from '~/lib/i18n';
 import type { Actor, FightDataset } from '~/lib/types';
 import { WclClient, WclError, type FightWithNpcs } from './client';
 import { resolveFightPhases, type FightPhase } from './phases';
@@ -88,7 +92,7 @@ export async function listReportFights(client: WclClient, code: string): Promise
 export async function fetchFightDataset(client: WclClient, options: FetchFightOptions): Promise<PhasedFightDataset> {
 	const { code, fightID, playerName, onProgress } = options;
 
-	onProgress?.({ phase: 'report', message: 'Loading the report…' });
+	onProgress?.({ phase: 'report', message: i18n.t('progress.report', { ns: 'ui' }) });
 	const [report, actors] = await Promise.all([client.fetchReport(code), client.fetchActors(code)]);
 
 	const fight = report.fights.find((candidate) => candidate.id === fightID);
@@ -109,7 +113,7 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 		);
 	}
 
-	onProgress?.({ phase: 'table', message: 'Loading the damage table…' });
+	onProgress?.({ phase: 'table', message: i18n.t('progress.table', { ns: 'ui' }) });
 	const damageDone = await client.fetchDamageTable(code, fightID);
 
 	const events = await fetchAllEvents(client, code, fight, actor.id, onProgress);

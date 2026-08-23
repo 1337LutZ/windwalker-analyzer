@@ -300,7 +300,7 @@ export default function ReportFlow() {
 	};
 
 	const problem = (error: unknown) => {
-		const failure = describeFailure(error);
+		const failure = describeFailure(error, t);
 		return (
 			<div className="mt-4">
 				<Callout
@@ -308,7 +308,7 @@ export default function ReportFlow() {
 					action={
 						failure.tokenAtFault ? (
 							<button type="button" className={buttonClass} onClick={signOut}>
-								Sign out and try again
+								{t('errors.signOutAction')}
 							</button>
 						) : null
 					}
@@ -368,7 +368,7 @@ export default function ReportFlow() {
 					{fights.isFetching ? (
 						<FightListSkeleton />
 					) : !fights.data ? (
-						<p className="m-0 leading-relaxed text-muted">Load a report above and its boss pulls appear here.</p>
+						<p className="m-0 leading-relaxed text-muted">{t('steps.fightsHere')}</p>
 					) : hasFights ? (
 						<FightSelector
 							fights={fights.data.fights}
@@ -404,7 +404,7 @@ export default function ReportFlow() {
 					) : (
 						<div className="flex flex-col gap-4">
 							{players.isLoading ? (
-								<p className="m-0 leading-relaxed text-muted">Checking who was in that pull…</p>
+								<p className="m-0 leading-relaxed text-muted">{t('steps.checkingRoster')}</p>
 							) : players.error ? (
 								problem(players.error)
 							) : (
@@ -424,7 +424,7 @@ export default function ReportFlow() {
 									onClick={analyse}
 									disabled={isFetching || playerName === null}
 								>
-									{isFetching ? 'Reading the fight…' : 'Analyse this pull'}
+									{isFetching ? t('progress.fight') : t('steps.analyse')}
 								</button>
 								{/* The same settings button the sticky bar carries, for the reader who is still
 							    here and has not scrolled past anything. Two triggers, one dialog each — a

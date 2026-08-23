@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { i18n } from '~/lib/i18n';
 
 import {
 	SessionContext,
@@ -21,23 +22,25 @@ import {
 import { restoreSession } from '~/lib/auth/restore';
 import { clearSilentRetry, forgetToken, markSilentRetry, silentRetryUsed } from '~/lib/auth/storage';
 
-function readMessage(cause: unknown): string {
-	return cause instanceof Error ? cause.message : 'Signing in to WarcraftLogs failed.';
-}
-
 /**
- * What the reader is told when the token that was in this tab has aged out.
+ * A thrown cause as something to show, falling back on the copy when it is not an `Error`.
  *
- * Two messages because there are two fixes. A sign-in is renewed by signing in, and this is only ever
- * seen when the silent re-authorize was unavailable or could not leave — when it works, the reader
- * gets a signed-in page and no message at all, which is the whole point of it. A pasted token is
- * never renewed automatically, so its message is the only thing that ever says so, and pointing that
- * reader at the sign-in button would be pointing them away from the credential they chose.
+ * **The instance rather than `useTranslation`, in this one file.** Every string here is read from
+ * inside an effect or a promise handler and written into state, never during a render — and a `t`
+ * from the hook is a value the mount effect would have to declare as a dependency, which is the one
+ * effect in this tree that must never run twice: it consumes the `?code=` in the address bar. So the
+ * copy is fetched the same way `lib/wcl/fetchFight.ts` fetches its progress messages.
+ *
+ * The two expiry messages it sits beside — `auth.failure.expired` and `auth.failure.expiredManual` —
+ * are two because there are two fixes. A sign-in is renewed by signing in, and that message is only
+ * ever seen when the silent re-authorize was unavailable or could not leave; when it works, the
+ * reader gets a signed-in page and no message at all, which is the whole point of it. A pasted token
+ * is never renewed automatically, so its message is the only thing that ever says so, and pointing
+ * that reader at the sign-in button would be pointing them away from the credential they chose.
  */
-const EXPIRED_MESSAGE =
-	'Your WarcraftLogs session had expired, so it was not restored. Sign in again for a fresh one — WarcraftLogs issues no refresh token, so there is nothing this page can renew on your behalf.';
-const EXPIRED_MANUAL_MESSAGE =
-	'The token you pasted has expired, so it was not restored. Generate a new one and paste it in, or sign in with your WarcraftLogs account instead.';
+function readMessage(cause: unknown): string {
+	return cause instanceof Error ? cause.message : i18n.t('auth.failure.signIn', { ns: 'ui' });
+}
 
 /**
  * Owns the signed-in state for the whole island.
@@ -95,7 +98,10 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 			// storage is what made the *previous* reload claim a session, and if the re-authorize below
 			// fails there must be nothing here for the reload after this one to fall for either.
 			forgetToken();
-			const expiredMessage = restored.expiredSource === 'manual' ? EXPIRED_MANUAL_MESSAGE : EXPIRED_MESSAGE;
+			const expiredMessage =
+				restored.expiredSource === 'manual'
+					? i18n.t('auth.failure.expiredManual', { ns: 'ui' })
+					: i18n.t('auth.failure.expired', { ns: 'ui' });
 
 			// WarcraftLogs issues no refresh token, so this is the closest honest thing: send the tab
 			// back through the authorize screen. Against a live WarcraftLogs session and a client the
@@ -149,6 +155,9 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 		return () => {
 			live = false;
 		};
+		// Still `[]`, and `t` is deliberately not added to it. This is the one-shot mount read described
+		// above; re-running it would replay a sign-in exchange, and `t` is stable for the life of the
+		// instance because the app initialises one locale and never switches.
 	}, []);
 
 	const signIn = useCallback(() => {

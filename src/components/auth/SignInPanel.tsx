@@ -1,4 +1,7 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import '~/lib/i18n';
 
 import { inspectToken, useSession } from '~/lib/auth';
 
@@ -22,9 +25,19 @@ import TokenHelp from './TokenHelp';
  */
 export default function SignInPanel() {
 	const { token, source, status, error, errorIsExpiry, signOut } = useSession();
+	const { t } = useTranslation('ui');
+
+	// An expiry is not a failed attempt, and heading it as one tells someone who never touched the
+	// button that they did something wrong. `errorIsExpiry` carries the distinction.
+	//
+	// **One pair of keys, hoisted, and read from both branches below.** The ternary was written out
+	// twice — once in each branch — and moving it into the locale as written would have put the same
+	// two sentences in the file under four names. The orphan hunt in `lib/i18n/__tests__/keys.test.ts`
+	// could not have caught that, because all four would have had a reader.
+	const failureTitle = errorIsExpiry ? t('auth.failure.expiredTitle') : t('auth.failure.unfinishedTitle');
 
 	// Reading the payload is only ever used to say something useful; it proves nothing, and a token
-	// we cannot read is simply one we say nothing about. A signed-in token is always a user token, so
+	// this page cannot read is one it says nothing about. A signed-in token is always a user token, so
 	// this notice is a pasted-token affair by construction.
 	const publicOnly = useMemo(() => token !== null && inspectToken(token).kind === 'client', [token]);
 
@@ -34,12 +47,12 @@ export default function SignInPanel() {
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<p className="m-0 leading-relaxed text-ink-2">
 						<span className="font-mono font-semibold text-kick">
-							{source === 'manual' ? 'Using your token' : 'Signed in'}
+							{source === 'manual' ? t('auth.session.manual') : t('auth.session.oauth')}
 						</span>{' '}
-						— in this tab only. Closing the tab forgets it, and it goes nowhere but warcraftlogs.com.
+						{t('auth.session.tabOnly')}
 					</p>
 					<button type="button" className={`${buttonClass} w-full sm:w-auto`} onClick={signOut}>
-						{source === 'manual' ? 'Forget this token' : 'Sign out'}
+						{source === 'manual' ? t('auth.session.forgetToken') : t('auth.session.signOut')}
 					</button>
 				</div>
 
@@ -50,7 +63,7 @@ export default function SignInPanel() {
 				    all. So the message is shown here too, and the session it did not damage is stated above
 				    it. */}
 				{error !== null ? (
-					<Callout title={errorIsExpiry ? 'Your session had expired' : 'That sign-in did not finish'}>
+					<Callout title={failureTitle}>
 						<p className="m-0">{error}</p>
 					</Callout>
 				) : null}
@@ -61,16 +74,15 @@ export default function SignInPanel() {
 				<ApiCredits />
 
 				{publicOnly ? (
-					<Callout tone="brew" title="This token reads public logs only">
+					<Callout tone="brew" title={t('auth.public.title')}>
+						<p className="m-0">{t('auth.public.body')}</p>
+						{/* Two keys around the emphasis, because the `<strong>` sits inside the sentence. There is
+						    no `<Trans>` anywhere in this repo, and taking the dependency for one sentence is worse
+						    than splitting it. */}
 						<p className="m-0">
-							It carries no account with it — a client-credentials token — so WarcraftLogs will not show it anything
-							private. Public logs analyse perfectly well.
-						</p>
-						<p className="m-0">
-							The catch worth knowing: a private report does not come back refused, it comes back as{' '}
-							<strong className="font-semibold text-ink">not found</strong>, exactly as a mistyped code does. If a
-							report code you know is right is rejected below, that is the reason — sign in with your account instead,
-							or make the log public.
+							{t('auth.public.catchBefore')}{' '}
+							<strong className="font-semibold text-ink">{t('auth.public.catchEmphasis')}</strong>
+							{t('auth.public.catchAfter')}
 						</p>
 					</Callout>
 				) : null}
@@ -80,17 +92,12 @@ export default function SignInPanel() {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-				Sign in with your WarcraftLogs account to read your logs, including private and archived ones. You sign in on
-				WarcraftLogs' own page — this one never sees your password, and there is nothing to paste.
-			</p>
+			<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">{t('auth.signIn.intro')}</p>
 
 			<ClientIdPanel />
 
 			{error !== null ? (
-				/* An expiry is not a failed attempt, and heading it as one tells someone who never touched
-				   the button that they did something wrong. `errorIsExpiry` carries the distinction. */
-				<Callout title={errorIsExpiry ? 'Your session had expired' : 'That sign-in did not finish'}>
+				<Callout title={failureTitle}>
 					<p className="m-0">{error}</p>
 				</Callout>
 			) : null}

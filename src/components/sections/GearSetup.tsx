@@ -1,4 +1,5 @@
 import { useReportCopy } from '~/hooks/useReportCopy';
+import type { GearSlotName } from '~/lib/analysis/gear';
 import type { Analysis, GearSlot } from '~/lib/types';
 
 import { EnchantIcon, ItemIcon, Note, Pill, Prose, Section } from '../primitives';
@@ -104,8 +105,12 @@ export default function GearSetup({ analysis }: { analysis: Analysis }) {
  * Taken from `LEFT_ITEM_PICKERS` and `RIGHT_ITEM_PICKERS` in wowsims-mop
  * (ui/core/components/gear_picker/gear_picker.tsx) rather than invented, so a reader moving between
  * the two is looking at the same shape. Shirt and tabard are absent there and absent here.
+ *
+ * An order, not a second set of names. `GearSlotName` comes from `lib/analysis/gear.ts`, which is
+ * where the eighteen strings live and where `GearSlot.slot` is written — so a typo here no longer
+ * quietly finds nothing and drops the row, it fails to compile.
  */
-const SIM_ORDER = [
+const SIM_ORDER: GearSlotName[] = [
 	'Head',
 	'Neck',
 	'Shoulder',

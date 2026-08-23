@@ -715,9 +715,18 @@ describe('no string in report.json sits outside every scope', () => {
  *
  * Re-verified against the file as it stands rather than copied from the plan — `settings.intent` moved
  * between the two, and the roots are the thing a copy edit is least likely to change and most damaging
- * to get wrong. Seven, and the closure test below is what keeps them seven.
+ * to get wrong. Seven when this scope was drawn, and the closure test below is what keeps the list
+ * honest about how many there are.
+ *
+ * **`auth`, `errors` and `progress` are the three that arrived after it**, and adding them here is the
+ * visible half of that change. They hold the copy that used to be typed into `src/components/auth/`,
+ * `describeFailure.ts` and the two fetch-progress call sites — 561 words that no sweep in this file
+ * could see, because `docs/conventions.md`'s own rule ("No English sentence belongs in a component")
+ * was the only thing guarding them and nothing executed it. Bringing them into the locale brings them
+ * under every list in this file **by construction**, which is why the move was worth more than the
+ * scanner that was considered and rejected in its place.
  */
-const UI_ROOTS = ['app', 'chart', 'common', 'credits', 'selection', 'settings', 'steps'];
+const UI_ROOTS = ['app', 'auth', 'chart', 'common', 'credits', 'errors', 'progress', 'selection', 'settings', 'steps'];
 
 const shellStrings = (): [string, string][] => uiStrings().filter(([key]) => UI_ROOTS.includes(key.split('.')[0]!));
 

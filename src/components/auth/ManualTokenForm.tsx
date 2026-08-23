@@ -2,6 +2,10 @@ import { useId } from 'react';
 import { Collapsible } from '@base-ui/react/collapsible';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useForm } from 'react-hook-form';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
+
+import '~/lib/i18n';
 
 import { cleanToken, inspectToken, useSession } from '~/lib/auth';
 
@@ -30,6 +34,7 @@ interface Values {
  */
 export default function ManualTokenForm() {
 	const { signInWithToken } = useSession();
+	const { t } = useTranslation('ui');
 	const inputID = useId();
 	const {
 		register,
@@ -48,38 +53,33 @@ export default function ManualTokenForm() {
 	return (
 		<Collapsible.Root className="flex flex-col gap-3 border-t border-line pt-4">
 			<Collapsible.Trigger className="group flex min-h-11 w-full items-center justify-between gap-3 rounded-sm text-left font-mono text-sm font-semibold tracking-[0.1em] text-muted uppercase transition-colors hover:text-ink">
-				Advanced: use your own access token
+				{t('auth.token.advanced')}
 				<span aria-hidden="true" className="transition-transform group-data-panel-open:rotate-180">
 					&darr;
 				</span>
 			</Collapsible.Trigger>
 
 			<Collapsible.Panel className="flex flex-col gap-3">
-				<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
-					If you already generate your own WarcraftLogs tokens, paste one here instead. It is kept in this tab exactly
-					like a signed-in one: never written to disk, never logged, sent only to warcraftlogs.com, and gone when the
-					tab closes. A token from the client-credentials flow works too — it reads public logs only, and you will be
-					told so.
-				</p>
+				<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">{t('auth.token.intro')}</p>
 
 				<form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-					<Field id={inputID} label="Access token" error={problem}>
+					<Field id={inputID} label={t('auth.token.field')} error={problem}>
 						<input
 							id={inputID}
 							type="password"
 							className={fieldClass}
-							placeholder="Paste the token"
+							placeholder={t('auth.token.placeholder')}
 							autoComplete="off"
 							autoCapitalize="off"
 							spellCheck={false}
 							enterKeyHint="go"
 							aria-invalid={problem !== undefined}
 							aria-describedby={problem === undefined ? undefined : `${inputID}-error`}
-							{...register('token', { validate: refuse })}
+							{...register('token', { validate: (value) => refuse(value, t) })}
 						/>
 					</Field>
 					<button type="submit" className={`${buttonClass} w-full sm:w-auto`}>
-						Use this token
+						{t('auth.token.submit')}
 					</button>
 				</form>
 			</Collapsible.Panel>
@@ -92,17 +92,21 @@ export default function ManualTokenForm() {
  *
  * The expiry check exists so the failure arrives here, naming the moment it lapsed, rather than four
  * steps later as a bare 401 that reads like the report code was wrong.
+ *
+ * `t` is a parameter rather than a hook because this is a plain function outside the component, and
+ * it is a plain function because `react-hook-form` calls it with a value and nothing else.
  */
-function refuse(value: string): string | true {
+function refuse(value: string, t: TFunction<'ui'>): string | true {
 	const token = cleanToken(value);
-	if (token === '') return 'Paste the access token WarcraftLogs generated for you.';
+	if (token === '') return t('auth.token.empty');
 
 	const { expired, expiresAt } = inspectToken(token);
 	if (expired && expiresAt !== null) {
-		return `That token expired ${formatDistanceToNow(expiresAt, { addSuffix: true })}, on ${format(
-			expiresAt,
-			'd MMM yyyy',
-		)} at ${format(expiresAt, 'HH:mm')}. Generate a fresh one and paste that.`;
+		return t('auth.token.expired', {
+			ago: formatDistanceToNow(expiresAt, { addSuffix: true }),
+			date: format(expiresAt, 'd MMM yyyy'),
+			time: format(expiresAt, 'HH:mm'),
+		});
 	}
 	return true;
 }

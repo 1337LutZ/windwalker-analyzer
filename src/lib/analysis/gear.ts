@@ -9,8 +9,17 @@ import { isCombatantInfo } from '~/lib/events/guards';
  * and 16 the two weapons a Windwalker dual-wields, and 3 and 17 the ilvl 1 shirt and an empty
  * tabard. A mislabelled array here would put every warning on the wrong row, so it is worth stating
  * how it was checked.
+ *
+ * **Exported because it is the only home for these eighteen names.** `GearSetup` draws the slots in
+ * the simulator's order rather than this one, and it used to do that against a second hand-typed
+ * copy of the same strings — so a typo there matched nothing here and silently dropped a row from
+ * the page, with both files looking correct on their own. Its list is now typed as
+ * `GearSlotName[]`, which makes the mismatch a compile error instead.
+ *
+ * Not in the locale, and deliberately: `docs/conventions.md`'s rule is about sentences, and these
+ * are labels that double as the key `GearSlot.slot` is matched on.
  */
-const SLOTS = [
+export const SLOTS = [
 	'Head',
 	'Neck',
 	'Shoulder',
@@ -30,6 +39,9 @@ const SLOTS = [
 	'Off hand',
 	'Tabard',
 ] as const;
+
+/** One of the eighteen names above, so a second list of them cannot drift from this one. */
+export type GearSlotName = (typeof SLOTS)[number];
 
 /**
  * The slots this report will call out when they carry no enchant.

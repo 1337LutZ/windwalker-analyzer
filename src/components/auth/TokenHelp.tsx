@@ -1,4 +1,7 @@
 import { Dialog } from '@base-ui/react/dialog';
+import { useTranslation } from 'react-i18next';
+
+import '~/lib/i18n';
 
 import { DialogShell } from '../primitives';
 import { buttonClass } from '../primitives/controls';
@@ -15,29 +18,23 @@ const linkClass = 'text-kick underline underline-offset-2';
  * the thing people copy.
  */
 export default function TokenHelp() {
+	const { t } = useTranslation('ui');
+
 	return (
 		<DialogShell
-			trigger={
-				<Dialog.Trigger className={`${buttonClass} w-full sm:w-auto`}>What happens when I sign in?</Dialog.Trigger>
-			}
-			title="Signing in to WarcraftLogs"
-			description="You sign in on WarcraftLogs' own page, not this one. Your password is typed there and this app never sees it — WarcraftLogs asks you whether to let the analyser read your logs, and only your answer comes back."
+			trigger={<Dialog.Trigger className={`${buttonClass} w-full sm:w-auto`}>{t('auth.help.trigger')}</Dialog.Trigger>}
+			title={t('auth.help.title')}
+			description={t('auth.help.description')}
 		>
 			<div className="flex flex-col gap-3 leading-relaxed text-ink-2">
 				<p className="m-0">
-					What comes back is an access token. It is held in this browser tab, sent to{' '}
-					<code className="font-mono text-ink">warcraftlogs.com</code> as an{' '}
-					<code className="font-mono text-ink">Authorization</code> header, and sent nowhere else. This page has no
-					server to send it to: it is a folder of static files, and the content-security policy it ships makes your
-					browser enforce that whatever the JavaScript intends.
+					{t('auth.help.tokenBefore')} <code className="font-mono text-ink">warcraftlogs.com</code>{' '}
+					{t('auth.help.tokenBetween')} <code className="font-mono text-ink">Authorization</code>{' '}
+					{t('auth.help.tokenAfter')}
 				</p>
+				<p className="m-0">{t('auth.help.tab')}</p>
 				<p className="m-0">
-					Closing this tab discards it. Nothing is written to a cookie, and nothing survives that outlives the tab — on
-					a shared machine there is nothing to remember to clean up. Signing out clears it immediately, and you can
-					revoke the app's access from your WarcraftLogs account whenever you like.
-				</p>
-				<p className="m-0">
-					The underlying API, and what the analyser reads with that token, is documented at{' '}
+					{t('auth.help.docs')}{' '}
 					<a
 						className={linkClass}
 						href="https://www.warcraftlogs.com/api/docs"
@@ -51,7 +48,7 @@ export default function TokenHelp() {
 			</div>
 
 			<div className="flex justify-end pt-1">
-				<Dialog.Close className={buttonClass}>Close</Dialog.Close>
+				<Dialog.Close className={buttonClass}>{t('auth.help.close')}</Dialog.Close>
 			</div>
 		</DialogShell>
 	);
