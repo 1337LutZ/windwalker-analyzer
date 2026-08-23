@@ -37,12 +37,50 @@ export default function SnapshotTable({ analysis }: { analysis: Analysis }) {
 	const rate = score?.metrics.find((m) => m.key === 'snapshotRate');
 	const depth = score?.metrics.find((m) => m.key === 'snapshotDepth');
 
+	/**
+	 * Procs arrived that a brew could have paid for, and too few of them to read a rate off. A fifth
+	 * sentence, and not new wording under an existing one.
+	 *
+	 * `snapshotRate` is a share over the procs the bank could actually have afforded, and `shareOf` hands
+	 * that share its denominator as a sample size, which the scorer refuses under its own floor of three.
+	 * So a pull offered one or two affordable procs has no rate, and the sentence a reader got was the one
+	 * written for a pull that was never offered a proc it could pay for — printed over a chart of the ones
+	 * it was. The same shape as the Elemental's Earth Shock one spec over, and the same cause: the rules
+	 * were asked, the pull answered, and the answer is too thin to say out loud.
+	 *
+	 * **Two facts, so two sentences, and a reader acts on them differently.** "Nothing ever arrived that
+	 * you could have caught" asks for the bank to be kept fuller; "some arrived, and there is not enough
+	 * of them to read a habit off" asks for the chart to be read a proc at a time. The thin arm opens by
+	 * negating the plain one word for word, so the two read as the two facts rather than as two hedges.
+	 *
+	 * **Gated on the metric and not on `gradeOf`, and that is load-bearing rather than a shortcut.** Depth
+	 * is a *secondary* metric here, so `section()` calls the whole thing unmeasurable only when depth is
+	 * refused too — and depth is measurable the moment one proc was caught. A pull offered two affordable
+	 * procs that caught one therefore has a refused rate, no decided primary metric, and a section letter
+	 * of `ok` that `section()` reaches through its `decided.length === 0` fallback. That letter printed the
+	 * `ok` arm — "1 of 2 catchable procs taken (0%)" — a sentence chosen off nothing, with a share of
+	 * nought beside a numerator of one, because the fallback below hands nought to a metric the scorer
+	 * refused. Reading the metric catches that pull as well as the nought-caught one; reading the section
+	 * letter would have caught only the second and left the arithmetically impossible sentence standing.
+	 *
+	 * Nought affordable procs is deliberately *not* in this arm: there the plain sentence is exactly true,
+	 * and the clause under it already accounts for where the rest of the procs went. The floor itself is
+	 * never named here — `unmeasurable` is the scorer's own answer — so three stays in one place.
+	 */
+	const tooFew = rate?.unmeasurable === true && procs.opportunities > 0;
+
 	// The rate comes from the metric that produced the grade, so the number in the sentence and the
 	// sentence chosen for it cannot drift apart.
 	const summary = [
 		// `opportunities`, not `procs`: a proc that arrived with the bank below the rotation's floor was
 		// never a chance, and counting it would tell the reader they missed something unbuyable.
-		verdict('snapshots', { caught: procs.snapshotted, total: procs.opportunities, rate: rate?.value ?? 0 }),
+		//
+		// The thin arm names the same two counts, for the same reason, and reads neither the rate nor the
+		// section letter. Its own name is spelled out at the call rather than assembled, because
+		// `useReportCopy` picks its arm off a grade and a refused metric has none to pick from.
+		tooFew
+			? t('snapshots.verdict', { context: 'tooFew', caught: procs.snapshotted, total: procs.opportunities })
+			: verdict('snapshots', { caught: procs.snapshotted, total: procs.opportunities, rate: rate?.value ?? 0 }),
 		// Said out loud rather than quietly dropped — the reader can see the proc on the chart, so a
 		// denominator smaller than the proc count has to explain itself.
 		procs.unaffordable > 0 ? t('snapshots.unaffordable', { count: procs.unaffordable }) : null,

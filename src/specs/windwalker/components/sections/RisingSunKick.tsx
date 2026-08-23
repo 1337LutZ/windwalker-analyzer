@@ -39,6 +39,35 @@ export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 	const uptime = card.sections.debuff?.metrics.find((m) => m.key === 'rskUptime');
 
 	/**
+	 * The kicks went out and the pull recorded no time to measure them against. A fifth sentence, and not
+	 * new wording under an existing one.
+	 *
+	 * `rskUptime` is handed its value together with the span it was measured over, and `metricOf` refuses
+	 * an empty span outright — the same refusal that stops nought overcap over nought graded time reading
+	 * as a perfect score. So a pull that cast the kick and recorded no contact has no uptime, `gradeOf`
+	 * answers `none`, and `verdict()` reached for the arm that says the kick was never cast — printed
+	 * beside a tile reading the casts and above a sentence counting the windows they dropped.
+	 *
+	 * The same defect the Elemental's Earth Shock had, arrived at by the other of `metricOf`'s two
+	 * refusals: there a sample under the floor, here an empty span. Both leave one string doing the work
+	 * of two facts, and this section had it worse than that one — the *same key* is printed by the
+	 * nought-casts branch below, where it is exactly true, and by the graded slot, where it is not.
+	 *
+	 * **Two facts, so two sentences.** "You never pressed this" asks for the button; "you pressed it, and
+	 * the pull gave nothing to measure the uptime against" is a statement about what the log carries and
+	 * asks for nothing. The new arm names the cast count so a reader can check it against the tile, and is
+	 * phrased so the numeral needs no agreement.
+	 *
+	 * Gated on the metric rather than on the span, so the refusal stays the scorer's to make: this
+	 * component and `metricOf` read the span through different fallbacks — `contactMs || engagedMs` here
+	 * against `contactMs ?? engagedMs` there — and a pull with nought contact and a live engaged span is
+	 * refused by the scorer while this file's own ceiling is drawn off the wider one. Reading the metric is
+	 * what keeps the sentence and the letter agreeing whichever of the two the pull has. Only reachable
+	 * under the nought-casts branch's `else`, so the two arms cannot both be candidates for one pull.
+	 */
+	const noContact = debuff.casts > 0 && uptime?.unmeasurable === true;
+
+	/**
 	 * The clock every figure in this section is a fraction of: the time the player was in contact with
 	 * an enemy, whichever enemy that was.
 	 *
@@ -117,11 +146,17 @@ export default function RisingSunKick({ analysis }: { analysis: Analysis }) {
 							<span className="inline-flex items-center gap-2 align-middle">
 								<SpellIcon id={107428} size="sm" />
 							</span>{' '}
-							{verdict('debuff', {
-								uptime: debuff.engagedUptimePct,
-								casts: debuff.casts,
-								lost: debuff.secondsLost,
-							})}{' '}
+							{/* The no-contact arm is spelled out at the call rather than assembled, because
+							    `useReportCopy` picks its arm off a grade and a refused metric has none to pick
+							    from. Without it the fallback was the nought-casts sentence — "Rising Sun Kick was
+							    never cast in this pull" — printed beside a tile reading the casts. */}
+							{noContact
+								? t('debuff.verdict', { context: 'noContact', casts: debuff.casts })
+								: verdict('debuff', {
+										uptime: debuff.engagedUptimePct,
+										casts: debuff.casts,
+										lost: debuff.secondsLost,
+									})}{' '}
 							{/* Both sentences name the enemy, because both count that one enemy's windows while the
 							    verdict in front of them counts every enemy the player touched. */}
 							{debuff.drops.length === 0

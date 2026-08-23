@@ -981,7 +981,17 @@ describe('report copy with no reader', () => {
 			'verdict_none',
 		],
 		casts: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
-		debuff: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
+		// **`verdict_noContact` is the fifth arm, and it is the same defect `earthShock.verdict_tooFew` was
+		// added for, reached by the other of `metricOf`'s two refusals.** `rskUptime` carries the span it
+		// was measured over, and `metricOf` refuses an empty one — so a pull that cast the kick and
+		// recorded no contact has no letter, `gradeOf` answers `none`, and `verdict()` reached
+		// `verdict_none`. That key is the never-cast sentence, and this section had the fold worse than
+		// Earth Shock did: `RisingSunKick`'s own nought-casts branch prints the *same key*, where it is
+		// exactly true, so one string was serving both facts in one file. The new arm is reached by name
+		// and not through `verdict()`, which picks its arm off a grade a refused metric does not have. It
+		// names the cast count, phrased so the numeral needs no agreement, and claims nothing about the
+		// uptime — there is none.
+		debuff: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_noContact', 'verdict_none'],
 		// **No plural arm on any of the six, and the measurement is why rather than an oversight.** The
 		// three graded arms open on a fraction of the shocks a list had an opinion about, and `shareOf`
 		// hands that share its denominator as a sample size, which `metricOf` refuses below
@@ -1082,7 +1092,26 @@ describe('report copy with no reader', () => {
 			'verdict_bad_noUptime',
 			'verdict_none',
 		],
-		snapshots: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
+		// **`verdict_tooFew` is the fifth arm, and it is the Elemental's Earth Shock defect a spec over,
+		// arrived at by the same one of `metricOf`'s two refusals.** `snapshotRate` is a share over the procs
+		// the bank could actually have paid for, and `shareOf` hands that share its denominator as a sample
+		// size, which `metricOf` refuses under `MIN_GRADED_SAMPLE`. So a pull offered one or two affordable
+		// procs has no rate, and what a reader got was the sentence written for a pull that was never offered
+		// a proc it could pay for — printed over a chart of the ones it was.
+		//
+		// A fifth arm and not a rewording of the plain one, because the two are different facts and a reader
+		// acts on them differently: "nothing ever arrived you could have caught" asks for the bank to be kept
+		// fuller, "some arrived and there are too few of them to read" asks for the chart to be read a proc at
+		// a time. Both counts are written so the numeral needs no agreement, for the reason the Elemental's
+		// exempt arm gives, and the arm is named for the thinness rather than for the excusing so the five key
+		// names `readerVoice.test.ts` pins as the only places our word for a scope appears do not grow.
+		//
+		// Reached from `SnapshotTable` by name and not through `verdict()`, which picks its arm off a grade a
+		// refused metric does not have — and here that is load-bearing twice over. Depth is *secondary*, so a
+		// pull that caught one of two affordable procs still has a section letter, through `section()`'s
+		// nothing-decided fallback, and printed the `ok` arm at it: a share of nought beside a numerator of
+		// one, chosen off a letter no metric produced. Reading the metric catches that pull too.
+		snapshots: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_tooFew', 'verdict_none'],
 		tigerPalm: ['verdict_good', 'verdict_goodSome', 'verdict_ok', 'verdict_bad', 'verdict_none', 'verdict_exempt'],
 	};
 
