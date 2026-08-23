@@ -5,12 +5,12 @@ tells you where the damage went and what the log says you did wrong. Sign in, pa
 pick the pull, pick the player. It fetches that fight from the WarcraftLogs API **in your browser**
 and renders the analysis. Nothing is uploaded, stored or shared.
 
-The scope is deliberately one spec on one game version. MoP Classic reports live on
+The scope is deliberately one game version. MoP Classic reports live on
 `classic.warcraftlogs.com`, and that host is hardcoded — there is no game-version picker, because
 there is nothing else this app knows how to read. Point it at a retail log and it will not find the
 report.
 
-It answers a fairly narrow set of questions:
+It answers a narrow set of questions:
 
 - **Damage** — per-ability totals, share, crit rate, and which abilities were never cast at all
   (autoattacks, trinket and enchant procs).
@@ -298,7 +298,7 @@ These are read from the workflow's own environment — a `.env` file never reach
 ```
 src/lib/game/            the game-object model: Ability, Aura, Gate, and the registry that indexes them
 src/lib/analysis/        spec-agnostic primitives — auras, stacks, intervals, cooldowns, casts, damage
-src/lib/spec/windwalker  the one spec: which ids mean what, and the analyse() that returns an Analysis
+src/specs/windwalker/    the spec: which ids mean what, and the analyse() that returns an Analysis
 src/lib/wcl/             the WarcraftLogs GraphQL client; #graphql is the only request in the app
 src/lib/types.ts         shared contract: the combat-log event union and the Analysis result
 src/components/          the flow (token, report, fight, player) and the report shell
@@ -331,7 +331,7 @@ union on `type` with narrowing helpers instead.
   marks those casts unjudged rather than guessing: a channel reported as clean here may still have
   overcapped, and the report says so where it matters. Everything reported as a fault is a fault the
   log actually proves.
-- Only Windwalker, only Mists of Pandaria, only `classic.warcraftlogs.com`.
+- One spec per site, only Mists of Pandaria, only `classic.warcraftlogs.com`.
 - It reads one pull. It does not model gear, simulate alternatives, or compare you to rankings.
 - It sees what the log recorded. A missing debuff on a target that was never in range looks the same
   as a missed cast.

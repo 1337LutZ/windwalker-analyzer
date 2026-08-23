@@ -292,6 +292,124 @@ throwing, so nothing else would catch it), and `specs/windwalker/lib/__tests__/s
 thresholds actually separate three real captured pulls — a grading scheme that paints every log the
 same colour passes any test written around it and tells a reader nothing.
 
+**How the copy is meant to sound is written down, in `.claude/skills/tone-of-voice/`.** `SKILL.md`
+is the universal layer — the rules that stop prose reading as machine-made.
+`references/audience-wow-players.md` is the audience register, measured from 18,889 words of Wowhead
+MoP guide prose across 12 pages and 6 authors: the guides this report's readers already read. Load
+both before writing a string, and read the author-spread column in the second one, because a marker
+used by one author of six is that writer's tic rather than the genre. Sections 8–13 of `SKILL.md`
+are deliberately `[not captured]` — there is no personal voice profile here and the output is
+voice-neutral on purpose. Never fill a blank slot with a guess.
+
+**Second person throughout. Never `we`, `us`, `our` or `I`.** A report describes a pull; it is not a
+party to it. Banning `I` only matches the genre — six independent authors wrote 18,889 words of
+exactly this kind of writing with zero first-person singular. Banning editorial `we`/`our` is this
+project's own tightening, and the reason has to sit next to the rule or it will be relaxed: all six
+of those authors use it freely (349 and 269 per 100k). "One use drained its pool completely, which
+tells us the pool's size" is the shape to watch for — a narrator in a sentence that only needed a
+number.
+
+**The em-dash stays, and that is an override of both halves of the standard.** `SKILL.md` §15 bans
+it outright. The audience corpus has six in 18,889 words, none of them a spaced appositive pair, two
+authors using none at all — where these writers interrupt a sentence to define a term they reach for
+parentheses. This repo's copy carries 270 in `report.json`, in about 22% of prose sentences. They are
+kept because they earn it here: an appositive defines a measurement inside the sentence that used it,
+where a following sentence would put the definition after the claim it was needed for. Record it as
+an override and not as genre support — an honest override survives the next reviewer and a false
+claim does not. **Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that
+wants three is two sentences.
+
+**Sentence rhythm is a target, not a gate.** Measured today across the 623 prose leaves of
+`report.json` — 1,058 sentences, counting only strings of eight words or more, since a header, a chip
+and a table cell are not sentences — the median is 17 words and 21.7% run past 25. `SKILL.md` §1 asks
+for a median of 11 to 14 with about 15% past 25. Write new copy to that; let the existing copy
+converge as sections are touched. No gate, because a gate's honest floor is today's number, which
+makes it a budget rather than a standard, and because it could not tell a 40-word sentence that earns
+its length from one that does not. Re-measure from the repo root:
+
+```python
+# python3 - <<'EOF'
+import json
+leaves = []
+for f in ('report', 'ui'):
+    d = json.load(open(f'src/locales/en/{f}.json'))
+    def walk(n, p):
+        if isinstance(n, str): leaves.append((f, p, n))
+        elif isinstance(n, dict):
+            for k, v in n.items(): walk(v, f'{p}.{k}' if p else k)
+    walk(d, '')
+prose = [(p, v) for f, p, v in leaves if len(v.split()) >= 8]
+L = sorted((len(v.split()), p, v) for p, v in prose)
+print(len(leaves), 'leaves;', len(prose), 'prose')
+print('words/string — median', L[len(L)//2][0], 'p90', L[int(len(L)*.9)][0], 'max', L[-1][0])
+# EOF
+```
+
+Sentence stats split that on `(?<=[.!?])\s+` with `{{…}}` normalised to one token. `readerVoice.test.ts`
+already has a `prose()` helper that strips placeholders — reuse it rather than writing a third stripper.
+
+**Comparisons come from inside the game.** Another ability, another spec's mechanic, another
+expansion. That is the entire domain, and it is what the audience's own writers do: no sport,
+cooking, money, machinery or weather picture appears anywhere in the corpus. "In the last second
+before the bell" is the standing failure, and the argument against it is not the register point but
+the string it lives in — `summary.takeaways.metric.fireElementalPrepull.fix` also says "was not out
+when the pull started". Same referent, two registers, one string.
+
+**UI deixis is for navigation, never for a cue.** "The table below says what was short on each one"
+is correct: it tells the reader where to look. "Press it as the bar reaches the line" is not — the
+player's cue in game is a mana percentage, and the bar and the line are this report's own furniture.
+A sentence that tells someone what to press names the game state, not the widget.
+
+**No hedged interrupters, and a verb beats a nominalization.** "Every Fists of Fury channel and what,
+if anything, was wrong with its placement" carries one of each: a hedge wedged into the middle of the
+sentence, and a noun sitting where a verb belongs. That is the register of an audit form rather than
+of someone describing a pull. `if anything`, `what was wrong`, `placement` and `application` are all
+at zero across the corpus. **Labels are exempt** — a value in a table cell, an axis label or a KPI
+tile is not a sentence, so "First application" and "Late placement" stay noun phrases. That is what a
+label is.
+
+**`AoE`, not `area damage`.** `AoE` runs 121 per 100k across all six corpus authors; `area damage`
+runs 26 and every instance is one author's. It is a habit, not a sense distinction — an earlier
+two-author sample read it as one and was wrong. The related terms are safe in the same way:
+`single-target`, `multi-target` and `burst` are used by all six.
+
+**Density: the bloat is structural, and a fluff sweep will come back empty.** Verified across every
+leaf in both files — zero `in order to`, `due to the fact that`, `a number of`, `the majority of`,
+`what this means is`, `each and every`, `is able to`, `begin to`, zero expletive `there is … that`,
+zero double hedges. Do not spend a pass hunting padding; there is none. What there is instead is one
+string answering several questions the reader never asked together. Measured today over 639 prose
+leaves and 20,679 words: median 26, p75 42, p90 66, p95 81, p99 119, longest 196 — and 26% of all
+prose words sit in the longest 9% of the strings. Six rules follow from that:
+
+1. **One string answers one question.** If it glosses a column _and_ states a rule _and_ teaches a
+   mechanic, it is three strings, and two of them are probably `intent` or a tooltip.
+2. **Never restate a claim in different words inside one string.** Say it in the strongest form once.
+3. **A rule with cases is a table, not a paragraph.**
+4. **Boilerplate shared by grade arms is said once, outside the arms.** A clause that ships in eight
+   strings is a clause in the wrong place.
+5. **Cut the sentence that defends the method to a reader who has not objected.** Method exposition
+   belongs in the `method.*` keys, which exist for it.
+6. **Job count is the signal, not length.** `rotation.economy` is 97 words and correct as it stands:
+   seven sentences, short median, every clause load-bearing, nothing restated. It is long because its
+   subject is. Do not shorten it — if an edit aimed at another string would also "improve" that one,
+   the rule being applied is length, and length is the wrong rule.
+
+**`specs/__tests__/readerVoice.test.ts` is the mechanical half, and it carries two kinds of list on
+purpose.** `MODEL_WORDS` — internal jargon that must not reach a reader — is surrounded by carve-outs
+(`WINDWALKER_METHOD_KEYS`, `SHARED_METHOD_KEYS`, `REFERENCE_SECTIONS`, `REFERENCE_READER_KEYS`),
+because naming the model is sometimes the job: a section whose whole purpose is printing the priority
+list cannot be forbidden from calling it a list. The voice lists are the opposite — whole file, both
+namespaces, no exemptions, because no section's job requires "it is worth noting". Do not merge them:
+a merge would hand a permanent pass on AI vocabulary to the ~120 `rotation` strings that the jargon
+carve-outs exempt. They match differently too. `MODEL_WORDS` uses `includes()`, so `judg` catches
+judge and judgement; the voice lists are `\b`-anchored, so `very` does not fire inside `every`.
+
+**The lists catch vocabulary. They cannot catch constructions.** A word list finds `simply`. No word
+list finds a metaphor, a hedged interrupter, or a widget standing in for a game cue — every class
+above was found by reading strings, and the next one will be too. The guard is a ratchet that stops a
+fixed defect coming back; the rules here are the standard. When you find a new class, write it down
+here first and add the literal to the guard second.
+
 ## Honesty in output
 
 Never hard-code a finding into report prose. A sentence describing one log's pattern as "bimodal"
