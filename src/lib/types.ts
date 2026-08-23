@@ -2337,14 +2337,42 @@ export interface FlameShockAudit {
 	 *
 	 * The gap between this and `uptimeMs` is not slack to be reconciled: it is dot time on an enemy the
 	 * player was not hitting, plus dot time outside contact altogether. Measured: 9 309 ms on `phased`,
-	 * 1 071 on `unbroken`, 45 896 on `cleave` — the third one is 17% of the pull, which is the size of
-	 * the mistake a reader was invited to make.
+	 * 1 071 on `unbroken`, **84 984 on `cleave`** — the third one is 32.3% of that pull, which is the size
+	 * of the mistake a reader was invited to make.
+	 *
+	 * **The `cleave` figure said 45 896 and 17%, and the correction is a consequence rather than a typo.**
+	 * `8d8b1f0` cut the graded clock, which shrank the numerator on that pull from 189 111 to 150 023 ms
+	 * while `uptimeMs` — the primary target's whole dot, on no clock at all — stayed at 235 007. So the
+	 * gap *widened* by exactly the cut: 235 007 − 189 111 reproduces the old 45 896, and 235 007 − 150 023
+	 * is the 84 984 above. The two single-target fixtures are unmoved, because neither has an add wave for
+	 * the cut to remove. Both percentages are over `durationMs` (263 233 ms) and neither was renumbered
+	 * without re-deriving it.
+	 *
+	 * That is worth more than the number: a figure describing the *gap between two fields* is stale the
+	 * moment either field's clock moves, and this one moved without anything failing.
 	 *
 	 * `unbroken`'s 100% is a real 100 and not `uptimePct`'s clamp: this and `scoredMs` come to the same
 	 * 181 775 ms exactly. Worth stating, because a clamped reading would have made the ratio unprovable
 	 * on the one fixture where the dot never dropped.
 	 */
 	contactUptimeMs: number;
+	/**
+	 * The same quantity as `contactUptimeMs`, as the spans it was summed from — so a chart can draw the
+	 * clock the percentage beside it was taken over.
+	 *
+	 * `unionMs(contactWindows) === contactUptimeMs` exactly, because both come off one merge rather than
+	 * two readings of the same parts. That identity is the field's contract and is asserted; a second walk
+	 * here would be free to disagree with the number a tile prints, which is the defect the pair
+	 * `scoredMs`/`contactUptimeMs` was published to make checkable in the first place.
+	 *
+	 * **Why `windows` above could not serve.** That array is the dot on the *primary target*, unclipped;
+	 * this is the dot on **whichever spawn was being hit**, clipped to the graded clock. The gap between
+	 * the two is the 9 309 / 1 071 / 84 984 ms measured on `contactUptimeMs`, and a chart clipping
+	 * `windows` to the graded clock lands within 0 ms of this on the two single-target pulls and 10 270 ms
+	 * over on `cleave` — because clipping cannot recover which enemy the dot was on. No published array
+	 * could close that residual, which is why this one exists rather than a chart-side intersection.
+	 */
+	contactWindows: Window[];
 }
 
 /** Why an Earth Shock failed the sim's rule, in the order the section reads them. */
@@ -2727,9 +2755,18 @@ export interface LavaBurstPress {
 	 * judgement about the player and is read at the commit, like `surge` and `ascendance`. The audit
 	 * filling this in carries the argument.
 	 *
-	 * False is a fault: Flame Shock is Lava Burst's ×1.5 damage multiplier, so a press committed with
-	 * no dot on its target threw a third of the hit away. Published and drawn, not graded — the
+	 * False is a fault: Flame Shock is Lava Burst's ×1.5 damage multiplier, so a press that **completed**
+	 * with no dot on its target threw a third of the hit away. Published and drawn, not graded — the
 	 * reasoning is at the audit that fills this in.
+	 *
+	 * **That word was "committed", and it contradicted the sentence two paragraphs up.** The same slip was
+	 * corrected in the shipped copy by `124a1f8`; this was the last instance of it. It matters because the
+	 * two instants give different answers on real presses, and the mechanic is what decides which:
+	 * `ApplyEffects` tests `FlameShock.Dot(target).IsActive()` and computes the result at cast completion,
+	 * and only `DealDamage` is deferred by `WaitTravelTime`. So the ×1.5 is banked before the missile
+	 * flies — a dot that goes up during the cast earns it, and a dot that expires during the ~800 ms of
+	 * travel keeps it. Describing this field as read at the commit invites a reader to call both of those
+	 * a bug.
 	 *
 	 * Null is "cannot say", never "no dot": the cast event named no target and the pull had no landed
 	 * hit to fall back on. Reading that as false would invent a fault out of a missing measurement.

@@ -336,6 +336,63 @@ describe('the published numerator', () => {
 		expect(fs.uptimePct).toBe(100);
 		expect(fs.contactUptimeMs).toBe(fs.scoredMs);
 	});
+
+	/**
+	 * **The numerator as spans, so a chart can draw the clock the percentage was taken over.**
+	 *
+	 * `contactUptimeMs` is a scalar, and a scalar cannot be drawn. Until this array existed the only
+	 * window list a chart could reach was `flameShock.windows` — the dot's whole life on the *primary
+	 * target*, unclipped — so `FlameShockUptime` clips that to the graded clock and gets a green row that
+	 * agrees with the tile about *time* and not about *subject*: exact on the two single-target pulls and
+	 * 10 270ms over on `cleave`, which is dot time on an enemy the player was not hitting. Nothing
+	 * published could find that, and now something can.
+	 *
+	 * `unionMs(contactWindows) === contactUptimeMs` is the contract, and it holds because both come off one
+	 * `mergeIntervals` rather than two readings of the same parts — the same discipline the ratio above is
+	 * asserted with. A second walk here would be free to disagree with the number the tile prints.
+	 */
+	it.each(['phased', 'unbroken', 'cleave'] as const)('publishes the numerator as spans on %s', (name) => {
+		const fs = fx(name).flameShock;
+		const spans = fs.contactWindows.map((w): [number, number] => [w.start, w.end]);
+		// Not vacuous: every pull keeps the dot up for minutes, so this is a real array and not an empty one.
+		expect(fs.contactWindows.length).toBeGreaterThan(0);
+		expect(unionMs(spans)).toBe(fs.contactUptimeMs);
+		// Already merged and ascending, so a caller may intersect it without normalising first.
+		for (let i = 1; i < spans.length; i++) expect(spans[i]![0]).toBeGreaterThan(spans[i - 1]![1]);
+	});
+
+	/**
+	 * **And it is a strict subset of what the chart draws today, which is the finding the chart lane needs.**
+	 *
+	 * Measured: `contactWindows` sits entirely inside `FlameShockUptime`'s green row on all three pulls, and
+	 * the row is larger by exactly 0 / 0 / **10 270**ms — the residual `uptimeRow.test.ts` pins. So the
+	 * field closes the gap arithmetically, and swapping the row's source is **not** how to spend it: the
+	 * 10 270ms is real dot time on the primary target inside the graded clock, and a substitution would
+	 * delete it from the picture. `8e011ac`'s rule for this exact shape is that an unmeasured figure is not
+	 * a deleted one, so closing the residual is a re-partition — the per-spawn dot as the counted row and
+	 * that remainder as a row of its own — which needs a fifth track and a copy key, not a one-line change.
+	 *
+	 * The graded clock is rebuilt here the way the chart rebuilds it, so this measures the chart's row and
+	 * not a restatement of the audit's own array.
+	 */
+	it.each([
+		['phased', 0],
+		['unbroken', 0],
+		['cleave', 10_270],
+	] as const)('sits inside the drawn row on %s, short by the per-spawn residual', (name, residualMs) => {
+		const el = fx(name);
+		const fs = el.flameShock;
+		const drawn = fs.windows.map((w): [number, number] => [w.start, w.end]);
+		const contact = el.timeline?.contactSegments ?? [];
+		const aoe = el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]);
+		const graded = intersect(contact, complementOf(aoe, el.durationMs));
+		const green = intersect(drawn, graded);
+		const spans = fs.contactWindows.map((w): [number, number] => [w.start, w.end]);
+		// Wholly inside: nothing in the per-spawn numerator is outside the row the chart already draws.
+		expect(unionMs(intersect(spans, green))).toBe(unionMs(spans));
+		// And the row is bigger by the residual, which is what a re-partition would have to find a home for.
+		expect(unionMs(green) - fs.contactUptimeMs).toBe(residualMs);
+	});
 });
 
 // ---------------------------------------------------------------------------------------------------

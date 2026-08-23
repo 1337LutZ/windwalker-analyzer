@@ -4185,6 +4185,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			multiTargetMs: multiDotMs,
 			scoredMs: fsGradedMs,
 			contactUptimeMs: fsContactMs,
+			// The same merge the figure above is the union of, so the drawn clock and the printed
+			// percentage cannot disagree. Built at `fsContactWindows` and published rather than rebuilt.
+			contactWindows: fsContactWindows,
 		},
 		mana,
 		lavaBurst: {
