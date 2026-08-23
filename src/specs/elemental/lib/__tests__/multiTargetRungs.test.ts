@@ -59,9 +59,13 @@ describe('the ladder carries the multi-target fillers', () => {
 	});
 
 	it('gates both from two targets up, which is what the single-target list omitting them means', () => {
-		for (const key of ['lava-beam', 'chain-lightning'] as const) {
-			expect(LADDER_ENTRIES.find((e) => e.key === key)!.bands).toEqual([2, 3, 4]);
-		}
+		expect(LADDER_ENTRIES.find((e) => e.key === 'chain-lightning')!.bands).toEqual([2, 3, 4]);
+		// **The beam stops at three, and it used to say two.** `[2, 3, 4]` was this report's own reading
+		// rather than a transcription — `cleave.apl.json` has no Lava Beam — and the reading was for a real
+		// mechanic: Ascendance replaces Chain Lightning on the bars, so a two-target beam would otherwise be
+		// a button with no rung. The rung it was given could not be reached, which by this file's own
+		// standard is the same defect. `the band-2 beam could never be reached` below is the proof.
+		expect(LADDER_ENTRIES.find((e) => e.key === 'lava-beam')!.bands).toEqual([3, 4]);
 		// The bottom rung is not banded — it is the filler that is always in the list.
 		expect(LADDER_ENTRIES.find((e) => e.key === 'lightning-bolt')!.bands).toEqual([1, 2, 3, 4]);
 	});
@@ -416,13 +420,42 @@ const wantedAt = (casts: readonly CastMark[], band: 1 | 2 | 3 | 4, index: number
 };
 
 describe('the two talent rungs, on a pull built to reach them', () => {
-	it('wants Unleash Elements at one and two targets and Chain Lightning above', () => {
-		// 73680 pressed once so the talent gate opens, then a Lightning Bolt twenty seconds later — by
-		// which point the 15s cooldown (`sim/shaman/unleash_elements.go:185`) is back and Ascendance is
-		// not up, so p5's rung 0 wants the button outright. Above two targets `aoe.apl.json` has no such
-		// rung, and the walk falls to the button that list does press.
-		const casts = [press(0, 73680), press(20_000, 403)];
-		expect([1, 2, 3, 4].map((b) => wantedAt(casts, b as 1, 1))).toEqual([
+	// 73680 pressed once so the talent gate opens, then a Lightning Bolt twenty seconds later — by which
+	// point the 15s cooldown (`sim/shaman/unleash_elements.go:185`) is back and Ascendance is not up, so
+	// p5's rung 0 wants the button outright. Above two targets `aoe.apl.json` has no such rung, and the
+	// walk falls to the button that list does press.
+	const unleashCasts = [press(0, 73680), press(20_000, 403)];
+
+	it('wants Unleash Elements at one target and Chain Lightning above two', () => {
+		// Band 2 is **`cleave.apl.json` rung 1, not p5 rung 0**, and this walk carries no Lava Surge window,
+		// so the two-target rung declines and the walk falls one rung to Lava Burst. That column read
+		// `unleash-elements` while the ladder applied p5's `not(Ascendance active)` at every band it was in —
+		// the preset's `auraIsActive(77762)` term was simply missing — so this is the assertion the dropped
+		// term used to hide behind. Band 1 is unmoved: p5's rule is still p5's rule.
+		expect([1, 2, 3, 4].map((b) => wantedAt(unleashCasts, b as 1, 1))).toEqual([
+			'unleash-elements',
+			'lava-burst',
+			'chain-lightning',
+			'chain-lightning',
+		]);
+	});
+
+	it('wants it at two targets as well once Lava Surge is up, which is the whole of the cleave rule', () => {
+		// The same pull with a Lava Surge window over the press. Band 2 now wants the button, so the band-2
+		// branch is a *rule* rather than a closed gate. **This half passes against the old behaviour too**, and
+		// is here for that reason rather than in spite of it: `not(Ascendance active)` was true at this press as
+		// well, so only the test above can separate the two rules and only this one can show the new rule is not
+		// a gate that never opens. Ascendance is absent throughout, so band 1 cannot be reading the Lava Surge
+		// term by accident.
+		const audit = (b: 1 | 2 | 3 | 4): string | null => {
+			const a = aplAudit(
+				eleInputs({ casts: unleashCasts, forceBand: b, auras: { 'lava-surge': [{ start: 0, end: 30_000 }] } }),
+				LADDER,
+			);
+			expect(a).not.toBeNull();
+			return a!.presses[1]!.wanted;
+		};
+		expect([1, 2, 3, 4].map((b) => audit(b as 1))).toEqual([
 			'unleash-elements',
 			'unleash-elements',
 			'chain-lightning',
@@ -443,5 +476,94 @@ describe('the two talent rungs, on a pull built to reach them', () => {
 			'chain-lightning',
 			'chain-lightning',
 		]);
+	});
+});
+
+// ---------------------------------------------------------------------------------- unreachable bands
+//
+// **The recurring defect in this project is a rung that is declared and cannot be reached**, and it has
+// now shipped three times. A Flame Shock rung applied at every band so its charged presses were identical
+// at all four. Eleven Lava Beams that had a rung since `e2f31a2` and were never once graded `followed`,
+// because three other rungs stood above them at bands 3 and 4. And the beam's own `bands: [2, 3, 4]`,
+// where band 2 was unreachable by construction rather than merely unobserved.
+//
+// The first two were found by measuring a fixture. This one cannot be: `cleave` and `addsThenBoss` between
+// them press 35 Lava Beams and **not one is at band 2**, so no fixture can distinguish a rung that is
+// unreachable from one nothing happened to reach. So it is proved instead, off the ladder's own numbers.
+describe('the band-2 beam could never be reached', () => {
+	/**
+	 * The two rungs above it split the band-2 dot clock between them, at the same millisecond.
+	 *
+	 * `flame-shock` at band 2 wants the global when the dot reads `<= FS_CLEAVE_OVERLAP_MS`
+	 * (`cleave.apl.json` rung 9's `maxOverlap`), and `lava-burst` wants it when the same dot reads
+	 * `> LAVA_BURST_CAST_MS` (p5 rung 13, and cleave rung 10 verbatim). Both constants are 2000ms, so the
+	 * pair is a *partition*: whatever the dot reads, exactly one of the two claims the press.
+	 *
+	 * The remaining question is whether Lava Burst can be on cooldown at the moment the beam's own
+	 * condition is true, and it cannot: the beam requires `ascendance` active, and inside that window
+	 * `readyWhen` short-circuits the 8s clock. The sim agrees for the same window rather than for a reset —
+	 * `sim/shaman/ascendance.go:91-95` attaches a `SpellMod_Cooldown_Multiplier` of -1 to
+	 * `SpellMaskLavaBurst` for the aura's whole duration.
+	 *
+	 * Swept across the boundary rather than asserted at one dot value, because the whole claim is that
+	 * *no* value of the dot lets the walk through. 0 and 2000 are the two inclusive edges of Flame Shock's
+	 * side; 2001 is the first millisecond of Lava Burst's.
+	 */
+	it.each([0, 1, 1999, 2000, 2001, 8000, 30_000])('is claimed above the beam with the dot at %ims', (remaining) => {
+		const casts = [press(10_000, 114074)];
+		const audit = aplAudit(
+			eleInputs({
+				casts,
+				forceBand: 2,
+				auras: { ascendance: [{ start: 0, end: 40_000 }] },
+				auraRemainingAt: { 'flame-shock': () => remaining },
+			}),
+			LADDER,
+		);
+		expect(audit).not.toBeNull();
+		const wanted = audit!.presses[0]!.wanted;
+		// One of the two rungs above, never the beam — and never `null`, which would mean the walk fell off
+		// the ladder rather than being stopped by a rung.
+		expect(wanted).toBe(remaining <= 2000 ? 'flame-shock' : 'lava-burst');
+	});
+
+	it('is reachable at three and four, which is why the rung still exists', () => {
+		// The mirror of the sweep. Above two targets `lava-burst` is banded out and `flame-shock` asks
+		// `remaining <= 0`, so a healthy dot leaves the beam the first rung that wants the global — and the
+		// press is graded `followed` rather than merely reached. Without this the change above would read as
+		// "the beam is unreachable", which is false: it is unreachable *at band 2*.
+		const casts = [press(10_000, 114074)];
+		for (const band of [3, 4] as const) {
+			const audit = aplAudit(
+				eleInputs({ casts, forceBand: band, auras: { ascendance: [{ start: 0, end: 40_000 }] } }),
+				LADDER,
+			);
+			expect(audit).not.toBeNull();
+			expect(audit!.presses[0]!.wanted, `band ${band}`).toBe('lava-beam');
+			expect(audit!.presses[0]!.verdict, `band ${band}`).toBe('followed');
+		}
+	});
+
+	it('changed no fixture verdict when band 2 came off, which is the same fact from the other side', () => {
+		// **A deliberate no-change guard, and the argument for the change rather than a caveat on it.** An
+		// unreachable band cannot move a verdict, so if removing it had moved one the proof above would be
+		// wrong. Counted as every press of the beam across the three multi-target-capable fixtures plus the
+		// rung's own demand at band 2 on all four forced walks.
+		for (const [name, analysis] of [
+			['cleave', cleave],
+			['phased', phased],
+			['unbroken', unbroken],
+		] as const) {
+			const forcedTwo = (analysis as unknown as { aplForced?: Record<string, { presses?: Press[] }> }).aplForced?.['2'];
+			expect(
+				(forcedTwo?.presses ?? []).filter((p) => p.wanted === 'lava-beam'),
+				name,
+			).toHaveLength(0);
+		}
+		// And `cleave`'s eleven beams are all at band 4, so its four credited ones are untouched by a band-2
+		// gate in either direction.
+		const beams = pressesOf(cleave).filter((p) => p.pressed === LAVA_BEAM);
+		expect(beams).toHaveLength(11);
+		expect(beams.filter((p) => p.verdict === 'followed')).toHaveLength(4);
 	});
 });

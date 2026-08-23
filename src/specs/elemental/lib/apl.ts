@@ -60,9 +60,10 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  *   has one order. The cost is bounded and measured, and banding the rung to `[1, 2]` shrank it rather
  *   than fixed it: on `cleave`'s natural walk `searing-totem` took **5** skips when the rung stood in
  *   every band and takes **1** now (the earlier "4" here was its forced-band-1 figure, not its natural
- *   one). Band 2 is the only band the ordering conflict can occur in. Its Unleash Elements rung
- *   is also a different rule, `Unleashed Fury known AND Lava Surge active` rather than p5's
- *   `not(Ascendance active)`, and it carries **no Lava Beam at all**.
+ *   one). Band 2 is the only band the ordering conflict can occur in. Its Unleash Elements rung is also a
+ *   different rule, `Unleashed Fury known AND Lava Surge active` rather than p5's
+ *   `not(Ascendance active)` — **modelled now**, on the rung's own `state.band` branch, because that was a
+ *   dropped term and not an inexpressible one — and it carries **no Lava Beam at all**.
  * - **`aoe.apl.json`** (three or more), and it is five rungs long: `autocastOtherCooldowns`, Flame
  *   Shock, the potion, Lava Beam, Chain Lightning. **No Earth Shock, no Lava Burst, no Elemental
  *   Blast, no Searing Totem, no Unleash Elements** — and no Lightning Bolt either. All five of the named
@@ -82,10 +83,11 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  *   and Chain Lightning's is `not active`, so exactly one of the two claims every global at bands 3
  *   and 4. An Earth Shock at five targets is therefore faulted **against Chain Lightning**: the sim's
  *   own answer, and a sentence a reader can act on. That is a different thing from the unattributable
- *   fault a button with no rung at *any* band produces, which is what banding Lava Beam to `[3, 4]`
- *   would have created at two targets. The bottom rung stays unbanded for the mirror-image reason:
- *   `aoe.apl.json` has no Lightning Bolt, but the walk can never reach it there, so banding it would
- *   declare a gate that changes nothing.
+ *   fault a button with no rung at *any* band produces. Lava Beam *is* banded `[3, 4]`, and this
+ *   paragraph used to read as though that would create such a fault at two targets; it does not, because
+ *   the two-target beam is faulted against Lava Burst — see the rung. The bottom rung stays unbanded for
+ *   the mirror-image reason: `aoe.apl.json` has no Lightning Bolt, but the walk can never reach it there,
+ *   so banding it would declare a gate that changes nothing.
  *
  *   **One residual, and its direction is named rather than left to be discovered.** A rung's band is
  *   stamped at the press instant, and Searing Totem is a sixty-second commitment — 39 ticks of 1.52s
@@ -108,13 +110,17 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  *   targets is graded against Chain Lightning. Closing that needs the ability registry, not this file.
  * - **Flame Shock is a different rule in each of the three**, and the `flame-shock` rung below is
  *   banded accordingly. See `FS_CLEAVE_OVERLAP_MS`.
- * - **Lava Beam is banded `[2, 3, 4]` while `cleave.apl.json` has no Lava Beam rung**, so band 2 is
- *   this report's reading and not a transcription. The reason is a game mechanic the sim does not
- *   model: Ascendance *replaces* Chain Lightning on the bars (`elemental/lava_beam.go` gates the spell
- *   on `AscendanceAura.IsActive()`, and nothing gates Chain Lightning off), so the sim's cleave preset
- *   can keep pressing 421 through the window while a real player at two targets cannot. Banding the
- *   beam to `[3, 4]` would leave a two-target Ascendance beam with no rung — and a button with no rung
- *   can never be graded as correct, which is the exact defect these two rungs exist to remove.
+ * - **Lava Beam is banded `[3, 4]`, and `cleave.apl.json` having no Lava Beam rung is only half of why.**
+ *   Band 2 used to be here as this report's own reading against a game mechanic the sim does not model:
+ *   Ascendance *replaces* Chain Lightning on the bars (`elemental/lava_beam.go` gates the spell on
+ *   `AscendanceAura.IsActive()`, and nothing gates Chain Lightning off), so the sim's cleave preset can
+ *   keep pressing 421 through the window while a real player at two targets cannot, and banding the beam
+ *   to `[3, 4]` looked like it would leave a two-target Ascendance beam with no rung. It did not, because
+ *   the rung it was given **could not be reached**: inside Ascendance `lava-burst` is never on cooldown,
+ *   and `flame-shock` at band 2 and `lava-burst` split the dot clock at the same 2000ms, so one of the two
+ *   claims every band-2 global before the walk gets this far. A declared rung no press can reach is the
+ *   same defect as no rung — this file's own words — so band 2 came off. The full proof, and why Lava
+ *   Burst is the *right* thing to fault a two-target beam against, is on the rung.
  *
  * ## What the ladder reads instead of bars
  *
@@ -267,6 +273,21 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// (`sim/shaman/talents.go:201-208`). Chain Lightning and Lava Beam are in neither mask, and from
 		// three targets up they are the only buttons the aoe list presses. So the press costs a global
 		// and buffs nothing that global's list will cast.
+		//
+		// **And band 2 is a different rule, not p5's.** `cleave.apl.json` rung 1 is
+		// `auraIsKnown(117012) AND auraIsActive(77762, includeReactionTime)` — the Unleashed Fury talent
+		// *and Lava Surge up* — where p5 rung 0 is the talent and `not(auraIsActive(114049))`. This module
+		// used to name that departure in the `cleave.apl.json` bullet above and leave it unmodelled, which
+		// was a dropped term rather than an inexpressible one: two rungs below already switch lists on
+		// `state.band`, and `lava-surge` is in the ladder's own aura set (the rung below reads it for
+		// `readyWhen`). Left as p5's rule the rung **over**-demanded the button at two targets — it wanted
+		// Unleash Elements at every global the walk could reach it on, Ascendance aside, where the preset
+		// wants it only inside a Lava Surge window.
+		//
+		// The talent gate is the same `auraIsKnown(117012)` in both lists, so it does not move: `talent:
+		// true` keeps the rung closed unless the log shows the button pressed. That is also why no
+		// committed fixture moves on this — none carries a 73680 press — and why the separation is shown
+		// against a synthetic pull in `multiTargetRungs.test.ts` rather than pinned off a fixture.
 		key: 'unleash-elements',
 		id: ID.unleashElements,
 		chiCost: 0,
@@ -274,7 +295,10 @@ export const LADDER: readonly ELE_AplRule[] = [
 		talent: true,
 		cooldownMs: 15000,
 		bands: [1, 2],
-		condition: (_state, auras) => !auras.active('ascendance'),
+		// `cleave.apl.json` rung 1 at two targets, `p5.apl.json` rung 0 at one. Read off `state.band`, this
+		// rule's own per-press count, so the rung switches lists at the press rather than for the pull —
+		// the same shape the `flame-shock` and `earth-shock` rungs below use.
+		condition: (state, auras) => (state.band === 2 ? auras.active('lava-surge') : !auras.active('ascendance')),
 	},
 	{
 		// 7 and 12 are the snapshot half of Flame Shock and belong to the Flame Shock section; the
@@ -436,11 +460,41 @@ export const LADDER: readonly ELE_AplRule[] = [
 		//
 		// Measured on `cleave`: 11 presses, **11 of them inside an Ascendance window**, every one at
 		// band 4.
+		//
+		// **`bands: [3, 4]`, and band 2 came off because no press could ever reach it.** The rung used to
+		// be `[2, 3, 4]`, and this module argued band 2 as its own reading rather than a transcription:
+		// Ascendance *replaces* Chain Lightning on the bars, so a two-target beam would otherwise be a
+		// button with no rung, and "a button with no rung can never be graded as correct" is the defect
+		// these two rungs exist to remove. The reading was right about the bars and wrong about the walk.
+		// The rung was unreachable at band 2, provably and not merely unobserved, and by this file's own
+		// standard that is the same defect wearing a band:
+		//
+		//  - this rung's condition at band 2 requires `ascendance` active;
+		//  - inside that window `lava-burst`'s `readyWhen` is true, so its 8s cooldown never gates it —
+		//    the sim agrees, `sim/shaman/ascendance.go:91-95` attaches a `SpellMod_Cooldown_Multiplier` of
+		//    -1 to `SpellMaskLavaBurst` for the whole aura, so Lava Burst has *no* cooldown in Ascendance
+		//    rather than one reset entry point;
+		//  - `flame-shock` at band 2 wants the global when the dot reads `<= FS_CLEAVE_OVERLAP_MS` and
+		//    `lava-burst` wants it when the same dot reads `> LAVA_BURST_CAST_MS`, and those two are the
+		//    *same* 2000ms — the pair is a complementary partition of the dot clock, so one of them claims
+		//    every band-2 global no matter what the dot reads.
+		//
+		// So at two targets in Ascendance the walk stops at Flame Shock or Lava Burst every time, and it
+		// stops there for the right reason: `cleave.apl.json` carries no Lava Beam and puts both Lava Burst
+		// rungs above Chain Lightning, so **Lava Burst is the sim's own answer** at that press. A two-target
+		// beam is now faulted against a named rung the preset really has, which is the standard the five
+		// narrowed rungs above are held to, rather than against a rung that was declared and unreachable.
+		//
+		// Measured: the change moves **no verdict and no `wanted` key on any of the four fixtures**, which
+		// is the point rather than a weakness — an unreachable band cannot move anything, and that is what
+		// made it worth removing. `multiTargetRungs.test.ts` proves the unreachability by construction from
+		// the two thresholds, so the day either of them stops being 2000ms the proof fails loudly instead
+		// of the band quietly reopening.
 		key: 'lava-beam',
 		id: ID.lavaBeam,
 		chiCost: 0,
 		energyCost: 0,
-		bands: [2, 3, 4],
+		bands: [3, 4],
 		condition: (_state, auras) => auras.active('ascendance'),
 	},
 	{
