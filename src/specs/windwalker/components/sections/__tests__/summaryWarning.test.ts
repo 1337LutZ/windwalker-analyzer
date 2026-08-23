@@ -37,7 +37,7 @@ describe('summary Rune warnings', () => {
 
 		const html = render(withoutRune);
 		expect(html).toContain('Rune of Re-Origination not detected');
-		expect(html).toContain('non-Rune Tigereye Brew rules');
+		expect(html).toContain('how Tigereye Brew is pressed without it');
 	});
 
 	it('warns when every observed proc was non-Mastery', () => {

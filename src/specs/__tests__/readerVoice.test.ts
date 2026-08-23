@@ -54,11 +54,11 @@ const MODEL_WORDS = [
  *
  * `{{active, clock}}` renders as `4:39` and `{{rule, duration}}` as `15s`: `clock` there is a
  * registered i18next formatter and `rule` is a variable the section passes in. Matching the raw value
- * flags eight strings that a reader could never see the word in — `casts.presses`, `energy.summary`,
- * `brew.chartLabel` and the four `sef` sentences among them — and a sweep whose reds are mostly noise
- * gets narrowed by the next person rather than obeyed. Nothing is lost by stripping: no placeholder in
- * either spec's in-scope copy carries a banned word anywhere but in a formatter or variable name, and
- * the test below pins that.
+ * flags nine strings that a reader could never see the word in — `casts.presses`, `energy.summary`,
+ * `brew.chartLabel`, `priority.summary` and the four `sef` sentences among them — and a sweep whose
+ * reds are mostly noise gets narrowed by the next person rather than obeyed. Nothing is lost by
+ * stripping: no placeholder in any scope's in-scope copy carries a banned word anywhere but in a
+ * formatter or variable name, and the test below pins that.
  */
 const prose = (value: string): string => value.replaceAll(/\{\{[^}]*\}\}/g, ' ');
 
@@ -167,9 +167,9 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 // ================================================================= Windwalker
 //
 // The Windwalker's fifteen own sections — the locale roots only its own sections read. Everything the
-// two specs share (`castLog`, `timeline`, `damage`, `misses`, `raidBuffs`, `gear`, `priority`,
-// `rotation`, `method`, `kpi`, `summary`) is out of scope and stays out; see the note on the boundary
-// below.
+// two specs share (`castLog`, `timeline`, `damage`, `misses`, `raidBuffs`, `gear`, `priority`, `kpi`,
+// `summary` and the rest) is swept by the third scope below, which was opened for it; only `rotation`
+// and `method` stay out, and the ruling that leaves them out is written there.
 
 const WINDWALKER_SECTIONS = [
 	'snapshots',
@@ -287,17 +287,206 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
 	});
 });
 
+// ================================================================= the shared copy
+//
+// The third scope, and the one that holds the first sentences anyone reads. `overall.*` is the single
+// line under the player's name, `summary.judged` the line under that; both were unswept while the two
+// spec scopes above covered 716 strings on either side of them.
+//
+// **The boundary, ruled rather than inherited.** The lane that swept the Windwalker left everything
+// shared out and named `rotation` and `priority` as permanent exemptions. Half of that is kept and half
+// is overturned, because the exemption is about the **sentence**, not the namespace:
+//
+//   - `rotation` stays exempt, and it is the only whole section in the file that is. It says nothing
+//     about your pull — `rotation.intent` opens "None of it is about your pull" — because it *is* the
+//     priority list, published so a reader can check a number above against it. Its whole subject is
+//     the model, so it has to be able to name a rule, a condition, a gate and the list itself; a
+//     section that exists to print the priority list cannot be forbidden from calling it one. That is
+//     the method-note exemption of the two scopes above, applied at section scale because here the
+//     whole section is the note. The test below asserts it is still carrying banned words, so the
+//     exemption stays visibly load-bearing rather than becoming a no-op nobody dares delete.
+//
+//   - `method` was the obvious second candidate and is **not** exempted, because it does not need to
+//     be: all eight of its strings pass the sweep as they stand. Exempting a section that passes is the
+//     pre-emptive exemption the Windwalker block above refuses for leaf names, and the leaf-name
+//     mechanism is already here — the day a method note genuinely has to say "gate", whoever writes it
+//     names the leaf in `SHARED_METHOD_KEYS` with a reason beside it, which is an argued edit rather
+//     than standing cover.
+//
+//   - `priority` is *not* a reference section, and exempting it by namespace was the mistake. It reads
+//     the model down your pull and reports how your presses came out — `priority.summary` is a graded
+//     sentence about you, in the same shape as any `verdict_*` the two scopes above sweep. It happens
+//     to *sit* next to the ladder's own entry labels, and a namespace-shaped exemption cannot tell the
+//     two apart. So `priority` is swept, and the concrete cost of not sweeping it was visible: the
+//     eight `ladder_*` sentences were rewritten from "the presses the priority list could judge" to
+//     "the presses this log could check against the priority list" — moving the limit onto the log,
+//     where it belongs — while `priority.summary` and `priority.clean` kept the old phrasing, two
+//     strings saying the thing eight others had just stopped saying. They now say it the same way.
+//     Only `priority.scope` and `priority.reconstructed` stay out, by the leaf-name exemption the two
+//     scopes above already use: both are literally about method, and `reconstructed` opens "Nothing
+//     here is graded, and this is why".
+//
+// `MODEL_WORDS` is deliberately untouched again, for the reason given above it: widening the
+// vocabulary and widening the coverage are two changes.
+
+/**
+ * The roots both specs render. Written out rather than derived as "everything that is not a spec
+ * section" so that a new root is a visible edit here, and closed by the last test in this file: every
+ * root in `report.json` is in exactly one of the four lists, so nothing can be added outside a scope
+ * again the way every Windwalker string once was.
+ */
+const SHARED_SECTIONS = [
+	'castLog',
+	'damage',
+	'empty',
+	'gear',
+	'grade',
+	'kpi',
+	'method',
+	'metric',
+	'misses',
+	'nav',
+	'overall',
+	'priority',
+	'raidBuffs',
+	'summary',
+	'targets',
+	'timeline',
+];
+
+/** The one section whose whole subject is the model. See the ruling above. */
+const REFERENCE_SECTIONS = ['rotation'];
+
+/** Method notes among the shared roots. Both are `priority`'s; no other shared root has one. */
+const SHARED_METHOD_KEYS = ['scope', 'reconstructed'];
+
+const sharedStrings = (): [string, string][] =>
+	localeStrings().filter(
+		([key]) => SHARED_SECTIONS.includes(key.split('.')[0]!) && !SHARED_METHOD_KEYS.includes(key.split('.').pop()!),
+	);
+
+/**
+ * The strings this scope was opened for, listed rather than counted.
+ *
+ * A count passes a refactor that loses the arms — the reason both scopes above write their verdict
+ * sections out — and it passes a rename that quietly drops a sentence out of the sweep. These are the
+ * 27 keys that were at fault when the scope was drawn, so a later lane that moves `overall.*` under a
+ * spec root, or renames `castLog.target.mergedNote`, gets told rather than getting a green run over 26.
+ */
+const SHARED_REDS = [
+	'castLog.death.note',
+	'castLog.empty',
+	'castLog.phase.note',
+	'castLog.target.mergedNote',
+	'gear.intent',
+	'misses.intent',
+	'misses.none',
+	'overall.bad',
+	'overall.none',
+	'overall.ok',
+	'priority.clean',
+	'priority.forced_multi',
+	'priority.forced_single',
+	'priority.noResources',
+	'priority.rule.rising-sun-kick-filler',
+	'priority.summary',
+	'priority.unjudged',
+	'summary.judged',
+	'summary.judged_partial',
+	'summary.takeaways.clean',
+	'summary.takeaways.metric.earthShockGood.fix',
+	'summary.takeaways.metric.flameShockUptime.fix',
+	'summary.warning.runeMissing.body',
+	'timeline.eleIntent',
+	'timeline.empty',
+	'timeline.intent',
+	'timeline.lanes.empty',
+];
+
+describe('the shared copy is about the pull, not about the audit', () => {
+	it('sweeps every shared section, and reaches the strings a key-kind selector never would', () => {
+		const found = new Set(sharedStrings().map(([key]) => key.split('.')[0]!));
+		expect([...found].sort()).toEqual([...SHARED_SECTIONS].sort());
+		expect(sharedStrings().length).toBeGreaterThan(310);
+		// The measurement, done before the selector was chosen rather than after. Copying the Elemental
+		// key-kind selector here would have selected 25 of these 311 strings and caught **three** of the
+		// 27 below — the three that happen to be called `intent`. The other 24 are `note`, `empty`,
+		// `body`, `fix`, `clean`, `mergedNote` and the six bare `priority` leaves: prose at ad-hoc names,
+		// the same shape the Windwalker's turned out to be.
+		expect(sharedStrings().filter(([key]) => ELEMENTAL_READER_KEYS.test(key)).length).toBeLessThan(30);
+		const scoped = new Set(sharedStrings().map(([key]) => key));
+		expect(SHARED_REDS.filter((key) => !scoped.has(key))).toEqual([]);
+		expect(SHARED_REDS.filter((key) => ELEMENTAL_READER_KEYS.test(key))).toEqual([
+			'gear.intent',
+			'misses.intent',
+			'timeline.intent',
+		]);
+	});
+
+	it('exempts only the two method notes it names, and only ones that exist', () => {
+		// Both directions, as the Windwalker block does: a name with no key behind it is a stale or
+		// pre-emptive exemption, and the list is pinned so widening it is a visible edit.
+		const exempt = localeStrings().filter(
+			([key]) => SHARED_SECTIONS.includes(key.split('.')[0]!) && SHARED_METHOD_KEYS.includes(key.split('.').pop()!),
+		);
+		expect(exempt.map(([key]) => key).sort()).toEqual(['priority.reconstructed', 'priority.scope']);
+	});
+
+	it('exempts one whole section, and that exemption is still carrying the words that earned it', () => {
+		expect(REFERENCE_SECTIONS).toEqual(['rotation']);
+		// The exemption's own justification, asserted rather than stated. `rotation` names the list, its
+		// rules, its conditions and its gates because printing them is what the section is for. If that
+		// ever falls away, the exemption has become a no-op and should be deleted rather than left as
+		// cover for whatever gets written there next.
+		const reference = localeStrings().filter(([key]) => key.split('.')[0] === 'rotation');
+		expect(reference.length).toBeGreaterThan(100);
+		expect(violations(reference).length).toBeGreaterThan(15);
+	});
+
+	it('names no part of our own model in anything a reader is shown', () => {
+		expect(violations(sharedStrings())).toEqual([]);
+	});
+});
+
+// ================================================================= the file, closed
+
+describe('no string in report.json sits outside every scope', () => {
+	/**
+	 * The gap this file's whole history is about, made impossible rather than fixed again.
+	 *
+	 * The sweep was Elemental-only because its one section list named Elemental roots; the Windwalker
+	 * scope fixed that for fifteen roots and left seventeen shared ones out; this closes the file. Every
+	 * root belongs to exactly one of the four lists, so a new section — or a new spec — cannot be
+	 * unswept without deleting a name from one of them, which is an edit somebody has to argue for.
+	 */
+	it('classifies every locale root into exactly one scope', () => {
+		const roots = [...new Set(localeStrings().map(([key]) => key.split('.')[0]!))].sort();
+		const classified = [
+			...ELEMENTAL_SECTIONS,
+			...WINDWALKER_SECTIONS,
+			...SHARED_SECTIONS,
+			...REFERENCE_SECTIONS,
+		].sort();
+		expect(new Set(classified).size).toBe(classified.length);
+		expect(roots).toEqual(classified);
+	});
+});
+
 // ================================================================= the strip, pinned
 
 describe('stripping the templates hides no violation', () => {
 	/**
 	 * The one way `prose()` could be a narrowing rather than a correction: a banned word inside a
 	 * placeholder that a reader *does* see, which would be an interpolated value rather than a formatter
-	 * or a variable name. There is no such thing in either spec's copy, and this says so — so the day
-	 * someone writes `{{verdict}}` into a sentence, this fails instead of the sweep going quiet.
+	 * or a variable name. There is no such thing in any of the three scopes' copy, and this says so — so
+	 * the day someone writes `{{verdict}}` into a sentence, this fails instead of the sweep going quiet.
+	 *
+	 * `priority.summary: {{judged}}` is the ninth, and it came in with the shared scope rather than with
+	 * a new string: it was always a variable name rendering a count, and was always unpinned because the
+	 * namespace it lives in was outside every scope.
 	 */
-	it('leaves no banned word inside a placeholder in either spec', () => {
-		const swept = [...elementalStrings(), ...windwalkerStrings()];
+	it('leaves no banned word inside a placeholder in any of the three scopes', () => {
+		const swept = [...elementalStrings(), ...windwalkerStrings(), ...sharedStrings()];
 		const inside = swept
 			.flatMap(([key, value]) => (value.match(/\{\{[^}]*\}\}/g) ?? []).map((token) => [key, token] as const))
 			.filter(([, token]) => MODEL_WORDS.some((word) => token.toLowerCase().includes(word)))
@@ -308,6 +497,7 @@ describe('stripping the templates hides no violation', () => {
 			'casts.presses: {{total, clock}}',
 			'energy.summary: {{duration, clock}}',
 			'energy.summaryNoRate: {{duration, clock}}',
+			'priority.summary: {{judged}}',
 			'sef.justified: {{rule, duration}}',
 			'sef.lanes.shortLived_one: {{rule, duration}}',
 			'sef.lanes.shortLived_other: {{rule, duration}}',

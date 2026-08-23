@@ -7,9 +7,9 @@
   },
   "overall": {
     "good": "You played this pull close to the spec's ceiling. The notes below are small refinements, not real mistakes.",
-    "ok": "Some parts were solid and others lost damage. The sections marked below show where the damage went.",
-    "bad": "Several core habits of the spec are missing here. The sections marked below are the best place to start.",
-    "none": "Too little of this pull could be measured to call it either way. The sections below show what could be read and what could not."
+    "ok": "Some parts were solid and others lost damage. Read down the page to see which was which.",
+    "bad": "Several core habits of the spec are missing here. Read down the page and start with what is flagged.",
+    "none": "Too little of this pull could be measured to call it either way. Read down the page for what could be read and what could not."
   },
   "snapshots": {
     "title": "Snapshots",
@@ -346,10 +346,10 @@
   },
   "misses": {
     "title": "Miss ledger",
-    "intent": "Everything the sections above flagged, in one list with a time on each. Click a timestamp and the log opens at that moment, so you can see it for yourself.",
+    "intent": "Everything flagged higher up the page, in one list with a time on each. Click a timestamp and the log opens at that moment, so you can see it for yourself.",
     "summary_one": "{{count}} thing worth going back to.",
     "summary_other": "{{count}} things worth going back to.",
-    "none": "Nothing in this pull tripped a check. The checks were still run — there was simply nothing to put in the list.",
+    "none": "Nothing in this pull tripped a check. The checks were still run — there was simply nothing to put here.",
     "caption": "Every miss, grouped by what happened, with a link into the log for each one",
     "columns": {
       "kind": "what",
@@ -431,11 +431,11 @@
   },
   "timeline": {
     "title": "The pull, end to end",
-    "intent": "Every brew, every Re-Origination proc, the Rising Sun Kick debuff on {{target}} and every Fists of Fury channel on one clock — so you can see whether the brews landed where the procs were. Drag to scrub, zoom in, hover for detail.",
+    "intent": "Every brew, every Re-Origination proc, the Rising Sun Kick debuff on {{target}} and every Fists of Fury channel on one timeline — so you can see whether the brews landed where the procs were. Drag to scrub, zoom in, hover for detail.",
     "target": "the primary target",
     "target_boss": "the boss",
     "none": "Nothing was recorded on any track for this pull, so there is no timeline to draw.",
-    "empty": "No procs, no brews, no debuff and no channels in this pull, so there is nothing to lay on a clock.",
+    "empty": "No procs, no brews, no debuff and no channels in this pull, so there is nothing to draw.",
     "track": {
       "proc": "Re-Origination",
       "brew": "Tigereye Brew",
@@ -448,7 +448,7 @@
       "rune": "A proc snapshotted early, a proc weaved past on purpose, or a clean channel",
       "miss": "A drop, a proc left unsnapshotted, or a misplaced channel"
     },
-    "eleIntent": "The pull at a glance: the Lightning Shield counter, the two cooldowns, the Flame Shock dot, the Searing Totem and the two-piece on one clock — so the lining-up reads off the shape before the numbers.",
+    "eleIntent": "The pull at a glance: the Lightning Shield counter, the two cooldowns, the Flame Shock dot, the Searing Totem and the two-piece on one timeline — so the lining-up reads off the shape before the numbers.",
     "lanes": {
       "key": {
         "buff": "A buff you pressed",
@@ -456,13 +456,13 @@
         "debuff": "A debuff on the target",
         "press": "A press or a dot"
       },
-      "empty": "No auras in this pull, so there is nothing to lay on a clock."
+      "empty": "No auras in this pull, so there is nothing to draw."
     }
   },
   "castLog": {
     "title": "Timeline",
     "intent": "Every press as its own icon at the moment it went out, with buffs, procs and the Rising Sun Kick debuff drawn as bars underneath. Read down from a button to see what was up when you pressed it. Turn off what you are not looking at, zoom to separate one global from the next, and scroll sideways through the pull.",
-    "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to lay on a clock.",
+    "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to draw.",
     "caption": "Colour marks what kind of button it was, and nothing here counts for or against you. A press that cost a global is drawn at full size; an off-global press, like a brew or a trinket, is drawn smaller so it never reads as a global you spent.",
     "expand": "Open full width",
     "close": "Close",
@@ -512,7 +512,7 @@
       "off": "Combined",
       "offTitle": "Collapse the per-enemy rows into a single row covering every enemy drawn.",
       "mergedLane": "{{aura}} · any enemy",
-      "mergedNote": "The per-enemy rows are collapsed into one, so that bar marks where the debuff was on at least one enemy drawn here. That is coverage, not uptime — and the graded figure is different again, measured against whichever enemy you were hitting.",
+      "mergedNote": "The per-enemy rows are collapsed into one, so that bar marks where the debuff was on at least one enemy drawn here. That is coverage, not uptime — and the figure you are scored on is different again, measured against whichever enemy you were hitting.",
       "pick": "Enemies · {{drawn}} of {{total}}",
       "pickHint": "Pick the enemies you want rows for, up to {{max}} at once — past that the debuff block is taller than the rest of the chart."
     },
@@ -536,12 +536,12 @@
     "phase": {
       "title": "Phase",
       "unnamed": "Phase {{id}}",
-      "note": "The short white rules above the chart are the boss’s own phase changes, as WarcraftLogs reports them — the fight’s script, not anything you did. The pull into the first phase is not marked, because every fight has one. A label drops to a second line where two changes are too close together to write both on one. And a boss can come back round to a phase it has already been in, which is why the same name can appear twice."
+      "note": "The short white marks above the chart are the boss’s own phase changes, as WarcraftLogs reports them — the fight’s script, not anything you did. The pull into the first phase is not marked, because every fight has one. A label drops to a second line where two changes are too close together to write both on one. And a boss can come back round to a phase it has already been in, which is why the same name can appear twice."
     },
     "death": {
       "title": "Death",
       "unnamed": "Nothing the log named",
-      "note": "A death is marked with a rule across every lane. Hover it for what landed the killing blow.",
+      "note": "A death is marked with a line across every lane. Hover it for what landed the killing blow.",
       "noRes": "not resurrected"
     },
     "prePull": {
@@ -696,7 +696,7 @@
   },
   "gear": {
     "title": "Gear",
-    "intent": "What you were wearing, straight from the log. Item level is here to be read, not judged. The enchants are the part worth acting on: an empty slot costs damage on every pull until it is filled.",
+    "intent": "What you were wearing, straight from the log. Item level is here to be read — it counts neither for nor against you. The enchants are the part worth acting on: an empty slot costs damage on every pull until it is filled.",
     "none": "This log carried no equipment record, so there is nothing to show. Nothing is wrong with the pull — the report was simply not given the data.",
     "missing_one": "{{slots}} is carrying no enchant. That is a straight loss on every pull, and the cheapest damage on this page to get back.",
     "missing_other": "{{count}} slots are carrying no enchant — {{slots}}. That is a straight loss on every pull, and the cheapest damage on this page to get back.",
@@ -1039,12 +1039,12 @@
   },
   "summary": {
     "title": "Summary",
-    "judged": "Judged on {{measured}} of {{total}} points.",
-    "judged_partial": "Judged on only {{measured}} of {{total}} points — too little of this pull to call.",
+    "judged": "Scored on {{measured}} of {{total}} points.",
+    "judged_partial": "Scored on only {{measured}} of {{total}} points — too little of this pull to call.",
     "warning": {
       "runeMissing": {
         "title": "Rune of Re-Origination not detected",
-        "body": "No Rune of Re-Origination in the gear this pull reported. It drives most of what this spec does, so the rotation below shows the non-Rune Tigereye Brew rules instead."
+        "body": "No Rune of Re-Origination in the gear this pull reported. It drives most of what this spec does, so the rotation below shows you how Tigereye Brew is pressed without it."
       },
       "runeNoMastery": {
         "title": "Check your gems and reforges",
@@ -1054,7 +1054,7 @@
     "takeaways": {
       "title": "Key improvements",
       "title_good": "Key refinements",
-      "clean": "Nothing came out below its target, so there is no short list to give you. The sections below have the details.",
+      "clean": "Nothing came out below its target, so there is no short list to give you. The detail on each is further down the page.",
       "jump": "See the detail",
       "metric": {
         "snapshotRate": {
@@ -1093,7 +1093,7 @@
         },
         "flameShockUptime": {
           "label": "Keep the dot up",
-          "fix": "Flame Shock was up for {{value, percent}} of the time you had something to hit, against {{target, percent}}. Everything the spec does is gated on that dot."
+          "fix": "Flame Shock was up for {{value, percent}} of the time you had something to hit, against {{target, percent}}. Lava Burst needs that dot on the target, so a gap costs more than the dot itself."
         },
         "flameShockWaste": {
           "label": "Stop overwriting the dot",
@@ -1105,7 +1105,7 @@
         },
         "earthShockGood": {
           "label": "Spend the shocks right",
-          "fix": "{{value, percent}} of your Earth Shocks matched the sim’s rule, against {{target, percent}}. An early shock spends the shield the next proc wants."
+          "fix": "{{value, percent}} of your Earth Shocks went out with the shield charged up and the dot still long, against {{target, percent}}. An early shock spends the shield the next proc wants."
         },
         "searingTotemUptime": {
           "label": "Keep the totem ticking",
@@ -1149,12 +1149,12 @@
   "priority": {
     "title": "Priority list",
     "intent": "Every other section measures one thing on its own. This one reads the priority list down your pull and asks, at every global you spent: was a better button ready right then?",
-    "summary": "On {{followed}} of {{judged}} globals the priority list could judge, you pressed the highest-priority ability available. On {{skipped}} of them, a higher-priority ability was available and affordable.",
-    "unjudged": "{{unknown}} presses could not be judged, because a rule above them needs something this log does not carry. Another {{offList}} were buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
-    "clean": "On every global the priority list could judge, no higher-priority ability was available.",
-    "noResources": "This log carried no resource readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing is judged here.",
-    "forced_single": "You are reading this pull as one target, so every press below is judged against the single-target order — including the stretches where the log counted more enemies.",
-    "forced_multi": "You are reading this pull as multi-target, so every press below is judged against the multi-target order — including the stretches where the log counted one enemy.",
+    "summary": "On {{followed}} of the {{judged}} globals this log could check against the priority list, you pressed the highest-priority ability available. On {{skipped}} of them, a higher-priority ability was available and affordable.",
+    "unjudged": "{{unknown}} presses could not be checked, because an entry above them needs something this log does not carry. Another {{offList}} were buttons the priority list has no opinion about — a cooldown, a defensive. Neither counts against you.",
+    "clean": "On every global this log could check against the priority list, no higher-priority ability was available.",
+    "noResources": "This log carried no resource readings, so there is no bar to reconstruct and no way to tell what you could afford at each global. Nothing here counts for or against you.",
+    "forced_single": "You are reading this pull as one target, so every press below is checked against the single-target order — including the stretches where the log counted more enemies.",
+    "forced_multi": "You are reading this pull as multi-target, so every press below is checked against the multi-target order — including the stretches where the log counted one enemy.",
     "caption": "Buttons that were available and passed over, most often first",
     "noRows": "Nothing was passed over.",
     "scope": "The ladder covers the filler priorities — the entries that decide what a global is spent on. The cooldowns are out because each has its own section. A button you could not afford is never counted as passed over.",
@@ -1177,7 +1177,7 @@
       "jab": "Jab",
       "rushing-jade-wind": "Rushing Jade Wind",
       "rushing-jade-wind-open": "Rushing Jade Wind, above Rising Sun Kick",
-      "rising-sun-kick-filler": "Rising Sun Kick, when no higher-priority rule applies",
+      "rising-sun-kick-filler": "Rising Sun Kick, when nothing above it applies",
       "spinning-crane-kick": "Spinning Crane Kick",
       "spinning-crane-kick-heavy": "Spinning Crane Kick, at four or more",
       "blackout-kick": "Blackout Kick, to spend chi",
