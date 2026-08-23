@@ -362,6 +362,41 @@ const SHARED_SECTIONS = [
 /** The one section whose whole subject is the model. See the ruling above. */
 const REFERENCE_SECTIONS = ['rotation'];
 
+/**
+ * The leaves inside the exempt section that are about the **reader's pull**, and so are swept anyway.
+ *
+ * The exemption above is argued from `rotation.intent`'s own opening — "None of it is about your
+ * pull" — and two leaves broke that premise. `reading_multi` said the drawn flow was "the count every
+ * press above is judged at", and `reading_single` that one enemy "is how the report is reading your
+ * pull": both are claims about how *this* log was read, printed inside the one section that is exempt
+ * for saying nothing about it.
+ *
+ * **In scope by leaf rather than moved out of the section**, and by leaf rather than by widening the
+ * section, because the same mechanism is already here twice — `WINDWALKER_METHOD_KEYS` and
+ * `SHARED_METHOD_KEYS` name leaves that are exceptions to their scope, and these name leaves that are
+ * exceptions to an exemption. It reads in the same direction: the unit of the decision is the
+ * sentence, which is the ruling the shared block above spent three paragraphs making about
+ * `priority`.
+ *
+ * Both, not just the one with the banned word. They are one sentence at two readings, and scoping the
+ * red one alone would leave the next lane's edit to its twin unswept — which is this whole file's
+ * failure mode. Bringing them in also cost them the phrase "This is the list at …": once a sentence is
+ * in scope it cannot name the model, so both now name what is drawn by its own heading, "the priority
+ * flow". Nothing is lost by that — which reading the report took is already said in swept copy, by
+ * `targets.detected_*` and `targets.overridden_*` beside the control that sets it.
+ *
+ * Note what this is *not*: an exception for the second person. Two dozen `rotation` strings say "you"
+ * and "your" — "It deals a lump equal to your own maximum health" — and they stay exempt, because
+ * that is reference material addressed to a reader rather than a claim about the pull in front of
+ * them. These two made the claim.
+ */
+const REFERENCE_READER_KEYS = ['reading_single', 'reading_multi'];
+
+const isReferenceReader = ([key]: [string, string]) => REFERENCE_READER_KEYS.includes(key.split('.').pop()!);
+
+const referenceReaderStrings = (): [string, string][] =>
+	localeStrings().filter((entry) => REFERENCE_SECTIONS.includes(entry[0].split('.')[0]!) && isReferenceReader(entry));
+
 /** Method notes among the shared roots. Both are `priority`'s; no other shared root has one. */
 const SHARED_METHOD_KEYS = ['scope', 'reconstructed'];
 
@@ -443,9 +478,27 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		// rules, its conditions and its gates because printing them is what the section is for. If that
 		// ever falls away, the exemption has become a no-op and should be deleted rather than left as
 		// cover for whatever gets written there next.
-		const reference = localeStrings().filter(([key]) => key.split('.')[0] === 'rotation');
+		//
+		// Taken over the section *less* its two in-scope leaves, so the count that keeps the exemption
+		// load-bearing is a count of copy the exemption actually still covers. It was 22 with them in and
+		// is 20 without, so the two carve-outs did not buy their way past this line either.
+		const reference = localeStrings().filter(
+			(entry) => entry[0].split('.')[0] === 'rotation' && !isReferenceReader(entry),
+		);
 		expect(reference.length).toBeGreaterThan(100);
 		expect(violations(reference).length).toBeGreaterThan(15);
+	});
+
+	it('sweeps the two leaves of that section that are about the reader, and only leaves that exist', () => {
+		// Both directions, as every other exception list in this file: a name with no key behind it is a
+		// pre-emptive carve-out, and the keys are written out so that moving either sentence is a visible
+		// edit here rather than a quiet exit from the sweep.
+		expect(
+			referenceReaderStrings()
+				.map(([key]) => key)
+				.sort(),
+		).toEqual(['rotation.flow.reading_multi', 'rotation.flow.reading_single']);
+		expect(violations(referenceReaderStrings())).toEqual([]);
 	});
 
 	it('names no part of our own model in anything a reader is shown', () => {
@@ -491,7 +544,7 @@ describe('stripping the templates hides no violation', () => {
 	 * namespace it lives in was outside every scope.
 	 */
 	it('leaves no banned word inside a placeholder in any of the three scopes', () => {
-		const swept = [...elementalStrings(), ...windwalkerStrings(), ...sharedStrings()];
+		const swept = [...elementalStrings(), ...windwalkerStrings(), ...sharedStrings(), ...referenceReaderStrings()];
 		const inside = swept
 			.flatMap(([key, value]) => (value.match(/\{\{[^}]*\}\}/g) ?? []).map((token) => [key, token] as const))
 			.filter(([, token]) => MODEL_WORDS.some((word) => token.toLowerCase().includes(word)))

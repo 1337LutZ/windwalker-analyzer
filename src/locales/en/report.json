@@ -772,8 +772,8 @@
       "title": "The priority flow",
       "intent": "Read down the list and press the first thing that is true. There is no separate list for packs — the same rungs apply at one enemy and at six; only how far down the list you get changes.",
       "caption": "The priority list, in the order the rotation checks it",
-      "reading_single": "This is the list at one enemy, which is how the report is reading your pull. Rungs that need two or more enemies are not drawn, and split rungs show only the half that applies. The chips above still name every count where something changes — the control at the top switches the reading.",
-      "reading_multi": "This is the list at three enemies, the count every press above is judged at. The low-count half of each split rung is not drawn, and neither is the Spinning Crane Kick that needs four. The chips above still name every count where something changes — the control at the top switches the reading.",
+      "reading_single": "This is the priority flow at one enemy. Rungs that need two or more enemies are not drawn, and split rungs show only the half that applies. The chips above still name every count where something changes — the control at the top switches the reading.",
+      "reading_multi": "This is the priority flow at three enemies. The low-count half of each split rung is not drawn, and neither is the Spinning Crane Kick that needs four. The chips above still name every count where something changes — the control at the top switches the reading.",
       "legend": {
         "title": "How to read it",
         "spine": "Every rung is one question. Yes: press the button beside it and stop there. No: follow the line down to the next question.",
