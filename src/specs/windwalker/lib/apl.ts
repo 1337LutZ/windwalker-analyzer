@@ -539,24 +539,53 @@ export const LADDER_ENTRIES = ladderEntries(LADDER);
  * Charging those globals to the rung the list would have spent them on is the sim's own answer to what
  * the global should have been, and it is a better answer than silence.
  *
- * **This ladder can already reach `off-list` without any of this, which makes the measurement harder to
- * read rather than easier.** Its rungs are written in units of energy and chi, so a rung it cannot pay
- * for declines and the walk falls off the bottom: `offList` is 12 on `strong`, 13 on `waves`, 11 on
- * `cleave` before this declaration, all of it Blackout Kicks, Tiger Palms and kicks off an empty bar.
+ * **This ladder can already reach `off-list` without any of this, which makes the column harder to read
+ * rather than easier.** Its rungs are written in units of energy and chi, so a rung it cannot pay for
+ * declines and the walk falls off the bottom — Blackout Kicks, Tiger Palms and kicks off an empty bar.
  * That arm returns `reason: null`; this one returns a section name, and the two are the same column and
- * different facts. `cleave` shows both at once — 4 of its 11 pre-existing fall-throughs are presses of
- * these two buttons, which stay `off-list` and gain a reason, while 2 more arrive from `skipped` and
- * `unknown`.
+ * different facts. `cleave` shows both at once, 6 delegated presses against 7 fall-throughs on one pull.
  *
- * What this moves, per pull, `skipped`/`unknown`/`offList` and nothing else — `followed` is untouched on
- * all six, which is the whole of what a declaration read before the first rung can do:
+ * So the six committed pulls read, `followed`/`skipped`/`unknown`/`offList`, with `offList` split
+ * delegated + fall-through:
  *
- *   waves   107→92 · 1→0 · 13→29    strong  150→148 · 0 · 12→14
- *   cleave   73→72 · 4→3 · 11→13    poor    113→110 · 2 · 1→4
- *   mixed   100→97 · 1 · 9→12       weave    39→38 · 1 · 0→1
+ *   waves   126 · 92 · 0 · 29 (16+13)    strong  252 · 143 · 0 · 14 (2+12)
+ *   cleave   73 · 72 · 3 · 13 ( 6+ 7)    poor    101 · 110 · 2 ·  4 (3+ 1)
+ *   mixed    95 · 95 · 1 ·  9 ( 3+ 6)    weave    77 ·  38 · 1 ·  1 (1+ 0)
  *
- * The captured fixtures are analyses rather than datasets, so those are the figures a re-capture would
- * write and not a diff the suite can see; `__tests__/unarbitrated.test.ts` holds the wiring instead.
+ * All 19 Storm, Earth and Fire presses (15 on `waves`, 4 on `cleave`) and all 12 Touch of Karma presses
+ * (on all six, which makes Karma the delegation a reader is most likely to meet) are `off-list` carrying
+ * a section name; no press of the other four charged buttons is.
+ *
+ * **Those figures are asserted in `__tests__/aplLedger.test.ts` and are not owned here**, because the
+ * paragraph they replaced was a prediction and it was wrong. It was written while the captures still
+ * predated the declaration, as a before→after diff worked out by hand, and it closed "`followed` is
+ * untouched on all six". `ba04cbe` re-captured the six and made it checkable: it lands on four pulls and
+ * misses `mixed` (predicted 97 skipped / 12 off-list, actual 95 / 9) and `strong` (predicted 148 skipped,
+ * actual 143) — and on exactly those two, `followed` moves by +5.
+ *
+ * **The declaration is not what moved it, and neither is the `resources` restructure that shipped
+ * alongside it** — the explanation this figure was last given, and the third wrong one it has had. That
+ * restructure reshaped `resources.chi` and `resources.energy` (`points` → `curve.points`) and moved no
+ * bar at all: the sampled curves are byte-identical across `ba04cbe` on both pulls, 92 and 178 chi points
+ * and 803 and 1724 energy points, the same values. Nothing became affordable that was not affordable
+ * before.
+ *
+ * What moved is the **band**. The same commit re-pointed `AplInputs.targetsAt` at `targets.aplCounts` —
+ * the ladder's own live count, fed as `aplTargetCountAt` in `lib/index.ts` — instead of the display
+ * counts the target-count section draws, and on those two pulls the two disagree hard: `mixed`'s count
+ * collapses from a max of 4 to band 1 for the whole pull, and `strong`'s stretches that read 2 to 4 now
+ * read 1. Band 1 *deletes* the banded rungs (`rushing-jade-wind-open`, `rising-sun-kick`, and both
+ * Spinning Crane Kicks), so globals that were faulted against a rung an over-count had invented now land
+ * on the rung the player actually pressed: 3 Jabs and 2 Blackout Kicks turn `followed` on `mixed`, and on
+ * `strong` 3 Jabs, 2 Chi Waves and 2 Rising Sun Kicks do, against one Rising Sun Kick and one Rushing
+ * Jade Wind lost.
+ *
+ * Measured across all six rather than argued from those two: **of the 25 presses whose verdict or wanted
+ * rung moved and are not one of the two declared buttons, all 25 are presses whose band changed, and none
+ * is a press whose band did not.** So the declaration's own reach is what it always was — a rule read
+ * before the first rung can only take presses of the buttons it names — and it is
+ * `__tests__/unarbitrated.test.ts`, running `analyse` end to end on a synthetic pull, that fails when it
+ * stops being wired. These captures are frozen `Analysis` output and no engine change can move them.
  */
 export const UNARBITRATED: Readonly<Partial<Record<number, string>>> = {
 	// Judged by `analysis.sef` and rendered by the section of the same id. 15 presses on `waves` alone,
