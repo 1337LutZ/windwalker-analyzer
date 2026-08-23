@@ -459,7 +459,12 @@ describe('the shared copy is about the pull, not about the audit', () => {
 	it('sweeps every shared section, and reaches the strings a key-kind selector never would', () => {
 		const found = new Set(sharedStrings().map(([key]) => key.split('.')[0]!));
 		expect([...found].sort()).toEqual([...SHARED_SECTIONS].sort());
-		expect(sharedStrings().length).toBeGreaterThan(310);
+		// 300 and not 310: twelve of the shared roots' strings were dead copy, and went when `keys.test.ts`
+		// gained an orphan hunt for `report.json` — three `method` notes nothing rendered, six `timeline`
+		// track and legend labels, `castLog.caption` and the two `gear.pill.gems` plurals. A floor is a
+		// non-vacuity guard rather than a budget, so it follows the file down when the file loses copy that
+		// had no reader.
+		expect(sharedStrings().length).toBeGreaterThan(300);
 		// The measurement, done before the selector was chosen rather than after. Copying the Elemental
 		// key-kind selector here would have selected 25 of these 311 strings and caught **three** of the
 		// 27 below — the three that happen to be called `intent`. The other 24 are `note`, `empty`,

@@ -42,7 +42,6 @@
     "unholdable_one": "One proc converted into {{stat}}, which Tigereye Brew cannot freeze: the brew’s multiplier reads mastery and nothing else, so it could not be snapshotted. It is left out of the total above rather than counted as a chance missed.",
     "unholdable_other": "{{count}} procs converted into a stat Tigereye Brew cannot freeze. Its multiplier reads mastery and nothing else, so none of them could be snapshotted. They are left out of the total above rather than counted as chances missed.",
     "key": {
-      "weaved": "Weaved past on purpose: the elixir swap made this proc a stat no brew can hold",
       "unholdable": "Cannot be snapshotted: the Rune returned a stat Tigereye Brew cannot freeze"
     }
   },
@@ -78,7 +77,6 @@
       "press": "Used",
       "capped": "Overcapped"
     },
-    "noChart": "Nothing ever went into the Tigereye Brew bank in this pull, so there is no chart to draw.",
     "spentStacks_one": "{{count}} stack",
     "spentStacks_other": "{{count}} stacks",
     "chartLabel": "Tigereye Brew bank across the {{duration, clock}} pull, peaking at {{peak}} of {{cap}} stacks, with {{uses}} brews spent averaging {{avg, decimal}} stacks, and {{capped, integer}} stacks lost at the cap."
@@ -118,7 +116,6 @@
     "wastedGcds_other": "{{count}} globals went to Tiger Palms that achieved nothing, and they are not counted above. A Jab or Blackout Kick there costs the same globals and does count — this number is not asking you to press less.",
     "channel": "{{seconds, seconds}} of that was spent channelling, which does not consume globals.",
     "caption": "Cast rate per ability, with what limits each button",
-    "unit": "cpm",
     "empty": "No ability was cast more than once in this pull.",
     "presses": "{{onGcd}} on-GCD casts plus {{offGcd}} off-GCD presses, over the {{active, clock}} you spent on a target in a {{total, clock}} pull.",
     "caveat": "There is no \"of possible\" figure for the pull as a whole, because that would assume the boss was always targetable and every condition was always met. Each row's own target is the honest version of that question.",
@@ -201,8 +198,7 @@
       "wasted": "Wasted",
       "apply": "Applied"
     },
-    "split": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted.",
-    "noRefreshes": "None of them refreshed an active Tiger Power — the presses that were not procs happened after the buff had already fallen off, so they reapplied it rather than refreshed it."
+    "split": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted."
   },
   "fistsOfFury": {
     "title": "Fists of Fury",
@@ -399,10 +395,7 @@
     "intent": "What was measured and what could not be.",
     "engaged": "Uptime is measured against engaged time — the pull minus intermissions and time with no target — rather than the raw fight length.",
     "energy": "Energy is read from the `classResources` snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from `resourcechange` events, of which a pull carries around twenty. It is used for time at the cap and nothing else.",
-    "spec": "Classic logs report spec as 0, so the spec is taken from the report's own player list and confirmed by a Tigereye Brew cast.",
-    "source": "One event fetch for report {{code}}, fight {{fightID}}, actor {{actorID}}, straight from your browser to WarcraftLogs.",
-    "brewStacks": "Tigereye Brew stacks are read off the bank aura's removal event, never off the cast — WarcraftLogs logs the drain about a millisecond before the cast, so sampling at the cast reads a bank that has already been spent.",
-    "dps": "DPS is WarcraftLogs' own damage total over the full fight duration."
+    "spec": "Classic logs report spec as 0, so the spec is taken from the report's own player list and confirmed by a Tigereye Brew cast."
   },
   "kpi": {
     "dps": "DPS",
@@ -429,14 +422,7 @@
     "intent": "Every brew, every Re-Origination proc, the Rising Sun Kick debuff on {{target}} and every Fists of Fury channel on one timeline — so you can see whether the brews landed where the procs were. Drag to scrub, zoom in, hover for detail.",
     "target": "the primary target",
     "target_boss": "the boss",
-    "none": "Nothing was recorded on any track for this pull, so there is no timeline to draw.",
     "empty": "No procs, no brews, no debuff and no channels in this pull, so there is nothing to draw.",
-    "track": {
-      "proc": "Re-Origination",
-      "brew": "Tigereye Brew",
-      "debuff": "Rising Sun Kick",
-      "channel": "Fists of Fury"
-    },
     "key": {
       "brew": "Brew held",
       "kick": "Debuff up, or a proc snapshotted late",
@@ -448,7 +434,6 @@
       "key": {
         "buff": "A buff you pressed",
         "proc": "A proc",
-        "debuff": "A debuff on the target",
         "press": "A press or a dot"
       },
       "empty": "No auras in this pull, so there is nothing to draw."
@@ -458,7 +443,6 @@
     "title": "Timeline",
     "intent": "Every press as its own icon at the moment it went out, with buffs, procs and the Rising Sun Kick debuff drawn as bars underneath. Read down from a button to see what was up when you pressed it. Turn off what you are not looking at, zoom to separate one global from the next, and scroll sideways through the pull.",
     "empty": "No casts and no buff windows were recorded for this pull, so there is nothing to draw.",
-    "caption": "Colour marks what kind of button it was, and nothing here counts for or against you. A press that cost a global is drawn at full size; an off-global press, like a brew or a trinket, is drawn smaller so it never reads as a global you spent.",
     "expand": "Open full width",
     "close": "Close",
     "zoomIn": "Zoom in",
@@ -697,8 +681,6 @@
     "missing_other": "{{count}} slots are carrying no enchant — {{slots}}. That is a straight loss on every pull, and the cheapest damage on this page to get back.",
     "pill": {
       "ilvl": "{{ilvl}} average item level",
-      "gems_one": "{{count}} gem",
-      "gems_other": "{{count}} gems",
       "missing_one": "{{count}} slot unenchanted",
       "missing_other": "{{count}} slots unenchanted"
     }
