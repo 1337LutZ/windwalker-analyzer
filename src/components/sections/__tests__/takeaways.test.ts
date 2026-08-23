@@ -167,3 +167,56 @@ describe('the summary takeaways', () => {
 		expect(html).toContain('no short list');
 	});
 });
+
+/**
+ * What the `good` heading is allowed to call the cards under it.
+ *
+ * `summary.takeaways.title_good` was "Key refinements", printed as KEY REFINEMENTS over a grid whose
+ * cards are drawn from the metrics that scored worst — and one of them can be `bad`, with the red left
+ * border this block already draws for it. That is the same defect as `overall.good`'s old third clause
+ * ("The notes below are small refinements, not real mistakes") one line further down the page: a claim
+ * about the size of a fault, made by a letter that never looked at it.
+ *
+ * `strong` is the proof and it is committed. `good` over **15 of 15** points — nothing unread, so this
+ * is the worst case the letter permits with nothing excused — and its leading card is `brewShortUses`,
+ * graded `bad`, whose copy tells the reader they spent brews with the bank under ten and to hold for
+ * the tenth stack. A reader of that pull was handed a red card headed "refinements".
+ *
+ * The heading now says the same thing the sentence above it says, in the same voice: a strong pull can
+ * still be holding something worth fixing. It does not tell a clean pull it played badly — `still` is
+ * what carries that — and it makes no claim at all about how large the fault is, which is the claim
+ * that was false.
+ */
+describe('the good takeaways heading does not shrink the cards under it', () => {
+	const t = i18n.getFixedT('en', 'report');
+
+	it('is printed over a card the same scorecard grades bad', () => {
+		const strong = fixture('strong');
+		const card = scoreAnalysis(strong);
+		expect(card.overall).toBe('good');
+		expect(card.judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
+		const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis: strong })));
+		// `border-l-miss` is the red edge `Takeaways` draws from a card's own `bad` grade; `border-l-brew`
+		// is the amber one. Both are in this markup, which is the whole point.
+		expect(html).toContain('border-l-miss');
+		expect(html).toContain(t('summary.takeaways.title_good'));
+	});
+
+	/** The claim itself, named, so it cannot come back in a rewrite. */
+	it('calls a red card nothing smaller than it is', () => {
+		const title = t('summary.takeaways.title_good').toLowerCase();
+		for (const shrink of ['refinement', 'minor', 'small', 'tweak', 'polish', 'nitpick']) {
+			expect(title, shrink).not.toContain(shrink);
+		}
+	});
+
+	/**
+	 * The property rather than the phrasing: the heading and the sentence above it are one voice. Both
+	 * hold that a strong average can be hiding something real, and the word that does it in both is
+	 * `still` — so a lane that softens one of them has to look at the other.
+	 */
+	it('speaks in the same voice as the sentence above it', () => {
+		expect(t('summary.takeaways.title_good')).toContain('Still');
+		expect(t('overall.good')).toContain('a strong average can still hold a habit that cost you real damage');
+	});
+});
