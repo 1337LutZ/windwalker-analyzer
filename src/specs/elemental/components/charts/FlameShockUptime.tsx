@@ -50,14 +50,27 @@ import WindowTracks from '~/components/charts/WindowTracks';
  * figure is not a deleted one. Hiding it would trade one disagreement for a second: the reader would see
  * green stop and have nothing saying the dot had not dropped there.
  *
- * **What the split does not close, and cannot from here.** Green is still the *primary target's* dot,
- * while `contactUptimeMs` is the dot on whichever spawn was being hit. Clipped, the row is 160 293ms
- * against a 150 023ms numerator on `cleave` — the 10 270ms residual is dot time on an enemy the player
- * was not hitting, and no published array can find it: the audit publishes the secondary's dot only as
- * `multiDotUptimeMs`, a scalar. On `phased` and `unbroken` the residual is exactly zero, so the row *is*
- * the numerator on every pull where the question does not arise. `uptimeRow.test.ts` pins all three
- * figures, so a field that closes it (a contact-clipped `windows` beside the unclipped one) will announce
- * itself there.
+ * **What the split does not close, and why the field that arrived does not close it either.** Green is
+ * still the *primary target's* dot, while `contactUptimeMs` is the dot on whichever spawn was being hit.
+ * Clipped, the row is 160 293ms against a 150 023ms numerator on `cleave` — the 10 270ms residual is dot
+ * time on an enemy the player was not hitting.
+ *
+ * That residual used to be unfindable from here, and this docblock said so: the secondary's dot was
+ * published only as the scalar `multiDotUptimeMs`. **`84d41f8` published the arrays** — `contactWindows`,
+ * whose union is exactly `contactUptimeMs`, and `secondaryID` beside it — so the residual can now be
+ * located to the millisecond rather than only subtracted.
+ *
+ * **It still must not become this row.** `contactWindows` sits *wholly inside* the clipped green row, the
+ * row being larger by exactly 0 / 0 / 10 270 ms; so sourcing green from it would not correct the row, it
+ * would delete 10 270ms of dot the player really did have on the primary target *inside the graded
+ * clock*. That is `8e011ac`'s rule — an unmeasured figure is not a deleted one — pointed the other way,
+ * and it is the same trade this docblock refused three paragraphs up.
+ *
+ * Closing it honestly is a **re-partition and not a substitution**: green becomes the dot on the spawn
+ * being hit, and the difference — dot up, inside the graded clock, on an enemy the player had left —
+ * becomes a fifth row with a name of its own and a copy key to go with it. That is a piece of work rather
+ * than an edit, so until someone does it the row stays the primary's dot and `uptimeRow.test.ts` keeps
+ * the 0 / 0 / 10 270 pin, which still describes this chart exactly.
  *
  * **The multi-dot clock gets no row here, and no chart of its own.** `flameShock.multiTargetMs` is band 2
  * *alone* — the only clock in the audit cut at both ends — so its exempt time is the add waves shaded

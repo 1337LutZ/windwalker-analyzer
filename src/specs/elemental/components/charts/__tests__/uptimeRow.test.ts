@@ -172,12 +172,18 @@ describe('the up row is the clock the percentage is taken over', () => {
 	 *
 	 * `contactUptimeMs` is the dot on **whichever spawn was being hit**; `flameShock.windows` is the dot on
 	 * the **primary target**. The clip makes the two spans agree about *time*; it cannot make them agree
-	 * about *subject*, because the secondary's dot is published only as the scalar `multiDotUptimeMs`. On a
-	 * pull that never had a second target the two subjects are one, which is why `phased` and `unbroken`
-	 * come out at zero — and that is what identifies the residual as the per-spawn gap and nothing else.
+	 * about *subject*. On a pull that never had a second target the two subjects are one, which is why
+	 * `phased` and `unbroken` come out at zero — and that is what identifies the residual as the per-spawn
+	 * gap and nothing else.
 	 *
-	 * A contact-clipped window array beside the unclipped one would close it, and the day one arrives this
-	 * expectation goes to zero on all three fixtures. Until then the number is stated rather than implied.
+	 * **The array this used to wait for has arrived, and the expectation did not move.** `84d41f8`
+	 * published `contactWindows` — the numerator's own spans, union exactly `contactUptimeMs` — so the
+	 * residual is now locatable rather than only subtractable. But it sits *wholly inside* the clipped row
+	 * measured here, the row being larger by these very 0 / 0 / 10 270 ms, so drawing the row from it would
+	 * delete 10 270ms of dot the player did have on the primary target inside the graded clock rather than
+	 * correcting anything. What would take these numbers to zero is a fifth row — the dot up, graded, on an
+	 * enemy the player had left — which is a re-partition of the chart and not a change of source. Until
+	 * that lands the numbers stay stated rather than implied, and they describe the chart as drawn.
 	 */
 	it.each([
 		['phased', 0],
@@ -191,6 +197,15 @@ describe('the up row is the clock the percentage is taken over', () => {
 		// The row is never *below* the numerator: whatever the clip left in is a superset of what was counted,
 		// so the chart may overstate the dot's subject and can no longer overstate its clock.
 		expect(up).toBeGreaterThanOrEqual(analysis.flameShock.contactUptimeMs);
+
+		// And a superset in *spans* and not merely in total, which is the claim the docblock above rests on
+		// and the reason the new array must not become this row. Written as a check rather than as prose:
+		// every millisecond `contactWindows` holds is already drawn green, so swapping the source could only
+		// take the difference away, never add anything the row was missing.
+		const contact = spans(analysis.flameShock.contactWindows.map((w): Interval => [w.start, w.end]));
+		expect(unionMs(contact)).toBe(analysis.flameShock.contactUptimeMs);
+		expect(unionMs(intersect(contact, rowOf(rows, 'Dot up')))).toBe(unionMs(contact));
+		expect(up - unionMs(contact)).toBe(residualMs);
 	});
 
 	/**
