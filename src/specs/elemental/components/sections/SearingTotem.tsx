@@ -129,9 +129,21 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 								uptime: searingTotem.uptimePct,
 								overlaps: searingTotem.feOverlaps,
 							})
-						: verdict('searingTotem', {
+						: /*
+							 * `count` is the clipped-press figure, so the sentence agrees with it at every value it
+							 * can take — *"1 presses clipped"* and *"0 presses clipped, throwing away 0s"* were both
+							 * reachable, and the second one on two committed pulls.
+							 *
+							 * Only the un-narrowed route needs it. Clipping is not one of this section's two graded
+							 * metrics, so the letter above the sentence says nothing about how many presses clipped
+							 * — `phased` grades `ok` on uptime alone with nothing clipped at all — which is exactly
+							 * why the figure has to carry its own agreement rather than borrow it from the grade. The
+							 * narrowed route names the overlap count instead and no arm of it prints this one.
+							 */
+							verdict('searingTotem', {
 								uptime: searingTotem.uptimePct,
 								clipped: searingTotem.clipped,
+								count: searingTotem.clipped,
 								wasted: searingTotem.wastedMs,
 							})}
 				</Prose>

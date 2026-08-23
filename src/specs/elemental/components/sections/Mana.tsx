@@ -155,11 +155,30 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 	 * the right join rather than a sum.
 	 */
 	const lowMs = Math.max(mana.starved.lowMs, mana.strained.lowMs);
+	/**
+	 * `count` is the Rage's own figure again, and it is here so a pull that passed over one press does not
+	 * read *"1 times"*.
+	 *
+	 * i18next picks a plural off `count` and off nothing else, and `verdict()` spreads whatever it is
+	 * handed straight into the interpolation payload — so this needs no change to the helper at all. It
+	 * rides on the shared payload rather than on the arms that read it, because the payload is what both
+	 * routes out of this component give the translator; an arm that names no count resolves its plural
+	 * suffix, finds nothing stored under it, and falls back to the arm without one. That fallback is
+	 * i18next's own resolution order rather than a coincidence, and it is pinned rather than assumed —
+	 * see `__tests__/countAgreement.test.ts`.
+	 *
+	 * **Which arms need a singular is measured, and it is two of the four that print the figure.** Narrowed
+	 * to the Rage's half alone, the section's letter *is* the Rage's metric, whose thresholds make `ok`
+	 * exactly one press passed over and `bad` two or more — so the narrowed `ok` arm says "once" outright
+	 * and the narrowed `bad` arm can never be handed a one. The un-narrowed pair is graded against the
+	 * Thunderstorm too, so either of them can arrive with any count the Rage produces.
+	 */
 	const graded = {
 		starved: mana.starvedPct,
 		strained: mana.strainedPct,
 		starvedMs: mana.starved.ms,
 		rage: mana.strained.stretches,
+		count: mana.strained.stretches,
 		low: lowMs,
 	};
 	/**

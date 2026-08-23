@@ -176,9 +176,23 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 								overcap: lightningShield.overcapMs,
 								fellOff: lightningShield.fellOff,
 							})
-						: verdict('lightningShield', {
+						: /*
+							 * `count` is the drop count, so the sentence agrees with it. *"came all the way off 1
+							 * times"* is what `cleave` printed and *"0 times"* what the other three did, and both
+							 * arms of the un-narrowed pair could be handed either: this section's letter is the worse
+							 * of two metrics, so an overcap on its own is enough to reach `bad` with the shield never
+							 * once off you.
+							 *
+							 * The narrowed route needs nothing, and the reason is worth having written down. There
+							 * the overcap is out of scope and the letter comes off the drop count alone, whose
+							 * thresholds make `good` no drops, `ok` exactly one and `bad` two or more — so its three
+							 * arms already say "never came off", "came off once" and a plural, each of them the only
+							 * count that arm can be given.
+							 */
+							verdict('lightningShield', {
 								overcap: lightningShield.overcapMs,
 								fellOff: lightningShield.fellOff,
+								count: lightningShield.fellOff,
 							})}
 				</Prose>
 				{/* What the grey band means, on the pulls that have one.

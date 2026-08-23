@@ -142,7 +142,14 @@ describe('a section whose only graded metric was never asked', () => {
 	it('leaves both sections alone on the reading nobody forced', () => {
 		// `phased` grades `ok` on the totem and `bad` on the shield under its own reading, so the guards are
 		// against those two sentences rather than against the `good` ones the forced reading produced above.
-		expect(verdictOf(render(SearingTotem, phased, 'auto'))).toContain('79.84% uptime.'); // no-change guard
+		// `phased` clips nothing, so its own reading takes the totem's `ok` sentence at a count of nought —
+		// the arm that stopped saying "0 presses clipped a healthy totem, throwing away 0s of its dot". The
+		// second assertion is what keeps this a guard on the `ok` arm rather than on either arm that reads
+		// nought, since `bad` at nought opens on the same clause and then asks for the totem back.
+		expect(verdictOf(render(SearingTotem, phased, 'auto'))).toContain(
+			'79.84% uptime, and no press landed over a live totem',
+		); // no-change guard, reworded with the string itself
+		expect(verdictOf(render(SearingTotem, phased, 'auto'))).not.toContain('put the totem back the moment it drops');
 		expect(verdictOf(render(LightningShield, phased, 'auto'))).toContain(
 			'The shield sat at seven for 40.4s past the leeway',
 		); // no-change guard
@@ -172,7 +179,10 @@ describe('a section none of whose rules were asked', () => {
 
 		const es = verdictOf(render(EarthShock, cleave, 'multi'));
 		expect(es).toContain('has no Earth Shock in it at all');
-		expect(es).toContain('none of your 12 shocks is right or wrong on this reading');
+		expect(es).toContain('none of your shocks is right or wrong on this reading');
+		// The total moved into a clause of its own when this sentence was reworded to read correctly at one
+		// shock and at none — see `countAgreement.test.ts` for the measurement behind that.
+		expect(es).toContain('That is 12 in total');
 		expect(es).not.toContain('Earth Shock was never cast in this pull');
 
 		const snap = verdictOf(render(Snapshots, cleave, 'multi'));

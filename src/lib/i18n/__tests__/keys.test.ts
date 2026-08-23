@@ -982,6 +982,14 @@ describe('report copy with no reader', () => {
 		],
 		casts: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
 		debuff: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
+		// **No plural arm on any of the five, and the measurement is why rather than an oversight.** The
+		// three graded arms open on a fraction of the shocks a list had an opinion about, and `shareOf`
+		// hands that share its denominator as a sample size, which `metricOf` refuses below
+		// `MIN_GRADED_SAMPLE` — so a pull with one or two of them is unmeasurable and never reaches a graded
+		// sentence at all. The exempt arm has no sample floor and names the *total* instead, one and nought
+		// both included, so it is written so the count needs no agreement: a plural arm there would have
+		// grown the five key names `readerVoice.test.ts` pins as the only places our word for a scope
+		// appears, in a file this lane does not own.
 		earthShock: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_exempt', 'verdict_none'],
 		flameShock: [
 			'verdict_good',
@@ -997,10 +1005,19 @@ describe('report copy with no reader', () => {
 		],
 		flameShockSnapshots: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_exempt', 'verdict_none'],
 		karma: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
+		// Three arms each on the un-narrowed pair, and none on the narrowed three, which is the shape a
+		// measurement left rather than a preference. The drop count is one of two metrics here, so an
+		// un-narrowed sentence can be handed nought, one or many of them whatever its letter — `cleave`
+		// prints one and the other three print nought. Narrowed, the letter *is* the drop count, so each of
+		// those three arms has exactly one count it can carry and says it in words.
 		lightningShield: [
 			'verdict_good',
-			'verdict_ok',
-			'verdict_bad',
+			'verdict_ok_zero',
+			'verdict_ok_one',
+			'verdict_ok_other',
+			'verdict_bad_zero',
+			'verdict_bad_one',
+			'verdict_bad_other',
 			'verdict_good_noOvercap',
 			'verdict_ok_noOvercap',
 			'verdict_bad_noOvercap',
@@ -1010,21 +1027,42 @@ describe('report copy with no reader', () => {
 			'verdict_good',
 			'verdict_good_noRage',
 			'verdict_good_noThunderstorm',
-			'verdict_ok',
+			// Two arms and no `_zero`: the un-narrowed pair is reached with both halves answered, and the
+			// Rage's half is answered by a count of presses passed over that a sub-global overlap can leave at
+			// nought. So nought is reachable and reads correctly — English takes the plural arm for it — while
+			// one needs its own, and no committed pull has the sub-global shape a `_zero` sentence would be
+			// written for.
+			'verdict_ok_one',
+			'verdict_ok_other',
 			// The narrowed arms went from the `good` grade to all three when `addsThenBoss` landed and became
 			// the first committed pull to answer one half and not the other: it strains once with the Rage
 			// unpressed and never starves, so `verdict_ok` asserted a clean Thunderstorm it had not measured.
+			//
+			// Neither narrowed arm carries a plural, and that is the same measurement made twice. With the
+			// Thunderstorm unread the letter is the Rage's metric alone, `ok` at exactly one press passed over
+			// and `bad` at two or more — so the `ok` arm says "once" in words and the `bad` arm can never be
+			// handed a one. `addsThenBoss` is the pull that reaches the first of those, and the sentence it
+			// used to be given read "1 times".
 			'verdict_ok_noRage',
 			'verdict_ok_noThunderstorm',
-			'verdict_bad',
+			'verdict_bad_one',
+			'verdict_bad_other',
 			'verdict_bad_noRage',
 			'verdict_bad_noThunderstorm',
 			'verdict_none',
 		],
+		// Clipping is not one of this section's two graded metrics, so the un-narrowed pair can print any
+		// count under either letter — `phased` grades `ok` with nothing clipped and printed "0 presses
+		// clipped a healthy totem, throwing away 0s of its dot". The narrowed three name the overlap count
+		// instead and print no clipped figure at all.
 		searingTotem: [
 			'verdict_good',
-			'verdict_ok',
-			'verdict_bad',
+			'verdict_ok_zero',
+			'verdict_ok_one',
+			'verdict_ok_other',
+			'verdict_bad_zero',
+			'verdict_bad_one',
+			'verdict_bad_other',
 			'verdict_good_noUptime',
 			'verdict_ok_noUptime',
 			'verdict_bad_noUptime',
