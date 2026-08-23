@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatSeconds } from '~/lib/format';
-import { resourceColorOf, RESOURCE_TYPE } from '~/lib/game/resources';
+import { resourceColorOf } from '~/lib/game/resources';
 import type { SpecDefinition } from '~/lib/spec';
 import type { Analysis, PointsResourceAudit, PoolResourceAudit } from '~/lib/types';
 
 import { useSpec } from '../report/specContext';
 import ResourceChart from '../charts/ResourceChart';
-import { cappedOf, emptiedOf } from '../charts/capped';
+import { cappedOf } from '../charts/capped';
 import type { Tone } from '../charts/tones';
 import { DataGrid, Note, Prose, Section, StatTile, StatTiles, type GridRow } from '../primitives';
 import LogLink from './LogLink';
@@ -166,75 +166,6 @@ function PoolBar({
 	// "the bar never reached the top" about one would be a claim made out of missing data.
 	if (bar.samples === 0) {
 		return <EmptyBar analysis={analysis} id={id} copyPrefix={copyPrefix} />;
-	}
-
-	// Mana is the one pool whose being full is not a fault — it sits at the ceiling until cast, and a
-	// full bar is exactly where it should be. Its fault is the floor: running out, which no other bar
-	// can do. So the mana half of a pool section shades the empty stretches in red instead of the
-	// capped ones, and reads the empty duration instead of a cap table.
-	//
-	// ## Retired, and left standing rather than deleted so a reader who remembers it finds out where it went
-	//
-	// **Unreachable.** No spec routes mana through the generic section any more: the only two
-	// `resourceSection` entries in `report/specSections.tsx` are `copyPrefix: 'energy'` and `'chi'`, and
-	// the Elemental's pool has its own component — `specs/elemental/components/sections/Mana.tsx`, wired
-	// in as `ElementalMana` — which grew past what this branch can express. It draws three bands and not
-	// one (starved with Thunderstorm up, strained with Shamanistic Rage up, and the exempt stretch where
-	// both were coming back), carries a press table, and grades the two buttons. This branch's single
-	// red band and empty-duration sentence is the shape that section had before there was anything to
-	// press about it.
-	//
-	// **And it would not render if it were reached: both copy keys it reads are gone.** `mana.summary`
-	// and `mana.key.empty` are absent from `locales/en/report.json` — `Mana.tsx` replaced the first with
-	// `mana.clean` plus a graded verdict and the second with the three band legends above, and the dead
-	// keys went with the old copy. `i18n/__tests__/copyPrefix.test.ts` cannot catch that: it checks each
-	// prefix *in use* against the branch profile it comes closest to, and with `energy` and `chi` both
-	// matching `pool`, `PROFILES.mana` is filed for a branch nothing ever asks about.
-	//
-	// So removing this is one edit larger than it looks — the `mana` entry in that test's `PROFILES` and
-	// its `BRANCHES` list have to go in the same change, or its "every prefixed key a component asks for
-	// is filed" assertion fails on a `key.empty` nothing asks for any more. Recorded here rather than
-	// done, because that file belongs to another concern.
-	if (bar.type === RESOURCE_TYPE.mana) {
-		const emptied = emptiedOf(bar.curve);
-		const emptiedMs = emptied.reduce((s, w) => s + w.end - w.start, 0);
-		return (
-			<Section id={id} title={t(`${copyPrefix}.title`)}>
-				<Prose>{t(`${copyPrefix}.intent`)}</Prose>
-				<div className="mt-4.5">
-					<ResourceChart
-						curve={bar.curve}
-						durationMs={analysis.durationMs}
-						tone={tone}
-						color={color}
-						smooth
-						legend={t(`${copyPrefix}.key.bar`)}
-						bands={[{ tone: 'miss', windows: emptied, legend: t(`${copyPrefix}.key.empty`) }]}
-						label={t(`${copyPrefix}.chartLabel`, {
-							max: bar.curve.max,
-							empty: emptiedMs,
-							duration: analysis.durationMs,
-						})}
-					/>
-				</div>
-				<div className="mt-5">
-					<Prose>
-						{emptiedMs === 0
-							? t(`${copyPrefix}.clean`)
-							: t(`${copyPrefix}.summary`, { empty: emptiedMs, duration: analysis.durationMs })}
-					</Prose>
-				</div>
-				<div className="mt-4">
-					<Note>
-						{t(`${copyPrefix}.resolution`, {
-							samples: formatInteger(bar.samples),
-							median: bar.medianGapMs,
-							p99: bar.p99GapMs,
-						})}
-					</Note>
-				</div>
-			</Section>
-		);
 	}
 
 	const capped = bar.total.cappedMs > 0;

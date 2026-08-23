@@ -2,7 +2,7 @@
 //
 // `keys.test.ts` reads literal `t('energy.title')` calls out of the source. A generic section does
 // not have those: `Resource` is one component drawing every spec's bars, so it asks for
-// ``t(`${copyPrefix}.title`)`` and the prefix arrives as a prop — `energy`, `chi`, `mana`, and
+// ``t(`${copyPrefix}.title`)`` and the prefix arrives as a prop — `energy`, `chi`, and
 // whatever the next spec's bar is called. Nothing in the suite could see those keys, so a whole
 // family of copy was unverified: a bar wired up with a prefix the locale has never heard of renders
 // `mana.title` as its own heading, and the section still mounts, still passes every render test, and
@@ -114,8 +114,6 @@ const PROFILES = {
 		'where.engaged',
 		'where.downtime',
 	],
-	/** Mana: the one pool whose fault is the floor, so it reads an empty duration and no cap table. */
-	mana: ['key.empty'],
 	/** The points half: a fault measured as a count of what a press threw away. */
 	points: [
 		'kpi.wasted',
@@ -129,7 +127,7 @@ const PROFILES = {
 	],
 } as const;
 
-const BRANCHES = ['pool', 'mana', 'points'] as const;
+const BRANCHES = ['pool', 'points'] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null;

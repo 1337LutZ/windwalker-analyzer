@@ -1,7 +1,8 @@
 // The Mana section's two faults, and the three ways a low pool is deliberately *not* charged.
 //
-// **Every assertion about a firing fault is on a synthetic pull, and that is a finding rather than a
-// convenience.** None of the three committed fixtures can exercise either fault:
+// **One of the two faults now fires on a committed pull; the other still has none, and every assertion
+// about it is on a synthetic pull.** That split is a finding rather than a convenience, and it is what
+// the four fixtures each contribute:
 //
 //   - `phased` and `unbroken` carry **no `classResources` readings at all** — both were captured
 //     without `includeResources: true` — so their mana bar has zero samples and every figure in this
@@ -11,6 +12,11 @@
 //     readings on a 300 000 pool, median 46ms apart. **Its lowest reading of the whole pull is 77.7%.**
 //     It never comes within sixty points of Thunderstorm's 15% line and never touches Shamanistic
 //     Rage's 70% line either, so both faults are unmeasurable on it too — not zero, unmeasurable.
+//   - `addsThenBoss` landed after the rest of this file and is the first committed pull whose pool goes
+//     under a line: **26.567s under 70% with Shamanistic Rage never pressed**, which is
+//     `shamanisticRageMissed` reading a number on data nobody rewrote. Its 2 627 readings are more than
+//     twice `cleave`'s, and its deepest is **62.344%** — so the 15% line is still untouched by every
+//     committed pull, and Thunderstorm's half of this file stays synthetic.
 //
 // So the synthetic pulls are `cleave`'s own event stream with **only the pool rewritten** over a chosen
 // stretch: the same casts, the same shield, the same timing, one bar moved. That is deliberately not a
@@ -22,7 +28,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import type { Analysis, ElementalAuditResult, FightDataset, WclEvent } from '~/lib/types';
+import { abilityIdOf, isCast } from '~/lib/events';
+import type { Analysis, ElementalAuditResult, FightDataset, PoolResourceAudit, WclEvent } from '~/lib/types';
 
 import { analyse } from '../index';
 import { scoreAnalysis } from '../score';
@@ -79,7 +86,7 @@ function synthetic(opts: {
 
 // ------------------------------------------------------------- what the committed pulls actually do
 
-describe('the three committed pulls', () => {
+describe('the three pulls that answer neither fault', () => {
 	/** No-change guard: records the measurement the section was built against, so a drift is visible. */
 	it('carry no mana readings at all on two of the three, which is not a clean pull', () => {
 		for (const name of ['phased', 'unbroken'] as const) {
@@ -125,6 +132,150 @@ describe('the three committed pulls', () => {
 		expect(scoreAnalysis(fx('phased')).overall).toBe('good');
 		expect(scoreAnalysis(fx('unbroken')).overall).toBe('ok');
 		expect(scoreAnalysis(fx('cleave')).overall).toBe('ok');
+	});
+});
+
+// ---------------------------------------------------- the mixed-regime pull, and the first real fault
+
+/**
+ * `addsThenBoss`: the first committed pull whose pool goes under a line, and the one that changes shape.
+ *
+ * Galakras heroic-25, 560.3s, `counts.max` **9** and 73.73% multi-target — add waves out to 503.3s and
+ * then a 56.9s boss-only tail, the split `addsThenBossLadder.test.ts` reads the ladder either side of.
+ * Against `cleave`, a single-regime two-target pull at `counts.max` **13** over 263.2s, it is the first
+ * chance to read these stretches on a pull that does not hold one shape throughout, and it carries
+ * **2 627 readings of the bar against `cleave`'s 1 189** to read them with.
+ *
+ * It finds one of the two faults and not the other, and the asymmetry is the pull rather than the
+ * section: the pool bottoms out at **62.344%**, which is under Shamanistic Rage's line by eight points
+ * and over Thunderstorm's by forty-seven. So the Rage's clock fills and Thunderstorm's stays empty.
+ *
+ * **And none of the three refusals fires, which is the answer to the question this block was written to
+ * ask.** The opening is not in it (the stretch opens at 202.6s, past the Rage's 60s horizon), the button
+ * is never provably away (this player pressed **neither** Thunderstorm nor the Rage once in 560 seconds,
+ * so there is no cooldown to sit inside), and the stretch is seventeen globals long rather than shorter
+ * than one. A mixed-regime pull did not shake any of them loose; it produced the plainest reading the
+ * section can produce, and every zero below is asserted rather than left silent.
+ */
+describe('the mixed-regime pull', () => {
+	const dataset = raw('addsThenBoss');
+	const el = analyse(dataset) as El;
+	const card = scoreAnalysis(el);
+	const metric = (key: string) => card.sections['mana']?.metrics.find((m) => m.key === key);
+	/**
+	 * Neither button is in the registry, so the audit derives availability from the presses — and both
+	 * halves of that are asserted here off the same two guards `manaFault`'s caller reads them with,
+	 * rather than off a press count this audit does not publish.
+	 */
+	const pressesOf = (id: number): number[] =>
+		dataset.events
+			.filter((e) => isCast(e) && e.sourceID === dataset.actor.id && abilityIdOf(e) === id)
+			.map((e) => e.timestamp - dataset.fight.startTime);
+	const bar = el.resources?.['mana'] as PoolResourceAudit | undefined;
+
+	it('is the mixed pull, and it carries more than twice the bar cleave does', () => {
+		expect(el.targets?.counts?.max).toBe(9); // `cleave` is 13, and holds it for the whole pull
+		expect(el.targets?.multiTargetPct).toBeCloseTo(73.73, 2);
+		expect(el.durationMs).toBe(560_261);
+		expect(el.mana.samples).toBe(2627);
+		expect(el.mana.max).toBe(300_000);
+	});
+
+	/**
+	 * The measurement the two clocks are decided by, and the reason only one of them is decided: 62.344%
+	 * is under the Rage's line and nowhere near Thunderstorm's. Both bounds are asserted against the
+	 * audit's own published lines rather than against 15 and 70 written out again, so a moved line moves
+	 * this claim with it.
+	 */
+	it("drops under the cost reduction's line and never within forty points of the starvation floor", () => {
+		expect(el.mana.minPct).toBeCloseTo(62.344, 3);
+		expect(el.mana.minPct).toBeLessThan(el.mana.strainedPct);
+		expect(el.mana.minPct).toBeGreaterThan(el.mana.starvedPct);
+		// So the starved clock has nothing in it at all — not a stretch that went uncharged, no stretch.
+		expect(el.mana.starved.lowMs).toBe(0);
+		expect(el.mana.starved.ms).toBe(0);
+		expect(el.mana.starved.stretches).toBe(0);
+		expect(el.mana.starved.gradedMs).toBe(0);
+	});
+
+	/** One stretch, and every millisecond of it chargeable — none of the three refusals touches it. */
+	it('charges the whole stretch under 70%, because nothing about it is excused', () => {
+		expect(el.mana.strained.lowMs).toBe(26_567);
+		expect(el.mana.strained.gradedMs).toBe(26_567);
+		expect(el.mana.strained.onCooldownMs).toBe(0);
+		expect(el.mana.strained.unprovenMs).toBe(0);
+		expect(el.mana.strained.ms).toBe(26_567);
+		expect(el.mana.strained.stretches).toBe(1);
+		expect(el.mana.strained.ms).toBeGreaterThan(el.mana.floorMs);
+		const window = el.mana.strained.windows[0];
+		expect(window?.start).toBe(202_604);
+		expect(window?.end).toBe(229_171);
+		expect(window?.pct).toBeCloseTo(62.344, 3);
+		expect(window?.link).toContain('fight=');
+	});
+
+	/**
+	 * Why the stretch is 26.567s and not the 35.3s its edges span: this is a sampled bar, and the pool
+	 * crossed back over the line either side of the stretch. Two readings under 70% sit outside it with
+	 * a reading above the line on both sides, and a stretch needs two in a row — so neither is one.
+	 */
+	it('leaves two readings under the line out of it, because a stretch needs two in a row', () => {
+		const line = ((bar?.curve.max ?? 0) * el.mana.strainedPct) / 100;
+		const under = (bar?.curve.points ?? []).filter(([, amount]) => amount <= line).map(([at]) => at);
+		expect(under.length).toBe(116);
+		expect(under[0]).toBe(194_865);
+		expect(under[under.length - 1]).toBe(230_184);
+		expect(el.mana.strained.lowMs).toBeLessThan(230_184 - 194_865);
+	});
+
+	/** Neither button once in 560 seconds, which is what makes the whole stretch provable. */
+	it('was played without either button, so there is no cooldown for the stretch to hide in', () => {
+		expect(pressesOf(THUNDERSTORM)).toEqual([]);
+		expect(pressesOf(SHAMANISTIC_RAGE)).toEqual([]);
+	});
+
+	/**
+	 * The three zeros that come out of the two facts above rather than out of good play, each asserted so
+	 * that a pull which does fire them cannot be mistaken for this one.
+	 *
+	 * `bothOnCooldownMs` is an intersection with the *starved* stretches, and there are none — so the
+	 * exempt band cannot fire on this pull whatever the buttons did. `earlyThunderstorms` counts presses
+	 * above the line and there were no presses. `shieldDownMs` is an intersection with the shield's own
+	 * down windows, and this player never dropped Lightning Shield at all.
+	 */
+	it('fires neither the exempt band nor the early press nor the shield link, and says why', () => {
+		expect(el.mana.bothOnCooldownMs).toBe(0);
+		expect(el.mana.bothOnCooldownWindows).toEqual([]);
+		expect(el.mana.starved.windows).toEqual([]); // the array the exempt band is intersected with
+		expect(el.mana.earlyThunderstorms).toBe(0);
+		expect(el.mana.shieldDownMs).toBe(0);
+		expect(el.lightningShield.fellOff).toBe(0); // and never went down for it to overlap
+		expect(el.lightningShield.downWindows).toEqual([]);
+	});
+
+	/**
+	 * **The first graded mana metric on a committed pull.** `shamanisticRageMissed` is graded on the
+	 * count and not the duration — see the field's own docstring — so 26.567s in one stretch is one press
+	 * that was not made, which is its `ok` band exactly. Thunderstorm's half stays unmeasurable, which is
+	 * what carries the section: `section()` takes the worst of the metrics it could *decide*, and one of
+	 * these two it could.
+	 */
+	it('grades the cost reduction for the first time, and still refuses the Thunderstorm', () => {
+		expect(metric('shamanisticRageMissed')?.unmeasurable).toBe(false);
+		expect(metric('shamanisticRageMissed')?.value).toBe(1);
+		expect(metric('shamanisticRageMissed')?.grade).toBe('ok');
+		expect(metric('thunderstormMissed')?.unmeasurable).toBe(true);
+		expect(card.sections['mana']?.unmeasurable).toBe(false);
+		expect(card.sections['mana']?.grade).toBe('ok');
+	});
+
+	/**
+	 * No-change guard: the pull's own letter, which the mana section does not move. `addsThenBoss` grades
+	 * `bad` on the rest of the report — the Searing Totem it never laid and the ladder it followed 34% of
+	 * the time — and a section graded `ok` cannot make that worse.
+	 */
+	it('keeps the overall grade the rest of the report gives it', () => {
+		expect(card.overall).toBe('bad');
 	});
 });
 
