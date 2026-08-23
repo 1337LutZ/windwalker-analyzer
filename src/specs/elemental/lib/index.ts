@@ -4183,6 +4183,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// The band-2 clock and no longer the core's `>= 2` one: the same field, the same role — this
 			// share's denominator and its gate — measured over the stretches rung 9 was a rule at.
 			multiTargetMs: multiDotMs,
+			// The subject, beside its clock, so a zero clock can say which of its two causes it was. Null
+			// rather than `undefined`, because an `Analysis` is serialised and `undefined` does not survive
+			// `JSON.stringify` — an absent key and "no second target" would then be one value again.
+			secondaryID: secondaryID ?? null,
 			scoredMs: fsGradedMs,
 			contactUptimeMs: fsContactMs,
 			// The same merge the figure above is the union of, so the drawn clock and the printed

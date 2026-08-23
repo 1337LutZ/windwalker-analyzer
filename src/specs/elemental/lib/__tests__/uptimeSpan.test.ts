@@ -362,6 +362,37 @@ describe('the published numerator', () => {
 	});
 
 	/**
+	 * **The second dot's subject, so an empty clock can say which of its two causes it was.**
+	 *
+	 * `multiTargetMs === 0` has meant two opposite things since the clock was cut at both ends: no other
+	 * enemy worth dotting, and a second target every one of whose two-enemy seconds fell inside an add
+	 * wave. The tile shows one caption for both. `secondaryID` splits them, and the split is checkable on
+	 * the committed set because `cleave` is the only pull with a second enemy at all.
+	 *
+	 * The premise is re-derived per pull rather than written down — the maximum target count off the same
+	 * `targets` reading the band resolver uses — so a fixture recapture that puts a second enemy into
+	 * `phased` fails here instead of quietly inverting the claim.
+	 */
+	it.each(['phased', 'unbroken', 'cleave'] as const)('says whether the second dot had a subject on %s', (name) => {
+		const el = fx(name);
+		const fs = el.flameShock;
+		const maxTargets = el.targets?.counts.max ?? 1;
+		if (maxTargets === 1) {
+			// No second enemy on the pull, so the rule never had a subject and the clock is zero for *that*
+			// reason. Both readings agree, which is the case the field was not needed for.
+			expect(fs.secondaryID, name).toBeNull();
+			expect(fs.multiTargetMs, name).toBe(0);
+		} else {
+			// A subject, and a clock — `cleave`. An actor id rather than a spawn key, and one the dot was
+			// actually measured on, which is the half a bare non-null would not say.
+			expect(fs.secondaryID, name).not.toBeNull();
+			expect(fs.secondaryID, name).toBeGreaterThan(0);
+			expect(fs.multiTargetMs, name).toBeGreaterThan(0);
+			expect(fs.multiDotUptimeMs, name).toBeGreaterThan(0);
+		}
+	});
+
+	/**
 	 * **And it is a strict subset of what the chart draws today, which is the finding the chart lane needs.**
 	 *
 	 * Measured: `contactWindows` sits entirely inside `FlameShockUptime`'s green row on all three pulls, and

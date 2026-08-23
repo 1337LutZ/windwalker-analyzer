@@ -2292,6 +2292,29 @@ export interface FlameShockAudit {
 	 */
 	multiTargetMs: number;
 	/**
+	 * Which enemy the second dot was judged on, or **null when the pull offered none worth dotting**.
+	 *
+	 * Published to split the two causes of `multiTargetMs === 0` that its own docblock above already names.
+	 * They are opposite findings and the tile shows the same caption for both:
+	 *
+	 *   - `secondaryID === null` — no other enemy the player hit lasted long enough for the global to pay
+	 *     for itself, or none was damageable at all. The rule never had a subject.
+	 *   - `secondaryID !== null` with `multiTargetMs === 0` — there *was* a second target, and every
+	 *     second the pull spent at two enemies fell inside a stretch at three or more, where no list asks
+	 *     for a second dot. The rule had a subject and no clock.
+	 *
+	 * The second-busiest enemy the player landed judgeable hits on, by hit count, `primaryID` excluded —
+	 * the same `isJudgeableTarget` over the same `spawnLives` the core built `landedHits` from, so "was
+	 * this a target for a dot" cannot be answered two ways. An actor id and not a spawn key: the figure
+	 * beside it is labelled with one enemy's name, and the dot's windows are unioned across that enemy's
+	 * copies for the same reason.
+	 *
+	 * All three committed fixtures read null but one — `cleave` is the only pull with a second enemy — so
+	 * on the two single-target pulls this says "the question did not arise" where `multiTargetMs` alone
+	 * said only "zero".
+	 */
+	secondaryID: number | null;
+	/**
 	 * What `uptimePct` is a share of: the contact clock **less every stretch three or more enemies were
 	 * up** — the seconds the player was on an enemy they could damage under a list this figure's bar was
 	 * written from.
