@@ -188,12 +188,38 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	 */
 	const grade = gradeOf('flameShock');
 	const fullUptime = flameShock.windows.length > 0 && flameShock.uptimePct >= FULL_UPTIME_PCT;
+	/**
+	 * The refreshes that bought nothing, pull-wide, and the same four terms `score.ts` starts from.
+	 *
+	 * Hoisted out of the `t()` call below because the *wording* now turns on it and not only the number in
+	 * it. The section's own tiles report this ledger and `FlameShockAudit.unjudgedRefreshes` is published
+	 * as the correction *out* of it, so the two stay one subtraction apart rather than drifting as an
+	 * independent pair.
+	 */
+	const wasted = flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain;
+	/**
+	 * A `good` pull with a wasted refresh gets its own sentence, because `good` is a range and the sentence
+	 * was an absolute.
+	 *
+	 * `verdict_good` says "every refresh bought something" and `flameShockWaste`'s `good` reaches to 10%,
+	 * so ten refreshes with one wasted grades `good` and printed that clause over a refresh that clipped a
+	 * tick for nothing. The pull-wide count makes it wider still: a refresh made with more than one enemy
+	 * up leaves the graded share entirely, so a pull can grade `good` on a numerator of zero while this
+	 * ledger holds one. Either way the sentence asserted something the number beside it denies — the same
+	 * defect `lightningShield`'s verdict was corrected for, and `earthShock`'s before that.
+	 *
+	 * **A fourth sentence rather than a hedge on the third.** A pull that really wasted nothing is worth
+	 * telling, and softening `verdict_good` to cover both would have taken that away from every clean pull
+	 * to describe the ones that are merely close. So `good` keeps its claim and is now only reached when it
+	 * is true; `goodSome` names the count, keeps the grade's own tone, and says what to do about it.
+	 */
+	const claim = grade === 'good' && wasted > 0 ? 'goodSome' : grade;
 	// `exempt` is excluded alongside `none`, and it has to be: the `_full` variants exist to re-word a
 	// *graded* sentence written around a gap, and there is no `verdict_exempt_full` — i18next resolves a
 	// missing context to the bare `flameShock.verdict`, which no section has, and renders the key itself at
 	// the reader. `unbroken` read as multi-target is exactly that pull: 100% uptime and every rule unasked,
 	// so it printed the literal text `flameShock.verdict` where its verdict belongs.
-	const context = fullUptime && grade !== 'none' && grade !== 'exempt' ? `${grade}_full` : grade;
+	const context = fullUptime && grade !== 'none' && grade !== 'exempt' ? `${claim}_full` : claim;
 
 	/**
 	 * The refreshes the section counts, and the ones it only draws — the last of the three surfaces
@@ -230,10 +256,8 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 			context,
 			uptime: flameShock.uptimePct,
 			casts: flameShock.applies + flameShock.refreshes,
-			// Pull-wide, and the same four terms `score.ts` starts from — the section's own tiles report this
-			// ledger and `FlameShockAudit.unjudgedRefreshes` is published as the correction *out* of it, so
-			// the two stay one subtraction apart rather than drifting as an independent pair.
-			wasted: flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
+			// Pull-wide, and the one figure that also chose the sentence — see `wasted` above.
+			wasted,
 		}) +
 		(flameShock.unjudgedWaste > 0 && judgedRefreshes > 0
 			? // One string rather than a second child, so the server render has no comment separator in the

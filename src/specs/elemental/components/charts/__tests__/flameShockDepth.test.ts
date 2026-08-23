@@ -27,6 +27,7 @@ import { describe, expect, it } from 'vitest';
 import i18n, { initI18n } from '~/lib/i18n/config';
 import { fmt } from '~/components/format';
 import { getSpec } from '~/lib/spec';
+import { bandOf } from '~/lib/spec/apl';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
 import { SpecContext } from '~/components/report/specContext';
@@ -186,6 +187,73 @@ describe('the greyed refresh rows say why they are grey', () => {
 		// The other refresh on this pull is judged and keeps its verdict colour, so the grey is a split.
 		const other = drawn.findIndex((p) => p.t !== 57_499);
 		expect(bars.held[other]!.fillColor).not.toBe(THEME.track);
+	});
+
+	/**
+	 * Band 4 means four **or more**, and the tooltip was printing it as four.
+	 *
+	 * `bandOf` collapses everything past four into the same value — "the list draws no line above it" — so
+	 * a caption written off `FlameShockPress.band` described a refresh made into eight enemies as "4
+	 * enemies up". That is worse than the key's countless "more than one enemy": a reader takes a specific
+	 * number literally, and there is no reading of "4" that means "at least 4". The press table sidesteps
+	 * it by saying "more than one enemy" and does not want a number at all; this row does, and the number
+	 * it wants is `FlameShockPress.targets` — the same `aplTargetCountAt` reading `band` and `judged` are
+	 * both taken from, published one step earlier rather than read a second time.
+	 *
+	 * Unreachable on any pull we hold, which is why it survived a commit: `cleave`'s only unjudged refresh
+	 * was made at exactly four, so the old caption was true there and nowhere else. The pull is therefore
+	 * hand-written on `cleave`'s own ledger, with that one press moved to eight enemies and everything
+	 * else — including its band, which cannot move — left alone.
+	 */
+	it('names eight enemies on a press made into eight, where the band still says four', () => {
+		const eight = {
+			...cleaveEl.flameShock,
+			presses: cleaveEl.flameShock.presses.map((p) => (p.t === 57_499 ? { ...p, targets: 8 } : p)),
+		};
+		const press = eight.presses.find((p) => p.t === 57_499)!;
+		// The premise: the band is the same value at four and at eight, so it cannot carry this sentence.
+		expect(press.targets).toBe(8);
+		expect(press.band).toBe(4);
+		expect(bandOf(press.targets)).toBe(press.band);
+		expect(press.judged).toBe(false);
+
+		const drawn = eight.presses.filter((p) => p.remainingMs !== null);
+		const i = drawn.findIndex((p) => p.t === 57_499);
+		const rows = buildBars(eight, THEME).held[i]!.meta.rows;
+		expect(rows).toContainEqual(['reason', 'not measured \u2014 8 enemies up']);
+		expect(rows).not.toContainEqual(['reason', 'not measured \u2014 4 enemies up']);
+	});
+
+	/**
+	 * And the count really is four on the pull we hold, so the assertion above this block is a no-change
+	 * guard rather than a number that moved. `targets` is published on every press, so this also pins that
+	 * it agrees with `band` everywhere `band` is not the open-topped one.
+	 */
+	it('reads the same count off targets as off the band on every committed press', () => {
+		for (const name of ['cleave', 'phased', 'unbroken'] as const) {
+			const el =
+				name === 'cleave'
+					? cleaveEl
+					: name === 'unbroken'
+						? unbroken
+						: (analyse(
+								JSON.parse(
+									readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/phased.json'), 'utf8'),
+								) as FightDataset,
+							) as El);
+			for (const p of el.flameShock.presses) {
+				expect(bandOf(p.targets), `${name} ${p.t}`).toBe(p.band);
+				// Zero is a real reading — `cleave`'s pre-pull apply at 1 547ms lands before any damage has
+				// been dealt — and `bandOf(0)` is 1, so it is judged and never captioned.
+				expect(p.targets, `${name} ${p.t}`).toBeGreaterThanOrEqual(0);
+				// The caption only ever draws where `judged` is false, so it never has to write a singular.
+				if (!p.judged) expect(p.targets, `${name} ${p.t}`).toBeGreaterThanOrEqual(2);
+			}
+		}
+		// The one unjudged refresh in the whole set, and its real count — which is why the tooltip on it
+		// reads the same before and after.
+		const unjudged = cleaveEl.flameShock.presses.filter((p) => p.remainingMs !== null && !p.judged);
+		expect(unjudged.map((p) => [p.t, p.targets])).toEqual([[57_499, 4]]);
 	});
 });
 

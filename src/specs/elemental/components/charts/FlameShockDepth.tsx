@@ -199,10 +199,17 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 						: []),
 					// The count, on the greyed rows only, and this is where the real number gets named. The key
 					// beside the chart has to cover every count at once and so says "more than one enemy"; a
-					// tooltip is per press and can say four. Read straight off `FlameShockPress.band`, which is
-					// the same series `judged` is taken from, so the sentence and the grey cannot disagree.
+					// tooltip is per press and can say eight.
+					//
+					// **Off `targets` and not off `band`, which is the whole point of the field.** This read
+					// `${p.band}`, and `band` is `1 | 2 | 3 | 4` where 4 means four *or more* — so a press made
+					// into eight enemies was described to the reader as "4 enemies up". A specific number is
+					// read literally; there is no reading of "4" that means "at least 4", which makes the
+					// understatement worse than the key's own countless "more than one enemy". `targets` is the
+					// reading `band` and `judged` are both taken from, published one step earlier, so the
+					// sentence, the grey and the grade still cannot disagree about one press.
 					!p.judged
-						? (['reason', `not measured — ${p.band} enemies up`] as [string, string])
+						? (['reason', `not measured — ${p.targets} enemies up`] as [string, string])
 						: p.duringAscendance
 							? (['reason', 'refresh during Ascendance'] as [string, string])
 							: p.ascPrep
@@ -266,18 +273,23 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
  *
  * **What the audit publishes now, and which field does which job.** `FlameShockPress.judged` is the
  * boolean the share's denominator is built out of (`unjudgedRefreshes` is it counted where it is false),
- * and `FlameShockPress.band` is the target count it was read off, `judged` being `band === 1`. Both
- * landed after the paragraph above was written; the older text here said `FlameShockPress` published
- * neither, and named a per-press `judged: boolean` as the field that would change this chart. It did.
+ * and `FlameShockPress.band` is the band it was read at, `judged` being `band === 1`. Both landed after
+ * the paragraph above was written; the older text here said `FlameShockPress` published neither, and
+ * named a per-press `judged: boolean` as the field that would change this chart. It did.
  *
- * **Select on `judged`, caption off `band`, and they are not the same set.** The greyed rows are
+ * **Select on `judged`, caption off `targets`, and neither of those is `band`.** The greyed rows are
  * `judged === false`, because that is the flag the denominator uses — not `band >= 3`, which differs on
  * a press made at exactly two enemies. That difference is why the key here cannot borrow the existing
  * "Three or more enemies" label: `judged` is false at two enemies as well, and on `cleave` two of the ten
  * presses are band 2. The key says **"More than one enemy, not measured"**, which is true at two and at
- * thirteen, and each greyed row's tooltip names its own count off `band` — "not measured — 4 enemies
- * up". A legend has to cover every row at once and a tooltip is per press, so that is where the real
- * number can be said.
+ * thirteen, and each greyed row's tooltip names its own count off `FlameShockPress.targets` — "not
+ * measured — 4 enemies up" on `cleave`'s band-4 refresh, which really was made at four.
+ *
+ * **`targets` and not `band`, and this is the correction.** The caption read `${p.band}` and band 4 means
+ * four *or more*, so the same sentence would have said "4 enemies up" of a press made into eight. Not
+ * reachable on any pull we hold — `cleave`'s only unjudged refresh is at exactly four — which is why it
+ * survived a commit. A legend has to cover every row at once and a tooltip is per press, so this is the
+ * one place a real count belongs; it just has to be the real one.
  *
  * **The identity that replaces the old one.** Drawn rows are still `refreshes`; the *greyed* rows are
  * `unjudgedRefreshes`; so the rows left in a verdict colour are `refreshes − unjudgedRefreshes`, which is

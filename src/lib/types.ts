@@ -2107,8 +2107,34 @@ export interface FlameShockPress {
 	 * two enemies and a press made at thirteen, and a sentence written off it said "three or more
 	 * enemies" of both — untrue of `cleave`'s two band-2 presses. With the band published, a caption can
 	 * name the count instead of guessing at it.
+	 *
+	 * **And a caption naming *this* field still guesses at the top of it**, which is what `targets` below
+	 * is for: band 4 is four *or more*, so this is the number to select and colour on and not the number
+	 * to print.
 	 */
 	band: Band;
+	/**
+	 * How many enemies the player was damaging at this press — the raw count, unbanded.
+	 *
+	 * **The number a caption may print.** `band` above is a bucket whose top one is open — 4 means four or
+	 * more — so a tooltip written off it described a press made into eight enemies as "4 enemies up". That
+	 * is worse than saying nothing: a reader takes a specific number literally, and there is no reading of
+	 * "4" that means "at least 4". The depth chart's per-press row is the one surface that wants this;
+	 * the chart's key and the press table both speak for every row at once and keep "more than one enemy",
+	 * which is true at two and at thirteen.
+	 *
+	 * **Derived where `band` is derived, off the one `aplTargetCountAt` call, and `band` is derived from
+	 * *this*** — `band = bandOf(targets)`, `judged = band === 1`. So this is not a third reading of the
+	 * series but the reading the other two already were, published one step earlier; the three cannot
+	 * disagree about one press for the same reason `judged` and `band` cannot. A second call to
+	 * `aplTargetCountAt` would have been the drift `earthShockAoeBand.test.ts` records the cost of.
+	 *
+	 * **Zero is a real reading**, not a gap: `aplTargetCountAt` answers 0 until the first damage lands, so
+	 * `cleave`'s pre-pull apply at 1 547ms has none. `bandOf(0)` is 1, so such a press is judged and the
+	 * caption never draws on it — and wherever `judged` is false this is at least 2, which is why the
+	 * caption never has to write a singular.
+	 */
+	targets: number;
 	/**
 	 * The dot's remaining time at the press against its **declared** duration; null when the dot was
 	 * down and this press applied one.

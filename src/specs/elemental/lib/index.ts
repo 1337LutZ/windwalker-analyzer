@@ -2385,8 +2385,16 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		 * **The band itself is published beside the flag**, and the flag is derived from it rather than
 		 * from a second reading of the series — see `FlameShockPress.band` for why `judged` alone cannot be
 		 * captioned, and `earthShockAoeBand.test.ts` for what two readings of one series cost last time.
+		 *
+		 * **One call to `aplTargetCountAt`, three fields off it**, and the middle one is new: `targets` is the
+		 * raw count, `band` is `bandOf(targets)`, `judged` is `band === 1`. All three are functions of a
+		 * single reading and so cannot disagree by construction. `targets` exists because band 4 means *four
+		 * or more* and the depth chart's per-press tooltip printed it as a flat "4 enemies up" — see
+		 * `FlameShockPress.targets`. Reading the series a second time to recover the count would have been
+		 * the drift `earthShockAoeBand.test.ts` is about; taking the same reading one step earlier is not.
 		 */
-		const band = bandOf(aplTargetCountAt(t));
+		const targets = aplTargetCountAt(t);
+		const band = bandOf(targets);
 		const judged = band === 1;
 		// `snapshot` sits *after* `windowed` and `ascPrep`, not before them. A last-tick refresh is already
 		// the best the global can buy and needs no second justification, and crediting one press under two
@@ -2410,6 +2418,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			kind,
 			judged,
 			band,
+			targets,
 			remainingMs: remaining > 0 ? remaining : null,
 			exposedMs: remaining > 0 ? null : (exposed ?? 0),
 			tickMs: tickWindow.cadenceMs,

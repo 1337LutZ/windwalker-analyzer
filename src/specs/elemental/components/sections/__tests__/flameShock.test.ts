@@ -19,8 +19,10 @@ import i18n, { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
+import { resolveBands } from '~/lib/view/targetMode';
 import { SpecContext } from '~/components/report/specContext';
 import { analyse } from '~/specs/elemental/lib';
+import { scoreAnalysis } from '~/specs/elemental/lib/score';
 
 import FlameShock from '../FlameShock';
 
@@ -149,5 +151,110 @@ describe('Flame Shock verdict', () => {
 	it('still says nothing was cast rather than claiming a perfect pull', () => {
 		const never = withFlameShock({ windows: [], uptimePct: 0, applies: 0, refreshes: 0, presses: [] });
 		expect(render(never)).toContain(t('flameShock.verdict', { context: 'none' }));
+	});
+});
+
+/**
+ * The `good` band has room in it, and the `good` sentence had none.
+ *
+ * `flameShockWaste` grades `good` at 10% of refreshes wasted or better, so ten refreshes with one that
+ * threw away a tick for nothing is a `good` pull — and `verdict_good` said "every refresh bought
+ * something" over it. That is the same shape as the two false claims this session already corrected:
+ * `lightningShield` asserting the shield never overcapped where the overcap was never measured, and
+ * Earth Shock's "never cast" printed over twelve presses. A `good` band with headroom cannot carry an
+ * absolute claim.
+ *
+ * Not reachable on a committed pull, which is why it survived: `unbroken` has six refreshes and one
+ * inside its own last tick, so its real share is 83% and it grades `bad`; `phased` grades `ok`; `cleave`
+ * refuses at `MIN_GRADED_SAMPLE`. So the pull is hand-written on `unbroken`'s ledger the way the cases
+ * above are — ten refreshes, nine of them on the last tick, one wasted, which is exactly 10%.
+ *
+ * Both halves are asserted: the clean pull keeps the absolute claim word for word, and the pull with one
+ * wasted refresh names the count instead of denying it.
+ */
+describe('a good Flame Shock verdict claims only what the share can support', () => {
+	/** Ten refreshes, nine credited: 10% wasted, the top of the `good` band exactly. */
+	const AT_THE_TOP = { refreshes: 10, windowed: 9 };
+	const TOP_CASTS = unbroken.flameShock.applies + AT_THE_TOP.refreshes;
+
+	/**
+	 * The premise, so nothing below is vacuous: this ledger really does grade `good`, and really does
+	 * hold a refresh that bought nothing. If a later change moves either, the assertions after this are
+	 * about a pull they were not written for.
+	 */
+	it('is a good pull with a wasted refresh in it', () => {
+		const analysis = withFlameShock({ ...AT_THE_TOP, uptimePct: 96 });
+		const card = scoreAnalysis(analysis, resolveBands(analysis.targets, 'auto'));
+		const waste = card.sections['flameShock']?.metrics.find((m) => m.key === 'flameShockWaste');
+		expect(waste?.value).toBe(10);
+		expect(waste?.grade).toBe('good');
+		expect(waste?.unmeasurable).toBe(false);
+		expect(card.sections['flameShock']?.grade).toBe('good');
+		// The count the sentence has to account for, off the same four terms the section reads.
+		const fs = analysis.flameShock;
+		expect(fs.refreshes - fs.windowed - fs.ascPrep - fs.snapshotGain).toBe(1);
+	});
+
+	it('does not tell a reader every refresh bought something when one did not', () => {
+		const html = render(withFlameShock({ ...AT_THE_TOP, uptimePct: 96 }));
+		// The sentence the old code printed here, verbatim.
+		expect(html).not.toContain('casts, and every refresh bought something');
+		expect(html).toContain(t('flameShock.verdict', { context: 'goodSome', uptime: 96, casts: TOP_CASTS, wasted: 1 }));
+		// The number, and something to do about it — not a hedge in place of the claim.
+		expect(html).toContain('96% uptime across 11 casts');
+		expect(html).toContain('the dot is not what is holding this pull back');
+		expect(html).toContain('1 of the refreshes still threw away a tick of the running dot');
+		expect(html).toContain('hold Flame Shock until the dot’s last tick');
+	});
+
+	/**
+	 * The other way a `good` pull can hold a wasted refresh, and the reason the claim is chosen on the
+	 * pull-wide count rather than on the graded share.
+	 *
+	 * A refresh made with more than one enemy up leaves the graded share entirely, so the numerator can be
+	 * zero — a flat `good`, no headroom needed — while the ledger the section's own tiles print holds
+	 * several. The sentence leads with the pull-wide figure for the reason `8e011ac` set (an unmeasured
+	 * figure is not a deleted one) and `wasteSplit` follows saying how much of it was counted, so an
+	 * absolute claim in front of that clause contradicts the clause after it. It is also why no quantifier
+	 * over the refreshes is safe here: this pull wasted three of thirteen and nothing in the band says it
+	 * could not have been twelve.
+	 */
+	it('names the refreshes it did not measure rather than claiming there were none', () => {
+		const spread = withFlameShock({ refreshes: 13, windowed: 10, unjudgedRefreshes: 3, unjudgedWaste: 3 });
+		const card = scoreAnalysis(spread, resolveBands(spread.targets, 'auto'));
+		const waste = card.sections['flameShock']?.metrics.find((m) => m.key === 'flameShockWaste');
+		// Nothing wasted among the ten refreshes made with one enemy up, so the share is a flat zero.
+		expect(waste?.value).toBe(0);
+		expect(card.sections['flameShock']?.grade).toBe('good');
+		const html = render(spread);
+		expect(html).not.toContain('casts, and every refresh bought something');
+		expect(html).toContain('3 of the refreshes still threw away a tick of the running dot');
+		// And the clause that says how much of that three was counted still follows it.
+		expect(html).toContain('3 of those came with more than one enemy up');
+	});
+
+	/** The same defect on the perfect-keep-up wording, which called the pull perfect and stopped there. */
+	it('does not call a pull perfect over a refresh that threw away a tick', () => {
+		const html = render(withFlameShock(AT_THE_TOP));
+		expect(html).toContain(t('flameShock.verdict', { context: 'goodSome_full', casts: TOP_CASTS, wasted: 1 }));
+		expect(html).toContain('The dot was up for every second you had something to hit');
+		expect(html).toContain('1 of the refreshes still threw away a tick of the running dot');
+		// The keep-up really was perfect and the sentence still says so — the correction is to the silence
+		// about the refresh, not to the praise.
+		expect(html).toContain('a perfect keep-up');
+	});
+
+	/**
+	 * The pull that earns the absolute claim keeps it, byte for byte. This is the half a hedge would have
+	 * cost, and it is the reason `goodSome` is a fourth sentence rather than a rewrite of the third.
+	 */
+	it('still says every refresh bought something when every refresh did', () => {
+		const clean = render(withFlameShock({ refreshes: 10, windowed: 10, uptimePct: 96 }));
+		expect(clean).toContain(t('flameShock.verdict', { context: 'good', uptime: 96, casts: TOP_CASTS }));
+		expect(clean).toContain('96% uptime across 11 casts, and every refresh bought something.');
+		const cleanFull = render(withFlameShock({ ...PERFECT_KEEPUP }));
+		expect(cleanFull).toContain(t('flameShock.verdict', { context: 'good_full', casts: CASTS }));
+		expect(cleanFull).toContain('a perfect keep-up.');
+		expect(cleanFull).not.toContain('threw away a tick');
 	});
 });
