@@ -793,8 +793,30 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		spec.thresholds.targetWindowMs,
 	);
 	const triggerTargetCountAt = countAt(triggerTargetPoints);
-	// The stretches themselves and not only their total: some audits ask whether any *one* of them
-	// ran long enough to be worth something. Named here rather than counted twice.
+	/**
+	 * The stretches a **second enemy existed** — two or more, and the stretches themselves rather than
+	 * only their total, because some audits ask whether any *one* of them ran long enough to be worth
+	 * something. Named here rather than counted twice.
+	 *
+	 * **Off `targetPoints` and deliberately not `aplTargetPoints` beside it, which is the opposite choice
+	 * from `aoeWindows` below.** The two are the same array for a spec that declares no
+	 * `aplTargetCountExclude` — every Elemental fixture in the tree — so nothing measured on those can
+	 * tell them apart, and the reason for the split has to be argued rather than observed.
+	 *
+	 * This is an **evidence** question and `aoeWindows` is a **band** question, and that is the whole of
+	 * the difference. A band question asks which rung of the priority list applied, so it has to read the
+	 * series the ladder bands on or it is not asking about the ladder at all. This one asks whether the
+	 * pull ever offered a second target — and a spec's own area damage landing on an add is proof the add
+	 * was there. The exclusion exists to stop a button justifying *itself* on the ladder ("the wind hit
+	 * three, so press more wind"); it is not a claim that the enemies were imaginary.
+	 *
+	 * **Measured, on a synthetic Windwalker pull whose only fan-out is Rushing Jade Wind** — the spec's
+	 * one declared exclusion — in `__tests__/targetSeries.test.ts`. The damage series reads two enemies
+	 * for 32 000ms of a 60s pull; the APL series reads one for the whole of it. Reading the APL series
+	 * here would take `multiTargetMs` from 32 000 to 0 and `detected` from `multi` to `single` on a pull
+	 * with an add up for half a minute, and it would tell the Windwalker's Storm, Earth and Fire audit
+	 * that the pull never justified the cooldown — on exactly the pull the cooldown is for.
+	 */
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
 	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
@@ -856,7 +878,8 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 *
 	 * **`multiTargetWindows` and the contact clock deliberately keep the default 0.** They are evidence
 	 * and a denominator, not exemptions — trimming them would shrink the very clock the mode share is
-	 * measured against.
+	 * measured against. They also read the *other* series, and that half of the split is argued where
+	 * `multiTargetWindows` is built above rather than repeated here.
 	 */
 	const aoeWindows = intervalsAtLeast(aplTargetPoints, 3, duration, spec.thresholds.targetWindowMs - effectiveGcd);
 	/**
@@ -869,6 +892,23 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 *
 	 * Not pull length either, which counts every second nobody could hit anything as evidence for
 	 * single target. The time with at least one enemy in the window is the honest denominator.
+	 *
+	 * **`targetPoints` and not `aplTargetPoints`, for the reason `multiTargetWindows` gives above — and
+	 * this one is half of a ratio, so it is the place the mistake would be worst.** A denominator has to
+	 * count the time the player really was in contact, and a spec's own area damage is contact.
+	 *
+	 * `multiTargetPct` below is `multiTargetMs / contactMs`, and **both halves come off `targetPoints`.**
+	 * On the synthetic wind-only pull in `__tests__/targetSeries.test.ts` the damage series gives
+	 * 32 000ms over 39 000ms — 82.1%, `multi`. The APL series gives 0ms over 10 000ms — 0%, `single`.
+	 * Either is at least self-consistent. Moving *this* half alone, which is the tempting edit because
+	 * the exclusion is easiest to argue for on a denominator, gives 32 000 over 10 000: **320%, a share
+	 * of a clock larger than the clock**, and a `detected` that is `multi` for an arithmetic reason
+	 * rather than a measured one. Not a clock this engine happens to clamp — it simply would not mean
+	 * anything. A ratio's two halves move together or not at all.
+	 *
+	 * Nothing else reads this clock. `inContactMs` further up is the one `totalCpm` and
+	 * `gcdUtilisationPct` are per, and it is built from the `contact` segments rather than from either
+	 * count series, so neither of these two choices can move a rate.
 	 */
 	const contactMs = unionMs(intervalsAtLeast(targetPoints, 1, duration));
 	const multiTargetPct = contactMs > 0 ? (multiTargetMs / contactMs) * 100 : 0;
@@ -1418,6 +1458,13 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		// intermissions against — the spec's audit merges its own presses and lanes over this.
 		timeline: { deaths, contactSegments: contact, cancels, hasteWindows, berserkingWindows },
 		lostCasts,
+		// **The published series is `targetPoints` — the evidence one, not the ladder's.** For a spec with
+		// no `aplTargetCountExclude` they are the same array and this says nothing; for one that declares an
+		// exclusion the ladder is banding on `aplTargetPoints` and this is a different number, so a reader
+		// who wants the count *the priority list saw* cannot get it from here. Nothing on `Analysis` carries
+		// the APL series today, which is why `view/targetMode`'s `bandsInPull` and the Windwalker's
+		// `tigerPalmShare` — both band questions — read this one. See `multiTargetWindows` above for the
+		// split, and `aoeWindows` for the rule about which side a band question belongs on.
 		targets: {
 			windowMs: spec.thresholds.targetWindowMs,
 			counts: {

@@ -3683,9 +3683,19 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		// Measured from this pull rather than assumed: the channel is hasted, and the list's condition
 		// is written in units of how long it actually runs.
 		fofChannelSec: fofCasts.length > 0 ? channelledMs / fofCasts.length / 1000 : (FOF_CHANNEL.baseMs ?? 4000) / 1000,
-		// The same step function the target-count section draws, read at each press rather than summarised
-		// over the pull. `singleTarget` is deliberately no longer passed: it is a damage-concentration
-		// boolean, and what the list needs is a live count.
+		// The live count at each press rather than a figure summarised over the pull. `singleTarget` is
+		// deliberately no longer passed: it is a damage-concentration boolean, and what the list needs is a
+		// live count.
+		//
+		// **Not the step function the target-count section draws**, which this comment used to claim. That
+		// section draws `targets.counts.points`, the core's `targetPoints`; this is `aplTargetPoints`, the
+		// same series less the spec's own area damage — and this spec is the one that declares an exclusion
+		// (`aplTargetCountExclude: ['rushing-jade-wind']`), so on a pull whose fan-out is the wind the two
+		// really are different numbers. That is the point of the exclusion rather than a defect in it: the
+		// wind must not be the evidence that the list wanted more wind. But it means the chart and the
+		// ladder can print different counts for the same instant, so a reader comparing them is not seeing
+		// a bug. `analyseCore`'s `multiTargetWindows` docblock owns the argument for the split, and
+		// `lib/analysis/__tests__/targetSeries.test.ts` pins both sides of it.
 		targetsAt: aplTargetCountAt,
 		// The second count, for the one rung pair that fires on units hit rather than units damaged.
 		triggerTargetsAt: triggerTargetCountAt,
