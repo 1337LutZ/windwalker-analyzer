@@ -58,7 +58,7 @@ describe('the Chi Brew audit', () => {
 
 	/**
 	 * A player who never presses it should be charged for nearly the whole pull, because both charges
-	 * are full from the opening bell and never move. This is the assertion the landing-time bug failed:
+	 * are full from the pull and never move. This is the assertion the landing-time bug failed:
 	 * with the recharge stamped at the wrong moment it reported a fraction of the real idle time.
 	 */
 	it('charges an unpressed pull for essentially all of it', () => {

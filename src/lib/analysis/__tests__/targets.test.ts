@@ -215,14 +215,14 @@ describe('intervalsAtLeast, trailing edge trimmed', () => {
 	});
 
 	/**
-	 * The bell case, and the one the trim must not touch.
+	 * The end-of-pull case, and the one the trim must not touch.
 	 *
 	 * Three enemies still being hit a second before the pull ends: the stretch closes because the fight
 	 * stopped, not because the count fell, so there is no window lag in that close to take off. A blind
 	 * subtraction would delete the stretch outright and charge the player for adds that were still up.
 	 */
-	// Deliberate no-change guard: the bell case has to read the same trimmed and untrimmed, so this is
-	// green before the trim as well as after it. It is here to catch a trim that reaches into it.
+	// Deliberate no-change guard: the end-of-pull case has to read the same trimmed and untrimmed, so this
+	// is green before the trim as well as after it. It is here to catch a trim that reaches into it.
 	it('leaves a stretch the pull ended inside exactly as long as the pull allows', () => {
 		const points = targetCounts(
 			[
@@ -458,15 +458,15 @@ describe('spawnLives and isJudgeableTarget', () => {
 	});
 
 	/**
-	 * A unit still being hit when the bell goes has no observable end, so its life runs to the pull's
+	 * A unit still being hit when the pull stops has no observable end, so its life runs to the pull's
 	 * end rather than to the accident of when the player last swung at it. Without this, a mob alive at
 	 * the finish is scored on its last hit and can fail a threshold it never had a chance to clear.
 	 */
-	it('runs a spawn still being hit at the bell to the end of the pull', () => {
+	it('runs a spawn still being hit at the finish to the end of the pull', () => {
 		const lives = spawnLives([hit(180_000, 9, 1, HIT), hit(196_000, 9, 1, HIT)], 0, END, WINDOW);
 		// Last hit 196s, one window short of the 200s end, so the life is 200s - 180s and not 16s.
 		expect(lives.get('9:1')?.lifetimeMs).toBe(20_000);
-		// And one that stopped being hit well before the bell is measured to its last hit.
+		// And one that stopped being hit well before the end is measured to its last hit.
 		const early = spawnLives([hit(10_000, 9, 1, HIT), hit(26_000, 9, 1, HIT)], 0, END, WINDOW);
 		expect(early.get('9:1')?.lifetimeMs).toBe(16_000);
 	});
@@ -474,7 +474,7 @@ describe('spawnLives and isJudgeableTarget', () => {
 	/**
 	 * Fight-relative, like every other timestamp in the engine: `t0` comes off before anything else.
 	 *
-	 * Asserted through the bell clamp on purpose, because that is the only place it can be caught. A
+	 * Asserted through the end-of-pull clamp on purpose, because that is the only place it can be caught. A
 	 * lifetime is a *difference*, so `t0` cancels out of it and a test that only checks the span passes
 	 * whether the subtraction happened or not — one was written that way here first. The clamp is the
 	 * one comparison against an absolute number (`endMs`), so leaving `t0` in makes a spawn hit at 180s

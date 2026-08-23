@@ -257,7 +257,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	);
 
 	/**
-	 * Whether the Fire Elemental was already out when the bell rang.
+	 * Whether the Fire Elemental was already out when the pull started.
 	 *
 	 * Two states, and the second one is deliberately not a fault — see the threshold for the whole of
 	 * that argument. What is decided here is only whether this pull may be asked the question at all,
@@ -266,13 +266,13 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 *   - **The pull has to be at least as long as the summon lasts.** A pre-pull elemental is visible
 	 *     only as the bare expiry it leaves behind — `auraWindows`' `openAtPull` recovers the window
 	 *     from that removal and from nothing else — so on a shorter fight it would still have been
-	 *     standing at the last event and leaves no trace at all. "Not out at the bell" and "cannot
+	 *     standing at the last event and leaves no trace at all. "Not out at the pull" and "cannot
 	 *     tell" are the same event stream there, and the second one is the truth. The same refusal the
 	 *     Windwalker's pre-pull potion slot makes, for the same reason.
 	 *   - **This player has to have been in the fight for the stretch a pre-pull summon would have
 	 *     covered.** A pull the player entered late is not a pull whose opening was theirs to fill,
 	 *     and judging its first minute would charge them for a fight they were not in. Contact is
-	 *     asked for *somewhere* inside that minute rather than at the bell itself: the first landed hit
+	 *     asked for *somewhere* inside that minute rather than at the pull itself: the first landed hit
 	 *     is a cast plus its travel time behind the pull on every real log — 1.0s on `phased`, 1.6s on
 	 *     `unbroken` — so a stricter reading would refuse both committed pulls.
 	 */
@@ -555,6 +555,33 @@ export const THRESHOLDS = {
 	 * stating plainly, because the point of the cut was never to make the number pass — it was to measure
 	 * it over the stretches a list asked for the dot. This player dropped the dot on the boss too, and the
 	 * exemption does not hide it.
+	 *
+	 * **And the hole this leaves is deliberate, re-argued against the fourth pull and against `021ff53`.**
+	 * Nothing on this card scores band-3+ dot play — the other three Flame Shock rules are `[1]`, `[2]` and
+	 * `[1]` — and on `addsThenBoss` that is 226.1s of a 560.3s pull with no dot metric over it. The bar
+	 * argument above still holds: `aoe.apl.json` carries no Lava Burst, so the cascade the 95%/85% line is
+	 * derived from does not exist there. What changed under it is the *button*: since `021ff53` the rung
+	 * reads Breath of the Hydra off `combatantinfo`, so `aoe.apl.json` rung 1 —
+	 * `auraIsKnown(138898) AND not(dotIsActive(8050))`, one branch covering bands 3 and 4 alike — genuinely
+	 * does demand the dot from a shaman who owns the trinket. The question became *whose* pull, and the
+	 * answer is that no metric can be built on it yet, for four measured reasons and one structural one.
+	 * `__tests__/aoeDotUnscored.test.ts` carries them with the figures; in brief:
+	 *
+	 * - **One gradable pull, and the reader cannot force a second.** `addsThenBoss` wears item 96455 and
+	 *   the other three wear Kardris' Toxic Totem, so the aoe list asks them for the dot zero times at any
+	 *   count — `cleave` peaks at **thirteen** enemies and is asked nothing. The gate is the kit, so even
+	 *   `aplForced[3]` produces no second observation. Thresholds off one pull are not thresholds.
+	 * - **The value would be picked, not measured.** Over the one clock (226 113ms) the primary-scoped dot
+	 *   reads **6.39%** and the all-enemies union **68.00%** — 61.6 points apart, and the rung's own
+	 *   `not(dotIsActive)` is neither of them.
+	 * - **The demand count is a cadence.** Priority 1 of five rungs claims every consecutive global the dot
+	 *   is down: 121 demands in 41 runs, longest 15. At band 4 that is **75.0%** of the band's globals —
+	 *   past the 72% at which the band-2 `maxDots` reading was measured and refused (`../apl.ts`,
+	 *   `FS_CLEAVE_OVERLAP_MS`).
+	 * - **Structural: there is no clock to divide.** Both halves of this ratio are cut with `gradedSpans`,
+	 *   so `scoredMs` is exactly `contact − band-3+ contact` on all four pulls and `contactUptimeMs` sits
+	 *   inside it. A band-3+ metric needs the same pair cut the other way, published from `index.ts`;
+	 *   widening `bands` here would buy nothing, because `MetricRule.bands` cuts no clock.
 	 */
 	flameShockUptime: { good: 95, ok: 85, higherIsBetter: true, bands: [1, 2] },
 
@@ -709,11 +736,11 @@ export const THRESHOLDS = {
 	searingTotemOverlaps: { good: 0, ok: 1, higherIsBetter: false },
 
 	/**
-	 * Whether the Fire Elemental was out when the bell rang — 1 for yes, 0 for no.
+	 * Whether the Fire Elemental was out when the pull started — 1 for yes, 0 for no.
 	 *
 	 * Pre-pulling it is free and pays twice: the elemental works from the first second, and its
 	 * five-minute cooldown starts turning that much earlier, which on a long pull is the difference
-	 * between one summon and two. So the pull that had it out at the bell is `good`, and the report
+	 * between one summon and two. So the pull that had it out from the start is `good`, and the report
 	 * should say so.
 	 *
 	 * **`bad` is unreachable, and that is the point of this entry.** `ok` is the worst this can grade,
@@ -725,8 +752,8 @@ export const THRESHOLDS = {
 	 *     this fight with no summon to make, and the log holds nothing from before its own first event
 	 *     to tell that apart from a player who had it in hand and did not press it. A press inside the
 	 *     pull does not settle it either: it proves the cooldown was ready *then*, and bounds what was
-	 *     left at the bell from above, never at zero.
-	 *   - **Nothing says this player was at the bell.** The measurability gate refuses the pull the
+	 *     left at the pull from above, never at zero.
+	 *   - **Nothing says this player was at the pull.** The measurability gate refuses the pull the
 	 *     player demonstrably was not in for the opening minute, but a late join it cannot see stays
 	 *     unseen.
 	 *
@@ -736,7 +763,7 @@ export const THRESHOLDS = {
 	 * something they could not have done, and a `bad` band here would have been the fourth.
 	 *
 	 * **No band, and it is the clearest case in the table.** This is a question about a single instant —
-	 * the bell — and it is asked before any target count exists to read. All three lists pre-pull the
+	 * the pull — and it is asked before any target count exists to read. All three lists pre-pull the
 	 * elemental, `autocastOtherCooldowns` in the aoe list casts it as a registered major cooldown, and
 	 * the pull's counts say nothing about what was standing when it started.
 	 *
@@ -746,24 +773,24 @@ export const THRESHOLDS = {
 	 * `bad` is reachable. That is not this entry being overruled, and the line between the two is which
 	 * instant is asked about and what the log can bound:
 	 *
-	 *   - **This rule asks about the bell, and its refusal is about availability.** Nothing in one fight's
-	 *     events bounds the cooldown remaining at the bell at zero, so the absence cannot be traced to a
+	 *   - **This rule asks about the pull, and its refusal is about availability.** Nothing in one fight's
+	 *     events bounds the cooldown remaining at the pull at zero, so the absence cannot be traced to a
 	 *     decision, and it is not called one.
 	 *   - **Rule 5 asks what the summon this pull actually made did with the raid's haste cooldown**, and
-	 *     it charges nothing for the absence at the bell on its own. A press that beats the lust reads a
+	 *     it charges nothing for the absence at the pull on its own. A press that beats the lust reads a
 	 *     flat 100% there — the pet was standing before the window opened, which is the whole of what that
 	 *     rule wants — and a press up to two seconds behind the lust reads that rule's `ok`, the same
 	 *     half-mark this one gives. So on the pull this rule declines to fault, rule 5 declines with it.
 	 *
 	 * What rule 5 does fault is a summon that arrived seconds behind the lust, or came off inside it, or
 	 * never came at all. None of those is explained by "the cooldown may still have been down at the
-	 * bell", and every one of them is a thing the log watched happen. So neither rule charges the player
+	 * pull", and every one of them is a thing the log watched happen. So neither rule charges the player
 	 * for the pre-pull absence, and exactly one of them speaks to what the summon did afterwards.
 	 *
 	 * **The `ok` band here stays at 0 regardless**, and rule 5 carrying a fault is not an argument for
 	 * this one growing one — the plan says in as many words not to "fix" the unreachable `bad`. What the
 	 * pairing does need is a sentence at the reader: `report.json`'s `fireElemental.prepullNo` currently
-	 * ends *"nothing here counts it as a mistake"* full stop, which is true of the bell and not of the
+	 * ends *"nothing here counts it as a mistake"* full stop, which is true of the pull and not of the
 	 * forty seconds after it. See the note in `WEIGHTS`.
 	 */
 	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true },
@@ -789,10 +816,10 @@ export const THRESHOLDS = {
 	 * per cent of a forty-second window is two seconds, and two seconds is the whole of what the pull's own
 	 * physics imposes on a player whose only lapse is not having pre-pulled:
 	 *
-	 *   - the haste cooldown does not land on the bell. It is a cast like any other, and it lands **0.785s
+	 *   - the haste cooldown does not land on the pull. It is a cast like any other, and it lands **0.785s
 	 *     to 1.777s** in on the three pulls that lust on the pull at all — `addsThenBoss` lusts at
 	 *     438 207ms and is refused rather than banded;
-	 *   - the totem pressed as the opening global puts the pet out one cast behind the bell, and the pet is
+	 *   - the totem pressed as the opening global puts the pet out one cast behind the pull, and the pet is
 	 *     standing from the press.
 	 *
 	 * So that player reads between a flat 100% — the press beat the lust, which is what `phased`'s 1.777s
@@ -837,7 +864,7 @@ export const THRESHOLDS = {
 	 * Every
 	 * one of them took Primal Elementalist — 117013 is in all **four** `combatantinfo` lists, the refused
 	 * pull's included — every one had
-	 * the elemental out before the bell — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
+	 * the elemental out before the pull — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
 	 * lusted inside the first two seconds for forty seconds, under a different spell each time (Heroism,
 	 * Bloodlust, Time Warp). A pre-pull summon's minute contains an on-pull lust's forty seconds by
 	 * construction, so this is structural rather than three players getting it right — and the whole fault
@@ -848,7 +875,7 @@ export const THRESHOLDS = {
 	 * **The fourth, `addsThenBoss.json`, is the first committed pull that makes this rule decline — and it
 	 * declines for the reason the refusal was built for.** Its raid lusted at **438 207ms**, seven minutes
 	 * in and nowhere near the pull, so `gradedMs` arrives at 0 and `metricOf` nulls. That pull also never
-	 * had the elemental out at the bell (`prepull: false`, first press at 173 290ms), which makes it the
+	 * had the elemental out at the pull (`prepull: false`, first press at 173 290ms), which makes it the
 	 * one real log we hold where the pair a reader sees is rule 4's `ok` beside this rule's silence. Until
 	 * it landed, every refusal this rule makes was exercised only on synthetic pulls; one of the four is
 	 * now a captured one. Pinned in `firePrimalHaste.test.ts`.

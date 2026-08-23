@@ -262,7 +262,7 @@ describe('auraWindows', () => {
 		 * This used to assert `[]`: with no declared duration the bound cannot be checked, so the event was
 		 * dropped. That made a gap in *this* model read as an absence of evidence in the log. The shared
 		 * `bloodlust` aura declares no duration on purpose — its five ids are one effect rather than one
-		 * spell — so a haste cooldown pressed before the bell left nothing but a `removebuff`, that removal
+		 * spell — so a haste cooldown pressed before the pull left nothing but a `removebuff`, that removal
 		 * was thrown away here, and the Ascendance opener went ungraded for want of a window to measure
 		 * against. That downstream symptom used to be named here as the reason `'no-cooldown-on-pull'`; the
 		 * reason itself is gone (`cbc9259` deleted it, because opening with Ascendance needs no raid
@@ -296,7 +296,7 @@ describe('auraWindows', () => {
 		});
 
 		it('refuses a removal that follows a press of the same id', () => {
-			// The `poor` fixture's monk, who drank at +92ms rather than before the bell: the apply and the
+			// The `poor` fixture's monk, who drank at +92ms rather than before the pull: the apply and the
 			// cast are both in the fight, so the removal 25s later pairs with them and infers nothing.
 			const events = [ev(88, 'applybuff', 105697), ev(92, 'cast', 105697), ev(25094, 'removebuff', 105697)];
 			expect(auraWindows(events, POTION, T0, T0 + 200000, { openAtPull: true })).toEqual([

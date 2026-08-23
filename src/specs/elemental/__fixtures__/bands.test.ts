@@ -400,7 +400,7 @@ describe('what deliberately does not move', () => {
 	 *
 	 * This is the half that keeps "the exception applies globally" from meaning "an add fight is not
 	 * graded". A pool that empties, a shield that falls off, a global that goes unfilled, a totem placed
-	 * under the elemental and a summon that was not out at the bell are all the same fault at one enemy
+	 * under the elemental and a summon that was not out at the pull are all the same fault at one enemy
 	 * and at thirteen.
 	 *
 	 * **Cannot go red against the old behaviour**, because before this change no rule in the table had a

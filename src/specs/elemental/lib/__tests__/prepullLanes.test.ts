@@ -1,7 +1,7 @@
 // The aura lanes that should draw the window they can prove, and the graded readers that must not.
 //
 // Plan §6. `auraWindows`' `openAtPull` is opt-in per call site, so a lane that never asks for it starts
-// its bar at the first *in-fight* event: an aura already running at the bell reads as applied late, or —
+// its bar at the first *in-fight* event: an aura already running at the pull reads as applied late, or —
 // where its only in-fight trace is the bare removal it left behind — as never applied at all.
 //
 // Every case here is synthetic, and it has to be. None of the three committed Elemental fixtures carries
@@ -110,7 +110,7 @@ const laneFor = (el: Analysis & ElementalAuditResult, key: string): AuraLane | u
  * Ascendance, whose press and buff are two different ids.
  *
  * Fifteen seconds long and pressed to line up with the raid's haste cooldown, which on a lust-on-pull is
- * a reason to press it *before* the bell — so this is not a hypothetical shape.
+ * a reason to press it *before* the pull — so this is not a hypothetical shape.
  */
 describe('a pre-pull Ascendance', () => {
 	/** The whole of what a pre-pull summon leaves inside the fight window: where it ran out. */
@@ -176,7 +176,7 @@ describe('a pre-pull Elemental Mastery', () => {
 	});
 
 	/**
-	 * And the duration bound still holds: a removal 20s past the bell cannot be a buff that was already
+	 * And the duration bound still holds: a removal 20s into the pull cannot be a buff that was already
 	 * running, because the buff only lasts twenty seconds.
 	 */
 	it('refuses a removal that lands past the buff’s own duration', () => {
@@ -234,7 +234,7 @@ describe('a pre-pull Flame Shock', () => {
 	 * And not one millisecond of it reaches anything that grades a press.
 	 *
 	 * `combatantinfo`-grade evidence about the pull is not evidence about a press: a shaman who dotted
-	 * before the bell did nothing wrong, and neither did the log record them doing anything, so a figure
+	 * before the pull did nothing wrong, and neither did the log record them doing anything, so a figure
 	 * that credited the stretch would be scoring an inference. The two readings are separate arrays for
 	 * exactly this reason, and the assertion is against the control pull rather than against a literal —
 	 * a hard-coded zero would still pass if the graded walk started answering with the same array the

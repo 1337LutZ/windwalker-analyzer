@@ -1,7 +1,7 @@
 // The Fire Elemental section's note about the pre-pull, which is three claims and not two.
 //
 // The note used to be a ternary on `fireElemental.prepull`, so a pull that could not answer the
-// question at all was told flatly that the elemental "was not out at the bell" — and on a fight shorter
+// question at all was told flatly that the elemental "was not out at the pull" — and on a fight shorter
 // than the summon's own minute that is not something the log knows. Which note shows is now `lib/score`'s
 // call, through the same `toneOf` seam the tiles colour themselves with, so the section and the summary
 // card cannot make different claims about one pull.
@@ -97,7 +97,7 @@ const render = (dataset: FightDataset) =>
 	);
 
 describe('the Fire Elemental pre-pull note', () => {
-	it('says it was out when the bell went', () => {
+	it('says it was out when the pull started', () => {
 		const html = render(make(200_000, [e(40_000, 'removebuff', FIRE_ELEMENTAL_BUFF)]));
 		expect(html).toContain(t('fireElemental.prepullYes'));
 		// And the table lists the summon as a use rather than standing empty. It used to assert a second

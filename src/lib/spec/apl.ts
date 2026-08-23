@@ -560,7 +560,7 @@ function readerAt(t: number, inputs: AplInputs): AuraReader {
 		// spend, so the level the press saw is the one before it. Null before the first stretch and
 		// null across a gap, on the same terms as a bar: "no reading yet" and "zero stacks" are
 		// different facts about the pull, and zero is the wrong answer for Lightning Shield at the
-		// bell.
+		// pull.
 		stacks: (key) => {
 			const levels = inputs.stackLevels?.[key];
 			if (levels === undefined || levels.length === 0) return null;

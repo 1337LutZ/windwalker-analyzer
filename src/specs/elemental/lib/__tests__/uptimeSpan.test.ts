@@ -557,7 +557,7 @@ const twoEnemyPull = (extra: WclEvent[]): Analysis & ElementalAuditResult =>
 		events: [
 			...every5s(0, BOSS_LAST, BOSS),
 			...every5s(ADD_FIRST, ADD_LAST, ADD),
-			// The dot goes on the boss at the bell and stays there for the whole of both stretches, so the
+			// The dot goes on the boss at the pull and stays there for the whole of both stretches, so the
 			// primary's lane is one unbroken window and nothing about the *dot* differs between the two pulls.
 			...dotOn(BOSS, 0, ADD_LAST),
 			...extra,

@@ -53,7 +53,7 @@ const contact: WclEvent[] = [
 ];
 
 /**
- * The dot, on spawn 1 only, held from the bell to 100s through refreshes.
+ * The dot, on spawn 1 only, held from the start to 100s through refreshes.
  *
  * Spawn 2 never gets one. So the union across the add's spawns says "this enemy had the dot for 100
  * seconds", which is true and is what the uptime figure and the lane should say; and the press-level

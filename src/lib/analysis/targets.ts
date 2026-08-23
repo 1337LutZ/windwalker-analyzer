@@ -66,10 +66,10 @@ export interface SpawnLife {
 	 * Juggernaut datasets carry zero `death` events for an enemy NPC, so a death is not available to
 	 * measure to either.
 	 *
-	 * Except at the bell: a spawn still being hit within one target window of the end of the pull had no
-	 * observable end, so its life runs to the fight's end instead. That is what makes a mob still alive
-	 * when the fight stops trivially qualify, rather than being scored on the accident of when the
-	 * player last swung at it.
+	 * Except where the fight stops first: a spawn still being hit within one target window of the end of the
+	 * pull had no observable end, so its life runs to the fight's end instead. That is what makes a mob
+	 * still alive when the fight stops trivially qualify, rather than being scored on the accident of when
+	 * the player last swung at it.
 	 */
 	lifetimeMs: number;
 }
@@ -314,7 +314,7 @@ export function intervalsAtLeast(
 	 * exemption is the window rather than the adds.
 	 *
 	 * **A stretch the pull ended inside is never trimmed**, which is the judgement `spawnLives` already
-	 * makes at the bell. Its close is `endMs` — the fight stopping, not the count falling — so there is
+	 * makes at the fight's end. Its close is `endMs` — the fight stopping, not the count falling — so there is
 	 * no lag in it to take off, and cutting one would charge a player for adds that were still up when
 	 * the fight ended. `cleave`'s eighth stretch is exactly that: it closes 1 179ms after its third
 	 * enemy's last hit because the boss died, and a blind trim would take 3 500ms off a 1 232ms stretch.
@@ -334,7 +334,7 @@ export function intervalsAtLeast(
 			// stretch closed by that point used to be emitted unclamped, and `contactMs` came out longer
 			// than the pull it was measured over.
 			const clamped = Math.min(t, endMs);
-			// Trimmed only where the count fell inside the pull: at `endMs` the close is the bell and not
+			// Trimmed only where the count fell inside the pull: at `endMs` the close is the fight ending and not
 			// a fall, so it carries no window lag to take off — see `trimTrailingMs`.
 			const close = clamped < endMs ? Math.max(open, clamped - trimTrailingMs) : clamped;
 			if (close > open) out.push([open, close]);

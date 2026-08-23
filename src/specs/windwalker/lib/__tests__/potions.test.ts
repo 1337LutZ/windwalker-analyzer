@@ -38,7 +38,7 @@ const FIXTURES = ['strong', 'mixed', 'poor', 'waves', 'cleave', 'weave'] as cons
  * that drifts onto another player or another pull fails rather than quietly re-baselining.
  *
  * `drunkMs` is signed and fight-relative. Negative on the five pulls whose pre-pull potion was
- * already running at the bell, where it is the figure the report prints beside the timeline: how long
+ * already running at the pull, where it is the figure the report prints beside the timeline: how long
  * before the pull it went down, spread over 294ms to 1898ms — a second and a half, which is exactly
  * why the timing is reported and not graded. Positive on `poor`, where the press is in the stream and
  * the number is simply when it happened.

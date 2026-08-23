@@ -10,7 +10,7 @@
 // zero because of it.
 //
 // The flat reading is structural rather than three players getting it right. A Fire Elemental summoned
-// before the bell owns the first minute of the pull, a raid lusts on the pull, and a minute contains
+// before the pull owns the first minute of it, a raid lusts on the pull, and a minute contains
 // forty seconds. So the fault side of this rule is carried on synthetic pulls below, every one of them
 // a real fixture with named events moved or removed — never a threshold lowered until something fired.
 //
@@ -355,7 +355,7 @@ describe('the three ways this rule declines, and none of them is a full mark', (
 	 * "the guard works" and "the guard fires".
 	 *
 	 * It is also the one committed pull where the two rules' reader-facing pair can be read off a real
-	 * fight: `fireElementalPrepull` at `ok` (the elemental was not out at the bell — its first press is at
+	 * fight: `fireElementalPrepull` at `ok` (the elemental was not out at the pull — its first press is at
 	 * 173 290ms) beside this rule saying nothing at all. Neither calls the pull a mistake, which is the
 	 * whole of the reconciliation seen from the fixtures.
 	 *
@@ -369,7 +369,7 @@ describe('the three ways this rule declines, and none of them is a full mark', (
 		expect(el.fireElemental.prepull).toBe(false);
 		expect(el.fireElemental.presses[0]?.t).toBe(173_290);
 		expectSilence(el, 'addsThenBoss');
-		// The pair, on a real pull: a half-mark for the bell and silence for the window. Not a fault on
+		// The pair, on a real pull: a half-mark for the pre-pull and silence for the window. Not a fault on
 		// either side, and the section says so.
 		const card = scoreAnalysis(el, resolveBands(el.targets, 'auto'));
 		expect(card.sections['fireElemental']?.metrics.map((m) => `${m.key}=${m.unmeasurable ? 'unm' : m.grade}`)).toEqual([
@@ -406,7 +406,7 @@ describe('the three ways this rule declines, and none of them is a full mark', (
 	 * A cooldown that went out at a minute in is *"a different tactical situation and is not read as the
 	 * pull's"* — `ascendanceSync`'s own words for the same narrowing, and here it is the availability
 	 * guard. This player's summon may simply not be up at 61 777ms, and no log states when a five- or
-	 * three-minute cooldown that was spent before the bell comes back. Faulting them for the raid's timing
+	 * three-minute cooldown that was spent before the pull comes back. Faulting them for the raid's timing
 	 * is the "charged the player for something they could not have done" shape this audit has shipped four
 	 * times.
 	 *
@@ -528,12 +528,12 @@ describe('the band, and where it was cut', () => {
 	 *
 	 * Two seconds is what the pull's own physics can impose on a player whose only lapse is not having
 	 * pre-pulled: the lust is itself a cast and lands 0.785–1.777s in on the three pulls we hold, and the
-	 * totem pressed as the opening global puts the pet out one cast behind the bell.
+	 * totem pressed as the opening global puts the pet out one cast behind the pull.
 	 */
 	it('puts the edge of the band two seconds behind the lust', () => {
 		expect(metricOn(press(3777))).toMatchObject({ grade: 'ok' });
 		expect(metricOn(press(3778))).toMatchObject({ grade: 'bad' });
-		// And the edge really is the lust's arrival plus two, not the bell's plus two.
+		// And the edge really is the lust's arrival plus two, not the pull's plus two.
 		expect(hasteWindow(press(3777))?.start).toBe(1777);
 	});
 
@@ -585,7 +585,7 @@ describe('the band, and where it was cut', () => {
 	/**
 	 * A pre-pull pressed far too early still fails, and this is the one arm of the band that a *pre-pulled*
 	 * pull can reach — so `fireElementalPrepull`'s `good` and this rule's `bad` land on the same pull, which
-	 * is the two rules saying different true things rather than disagreeing. It was out at the bell; it left
+	 * is the two rules saying different true things rather than disagreeing. It was out at the pull; it left
 	 * before the lust did.
 	 *
 	 * **DELIBERATE NO-CHANGE GUARD** on the grade, for the same reason as the glyph above: 83.04% was `bad`
@@ -607,14 +607,14 @@ describe('the band, and where it was cut', () => {
 	 *
 	 * The two rules share a section and both weigh 1, and `fireElementalPrepull` grades a non-pre-pull `ok`
 	 * — *explicitly not a fault*, because nothing in one fight's events bounds the cooldown remaining at the
-	 * bell at zero. If this rule faulted a pull for the pre-pull absence alone it would be reversing that
+	 * pull at zero. If this rule faulted a pull for the pre-pull absence alone it would be reversing that
 	 * ruling, and the section would carry two metrics disagreeing about one press.
 	 *
 	 * It does not, and the band is why: **the pre-pull absence on its own costs nothing here.** A press that
 	 * beats the lust reads this rule's `good`, and a press up to two seconds behind it reads this rule's
 	 * `ok` — the same half-mark rule 4 gives. So on the pull rule 4 declines to fault, rule 5 declines with
 	 * it, and what rule 5 faults is a summon seconds behind the lust, or one that left inside it, or one
-	 * that never came — none of which "the cooldown may still have been down at the bell" explains.
+	 * that never came — none of which "the cooldown may still have been down at the pull" explains.
 	 *
 	 * Asserted as the pair of grades a reader gets on one pull, at every reading, because that is the thing
 	 * that must not read as a contradiction.

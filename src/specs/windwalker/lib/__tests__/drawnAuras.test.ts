@@ -14,7 +14,7 @@
 // `diffuse-magic` and `tigereye-brew-bank`. The first two are now lanes and the last two are excused below.
 //
 // **Why the sweep counts removals as well as applications.** Widening it added exactly one key on this
-// fixture, and that key was `bloodlust`: the pull's haste cooldown went up before the bell, so its only
+// fixture, and that key was `bloodlust`: the pull's haste cooldown went up before it started, so its only
 // event is the removal at 39.9s and an apply-only sweep cannot see it at all. The missing row and the blind
 // spot were the same fact, which is a poor thing for a guard to share with the bug it is guarding against.
 // "The log put this aura on the player" is the question; an application is only one kind of evidence for it.
@@ -70,7 +70,7 @@ const NOT_LANES: Record<string, string> = {
 	// the rotation's own rows down the screen on a long pull.
 	'diffuse-magic': 'defensive, no bearing on the rotation',
 	// **The one thing the enemy half of the sweep found.** Blackout Kick's dot, 128531: 18 applications,
-	// 35 refreshes and 18 removals on the committed pull, from 2.9s in to 52ms before the bell — so it is
+	// 35 refreshes and 18 removals on the committed pull, from 2.9s in to 52ms before the pull — so it is
 	// up for very nearly the whole fight and a row for it would be one solid bar carrying no information.
 	// It is also not unmeasured: 128531 is a `damageId` of `blackout-kick` (index.ts:518), so every point
 	// of it is already in that press's row of the damage table, which is where a dot nobody decides
@@ -162,7 +162,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// for a start, an end or a duration.
 		//
 		// This pull is also the reason the sweep above counts removals. The raid's Time Warp went up before
-		// the bell, so the log carries **no application for it at all** — one bare removal, from another
+		// the pull, so the log carries **no application for it at all** — one bare removal, from another
 		// actor, at 39.9s — and the row exists only because the core walks this aura with `openAtPull`.
 		const group = new Set(registry.aura('bloodlust').ids);
 		const events = selfAuraEvents(dataset).filter((e) => group.has(e.abilityGameID ?? -1));

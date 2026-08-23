@@ -240,7 +240,7 @@ const shield: WclEvent[] = [
 ];
 
 /**
- * The dot up from the bell to 45s, ticking every 1 500ms — then down for the rest of the pull.
+ * The dot up from the start to 45s, ticking every 1 500ms — then down for the rest of the pull.
  *
  * The tail matters: the press at 53s lands with the dot off the target, which is what makes `fsTail`
  * reachable while the proc's own four-second condition is satisfied.

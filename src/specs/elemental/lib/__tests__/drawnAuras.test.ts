@@ -140,7 +140,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 
 	it('counts removals, because two of these auras have no application on the pull at all', () => {
 		// **The blind spot this guard used to share with the bug it guards against.** Sweeping applications
-		// and refreshes only, it could not see an aura the player took before the bell — and on this spec
+		// and refreshes only, it could not see an aura the player took before the pull — and on this spec
 		// that is not a hypothetical. The Fire Elemental is pre-pulled on **three of the four** fixtures:
 		// its only event there is a single `removebuff` of 118291 when the summon expires just short of a
 		// minute in, with no `applybuff` anywhere, so the narrow reading missed the spec's own signature
@@ -152,7 +152,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// an exception.** That shaman does not pre-pull: the summon goes out at 173 290ms and again at
 		// 479 923ms, so its `fire-elemental` stream carries real `applybuff`s and the narrow reading would
 		// have found the key there. The hole was invisible for three pulls precisely because every pull we
-		// held pressed the button before the bell, which is the shape of accident this whole file is about.
+		// held pressed the button before the pull, which is the shape of accident this whole file is about.
 		//
 		// Both are drawn — the engine recovers them with `auraWindows`' `openAtPull`, which is what the
 		// `preexisting` flag on the window records — so the widening added no orphan here. That is the

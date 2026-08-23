@@ -395,7 +395,7 @@ const allAoeEvents: WclEvent[] = [
 	...Array.from({ length: DURATION / 2000 + 1 }, (_, i) =>
 		ADDS.map((add) => e(i * 2000, 'damage', 421, { targetID: add, amount: 5000, hitType: 1 })),
 	).flat(),
-	// The shield up before the bell, then eight Lightning Bolts to drive Rolling Thunder to the ceiling,
+	// The shield up before the pull, then eight Lightning Bolts to drive Rolling Thunder to the ceiling,
 	// and nothing that ever spends it.
 	...Array.from({ length: 7 }, (_, i) => e(1000 + i * 1000, 'applybuffstack', 324, { stack: i + 2 })),
 	// One Lava Burst, so the pull reads as an Elemental at all — see `looksElemental`.
@@ -564,7 +564,7 @@ const dot = (target: number, fromMs: number, toMs: number): WclEvent[] => [
 
 /**
  * The boss is hit for the whole pull and the second enemy for the first 150s, so band 2 runs from the
- * bell; the third enemy is hit from 60s to 120s and nothing else, so band 3 is one stretch in the middle.
+ * start; the third enemy is hit from 60s to 120s and nothing else, so band 3 is one stretch in the middle.
  */
 const twoBands = (secondDot: WclEvent[]): Analysis & ElementalAuditResult =>
 	analyse({

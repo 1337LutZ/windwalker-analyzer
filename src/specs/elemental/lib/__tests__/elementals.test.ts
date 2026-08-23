@@ -7,7 +7,7 @@
 //
 // The Earth Elemental is checked on the committed pulls, which happen to carry one press each and one on
 // either side of the threshold. The Fire Elemental cannot be: every shaman in the test set summoned it
-// *before* the bell, so `presses` is empty on all of them and there is no in-fight press to judge. Its
+// *before* the pull, so `presses` is empty on all of them and there is no in-fight press to judge. Its
 // branches are synthetic.
 //
 // That sentence used to end "and `prepull` false on both", which was this file reading back a bug —
@@ -209,7 +209,7 @@ const make = (extra: readonly WclEvent[]): FightDataset => ({
  * The same pull cut short, for the one branch a 400-second fight cannot reach.
  *
  * A wipe or an early kill is a real pull, and the end-of-fight window is 62 seconds, so a fight shorter
- * than that is the only place branch A can be true of a summon made before the bell. Built by trimming
+ * than that is the only place branch A can be true of a summon made before the pull. Built by trimming
  * `make` rather than by a second dataset literal, so the two cannot drift apart in anything but length.
  */
 const shortPull = (ms: number, extra: readonly WclEvent[]): FightDataset => {
@@ -335,7 +335,7 @@ describe('the Earth Elemental’s threshold', () => {
 });
 
 /**
- * Whether the elemental was already out when the bell went — the prepull press the list makes when
+ * Whether the elemental was already out when the pull started — the prepull press the list makes when
  * Heroism is going up on the pull.
  *
  * A fight-scoped event query returns nothing of a summon made before the pull but its expiry, so this is
@@ -370,7 +370,7 @@ describe('a Fire Elemental that was already out at the pull', () => {
 	/**
 	 * A window is not the same claim as a *preexisting* window.
 	 *
-	 * The question is whether the elemental was out **at the bell**, so a paired apply and remove inside
+	 * The question is whether the elemental was out **at the pull**, so a paired apply and remove inside
 	 * the pull — a log that books the summon as a buff on the shaman rather than only as a cast — is a
 	 * window `auraWindows` returns and `prepull` must still read false for. Reading the window count
 	 * instead of the flag would call any pull that summoned it a prepull one.
@@ -389,7 +389,7 @@ describe('a Fire Elemental that was already out at the pull', () => {
  * **No committed fixture exercises any of this, and that asymmetry is why it sat.** `phased` and
  * `unbroken` summon it inside the pull; `cleave` carries neither 2062 nor 118323 and no pet of its own,
  * which is a cooldown genuinely never pressed. So a pull with no press read the same whether the button
- * was unused or spent before the bell, and there was no fixture in which that looked wrong.
+ * was unused or spent before the pull, and there was no fixture in which that looked wrong.
  *
  * The events are the shape the fixtures prove: 118323 is the buff on the shaman and 2062 is the press,
  * a millisecond apart on both real summons (`phased` 240.166s, `unbroken` 66.657s). A pre-pull summon
@@ -414,7 +414,7 @@ describe('an Earth Elemental that was already out at the pull', () => {
 
 	it('counts a pre-pull summon as inside the window on a pull shorter than the window', () => {
 		// The reason the verdict is *computed* for an inferred use rather than pinned. A 50s pull is
-		// shorter than the list's own 62s end-window, so a summon that predates the bell really was inside
+		// shorter than the list's own 62s end-window, so a summon that predates the pull really was inside
 		// it — and a hardcoded `false` would say the opposite on exactly the pull where it matters.
 		const el2 = analyse(shortPull(50_000, [e(20_000, 'removebuff', EARTH_ELEMENTAL_BUFF)])) as Analysis &
 			ElementalAuditResult;
@@ -477,7 +477,7 @@ describe('an Earth Elemental that was already out at the pull', () => {
 /**
  * The Fire Elemental tile counts the pre-pull use, on the real pulls — §68's headline.
  *
- * Three of the four committed pulls summon it before the bell, so all three had `prepull: true` beside a
+ * Three of the four committed pulls summon it before the pull, so all three had `prepull: true` beside a
  * "Summons" tile reading **0**. The count and the table now come off one list, which is what stops them
  * disagreeing again in the other direction.
  *

@@ -18,7 +18,7 @@
 // **Why it is one function and not two.** The two guards were written days apart and diverged in a
 // way that mattered rather than a way that looked like style. The Windwalker's counted removals as
 // evidence; the Elemental's counted applications and refreshes only. On the Windwalker's own fixture
-// the difference was the whole finding — the raid's Time Warp went up before the bell, so its only
+// the difference was the whole finding — the raid's Time Warp went up before the pull, so its only
 // event on the pull is a bare `removebuff` of 80353 at 39 971 ms, and the missing `bloodlust` row and
 // the guard's inability to see it were the same fact. A guard that shares its blind spot with the bug
 // it guards against is a poor guard, and two copies of one sweep is how that blind spot survived.

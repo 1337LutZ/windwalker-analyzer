@@ -2,7 +2,7 @@
 //
 // The two committed pulls are raw `FightDataset`s, so `analyse` really runs and the figures below are
 // the audit's own output. They are also the only place the *pre-fight inference* can be checked at all:
-// neither log carries a single `applybuff` of 324, because the shield is put up before the bell and the
+// neither log carries a single `applybuff` of 324, because the shield is put up before the pull and the
 // fight-scoped event query returns nothing but the stack changes — which is exactly the case
 // `auraLevels` was given its inference for.
 //
@@ -36,7 +36,7 @@ const fx = (name: string, overcapMs?: number): Analysis & ElementalAuditResult =
  * anywhere in the pull, so a walk that only paired applies to removes would have no reading for the
  * shield at all and the section would draw an empty chart on a pull the player kept it up for.
  */
-describe('a shield that was already up when the bell went', () => {
+describe('a shield that was already up when the pull started', () => {
 	const el = fx('phased');
 	const ls = el.lightningShield;
 

@@ -359,7 +359,7 @@ describe('starved with Thunderstorm up', () => {
 
 	/**
 	 * The same stretch inside the opening the log cannot speak for. Thunderstorm comes back in 45s, so a
-	 * press taken a second before the bell is invisible in this pull and a press taken any earlier has
+	 * press taken a second before the pull is invisible here and a press taken any earlier has
 	 * already come back — which means nothing before 45s can be proved either way.
 	 */
 	it('charges nothing inside the opening, and reports it as unproven rather than clean', () => {

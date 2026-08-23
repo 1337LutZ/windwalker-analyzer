@@ -1,4 +1,4 @@
-// The Fire Elemental that was summoned before the bell: the slot it holds, and the one thing the
+// The Fire Elemental that was summoned before the pull: the slot it holds, and the one thing the
 // report is willing to say about a pull that did not have it out.
 //
 // Two halves, and they are one file because the second is a grade on the first. A pre-pull summon logs
@@ -35,7 +35,7 @@ const FIRE_ELEMENTAL = 2894;
  * The buff a Fire Elemental press applies, which is **not** the id it is cast under.
  *
  * One press emits `applybuff 118291` + `summon 118291` (the Primal Fire Elemental) alongside
- * `cast 2894` + `summon 2894` (the totem object), so a summon made before the bell leaves exactly one
+ * `cast 2894` + `summon 2894` (the totem object), so a summon made before the pull leaves exactly one
  * thing inside the fight window: a bare `removebuff` of 118291. Every synthetic pre-pull below is
  * written in that shape rather than in 2894's, because 2894 is a shape no log emits as a buff.
  */
@@ -58,7 +58,7 @@ const hit = (t: number): WclEvent =>
  * A pull with a hit every five seconds, so the engaged clock is the whole fight.
  *
  * `from` is where the player joins it: every case here that turns on the pull's opening needs a stream
- * that starts somewhere other than the bell, and the engaged clock is built from landed hits.
+ * that starts somewhere other than the pull, and the engaged clock is built from landed hits.
  */
 const make = (durationMs: number, extra: readonly WclEvent[], from = 0): FightDataset => {
 	const fight = {
@@ -160,7 +160,7 @@ describe('the Fire totem slot a pre-pull elemental was standing in', () => {
 describe('what the summary is willing to say about the pre-pull', () => {
 	const metricOn = (el: Analysis & ElementalAuditResult) => scoreAnalysis(el).sections['fireElemental']?.metrics[0];
 
-	it('gives the pull that had it out at the bell full marks', () => {
+	it('gives the pull that had it out from the start full marks', () => {
 		const el = run(make(200_000, [PREPULL_EXPIRY]));
 		expect(metricOn(el)).toMatchObject({ key: 'fireElementalPrepull', value: 1, grade: 'good', unmeasurable: false });
 	});
@@ -234,7 +234,7 @@ describe('what the summary is willing to say about the pre-pull', () => {
 	 * Plan §6: an inferred bar must not draw identically to one the log proved both ends of. The lane
 	 * builder used to rebuild every window as `{ start, end }`, so this stretch — recovered from a bare
 	 * `removebuff` and nothing else — reached the chart indistinguishable from a summon pressed at the
-	 * bell, and the timeline stamped its left edge `0:00.000` as though something had happened there.
+	 * pull, and the timeline stamped its left edge `0:00.000` as though something had happened there.
 	 * With the flag carried, the tooltip reads "before the pull" instead and the caption explains the
 	 * missing press icon.
 	 *

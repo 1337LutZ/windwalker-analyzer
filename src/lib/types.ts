@@ -2752,7 +2752,7 @@ export interface AscendancePress {
 export interface AscendanceAudit {
 	presses: AscendancePress[];
 	/**
-	 * Whether Ascendance was already running when the bell went.
+	 * Whether Ascendance was already running when the pull started.
 	 *
 	 * Published for the same reason `fireElemental.prepull` is: it is the difference between a press
 	 * the player did not make and a press made before the log starts, and without it a reader cannot
@@ -2765,7 +2765,7 @@ export interface AscendanceAudit {
 	 *
 	 * `none` is not a middle value and must not be read as one. It means not one press could be judged
 	 * — no haste cooldown on the pull, no Elemental Discharge in evidence, the button already running
-	 * at the bell, or nothing to hit — and a pull that pressed Ascendance zero times comes back `none`
+	 * at the pull, or nothing to hit — and a pull that pressed Ascendance zero times comes back `none`
 	 * with an empty `presses`. The per-press `reason` says which.
 	 */
 	grade: AscendanceSyncVerdict['grade'];
@@ -2814,7 +2814,7 @@ export interface FireElementalPress {
 	 * Whether this use was recovered rather than read: `true` means no cast event, only a pre-pull window.
 	 *
 	 * Published because the tile that counts these rows has to count the inferred one — a pull that
-	 * summoned before the bell used the cooldown — and a reader looking at the table then has to be able
+	 * summoned before the pull used the cooldown — and a reader looking at the table then has to be able
 	 * to see which row the log does not carry a press for. §57d's rule for drawn bars, on a counted row.
 	 */
 	inferred: boolean;
@@ -2864,7 +2864,7 @@ export interface EarthElementalPress {
 	 * What the list's rule says about this press. See `EarthElementalVerdict` for the three branches.
 	 *
 	 * Computed for an inferred use as well as a read one — one expression cannot disagree with itself
-	 * about whether a summon that predates the bell was inside a 50-second pull's end window — but an
+	 * about whether a summon that predates the pull was inside a 50-second pull's end window — but an
 	 * inferred use is **not counted into `good` or `graded`**: the list has no pre-pull Earth Elemental
 	 * play, so grading one would invent a rule (§75).
 	 */
@@ -3209,7 +3209,7 @@ export interface ElementalAuditResult {
 	/** Fire Elemental's presses, judged against the sync-with-Ascendance rule rather than drift. */
 	fireElemental: {
 		presses: FireElementalPress[];
-		/** Whether it was already out when the bell went. */ prepull: boolean;
+		/** Whether it was already out when the pull started. */ prepull: boolean;
 		/**
 		 * How much of the raid's on-pull haste cooldown the Primal Fire Elemental was standing for.
 		 *
@@ -3240,7 +3240,7 @@ export interface ElementalAuditResult {
 	earthElemental: {
 		presses: EarthElementalPress[];
 		/**
-		 * Whether it was already out when the bell went.
+		 * Whether it was already out when the pull started.
 		 *
 		 * Not graded, and deliberately so — the p5 list has no pre-pull Earth Elemental play to grade
 		 * against. It is published because without it "no presses" was one field covering two different

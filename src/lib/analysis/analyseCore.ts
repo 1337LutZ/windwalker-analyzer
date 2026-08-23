@@ -169,7 +169,7 @@ export interface Handles {
 	gear: GearSummary;
 	raidBuffs: RaidBuffSummary;
 	/**
-	 * The ability ids `combatantinfo` says were already on the player when the bell rang.
+	 * The ability ids `combatantinfo` says were already on the player when the pull started.
 	 *
 	 * The third rung of `auraWindows`' pre-pull evidence, and the only one that can see an aura which
 	 * left no event at all — applied before the pull and never removed inside it, so there is no apply
@@ -244,7 +244,7 @@ export interface Handles {
 	 * and returns the final marks as `timeline.casts`.
 	 */
 	marks: CastMark[];
-	/** The potion's windows, including one that was already running when the bell went. */
+	/** The potion's windows, including one that was already running when the pull started. */
 	potionWindows: Window[];
 	/**
 	 * The raid's haste cooldown on this player — the Bloodlust group, whoever cast it — and the Troll
@@ -1127,7 +1127,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 
 	// --------------------------------------------------------------- Potions
 	/**
-	 * The pull's potion windows, including the one that was already running when the bell went.
+	 * The pull's potion windows, including the one that was already running when the pull started.
 	 *
 	 * `openAtPull` is what recovers it, and the argument for the recovery is in `auraWindows`. The
 	 * short version: a fight-scoped query returns only what happened inside the fight, so a potion
@@ -1201,7 +1201,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		 * A potion drunk before this player entered the fight is a pre-pull potion in the only sense
 		 * the two slots are about: it went down out of combat, so it started the category cooldown
 		 * without spending the one press combat allows, and the second slot came up a minute later
-		 * exactly as it does after a press taken before the bell.
+		 * exactly as it does after a press taken before the pull.
 		 *
 		 * **Second in line, never a replacement.** A buff already running at the pull is direct
 		 * evidence and this is an inference from timing, so `prePullWindow` takes the slot wherever it
@@ -1244,7 +1244,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		 *
 		 * `drunkMs` being signed is what lets the combat guard stand unchanged across both shapes of
 		 * pre-pull press: the lock starts where the potion went down, whether that is 1.0s before the
-		 * bell or 0.5s after it.
+		 * pull or 0.5s after it.
 		 */
 		const prePullReadable = duration >= (potionAura.durationMs ?? 0);
 		const combatReadable = prePull === null || duration >= prePull.drunkMs + spec.potion.categoryCooldownMs;
@@ -1272,7 +1272,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// about where Bloodlust started is not a bug a reader can see. One walk, published on the handles
 	// and on the timeline both.
 	//
-	// `openAtPull` on both, and rung 2 only. A haste cooldown pressed just before the bell is ordinary
+	// `openAtPull` on both, and rung 2 only. A haste cooldown pressed just before the pull is ordinary
 	// play, and without the inference its whole in-fight stretch is invisible: the removal is the only
 	// event the fetch returns, the default walk discards it, and the pull reads as having had no haste
 	// cooldown at all. Rung 3 is deliberately *not* asked for — Bloodlust runs 40s and Berserking 10s,

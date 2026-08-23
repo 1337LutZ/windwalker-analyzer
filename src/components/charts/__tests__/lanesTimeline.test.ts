@@ -196,8 +196,8 @@ describe('the counter is cut one bar per spend', () => {
 		// draws in red — a shield lost before it was full, not merely a load that ended.
 		expect(loads[0]).toEqual({ start: 0, end: 2000, held: 5, spent: false, belowCap: true });
 		// Still charging when the log stopped: drawn to the end of the pull, unlabelled because no press
-		// unloaded it, and **not** `belowCap` — the log stopped, the player did not, and charging when the
-		// bell rings is not a mistake to charge them for.
+		// unloaded it, and **not** `belowCap` — the log stopped, the player did not, and charging as the pull
+		// ends is not a mistake to charge them for.
 		expect(loads[1]).toEqual({ start: 8000, end: DURATION_MS, held: 3, spent: false });
 	});
 

@@ -236,7 +236,7 @@ describe('cooldownDrift', () => {
 
 		it('keeps the tail on the completion clock, because that is when the last cooldown started', () => {
 			// The other end is not symmetric and must not be made so: a cooldown starts when the cast
-			// *lands*, so the button in this pull came back at 50s + 12s and sat there to the bell.
+			// *lands*, so the button in this pull came back at 50s + 12s and sat there to the end of the pull.
 			const drift = cooldownDrift([2000, 50000], ELEMENTAL_BLAST, WHOLE_FIGHT, FIGHT_MS, 1500, [0, 48000]);
 			expect(drift.tailMs).toBe(58000);
 		});

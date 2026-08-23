@@ -20,7 +20,7 @@
 // first attempt at this fixture was a stretch. `aoeWindows` is the `>= 3` series *trimmed of its trailing
 // lag* and the `>= 2` series is not, so an add wave that opens and closes leaves a few seconds of band 2
 // at its tail however tightly the two enemies are matched — a clock of 3 500ms rather than zero, and a tile
-// reading 0% rather than a dash. A pull that is band 3+ from the bell has no tail to leave.
+// reading 0% rather than a dash. A pull that is band 3+ from the start has no tail to leave.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createElement } from 'react';
@@ -87,7 +87,7 @@ const dot = (target: number, fromMs: number, toMs: number): WclEvent[] => [
 ];
 
 /**
- * Three enemies from the bell to the last event, with the dot on the boss all pull and on the second enemy
+ * Three enemies from the pull's start to the last event, with the dot on the boss all pull and on the second enemy
  * for eighty seconds of it. So `>= 3` is the whole pull, band 2 is empty, and there is nonetheless a real
  * second target carrying a real dot — every ingredient of the tile except a clock to measure it over.
  */
@@ -243,7 +243,7 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 
 	/**
 	 * On `allAoe` the note is the *only* thing that explains the tile, which is the case the gate had to get
-	 * right: it is band 3+ from the bell, so the graph's grey covers the whole pull and the floor never
+	 * right: it is band 3+ from the start, so the graph's grey covers the whole pull and the floor never
 	 * appears — and on a pull that never exceeded two enemies there would be no grey at all. Gating this note
 	 * on the add waves rather than on the tile would have lost it on exactly those pulls.
 	 */

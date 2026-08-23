@@ -132,7 +132,7 @@ describe('the tail of a three-target stretch, on cleave', () => {
 	 * Matched by **open**, because no trim moves an open — that is what lets a stretch the trim dropped
 	 * entirely be absent from `published` without breaking the pairing.
 	 *
-	 * A stretch the pull ended inside is excluded: its close is the bell rather than a fall, so it
+	 * A stretch the pull ended inside is excluded: its close is the fight ending rather than a fall, so it
 	 * carries no lag and its difference is not a grace.
 	 */
 	const closeByOpen = new Map(stretches.map(([open, close]) => [open, close]));
@@ -191,7 +191,7 @@ describe('the tail of a three-target stretch, on cleave', () => {
 	 *
 	 * The trimmed close is asserted beside each tail, because that is the half of this the change owns:
 	 * a stretch closed by the count falling ends at its third enemy's last hit plus one global, and a
-	 * stretch closed by the bell ends at the bell.
+	 * stretch closed by the pull ending ends where the pull does.
 	 *
 	 * **One of the eight is now absent, and that is the reading rather than a rounding.** [244 182,
 	 * 247 937] is 3 755ms long against a 3 876ms trim, so no moment of it was within a global of
@@ -212,7 +212,7 @@ describe('the tail of a three-target stretch, on cleave', () => {
 			lastThreeWideHit(hits, 208_961) + grace,
 			lastThreeWideHit(hits, 242_549) + grace,
 			// [244 182, 247 937] is gone — shorter than the trim, so nothing of it survives.
-			// The one the pull ended inside, untouched — its close is the bell and carries no lag.
+			// The one the pull ended inside, untouched — its close is the fight ending and carries no lag.
 			duration,
 		]);
 		// The opens are the hits that made the count and no trim moves them, so the survivors' opens are

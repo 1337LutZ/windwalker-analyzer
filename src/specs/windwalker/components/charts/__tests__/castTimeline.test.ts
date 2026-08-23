@@ -979,7 +979,7 @@ describe('CastTimeline, intermissions and deaths', () => {
 	 * Every stretch of the complement, and not only the ones over three seconds.
 	 *
 	 * There was a `>= 3000` floor here, justified on the grounds that "a sub-second lead-in is a player
-	 * pressing on the bell, not a phase". Measured, no lead-in in the fixture set is sub-second: `strong`'s
+	 * pressing on the pull, not a phase". Measured, no lead-in in the fixture set is sub-second: `strong`'s
 	 * is 1 521ms and the longest is 2 475ms, so the threshold was discarding the very stretches it was
 	 * written to keep, and on four of nine pulls it shaded nothing at all over 1.6–2.7s out of contact.
 	 * `DebuffTimeline` lost a one-second filter over the same complement in the same change, so the two
@@ -1828,7 +1828,7 @@ describe('the tooltip markup', () => {
  * that puts both in front of the component the way the API does.
  *
  * `dataset-ironJuggernaut.json` is the case. Its three transitions are `1 → 3171410`, `2 → 3294896`,
- * `1 → 3354895` against a fight that runs 3171410–3361719, so: the first lands exactly on the bell,
+ * `1 → 3354895` against a fight that runs 3171410–3361719, so: the first lands exactly on the pull,
  * the last is a *return* to phase one with the same id and the same name as the first, and it opens
  * 6.8s from the kill — close enough to the end that its name runs past the right edge of the track,
  * which is the case the old overlay dropped the label for and this one does not. An anonymous report,
@@ -1894,7 +1894,7 @@ describe('CastTimeline, the boss’s phases', () => {
 	 * The pull is not a phase change worth marking, and dropping it must not cost the *other* entry
 	 * that shares its id. Two markers for three transitions is the whole claim.
 	 */
-	it('skips the transition at the bell and keeps the return to the same phase', () => {
+	it('skips the transition at the pull and keeps the return to the same phase', () => {
 		expect((html.match(/data-tip-entered="/g) ?? []).length).toBe(2);
 		expect(html).not.toContain('data-tip-entered="0:00.000"');
 		// Both surviving markers name a phase, and the last one names the first phase again — which is

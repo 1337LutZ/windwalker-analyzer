@@ -333,7 +333,7 @@ describe('the crit buff’s two ids', () => {
 
 	it('is declared for the id a committed fixture proves was up at the pull', () => {
 		// Not in the event stream — in `combatantinfo`'s own aura list, which is the only record of anything
-		// buffed before the bell and the field `readRaidBuffs` reads for exactly that reason. So the fixture
+		// buffed before the pull and the field `readRaidBuffs` reads for exactly that reason. So the fixture
 		// does not merely mention 24932: it proves the buff was on that shaman at the pull, while the crit
 		// row was reporting the effect absent.
 		const raw = readFileSync(resolve(import.meta.dirname, '../../../specs/elemental/__fixtures__/phased.json'), 'utf8');
@@ -375,7 +375,7 @@ describe('the crit buff’s two ids', () => {
  * **It was printing a fabricated fault, on the row the Elemental report draws.** Neither pull carrying
  * 61316 has any other crit provider on it: with only 1459 declared the crit row read *not reported* on
  * `cleave` and on `unbroken`, and the section named the effect in its "not reported" note, while the
- * pull snapshot proves the buff was on that shaman from before the bell. The spell-power row survived
+ * pull snapshot proves the buff was on that shaman from before the pull. The spell-power row survived
  * only because the shaman brings Burning Wrath themselves — a spec without a self-provider would have
  * had the same silence there.
  */
@@ -450,7 +450,7 @@ describe('the mage’s two ids', () => {
 	/**
 	 * The same pull without the death, so the number is the buff's own. `unbroken` carries 61316 in its
 	 * snapshot and logs no aura event for it at all — the ordinary shape of a raid buff cast before the
-	 * bell — so the crit row went from "not reported" to a full pull's uptime.
+	 * pull — so the crit row went from "not reported" to a full pull's uptime.
 	 */
 	it('reads a full pull on the other fixture that carries it, which has no death in it', () => {
 		const dataset = JSON.parse(

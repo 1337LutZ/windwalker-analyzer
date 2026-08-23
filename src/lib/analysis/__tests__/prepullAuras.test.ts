@@ -1,4 +1,4 @@
-// The aura that was already running when the bell rang, on the pulls that actually contain one.
+// The aura that was already running when the pull started, on the pulls that actually contain one.
 //
 // `auraWindows`' three rungs are unit-tested beside it in `auras.test.ts`. This file is the other
 // half: the shared haste lanes in `analyseCore` are the call sites that opt into the inference, and a

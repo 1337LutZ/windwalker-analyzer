@@ -124,7 +124,7 @@ export interface AuraWindow extends Window {
  *     The bound cannot be checked, so this rule used to drop the event — which meant a modelling gap
  *     read as an absence of evidence. The standing case is the shared `bloodlust` aura, which declares
  *     no duration because the five ids it covers are one *effect* rather than one spell: a haste
- *     cooldown pressed before the bell left nothing but its own `removebuff`, was thrown away here, and
+ *     cooldown pressed before the pull left nothing but its own `removebuff`, was thrown away here, and
  *     the pull then read as having had no haste cooldown at all. A removal is proof the aura was up;
  *     refusing to say so because this model does not know for how long states less than the log does.
  *     What holds the unbounded case in is the leading-orphan rule above, not the duration: a pull cannot
@@ -162,7 +162,7 @@ export interface AuraWindow extends Window {
  * needs is the clock in the tooltip rather than the fill. Rung 3 has no logged endpoint at all.
  *
  * Rung 3 is gated on `openAtPull` as well as on `pullAuras` being supplied. It makes the same claim
- * rung 2 does — "this was already running at the bell" — on weaker evidence, so a caller that declined
+ * rung 2 does — "this was already running at the pull" — on weaker evidence, so a caller that declined
  * the stronger inference must not be handed the weaker one by a second argument.
  *
  * **Two things rung 3 must not be used for.** It is only sound for an aura that could plausibly have
@@ -176,7 +176,7 @@ export interface AuraWindow extends Window {
  * Off by default, and for a sharper reason than `openOnRefresh` is. This only means anything for an
  * aura short enough that "it was up at the pull" is a fact about the pull. A flask runs an hour, so
  * the bound never bites and the recovered application time comes back at fifty-odd minutes before the
- * bell — a true statement about nothing. Measured: six bare removals of Mad Hozen Elixir in the same
+ * pull — a true statement about nothing. Measured: six bare removals of Mad Hozen Elixir in the same
  * reports land 42.6s to 166.0s *into* their fights and read as drunk 57 to 59 minutes before them.
  *
  * A window still open when the fight ends is closed at `fightEnd` and marked `truncated`.
@@ -255,7 +255,7 @@ export function auraWindows(
 	}
 
 	// Rung 3: no event of this aura anywhere in the stream, and `combatantinfo` says it was on the
-	// player at the bell. The first of the aura's own ids that list names, so an aura whose ids encode a
+	// player at the pull. The first of the aura's own ids that list names, so an aura whose ids encode a
 	// variant still reports which one — and `ids` order rather than the list's, because that is the
 	// order every other window on this lane is keyed by.
 	if (openAtPull && pullAuras !== undefined && !seenAny) {

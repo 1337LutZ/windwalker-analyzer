@@ -553,7 +553,7 @@ describe('the wiring, end to end', () => {
 	});
 
 	it('publishes the pre-pull guard, and agrees with a raw walk of the stream', () => {
-		// Not one committed pull has Ascendance up at the bell, so the published flag is `false` on all
+		// Not one committed pull has Ascendance up at the pull, so the published flag is `false` on all
 		// **four** — and it is published anyway, because it is the difference between a press that was not
 		// made and a press the log cannot see. The audit's reading is the *guarded* one (a press at or
 		// before the recovered expiry vouches for the window), so it can only be narrower than this
@@ -573,7 +573,7 @@ describe('the wiring, end to end', () => {
 const lust = (start: number, end: number): AuraWindow => ({ start, end, id: 2825, variant: 'Bloodlust' });
 const win = (start: number, end: number): Window => ({ start, end });
 
-/** A clean pull: lust at the bell, contact from the first global, Ascendance not up beforehand. */
+/** A clean pull: lust on the pull, contact from the first global, Ascendance not up beforehand. */
 const base: AscendanceSyncInput = {
 	ascendanceCasts: [2000],
 	ascendanceAtPull: false,
@@ -617,7 +617,7 @@ describe('the pull-anchored opener bound', () => {
 	it('is 5 250ms and reports both sides of itself', () => {
 		expect(isOpener(5250)).toBe(true);
 		expect(isOpener(5251)).toBe(false);
-		// A press before the bell's own first global is trivially the opener; a press a full global late
+		// A press before the pull's own first global is trivially the opener; a press a full global late
 		// still is not, which is the whole objection to flooring — `Math.floor(t / 1000) * 1000 <= 5000`
 		// would have admitted every one of these.
 		expect(isOpener(0)).toBe(true);
@@ -635,7 +635,7 @@ describe('the opener bound, and which side of it a press falls on', () => {
 	});
 
 	/**
-	 * Both sides of entry 14's bound are now read on a cooldown that opened **on the bell**, and they have
+	 * Both sides of entry 14's bound are now read on a cooldown that opened **on the pull**, and they have
 	 * to be.
 	 *
 	 * They used to sit on `lust(1000, 41_000)`, which put the press at 6 000 and 6 001 ms — inside this
@@ -644,7 +644,7 @@ describe('the opener bound, and which side of it a press falls on', () => {
 	 * bites alone.
 	 *
 	 * **That band is narrow, and deliberately not widened.** Entry 14 can only be the binding constraint
-	 * when the haste cooldown opened within `OPENER_GRACE_MS` of the bell; three of the four committed pulls
+	 * when the haste cooldown opened within `OPENER_GRACE_MS` of the pull; three of the four committed pulls
 	 * open theirs at 1 777, 785 and 941 ms, so on those three rule 1 is the tighter of the two and `delayMs`
 	 * is reported rather than decisive. The fourth, `addsThenBoss`, opens its cooldown at 438 207 ms — the
 	 * anchor search declines it, so entry 14 has nothing to bind with and rule 1 is the only half left.
@@ -671,7 +671,7 @@ describe('the opener bound, and which side of it a press falls on', () => {
 
 describe('what the opener rule refuses to grade', () => {
 	it('grades the opener on a pull that brought no haste cooldown at all', () => {
-		// Which also covers the cooldown cast *before* the bell: the Bloodlust aura declares no duration,
+		// Which also covers the cooldown cast *before* the pull: the Bloodlust aura declares no duration,
 		// so `auraWindows` cannot recover a pre-pull window for it and the walk comes back empty.
 		//
 		// This used to be `none` / `'no-cooldown-on-pull'`, and rule 1 is why it is not: opening with
@@ -688,7 +688,7 @@ describe('what the opener rule refuses to grade', () => {
 		expect([v.grade, v.delayMs, v.syncStartMs]).toEqual(['good', null, null]);
 	});
 
-	it('says nothing when Ascendance was already running at the bell', () => {
+	it('says nothing when Ascendance was already running at the pull', () => {
 		// Pressed before the pull: the button is down for three minutes and the press this rule judges is
 		// not in the stream. Faulting the first *visible* press here is the exact shape of bug the audit
 		// has shipped four times.
@@ -698,7 +698,7 @@ describe('what the opener rule refuses to grade', () => {
 
 	it('says nothing when the first visible press is past one full cooldown', () => {
 		// At 180.001s the press could be a recharge whose first charge was spent before the pull and left
-		// no trace — more than fifteen seconds before the bell, so not even `ascendanceAtPull` catches it.
+		// no trace — more than fifteen seconds before the pull, so not even `ascendanceAtPull` catches it.
 		const v = first({ ascendanceCasts: [180_001] });
 		expect([v.grade, v.reason]).toEqual(['none', 'first-press-past-one-cooldown']);
 	});
@@ -896,7 +896,7 @@ describe('rule 1: the opener press is not optional', () => {
 
 	it('still applies the haste bound to a press well inside the opener', () => {
 		// The mirror, so the grade is an `and` rather than a replacement: a press 5 100 ms into a lust that
-		// went out on the bell is inside the opener and past entry 14's bound, and is faulted for that.
+		// went out on the pull is inside the opener and past entry 14's bound, and is faulted for that.
 		const v = first({ hasteWindows: [lust(0, 40_000)], ascendanceCasts: [5100] });
 		expect([v.grade, v.delayMs]).toEqual(['bad', 5100]);
 	});
@@ -917,7 +917,7 @@ describe('rule 1: the opener press is not optional', () => {
 	});
 
 	it('says nothing about a pull that never pressed it and could not have', () => {
-		// The same three guards a press gets, on the pull-level arm. Ascendance up at the bell means the
+		// The same three guards a press gets, on the pull-level arm. Ascendance up at the pull means the
 		// opener press is off-stream; a pull with nothing reachable inside the opener had nothing to spend
 		// it on; and a pull that ended inside the opener never finished one.
 		expect(at({ ascendanceCasts: [], ascendanceAtPull: true }).grade).toBe('none');

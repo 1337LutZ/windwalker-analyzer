@@ -314,7 +314,7 @@ const SEF_SUMMON_IDS: ReadonlySet<number> = new Set([138121, 138122, 138123]);
  *     SharedCD: Cooldown{ Timer: character.GetPotionCD(), Duration: time.Minute * 60 }
  *
  * Sixty minutes is "once per encounter". The second slot exists because `makePotionActivationSpell`
- * overrides that lock for a press taken before the bell — `if sim.CurrentTime < 0 { spell.SharedCD.
+ * overrides that lock for a press taken before the pull — `if sim.CurrentTime < 0 { spell.SharedCD.
  * Set(sim.CurrentTime + categoryCooldownDuration) }` — so a pre-pull potion costs only
  * `POTION_CATEGORY_CD_MS` rather than the hour. Two, and the sim will not model a third.
  */
@@ -1143,7 +1143,7 @@ const ITEM_USES: Aura[] = ['synapse-springs', 'virmens-bite'].map((key) => regis
  * Named apart from both lists above because their windows are not this audit's own walk. The core
  * already publishes `hasteWindows` and `berserkingWindows`, both with `openAtPull`, and on the
  * committed dataset that flag is the whole difference between a lane and nothing at all: the pull's
- * Time Warp went up before the bell, so the only event the log carries for it is the removal at 39.9s
+ * Time Warp went up before the pull, so the only event the log carries for it is the removal at 39.9s
  * and a default walk discards it. Reading the published windows also keeps the row and the band the
  * rotation flow shades as one reading rather than two that can drift apart.
  *
@@ -1168,7 +1168,7 @@ const BLOOD_FURY = registry.aura('blood-fury');
  *
  *   - A flask is not a decision taken in the seconds before a pull. As the character's default flask
  *     the sim makes it permanent outright — `MakePermanent(spell.RelatedSelfBuff)` at `consumes.go:51`
- *     sets `Duration = NeverExpires` — so "it was up at the bell" is true of every pull anyone brought
+ *     sets `Duration = NeverExpires` — so "it was up at the pull" is true of every pull anyone brought
  *     one to and says nothing about this one.
  *   - The recovery the pre-pull reading depends on degenerates on an hour-long buff. Its bound is the
  *     aura's own duration, which for 3,600,000ms covers nearly any fight, and `end - durationMs` then

@@ -264,7 +264,7 @@ const NO_HASTE: AuraWindow[] = [];
  *
  * Deliberately not `FightPhase`. That type is the wire shape: its `startTime` is *report*-relative,
  * the same basis as `fight.startTime` and the odd one out on a chart where every other number is
- * measured from the bell. Converting once, into a type whose field is named `at` like every other
+ * measured from the pull. Converting once, into a type whose field is named `at` like every other
  * moment here, is what stops a report-relative millisecond being handed to `pct` — which would draw
  * the marker some fifty minutes past the end of the pull and look like the phase data being wrong.
  *
@@ -1519,7 +1519,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 *
 	 * **There was a `>= 3000` filter on this and it is gone, which makes the whole report agree about which
 	 * slivers count: none of them are discarded anywhere.** The filter's own reason was that "a sub-second
-	 * lead-in is a player pressing on the bell, not a phase" — and measured, no lead-in in the fixture set
+	 * lead-in is a player pressing on the pull, not a phase" — and measured, no lead-in in the fixture set
 	 * is sub-second: they run 862 to 2475ms, so the threshold was dropping the very stretches it was
 	 * written to keep, and on four of nine pulls it shaded nothing at all while 1.6–2.7s of the pull had
 	 * nothing of the player's landing in it. `DebuffTimeline` lost a one-second filter over the same
@@ -1565,7 +1565,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 	 *   basis there is no honest conversion available, so an analysis captured before the core carried
 	 *   one draws no markers rather than markers in the wrong place.
 	 * - **The pull.** The transition into the fight's first phase lands on `fight.startTime` exactly, so
-	 *   it rebases to zero. Every fight has it and a rule on the bell says nothing, so it goes. Dropped
+	 *   it rebases to zero. Every fight has it and a rule on the pull says nothing, so it goes. Dropped
 	 *   by its *time* and not by its position or its id: this is a transition log rather than a phase
 	 *   list, and a pull that comes back round to phase one — Iron Juggernaut does, seven seconds from
 	 *   the kill — has a second entry with `id: 1` that is a real boundary and must be drawn.
@@ -1579,7 +1579,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		if (transitions === undefined || fightStart === undefined) return NO_PHASES;
 		return transitions.flatMap((phase) => {
 			const at = phase.startTime - fightStart;
-			// Outside the pull as well as on the bell: a transition at or past the end has nowhere to be
+			// On the pull as well as past its end: a transition at or past the end has nowhere to be
 			// drawn, and `pct` would put it off the right edge of the track.
 			return at <= 0 || at >= span ? [] : [{ id: phase.id, at, name: phase.name }];
 		});
@@ -2295,7 +2295,7 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 		// and only when the analysis can supply it: how early the potion went down is the difference
 		// between a press that overlapped the pull and one that spent seconds of its own duration
 		// waiting for it. Matched by the lane's id against the audit's, so the number is never attached
-		// to some other aura that happened to be running at the bell.
+		// to some other aura that happened to be running at the pull.
 		prePull === undefined
 			? null
 			: t('castLog.prePull.note', {

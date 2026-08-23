@@ -17,7 +17,7 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { fireElemental } = el;
 	const { t, toneOf } = useReportCopy(analysis);
-	// `good` is the elemental out at the bell, `ok` is it not, and null is the pull being unable to say
+	// `good` is the elemental out at the pull, `ok` is it not, and null is the pull being unable to say
 	// — the three the notes below answer to. Read off the metric rather than off `fireElemental.prepull`
 	// so the note and the summary card cannot end up making different claims about one pull.
 	const prepullTone = toneOf('fireElementalPrepull');
@@ -65,7 +65,7 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 					]}
 					rows={rows}
 					// One empty state, because there is no longer a case that needs two. A pull whose only
-					// summon predates the bell used to have no press to list, so "never pressed in this pull"
+					// summon predates the pull used to have no press to list, so "never pressed in this pull"
 					// sat beside a note saying it was already out — the report arguing with itself, which is
 					// how the missed detection behind plan step 48 was reported. The second string existed to
 					// paper over that. The prepull use is now a row of its own, so the contradiction is fixed
@@ -78,7 +78,7 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 			<div className="mt-5 flex flex-col gap-3.5">
 				{/* Three notes, not two, and which one shows is `lib/score`'s call rather than this
 				    component's. `toneOf` returns null on an unmeasurable metric — see the hook — and that is
-				    the case the old two-way read had no wording for: it printed "it was not out at the bell"
+				    the case the old two-way read had no wording for: it printed "it was not out at the pull"
 				    at a pull too short for a pre-pull summon to have left any trace of itself either way. */}
 				<Note>
 					{prepullTone === null

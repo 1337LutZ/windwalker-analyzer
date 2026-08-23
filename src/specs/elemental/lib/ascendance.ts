@@ -62,11 +62,11 @@
 //
 //   press 0    (entry 14)   pressed inside the opener      AND   no more than ASCENDANCE_INTO_HASTE_MS
 //                           — absolute, anchored on the          into a haste cooldown, *when the raid
-//                           bell                                 brought one* — conditional
+//                           pull                                 brought one* — conditional
 //
 //   press >= 1 (entry 15)   the fifteen seconds fit        AND   ten seconds of Elemental Discharge
 //                           before the kill — absolute,          left, *when the two-piece is in
-//                           anchored on the bell                 evidence* — conditional
+//                           anchored on the pull                 evidence* — conditional
 //
 // So a press's grade is the **and** of one unconditional demand and one that only applies when the log
 // carries the thing it measures against. That is what "a fault rather than one branch among several"
@@ -186,7 +186,7 @@
 //
 //   - The Bloodlust aura declares no `durationMs`, so `auraWindows`' `openAtPull` inference can never
 //     fire for it (`auraWindows` refuses that rule without a duration bound). A haste cooldown cast
-//     *before* the bell leaves nothing in a fight-scoped stream but its own `removebuff`, which the
+//     *before* the pull leaves nothing in a fight-scoped stream but its own `removebuff`, which the
 //     default walk discards. Such a pull reads as "no haste cooldown on the pull" and is not graded —
 //     silence, not a zero.
 //   - `hasteWindows` is built from `selfEvents`, i.e. events whose `targetID` is the player
@@ -314,7 +314,7 @@ export const ASCENDANCE_INTO_HASTE_MS = 5000;
  * `OPENER_GRACE_MS` and `isOpener` into a leaf module both can import, and delete this.
  *
  * Not `ASCENDANCE_INTO_HASTE_MS`, which is also about the opener and is also five seconds. That one is
- * anchored on the **haste cooldown opening**, this one on the **bell**, and they disagree by design: a
+ * anchored on the **haste cooldown opening**, this one on the **pull**, and they disagree by design: a
  * press four seconds into a lust that itself went out four seconds in is inside the haste bound and
  * outside the opener, and rule 1 faults it.
  */
@@ -458,7 +458,7 @@ export type AscendanceRule = 'bloodlust' | 't16-2pc';
  * `verdict_bad` and `verdict_none`: "a pull that never offered the chance has not failed to take it".
  */
 export type AscendanceReason =
-	/** Ascendance was already running when the bell went — the press this rule judges is off-stream. */
+	/** Ascendance was already running when the pull started — the press this rule judges is off-stream. */
 	| 'ascendance-up-at-the-pull'
 	/** The first press came more than one Ascendance cooldown in, so it may be a second charge. */
 	| 'first-press-past-one-cooldown'
@@ -591,7 +591,7 @@ export interface AscendanceSyncInput {
 	 */
 	ascendanceCasts: readonly number[];
 	/**
-	 * Whether Ascendance was already running when the bell went.
+	 * Whether Ascendance was already running when the pull started.
 	 *
 	 * The one guard the log can actually supply against faulting a press the player could not have
 	 * made. A press made just before the pull puts the button on cooldown for three minutes and leaves
@@ -601,7 +601,7 @@ export interface AscendanceSyncInput {
 	 * audit's own `fePrepull` already is.
 	 *
 	 * It is not a complete guard and this module does not pretend otherwise: a press more than fifteen
-	 * seconds before the bell leaves no trace at all. `first-press-past-one-cooldown` is the second
+	 * seconds before the pull leaves no trace at all. `first-press-past-one-cooldown` is the second
 	 * half of the defence — beyond one full cooldown the first visible press may be a second charge, so
 	 * it is not graded.
 	 */
@@ -688,7 +688,7 @@ const GRADE_ORDER = { none: 0, good: 1, bad: 2 } as const;
  * guards first — only a press that clears them gets a grade at all:
  *
  *   - **Bloodlust arm** — can the press be attributed to a button that was actually available (not
- *     already running at the bell, not past one full cooldown); and had the player something to hit
+ *     already running at the pull, not past one full cooldown); and had the player something to hit
  *     inside the stretch being judged. Then: was it inside the opener (rule 1, always asked), and was
  *     it inside the haste bound (entry 14, asked only when the raid brought a cooldown to measure
  *     from — a pull without one is a missing measurement, not a refusal).
@@ -941,7 +941,7 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 
 	// Rule 1 on a pull that never pressed it: there is no press to carry the verdict, so it lands on the
 	// pull. Guarded the same three ways a press is, and for the same reason — the log has to prove the
-	// player *could* have opened with it. Ascendance already running at the bell means the opener press
+	// player *could* have opened with it. Ascendance already running at the pull means the opener press
 	// is off-stream; a pull that ended inside the opener never finished one; and a pull with nothing
 	// reachable by the deadline had nothing to spend it on.
 	const openerMissed =

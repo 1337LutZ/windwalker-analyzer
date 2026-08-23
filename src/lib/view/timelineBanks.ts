@@ -218,8 +218,8 @@ export function counterLoads(
 	}
 	// Still charging when the log stopped. Drawn, because the charge really was there, and unlabelled,
 	// because nothing unloaded it.
-	// Not `belowCap`, whatever it is holding: the log stopped, the player did not. Charging when the bell
-	// rings is not a fault and marking it one would charge them for the fight ending.
+	// Not `belowCap`, whatever it is holding: the log stopped, the player did not. Charging as the pull
+	// ends is not a fault and marking it one would charge them for the fight ending.
 	if (start !== null) loads.push({ start, end: endMs, held, spent: false });
 	return loads;
 }

@@ -316,7 +316,7 @@ const OPENER_MS = 5000;
  * The magnitude has precedent in this codebase: `SELF_EVENT_MS` in `lib/analysis/auras.ts` is also 250,
  * for the ordering slop between a cast and the aura event it produces. Cited for the size and
  * deliberately **not** reused — that constant is about one press against its own aura and this one is
- * about a press against the bell, so tightening either must not move the other.
+ * about a press against the pull, so tightening either must not move the other.
  */
 const OPENER_GRACE_MS = 250;
 
@@ -369,7 +369,7 @@ const FE_GLYPHED_DURATION_MS = 30_000;
  * evidence rather than bookkeeping.
  *
  * A `removebuff` and the tick that preceded it share a millisecond, `applybuff` can land either side of
- * the cast, and a pre-pull window is clamped to the bell — none of which moves a window by seconds. Two
+ * the cast, and a pre-pull window is clamped to the pull — none of which moves a window by seconds. Two
  * of them is generous, and it is only ever asked in the direction that makes the answer *less* certain.
  */
 const AURA_WINDOW_JITTER_MS = 2_000;
@@ -402,7 +402,7 @@ const EARTH_ELEMENTAL_COOLDOWN_MS = 300_000;
  *
  * Needed for the same reason the Fire Elemental's is: `auraWindows`' `openAtPull` inference refuses to
  * recover a pre-pull window without a duration bound, so an aura declared without one can never report
- * a summon made before the bell.
+ * a summon made before the pull.
  */
 const EARTH_ELEMENTAL_DURATION_MS = 60_000;
 
@@ -857,7 +857,7 @@ const AURAS: Aura[] = [
 		ids: [324],
 		kind: 'buff',
 		maxStacks: LIGHTNING_SHIELD_MAX_STACKS,
-		// An hour-long buff, pre-applied before the bell; the ES rule reads the counter, not the window.
+		// An hour-long buff, pre-applied before the pull; the ES rule reads the counter, not the window.
 		durationMs: 3_600_000,
 	},
 	{
@@ -886,7 +886,7 @@ const AURAS: Aura[] = [
 		 *
 		 * So 2894 is the *cast* and 118291 is the *aura*, and declaring only 2894 here meant the aura
 		 * had no id that any log ever applies. Nothing noticed while every window came off the cast
-		 * list — but a summon made before the bell logs none of those four events, and its only trace
+		 * list — but a summon made before the pull logs none of those four events, and its only trace
 		 * inside the fight window is a bare `removebuff 118291` where it expired. That is exactly the
 		 * shape `auraWindows`' `openAtPull` recovers, and with 118291 absent from this list it had
 		 * nothing to recover: a pre-pulled elemental read as never summoned at all.
@@ -894,7 +894,7 @@ const AURAS: Aura[] = [
 		 * Not inferred — every Elemental log this project holds carries it, one bare `removebuff 118291`
 		 * on the audited player and no apply of it anywhere: `phased` at 57.259s, `unbroken` at 58.014s,
 		 * `cleave` at 58.298s, and the reported pull at 57.204s. All four inside the minute below, which
-		 * is what makes each of them a summon that predates the bell.
+		 * is what makes each of them a summon that predates the pull.
 		 */
 		ids: [2894, 118291],
 		kind: 'buff',
@@ -1373,7 +1373,7 @@ function dotWindowsOnTarget(
  * a spawn this walk knows about and that list does not is simply never asked for.
  *
  * **`openAtPull` — for a drawn lane and never for a graded figure.** Plan §6 wants every aura lane to
- * show the whole window it can prove, and a dot pressed before the bell that expires in-fight leaves
+ * show the whole window it can prove, and a dot pressed before the pull that expires in-fight leaves
  * nothing behind but its own `removedebuff`: no apply, so the default walk draws nothing at all for the
  * stretch it held. `auraWindows`' `openAtPull` recovers that as `[0, removal]`.
  *
@@ -1391,7 +1391,7 @@ function dotWindowsOnTarget(
  *
  * Off by default because **the graded readings must not move.** `flameShock.uptimePct` is measured from
  * this walk, and `[0, removal]` is a claim about the pull rather than about a press: a player who dotted
- * before the bell did nothing wrong, but neither did the log record them doing anything, and a graded
+ * before the pull did nothing wrong, but neither did the log record them doing anything, and a graded
  * figure that credited the stretch would be scoring `combatantinfo`-grade evidence. So the drawn bar and
  * the graded union are allowed to differ, and every graded caller in this file leaves this off.
  */
@@ -1456,7 +1456,7 @@ function dotWindowsBySpawn(
 }
 
 /**
- * Merged spans as lane windows, with the span that opens at the bell marked `preexisting`.
+ * Merged spans as lane windows, with the span that opens at the pull marked `preexisting`.
  *
  * The one bookkeeping step every inferred lane in this file needs, and it is here rather than copied at
  * two call sites because both of them lose the flag the same way: a walk answers in `AuraWindow`s, the
@@ -1465,7 +1465,7 @@ function dotWindowsBySpawn(
  *
  * **Two conditions and neither implies the other.** `inferredAtPull` is the walk's own answer — it
  * recovered a window from a bare removal, or the totem-slot walk seeded the slot from one. `start === 0`
- * is the drawn span reaching the bell, which is what makes *this* span the one the inference is about;
+ * is the drawn span reaching the pull, which is what makes *this* span the one the inference is about;
  * the later spans of the same lane are ordinary. A window that opens at zero on a pull where nothing was
  * inferred is a logged application stamped at the pull, and it is left alone.
  */
@@ -1583,7 +1583,7 @@ function lowStretches(curve: ResourceCurve, pct: number, link: (t: number) => st
  *     case the plan names: at 15% the list wants both buttons, and a stretch with neither of them back
  *     yet is the fight taking the mana rather than the player misplaying.
  *   - **Nothing before `cooldown` can be proved either way.** A log holds nothing from before its own
- *     first event, so a press taken a second before the bell is invisible here — and a press taken any
+ *     first event, so a press taken a second before the pull is invisible here — and a press taken any
  *     earlier than that has already come back by `cooldown`. From `cooldown` onwards the presses inside
  *     the pull are therefore the whole story, and before it they are not. That opening is reported as
  *     `unprovenMs` rather than guessed at in either direction. It costs the first 45s of a pull for
@@ -1697,7 +1697,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * by construction (`createRegistry` throws on a duplicate).
 	 *
 	 * Only the default walk goes through here. `openAtPull` changes what the walk *means* — it recovers
-	 * a window that was already running when the bell went — so that call keeps its own line rather than
+	 * a window that was already running when the pull started — so that call keeps its own line rather than
 	 * sharing a cache entry with the plain reading of the same aura.
 	 *
 	 * `readonly AuraWindow[]`, and both halves matter now that five sections hold the same array. Readonly
@@ -1717,7 +1717,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * The same aura's windows for a **drawn lane**, with the pre-pull window inferred.
 	 *
 	 * Plan §6: a lane should show the whole window it can prove, and a lane that never asks for the
-	 * inference starts its bar at the first in-fight event — so an aura already running at the bell reads
+	 * inference starts its bar at the first in-fight event — so an aura already running at the pull reads
 	 * as applied late, or as never applied at all. `auraWindows`' `openAtPull` recovers it from the bare
 	 * removal it left behind and marks the window `preexisting`.
 	 *
@@ -1774,7 +1774,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * answer (`inferredAtPull`) rather than from testing whether that span starts at zero, which would be
 	 * one fact read twice.
 	 *
-	 * Rung 3 does not apply and cannot: `combatantinfo` lists the auras on the **player** at the bell, and
+	 * Rung 3 does not apply and cannot: `combatantinfo` lists the auras on the **player** at the pull, and
 	 * a dot on an enemy is not one of them. Both of these are rung 2 or nothing.
 	 */
 	const dotLaneWindows = (aura: Aura): Window[] => {
@@ -3144,9 +3144,9 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// that had already destroyed it, the uptime figure counted that stretch as kept, and a re-press
 	// after an elemental read as a clip of a totem that was not there.
 	//
-	// **And the walk starts with whatever the bell found in the slot.** A Fire Elemental summoned before
-	// the pull logs no cast inside the fight window — its only trace is the bare `removebuff` where it
-	// expired, which `auraWindows`' `openAtPull` recovers as `[0, expiry]`. Built from the cast list
+	// **And the walk starts with whatever was already in the slot at the pull.** A Fire Elemental summoned
+	// before the pull logs no cast inside the fight window — its only trace is the bare `removebuff` where
+	// it expired, which `auraWindows`' `openAtPull` recovers as `[0, expiry]`. Built from the cast list
 	// alone the walk saw an empty slot for that stretch, left the elemental's own minute inside the
 	// Searing Totem denominator, and charged the player for seconds the elemental was standing in the
 	// one slot a totem could have gone in. That is precisely the fault-fabrication the paragraph above
@@ -3210,7 +3210,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 *
 	 * Off the aura's own windows and not off `feWindows`: the latter gives a cast-derived placement the
 	 * *declared* sixty seconds, so reading the glyph out of it would be this constant proving itself.
-	 * These are `applybuff`→`removebuff` pairs, and a pre-pull one is clamped at the bell — which only
+	 * These are `applybuff`→`removebuff` pairs, and a pre-pull one is clamped at the pull — which only
 	 * ever shortens it, so a window past thirty seconds is still proof.
 	 */
 	const feObservedMs = feAuraWindows.reduce((longest, w) => Math.max(longest, w.end - w.start), 0);
@@ -3385,7 +3385,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// they cannot disagree about when the proc was up.
 	//
 	/**
-	 * Whether Ascendance was already running when the bell went.
+	 * Whether Ascendance was already running when the pull started.
 	 *
 	 * The same shape as `fePrepullWindow` below — an `openAtPull` walk, guarded by the press list —
 	 * and off `laneWindows`' memo rather than a fourth walk of the same aura, which is exactly the
@@ -3474,7 +3474,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// with the dot under 16s, or a tier-15 four-piece window, or — without that four-piece — Ascendance
 	// far away or imminent. Fire Elemental (rule 19) is the pull's last sixty seconds, or synced with
 	// Ascendance inside 150s, or pressed early enough that it will be back before the pull ends.
-	// The talent list the log carried at the bell, or null where it carried none. One read for the file:
+	// The talent list the log carried at the pull, or null where it carried none. One read for the file:
 	// `combatantinfo` is a single event and the only thing that can answer "was this button even taken".
 	const talents = readTalents(events, actor.id);
 	const t15Windows = selfWindows(T15_4PC);
@@ -3550,7 +3550,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	/**
 	 * Every Fire Elemental **use**, which is not the same list as every cast event.
 	 *
-	 * A summon made before the bell logs no cast inside the fight window — that absence is the whole
+	 * A summon made before the pull logs no cast inside the fight window — that absence is the whole
 	 * reason `fePrepullWindow` exists — so a list built from `castTimes` alone came back empty on the three
 	 * committed fixtures that pre-pull the summon while the same audit drew a 58-second bar and set
 	 * `prepull: true`. The section's "Summons" tile printed that empty length, so two parts of one section
@@ -3559,7 +3559,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * **`addsThenBoss` is the fourth fixture and the counter-example that says why this went unseen for
 	 * three pulls**: it never pre-pulled (`prepull: false`), so both of its presses — 173 290 and
 	 * 479 923ms — carry cast events and a `castTimes` list would not have come back empty there at all.
-	 * The bug was invisible precisely because every pull we held made the press before the bell.
+	 * The bug was invisible precisely because every pull we held made the press before the pull.
 	 *
 	 * A row with provenance rather than `presses.length + (prepull ? 1 : 0)`: the count and the table
 	 * come off one list, so they cannot disagree again in the other direction, and `inferred` says which
@@ -3611,7 +3611,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * faulting them for it would be the "charged the player for something they could not have done" shape
 	 * this audit has shipped four times. On a lust *on the pull* there is nothing to guard: nothing has
 	 * consumed the cooldown yet, so the summon was available to whoever wanted it, pre-pull or pressed at
-	 * the bell. So the one window this rule speaks about is the one window it can speak about honestly,
+	 * the pull. So the one window this rule speaks about is the one window it can speak about honestly,
 	 * and a pull whose only haste cooldown came later says nothing at all.
 	 *
 	 * ## And why the talent gates the clock rather than the value
@@ -3633,7 +3633,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * so a glyphed player's slot window claims thirty seconds the pet was not standing for, and this
 	 * figure would read 100% off a summon that expired halfway through the lust. The aura's windows have
 	 * evidence at both ends: an `applybuff`/`removebuff` pair, or the pre-pull recovery clamped at the
-	 * bell, which only ever shortens. Merged first, because `overlapMs` sums its ranges and a
+	 * pull, which only ever shortens. Merged first, because `overlapMs` sums its ranges and a
 	 * re-application inside a window that never closed would otherwise be counted twice.
 	 *
 	 * ## No contact clock on either half
@@ -3667,7 +3667,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * C  shamanFireElementalDuration < 60s AND NOT auraIsActive(2894) AND spellTimeToReady(2894) < 65s
 	 * ```
 	 *
-	 * **Nothing in it wants the summon before the bell**, which is why this is graded per press and not
+	 * **Nothing in it wants the summon before the pull**, which is why this is graded per press and not
 	 * by symmetry with `fireElementalPrepull`: at the pull `remainingTime` is maximal so A is false, and
 	 * B needs the Fire Elemental's own cooldown more than a minute away, which it is not at the start of
 	 * a pull. So the pre-pull *inference* below stays — it is how the row gets drawn (§68) — and it is
@@ -3690,7 +3690,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 *
 	 * Recovered the same way as the Fire Elemental and for the sharper version of the same reason. This
 	 * cooldown had **no** pre-pull inference at all, so a pull with no 2062 cast read as an unused
-	 * cooldown whether it was unused or summoned before the bell, and nothing in the report could tell
+	 * cooldown whether it was unused or summoned before the pull, and nothing in the report could tell
 	 * those apart. `cleave` is that pull: zero presses and no evidence either way until now.
 	 *
 	 * The verdict is the same expression for an inferred use as for a read one rather than a hardcoded
@@ -3742,7 +3742,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	];
 	// The graded half: read presses only, and `unknown` out of the denominator rather than into it.
 	const eeGradable = eePresses.filter((p) => !p.inferred && p.verdict !== 'unknown');
-	// Whether the Fire Elemental was already out when the bell went — the prepull press the list makes
+	// Whether the Fire Elemental was already out when the pull started — the prepull press the list makes
 	// when Heroism is going up on the pull. The window itself is recovered up at the Fire totem slot
 	// walk, which needs it to seed the slot; asking `auraWindows` a second time here would be a second
 	// answer to one question, and the two could drift apart on the id list alone.
