@@ -1019,7 +1019,36 @@ describe('report copy with no reader', () => {
 			'verdict_exempt',
 			'verdict_none',
 		],
-		flameShockSnapshots: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_exempt', 'verdict_none'],
+		// **Seven arms, and the two new ones are here because this section counts two different things
+		// and had one sentence for the gap between them.** The table lists every window where a trigger
+		// proc overlapped an intellect proc. The share underneath it counts only the windows the dot was
+		// also up through, because `flameShockSnapshots` in `specs/elemental/lib/score.ts` narrows the
+		// denominator to the windows a refresh was possible in. So a pull can list six and share one, and
+		// `addsThenBoss` is that pull — its six windows open at 16 025, 26 834, 163 224, 265 710, 418 471
+		// and 532 012ms, the dot's only window is 442 020–560 218ms, and `shareOf` therefore hands over a
+		// sample of one, which `MIN_GRADED_SAMPLE` refuses. `gradeOf` answered `none` and `verdict()`
+		// printed "No proc window was offered in this pull." directly above the six.
+		//
+		// Three facts, so three sentences: nothing opened (`verdict_none`, exactly true on `cleave`,
+		// `phased` and `unbroken`, none of which wears a trigger trinket); windows opened and the dot was
+		// down through all of them (`verdict_noneClaimable`); windows opened, one or two had the dot up,
+		// and that is under the floor (`verdict_tooFew`). Both new arms are reached from `Snapshots` by
+		// name, off the *metric's* refusal rather than off the section letter — the section holds one
+		// metric so the two agree today, and gating on the letter is how a refused reading gets quoted as
+		// a figure. Written so no numeral needs agreement, at one window as at two.
+		//
+		// `verdict_noneClaimable` has no committed witness and is reachable: it is `addsThenBoss` without
+		// its sixth window, and it is asserted against a hand-edited audit in
+		// `specs/elemental/components/sections/__tests__/thinSnapshotSample.test.ts`, which says so.
+		flameShockSnapshots: [
+			'verdict_good',
+			'verdict_ok',
+			'verdict_bad',
+			'verdict_exempt',
+			'verdict_tooFew',
+			'verdict_noneClaimable',
+			'verdict_none',
+		],
 		// **`verdict_tooFew` is the fifth arm, and it closes the sample floor's last hole rather than a
 		// sentence that quoted one.** `karmaEmpty` was built with `sharePct`, which declines only at a
 		// denominator of nought, so a single empty Touch of Karma press graded the pull `bad` off a

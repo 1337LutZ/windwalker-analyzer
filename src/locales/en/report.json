@@ -411,8 +411,10 @@
     "title": "Method",
     "intent": "What was measured and what could not be.",
     "engaged": "Uptime is measured against engaged time — the pull minus intermissions and time with no target — rather than the raw fight length.",
-    "energy": "Energy is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from resourcechange events, of which a pull carries around twenty. It is used for time at the cap and nothing else.",
-    "spec": "Classic logs report spec as 0, so the spec is taken from the report's own player list and confirmed by a Tigereye Brew cast."
+    "energy_windwalker": "Energy is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from resourcechange events, of which a pull carries around twenty. It is used for time at the cap and nothing else.",
+    "energy_elemental": "Mana is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, rather than from resourcechange events, of which a pull carries around twenty. The readings land on events and not on a timer, so a dip that opened and closed between two of them is not seen.",
+    "spec_windwalker": "Classic logs report spec as 0, so the spec is taken from the report's own player list and confirmed by a Tigereye Brew cast.",
+    "spec_elemental": "Classic logs report spec as 0, so the spec is taken from the report's own player list and confirmed by a Lava Burst cast."
   },
   "kpi": {
     "dps": "DPS",
@@ -1473,6 +1475,8 @@
     "verdict_ok": "{{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh. The rest passed without one.",
     "verdict_bad": "Only {{caught, integer}} of {{offered, integer}} proc windows were caught with a refresh — the rest let the proc pass without a snapshot.",
     "verdict_exempt": "From three enemies up the multi-target order has no Flame Shock refresh in it, so there is no proc window here you were meant to snapshot: the {{caught, integer}} of {{offered, integer}} above is not measured on this reading.",
+    "verdict_tooFew": "Your Flame Shock was up through {{offered, integer}} of the proc windows in the table above, and {{caught, integer}} of those took a refresh. Any others opened with the dot already down, so they were never chances to snapshot. That is too thin to tell a habit from a coincidence: one window either way would swing the share. So nothing here counts for or against you — read the table a window at a time rather than as a fraction.",
+    "verdict_noneClaimable": "Every proc window in the table above opened with your Flame Shock already down, so none of them was a chance to refresh it. Nothing here counts for or against you.",
     "verdict_none": "No proc window was offered in this pull.",
     "kpi": {
       "refreshed": "Windows caught",
