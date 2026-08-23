@@ -186,8 +186,25 @@ each other if one of them is taken out of flow or displaced, and in this tree th
 - **One negative margin in the whole of `src/`**: `-mb-1.5` on a gate pill in
   `specs/windwalker/components/rotation/FlowNode.tsx`. Every other `-m…-` a grep turns up is
   `scroll-mt-14`, a scroll anchor, which moves nothing on screen.
-- **One transform outside a chart**: the `-translate-x-1/2 -translate-y-1/2` that centres
-  `primitives/DialogShell.tsx`.
+- **One transform outside a chart that _places_ anything**: the `-translate-x-1/2 -translate-y-1/2`
+  that centres `primitives/DialogShell.tsx`. This bullet used to say "one transform outside a chart"
+  full stop, which was wrong as a list while right as an argument, and a reviewer checking the list is
+  the person the bullet is for. There are six more, and every one of them turns a glyph on its own
+  centre or scales a box by a percent or two in place: the disclosure chevrons in
+  `report/SectionNav.tsx` (`rotate-90`/`rotate-0`), `report/FightSelector.tsx`,
+  `auth/ClientIdPanel.tsx` and `auth/ManualTokenForm.tsx` (all `rotate-180`), the press feedback on
+  `sections/CastLog.tsx` (`scale-[0.99]`) and `DialogShell`'s own enter/exit `scale-[0.98]`. A rotation
+  about the centre of a 12px box and a 1% scale cannot reach a sibling, so none of them adds a way for
+  two boxes to land on top of each other — which is the claim this section is making. Find them with
+
+  ```
+  grep -rnE '(translate|rotate|scale|skew)-' src --include=*.tsx --include=*.ts | grep -v __tests__
+  ```
+
+  and the chart internals it also returns — `charts/CastTimeline.tsx`, `charts/ResourceTrack.tsx` and
+  the `rotate-45` diamonds in `specs/windwalker/…/rotation/FlowChart.tsx` and `FlowNode.tsx` — are the
+  exempt set named in the bullet below.
+
 - **`absolute` / `fixed` in ten files, and they divide cleanly.** Six are chart internals —
   `charts/CastTimeline.tsx`, `charts/ResourceTrack.tsx`, `charts/TrackLabels.tsx`,
   `charts/ScrollableTrack.tsx`, `charts/ApexChart.tsx` and `specs/windwalker/…/rotation/FlowChart.tsx` —
@@ -332,14 +349,24 @@ throwing, so nothing else would catch it), and `specs/windwalker/lib/__tests__/s
 thresholds actually separate three real captured pulls — a grading scheme that paints every log the
 same colour passes any test written around it and tells a reader nothing.
 
-**How the copy is meant to sound is written down, in `.claude/skills/tone-of-voice/`.** `SKILL.md`
-is the universal layer — the rules that stop prose reading as machine-made.
-`references/audience-wow-players.md` is the audience register, measured from 18,889 words of Wowhead
-MoP guide prose across 12 pages and 6 authors: the guides this report's readers already read. Load
-both before writing a string, and read the author-spread column in the second one, because a marker
-used by one author of six is that writer's tic rather than the genre. Sections 8–13 of `SKILL.md`
-are deliberately `[not captured]` — there is no personal voice profile here and the output is
-voice-neutral on purpose. Never fill a blank slot with a guess.
+**How the copy is meant to sound is written down, and half of it is tracked.**
+`docs/audience-wow-players.md` is the audience register, measured from 18,889 words of Wowhead MoP
+guide prose across 12 pages and 6 authors: the guides this report's readers already read. Read it
+before writing a string, and read the author-spread column, because a marker used by one author of
+six is that writer's tic rather than the genre. Sections 8–13 of it are deliberately
+`[not captured]` — there is no personal voice profile here and the output is voice-neutral on
+purpose. Never fill a blank slot with a guess.
+
+The other half is `.claude/skills/tone-of-voice/SKILL.md`, the universal layer — the rules that stop
+prose reading as machine-made — and **it is ignored by `.gitignore`, so a clone does not have it.**
+That is deliberate: it is a procedure an agent loads while working in this checkout, not an artifact
+the repository ships. The consequence is the thing to know. Every `SKILL.md §n` in this file and in
+`readerVoice.test.ts` is **provenance for a rule that is stated in full where it is cited** — where
+the rule is overridden, the override and its reason are here; where it is kept, the rule is here.
+None of them is an instruction to go and open a file. The measurements are the opposite, because a
+number cannot be restated without becoming a claim nobody can check, which is why the corpus itself
+is tracked in `docs/` and the procedure is not. See the note in `.gitignore`, and the same split in
+`docs/item-effect-sweep.md`.
 
 **Second person throughout. Never `we`, `us`, `our` or `I`.** A report describes a pull; it is not a
 party to it. Banning `I` only matches the genre — six independent authors wrote 18,889 words of
@@ -352,24 +379,31 @@ number.
 **The em-dash stays, and that is an override of both halves of the standard.** `SKILL.md` §15 bans
 it outright. The audience corpus has six in 18,889 words, none of them a spaced appositive pair, two
 authors using none at all — where these writers interrupt a sentence to define a term they reach for
-parentheses. This repo's copy carries 270 in `report.json`, in about 22% of prose sentences. They are
-kept because they earn it here: an appositive defines a measurement inside the sentence that used it,
-where a following sentence would put the definition after the claim it was needed for. Record it as
+parentheses. This repo's copy carries **257** in `report.json`, in **20.9%** of prose sentences — the
+census below prints both. They are kept because they earn it here: an appositive defines a
+measurement inside the sentence that used it, where a following sentence would put the definition
+after the claim it was needed for. Record it as
 an override and not as genre support — an honest override survives the next reviewer and a false
 claim does not. **Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that
 wants three is two sentences.
 
-**Sentence rhythm is a target, not a gate.** Measured today across the 623 prose leaves of
-`report.json` — 1,058 sentences, counting only strings of eight words or more, since a header, a chip
-and a table cell are not sentences — the median is 17 words and 21.7% run past 25. `SKILL.md` §1 asks
-for a median of 11 to 14 with about 15% past 25. Write new copy to that; let the existing copy
-converge as sections are touched. No gate, because a gate's honest floor is today's number, which
-makes it a budget rather than a standard, and because it could not tell a 40-word sentence that earns
-its length from one that does not. Re-measure from the repo root:
+**Sentence rhythm is a target, not a gate.** Measured across the 631 prose leaves of `report.json` —
+1,067 sentences, counting only strings of eight words or more, since a header, a chip and a table cell
+are not sentences — the median is 17 words and 19.2% run past 25. `SKILL.md` §1 asks for a median of
+11 to 14 with about 15% past 25. Write new copy to that; let the existing copy converge as sections
+are touched. No gate, because a gate's honest floor is today's number, which makes it a budget rather
+than a standard, and because it could not tell a 40-word sentence that earns its length from one that
+does not.
+
+**Every locale number in this document comes out of one block, and it is this one.** They used to come
+out of four separate measurements taken on four different days, which is how the em-dash count above
+was 270 against a tree holding 257, and how the density census further down was still describing the
+copy as it stood before "split the longest notes" landed. One block, run from the repo root, so the
+next reader re-runs the whole set rather than the one number they came to check:
 
 ```python
 # python3 - <<'EOF'
-import json
+import json, re
 leaves = []
 for f in ('report', 'ui'):
     d = json.load(open(f'src/locales/en/{f}.json'))
@@ -378,15 +412,49 @@ for f in ('report', 'ui'):
         elif isinstance(n, dict):
             for k, v in n.items(): walk(v, f'{p}.{k}' if p else k)
     walk(d, '')
-prose = [(p, v) for f, p, v in leaves if len(v.split()) >= 8]
-L = sorted((len(v.split()), p, v) for p, v in prose)
-print(len(leaves), 'leaves;', len(prose), 'prose')
-print('words/string — median', L[len(L)//2][0], 'p90', L[int(len(L)*.9)][0], 'max', L[-1][0])
+words = lambda v: len(v.split())
+prose = [(f, p, v) for f, p, v in leaves if words(v) >= 8]
+
+# per-string density, both files
+L = sorted(words(v) for f, p, v in prose)
+n, total = len(L), sum(L)
+pct = lambda k: L[int(n * k)]
+top = L[int(n * .91):]
+print(f'both files: {len(leaves)} leaves, {n} prose, {total} words')
+print('  words/string — median', L[n//2], 'p75', pct(.75), 'p90', pct(.90),
+      'p95', pct(.95), 'p99', pct(.99), 'max', L[-1])
+print(f'  longest 9% carry {100*sum(top)/total:.0f}% of prose words')
+
+# sentences and punctuation, report.json only
+rep = [v for f, p, v in leaves if f == 'report']
+rp = [v for f, p, v in prose if f == 'report']
+S = [s for v in rp for s in re.split(r'(?<=[.!?])\s+', re.sub(r'\{\{[^}]*\}\}', 'X', v)) if s.strip()]
+past = sum(1 for s in S if words(s) > 25)
+em = sum(1 for s in S if '—' in s)
+print(f'report.json: {len(rp)} prose leaves, {len(S)} sentences')
+print(f'  median {sorted(words(s) for s in S)[len(S)//2]} words,'
+      f' {past} past 25 ({100*past/len(S):.1f}%)')
+print(f'  em-dashes {sum(v.count("—") for v in rep)},'
+      f' in {em} sentences ({100*em/len(S):.1f}%)')
+for name, ch in (('straight apostrophe', "'"), ('curly apostrophe', '’'),
+                 ('straight double', '"'), ('curly double', '“”')):
+    print(f'  {name}: {sum(1 for v in rep if any(c in v for c in ch))} strings')
 # EOF
 ```
 
-Sentence stats split that on `(?<=[.!?])\s+` with `{{…}}` normalised to one token. `readerVoice.test.ts`
-already has a `prose()` helper that strips placeholders — reuse it rather than writing a third stripper.
+As of the commit that wrote this paragraph it prints 1370 leaves, 693 prose, 21,424 words; median 25,
+p75 40, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%; report.json 631 prose leaves, 1,067
+sentences, median 17, 205 past 25 (19.2%), 257 em-dashes in 223 sentences (20.9%); 50 / 25 / 1 / 3 on
+the quote lines. Sentence stats split on `(?<=[.!?])\s+` with `{{…}}` normalised to one token, which
+is why the block substitutes `X` for a placeholder rather than dropping it — a dropped placeholder
+merges the two words either side of it into one. `readerVoice.test.ts` has a `prose()` helper that
+strips placeholders for a different purpose (vocabulary matching, where the substitution must _not_ be
+a word); reuse that one there rather than writing a third stripper, and this one here.
+
+**A figure quoted in two files is two figures.** `readerVoice.test.ts` carries its own em-dash count
+in the comment above `keeps the em-dash under the ceiling the house style was granted`, taken on its
+own day by its own method. Whoever re-runs the block above should re-run it against that comment too;
+they are meant to be the same measurement.
 
 **Comparisons come from inside the game.** Another ability, another spec's mechanic, another
 expansion. That is the entire domain, and it is what the audience's own writers do: no sport,
@@ -417,9 +485,13 @@ two-author sample read it as one and was wrong. The related terms are safe in th
 leaf in both files — zero `in order to`, `due to the fact that`, `a number of`, `the majority of`,
 `what this means is`, `each and every`, `is able to`, `begin to`, zero expletive `there is … that`,
 zero double hedges. Do not spend a pass hunting padding; there is none. What there is instead is one
-string answering several questions the reader never asked together. Measured today over 639 prose
-leaves and 20,679 words: median 26, p75 42, p90 66, p95 81, p99 119, longest 196 — and 26% of all
-prose words sit in the longest 9% of the strings. Six rules follow from that:
+string answering several questions the reader never asked together. Measured over 693 prose leaves
+and 21,424 words: median 25, p75 40, p90 63, p95 77, p99 97, longest 160 — and 24% of all prose words
+sit in the longest 9% of the strings. The census block under **Sentence rhythm** prints all of those.
+It used to read p99 119, longest 196, 26% in the top 9%, and the tail is where it went stale: the
+measurement predates `Split the longest notes by the jobs in them, not by their length`, which is the
+commit that cut exactly that tail. The rules below are what the measurement is for, and they did not
+move. Six follow from it:
 
 1. **One string answers one question.** If it glosses a column _and_ states a rule _and_ teaches a
    mechanic, it is three strings, and two of them are probably `intent` or a tooltip.
@@ -483,10 +555,10 @@ generic restatement to a specific one. `sef.overlapUnknown` and `jadeWind.absent
 that closer after they had already named exactly what was missing.
 
 **Open, and measured rather than ruled: apostrophes and quotes are split two ways.** `report.json`
-holds 50 strings with a straight apostrophe and 25 with a curly one, and two strings with each kind of
-double quote. Nothing renders one differently from the other, so this is a house-style decision nobody
-has taken; it is recorded here so that whoever takes it does it in one sweep rather than one string at
-a time.
+holds 50 strings with a straight apostrophe and 25 with a curly one, and **one** string with a straight
+double quote against **three** with curly ones. Nothing renders one differently from the other, so
+this is a house-style decision nobody has taken; it is recorded here so that whoever takes it does it
+in one sweep rather than one string at a time.
 
 **`specs/__tests__/readerVoice.test.ts` is the mechanical half, and it carries two kinds of list on
 purpose.** `MODEL_WORDS` — internal jargon that must not reach a reader — is surrounded by carve-outs
