@@ -153,6 +153,13 @@ function stubEndpoints(answer: (url: string) => Response): string[] {
 	return urls;
 }
 
+/**
+ * An ordinary, complete answer to `ReportFights`, for the cases whose subject is something else.
+ *
+ * It carries a fight because an empty `fights` is not an ordinary answer: `fetchReport` reads that
+ * shape as the transient partial response it retries, so an endpoint test written against an empty
+ * list would be counting two requests per call and measuring the retry rather than the endpoint.
+ */
 const reportResponse = (): Response =>
 	new Response(
 		JSON.stringify({
@@ -163,8 +170,21 @@ const reportResponse = (): Response =>
 						startTime: 0,
 						endTime: 900000,
 						zone: null,
-						fights: [],
+						fights: [FIGHT],
 					},
+				},
+			},
+		}),
+		{ status: 200 },
+	);
+
+/** The same answer with a fight list of the test's choosing — an empty one is the partial response. */
+const reportResponseWith = (fights: unknown[]): Response =>
+	new Response(
+		JSON.stringify({
+			data: {
+				reportData: {
+					report: { title: 'Raid night', startTime: 0, endTime: 900000, zone: null, fights },
 				},
 			},
 		}),
@@ -261,6 +281,51 @@ describe('WclClient', () => {
 		expect(new WclClient({ token: CLIENT_TOKEN }).endpoint).toBe(WCL_CLIENT_ENDPOINT);
 		// A token whose payload will not decode is not refused: it is sent to /user to fail for real.
 		expect(new WclClient({ token: TOKEN }).endpoint).toBe(WCL_USER_ENDPOINT);
+	});
+
+	/**
+	 * Seen against the live API: a report whose 46 fights arrived as `[]`, and arrived in full on the
+	 * next request. `reportFights.graphql` has no filter in it, so an empty list is never something
+	 * this app asked for — and the caller that believed it told the reader their fight did not exist.
+	 */
+	it('retries a partial fight list before believing a report has no fights', async () => {
+		let reportCalls = 0;
+		vi.stubGlobal('fetch', async () => {
+			reportCalls++;
+			return new Response(
+				JSON.stringify({
+					data: {
+						reportData: {
+							report: {
+								title: 'Raid night',
+								startTime: 0,
+								endTime: 900000,
+								zone: null,
+								fights: reportCalls === 1 ? [] : [FIGHT],
+							},
+						},
+					},
+				}),
+				{ status: 200 },
+			);
+		});
+
+		await expect(new WclClient({ token: TOKEN }).fetchReport('abc123')).resolves.toMatchObject({
+			fights: [{ id: 1, name: 'Garrosh Hellscream' }],
+		});
+		expect(reportCalls).toBe(2);
+	});
+
+	/** And it is one extra request, not a loop: a report that really is empty settles after the retry. */
+	it('gives up after the one retry when the fight list stays empty', async () => {
+		let reportCalls = 0;
+		vi.stubGlobal('fetch', async () => {
+			reportCalls++;
+			return reportResponseWith([]);
+		});
+
+		await expect(new WclClient({ token: TOKEN }).fetchReport('abc123')).resolves.toMatchObject({ fights: [] });
+		expect(reportCalls).toBe(2);
 	});
 
 	it('retries a partial actor response before reporting that the list is missing', async () => {
@@ -458,5 +523,52 @@ describe('fetchFightDataset', () => {
 				playerName: 'Bigdogma',
 			}),
 		).rejects.toMatchObject({ kind: 'missing' });
+	});
+
+	/** The message of the refusal a fetch raised, which is the whole subject of the two cases below. */
+	const messageOf = async (fightID: number): Promise<string> =>
+		fetchFightDataset(new WclClient({ token: TOKEN }), { code: 'abc123', fightID, playerName: 'Bigdogmo' }).then(
+			() => {
+				throw new Error('the fetch resolved, so there is no message to read');
+			},
+			(error: Error) => error.message,
+		);
+
+	/**
+	 * The sentence a reader got for the transient above, once `fetchReport` had retried and the list was
+	 * still empty. Two claims were being made from no evidence — that fight 11 is not in the report, and
+	 * that the report holds no boss pulls — and the second one is what sent someone to check the log.
+	 */
+	it('does not claim a report holds no boss pulls when it returned no fights at all', async () => {
+		vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+			const body = JSON.parse(init.body) as { query: string };
+			if (body.query.includes('query ReportFights')) return reportResponseWith([]);
+			return new Response(JSON.stringify({ data: { reportData: { report: { masterData: { actors: ACTORS } } } } }), {
+				status: 200,
+			});
+		});
+
+		const failure = await messageOf(11);
+
+		expect(failure).not.toContain('Boss pulls in it: none');
+		expect(failure).toBe(
+			'Report "abc123" came back with no fights at all, so nothing can be said about fight 11. ' +
+				'A report WarcraftLogs is still processing reads this way. If the log shows pulls on the site, try again in a moment.',
+		);
+	});
+
+	/** And the tail it replaced still says what it always said, for the report it is actually true of. */
+	it('still says there are no boss pulls when the report is nothing but trash', async () => {
+		vi.stubGlobal('fetch', async (_url: string, init: { body: string }) => {
+			const body = JSON.parse(init.body) as { query: string };
+			if (body.query.includes('query ReportFights')) return reportResponseWith([{ ...FIGHT, id: 3, encounterID: 0 }]);
+			return new Response(JSON.stringify({ data: { reportData: { report: { masterData: { actors: ACTORS } } } } }), {
+				status: 200,
+			});
+		});
+
+		const failure = await messageOf(11);
+
+		expect(failure).toBe('Report "abc123" has no fight 11. Boss pulls in it: none.');
 	});
 });

@@ -97,6 +97,20 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 
 	const fight = report.fights.find((candidate) => candidate.id === fightID);
 	if (!fight) {
+		// Two different facts, and for a while they shared one sentence. A report with pulls in it that
+		// are not this one is a wrong id, and listing the ids is the fix. A report with *no* fights at
+		// all is not evidence about `fightID` in either direction: `client.fetchReport` has already
+		// retried the transient partial answer that produces it, so what is left is a report still being
+		// processed — and telling that reader "Boss pulls in it: none" states as fact the one thing this
+		// answer cannot establish. Note the tail below is still reachable and still true: a report of
+		// nothing but trash has fights and no boss pulls.
+		if (report.fights.length === 0) {
+			throw new WclError(
+				'missing',
+				`Report "${code}" came back with no fights at all, so nothing can be said about fight ${fightID}. ` +
+					'A report WarcraftLogs is still processing reads this way. If the log shows pulls on the site, try again in a moment.',
+			);
+		}
 		const known = report.fights
 			.filter((candidate) => candidate.encounterID !== 0)
 			.slice(0, 20)

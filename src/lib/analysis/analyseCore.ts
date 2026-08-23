@@ -1514,9 +1514,17 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			...core.timeline,
 			...audit.timeline,
 			// Straight through from the fetch. Spread last so it cannot be clobbered by a spec that happens
-			// to put a `phases` on its own timeline, and omitted entirely when the fetch carried none rather
-			// than written as an empty array — "WarcraftLogs knows no phases for this encounter" and "this
-			// pull had one phase" are different facts, and 6 of the 14 Siege encounters are the first.
+			// to put a `phases` on its own timeline, and guarded so a dataset with no `phases` at all does
+			// not write the key as `undefined`, which would clobber the audit's in the other direction.
+			//
+			// The two shapes this produces are **not** "no phases" versus "one phase", which is what this
+			// comment claimed until a re-capture disproved it. `fetchFightDataset` always sets `phases`,
+			// because `resolveFightPhases` always returns an array — so an encounter WarcraftLogs knows no
+			// phases for, 6 of the 14 Siege ones and Kor'kron Dark Shaman among them, arrives here as `[]`
+			// and is written as `[]`. Absent means only that the dataset never carried the field: the
+			// committed fixtures predate it and hand-built test datasets omit it. Never-asked versus
+			// asked-and-none, and nothing downstream distinguishes them — `CastTimeline` gates its gutter
+			// and its note on `phases.length`, so both draw nothing. See `phasesPassthrough.test.ts`.
 			...(dataset.phases === undefined ? {} : { phases: dataset.phases }),
 		},
 	} as Analysis;

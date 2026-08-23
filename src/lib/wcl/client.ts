@@ -64,7 +64,12 @@ const t = (key: string, values?: Record<string, unknown>): string => i18n.t(key,
 
 /** A stuck request would otherwise leave the UI's progress indicator frozen with no way out. */
 const REQUEST_TIMEOUT_MS = 60_000;
-const ACTOR_LIST_RETRY_DELAY_MS = 150;
+/**
+ * WarcraftLogs can briefly answer a report request with the header present and one of its lists
+ * missing, while another request against the same report is settling. Both `fetchReport` and
+ * `fetchActors` wait this long and ask once more, which is the whole of the retry policy here.
+ */
+const PARTIAL_REPORT_RETRY_DELAY_MS = 150;
 
 export type WclErrorKind =
 	/** The token is expired, malformed, or lacks the scope for this report. Overwhelmingly the common case. */
@@ -351,8 +356,21 @@ export class WclClient {
 	}
 
 	async fetchReport(code: string): Promise<ReportSummary> {
-		const data = await this.#graphql<ReportFightsQuery, ReportFightsQueryVariables>(REPORT_FIGHTS_QUERY, { code });
-		const report = data.reportData?.report;
+		const read = async () =>
+			this.#graphql<ReportFightsQuery, ReportFightsQueryVariables>(REPORT_FIGHTS_QUERY, { code });
+		let data = await read();
+		let report = data.reportData?.report;
+		if (report && !report.fights?.length) {
+			// The same transient partial response `fetchActors` retries for, in the other list: the header
+			// arrives and `fights` is empty. Nothing in `reportFights.graphql` filters fights, so an empty
+			// list is never a narrowing this app asked for — and a caller that believes it tells the reader
+			// their pull does not exist. Retried once, like the actor list, and not turned into a general
+			// retry policy. Keeping the first `report` if the second read has none means a report that
+			// exists cannot be reported as missing by the extra request that was made on its behalf.
+			await new Promise((resolve) => setTimeout(resolve, PARTIAL_REPORT_RETRY_DELAY_MS));
+			data = await read();
+			report = data.reportData?.report ?? report;
+		}
 		if (!report) {
 			const notFound = t('errors.wcl.missing.report', { code, host: WCL_HOST });
 			// The endpoint decides what "not found" means here, and saying so is the difference between
@@ -390,7 +408,7 @@ export class WclClient {
 			// WarcraftLogs can briefly return the report without masterData while another report request is
 			// settling. This is the same transient state a refresh used to hide, so retry only this partial
 			// response rather than enabling retries for every API failure.
-			await new Promise((resolve) => setTimeout(resolve, ACTOR_LIST_RETRY_DELAY_MS));
+			await new Promise((resolve) => setTimeout(resolve, PARTIAL_REPORT_RETRY_DELAY_MS));
 			data = await read();
 			actors = data.reportData?.report?.masterData?.actors;
 		}

@@ -128,9 +128,10 @@ export interface FightDataset {
 	 * order, joined to the encounter's phase names.
 	 *
 	 * The type lives in `~/lib/wcl/phases` with the rest of the wire types rather than here. Optional
-	 * because it is genuinely absent rather than merely unfetched: transitions come back for 8 of the 14
-	 * Siege encounters, and `null` for the rest — Siegecrafter Blackfuse among them, which is the `cleave`
-	 * fixture's own encounter.
+	 * because a dataset can predate the field, **not** because the fetch ever omits it: `fetchFightDataset`
+	 * always sets it, so an encounter WarcraftLogs reports no transitions for — 6 of the 14 Siege ones,
+	 * Siegecrafter Blackfuse among them, which is the `cleave` fixture's own encounter — arrives as `[]`.
+	 * Absent therefore reads as "never fetched", and `[]` as "fetched, and there were none".
 	 *
 	 * Two things about the shape that have caught people already. The ids **repeat and are not
 	 * monotonic** — Iron Juggernaut is `1, 2, 1` — because this is a transition log rather than a phase
@@ -1886,9 +1887,9 @@ export interface AnalysisCore {
 		 * The encounter's phase transitions, carried through from the fetched dataset unchanged.
 		 *
 		 * Here rather than re-derived because there is nothing to derive: WarcraftLogs states them and the
-		 * audit has no view of its own to add. Optional twice over — the committed fixtures predate the
-		 * fetch, and WarcraftLogs itself returns none for 6 of the 14 Siege encounters. See `FightDataset`
-		 * for the two traps in the shape.
+		 * audit has no view of its own to add. Optional because the committed fixtures predate the field;
+		 * the 6 of 14 Siege encounters WarcraftLogs returns no transitions for arrive as `[]` rather than
+		 * as absent. See `FightDataset` for the two traps in the shape.
 		 */
 		phases?: FightPhase[];
 	};
