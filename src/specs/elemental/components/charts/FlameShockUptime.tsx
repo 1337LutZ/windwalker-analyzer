@@ -33,6 +33,40 @@ import WindowTracks from '~/components/charts/WindowTracks';
  * `gradedSpans` is the complement of — one published set, three clocks cut with it, rather than a fourth
  * reading of "when was it AoE" taken here. That is the identity `exemptTrack.test.ts` enforces, and it is
  * checkable on this chart to the millisecond: the two exempt rows sum to `durationMs - flameShock.scoredMs`.
+ *
+ * **Four rows, because the green one is two facts and used to be drawn as one.** `flameShock.windows` is
+ * the dot's whole life on the primary target and `uptimeMs` is its union — deliberately unclipped, so a
+ * stretch where the boss stopped being hittable does not put a seam in the dot (see the field's own note
+ * in `types.ts`). The percentage beside the chart divides something else: `contactUptimeMs / scoredMs`,
+ * both halves cut to the graded clock. So the row drew 235 007ms of `cleave` above a tile taking 83.90% of
+ * 178 814, and the two were not the same claim. **This predates the AoE cut and is not caused by it:** the
+ * gap is 9 309ms on `phased` and 1 071ms on `unbroken`, neither of which ever leaves one enemy, so it is
+ * the *contact* clock that has always been outside the row.
+ *
+ * The fix is to split the row rather than to clip it away. Green is the dot inside the graded clock — the
+ * part the percentage is about — and the seconds the dot was genuinely up outside that clock become a
+ * fourth row of their own, in the exempt tone with a name that says it: a dot that really was on the
+ * target is a fact about the pull, and `8e011ac`'s rule for exactly this shape is that an unmeasured
+ * figure is not a deleted one. Hiding it would trade one disagreement for a second: the reader would see
+ * green stop and have nothing saying the dot had not dropped there.
+ *
+ * **What the split does not close, and cannot from here.** Green is still the *primary target's* dot,
+ * while `contactUptimeMs` is the dot on whichever spawn was being hit. Clipped, the row is 160 293ms
+ * against a 150 023ms numerator on `cleave` — the 10 270ms residual is dot time on an enemy the player
+ * was not hitting, and no published array can find it: the audit publishes the secondary's dot only as
+ * `multiDotUptimeMs`, a scalar. On `phased` and `unbroken` the residual is exactly zero, so the row *is*
+ * the numerator on every pull where the question does not arise. `uptimeRow.test.ts` pins all three
+ * figures, so a field that closes it (a contact-clipped `windows` beside the unclipped one) will announce
+ * itself there.
+ *
+ * **The multi-dot clock gets no row here, and no chart of its own.** `flameShock.multiTargetMs` is band 2
+ * *alone* — the only clock in the audit cut at both ends — so its exempt time is the add waves shaded
+ * below **plus** every stretch at one enemy. Shading that floor on this chart would be a lie about this
+ * chart: band 1 is fully graded for the primary dot, and the two clocks would be claiming the same grey
+ * for opposite reasons. A chart of its own cannot be drawn either, because the secondary target's dot
+ * windows are not published and a track chart with no `up` row is a picture of grounds. So the second
+ * target's clock is stated in copy instead (`flameShock.multiDotNote`) and its arithmetic is asserted
+ * without a picture, in `exemptTrack.test.ts` beside the two clocks that have one.
  */
 export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
@@ -40,8 +74,10 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	const { flameShock } = el;
 	const windows = flameShock.windows;
 	const aoeWindows = el.lightningShield.aoeWindows;
-	const { up, dropped, exempt } = useMemo(() => {
-		const up = windows.map((w): [number, number] => [w.start, w.end]);
+	const { up, uncounted, dropped, exempt } = useMemo(() => {
+		// The dot's whole life on the primary target, before either clip below. Not a row on its own any
+		// more: the two rows it splits into are, and `up + uncounted` is this back again.
+		const drawn = windows.map((w): [number, number] => [w.start, w.end]);
 		// "Down" is the dot missing while the player was in contact and a list asked for the dot — the
 		// complement of the dot, clipped to the same clock the percentage is taken over, so neither an
 		// intermission the fight took nor an add wave the multi-target order has no Lava Burst in is drawn
@@ -64,8 +100,12 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 		// different order". A reader shown AoE grey over a submerge would conclude the multi-target order
 		// excused them when in fact there was nothing there to press at.
 		return {
-			up,
-			dropped: intersect(complementOf(up, analysis.durationMs), graded),
+			// The three rows the graded clock partitions the pull into: the dot inside it, the dot outside it,
+			// and the clock's own complement split by cause. `up + dropped` is `graded` and `up + dropped +
+			// exempt` is the pull, which is the identity `exemptTrack.test.ts` now asserts as well.
+			up: intersect(drawn, graded),
+			uncounted: intersect(drawn, complementOf(graded, analysis.durationMs)),
+			dropped: intersect(complementOf(drawn, analysis.durationMs), graded),
 			exempt: exemptRows(
 				[
 					{ label: t('flameShock.track.away'), windows: complementOf(contact, analysis.durationMs) },
@@ -77,15 +117,21 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	}, [analysis.durationMs, windows, analysis.timeline?.contactSegments, aoeWindows, t]);
 
 	/**
-	 * Up, down, then the grounds both were measured against — those last so they sit behind the claim
-	 * rather than over it, and only the ones this pull actually has.
+	 * Up, down, the dot the clock did not count, then the grounds all three were measured against — those
+	 * last so they sit behind the claim rather than over it, and only the ones this pull actually has.
 	 *
-	 * Only the fault row is gated, and the up row is not. The up row is a list of whole aura windows,
-	 * so a short one is a real dot that really was on the target — a dot on an add that died, or one
-	 * clipped by the pull ending. Hiding it at sub-pixel width would be the chart disagreeing with the
-	 * uptime figure beside it. The down row is a complement, so it fragments on every refresh the log
-	 * stamped a few hundred milliseconds early, and widening that jitter would paint a fault the pull
-	 * did not have. See `Track.widen`.
+	 * Only the fault row is gated, and the up row is not. The up row is the dot's own aura windows cut to
+	 * the graded clock, so a short one is very nearly always a real dot that really was on the target — a
+	 * dot on an add that died, or one clipped by the pull ending. Hiding it at sub-pixel width would be the
+	 * chart disagreeing with the uptime figure beside it, and that is still the worse of the two risks now
+	 * the clip can also truncate a window at a clock boundary. The down row is a complement, so it
+	 * fragments on every refresh the log stamped a few hundred milliseconds early, and widening that
+	 * jitter would paint a fault the pull did not have. See `Track.widen`.
+	 *
+	 * The uncounted row takes the exempt tone and `widen: false` with the grounds, because that is what it
+	 * is: not a judgement, and no tile counts its spans one by one. It carries its own length label — the
+	 * dot was up for those seconds, it just was not measured — so a reader hovering it is told the fact and
+	 * not merely the exemption.
 	 *
 	 * **The exempt rows are `widen: false` and carry no length floor either, which is the report's one
 	 * answer to "which slivers count".** They are grounds rather than marks, so a sliver of one is the
@@ -108,6 +154,17 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				lengthLabel: 'without it for',
 				widen: false,
 			},
+			...(uncounted.length > 0
+				? [
+						{
+							label: t('flameShock.track.uncounted'),
+							tone: EXEMPT,
+							windows: uncounted,
+							lengthLabel: 'up but unmeasured for',
+							widen: false,
+						} satisfies Track,
+					]
+				: []),
 			...exempt.map((row): Track => ({
 				label: row.label,
 				tone: EXEMPT,
@@ -116,10 +173,13 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				widen: false,
 			})),
 		],
-		[t, up, dropped, exempt],
+		[t, up, uncounted, dropped, exempt],
 	);
 
-	if (up.length === 0 && dropped.length === 0) {
+	// `uncounted` is in the guard because the up row is clipped now: a pull whose every dot window fell
+	// outside the graded clock has an empty green row and an empty red one, and printing "Flame Shock was
+	// never pressed in this pull" over it would be false about a pull that pressed it throughout.
+	if (up.length === 0 && dropped.length === 0 && uncounted.length === 0) {
 		return <ChartEmpty>{t('flameShock.none')}</ChartEmpty>;
 	}
 
@@ -130,6 +190,7 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				<>
 					<ChartKey tone="kick">{t('flameShock.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('flameShock.track.dropped')}</ChartKey>
+					{uncounted.length > 0 ? <ChartKey tone={EXEMPT}>{t('flameShock.track.uncounted')}</ChartKey> : null}
 					{exempt.map((row) => (
 						<ChartKey key={row.label} tone={EXEMPT}>
 							{row.label}

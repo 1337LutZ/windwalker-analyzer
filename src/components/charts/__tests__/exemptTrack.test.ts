@@ -98,9 +98,14 @@ const spans = (windows: ReadonlyArray<readonly [number, number]>): Interval[] =>
 
 describe('the exempt row', () => {
 	it('is drawn last, behind the up and down rows it is the ground for', () => {
+		// The third row is the dot's own life outside the graded clock, drawn since the up row was clipped to
+		// that clock — a claim about the dot rather than a ground, so it sits with the claims and above them.
+		// `phased` has 9 309ms of it, which is why it is here on a pull with no add wave at all; see
+		// `elemental/components/charts/__tests__/uptimeRow.test.ts`.
 		expect(rowsOf(createElement(FlameShockUptime, { analysis: phased })).map((row) => row.label)).toEqual([
 			'Dot up',
 			'Dot down',
+			'Dot up, not measured',
 			'Nothing to hit',
 		]);
 		expect(rowsOf(createElement(SearingTotemUptime, { analysis: phased })).map((row) => row.label)).toEqual([
@@ -219,6 +224,29 @@ describe('the exempt row', () => {
 		// The two figures the equality is against, so a fixture recapture that moved them says so here.
 		expect(cleave.flameShock.scoredMs).toBe(178_814);
 		expect(cleave.searingTotem.scoredMs).toBe(127_378);
+	});
+
+	/**
+	 * Why the equality above survived the up row being clipped, asserted rather than left to luck.
+	 *
+	 * The clip put a fourth row on each chart — the aura's own life outside the graded clock — and it takes
+	 * the exempt tone, so it is inside the filter the test above runs. It adds nothing to that union only
+	 * because it is a *subset* of the two grounds, and a subset relation nobody checks is a subset relation
+	 * that stops holding. If it ever escaped the grounds, `durationMs - scoredMs` would grow and the tile
+	 * would be the thing that moved.
+	 */
+	it('draws the unmeasured half of each aura inside the grounds and not beside them', () => {
+		for (const [name, chart, uncounted] of [
+			['Flame Shock', FlameShockUptime, 'Dot up, not measured'],
+			['Searing Totem', SearingTotemUptime, 'Totem up, not measured'],
+		] as const) {
+			const rows = rowsOf(createElement(chart, { analysis: cleave }));
+			const row = spans(rows.find((r) => r.label === uncounted)?.windows ?? []);
+			const grounds = rows.filter((r) => r.tone === EXEMPT && r.label !== uncounted).flatMap((r) => spans(r.windows));
+
+			expect(unionMs(row), name).toBeGreaterThan(0); // so nothing below passes for want of data
+			expect(unionMs(intersect(row, grounds)), name).toBe(unionMs(row));
+		}
 	});
 
 	/**

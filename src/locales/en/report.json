@@ -1348,11 +1348,12 @@
       "zone": "last tick",
       "label": "How much of the Flame Shock dot was left at each refresh, against the dot’s last tick",
       "empty": "Flame Shock was never refreshed in this pull.",
-      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up, the stretches it was down while you had something to hit, and the stretches with nothing to hit, which are left out of the percentage"
+      "uptimeLabel": "Flame Shock uptime over the pull: the stretches the dot was up and counted, the stretches it was down while you had something to hit, the stretches it was up outside the measured clock, and the stretches left out of the percentage — nothing to hit, and three or more enemies up"
     },
     "track": {
       "up": "Dot up",
       "dropped": "Dot down",
+      "uncounted": "Dot up, not measured",
       "away": "Nothing to hit",
       "aoe": "Three or more enemies"
     },
@@ -1422,11 +1423,12 @@
     "caption": "Every Searing Totem placement, what the previous totem still had on it, and what the press bought",
     "none": "Searing Totem was never cast in this pull.",
     "chart": {
-      "uptimeLabel": "Searing Totem uptime over the pull: the stretches it was ticking, the stretches it was down while the slot was yours to fill, and the two kinds of stretch left out of the percentage — nothing to hit, and the Fire Elemental holding the slot"
+      "uptimeLabel": "Searing Totem uptime over the pull: the stretches it was ticking and counted, the stretches it was down while the slot was yours to fill, the stretches it was ticking outside the measured clock, and the stretches left out of the percentage — nothing to hit, three or more enemies up, and the Fire Elemental holding the slot"
     },
     "track": {
       "up": "Totem up",
       "dropped": "Totem down",
+      "uncounted": "Totem up, not measured",
       "away": "Nothing to hit",
       "elemental": "Fire Elemental out",
       "aoe": "Three or more enemies"

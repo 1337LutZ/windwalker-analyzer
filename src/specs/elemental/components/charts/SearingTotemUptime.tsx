@@ -32,6 +32,21 @@ import WindowTracks from '~/components/charts/WindowTracks';
  *
  * The cause is read off `lightningShield.aoeWindows`, the array the audit's own `gradedSpans` is the
  * complement of, rather than from a fourth reading of "when was it AoE" taken here.
+ *
+ * **And the green row is clipped to that clock, which is the same promise kept on the other side of the
+ * chart.** `searingTotem.uptimeMs` is *already* the clipped figure — the audit intersects the totem's
+ * lifetimes with `stScored` before summing, so `uptimeMs / scoredMs` is `uptimePct` exactly — while this
+ * component was drawing `searingTotem.windows`, the raw lifetimes. On `cleave` that is 161 338ms of row
+ * above a tile taking 88.50% of 127 378, and a reader measuring the green against the pull saw a totem
+ * that barely went out. Clipped, the row is 112 728ms, which is the numerator to the millisecond on all
+ * three fixtures. `DebuffTimeline` has drawn its up row contact-scoped from the start for this reason
+ * ("both rows are measurements the tiles state, so neither may overstate itself"); this chart and
+ * `FlameShockUptime` were the two that did not.
+ *
+ * The lifetime outside the clock is not thrown away, it gets a row: a totem that really was ticking is a
+ * fact about the pull, and `8e011ac`'s rule for this shape is that an unmeasured figure is not a deleted
+ * one. It takes the exempt tone, because it is time nothing graded, and its own name, because a grey row
+ * saying "the totem was up here and it was not counted" is a different fact from the three saying why.
  */
 export default function SearingTotemUptime({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
@@ -40,8 +55,10 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 	const windows = searingTotem.windows;
 	const feWindows = searingTotem.feWindows;
 	const aoeWindows = el.lightningShield.aoeWindows;
-	const { up, dropped, exempt } = useMemo(() => {
-		const up = windows.map((w): [number, number] => [w.start, w.end]);
+	const { up, uncounted, dropped, exempt } = useMemo(() => {
+		// The totem's raw lifetimes, before the clip below. Not a row on its own any more: the two rows it
+		// splits into are, and `up + uncounted` is this back again.
+		const drawn = windows.map((w): [number, number] => [w.start, w.end]);
 		const elemental = feWindows.map((w): [number, number] => [w.start, w.end]);
 		const aoe = aoeWindows.map((w): [number, number] => [w.start, w.end]);
 		// "Down" is the totem missing while the player was in contact, the slot was theirs to fill and a
@@ -63,8 +80,12 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 		// `exemptTrack.test.ts` pinned the first two as equal to the hand-rolled intersections that used to
 		// be here before either moved.
 		return {
-			up,
-			dropped: intersect(complementOf(up, analysis.durationMs), placeable),
+			// `up + dropped` is `placeable` and `up + dropped + exempt` is the pull — the identity
+			// `exemptTrack.test.ts` now asserts alongside the one about the exempt rows alone. `up` is
+			// `searingTotem.uptimeMs` to the millisecond, which is what makes the row and the tile one claim.
+			up: intersect(drawn, placeable),
+			uncounted: intersect(drawn, complementOf(placeable, analysis.durationMs)),
+			dropped: intersect(complementOf(drawn, analysis.durationMs), placeable),
 			exempt: exemptRows(
 				[
 					{ label: t('searingTotem.track.elemental'), windows: elemental },
@@ -83,11 +104,12 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 	 * Up, down, then the grounds they were measured against, which sit last so they are behind the claim
 	 * rather than over it — four rows on a pull that never exceeded two enemies and five on one that did.
 	 *
-	 * The up row is a list of whole totem lifetimes, so a short one is a totem that really did tick —
-	 * one re-laid at once, or one the pull's end cut off — and hiding it at sub-pixel width would be
-	 * the chart disagreeing with the uptime figure beside it. The down row is a complement, so it
-	 * fragments on placement jitter, and widening that would paint a fault the pull did not have. See
-	 * `Track.widen`.
+	 * The up row is the totem's lifetimes cut to the clock, so a short one is very nearly always a totem
+	 * that really did tick — one re-laid at once, or one the pull's end cut off — and hiding it at
+	 * sub-pixel width would be the chart disagreeing with the uptime figure beside it, which is still the
+	 * worse of the two risks now the clip can also truncate a lifetime at a clock boundary. The down row is
+	 * a complement, so it fragments on placement jitter, and widening that would paint a fault the pull did
+	 * not have. See `Track.widen`.
 	 *
 	 * `EXEMPT`, not `miss`, for all three grounds: they are the rail the other two are measured on, and
 	 * colouring any of them like a fault would say the elemental was a mistake when the list wants it
@@ -114,6 +136,19 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				lengthLabel: 'without it for',
 				widen: false,
 			},
+			// The totem's own life outside the clock, on the pulls that have any: `phased` has none, so the
+			// row is gated the same way the add-wave row is and for the same reason.
+			...(uncounted.length === 0
+				? []
+				: [
+						{
+							label: t('searingTotem.track.uncounted'),
+							tone: EXEMPT,
+							windows: uncounted,
+							lengthLabel: 'ticking but unmeasured for',
+							widen: false,
+						} satisfies Track,
+					]),
 			{ label: away?.label ?? '', tone: EXEMPT, windows: away?.windows ?? [], lengthLabel: 'for', widen: false },
 			// Only on the pulls that have one, unlike the two rows either side of it. Those two are on every
 			// pull the chart draws at all, so a row of theirs that came and went would read as a rendering
@@ -124,10 +159,13 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				: [{ label: aoe.label, tone: EXEMPT, windows: aoe.windows, lengthLabel: 'for', widen: false } satisfies Track]),
 			{ label: slot?.label ?? '', tone: EXEMPT, windows: slot?.windows ?? [], lengthLabel: 'out for' },
 		],
-		[t, up, dropped, away, aoe, slot],
+		[t, up, uncounted, dropped, away, aoe, slot],
 	);
 
-	if (up.length === 0 && dropped.length === 0 && (slot?.windows.length ?? 0) === 0) {
+	// `uncounted` joins the guard because the up row is clipped now: a pull whose every totem lifetime fell
+	// outside the clock has an empty green row and an empty red one, and "Searing Totem was never placed"
+	// over it would be false about a pull that placed it throughout.
+	if (up.length === 0 && dropped.length === 0 && uncounted.length === 0 && (slot?.windows.length ?? 0) === 0) {
 		return <ChartEmpty>{t('searingTotem.none')}</ChartEmpty>;
 	}
 
@@ -138,6 +176,7 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				<>
 					<ChartKey tone="kick">{t('searingTotem.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('searingTotem.track.dropped')}</ChartKey>
+					{uncounted.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('searingTotem.track.uncounted')}</ChartKey>}
 					{[away, aoe, slot].map((row) =>
 						row === undefined || row.windows.length === 0 ? null : (
 							<ChartKey key={row.label} tone={EXEMPT}>
