@@ -28,7 +28,7 @@
     "open": "Analysis settings",
     "short": "Settings",
     "title": "Analysis settings",
-    "intent": "Most of what this report checks is fixed by the spec and not something you can change. These settings are the exceptions — thresholds that depend on you, or that the log cannot tell us.",
+    "intent": "Most of what this report checks is fixed by the spec and not something you can change. These settings are the exceptions — thresholds that depend on you, or that the log does not record.",
     "storage": "Kept in this browser only, and used by the analysis running in this tab. Changing it re-reads the pull that is already loaded — nothing is fetched from WarcraftLogs again.",
     "save": "Save",
     "reset": "Back to defaults",

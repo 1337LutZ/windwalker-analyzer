@@ -68,7 +68,7 @@ describe('a pull that starved with Thunderstorm on the bar', () => {
 	const html = render(withLowMana(104_000, 118_000, 10));
 
 	it('tells the reader which button to press, and why it is not optional', () => {
-		expect(html).toContain('At 15% your next Lava Burst may simply not go out');
+		expect(html).toContain('At 15% your next Lava Burst may not go out');
 		expect(html).toContain('press it as the bar reaches the line');
 	});
 
