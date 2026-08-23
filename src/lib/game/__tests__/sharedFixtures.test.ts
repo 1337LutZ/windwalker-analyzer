@@ -272,7 +272,7 @@ describe('the two shared haste bands that can be up at once', () => {
 	});
 });
 
-// ------------------------------------------- what the four pulls were actually wearing
+// ------------------------------------------- what the five pulls were actually wearing
 
 /**
  * *** "Absent from every fixture" is not "wrong", and `combatantinfo` is what tells the two apart. ***
@@ -284,6 +284,12 @@ describe('the two shared haste bands that can be up at once', () => {
  * because "138898 appears zero times in every fixture", and §51's own box warns against exactly that
  * step — and both times the fact that would have settled it was already in the committed fixture.
  *
+ * **And 138898 is no longer zero.** `addsThenBoss.json` is the fourth Elemental pull and its shaman
+ * wears Breath of the Hydra (96455): the trinket is in the kit and the proc opens nine windows in the
+ * fight. So the row that this whole docblock used as its example of "worn or not worn is answerable"
+ * has now been answered in both directions by the fixture set — three pulls that did not own it and one
+ * that did — and `elemental/lib/apl.ts`' band-3 assumption has something to read.
+ *
  * `combatantinfo` carries the player's whole kit: eighteen slots with the item id in each, the gems
  * socketed into them and the `permanentEnchant` on the slots that have one. So "did this trinket
  * proc" and "did this player own this trinket" are separate, answerable questions, and this test asks
@@ -292,6 +298,10 @@ describe('the two shared haste bands that can be up at once', () => {
  * **The result is a biconditional, and it holds on all thirty-nine gear-sourced shared effects: an
  * effect fires on exactly the pulls whose player equipped it.** There is not one case of equipped-and-
  * silent anywhere in the committed set, which is what licenses reading every zero above as "not worn".
+ * It survived the arrival of a pull wearing three effects no earlier pull did — `wushoolays-lightning`,
+ * its stack counter and `breath-of-hydra` — which is the strongest evidence the instrument has had, and
+ * the only kind it can get: a biconditional that holds only on the gear it was written against is a
+ * tautology, and this is the first time it was asked about gear it had never seen.
  * The sharpest row is `lightweave`: it opens windows on `cleave` and `unbroken` and none on `phased`,
  * and the reason is not luck — that pull's cloak carries enchant 4423, plain Superior Intellect, where
  * the other two carry 4892. `sharedFixtures`' own grid pins the 0 and could only ever have said "did
@@ -314,9 +324,14 @@ describe('the two shared haste bands that can be up at once', () => {
 const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]> = [
 	// ------------------------------------------------ Throne of Thunder trinkets
 	['unerring-vision', [94_524, 95_814, 96_186, 96_558, 96_930], []],
-	['wushoolays-lightning', [94_513, 95_669, 96_041, 96_413, 96_785], []],
-	['wushoolays-lightning-stacks', [94_513, 95_669, 96_041, 96_413, 96_785], []],
-	['breath-of-hydra', [94_521, 95_711, 96_083, 96_455, 96_827], []],
+	// The two rows `addsThenBoss.json` was fetched for. Its shaman wears Wushoolay's Final Choice as
+	// **96413** and Breath of the Hydra as **96455** — the heroic Throne of Thunder ids, three tiers of
+	// upgrade below the base 94_513/94_521 — where all three pulls before it wore the same two Siege
+	// trinkets. `breath-of-hydra` is the one the ladder was waiting on: `elemental/lib/apl.ts` reads
+	// `auraIsKnown(138898)` as owned at three targets and up because nothing here could show otherwise.
+	['wushoolays-lightning', [94_513, 95_669, 96_041, 96_413, 96_785], ['elemental/addsThenBoss.json']],
+	['wushoolays-lightning-stacks', [94_513, 95_669, 96_041, 96_413, 96_785], ['elemental/addsThenBoss.json']],
+	['breath-of-hydra', [94_521, 95_711, 96_083, 96_455, 96_827], ['elemental/addsThenBoss.json']],
 	['chayes', [94_531, 95_772, 96_144, 96_516, 96_888], []],
 	['juju-madness', [94_523, 95_665, 96_037, 96_409, 96_781], []],
 	['rampage', [94_519, 95_757, 96_129, 96_501, 96_873], []],
@@ -353,14 +368,22 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 
 	// ------------------------------------------------------------------ meta gems
 	['fortitude', [95_344], []],
-	['tempus-repit', [95_347], ['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json']],
+	[
+		'tempus-repit',
+		[95_347],
+		['elemental/addsThenBoss.json', 'elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json'],
+	],
 	['capacitance', [95_346], ['windwalker/dataset-ironJuggernaut.json']],
 
 	// ----------------------------------------------------------- legendary cloaks
 	['spirit-of-chi-ji', [102_247], []],
 	// Two cloaks, one effect id — `db.json` gives 146194 to both melee legendaries.
 	['flurry-of-xuen', [102_248, 102_249], ['windwalker/dataset-ironJuggernaut.json']],
-	['essence-of-yulon', [102_246], ['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json']],
+	[
+		'essence-of-yulon',
+		[102_246],
+		['elemental/addsThenBoss.json', 'elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json'],
+	],
 
 	// ---------------------------------------------------- weapon and cloak enchants
 	['windsong', [4441], []],
@@ -368,7 +391,11 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 	['swordguard-embroidery', [3730, 4118, 4894], []],
 	['lord-blastingtons', [4699], []],
 	['dancing-steel', [4444], ['windwalker/dataset-ironJuggernaut.json']],
-	['jade-spirit', [4442], ['elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json']],
+	[
+		'jade-spirit',
+		[4442],
+		['elemental/addsThenBoss.json', 'elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json'],
+	],
 	// The row that makes the point: `phased` wears 4423 on the cloak, the other two wear 4892.
 	['lightweave', [3722, 4115, 4892], ['elemental/cleave.json', 'elemental/unbroken.json']],
 ];
@@ -409,13 +436,14 @@ function firedOnPlayer(dataset: FightDataset, key: string): number {
 	}).length;
 }
 
-describe('absent from every fixture, because not one of the four players wore it', () => {
+describe('absent from every fixture, because not one of the five players wore it', () => {
 	/**
 	 * The census half: which pulls equip each effect, read off the gear and pinned.
 	 *
 	 * A grid rather than a per-row `it`, so a fixture arriving with a trinket nobody has worn yet fails
 	 * once, by name, showing what it brought — which is the moment to move that id out of the report's
-	 * second tier and into its first.
+	 * second tier and into its first. That is exactly what it did for `addsThenBoss.json`: one red, three
+	 * rows named, and the trinket the ladder needed among them.
 	 */
 	it('reads the same kit out of every pull it did', () => {
 		const measured = Object.fromEntries(
@@ -449,15 +477,16 @@ describe('absent from every fixture, because not one of the four players wore it
 	 * Not vacuous, and stated as the two totals the assertions above are silent about: a table of
 	 * thirty-nine rows all reading `[]` would satisfy both.
 	 */
-	it('really does sweep four pulls, some of it equipped and most of it not', () => {
+	it('really does sweep five pulls, some of it equipped and most of it not', () => {
 		expect(RAW_PULLS.map(([name]) => name)).toEqual([
+			'elemental/addsThenBoss.json',
 			'elemental/cleave.json',
 			'elemental/phased.json',
 			'elemental/unbroken.json',
 			'windwalker/dataset-ironJuggernaut.json',
 		]);
 		expect(GEAR_SOURCES.length).toBe(39);
-		expect(GEAR_SOURCES.filter(([, , on]) => on.length > 0).length).toBe(11);
+		expect(GEAR_SOURCES.filter(([, , on]) => on.length > 0).length).toBe(14);
 		// Eighteen slots read on every pull, and a kit is dozens of ids — not an empty gear array.
 		for (const [name, dataset] of RAW_PULLS) expect(equippedIds(dataset).size, name).toBeGreaterThan(20);
 	});

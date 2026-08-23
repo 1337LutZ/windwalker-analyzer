@@ -20,9 +20,9 @@
 // what it adds is the player's own three ids rather than every raider's debuff on the boss; the
 // measurement and the argument are on `SWEPT` and on `enemyAuraEvents`.
 //
-// **Skull Banner is what that hole cost.** 114206 goes up on all four committed pulls — 4 applications
-// on `phased`, 2 on `unbroken`, 4 on `cleave`, 3 on `dataset-ironJuggernaut`, apply and remove in equal
-// numbers each time. It is a twenty-percent crit-*damage* window from another player's three-minute
+// **Skull Banner is what that hole cost.** 114206 goes up on all five committed pulls — 4 applications
+// on `phased`, 2 on `unbroken`, 4 on `cleave`, 6 on `addsThenBoss`, 3 on `dataset-ironJuggernaut`, apply
+// and remove in equal numbers each time. It is a twenty-percent crit-*damage* window from another player's three-minute
 // raid cooldown, which is a real multiplier on the audited player's damage. It was named in the
 // Elemental's `EXTRA_NAMES`, so the cast-coverage ledger was satisfied; it was never declared, so the
 // drawn-aura sweep could not see it; and it was drawn nowhere, so the report simply did not mention it.
@@ -97,8 +97,8 @@ const PULLS: Array<[string, FightDataset, Registry]> = SPEC_REGISTRIES.flatMap((
  * — `EFFECTS`, copied from the simulator's own exclusive-effect categories — and `readRaidBuffs`
  * measures every one of them on the player's own stream. So Battle Shout, Moonkin Aura and Legacy of
  * the White Tiger are modelled and drawn; they are simply modelled *there* rather than in a spec's
- * registry, because two providers of one effect are one row. Seventeen of the ids these four pulls
- * carry are covered by it, and writing seventeen ledger entries saying "see raidBuffs.ts" would be a
+ * registry, because two providers of one effect are one row. Seventeen of the ids the four pulls this
+ * was written against carry are covered by it, and writing seventeen ledger entries saying "see raidBuffs.ts" would be a
  * copy of `EFFECTS` that could drift from it. Read through `RAID_BUFF_NAMES`, which is `EFFECTS`'
  * own second reading and not a second list.
  */
@@ -228,6 +228,7 @@ const LEDGER: Record<number, string> = {
 	44203: healing('Tranquility'),
 	47753: healing("Divine Aegis, the absorb a priest's mastery adds to a heal"),
 	48438: healing('Wild Growth'),
+	48504: healing("Living Seed, the stored heal a resto druid's crit leaves on its target"),
 	51945: healing("Earthliving, the proc on a resto shaman's heal"),
 	61295: healing('Riptide'),
 	64844: healing('Divine Hymn'),
@@ -274,6 +275,11 @@ const LEDGER: Record<number, string> = {
 	144918: bossMechanic('Cutter Laser', 'Iron Juggernaut'),
 	143856: bossMechanic('Superheated', 'Siegecrafter Blackfuse'),
 	144466: bossMechanic('Magnetic Crush', 'Siegecrafter Blackfuse'),
+	// The two `addsThenBoss.json` brought, and the first encounter this ledger has seen that has an add
+	// phase: both come off the tower assault rather than off Galakras herself. 147029 is the Flameslinger
+	// pool the player stood in; 147705 is the Dragonmaw Tidal Shaman's cloud.
+	147029: bossMechanic('Flames of Galakrond', 'Galakras'),
+	147705: bossMechanic('Poison Cloud', 'Galakras'),
 };
 
 describe('every aura the log puts on the player is modelled or ledgered', () => {
@@ -286,15 +292,18 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	 *
 	 * The failure this guards against is the sweep quietly reading nothing — a `targetID` that stopped
 	 * matching, an `events` array that went missing on a re-capture — which would satisfy the assertion
-	 * above by having no ids to fail on. Read off the committed streams: 46, 52, 57 and 57 distinct
-	 * aura ids land on the player or on what the player was hitting, across the four pulls.
+	 * above by having no ids to fail on. Read off the committed streams: 46, 49, 52, 57 and 57 distinct
+	 * aura ids land on the player or on what the player was hitting, across the five pulls.
 	 *
-	 * These were 42, 48, 53 and 53 before the sweep gained its enemy half, and the +4 on each is the
-	 * measurement rather than a coincidence — see the pin below, which is the same fact split out so a
-	 * regression names the half that broke.
+	 * Four of those were 42, 48, 53 and 53 before the sweep gained its enemy half, and the +4 on each is
+	 * the measurement rather than a coincidence — see the pin below, which is the same fact split out so a
+	 * regression names the half that broke. `addsThenBoss` arrived after the widening and its enemy half
+	 * is **five** rather than four, which is the pin's own subject: two of its five are raid buffs the
+	 * player's totems put on the encounter's friendly NPCs.
 	 */
-	it('really does sweep four pulls with dozens of ids each', () => {
+	it('really does sweep five pulls with dozens of ids each', () => {
 		expect(byPull((sweep) => sweep.ids.size)).toEqual({
+			'elemental/addsThenBoss.json': 49,
 			'elemental/cleave.json': 57,
 			'elemental/phased.json': 46,
 			'elemental/unbroken.json': 52,
@@ -315,6 +324,9 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	 * Windwalker's pull 122470/128531/130320 are declared against 115804 and 124280 ledgered. 118297 is
 	 * *not* here on `cleave` and that is the source filter working: the Fire Elemental's Immolate is the
 	 * pet's press, not the player's.
+	 *
+	 * 144999 is *not* on `addsThenBoss` and that is gear rather than a filter: the T16 two-piece writes
+	 * that debuff, and this shaman is in Throne of Thunder kit with no Siege tier at all.
 	 */
 	it('really does read an enemy half on every pull, and only what the player sourced', () => {
 		expect(
@@ -322,6 +334,19 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 				PULLS.map(([key, dataset]) => [key, [...auraIdsPutOnEnemies(dataset).keys()].sort((a, b) => a - b)]),
 			),
 		).toEqual({
+			// **Five, and two of them are raid buffs.** 51470 Elemental Oath and 77747 Burning Wrath are this
+			// shaman's own totem buffs, landing on the Alliance Vanguard, the Demolitions Expert and the
+			// Demolitions Assistant — Galakras' *friendly* NPCs, 92 and 2 applications of them. That is
+			// `enemyAuraEvents` behaving exactly as its docstring says it will: it excludes what the log
+			// positively declares friendly, which is players and their pets, so an allied NPC is "not known
+			// to be friendly" and lands here. The reading is deliberate and stays — requiring proof of
+			// enemyhood would empty the half on any report with a short actor list, which is the blindness
+			// this family exists to catch — but this is the first pull to show what it costs, and it is the
+			// reason the name of the half is wider than the word "enemies". Both ids are declared, so
+			// nothing new is unaccounted for; what a future reader should not do is add a hostility filter
+			// on the strength of these two rows, because WCL's `masterData.actors` carries no hostility
+			// field for an NPC to be filtered on.
+			'elemental/addsThenBoss.json': [8050, 51_470, 77_747, 115_798, 146_198],
 			'elemental/cleave.json': [8050, 115_798, 144_999, 146_198],
 			'elemental/phased.json': [8050, 115_798, 144_999, 146_198],
 			'elemental/unbroken.json': [8050, 115_798, 144_999, 146_198],
@@ -404,7 +429,7 @@ describe('Skull Banner, the id this guard was written for', () => {
 	 * **114206 and not 114207.** `sim/core/buffs.go:1118` is `var SkullBannerActionID = ActionID{SpellID:
 	 * 114206}`, and `SkullBannerAura` at :1153 registers the buff under the same number; 114207 appears
 	 * once in that repository, in `ui/core/components/inputs/buffs_debuffs.ts:108`, as the icon the buff
-	 * picker draws. The log agrees with the sim: 114206 appears on all four committed pulls and 114207
+	 * picker draws. The log agrees with the sim: 114206 appears on all five committed pulls and 114207
 	 * on none of them. Declaring the UI id is the exact mistake that produced the retired 144998 — a
 	 * handle the game never writes, wired to five readers, silent through fifty-three green tests.
 	 */
@@ -416,8 +441,9 @@ describe('Skull Banner, the id this guard was written for', () => {
 	});
 
 	/** Measured on the player, apply and remove in equal numbers on every pull. */
-	it('fires on all four committed pulls', () => {
+	it('fires on all five committed pulls', () => {
 		expect(byPull((sweep) => sweep.ids.get(114_206))).toEqual({
+			'elemental/addsThenBoss.json': 12,
 			'elemental/cleave.json': 8,
 			'elemental/phased.json': 8,
 			'elemental/unbroken.json': 4,

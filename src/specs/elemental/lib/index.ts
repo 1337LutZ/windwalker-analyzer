@@ -1102,9 +1102,12 @@ const BLOOD_FURY = registry.aura('blood-fury');
  * comment claimed everything below was "off-GCD utility"; the logs say otherwise. Lightning Shield
  * (324), Ghost Wolf (2645), Bloodlust (2825), Healing Stream Totem (5394), Healing Surge (8004),
  * Thunderstorm (51490), Earthgrab Totem (51485), Chain Heal (1064), Healing Rain (73920), Healing
- * Tide Totem (108280) and Totemic Projection (108287) all occupy a global in game. **They are
- * off-*rotation* globals, not off-GCD ones, and this report knowingly leaves them unpriced.** Only
+ * Tide Totem (108280), Totemic Projection (108287) and Purge (370) all occupy a global in game. **They
+ * are off-*rotation* globals, not off-GCD ones, and this report knowingly leaves them unpriced.** Only
  * Shamanistic Rage (30823) is genuinely off the global.
+ *
+ * Purge is the twelfth and arrived with `addsThenBoss.json`; the eleven the deltas below were measured
+ * against are the eleven named before it.
  *
  * **The decision stands and its argument has changed under it, so here is the argument as it is now.**
  *
@@ -1177,6 +1180,12 @@ const EXTRA_NAMES: Record<number, string> = {
 	// except Shamanistic Rage takes a global — see the note above for why they are named and not
 	// priced. Listing them is what lets `fixtureCoverage.test.ts` tell "known and unpriced" apart from
 	// "forgotten", which is the distinction that was missing when Chain Lightning was neither.
+	// Purge, one press on `addsThenBoss.json` and the only cast id that fixture brought in that nothing
+	// here had a name for. It takes a global like the rest of this block, and it is off-rotation for the
+	// same reason Chain Heal is: `ui/shaman/elemental/apls/*.apl.json` never asks for it, so pricing it
+	// would make `gcdUtilisationPct` answer "were you busy" instead of "did you fill the globals the
+	// rotation wanted". Named rather than modelled, which is what keeps it out of `#370`.
+	370: 'Purge',
 	1064: 'Chain Heal',
 	2645: 'Ghost Wolf',
 	2825: 'Bloodlust',

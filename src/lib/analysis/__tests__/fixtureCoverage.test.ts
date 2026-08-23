@@ -59,8 +59,11 @@ const SPECS = [
  * below then picks it up with no further wiring.
  */
 const FIXTURE_CENSUS: Record<string, { raw: string[]; captured: string[] }> = {
-	// Three raw pulls and no captures.
-	elemental: { raw: ['cleave.json', 'phased.json', 'unbroken.json'], captured: [] },
+	// Four raw pulls and no captures. `addsThenBoss.json` is the fourth and it is the only one whose
+	// multi-target regime *ends*: Galakras runs tower adds for the first seven minutes and then stands
+	// alone for the last fifty-seven seconds, where `cleave` interleaves adds to its last hit and
+	// `phased` and `unbroken` never leave one enemy. Measured in `__fixtures__/addsThenBoss.test.ts`.
+	elemental: { raw: ['addsThenBoss.json', 'cleave.json', 'phased.json', 'unbroken.json'], captured: [] },
 	// One raw pull, and six captures written by `__fixtures__/capture.test.ts` — `analyse()`'s output
 	// rather than its input, which is why they carry no `events` and cannot answer half of these
 	// questions.
@@ -203,12 +206,20 @@ describe('every aura a spec declares either fires in a committed fixture or is o
  *   all three write **96230** (intellect), so the press had a lane and the buff window it opened had
  *   none. It fires now.
  *
- *   `wushoolays-lightning [138786]` is the same id under a corrected key — the rename landed in
- *   `7319f15`, one of five wrong declarations the sweep caught. It read `unerring-vision-stacks`, and
- *   138786 was never Unerring Vision's: it is Wushoolay's Final Choice's proc window, non-stacking and
- *   ten seconds long, whose ten-stack counter is the separate `wushoolays-lightning-stacks [138788]` on
- *   the next line. Unerring Vision has no counter in either source, so there was no aura for the old key
- *   to be named after.
+ *   `wushoolays-lightning [138786]` was here under a corrected key — the rename landed in `7319f15`,
+ *   one of five wrong declarations the sweep caught. It read `unerring-vision-stacks`, and 138786 was
+ *   never Unerring Vision's: it is Wushoolay's Final Choice's proc window, non-stacking and ten seconds
+ *   long, whose ten-stack counter is the separate `wushoolays-lightning-stacks [138788]`. Unerring Vision
+ *   has no counter in either source, so there was no aura for the old key to be named after.
+ *
+ *   **All three of those left the Elemental list when `addsThenBoss.json` landed**, and this is the
+ *   entry to read if the question is what a fixture is for. That pull's shaman wears Wushoolay's Final
+ *   Choice (96413) *and* Breath of the Hydra (96455) — Throne of Thunder trinkets, where all three
+ *   pulls before it wore the same two Siege ones (104426, 104544) — so `wushoolays-lightning [138786]`,
+ *   `wushoolays-lightning-stacks [138788]` and `breath-of-hydra [138898]` fire on a committed pull for
+ *   the first time. The last of those is the one that mattered: `specs/elemental/lib/apl.ts` reads
+ *   `auraIsKnown(138898)` as **owned** at three targets and up because nothing could show otherwise, and
+ *   this is the pull that can. Its own measurement is in `__fixtures__/addsThenBoss.test.ts`.
  *
  *   The finding behind that one is about the two sources rather than about the key. The sim's rule looks
  *   coherent because its *hand-written* Wushoolay's override inverts the pair — it puts the stacks on the
@@ -226,7 +237,6 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'blades-of-renataki [138756]',
 		'blades-of-renataki-stacks [138737]',
 		'blood-fury [33697]',
-		'breath-of-hydra [138898]',
 		'capacitance [137596]',
 		'chayes [139133]',
 		'cloudburst [138856]',
@@ -259,8 +269,6 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'windsong [104423, 104509, 104510]',
 		'wrath-of-darkspear [146184]',
 		'wrath-of-darkspear-stacks [146202]',
-		'wushoolays-lightning [138786]',
-		'wushoolays-lightning-stacks [138788]',
 	],
 	windwalker: [
 		'berserking [26297]',
@@ -340,6 +348,23 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// targets and up one of them claimed nearly every global and the two rungs the aoe list actually has
 	// were almost unreachable — 11 Lava Beams and not one graded `followed`. The 16 presses that changed
 	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
+	// **The outlier, and the number to argue with rather than to re-baseline.** 69 of 408 followed is a
+	// 16.9% follow rate against `cleave`'s 48.5%, on a pull that is 73.73% multi-target and reaches nine
+	// enemies. It is this pull's own first reading and it moves nothing above it — every figure on the
+	// three older pulls is byte-identical with this fixture committed — so it is recorded, not smoothed.
+	// Two candidate causes and neither is measured here: 408 presses over 560s is nine minutes of add
+	// waves graded against `aoe.apl.json`'s two-rung list, and `FS_CLEAVE_OVERLAP_MS`' own docstring
+	// already names the band-2/band-3 readers this ladder does not have (no per-press dot count, and
+	// `auraIsKnown(138898)` assumed owned). This is the first pull that can settle the second of those.
+	'elemental/addsThenBoss.json': { presses: 408, followed: 69, skipped: 339 },
+	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
+	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
+	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
+	// `[1, 2]`. That last move is the largest of the three and it is all one mechanism: Earth Shock, Lava
+	// Burst and Searing Totem stood *above* Lava Beam and Chain Lightning at bands 3 and 4, so at three
+	// targets and up one of them claimed nearly every global and the two rungs the aoe list actually has
+	// were almost unreachable — 11 Lava Beams and not one graded `followed`. The 16 presses that changed
+	// are Chain Lightnings and beams the sim's own list wanted. See `multiTargetRungs.test.ts`.
 	'elemental/cleave.json': { presses: 204, followed: 99, skipped: 105 },
 	'elemental/phased.json': { presses: 159, followed: 107, skipped: 52 },
 	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 45 },
@@ -348,6 +373,10 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 
 /** `[events carrying `classResources`, events in the pull]`, straight off the raw fixture. */
 const RESOURCE_EVENTS: Record<string, [number, number]> = {
+	// The second pull to carry any, and the one that shows the ratio is a property of the *capture* and
+	// not of the encounter: 6614 of 9363, where `cleave` reads 3237 of 4642 — both a shade over 70%.
+	// `phased` and `unbroken` read zero because they were fetched before `includeResources: true`.
+	'elemental/addsThenBoss.json': [6614, 9363],
 	'elemental/cleave.json': [3237, 4642],
 	'elemental/phased.json': [0, 3454],
 	'elemental/unbroken.json': [0, 2848],
