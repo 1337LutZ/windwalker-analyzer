@@ -938,8 +938,8 @@ describe('report copy with no reader', () => {
 		'rotation.rule.*.name': 16,
 		'stormlash.state.*': 2,
 		// Twenty cards, two of which store a second wording for a number that needs different advice.
-		'summary.takeaways.metric.*.fix': 22,
-		'summary.takeaways.metric.*.label': 20,
+		'summary.takeaways.metric.*.fix': 23,
+		'summary.takeaways.metric.*.label': 21,
 	};
 
 	/**
