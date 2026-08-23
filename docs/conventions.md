@@ -463,6 +463,24 @@ band three presses and one wasted press can reach, printing the contradiction ni
 drop it — the grade already carries the colour. The survivors are listed in `readerVoice.test.ts` with
 the arithmetic that earns each one, so adding a fourth is a visible edit.
 
+**Nothing renders markup, so markup in a string is punctuation the reader has to read.** There is no
+markdown pass and no `dangerouslySetInnerHTML` anywhere in the tree: a locale string is handed to
+React as text. `flameShockSnapshots.measurable` shipped `*is*` and `method.energy` shipped
+`` `classResources` `` and `` `resourcechange` ``, and all three printed their own asterisks and
+backticks at a reader. Emphasis is carried by word order, and a WCL field name is jargon this audience
+reads unglossed — the corpus never marks one up either.
+
+**Say the refusal once.** Where the log cannot answer something, the sentence that says so is the
+answer; a second sentence saying "the log does not contain enough data to report a figure" adds a
+generic restatement to a specific one. `sef.overlapUnknown` and `jadeWind.absent_unknown` both carried
+that closer after they had already named exactly what was missing.
+
+**Open, and measured rather than ruled: apostrophes and quotes are split two ways.** `report.json`
+holds 50 strings with a straight apostrophe and 25 with a curly one, and two strings with each kind of
+double quote. Nothing renders one differently from the other, so this is a house-style decision nobody
+has taken; it is recorded here so that whoever takes it does it in one sweep rather than one string at
+a time.
+
 **`specs/__tests__/readerVoice.test.ts` is the mechanical half, and it carries two kinds of list on
 purpose.** `MODEL_WORDS` — internal jargon that must not reach a reader — is surrounded by carve-outs
 (`WINDWALKER_METHOD_KEYS`, `SHARED_METHOD_KEYS`, `REFERENCE_SECTIONS`, `REFERENCE_READER_KEYS`),

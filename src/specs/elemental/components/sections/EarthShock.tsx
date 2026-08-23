@@ -160,7 +160,14 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				 * list has no Earth Shock at all, so nothing asked the shield to be spent or held while
 				 * three or more enemies were up.
 				 */}
-				{earthShock.presses.length > earthShock.judged ? (
+				{/*
+				 * Not on the reading where every press is unjudged, which is the one where this note and the
+				 * verdict above it were the same sentence thirty words apart: `verdict_exempt` already says the
+				 * multi-target order has no Earth Shock in it, that nothing asks you to spend the shield or to
+				 * hold it, and how many presses that leaves. The note earns its place on a pull where *some* of
+				 * the presses fell outside the count, because there the graded sentence says nothing about them.
+				 */}
+				{earthShock.presses.length > earthShock.judged && gradeOf('earthShock') !== 'exempt' ? (
 					<Note>{t('earthShock.aoeUnjudged', { count: earthShock.presses.length - earthShock.judged })}</Note>
 				) : null}
 				{/* The one instruction the exempt sentence used to end on, said as a note instead.
