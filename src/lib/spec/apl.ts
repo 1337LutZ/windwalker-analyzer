@@ -260,8 +260,8 @@ export interface AplInputs {
 	 * (`auraIsKnown(138898)`) — and the log answers them from two different fields of the same
 	 * `combatantinfo`: the talent list and the gear array. Naming a gear question with an aura key would
 	 * inherit that conflation into this seam, and `auras` above already means "windows the log carried",
-	 * which is exactly what this must not be read as. The talent half needs no field here: `AplRule.talent`
-	 * already gates a rung on the log showing the button pressed.
+	 * which is exactly what this must not be read as. The talent half has its own field, `knownTalents`
+	 * below, for the same reason: two questions, two fields, neither able to be mistaken for the other.
 	 *
 	 * **Null is not an empty kit.** A log with no `combatantinfo` cannot say what was worn, and a rung
 	 * that reads this must answer `'unknown'` there rather than "not owned" — the same three-valued
@@ -269,6 +269,51 @@ export interface AplInputs {
 	 * a ladder with no gear-gated rung costs nothing.
 	 */
 	equippedItems?: ReadonlySet<number> | null;
+	/**
+	 * The talent ids `combatantinfo` says the player brought, or **null** when it said nothing.
+	 *
+	 * The other half of the `auraIsKnown` split `equippedItems` above describes. The sim writes a talent
+	 * gate as `auraIsKnown(117012)` — the Unleashed Fury row of the Elemental's level-90 tier — and the
+	 * log answers it from `combatantinfo`'s **talent list**, which is a different field of the same event
+	 * from the gear array. So it is a different input, spelled in the units that field is in: talent row
+	 * ids, not aura keys and not item ids. A single "known auras" set would have to hold a talent id and
+	 * an item id side by side and would inherit exactly the conflation the sim's own vocabulary made.
+	 *
+	 * **What it replaces is a proxy, and naming the proxy is the point.** `AplRule.talent` alone gates a
+	 * rung on the log showing the button *pressed*, and that fails in one direction: a player who took the
+	 * talent and never pressed it inside the pull reads as a player who did not take it, so the rung is
+	 * dropped from the list and every press below it is graded against a ladder the player did not have.
+	 * On a short pull or a wipe that is routine rather than hypothetical. `readTalents` reads the same
+	 * `combatantinfo` the gear comes from, so the real answer costs nothing extra.
+	 *
+	 * **Null is not an empty tree**, and it is not `'unknown'` either — a departure from `equippedItems`
+	 * above, taken on a measurement rather than on taste, and the one thing about this field worth
+	 * arguing over.
+	 *
+	 * The kit has no second witness: a trinket that never procs leaves no trace in an event stream at
+	 * all, so a log with no `combatantinfo` genuinely cannot say, and `'unknown'` is the only honest
+	 * answer there. A talent does have a second witness — its own button in the cast list — and that is
+	 * the evidence the press proxy has always run on. So the two nulls are different facts and get
+	 * different disposals: `null` here falls back to the proxy, and the reading replaces it only where
+	 * there is a reading to be had.
+	 *
+	 * The measurement, because "it would be too strict" is not an argument on its own. The `'unknown'`
+	 * arm was implemented and run against the four committed pulls with their `combatantinfo` events
+	 * stripped out. `unbroken` went from 97 followed / 43 skipped / 0 unknown to **15 / 0 / 125** — 88%
+	 * of the pull silenced; `phased` to 24 / 1 / 132, `cleave` to 45 / 21 / 137, `addsThenBoss` to
+	 * 94 / 71 / 239. The cause is structural rather than incidental: the Elemental's top rung is a
+	 * talent-gated 15s cooldown, an un-pressed cooldown reads as permanently ready, and its band-1
+	 * condition is true whenever Ascendance is down — so an unreadable talent there is wanted at very
+	 * nearly every global, and one missing event becomes a verdict withheld on all of them.
+	 *
+	 * And it withholds the wrong thing. "This log carried no `combatantinfo`" is one fact about the pull,
+	 * and rendering it as 125 per-press `unknown`s is the report declining to say the thing it knows. The
+	 * strict arm belongs here once the section has a per-pull disposal to hang it on; until then such a
+	 * log is left with the proxy, exactly where it was before this field existed.
+	 *
+	 * Absent (rather than null) means the spec never wired the field at all, which reads the same way.
+	 */
+	knownTalents?: ReadonlySet<number> | null;
 	/**
 	 * Cooldown clocks for buttons that are not rungs but that a rule reads.
 	 *
@@ -357,13 +402,29 @@ export interface AplRule {
 	/**
 	 * True when the button sits on a talent row, and is therefore only demanded of a player who has it.
 	 *
-	 * Taken from the log — a talent the player did not choose is not a mistake, and this report cannot
-	 * read a talent tree out of the event stream, so "was it ever pressed" is the only evidence there
-	 * is. Deliberately *not* applied to the baseline buttons: inferring those the same way would mean a
-	 * player who never pressed the spec's core spender at all was never told, which is the single worst
-	 * thing this ladder exists to catch.
+	 * A talent the player did not choose is not a mistake. Deliberately *not* applied to the baseline
+	 * buttons: inferring those the same way would mean a player who never pressed the spec's core
+	 * spender at all was never told, which is the single worst thing this ladder exists to catch.
+	 *
+	 * **How the gate is answered depends on what the spec supplied.** With `talentId` below and
+	 * `AplInputs.knownTalents`, it is answered off the log's own talent list — in both directions. Without
+	 * either, it falls back to "was this button ever pressed in the pull", which is a proxy and is
+	 * described as one at `knowsTalent`.
 	 */
 	talent?: true;
+	/**
+	 * This rung's row in `combatantinfo`'s talent list, when the spec can name it.
+	 *
+	 * Separate from `id` because they are separate facts that only sometimes agree: Elemental Blast casts
+	 * under 117014 and occupies talent row 117014, while Unleash Elements casts under 73680 and is gated
+	 * on the **Unleashed Fury** row, 117012. Reading the gate off `id` would silently ask about the wrong
+	 * number for the second of those, and a talent with no button of its own could not be asked about at
+	 * all.
+	 *
+	 * Only meaningful alongside `talent: true`, and only consulted when `AplInputs.knownTalents` is
+	 * supplied. A spec that declares neither keeps the press proxy it always had.
+	 */
+	talentId?: number;
 	/**
 	 * The bands this entry exists in. Omitted means every band, which is what most of the list wants.
 	 *
@@ -664,6 +725,33 @@ function affordable(rule: AplRule, state: State, auras: AuraReader, reduction: n
 }
 
 /**
+ * Whether the player brought the talent a rung sits on — the gate `talent: true` opens.
+ *
+ * **The reading first, the inference only where there is nothing to read.** A log carrying a talent list
+ * answers this outright, in both directions: the row is in it or it is not, and "not in it" is a fact
+ * about the player's build rather than about their pull. That second direction is what the old gate could
+ * never say. It ran on `seen.has(rule.id)` alone — the log showing the button *pressed* — which is sound
+ * one way round and not the other: a press proves the talent, silence proves nothing, and reading silence
+ * as "did not take it" deletes the rung from the list for a player who simply never got round to the
+ * button. Every rung below is then walked against a ladder that is not theirs.
+ *
+ * **A log with no talent list is left on the proxy rather than answered `'unknown'`**, which is the one
+ * place this departs from the kit's three-valued discipline and the reason it is not `Truth`. The
+ * argument and the numbers are at `AplInputs.knownTalents`; the short of it is that a talent has a second
+ * witness in the cast stream where a trinket has none, and that the strict arm was measured to silence up
+ * to 88% of a pull's globals off one missing event.
+ *
+ * A spec that supplied no `knownTalents`, or a rung that named no `talentId`, is on the proxy too, so
+ * nothing about such a ladder moves — the Windwalker's three talent rungs included.
+ */
+function knowsTalent(rule: AplRule, inputs: AplInputs, seen: ReadonlySet<number>): boolean {
+	if (rule.talent !== true) return true;
+	const known = inputs.knownTalents;
+	if (rule.talentId === undefined || known === undefined || known === null) return seen.has(rule.id);
+	return known.has(rule.talentId);
+}
+
+/**
  * What the list wanted at this press, and whether the press was it.
  *
  * Walks the ladder from the top and stops at the first rule that both wants the global and can be
@@ -710,9 +798,10 @@ function judge(
 		if (rule.bands !== undefined && !rule.bands.includes(band)) continue;
 		// Replaced on the character's bars, so it is not a button that could have been pressed.
 		if (rule.replacedBy !== undefined && seen.has(rule.replacedBy)) continue;
-		// A talent row is only demanded of a player the log shows chose it. Baseline buttons carry no
-		// such gate, so never pressing one is a fault this ladder can still name.
-		if (rule.talent === true && !seen.has(rule.id)) continue;
+		// A talent row is only demanded of a player who took it. Baseline buttons carry no such gate, so
+		// never pressing one is a fault this ladder can still name. Two-valued, and where it always was:
+		// see `knowsTalent` for why the third answer is not taken and what it was measured to cost.
+		if (!knowsTalent(rule, inputs, seen)) continue;
 		if (!ready(rule, state.t, lastCast, auras)) continue;
 
 		// A rule the press itself satisfies is not worth stopping for: pressing the button the list might

@@ -3922,6 +3922,17 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		// an empty slot is not an item anything can be gated on.
 		equippedItems:
 			h.gear.slots.length === 0 ? null : new Set(h.gear.slots.map((slot) => slot.id).filter((id) => id > 0)),
+		// The tree, for the two rungs gated on a level-90 row — Unleash Elements and Elemental Blast.
+		// `combatantinfo`'s other field, and the other half of the `auraIsKnown` split the kit above is
+		// the first half of.
+		//
+		// **The same `talents` binding the Primal Elementalist clock reads, on purpose.** A second
+		// `readTalents` call here would be a second answer to one question, which is the objection
+		// `components/sections/gates.ts` already states about reading the tree twice — and the two answers
+		// would be free to disagree about a pull with no `combatantinfo`. `null` travels through as `null`:
+		// a pull that said nothing about the tree is not a pull with an empty one, and the ladder reads it
+		// as `'unknown'` on a rung whose press could otherwise have settled it.
+		knownTalents: talents,
 		offLadderCooldowns: { [ASCENDANCE.castIds[0]!]: { cooldownMs: ASCENDANCE_COOLDOWN_MS, casts: ascCasts } },
 		barsRequired: false,
 		// The three on-GCD buttons the ladder declares off its own business, so their presses read

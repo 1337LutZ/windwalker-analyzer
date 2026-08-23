@@ -230,12 +230,24 @@ const FS_ASC_PREP_MS = 16000;
  *   two different fields of the same `combatantinfo` — the talent list and the gear array — which is why
  *   the input added for this is item ids and not a set of "known auras" that would have to hold both.
  *
- *   The talent half stays where it was, on `AplRule.talent`, which gates the rung on the log showing the
- *   button pressed. That is a proxy and it is worth naming as one: `readTalents` reads the same event and
- *   `index.ts` already uses it for Primal Elementalist, so "did this shaman bring Unleashed Fury" is
- *   answerable outright rather than inferred from a press. Not changed here — it is a second question with
- *   a second answer, it moves no committed figure (no fixture carries a 73680 press), and folding it into
- *   the gear field would be the same conflation the sim's own vocabulary made.
+ *   **And the talent half is now read off the talent list too**, which is the second and last of the two
+ *   jobs. It used to be `AplRule.talent` alone — the rung gated on the log showing the button *pressed* —
+ *   and that was a proxy in the same species as the trinket constant, failing in the obvious direction: a
+ *   shaman who took Unleashed Fury and never got round to the button read as a shaman who took something
+ *   else, and every rung below was then walked against a list they did not have. `readTalents` reads the
+ *   same `combatantinfo` and `index.ts` already asks it for Primal Elementalist, so the real answer was
+ *   one field away. It arrives as `AplInputs.knownTalents` with the rungs naming their row through
+ *   `talentId` — a second input and not an entry in the gear set, because a set holding a talent row and
+ *   an item id together would be the sim's conflation copied rather than closed. See
+ *   `UNLEASHED_FURY_TALENT_ID`.
+ *
+ *   **The two halves dispose of a missing `combatantinfo` differently, and that is deliberate.** The kit
+ *   reads `'unknown'` there; the tree falls back to the press. A trinket that never procs leaves no trace
+ *   in an event stream, so a gear-less log genuinely cannot say — but a talent's own button is in the cast
+ *   list, which is the evidence the proxy always ran on. The strict arm was implemented and measured
+ *   before it was dropped: with `combatantinfo` stripped from the four committed pulls it silenced
+ *   88% of `unbroken`'s globals, because this ladder's top rung is a talent-gated cooldown that an
+ *   un-pressed pull reads as permanently ready. Full numbers at `AplInputs.knownTalents`.
  *
  * The 2s is the preset's own `maxOverlap`, not a tuned number, and the band-3 branch is written as
  * `remaining <= 0` because that is what `not(dotIsActive)` means on a clock.
@@ -262,6 +274,33 @@ const FS_CLEAVE_OVERLAP_MS = 2000;
  * pins this copy against the committed kits instead, in both directions.
  */
 const BREATH_OF_HYDRA_ITEM_IDS: readonly number[] = [94_521, 95_711, 96_083, 96_455, 96_827];
+
+/**
+ * The two level-90 rows this ladder gates a rung on, as **talent** ids — the other half of that split.
+ *
+ * `p5.apl.json` rung 0 and `cleave.apl.json` rung 1 both open `auraIsKnown(117012)`, and rung 17 is
+ * `Elemental Blast Talented`. Neither is asking whether an aura went up in the pull: they ask what the
+ * player brought, which `combatantinfo`'s talent list answers outright. That list is a different field
+ * of the same event `BREATH_OF_HYDRA_ITEM_IDS` above reads the gear array of, which is why these are a
+ * second input (`AplInputs.knownTalents`) rather than entries in a shared "known auras" set — one set
+ * holding a talent row and an item id would be the sim's own conflation, copied into this seam.
+ *
+ * **Written out rather than taken off the rung's cast id, because the two only sometimes agree.** The
+ * level-90 tier is Unleashed Fury (117012), Primal Elementalist (117013) and Elemental Blast (117014),
+ * and the tier's ids are what `combatantinfo` carries — all four committed pulls name **117013**, which
+ * `index.ts`' `PRIMAL_ELEMENTALIST_TALENT_ID` already reads the same field for. Elemental Blast casts
+ * under its own row number; Unleash Elements does not. It is a baseline 73680 button whose *damage* the
+ * Unleashed Fury row is taken for, so a gate read off `id` would ask whether the player had a spell
+ * every shaman has, and would answer `true` for a shaman who took Primal Elementalist.
+ *
+ * What this replaces on both rungs is `talent: true` alone, which gated them on the log showing the
+ * button pressed. That is sound only one way round — a press proves the talent, silence proves nothing —
+ * so a shaman who took Unleashed Fury and never got round to the button was walked down a list missing
+ * its top rung. A log carrying the talent list now answers both directions outright; a log carrying none
+ * is left on the press exactly as it was. See `AplInputs.knownTalents`.
+ */
+const UNLEASHED_FURY_TALENT_ID = 117_012;
+const ELEMENTAL_BLAST_TALENT_ID = 117_014;
 
 /** Ascendance coming back within this — the `spellTimeToReady(114049) >= 6s` of the Earth Shock rule. */
 const ES_ASC_HOLD_SEC = 6;
@@ -329,15 +368,17 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// Unleash Elements at every global the walk could reach it on, Ascendance aside, where the preset
 		// wants it only inside a Lava Surge window.
 		//
-		// The talent gate is the same `auraIsKnown(117012)` in both lists, so it does not move: `talent:
-		// true` keeps the rung closed unless the log shows the button pressed. That is also why no
-		// committed fixture moves on this — none carries a 73680 press — and why the separation is shown
-		// against a synthetic pull in `multiTargetRungs.test.ts` rather than pinned off a fixture.
+		// The talent gate is the same `auraIsKnown(117012)` in both lists, so it does not move — and it is
+		// now read off the talent list rather than off a press: see `UNLEASHED_FURY_TALENT_ID`. That
+		// changes nothing on the four committed pulls, which all name 117013 and none of which carries a
+		// 73680 press, so the rung is closed before and after; the separation is shown against a synthetic
+		// pull in `multiTargetRungs.test.ts` rather than pinned off a fixture.
 		key: 'unleash-elements',
 		id: ID.unleashElements,
 		chiCost: 0,
 		energyCost: 0,
 		talent: true,
+		talentId: UNLEASHED_FURY_TALENT_ID,
 		cooldownMs: 15000,
 		bands: [1, 2],
 		// `cleave.apl.json` rung 1 at two targets, `p5.apl.json` rung 0 at one. Read off `state.band`, this
@@ -422,15 +463,22 @@ export const LADDER: readonly ELE_AplRule[] = [
 		// eight-second stat buff (`sim/shaman/elemental_blast.go:22-26`, `:42`), on the bar at every
 		// count.
 		//
-		// **This gate moves no committed figure, and that is said rather than implied.** `talent: true`
-		// means the rung is only demanded of a player the log shows pressed the button, and no fixture
-		// carries a 117014 press — so the rung charges 0 skips at all four bands before and after. The
-		// gate is shown to separate against a synthetic pull instead; see `multiTargetRungs.test.ts`.
+		// **This gate moves no committed figure, and that is said rather than implied.** The rung is only
+		// demanded of a player whose talent list names row 117014, and all four committed pulls name
+		// 117013 instead — so the rung charges 0 skips at all four bands, both before this was read off
+		// the log and after. The gate is shown to separate against a synthetic pull instead; see
+		// `multiTargetRungs.test.ts`.
+		//
+		// **`talentId` is the cast id here and is still written out.** Elemental Blast is one of the two
+		// level-90 rows that casts under its own talent number, and Unleash Elements above is the other
+		// case: 73680 on the bar, row 117012 in the list. Defaulting either to `id` would make the
+		// coincidence look like the rule.
 		key: 'elemental-blast',
 		id: ID.elementalBlast,
 		chiCost: 0,
 		energyCost: 0,
 		talent: true,
+		talentId: ELEMENTAL_BLAST_TALENT_ID,
 		cooldownMs: 12000,
 		bands: [1, 2],
 		condition: () => true,
