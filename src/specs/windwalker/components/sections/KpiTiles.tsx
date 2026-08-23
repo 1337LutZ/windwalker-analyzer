@@ -36,15 +36,34 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					label={t('kpi.rskUptime')}
 					grade={toneOf('rskUptime')}
 				/>
-				{/* Graded on depth rather than on the catch rate: this tile counts the ones held inside
-				    the leeway window, which is the timing question, not the discipline one. The label
-				    carries the leeway actually used, because "last GCD" is only its name at the
-				    default — the same reason the depth chart's band is labelled the way it is. */}
+				{/* Uncoloured, and that is the whole of what this tile claims. It counts the procs held inside
+				    the leeway window against every proc that fired — `lastGcd` over `procs` — and **no rule in
+				    `THRESHOLDS` grades that quantity.** Neither of the two the snapshots section does grade is a
+				    verdict on it, and painting the tile with either is the mistake the RSK tile above records:
+				    a tile wearing the grade of a number it is not displaying.
+
+				    It wore `snapshotDepth`'s, which runs backwards against it. Depth is a mean over the procs
+				    that were caught, so the sibling metric picks its denominator — see the note over the metric
+				    in `lib/score.ts`. On the committed pulls the tile showing the *lowest* number in the set was
+				    painted the good colour and one showing more than three times it was painted the bad one:
+				    `poor` 1/9 in `text-kick`, `strong` 6/16 in `text-miss`.
+
+				    `snapshotRate` is not the substitute it looks like, and the same two pulls are why it looks
+				    like one: it orders *those* two correctly and misorders others, because it is a share over
+				    `opportunities` rather than over what is drawn here. `waves` holds 1 of 8 to the last global
+				    and grades `good` on the rate; `mixed` holds 1 of 7 — the larger share — and grades `ok`. The
+				    section letter is `snapshotRate`'s alone (depth is secondary), so it is the same tint under
+				    another name, and `toneOf`'s own rule already refuses a tile coloured by its section.
+
+				    So: plain ink, for the reason DPS is plain ink — there is no threshold behind the figure, and
+				    a colour would invent a verdict the report never makes. The catch rate the reader wants a
+				    colour for is graded, in words, in the section below. The label still carries the leeway
+				    actually used, because "last GCD" is only its name at the default — the same reason the depth
+				    chart's band is labelled the way it is. */}
 				<StatTile
 					value={`${procs.lastGcd}`}
 					suffix={`/${procs.procs}`}
 					label={t('kpi.snapshots', { leeway: formatSeconds(procs.lastGcdMs) })}
-					grade={toneOf('snapshotDepth')}
 				/>
 				{/* A tile rather than a sentence somewhere, and a tile that appears whatever the answer is.
 				    Drinking both potions is correct play and has to read as a fact — a figure that only

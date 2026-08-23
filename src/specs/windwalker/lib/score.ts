@@ -293,11 +293,24 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * better than catching twelve" — which is the tell: the defect was known and answered with a
 	 * disclaimer. No sample floor touches it, because the inversion is there at twelve as much as at two.
 	 *
-	 * The letter is kept out of every verdict in the meantime: weight nought in `WEIGHTS`, and secondary
-	 * in `section()`, so neither a section grade nor the whole-pull grade is drawn through it. What it
-	 * still colours is the `RoRo snapshots` tile in `KpiTiles`, which is the one place the inversion
-	 * reaches a reader: `poor` shows 1 of 9 held to the last global in the good colour and `strong` shows
-	 * 6 of 16 in the bad one.
+	 * The letter is kept out of every verdict: weight nought in `WEIGHTS`, and secondary in `section()`.
+	 * Both halves are load-bearing and neither is redundant — `section()` folds `worst` over its *primary*
+	 * metrics, so secondary keeps depth out of the snapshots letter; `overallOf` sums a weight into both
+	 * `measured` and `total`, so nought keeps it out of the headline letter *and* out of the judged share
+	 * it is taken over. Between them there is no section grade and no whole-pull grade drawn through this
+	 * rule.
+	 *
+	 * **And as of the tint's removal there is no reader-visible letter either.** The one place the
+	 * inversion reached a reader was the `RoRo snapshots` tile in `KpiTiles` — `poor` showing 1 of 9 held
+	 * to the last global in the good colour, `strong` showing 6 of 16 in the bad one. That tile is plain
+	 * ink now, for a reason worth keeping here rather than only there: the number it draws is `lastGcd`
+	 * over `procs`, which is not this metric's quotient *or* `snapshotRate`'s, so no rule in `THRESHOLDS`
+	 * is a verdict on it and nothing in this table should have been colouring it.
+	 *
+	 * What the bands still do is pick which of `snapshots.depth`'s three sentences the section prints, and
+	 * that is all they were left for — the sentences describe where the number sits and none of them
+	 * awards a letter or a hue. `snapshots.depthCaveat` has told the reader this metric "is shown but
+	 * never graded" since before it was true; it is true now.
 	 */
 	const snapshotDepth = metric('snapshotDepth', procs.snapshotted > 0 ? procs.meanDepthPct : null);
 	// Graded on every pull that cast it, add fight or not.
