@@ -1370,6 +1370,7 @@
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long. The rest went out early, and the table below says what was short on each one.",
     "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long — most went out early. The table below says what was short on each one: hold the shock until the charges are back and the dot is ahead of it.",
     "verdict_exempt": "From three enemies up the multi-target order has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so none of your shocks is right or wrong on this reading. That is {{presses, integer}} in total, and nothing asked for any of them. Switch the reading with the control at the top of the page if you want them counted.",
+    "verdict_tooFew": "Earth Shock was pressed in this pull — {{presses, integer}} in total — but only {{counted, integer}} of those came with one or two enemies up, and that is too few to tell a habit from a coincidence: one press either way would swing the share. So nothing here counts for or against you. Any shock that went out early still has its own row in the table — read them one at a time rather than as a fraction.",
     "verdict_none": "Earth Shock was never cast in this pull.",
     "kpi": {
       "good": "Good shocks",
@@ -1398,7 +1399,9 @@
   "searingTotem": {
     "title": "Searing Totem",
     "intent": "One global buys a minute of ticks. Only one Fire totem stands at a time, so keep Searing Totem up for every second the Fire Elemental is not holding the slot, never re-press a totem that still has time on it, and do not spend a global on one in the pull's last ten seconds.",
-    "verdict_good": "{{uptime, percent}} uptime, and no press landed over a live totem.",
+    "verdict_good_zero": "{{uptime, percent}} uptime, and no press landed over a live totem.",
+    "verdict_good_one": "{{uptime, percent}} uptime, and no Searing Totem of yours went down while the Fire Elemental was holding the slot. One press did land over a live totem, throwing away {{wasted, duration}} of ticks the earlier press had already bought. That clip is not counted for or against you here — this reading is about the uptime and the Fire Elemental slot — but the global is spent all the same, and the table gives you the moment.",
+    "verdict_good_other": "{{uptime, percent}} uptime, and no Searing Totem of yours went down while the Fire Elemental was holding the slot. {{clipped, integer}} presses landed over a live totem, throwing away {{wasted, duration}} of ticks the earlier presses had already bought. Those clips are not counted for or against you here — this reading is about the uptime and the Fire Elemental slot — but the globals are spent all the same, and the table gives you the moments.",
     "verdict_ok_zero": "{{uptime, percent}} uptime, and no press landed over a live totem — the uptime is the whole of what is short here.",
     "verdict_ok_one": "{{uptime, percent}} uptime. One press clipped a healthy totem, throwing away {{wasted, duration}} of its dot.",
     "verdict_ok_other": "{{uptime, percent}} uptime. {{clipped, integer}} presses clipped a healthy totem, throwing away {{wasted, duration}} of its dot.",

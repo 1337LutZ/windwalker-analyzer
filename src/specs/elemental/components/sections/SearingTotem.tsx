@@ -36,9 +36,9 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 	 * true finding about the pull at every enemy count, and printing nothing would tell a reader the totem
 	 * went unread when half of it did not — the same indistinguishability the header's *judged on N of M
 	 * points* line is printed on every pull to avoid. What was wrong was never the letter but the sentence
-	 * under it: `verdict_good` opens `{{uptime}} uptime`, so a `good` earned by an empty overlap ledger was
-	 * being read out as a claim about a percentage nothing had measured. So the wording switches with the
-	 * scope, leads with what was not measured, and says which figure the letter is about.
+	 * under it: every un-narrowed arm opens on the uptime percentage, so a `good` earned by an empty overlap
+	 * ledger was being read out as a claim about a percentage nothing had measured. So the wording switches
+	 * with the scope, leads with what was not measured, and says which figure the letter is about.
 	 *
 	 * Only over the three real grades. With the totem never cast the overlap count is unmeasurable too and
 	 * `gradeOf` already answers `none`, which is the honest "never pressed" sentence and needs no variant.
@@ -139,6 +139,14 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 							 * — `phased` grades `ok` on uptime alone with nothing clipped at all — which is exactly
 							 * why the figure has to carry its own agreement rather than borrow it from the grade. The
 							 * narrowed route names the overlap count instead and no arm of it prints this one.
+							 *
+							 * **All three letters, and `good` was the one that had to be talked into it.** It is the
+							 * same fact as the paragraph above read the other way round: the one sentence stored under
+							 * `good` asserted that no press landed over a live totem, which `cleave` disproves at 88.5%
+							 * uptime, no overlap and one clip. So the clean claim moved to the arm the count can only be
+							 * nought on, and the other two report the clip and say plainly it is not part of what was
+							 * measured. The alternative was to grade the clip — a new rule, a weight and four fixtures
+							 * re-measured to fix a sentence; the argument is in the suite beside this component.
 							 */
 							verdict('searingTotem', {
 								uptime: searingTotem.uptimePct,

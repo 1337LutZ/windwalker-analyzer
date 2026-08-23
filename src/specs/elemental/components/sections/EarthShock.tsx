@@ -31,7 +31,33 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { earthShock } = el;
-	const { t, unasked, verdict } = useReportCopy(analysis);
+	const { t, gradeOf, unasked, verdict } = useReportCopy(analysis);
+
+	/**
+	 * The pull pressed the shock, and too few of the presses fell where a list has an opinion to read a
+	 * share off them. A fourth sentence, and not new wording under an existing one.
+	 *
+	 * `earthShockGood` is a share over the presses made at one or two enemies, and `shareOf` hands that
+	 * share its denominator as a sample size, which the scorer refuses under its own floor of three. So a
+	 * pull with one or two of them has no letter, `gradeOf` answers `none`, and the sentence a reader got
+	 * was the one for a pull that never pressed the button at all — printed over a table of the presses
+	 * they made. The same shape as the exempt fix one floor down, with a different cause: there the rules
+	 * were never asked of the pull, here they were asked and the answer is too thin to say out loud.
+	 *
+	 * **Two facts, so two sentences, and a reader acts on them differently.** "You never pressed this"
+	 * asks for the button; "you pressed it, and there is not enough of it to score" asks for the table to
+	 * be read a row at a time. Folding the second into the first is what the Windwalker's Tiger Palm did
+	 * — its own `verdict_none` is the too-few sentence, so that section can no longer say the plain thing
+	 * — and the cost of the fourth arm here is one key.
+	 *
+	 * Gated on the presses rather than on the floor itself, so the number three lives in one place. The
+	 * only ways this metric arrives without a value are the exemption, which `verdict()` routes to its own
+	 * arm before this is read, and a sample under the floor — and a sample under the floor with presses on
+	 * the page is exactly this case. Nought presses at one or two enemies is in it too: a pull whose every
+	 * shock went out at three or more still pressed the button, and the reading it is being scored at is
+	 * the one thing that decides whether that is an exemption or a thin sample.
+	 */
+	const tooFew = gradeOf('earthShock') === 'none' && earthShock.presses.length > 0;
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -98,13 +124,24 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				    has an Earth Shock rule at all: `judged` is the count at one and two enemies, so on that
 				    reading it is the wrong number to name and the total is the right one. Without it the
 				    fallback was `verdict_none` — "Earth Shock was never cast in this pull" — printed over a
-				    table of shocks. */}
+				    table of shocks.
+
+				    The thin arm names the same total for the same reason, beside the count of presses a list
+				    had an opinion about, so a reader can see which of the two numbers the refusal is about.
+				    Its own name is spelled out at the call rather than assembled, because `useReportCopy`
+				    picks its arm off the grade and this one is not a grade. */}
 				<Prose>
-					{verdict('earthShock', {
-						good: earthShock.good,
-						casts: earthShock.judged,
-						presses: earthShock.presses.length,
-					})}
+					{tooFew
+						? t('earthShock.verdict', {
+								context: 'tooFew',
+								counted: earthShock.judged,
+								presses: earthShock.presses.length,
+							})
+						: verdict('earthShock', {
+								good: earthShock.good,
+								casts: earthShock.judged,
+								presses: earthShock.presses.length,
+							})}
 				</Prose>
 				{/*
 				 * The presses this section is *not* judging, said out loud on the pulls that have any.

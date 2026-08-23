@@ -982,7 +982,7 @@ describe('report copy with no reader', () => {
 		],
 		casts: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
 		debuff: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
-		// **No plural arm on any of the five, and the measurement is why rather than an oversight.** The
+		// **No plural arm on any of the six, and the measurement is why rather than an oversight.** The
 		// three graded arms open on a fraction of the shocks a list had an opinion about, and `shareOf`
 		// hands that share its denominator as a sample size, which `metricOf` refuses below
 		// `MIN_GRADED_SAMPLE` — so a pull with one or two of them is unmeasurable and never reaches a graded
@@ -990,7 +990,13 @@ describe('report copy with no reader', () => {
 		// both included, so it is written so the count needs no agreement: a plural arm there would have
 		// grown the five key names `readerVoice.test.ts` pins as the only places our word for a scope
 		// appears, in a file this lane does not own.
-		earthShock: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_exempt', 'verdict_none'],
+		//
+		// `verdict_tooFew` is what that refusal now prints, and it is the sixth arm rather than a rewording
+		// of `verdict_none` because the two facts are different ones: nothing pressed, against pressed and
+		// too thin to read. It is reached from `EarthShock` by name and not through `verdict()`, which picks
+		// its arm off the grade — and a thin sample has no grade to pick from. Both its counts are written
+		// so the numeral needs no agreement either, for the reason the exempt arm gives.
+		earthShock: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_exempt', 'verdict_tooFew', 'verdict_none'],
 		flameShock: [
 			'verdict_good',
 			'verdict_goodSome',
@@ -1051,12 +1057,20 @@ describe('report copy with no reader', () => {
 			'verdict_bad_noThunderstorm',
 			'verdict_none',
 		],
-		// Clipping is not one of this section's two graded metrics, so the un-narrowed pair can print any
-		// count under either letter — `phased` grades `ok` with nothing clipped and printed "0 presses
+		// Clipping is not one of this section's two graded metrics, so the un-narrowed *three* can print any
+		// count under any letter — `phased` grades `ok` with nothing clipped and printed "0 presses
 		// clipped a healthy totem, throwing away 0s of its dot". The narrowed three name the overlap count
 		// instead and print no clipped figure at all.
+		//
+		// **`good` gained the same three arms its siblings had, and it is the same defect the other way up.**
+		// A pull is handed `good` on the uptime and the Fire Elemental slot, neither of which is the clipped
+		// count — so the one sentence stored under that letter claimed no press landed over a live totem on
+		// pulls where one did. `cleave` is that pull: 88.5% uptime, no overlap, one clip, `good`. The `zero`
+		// arm is the sentence as it was, now reached only where it is true.
 		searingTotem: [
-			'verdict_good',
+			'verdict_good_zero',
+			'verdict_good_one',
+			'verdict_good_other',
 			'verdict_ok_zero',
 			'verdict_ok_one',
 			'verdict_ok_other',
