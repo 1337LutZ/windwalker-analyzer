@@ -23,7 +23,7 @@ import { GRADE_ORDER, type Metric } from '~/lib/score';
 import { countAt } from '~/lib/analysis/targets';
 import { resolveBands, type TargetModeChoice } from '~/lib/view/targetMode';
 import { analyse } from '~/specs/elemental/lib';
-import { scoreAnalysis, weightsFor } from '~/specs/elemental/lib/score';
+import { scoreAnalysis, THRESHOLDS, weightsFor } from '~/specs/elemental/lib/score';
 
 const fixture = (name: string): Analysis & ElementalAuditResult =>
 	analyse(JSON.parse(readFileSync(resolve(import.meta.dirname, `${name}.json`), 'utf8')) as FightDataset) as Analysis &
@@ -72,7 +72,19 @@ function panel(name: string, choice: TargetModeChoice): string[] {
 		.map((m) => m.key);
 }
 
-/** The seven rules that declare a scope, and the six that deliberately do not. */
+/**
+ * The seven rules that declare a scope, and the seven that deliberately do not.
+ *
+ * **Both lists are checked against `THRESHOLDS` rather than only iterated**, because the version of this
+ * guard that only iterated them was blind in the direction it claimed to cover. Its own docblock said "the
+ * next declaration added to one of these six fails here" — and it could not, because a rule added to the
+ * table and to neither list is simply never visited. `fireElementalHasteUptime` proved it: rule 5 landed
+ * unbanded, the count in this comment went stale, and nothing went red.
+ *
+ * So the partition is asserted first: every key in `THRESHOLDS` appears in exactly one of the two lists.
+ * A new rule then fails here on the day it is declared, whichever way it is declared, which is what the
+ * old comment was promising.
+ */
 const BANDED = [
 	'flameShockUptime',
 	'flameShockWaste',
@@ -89,6 +101,7 @@ const UNBANDED = [
 	'lightningShieldFellOff',
 	'thunderstormMissed',
 	'shamanisticRageMissed',
+	'fireElementalHasteUptime',
 ] as const;
 
 describe('the reported bug, on the pull it was reported from', () => {
@@ -263,7 +276,7 @@ describe('what deliberately does not move', () => {
 	});
 
 	/**
-	 * The six rules with no band, still asked of every pull at every reading — including the reading that
+	 * The seven rules with no band, still asked of every pull at every reading — including the reading that
 	 * exempts the other seven.
 	 *
 	 * This is the half that keeps "the exception applies globally" from meaning "an add fight is not
@@ -272,10 +285,24 @@ describe('what deliberately does not move', () => {
 	 * and at thirteen.
 	 *
 	 * **Cannot go red against the old behaviour**, because before this change no rule in the table had a
-	 * band and nothing was exempt anywhere. What it pins is the shape of the table going forward: the next
-	 * declaration added to one of these six fails here, which is where the argument for it belongs.
+	 * band and nothing was exempt anywhere. What it pins is the shape of the table going forward — and the
+	 * partition test above is what makes that promise keepable: this loop only visits what the lists name,
+	 * so on its own it could never have caught a rule added to neither.
 	 */
-	it('keeps asking the six rules that are not about a list', () => {
+	it('accounts for every rule in the table, so neither list can go stale', () => {
+		// The half the old guard could not do. `BANDED` and `UNBANDED` are hand-written, so a rule declared
+		// in `THRESHOLDS` and named in neither was never visited by the loop below — which is how rule 5
+		// landed unbanded with this file still saying "six". Asserted as a partition, both directions, so a
+		// new rule fails here whichever way it is declared.
+		const declared = Object.keys(THRESHOLDS).sort();
+		const listed = [...BANDED, ...UNBANDED].sort();
+		expect(listed).toEqual(declared);
+		// And they must not overlap: two sorted lists of equal content would also satisfy the line above if
+		// one key appeared in both and another in neither.
+		expect(BANDED.filter((k) => (UNBANDED as readonly string[]).includes(k))).toEqual([]);
+	});
+
+	it('keeps asking the seven rules that are not about a list', () => {
 		for (const name of ALL) {
 			for (const choice of ['auto', 'single', 'multi'] as const) {
 				for (const key of UNBANDED) {
