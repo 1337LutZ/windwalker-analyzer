@@ -23,6 +23,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { complementOf, intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
+import { intervalsAtLeast } from '~/lib/analysis/targets';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
@@ -262,6 +263,41 @@ describe('the exempt row', () => {
 			const labels = rowsOf(createElement(chart, { analysis: phased })).map((row) => row.label);
 			expect(labels).not.toContain('Three or more enemies'); // no-change guard
 		}
+	});
+
+	/**
+	 * **The third graded clock, which has no chart and cannot have one.** `flameShock.multiTargetMs` is band
+	 * 2 *alone* — the only clock in the audit cut at both ends — so the seconds it drops are the add waves
+	 * the charts above shade **plus** every stretch at one enemy. Neither existing chart may shade that
+	 * floor: band 1 is fully graded for the primary dot and for the totem, so a grey band there would say
+	 * the opposite of the truth about the row it sat under. And a chart of its own would have no up row to
+	 * draw, because the secondary target's dot is published as the scalar `multiDotUptimeMs` and never as an
+	 * array.
+	 *
+	 * So the identity is asserted here without a picture, from the same two published sets a chart would
+	 * have used: `targets.counts` for the floor and `aoeWindows` for the ceiling. Through `exemptRows`, so
+	 * that the day the floor does get drawn it is partitioned by the rule every other exempt row follows
+	 * rather than by a fourth complement written out beside it.
+	 */
+	it('accounts for the second dot’s clock too, which no chart draws', () => {
+		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
+		const atLeastTwo = intervalsAtLeast(cleave.targets?.counts.points ?? [], 2, cleave.durationMs);
+		expect(unionMs(atLeastTwo)).toBe(148_865); // the fixture fact the rest of this rests on
+
+		const exempt = exemptRows(
+			[
+				{ label: 'Fewer than two enemies', windows: complementOf(atLeastTwo, cleave.durationMs) },
+				{ label: 'Three or more enemies', windows: aoe },
+			],
+			cleave.durationMs,
+		);
+
+		// Both causes are real on this pull, so neither half of the equality is carried by the other.
+		for (const row of exempt) expect(unionMs(spans(row.windows)), row.label).toBeGreaterThan(0);
+		expect(unionMs(exempt.flatMap((row) => spans(row.windows)))).toBe(
+			cleave.durationMs - cleave.flameShock.multiTargetMs,
+		);
+		expect(cleave.flameShock.multiTargetMs).toBe(66_007);
 	});
 
 	/**

@@ -218,4 +218,37 @@ describe('the second-target tile on a pull with an empty band-2 clock', () => {
 		expect(unbroken.targets?.multiTargetMs ?? 0).toBe(0); // no-change guard
 		expect(render(unbroken)).not.toContain('Second target uptime'); // no-change guard
 	});
+
+	/**
+	 * The note that says what clock the figure is over, and why the graph above cannot show it.
+	 *
+	 * The second dot is the one figure in the section with no band on the chart: `multiTargetMs` is band 2
+	 * *alone*, so its exempt time is the add waves the graph shades **plus** every stretch at one enemy —
+	 * and neither existing chart may shade that floor, because band 1 is fully counted for the primary dot
+	 * and for the totem. A reader comparing the tile against the graph sees the ceiling shaded and nothing
+	 * for the floor, so the floor is stated in copy instead. This asserts it is stated wherever the tile is.
+	 */
+	it('says what the second dot’s clock is, wherever the tile appears', () => {
+		for (const [name, analysis] of [
+			['allAoe', allAoe],
+			['cleave', cleave],
+		] as const) {
+			const html = render(analysis);
+			expect(html, name).toContain('only the stretches where exactly two enemies were up');
+			expect(html, name).toContain('no band on the graph for its floor');
+		}
+		// And nowhere else: a pull with no second target is not owed an explanation of the second dot's clock.
+		expect(render(unbroken)).not.toContain('only the stretches where exactly two enemies were up');
+	});
+
+	/**
+	 * On `allAoe` the note is the *only* thing that explains the tile, which is the case the gate had to get
+	 * right: it is band 3+ from the bell, so the graph's grey covers the whole pull and the floor never
+	 * appears — and on a pull that never exceeded two enemies there would be no grey at all. Gating this note
+	 * on the add waves rather than on the tile would have lost it on exactly those pulls.
+	 */
+	it('is gated with the tile and not with the add waves', () => {
+		expect(unbroken.lightningShield.aoeWindows).toEqual([]); // no add waves and no tile: no note
+		expect(render(unbroken)).not.toContain('no band on the graph for its floor');
+	});
 });

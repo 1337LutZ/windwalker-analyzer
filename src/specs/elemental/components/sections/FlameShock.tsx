@@ -247,6 +247,22 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				    two-target case is stated, which is the half a reader who takes the grey to mean "adds
 				    were forgiven" is owed. */}
 				{aoeWindows.length === 0 ? null : <Note>{t('flameShock.aoeNote')}</Note>}
+				{/* The second dot's own clock, and the only place it is stated — because it is the one figure in
+				    this section with no band on the graph above.
+
+				    `flameShock.multiTargetMs` is band 2 *alone*: the ceiling the grey band shades **and** a floor
+				    at one enemy, since a pull with one enemy has no second target to dot. Neither existing chart
+				    may shade that floor — band 1 is fully counted for the primary dot and for the totem, so a grey
+				    band there would say the opposite of the truth about the row it sat under — and the second dot
+				    can have no chart of its own, because the secondary target's dot is published as a scalar and
+				    never as an array, so there would be no up row to draw. A reader comparing this tile against
+				    the graph therefore sees the ceiling shaded and nothing for the floor, and this is where that
+				    is answered. The arithmetic behind it is asserted without a picture, in `exemptTrack.test.ts`
+				    beside the two clocks that have one.
+
+				    Gated with the tile rather than on the add waves: the floor exists on every pull the tile
+				    appears on, including one that never exceeded two enemies and so has no grey band at all. */}
+				{(el.targets?.multiTargetMs ?? 0) > 0 ? <Note>{t('flameShock.multiDotNote')}</Note> : null}
 				<Note>{t('flameShock.snapshotNote')}</Note>
 			</div>
 		</Section>
