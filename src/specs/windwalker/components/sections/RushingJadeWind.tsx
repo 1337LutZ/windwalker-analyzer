@@ -175,9 +175,12 @@ export default function RushingJadeWind({
 								})}{' '}
 						{ladder === null
 							? null
-							: t('jadeWind.opportunities', {
+							: // `asked` rather than `opportunities`: the sentence now says what the priority list asked
+								// for, and a placeholder named for our own word for it is the one place the reader-voice
+								// sweep cannot see the word (see `specs/__tests__/readerVoice.test.ts`).
+								t('jadeWind.opportunities', {
 									used: ladder.followed,
-									opportunities: ladder.opportunities,
+									asked: ladder.opportunities,
 								})}
 						{ladder !== null && ladder.netOveruse > 0
 							? ` ${t('jadeWind.overuse', { extra: ladder.netOveruse })}`
@@ -192,8 +195,8 @@ export default function RushingJadeWind({
 							{t('jadeWind.ladder', {
 								context: ladder.judged === 0 ? 'unjudged' : ladder.skipped === 0 ? 'all' : 'some',
 								// The judged count carries the plural as well as the number: `all` and `some` both
-								// read "the N presses the list could judge", and one press has to say "the one
-								// press" rather than "the 1 presses".
+								// read "the N presses this log could check against the priority list", and one press has
+								// to say "the one press" rather than "the 1 presses".
 								count: ladder.judged,
 								followed: ladder.followed,
 							})}{' '}

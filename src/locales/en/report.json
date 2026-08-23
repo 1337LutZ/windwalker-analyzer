@@ -132,13 +132,13 @@
       "bar": "of its own ceiling",
       "rate": "cpm / target",
       "casts": "casts",
-      "gate": "gated by"
+      "gate": "limited by"
     },
     "gate": {
       "cooldown": "cooldown",
       "cooldownSec": "{{seconds, seconds}} cooldown",
       "chi": "chi",
-      "conditional": "conditional",
+      "conditional": "the rotation",
       "energy": "energy"
     },
     "noCeiling": "no cooldown",
@@ -168,7 +168,7 @@
       "dropped": "Without it",
       "away": "Nothing to hit"
     },
-    "chartCaption": "The tiles above, laid on the clock: where the enemy in front of you carried the debuff, where it did not, and where you had nothing to hit. Only the third track is uncounted.",
+    "chartCaption": "The tiles above, laid across the pull: where the enemy in front of you carried the debuff, where it did not, and where you had nothing to hit. Only the third track is uncounted.",
     "chartLabel": "Rising Sun Kick across the pull in three tracks: the debuff up on the enemy you were hitting for {{up, duration}}, off it for {{down, duration}} across {{drops}} stretches while you were still fighting, and {{away, duration}} with nothing to hit.",
     "chartCaption_primary": "Drawn against {{target}} alone: this pull was analysed before per-enemy tracking was added, so its tracks are that one enemy's windows.",
     "chartLabel_primary": "Rising Sun Kick's debuff on {{target}} across the pull: up for {{up, duration}}, dropped for {{down, duration}} across {{drops}} stretches, and {{away, duration}} with that enemy out of reach."
@@ -196,8 +196,8 @@
     "verdict_goodSome": "{{casts}} presses: {{onProc}} on a Combo Breaker proc, {{applied}} putting Tiger Power up, {{refresh}} refreshing it, {{wasted}} wasted. Tiger Palm is not what is holding this pull back, and {{wasted}} of those presses still bought nothing — each one a global that belonged to Jab or Blackout Kick. Press it on a Combo Breaker proc, or with Tiger Power about to drop, and leave it alone otherwise.",
     "verdict_ok": "{{casts}} presses: {{onProc}} on a proc, {{applied}} applying Tiger Power, {{refresh}} refreshing it, {{wasted}} wasted — globals with nothing to show for them.",
     "verdict_bad": "{{casts}} presses and {{wasted}} of them bought nothing: only {{onProc}} spent a proc, {{applied}} put Tiger Power up and {{refresh}} refreshed it. This happened repeatedly, not just once.",
-    "verdict_none": "Tiger Palm is your single-target filler, and only {{sample}} of your {{casts}} presses went out with one enemy up — too few to judge the habit on. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
-    "verdict_exempt": "This pull is being read as multi-target, and Tiger Palm is not your filler there — so its {{casts}} presses are drawn above but not judged. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
+    "verdict_none": "Tiger Palm is your single-target filler, and only {{sample}} of your {{casts}} presses went out with one enemy up — too few to read the habit from. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
+    "verdict_exempt": "This pull is being read as multi-target, and Tiger Palm is not your filler there — so its {{casts}} presses are drawn above but do not count towards your score. From two enemies up, those globals belong on Rushing Jade Wind and Spinning Crane Kick.",
     "unpressed": "Tiger Palm was never pressed in this pull.",
     "uptime": "Tiger Power held {{uptime, percent}} uptime.",
     "key": {
@@ -227,7 +227,7 @@
       "channel": "channel",
       "brew": "brew",
       "rune": "rune left",
-      "verdict": "verdict"
+      "verdict": "what was wrong"
     },
     "cells": {
       "yes": "yes",
@@ -248,14 +248,14 @@
     "haste_bad": "{{faulted}} of {{casts}} were used under a haste cooldown that the rotation would have waited out.",
     "channels_one": "One Fists of Fury channel started inside a window; the Fists of Fury section says whether Rushing Jade Wind covered it.",
     "channels_other": "{{count}} Fists of Fury channels started inside a window; the Fists of Fury section says which of them Rushing Jade Wind covered.",
-    "energyCaveat": "The other half of the condition — energy at least five seconds from filling — is not checked here. The verdict column covers the haste clause and nothing else, so a use marked clean may still have gone out on a nearly full bar.",
+    "energyCaveat": "The other half of the condition — energy at least five seconds from filling — is not checked here. What the last column shows as wrong covers the haste clause and nothing else, so a use marked clean may still have gone out on a nearly full bar.",
     "caption": "Every Energizing Brew, what was running when it went out, and what the rotation says about it",
     "columns": {
       "at": "at",
       "held": "buff lasted",
       "under": "under",
       "channels": "fists",
-      "verdict": "verdict",
+      "verdict": "what was wrong",
       "wasted": "energy lost"
     },
     "cells": {
@@ -620,7 +620,7 @@
     "onCooldown": "Every summon the pull had room for went out.",
     "held_one": "One more would have fitted: the cooldown sat ready and unused for {{drift, seconds}}.",
     "held_other": "{{count}} more would have fitted: the cooldown sat ready and unused for {{drift, seconds}}.",
-    "apl": "There is nothing to line it up with: the rotation casts it on cooldown with no condition at all, so using it as soon as it is ready is the entire standard.",
+    "apl": "There is nothing to line it up with: the rotation casts it on cooldown with nothing to wait for, so using it as soon as it is ready is the entire standard.",
     "petDamage": "The tiger's Crackling Tiger Lightning dealt {{damage, compact}}, {{share, percent}} of your damage. Its melee swings share a spell id with yours, so they are in your total but cannot be split out here.",
     "none": "Invoke Xuen was never pressed in this pull. It is a level-90 talent, so this may simply not be the one you took.",
     "caption": "Every summon, how long the tiger was out for, and what it dealt while it was",
@@ -1198,8 +1198,8 @@
     "intent": "At one target, Invoke Xuen is the better level-90 choice and Rushing Jade Wind is a damage loss: its 40 energy buys one chi where a Jab buys two. It is worth a single-target press when that energy would otherwise hit the cap, on a pull shorter than 75 seconds, or while Bloodlust and Energizing Brew are both active. From two enemies up, it is your area damage and should be kept spinning — taking it removes Spinning Crane Kick from your bars.",
     "summary": "Rushing Jade Wind hit an average of {{targets}} targets per damage tick across {{presses}} presses.",
     "summaryNoTargets": "Rushing Jade Wind was pressed {{presses}} times, but this analysis has no target-level damage data.",
-    "opportunities": "The priority list identified {{opportunities}} opportunities; {{used}} were used correctly.",
-    "overuse": "You made {{extra}} more RJW presses than opportunities.",
+    "opportunities": "The priority list asked for Rushing Jade Wind on {{asked}} globals; you pressed it on {{used}} of them.",
+    "overuse": "You pressed it {{extra}} more times than the priority list asked for.",
     "decisions": {
       "caption": "Every Rushing Jade Wind press, and every moment the priority list asked for one, in time order",
       "columns": {
@@ -1210,12 +1210,12 @@
       "cells": {
         "used": "RJW used",
         "usedReason": "RJW was the available choice",
-        "overused": "RJW used without an opportunity",
-        "noOpportunity": "No RJW opportunity",
-        "missed": "RJW opportunity missed",
+        "overused": "RJW used, not asked for",
+        "noOpportunity": "RJW was not asked for",
+        "missed": "RJW asked for, not used",
         "missedReason": "Another button was used",
-        "unknown": "Could not judge",
-        "unknownReason": "A higher-priority condition was unavailable",
+        "unknown": "Not known",
+        "unknownReason": "A higher-priority button could not be checked",
         "multiTarget": "At least two targets were active",
         "shortPull": "The pull was shorter than 75 seconds",
         "energyCap": "Energy would cap within 1 second",
@@ -1223,10 +1223,10 @@
         "hasteWindowAvailable": "Bloodlust was active and Energizing Brew was available"
       }
     },
-    "ladder_all_one": "At the one press the priority list could judge, no higher-priority ability was ready.",
-    "ladder_all_other": "At all {{count}} presses the priority list could judge, no higher-priority ability was ready.",
-    "ladder_some_one": "The one press the priority list could judge was used while a higher-priority ability was ready and affordable.",
-    "ladder_some_other": "{{followed}} of the {{count}} presses the priority list could judge had no higher-priority ability ready; the rest were used while a higher-priority ability was ready and affordable.",
+    "ladder_all_one": "At the one press this log could check against the priority list, no higher-priority ability was ready.",
+    "ladder_all_other": "At all {{count}} presses this log could check against the priority list, no higher-priority ability was ready.",
+    "ladder_some_one": "The one press this log could check against the priority list was used while a higher-priority ability was ready and affordable.",
+    "ladder_some_other": "{{followed}} of the {{count}} presses this log could check against the priority list had no higher-priority ability ready; the rest were used while a higher-priority ability was ready and affordable.",
     "ladder_unjudged": "The priority list could not judge any of these presses — each sat below a rule this log cannot read — so nothing here says whether they were the right globals to spend.",
     "wanted_one": "On one global you spent on another button, Rushing Jade Wind was the highest-priority ability ready.",
     "wanted_other": "On {{count}} globals you spent on another button, Rushing Jade Wind was the highest-priority ability ready.",
@@ -1236,10 +1236,10 @@
     "notGraded": "The single-target choice is a talent recommendation, not a pull grade. Opportunities come from the priority list; this section does not set an uptime target.",
     "absent_invokeXuen": "Rushing Jade Wind was not on your bar: it shares the level-90 row with Invoke Xuen, and this log has Invoke Xuen in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_spinningCraneKick": "Rushing Jade Wind was not on your bar: taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
-    "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would rule it out — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press. There is not enough data to report an uptime figure.",
+    "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would settle it — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press. There is not enough data to report an uptime figure.",
     "kpi": {
       "targets": "Average targets hit",
-      "opportunities": "Presses / opportunities"
+      "opportunities": "Presses / asked for"
     },
     "choice": {
       "value": "Non-optimal",
@@ -1249,17 +1249,17 @@
   "blackoutKick": {
     "title": "Blackout Kick",
     "intent": "Blackout Kick is where spare chi goes. The rotation reaches it twice: free the moment Combo Breaker procs, and last of all as the chi dump. Each press costs two chi — the same as Rising Sun Kick — but it has no cooldown, so nothing limits how much chi it uses.",
-    "none": "Blackout Kick was never pressed here. There is nothing to judge.",
+    "none": "Blackout Kick was never pressed here, so there is nothing to show.",
     "kpi": {
       "casts": "Presses",
       "followed": "Pressed where the rotation says",
       "starved": "Rising Sun Kick left waiting"
     },
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals to spend.",
-    "ladder_all_one": "At the one press the priority list could judge, no higher-priority ability was ready.",
-    "ladder_all_other": "At all {{count}} presses the priority list could judge, no higher-priority ability was ready.",
-    "ladder_some_one": "The one press the priority list could judge went out while something above the kick was ready and affordable.",
-    "ladder_some_other": "{{followed}} of the {{count}} presses the priority list could judge had no higher-priority ability ready; the rest were used while a higher-priority ability was ready and affordable.",
+    "ladder_all_one": "At the one press this log could check against the priority list, no higher-priority ability was ready.",
+    "ladder_all_other": "At all {{count}} presses this log could check against the priority list, no higher-priority ability was ready.",
+    "ladder_some_one": "The one press this log could check against the priority list went out while something above the kick was ready and affordable.",
+    "ladder_some_other": "{{followed}} of the {{count}} presses this log could check against the priority list had no higher-priority ability ready; the rest were used while a higher-priority ability was ready and affordable.",
     "ladder_unjudged": "The priority list could not judge any of these presses — each sat below a rule this log cannot read — so nothing here says whether they were the right globals.",
     "split_both": "{{free}} of those spent a Combo Breaker proc, which costs no chi; {{dump}} were dump presses, with the energy reserve the priority list asks for still left in the bar.",
     "split_free": "All of them spent a Combo Breaker proc, which costs no chi.",
@@ -1286,8 +1286,8 @@
     "starveDebuff_one": "On one of those waits the debuff was actually off the target.",
     "starveDebuff_other": "On {{count}} of those waits the debuff was actually off the target.",
     "starveDebuffNone": "None of them let the debuff drop — it outlasts the cooldown by seven seconds, so only a long wait costs uptime.",
-    "starveFollowed_one": "One of those presses had no higher-priority ability ready. The dump rule checks an energy reserve, but the shortfall it misses is chi.",
-    "starveFollowed_other": "{{count}} of them had no higher-priority ability ready. The dump rule checks energy, but the shortfall is chi, so following the priority list is not enough on its own.",
+    "starveFollowed_one": "One of those presses had no higher-priority ability ready. The priority list only checks energy before the dump, but the shortfall it misses is chi.",
+    "starveFollowed_other": "{{count}} of them had no higher-priority ability ready. The priority list only checks energy before the dump, but the shortfall is chi, so following it is not enough on its own.",
     "starveCaption": "Every kick that came up on a bar this button had emptied",
     "starveColumns": {
       "at": "Kick ready",
@@ -1300,7 +1300,7 @@
       "dropped": "Dropped",
       "held": "Held"
     },
-    "forced_single": "You are reading this pull as one target, where the dump asks for 35 energy banked by the kick's return. The presses above are judged against that.",
+    "forced_single": "You are reading this pull as one target, where the dump asks for 35 energy banked by the kick's return. The presses above are read against that.",
     "forced_multi": "You are reading this pull as three targets, where the dump asks for 105 energy banked by the kick's return and Spinning Crane Kick wants those globals instead. Far fewer presses count as correct.",
     "starveUnbanded": "These waits do not move with that reading. They are a fact about the chi bar, not about how many enemies were in front of you — only the figure above follows the count you picked.",
     "reconstructed": "Chi is reconstructed: WarcraftLogs only reports it when you spend it. On this pull the walk was exact {{accuracy, percent}} of the time. A bar that is off by one point can make a press you could not afford look like one you chose not to make.",
