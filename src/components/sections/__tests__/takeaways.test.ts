@@ -13,6 +13,7 @@ import type { Analysis, FightDataset } from '~/lib/types';
 
 import { SpecContext } from '~/components/report/specContext';
 import { getSpec, SPECS, type SpecDefinition } from '~/lib/spec';
+import type { Scorecard } from '~/lib/score';
 
 import Takeaways from '../Takeaways';
 
@@ -218,5 +219,130 @@ describe('the good takeaways heading does not shrink the cards under it', () => 
 	it('speaks in the same voice as the sentence above it', () => {
 		expect(t('summary.takeaways.title_good')).toContain('Still');
 		expect(t('overall.good')).toContain('a strong average can still hold a habit that cost you real damage');
+	});
+});
+
+/**
+ * What heads the branch with no cards under it.
+ *
+ * `summary.takeaways.title` was read by *both* branches of this block, so whichever heading the letter
+ * chose was printed over the grid and over the note that stands in for it. All three readings are claims
+ * about cards — "Key improvements", and since the lane above this one "Still worth fixing" — and the note
+ * they were printed over is `summary.takeaways.clean`: *"Nothing came out below its target, so there is no
+ * short list to give you."* The previous lane named this and left it, because one key served both
+ * branches and separating them needed a component change and a fourth arm. This is that.
+ *
+ * The two pulls below are the two ways the branch is reached, and the heading has to be the same on both:
+ * a pull whose metrics went unmeasurable, which is committed copy of `poor` with its inputs emptied, and
+ * a pull the scorecard calls `good` with nothing under its targets — the reading the lane above this one
+ * made loud, and the one no fixture produces, so it is a scorecard handed in directly.
+ */
+describe('the takeaways heading over a short list with nothing on it', () => {
+	const t = i18n.getFixedT('en', 'report');
+
+	/** `poor` with every input the metrics read emptied — the same pull the block above builds. */
+	function quiet(): Analysis {
+		const pull = structuredClone(fixture('poor'));
+		pull.procs.opportunities = 0;
+		pull.procs.snapshotted = 0;
+		pull.brew.uses = 0;
+		pull.brew.maxStacks = 0;
+		pull.brew.useList = [];
+		pull.cpm.gcdSlots = 0;
+		pull.debuff.casts = 0;
+		pull.filler.casts = 0;
+		return pull;
+	}
+
+	/**
+	 * A `good` pull with nothing below its target, which no committed fixture is.
+	 *
+	 * `strong` is `good` over 15 of 15 and deals three cards; every other fixture deals cards too. The
+	 * branch needs a card list that comes out empty *and* a `good` letter over it, so the card is handed in
+	 * rather than derived — one metric, measured, `good`, which is exactly what a pull with nothing to fix
+	 * scores. The analysis is cloned because `useReportCopy` memoises one card per analysis, spec and
+	 * reading, and a shared fixture object would hand back the real scorecard instead of this one.
+	 */
+	function goodWithNothingToFix(): { analysis: Analysis; spec: SpecDefinition } {
+		const card: Scorecard = {
+			overall: 'good',
+			judged: { measured: 15, total: 15, unmeasurable: false },
+			sections: {
+				tigerPalm: {
+					metrics: [
+						{
+							key: 'tigerPalmWaste',
+							good: 5,
+							ok: 15,
+							higherIsBetter: false,
+							value: 0,
+							grade: 'good',
+							unmeasurable: false,
+						},
+					],
+					primary: [
+						{
+							key: 'tigerPalmWaste',
+							good: 5,
+							ok: 15,
+							higherIsBetter: false,
+							value: 0,
+							grade: 'good',
+							unmeasurable: false,
+						},
+					],
+					unmeasurable: false,
+					grade: 'good',
+				},
+			},
+		};
+		return { analysis: structuredClone(fixture('strong')), spec: { ...WINDWALKER_SPEC, score: () => card } };
+	}
+
+	const headingOf = (html: string): string =>
+		[...html.matchAll(/<h3[^>]*>([^<]*)<\/h3>/g)].map((m) => m[1] ?? '').join(' ');
+
+	it('says there is nothing below target rather than naming a grade', () => {
+		const pull = quiet();
+		expect(cards(pull)).toEqual([]);
+		const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis: pull })));
+		expect(html).toContain('no short list');
+		expect(headingOf(html)).toBe(t('summary.takeaways.title_clean'));
+	});
+
+	/** The loud reading: `good` over an empty grid used to be headed "Still worth fixing". */
+	it('does not tell a pull with nothing below target that something is still worth fixing', () => {
+		const { analysis, spec } = goodWithNothingToFix();
+		const html = renderToStaticMarkup(
+			createElement(SpecContext.Provider, { value: spec }, createElement(Takeaways, { analysis })),
+		);
+		expect(html).toContain('no short list');
+		expect(headingOf(html)).toBe(t('summary.takeaways.title_clean'));
+		expect(html).not.toContain(t('summary.takeaways.title_good'));
+	});
+
+	/** And the no-change guard: the branch that has cards still takes its heading from the letter. */
+	it('leaves the heading over a real short list alone', () => {
+		const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis: fixture('strong') })));
+		expect(headingOf(html)).toBe(t('summary.takeaways.title_good')); // no-change guard
+		expect(headingOf(html)).not.toBe(t('summary.takeaways.title_clean'));
+	});
+
+	/**
+	 * The shared voice, extended rather than broken.
+	 *
+	 * `title_good` and `overall.good` are one voice on purpose, and the word that carries it in both is
+	 * `still` — the sibling block above pins both so that a lane softening one has to look at the other.
+	 * The empty heading is the one place that voice must *not* reach: there is no habit to hold and nothing
+	 * to be strong in spite of, so `still` is the word that cannot appear in it. Pinned from the other side
+	 * for the same reason the pair above is pinned from theirs — collapsing the two headings back onto one
+	 * key is exactly the change this block was written to stop, and it would show up here first.
+	 */
+	it('keeps `still` out of the heading that has nothing to hold', () => {
+		expect(t('summary.takeaways.title_clean').toLowerCase()).not.toContain('still');
+		expect(t('summary.takeaways.title_clean')).not.toBe(t('summary.takeaways.title'));
+		expect(t('summary.takeaways.title_clean')).not.toBe(t('summary.takeaways.title_good'));
+		// The link the sibling block holds, restated from here so neither can be softened alone.
+		expect(t('summary.takeaways.title_good')).toContain('Still'); // no-change guard
 	});
 });

@@ -111,11 +111,26 @@ export default function Takeaways({ analysis }: { analysis: Analysis }) {
 		return [...advice, ...metricTakeaways].slice(0, CARDS);
 	}, [analysis, card, spec, view]);
 
+	/**
+	 * The empty branch heads itself, rather than borrowing the letter's heading.
+	 *
+	 * Every other heading here is chosen by `card.overall`, and all three of them are claims about the
+	 * cards below: `title_good` is "Still worth fixing" and the base is "Key improvements". Over the branch
+	 * that has no cards there is nothing to fix and nothing to improve — `summary.takeaways.clean` says
+	 * outright that nothing came out below its target — so a grade-chosen heading here is a heading about
+	 * a grid that is not on the page. The `good` reading was the loudest of the three and the base reading
+	 * is wrong the same way, which is why the fix is a fourth arm rather than a fourth grade: `clean` is
+	 * not a letter and is not chosen by one.
+	 *
+	 * `card.overall` is deliberately not consulted. A pull can reach this branch on any letter — every
+	 * metric below `good` can be unmeasurable, or carry weight zero — and none of those letters changes
+	 * what the heading has to say, which is that there is no short list.
+	 */
 	if (takeaways.length === 0) {
 		return (
 			<div className="flex flex-col gap-3.5">
 				<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
-					{t('summary.takeaways.title', { context: card.overall })}
+					{t('summary.takeaways.title', { context: 'clean' })}
 				</h3>
 				<Note>{t('summary.takeaways.clean')}</Note>
 			</div>
