@@ -379,17 +379,17 @@ number.
 **The em-dash stays, and that is an override of both halves of the standard.** `SKILL.md` §15 bans
 it outright. The audience corpus has six in 18,889 words, none of them a spaced appositive pair, two
 authors using none at all — where these writers interrupt a sentence to define a term they reach for
-parentheses. This repo's copy carries **257** in `report.json`, in **20.9%** of prose sentences — the
-census below prints both. They are kept because they earn it here: an appositive defines a
+parentheses. This repo's copy carries them in about a fifth of its prose sentences — the
+census below prints the exact count, and is the only place in this file that does. They are kept because they earn it here: an appositive defines a
 measurement inside the sentence that used it, where a following sentence would put the definition
 after the claim it was needed for. Record it as
 an override and not as genre support — an honest override survives the next reviewer and a false
 claim does not. **Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that
 wants three is two sentences.
 
-**Sentence rhythm is a target, not a gate.** Measured across the 631 prose leaves of `report.json` —
-1,067 sentences, counting only strings of eight words or more, since a header, a chip and a table cell
-are not sentences — the median is 17 words and 19.2% run past 25. `SKILL.md` §1 asks for a median of
+**Sentence rhythm is a target, not a gate.** Measured across the prose leaves of `report.json` —
+counting only strings of eight words or more, since a header, a chip and a table cell are not
+sentences — the median is 17 words and about a fifth run past 25; the census below prints both exactly. `SKILL.md` §1 asks for a median of
 11 to 14 with about 15% past 25. Write new copy to that; let the existing copy converge as sections
 are touched. No gate, because a gate's honest floor is today's number, which makes it a budget rather
 than a standard, and because it could not tell a 40-word sentence that earns its length from one that
@@ -442,10 +442,18 @@ for name, ch in (('straight apostrophe', "'"), ('curly apostrophe', '’'),
 # EOF
 ```
 
-As of the commit that wrote this paragraph it prints 1370 leaves, 693 prose, 21,424 words; median 25,
-p75 40, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%; report.json 631 prose leaves, 1,067
-sentences, median 17, 205 past 25 (19.2%), 257 em-dashes in 223 sentences (20.9%); 50 / 25 / 1 / 3 on
-the quote lines. Sentence stats split on `(?<=[.!?])\s+` with `{{…}}` normalised to one token, which
+**This is the one place in this file that carries these figures, and that is deliberate.** They were
+restated in three passages and the three drifted apart: the em-dash count read 270 here, 257 in the
+tree and 240 in `readerVoice.test.ts`, and the density tail went stale against a commit that split the
+longest strings. A measurement written down four times is four things to update and three that will
+not be. The arguments above now cite this block instead of repeating it, which is the same rule the
+copy itself follows — say it once, outside the arms.
+
+As of the commit that wrote this paragraph it prints 1370 leaves, 692 prose, 21,418 words; median 26,
+p75 40, p90 62, p95 77, p99 97, max 160; longest 9% carry 24%; report.json 630 prose leaves, 1,064
+sentences, median 17, 207 past 25 (19.5%), 258 em-dashes in 224 sentences (21.1%); 49 / 25 / 1 / 3 on
+the quote lines. **Re-run it rather than trusting the line above** — every copy edit moves it, and it
+moved twice during the pass that wrote it. Sentence stats split on `(?<=[.!?])\s+` with `{{…}}` normalised to one token, which
 is why the block substitutes `X` for a placeholder rather than dropping it — a dropped placeholder
 merges the two words either side of it into one. `readerVoice.test.ts` has a `prose()` helper that
 strips placeholders for a different purpose (vocabulary matching, where the substitution must _not_ be
@@ -485,9 +493,9 @@ two-author sample read it as one and was wrong. The related terms are safe in th
 leaf in both files — zero `in order to`, `due to the fact that`, `a number of`, `the majority of`,
 `what this means is`, `each and every`, `is able to`, `begin to`, zero expletive `there is … that`,
 zero double hedges. Do not spend a pass hunting padding; there is none. What there is instead is one
-string answering several questions the reader never asked together. Measured over 693 prose leaves
-and 21,424 words: median 25, p75 40, p90 63, p95 77, p99 97, longest 160 — and 24% of all prose words
-sit in the longest 9% of the strings. The census block under **Sentence rhythm** prints all of those.
+string answering several questions the reader never asked together. The shape of it is a median around 25 words with a
+tail past 90, and roughly a quarter of all prose words sitting in the longest 9% of the strings. The
+census block under **Sentence rhythm** prints the exact distribution; it is not restated here.
 It used to read p99 119, longest 196, 26% in the top 9%, and the tail is where it went stale: the
 measurement predates `Split the longest notes by the jobs in them, not by their length`, which is the
 commit that cut exactly that tail. The rules below are what the measurement is for, and they did not
