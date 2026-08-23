@@ -93,9 +93,8 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 					    that is said — beside the number, not in a note below the table. */}
 					<StatTile
 						value={formatPercentValue(searingTotem.uptimePct)}
-						label={
-							uptimeUnasked ? `${t('searingTotem.kpi.uptime')} — ${t('metric.notAsked')}` : t('searingTotem.kpi.uptime')
-						}
+						label={t('searingTotem.kpi.uptime')}
+						caption={uptimeUnasked ? t('metric.notAsked') : undefined}
 					/>
 					<StatTile value={`${searingTotem.clipped}`} label={t('searingTotem.kpi.clipped')} />
 					<StatTile value={formatSeconds(searingTotem.wastedMs)} label={t('searingTotem.kpi.wasted')} />

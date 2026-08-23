@@ -88,9 +88,12 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	 * other branch there (`thin`) and leaves `unmeasurable` true with no `exempt` flag, so a metric whose
 	 * every gradable second fell inside an add wave arrives here looking graded. Both are "nothing measured
 	 * this" as far as a caption is concerned, and the caption is the same sentence for both.
+	 *
+	 * Returns the clause only — `StatTile` joins it to the label. This was a second copy of `KpiTiles`'
+	 * helper down to the em dash, and the two could have drifted apart at any point.
 	 */
-	const tile = (key: string, metric: string, emptyClock = false) =>
-		unasked(metric) || emptyClock ? `${t(key)} — ${t('metric.notAsked')}` : t(key);
+	const caption = (metric: string, emptyClock = false) =>
+		unasked(metric) || emptyClock ? t('metric.notAsked') : undefined;
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -278,7 +281,8 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				<StatTiles>
 					<StatTile
 						value={formatPercentValue(flameShock.uptimePct)}
-						label={tile('flameShock.kpi.uptime', 'flameShockUptime')}
+						label={t('flameShock.kpi.uptime')}
+						caption={caption('flameShockUptime')}
 					/>
 					<StatTile value={`${flameShock.applies}`} label={t('flameShock.kpi.applies')} />
 					<StatTile value={`${flameShock.refreshes}`} label={t('flameShock.kpi.refreshes')} />
@@ -300,7 +304,8 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					{(el.targets?.multiTargetMs ?? 0) > 0 ? (
 						<StatTile
 							value={flameShock.multiTargetMs > 0 ? formatPercentValue(flameShock.multiDotUptimePct) : '—'}
-							label={tile('flameShock.kpi.multiDot', 'flameShockMultiDot', flameShock.multiTargetMs === 0)}
+							label={t('flameShock.kpi.multiDot')}
+							caption={caption('flameShockMultiDot', flameShock.multiTargetMs === 0)}
 						/>
 					) : null}
 				</StatTiles>

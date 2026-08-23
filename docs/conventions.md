@@ -121,7 +121,9 @@ layout stopped being broken. 375 is an iPhone SE and a 12/13 mini, 360 is the co
 there is, and any 390 device is a 375 device the moment a classic scrollbar or a larger text setting
 takes its 15px. So 360 is the narrowest width the design is _composed_ for, and **320 is a hard floor:
 below 360 a layout may fold further than it does at 390, but at 320 nothing may clip, overlap or
-scroll.** 320 is an SE 1st gen, a split-view pane, and a 390 phone at 120% text zoom.
+scroll.** 320 is an SE 1st gen, a split-view pane, and a 390 phone at 120% text zoom. Two of those three
+are measured and the third is argued from the shape of the code — see _What the sweep does not measure_
+below, because a rule you cannot check is a rule that quietly stops being true.
 
 **Headless screenshots lie about narrow viewports.** `chrome --headless --window-size=390,844` renders
 at a wider layout viewport and clips the image, which is visually indistinguishable from horizontal
@@ -169,6 +171,44 @@ scrollbar makes a 390px iframe measure 375 and you will chase the wrong width; a
 instrument before trusting a clean result** — append a 600px box and a 100px `overflow-x: hidden` box
 holding a 400px child, confirm the sweep catches both, then remove them. A sweep that reports "nothing
 overflows" because it silently measured nothing is the failure mode here.
+
+### What the sweep does not measure
+
+**It answers _clips_ and _scrolls_. It does not answer _overlaps_, and neither does anything else.** No
+test can: the suite runs under `environment: 'node'` with no jsdom and no browser, so a component test
+renders to an HTML string, and a string has no boxes. Nothing in the repo runs the sweep either — it is
+a page you write, read once and delete.
+
+Overlap is the third of the three that is hardest to eyeball, so the reason it is left unmeasured has to
+be better than "it is hard". It is this: **normal flow cannot overlap.** Two boxes only land on top of
+each other if one of them is taken out of flow or displaced, and in this tree that is a countable set.
+
+- **One negative margin in the whole of `src/`**: `-mb-1.5` on a gate pill in
+  `specs/windwalker/components/rotation/FlowNode.tsx`. Every other `-m…-` a grep turns up is
+  `scroll-mt-14`, a scroll anchor, which moves nothing on screen.
+- **One transform outside a chart**: the `-translate-x-1/2 -translate-y-1/2` that centres
+  `primitives/DialogShell.tsx`.
+- **`absolute` / `fixed` in ten files, and they divide cleanly.** Six are chart internals —
+  `charts/CastTimeline.tsx`, `charts/ResourceTrack.tsx`, `charts/TrackLabels.tsx`,
+  `charts/ScrollableTrack.tsx`, `charts/ApexChart.tsx` and `specs/windwalker/…/rotation/FlowChart.tsx` —
+  where marks are placed by `left: <pct>` along a shared track and **two marks on top of each other is
+  the drawing, not a defect**: presses a second apart are supposed to look a second apart. The other
+  four exist to cover what is behind them — the item level badge and gem strip in
+  `primitives/ItemIcon.tsx`, the modals in `primitives/DialogShell.tsx` and `sections/CastLog.tsx`, and
+  the `fixed` bar in `report/StickySelectionBar.tsx`.
+
+So a pairwise bounding-rect intersection pass over `/preview` — which the sweep could run for nothing,
+since it already walks every element's rect for the clipping check — **is red on every fixture from its
+first run, and every hit is intended.** Exempting the chart subtrees and the overlays to quiet it leaves
+it looking at a flow layout, which is the thing that cannot overlap. That is the same "cries wolf"
+failure the paragraph above names, reached from the other side: a sweep whose every finding is by design
+is as useless as one that finds nothing.
+
+**What that leaves you to do.** At 320 the promise this doc can hold you to is _clips_ and _scrolls_, and
+the sweep measures both. Overlap is held by the shape of the code, so the thing to check in review is not
+a number — it is whether a change **adds to the list above**. A new `absolute`, a new negative margin or
+a new transform outside a chart is where an overlap at 320 would come from, and it earns the extra look.
+Anything laid out in flow does not.
 
 When a narrow width needs a layout to fold further than 390 does, bound the change to that width rather
 than restyling the common ones: an unconditional `flex-wrap` on a label/value pair breaks on the value's

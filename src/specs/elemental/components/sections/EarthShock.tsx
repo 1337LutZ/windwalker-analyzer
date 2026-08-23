@@ -96,11 +96,8 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 					<StatTile
 						value={`${earthShock.good}`}
 						suffix={`/${earthShock.judged}`}
-						label={
-							unasked('earthShockGood')
-								? `${t('earthShock.kpi.good')} — ${t('metric.notAsked')}`
-								: t('earthShock.kpi.good')
-						}
+						label={t('earthShock.kpi.good')}
+						caption={unasked('earthShockGood') ? t('metric.notAsked') : undefined}
 					/>
 					<StatTile value={`${earthShock.belowFull}`} label={t('earthShock.kpi.belowFull')} />
 				</StatTiles>

@@ -47,11 +47,8 @@ export default function Snapshots({ analysis }: { analysis: Analysis }) {
 					<StatTile
 						value={`${snapshots.refreshed}`}
 						suffix={`/${snapshots.refreshed + snapshots.missed}`}
-						label={
-							unasked('flameShockSnapshots')
-								? `${t('flameShockSnapshots.kpi.refreshed')} — ${t('metric.notAsked')}`
-								: t('flameShockSnapshots.kpi.refreshed')
-						}
+						label={t('flameShockSnapshots.kpi.refreshed')}
+						caption={unasked('flameShockSnapshots') ? t('metric.notAsked') : undefined}
 					/>
 					<StatTile value={`${snapshots.missed}`} label={t('flameShockSnapshots.kpi.missed')} />
 				</StatTiles>

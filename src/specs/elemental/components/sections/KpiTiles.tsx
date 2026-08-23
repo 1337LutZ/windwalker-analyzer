@@ -19,13 +19,16 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 	// tile is coloured by its metric rather than by the section the metric sits in.
 	const { t, toneOf, unasked } = useReportCopy(analysis);
 	/**
-	 * The label, plus the one thing an uncoloured tile cannot say for itself.
+	 * The one thing an uncoloured tile cannot say for itself.
 	 *
 	 * `toneOf` returns null for a metric with no threshold, one the log could not answer *and* one nothing
 	 * asked — the three have to look alike, so the summary row is where an unasked figure is most easily
 	 * read as a judged one. `unasked` separates the third case and the caption states it. See the hook.
+	 *
+	 * Returns the clause only: `StatTile` owns the em dash that joins it to the label, so this file and
+	 * `FlameShock.tsx` can no longer punctuate it differently from each other.
 	 */
-	const tile = (key: string, metric: string) => (unasked(metric) ? `${t(key)} — ${t('metric.notAsked')}` : t(key));
+	const caption = (metric: string) => (unasked(metric) ? t('metric.notAsked') : undefined);
 
 	const snapshotTotal = snapshots.refreshed + snapshots.missed;
 
@@ -37,13 +40,15 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 				<PaceTiles analysis={analysis} />
 				<StatTile
 					value={formatPercentValue(flameShock.uptimePct)}
-					label={tile('kpi.flameShock', 'flameShockUptime')}
+					label={t('kpi.flameShock')}
+					caption={caption('flameShockUptime')}
 					grade={toneOf('flameShockUptime')}
 				/>
 				<StatTile
 					value={`${snapshots.refreshed}`}
 					suffix={snapshotTotal > 0 ? `/${snapshotTotal}` : undefined}
-					label={tile('kpi.snapshotRate', 'flameShockSnapshots')}
+					label={t('kpi.snapshotRate')}
+					caption={caption('flameShockSnapshots')}
 					grade={toneOf('flameShockSnapshots')}
 				/>
 				{/*
@@ -54,7 +59,8 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 				<StatTile
 					value={`${earthShock.good}`}
 					suffix={earthShock.judged > 0 ? `/${earthShock.judged}` : undefined}
-					label={tile('kpi.earthShock', 'earthShockGood')}
+					label={t('kpi.earthShock')}
+					caption={caption('earthShockGood')}
 					grade={toneOf('earthShockGood')}
 				/>
 			</StatTiles>

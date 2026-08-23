@@ -99,11 +99,8 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 					{/* The number stays and the label says what it is — see the same tile in `SearingTotem.tsx`. */}
 					<StatTile
 						value={formatSeconds(lightningShield.overcapMs)}
-						label={
-							overcapUnasked
-								? `${t('lightningShield.kpi.overcap')} — ${t('metric.notAsked')}`
-								: t('lightningShield.kpi.overcap')
-						}
+						label={t('lightningShield.kpi.overcap')}
+						caption={overcapUnasked ? t('metric.notAsked') : undefined}
 					/>
 					<StatTile value={`${lightningShield.fellOff}`} label={t('lightningShield.kpi.fellOff')} />
 					<StatTile value={`${lightningShield.badSpends.length}`} label={t('lightningShield.kpi.badSpends')} />
