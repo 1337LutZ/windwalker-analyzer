@@ -42,6 +42,16 @@
 // | up to the last add (503.3s)   | 369 |      116 |  31.4% |               149 |
 // | the boss-only tail after it   |  39 |       24 |  61.5% |                 1 |
 //
+// **The third instance of the same map, which that fix named and left standing, has since landed** —
+// `fsTimelines`, the timeline `remainingAtCast` walks, bucketed only from `targetID === primaryID`. So the
+// two figures above that were reported as unchanged have to be read as of that fix and not as of today:
+// `flameShockWaste` is now **77.778% of 9** where it was 80% of 5, and `gcdUtilisation` **82.898%** where
+// it was 83.722%, because `wastedGcds` filters on the very predicate that map decides. Every one of the
+// six `reapply` presses that fix created turned out to be a genuine refresh, so this pull has none left.
+// The two clocks named there — `uptimePct` 73.68% and `contactUptimeMs` 240 421 — really are unchanged by
+// all three, and **no ladder verdict moves**, which is why every figure in this file below still holds.
+// `flameShockAimed.test.ts` measures that landing per pull.
+//
 // ## The second, smaller defect this file pinned, and which is now also closed
 //
 // `off-list` — the engine's verdict for "nothing on this list wanted the global" — was **0 on every
@@ -180,9 +190,13 @@ const walkOnePress = (id: number, unarbitrated?: AplInputs['unarbitrated']): Pre
  * `Analysis` is the shared shape and `flameShock` is a spec field, so it is reached through a cast the
  * same way `apl.presses` and `aplForced` are above. Only the two members this file reads are named.
  */
-const flameShockOf = (a: Analysis): { applies: number; windows: ReadonlyArray<{ start: number; end: number }> } =>
-	(a as unknown as { flameShock: { applies: number; windows: ReadonlyArray<{ start: number; end: number }> } })
-		.flameShock;
+interface FlameShockRead {
+	applies: number;
+	refreshes: number;
+	presses: readonly unknown[];
+	windows: ReadonlyArray<{ start: number; end: number }>;
+}
+const flameShockOf = (a: Analysis): FlameShockRead => (a as unknown as { flameShock: FlameShockRead }).flameShock;
 /** The same cast for the totem block, whose two clocks are the residual claim this file ends on. */
 const searingTotemOf = (a: Analysis): { uptimeMs: number; scoredMs: number } =>
 	(a as unknown as { searingTotem: { uptimeMs: number; scoredMs: number } }).searingTotem;
@@ -317,8 +331,16 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 		}
 		expect(skipsBy(cleave)['flame-shock']).toBe(58);
 		// The rung's share still tracks the add churn, which is what dates the cause: `cleave` puts up 8 dot
-		// applications over 263.2s and this pull 24 over 560.3s.
-		expect(flameShockOf(addsThenBoss).applies).toBe(24);
+		// applications over 263.2s and this pull 18 over 560.3s.
+		//
+		// **This read 24 until `fsTimelines` was widened to every spawn.** That map was the third instance of
+		// the primary-keyed lookup this suite is about, and while it stood a press aimed at an add could not
+		// be a refresh — so six of these "applications" were refreshes of a dot the log records as running.
+		// The pressed total is unchanged at 31, and no ladder verdict in this file moves: this closure feeds
+		// press `kind`, not the ladder. See `flameShockAimed.test.ts`.
+		expect(flameShockOf(addsThenBoss).applies).toBe(18);
+		expect(flameShockOf(addsThenBoss).refreshes).toBe(13);
+		expect(flameShockOf(addsThenBoss).presses).toHaveLength(31);
 		expect(flameShockOf(cleave).applies).toBe(8);
 	});
 

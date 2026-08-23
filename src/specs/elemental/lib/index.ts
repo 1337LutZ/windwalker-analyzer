@@ -2123,11 +2123,30 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// the press and nothing else, so a stream with two spawns interleaved hands it the *other* add's
 	// remove — which zeroes a dot still running on the enemy being hit and then reads the next refresh
 	// of it as a fresh apply. Same mistake as bucketing the windows by id, one function further on.
+	//
+	// **Every spawn, and not `targetID === primaryID` — the third and last instance of the family
+	// `4b63f99` fixed two of.** `remainingAtCast` is handed `fsTimelines.get(spawn)` for the spawn the
+	// press was *aimed at*, which through an add wave is an add's; a map built only from the primary's
+	// events misses, and `remainingAtCast([], …)` is **0** — a fabricated figure no reader can tell
+	// apart from "the enemy this press was aimed at had no dot". Every press at an add therefore read
+	// as an application. Shape-parallel to `fsDotAnywhere` / `dotWindowsBySpawn` above, which already
+	// bucket every spawn and already argue for it at length. Measured on `addsThenBoss`: six of the 24
+	// add-phase presses were genuine refreshes, and both graded figures it moves —
+	// `flameShockWaste` 80.0% (n=5) → 77.8% (n=9) and `gcdUtilisation` 83.722% → 82.898% — move
+	// toward *more* fault, so this cannot flatter a pull. See `flameShockAimedTimeline.test.ts`.
+	//
+	// **The source filter is not optional once the target scope widens.** `auraTimeline` filters by
+	// aura id alone, so a second Elemental shaman's Flame Shock on the same enemy would interleave
+	// into this stream — their apply is `up` and their remove zeroes a dot still running, which is the
+	// exact two-shaman bug `dotWindowsBySpawn` documents. Scoped to the primary that was mostly
+	// hidden; over every spawn it is not. No committed fixture has a second shaman, so this changes no
+	// figure on any of the four — it is latent correctness, held by a synthetic pull in that test.
 	const fsTimelines = new Map<string, readonly AuraPoint[]>();
-	if (primaryID !== undefined) {
+	{
 		const bySpawn = new Map<string, WclEvent[]>();
 		for (const e of events) {
-			if (e.targetID !== primaryID) continue;
+			if (e.targetID === undefined) continue;
+			if (e.sourceID !== actor.id) continue;
 			const key = instanceKey(e.targetID, e.targetInstance);
 			const bucket = bySpawn.get(key);
 			if (bucket) bucket.push(e);
