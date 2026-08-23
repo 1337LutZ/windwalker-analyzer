@@ -462,14 +462,6 @@ const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
 			`border-radius:2px;border:1px solid ${theme.line}">`;
 
 /**
- * Tooltip markup, built by hand because ApexCharts' own tooltip is styled from its light/dark
- * themes rather than from this app's tokens.
- *
- * Exported because the cast timeline is not an ApexCharts chart and still has to raise a tooltip:
- * it feeds this the same `TipContent` and writes the string into one shared node. Two tooltip
- * designs on one page is exactly what a second implementation there would have produced.
- */
-/**
  * Which theme colour a title tinted for `tone` is actually drawn in.
  *
  * Almost always the tone itself. The exceptions are the two *grounds* — see `TIP_TITLE` in `tones.ts`
@@ -480,6 +472,14 @@ const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
 const titleTone = (tone: keyof ChartTheme): keyof ChartTheme =>
 	(TIP_TITLE as Partial<Record<keyof ChartTheme, keyof ChartTheme>>)[tone] ?? tone;
 
+/**
+ * Tooltip markup, built by hand because ApexCharts' own tooltip is styled from its light/dark
+ * themes rather than from this app's tokens.
+ *
+ * Exported because the cast timeline is not an ApexCharts chart and still has to raise a tooltip:
+ * it feeds this the same `TipContent` and writes the string into one shared node. Two tooltip
+ * designs on one page is exactly what a second implementation there would have produced.
+ */
 export function tip(theme: ChartTheme, content: TipContent): string {
 	// The value is a flex line of its own, not a run of inline content, and that is the fix for a whole
 	// *kind* of row rather than for the one caller that hit it. A value made of parts — an icon and the

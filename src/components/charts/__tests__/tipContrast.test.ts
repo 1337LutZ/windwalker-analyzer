@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { type ChartTheme, tip } from '../apex';
 import { TIP_TITLE } from '../tones';
 
 /**
@@ -134,7 +135,12 @@ describe('the tooltip title is legible in every tone a chart can raise', () => {
 
 	/**
 	 * The two the mapping exists for, asserted as *failing* — so this file records the defect rather
-	 * than only its fix, and so deleting `TIP_TITLE` cannot leave a green suite behind.
+	 * than only its fix.
+	 *
+	 * **This much of the file guards the table and nothing else.** Every assertion above reads
+	 * `TIP_TITLE` directly, so all of them stay green while `tip()` ignores the table entirely — which
+	 * is exactly the state the bug was in. The call site is guarded at the bottom of this file, and
+	 * that is the assertion that actually reds when the fix is reverted.
 	 *
 	 * If a palette change ever lifts one of these above the bar, this goes red and the entry in
 	 * `TIP_TITLE` can be reconsidered on purpose instead of lingering as folklore.
@@ -159,5 +165,61 @@ describe('the tooltip title is legible in every tone a chart can raise', () => {
 				.filter(([tone, as]) => tone !== as)
 				.map(([tone]) => tone),
 		).toEqual(['missSoft', 'track']);
+	});
+});
+
+/**
+ * The call site, which is a separate thing to get wrong.
+ *
+ * Everything above proves the *table* says the right thing. None of it touches `tip()`, so all of it
+ * stays green if `tip()` goes back to `theme[content.tone]` and draws the exempt title at 1.31:1
+ * again — the defect was one interpolation in `apex.ts`, not a wrong number in `tones.ts`. The one
+ * other test that calls `tip()` (`specs/windwalker/…/castTimeline.test.ts`) passes `tone: 'kick'`,
+ * which `TIP_TITLE` maps to itself, so it cannot tell the two apart either.
+ *
+ * A synthetic theme rather than the real palette: each key is its own sentinel hex, so "was the
+ * substitute used" is answered by which string reached the markup rather than by a contrast ratio,
+ * and `not.toContain` can say the ground colour is nowhere in the card at all.
+ */
+describe('tip() draws the title in the substitute, not in the tone', () => {
+	const THEME: ChartTheme = {
+		bg: '#111101',
+		surface: '#111102',
+		raised: '#111103',
+		line: '#111104',
+		ink: '#111105',
+		ink2: '#111106',
+		muted: '#111107',
+		brew: '#111108',
+		rune: '#111109',
+		kick: '#11110a',
+		miss: '#11110b',
+		missSoft: '#11110c',
+		lust: '#11110d',
+		track: '#11110e',
+		mono: 'monospace',
+		sans: 'sans-serif',
+	};
+
+	const title = (tone: keyof ChartTheme): string =>
+		tip(THEME, { title: 'Nothing to hit', tone, rows: [['Window', '0:12 – 0:31']] });
+
+	it('draws an exempt title in ink2, and never in the track ground', () => {
+		const markup = title('track');
+		expect(markup).toContain(`color:${THEME.ink2}">Nothing to hit</div>`);
+		expect(markup).not.toContain(THEME.track);
+	});
+
+	it('draws a missSoft title in miss, and never in missSoft', () => {
+		const markup = title('missSoft');
+		expect(markup).toContain(`color:${THEME.miss}">Nothing to hit</div>`);
+		expect(markup).not.toContain(THEME.missSoft);
+	});
+
+	it('leaves a tone that is its own substitute alone', () => {
+		// The identity half of the mapping, so a `titleTone` that returned `ink2` for everything —
+		// legible, and wrong — would red here rather than pass both cases above.
+		expect(title('brew')).toContain(`color:${THEME.brew}">Nothing to hit</div>`);
+		expect(title('kick')).toContain(`color:${THEME.kick}">Nothing to hit</div>`);
 	});
 });
