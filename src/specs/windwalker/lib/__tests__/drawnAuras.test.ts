@@ -19,6 +19,13 @@
 // spot were the same fact, which is a poor thing for a guard to share with the bug it is guarding against.
 // "The log put this aura on the player" is the question; an application is only one kind of evidence for it.
 //
+// **And the sweep has an enemy half now, which found a fifth.** For most of this file's life it read
+// `targetID === actor.id` and nothing else, so an aura the player put on the **boss** was unreachable
+// rather than merely unswept — the Elemental's counterpart lost `essence-of-yulon` to exactly that and
+// recorded the hole as a test it could not close alone. Widening it named `blackout-kick-dot`: declared,
+// 18 applications and 35 refreshes on this pull, drawn nowhere, and invisible to every guard in the
+// repository. It is ledgered below rather than drawn, and the argument is beside the entry.
+//
 // **The sweep itself now lives in `~/lib/analysis/drawnAuras`**, shared with the Elemental's guard, which
 // had been written days apart as a second copy that swept applications only. That file argues its own
 // location and carries the reasoning; the merge took this file's shape as the base because this is the
@@ -35,14 +42,18 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	aurasPutOnEnemies,
 	aurasPutOnPlayer,
 	drawnLaneKeys,
+	enemyAuraEvents,
+	mergeCounts,
 	redundantExcuses,
 	selfAuraEvents,
 	staleExcuses,
 	undrawnAuras,
 } from '~/lib/analysis/drawnAuras';
 import { capturedAnalyses, rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
+import type { FightDataset } from '~/lib/types';
 import { analyse, registry } from '../index';
 
 /**
@@ -58,6 +69,13 @@ const NOT_LANES: Record<string, string> = {
 	// The player survived something. It changes nothing the rotation wanted, and a row for it would push
 	// the rotation's own rows down the screen on a long pull.
 	'diffuse-magic': 'defensive, no bearing on the rotation',
+	// **The one thing the enemy half of the sweep found.** Blackout Kick's dot, 128531: 18 applications,
+	// 35 refreshes and 18 removals on the committed pull, from 2.9s in to 52ms before the bell — so it is
+	// up for very nearly the whole fight and a row for it would be one solid bar carrying no information.
+	// It is also not unmeasured: 128531 is a `damageId` of `blackout-kick` (index.ts:518), so every point
+	// of it is already in that press's row of the damage table, which is where a dot nobody decides
+	// anything from belongs. A reader wanting the press itself has the cast timeline.
+	'blackout-kick-dot': 'measured as Blackout Kick damage, and up all pull — a row would be one solid bar',
 };
 
 /**
@@ -87,17 +105,32 @@ const dataset = rawFixture('windwalker', 'dataset-ironJuggernaut.json');
 const ANALYSED = capturedAnalyses('windwalker');
 
 /**
- * Every declared aura the log put on the player, by key, with how many events say so.
+ * Every declared aura the pull moved, by key, with how many events say so — **both halves**.
  *
  * Applications *and* removals — see the module doc. A removal with no application in front of it is the
  * signature of a buff that went up before the fight's event window opened, which is ordinary for a raid
  * cooldown and for a pre-pull consumable, and is exactly the case the narrower reading misses.
+ *
+ * **And the auras the player put on an enemy, not only the ones the log put on the player.**
+ * `aurasPutOnPlayer` scopes to `targetID === actor.id`, so an enemy debuff was unreachable rather than
+ * merely unswept — the hole both specs' copies of this file recorded in prose after `essence-of-yulon`
+ * went missing on the Elemental side for exactly that reason. Widening it found one thing here:
+ * `blackout-kick-dot`, ledgered above.
+ *
+ * The question stays "is this key drawn". A debuff is already drawn per enemy — several `AuraLane`s share
+ * one `key` and differ by `target` — so `drawnLaneKeys` collapses them and a debuff on an add nobody
+ * selected cannot demand a row of its own; what is caught is an aura drawn on no enemy at all. The enemy
+ * half is source-filtered, so another monk's Rising Sun Kick on the same boss is not read as this one's.
  */
-const putOnPlayer = (): Map<string, number> => aurasPutOnPlayer(dataset, registry);
+const swept = (pull: FightDataset): Map<string, number> =>
+	mergeCounts(aurasPutOnPlayer(pull, registry), aurasPutOnEnemies(pull, registry));
+
+/** The named pull's own reading, which is what the findings below are about. */
+const putOnPlayer = (): Map<string, number> => swept(dataset);
 
 describe('an aura that fired has somewhere to be drawn', () => {
 	it.each(RAW)('$name draws or accounts for everything the pull put on the player', ({ dataset: pull }) => {
-		const on = aurasPutOnPlayer(pull, registry);
+		const on = swept(pull);
 		// Not vacuous: this pull really does carry a dozen declared auras and more.
 		expect(on.size).toBeGreaterThan(10);
 
@@ -156,6 +189,34 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		expect(lane?.windows).toEqual(analysis.energizing?.hasteWindows);
 	});
 
+	/**
+	 * **The finding the enemy half of the sweep produced, and the proof that half is not empty.**
+	 *
+	 * `blackout-kick-dot` (128531) is declared, `appliedBy: 'blackout-kick'`, and is drawn by nothing: 18
+	 * applications, 35 refreshes and 18 removals on this pull and no lane with that key anywhere. Nothing
+	 * in this file could see it before, and not for want of trying — the sweep walked
+	 * `targetID === actor.id`, and this lands on the boss. It is ledgered rather than drawn, for the reason
+	 * written beside the entry, but the point here is that the guard now has an opinion about it at all.
+	 *
+	 * **A guard that sweeps nothing passes**, so the half is asserted as keys and as events rather than
+	 * left to the total in the first test: an `actors` list that lost its `type` field would take every
+	 * target into the friendly set, empty this half, and leave every other assertion in the file green.
+	 */
+	it('reads the auras the player put on the enemy, which is where the missing dot was', () => {
+		const on = aurasPutOnEnemies(dataset, registry);
+		expect([...on.keys()].sort()).toEqual(['blackout-kick-dot', 'rising-sun-kick-debuff', 'touch-of-karma']);
+		expect(on.get('blackout-kick-dot')).toBe(71);
+		// Not reachable by the reading this file used to be — which is what makes the widening the cause of
+		// the finding rather than something else having changed.
+		expect(aurasPutOnPlayer(dataset, registry).has('blackout-kick-dot')).toBe(false);
+		// And still drawn nowhere, on any pull, which is what the ledger entry is for.
+		const drawnAnywhere = new Set(RAW.flatMap(({ dataset: pull }) => [...drawnLaneKeys(analyse(pull))]));
+		expect(drawnAnywhere.has('blackout-kick-dot')).toBe(false);
+		// Nothing of anybody else's in the half, which is the source filter and not an accident of this pull.
+		expect(enemyAuraEvents(dataset).length).toBe(145);
+		expect(enemyAuraEvents(dataset).every((e) => e.sourceID === dataset.actor.id)).toBe(true);
+	});
+
 	it('declares Berserking and Blood Fury with lanes, though no fixture exercises them', () => {
 		// **Stated rather than asserted as drawn.** Both are racials and this pull's monk is neither a troll
 		// nor an orc, so `windows.length > 0` drops the rows and there is nothing to see. Blood Fury has the
@@ -211,7 +272,7 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		expect(
 			staleExcuses(
 				NOT_LANES,
-				RAW.map(({ dataset: pull }) => aurasPutOnPlayer(pull, registry)),
+				RAW.map(({ dataset: pull }) => swept(pull)),
 			),
 		).toEqual([]);
 		// And an entry that outlives the lane it was excusing, which no other assertion here can see: a

@@ -12,6 +12,10 @@
 // trinkets these fixtures' players did not wear — so they are filtered out by `windows.length > 0` and
 // the list looked as though it covered gear.
 //
+// **And it reads both halves of the stream now.** The sweep used to walk `targetID === actor.id` alone,
+// which made an aura the player put on an *enemy* unreachable rather than merely unswept — see `firedOn`
+// and the `essence-of-yulon` test below, which is where that cost was recorded before it could be paid.
+//
 // **The sweep is shared with the Windwalker's counterpart and used to be a second copy of it.** The
 // reading now lives in `~/lib/analysis/drawnAuras`, which argues its own location; what matters here is
 // what the copy had got wrong. This guard swept applications and refreshes only, so it could not see an
@@ -25,8 +29,11 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+	aurasPutOnEnemies,
 	aurasPutOnPlayer,
 	drawnLaneKeys,
+	enemyAuraEvents,
+	mergeCounts,
 	redundantExcuses,
 	selfAuraEvents,
 	staleExcuses,
@@ -56,8 +63,27 @@ const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
 const load = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
 
-/** Every declared aura the log put on the player, by key, with how many events say so. */
-const firedOn = (dataset: FightDataset): Map<string, number> => aurasPutOnPlayer(dataset, registry);
+/**
+ * Every declared aura the pull moved, by key, with how many events say so — **both halves**.
+ *
+ * The auras the log put on the player, plus the auras the player put on an enemy. The second half is the
+ * change this file had been asking for in prose: `aurasPutOnPlayer` scopes to `targetID === actor.id`, so
+ * an enemy debuff was not merely absent from the sweep but unreachable by it, and `essence-of-yulon` went
+ * missing for exactly that reason — 13, 18 and 16 applications on these three pulls, drawn nowhere, with
+ * no guard in the family able to flag it and `staleExcuses` refusing to let this ledger excuse it either.
+ *
+ * **The question stays "is this key drawn", and that is the decision rather than the default.** A debuff
+ * is already drawn per enemy — several `AuraLane`s share one `key` and differ by `target` — so
+ * `drawnLaneKeys` collapses them and a debuff on an add nobody selected cannot demand a row of its own.
+ * What is still caught is an aura drawn on *no* enemy anywhere, and if a spec ever debuffs only
+ * off-chart adds the answer is a `NOT_LANES` entry saying so, not a lane.
+ *
+ * The enemy half is source-filtered, which matters for the counts as well as the list: a second shaman
+ * with the tier set writes 144999 onto the same boss, and an unsourced reading would report their
+ * applications as this player's.
+ */
+const firedOn = (dataset: FightDataset): Map<string, number> =>
+	mergeCounts(aurasPutOnPlayer(dataset, registry), aurasPutOnEnemies(dataset, registry));
 
 const drawnOn = (dataset: FightDataset): Set<string> => drawnLaneKeys(analyse(dataset) as Analysis);
 
@@ -162,33 +188,30 @@ describe('an aura that fired has somewhere to be drawn', () => {
 	});
 
 	/**
-	 * **The class of aura this whole guard cannot see, recorded here because the guard cannot record it.**
+	 * **The class of aura this guard could not see, and the assertions that close it.**
 	 *
-	 * `essence-of-yulon` (146198) is the caster legendary cloak's proc. It fires on every committed pull —
-	 * 13, 18 and 16 `applydebuff`, pinned in `lib/game/__tests__/sharedFixtures.test.ts` — and until
-	 * recently it had no row and no entry above. It was not an oversight anybody could have caught here:
-	 * the proc lands on the **enemy**, and every reading in this file walks `aurasPutOnPlayer`. An enemy
-	 * debuff is not merely absent from the sweep, it is *unreachable* by it.
+	 * `essence-of-yulon` (146198) is the caster legendary cloak's proc, and it fires on every committed
+	 * pull — 13, 18 and 16 `applydebuff`, pinned in `lib/game/__tests__/sharedFixtures.test.ts`. For a
+	 * long stretch it had no row and no entry above, and that was not an oversight anybody could have
+	 * caught here: the proc lands on the **enemy**, and every reading in this file walked
+	 * `aurasPutOnPlayer`. An enemy debuff was not merely absent from the sweep, it was *unreachable* by it.
+	 * The undeclared-id ledger had the identical hole for the identical reason, so two of the three guards
+	 * in the family were blind to the whole class and only `analysis/__tests__/fixtureCoverage.test.ts`,
+	 * which reads every id in the file with no scope at all, could see one.
 	 *
-	 * That makes it the same shape as the third failure mode the undeclared-id ledger was built for — an
-	 * id nothing accounts for, passing every guard in the repository — and the undeclared-id ledger has
-	 * the identical hole, because `auraIdsPutOnPlayer` reads the same player-scoped stream. Two of the
-	 * three guards in the family are blind to the class; the coverage ledger
-	 * (`analysis/__tests__/fixtureCoverage.test.ts`) is the one that is not, which is why 146198 does not
-	 * appear in its Elemental `SILENT_AURAS` column while the Windwalker's carries it.
+	 * **And this ledger had no slot for it either, which was the part worth proving.** The obvious repair
+	 * for a firing-but-undrawn aura is a `NOT_LANES` entry with a reason, and that was not available:
+	 * `staleExcuses` fails any entry whose key fires on no pull's sweep, and this key fired on none of
+	 * them, so writing the reason down would have broken the guard that keeps reasons honest.
 	 *
-	 * **And the ledger above has no slot for it, which is the part worth proving rather than asserting.**
-	 * The obvious repair for a firing-but-undrawn aura is a `NOT_LANES` entry with a reason. That is not
-	 * available: `staleExcuses` fails any entry whose key fires on no pull's sweep, and this key fires on
-	 * none of them, so writing the reason down would break the guard that keeps reasons honest. Both
-	 * halves are checked below, so neither can be assumed.
-	 *
-	 * So the resolution was a row — `lane(ESSENCE_OF_YULON, …)` in `index.ts` — and the structural gap is
-	 * left **open and named**. Closing it means widening the sweep to auras the player put on *enemies*,
-	 * which is a change to `lib/analysis/drawnAuras` and to both specs' copies of this file at once, and
-	 * would demand a ledger decision for every enemy debuff on both. That is not this file's to do alone.
+	 * What closes it is `aurasPutOnEnemies`, half of `firedOn` above. The three claims below are the three
+	 * halves of that: the sweep now has the key, the *player-scoped* half still does not — which is what
+	 * says the new half is doing the work rather than something else having changed — and the dead end has
+	 * turned into the ordinary failure. An entry for this key is no longer rejected as stale; it is
+	 * rejected as **redundant**, because the aura is drawn, which is the same answer this ledger gives for
+	 * any other drawn key and the one a reader can act on.
 	 */
-	it('cannot see an enemy debuff at all, and the ledger cannot excuse one either', () => {
+	it('sees the enemy debuff its player-scoped half cannot, and can now judge a ledger entry for it', () => {
 		for (const name of FIXTURES) {
 			const dataset = load(name);
 			// Fires, plainly: the player's own applications of 146198 on whatever they were hitting.
@@ -196,23 +219,58 @@ describe('an aura that fired has somewhere to be drawn', () => {
 				(e) => e.abilityGameID === 146_198 && e.type === 'applydebuff' && e.sourceID === dataset.actor.id,
 			);
 			expect(applies.length, `${name} applies`).toBeGreaterThan(10);
-			// And is invisible to this guard's sweep, on every kind of evidence it accepts.
-			expect(firedOn(dataset).has('essence-of-yulon'), `${name} sweep`).toBe(false);
-			// The sweep is not simply empty — it sees a dozen and more of the player's own auras.
-			expect(firedOn(dataset).size, `${name} sweep size`).toBeGreaterThan(10);
-			// It is drawn all the same, which is the resolution. Not by this guard's doing.
+			// Reachable now, and reachable *only* through the enemy half — the player-scoped sweep this file
+			// used to be is still blind to it, which is what makes the widening the cause.
+			expect(firedOn(dataset).has('essence-of-yulon'), `${name} sweep`).toBe(true);
+			expect(aurasPutOnPlayer(dataset, registry).has('essence-of-yulon'), `${name} self half`).toBe(false);
+			// Every kind of evidence, so more than the applications: 39, 37 and 26 events against 18, 16 and
+			// 13 applications on `phased`, `unbroken` and `cleave`.
+			expect(aurasPutOnEnemies(dataset, registry).get('essence-of-yulon') ?? 0, `${name} enemy half`).toBeGreaterThan(
+				applies.length,
+			);
+			// And drawn, which is why it needs no entry above.
 			expect(drawnOn(dataset).has('essence-of-yulon'), `${name} lane`).toBe(true);
 		}
 
-		// The dead end, demonstrated on a copy of the ledger rather than described: an entry for this key
-		// is rejected as stale by the very check that keeps `NOT_LANES` from rotting.
+		// The dead end is gone, demonstrated on a copy of the ledger rather than described: an entry for this
+		// key used to be rejected as stale by the check that keeps `NOT_LANES` from rotting, which left no
+		// way to write the reason down at all. It is now rejected as redundant instead — the ordinary answer
+		// for a key that is drawn, and one that names what to do.
 		const withEntry = { ...NOT_LANES, 'essence-of-yulon': 'an enemy debuff, so this sweep cannot see it' };
 		expect(
 			staleExcuses(
 				withEntry,
 				FIXTURES.map((name) => firedOn(load(name))),
 			),
-		).toEqual(['essence-of-yulon']);
+		).toEqual([]);
+		expect(redundantExcuses(withEntry, drawnOn(load('phased')))).toEqual(['essence-of-yulon']);
+	});
+
+	/**
+	 * The enemy half is non-empty on every pull, pinned as keys rather than as a size.
+	 *
+	 * **A guard that sweeps nothing passes**, and the total in the first test cannot tell the halves
+	 * apart: a target filter that stopped matching, or an `actors` list that lost its `type` field and
+	 * took every target into the friendly set, would drop this half to nothing and leave every other
+	 * assertion in the file green. Three keys, and the identity is the point — 8050, 144999 and 146198,
+	 * all three declared and all three drawn. `enemyAuraEvents` is asserted beside them so the reading is
+	 * pinned as events too: a sweep can only be as wide as the stream behind it.
+	 */
+	it('reads the enemy half of every pull', () => {
+		for (const name of FIXTURES) {
+			const dataset = load(name);
+			expect([...aurasPutOnEnemies(dataset, registry).keys()].sort(), name).toEqual([
+				'essence-of-yulon',
+				'flame-shock',
+				't16-2pc-debuff',
+			]);
+			expect(enemyAuraEvents(dataset).length, `${name} events`).toBeGreaterThan(50);
+			// Nothing of somebody else's, which is the source filter rather than an accident of these pulls.
+			expect(
+				enemyAuraEvents(dataset).every((e) => e.sourceID === dataset.actor.id),
+				`${name} sources`,
+			).toBe(true);
+		}
 	});
 
 	it('keeps the ledger honest — nothing excused that no longer fires, nothing excused that is drawn', () => {

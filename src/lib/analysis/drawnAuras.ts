@@ -6,6 +6,15 @@
 // `auraIdsPutOnPlayer` and the three ledger checks below it drop that filter, which is what closes the
 // third failure mode — see `game/__tests__/undeclaredAuras.test.ts` for the ledger and the argument.
 //
+// **Two halves of the stream, and the second one was missing.** `selfAuraEvents` scopes to the auras the
+// log put *on* the player. An aura the player puts on an **enemy** is not in that stream at all, so two
+// of the three guards in the family were structurally blind to the whole class — only the coverage
+// ledger, which reads every `abilityGameID` in the file with no scope at all, could see one.
+// `essence-of-yulon` is what that cost: 13, 18 and 16 applications across the three Elemental pulls,
+// with no lane and no ledger entry, and no guard in the family able to say so. `enemyAuraEvents` is the
+// other half, and it is filtered by **source as well as target** — see its own doc for why a
+// target-only reading hands the ledger other people's spells and miscounts the ones it keeps.
+//
 // **Why it is one function and not two.** The two guards were written days apart and diverged in a
 // way that mattered rather than a way that looked like style. The Windwalker's counted removals as
 // evidence; the Elemental's counted applications and refreshes only. On the Windwalker's own fixture
@@ -40,6 +49,7 @@
 
 import {
 	abilityIdOf,
+	eventsFrom,
 	eventsOn,
 	isAuraApply,
 	isAuraRefresh,
@@ -78,23 +88,108 @@ export function selfAuraEvents(dataset: FightDataset, kinds: readonly AuraEviden
 }
 
 /**
+ * Every aura event of the given kinds the audited player put on something **not known to be friendly**,
+ * in log order — the other half of the sweep, and the half two of the three guards could not see.
+ *
+ * **Why the class needs a second reading at all.** `selfAuraEvents` scopes to `targetID === actor.id`,
+ * so an aura the player puts on an *enemy* is not merely absent from it, it is unreachable by it. That
+ * blind spot cost `essence-of-yulon` (146198), the caster legendary cloak's proc: 13, 18 and 16
+ * applications on the three Elemental pulls, no lane and no ledger entry, and no guard in the family
+ * able to flag it. The `NOT_LANES` ledger could not even excuse it, because `staleExcuses` rejects a
+ * reason written for a key that fires on no sweep. Both specs' guards recorded the hole as a test rather
+ * than closing it, and this is the closing half.
+ *
+ * **Filtered by source and not only by target, which is the decision.** The question is what the
+ * *player's rotation* put on the enemy. A pull puts a great many auras on enemies that have nothing to
+ * do with it — every other raider's debuffs, the encounter's own mechanics on its adds — and a
+ * target-only reading would hand the undeclared-id ledger a list of other people's spells to classify.
+ * It also gets the *counts* wrong for what it does keep: a second shaman with the tier set writes 144999
+ * on the same boss, and an unsourced sweep would report their applications as this player's.
+ *
+ * **"Not known to be friendly", not "known to be an enemy"**, which is the same reading and the same
+ * argument as `analyseCore`'s `friendlyIDs`: an id absent from the actor list is *unknown*, and
+ * requiring proof of enemyhood would silently drop every real target on a report whose actor list came
+ * back short — a guard sweeping nothing is the failure this family exists to catch. Players and their
+ * pets are what the log positively declares friendly, so those are what is excluded; the player's own
+ * pet is a pet. That also settles the summons: the Fire Elemental's Immolate (118297) on `cleave` is
+ * *sourced* by the pet, so the source filter drops it without the target filter having to have an
+ * opinion about whose spellbook a guardian's is.
+ */
+export function enemyAuraEvents(dataset: FightDataset, kinds: readonly AuraEvidence[] = ALL_EVIDENCE): WclEvent[] {
+	const friendly = new Set(dataset.actors.filter((a) => a.type === 'Player' || a.type === 'Pet').map((a) => a.id));
+	return eventsFrom(dataset.events, dataset.actor.id).filter(
+		(e) => e.targetID !== undefined && !friendly.has(e.targetID) && isEvidence(e, kinds),
+	);
+}
+
+/** Declared auras among a stream of aura events, by key. Undeclared ids are dropped, not counted. */
+const countKeys = (events: readonly WclEvent[], registry: Registry): Map<string, number> => {
+	const out = new Map<string, number>();
+	for (const event of events) {
+		const aura = registry.auraById(abilityIdOf(event) ?? -1);
+		if (aura === undefined) continue;
+		out.set(aura.key, (out.get(aura.key) ?? 0) + 1);
+	}
+	return out;
+};
+
+/** Every id in a stream of aura events, declared or not. */
+const countIds = (events: readonly WclEvent[]): Map<number, number> => {
+	const out = new Map<number, number>();
+	for (const event of events) {
+		const id = abilityIdOf(event);
+		if (id === null) continue;
+		out.set(id, (out.get(id) ?? 0) + 1);
+	}
+	return out;
+};
+
+/**
+ * Two counts of the same kind, added — how a guard asks about both halves of the sweep at once.
+ *
+ * Generic over the key so the id reading and the key reading share it, because they must not disagree
+ * about what "both halves" means. Summed rather than unioned: a count is evidence, and an aura the
+ * player both takes and applies has both kinds of it.
+ */
+export function mergeCounts<K>(...counts: readonly ReadonlyMap<K, number>[]): Map<K, number> {
+	const out = new Map<K, number>();
+	for (const count of counts) for (const [key, n] of count) out.set(key, (out.get(key) ?? 0) + n);
+	return out;
+}
+
+/**
  * Every *declared* aura the log put on the player, by key, with how many events say so.
  *
  * Undeclared ids are dropped, not counted: this asks what the spec models and fails to draw, which is
  * the opposite question to the coverage ledger's "which declared aura never fires".
+ *
+ * **The player only.** `aurasPutOnEnemies` is the other half and a guard wants both — see
+ * `enemyAuraEvents` for why they are two functions rather than one widened target filter.
  */
 export function aurasPutOnPlayer(
 	dataset: FightDataset,
 	registry: Registry,
 	kinds: readonly AuraEvidence[] = ALL_EVIDENCE,
 ): Map<string, number> {
-	const out = new Map<string, number>();
-	for (const event of selfAuraEvents(dataset, kinds)) {
-		const aura = registry.auraById(abilityIdOf(event) ?? -1);
-		if (aura === undefined) continue;
-		out.set(aura.key, (out.get(aura.key) ?? 0) + 1);
-	}
-	return out;
+	return countKeys(selfAuraEvents(dataset, kinds), registry);
+}
+
+/**
+ * Every *declared* aura the player put on an enemy, by key, with how many events say so.
+ *
+ * The same question as `aurasPutOnPlayer` asked of the other half of the stream, and it stays the same
+ * question on purpose: **is this aura's key drawn by some lane**. A debuff is already drawn per enemy —
+ * several `AuraLane`s share one `key` and differ by `target` — so `drawnLaneKeys` collapses them to the
+ * one key and a debuff on an add nobody selected cannot demand a row of its own. What the guard still
+ * catches is an aura drawn on **no** enemy at all, which is `blackout-kick-dot`: 71 events on the
+ * Windwalker's pull and no lane anywhere.
+ */
+export function aurasPutOnEnemies(
+	dataset: FightDataset,
+	registry: Registry,
+	kinds: readonly AuraEvidence[] = ALL_EVIDENCE,
+): Map<string, number> {
+	return countKeys(enemyAuraEvents(dataset, kinds), registry);
 }
 
 /**
@@ -117,13 +212,28 @@ export function auraIdsPutOnPlayer(
 	dataset: FightDataset,
 	kinds: readonly AuraEvidence[] = ALL_EVIDENCE,
 ): Map<number, number> {
-	const out = new Map<number, number>();
-	for (const event of selfAuraEvents(dataset, kinds)) {
-		const id = abilityIdOf(event);
-		if (id === null) continue;
-		out.set(id, (out.get(id) ?? 0) + 1);
-	}
-	return out;
+	return countIds(selfAuraEvents(dataset, kinds));
+}
+
+/**
+ * Every aura **id** the player put on an enemy, declared or not, with how many events say so.
+ *
+ * The id counterpart of `aurasPutOnEnemies`, and the half of the third failure mode that was
+ * unreachable: `auraIdsPutOnPlayer` reads the player-scoped stream, so an id the player writes onto a
+ * boss and nothing declares passed every guard in the repository exactly as Skull Banner did. Three do
+ * on the committed pulls — 115798 Weakened Blows on all three Elemental pulls, 115804 Mortal Wounds and
+ * 124280 Touch of Karma on the Windwalker's — and the ledger in `game/__tests__/undeclaredAuras.test.ts`
+ * now has to say which kind each is.
+ *
+ * Small, and measured rather than hoped: source-filtered, this adds one id per Elemental pull and two on
+ * the Windwalker's. Unfiltered by source it would add one more (118297, the player's own Fire Elemental's
+ * Immolate) on today's fixtures and an unbounded list on any raid-wide fetch — see `enemyAuraEvents`.
+ */
+export function auraIdsPutOnEnemies(
+	dataset: FightDataset,
+	kinds: readonly AuraEvidence[] = ALL_EVIDENCE,
+): Map<number, number> {
+	return countIds(enemyAuraEvents(dataset, kinds));
 }
 
 /**

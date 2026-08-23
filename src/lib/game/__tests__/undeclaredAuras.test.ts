@@ -12,6 +12,14 @@
 // of effort: it sweeps `registry.auraById(...)` and drops what it cannot resolve, so it asks "of the
 // auras this spec models, which are drawn". An id nothing models is not in its domain.
 //
+// **And the sweep has two halves, of which one arrived late.** For most of this file's life it read the
+// auras the log put *on* the player and nothing else, so an id the player wrote onto an **enemy** could
+// not reach the ledger at all — the same hole, one level down, and `essence-of-yulon` (146198) is the id
+// that proved it: 13, 18 and 16 applications across the three Elemental pulls, no lane, no entry, and
+// no guard in the family able to say so. The enemy half is filtered by **source** as well as target, so
+// what it adds is the player's own three ids rather than every raider's debuff on the boss; the
+// measurement and the argument are on `SWEPT` and on `enemyAuraEvents`.
+//
 // **Skull Banner is what that hole cost.** 114206 goes up on all four committed pulls — 4 applications
 // on `phased`, 2 on `unbroken`, 4 on `cleave`, 3 on `dataset-ironJuggernaut`, apply and remove in equal
 // numbers each time. It is a twenty-percent crit-*damage* window from another player's three-minute
@@ -40,8 +48,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	auraIdsPutOnEnemies,
 	auraIdsPutOnPlayer,
 	declaredLedgerIds,
+	mergeCounts,
 	staleLedgerIds,
 	unmodelledAuraIds,
 	type IdSweep,
@@ -95,9 +105,29 @@ const PULLS: Array<[string, FightDataset, Registry]> = SPEC_REGISTRIES.flatMap((
 const modelled = (registry: Registry, id: number): boolean =>
 	registry.auraById(id) !== undefined || RAID_BUFF_NAMES.has(id);
 
+/**
+ * Both halves of the stream, added — the auras the log put **on** the player and the auras the player
+ * put **on an enemy**.
+ *
+ * **The second half was unreachable, not merely unswept.** `auraIdsPutOnPlayer` scopes to
+ * `targetID === actor.id`, so an id the player writes onto a boss could not appear here however many
+ * pulls carried it, and the third failure mode had the same hole the drawn-aura guards did: an aura
+ * accounted for nowhere, passing every check in the repository. `essence-of-yulon` (146198) was the one
+ * that proved it — 13, 18 and 16 applications on the three Elemental pulls with no lane and no entry —
+ * and it reached this ledger by no route at all until the sweep gained its other half.
+ *
+ * **Measured before it was widened, because a ledger nobody can maintain is worse than a hole.** The
+ * enemy half is filtered by source as well as by target (`enemyAuraEvents` argues that), and what it
+ * costs is three ids across the whole repository: 115798 on all three Elemental pulls, 115804 and 124280
+ * on the Windwalker's. A *target-only* reading is the version that would not have been worth writing —
+ * every other raider's debuff on the boss and every boss mechanic on every add, classified by hand.
+ */
 const SWEPT: Array<{ key: string; sweep: IdSweep }> = PULLS.map(([key, dataset, registry]) => ({
 	key,
-	sweep: { ids: auraIdsPutOnPlayer(dataset), declares: (id) => modelled(registry, id) },
+	sweep: {
+		ids: mergeCounts(auraIdsPutOnPlayer(dataset), auraIdsPutOnEnemies(dataset)),
+		declares: (id) => modelled(registry, id),
+	},
 }));
 
 const sweeps: IdSweep[] = SWEPT.map((entry) => entry.sweep);
@@ -212,6 +242,31 @@ const LEDGER: Record<number, string> = {
 	126154: healing('Lightwell Renew'),
 	145441: healing("Yu'lon's Barrier, a healer's legendary cloak absorbing for them"),
 
+	// ------------------------------------ the player's own, put on the enemy
+	// The class the sweep could not reach until it gained its enemy half. Two of the three are the
+	// expansion's shared raid debuffs, which the player happens to be a provider of; the third is the
+	// damage half of a press this spec already models.
+	//
+	// Weakened Blows is applied by this shaman's Earth Shock, exactly and only: 12, 13 and 12
+	// applications against 12, 13 and 12 Earth Shocks on `phased`, `unbroken` and `cleave`, every one of
+	// them inside 300ms of the press. The windows the log gives it run from 1ms to 9 936ms, far short of
+	// its 30s, because a shared debuff belongs to whoever applied it last and the raid's other providers
+	// keep taking it over — which is the plainest possible statement that this is not the player's aura
+	// to draw.
+	115798:
+		"Weakened Blows: the raid's shared -10% physical-damage-dealt debuff, applied here by the player's own Earth Shock. It changes what the raid's melee take and nothing about this caster's damage; the model declares no raid debuff, and the log's own windows show the raid's other providers overwriting it seconds later.",
+	// Applied by Rising Sun Kick — every one of the 18 applications lands 1-2ms after a 107428 cast. The
+	// press is modelled and so is the debuff that grades it (`rising-sun-kick-debuff`, 130320); this is
+	// the other, healing-side debuff the same kick carries.
+	115804:
+		"Mortal Wounds: the raid's shared -25% healing-received debuff, applied here by the player's own Rising Sun Kick. A healing debuff in a damage audit — the kick's own damage-taken debuff is declared as `rising-sun-kick-debuff` and drawn, and this is the half nothing here measures.",
+	// Modelled, as damage rather than as an aura: `specs/windwalker/lib/index.ts:627` declares
+	// `damageIds: [124280]` on the press, and `karma.test.ts` reads the row off the damage table under
+	// that id. The window a reader wants is the absorb on the player, which is `touch-of-karma` (122470),
+	// declared and drawn.
+	124280:
+		"Touch of Karma: the redirected-damage half of the press, on the enemy. Modelled as damage (`specs/windwalker/lib/index.ts:627` declares `damageIds: [124280]`) and drawn as the `touch-of-karma` lane off the absorb's own id 122470 — an aura row here would restate that row under a second number.",
+
 	// ------------------------------------------------------------ the encounters
 	144218: bossMechanic('Borer Drill', 'Iron Juggernaut'),
 	144459: bossMechanic('Laser Burn', 'Iron Juggernaut'),
@@ -231,16 +286,86 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	 *
 	 * The failure this guards against is the sweep quietly reading nothing — a `targetID` that stopped
 	 * matching, an `events` array that went missing on a re-capture — which would satisfy the assertion
-	 * above by having no ids to fail on. Read off the committed streams: 42, 48, 53 and 53 distinct
-	 * aura ids land on the player across the four pulls.
+	 * above by having no ids to fail on. Read off the committed streams: 46, 52, 57 and 57 distinct
+	 * aura ids land on the player or on what the player was hitting, across the four pulls.
+	 *
+	 * These were 42, 48, 53 and 53 before the sweep gained its enemy half, and the +4 on each is the
+	 * measurement rather than a coincidence — see the pin below, which is the same fact split out so a
+	 * regression names the half that broke.
 	 */
 	it('really does sweep four pulls with dozens of ids each', () => {
 		expect(byPull((sweep) => sweep.ids.size)).toEqual({
-			'elemental/cleave.json': 53,
-			'elemental/phased.json': 42,
-			'elemental/unbroken.json': 48,
-			'windwalker/dataset-ironJuggernaut.json': 53,
+			'elemental/cleave.json': 57,
+			'elemental/phased.json': 46,
+			'elemental/unbroken.json': 52,
+			'windwalker/dataset-ironJuggernaut.json': 57,
 		});
+	});
+
+	/**
+	 * And the enemy half is not empty on any pull, pinned as ids rather than as a count.
+	 *
+	 * **The specific trap.** The assertion above adds the two halves, so the enemy half could go to zero
+	 * — a target filter that stopped matching, `actors` losing its `type` field and taking every target
+	 * into the friendly set — and the total would fall by four, which reads as a fixture change rather
+	 * than as a blind guard. The whole class was invisible for exactly this shape of reason once already.
+	 *
+	 * Named ids and not sizes, because the *identity* is the finding: 8050 Flame Shock, 144999 Elemental
+	 * Discharge and 146198 Essence of Yu'lon are declared, 115798 Weakened Blows is ledgered, and on the
+	 * Windwalker's pull 122470/128531/130320 are declared against 115804 and 124280 ledgered. 118297 is
+	 * *not* here on `cleave` and that is the source filter working: the Fire Elemental's Immolate is the
+	 * pet's press, not the player's.
+	 */
+	it('really does read an enemy half on every pull, and only what the player sourced', () => {
+		expect(
+			Object.fromEntries(
+				PULLS.map(([key, dataset]) => [key, [...auraIdsPutOnEnemies(dataset).keys()].sort((a, b) => a - b)]),
+			),
+		).toEqual({
+			'elemental/cleave.json': [8050, 115_798, 144_999, 146_198],
+			'elemental/phased.json': [8050, 115_798, 144_999, 146_198],
+			'elemental/unbroken.json': [8050, 115_798, 144_999, 146_198],
+			'windwalker/dataset-ironJuggernaut.json': [115_804, 122_470, 124_280, 128_531, 130_320],
+		});
+	});
+
+	/**
+	 * **A guard that sweeps nothing passes, so this plants one and checks it is caught.**
+	 *
+	 * The three ids the widening actually found are all accounted for now, which means every assertion
+	 * above would stay green if `enemyAuraEvents` silently stopped reading. Planting an id no registry
+	 * declares onto an enemy is the only way to show the mechanism rather than its current answer, and it
+	 * is done on a shallow copy so no fixture is touched.
+	 *
+	 * Two directions, because either alone is satisfiable by accident: the planted id is reported against
+	 * the real ledger, and a ledger entry for it silences that report. The `sourceID` is the audited
+	 * player's, which is the filter being exercised — the companion below plants the same id from somebody
+	 * else and shows it is *not* picked up.
+	 */
+	it('catches an undeclared debuff the player puts on an enemy', () => {
+		const dataset = rawFixture('elemental', 'phased.json');
+		// A real application of the spec's own dot, which is a known-good "player onto an enemy" event — so
+		// each copy below differs from a swept event in the ability id alone, and in the second case the source.
+		const onEnemy = dataset.events.find(
+			(e) => e.type === 'applydebuff' && e.abilityGameID === 8050 && e.sourceID === dataset.actor.id,
+		);
+		if (onEnemy === undefined) throw new Error('phased.json no longer applies 8050 to anything');
+		const raidmate = dataset.actors.find((a) => a.type === 'Player' && a.id !== dataset.actor.id);
+		if (raidmate === undefined) throw new Error('phased.json has no second player to source from');
+		const planted: FightDataset = {
+			...dataset,
+			events: [
+				...dataset.events,
+				{ ...onEnemy, abilityGameID: 999_001 },
+				{ ...onEnemy, abilityGameID: 999_002, sourceID: raidmate.id },
+			],
+		};
+		const sweep: IdSweep = {
+			ids: mergeCounts(auraIdsPutOnPlayer(planted), auraIdsPutOnEnemies(planted)),
+			declares: (id) => modelled(elemental, id),
+		};
+		expect(unmodelledAuraIds([sweep], LEDGER)).toEqual([999_001]);
+		expect(unmodelledAuraIds([sweep], { ...LEDGER, 999_001: 'planted' })).toEqual([]);
 	});
 
 	/**

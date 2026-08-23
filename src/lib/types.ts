@@ -2099,6 +2099,17 @@ export interface FlameShockPress {
 	 */
 	judged: boolean;
 	/**
+	 * How many enemies the player was damaging at this press, banded the way the sim's lists band — the
+	 * same field, the same series and the same per-press argument as `EarthShockPress.band`.
+	 *
+	 * **The count `judged` above is read off**, which is why the two cannot disagree: `judged` is
+	 * `band === 1`. It exists because the flag alone cannot be captioned. False covers a press made at
+	 * two enemies and a press made at thirteen, and a sentence written off it said "three or more
+	 * enemies" of both — untrue of `cleave`'s two band-2 presses. With the band published, a caption can
+	 * name the count instead of guessing at it.
+	 */
+	band: Band;
+	/**
 	 * The dot's remaining time at the press against its **declared** duration; null when the dot was
 	 * down and this press applied one.
 	 *
