@@ -463,6 +463,13 @@ band three presses and one wasted press can reach, printing the contradiction ni
 drop it — the grade already carries the colour. The survivors are listed in `readerVoice.test.ts` with
 the arithmetic that earns each one, so adding a fourth is a visible edit.
 
+**A section does not rank itself against the rest of the page.** `ascendance.noneMissed` closed with
+"this is the biggest thing to fix on this pull", which is a comparison across every other section, made
+by a section that can see none of them — and it can be false, because a pull can also have dropped the
+dot or spent 40% of its globals. The ranked list already exists and is derived from the weights: it is
+`summary.takeaways`. A section says what its own button did and how much that costs; the order the
+reader works in is the summary's job.
+
 **Nothing renders markup, so markup in a string is punctuation the reader has to read.** There is no
 markdown pass and no `dangerouslySetInnerHTML` anywhere in the tree: a locale string is handed to
 React as text. `flameShockSnapshots.measurable` shipped `*is*` and `method.energy` shipped

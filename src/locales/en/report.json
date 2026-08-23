@@ -639,7 +639,7 @@
   "sef": {
     "title": "Storm, Earth and Fire",
     "intent": "Each press sends a spirit onto an enemy of your choosing, up to two at a time, and it mirrors your damaging abilities onto that enemy. While they are out your own damage is cut — to 60% with one spirit, 45% with two. So it is only worth pressing when there is a second thing to put a spirit on. And once a spirit is out, the only way to waste it is to attack an enemy that the spirit is already on.",
-    "summary_one": "{{count}} spirit sent out, out for {{uptime, percent}} of the pull.",
+    "summary_one": "{{count}} spirit sent out, and it was out for {{uptime, percent}} of the pull.",
     "summary_other": "{{count}} spirits sent out, with at least one of them out for {{uptime, percent}} of the pull.",
     "uptimeMeans": "Spirit uptime is the share of the pull, timer to kill, with at least one spirit out. It is not a target to push to 100%, and it cannot tell one spirit from two. A stretch with one enemy calls for no spirit at all, and this figure counts none of that either way. What the pull actually called for is described in the sentence below about second targets.",
     "prePlaced_one": "One spirit was already out when the pull began, placed before the timer started, so it spent no global inside the pull and has no cast row. That is an ordinary opener, not a missing press, and it counts here because the spirit was genuinely out. The press that aimed it is outside this log, so its target is worked out from where it swung.",
@@ -1235,7 +1235,7 @@
     "wanted_other": "On {{count}} globals you spent on another button, Rushing Jade Wind was the highest-priority ability ready.",
     "wantedNone": "You never pressed something lower-priority while Rushing Jade Wind was ready.",
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals it wanted.",
-    "singleTarget": "Single-target: Invoke Xuen is the better level-90 choice. RJW is a priority for overflow, short pulls, or Bloodlust plus Energizing Brew.",
+    "singleTarget": "Single-target: Invoke Xuen is the better level-90 choice. Rushing Jade Wind is worth a press only for overflow energy, a short pull, or Bloodlust with Energizing Brew.",
     "notGraded": "The single-target choice is a talent recommendation, not a pull grade. Opportunities come from the priority list; this section does not set an uptime target.",
     "absent_invokeXuen": "Rushing Jade Wind was not on your bar: it shares the level-90 row with Invoke Xuen, and this log has Invoke Xuen in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
     "absent_spinningCraneKick": "Rushing Jade Wind was not on your bar: taking it removes Spinning Crane Kick entirely, and this log has Spinning Crane Kicks in it. There is no uptime to have been short of, and nothing is counted against a button you never had.",
@@ -1532,7 +1532,7 @@
         "missed": "Your second Ascendance did not land on a warrior's second Skull Banner. That pairing is worth having rather than owed, so nothing here counts against you."
       }
     },
-    "noneMissed": "Ascendance was never pressed. Every Elemental shaman has it, it costs one global, and the opener wants it — this is the biggest thing to fix on this pull."
+    "noneMissed": "Ascendance was never pressed. Every Elemental shaman has it, it costs one global, and the opener wants it — so this is a fault rather than a choice."
   },
   "elementalMastery": {
     "title": "Elemental Mastery",
