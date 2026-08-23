@@ -2368,6 +2368,21 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 					? (1 + snapshotDeltaPct) / CLEARCASTING_DAMAGE_MULT - 1
 					: (1 + snapshotDeltaPct) * CLEARCASTING_DAMAGE_MULT - 1;
 		const exposed = remaining > 0 ? null : downBefore(spawn, t);
+		/**
+		 * Whether this press was made at a target count `flameShockWaste`'s rule exists at — band 1.
+		 *
+		 * The same reading, off the same series, as `EarthShockPress.band` above: `aplTargetCountAt` is what
+		 * the priority ladder bands each rung on, so the section, the ladder and this flag cannot disagree
+		 * about which list one press was under. The argument for band 1 alone — p5's three excuses against
+		 * `cleave.apl.json` rung 9's flat `maxOverlap: 2s`, which our last-tick excuse is wider than in one
+		 * direction and narrower in the other — is at `FlameShockPress.judged`.
+		 *
+		 * Published on every press and not only on the refreshes, because it is a fact about the pull at that
+		 * instant. Which presses `flameShockWaste` grades is this **and** a live dot under them; the
+		 * complement of that pair — what comes out of the graded share — is taken once, at
+		 * `fsUnjudgedRefreshes`.
+		 */
+		const judged = bandOf(aplTargetCountAt(t)) === 1;
 		// `snapshot` sits *after* `windowed` and `ascPrep`, not before them. A last-tick refresh is already
 		// the best the global can buy and needs no second justification, and crediting one press under two
 		// excuses would subtract it twice out of `flameShockWaste`.
@@ -2388,6 +2403,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		return {
 			t,
 			kind,
+			judged,
 			remainingMs: remaining > 0 ? remaining : null,
 			exposedMs: remaining > 0 ? null : (exposed ?? 0),
 			tickMs: tickWindow.cadenceMs,
@@ -2407,6 +2423,22 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// An `apply` and a `reapply` both put the dot up; only the refresh states renew one that was running.
 	const applies = fsPresses.filter((p) => p.remainingMs === null).length;
 	const refreshes = fsPresses.length - applies;
+	/**
+	 * The refreshes no grade may be taken off: the ones made at a target count the rule does not exist at.
+	 *
+	 * **The numerator per band the `flameShockWaste` threshold asked for**, and the reason it had to be here
+	 * rather than in `score.ts` is that `bands: [1]` on a rule cannot do it — an intersection nulls a metric
+	 * only when it comes out empty, and `cleave` resolves to `[1, 2, 3, 4]`, so the declaration intersects
+	 * non-empty and narrows nothing. This is the sample narrowing with the pull instead: on `cleave` the two
+	 * refreshes were made at one enemy and at four, so one comes out; `phased` and `unbroken` never leave
+	 * band 1 and lose nothing.
+	 *
+	 * Taken as one array so the two counts published off it cannot end up over different sets of presses —
+	 * the failure `earthShockGood` was written to avoid, and the same shape as `esPresses`' `good`/`judged`
+	 * pair below. Published as the part that comes *out* of the pull-wide ledger rather than as an
+	 * independent graded pair; `FlameShockAudit.unjudgedRefreshes` has the two reasons.
+	 */
+	const fsUnjudgedRefreshes = fsPresses.filter((p) => !p.judged && p.remainingMs !== null);
 
 	// ----------------------------------------------- Flame Shock multi-dot
 	// The cleave preset's rule (maxDots 2) keeps the dot on a second target while two enemies are up —
@@ -4175,6 +4207,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// a press that was already `windowed` carries a delta too, and counting it here would subtract
 			// it from `flameShockWaste` twice.
 			snapshotGain: fsPresses.filter((p) => p.kind === 'snapshot').length,
+			// What comes out of the graded share, beside the pull-wide counts above rather than in place of
+			// them: the tiles and the verdict sentence report every refresh the player made, and only the
+			// score is narrowed.
+			unjudgedRefreshes: fsUnjudgedRefreshes.length,
+			// `early` is exactly "a refresh with none of the three excuses" — the kinds are ordered so a press
+			// can be credited once, so this cannot double-subtract the way a hand-written conjunction can.
+			unjudgedWaste: fsUnjudgedRefreshes.filter((p) => p.kind === 'early').length,
 			tickMs: fsTickMs,
 			durationMs: FLAME_SHOCK_DURATION_MS,
 			presses: fsPresses,

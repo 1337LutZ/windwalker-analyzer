@@ -63,8 +63,12 @@ const pressAt = (el: Analysis & ElementalAuditResult, t: number): FlameShockPres
  *
  * In short: what this file asserts is that crediting a justified refresh moves the *attribution*, and
  * reading that through `metric.value` made it hostage to whether the metric was graded. `cleave` has two
- * refreshes, which is under `MIN_GRADED_SAMPLE`, so the scorecard now declines it and would have handed
- * this a zero for an attribution that had not moved at all.
+ * refreshes and only one of them at a count this rule exists at, both under `MIN_GRADED_SAMPLE`, so the
+ * scorecard declines it and would have handed this a zero for an attribution that had not moved at all.
+ *
+ * Pull-wide on purpose, and therefore no longer the expression `score.ts` grades — that one is this one
+ * less the audit's two `unjudged` terms. See the twin helper for the argument; the two figures agree on any
+ * pull that stays at one enemy, which is `unbroken` and `phased` both.
  */
 const wasteOf = (el: Analysis & ElementalAuditResult): number => {
 	const fs = el.flameShock;

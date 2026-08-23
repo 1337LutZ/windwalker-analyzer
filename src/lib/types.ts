@@ -2070,6 +2070,35 @@ export interface FlameShockPress {
 	/** Which of the seven the press was — see `FlameShockPressKind`. */
 	kind: FlameShockPressKind;
 	/**
+	 * Whether the target count at this press is one `flameShockWaste` is a rule at — **band 1 alone**.
+	 *
+	 * The same shape as `EarthShockPress.good`'s null, and for the same reason: the `bands` declaration on
+	 * a rule says which counts its number means anything at, and a flag like this one is what actually
+	 * removes the presses made at the others. The declaration cannot do it alone — `MetricRule.bands` nulls
+	 * a metric only when the intersection with the pull's own bands comes out *empty*, and the mixed pull
+	 * this was written for resolves to all four counts, so the declaration intersects non-empty and narrows
+	 * nothing. `FlameShockAudit.unjudgedRefreshes` is this flag counted over the refreshes it is *false* on,
+	 * and the score's denominator is `refreshes` less that count.
+	 *
+	 * **Band 1 and not band 1-or-2**, which is the clause worth arguing. What a refresh is credited for
+	 * here is p5's three excuses — the dot's last tick, the Ascendance prep, the >10% snapshot — and
+	 * `cleave.apl.json` rung 9 is `maxOverlap: 2s` and nothing else: no snapshot term, no Ascendance term,
+	 * and a flat 2 000ms where the last-tick excuse is measured against the dot's **own** cadence (1 349,
+	 * 1 748 and 2 275 ms inside one pull). The two therefore disagree in *both* directions — a refresh with
+	 * 2 400ms left is credited here and faulted by rung 9, and a refresh rung 9 allows can be faulted here
+	 * — so two is out rather than merely generous. At three and up `aoe.apl.json` rung 1 does not refresh a
+	 * live dot at all.
+	 *
+	 * True on an `apply` at one enemy as well. It says which list was running at the press and not whether
+	 * the press is in any one metric's sample: the applies are outside `flameShockWaste` for an unrelated
+	 * reason — there was no dot to clip — and that cut is `remainingMs !== null`.
+	 *
+	 * Read off `aplTargetCountAt`, untrimmed, which is the same series the priority ladder bands each rung
+	 * on and the same reading `EarthShockPress.band` takes — see there for why a band labels what the
+	 * player knew while a clock charges what was true.
+	 */
+	judged: boolean;
+	/**
 	 * The dot's remaining time at the press against its **declared** duration; null when the dot was
 	 * down and this press applied one.
 	 *
@@ -2241,6 +2270,44 @@ export interface FlameShockAudit {
 	 * and must not be credited twice. See `FlameShockPress.snapshotDeltaPct`.
 	 */
 	snapshotGain: number;
+	/**
+	 * The refreshes `flameShockWaste` does **not** grade: presses made into a live dot at a target count
+	 * the rule does not exist at — `refreshes` less the ones `FlameShockPress.judged` is true on.
+	 *
+	 * **The numerator per band the `flameShockWaste` threshold asked for, and it is published as the part
+	 * that comes *out* rather than as the part that stays.** Two reasons, and the second is the load-bearing
+	 * one.
+	 *
+	 * The first is that `refreshes` and the three excuse counts above are pull-wide by design — they are
+	 * what the section's tiles and its verdict sentence report, and a reader asking "how many times did I
+	 * press this into a live dot" wants every one of them. This field is the correction from that ledger to
+	 * the graded one, so the two are visibly one arithmetic apart instead of two independent counts that
+	 * could drift.
+	 *
+	 * The second is that a grade taken off an independent pair stops following the ledger it is printed
+	 * beside. The section is rendered against hand-written audits in its own tests — the refresh ledger
+	 * rewritten to say "every refresh landed in its tick window" — and a metric reading its own pair would
+	 * grade the real pull while the sentence beside it described the written one. Expressed as a
+	 * subtraction, every consumer that rewrites `refreshes`, `windowed`, `ascPrep` or `snapshotGain` moves
+	 * the grade with it, which is the standing rule that two parts of one report must not disagree about
+	 * one press.
+	 *
+	 * Measured on the committed pulls: 1 on `cleave`, whose two refreshes were made at one enemy and at
+	 * four; 0 on `phased` and `unbroken`, which never exceed one enemy and therefore lose nothing.
+	 */
+	unjudgedRefreshes: number;
+	/**
+	 * Of `unjudgedRefreshes`, the ones that bought nothing — no last tick, no Ascendance prep, no snapshot
+	 * gain. The part of the pull-wide waste count that comes out of the graded numerator.
+	 *
+	 * Counted off the press `kind` rather than by subtracting the three excuse counts within the band, for
+	 * the reason `snapshotGain` gives: the kinds are ordered so one press can be credited once, and that
+	 * ordering already lives on the kind.
+	 *
+	 * 1 on `cleave` — the refresh at 57 499ms with four enemies up, which is the whole of that pull's 50%
+	 * and the press the report used to grade it on. 0 on the other two.
+	 */
+	unjudgedWaste: number;
 	/**
 	 * The pull's typical tick period: the median of the per-press `tickMs`, since a pull whose haste
 	 * moved has no single one — on one committed pull the period ran at three plateaus, ~1 348, ~1 752

@@ -98,14 +98,18 @@ const graded = (): FlameShockPress[] =>
  * This used to read `metric.value`, and that was a join this file had no business having. What it asserts
  * is the audit's *attribution* — which press the walk called windowed, which it called a snapshot gain —
  * and routing that through the grading surface made it depend on whether the scorecard chose to grade the
- * metric at all. It does not, on `cleave`: two refreshes is under `MIN_GRADED_SAMPLE`, so `metricOf`
+ * metric at all. It does not, on `cleave`: one judged refresh is under `MIN_GRADED_SAMPLE`, so `metricOf`
  * refuses and zeroes the value, and this file would have read `0` for an attribution that had not changed.
  *
- * The numerator is the same expression `score.ts` hands `shareOf`, and it was checked against the presses
- * rather than assumed: `refreshes` equals the count of presses with a live dot under them, and the
- * subtraction equals a direct count of the refreshes carrying none of the three excuses, on all three
- * fixtures. So this is the same number the tile shows whenever the tile shows one — it just does not go
- * blank when the tile does.
+ * **Pull-wide, and no longer what `score.ts` hands `shareOf`.** That expression is now this one less the
+ * audit's two `unjudged` terms — the band-1 subset — because a press made at four enemies is graded against
+ * no rule this metric holds. This helper deliberately keeps every refresh in, because what it asserts is the
+ * *attribution*: which press the walk called windowed, which it called a snapshot gain. An attribution
+ * test must not go quiet because a band left the sample. It was checked against the presses rather than
+ * assumed — `refreshes` equals the count of presses with a live dot under them, and the subtraction equals
+ * a direct count of the refreshes carrying none of the three excuses, on all three fixtures — so this stays
+ * the number the section's tile shows, which is also pull-wide, and the two agree with the graded share on
+ * every pull that never leaves one enemy.
  */
 const wasteOf = (name: Fixture): number => {
 	const fs = el[name].flameShock;

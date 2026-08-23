@@ -125,8 +125,11 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 *     dropped on the boss too, and the exemption does not hide that.
 	 *   - `flameShockWaste` **leaves**, and not by exemption. Cutting the clocks let `shareOf`'s sample
 	 *     floor be applied to it, and this pull made two Flame Shock refreshes all fight — under
-	 *     `MIN_GRADED_SAMPLE`, so the metric now declines instead of grading a 50% that was one press. Its
+	 *     `MIN_GRADED_SAMPLE`, so the metric declines instead of grading a 50% that was one press. Its
 	 *     place on the panel goes to `lightningShieldOvercap`, which is a genuine fault on its own clock.
+	 *     The sample is now **one**, not two, for the reason the test below this one gives: the second of
+	 *     those refreshes was made at four enemies and is no longer counted. The refusal is the same; what
+	 *     it is a refusal about is not.
 	 *
 	 * So two of the three cards are still the dot, which is the honest outcome: `flameShockMultiDot` reads
 	 * 16.64% and cutting its clock too was measured at 18.73% — see its threshold. That card is a real
@@ -154,10 +157,12 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 * the list. So the number is a fault by a stricter rule than the one it was measured against, taken
 	 * off a denominator of two, where the only reachable values are 0, 50 and 100.
 	 *
-	 * The audit facts rather than the metric, deliberately: `MIN_GRADED_SAMPLE` is owed on this row and is
-	 * not paid here — see the note at the metric for the two assertions in another lane's files that hold
-	 * it — and a test written against the grade would have to be rewritten when it lands. These two facts
-	 * do not change either way.
+	 * The audit facts rather than the metric, deliberately: what the scorecard does with them is the next
+	 * test's subject, and these two do not change either way.
+	 *
+	 * **And the press is out of the sample now, which is the last line here.** `FlameShockPress.judged` is
+	 * false on it — the audit's own record that this press was made at a count `flameShockWaste`'s rule
+	 * does not exist at — so the 50% above is a number the report no longer produces from it.
 	 */
 	it('grades cleave’s dot economy off one press made at four enemies', () => {
 		const el = fixture('cleave');
@@ -166,6 +171,71 @@ describe('the reported bug, on the pull it was reported from', () => {
 		const faulted = el.flameShock.presses.filter((press) => press.kind === 'early');
 		expect(faulted).toHaveLength(1);
 		expect(at(faulted[0]!.t)).toBe(4);
+		expect(faulted[0]!.judged).toBe(false);
+	});
+
+	/**
+	 * **The numerator per band, measured on the only pull that visits more than one band.**
+	 *
+	 * `bands: [1]` on the rule could not do this and this file's own opening paragraph says why: an
+	 * intersection nulls a metric only when it comes out *empty*, and `cleave` resolves to `[1, 2, 3, 4]`.
+	 * So the declaration was a control that controlled nothing, which this project has shipped once and
+	 * fixed once. What narrows the sample is the audit — `FlameShockPress.judged` per press, counted out at
+	 * `flameShock.unjudgedRefreshes` and `unjudgedWaste` — and this is that cut at the three pulls.
+	 *
+	 * **`cleave` separates and the other two deliberately do not.** Its two refreshes were made at one
+	 * enemy and at four, so one of them is graded and the other is the faulted press the test above names.
+	 * `phased` and `unbroken` never exceed one enemy: every refresh they made is judged, and both read
+	 * exactly what they read before the cut — 25% `ok` off four, 33.33% `bad` off six.
+	 *
+	 * **What `cleave` does not do is start grading, and that is the finding rather than a shortfall.** One
+	 * judged refresh is under `MIN_GRADED_SAMPLE` and two already were, so this pull refused before and
+	 * refuses after; no metric here changes whether it grades, so no pull's graded count moves and
+	 * `overall()` keeps its denominator (10 of 14 on all three, before and after). The floor is not lowered
+	 * to keep a number on the page — at n=1 the reachable values are 0 and 100 and at n=2 they are 0, 50
+	 * and 100, so neither scale has the interior most pulls belong in. What moved is the ground: the sample
+	 * is one press the rule was about, where it was two presses of which one was at four enemies.
+	 *
+	 * The sample is asserted as a **derivation** and not as a pinned 1: it is the refreshes at one enemy,
+	 * read off the same count series the audit reads. Drop the band clause from that expression and it
+	 * gives 2 — the denominator this row was graded off before, and the 50% is `1/2`.
+	 */
+	it('narrows the dot economy sample to the refreshes a list asked the question at', () => {
+		const el = fixture('cleave');
+		const at = countAt(el.targets?.counts.points ?? []);
+		const refreshes = el.flameShock.presses.filter((press) => press.remainingMs !== null);
+		expect(refreshes).toHaveLength(2);
+		const atOneEnemy = refreshes.filter((press) => at(press.t) <= 1);
+		expect(atOneEnemy).toHaveLength(1);
+		const fs = el.flameShock;
+		expect(fs.unjudgedRefreshes).toBe(refreshes.length - atOneEnemy.length);
+		expect(fs.unjudgedWaste).toBe(refreshes.filter((press) => at(press.t) > 1 && press.kind === 'early').length);
+		expect([fs.unjudgedRefreshes, fs.unjudgedWaste]).toEqual([1, 1]);
+		// The graded pair the metric is handed, and the pull-wide one the section prints, side by side: one
+		// press of two faulted over two refreshes becomes none of one over one.
+		expect(fs.refreshes - fs.windowed - fs.ascPrep - fs.snapshotGain).toBe(1);
+		expect(fs.refreshes - fs.windowed - fs.ascPrep - fs.snapshotGain - fs.unjudgedWaste).toBe(0);
+		const cleaveMetric = metric('cleave', 'auto', 'flameShockWaste');
+		expect(cleaveMetric?.sampleSize).toBe(1);
+		expect(cleaveMetric?.unmeasurable).toBe(true);
+
+		// The two single-target pulls: nothing leaves the sample, because nothing was ever above one enemy.
+		for (const [name, judged, waste, value, grade] of [
+			['phased', 4, 1, 25, 'ok'],
+			['unbroken', 6, 2, 33.333, 'bad'],
+		] as const) {
+			const single = fixture(name).flameShock;
+			expect([single.refreshes, single.unjudgedRefreshes, single.unjudgedWaste], name).toEqual([judged, 0, 0]);
+			expect(
+				single.refreshes - single.windowed - single.ascPrep - single.snapshotGain - single.unjudgedWaste,
+				name,
+			).toBe(waste);
+			const m = metric(name, 'auto', 'flameShockWaste');
+			expect(m?.sampleSize, name).toBe(judged);
+			expect(m?.unmeasurable, name).toBe(false);
+			expect(m?.value, name).toBeCloseTo(value, 3);
+			expect(m?.grade, name).toBe(grade);
+		}
 	});
 });
 

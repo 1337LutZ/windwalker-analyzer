@@ -87,44 +87,80 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		gradedOver(flameShock.windows.length > 0 ? flameShock.uptimePct : null, flameShock.scoredMs),
 	);
 	/**
-	 * The refreshes that bought nothing — none of the three reasons the list has to press the button
-	 * into a dot that is still running. Over the refreshes taken, never over the applies, which were
-	 * correct by construction (there was no dot to clip).
+	 * The refreshes that bought nothing — none of the three reasons the list has to press the button into a
+	 * dot that is still running. Over the refreshes **a list asked the question at**, and never over the
+	 * applies, which were correct by construction (there was no dot to clip).
 	 *
 	 * **Not nullable per press, and that is the point.** A press the log cannot measure a snapshot delta
 	 * for keeps whatever kind it would have had without one, so it lands in `refreshes` and in none of the
 	 * three excuses — charged, which is the old verdict, rather than quietly forgiven.
 	 *
-	 * **This still wants `shareOf` and does not have it, which is the one piece of this adoption left
-	 * undone rather than blocked on an engine field.** `sharePct` declines only at zero refreshes, and one
-	 * or two refreshes are worse than none: at a denominator of two the reachable values are 0, 50 and
-	 * 100, so the verdict is one press from a different one in either direction. `cleave` is the pull that
-	 * found it and the pull the whole exercise came off — **two** refreshes all fight, of which the single
-	 * faulted one was made at **four** enemies (57 499ms), where `aoe.apl.json` rung 1 refuses to refresh
-	 * a live dot at all and none of the three excuses above is on the list. 50% is the worst grade on that
-	 * card and it is that one press, judged against a rule that was not running. `MIN_GRADED_SAMPLE`
-	 * exists for exactly this row and names it.
+	 * **The two `unjudged` terms are the numerator per band this entry used to ask for, and the declaration
+	 * below could never have given it.** `bands: [1]` nulls a metric only when the intersection with the
+	 * pull's own bands comes out *empty*, and `cleave` — the mixed pull the whole exercise came off —
+	 * resolves to `[1, 2, 3, 4]`, so the declaration intersects non-empty and narrows nothing whatsoever.
+	 * The audit narrows the sample instead, press by press, off the same `aplTargetCountAt` series the
+	 * priority ladder bands its rungs on: `FlameShockPress.judged`, counted at `fsUnjudgedRefreshes`. The
+	 * declaration stays and now claims only what it can — that a reader who declares a whole pull
+	 * multi-target is not asked this question at all.
+	 *
+	 * **Written as a subtraction from the pull-wide ledger and not as an independent graded pair**, which is
+	 * the same expression with one property the pair does not have: every consumer that rewrites
+	 * `refreshes`, `windowed`, `ascPrep` or `snapshotGain` moves this grade with it. The section prints its
+	 * verdict off exactly those four, and is rendered against hand-written ledgers in its own tests; a grade
+	 * read off two separate counts would describe the real pull while the sentence beside it described the
+	 * written one. `FlameShockAudit.unjudgedRefreshes` states it as the field's own reason. The identity is
+	 * `judged waste / judged refreshes` either way — asserted per fixture in `__fixtures__/bands.test.ts`.
+	 *
+	 * Band 1 alone, and the argument is at `FlameShockPress.judged`. In short: what a refresh is credited
+	 * for here is p5's three excuses, and `cleave.apl.json` rung 9 is `maxOverlap: 2s` and nothing else —
+	 * no snapshot term, no Ascendance term, and a flat 2 000ms where the last-tick excuse is measured
+	 * against the dot's own cadence. The two disagree in both directions, so band 2 is out rather than
+	 * merely generous.
+	 *
+	 * ## What it does to the three committed pulls
+	 *
+	 * Stated per pull, because a declared scope that moves nothing looks like a control and is not one.
+	 *
+	 *   - `phased` and `unbroken` **never exceed one enemy**, so every refresh is judged: 4 of 4 and 6 of
+	 *     6, 25% `ok` and 33.33% `bad`, both unmoved. They are the deliberate no-change guards.
+	 *   - `cleave` is the only committed pull with band-3+ time, and its sample goes from **2 refreshes to
+	 *     1** — `unjudgedRefreshes` is 1 and `unjudgedWaste` is 1. The press that leaves is the faulted one,
+	 *     at 57 499ms with **four** enemies up, where `aoe.apl.json` rung 1 refuses to refresh a live dot at
+	 *     all and not one of p5's three excuses is on the list. The numerator goes to 0 and the raw share
+	 *     from 50% to 0%.
+	 *
+	 * **And on `cleave` it still refuses, which is the honest outcome rather than the satisfying one.** One
+	 * judged refresh is under `MIN_GRADED_SAMPLE`, and two refreshes already were — the card was
+	 * unmeasurable before this change and is unmeasurable after it, so no pull's count of graded metrics
+	 * moves and `overall()` keeps the denominator it had. What changed is the ground the refusal stands on:
+	 * a sample of one press the rule was about, rather than a sample of two with a band-4 press in it. The
+	 * report stops making a claim it could not support; it does not start making a better one.
 	 *
 	 * **`shareOf` and not `sharePct`, which is what applies that floor.** The denominator is a count of
 	 * presses rather than a span of milliseconds, so the floor means something here: three is the first
 	 * denominator with an interior, and below it every grade this metric can produce is one press away from
-	 * a different one. On `cleave` it refuses, and the refusal removes the worst card in the Flame Shock
-	 * panel — a card that was one band-4 press wearing a band-1 rule.
+	 * a different one. `MIN_GRADED_SAMPLE` names this row in its own docblock, and names this exact pair —
+	 * `1/2` today and `0/1` once the aoe stretches leave — as the case that found it.
 	 *
-	 * What used to hold it back was two assertions rather than a measurement: `flameShockClearcasting.test.ts`
-	 * and `flameShockSnapshot.test.ts` both read this share off `metric.value`, and `metricOf` zeroes the
-	 * value of a metric it refuses. Both are asserting the *audit's* attribution — which press got which
-	 * kind — through the grading surface, and that was the join to break: they now take the share straight
-	 * off the audit, so each measures what it was written to measure whether or not the scorecard chose to
-	 * grade it. The reconstruction was checked rather than assumed — `refreshes` equals the count of presses
-	 * with a live dot under them, and the subtraction equals a direct press-by-press count of the faulted
-	 * ones, on all three fixtures.
+	 * **What the two audit tests read, now that the two shares differ.** `flameShockClearcasting.test.ts`
+	 * and `flameShockSnapshot.test.ts` reconstruct this share off the audit rather than off `metric.value`,
+	 * because what they assert is the *attribution* — which press the walk called windowed, which it called
+	 * a snapshot gain — and `metricOf` zeroes the value of a metric it refuses. They reconstruct it
+	 * **pull-wide**, `(refreshes − windowed − ascPrep − snapshotGain) / refreshes`, which is this expression
+	 * without its two `unjudged` terms and the figure the section's tiles and verdict sentence show. That is
+	 * deliberate: an attribution test should not go quiet because a band left the sample, and the two
+	 * numbers are the same on every pull that stays at one enemy.
 	 */
 	const flameShockWaste = metric(
 		'flameShockWaste',
 		shareOf(
-			flameShock.refreshes - flameShock.windowed - flameShock.ascPrep - flameShock.snapshotGain,
-			flameShock.refreshes,
+			flameShock.refreshes -
+				flameShock.windowed -
+				flameShock.ascPrep -
+				flameShock.snapshotGain -
+				flameShock.unjudgedWaste,
+			flameShock.refreshes - flameShock.unjudgedRefreshes,
 		),
 	);
 
@@ -538,8 +574,19 @@ export const THRESHOLDS = {
 	 * the forgiving direction, which is the dangerous one. It is acceptable only because the press is not
 	 * thereby unattributed: the priority ladder's `flame-shock` rung switches lists per press, so a live-dot
 	 * refresh at three enemies fails its condition there and is charged against Chain Lightning or Lava
-	 * Beam — the same disposal `apl.ts` argues for Earth Shock. The fix that would let this metric speak
-	 * at bands 2 and 3+ is a numerator per band in the audit, not a wider declaration here.
+	 * Beam — the same disposal `apl.ts` argues for Earth Shock.
+	 *
+	 * **The numerator per band this entry used to ask for has landed, and it is not what the declaration
+	 * does.** The sentence here was "a numerator per band in the audit, not a wider declaration here", and
+	 * the audit now publishes one: `FlameShockPress.judged` per press, and `unjudgedRefreshes` and
+	 * `unjudgedWaste` beside it as what that flag takes out, so the *sample* is cut to band 1 instead of
+	 * being counted at every band under a declaration that says band 1. What the rule declares and what the number is measured over are the
+	 * same set of presses for the first time. It does not let this metric speak at bands 2 or 3+ — nothing
+	 * in this table can, because the three excuses are p5's and neither other list grants them — and it
+	 * moves neither of the two single-target pulls, which never leave band 1. On `cleave` it removes one
+	 * refresh of two, which is the band-4 press at 57 499ms, and the metric then refuses at
+	 * `MIN_GRADED_SAMPLE` rather than grading a 50% that was that one press. See the metric itself for
+	 * what each pull reads before and after.
 	 */
 	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1] },
 
