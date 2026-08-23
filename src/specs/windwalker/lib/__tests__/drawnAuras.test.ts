@@ -36,8 +36,8 @@
 // weave,cleave}.json` are pre-analysed `Analysis` objects with **no `events` array at all** — the capture
 // harness writes `analyse()`'s output, not its input — so the left-hand side of this diff cannot be
 // measured on them by any means, and their stored `timeline.lanes` are frozen output from whichever engine
-// captured them. What they can still say is said in the last test but one: five of the six carry a
-// non-empty `energizing.hasteWindows`, so the missing Bloodlust row was every pull's, not this one's.
+// captured them. What they can still say is said in the last test but one: all six carry a non-empty
+// `energizing.hasteWindows`, so the missing Bloodlust row was every pull's, not this one's.
 
 import { describe, expect, it } from 'vitest';
 
@@ -246,16 +246,18 @@ describe('an aura that fired has somewhere to be drawn', () => {
 		// nothing.
 		expect(ANALYSED.length).toBe(6);
 		// What they do carry is the haste audit's own windows, which is evidence the cooldown was up on that
-		// pull independent of any lane. Five of the six, so the row this commit added is a row nearly every
-		// one of them wanted — and their stored `timeline.lanes` are the old engine's output, so the lane
-		// cannot be checked there without re-capturing them. Per name rather than as a count of five, so the
-		// one pull that has no haste window is the one named.
+		// pull independent of any lane. All six of them, so the row this commit added is a row every one of
+		// them wanted — and their stored `timeline.lanes` are the old engine's output, so the lane cannot be
+		// checked there without re-capturing them. Per name rather than as a count of six, because the grid
+		// has to name the pull if one ever stops carrying a window: `cleave` was that pull until the
+		// 2026-08-24 re-capture, and what it gained is this file's own blind spot in the data — a
+		// `preexisting` Time Warp clamped to 0 and expiring at 39 940ms, visible only from its removal.
 		expect(
 			Object.fromEntries(
 				ANALYSED.map(({ name, analysis }) => [name, (analysis.energizing?.hasteWindows ?? []).length]),
 			),
 		).toEqual({
-			'cleave.json': 0,
+			'cleave.json': 1,
 			'mixed.json': 1,
 			'poor.json': 1,
 			'strong.json': 1,

@@ -352,15 +352,22 @@ describe('a Windwalker pull with presses and nothing to read them by', () => {
 	 * reached past a refusal and swallowed a real reading would fail here rather than read as a tidier
 	 * diff. The letters behind them are pinned by the fixtures' own scorecard tests; what these hold is
 	 * that the *sentence* chosen off those letters has not moved.
+	 *
+	 * **The kick's percentages moved on five of the six in the 2026-08-24 re-capture and the arm did not,
+	 * which is the distinction this guard exists to draw.** `debuff.uptimeMs` and `debuff.casts` are
+	 * identical on all six; what changed is `contactUpSegments`, which the engine now coalesces across the
+	 * sub-millisecond gaps a refresh emits — `mixed` went from twenty-odd fragments to three, and its
+	 * `secondsLost` from 11 to 10. So `engagedUptimePct` rose without a single extra millisecond of
+	 * debuff being claimed. `cleave` is the one that did not move, and it is the one with no such gaps.
 	 */
 	it('leaves all six committed pulls alone', () => {
 		for (const [name, procs, kick] of [
 			['cleave', '5 of 5 catchable procs taken', '87.02% uptime across 20 casts'],
-			['mixed', '4 of 6 catchable procs taken', '95.39% uptime across 24 casts'],
-			['poor', '2 of 8 catchable procs taken', '99.36% uptime across 26 casts'],
-			['strong', '12 of 14 catchable procs taken', '90.66% uptime across 54 casts'],
-			['waves', '5 of 6 catchable procs taken', '80.57% uptime across 32 casts'],
-			['weave', '4 of 4 catchable procs taken', '99.15% uptime across 15 casts'],
+			['mixed', '4 of 6 catchable procs taken', '95.82% uptime across 24 casts'],
+			['poor', '2 of 8 catchable procs taken', '99.5% uptime across 26 casts'],
+			['strong', '12 of 14 catchable procs taken', '91.86% uptime across 54 casts'],
+			['waves', '5 of 6 catchable procs taken', '81.81% uptime across 32 casts'],
+			['weave', '4 of 4 catchable procs taken', '99.19% uptime across 15 casts'],
 		] as const) {
 			const analysis = fixture(name);
 			const snapshots = verdictOf(render(SnapshotTable, analysis));
@@ -410,15 +417,26 @@ describe('the plain sentence, on every graded Windwalker section that has one', 
 	});
 
 	/**
-	 * And `tigerPalm`'s thin-sample sentence, on the committed pull that reaches it.
+	 * And `tigerPalm`'s thin-sample sentence, which needs a hand edit like the three above it.
 	 *
-	 * The one place in this spec where the split is already load-bearing on a real capture rather than on
-	 * a hand edit: `cleave` made twelve Tiger Palm presses and only two of them with one enemy up, which
-	 * is under the floor, so the section has no letter and prints the sentence that names both counts —
-	 * over the twelve presses the cards above it total.
+	 * **It did not, until 2026-08-24, and that is worth recording.** This was the one place in the spec
+	 * where the split was load-bearing on a real capture: `cleave` made twelve Tiger Palm presses and the
+	 * `targets.counts` series put only two of them at one enemy, under `MIN_GRADED_SAMPLE`, so the section
+	 * had no letter and printed the sentence naming both counts. The re-capture added `targets.aplCounts`
+	 * — the series `tigerPalmShare` now prefers — which reads two of those presses as one enemy where the
+	 * display series reads two, giving a sample of 4. `cleave` is graded `good` and prints the ordinary
+	 * ledger line, which `tigerPalm.test.ts` pins on the capture as it now stands.
+	 *
+	 * So the arm keeps its guard the way the rest of this describe block keeps theirs: the same pull, read
+	 * through its own *display* counts rather than its APL counts. That is not a fabricated series — it is
+	 * `cleave.targets.counts`, committed, and the two presses it disagrees about are the whole of the
+	 * difference. What is no longer true, and is not asserted anywhere now, is that a committed pull
+	 * reaches this arm on its own.
 	 */
 	it('is not the sentence Tiger Palm gives a pull whose sample is thin', () => {
-		const sentence = verdictOf(render(TigerPalm, cleave));
+		const targets = cleave.targets!;
+		const thin: Analysis = { ...cleave, targets: { ...targets, aplCounts: targets.counts } };
+		const sentence = verdictOf(render(TigerPalm, thin));
 		expect(sentence).not.toContain('Tiger Palm was never pressed in this pull.');
 		expect(sentence).toContain('only 2 of your 12 presses went out with one enemy up');
 		expect(sentence).toContain('too few to read the habit from');
@@ -452,9 +470,13 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 * message rather than tautological. Both halves of each entry matter: the letter, and the weight it
 	 * was taken over — a metric dropping out of the denominator would move the second even where it left
 	 * the first alone. Neither moves, because `karmaEmpty` offers nought weight.
+	 *
+	 * `cleave` reads 14 of 14 and read 11 of 14 before the 2026-08-24 re-capture. That is not this metric
+	 * and not this section: `targets.aplCounts` took its Tiger Palm sample over `MIN_GRADED_SAMPLE`, so
+	 * the three points that rule carries came back into the denominator. The letter is `good` either way.
 	 */
 	const HEADLINES = {
-		cleave: 'good over 11 of 14',
+		cleave: 'good over 14 of 14',
 		mixed: 'ok over 15 of 15',
 		poor: 'bad over 15 of 15',
 		strong: 'good over 15 of 15',

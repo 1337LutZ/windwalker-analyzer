@@ -43,12 +43,12 @@ describe('Rushing Jade Wind section', () => {
 		const targets = analysis.damage.abilities.find((ability) => ability.id === 148_187)?.averageTargetsHit;
 		expect(html).toContain(t('jadeWind.kpi.targets'));
 		expect(html).toContain(t('jadeWind.kpi.opportunities'));
-		expect(html).toContain('>32<');
+		expect(html).toContain('>29<');
 		// The fan-out sentence, read off the fixture's own number rather than written out here. The
 		// section only falls back to `summaryNoTargets` for an analysis captured before the damage table
 		// carried per-target counts, which no committed fixture is any more.
 		expect(targets).toBeDefined();
-		expect(html).toContain(escaped(t('jadeWind.summary', { targets: formatDecimal(targets ?? 0), presses: 32 })));
+		expect(html).toContain(escaped(t('jadeWind.summary', { targets: formatDecimal(targets ?? 0), presses: 29 })));
 		expect(html).toContain(t('jadeWind.decisions.caption'));
 	});
 

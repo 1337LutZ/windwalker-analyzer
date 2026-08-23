@@ -108,12 +108,23 @@ const IJ_SIEGE_MODE_MS = 3_294_896 - 3_171_410;
 const IJ_BACK_TO_ASSAULT_MS = 3_354_895 - 3_171_410;
 
 /**
- * `poor.json` — a pre-analysed pull with no `timeline.phases` at all, which is the ordinary case and
- * not the edge: WarcraftLogs answers `phaseTransitions` with `null` for 6 of the 14 encounters in this
- * zone.
+ * `cleave.json` — Kor'kron Dark Shaman, one of the 6 of this zone's 14 encounters WarcraftLogs answers
+ * `phaseTransitions` with `null` for. That is the ordinary case and not the edge, and it reads as an
+ * **empty** `timeline.phases` rather than as a missing key: `resolveFightPhases` always returns an
+ * array. The three shapes and what each one means are pinned in
+ * `analysis/__tests__/phasesPassthrough.test.ts`, which is the authority.
+ *
+ * **`poor.json` stood here, and the reason given for it was wrong.** It was described as a pull
+ * WarcraftLogs reported no phases for. It was nothing of the kind — it is a Malkorok pull with three
+ * transitions, and it reached this file with no `phases` key because every capture then committed
+ * predated the field. All six did. The 2026-08-24 re-capture is what exposed the mistake, by giving
+ * `poor` the transitions the stated reason said it could not have.
+ *
+ * So the two states need two fixtures now: a fetched pull that came back with none, which is this one,
+ * and a never-fetched dataset, which only a hand-built pull can still be.
  */
 const NO_PHASE_DATA = JSON.parse(
-	readFileSync(resolve(import.meta.dirname, '../../../specs/windwalker/__fixtures__/poor.json'), 'utf8'),
+	readFileSync(resolve(import.meta.dirname, '../../../specs/windwalker/__fixtures__/cleave.json'), 'utf8'),
 ) as Analysis;
 
 /** `ROW_PX`, restated from `CastTimeline` — the 24px the request asked the marker to be. */
@@ -253,10 +264,22 @@ describe('the boss’s phase changes, marked above the cast timeline', () => {
 	 * no note under the chart explaining marks that are not there.
 	 */
 	it('draws nothing at all, and claims nothing, when the pull has no phase data', () => {
-		expect(NO_PHASE_DATA.timeline?.phases).toBeUndefined();
+		expect(NO_PHASE_DATA.timeline?.phases).toEqual([]);
 		const html = render(NO_PHASE_DATA);
 		expect(markersOf(html)).toEqual([]);
 		expect(html).not.toContain('data-tip-entered');
+		expect(html).not.toContain('phase changes');
+		expect(gutterHeights(html)).toEqual([null, null]);
+	});
+
+	/** And the other shape that draws nothing: the key absent, meaning never fetched. Hand-built, because
+	 *  no capture taken today can be in that shape — see `phasesPassthrough.test.ts`. The chart is what
+	 *  is under test here; that the two shapes reach it at all is that file's claim. */
+	it('draws nothing when the pull predates the phases key', () => {
+		const legacy = pullWith({});
+		expect(legacy.timeline?.phases).toBeUndefined();
+		const html = render(legacy);
+		expect(markersOf(html)).toEqual([]);
 		expect(html).not.toContain('phase changes');
 		expect(gutterHeights(html)).toEqual([null, null]);
 	});

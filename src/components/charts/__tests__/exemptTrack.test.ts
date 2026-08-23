@@ -441,8 +441,8 @@ describe('the exempt row', () => {
 	 * `away` total that no denominator matched.
 	 *
 	 * `weave` is the pull that makes the difference unarguable rather than pedantic: its only stretches
-	 * out of contact are 862ms at the front and 57ms at the back, so under the old filter the row was
-	 * empty, the key entry vanished and the label stated 0ms of a 919ms drop.
+	 * out of contact are 908ms at the front and 699ms at the back, so under the old filter the row was
+	 * empty, the key entry vanished and the label stated 0ms of a 1 607ms drop.
 	 *
 	 * **Three of the Windwalker's six captures were being asked, and the omission was not deliberate.**
 	 * The list was `['weave', 'strong', 'waves']` — the three that made the argument — while `cleave`,
@@ -452,17 +452,17 @@ describe('the exempt row', () => {
 	 * pinned map so the sweep still says what it measured rather than only that it did not throw — and so
 	 * a seventh capture has to be read and written down rather than looping past.
 	 *
-	 * The three that were missing carry 2 699ms, 40 583ms and 2 375ms of this row between them, and the
-	 * identity holds on all six — so nothing was broken, but 45 657ms of drawn exempt row had never been
+	 * The three that were missing carry 2 699ms, 40 583ms and 2 566ms of this row between them, and the
+	 * identity holds on all six — so nothing was broken, but 45 848ms of drawn exempt row had never been
 	 * compared to the denominator it is supposed to be the complement of.
 	 */
 	const AWAY_MS: Record<string, number> = {
 		cleave: 2699,
 		mixed: 40_583,
-		poor: 2375,
-		strong: 19_812,
-		waves: 117_004,
-		weave: 919,
+		poor: 2566,
+		strong: 20_013,
+		waves: 123_575,
+		weave: 1607,
 	};
 
 	it.each(capturedAnalyses('windwalker').map(({ name }) => name.replace(/\.json$/, '')))(

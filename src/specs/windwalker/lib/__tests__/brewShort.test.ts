@@ -328,6 +328,21 @@ describe('the committed pulls', () => {
 	 * No committed pull's headline verdict moves. A deliberate no-change guard: it passes against the
 	 * old behaviour too, which is the point — it is the assertion that adding a graded metric to the
 	 * section did not quietly re-letter six real pulls.
+	 *
+	 * **`cleave` reads `good` here and read `ok` before 2026-08-24, and neither this metric nor this
+	 * file moved it.** The re-capture added `targets.aplCounts`, which took that pull's Tiger Palm sample
+	 * from two in-band presses to four and so past `MIN_GRADED_SAMPLE`; the three points it had been
+	 * forfeiting came back and carried the headline. The guard's own claim is untouched — `brewShortUses`
+	 * still re-letters nobody — but the baseline it is written against moved under it, so this entry is a
+	 * new reading of an unchanged rule rather than a rule that changed.
+	 *
+	 * **And note which reading this is.** `scoreAnalysis` is called bare, so the bands fall back to the
+	 * scorer's own default rather than being resolved through `resolveBands`, which is what the reader
+	 * actually gets. The two disagree on exactly this pull: under `auto` — the reader's default —
+	 * `cleave` was `good` before the re-capture and is `good` after, so nothing a reader sees moved at
+	 * all. What moved is this call's unbanded baseline. Kept bare because the claim being guarded is
+	 * about the metric and not about the ladder; `windwalker/__fixtures__/bands.test.ts` is where the
+	 * reader's reading is pinned.
 	 */
 	it('moves no overall verdict', () => {
 		// no-change guard
@@ -335,7 +350,7 @@ describe('the committed pulls', () => {
 			['strong', 'good'],
 			['mixed', 'ok'],
 			['poor', 'bad'],
-			['cleave', 'ok'],
+			['cleave', 'good'],
 			['weave', 'good'],
 			['waves', 'ok'],
 		]);

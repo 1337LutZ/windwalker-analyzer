@@ -7,8 +7,9 @@
 //   1. There is an Elemental `Analysis` on the page. This spec commits raw `FightDataset`s and no
 //      captured analysis, so `preview.astro` analyses one at build time rather than importing a stored
 //      one — see the argument on that page. What this file pins is the consequence the argument rests
-//      on: the analysed pull carries `timeline.hasteWindows`, and every *stored* analysis in the repo
-//      does not carry the key at all.
+//      on: the analysed pull carries `timeline.hasteWindows`. That this spec stores no analysis to import
+//      instead is pinned by name in `analysis/__tests__/fixtureCoverage.test.ts`s census, which holds
+//      `elemental: { captured: [] }`.
 //   2. `PreviewSwitcher` reads each fixture against its own spec. It used to pin `getSpec('windwalker')`
 //      for every entry, and adding an Elemental pull under that pin does not merely draw the wrong
 //      sections — it throws, `TypeError: Cannot read properties of undefined (reading 'snapshotted')` out
@@ -55,23 +56,19 @@ const ELEMENTAL_ONLY = ['flame-shock', 'lightning-shield', 'earth-shock', 'seari
 const WINDWALKER_ONLY = ['bank', 'chi-brew', 'energizing', 'fof', 'tiger-palm', 'karma'];
 
 describe('the preview page analyses an Elemental pull rather than storing one', () => {
-	it('hands the chart a haste window, which no stored analysis can', () => {
+	it('hands the chart a haste window', () => {
 		expect(phased.specName).toBe('Elemental');
 		expect(phased.timeline?.hasteWindows).toEqual([{ start: 1777, end: 41_785, id: 32_182, variant: 'Heroism' }]);
 	});
 
-	/**
-	 * The reason the entry is analysed and not stored, stated as a measurement: the field postdates
-	 * every capture in the repo, so a stored analysis is missing the *key* — not carrying an empty
-	 * array, which a reader could mistake for "no Bloodlust was cast".
-	 */
-	it('no stored Windwalker analysis has the key at all', () => {
-		for (const name of ['strong', 'poor', 'mixed', 'cleave', 'waves', 'weave']) {
-			const timeline = stored(name).timeline as object | undefined;
-			expect(timeline, name).toBeDefined();
-			expect('hasteWindows' in (timeline ?? {}), `${name}: timeline.hasteWindows`).toBe(false);
-		}
-	});
+	// **A second measurement stood here and has been retired rather than inverted.** It read
+	// `'hasteWindows' in stored(name).timeline` across the six Windwalker captures and required `false` on
+	// every one, on the argument that the field postdated every capture in the repo. The 2026-08-24
+	// re-capture gave all six the key, so the claim is now false of the whole set — and flipping it to
+	// `true` would assert nothing but that the fixtures are the fixtures, both sides off one file. What it
+	// was standing in for — that this spec has no stored analysis to import in the first place — is a
+	// property of the Elemental directory rather than of the Windwalker's captures, and is pinned by name
+	// in `fixtureCoverage.test.ts`s census.
 });
 
 describe('the preview harness reads each fixture against its own spec', () => {

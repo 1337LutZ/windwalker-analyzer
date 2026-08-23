@@ -54,12 +54,19 @@ describe('one clock', () => {
 		expect(measured?.uptimePct).toBeLessThanOrEqual(100);
 	});
 
-	/** The specific mismatch this guards: presses outside contact do not belong to this clock. */
+	/**
+	 * The specific mismatch this guards: presses outside contact do not belong to this clock.
+	 *
+	 * `waves` pressed the wind 35 times and 29 of them inside contact. It was 32 of 35 before the
+	 * 2026-08-24 re-capture, and the gap widened because the clock narrowed rather than because the
+	 * presses moved: this pull's `debuff.contactMs` went 317 188ms → 310 617ms, so three presses that
+	 * used to fall inside the clock now fall outside it. The row count is the unchanged side.
+	 */
 	it('counts only the presses made inside the clock', () => {
 		const { analysis, reading } = read('waves');
 		const rowCount = analysis.casts.find((c) => c.id === RJW_CAST_ID)?.count ?? 0;
 		expect(rowCount).toBe(35);
-		expect(reading.measured?.presses).toBe(32);
+		expect(reading.measured?.presses).toBe(29);
 	});
 
 	/** An analysis from before contact segments existed falls back to the pull for *both* halves. */
@@ -138,7 +145,13 @@ describe('the ladder opportunities, quoted rather than re-judged', () => {
 		expect(readJadeWind(analysis, analysis.apl).ladder?.wanted).toBe(rows.reduce((sum, r) => sum + r.count, 0));
 	});
 
-	/** The reader's override picks a different walk, and this section has to follow it, not the pull. */
+	/**
+	 * The reader's override picks a different walk, and this section has to follow it, not the pull.
+	 *
+	 * The live walk reads 3 and read 4 before the 2026-08-24 re-capture: one Rushing Jade Wind press on
+	 * `strong` moved `followed` → `skipped` in the detected walk. The two forced walks are unmoved, which
+	 * is what keeps this a statement about the walk being followed rather than about the button.
+	 */
 	it('answers the band it is handed', () => {
 		const analysis = fixture('strong');
 		const live = readJadeWind(analysis, analysis.apl).ladder;
@@ -146,7 +159,7 @@ describe('the ladder opportunities, quoted rather than re-judged', () => {
 		const multi = readJadeWind(analysis, analysis.aplForced?.[3]).ladder;
 		expect(single?.followed).toBe(1);
 		expect(multi?.followed).toBe(9);
-		expect(live?.followed).toBe(4);
+		expect(live?.followed).toBe(3);
 	});
 
 	/** No walk is not an empty walk: a log with no resource readings has to say nothing, not "zero". */

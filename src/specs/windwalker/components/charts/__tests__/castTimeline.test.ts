@@ -980,12 +980,12 @@ describe('CastTimeline, intermissions and deaths', () => {
 	 *
 	 * There was a `>= 3000` floor here, justified on the grounds that "a sub-second lead-in is a player
 	 * pressing on the pull, not a phase". Measured, no lead-in in the fixture set is sub-second: `strong`'s
-	 * is 1 521ms and the longest is 2 475ms, so the threshold was discarding the very stretches it was
+	 * is 1 722ms and the longest is 2 475ms, so the threshold was discarding the very stretches it was
 	 * written to keep, and on four of nine pulls it shaded nothing at all over 1.6–2.7s out of contact.
 	 * `DebuffTimeline` lost a one-second filter over the same complement in the same change, so the two
 	 * charts now shade the identical array on a Windwalker pull.
 	 *
-	 * `strong`'s complement is three spans — a 1 521ms lead-in, a 17 849ms phase and a 442ms tail — and
+	 * `strong`'s complement is three spans — a 1 722ms lead-in, a 17 849ms phase and a 442ms tail — and
 	 * only the middle one used to be drawn. Asserted through the stamps in each band's own `title`, which
 	 * is the only thing on the chart that names a shaded stretch by its ends.
 	 */
@@ -993,7 +993,7 @@ describe('CastTimeline, intermissions and deaths', () => {
 		const html = render(drawn);
 		const title = (start: number, end: number) =>
 			`title="${t('castLog.intermission.title')} · ${formatStamp(start)} → ${formatStamp(end)}"`;
-		expect(html).toContain(title(0, 1521)); // the lead-in, under the old three-second floor
+		expect(html).toContain(title(0, 1722)); // the lead-in, under the old three-second floor
 		expect(html).toContain(title(534_749, 535_191)); // the tail, under it as well
 		expect(html).toContain(title(399_772, 417_621)); // the phase, which was always drawn
 		// Three bands and no more: the complement of `contactSegments` has three spans on this pull, so a

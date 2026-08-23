@@ -79,21 +79,29 @@ describe('the headline says how much of the pull it judged', () => {
 	});
 
 	/**
-	 * `cleave` under its own detected reading, which is the pull the reported bug came off.
+	 * `weave` under its own detected reading: a `good` over fourteen fifteenths of the weight, which
+	 * without this sentence prints exactly like a `good` over all of it.
 	 *
-	 * 11 of 14 — Tiger Palm's three points leave the reckoning because two in-band presses cannot judge
-	 * the habit, and Rising Sun Kick is worth one rather than two on a pull read as multi-target. A
-	 * `good` over eleven fourteenths of the weight, which used to print exactly like a `good` over all of
-	 * it.
+	 * 14 of 15 — `brewShortUses` is worth one point and cannot be read, because the priority list asked
+	 * this pull for two brews and `MIN_GRADED_SAMPLE` is three.
+	 *
+	 * **`cleave` stood here and can no longer answer, which is a change of mechanism and not of number.**
+	 * It was the pull the reported bug came off, at 11 of 14: Tiger Palm's *three* points left the
+	 * reckoning because only two of its twelve presses were made at one enemy, and two presses cannot
+	 * separate a habit from a coin toss. The 2026-08-24 re-capture added `targets.aplCounts`, the series
+	 * the ladder asks its band question of, and under it four of those presses are in band rather than
+	 * two — over the floor, so the metric is graded and the pull is 14 of 14. No committed fixture now
+	 * loses points to the band narrowing; `weave` loses one to the bare sample floor instead. The band's
+	 * own arithmetic is unaffected and is still pinned in `windwalker/__fixtures__/bands.test.ts`.
 	 */
 	it('prints a short denominator on a pull part of which went unjudged', () => {
-		const cleave = fx('cleave');
-		const judged = scoreAnalysis(cleave, resolveBands(cleave.targets, 'auto')).judged!;
-		expect(judged).toEqual({ measured: 11, total: 14, unmeasurable: false });
+		const weave = fx('weave');
+		const judged = scoreAnalysis(weave, resolveBands(weave.targets, 'auto')).judged!;
+		expect(judged).toEqual({ measured: 14, total: 15, unmeasurable: false });
 
-		const html = render(cleave);
-		expect(html).toContain(t('summary.judged', { measured: 11, total: 14 }));
-		expect(html).not.toContain(t('summary.judged', { measured: 14, total: 14 }));
+		const html = render(weave);
+		expect(html).toContain(t('summary.judged', { measured: 14, total: 15 }));
+		expect(html).not.toContain(t('summary.judged', { measured: 15, total: 15 }));
 	});
 
 	/**

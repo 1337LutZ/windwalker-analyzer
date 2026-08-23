@@ -69,47 +69,75 @@ describe('the Tiger Palm rule says which target counts it is honest over', () =>
 	});
 
 	/**
-	 * The narrowing, on the pull it decides: `cleave` pressed Tiger Palm twelve times and exactly two of
-	 * them with one enemy up. Two presses cannot separate a habit from a coin toss — `MIN_GRADED_SAMPLE`
-	 * — so the pull is not graded on it, where before it was graded `good` on all twelve.
+	 * The narrowing, on the pull it cuts deepest: `cleave` pressed Tiger Palm twelve times and four of
+	 * them with one enemy up. Two thirds of the presses leave the sample — the sharpest cut in the set —
+	 * and this is the reported bug in this spec's own shape: a rule about the single-target filler,
+	 * applied to a pull that spent most of its counted windows on two enemies or more.
 	 *
-	 * This is the reported bug in this spec's own shape: a rule about the single-target filler, applied
-	 * to a pull that spent forty-one of its forty-eight counted windows on two enemies or more.
+	 * ---
+	 *
+	 * **This test asserted the opposite until 2026-08-24, and the claim it made is now true of nothing
+	 * we hold.** It read `sampleSize` 2 and `unmeasurable` true: only two of the twelve presses were in
+	 * band, two cannot separate a habit from a coin toss, so the pull went ungraded. That was the
+	 * flagship example of `bands: [1]` — the case where narrowing does not merely move a figure but
+	 * withdraws the verdict.
+	 *
+	 * The re-capture added `targets.aplCounts`, and `tigerPalmShare` asks its band question of that
+	 * series in preference to `targets.counts`. The two disagree on this pull at exactly two presses,
+	 * t=108684 and t=126524, which the display series counts as two enemies and the APL series as one.
+	 * So the in-band sample is 4 rather than 2, `MIN_GRADED_SAMPLE` is 3, and the pull is graded.
+	 *
+	 * **State the consequence rather than paper over it: no committed fixture exercises the sample floor
+	 * at band 1 any more.** The six in-band samples are 28, 25, 35, 4, 11 and 9, and the floor is 3. The
+	 * narrowing itself is still exercised — four of the six pulls lose presses to it, this one two thirds
+	 * of them — but the interaction between the narrowing and the floor is now uncovered by any real
+	 * pull, and a synthetic would only be this docstring restated as code. A seventh capture that spends
+	 * most of a pull on adds would restore it; nothing else will.
 	 */
-	it('does not judge the habit off two presses at one enemy', () => {
+	it('narrows the habit to the presses made at one enemy', () => {
 		const metric = tigerPalm('cleave', 'auto');
-		expect(metric?.sampleSize).toBe(2);
-		expect(metric?.unmeasurable).toBe(true);
+		expect(metric?.sampleSize).toBe(4);
+		expect(metric?.unmeasurable).toBe(false);
 		// The whole-pull press count, from the audit rather than restated, so the two sides of this are
-		// not the same number: twelve presses were made and two of them were in band.
+		// not the same number: twelve presses were made and four of them were in band.
 		expect(fixture('cleave').filler.casts).toBe(12);
 	});
 
 	/**
 	 * The other add fight, which keeps its grade and earns it on the presses it made at one target.
 	 *
-	 * `waves` made seven of its twenty-two presses in band and wasted none of them — over the floor, so
+	 * `waves` made nine of its twenty-two presses in band and wasted none of them — over the floor, so
 	 * it is judged, and the figure moves 4.5% → 0.0% because the one wasted press was made with a pack
-	 * up. A clean habit shown over seven presses is evidence; the same habit inferred from twenty-two
+	 * up. A clean habit shown over nine presses is evidence; the same habit inferred from twenty-two
 	 * presses mostly made where the list wanted Rushing Jade Wind was not.
 	 */
 	it('judges an add fight on the in-band presses it did make', () => {
 		const metric = tigerPalm('waves', 'auto');
-		expect(metric?.sampleSize).toBe(7);
+		expect(metric?.sampleSize).toBe(9);
 		expect(metric?.value).toBe(0);
 		expect(metric?.grade).toBe('good');
 		expect(fixture('waves').filler.casts).toBe(22);
 	});
 
 	/**
-	 * The two single-target pulls the report is calibrated on keep their faults, and the narrowing
-	 * changes the figure rather than excusing it — 72.0% → 73.9% and 73.2% → 70.6%. Both were `bad`
-	 * before and are `bad` now, which is the point: this mechanism is not a discount.
+	 * The two single-target pulls the report is calibrated on keep their faults. Both were `bad` before
+	 * the band existed and are `bad` under it, which is the point: this mechanism is not a discount.
+	 *
+	 * The narrowing reaches them differently now, and `mixed` is the sharper statement of the two. Under
+	 * `aplCounts` that pull never leaves band 1 at all — `resolveBands` answers `[1]` for it — so all
+	 * twenty-five presses are in band and the figure is 72.0% whether the band is applied or not. `poor`
+	 * visits bands 1 and 2, keeps thirty-five of its forty-one presses, and reads 71.4% in band against
+	 * 73.2% over the whole pull.
+	 *
+	 * So on this pair the band now excuses one pull nothing whatsoever and the other 1.8 points, and
+	 * neither is let off its grade. Before the 2026-08-24 re-capture these read 73.9% and 70.6%, off a
+	 * `targets.counts` series that put `mixed` at up to four enemies.
 	 */
 	it('leaves a single-target pull its fault', () => {
-		expect(tigerPalm('mixed', 'auto')?.value).toBeCloseTo(73.9, 1);
+		expect(resolveBands(fixture('mixed').targets, 'auto').bands).toEqual([1]);
+		expect(tigerPalm('mixed', 'auto')?.value).toBeCloseTo(72.0, 1);
 		expect(tigerPalm('mixed', 'auto')?.grade).toBe('bad');
-		expect(tigerPalm('poor', 'auto')?.value).toBeCloseTo(70.6, 1);
+		expect(tigerPalm('poor', 'auto')?.value).toBeCloseTo(71.4, 1);
 		expect(tigerPalm('poor', 'auto')?.grade).toBe('bad');
 	});
 
@@ -127,7 +155,7 @@ describe('the Tiger Palm rule says which target counts it is honest over', () =>
 	});
 
 	/**
-	 * `strong` is the pull that separates the cut from the verdict. Seven of its thirty-three presses
+	 * `strong` is the pull that separates the cut from the verdict. Five of its thirty-three presses
 	 * were made with a pack up and leave the sample, and the figure is 0.0% either way because this
 	 * player wasted none of them anywhere.
 	 *
@@ -136,7 +164,7 @@ describe('the Tiger Palm rule says which target counts it is honest over', () =>
 	 */
 	it('narrows the sample on a mixed pull whose habit was clean throughout', () => {
 		const metric = tigerPalm('strong', 'auto');
-		expect(metric?.sampleSize).toBe(26);
+		expect(metric?.sampleSize).toBe(28);
 		expect(fixture('strong').filler.casts).toBe(33);
 		// Deliberate no-change guard: nothing was wasted at any count, so no cut can move this.
 		expect(metric?.grade).toBe('good');
@@ -159,28 +187,35 @@ describe('the weight the band replaced', () => {
 	});
 
 	/**
-	 * What that costs, on the two pulls where it changes the headline. Both are the same correction seen
-	 * from its two ends, and both were the discount's own argument being applied to the wrong stretch.
+	 * What that costs. This test was written as "the band moves two headlines", and **both halves of that
+	 * have since been taken back, by two unrelated mechanisms and on two different dates.** Neither
+	 * retraction touches the band's own arithmetic, which is asserted above and is worth exactly what it
+	 * always was; what moved underneath it was, in one case a denominator, and in the other the series
+	 * the band reads. Recorded rather than quietly re-lettered.
 	 *
-	 * `waves` read as it was fought: its clean in-band habit used to count for one point of eleven and
-	 * now counts for three of thirteen, which carried the pull from 72.7% to 76.9% and over the line.
+	 * `waves` read as it was fought: its clean in-band habit counts for three points of thirteen where
+	 * the discount gave it one of eleven, which carried the pull 72.7% → 76.9% and over the line. Then
+	 * `brewShortUses` landed — two of the seven brews the priority list would have required ten of went
+	 * out short, graded `bad` — so the pull reads 10.0 points of 14 rather than 10.0 of 13, which is
+	 * 71.4% and back under the line.
 	 *
 	 * `cleave` forced single: three points used to be handed over for a `good` taken off twelve presses,
-	 * two of which the rule was about. Now the rule cannot say, and the pull is graded on what is left.
+	 * only two of which the rule was about, and the docstring here read "now the rule cannot say". It can
+	 * say again. The 2026-08-24 re-capture added `targets.aplCounts`, which puts four of those presses in
+	 * band rather than two — over `MIN_GRADED_SAMPLE` — so the metric is graded, the three points are
+	 * back in the reckoning, and the pull is `good` on this reading as it is on `auto`.
 	 *
-	 * **`waves` has since been handed back, and by a different rule.** `brewShortUses` grades it `bad` —
-	 * two of the seven brews the priority list would have required ten of went out short — so the pull
-	 * reads 10.0 points of 14 rather than 10.0 of 13, which is 71.4% and back under the line. The band's
-	 * arithmetic above is unchanged and still worth exactly what it was worth; what moved is the
-	 * denominator it is divided by. Recorded here rather than quietly re-lettered, because the sentence
-	 * this test was written to pin was "the band moves this headline", and the honest state of that claim
-	 * is now "it did, and a later metric moved it back".
+	 * So the honest state of the claim is that the band moves **no** headline in the committed set. That
+	 * is not the band failing: it is one pull losing its exemption to a wider series and another being
+	 * re-lettered by a metric that did not exist when this was written. The grid below is the guard that
+	 * still earns its place, and it is unchanged by the re-capture — six pulls, same six letters.
 	 */
-	it('moves the two headlines the discount was propping up', () => {
-		expect(overall('cleave', 'single')).toBe('ok');
+	it('moves no headline in the committed set, and says why for each', () => {
+		// `cleave` forced single: `good` since the APL series took its Tiger Palm sample over the floor.
+		expect(overall('cleave', 'single')).toBe('good');
 		// `waves` is the one the brew metric took back — the band's contribution to it is unchanged.
 		expect(overall('waves', 'auto')).toBe('ok');
-		// And nothing else in the set moves: these two are the whole of it.
+		// And nothing in the set moves under the reader's own default, before or after the re-capture.
 		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['good', 'ok', 'bad', 'good', 'good', 'ok']);
 	});
 });

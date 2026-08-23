@@ -137,24 +137,34 @@ describe('Tiger Palm summary cards', () => {
 	});
 
 	/**
-	 * A pull the single-target habit could not be read off is told how many presses were readable.
+	 * `cleave` is the pull the band narrows hardest — twelve Tiger Palm presses, four of them with one
+	 * enemy up — and it is graded on those four, because four clears `MIN_GRADED_SAMPLE`.
 	 *
-	 * `cleave` presses Tiger Palm twelve times and exactly two of them with one enemy up, which is under
-	 * the sample floor — so there is no grade. It used to print "Tiger Palm was never pressed in this
-	 * pull" under four cards totalling twelve presses and a timeline of all twelve; `f832015` dropped that
-	 * clause, which stopped the falsehood and left a silence where the reason is owed. The numbers in the
-	 * sentence are the sample and the press count, so it cannot disagree with the cards above it.
+	 * **This test asserted the thin-sample sentence until 2026-08-24 and now asserts its absence.** The
+	 * `targets.counts` series put two of the twelve presses in band; `targets.aplCounts`, added by the
+	 * re-capture and preferred by `tigerPalmShare`, puts four there. Under the floor the section printed
+	 * "…only 2 of your 12 presses went out with one enemy up — too few to read the habit from"; over it
+	 * the section prints the ordinary ledger. Both are correct for their sample, and what this pins now is
+	 * that the graded pull does not keep the ungraded pull's sentence — the failure mode when a floor
+	 * moves. The copy arm itself is still guarded, on this pull read through its display counts, in
+	 * `thinSample.test.ts`.
+	 *
+	 * The older falsehood stays pinned too: it once printed "Tiger Palm was never pressed in this pull"
+	 * under four cards totalling twelve presses, which `f832015` dropped.
 	 */
-	it('says how few of the presses the single-target habit could be read off', () => {
+	it('grades the pull on the presses that were in band, and drops the thin-sample sentence', () => {
 		const cleave = fx('cleave');
 		const html = render(cleave);
 		expect(cleave.filler.casts).toBe(12);
-		expect(html).toContain(t('tigerPalm.verdict', { context: 'none', sample: 2, casts: 12 }));
-		// The sentence this replaced, which stopped being true the moment a press count stopped being the
-		// only way to have no grade.
+		const card = getSpec('windwalker')!.score(cleave, resolveBands(cleave.targets, 'auto'));
+		expect(card.sections['tigerPalm']?.metrics.find((m) => m.key === 'tigerPalmWaste')?.sampleSize).toBe(4);
+		// Neither sentence a pull without a grade gets, and they are different sentences for different
+		// reasons — see the two arms in `thinSample.test.ts`.
+		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none', sample: 4, casts: 12 }));
+		expect(html).not.toContain('too few to read the habit from');
 		expect(html).not.toContain(t('tigerPalm.unpressed'));
-		// And it is a clause on the section rather than a replacement for it: the twelve presses are still
-		// drawn, still counted, and the uptime beside it is still true.
+		// And the section is otherwise unchanged: the twelve presses are still drawn, still counted, and
+		// the uptime beside them is still true.
 		expect(html).toContain(t('tigerPalm.key.wasted'));
 		expect(html).toContain(t('tigerPalm.uptime', { uptime: cleave.filler.buffUptimePct }));
 	});
@@ -165,14 +175,14 @@ describe('Tiger Palm summary cards', () => {
 	 *
 	 * Tiger Palm is the one Windwalker rule only one target count's list contains, so a reader forcing the
 	 * multi-target reading has said this pull is not about the single-target filler at all. `strong` under
-	 * that reading has **26** in-band presses and still no grade — so the two ways to have no grade cannot
+	 * that reading has **28** in-band presses and still no grade — so the two ways to have no grade cannot
 	 * share a sentence.
 	 */
 	it('says the single-target habit is not the question when the pull is read as multi-target', () => {
 		const strong = fx('strong');
 		const html = render(strong, 'multi');
 		expect(html).toContain(t('tigerPalm.verdict', { context: 'exempt', casts: strong.filler.casts }));
-		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none', sample: 26, casts: 33 }));
+		expect(html).not.toContain(t('tigerPalm.verdict', { context: 'none', sample: 28, casts: 33 }));
 		// Not a raw key, which is what a context arm with no copy behind it renders as.
 		expect(html).not.toContain('tigerPalm.verdict');
 	});
@@ -187,7 +197,7 @@ describe('Tiger Palm summary cards', () => {
  * whose waste all happened above one enemy grades `good` on a numerator of zero and printed the absolute
  * claim over a ledger that contradicts it.
  *
- * **Live on `waves`, no synthetic needed**: 22 presses, one wasted, seven of them made in band 1 and none
+ * **Live on `waves`, no synthetic needed**: 22 presses, one wasted, nine of them made in band 1 and none
  * of those wasted — a flat 0% share, `good`, and the sentence "1 wasted. Every press bought something."
  * in one breath, with the red `Wasted · 1` card directly above it.
  *
@@ -206,7 +216,7 @@ describe('a good Tiger Palm verdict claims only what the ledger can support', ()
 		expect(waste?.value).toBe(0);
 		expect(waste?.grade).toBe('good');
 		expect(waste?.unmeasurable).toBe(false);
-		expect(waste?.sampleSize).toBe(7);
+		expect(waste?.sampleSize).toBe(9);
 		expect(card.sections['tigerPalm']?.grade).toBe('good');
 		expect(waves.filler.casts).toBe(22);
 		expect(waves.filler.wasted).toBe(1);

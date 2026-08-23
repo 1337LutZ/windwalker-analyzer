@@ -101,19 +101,37 @@ describe('the raid buff section draws each spec its own rows', () => {
 	});
 
 	/**
-	 * The same claim taken against real data: a pull captured before any of this existed, drawn from its
-	 * own stored summary. Its six rows are the six the Monk declares, in that order, and the two the
-	 * declaration calls the monk's own are the two the stored summary already flagged — so the pill count
-	 * is a check on the declaration rather than a restatement of it.
+	 * The same claim taken against real data.
+	 *
+	 * **What this used to compare, and why it stopped meaning anything.** It read
+	 * `WINDWALKER.raidBuffEffects.map(key)` against `analysis.raidBuffs.rows.map(key)` and required them
+	 * equal, and took the pill count off `stored.rows.filter(selfProvided)`. Both worked only because the
+	 * captures then committed were *already narrowed to the monk* — six rows, in declaration order, with
+	 * `selfProvided` set. The 2026-08-24 re-capture stores what `readRaidBuffs` actually returns, which
+	 * that function's own docblock describes: spec-neutral, one row per group in `EFFECTS` (seven here,
+	 * `spellPower` among them), with `selfProvided` filled mechanically `false` because "can this spec
+	 * cast it" is not a question the event stream can answer. So the old equality was comparing the
+	 * declaration against a copy of itself that the capture happened to be carrying, and the pill count
+	 * now reads zero off a field that is `false` by construction.
+	 *
+	 * What is actually true, and is what the section rests on: the stored summary is the *superset* the
+	 * declaration selects from, and `selfProvided` is the declaration's answer rather than the capture's.
 	 */
 	it('draws a captured Windwalker pull unchanged', () => {
 		const analysis = windwalkerPull('strong');
 		const stored = analysis.raidBuffs!;
 		const html = renderToStaticMarkup(under(WINDWALKER, createElement(RaidBuffs, { analysis })));
 
-		expect(WINDWALKER.raidBuffEffects.map((e) => e.key)).toEqual(stored.rows.map((r) => r.key));
-		// Two `Yours to fix` pills per row that carries one, since the grid draws a card and a table row.
-		expect(html.match(/Yours to fix/g)).toHaveLength(stored.rows.filter((r) => r.selfProvided).length * 2);
+		// Fixture against declaration: every row the Monk draws is one the spec-neutral pass supplied, and
+		// the pass supplies more than the Monk draws.
+		const storedKeys = stored.rows.map((r) => r.key);
+		for (const { key } of WINDWALKER.raidBuffEffects) expect(storedKeys, key).toContain(key);
+		expect(storedKeys).toContain('spellPower');
+		expect(WINDWALKER.raidBuffEffects.map((e) => e.key)).not.toContain('spellPower');
+		// Two `Yours to fix` pills per row that carries one, since the grid draws a card and a table row —
+		// counted off the declaration, which is the only side that knows what a Monk supplies.
+		expect(WINDWALKER.raidBuffEffects.filter((e) => e.selfProvided)).toHaveLength(2);
+		expect(html.match(/Yours to fix/g)).toHaveLength(4);
 		expect(html).not.toContain('+10% spell power');
 	});
 
