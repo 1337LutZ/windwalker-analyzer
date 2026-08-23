@@ -37,7 +37,7 @@ import { intervalsAtLeast } from '~/lib/analysis/targets';
 import type { WclEvent } from '~/lib/events';
 import type { Analysis, ElementalAuditResult, FightDataset, Window } from '~/lib/types';
 
-import { analyse } from '../index';
+import { analyse, ELEMENTAL_SPEC } from '../index';
 import { scoreAnalysis } from '../score';
 
 const FIXTURES = ['phased', 'unbroken', 'cleave'] as const;
@@ -208,6 +208,40 @@ const bandTwo = (a: Analysis & ElementalAuditResult): Interval[] =>
 	);
 
 describe('the second dot is measured over band 2 alone', () => {
+	/**
+	 * **The premise the whole block rests on, and the one nothing here used to assert: the Elemental's two
+	 * target-count series are the same array.**
+	 *
+	 * `mdGraded` is `intersect(multiTargetWindows, gradedSpans)`, and it is the only expression in the spec
+	 * that reads *both* series at once — the floor off `targetPoints` (the **evidence** series, every landed
+	 * hit) and the ceiling off `aplTargetPoints` (the **ladder's**, the same hits less the spec's own area
+	 * damage). `e9a001a` wrote down why that pairing is right rather than mixed up: a question about which
+	 * rung of the priority list applied reads the ladder's series, a question about whether there was an
+	 * enemy there reads the evidence one, and this clock asks one of each — was there a second target to dot
+	 * (evidence), and was the list still asking for a second dot (ladder). The expression's own docblock
+	 * carries the argument at length; this is the fact that makes it currently untestable.
+	 *
+	 * Because Elemental declares no `aplTargetCountExclude`, `aplTargetPoints` *is* `targetPoints`, so no
+	 * fixture and no hand-built pull in this file can tell the pairing from either single-series reading.
+	 * Every figure below is therefore silent on which series each edge came off — and the day this spec
+	 * excludes an ability, `mdGraded` starts straddling two genuinely different arrays with nothing going
+	 * red. **This is that tripwire.** When it fails, the exclusion is real and `mdGraded` in `lib/index.ts`
+	 * needs re-reading against the rule above before its figures are believed; the pattern for separating
+	 * the two series is `lib/analysis/__tests__/targetSeries.aplBands.test.ts`.
+	 *
+	 * `cleave` at thirteen enemies is the strong half: this is two populated series agreeing point for
+	 * point, not two empty ones.
+	 */
+	it('reads one count series under both edges, because this spec excludes nothing from the ladder\u2019s', () => {
+		expect(ELEMENTAL_SPEC.aplTargetCountExclude).toBeUndefined();
+		expect(el.cleave.targets?.counts.max).toBe(13);
+		for (const name of FIXTURES) {
+			const targets = el[name].targets;
+			expect(targets?.aplCounts?.points, name).toEqual(targets?.counts.points);
+			expect(targets?.aplCounts?.max, name).toBe(targets?.counts.max);
+		}
+	});
+
 	/**
 	 * The denominator, derived and then pinned so a derivation that quietly went to zero on both sides
 	 * cannot pass.

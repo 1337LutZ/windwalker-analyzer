@@ -2560,6 +2560,12 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * `multiDotUptimeMs` intersects the secondary's dot with it and `mdGradedMs` is its own length, so the
 	 * numerator is inside the denominator by construction. Clipping one half of a band cut and not the
 	 * other is how `fsContactMs` once published 100.21%.
+	 *
+	 * **And the premise that makes the pairing untestable is itself now held.** No committed pull can tell
+	 * it from either single-series reading, because this spec declares no `aplTargetCountExclude` and the
+	 * two arrays are identical point for point. `bandedClocks.test.ts` asserts exactly that, so it goes red
+	 * the day it stops being true — which is the day this expression starts straddling two series that
+	 * genuinely differ and wants re-reading against the rule above.
 	 */
 	const mdGraded = intersect(multiTargetWindows, gradedSpans);
 	const mdGradedMs = unionMs(mdGraded);
