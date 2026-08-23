@@ -95,6 +95,10 @@ describe('the summary takeaways', () => {
 		quiet.procs.snapshotted = 0;
 		quiet.brew.uses = 0;
 		quiet.brew.maxStacks = 0;
+		// And the drains themselves, which is what "no brews spent" actually means. `brewShortUses` reads
+		// the use list rather than the summary count, so a list left populated beside `uses = 0` is a
+		// pull that both did and did not brew.
+		quiet.brew.useList = [];
 		quiet.cpm.gcdSlots = 0;
 		quiet.debuff.casts = 0;
 		quiet.filler.casts = 0;

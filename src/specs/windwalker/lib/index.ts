@@ -97,9 +97,9 @@ import { raidSourceLanes } from '~/lib/analysis/raidCasters';
 /** The Tigereye Brew bank caps at 20. Its removals are how a use is read — never the cast. */
 export const TEB_CAP = 20;
 /** Stacks a full use drains. */
-const TEB_DRAIN = 10;
+export const TEB_DRAIN = 10;
 /** A brew always lasts 15s; a re-cast refreshes it rather than extending it. */
-const TEB_ACTIVE_MS = 15000;
+export const TEB_ACTIVE_MS = 15000;
 
 /**
  * What one Tigereye Brew stack adds to damage, before mastery.

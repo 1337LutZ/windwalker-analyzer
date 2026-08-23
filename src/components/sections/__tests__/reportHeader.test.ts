@@ -63,16 +63,16 @@ const render = (analysis: Analysis, choice: 'auto' | 'single' | 'multi' = 'auto'
 
 describe('the headline says how much of the pull it judged', () => {
 	/**
-	 * A pull every rule was asked of. 14 of 14 points, which is the case that has to print a figure too:
+	 * A pull every rule was asked of. 15 of 15 points, which is the case that has to print a figure too:
 	 * "judged on all of it" is only readable as a contrast if the full case says so as well.
 	 */
 	it('prints the whole denominator on a pull it could judge in full', () => {
 		const poor = fx('poor');
 		const judged = scoreAnalysis(poor, resolveBands(poor.targets, 'auto')).judged!;
-		expect(judged).toEqual({ measured: 14, total: 14, unmeasurable: false });
+		expect(judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
 
 		const html = render(poor);
-		expect(html).toContain(t('summary.judged', { measured: 14, total: 14 }));
+		expect(html).toContain(t('summary.judged', { measured: 15, total: 15 }));
 		// And it is still a verdict: this pull is judged, so the grade's own sentence stands.
 		expect(html).toContain(t('overall.bad'));
 	});
@@ -80,41 +80,54 @@ describe('the headline says how much of the pull it judged', () => {
 	/**
 	 * `cleave` under its own detected reading, which is the pull the reported bug came off.
 	 *
-	 * 10 of 13 — Tiger Palm's three points leave the reckoning because two in-band presses cannot judge
+	 * 11 of 14 — Tiger Palm's three points leave the reckoning because two in-band presses cannot judge
 	 * the habit, and Rising Sun Kick is worth one rather than two on a pull read as multi-target. A
-	 * `good` over ten thirteenths of the weight, which used to print exactly like a `good` over all of it.
+	 * `good` over eleven fourteenths of the weight, which used to print exactly like a `good` over all of
+	 * it.
 	 */
 	it('prints a short denominator on a pull part of which went unjudged', () => {
 		const cleave = fx('cleave');
 		const judged = scoreAnalysis(cleave, resolveBands(cleave.targets, 'auto')).judged!;
-		expect(judged).toEqual({ measured: 10, total: 13, unmeasurable: false });
+		expect(judged).toEqual({ measured: 11, total: 14, unmeasurable: false });
 
 		const html = render(cleave);
-		expect(html).toContain(t('summary.judged', { measured: 10, total: 13 }));
-		expect(html).not.toContain(t('summary.judged', { measured: 13, total: 13 }));
+		expect(html).toContain(t('summary.judged', { measured: 11, total: 14 }));
+		expect(html).not.toContain(t('summary.judged', { measured: 14, total: 14 }));
 	});
 
 	/**
 	 * And below `MIN_JUDGED_WEIGHT_SHARE` the sentence stops claiming anything.
 	 *
-	 * `poor` read as multi-target with no catchable procs: Tiger Palm's three points are outside the
-	 * reading and snapshot rate's four have no denominator, which leaves 6 of 13 — under half, so
-	 * `overallOf` sets `unmeasurable` and parks the grade at `ok`. The pull itself is real and only the
-	 * two fields are synthetic, because no committed fixture is quiet enough to fall under the floor.
+	 * `poor` read as multi-target with no catchable procs and no brews spent: Tiger Palm's three points
+	 * are outside the reading, snapshot rate's four have no denominator and the brew section's three have
+	 * nothing to read, which leaves 4 of 14 — under half, so `overallOf` sets `unmeasurable` and parks the
+	 * grade at `ok`. The pull itself is real and only those fields are synthetic, because no committed
+	 * fixture is quiet enough to fall under the floor.
+	 *
+	 * **The brews had to be emptied here, and the reason is worth stating.** With only the two proc fields
+	 * blanked this pull now measures 7 of 14 — exactly half, which `MIN_JUDGED_WEIGHT_SHARE` reads as
+	 * enough — so the synthetic stopped exercising the refusal it was written for the moment a third
+	 * graded metric joined the brew section. Emptying the bank as well is the same synthetic taken one
+	 * step further in the direction it already went, rather than a number nudged to keep a test green:
+	 * "no brews spent" is what `brew.uses = 0` was always claiming, and the use list is what actually
+	 * says it.
 	 */
 	it('refuses a verdict when too little of the weight survived', () => {
 		const quiet = structuredClone(fx('poor'));
 		quiet.procs.opportunities = 0;
 		quiet.procs.snapshotted = 0;
+		quiet.brew.uses = 0;
+		quiet.brew.maxStacks = 0;
+		quiet.brew.useList = [];
 		const card = scoreAnalysis(quiet, resolveBands(quiet.targets, 'multi'));
-		expect(card.judged).toEqual({ measured: 6, total: 13, unmeasurable: true });
+		expect(card.judged).toEqual({ measured: 4, total: 14, unmeasurable: true });
 		expect(card.overall).toBe('ok');
 
 		const html = render(quiet, 'multi');
 		// The parked grade must not reach the reader as a reading of the pull.
 		expect(html).not.toContain(t('overall.ok'));
 		expect(html).toContain(t('overall.none'));
-		expect(html).toContain(t('summary.judged', { context: 'partial', measured: 6, total: 13 }));
+		expect(html).toContain(t('summary.judged', { context: 'partial', measured: 4, total: 14 }));
 		// Neutral rather than amber: the panel's rule is the grade's colour, and there is no grade.
 		expect(html).toContain('border-line');
 		expect(html).not.toContain('border-brew');

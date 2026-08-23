@@ -163,16 +163,25 @@ describe('the weight the band replaced', () => {
 	 * from its two ends, and both were the discount's own argument being applied to the wrong stretch.
 	 *
 	 * `waves` read as it was fought: its clean in-band habit used to count for one point of eleven and
-	 * now counts for three of thirteen, which carries the pull from 72.7% to 76.9% and over the line.
+	 * now counts for three of thirteen, which carried the pull from 72.7% to 76.9% and over the line.
 	 *
 	 * `cleave` forced single: three points used to be handed over for a `good` taken off twelve presses,
 	 * two of which the rule was about. Now the rule cannot say, and the pull is graded on what is left.
+	 *
+	 * **`waves` has since been handed back, and by a different rule.** `brewShortUses` grades it `bad` —
+	 * two of the seven brews the priority list would have required ten of went out short — so the pull
+	 * reads 10.0 points of 14 rather than 10.0 of 13, which is 71.4% and back under the line. The band's
+	 * arithmetic above is unchanged and still worth exactly what it was worth; what moved is the
+	 * denominator it is divided by. Recorded here rather than quietly re-lettered, because the sentence
+	 * this test was written to pin was "the band moves this headline", and the honest state of that claim
+	 * is now "it did, and a later metric moved it back".
 	 */
 	it('moves the two headlines the discount was propping up', () => {
-		expect(overall('waves', 'auto')).toBe('good');
 		expect(overall('cleave', 'single')).toBe('ok');
+		// `waves` is the one the brew metric took back — the band's contribution to it is unchanged.
+		expect(overall('waves', 'auto')).toBe('ok');
 		// And nothing else in the set moves: these two are the whole of it.
-		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['good', 'ok', 'bad', 'good', 'good', 'good']);
+		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['good', 'ok', 'bad', 'good', 'good', 'ok']);
 	});
 });
 
@@ -184,14 +193,27 @@ describe('the scorecard says how much of itself it judged', () => {
 	 */
 	it('publishes the denominator the headline was taken over', () => {
 		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'auto')).judged).toEqual({
-			measured: 14,
-			total: 14,
+			measured: 15,
+			total: 15,
 			unmeasurable: false,
 		});
 		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'multi')).judged).toEqual({
-			measured: 10,
-			total: 13,
+			measured: 11,
+			total: 14,
 			unmeasurable: false,
 		});
+	});
+
+	/**
+	 * And the headline `strong` read as multi-target loses, which is the other pull `brewShortUses` moves.
+	 *
+	 * Three of the nine brews the list would have required ten of went out short — one of them at five
+	 * stacks with no proc running at all — so the metric grades `bad`, and on this reading the pull is
+	 * 8.0 points of 11 rather than 8.0 of 10: 72.7% against 80.0%. The `auto` reading of the same pull
+	 * keeps its `good` with 1.67 points of margin, down from 7.14.
+	 */
+	it('moves the strong pull read as multi-target', () => {
+		expect(overall('strong', 'multi')).toBe('ok');
+		expect(overall('strong', 'auto')).toBe('good'); // no-change guard
 	});
 });

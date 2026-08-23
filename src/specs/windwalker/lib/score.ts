@@ -7,8 +7,9 @@
 // (`wasteTone` and friends) that colour the tiles. A second spec brings its own module beside
 // this one; the registry points each at its own.
 
-import type { Analysis, FillerAudit, TargetSummary } from '~/lib/types';
+import type { Analysis, BrewSummary, FillerAudit, ProcSummary, TargetSummary } from '~/lib/types';
 import { countAt } from '~/lib/analysis/targets';
+import { TEB_ACTIVE_MS, TEB_DRAIN } from '~/specs/windwalker/lib';
 import {
 	appliesAt,
 	GRADE_ORDER,
@@ -150,6 +151,78 @@ function tigerPalmShare(filler: FillerAudit, targets: TargetSummary | undefined)
 }
 
 /**
+ * Brews that went out under a full ten with nothing in the pull asking them to, and the brews that
+ * count as having been asked.
+ *
+ * The companion to `brewStacks`, and the reason it needs one: an average cannot bound its own worst
+ * member. The `poor` fixture is the proof and it is committed — six brews, mean exactly 9.5, `good`,
+ * with one of the six spent at seven. `mixed` is the same shape one step milder: mean 9.71, `good`,
+ * over a use list of 8, 10, 10, 10, 10, 10, 10. Nineteen brews at ten and one at half a bank average
+ * 9.53 and grade `good` as well. Nothing beside the mean says otherwise, and `brewCapWaste` — the only
+ * other graded number in the section — is about the *bank's* ceiling and is silent on all three.
+ *
+ * **Why the ten is the sim's number and not a round one, and why it is not a hard floor.** The
+ * priority list this report grades against holds one Tigereye Brew rule, in
+ * `ui/monk/windwalker/apls/default.apl.json`, group `RoRo: TEB - Actions` (the branch that runs when
+ * the Rune of Re-Origination is equipped, which every pull we hold is). Written out, it presses the
+ * brew when any of these holds:
+ *
+ *   - `TEB: Stacks == 20` — the bank is at its cap. A drain there spends a full ten by arithmetic.
+ *   - `TEB: Stacks > Current` and the fight has 15s or less left (25s with a proc running) — the
+ *     end-of-fight dump. **No stack floor at all**: stacks that outlive the boss were never worth
+ *     anything, so whatever is banked goes out.
+ *   - the GCD is ready, a Rune proc is running with **one global or less left on it**, and either no
+ *     brew is up inside the opener or the bank holds more than the running brew froze — the snapshot
+ *     press. **No stack floor here either**: a proc about to expire is worth more than the stacks.
+ *   - the GCD is ready, no proc is running, the bank holds more than the running brew froze, and
+ *     `TEB: Stacks > 15`. Sixteen banked means the drain takes ten. **So the list never spends fewer
+ *     than ten outside those two exceptions** — not as an aspiration, as its own output.
+ *
+ * That is the whole shape of the claim: ten is a floor on the brews the list would have required ten
+ * of, and the two exceptions leave the sample rather than being forgiven inside it. A hard floor at
+ * ten would fault the snapshot press and the tail dump, both of which are the list's own play.
+ *
+ * **The two exceptions, as the analysis already measures them.** The snapshot press is
+ * `ProcWindow.grade === 'last-gcd'`, which is the same comparison against the reader's own
+ * `snapshotLeewayMs` that decides how late a brew counts as the proc's final global — the same slop,
+ * read once. The tail is `TEB_ACTIVE_MS` of fight remaining, which is the brew's own duration and the
+ * list's own `Time: TEB seconds`: with less than that left, waiting for a tenth stack spends stacks
+ * that would have died in the bank.
+ *
+ * **Three clauses deliberately not imported, so the omissions are readable rather than discoverable.**
+ *
+ *   - Entry 13 of the same list — the branch for a monk with **no** Rune — grants a standalone opener
+ *     allowance: `Time: Opener` (`currentTime <= 10s`) with `TEB: Stacks >= 7`. It is not taken,
+ *     because the Rune branch nests its own opener clause *inside* the proc arm and so licenses no
+ *     sub-ten press without a proc, and because the window closes before any pull we hold reaches its
+ *     first brew: those land at 10.2s, 10.4s, 10.8s, 11.5s, 12.4s and 12.8s. Imported literally it
+ *     would fire on nothing, which is the failure this project has already shipped once — a
+ *     declaration that presents as a control and controls nothing.
+ *   - Entry 13 also allows eight stacks while every Agility trinket proc is up
+ *     (`allTrinketStatProcsActive`, `statType1: 1`, `minIcdSeconds: 40`). Not taken because a capture
+ *     does not carry which trinkets were procced when, and inventing that reading would forgive by
+ *     guess. This is the forgiving direction left closed, so the metric can over-fault a brew taken
+ *     under a stat proc on a pull with no Rune.
+ *   - `SNAPSHOT_STACK_FLOOR`'s four stacks are not a floor here. That constant says when a proc was
+ *     never a chance; this says when a brew was short. A proc the bank could not pay for produces no
+ *     brew at all and so no member of this sample.
+ *
+ * **The sample is the brews the list required ten of, and it is published.** Zero short brews out of
+ * zero required ones grades `good` if only the value is read — a free pass handed to the pull whose
+ * every brew the exceptions excused, and the same free zero `Metric.gradedMs` exists to refuse. So
+ * the count travels with its denominator and `MIN_GRADED_SAMPLE` applies: `weave` has five brews of
+ * which two were last-global presses and one was a tail dump, so two remain, and this says "cannot
+ * say" there rather than crediting it with a clean sheet.
+ */
+function shortBrews(brew: BrewSummary, procs: ProcSummary, durationMs: number): Measured {
+	const lastGlobal = new Set(
+		procs.windows.flatMap((w) => (w.grade === 'last-gcd' && w.snapshotAt !== null ? [w.snapshotAt] : [])),
+	);
+	const required = brew.useList.filter((u) => !lastGlobal.has(u.t) && durationMs - u.t > TEB_ACTIVE_MS);
+	return { value: required.filter((u) => u.consumed < TEB_DRAIN).length, sampleSize: required.length };
+}
+
+/**
  * Grades one pull.
  *
  * Section keys match the report's section ids, so a component asks for its own verdict by the name
@@ -196,6 +269,13 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// the field and carry `undefined`, which must read as "nothing forgiven" rather than as NaN.
 	const avoidableCapWaste = Math.max(0, brew.wastedAtCap - (brew.wastedProtecting ?? 0));
 	const brewCapWaste = metric('brewCapWaste', brew.uses > 0 || brew.maxStacks > 0 ? avoidableCapWaste : null);
+	// Beside the mean rather than folded into it, and the argument is `karma`'s two tiles one section
+	// down: an average that clears its line and one brew that did not are separate faults, and the
+	// weaker of the two should carry the section rather than be averaged away by the other. Folding a
+	// floor into `brewStacks` would also paint the headline tile — which prints `brew.avgConsumed` — a
+	// colour no number on the page accounts for, which is the thing `BrewBankTimeline` already ruled on
+	// for the cap count. See `shortBrews`.
+	const brewShortUses = metric('brewShortUses', shortBrews(brew, procs, analysis.durationMs));
 
 	// A press that redirected nothing, over the presses taken — never over the presses the cooldown
 	// allowed. Holding Touch of Karma through a phase with nothing incoming is the correct play, and
@@ -240,6 +320,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		tigerPalmWaste,
 		brewStacks,
 		brewCapWaste,
+		brewShortUses,
 		karmaEmpty,
 		karmaCapShare,
 		potionsUsed,
@@ -255,7 +336,9 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		sections: {
 			// Depth is deliberately secondary — see the note on SectionScore.
 			snapshots: section([snapshotRate], [snapshotDepth]),
-			brew: section([brewStacks, brewCapWaste]),
+			// All three primary: the mean, the bank's ceiling and the worst brew are three faults and not
+			// three readings of one, so the weakest carries the section. Same call as `karma` below.
+			brew: section([brewStacks, brewCapWaste, brewShortUses]),
 			casts: section([gcdUtilisation]),
 			debuff: section([rskUptime]),
 			tigerPalm: section([tigerPalmWaste]),
@@ -451,6 +534,41 @@ export const THRESHOLDS = {
 	brewCapWaste: { good: 0, ok: 5, higherIsBetter: false },
 
 	/**
+	 * Brews that spent under ten with no proc expiring and fight left to spend the stacks in.
+	 *
+	 * **Zero is the list's own output rather than a target set here.** Outside its two exceptions the
+	 * priority list will not press the brew below sixteen banked stacks, and a drain at sixteen takes
+	 * ten — so a pull that never brews short is a pull that played the rule, not an exceptional one.
+	 * The derivation, the two exceptions and the three clauses deliberately not imported are all on
+	 * `shortBrews`; this entry is only where the line sits.
+	 *
+	 * `ok` at one, which is the shape this repository already uses for a count of omissions and for the
+	 * reason it already wrote down beside `lightningShieldFellOff` and `shamanisticRageMissed`: zero is
+	 * achievable on any pull, one is a lapse and two is a habit. It is not a quantile of a sample and
+	 * does not pretend to be — a count of two to three across six pulls has no quantiles — but it is the
+	 * one band shape in the app whose middle is a *reason* rather than a number, which is what a count
+	 * of faults can honestly support. Lower is better.
+	 *
+	 * **A count, not the worst brew's own stack figure, and not a share.** The worst brew (`min` over the
+	 * sample) is the shape the report of this defect asked for and it has no second line available: the
+	 * list holds no partial tolerance anywhere — sixteen banked or a named exception — so `ok` would have
+	 * to be a number invented here, and a two-band metric collapses to pass/fail on a mechanic where the
+	 * middle is the normal case. A share of the sample flattens instead of separating: over the six
+	 * committed pulls it reads 0%, 0%, 14.3%, 16.7%, 21.4% and 22.2%, four of them inside eight points of
+	 * each other. The count separates all three ways; the figures are on the metric.
+	 *
+	 * **What it does not claim.** It counts brews, not damage. A brew at nine and a brew at five are one
+	 * fault each here, and the difference between them is not graded anywhere — the list does not price
+	 * it and neither does this. `brew.useList` carries every consumed figure and the bank chart draws
+	 * them, so the reader can see which brew and how short; what this number says is how many times it
+	 * happened with nothing asking for it.
+	 *
+	 * **No band.** Banking and spending brew stacks is the same job at every target count, which is the
+	 * sentence `tigerPalmWaste` uses to say why it is the only entry in this table that carries one.
+	 */
+	brewShortUses: { good: 0, ok: 1, higherIsBetter: false },
+
+	/**
 	 * Share of Touch of Karma presses that redirected nothing at all.
 	 *
 	 * The one fault this section could always support, and the reason it exists: the redirect returns
@@ -546,6 +664,13 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	snapshotDepth: 0,
 	brewStacks: 1,
 	brewCapWaste: 1,
+	// One, like the two beside it, and the light weight is the whole section's and not a discount on
+	// this metric. Adding a third weight-1 metric moves every pull's `judged` denominator from 14 to 15
+	// and dilutes each of the others by a fifteenth; that is the cost of the section saying a thing it
+	// could not say before, and it is stated rather than absorbed. What it is *not* is a claim that a
+	// short brew matters more than the mean it sits beside — the section's `worst` fold is what makes it
+	// bite, and the weight only says how much the headline should care.
+	brewShortUses: 1,
 	// Real damage and genuinely free — nobody misses a potion for want of skill — but it is a thing you
 	// bring rather than a thing you play, and this report is about the four minutes. At the same weight
 	// as the brew economy it can put a card in the summary of a pull that skipped both potions without
