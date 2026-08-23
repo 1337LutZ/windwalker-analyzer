@@ -304,30 +304,34 @@ describe('the exempt row', () => {
 	});
 
 	/**
-	 * **The fourth chart, which has no exempt row and needs none — the one shape of answer this file did
-	 * not yet hold.** `FlameShockDepth` was the last chart with zero exempt shading, and the reason is not
-	 * an omission.
+	 * **The fourth chart, whose exempt treatment is a row and not a region — and the assertion that was
+	 * passing while its own comment described something else.**
 	 *
-	 * Two grounds, and the first alone settles it. Its `x` is milliseconds since **each application**, so
-	 * one instant of the fight lands at a different `x` on every row and most instants land on none;
-	 * `exemptRows` returns fight-time intervals and there is no coordinate on that axis to put one at. A
-	 * band there would say "this far into a dot", which is not a statement about the pull.
+	 * `FlameShockDepth` still draws no `exemptRows` band, and that part was never an omission. Its `x` is
+	 * milliseconds since **each application**, so one instant of the fight lands at a different `x` on
+	 * every row and most instants land on none; `exemptRows` returns fight-time intervals and there is no
+	 * coordinate on that axis to put one at. A band there would say "this far into a dot", which is not a
+	 * statement about the pull. What it draws instead is the individual **bar** in `EXEMPT`, which is the
+	 * same grey and the same meaning at the only granularity this axis has.
 	 *
-	 * The second is the one worth asserting, because it is the check the other three charts failed: the
-	 * drawn set and the counted set are the same set. The rows are the presses made into a live dot, which
-	 * is `flameShock.refreshes` exactly, which is the denominator of `flameShockWaste` — so nothing came
-	 * out of the figure for a grey row to be honest about. Asserted on `cleave` above all, the only
-	 * committed fixture with band-3+ time: its refresh at 57 499 is inside the add wave `[52 997, 83 587]`
-	 * and is drawn in the fault tone, and the tile counts it in the same breath. Greying that row would put
-	 * the picture at odds with the number beside it — the `SearingTotemUptime` defect pointing the other
-	 * way.
+	 * **What this test used to assert, and why it passed while being wrong.** It read
+	 * `series.held.length === audit.refreshes` and the prose beside it called that the denominator of
+	 * `flameShockWaste`. That was true when it was written, and `c93b866` ended it: the share now divides
+	 * by `refreshes − unjudgedRefreshes`. `refreshes` is still the drawn row count, so the assertion went
+	 * on passing — against the raw field, not the derived one it claimed — and on `cleave` the two are 2
+	 * and 1. One committed fixture, one drawn row the figure no longer counted, and a green guard over the
+	 * top of it. That is the failure this file exists to catch, caught in this file.
 	 *
-	 * What would change this is a per-press `judged` flag on `FlameShockPress`, which the audit does not
-	 * publish; `score.ts` names it at `flameShockWaste`'s threshold as "a numerator per band in the audit,
-	 * not a wider declaration here". The day it lands, the equality below is what has to move first.
+	 * The old text also said the fix was "a per-press `judged` flag on `FlameShockPress`, which the audit
+	 * does not publish". It publishes two now: `judged`, which `unjudgedRefreshes` is counted out of, and
+	 * `band`, the target count `judged` is read off (`judged` is `band === 1`).
+	 *
+	 * **Three counts, and the middle one is the point.** Rows drawn is `refreshes`; rows greyed is
+	 * `unjudgedRefreshes`; rows left in a verdict colour is the share's denominator. All three are checked
+	 * below, on `cleave` above all — the only committed fixture where they are not the same number.
 	 */
-	it('draws no exempt row on the refresh chart, whose rows are the presses its share counts', () => {
-		const THEME = { miss: '#m', kick: '#k', brew: '#b', rune: '#r' } as unknown as ChartTheme;
+	it('greys the refresh rows the share stopped counting, and leaves the denominator drawn', () => {
+		const THEME = { miss: '#m', kick: '#k', brew: '#b', rune: '#r', track: '#t' } as unknown as ChartTheme;
 		const unbroken = elemental('unbroken');
 
 		for (const [name, el] of [
@@ -337,33 +341,55 @@ describe('the exempt row', () => {
 		] as const) {
 			const audit = el.flameShock;
 			const series = buildBars(audit, THEME);
-			// The drawn set is the counted set: one row per press the share divides by.
+			// Every press made into a live dot still gets a row — greying one does not remove it.
 			expect(series.held, name).toHaveLength(audit.refreshes);
-			// And no row of it is drawn as unmeasured, at either target count. // no-change guard
+			// The greyed rows are the ones the audit says the share dropped, counted the same way.
+			const greyed = series.held.filter((bar) => bar.meta.tone === EXEMPT);
+			expect(greyed, `${name} greyed`).toHaveLength(audit.unjudgedRefreshes);
+			// And what is left in a verdict colour is the denominator of `flameShockWaste` — the equality
+			// this test used to make against `refreshes` alone.
+			expect(series.held.length - greyed.length, `${name} counted`).toBe(audit.refreshes - audit.unjudgedRefreshes);
+			// The tail is one bar with the row it sits in, so a hover on either half reads the same.
 			expect(
-				series.held.every((bar) => bar.meta.tone !== EXEMPT),
-				name,
-			).toBe(true);
-			expect(
-				series.lastTick.every((bar) => bar.meta.tone !== EXEMPT),
-				name,
-			).toBe(true);
+				series.lastTick.filter((bar) => bar.meta.tone === EXEMPT),
+				`${name} tails`,
+			).toHaveLength(audit.unjudgedRefreshes);
 		}
-		// The counts the equality is against, so a fixture recapture that moved them says so here.
-		expect([unbroken.flameShock.refreshes, cleave.flameShock.refreshes, phased.flameShock.refreshes]).toEqual([
-			6, 2, 4,
+		// The counts the equality is against, so a fixture recapture that moved them says so here. Written
+		// out per fixture rather than as one number, because the whole defect was `cleave` differing from
+		// the other two and nobody looking.
+		expect(
+			(['unbroken', 'cleave', 'phased'] as const).map((name) => {
+				const audit = { unbroken, cleave, phased }[name].flameShock;
+				return [audit.refreshes, audit.unjudgedRefreshes, audit.refreshes - audit.unjudgedRefreshes];
+			}),
+		).toEqual([
+			[6, 0, 6],
+			[2, 1, 1],
+			[4, 0, 4],
 		]);
 
-		// `cleave`'s band-4 refresh: inside an add wave, drawn, and charged by the tile in the same breath.
+		// `cleave`'s band-4 refresh: inside an add wave, drawn, and now drawn grey rather than amber.
 		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
 		const press = cleave.flameShock.presses.find((p) => p.t === 57_499)!;
 		expect(press.remainingMs).not.toBeNull();
+		expect(press.judged).toBe(false);
 		expect(unionMs(intersect([[press.t, press.t + 1]], aoe))).toBe(1);
 		const drawn = buildBars(cleave.flameShock, THEME);
-		expect(drawn.held.some((bar) => bar.x.includes(fmt(press.t)))).toBe(true);
-		// The `wasted` figure the section prints under it — one press, and this is the one.
+		const row = drawn.held.find((bar) => bar.x.includes(fmt(press.t)));
+		expect(row).toBeDefined();
+		expect(row?.meta.tone).toBe(EXEMPT);
+		// The tooltip names the count off `band`, not the flag: "three or more enemies" would be a lie on
+		// this pull's two band-2 presses, so the row says the number it was actually made at.
+		expect(press.band).toBe(4);
+		expect(row?.meta.rows).toContainEqual(['reason', 'not measured — 4 enemies up']);
+		// Non-vacuous in the other direction: this pull's other refresh is judged and keeps its verdict.
+		expect(drawn.held.filter((bar) => bar.meta.tone !== EXEMPT)).toHaveLength(1);
+		// And the section's own waste figure is now taken over that one row rather than over both. The
+		// pull-wide count is unchanged and still 1 — the correction is `unjudgedWaste`.
 		const audit = cleave.flameShock;
 		expect(audit.refreshes - audit.windowed - audit.ascPrep - audit.snapshotGain).toBe(1);
+		expect(audit.unjudgedWaste).toBe(1);
 		expect(audit.presses.filter((p) => p.remainingMs !== null && p.kind === 'early').map((p) => p.t)).toEqual([57_499]);
 	});
 

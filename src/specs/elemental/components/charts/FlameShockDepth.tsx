@@ -14,6 +14,7 @@ import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import type { ChartTheme, TipContent } from '~/components/charts/apex';
 import { LABEL_FONT_SIZE, baseChart, baseGrid, baseTooltip } from '~/components/charts/apex';
+import { EXEMPT } from '~/components/charts/tones';
 
 const ROW_HEIGHT = 24;
 const CHROME = 88;
@@ -70,10 +71,19 @@ export interface DepthSeries {
  * and an early one has no tail at all; `flameShockDepth.test.ts` pins that as an invariant over every
  * press of all three fixtures.
  *
- * Tone is unchanged and still the verdict: the row's colour says what the press was, and the tail says
- * where the dot's last tick began. `phased` grades its refreshes against 1 349ms, 1 748ms and 2 275ms
- * ticks in the same fight as Bloodlust and Elemental Mastery fall off, so no one number could have
- * drawn this.
+ * Tone is the verdict on three rows in four, and the tail says where the dot's last tick began. `phased`
+ * grades its refreshes against 1 349ms, 1 748ms and 2 275ms ticks in the same fight as Bloodlust and
+ * Elemental Mastery fall off, so no one number could have drawn this.
+ *
+ * The fourth tone is `EXEMPT`, and it is not a verdict at all — it is the row the share stopped counting.
+ * See the note beside `tone` below, and the section on it in `FlameShockDepth`'s own docblock.
+ *
+ * **The tail stays violet on a greyed row, deliberately.** `rune` is documented in the key as the dot's
+ * own last tick and nowhere as a judgement, so drawing it under a grey bar says "the last tick opened
+ * here" and not "this press was credited" — which is a measurement the reader can still check, and the
+ * one fact about an ungraded press that is worth keeping. A greyed row also still feeds `lastTickZone`
+ * and `axisMaxMs`, for the same reason: those describe the dots that were *drawn*, not the presses that
+ * were counted.
  */
 export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): DepthSeries {
 	const held: Bar[] = [];
@@ -99,11 +109,20 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 			// snapshotted a stronger dot are all the accent. That third one has to be here and not only in
 			// the ladder: the tone comes off the same predicate `flameShockWaste` does, so leaving it out
 			// would draw a press the section calls correct in the fault colour.
-			const tone: keyof ChartTheme = p.duringAscendance
-				? 'miss'
-				: p.windowed || p.ascPrep || p.kind === 'snapshot'
-					? 'kick'
-					: 'brew';
+			//
+			// `EXEMPT` comes first and outranks all three, because it is not a fourth opinion about the
+			// press — it says the share above the chart never looked at it. `flameShockWaste` divides by
+			// `refreshes − unjudgedRefreshes`, so a press with `judged: false` is out of both halves of that
+			// fraction; drawing it amber would charge the reader for a press no printed number charges them
+			// for. It has to outrank `duringAscendance` for the same reason and not as a tie-break: a
+			// refresh taken under Ascendance at four enemies is still a press the share dropped.
+			const tone: keyof ChartTheme = !p.judged
+				? EXEMPT
+				: p.duringAscendance
+					? 'miss'
+					: p.windowed || p.ascPrep || p.kind === 'snapshot'
+						? 'kick'
+						: 'brew';
 			// `durationMs − remainingMs` reduces to `t − applyTime`, because `remainingMs` is
 			// `applyTime + durationMs − t`. So the bar's length is the real elapsed time since the
 			// application and carries none of the declared duration's error; only a *band* anchored to the
@@ -178,15 +197,21 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 								],
 							]
 						: []),
-					p.duringAscendance
-						? (['reason', 'refresh during Ascendance'] as [string, string])
-						: p.ascPrep
-							? (['reason', 'Ascendance prep'] as [string, string])
-							: p.windowed
-								? (['reason', 'refreshed on the last tick'] as [string, string])
-								: p.kind === 'snapshot'
-									? (['reason', 'snapshotted a stronger dot'] as [string, string])
-									: (['reason', 'early — a tick thrown away'] as [string, string]),
+					// The count, on the greyed rows only, and this is where the real number gets named. The key
+					// beside the chart has to cover every count at once and so says "more than one enemy"; a
+					// tooltip is per press and can say four. Read straight off `FlameShockPress.band`, which is
+					// the same series `judged` is taken from, so the sentence and the grey cannot disagree.
+					!p.judged
+						? (['reason', `not measured — ${p.band} enemies up`] as [string, string])
+						: p.duringAscendance
+							? (['reason', 'refresh during Ascendance'] as [string, string])
+							: p.ascPrep
+								? (['reason', 'Ascendance prep'] as [string, string])
+								: p.windowed
+									? (['reason', 'refreshed on the last tick'] as [string, string])
+									: p.kind === 'snapshot'
+										? (['reason', 'snapshotted a stronger dot'] as [string, string])
+										: (['reason', 'early — a tick thrown away'] as [string, string]),
 				],
 			};
 			// Stacked, so the two segments are one bar: what the dot ran before its last tick, and the part
@@ -211,49 +236,75 @@ export function buildBars(flameShock: FlameShockAudit, theme: ChartTheme): Depth
 /**
  * The refresh ledger, drawn.
  *
- * ## Why this chart has no unmeasured row, when the other three grew one
+ * ## Why this chart greys rows instead of shading a region
  *
- * `FlameShockUptime`, `SearingTotemUptime` and the Lightning Shield step chart all shade the stretches
+ * `FlameShockUptime`, `SearingTotemUptime` and the Lightning Shield step chart all shade the *stretches*
  * their own figure stopped counting, because each of those figures is a **share of pull time** and the
- * add waves came out of the denominator. This one is not a share of anything and its axis is not the
+ * add waves came out of the denominator. This one is not a share of pull time and its axis is not the
  * pull: `x` is milliseconds since *each application*, 0 to `axisMaxMs`, so the same instant of the fight
  * appears at a different `x` on every row and most instants appear on none. `exemptRows` returns
  * intervals in fight time; there is no coordinate on this axis to put one at. A vertical band here would
- * mean "this many seconds into a dot", which is not a fact about the pull at all.
+ * mean "this many seconds into a dot", which is not a fact about the pull at all. So the treatment is
+ * **per row** — the greyed bar — and `exemptRows` is still the wrong tool for it.
  *
- * **And the figures beside it lost nothing to shade.** The rows are `presses.filter(remainingMs !== null)`
- * — the presses made into a live dot — which is `flameShock.refreshes` exactly: 6 on `unbroken`, 2 on
- * `cleave`, 4 on `phased`, asserted in `exemptTrack.test.ts` beside the clocks that do have a row. That
- * same count is the denominator of `flameShockWaste` (`(refreshes − windowed − ascPrep − snapshotGain) /
- * refreshes`) and the numerator of the section's `In the last tick` tile. So the drawn set *is* the
- * counted set, press for press, at every target count — nothing was dropped from the number for the
- * picture to be honest about.
+ * **This chart used to grey nothing, and the reason it gave was true when it was written.** The rows are
+ * `presses.filter(remainingMs !== null)` — the presses made into a live dot — which is
+ * `flameShock.refreshes` exactly: 6 on `unbroken`, 2 on `cleave`, 4 on `phased`. That *was* also the
+ * denominator of `flameShockWaste`, so the drawn set was the counted set press for press, and there was
+ * nothing missing from the figure for a grey row to be honest about. The paragraph that used to stand
+ * here went further and argued the other way round — that greying `cleave`'s refresh at 57 499 would be
+ * the `SearingTotemUptime` defect in reverse, a picture saying "not measured" beside a tile still
+ * charging one wasted refresh. That was the right call against that denominator.
  *
- * **The one press that tests this, and why shading it would be the `SearingTotemUptime` defect in
- * reverse.** `cleave`'s refresh at 57 499 lands inside the add wave `[52 997, 83 587]` — band 4, where
- * `aoe.apl.json` rung 1 refuses to refresh a live dot at all — and it is drawn amber here. It is also
- * counted: `refreshes` is 2 and the verdict sentence's `wasted` is 1, and that 1 is this press. Greying
- * its row would leave the picture saying "not measured" beside a tile that still says one refresh was
- * wasted, which is exactly the disagreement the other three charts were fixed to remove, pointing the
- * other way.
+ * **`c93b866` moved the denominator, and this chart did not follow for a commit.** `flameShockWaste` now
+ * divides by `flameShock.refreshes − flameShock.unjudgedRefreshes`, and on `cleave` those are 2 and 1 —
+ * so the share is taken over **one** press while the chart drew two. The press that left the figure is
+ * exactly the one the old paragraph defended drawing in amber: 57 499, inside the add wave
+ * `[52 997, 83 587]`, where `aoe.apl.json` rung 1 refuses to refresh a live dot at all. Amber there is
+ * now the disagreement rather than the fix — a bar coloured "you threw away a tick" for a press no
+ * printed number charges the reader for.
  *
- * **What is genuinely outstanding is a number and not a drawing.** `flameShockWaste` declares
- * `bands: [1]`, but a declaration does not cut a clock — `cleave` reads as `[1, 2, 3, 4]`, so it
- * intersects non-empty and narrows nothing — and the counts above are taken at every band. `score.ts`
- * names the fix at that threshold in its own words: "a numerator per band in the audit, not a wider
- * declaration here", the shape `earthShockGood.judged` already has. This chart cannot run ahead of it,
- * because it has nothing to run on: `FlameShockPress` publishes no target count and no graded flag, so
- * the amber at 57 499 is the only verdict available to draw. **The field that would change this chart is
- * a per-press `judged: boolean` on `FlameShockPress`** (true where the press was made at a count this
- * rule exists at) — with it, the rows the share stopped counting could be greyed as
- * "Three or more enemies" and the identity above would become `drawn rows === refreshes` still, with the
- * grey ones excluded from both sides. Until the numerator moves, the honest drawing is this one.
+ * **What the audit publishes now, and which field does which job.** `FlameShockPress.judged` is the
+ * boolean the share's denominator is built out of (`unjudgedRefreshes` is it counted where it is false),
+ * and `FlameShockPress.band` is the target count it was read off, `judged` being `band === 1`. Both
+ * landed after the paragraph above was written; the older text here said `FlameShockPress` published
+ * neither, and named a per-press `judged: boolean` as the field that would change this chart. It did.
+ *
+ * **Select on `judged`, caption off `band`, and they are not the same set.** The greyed rows are
+ * `judged === false`, because that is the flag the denominator uses — not `band >= 3`, which differs on
+ * a press made at exactly two enemies. That difference is why the key here cannot borrow the existing
+ * "Three or more enemies" label: `judged` is false at two enemies as well, and on `cleave` two of the ten
+ * presses are band 2. The key says **"More than one enemy, not measured"**, which is true at two and at
+ * thirteen, and each greyed row's tooltip names its own count off `band` — "not measured — 4 enemies
+ * up". A legend has to cover every row at once and a tooltip is per press, so that is where the real
+ * number can be said.
+ *
+ * **The identity that replaces the old one.** Drawn rows are still `refreshes`; the *greyed* rows are
+ * `unjudgedRefreshes`; so the rows left in a verdict colour are `refreshes − unjudgedRefreshes`, which is
+ * the share's denominator. `exemptTrack.test.ts` asserts that third form on all three fixtures — it used
+ * to assert `held.length === refreshes` while the prose beside it claimed to be tracking the
+ * denominator, which passed for a commit while being false on `cleave`.
+ *
+ * **One thing this does not reconcile, stated rather than left for the next reader to trip on.** The
+ * tiles and the sentence under this section report the *pull-wide* ledger and are meant to: see
+ * `FlameShockAudit.unjudgedRefreshes`, which is published as the correction out of that ledger precisely
+ * so the two stay one subtraction apart. So on `cleave` the sentence still reads "1 refreshes threw away
+ * a tick" and the press table still marks 0:57 as a fault, while this chart draws that same press grey.
+ * The chart follows `flameShockWaste`, which is the graded share; the table follows the ledger, which is
+ * every press the reader made. That is a real thing for a reader to notice, and whether the sentence
+ * should move to the graded pair is a `score.ts` question and not this file's to answer.
  */
 export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 	const { t } = useTranslation('report');
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { flameShock } = el;
 	const refreshes = flameShock.presses.filter((p) => p.remainingMs !== null).length;
+	// The rows drawn grey: the refreshes `flameShockWaste` divides neither half of its share by. Counted
+	// here so the key can name a colour only when the chart drew it, which is the rule `FlameShockUptime`
+	// follows for its own two exempt rows — `unbroken` and `phased` never leave one enemy and get no grey
+	// bar and no entry for one. Selected on `judged` rather than on `band >= 3`, because `judged` is the
+	// flag `unjudgedRefreshes` is counted out of; the two differ on a press made at exactly two enemies.
+	const unmeasured = flameShock.presses.filter((p) => p.remainingMs !== null && !p.judged).length;
 	const height = refreshes * ROW_HEIGHT + CHROME;
 
 	const build = useCallback(
@@ -371,6 +422,15 @@ export default function FlameShockDepth({ analysis }: { analysis: Analysis }) {
 					 * than as a region of the plot.
 					 */}
 					<ChartKey tone="rune">{t('flameShock.chart.key.lastTick')}</ChartKey>
+					{/*
+					 * The one row that is not a press's grade but a statement about the share above it: with more
+					 * than one enemy up, `flameShockWaste` takes neither the numerator nor the denominator from
+					 * this press, so it is drawn in the same grey every other chart in the report uses for a
+					 * second its own figure dropped. Named "more than one enemy" and not "three or more": the
+					 * flag it is selected on is false at two as well, and `cleave` makes two presses at exactly
+					 * two enemies. The exact count is on each row's tooltip, where it is a count of one press.
+					 */}
+					{unmeasured > 0 ? <ChartKey tone={EXEMPT}>{t('flameShock.chart.key.unmeasured')}</ChartKey> : null}
 				</>
 			}
 		>

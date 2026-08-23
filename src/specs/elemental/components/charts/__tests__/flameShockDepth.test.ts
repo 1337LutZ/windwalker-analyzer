@@ -119,7 +119,75 @@ describe('Flame Shock last-tick copy', () => {
  * A stand-in palette. `readTheme` reads computed CSS custom properties off a live document, and none of
  * what is asserted below is a colour — the tone is already covered by the copy tests above.
  */
-const THEME = { miss: '#m', kick: '#k', brew: '#b', rune: '#r' } as unknown as ChartTheme;
+const THEME = { miss: '#m', kick: '#k', brew: '#b', rune: '#r', track: '#t' } as unknown as ChartTheme;
+
+/**
+ * The key for the greyed rows, and the wording it is **not** allowed to use.
+ *
+ * `flameShockWaste` divides by `refreshes − unjudgedRefreshes`, so a refresh made with more than one
+ * enemy up is drawn but not counted, and its bar goes grey. The obvious label to reach for was the one
+ * this section already owns — "Three or more enemies", on the uptime chart's shaded stretches — and it
+ * would be false here. That row is selected on `FlameShockPress.judged`, which is `band === 1`, so it is
+ * also false at **two** enemies; `cleave` presses Flame Shock twice at exactly two. A label saying
+ * "three or more" of a two-enemy press is a caption that happens to be true on today's fixtures and
+ * wrong about the pull, which is the whole reason `FlameShockPress.band` was published.
+ *
+ * So the key names the count it can name for every row at once, and the tooltip names the real one per
+ * press. Asserted against literal strings, per this file's own rule: two `t()` calls compared to each
+ * other pass whatever the locale says.
+ */
+describe('the greyed refresh rows say why they are grey', () => {
+	const cleaveEl: El = analyse(
+		JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/cleave.json'), 'utf8')) as FightDataset,
+	) as El;
+	const cleaveHtml = renderToStaticMarkup(
+		createElement(
+			SpecContext.Provider,
+			{ value: ELEMENTAL_SPEC },
+			createElement(FlameShock, { analysis: cleaveEl as Analysis }),
+		),
+	);
+
+	it('names more than one enemy, and never three or more', () => {
+		expect(t('flameShock.chart.key.unmeasured')).toBe('More than one enemy, not measured');
+		// The two presses the borrowed label would have lied about. Read out of the audit so this is a fact
+		// about the pull rather than a restatement of the copy.
+		expect(cleaveEl.flameShock.presses.filter((p) => p.band === 2).map((p) => p.t)).toEqual([40_269, 259_722]);
+		expect(cleaveEl.flameShock.presses.every((p) => p.band !== 2 || !p.judged)).toBe(true);
+	});
+
+	it('draws the key on a pull that has a grey row and leaves it off one that does not', () => {
+		// `cleave` greys its refresh at 57 499 — one row, so one key entry.
+		expect(cleaveEl.flameShock.unjudgedRefreshes).toBe(1);
+		expect(cleaveHtml).toContain('More than one enemy, not measured');
+		// `unbroken` never leaves one enemy, so there is no grey bar and nothing to name. A key entry for a
+		// colour the chart did not draw is the one mistake a legend can make.
+		expect(unbroken.flameShock.unjudgedRefreshes).toBe(0);
+		expect(html).not.toContain('More than one enemy');
+		// Non-vacuous: the rest of the key rendered on both pulls.
+		expect(cleaveHtml).toContain('The dot\u2019s own last tick');
+		expect(html).toContain('The dot\u2019s own last tick');
+	});
+
+	it('greys the bar and tells the reader the count on it', () => {
+		const drawn = cleaveEl.flameShock.presses.filter((p) => p.remainingMs !== null);
+		const i = drawn.findIndex((p) => p.t === 57_499);
+		expect(i).toBeGreaterThanOrEqual(0);
+		expect(drawn[i]!.band).toBe(4);
+		const bars = buildBars(cleaveEl.flameShock, THEME);
+		expect(bars.held[i]!.x).toContain(fmt(57_499));
+		expect(bars.held[i]!.fillColor).toBe(THEME.track);
+		// The count off `band`, spelled out rather than described. The old wording for this press was
+		// 'early — a tick thrown away', which charged the reader for a press the share no longer counts.
+		expect(bars.held[i]!.meta.rows).toContainEqual(['reason', 'not measured \u2014 4 enemies up']);
+		expect(bars.held[i]!.meta.rows).not.toContainEqual(['reason', 'early \u2014 a tick thrown away']);
+		// The tail keeps its own colour, because `rune` is the dot's last tick and never a grade.
+		expect(bars.lastTick[i]!.fillColor).toBe(THEME.rune);
+		// The other refresh on this pull is judged and keeps its verdict colour, so the grey is a split.
+		const other = drawn.findIndex((p) => p.t !== 57_499);
+		expect(bars.held[other]!.fillColor).not.toBe(THEME.track);
+	});
+});
 
 describe('the refresh tooltip names the window that judged the press', () => {
 	it("carries each press's own last tick, not the pull's median", () => {
