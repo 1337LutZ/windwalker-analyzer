@@ -17,7 +17,7 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function Snapshots({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { snapshots } = el;
-	const { t, unasked, verdict } = useReportCopy(analysis);
+	const { t, gradeOf, unasked, verdict } = useReportCopy(analysis);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -73,6 +73,14 @@ export default function Snapshots({ analysis }: { analysis: Analysis }) {
 						offered: snapshots.refreshed + snapshots.missed,
 					})}
 				</Prose>
+				{/* The one instruction the exempt sentence used to end on, said as a note instead.
+
+				    It shipped as the tail of nine graded sentences — three arms each of the two narrowed
+				    families and the three `verdict_exempt` arms — which put seventeen words of page navigation
+				    after the reader's own figure in every one of them. One key now, and the verdict ends on the
+				    pull. Still said per section rather than left to the control: by the time a reader is here the
+				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
+				{gradeOf('flameShockSnapshots') === 'exempt' ? <Note>{t('targets.switchReading')}</Note> : null}
 				<Note>{t('flameShockSnapshots.measurable')}</Note>
 			</div>
 		</Section>

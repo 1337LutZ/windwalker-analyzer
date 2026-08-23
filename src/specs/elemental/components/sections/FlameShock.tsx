@@ -344,6 +344,14 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				    every pull tells a reader nothing about this one — and it is the only place the
 				    two-target case is stated, which is the half a reader who takes the grey to mean "adds
 				    were forgiven" is owed. */}
+				{/* The one instruction the exempt sentence used to end on, said as a note instead.
+
+				    It shipped as the tail of nine graded sentences — three arms each of the two narrowed
+				    families and the three `verdict_exempt` arms — which put seventeen words of page navigation
+				    after the reader's own figure in every one of them. One key now, and the verdict ends on the
+				    pull. Still said per section rather than left to the control: by the time a reader is here the
+				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
+				{grade === 'exempt' ? <Note>{t('targets.switchReading')}</Note> : null}
 				{aoeWindows.length === 0 ? null : <Note>{t('flameShock.aoeNote')}</Note>}
 				{/* The second dot's own clock, and the only place it is stated — because it is the one figure in
 				    this section with no band on the graph above.

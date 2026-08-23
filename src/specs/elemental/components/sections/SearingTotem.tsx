@@ -156,6 +156,14 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 				</Prose>
 				{/* What the grey band on the graph above means, on the pulls that have one. Same gate and same
 				    argument as `lightningShield.aoeNote` — see the note in the Flame Shock section. */}
+				{/* The one instruction the exempt sentence used to end on, said as a note instead.
+
+				    It shipped as the tail of nine graded sentences — three arms each of the two narrowed
+				    families and the three `verdict_exempt` arms — which put seventeen words of page navigation
+				    after the reader's own figure in every one of them. One key now, and the verdict ends on the
+				    pull. Still said per section rather than left to the control: by the time a reader is here the
+				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
+				{narrowed ? <Note>{t('targets.switchReading')}</Note> : null}
 				{aoeWindows.length === 0 ? null : <Note>{t('searingTotem.aoeNote')}</Note>}
 				<Note>{t('searingTotem.gate')}</Note>
 			</div>

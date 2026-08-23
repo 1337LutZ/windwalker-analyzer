@@ -151,6 +151,14 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				{earthShock.presses.length > earthShock.judged ? (
 					<Note>{t('earthShock.aoeUnjudged', { count: earthShock.presses.length - earthShock.judged })}</Note>
 				) : null}
+				{/* The one instruction the exempt sentence used to end on, said as a note instead.
+
+				    It shipped as the tail of nine graded sentences — three arms each of the two narrowed
+				    families and the three `verdict_exempt` arms — which put seventeen words of page navigation
+				    after the reader's own figure in every one of them. One key now, and the verdict ends on the
+				    pull. Still said per section rather than left to the control: by the time a reader is here the
+				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
+				{gradeOf('earthShock') === 'exempt' ? <Note>{t('targets.switchReading')}</Note> : null}
 				<Note>{t('earthShock.fulmination')}</Note>
 			</div>
 		</Section>

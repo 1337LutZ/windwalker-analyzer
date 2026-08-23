@@ -232,3 +232,42 @@ describe('a section none of whose rules were asked', () => {
 		); // no-change guard
 	});
 });
+
+describe('the instruction that used to end nine graded sentences', () => {
+	/**
+	 * One key, five sections, and the verdict no longer ends on page navigation.
+	 *
+	 * "switch the reading with the control at the top of the page if you want it counted" shipped as the
+	 * tail of nine strings — three `_noUptime` arms, three `_noOvercap` arms and the three
+	 * `verdict_exempt` arms — seventeen words of furniture printed after the reader's own figure every
+	 * time. It is `targets.switchReading` now, rendered as a `Note` beside the verdict.
+	 *
+	 * Asserted from both sides per section, because dropping a clause from nine strings and rendering it
+	 * from one place is exactly the shape that loses a sentence off the page: the note has to be there,
+	 * and the graded paragraph has to no longer carry it.
+	 */
+	it('says it once, outside the graded sentence, in every section that needs it', () => {
+		const note = t('targets.switchReading');
+		for (const [name, Component, pull] of [
+			['SearingTotem', SearingTotem, phased],
+			['LightningShield', LightningShield, phased],
+			['FlameShock', FlameShock, cleave],
+			['EarthShock', EarthShock, cleave],
+			['Snapshots', Snapshots, cleave],
+		] as const) {
+			const html = render(Component, pull, 'multi');
+			expect(html, name).toContain(note);
+			expect(verdictOf(html), name).not.toContain('control at the top of the page');
+		}
+	});
+
+	/** And it is not printed on a reading that asked for everything, where there is nothing to switch to. */
+	it('stays off the page on the reading nobody forced', () => {
+		const note = t('targets.switchReading');
+		expect(render(SearingTotem, phased, 'auto')).not.toContain(note);
+		expect(render(LightningShield, phased, 'auto')).not.toContain(note);
+		expect(render(FlameShock, cleave, 'auto')).not.toContain(note);
+		expect(render(EarthShock, cleave, 'auto')).not.toContain(note);
+		expect(render(Snapshots, cleave, 'auto')).not.toContain(note);
+	});
+});

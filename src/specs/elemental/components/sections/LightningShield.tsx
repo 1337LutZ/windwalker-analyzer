@@ -206,6 +206,14 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 				    every pull tells a reader nothing about this one. It is also the only place the two-target
 				    case is stated, which matters more than the rest of it — the band covers three or more
 				    enemies, and a reader who takes it to cover every add is owed that sentence. */}
+				{/* The one instruction the exempt sentence used to end on, said as a note instead.
+
+				    It shipped as the tail of nine graded sentences — three arms each of the two narrowed
+				    families and the three `verdict_exempt` arms — which put seventeen words of page navigation
+				    after the reader's own figure in every one of them. One key now, and the verdict ends on the
+				    pull. Still said per section rather than left to the control: by the time a reader is here the
+				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
+				{narrowed ? <Note>{t('targets.switchReading')}</Note> : null}
 				{aoeBand.length === 0 ? null : <Note>{t('lightningShield.aoeNote')}</Note>}
 				<Note>{t('lightningShield.leeway', { leeway: formatSeconds(lightningShield.leewayMs) })}</Note>
 			</div>
