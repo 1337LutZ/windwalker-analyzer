@@ -247,11 +247,30 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 							    asserted empty presses would be wrong on a pull graded down for half-filled ones. */}
 							{emptyPresses > 0 ? t('karma.empty', { count: emptyPresses }) : null}
 						</Prose>
-						{/* Two situations, and the copy has to say which one the reader is looking at. A pull
+						{/* Three situations now, and the copy has to say which one the reader is looking at. A pull
 						    where a use drained its pool states that pool and what the presses left unspent; a
-						    pull where none did says it cannot tell, rather than estimating one. */}
+						    pull where none did says it cannot tell, rather than estimating one.
+
+						    **The percentage is computed here rather than read off `karmaCapShare`, and that is
+						    load-bearing rather than tidy.** That metric carries a press floor now — its ceiling is
+						    the largest absorb on the pull, so the share cannot read below one over the presses
+						    taken, and under three presses the bad end of its scale does not exist — and `metricOf`
+						    parks a refused value at nought. Reading it would print "returned 890,574 — 0% of it" on
+						    exactly the pulls the floor catches, which is a fresh falsehood in place of the old one.
+						    The arithmetic is a fact about the pull and survives the refusal; what the refusal
+						    withdraws is the letter.
+
+						    **And at one press even the arithmetic says nothing, which is the third sentence.** The
+						    pool is measured off that press, so the share of it is a hundred by construction: the very
+						    reading the scorer declined, printed as prose. That sentence names the pool and stops.
+						    Chosen off the press count and not off the metric, because the two answer different
+						    questions — the metric declines a letter at one press *or* two, and only at one is the
+						    number restating its own definition. `strong`, at two, returned half of what its presses
+						    could have and should say so. */}
 						{karma.capPerUse === null ? (
 							<Note>{t('karma.capUnknown')}</Note>
+						) : karma.casts === 1 ? (
+							<Prose>{t('karma.capSoleUse', { health: karma.capPerUse })}</Prose>
 						) : (
 							<Prose>
 								{t('karma.capSummary', {
@@ -259,7 +278,7 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 									casts: karma.casts,
 									possible: karma.capPerUse * karma.casts,
 									absorbed: karma.absorbed ?? 0,
-									pct: capShare?.value ?? 0,
+									pct: ((karma.absorbed ?? 0) / (karma.capPerUse * karma.casts)) * 100,
 									count: karma.exhausted ?? 0,
 								})}
 							</Prose>

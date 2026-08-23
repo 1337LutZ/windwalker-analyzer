@@ -93,6 +93,20 @@ function tile(html: string, label: string): string {
 const TONE = { good: 'text-kick', ok: 'text-brew', bad: 'text-miss', none: 'text-ink' } as const;
 
 /**
+ * The paragraphs the section prints, tags stripped, so a failure quotes the sentence a reader gets
+ * rather than four kilobytes of markup. The ceiling summary is always the last of them.
+ */
+const prose = (html: string): string[] =>
+	[...html.matchAll(/<p [^>]*>(.*?)<\/p>/g)].map((match) =>
+		(match[1] ?? '')
+			.replaceAll(/<[^>]*>/g, '')
+			.replaceAll('&#x27;', "'")
+			.replaceAll('&amp;', '&')
+			.trim(),
+	);
+const capLine = (html: string): string => prose(html).at(-1) ?? '';
+
+/**
  * `poor`'s three presses with the last one emptied, and nothing else touched.
  *
  * Synthetic, and it has to be: `karmaEmpty` carries a sample floor of three presses now, and no
@@ -161,6 +175,56 @@ describe('the Touch of Karma section', () => {
 		// absorb, by the pool. Nothing in the table may read above its own ceiling.
 		expect(html).toContain('100%');
 		expect(html).not.toContain('105%');
+	});
+
+	/**
+	 * The trap the ceiling share's press floor sets, and the sentence that had to move with it.
+	 *
+	 * `metricOf` parks a refused metric's value at nought, and this sentence used to interpolate
+	 * `capShare?.value ?? 0`. So the floor on its own printed the pool, then the damage the presses
+	 * actually returned, and then "0% of it" — a fresh falsehood laid over the one being fixed. The
+	 * percentage is arithmetic about the pull and survives the refusal, so the component computes it off
+	 * `absorbed` over `capPerUse × casts` and no longer reads it off the scorer. Only the letter goes,
+	 * and with it the tile that carried one.
+	 *
+	 * `strong` is a committed capture: two presses, the first drained an 805,148 pool and the second
+	 * absorbed nothing at all, so half of what the pair could have returned came back.
+	 */
+	it('still says what the presses returned on a pull whose share it refuses', () => {
+		const html = render(fixture('strong'));
+
+		expect(capLine(html)).toContain('805.1k health');
+		expect(capLine(html)).toContain('returned 805.1k — 50% of it');
+		expect(capLine(html)).not.toContain('— 0% of it');
+		// The letter is what the floor withdrew, so the tile that showed one is not drawn. It read 50%
+		// in amber here, off a scale whose bad end two presses cannot reach.
+		expect(tile(html, t('karma.kpi.ofCap'))).toBe('');
+	});
+
+	/**
+	 * And the pull where the arithmetic itself says nothing, so the sentence stops before it.
+	 *
+	 * `weave` is a committed capture with a single press, and that press drained its pool — which is the
+	 * only way a pool is ever stated. The share therefore divides that press by a ceiling measured off
+	 * that same press and reads a hundred percent by construction. Printing "your 1 uses could have
+	 * absorbed 890,574 between them and returned 890,574 — 100% of it" restates the definition of the
+	 * number, and a reader takes a hundred percent for a perfect mark. So the pool is named and the
+	 * share is not offered: the press has its own row above, which is all this pull can support.
+	 */
+	it('does not restate the definition of the number as a full mark', () => {
+		const analysis = fixture('weave');
+		expect(analysis.karma.casts).toBe(1);
+		expect(analysis.karma.absorbed).toBe(analysis.karma.capPerUse);
+
+		const html = render(analysis);
+
+		expect(capLine(html)).not.toContain('— 100% of it');
+		expect(capLine(html)).not.toContain('could have absorbed');
+		// The pool is still named, because a press did measure it — what goes is the share of it.
+		expect(capLine(html)).toContain('890.6k health');
+		expect(capLine(html)).toContain('the only press on the pull');
+		// And the tile, which read a green 100% off the same forced figure.
+		expect(tile(html, t('karma.kpi.ofCap'))).toBe('');
 	});
 
 	/** A press that returned nothing is counted in words, not only banded in the table. */

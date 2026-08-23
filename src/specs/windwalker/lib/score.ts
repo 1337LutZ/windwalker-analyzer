@@ -321,26 +321,42 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * absent on fixtures captured before it existed, and reading it as zero would score those pulls as
 	 * having returned nothing — so an absent absorb is an unmeasurable metric, not a failing one.
 	 *
-	 * **`sharePct` here on purpose, and it is still worth a second look — recorded, not fixed.** The
-	 * denominator is a quantity of damage rather than a count of events, which is the side of the line
-	 * `sharePct` is for; the Elemental's lust-haste share is the same shape. What is uncomfortable is
-	 * that the *sample* behind it is still `karma.casts`, and on a pull with one press the figure is
-	 * arithmetically forced rather than observed: `capPerUse` is read off a press that drained its
-	 * pool, so a single press that drained one gives `absorbed === karmaCeiling` and a tautological
-	 * hundred percent. `weave` is exactly that pull and is handed `good` for it; `strong`, at two
-	 * presses with one drained, reads a forced fifty and is handed `ok`. That is a circularity rather
-	 * than a thin sample, so it wants its own reasoning and not this one's floor.
+	 * **`sharePct` for the value, and a sample floor over the presses — two guards, and the second is
+	 * not the thin-sample argument.** The denominator is a quantity of damage rather than a count of
+	 * events, so `shareOf` would be the wrong wrapper: a floor of three units of damage means nothing,
+	 * which is why the Elemental's lust-haste share stays bare. The trouble is at the other end of the
+	 * fraction. **The ceiling is built out of the numerator's own largest term.** `capPerUse` is the
+	 * biggest absorb on the pull, so no press can exceed it and at least one press *equals* it — which
+	 * bounds the share below at one over the presses taken, whatever the player did.
 	 *
-	 * Whoever takes it should know the trap: `karma.capSummary` interpolates `capShare?.value ?? 0`,
-	 * and `metricOf` parks a refused metric's `value` at nought — so putting a floor on this metric
-	 * without also computing that percentage in the component would print "returned 890,574 — 0% of
-	 * it", which is a fresh falsehood in place of the old one.
+	 * At one press that bound is the only value there is: a hundred percent, restating how the pool was
+	 * measured rather than reporting anything. `weave` is that pull and was handed `good` for it. At two
+	 * the bottom half of the scale does not exist — `strong` pressed twice, its second press absorbed
+	 * nothing whatsoever, and the arithmetic still could not read below fifty, which this rule calls
+	 * `ok`. So the objection is not that the sample is thin. It is that the scale is truncated, and a
+	 * letter drawn off a scale with its bad end cut away is not a reading of the pull. That is why the
+	 * fix is not `karmaEmpty`'s: the same floor, reached by an argument of this metric's own.
+	 *
+	 * **Three, derived here rather than inherited, and the same three by a different route.** One over
+	 * three is 33%, which is under this rule's own `ok` step of 40 — so three presses is the first
+	 * count at which every letter the rule can award is reachable. That is a claim about *these two
+	 * numbers* and not about `MIN_GRADED_SAMPLE`, so `karma.test.ts` asserts them against each other;
+	 * move either and the derivation fails there rather than going quiet. `karma.casts` is the sample,
+	 * and `metricOf` does the refusing.
+	 *
+	 * **The percentage itself is not withdrawn from the reader, only the letter.** `metricOf` parks a
+	 * refused value at nought, and `karma.capSummary` used to interpolate `capShare?.value ?? 0` — so a
+	 * floor alone would have printed "returned 890,574 — 0% of it", a fresh falsehood for an old one.
+	 * `TouchOfKarma` computes that percentage off the pull instead, so the two-press sentence still
+	 * says fifty; and at one press it reaches a different sentence that stops before the tautology,
+	 * because "returned everything it could" is the definition of the number rather than news about
+	 * the press.
 	 */
 	const karmaCeiling = karma.capPerUse === null || karma.casts === 0 ? null : karma.capPerUse * karma.casts;
-	const karmaCapShare = metric(
-		'karmaCapShare',
-		karmaCeiling === null || karma.absorbed === undefined ? null : sharePct(karma.absorbed, karmaCeiling),
-	);
+	const karmaCapShare = metric('karmaCapShare', {
+		value: karmaCeiling === null || karma.absorbed === undefined ? null : sharePct(karma.absorbed, karmaCeiling),
+		sampleSize: karma.casts,
+	});
 
 	/**
 	 * Potions drunk out of the two the pull allowed.
@@ -642,6 +658,13 @@ export const THRESHOLDS = {
 	 * pool against one that returned 203,636 of a possible 629,585. `good` sits above the middle of
 	 * that spread and `ok` below it, which separates the three; nothing finer is supportable, and a
 	 * band claiming to tell 72% from 78% apart would be inventing precision the sample does not have.
+	 *
+	 * **`ok` is load-bearing past its own line, and that is why the metric carries a press floor.** The
+	 * share cannot read below one over the presses taken — the ceiling is the largest absorb on the
+	 * pull, so at least one press equals it — and three presses is the first count at which that bound
+	 * drops under 40 and the `bad` end of this scale is reachable at all. `karma.test.ts` asserts the
+	 * two numbers against each other, so moving this one fails there rather than quietly loosening a
+	 * floor derived from it.
 	 */
 	karmaCapShare: { good: 75, ok: 40, higherIsBetter: true },
 

@@ -108,9 +108,9 @@
   "casts": {
     "title": "Casts per minute",
     "intent": "How much of the time you spent on a target went into presses that achieved something. Windwalker is limited by energy and has real downtime, so 100% is not the ceiling — but every gap is a global the fight took from you or one that went unused.",
-    "verdict_good": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. Very little went unused.",
+    "verdict_good": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. Almost nothing went unused.",
     "verdict_ok": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. The remaining globals are worth working on.",
-    "verdict_bad": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. Nearly a third of the pull produced nothing useful.",
+    "verdict_bad": "Of the globals available in this pull, you spent {{used, percent}} on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target.",
     "verdict_none": "Too few globals passed to measure a rate.",
     "activeTime": "WarcraftLogs counts {{active, percent}} of the pull as active time for you. It comes off the damage table and forgives pauses of a few seconds, so it reads wider than the time you actually spent pressing something.",
     "wastedGcds_one": "One global went to a Tiger Palm that achieved nothing, and it is not counted above. A Jab or Blackout Kick there costs the same global and does count — this number is not asking you to press less.",
@@ -214,7 +214,7 @@
     "energyCaveat": "The rotation's energy condition is not checked here: this section grades placement against what buffs were running, not against your energy bar. A channel marked clean may still have started on a full bar.",
     "withBrew_all": "Every one of them had a brew running.",
     "withBrew_some": "{{withBrew}} of {{casts}} had a brew running.",
-    "caption": "Every Fists of Fury channel and what, if anything, was wrong with its placement",
+    "caption": "Every Fists of Fury channel, and where each one went wrong",
     "columns": {
       "at": "at",
       "channel": "channel",
@@ -233,7 +233,7 @@
     "summary": "{{casts}} of {{available}} possible uses, with the buff up for {{uptime, percent}} of the pull.",
     "recommendation": {
       "title": "Pair Energizing Brew with RJW",
-      "body": "Bloodlust or Time Warp was active while Rushing Jade Wind was selected, but Energizing Brew was not used there. The rotation allows this combination, and the extra energy is valuable for area damage."
+      "body": "Bloodlust or Time Warp was up with Rushing Jade Wind talented, but you did not press Energizing Brew. The rotation allows both together, and the extra energy is worth most in AoE."
     },
     "none": "Energizing Brew was never pressed, and the cooldown allowed {{available}} uses.",
     "haste_good": "None of them were used under a haste cooldown — the rotation holds Energizing Brew through those.",
@@ -276,7 +276,7 @@
   "energy": {
     "title": "Energy",
     "intent": "Energy refills whether or not you spend it, and anything that arrives while the bar is full is lost. The chart shows the bar itself, read from the snapshots WarcraftLogs attaches to your casts and hits.",
-    "none": "This log carried no resource snapshots, so there is no energy bar to read. Nothing is wrong with the pull — the report was simply not given the numbers.",
+    "none": "This log carried no resource snapshots, so there is no energy bar to read. Nothing is wrong with the pull — the report was not given the numbers.",
     "clean": "The bar never reached the top. Every point of energy the pull generated was there to be spent.",
     "summary": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it, filling at a measured {{regen, decimal}} energy a second.",
     "summaryNoRate": "It sat full for {{capped, duration}} of the {{duration, clock}} pull, {{pct, percent}} of it. The pull was too busy to measure a refill rate, so only the time is shown.",
@@ -308,7 +308,7 @@
   "chi": {
     "title": "Chi",
     "intent": "Chi waste is a different mistake from energy waste. Energy fills up on its own whether you press anything or not; chi is only wasted when you press a generator while the bar has no room for what it gives back. Every wasted point below cost you a global.",
-    "none": "This log carried no resource snapshots, so there is no chi bar to read. Nothing is wrong with the pull — the report was simply not given the numbers.",
+    "none": "This log carried no resource snapshots, so there is no chi bar to read. Nothing is wrong with the pull — the report was not given the numbers.",
     "clean": "Nothing overflowed. Every point of chi the pull generated had somewhere to go.",
     "summary": "{{wasted}} chi was wasted across {{moments}} presses that gave back more chi than the bar could hold. Each of those presses cost a global and achieved nothing.",
     "key": {
@@ -342,7 +342,7 @@
     "intent": "Everything flagged higher up the page, in one list with a time on each. Click a timestamp and the log opens at that moment, so you can see it for yourself.",
     "summary_one": "{{count}} thing worth going back to.",
     "summary_other": "{{count}} things worth going back to.",
-    "none": "Nothing in this pull tripped a check. The checks were still run — there was simply nothing to put here.",
+    "none": "Nothing in this pull tripped a check. The checks were still run — there was nothing to put here.",
     "caption": "Every miss, grouped by what happened, with a link into the log for each one",
     "columns": {
       "kind": "what",
@@ -360,9 +360,9 @@
     "verdict_ok_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. Press Thunderstorm the moment the bar reaches {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum — and put the Rage down every time it is up and you are under {{strained, percent}}.",
     "verdict_ok_noRage": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up. Press it the moment the bar reaches {{starved, percent}} — it is free and hands back {{starved, percent}} of your maximum. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
     "verdict_ok_noThunderstorm": "You let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. Put it down every time it is up and you are under {{strained, percent}} — it does not even take a global. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
-    "verdict_bad_one": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. At {{starved, percent}} your next Lava Burst may simply not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
-    "verdict_bad_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. At {{starved, percent}} your next Lava Burst may simply not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
-    "verdict_bad_noRage": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up. At {{starved, percent}} your next Lava Burst may simply not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
+    "verdict_bad_one": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} once without pressing it. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
+    "verdict_bad_other": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up, and let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. The Rage costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}.",
+    "verdict_bad_noRage": "You spent {{starvedMs, duration}} under {{starved, percent}} with Thunderstorm up. At {{starved, percent}} your next Lava Burst may not go out, so Thunderstorm is not optional there — press it as the bar reaches the line. This log never puts you under {{strained, percent}} with Shamanistic Rage in your hands, so nothing here is a claim about the Rage — only about the Thunderstorm.",
     "verdict_bad_noThunderstorm": "You let Shamanistic Rage come back to a pool already under {{strained, percent}} {{rage, integer}} times without pressing it. It costs no global at all, so there is nothing to weigh up: press it whenever it is up and you are under {{strained, percent}}. This log never puts you under {{starved, percent}} with Thunderstorm in your hands, so nothing here is a claim about the Thunderstorm — only about the Rage.",
     "verdict_none": "Your pool spent {{low, duration}} under {{strained, percent}}, and none of it is a press you passed over: every second of it fell inside the opening of the pull, or ran while the button for it was still coming back. So nothing here counts for or against you. Press Thunderstorm as the bar reaches {{starved, percent}} and Shamanistic Rage as it reaches {{strained, percent}} anyway — the Rage costs you no global at all, and the Thunderstorm hands back {{starved, percent}} of your maximum.",
     "kpi": {
@@ -392,9 +392,9 @@
     "bothDown": "{{ms, duration}} of your time under {{starved, percent}} had Thunderstorm and Shamanistic Rage both still coming back. That is the fight taking your mana rather than anything you did, and none of it is counted against you — there was no press left to make.",
     "shield": "{{ms, duration}} of the starved stretches above ran while Lightning Shield was off you, and that is a cause and not a coincidence: Rolling Thunder returns 2% of your maximum mana every time it grants a charge, and it only fires while the shield is up. Every Lightning Bolt and Chain Lightning you cast with the shield down was mana that never arrived. Keep the shield on and part of this refills itself.",
     "opening": "{{ms, duration}} of your low-mana time fell inside the opening of the pull, before enough time had passed to tell from this log alone whether the button was up — Thunderstorm comes back in 45s and Shamanistic Rage in 60s, and a press taken just before the pull leaves no trace inside it. Those seconds are left out rather than counted either way.",
-    "early_one": "You pressed Thunderstorm once above {{starved, percent}} mana. It is not counted against you anywhere in this report, but it is worth knowing the trade: the press takes a global, so on a pool that did not need it you swapped a Lightning Bolt for mana you already had.",
-    "early_other": "You pressed Thunderstorm {{count}} times above {{starved, percent}} mana. None of them is counted against you anywhere in this report, but it is worth knowing the trade: each press takes a global, so on a pool that did not need it you swapped a Lightning Bolt for mana you already had.",
-    "none": "This log carried no mana readings at all, so there is no bar to read and nothing here can be answered. Nothing is wrong with the pull — the report was simply not given the numbers.",
+    "early_one": "You pressed Thunderstorm once above {{starved, percent}} mana. It is not counted against you anywhere in this report. The press takes a global, though, so on a pool that did not need it you swapped a Lightning Bolt for mana you already had.",
+    "early_other": "You pressed Thunderstorm {{count}} times above {{starved, percent}} mana. None of them is counted against you anywhere in this report. Each press takes a global, though, so on a pool that did not need it you swapped a Lightning Bolt for mana you already had.",
+    "none": "This log carried no mana readings at all, so there is no bar to read and nothing here can be answered. Nothing is wrong with the pull — the report was not given the numbers.",
     "clean": "The pool never reached either number with the button for it up, so there was no press to make and nothing to flag. Mana was not what limited this pull.",
     "floor": "A stretch has to run at least {{floor}} — one global — before it is counted, because that is how often the priority order looks at your mana. Anything shorter is not a press you passed over.",
     "resolution": "This is a sampled bar, not a continuous one. WarcraftLogs stamps a reading onto events rather than onto a timer — {{samples}} here, a median of {{median, gap}} apart and 99% within {{p99, gap}} — so nothing between two readings is measured. A dip that opened and closed inside one of those gaps is missed entirely, so these figures under-report rather than over-report."
@@ -590,8 +590,9 @@
       "capPct": "of cap",
       "fortifying": "fort. brew"
     },
-    "capSummary_one": "One use drained its pool completely, which tells us the pool's size: {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
-    "capSummary_other": "{{count}} uses drained their pool completely, which tells us the pool's size: {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
+    "capSummary_one": "One use drained its pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
+    "capSummary_other": "{{count}} uses drained their pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
+    "capSoleUse": "One use drained its pool completely, which is what states the pool's size: {{health, compact}} health. It is also the only press on the pull, so the pool was measured off the same press that a share of it would divide. A lone press that drains its pool has returned everything it could by definition, and that is arithmetic rather than anything you did. Its row in the table above is the whole of what happened here.",
     "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and the only thing that states your pool is a use that drains it — none here did. Guessing from a bar that only reports whole percent would be a guess, not a measurement.",
     "fortifying_one": "One of them ran under Fortifying Brew.",
     "fortifying_other": "{{count}} of them ran under Fortifying Brew.",
@@ -611,7 +612,7 @@
     "held_other": "{{count}} more would have fitted: the cooldown sat ready and unused for {{drift, seconds}}.",
     "apl": "There is nothing to line it up with: the rotation casts it on cooldown with nothing to wait for, so using it as soon as it is ready is the entire standard.",
     "petDamage": "The tiger's Crackling Tiger Lightning dealt {{damage, compact}}, {{share, percent}} of your damage. Its melee swings share a spell id with yours, so they are in your total but cannot be split out here.",
-    "none": "Invoke Xuen was never pressed in this pull. It is a level-90 talent, so this may simply not be the one you took.",
+    "none": "Invoke Xuen was never pressed in this pull. It is a level-90 talent, so you may not have taken it.",
     "caption": "Every summon, how long the tiger was out for, and what it dealt while it was",
     "kpi": {
       "uses": "Summons taken",
@@ -686,7 +687,7 @@
   "gear": {
     "title": "Gear",
     "intent": "What you were wearing, straight from the log. Item level is here to be read — it counts neither for nor against you. The enchants are the part worth acting on: an empty slot costs damage on every pull until it is filled.",
-    "none": "This log carried no equipment record, so there is nothing to show. Nothing is wrong with the pull — the report was simply not given the data.",
+    "none": "This log carried no equipment record, so there is nothing to show. Nothing is wrong with the pull — the report was not given the data.",
     "missing_one": "{{slots}} is carrying no enchant. That is a straight loss on every pull, and the cheapest damage on this page to get back.",
     "missing_other": "{{count}} slots are carrying no enchant — {{slots}}. That is a straight loss on every pull, and the cheapest damage on this page to get back.",
     "pill": {
@@ -822,7 +823,7 @@
       "touchOfDeath": {
         "name": "Touch of Death",
         "test": "The target's health drops below yours",
-        "why": "It deals a lump equal to your own maximum health, for one global. The list presses Fortifying Brew in the same breath, because that raises the number it rolls against."
+        "why": "It deals a lump equal to your own maximum health, for one global. The list presses Fortifying Brew with it, because that raises the number it rolls against."
       },
       "chiBrew": {
         "name": "Chi Brew",
@@ -892,7 +893,7 @@
       "tigerPalmProc": {
         "name": "Tiger Palm",
         "test": "A free palm, past the opener, with room to spend it",
-        "why": "The same free-global logic as the kick, several rungs lower. Tiger Palm hits for very little, so a free one only earns its global when there is nothing better to put in it."
+        "why": "The same free-global logic as the kick, several rungs lower. Tiger Palm is a weak hit, so a free one only earns its global when there is nothing better to put in it."
       },
       "jab": {
         "name": "Jab",
@@ -1071,17 +1072,17 @@
         },
         "brewCapWaste": {
           "label": "Stop overflowing the bank",
-          "fix": "{{value, integer}} stacks were wasted because the bank was full. You can brew earlier to avoid overflow."
+          "fix": "{{value, integer}} stacks were earned with the bank already full, so they never landed. Spend a brew before the bank caps and the next stacks have somewhere to go."
         },
         "potionsUsed": {
           "label": "Drink both potions",
           "fix": "{{value, integer}}/{{target, integer}} potions used. One goes down in the last second before the pull, the next a minute in when it comes off cooldown.",
-          "fix_prepull": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the pre-pull one — drink it in the last second before the bell and it is running through your opener.",
+          "fix_prepull": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the pre-pull one — drink it in the last second before the pull and it is running through your opener.",
           "fix_combat": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the in-combat one, which comes off cooldown a minute after the pre-pull potion."
         },
         "energizingBrewRjw": {
           "label": "Use Energizing Brew with RJW",
-          "fix": "Bloodlust or Time Warp was present while RJW was selected, but Energizing Brew was not used during it. When at least two targets are active, the priority list allows this combination and the extra energy is especially valuable for area damage."
+          "fix": "Bloodlust or Time Warp was up with Rushing Jade Wind talented, but you did not press Energizing Brew. From two targets up the rotation allows both together, and the extra energy is worth most in AoE."
         },
         "flameShockUptime": {
           "label": "Keep the dot up",
@@ -1093,7 +1094,7 @@
         },
         "flameShockMultiDot": {
           "label": "Dot the second target",
-          "fix": "The dot was up on the secondary target for {{value, percent}} of the time two enemies were up, against {{target, percent}}. A second target that stays undotted is free damage left on the table."
+          "fix": "The dot was up on the secondary target for {{value, percent}} of the time two enemies were up, against {{target, percent}}. The gap is damage the second dot would have done."
         },
         "earthShockGood": {
           "label": "Spend the shocks right",
@@ -1108,8 +1109,8 @@
           "fix": "Searing Totem was placed under the Fire Elemental on {{value, integer}} of your presses. The Fire Elemental replaces the totem the instant it lands, so a press under it buys nothing."
         },
         "fireElementalPrepull": {
-          "label": "Summon before the bell",
-          "fix": "The Fire Elemental was not out when the pull started. Summoning it in the last second before the bell gets you its whole minute from the first second and starts its five-minute cooldown turning that much earlier. This log cannot see whether it was still down from the attempt before, so the summon being late is not counted against the pull. What the elemental covered once it was up is scored beside this."
+          "label": "Summon before the pull",
+          "fix": "The Fire Elemental was not out when the pull started. Summoning it in the last second before the pull gets you its whole minute from the first second and starts its five-minute cooldown turning that much earlier. This log cannot see whether it was still down from the attempt before, so the summon being late is not counted against the pull. What the elemental covered once it was up is scored beside this."
         },
         "flameShockSnapshots": {
           "label": "Catch the proc windows",
@@ -1234,7 +1235,7 @@
       "opportunities": "Presses / asked for"
     },
     "choice": {
-      "value": "Non-optimal",
+      "value": "Damage loss",
       "label": "Single-target choice"
     }
   },
@@ -1373,7 +1374,7 @@
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long. The rest went out early, and the table above says what was short on each one.",
     "verdict_bad": "Only {{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long — most went out early. The table above says what was short on each one: hold the shock until the charges are back and the dot is ahead of it.",
     "verdict_exempt": "From three enemies up the multi-target order has no Earth Shock in it at all — nothing asks you to spend the shield and nothing asks you to hold it — so none of your shocks is right or wrong on this reading. That is {{presses, integer}} in total, and nothing asked for any of them. Switch the reading with the control at the top of the page if you want them counted.",
-    "verdict_tooFew": "Earth Shock was pressed in this pull — {{presses, integer}} in total — but only {{counted, integer}} of those came with one or two enemies up, and that is too few to tell a habit from a coincidence: one press either way would swing the share. So nothing here counts for or against you. Any shock that went out early still has its own row in the table — read them one at a time rather than as a fraction.",
+    "verdict_tooFew": "Earth Shock was pressed in this pull — {{presses, integer}} in total — but only {{counted, integer}} of those came with one or two enemies up, and that is too few to tell a habit from a coincidence: one press either way would swing the share. So nothing here counts for or against you. Any shock that went out early still has its own row in the table. Read them one at a time rather than as a fraction.",
     "verdict_none": "Earth Shock was never cast in this pull.",
     "kpi": {
       "good": "Good shocks",
@@ -1504,7 +1505,7 @@
         "no-banner": "Barely any Skull Banner inside the window — spend Ascendance while the raid's banner is up"
       },
       "reason": {
-        "ascendance-up-at-the-pull": "Already running at the bell, so this press is not in your log",
+        "ascendance-up-at-the-pull": "Already running at the pull, so this press is not in your log",
         "first-press-past-one-cooldown": "Over a full cooldown into the pull — this may be a second use, so nothing is held against it",
         "nothing-to-hit": "Nothing was in reach when this press was due, so it cannot be read either way",
         "no-two-piece-evidence": "No tier-16 two-piece in your gear, so there was no proc to pair it with",
@@ -1565,7 +1566,7 @@
       "state": "what it was"
     },
     "state": {
-      "prepull": "Already out at the bell — no cast in your log",
+      "prepull": "Already out at the pull — no cast in your log",
       "near-end": "Pressed in the last minute — it lives to the end",
       "sync": "Pressed with Ascendance",
       "early": "Early, but with over three minutes left it comes back for a second summon",
@@ -1573,9 +1574,9 @@
     },
     "caption": "Every Fire Elemental summon, and what you pressed it with",
     "none": "Fire Elemental was never pressed in this pull.",
-    "prepullYes": "It was already out when the bell went — the prepull press the priority list makes under Heroism.",
-    "prepullNo": "It was not out when the bell went. Summoning it just before the pull is free: the elemental works from the first second and its five-minute cooldown starts turning earlier. Whether it was still down from the attempt before is not something this log can see, so nothing here counts it as a mistake. What the elemental covered once it was up is scored beside this.",
-    "prepullUnknown": "Whether it was out at the bell is not a question this pull can answer. A pre-pull elemental leaves only the expiry it logs a minute later, and this fight either ended or had not yet reached this player before that could land."
+    "prepullYes": "It was already out when the pull started — the prepull press the priority list makes under Heroism.",
+    "prepullNo": "It was not out when the pull started. Summoning it just before the pull is free: the elemental works from the first second and its five-minute cooldown starts turning earlier. Whether it was still down from the attempt before is not something this log can see, so nothing here counts it as a mistake. What the elemental covered once it was up is scored beside this.",
+    "prepullUnknown": "Whether it was out at the pull is not a question this log can answer. A pre-pull elemental leaves only the expiry it logs a minute later, and this fight either ended or had not yet reached this player before that could land."
   },
   "earthElemental": {
     "title": "Earth Elemental",
@@ -1609,7 +1610,7 @@
     "verdict_bad_zero": "The shield sat at seven for {{overcap, duration}} past the leeway, and never came all the way off — every one of those seconds is a charge the next spend lost.",
     "verdict_bad_one": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off once — both are charges the next spend lost.",
     "verdict_bad_other": "The shield sat at seven for {{overcap, duration}} past the leeway, and came all the way off {{fellOff, integer}} times — both are charges the next spend lost.",
-    "verdict_good_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours never came off: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so it pays however many enemies are in front of you.",
+    "verdict_good_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours never came off: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so it pays no matter how many enemies are in front of you.",
     "verdict_ok_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours came off once. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without.",
     "verdict_bad_noOvercap": "From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading — switch the reading with the control at the top of the page if you want it counted. Keeping the shield up is measured at every enemy count, and yours came off {{fellOff, integer}} times. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without.",
     "verdict_none": "Lightning Shield was never up in this pull.",
@@ -1667,7 +1668,7 @@
     "none": "No Stormlash Totem reached you in this pull.",
     "sourceNote": "The two tiles and the chart above read the raid's totem placements, which come from a separate fetch this pull does not carry — so they count zero. The table below asks the other half of the question and needs no extra fetch: every totem whose buff landed on you, and who laid it.",
     "ascendanceNote": "Dropping Stormlash costs you a global, and during Ascendance you want that global on Lava Beam — so lay the totem before you press Ascendance, or after the window closes. Treat this as a preference rather than a requirement: nothing in your score moves either way, and a totem still running through Ascendance is a good thing, because Stormlash pays out on what the raid does while it is up.",
-    "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the chart only shows where the raid left a totem on the table."
+    "note": "The overlap row shows where two totems ran at once. The assignment is yours to make; the chart only shows where the raid spent two totems on one stretch."
   },
   "lavaBurst": {
     "title": "Lava Burst",

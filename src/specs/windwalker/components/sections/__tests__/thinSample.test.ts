@@ -563,20 +563,27 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	});
 
 	/**
-	 * The second reason, and the one the section's letter cannot catch at all.
+	 * The second reason, and the one the section's letter could not catch at the time.
 	 *
 	 * `weave` took a single press, and that press drained its pool — which is what states the pool, so
-	 * `karmaCapShare` reads a hundred percent and hands the section a `good` all by itself. The section
-	 * is *not* unmeasurable, `gradeOf` never says `none`, and the arm chosen at that letter asserts that
-	 * every press ran while damage was coming in: the exact reading the scorer had just refused, claimed
-	 * off a sample of one. A gate on the letter would have left this one standing.
+	 * `karmaCapShare` read a hundred percent and handed the section a `good` all by itself. The section
+	 * was *not* unmeasurable, `gradeOf` never said `none`, and the arm chosen at that letter asserted
+	 * that every press ran while damage was coming in: the exact reading the scorer had just refused,
+	 * claimed off a sample of one. A letter this arm was chosen by would have left this one standing.
+	 *
+	 * **The letter has since gone, and the arm did not have to move with it — which is the argument for
+	 * choosing it by name made twice.** `karmaCapShare` carries a press floor of its own now: its
+	 * ceiling is the largest absorb on the pull, so the share cannot read below one over the presses
+	 * taken and the whole bad end of its scale is out of reach under three of them. Both metrics here
+	 * are refused at one press, so the section is unmeasurable and the two no longer come apart on a
+	 * pull this thin. The sentence below is unchanged through that, because it never read the letter.
 	 */
 	it('does not claim a clean sheet off a single press', () => {
 		const analysis = fixture('weave');
 		expect(analysis.karma.casts).toBe(1);
 		const section = karmaOf(analysis);
-		expect(section?.grade, 'the letter this arm used to be chosen by').toBe('good');
-		expect(section?.unmeasurable, 'and the section is not unmeasurable, so `gradeOf` never said `none`').toBe(false);
+		expect(section?.grade, 'the letter this arm used to be chosen by, since withdrawn').toBe('ok');
+		expect(section?.unmeasurable, 'both metrics are refused at one press, so the section is too').toBe(true);
 
 		const sentence = verdictOf(render(TouchOfKarma, analysis));
 		expect(sentence).not.toContain(CLEAN_SHEET);
