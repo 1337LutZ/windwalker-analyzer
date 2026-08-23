@@ -52,7 +52,8 @@ import type { AplInputs } from '~/lib/spec/apl';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { LADDER_ENTRIES as ELE_LADDER, UNARBITRATED as ELE_UNARBITRATED } from '~/specs/elemental/lib/apl';
 import { WW_SPEC } from '~/specs/windwalker';
-import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
+import { LADDER_ENTRIES as WW_LADDER, UNARBITRATED as WW_UNARBITRATED } from '~/specs/windwalker/lib/apl';
+import { SPEC_SECTIONS } from '~/components/report/specSections';
 
 /**
  * The specs to check, with the two declarations the question compares: what the spec models, and the
@@ -72,14 +73,13 @@ const SPECS: ReadonlyArray<{
 	unarbitrated: NonNullable<AplInputs['unarbitrated']>;
 }> = [
 	{ dir: 'elemental', config: ELEMENTAL_SPEC, ladder: ELE_LADDER, unarbitrated: ELE_UNARBITRATED },
-	// **The Windwalker declares none, and that is a measured gap rather than a spec that needs none.** Its
+	// **The Windwalker declares two of its six, and the four it does not are the point of the split.** Its
 	// ladder can reach the engine's fall-through — it is written in units of energy and chi, so a rung it
-	// cannot pay for declines — and its captured pulls carry a non-zero `offList` for that reason. But the
-	// six on-GCD buttons below with no rung are still walked down the list: `waves.json` charges 19 such
-	// presses to a rung and `cleave.json` 8, mostly Storm, Earth and Fire and Touch of Karma against Tiger
-	// Palm and Jab. Wiring the declaration for this spec is `specs/windwalker/lib/index.ts` work and is not
-	// this file's to do; what this file can do is stop the ledger below reading as though the gap were shut.
-	{ dir: 'windwalker', config: WW_SPEC, ladder: WW_LADDER, unarbitrated: {} },
+	// cannot pay for declines — and its captured pulls carried a non-zero `offList` before any declaration
+	// existed, which is why the two arms of that verdict have to be read apart. What the declaration moved,
+	// measured off those pulls: 16 presses on `waves`, 6 on `cleave`, 3 each on `mixed` and `poor`, 2 on
+	// `strong`, 1 on `weave` — and `followed` untouched on all six. What it left alone is the ledger below.
+	{ dir: 'windwalker', config: WW_SPEC, ladder: WW_LADDER, unarbitrated: WW_UNARBITRATED },
 ];
 
 /**
@@ -112,11 +112,14 @@ const SPECS: ReadonlyArray<{
  * nothing at bands 3 and 4 is the counterfactual being honest rather than a defect: they are Lightning
  * Bolt and Lava Burst pulls, and `aoe.apl.json` asks for neither.
  *
- * The first three Windwalker entries are the ones the ladder's own module doc argues, and that citation
- * used to be partial: `windwalker/lib/apl.ts` named Touch of Death outright and left Storm, Earth and Fire
- * and Touch of Karma covered by the cooldown-decisions bullet's *category* while its list enumerated
- * only Chi Brew, Tigereye Brew, Energizing Brew and Xuen. Both are named there now, so each reason
- * below is a one-line pointer at the argument rather than a second copy of it.
+ * **The Windwalker went from six entries to four, and the two that left are the shape of the answer this
+ * ledger is for.** All six were on-GCD buttons with no rung, all six were being charged to one, and the
+ * fix was not the same for all six: Storm, Earth and Fire and Touch of Karma each have a section in this
+ * report that judges the press — `sef` and `karma` — so they moved into `windwalker/lib/apl.ts`'
+ * `UNARBITRATED` and the walk now answers `off-list` naming it. The four below have no section, no clock
+ * and no rule in the sim's list to transcribe, so a declaration would name nowhere; they stay charged.
+ * `specs/windwalker/lib/__tests__/unarbitrated.test.ts` asserts both halves per press, because this file
+ * reads declarations and never verdicts.
  */
 const NOT_RUNGS: Record<string, Record<string, string>> = {
 	elemental: {
@@ -140,35 +143,49 @@ const NOT_RUNGS: Record<string, Record<string, string>> = {
 		// "what should that global have been", and it is a better answer than silence.
 		'magma-totem': 'in none of the five simulator lists — no rule to transcribe and no section to delegate to',
 	},
-	// **All six are open gaps, not exemptions.** This spec declares no `unarbitrated`, so every one of
-	// these presses is walked down the ladder and charged to a rung — measured above on the captured pulls.
-	// The three that were already here kept their arguments for *why a per-press verdict would be unfair*,
-	// and those arguments still stand; what has changed is that the unfair verdict is being issued anyway,
-	// so the reason is no longer also an account of what the report does. The three below them were
-	// invisible to this file until the sweep stopped narrowing on `gate`.
+	// **Four of the six, and the two that left are why the remaining four are not a to-do list.** Storm,
+	// Earth and Fire and Touch of Karma were here, arguing that a per-press verdict would be unfair to
+	// them, and both now carry a declaration in `windwalker/lib/apl.ts` naming the section that judges the
+	// press instead — `sef` and `karma`, sections this report really has, both rendering per-press rows and
+	// the second of them *grading* what it finds. The four below have no such section anywhere in the
+	// report, which is exactly the test: `off-list` says the list has no opinion, and a button nothing else
+	// has an opinion about either would leave the report silent on a global that was really spent. Charging
+	// it to the rung the list would have spent that global on is the simulator's own answer to what it
+	// should have been, and a worse answer than that is silence rather than a fault.
 	windwalker: {
 		// `windwalker/lib/apl.ts:16-19`. Priority 3 tests `spellCanCast`, which in 5.4 means the target is
 		// under 10% health. Health is not in the event stream this report fetches, so the condition is
 		// undecidable — and `judge` stops at the first unreadable rule, so an undecidable rung at the top of
-		// a ladder poisons every press below it into "cannot say". One press a pull, excluded rather than
-		// guessed at.
-		'touch-of-death': 'condition undecidable — target health is not in the event stream',
-		// `windwalker/lib/apl.ts`, the Storm, Earth and Fire paragraph. The sim's own condition is a target
-		// count and a rung could hold it; `SEF_SECOND_TARGET_MS` asks whether the second target lived long
-		// enough to repay the spirit, and no band expresses a duration. Judged by `analysis.sef`.
-		'storm-earth-and-fire': 'cooldown judged by its own section, on a duration no band can express',
-		// `windwalker/lib/apl.ts`, the Touch of Karma paragraph — and `122470` is in no part of the sim's
-		// Windwalker list at all. Judged by `analysis.karma`, on absorbed damage rather than a rotation.
-		'touch-of-karma': 'defensive judged by its own section, on absorbed damage rather than a rotation',
-		// The three the widened sweep found. None is in any part of the sim's Windwalker list, so none has a
-		// rule to transcribe — but unlike Magma Totem all three are *pressed* in the captured pulls and so
-		// are being charged to a rung today. `waves.json` charges two Leg Sweeps to Jab; `cleave.json`
-		// charges Expel Harm to the Rushing Jade Wind opener and Flying Serpent Kick to Blackout Kick.
-		'expel-harm': 'off the sim list entirely — an open gap: 1-5 presses a pull are charged to a rung',
-		'flying-serpent-kick': 'a movement press off the sim list — an open gap, charged to a rung today',
-		'leg-sweep': 'a stun off the sim list — an open gap, charged to a rung today',
+		// a ladder poisons every press below it into "cannot say".
+		//
+		// **The one entry here that is a gap in the ladder rather than a button off it, and so the one that
+		// must not be declared.** What this button wants is a rung: it is priority 3 of the sim's own list,
+		// which is a stronger claim on a rung than anything the ladder already carries. `off-list` would
+		// answer the opposite — "not a rotational button" — about the list's top press. Pressed in none of
+		// the six captured pulls (0 cast rows across all six), so nothing measured moves on it either way,
+		// and the entry is here to keep the gap named rather than to account for a figure.
+		'touch-of-death': 'a rung it cannot have — the condition is target health, which this event stream does not carry',
+		// The three the widened sweep found, and the Magma Totem case in the Elemental ledger above: in no
+		// part of the sim's Windwalker list, so no rule to transcribe, and no section and no clock anywhere
+		// in this report, so nothing to delegate to. Unlike Magma Totem all three are *pressed* on real
+		// pulls — 5 Expel Harms on `mixed`, 2 Leg Sweeps and 2 Flying Serpent Kicks on `waves` — so each is
+		// a press charged to a rung today, and each is charged deliberately.
+		'expel-harm': 'off the sim list, and played for the heal — no rule to transcribe and no section to delegate to',
+		'flying-serpent-kick': 'a movement press off the sim list — no rule to transcribe and no section to delegate to',
+		'leg-sweep': 'a stun off the sim list — no rule to transcribe and no section to delegate to',
 	},
 };
+
+/**
+ * Every section this report can actually render for a spec, so a declaration cannot point at nowhere.
+ *
+ * The whole of what keeps `unarbitrated` from being an amnesty is that its value names *where the press
+ * is judged instead*, and a string is free to name a section that was renamed, moved or never existed —
+ * at which point the press has been excused and the pointer goes nowhere, which is worse than the fault
+ * it replaced because it reads as an answer. `SPEC_SECTIONS` is the list the page and the contents list
+ * are both built from, so it is the only definition of "a section this report has" that cannot drift.
+ */
+const sectionIds = (dir: string): Set<string> => new Set((SPEC_SECTIONS[dir] ?? []).map((section) => section.id));
 
 /**
  * Every button that costs one of the globals the ladder arbitrates — which is the only test that matters.
@@ -225,6 +242,13 @@ describe('every rotational button either has a rung or a stated reason it does n
 		// the exact failure mode the widened premise exists to catch. `fixtureCoverage.test.ts` holds the
 		// other half: it carries a per-fixture `offList` column off the real `analyse` path, so unwiring the
 		// declaration turns all four Elemental rows red. `addsThenBossLadder.test.ts` holds it per press.
+		//
+		// **That grid cannot hold the Windwalker's half**, which is worth stating here because it is the
+		// reason the two specs are guarded differently. It re-analyses raw `FightDataset`s, and this spec's
+		// only raw fixture carries no `classResources` — so its audit is `null` by the bars gate and its row
+		// is `null` too. The six pulls under `windwalker/__fixtures__` are captured `Analysis` output, whose
+		// `apl` block is frozen at whatever the engine said when they were written. So the wiring is held
+		// per press on a synthetic pull instead: `specs/windwalker/lib/__tests__/unarbitrated.test.ts`.
 		it(`${spec.dir} declares nothing this sweep cannot see, and nothing that has a rung`, () => {
 			const swept = new Set(buttons.flatMap((ability) => ability.castIds));
 			expect(
@@ -245,6 +269,21 @@ describe('every rotational button either has a rung or a stated reason it does n
 			for (const [id, section] of Object.entries(spec.unarbitrated)) {
 				expect((section ?? '').trim().length, `${spec.dir}/${id} needs a section`).toBeGreaterThan(0);
 			}
+			// And a value naming a section that does not exist is the same amnesty with a plausible excuse
+			// attached. Checked against `SPEC_SECTIONS` — the list the page itself is built from — so a
+			// section renamed or removed takes the declaration that pointed at it down with it rather than
+			// leaving a press excused and a reader following a name to nothing. See `sectionIds`.
+			const rendered = sectionIds(spec.dir);
+			expect(rendered.size, `${spec.dir} renders no sections — SPEC_SECTIONS is keyed some other way`).toBeGreaterThan(
+				0,
+			);
+			expect(
+				Object.entries(spec.unarbitrated)
+					.filter(([, section]) => !rendered.has(section ?? ''))
+					.map(([id, section]) => `${id} -> ${String(section)}`)
+					.sort(),
+				`${spec.dir}: unarbitrated values that name no section this report renders`,
+			).toEqual([]);
 		});
 
 		it(`${spec.dir} keeps the ledger honest — nothing excused that is gone, nothing excused that has a rung`, () => {

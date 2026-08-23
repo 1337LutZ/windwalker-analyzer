@@ -30,7 +30,7 @@ import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { readTalents } from '~/lib/analysis/gear';
 import { aplAudit } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
-import { CHI_COST, LADDER } from './apl';
+import { CHI_COST, LADDER, UNARBITRATED } from './apl';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
 import type {
 	ChiBrewAudit,
@@ -3704,6 +3704,15 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		// disagree. An id no ability claims bands on damage, which is the safe direction — it can only
 		// under-count, never invent a target.
 		benefitOf: (id) => registry.abilityByCastId(id)?.multiTargetBenefit ?? 'damage',
+		// The two on-GCD buttons the ladder declares off its own business, so their presses read `off-list`
+		// naming the section that judges them instead of being charged to whichever rung the band happened
+		// to leave standing. The declaration lives on the ladder and is read here: `LADDER` and this belong
+		// to the same transcription, and a second copy of the id list in this file could disagree with it.
+		//
+		// Passed once and inherited by all four forced walks below, which is the point of it being read
+		// ahead of the first rung: which section judges a button is a fact about the button, so the verdict
+		// cannot be allowed to move with the target count the way the charged rung used to.
+		unarbitrated: UNARBITRATED,
 	};
 	const apl = aplAudit(aplInputs, LADDER);
 	/**

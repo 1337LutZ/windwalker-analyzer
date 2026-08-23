@@ -24,8 +24,20 @@ import { type AplRule, ladderEntries } from '~/lib/spec/apl';
  * - **Storm, Earth and Fire** and **Touch of Karma** are the same call, and they are named here
  *   because they used to fall under the bullet above's *category* without appearing in its list —
  *   which is a citation the next reader cannot check. `lib/analysis/__tests__/ladderCoverage.test.ts`
- *   sweeps every on-GCD conditional button for a rung and points at these lines for the three it
- *   excuses, so all three have to actually be here.
+ *   sweeps every on-GCD button for a rung and points at these lines, so both have to actually be here.
+ *
+ *   **These two are the only exclusions in this doc that the walk itself can see**, and they are
+ *   therefore the only two declared in `UNARBITRATED` below. Prose excludes a button from this file; it
+ *   does not exclude it from the walk, which sees a cast id and charges every on-GCD press to some rung.
+ *   The rest of this doc's exclusions are off-GCD, where the audit never offers a verdict at all, so
+ *   prose was enough for them. Touch of Death above is the exception and stays a fault on purpose: it is
+ *   *on* the list, so what it wants is a rung, and `off-list` would say the opposite of that.
+ *
+ * - **Expel Harm, Flying Serpent Kick and Leg Sweep** are on the GCD, are pressed on real pulls, and
+ *   appear nowhere in the sim's Windwalker list — no priority entry and no group. So there is no rule
+ *   here to transcribe, and nothing else in this report judges them either: no section, no clock. Their
+ *   presses stay charged to the rung the list would have spent that global on, which is the sim's own
+ *   answer to what the global should have been. `ladderCoverage.test.ts` carries the argument.
  *
  *   Storm, Earth and Fire is priority 4 in the sim's list (the `SEF: Use` group), and its condition
  *   there is a target count — `numberTargets == 2`, or `Targets: More than 2`, plus a spirit-stack
@@ -111,6 +123,11 @@ const ID = {
 	fistsOfFury: 113656,
 	rushingJadeWind: 116847,
 	spinningCraneKick: 101546,
+	// Not rungs and never will be — the two on-GCD buttons `UNARBITRATED` below declares off this ladder.
+	// Here rather than as literals down there for the reason this map exists: one place in this module
+	// knows a cast id.
+	stormEarthAndFire: 137639,
+	touchOfKarma: 122470,
 } as const;
 
 /**
@@ -436,5 +453,71 @@ const LADDER: readonly WW_AplRule[] = [
  * second, fictional pull sitting inside a reference table.
  */
 export const LADDER_ENTRIES = ladderEntries(LADDER);
+
+/**
+ * The on-GCD buttons this ladder does not arbitrate, each naming the section that judges the press.
+ *
+ * Two of the six exclusions argued in this module's doc above, and only two — which is the whole of what
+ * this declaration decides. Six on-GCD buttons this spec models have no rung; before this existed every
+ * press of all six was walked down the list like any other and charged to whichever rung the target band
+ * left standing. Measured on the six committed pulls, that is 20 presses on `waves`, 11 on `cleave`, 9 on
+ * `mixed`, 5 on `strong`, 4 on `poor` and 1 on `weave`. **Declaring all six would fix the arithmetic and
+ * lose the argument**: `off-list` means the list has no opinion, and a button nothing else has an opinion
+ * about either is a button this report would then be silent on. So the test each one had to pass is not
+ * "would a rung be unfair" — it would be, for all six — but "is there a second verdict to point at".
+ *
+ * **Two pass.** Both name a section this report really has, both are per-press verdicts, and both travel
+ * out on the press as `AplPress.reason` so a reader following the pointer arrives somewhere:
+ *
+ *  - **Storm, Earth and Fire** — `components/sections/StormEarthAndFire.tsx`, section id `sef`. It is
+ *    priority 4 of the sim's own list and a band could hold its target count, so this is the one entry
+ *    here that a rung could half-express; what a rung could not hold is `SEF_SECOND_TARGET_MS`, which
+ *    asks whether the second target lived long enough to repay the spirit. No band expresses a duration.
+ *    The section renders whenever a spirit went out, so a press always has the verdict this points at.
+ *  - **Touch of Karma** — `components/sections/TouchOfKarma.tsx`, section id `karma`. `122470` appears
+ *    nowhere in the sim's Windwalker list, in the priority list or in any group, so there is no rule to
+ *    transcribe at all — and the section that judges it does not merely report on it, it *grades* it, on
+ *    `karmaEmpty` and `karmaCapShare`. Of the six this is the press with the least to lose by leaving
+ *    this ladder and the most waiting for it elsewhere.
+ *
+ * **Four stay faults, and that is deliberate rather than unfinished.**
+ * `analysis/__tests__/ladderCoverage.test.ts` carries each argument on its ledger; in one line each:
+ * Touch of Death is *on* the sim list and wants a rung it cannot have (its condition is the target's
+ * health, which this event stream does not carry), so `off-list` would be the wrong shape of answer as
+ * well as an amnesty; and Expel Harm, Flying Serpent Kick and Leg Sweep are off the sim list entirely
+ * with no section and no clock anywhere in this report — the Magma Totem case in the Elemental ladder.
+ * Charging those globals to the rung the list would have spent them on is the sim's own answer to what
+ * the global should have been, and it is a better answer than silence.
+ *
+ * **This ladder can already reach `off-list` without any of this, which makes the measurement harder to
+ * read rather than easier.** Its rungs are written in units of energy and chi, so a rung it cannot pay
+ * for declines and the walk falls off the bottom: `offList` is 12 on `strong`, 13 on `waves`, 11 on
+ * `cleave` before this declaration, all of it Blackout Kicks, Tiger Palms and kicks off an empty bar.
+ * That arm returns `reason: null`; this one returns a section name, and the two are the same column and
+ * different facts. `cleave` shows both at once — 4 of its 11 pre-existing fall-throughs are presses of
+ * these two buttons, which stay `off-list` and gain a reason, while 2 more arrive from `skipped` and
+ * `unknown`.
+ *
+ * What this moves, per pull, `skipped`/`unknown`/`offList` and nothing else — `followed` is untouched on
+ * all six, which is the whole of what a declaration read before the first rung can do:
+ *
+ *   waves   107→92 · 1→0 · 13→29    strong  150→148 · 0 · 12→14
+ *   cleave   73→72 · 4→3 · 11→13    poor    113→110 · 2 · 1→4
+ *   mixed   100→97 · 1 · 9→12       weave    39→38 · 1 · 0→1
+ *
+ * The captured fixtures are analyses rather than datasets, so those are the figures a re-capture would
+ * write and not a diff the suite can see; `__tests__/unarbitrated.test.ts` holds the wiring instead.
+ */
+export const UNARBITRATED: Readonly<Partial<Record<number, string>>> = {
+	// Judged by `analysis.sef` and rendered by the section of the same id. 15 presses on `waves` alone,
+	// 14 of them charged to a rung — and the rung named moved with the band, which is the clearest sign
+	// the fault was an artefact: the same button read as a skipped Tiger Palm refresh, a skipped Rising
+	// Sun Kick, a skipped Jab and a skipped Rushing Jade Wind across one pull.
+	[ID.stormEarthAndFire]: 'sef',
+	// Judged by `analysis.karma`, on absorbed and reflected damage against the cap the log reveals. A
+	// press is right or wrong by the damage that was incoming, which is not a rotational condition and
+	// not a thing a filler rung can read.
+	[ID.touchOfKarma]: 'karma',
+};
 
 export { LADDER };
