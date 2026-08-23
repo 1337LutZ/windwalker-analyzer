@@ -42,6 +42,7 @@ docs/plan.md
 # migrating toward is the durable record, and that lives in `docs/conventions.md` and
 # `.claude/skills/tone-of-voice/`, both of which stay tracked.
 docs/tone-of-voice-migration.md
+.claude/skills/tone-of-voice/
 
 # Throwaway vitest configs for one-off measurement probes. The technique is documented in the
 # lane briefs: a config at the repo root pointing at a scratchpad test, deleted after the run. A
