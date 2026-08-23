@@ -96,11 +96,12 @@ const MODEL_WORDS = [
  */
 const prose = (value: string): string => value.replaceAll(/\{\{[^}]*\}\}/g, ' ');
 
-const LOCALE = resolve(import.meta.dirname, '../../locales/en/report.json');
+const REPORT = resolve(import.meta.dirname, '../../locales/en/report.json');
+const UI = resolve(import.meta.dirname, '../../locales/en/ui.json');
 
-/** Every leaf string in `report.json`, as `['ascendance.state.plain', 'Pressed …']`. */
-const localeStrings = (): [string, string][] => {
-	const locale = JSON.parse(readFileSync(LOCALE, 'utf8')) as Record<string, unknown>;
+/** Every leaf string in one locale file, as `['ascendance.state.plain', 'Pressed …']`. */
+const leaves = (file: string): [string, string][] => {
+	const locale = JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>;
 	const out: [string, string][] = [];
 	const walk = (node: unknown, path: string[]) => {
 		if (typeof node === 'string') out.push([path.join('.'), node]);
@@ -110,6 +111,28 @@ const localeStrings = (): [string, string][] => {
 	walk(locale, []);
 	return out;
 };
+
+/**
+ * `report.json`, and the name every scope in this file already reads it by.
+ *
+ * Kept at its old name and its old signature on purpose. The walk is now parameterised because the
+ * vocabulary sweep at the foot of this file needs a second file, and a rename would have put fourteen
+ * unrelated call sites into a commit whose whole claim is that it changed the *vocabulary* and nothing
+ * else — the same one-change-at-a-time rule the `MODEL_WORDS` docstring above states.
+ */
+const localeStrings = (): [string, string][] => leaves(REPORT);
+
+/**
+ * `ui.json` — the shell copy: 51 leaves under `app`, `chart`, `common`, `credits`, `selection`,
+ * `settings` and `steps`.
+ *
+ * Read only by the three lists at the foot of this file, and read by them from the start. That is not
+ * an oversight in the scopes above: `MODEL_WORDS` is scoped, exempted and closed against `report.json`
+ * alone, and bringing `ui.json` under *that* sweep is a coverage change with its own phase. Asking
+ * whether a shell string sounds machine-written needs no scope and no exemption, so it costs nothing
+ * to ask it here.
+ */
+const uiStrings = (): [string, string][] => leaves(UI);
 
 /**
  * Matched at a **left** word boundary, not as a bare substring.
@@ -745,5 +768,279 @@ describe('stripping the templates hides no violation', () => {
 			'sef.lanes.shortLived_other: {{rule, duration}}',
 			'sef.unjustified: {{rule, duration}}',
 		]);
+	});
+});
+
+// ================================================================= the reader's ear
+//
+// A second vocabulary, and a second question. Everything above asks whether *our* jargon reached a
+// reader; the three lists below ask whether the copy sounds like a person who plays this game.
+//
+// **They are separate lists rather than a longer `MODEL_WORDS`, and the exemptions decide it.**
+// `MODEL_WORDS` is surrounded by four carve-outs — `WINDWALKER_METHOD_KEYS`, `SHARED_METHOD_KEYS`,
+// `REFERENCE_SECTIONS` covering ~120 `rotation` strings, `REFERENCE_READER_KEYS` — because naming the
+// model is *sometimes correct*: a section whose job is printing the priority list cannot be forbidden
+// from calling it a list. None of that transfers. No section's job requires "it is worth noting".
+// Merging the lists would hand every `rotation` string a permanent pass on AI vocabulary, and one of
+// the reds below (`rotation.entry.tigerPalmProc.why`) sits inside exactly that exemption.
+//
+// |                 | `MODEL_WORDS`                                 | the three lists below                           |
+// | --------------- | --------------------------------------------- | ----------------------------------------------- |
+// | a red run means | internal jargon reached a reader              | the copy does not sound like a player           |
+// | matcher         | `includes()` — `judg` catches judge/judgement | `\b`-anchored — `very` must not fire on `every` |
+// | scope           | four scoped lists + exemptions + closure test | whole file, unscoped, no exemptions             |
+// | files           | `report.json`                                 | both, from the start                            |
+//
+// The audience measurements quoted below come from `.claude/skills/tone-of-voice/references/
+// audience-wow-players.md`: 18,889 words of Wowhead MoP guide prose, 12 pages, 6 authors. Rates are
+// per 100,000 words, and the author spread matters more than the rate — a marker used by one author of
+// six is that writer's tic, not the genre.
+
+/**
+ * Vocabulary that says a machine wrote it.
+ *
+ * Openers (`SKILL.md` §3), filler and hedges (§1–§2), formal connectors (§1), manufactured enthusiasm
+ * (§6) and the corporate register words (§2). Every one of them has a plain replacement that always
+ * works, which is what makes this list a floor rather than a preference.
+ *
+ * **Two entries are genre-*present* and banned anyway, and the reason has to sit here or it will be
+ * relaxed by the next person who checks the corpus.**
+ *
+ *   - **`very`** — 243/100k across **6 of 6** authors. It is genuinely how these writers write. It
+ *     stays banned because `SKILL.md` §1–§2 is a floor the audience register does not lower, and
+ *     because the corpus's own default quality word is `strong` (312/100k, 6/6) with no intensifier in
+ *     front of it. An earlier draft of the register file claimed `very` was absent from the genre; it
+ *     is not, and that correction should not have to be made a second time.
+ *   - **`however`** — 6 uses, **4 of 6** authors. Also present, also banned, same reason.
+ *
+ * Neither is an exemption, and neither gets one. `casts.verdict_good` said "Very little went unused"
+ * and reads better as "Almost nothing went unused"; `lightningShield.verdict_good_noOvercap` said "it
+ * pays however many enemies are in front of you" and reads the same with "no matter how many". An
+ * exemption for an idiom is a hole in a list that has none, and both rewords lose nothing.
+ */
+const AI_WORDS = [
+	// Openers — §3. "It is worth noting that X" is X with a machine in front of it.
+	'worth noting',
+	'worth knowing',
+	// Filler and hedges — §1, §2.
+	'simply',
+	'very',
+	'quite',
+	'fairly',
+	'arguably',
+	'significantly',
+	'crucial',
+	// Formal connectors — §1's "Don't" list, verbatim.
+	'however',
+	'moreover',
+	'furthermore',
+	'additionally',
+	// Manufactured enthusiasm — §6. The corpus reaches for `strong`, not for these.
+	'amazing',
+	'awesome',
+	'insane',
+	'incredible',
+	// Corporate register — §2.
+	'delve',
+	'leverage',
+	'robust',
+	'seamless',
+	'utilize',
+	'unlock',
+	'elevate',
+	'ultimately',
+	'in conclusion',
+];
+
+/**
+ * First person. A report describes a pull; it is not a party to it.
+ *
+ * **Half of this list is the genre and half is this project's own stricter line, and the halves must
+ * not be confused.**
+ *
+ *   - **`I` is genre.** Zero instances in 18,889 words, across all six authors. It is the strongest
+ *     single finding in the corpus, and it is why `SKILL.md` §7 — which assigns `I` to the opening and
+ *     the method block, and warns that too *little* first person is the commoner failure — is
+ *     explicitly overridden for this register. §7 is written for personal long-form. Do not run
+ *     `scripts/person-density.py` as a gate on this repo's copy: verified, it fails a clean
+ *     second-person report draft with "no author present" and exits 1 under `--strict`. An agent that
+ *     obeys it will insert an author into a report that must not have one. This list is that script's
+ *     load-bearing claim — person is the axis, check it deterministically — kept, with its direction
+ *     corrected.
+ *   - **`we` and `our` are a house tightening, not a genre rule.** Editorial first-person plural runs
+ *     349 and 269 per 100k across **all six** authors: "our great utility stays untouched" is normal
+ *     guide prose. Banning it here is a decision about what a *report* is, and anyone who later checks
+ *     the corpus will find `we` everywhere and read the ban as a mistake. It is not. It is stricter
+ *     than the genre on purpose.
+ *   - **`us`** is the one entry that is an outlier inside the genre too — 127/100k from a single
+ *     author out of six.
+ *
+ * `I` catches nothing today and is pinned as prophylactic, in the same sense and for the same reason
+ * as `exempt` in `MODEL_WORDS`: it is the word by which this defect would arrive, not one already
+ * here.
+ */
+const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'I'];
+
+/**
+ * Metaphor reaching outside the game.
+ *
+ * The register file §6 measured the audience's analogy domain as cross-class and cross-expansion
+ * comparison, almost exclusively — a new mechanic explained by pointing at one the reader already
+ * knows. **No picture from outside the game appears anywhere in 18,889 words**: no sport, cooking,
+ * machinery, weather or business figure, from any of the six authors. Checked by name: `bell` 0, `on
+ * the table` 0, `in the same breath` 0, `if anything` 0.
+ *
+ * **Four phrases cannot catch the next metaphor, and this list does not pretend otherwise.** A word
+ * list finds words; a figure of speech is a construction. Every entry here was found by a human
+ * reading the copy and naming one, after which a sweep found its siblings — never the other way
+ * round. The durable half of this guard is the written rule in `docs/conventions.md` (comparisons come
+ * from inside the game or from another spec's mechanics), and this list is the ratchet under it: when
+ * the read-through in Phase 4b-ii names the fifth class, its literal is added here so it cannot come
+ * back.
+ *
+ * The strongest single argument in the class is internal rather than register:
+ * `summary.takeaways.metric.fireElementalPrepull.fix` said "was not out when the pull started" and "in
+ * the last second before the bell" in adjacent sentences. Same referent, two registers, one string.
+ *
+ * `\bbell\b` needs no exemption. Ability, talent and item names reach the page from WCL's
+ * `masterData`, never from the locale (`docs/conventions.md:288`), so no reader-facing string can be
+ * forced to carry the word — and the right-hand boundary keeps `bellow` out.
+ *
+ * **Sequencing, recorded because the plan had it wrong.** `docs/tone-of-voice-migration.md` puts this
+ * list in Phase 2 and the twelve locale strings it fires on in Phase 4b-i, which would have left the
+ * Phase 2 + 3 pair red on landing — and CI blocks a red PR. Resolved by pulling 4b-i's *locale* half
+ * forward into the Phase 3 commit: all twelve are in-place string edits, and three of them are the
+ * plan's own worked examples 3, 4 and 5. 4b-i keeps the source-comment `bell` sites, which were always
+ * a separate commit for a separate reason.
+ */
+const OFF_DOMAIN = ['bell', 'on the table', 'in the same breath', 'if anything'];
+
+/**
+ * Anchored on **both** sides, which is the one place these lists deliberately differ from
+ * `namesTheModel` above.
+ *
+ * `MODEL_WORDS` leaves the right side open so its stems catch their own inflections — `rule` has to
+ * reach "rules" and "ruled". These lists cannot afford that: `we` would fire on "went", "well" and
+ * "weapon", `us` on "used" and "usually", `bell` on "bellow", and the sweep would be noise inside a
+ * day. The left boundary is the `very`/`every` case the plan names; the right boundary is the `we`
+ * case, and it is the one that actually bites.
+ *
+ * The price is inflections — `crucially` and `leveraging` walk past a list holding `crucial` and
+ * `leverage`. Measured before accepting it: across all 1,233 leaves of both files, dropping the right
+ * boundary would flag **zero** additional strings. The trade costs nothing today, and the anchoring
+ * test below is what will say so again tomorrow.
+ *
+ * Case-insensitive, and matched against `prose()` so a formatter or variable name inside `{{…}}`
+ * cannot trip it — the same strip, for the same reason, as the sweeps above.
+ */
+const boundary = (word: string): RegExp => new RegExp(`\\b${word}\\b`, 'i');
+
+/** Reds in the shape `violations()` uses, so a failing run prints the census rather than a count. */
+const matching = (words: string[], strings: [string, string][]): string[] =>
+	strings
+		.filter(([, value]) => words.some((word) => boundary(word).test(prose(value))))
+		.map(([key, value]) => `${key}: "${value}"`);
+
+/** Both files, with the shell copy's keys marked so a red run says which file to open. */
+const bothLocales = (): [string, string][] => [
+	...localeStrings(),
+	...uiStrings().map(([key, value]): [string, string] => [`ui:${key}`, value]),
+];
+
+describe('no string in either locale sounds machine-written', () => {
+	it('reaches into both files, so neither is silently unswept', () => {
+		// Non-vacuity of the *scope*, in the shape the three scopes above use for theirs. A sweep that
+		// reads one file and asserts nothing about the other is the exact failure this whole file
+		// documents: `report.json` was Elemental-only for three lanes and every green run said so.
+		expect(localeStrings().length).toBeGreaterThan(1100);
+		expect(uiStrings().length).toBeGreaterThan(40);
+		expect(new Set(uiStrings().map(([key]) => key.split('.')[0]!))).toContain('settings');
+	});
+
+	it('uses no AI vocabulary, in either file', () => {
+		expect(matching(AI_WORDS, bothLocales())).toEqual([]);
+	});
+
+	it('puts no author in a report, in either file', () => {
+		expect(matching(AUTHOR_WORDS, bothLocales())).toEqual([]);
+	});
+
+	it('reaches for no picture from outside the game, in either file', () => {
+		expect(matching(OFF_DOMAIN, bothLocales())).toEqual([]);
+	});
+
+	it('has no entry that fires on nothing at all, so a typo cannot green a list forever', () => {
+		// The failure this test exists for is silent and permanent: `'furthermoree'` in the list above
+		// greens its whole block, and no run ever says otherwise. So every entry is executed against a
+		// synthetic string built from itself — not against the locale, which would only prove the copy
+		// is clean.
+		//
+		// `matching` is used rather than `boundary` directly, so what is exercised is the matcher the
+		// three tests above call, including the `prose()` strip.
+		const dead = [...AI_WORDS, ...AUTHOR_WORDS, ...OFF_DOMAIN].filter(
+			(word) =>
+				matching([word], [['synthetic', `A sentence that says ${word} in the middle of it.`]] as [string, string][])
+					.length === 0,
+		);
+		expect(dead).toEqual([]);
+	});
+
+	it('anchors on both sides, so an ordinary word that contains a banned one is not a red', () => {
+		// The other half of the same guard. A list that fires on everything is as useless as one that
+		// fires on nothing, and this is the shape that mistake takes: `very` inside `every`, `we` inside
+		// `went`, `bell` inside `bellow`. Every pair below is a real word that appears in this repo's
+		// copy or its comments.
+		const innocent = [
+			'You used every press you had.',
+			'The window went by and the bar was well under it.',
+			'A weapon proc is usually worth using.',
+			'It is an hour into the pull.',
+			'Bellowing Rage was up.',
+			'Four presses in total.', // `our` must not fire on `four`
+		];
+		const asPairs = (values: string[], label: string): [string, string][] =>
+			values.map((value, i) => [`${label}.${i}`, value]);
+		expect(matching([...AI_WORDS, ...AUTHOR_WORDS, ...OFF_DOMAIN], asPairs(innocent, 'innocent'))).toEqual([]);
+		// And the whole-word forms of the same six do fire, so the line above is drawn at the boundary
+		// rather than at the words being absent.
+		const guilty = [
+			'It is very close.',
+			'We measured it.',
+			'The press is ours.',
+			'It took us an hour.',
+			'Nothing was out at the bell.',
+			'That is damage left on the table.',
+		];
+		expect(matching([...AI_WORDS, ...AUTHOR_WORDS, ...OFF_DOMAIN], asPairs(guilty, 'guilty')).length).toBe(
+			guilty.length,
+		);
+	});
+
+	it('keeps the em-dash under the ceiling the house style was granted', () => {
+		// **The em-dash is kept, and this is the condition it was kept on.**
+		//
+		// 240 of them in `report.json`, 19.7% of prose sentences, and they do real appositive work:
+		// defining a measurement mid-sentence, where a following sentence would put the definition after
+		// the claim that needed it. It is house punctuation — present in `ui.json`, the README, every
+		// code comment and this file's own prose — and a sweep against a rule the repo breaks in every
+		// file is theatre.
+		//
+		// It is an override of `SKILL.md` §15.5 **and** of the audience corpus, not a register-native
+		// choice: the genre uses 6 em-dashes in 18,889 words, none of them a spaced appositive pair, and
+		// reaches for parentheses instead (317/100k). Recorded that way rather than as genre support,
+		// because a false claim of support does not survive the next reviewer.
+		//
+		// What survives the override is the ceiling. Two in a string is an aside; three is a sentence
+		// built out of asides, and the third one is where the punctuation stops carrying the argument
+		// and starts replacing it.
+		//
+		// **This was written as prophylactic and it was not.** The plan measured a ceiling of 2 with
+		// nothing at 3; `earthShock.verdict_tooFew` arrived between that measurement and this commit
+		// carrying three, and its last dash — introducing an instruction rather than defining a term —
+		// became a full stop.
+		const stacked = bothLocales()
+			.filter(([, value]) => (value.match(/—/g) ?? []).length >= 3)
+			.map(([key, value]) => `${key}: "${value}"`);
+		expect(stacked).toEqual([]);
 	});
 });
