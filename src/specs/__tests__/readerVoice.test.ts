@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * Words that name the audit rather than the game. `clock` is here because "pressed on the clock alone"
  * is the original complaint verbatim; the fight timeline is legitimately called a clock elsewhere in
- * the file, which is why neither spec's sweep runs across all 1109 strings.
+ * the file, which is why neither spec's sweep runs across all 1182 strings.
  *
  * One list for both specs, and it went three lanes without being extended, for a reason that has now
  * been spent: widening the *vocabulary* and widening the *coverage* are two changes, and doing both at
@@ -302,7 +302,7 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
 //
 // The third scope, and the one that holds the first sentences anyone reads. `overall.*` is the single
 // line under the player's name, `summary.judged` the line under that; both were unswept while the two
-// spec scopes above covered 716 strings on either side of them.
+// spec scopes above covered 560 strings on either side of them.
 //
 // **The boundary, ruled rather than inherited.** The lane that swept the Windwalker left everything
 // shared out and named `rotation` and `priority` as permanent exemptions. Half of that is kept and half
@@ -464,9 +464,19 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		// track and legend labels, `castLog.caption` and the two `gear.pill.gems` plurals. A floor is a
 		// non-vacuity guard rather than a budget, so it follows the file down when the file loses copy that
 		// had no reader.
+		//
+		// **The scope is 304 today and the floor stays at 300, deliberately.** It was 311 when that
+		// sentence was written and 306 when the next lane read it; the two most recent strings to go were
+		// `summary.takeaways.metric.fireElementalHasteUptime.label` and `.fix`, dead copy the orphan hunt
+		// found once it started resolving each computed family against its own key source. Every drop so
+		// far has been a deletion of exactly that kind, which is what the gap between 300 and the count is
+		// for: raising the floor to 303 would make the next honest deletion a red run in the one file whose
+		// recent history *is* honest deletions, and that is a budget. What this line has to catch is the
+		// scope going dark — a selector that stops selecting, a root that leaves `SHARED_SECTIONS` — and it
+		// catches that at 300 exactly as well as it would at 303.
 		expect(sharedStrings().length).toBeGreaterThan(300);
 		// The measurement, done before the selector was chosen rather than after. Copying the Elemental
-		// key-kind selector here would have selected 25 of these 311 strings and caught **three** of the
+		// key-kind selector here would have selected 25 of these 304 strings and caught **three** of the
 		// 27 below — the three that happen to be called `intent`. The other 24 are `note`, `empty`,
 		// `body`, `fix`, `clean`, `mergedNote` and the six bare `priority` leaves: prose at ad-hoc names,
 		// the same shape the Windwalker's turned out to be.
@@ -497,8 +507,11 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		// cover for whatever gets written there next.
 		//
 		// Taken over the section *less* its two in-scope leaves, so the count that keeps the exemption
-		// load-bearing is a count of copy the exemption actually still covers. It was 22 with them in and
-		// is 20 without, so the two carve-outs did not buy their way past this line either.
+		// load-bearing is a count of copy the exemption actually still covers. It is 20, and it is 20 with
+		// the two leaves back in as well: they were 22 between them until coming into scope cost them the
+		// phrase "This is the list at …", and a leaf with no banned word left in it adds nothing here. So
+		// the carve-outs did not buy their way past this line, and there is no longer a number that says
+		// they might have.
 		const reference = localeStrings().filter(
 			(entry) => entry[0].split('.')[0] === 'rotation' && !isReferenceReader(entry),
 		);
