@@ -22,7 +22,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
-import { scoreAnalysis } from '~/specs/windwalker/lib/score';
+import { MIN_JUDGED_WEIGHT_SHARE, overallOf, section, type Grade, type Metric } from '~/lib/score';
+import { scoreAnalysis, WEIGHTS } from '~/specs/windwalker/lib/score';
 import { resolveBands } from '~/lib/view/targetMode';
 import type { Analysis } from '~/lib/types';
 
@@ -157,7 +158,8 @@ describe('the good headline does not deny the faults under it', () => {
 		const strong = fx('strong');
 		const card = scoreAnalysis(strong, resolveBands(strong.targets, 'auto'));
 		expect(card.overall).toBe('good');
-		// Judged in full, so this is the worst case the letter permits with nothing excused.
+		// Judged in full, so nothing here is excused — the letter is drawn over every point the spec
+		// offered. It is not the *worst* case, which is measured in the block at the foot of this file.
 		expect(card.judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
 		const bad = Object.entries(card.sections)
 			.filter(([, score]) => !score.unmeasurable && score.grade === 'bad')
@@ -165,8 +167,9 @@ describe('the good headline does not deny the faults under it', () => {
 			.sort();
 		expect(bad).toEqual(['brew', 'karma']);
 
-		// The apostrophe in "spec's" comes back HTML-escaped out of `renderToStaticMarkup`, which is why
-		// the two assertions above this block could compare the raw string and this one cannot.
+		// Any apostrophe in the sentence comes back HTML-escaped out of `renderToStaticMarkup`, which is
+		// why the two assertions above this block could compare the raw string and this one cannot. The
+		// escape is a no-op on today's wording and is kept so a rewrite that reintroduces one still passes.
 		const html = render(strong);
 		expect(html).toContain(t('overall.good').replaceAll("'", '&#x27;'));
 		expect(html).not.toContain(t('overall.ok'));
@@ -186,8 +189,159 @@ describe('the good headline does not deny the faults under it', () => {
 	/** And the claim itself, named, so it cannot come back in a rewrite. */
 	it('claims nothing about notes the letter did not cover', () => {
 		const good = t('overall.good');
-		for (const denial of ['not real mistakes', 'small refinements']) {
+		for (const denial of ['not real mistakes', 'small refinements', "close to the spec's ceiling"]) {
 			expect(good, denial).not.toContain(denial);
 		}
+	});
+
+	/**
+	 * Where the qualification has to sit, which is the half the sentence used to get wrong.
+	 *
+	 * The opening clause was "You played this pull close to the spec's ceiling", and it was defended
+	 * twice on the grounds that the qualification arrives anyway — `summary.judged` prints the
+	 * denominator directly beneath, and the second clause already said "a strong average can still hold
+	 * a habit". Both are true and neither reaches the reader in time. A reader who stops at the first
+	 * full stop has been told they played at the ceiling and nothing else, and the measured worst case
+	 * below says that reader may have played 75% of the points the report could measure, on half the
+	 * weight the spec offered, with three of seven sections lettering red underneath.
+	 *
+	 * So the property is **ordering**, not vocabulary: the letter has to be owned as an average before
+	 * the reader is sent anywhere. Asserted as an ordering rather than as a phrase for the reason the
+	 * `Read down the page` test above gives — the next rewrite should be free to reword both clauses and
+	 * still be held to the same thing.
+	 */
+	it('owns the letter as an average before it sends the reader anywhere', () => {
+		const good = t('overall.good');
+		expect(good).toContain('average');
+		expect(good.indexOf('average')).toBeLessThan(good.indexOf('Read down the page'));
+	});
+
+	/**
+	 * And that the concession is about the page, not only about the number.
+	 *
+	 * "A strong average can still hold a habit" concedes a *habit* — one metric, somewhere. What the
+	 * arithmetic actually permits is whole sections lettering `bad`, which is a different size of
+	 * admission and the one `strong` demonstrates. Kept as a hedge rather than a warning: `can`, because
+	 * a genuinely clean pull is under this letter too and should not be told it has faults it does not.
+	 */
+	it('admits that whole parts of the page can be red under it', () => {
+		const good = t('overall.good');
+		expect(good).toMatch(/whole parts of the page can be red/);
+		expect(good).not.toMatch(/whole parts of the page are red/);
+	});
+});
+
+/**
+ * What a `good` letter actually permits, taken off the engine rather than off a fixture.
+ *
+ * The block above proves the shape on one committed pull. This one establishes the bound, because the
+ * sentence has to be true at the bound and `strong` is not it: `strong` letters `good` at 76.7% of its
+ * points with two sections red, and the arithmetic allows worse on all three axes at once.
+ *
+ * Measured on the Windwalker's own weights — `snapshotRate` 4, `tigerPalmWaste` 3, `gcdUtilisation` and
+ * `rskUptime` 2, four more at 1, and `snapshotDepth` plus the two Karma metrics at 0, for 15 offered:
+ *
+ *   - **75% of the points it measured** is the floor, and it is reachable: 10.5 of 14. Nothing below it
+ *     letters `good`, and the next step the weights can express — 10 of 14, 71.4% — does not.
+ *   - **Half the weight the spec offered** is the floor on how much was read, straight off
+ *     `MIN_JUDGED_WEIGHT_SHARE`. On these weights the least reachable is 8 of 15.
+ *   - **Three of seven sections** can letter `bad` under it, and the cheapest two cost the headline
+ *     almost nothing: Karma's two metrics carry weight 0, so that section can be red for *free*.
+ *
+ * All three at once is the sentence's real audience. Everything here is a no-change guard — it passes
+ * against the old copy too, because it is a test of the arithmetic the copy has to survive.
+ */
+describe('the worst case a good letter permits', () => {
+	const OFFERED = Object.values(WEIGHTS).reduce((sum, weight) => sum + weight, 0);
+
+	/** A metric carrying the three fields `overallOf` reads off it, and honest values for the rest. */
+	const at = (key: string, grade: Grade | null): Metric => ({
+		key,
+		good: 1,
+		ok: 0,
+		higherIsBetter: true,
+		value: 0,
+		grade: grade ?? 'ok',
+		unmeasurable: grade === null,
+	});
+
+	const letterOver = (states: Record<string, Grade | null>) =>
+		overallOf(
+			Object.entries(states).map(([key, grade]) => at(key, grade)),
+			WEIGHTS,
+		);
+
+	/** Every metric `good` except the ones named, so a case states only what it is about. */
+	const allBut = (states: Record<string, Grade | null>): Record<string, Grade | null> => ({
+		...Object.fromEntries(Object.keys(WEIGHTS).map((key) => [key, 'good' as Grade])),
+		...states,
+	});
+
+	it('offers fifteen points on the base weights', () => {
+		expect(OFFERED).toBe(15);
+	});
+
+	it('still letters good on three quarters of the points it measured, and not below', () => {
+		// 10.5 of 14: `snapshotRate` half-marked at weight 4, `brewStacks` half-marked, `brewCapWaste`
+		// scoring zero, and `brewShortUses` dropping out of the denominator entirely.
+		const floor = letterOver(
+			allBut({ snapshotRate: 'ok', brewStacks: 'ok', brewCapWaste: 'bad', brewShortUses: null }),
+		);
+		expect(floor.judged).toEqual({ measured: 14, total: 15, unmeasurable: false });
+		expect(floor.grade).toBe('good');
+
+		// One weight-1 metric down from there is 10 of 14 — 71.4%, the nearest step these weights can
+		// express below the line — and the letter goes.
+		const under = letterOver(
+			allBut({
+				snapshotRate: 'ok',
+				brewStacks: 'ok',
+				brewCapWaste: 'bad',
+				brewShortUses: null,
+				potionsUsed: 'ok',
+			}),
+		);
+		expect(under.judged).toEqual({ measured: 14, total: 15, unmeasurable: false });
+		expect(under.grade).toBe('ok');
+	});
+
+	it('still letters good on half the weight the spec offered, and not below', () => {
+		expect(MIN_JUDGED_WEIGHT_SHARE).toBe(0.5);
+		const unread: Record<string, Grade | null> = {
+			snapshotRate: null,
+			brewStacks: null,
+			brewCapWaste: null,
+			brewShortUses: null,
+		};
+		// 8 of 15 — 53.3%, the least these weights can leave standing and still be over half.
+		const half = letterOver(allBut(unread));
+		expect(half.judged).toEqual({ measured: 8, total: 15, unmeasurable: false });
+		expect(half.grade).toBe('good');
+
+		// 7 of 15 is 46.7%, and the letter is withdrawn rather than lowered: `unmeasurable`, which is
+		// what makes the header print `overall.none` instead of any of the three grades.
+		const tooLittle = letterOver(allBut({ ...unread, potionsUsed: null }));
+		expect(tooLittle.judged).toEqual({ measured: 7, total: 15, unmeasurable: true });
+	});
+
+	it('lets a section letter bad for nothing at all', () => {
+		// Karma's two metrics are weight 0 — graded in their own section and deliberately kept out of the
+		// headline — so a red Karma costs the average not one point of the fifteen.
+		expect(WEIGHTS.karmaEmpty).toBe(0);
+		expect(WEIGHTS.karmaCapShare).toBe(0);
+		expect(section([at('karmaEmpty', 'bad'), at('karmaCapShare', 'good')]).grade).toBe('bad');
+
+		const withRedKarma = letterOver(allBut({ karmaEmpty: 'bad' }));
+		expect(withRedKarma.judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
+		expect(withRedKarma.grade).toBe('good');
+
+		// And the brew section's worst-of-three fold puts a second red section on the page for one point,
+		// which with Karma and a skipped potion is the three the block's note names.
+		expect(section([at('brewStacks', 'good'), at('brewCapWaste', 'good'), at('brewShortUses', 'bad')]).grade).toBe(
+			'bad',
+		);
+		const three = letterOver(allBut({ karmaEmpty: 'bad', brewShortUses: 'bad', potionsUsed: 'bad' }));
+		expect(three.judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
+		expect(three.grade).toBe('good');
 	});
 });
