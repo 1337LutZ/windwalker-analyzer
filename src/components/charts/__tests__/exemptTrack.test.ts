@@ -22,10 +22,11 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { capturedAnalyses, rawFixtures } from '~/lib/analysis/fixtures';
 import { complementOf, intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { intervalsAtLeast } from '~/lib/analysis/targets';
 import { initI18n } from '~/lib/i18n/config';
-import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
+import type { Analysis, ElementalAuditResult } from '~/lib/types';
 
 import { fmt } from '~/components/format';
 import type { ChartTheme } from '~/components/charts/apex';
@@ -57,12 +58,26 @@ function rowsOf(element: ReactElement): readonly Track[] {
 	return drawn.calls[0]?.tracks ?? [];
 }
 
-const elemental = (name: string): Analysis & ElementalAuditResult =>
-	analyse(
-		JSON.parse(
-			readFileSync(resolve(import.meta.dirname, `../../../specs/elemental/__fixtures__/${name}.json`), 'utf8'),
-		) as FightDataset,
-	) as Analysis & ElementalAuditResult;
+/**
+ * Every raw Elemental pull, found rather than listed, and the analysis memoised.
+ *
+ * Most of this file is deliberately about two named pulls — `phased` for the submerge and `cleave` for
+ * the add waves — and those stay named, with the reason on the line. The one grid that meant "every
+ * committed pull" was the `buildBars` sweep at the bottom, which spelled `['unbroken', 'cleave',
+ * 'phased']`; see the argument there. Memoised because `addsThenBoss.json` is 4.4 MB.
+ */
+const ELEMENTAL_PULLS: string[] = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
+const analysedEl = new Map<string, Analysis & ElementalAuditResult>();
+const elemental = (name: string): Analysis & ElementalAuditResult => {
+	const hit = analysedEl.get(name);
+	if (hit !== undefined) return hit;
+	const found = rawFixtures('elemental').find((fixture) => fixture.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw Elemental fixture ${name}`);
+	const el = analyse(found.dataset) as Analysis & ElementalAuditResult;
+	analysedEl.set(name, el);
+	return el;
+};
 
 const windwalker = (name: string): Analysis =>
 	JSON.parse(
@@ -215,6 +230,19 @@ describe('the exempt row', () => {
 	 * the audit now publishes the graded length. It is also what settles the sliver question — a length
 	 * floor on any of these rows would move one side of this equality and nothing else, which is a chart
 	 * telling a different story from its own tile.
+	 *
+	 * **As a grid this is now redundant, and deliberately not grown into one.**
+	 * `specs/elemental/components/charts/__tests__/uptimeRow.test.ts` asserts, over `rawFixtures` and for
+	 * both of these charts, that `up + elsewhere + down === scoredMs` and that the same three rows plus the
+	 * grounds sum to `durationMs`. Subtract the one from the other and the grounds **are**
+	 * `durationMs - scoredMs`; it further asserts the unmeasured row lies inside the grounds, so its
+	 * `exempt` and this file's "every row wearing the exempt tone" are the same union. That is this exact
+	 * identity, on four pulls where this has one. Running it again over four pulls here would be four
+	 * renders buying nothing.
+	 *
+	 * What is *not* redundant is the pair of `scoredMs` literals below — `uptimeRow` reads that figure off
+	 * the audit on both sides of its own equalities and never pins it — so this stays as a one-pull pin
+	 * with the identity as its scaffolding, rather than being deleted or duplicated.
 	 */
 	it('draws exactly the pull the two dot clocks did not measure', () => {
 		for (const [name, chart, scoredMs] of [
@@ -238,6 +266,11 @@ describe('the exempt row', () => {
 	 * because it is a *subset* of the two grounds, and a subset relation nobody checks is a subset relation
 	 * that stops holding. If it ever escaped the grounds, `durationMs - scoredMs` would grow and the tile
 	 * would be the thing that moved.
+	 *
+	 * Redundant for the same reason and kept for the same reason as the test above: `uptimeRow.test.ts`
+	 * makes this containment claim over every raw fixture and both charts. `cleave` is kept here because it
+	 * is where the row is largest and because this file is where a reader looking for the exempt tone's
+	 * rules will come.
 	 */
 	it('draws the unmeasured half of each aura inside the grounds and not beside them', () => {
 		for (const [name, chart, uncounted] of [
@@ -328,18 +361,19 @@ describe('the exempt row', () => {
 	 *
 	 * **Three counts, and the middle one is the point.** Rows drawn is `refreshes`; rows greyed is
 	 * `unjudgedRefreshes`; rows left in a verdict colour is the share's denominator. All three are checked
-	 * below, on `cleave` above all — the only committed fixture where they are not the same number.
+	 * below over the discovered fixture set.
+	 *
+	 * **`cleave` was described here as "the only committed fixture where they are not the same number",
+	 * and it is not.** That sentence, and the three-name loop under it, were written when the directory
+	 * held three pulls; `addsThenBoss` greys **4 of its 13** refresh rows against `cleave`'s 1 of 2, so the
+	 * pull that exercises this hardest is the one the sweep never ran. `cleave` keeps its named block below
+	 * because the band-4 press at 57 499 is a specific press with specific tooltip copy.
 	 */
 	it('greys the refresh rows the share stopped counting, and leaves the denominator drawn', () => {
 		const THEME = { miss: '#m', kick: '#k', brew: '#b', rune: '#r', track: '#t' } as unknown as ChartTheme;
-		const unbroken = elemental('unbroken');
 
-		for (const [name, el] of [
-			['unbroken', unbroken],
-			['cleave', cleave],
-			['phased', phased],
-		] as const) {
-			const audit = el.flameShock;
+		for (const name of ELEMENTAL_PULLS) {
+			const audit = elemental(name).flameShock;
 			const series = buildBars(audit, THEME);
 			// Every press made into a live dot still gets a row — greying one does not remove it.
 			expect(series.held, name).toHaveLength(audit.refreshes);
@@ -357,17 +391,21 @@ describe('the exempt row', () => {
 		}
 		// The counts the equality is against, so a fixture recapture that moved them says so here. Written
 		// out per fixture rather than as one number, because the whole defect was `cleave` differing from
-		// the other two and nobody looking.
+		// the other two and nobody looking — and keyed by name rather than positional, so a fifth pull
+		// fails here instead of joining a loop that never reaches it.
 		expect(
-			(['unbroken', 'cleave', 'phased'] as const).map((name) => {
-				const audit = { unbroken, cleave, phased }[name].flameShock;
-				return [audit.refreshes, audit.unjudgedRefreshes, audit.refreshes - audit.unjudgedRefreshes];
-			}),
-		).toEqual([
-			[6, 0, 6],
-			[2, 1, 1],
-			[4, 0, 4],
-		]);
+			Object.fromEntries(
+				ELEMENTAL_PULLS.map((name) => {
+					const audit = elemental(name).flameShock;
+					return [name, [audit.refreshes, audit.unjudgedRefreshes, audit.refreshes - audit.unjudgedRefreshes]];
+				}),
+			),
+		).toEqual({
+			addsThenBoss: [13, 4, 9],
+			cleave: [2, 1, 1],
+			phased: [4, 0, 4],
+			unbroken: [6, 0, 6],
+		});
 
 		// `cleave`'s band-4 refresh: inside an add wave, drawn, and now drawn grey rather than amber.
 		const aoe = toIntervals(cleave.lightningShield.aoeWindows);
@@ -405,21 +443,43 @@ describe('the exempt row', () => {
 	 * `weave` is the pull that makes the difference unarguable rather than pedantic: its only stretches
 	 * out of contact are 862ms at the front and 57ms at the back, so under the old filter the row was
 	 * empty, the key entry vanished and the label stated 0ms of a 919ms drop.
+	 *
+	 * **Three of the Windwalker's six captures were being asked, and the omission was not deliberate.**
+	 * The list was `['weave', 'strong', 'waves']` — the three that made the argument — while `cleave`,
+	 * `mixed` and `poor` sat in the same directory carrying the same row and answering to nobody. This is
+	 * the Elemental fourth-fixture mechanism on the other spec: a literal that meant "every pull with this
+	 * row" and stopped meaning it. Discovered from `capturedAnalyses`, with the figure per pull kept as a
+	 * pinned map so the sweep still says what it measured rather than only that it did not throw — and so
+	 * a seventh capture has to be read and written down rather than looping past.
+	 *
+	 * The three that were missing carry 2 699ms, 40 583ms and 2 375ms of this row between them, and the
+	 * identity holds on all six — so nothing was broken, but 45 657ms of drawn exempt row had never been
+	 * compared to the denominator it is supposed to be the complement of.
 	 */
-	it.each([
-		['weave', 919],
-		['strong', 19_812],
-		['waves', 117_004],
-	])('draws the seconds the Rising Sun Kick denominator dropped on %s', (name, awayMs) => {
-		const analysis = windwalker(name);
-		const contact = analysis.debuff.contactSegments ?? [];
-		expect(contact.length).toBeGreaterThan(0);
-		const away = rowsOf(createElement(DebuffTimeline, { analysis, target: 'the boss' })).find(
-			(row) => row.tone === EXEMPT,
-		);
-		expect(spans(away?.windows ?? [])).toEqual(complementOf([...contact], analysis.durationMs));
-		expect(unionMs(spans(away?.windows ?? []))).toBe(awayMs);
-	});
+	const AWAY_MS: Record<string, number> = {
+		cleave: 2699,
+		mixed: 40_583,
+		poor: 2375,
+		strong: 19_812,
+		waves: 117_004,
+		weave: 919,
+	};
+
+	it.each(capturedAnalyses('windwalker').map(({ name }) => name.replace(/\.json$/, '')))(
+		'draws the seconds the Rising Sun Kick denominator dropped on %s',
+		(name) => {
+			const analysis = windwalker(name);
+			const contact = analysis.debuff.contactSegments ?? [];
+			expect(contact.length).toBeGreaterThan(0);
+			const away = rowsOf(createElement(DebuffTimeline, { analysis, target: 'the boss' })).find(
+				(row) => row.tone === EXEMPT,
+			);
+			// The identity, which is the claim: the row **is** the complement of the denominator's own
+			// contact segments, not a filtered version of it.
+			expect(spans(away?.windows ?? [])).toEqual(complementOf([...contact], analysis.durationMs));
+			expect(unionMs(spans(away?.windows ?? [])), name).toBe(AWAY_MS[name]);
+		},
+	);
 
 	it('is one tone across every chart that has one', () => {
 		const exempt = [

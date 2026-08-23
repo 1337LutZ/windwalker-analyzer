@@ -29,18 +29,17 @@
 // `createElement` rather than JSX so this stays a `.ts` file and is picked up by the project's own
 // vitest include patterns, as its siblings do.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { createElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { initI18n } from '~/lib/i18n/config';
 import { formatClock } from '~/lib/format';
 import { MIN_GRADED_SAMPLE } from '~/lib/score';
 import { getSpec } from '~/lib/spec';
 import { resolveBands, type TargetModeChoice } from '~/lib/view/targetMode';
-import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
+import type { Analysis, ElementalAuditResult } from '~/lib/types';
 
 import { ScoreViewContext } from '~/components/report/scoreViewContext';
 import { SpecContext } from '~/components/report/specContext';
@@ -53,12 +52,26 @@ initI18n();
 
 type El = Analysis & ElementalAuditResult;
 
-const analysed = (name: string): El =>
-	analyse(
-		JSON.parse(
-			readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'),
-		) as FightDataset,
-	) as El;
+/**
+ * Every raw Elemental pull, found rather than listed, and the analysis memoised.
+ *
+ * Both grids in this file already named all four pulls, so neither was hiding a stale claim — but both
+ * are of the form "every committed pull", and a four-name literal is a five-name claim waiting to be
+ * wrong. Discovered, the pinned objects below fail on a fifth fixture instead of ignoring it. Memoised
+ * because `addsThenBoss.json` is 4.4 MB and the two grids each want every pull.
+ */
+const FIXTURES: string[] = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
+const cache = new Map<string, El>();
+const analysed = (name: string): El => {
+	const hit = cache.get(name);
+	if (hit !== undefined) return hit;
+	const found = rawFixtures('elemental').find((fixture) => fixture.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw Elemental fixture ${name}`);
+	const el = analyse(found.dataset) as El;
+	cache.set(name, el);
+	return el;
+};
 
 const render = (
 	Component: (props: { analysis: Analysis }) => ReactNode,
@@ -116,10 +129,8 @@ describe('a pull whose shocks are too few to read', () => {
 	 */
 	it('is a floor no committed pull is under, on a metric that publishes its sample', () => {
 		expect(MIN_GRADED_SAMPLE).toBe(3);
-		const judged = Object.fromEntries(
-			['cleave', 'phased', 'unbroken', 'addsThenBoss'].map((name) => [name, analysed(name).earthShock.judged]),
-		);
-		expect(judged).toEqual({ cleave: 7, phased: 12, unbroken: 13, addsThenBoss: 20 });
+		const judged = Object.fromEntries(FIXTURES.map((name) => [name, analysed(name).earthShock.judged]));
+		expect(judged).toEqual({ addsThenBoss: 20, cleave: 7, phased: 12, unbroken: 13 });
 		for (const [name, count] of Object.entries(judged)) {
 			expect(count, `${name} judges fewer shocks than the floor`).toBeGreaterThanOrEqual(MIN_GRADED_SAMPLE);
 		}
@@ -225,18 +236,22 @@ describe('a pull whose shocks are too few to read', () => {
 	/**
 	 * The no-change guard, labelled: every committed pull is over the floor and keeps the sentence it had.
 	 *
-	 * All four grade `bad` on this metric today, so the guard is on that arm — a fix that reached past the
+	 * Every committed pull grades `bad` on this metric today, so the guard is on that arm — a fix that reached past the
 	 * floor and swallowed a real fault would fail here rather than read as a tidier diff.
 	 */
-	it('leaves all four committed pulls alone', () => {
-		for (const [name, expected] of [
-			['cleave', 'Only 4 of 7 shocks were spent'],
-			['phased', 'Only 7 of 12 shocks were spent'],
-			['unbroken', 'Only 5 of 13 shocks were spent'],
-			['addsThenBoss', 'Only 10 of 20 shocks were spent'],
-		] as const) {
+	it('leaves every committed pull alone', () => {
+		const expected: Record<string, string> = {
+			addsThenBoss: 'Only 10 of 20 shocks were spent',
+			cleave: 'Only 4 of 7 shocks were spent',
+			phased: 'Only 7 of 12 shocks were spent',
+			unbroken: 'Only 5 of 13 shocks were spent',
+		};
+		// Every discovered pull has a sentence written down for it, so a fifth fixture has to be read and
+		// pinned rather than skipped by a loop that never reaches it.
+		expect(Object.keys(expected).sort()).toEqual([...FIXTURES].sort());
+		for (const name of FIXTURES) {
 			const sentence = verdictOf(render(EarthShock, analysed(name)));
-			expect(sentence, name).toContain(expected); // no-change guard
+			expect(sentence, name).toContain(expected[name]!); // no-change guard
 			expect(sentence, name).not.toContain('too few to tell a habit from a coincidence');
 			noRawKey(sentence);
 		}

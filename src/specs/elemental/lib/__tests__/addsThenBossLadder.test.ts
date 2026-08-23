@@ -87,11 +87,10 @@
 // `cleave`'s, and the share of Flame Shock faults charged at an instant some enemy demonstrably carried
 // the dot, which comes off the per-enemy timeline lanes rather than off the verdicts.
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import type { Analysis, FightDataset } from '~/lib/types';
+import { rawFixtures } from '~/lib/analysis/fixtures';
+import type { Analysis } from '~/lib/types';
 import { aplAudit, type AplInputs } from '~/lib/spec/apl';
 import { analyse } from '~/specs/elemental/lib';
 import { LADDER, UNARBITRATED } from '~/specs/elemental/lib/apl';
@@ -104,27 +103,47 @@ const SEARING_TOTEM = 3599;
 /** The one on-GCD Elemental button that has no rung and is *not* delegated — see `UNARBITRATED`. */
 const MAGMA_TOTEM = 8190;
 
-const load = (name: string): Analysis =>
-	analyse(
-		JSON.parse(readFileSync(resolve(import.meta.dirname, `../../__fixtures__/${name}.json`), 'utf8')) as FightDataset,
-	) as Analysis;
+/**
+ * Every committed Elemental pull, and one analysis each — these fixtures are slow to parse.
+ *
+ * **This file was already four-complete, and it is still converted.** Unlike its neighbours it named
+ * `addsThenBoss` from the start, because the pull *is* its subject; nothing here was hiding behind a
+ * stale three. But `FIXTURES` was a four-name literal making claims of the form "across every committed
+ * pull" and "nothing arrived by fall-through on any fixture", and a four-name literal is a five-name
+ * claim waiting to be wrong in exactly the way the three-name ones were. Discovered, the pinned tallies
+ * below — which are keyed by fixture name — fail on a fifth pull rather than ignoring it.
+ *
+ * The `load` helper is gone in favour of the memo, because half this file's call sites reached for it
+ * directly and re-parsed 4.4 MB per use.
+ */
+const FIXTURES: string[] = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
-const addsThenBoss = load('addsThenBoss');
-const cleave = load('cleave');
-
-/** The four committed Elemental pulls, and one analysis each — these fixtures are slow to parse. */
-const FIXTURES = ['addsThenBoss', 'cleave', 'phased', 'unbroken'] as const;
-const loaded = new Map<string, Analysis>([
-	['addsThenBoss', addsThenBoss],
-	['cleave', cleave],
-]);
-const fixture = (name: (typeof FIXTURES)[number]): Analysis => {
+const loaded = new Map<string, Analysis>();
+const fixture = (name: string): Analysis => {
 	const known = loaded.get(name);
 	if (known !== undefined) return known;
-	const a = load(name);
+	const found = rawFixtures('elemental').find((f) => f.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw Elemental fixture ${name}`);
+	const a = analyse(found.dataset) as Analysis;
 	loaded.set(name, a);
 	return a;
 };
+
+/**
+ * The pulls that never leave one enemy, derived rather than named.
+ *
+ * Three assertions below reach for "the two single-target fixtures" as the control the multi-target
+ * reading has to be measured against, and each spelled them `['phased', 'unbroken']`. That is a claim
+ * about the count series, not about two file names — and written as a name list, a fifth single-target
+ * fixture would contribute nothing to the control while a fifth *multi*-target one under either name
+ * would be asserted to behave like a single-target pull. The partition is pinned so a fifth has to pick
+ * a side.
+ */
+const SINGLE_TARGET = FIXTURES.filter((name) => (fixture(name).targets?.counts?.max ?? 1) === 1);
+const MULTI_TARGET = FIXTURES.filter((name) => (fixture(name).targets?.counts?.max ?? 1) > 1);
+
+const addsThenBoss = fixture('addsThenBoss');
+const cleave = fixture('cleave');
 
 interface Press {
 	t: number;
@@ -332,10 +351,7 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 		// And the same held as a ceiling across every committed pull, which is the shape of the claim: no
 		// single rung may own most of a pull's faults. `phased` reads 0.240 and `unbroken` 0.395 — the two
 		// pulls that never exceed one enemy — and this pull used to read 0.914.
-		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken'] as const) {
-			const a = name === 'addsThenBoss' ? addsThenBoss : name === 'cleave' ? cleave : load(name);
-			expect(topRungShare(a), name).toBeLessThan(0.6);
-		}
+		for (const name of FIXTURES) expect(topRungShare(fixture(name)), name).toBeLessThan(0.6);
 		// 58 until that gear read; 40 of them were band-3-or-4 presses charged against a rung `cleave`'s
 		// shaman was never offered. See `lib/spec/__tests__/aoeFlameShockGear.test.ts`.
 		expect(skipsBy(cleave)['flame-shock']).toBe(18);
@@ -405,18 +421,23 @@ describe('the dot the ladder reads is the one on the enemy in front of the playe
 		});
 	});
 
-	it('moves nothing on the two pulls that never exceed one enemy', () => {
+	it('moves nothing on the pulls that never exceed one enemy', () => {
 		// **The no-change guards.** On a pull with one enemy `fsDot.byInstance` and `fsDotAnywhere` are the
-		// same map, so the fix is provably a no-op — `counts.max` is asserted beside the figures rather than
-		// trusted, because that identity is the whole reason these two cannot move.
-		for (const [name, followed, presses] of [
-			['phased', 107, 159],
-			['unbroken', 97, 142],
-		] as const) {
-			const a = load(name);
+		// same map, so the fix is provably a no-op — and the set is derived from `counts.max` rather than
+		// named, because that identity is the whole reason these pulls cannot move. A fixture is in this
+		// guard because of its count series; being called `phased` is not the reason.
+		expect(SINGLE_TARGET).toEqual(['phased', 'unbroken']);
+		expect(MULTI_TARGET).toEqual(['addsThenBoss', 'cleave']);
+		const pinned: Record<string, [followed: number, presses: number]> = {
+			phased: [107, 159],
+			unbroken: [97, 142],
+		};
+		expect(Object.keys(pinned).sort()).toEqual([...SINGLE_TARGET].sort());
+		for (const name of SINGLE_TARGET) {
+			const a = fixture(name);
 			expect(a.targets?.counts?.max, `${name} is a single-target pull`).toBe(1);
-			expect(pressesOf(a), name).toHaveLength(presses);
-			expect(auditOf(a).followed, name).toBe(followed);
+			expect(pressesOf(a), name).toHaveLength(pinned[name]![1]);
+			expect(auditOf(a).followed, name).toBe(pinned[name]![0]);
 		}
 	});
 });
@@ -553,14 +574,12 @@ describe('what the ladder can reach now that one rung has stopped claiming every
 
 		// And `followed` did not move on any fixture, which bounds what the declaration is allowed to do: it
 		// takes presses out of `skipped` and puts them in `offList`, and it cannot manufacture credit.
-		for (const [name, followed] of [
-			['addsThenBoss', 140],
-			['cleave', 131],
-			['phased', 107],
-			['unbroken', 97],
-		] as const) {
-			expect(auditOf(fixture(name)).followed, name).toBe(followed);
-		}
+		expect(Object.fromEntries(FIXTURES.map((name) => [name, auditOf(fixture(name)).followed]))).toEqual({
+			addsThenBoss: 140,
+			cleave: 131,
+			phased: 107,
+			unbroken: 97,
+		});
 	});
 
 	it('still faults a button with no rung and no declaration, so off-list is not an amnesty', () => {
@@ -640,8 +659,9 @@ describe('what is left of the gap is the player', () => {
 		const end = lastMultiTargetPoint(addsThenBoss);
 		const tail = split(addsThenBoss, (p) => p.decidedAt > end);
 		expect(tail.followed / tail.n).toBeCloseTo(0.615, 3);
-		for (const name of ['phased', 'unbroken'] as const) {
-			const a = load(name);
+		expect(SINGLE_TARGET).toHaveLength(2); // so "both" below is the set the prose describes
+		for (const name of SINGLE_TARGET) {
+			const a = fixture(name);
 			const rate = auditOf(a).followed / pressesOf(a).length;
 			expect(rate, name).toBeGreaterThan(0.6);
 			expect(Math.abs(rate - tail.followed / tail.n), name).toBeLessThan(0.08);

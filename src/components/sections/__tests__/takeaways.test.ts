@@ -7,9 +7,10 @@ import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { capturedAnalyses, rawFixtures } from '~/lib/analysis/fixtures';
 import i18n, { initI18n } from '~/lib/i18n/config';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
-import type { Analysis, FightDataset } from '~/lib/types';
+import type { Analysis } from '~/lib/types';
 
 import { SpecContext } from '~/components/report/specContext';
 import { getSpec, SPECS, type SpecDefinition } from '~/lib/spec';
@@ -31,23 +32,25 @@ const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
 
 /**
- * Each spec's own fixtures, and which shape they are on disk.
+ * Each spec's own fixtures, discovered and classified by shape rather than listed.
  *
- * The Windwalker's are captured `analyse()` output and load straight as an `Analysis`; the
+ * The Windwalker's are mostly captured `analyse()` output and load straight as an `Analysis`; the
  * Elemental's are raw `FightDataset` captures and have to go through the spec's own `analyse` first.
- * Named rather than sniffed, because a fixture whose shape is guessed wrongly reads as a spec bug.
+ * That distinction used to be a hand-written `analysed: boolean` beside a hand-written list of names,
+ * with the comment "named rather than sniffed, because a fixture whose shape is guessed wrongly reads
+ * as a spec bug" — but `lib/analysis/fixtures.ts` does not guess. It classifies on `events` + `actor`
+ * against `casts` + `actorID` and **throws by name** on a `.json` that answers to neither, which is a
+ * louder failure than a stale literal produces and does not need editing when the directory grows.
+ *
+ * **The literal it replaced was `['unbroken', 'cleave', 'phased']` for the Elemental**, so the sweep
+ * below — which exists because `brewShortUses` reached a reader as a raw dotted i18n key — had never
+ * been run over `addsThenBoss`, the pull that deals the most cards in the directory. It also picks up
+ * `windwalker/dataset-ironJuggernaut.json`, a raw monk pull the six-name list left out entirely.
  */
-const SPEC_FIXTURES: Record<string, { names: string[]; analysed: boolean }> = {
-	windwalker: { names: ['strong', 'mixed', 'poor', 'cleave', 'weave', 'waves'], analysed: true },
-	elemental: { names: ['unbroken', 'cleave', 'phased'], analysed: false },
-};
-
-const specFixture = (spec: SpecDefinition, name: string): Analysis => {
-	const json: unknown = JSON.parse(
-		readFileSync(resolve(import.meta.dirname, `../../../specs/${spec.key}/__fixtures__/${name}.json`), 'utf8'),
-	);
-	return SPEC_FIXTURES[spec.key]!.analysed ? (json as Analysis) : spec.analyse(json as FightDataset);
-};
+const specFixtures = (spec: SpecDefinition): Array<{ name: string; analysis: () => Analysis }> => [
+	...rawFixtures(spec.key).map(({ name, dataset }) => ({ name, analysis: () => spec.analyse(dataset) })),
+	...capturedAnalyses(spec.key).map(({ name, analysis }) => ({ name, analysis: () => analysis })),
+];
 
 /**
  * The card headings, which are the only part of the block that names a metric.
@@ -126,11 +129,16 @@ describe('the summary takeaways', () => {
 		// reading of anything, which is the same trap `asWindwalker` above exists for. Asserted against
 		// the registry so a third spec has to name its fixtures here rather than silently contributing
 		// none.
-		expect(SPECS.map((spec) => spec.key).sort()).toEqual(Object.keys(SPEC_FIXTURES).sort());
+		let swept = 0;
 		const missing: string[] = [];
 		for (const spec of SPECS) {
-			for (const name of SPEC_FIXTURES[spec.key]!.names) {
-				const card = spec.score(specFixture(spec, name));
+			const fixtures = specFixtures(spec);
+			// A spec contributing nothing is the failure mode the registry assertion used to guard against,
+			// and discovery has to guard it too: an empty directory would sweep zero metrics and pass.
+			expect(fixtures.length, `${spec.key} has fixtures to sweep`).toBeGreaterThan(0);
+			for (const { analysis } of fixtures) {
+				swept += 1;
+				const card = spec.score(analysis());
 				const weights = spec.weightsFor(null);
 				for (const score of Object.values(card.sections)) {
 					for (const metric of score.metrics) {
@@ -144,6 +152,9 @@ describe('the summary takeaways', () => {
 			}
 		}
 		expect([...new Set(missing)].sort()).toEqual([]);
+		// Eleven, not the nine the two literals named: four Elemental pulls and seven Windwalker ones.
+		// Pinned so a fixture leaving the directory shows up as a number rather than as a quieter sweep.
+		expect(swept).toBe(11);
 	});
 
 	it('says so plainly when there is nothing to fix', () => {

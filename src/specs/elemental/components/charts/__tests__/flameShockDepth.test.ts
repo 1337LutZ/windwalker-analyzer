@@ -27,6 +27,7 @@ import { describe, expect, it } from 'vitest';
 import i18n, { initI18n } from '~/lib/i18n/config';
 import { fmt } from '~/components/format';
 import { getSpec } from '~/lib/spec';
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { bandOf } from '~/lib/spec/apl';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
@@ -44,10 +45,34 @@ const t = i18n.getFixedT('en', 'report');
 
 type El = Analysis & ElementalAuditResult;
 
+/**
+ * Every raw Elemental pull, found rather than listed, and both the dataset and the analysis memoised.
+ *
+ * Two grids below were spelled `['cleave', 'phased', 'unbroken']` — the `targets`/`band` agreement over
+ * "every committed press", and the whole `the geometry agrees with the verdict` block — and both are
+ * claims about presses, so `addsThenBoss`' 31 of them were never put to either. The loader they replace
+ * reached the same three files by three different paths, one of them a three-way ternary. Memoised
+ * because `addsThenBoss.json` is 4.4 MB and the geometry block wants both the dataset and the audit.
+ */
+const FIXTURES: string[] = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
+
+const datasetOf = (name: string): FightDataset => {
+	const found = rawFixtures('elemental').find((fixture) => fixture.name === `${name}.json`);
+	if (found === undefined) throw new Error(`no raw Elemental fixture ${name}`);
+	return found.dataset;
+};
+
+const analysed = new Map<string, El>();
+const fx = (name: string): El => {
+	const hit = analysed.get(name);
+	if (hit !== undefined) return hit;
+	const el = analyse(datasetOf(name)) as El;
+	analysed.set(name, el);
+	return el;
+};
+
 /** `a:xB3kh7v9pF2AHRtq` #16 — one apply, six refreshes, one of them inside its own last tick. */
-const unbroken: El = analyse(
-	JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/unbroken.json'), 'utf8')) as FightDataset,
-) as El;
+const unbroken: El = fx('unbroken');
 
 const html = renderToStaticMarkup(
 	createElement(
@@ -230,17 +255,8 @@ describe('the greyed refresh rows say why they are grey', () => {
 	 * it agrees with `band` everywhere `band` is not the open-topped one.
 	 */
 	it('reads the same count off targets as off the band on every committed press', () => {
-		for (const name of ['cleave', 'phased', 'unbroken'] as const) {
-			const el =
-				name === 'cleave'
-					? cleaveEl
-					: name === 'unbroken'
-						? unbroken
-						: (analyse(
-								JSON.parse(
-									readFileSync(resolve(import.meta.dirname, '../../../__fixtures__/phased.json'), 'utf8'),
-								) as FightDataset,
-							) as El);
+		for (const name of FIXTURES) {
+			const el = fx(name);
 			for (const p of el.flameShock.presses) {
 				expect(bandOf(p.targets), `${name} ${p.t}`).toBe(p.band);
 				// Zero is a real reading — `cleave`'s pre-pull apply at 1 547ms lands before any damage has
@@ -295,19 +311,11 @@ describe('the refresh tooltip names the window that judged the press', () => {
  * `intoLastTickMs`.
  */
 describe('the geometry agrees with the verdict', () => {
-	const fixtures = ['unbroken', 'cleave', 'phased'] as const;
-	const analysed = (name: string): El =>
-		analyse(
-			JSON.parse(
-				readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'),
-			) as FightDataset,
-		) as El;
-	const el = { unbroken, cleave: analysed('cleave'), phased: analysed('phased') };
+	const fixtures = FIXTURES;
+	const el = fx;
 	/** Every Flame Shock tick this player landed, fight-relative, whatever spawn took it. */
 	const tickTimes = (name: string): number[] => {
-		const d = JSON.parse(
-			readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8'),
-		) as FightDataset;
+		const d = datasetOf(name);
 		return d.events
 			.filter((e) => e.type === 'damage' && e.abilityGameID === 8050 && e.tick === true && e.sourceID === d.actor.id)
 			.map((e) => e.timestamp - d.fight.startTime)
@@ -318,7 +326,7 @@ describe('the geometry agrees with the verdict', () => {
 		let credited = 0;
 		let early = 0;
 		for (const name of fixtures) {
-			const audit = el[name].flameShock;
+			const audit = el(name).flameShock;
 			const series = buildBars(audit, THEME);
 			const drawn = audit.presses.filter((p) => p.remainingMs !== null);
 			expect(series.held).toHaveLength(drawn.length);
@@ -338,8 +346,10 @@ describe('the geometry agrees with the verdict', () => {
 				}
 			});
 		}
-		// Non-vacuous on both arms: five credited presses across the three pulls and seven early ones.
-		expect([credited, early]).toEqual([5, 7]);
+		// Non-vacuous on both arms, over the discovered set: six credited presses and nineteen early ones.
+		// It was 5 and 7 over the three names this loop used to spell — `addsThenBoss` contributes one
+		// credited press and twelve early ones, so more than half the early arm had never been drawn at all.
+		expect([credited, early]).toEqual([6, 19]);
 	});
 
 	/**
@@ -356,7 +366,7 @@ describe('the geometry agrees with the verdict', () => {
 	 */
 	it('splits each bar into two lengths that are both real, and not merely into two that sum', () => {
 		for (const name of fixtures) {
-			const audit = el[name].flameShock;
+			const audit = el(name).flameShock;
 			const series = buildBars(audit, THEME);
 			series.held.forEach((bar, i) => {
 				expect(bar.y, `${name} held ${i}`).toBeGreaterThanOrEqual(0);
@@ -383,7 +393,7 @@ describe('the geometry agrees with the verdict', () => {
 		const seen: Array<[string, number, number]> = [];
 		for (const name of fixtures) {
 			const ticks = tickTimes(name);
-			const audit = el[name].flameShock;
+			const audit = el(name).flameShock;
 			const series = buildBars(audit, THEME);
 			audit.presses
 				.filter((p) => p.remainingMs !== null)
@@ -398,15 +408,16 @@ describe('the geometry agrees with the verdict', () => {
 					seen.push([name, press.t, Math.round(tailMs)]);
 				});
 		}
-		// The four presses that identity covers, with the tail each one got. Literals so that a change in
+		// The five presses that identity covers, with the tail each one got. Literals so that a change in
 		// the derivation shows up as a number that moved rather than as a loop that iterated nothing:
 		// `cleave`'s 581ms is the press the whole count exists for — faulted by 59ms under the old duration
 		// test, and 581ms into its own last tick.
 		expect(seen).toEqual([
-			['unbroken', 112_878, 1294],
+			['addsThenBoss', 36_139, 1771],
 			['cleave', 29_777, 581],
 			['phased', 222_607, 2207],
 			['phased', 251_605, 1557],
+			['unbroken', 112_878, 1294],
 		]);
 	});
 
@@ -419,7 +430,7 @@ describe('the geometry agrees with the verdict', () => {
 	 * two live readings that raised this, 69ms and 343ms.
 	 */
 	it('would have drawn the credited cleave press outside the retired band', () => {
-		const audit = el.cleave.flameShock;
+		const audit = fx('cleave').flameShock;
 		const press = audit.presses.find((p) => p.t === 29_777)!;
 		expect(press.ticksLeft).toBe(1);
 		const elapsedSec = (audit.durationMs - (press.remainingMs ?? 0)) / 1000;
