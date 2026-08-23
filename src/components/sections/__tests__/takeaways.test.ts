@@ -7,12 +7,12 @@ import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { initI18n } from '~/lib/i18n/config';
+import i18n, { initI18n } from '~/lib/i18n/config';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
-import type { Analysis } from '~/lib/types';
+import type { Analysis, FightDataset } from '~/lib/types';
 
 import { SpecContext } from '~/components/report/specContext';
-import { getSpec } from '~/lib/spec';
+import { getSpec, SPECS, type SpecDefinition } from '~/lib/spec';
 
 import Takeaways from '../Takeaways';
 
@@ -28,6 +28,25 @@ initI18n();
 
 const fixture = (name: string): Analysis =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'));
+
+/**
+ * Each spec's own fixtures, and which shape they are on disk.
+ *
+ * The Windwalker's are captured `analyse()` output and load straight as an `Analysis`; the
+ * Elemental's are raw `FightDataset` captures and have to go through the spec's own `analyse` first.
+ * Named rather than sniffed, because a fixture whose shape is guessed wrongly reads as a spec bug.
+ */
+const SPEC_FIXTURES: Record<string, { names: string[]; analysed: boolean }> = {
+	windwalker: { names: ['strong', 'mixed', 'poor', 'cleave', 'weave', 'waves'], analysed: true },
+	elemental: { names: ['unbroken', 'cleave', 'phased'], analysed: false },
+};
+
+const specFixture = (spec: SpecDefinition, name: string): Analysis => {
+	const json: unknown = JSON.parse(
+		readFileSync(resolve(import.meta.dirname, `../../../specs/${spec.key}/__fixtures__/${name}.json`), 'utf8'),
+	);
+	return SPEC_FIXTURES[spec.key]!.analysed ? (json as Analysis) : spec.analyse(json as FightDataset);
+};
 
 /**
  * The card headings, which are the only part of the block that names a metric.
@@ -84,6 +103,46 @@ describe('the summary takeaways', () => {
 	it('never advises fixing a metric the model does not count', () => {
 		const analysis = fixture('strong');
 		expect(cards(analysis)).not.toContain('Snapshot depth');
+	});
+
+	/**
+	 * The guard this block did not have, and the defect that proved it was needed.
+	 *
+	 * Every card's two lines are looked up at `summary.takeaways.metric.<metric.key>.{label,fix}` — a
+	 * key computed from the scorecard, so `keys.test.ts`'s literal scan cannot see it and i18next
+	 * renders a missing one as the dotted key itself, in a card at the top of the report. `brewShortUses`
+	 * landed as a graded metric with weight 1 and no copy at all, and `strong` deals it a card: the
+	 * suite was green with `summary.takeaways.metric.brewShortUses.label` printed at a reader.
+	 *
+	 * Scanned rather than listed, over every spec and every fixture, so a metric added with weight and
+	 * no copy fails by the fact of being added. Weight zero and `unmeasurable` are skipped because
+	 * `Takeaways` skips them — a metric that can never deal a card needs no card copy, and demanding it
+	 * would be a list of strings nobody reads.
+	 */
+	it('has both lines of copy for every metric that can deal a card', () => {
+		const t = i18n.getFixedT('en', 'report');
+		// Each spec over its own captures — a monk pull scored by the Shaman's thresholds is not a
+		// reading of anything, which is the same trap `asWindwalker` above exists for. Asserted against
+		// the registry so a third spec has to name its fixtures here rather than silently contributing
+		// none.
+		expect(SPECS.map((spec) => spec.key).sort()).toEqual(Object.keys(SPEC_FIXTURES).sort());
+		const missing: string[] = [];
+		for (const spec of SPECS) {
+			for (const name of SPEC_FIXTURES[spec.key]!.names) {
+				const card = spec.score(specFixture(spec, name));
+				const weights = spec.weightsFor(null);
+				for (const score of Object.values(card.sections)) {
+					for (const metric of score.metrics) {
+						if (metric.unmeasurable || (weights[metric.key] ?? 0) === 0) continue;
+						for (const part of ['label', 'fix'] as const) {
+							const key = `summary.takeaways.metric.${metric.key}.${part}`;
+							if (t(key) === key) missing.push(key);
+						}
+					}
+				}
+			}
+		}
+		expect([...new Set(missing)].sort()).toEqual([]);
 	});
 
 	it('says so plainly when there is nothing to fix', () => {
