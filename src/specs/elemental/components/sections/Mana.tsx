@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import { formatClock, formatInteger, formatPercentValue, formatSeconds } from '~/lib/format';
 import { resourceColorOf } from '~/lib/game/resources';
+import type { Grade } from '~/lib/score';
 import type { Analysis, ElementalAuditResult, ManaAudit, ManaLowStretch, PoolResourceAudit } from '~/lib/types';
 
 import ResourceChart, { type TrackBand } from '~/components/charts/ResourceChart';
@@ -128,15 +129,21 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 	 * That is the defect `lightningShield.verdict_good_noOvercap` and `searingTotem`'s `_noUptime` exist
 	 * for, in the section that had no such variant.
 	 *
-	 * Only the `good` sentence is narrowed, and the reason is arithmetic rather than restraint: `ms` and
-	 * `stretches` are both cut out of an empty `gradedMs`, so the `ok` and `bad` sentences print a true
-	 * zero for the unread half rather than a figure that contradicts the tile beside it. They are thin
-	 * there, not false. Only `good` turns that zero into an absolute claim about a stretch the log never
-	 * showed.
+	 * **All three grades are narrowed, and `good` used to be the only one.** The argument for stopping at
+	 * `good` was that `ms` and `stretches` are both cut out of an empty `gradedMs`, so `ok` and `bad`
+	 * print a true zero for the unread half rather than a figure that contradicts the tile beside it —
+	 * thin there, not false. But a zero with nothing beside it is not read as an absence of data: *"You
+	 * spent 0s under 15% with Thunderstorm up, and let Shamanistic Rage come back to a pool already under
+	 * 70% once without pressing it"* tells a reader their Thunderstorm was clean, in the same sentence
+	 * that faults their Rage. `addsThenBoss` is the pull that made that visible — the first committed one
+	 * to reach an `ok` here, and its 15% line is never approached — so the `_noRage` / `_noThunderstorm`
+	 * shape now covers every grade that has a sentence to narrow.
 	 */
 	const starvedRead = mana.starved.gradedMs > 0;
 	const strainedRead = mana.strained.gradedMs > 0;
-	const narrowed = gradeOf('mana') === 'good' && starvedRead !== strainedRead;
+	/** Which half went unanswered, or null where the pull answered both of them or neither. */
+	const unread: 'noRage' | 'noThunderstorm' | null =
+		starvedRead === strainedRead ? null : starvedRead ? 'noRage' : 'noThunderstorm';
 	/**
 	 * Time under either line whatever was or was not in hand — the number that tells the three pulls an
 	 * empty pair of clocks covers apart from each other.
@@ -156,12 +163,40 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 		low: lowMs,
 	};
 	/**
-	 * The sentence, and the two narrowed arms are whole keys rather than a `context` — deliberately.
+	 * The six narrowed arms, as whole keys rather than a `context` — deliberately.
 	 *
 	 * `keys.test.ts` reads literal `t('…')` keys out of the source and joins them to `verdict()`'s own
-	 * template, so the arms `verdict()` can resolve are hunted from both halves. These two are chosen by a
-	 * measurement rather than by the grade, so the context mechanism was never the right fit for them and
-	 * naming them in the key keeps the guard pointed at strings that exist.
+	 * template, so the arms `verdict()` can resolve are hunted from both halves. These are chosen by a
+	 * measurement *and* by the grade, and the context mechanism only carries one of those, so naming them
+	 * in the key keeps that guard pointed at strings that exist.
+	 *
+	 * Thunks rather than a table of key names, for the same reason: the key has to sit inside the `t(` for
+	 * the guard to see it. Assembling the key at the call site from the grade and the unread half would
+	 * read the same and be invisible to it in both directions.
+	 *
+	 * That sentence used to spell the assembled key out in backticks, and **the guard counted it.** Its
+	 * family scanner reads template literals out of the source text and does not care that this one is in
+	 * a comment, so documenting the shape *created* the shape: a `mana.verdict_*_*` family with two holes
+	 * and no key source, which `SHAPE_ONLY` is asserted to be empty of. Naming a key pattern in prose here
+	 * is a code change — so it is named in words instead.
+	 */
+	const narrowed: Record<Grade, Record<'noRage' | 'noThunderstorm', () => string>> = {
+		good: {
+			noRage: () => t('mana.verdict_good_noRage', graded),
+			noThunderstorm: () => t('mana.verdict_good_noThunderstorm', graded),
+		},
+		ok: {
+			noRage: () => t('mana.verdict_ok_noRage', graded),
+			noThunderstorm: () => t('mana.verdict_ok_noThunderstorm', graded),
+		},
+		bad: {
+			noRage: () => t('mana.verdict_bad_noRage', graded),
+			noThunderstorm: () => t('mana.verdict_bad_noThunderstorm', graded),
+		},
+	};
+	const grade = gradeOf('mana');
+	/**
+	 * The sentence.
 	 *
 	 * **Both clocks empty is two different pulls and used to be one sentence.** With no time under either
 	 * line the pull genuinely never asked for a press, which is `mana.clean`. With time under a line that
@@ -172,18 +207,18 @@ export default function Mana({ analysis }: { analysis: Analysis }) {
 	 * `mana.verdict_none`. It had no copy behind it until this branch existed to need it, and i18next
 	 * renders a missing context as the bare `mana.verdict` — the key itself, where the sentence belongs.
 	 *
-	 * `narrowed` cannot be about either of them: it needs a `good`, and a `good` needs a clock.
+	 * A narrowed arm cannot be about either of them: it needs one half answered and the other not, and
+	 * both of those pulls answered neither. Which is also why `none` and `exempt` are not in the table
+	 * above — there is no grade there to pick an arm by.
 	 */
 	const sentence =
 		!starvedRead && !strainedRead
 			? lowMs === 0
 				? t('mana.clean')
 				: verdict('mana', graded)
-			: narrowed && starvedRead
-				? t('mana.verdict_good_noRage', graded)
-				: narrowed
-					? t('mana.verdict_good_noThunderstorm', graded)
-					: verdict('mana', graded);
+			: unread !== null && grade !== 'none' && grade !== 'exempt'
+				? narrowed[grade][unread]()
+				: verdict('mana', graded);
 
 	return (
 		<Section id="mana" title={t('mana.title')}>

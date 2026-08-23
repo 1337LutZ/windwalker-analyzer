@@ -1011,7 +1011,14 @@ describe('report copy with no reader', () => {
 			'verdict_good_noRage',
 			'verdict_good_noThunderstorm',
 			'verdict_ok',
+			// The narrowed arms went from the `good` grade to all three when `addsThenBoss` landed and became
+			// the first committed pull to answer one half and not the other: it strains once with the Rage
+			// unpressed and never starves, so `verdict_ok` asserted a clean Thunderstorm it had not measured.
+			'verdict_ok_noRage',
+			'verdict_ok_noThunderstorm',
 			'verdict_bad',
+			'verdict_bad_noRage',
+			'verdict_bad_noThunderstorm',
 			'verdict_none',
 		],
 		searingTotem: [
