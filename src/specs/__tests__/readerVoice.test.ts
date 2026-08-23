@@ -123,14 +123,14 @@ const leaves = (file: string): [string, string][] => {
 const localeStrings = (): [string, string][] => leaves(REPORT);
 
 /**
- * `ui.json` — the shell copy: 51 leaves under `app`, `chart`, `common`, `credits`, `selection`,
- * `settings` and `steps`.
+ * `ui.json` — the shell copy, under the roots named in `UI_ROOTS`.
  *
- * Read only by the three lists at the foot of this file, and read by them from the start. That is not
- * an oversight in the scopes above: `MODEL_WORDS` is scoped, exempted and closed against `report.json`
- * alone, and bringing `ui.json` under *that* sweep is a coverage change with its own phase. Asking
- * whether a shell string sounds machine-written needs no scope and no exemption, so it costs nothing
- * to ask it here.
+ * Read from the start by the three lists at the foot of this file, because asking whether a shell
+ * string sounds machine-written needs no scope and no exemption. `MODEL_WORDS` was the other half, and
+ * it was scoped, exempted and closed against `report.json` alone — the docstring here used to claim in
+ * passing that the shell copy names no part of the model, and nothing executed the claim. **The scope
+ * below executes it**, on its own and with no copy moving, which is the same one-change-at-a-time rule
+ * the `MODEL_WORDS` docstring states.
  */
 const uiStrings = (): [string, string][] => leaves(UI);
 
@@ -695,6 +695,47 @@ describe('no string in report.json sits outside every scope', () => {
 	});
 });
 
+// ================================================================= the shell
+//
+// `ui.json` under `MODEL_WORDS`, which is a coverage change and nothing else: every one of these leaves
+// already passes, so this commit moves no copy and the run is green the first time it is made. That is
+// the point of it. The claim that the shell copy names no part of the model was previously a sentence in
+// a docstring above, written by hand and checked by nobody, and a hand-made claim about a file that four
+// lanes have edited is a claim about the day it was typed.
+//
+// **No exemptions, and none of the four the report scopes carry transfer.** `WINDWALKER_METHOD_KEYS`,
+// `SHARED_METHOD_KEYS`, `REFERENCE_SECTIONS` and `REFERENCE_READER_KEYS` all exist because naming the
+// model is sometimes a section's job — printing the priority list, explaining how a threshold was read.
+// The shell has no such job. It signs you in, takes a report code and draws a settings dialog, and there
+// is no string in it that has to call anything a rule, a band or a verdict.
+
+/**
+ * Every root in `ui.json`, written out for the same reason the three report scopes write theirs out:
+ * so that a new root is a visible edit here rather than a quiet exit from the sweep.
+ *
+ * Re-verified against the file as it stands rather than copied from the plan — `settings.intent` moved
+ * between the two, and the roots are the thing a copy edit is least likely to change and most damaging
+ * to get wrong. Seven, and the closure test below is what keeps them seven.
+ */
+const UI_ROOTS = ['app', 'chart', 'common', 'credits', 'selection', 'settings', 'steps'];
+
+const shellStrings = (): [string, string][] => uiStrings().filter(([key]) => UI_ROOTS.includes(key.split('.')[0]!));
+
+describe('the shell copy is about the pull, not about the audit', () => {
+	it('sweeps every shell root, with nothing outside a scope', () => {
+		const roots = [...new Set(uiStrings().map(([key]) => key.split('.')[0]!))].sort();
+		expect(new Set(UI_ROOTS).size).toBe(UI_ROOTS.length);
+		expect(roots).toEqual([...UI_ROOTS].sort());
+		// Non-vacuity, in the shape the report scopes use: a floor rather than the live count, so an
+		// honest deletion does not red it and a selector that stops selecting does.
+		expect(shellStrings().length).toBeGreaterThan(40);
+	});
+
+	it('names no part of our own model in anything a reader is shown', () => {
+		expect(violations(shellStrings())).toEqual([]);
+	});
+});
+
 // ================================================================= the vocabulary, measured
 
 describe('the one prophylactic word in the vocabulary', () => {
@@ -739,15 +780,26 @@ describe('stripping the templates hides no violation', () => {
 	/**
 	 * The one way `prose()` could be a narrowing rather than a correction: a banned word inside a
 	 * placeholder that a reader *does* see, which would be an interpolated value rather than a formatter
-	 * or a variable name. There is no such thing in any of the three scopes' copy, and this says so — so
+	 * or a variable name. There is no such thing in any of the four scopes' copy, and this says so — so
 	 * the day someone writes `{{verdict}}` into a sentence, this fails instead of the sweep going quiet.
+	 *
+	 * The shell is the fourth, and it adds nothing to the list below: its ten placeholder shapes are
+	 * `{{spec}}`, `{{default}}`, `{{min}}`, `{{max}}`, `{{when}}` and five formatted counts, none of
+	 * which carries a word from the vocabulary. It is swept anyway, because the scope above leans on the
+	 * same strip and an unpinned strip is the narrowing this test was written to refuse.
 	 *
 	 * `priority.summary: {{judged}}` is the ninth, and it came in with the shared scope rather than with
 	 * a new string: it was always a variable name rendering a count, and was always unpinned because the
 	 * namespace it lives in was outside every scope.
 	 */
-	it('leaves no banned word inside a placeholder in any of the three scopes', () => {
-		const swept = [...elementalStrings(), ...windwalkerStrings(), ...sharedStrings(), ...referenceReaderStrings()];
+	it('leaves no banned word inside a placeholder in any of the four scopes', () => {
+		const swept = [
+			...elementalStrings(),
+			...windwalkerStrings(),
+			...sharedStrings(),
+			...referenceReaderStrings(),
+			...shellStrings(),
+		];
 		const inside = swept
 			.flatMap(([key, value]) => (value.match(/\{\{[^}]*\}\}/g) ?? []).map((token) => [key, token] as const))
 			.filter(([, token]) => MODEL_WORDS.some((word) => token.toLowerCase().includes(word)))
