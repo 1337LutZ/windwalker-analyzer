@@ -79,9 +79,18 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 	// note below has a band to explain.
 	const aoeWindows = el.lightningShield.aoeWindows;
 	const { t, gradeOf, unasked } = useReportCopy(analysis);
-	// A tile whose number nothing on this reading was measured against says so in its own label rather
-	// than in a note under the table — see the same two lines in `SearingTotem.tsx`. The number stays.
-	const tile = (key: string, metric: string) => (unasked(metric) ? `${t(key)} — ${t('metric.notAsked')}` : t(key));
+	/**
+	 * A tile whose number nothing on this reading was measured against says so in its own label rather
+	 * than in a note under the table — see the same two lines in `SearingTotem.tsx`. The number stays.
+	 *
+	 * **`emptyClock` is the second way a figure goes unmeasured, and `unasked` cannot see it.** `exempt` is
+	 * set in `metricOf` when the *reading* declares no band the rule covers; an empty graded clock is the
+	 * other branch there (`thin`) and leaves `unmeasurable` true with no `exempt` flag, so a metric whose
+	 * every gradable second fell inside an add wave arrives here looking graded. Both are "nothing measured
+	 * this" as far as a caption is concerned, and the caption is the same sentence for both.
+	 */
+	const tile = (key: string, metric: string, emptyClock = false) =>
+		unasked(metric) || emptyClock ? `${t(key)} — ${t('metric.notAsked')}` : t(key);
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -172,11 +181,24 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 					<StatTile value={`${flameShock.applies}`} label={t('flameShock.kpi.applies')} />
 					<StatTile value={`${flameShock.refreshes}`} label={t('flameShock.kpi.refreshes')} />
 					<StatTile value={`${flameShock.windowed}`} label={t('flameShock.kpi.windowed')} />
-					{/* The cleave rule's own tile, present only when the pull actually had a second target. */}
-					{flameShock.multiTargetMs > 0 ? (
+					{/* The cleave rule's own tile, present whenever the pull actually had a second enemy to dot.
+
+					    **Gated on the core's untrimmed clock and no longer on the rule's own.** Since `9397af8`
+					    `flameShock.multiTargetMs` is the *graded* length — band 2 alone, cut at both ends — so it
+					    is zero on a pull whose every two-target second fell inside an add wave, and this gate
+					    deleted the tile on exactly the pulls the caption was written for. `targets.multiTargetMs`
+					    is the mode share's own numerator, untrimmed by design, and it answers the question the
+					    gate is actually asking: was there ever a second enemy here at all.
+
+					    An unmeasured figure is not a deleted one — the rule `8e011ac` set for the totem and the
+					    shield tiles — but nor is it a zero. `multiDotUptimePct` is `0` when its clock is empty
+					    because `0 / 0` has to be something, and printing "0%" would accuse the reader of never
+					    dotting a second target the report never looked for. So the tile keeps its place, says in
+					    its label that nothing measured it, and shows a dash where the figure would be. */}
+					{(el.targets?.multiTargetMs ?? 0) > 0 ? (
 						<StatTile
-							value={formatPercentValue(flameShock.multiDotUptimePct)}
-							label={tile('flameShock.kpi.multiDot', 'flameShockMultiDot')}
+							value={flameShock.multiTargetMs > 0 ? formatPercentValue(flameShock.multiDotUptimePct) : '—'}
+							label={tile('flameShock.kpi.multiDot', 'flameShockMultiDot', flameShock.multiTargetMs === 0)}
 						/>
 					) : null}
 				</StatTiles>
