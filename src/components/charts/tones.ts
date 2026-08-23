@@ -158,4 +158,45 @@ export const VAR: Record<Tone, string> = {
  * exempt row is a ground and so takes `widen: false`, unless a tile above the chart counts its spans
  * one by one, in which case it is also a counted row and must not be gated. See `Track.widen`.
  */
+/**
+ * The colour a **tooltip's title line** is drawn in, per tone — which is not always the tone.
+ *
+ * `tip()` tinted its title with `theme[content.tone]` so the heading would name the mark the reader
+ * was hovering. That is right for the four judgements and wrong for the two grounds, because a ground
+ * is a colour chosen to sit *behind* things and the tooltip draws it as 14px text on `surface`:
+ *
+ * | tone       | as text on `surface` |
+ * | ---------- | -------------------- |
+ * | `track`    | **1.31:1**           |
+ * | `missSoft` | **1.94:1**           |
+ * | `miss`     | 5.94:1               |
+ * | `rune`     | 5.88:1               |
+ * | `brew`     | 9.58:1               |
+ * | `kick`     | 13.14:1              |
+ *
+ * WCAG AA wants 4.5:1 for text this size. 1.31:1 is not dim, it is invisible — the exempt rows ("Dot
+ * up, not measured", "Nothing to hit", "Three or more enemies") had a title nobody could read.
+ *
+ * **This is the same finding `BAND.track.text` already recorded, in the one place it was not applied.**
+ * That entry says `--color-track` written on `--color-track` is nothing at all and drops to `ink-2`;
+ * the tooltip is the other surface a tone becomes text on, and it kept the tone. One rule, two call
+ * sites, fixed in one of them — which is precisely the drift this module's header was written about.
+ *
+ * **Both substitutions say the right thing, so neither is only a contrast patch.** `track` is
+ * documented above as the one tone here that is *not a judgement*, so an exempt title in plain ink is
+ * the honest rendering rather than a workaround. `missSoft` is `miss` mixed into the ground and
+ * decorates a `miss` bar, so its title belongs in `miss` — the category it is part of.
+ *
+ * Every other tone stays itself. `tip()` falls back to the tone for anything absent here, so a tone
+ * added without a thought about legibility keeps today's behaviour rather than silently going grey.
+ */
+export const TIP_TITLE = {
+	brew: 'brew',
+	rune: 'rune',
+	kick: 'kick',
+	miss: 'miss',
+	missSoft: 'miss',
+	track: 'ink2',
+} as const satisfies Record<Tone, Tone | 'ink2'>;
+
 export const EXEMPT = 'track' satisfies Tone;

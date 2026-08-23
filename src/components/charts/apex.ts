@@ -6,6 +6,7 @@
 
 import type { ApexOptions } from 'apexcharts';
 
+import { TIP_TITLE } from './tones';
 import { fmt } from '../format';
 
 // ------------------------------------------------------------------ palette
@@ -468,6 +469,17 @@ const tipIcon = (url: string | undefined, theme: ChartTheme): string =>
  * it feeds this the same `TipContent` and writes the string into one shared node. Two tooltip
  * designs on one page is exactly what a second implementation there would have produced.
  */
+/**
+ * Which theme colour a title tinted for `tone` is actually drawn in.
+ *
+ * Almost always the tone itself. The exceptions are the two *grounds* — see `TIP_TITLE` in `tones.ts`
+ * for the contrast numbers and for why each substitute is the semantically right colour and not just
+ * a legible one. The fallback is the tone, so a `TipContent` naming a theme key that is not a mark
+ * tone at all keeps its current behaviour.
+ */
+const titleTone = (tone: keyof ChartTheme): keyof ChartTheme =>
+	(TIP_TITLE as Partial<Record<keyof ChartTheme, keyof ChartTheme>>)[tone] ?? tone;
+
 export function tip(theme: ChartTheme, content: TipContent): string {
 	// The value is a flex line of its own, not a run of inline content, and that is the fix for a whole
 	// *kind* of row rather than for the one caller that hit it. A value made of parts — an icon and the
@@ -493,7 +505,7 @@ export function tip(theme: ChartTheme, content: TipContent): string {
 		// nothing allowed to wrap under it is a box the sentence simply runs out of.
 		`<div style="pointer-events:none;min-width:210px;max-width:${TIP_MAX_WIDTH};white-space:normal;padding:10px 12px;background:${theme.surface};border:1px solid ${theme.line};` +
 		`border-radius:3px;font-family:${theme.mono};font-size:${LABEL_FONT_SIZE};line-height:1.6">` +
-		`<div style="margin-bottom:5px;font-weight:600;color:${theme[content.tone]}">${escape(content.title)}</div>` +
+		`<div style="margin-bottom:5px;font-weight:600;color:${theme[titleTone(content.tone)]}">${escape(content.title)}</div>` +
 		rows +
 		'</div>'
 	);
