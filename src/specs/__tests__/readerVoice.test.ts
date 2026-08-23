@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * Words that name the audit rather than the game. `clock` is here because "pressed on the clock alone"
  * is the original complaint verbatim; the fight timeline is legitimately called a clock elsewhere in
- * the file, which is why neither spec's sweep runs across all 1182 strings.
+ * the file, which is why neither spec's sweep runs across all 1218 strings.
  *
  * One list for both specs, and it went three lanes without being extended, for a reason that has now
  * been spent: widening the *vocabulary* and widening the *coverage* are two changes, and doing both at
@@ -140,7 +140,7 @@ const uiStrings = (): [string, string][] => leaves(UI);
  * Every entry above is either a whole word, a phrase, or a stem meant to catch its own inflections
  * (`judg` for judged/judgement, `opportunit` for opportunity/opportunities), so a match that starts
  * mid-word is never our vocabulary — it is an ordinary English word that happens to end in one of
- * ours. Across all 1182 leaves in the file the boundary drops **exactly two** strings, and both are
+ * ours. Across all 1218 leaves in the file the boundary drops **exactly two** strings, and both are
  * the same word: `lavaBurst.note`'s "the crit is unconditional" and
  * `rotation.fork.risingSunKick.detail`'s "its unconditional rung". Neither is a claim about our model.
  *
@@ -852,8 +852,9 @@ describe('stripping the templates hides no violation', () => {
 // | scope           | four scoped lists + exemptions + closure test | whole file, unscoped, no exemptions             |
 // | files           | `report.json`                                 | both, from the start                            |
 //
-// The audience measurements quoted below come from `.claude/skills/tone-of-voice/references/
-// audience-wow-players.md`: 18,889 words of Wowhead MoP guide prose, 12 pages, 6 authors. Rates are
+// The audience measurements quoted below come from `docs/audience-wow-players.md`, which is the
+// tracked copy of the corpus block and the record if it and the (gitignored) tone-of-voice skill ever
+// diverge: 18,889 words of Wowhead MoP guide prose, 12 pages, 6 authors. Rates are
 // per 100,000 words, and the author spread matters more than the rate — a marker used by one author of
 // six is that writer's tic, not the genre.
 
@@ -923,9 +924,11 @@ const AI_WORDS = [
  *   - **`I` is genre.** Zero instances in 18,889 words, across all six authors. It is the strongest
  *     single finding in the corpus, and it is why `SKILL.md` §7 — which assigns `I` to the opening and
  *     the method block, and warns that too *little* first person is the commoner failure — is
- *     explicitly overridden for this register. §7 is written for personal long-form. Do not run
- *     `scripts/person-density.py` as a gate on this repo's copy: verified, it fails a clean
- *     second-person report draft with "no author present" and exits 1 under `--strict`. An agent that
+ *     explicitly overridden for this register. §7 is written for personal long-form. Do not run the
+ *     tone-of-voice skill's `person-density.py` as a gate on this repo's copy — it ships with the
+ *     skill, which is gitignored, so there is no path here to open and none is wanted. Verified: it
+ *     fails a clean second-person report draft with "no author present" and exits 1 under
+ *     `--strict`. An agent that
  *     obeys it will insert an author into a report that must not have one. This list is that script's
  *     load-bearing claim — person is the axis, check it deterministically — kept, with its direction
  *     corrected.
@@ -941,7 +944,17 @@ const AI_WORDS = [
  * as `exempt` in `MODEL_WORDS`: it is the word by which this defect would arrive, not one already
  * here.
  */
-const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'I'];
+/**
+ * **Both apostrophes, because `report.json` holds 25 strings with the curly one.**
+ *
+ * `\blet's\b` does not match `let’s`, and the two are the same word — the house has taken no ruling
+ * on which mark to use (`docs/conventions.md` records the 50/25 split and leaves it open), so a guard
+ * that only reads one of them is a guard the next writer walks past by pressing a different key.
+ * `we’re` needs no twin: `\bwe\b` already fires on it, because `’` is not a word character and the
+ * right boundary lands on it either way. `we're` is in the list for the same reason and is equally
+ * redundant; both are kept because a reader scanning for the contraction should find it here.
+ */
+const AUTHOR_WORDS = ['we', 'us', 'our', 'ours', "we're", "let's", 'let’s', 'I'];
 
 /**
  * Metaphor reaching outside the game.
@@ -996,9 +1009,14 @@ const OFF_DOMAIN = ['bell', 'on the table', 'in the same breath', 'if anything',
  * case, and it is the one that actually bites.
  *
  * The price is inflections — `crucially` and `leveraging` walk past a list holding `crucial` and
- * `leverage`. Measured before accepting it: across all 1,233 leaves of both files, dropping the right
- * boundary would flag **zero** additional strings. The trade costs nothing today, and the anchoring
- * test below is what will say so again tomorrow.
+ * `leverage`. **The docstring used to say that price was zero, and nothing executed the claim.** It
+ * read that across all 1,233 leaves of both files dropping the right boundary would flag zero
+ * additional strings. Both halves were wrong: the two files hold **1,370** leaves, and dropping the
+ * boundary flags **645** more of them. `I` alone accounts for 573, because the lists are matched
+ * case-insensitively and `\bI` then reaches every word beginning with an i; `we` adds 123 off
+ * "went", "were" and "well", and `us` 69 off "used" and "usually". So the boundary is not a free
+ * trade that happens to cost nothing — it is load-bearing, and the test below measures what it holds
+ * back rather than asserting that it holds back nothing.
  *
  * Case-insensitive, and matched against `prose()` so a formatter or variable name inside `{{…}}`
  * cannot trip it — the same strip, for the same reason, as the sweeps above.
@@ -1047,12 +1065,63 @@ describe('no string in either locale sounds machine-written', () => {
 		//
 		// `matching` is used rather than `boundary` directly, so what is exercised is the matcher the
 		// three tests above call, including the `prose()` strip.
+		//
+		// **`MODEL_WORDS` was outside this loop for its whole life, which is the oldest list in the file
+		// carrying the file's own stated failure mode.** It is in now, matched with `namesTheModel`
+		// because it matches differently — `includes()`-style, left boundary only, so `judg` reaches
+		// judged and judgement. A stem with a stray space, an empty entry, or a regex metacharacter that
+		// makes the pattern match nothing is silent in exactly the way `'furthermoree'` is, and this is
+		// the line that now says so.
 		const dead = [...AI_WORDS, ...AUTHOR_WORDS, ...OFF_DOMAIN].filter(
 			(word) =>
 				matching([word], [['synthetic', `A sentence that says ${word} in the middle of it.`]] as [string, string][])
 					.length === 0,
 		);
 		expect(dead).toEqual([]);
+		const deadModel = MODEL_WORDS.filter((word) => !namesTheModel(`A sentence that says ${word} in the middle of it.`));
+		expect(deadModel).toEqual([]);
+	});
+
+	/**
+	 * **What the loop above cannot tell you: which entries are guarding a sentence and which are
+	 * guarding an idea.**
+	 *
+	 * A synthetic probe proves the matcher works. It says nothing about whether the word is anywhere
+	 * near this copy — and for `MODEL_WORDS` that is the interesting half, because every entry fires
+	 * only on the exempt scopes (`rotation`, the method notes) or on nothing at all. Typo any of them
+	 * and the four sweeps stay green either way, so the census is the only place the difference is
+	 * visible.
+	 *
+	 * Written as two lists rather than as counts, in the shape every other exception list here takes: a
+	 * count drifts on any copy edit, while a word crossing from one list to the other is exactly the
+	 * event worth being told about. Twelve entries are earning their place against real copy today.
+	 * Five fire on nothing, which is not a fault — `exempt` is deliberately prophylactic and has its own
+	 * test above saying so, and `p5`, `predicate`, `band` and `satisfied` are the words by which this
+	 * defect would arrive rather than words already here. What the split refuses is the third state: an
+	 * entry that used to fire, stopped, and nobody noticed which kind it had become.
+	 */
+	it('says which of the model words are guarding live copy and which are prophylactic', () => {
+		// The same matcher `namesTheModel` builds, one word at a time — left boundary, no right boundary,
+		// against the lower-cased strip — so the census cannot answer a different question from the sweep.
+		const fires = (word: string) =>
+			localeStrings().some(([, value]) => new RegExp(`\\b${word}`).test(prose(value).toLowerCase()));
+		const live = MODEL_WORDS.filter(fires).sort();
+		const prophylactic = MODEL_WORDS.filter((word) => !fires(word)).sort();
+		expect(live).toEqual([
+			'branch',
+			'clock',
+			'condition',
+			'gate',
+			'graded',
+			'judg',
+			'on offer',
+			'opportunit',
+			'rule',
+			'the list',
+			'the section',
+			'verdict',
+		]);
+		expect(prophylactic).toEqual(['band', 'exempt', 'p5', 'predicate', 'satisfied']);
 	});
 
 	it('anchors on both sides, so an ordinary word that contains a banned one is not a red', () => {
@@ -1084,12 +1153,24 @@ describe('no string in either locale sounds machine-written', () => {
 		expect(matching([...AI_WORDS, ...AUTHOR_WORDS, ...OFF_DOMAIN], asPairs(guilty, 'guilty')).length).toBe(
 			guilty.length,
 		);
+		// **And the price of the right boundary, measured rather than asserted.** The docstring above
+		// `boundary` used to claim dropping it would flag zero additional strings across both files, and
+		// nothing ran the claim; it flags 645, which is 47% of the 1,370 leaves. A floor rather than the
+		// live figure, for the reason every other floor here is a floor — a copy edit moves it and a
+		// broken matcher does not.
+		const loose = (word: string) => new RegExp(`\\b${word}`, 'i');
+		const words = [...AI_WORDS, ...AUTHOR_WORDS, ...OFF_DOMAIN];
+		const unanchored = bothLocales().filter(([, value]) => words.some((word) => loose(word).test(prose(value))));
+		expect(unanchored.length).toBeGreaterThan(500);
+		// `I` is most of it, and it is the reason this is not a cosmetic anchoring: matched
+		// case-insensitively, a bare `\bI` reaches every word in the file that begins with an i.
+		expect(bothLocales().filter(([, value]) => loose('I').test(prose(value))).length).toBeGreaterThan(400);
 	});
 
 	it('keeps the em-dash under the ceiling the house style was granted', () => {
 		// **The em-dash is kept, and this is the condition it was kept on.**
 		//
-		// 240 of them in `report.json`, 19.7% of prose sentences, and they do real appositive work:
+		// 258 of them in `report.json`, 21.1% of prose sentences, and they do real appositive work:
 		// defining a measurement mid-sentence, where a following sentence would put the definition after
 		// the claim that needed it. It is house punctuation — present in `ui.json`, the README, every
 		// code comment and this file's own prose — and a sweep against a rule the repo breaks in every
@@ -1108,10 +1189,33 @@ describe('no string in either locale sounds machine-written', () => {
 		// nothing at 3; `earthShock.verdict_tooFew` arrived between that measurement and this commit
 		// carrying three, and its last dash — introducing an instruction rather than defining a term —
 		// became a full stop.
-		const stacked = bothLocales()
-			.filter(([, value]) => (value.match(/—/g) ?? []).length >= 3)
-			.map(([key, value]) => `${key}: "${value}"`);
+		//
+		// **Counted per sentence, because that is the rule.** `docs/conventions.md` says "ceiling of two
+		// in one **sentence**", and this counted per *string*. The two come apart badly: 36 strings carry
+		// exactly two dashes today and **33 of them are multi-sentence**, so every one was compliant with
+		// the written rule and one dash away from failing the test — while a genuinely stacked sentence
+		// could hide inside a string whose other sentences carried none. The split is the one
+		// `conventions.md`'s own census block uses, with `{{…}}` normalised first so a placeholder cannot
+		// merge two sentences or invent a boundary.
+		const sentences = (value: string): string[] => value.replaceAll(/\{\{[^}]*\}\}/g, 'X').split(/(?<=[.!?])\s+/);
+		const stacked = bothLocales().flatMap(([key, value]) =>
+			sentences(value)
+				.filter((sentence) => (sentence.match(/—/g) ?? []).length >= 3)
+				.map((sentence) => `${key}: "${sentence}"`),
+		);
 		expect(stacked).toEqual([]);
+		// Non-vacuity of the split itself: a string of three sentences carrying one dash each is not a
+		// red, and the same three dashes in one sentence is. Without this the change from per-string to
+		// per-sentence could have loosened the guard into never firing and nothing would have said so.
+		const probe: [string, string][] = [
+			['spread', 'One — a. Two — b. Three — c.'],
+			['stacked', 'One — two — three — four.'],
+		];
+		expect(
+			probe
+				.filter(([, value]) => sentences(value).some((sentence) => (sentence.match(/—/g) ?? []).length >= 3))
+				.map(([key]) => key),
+		).toEqual(['stacked']);
 	});
 });
 
