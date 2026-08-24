@@ -32,7 +32,7 @@
 //     reports under 129881, so the guard never fired and the wind's chi was counted twice. `ResourceConfig.
 //     gains.reportedAs` is the spec naming the id it arrives under.
 //
-// **What the second one cost, on the walk's own ground truth.** `chiAtCasts` scores its reconstruction
+// What the second one cost, on the walk's own ground truth: `chiAtCasts` scores its reconstruction
 // against every press that carries a bar reading, so the two models can be compared without appealing to
 // the sim at all:
 //
