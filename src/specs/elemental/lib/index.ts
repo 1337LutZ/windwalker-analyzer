@@ -4007,8 +4007,41 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * clock at all.
 	 */
 	const primalElementalist = talents === null ? null : talents.has(PRIMAL_ELEMENTALIST_TALENT_ID);
-	const feHasteWindow = primalElementalist === true ? hasteWindows.find((w) => isOpener(w.start)) : undefined;
 	const feAuraSpans = mergeIntervals(feAuraWindows.map((w): Interval => [w.start, w.end]));
+	/**
+	 * Could this player have had the pet standing through this haste cooldown?
+	 *
+	 * **The availability guard, asked directly.** The clock above used `isOpener` as the proxy for it —
+	 * grade the lust that went out on the pull and no other, on the grounds that nothing has consumed the
+	 * summon yet at the pull, so it was available to whoever wanted it. That is sound for the pulls it
+	 * covers and silent on every other one, and the silence is what makes it wrong: a raid that lusts
+	 * late is the common case, not the exception, and a shaman who summoned *into* that lust had the
+	 * thing this rule exists to reward and was told "not measured".
+	 *
+	 * Found on Galakras, where the lust lands at 383s of a 443s pull. The shaman summoned at 385s and the
+	 * pet ran to the end of the fight, covering 38 of the lust's 40 seconds. The report declined to say
+	 * so. The committed `addsThenBoss` is the same fight with the lust at 438s.
+	 *
+	 * **Two ways to have the pet up, and both count.** Already standing — a summon inside the last
+	 * minute, which is the pre-pull case the opener proxy was really encoding — or the cooldown come back
+	 * so the player could press it now. Either one makes the question fair to ask; neither one makes the
+	 * answer good, which is still whatever the aura's own windows say.
+	 *
+	 * **And the pull it still refuses is the pull the guard was written for.** A lust at three minutes
+	 * against a five-minute summon pressed on the pull is neither up nor ready, so it stays unasked
+	 * rather than becoming a fault for something the player could not have done. That is the same
+	 * judgement `isOpener` was making, reached by the fact instead of by the clock.
+	 */
+	const feUpAt = (at: number): boolean => feAuraSpans.some(([start, end]) => start <= at && at < end);
+	const feReadyAt = (at: number): boolean => {
+		const last = fePresses.filter((press) => press.t <= at).at(-1);
+		return last === undefined || at - last.t >= FIRE_ELEMENTAL_COOLDOWN_MS;
+	};
+	// The first haste cooldown this player could have covered, and no other. One window rather than all of
+	// them for the reason the block above gives: this is a rule about the summon meeting the lust, and a
+	// pull that lusts twice has not asked it twice.
+	const feHasteWindow =
+		primalElementalist === true ? hasteWindows.find((w) => feUpAt(w.start) || feReadyAt(w.start)) : undefined;
 	const feHasteUptime = {
 		gradedMs: feHasteWindow === undefined ? 0 : feHasteWindow.end - feHasteWindow.start,
 		coveredMs: feHasteWindow === undefined ? 0 : overlapMs(feHasteWindow.start, feHasteWindow.end, feAuraSpans),

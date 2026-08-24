@@ -478,6 +478,93 @@ describe('the scope this rule deliberately does not declare', () => {
 });
 
 /**
+ * ## The lust that did not go out on the pull
+ *
+ * The clock used to be "the haste cooldown that opened inside the opener, and no other", with the
+ * availability guard as its stated reason: at the pull nothing has consumed the summon yet, so it was
+ * there for the taking. Sound for the pulls it covers, and silent on every other one — and a raid that
+ * lusts late is the common case rather than the exception.
+ *
+ * Found on Galakras, where the lust lands at 383s of a 443s pull. The shaman summoned at 385s and the
+ * pet ran to the end of the fight, covering 38 of the lust's 40 seconds, and the card said "not
+ * measured". None of the three committed fixtures can show it: all three lust on the pull, so all three
+ * are unchanged by this and none of them exercises the path.
+ *
+ * The gate is now the fact the proxy stood for — could this player have had the pet standing through it —
+ * which is true two ways and false one way, and all three are below.
+ */
+describe('a haste cooldown that came later', () => {
+	/**
+	 * `phased` with its lust moved out to 150s, which is past the five-minute summon on neither side: the
+	 * only press is the pre-pull one, so by 150s the cooldown has not come back and the pet is long gone.
+	 * That is the pull the old guard was written for and it stays unasked.
+	 */
+	const lustAt = (at: number, extra: (t0: number) => WclEvent[] = () => []) =>
+		run(
+			edited('phased', (events, t0) => [
+				...events.map((e) => (HASTE_IDS.has(e.abilityGameID ?? -1) ? { ...e, timestamp: e.timestamp + at } : e)),
+				...extra(t0),
+			]),
+		);
+
+	it('still says nothing when the summon was neither up nor ready', () => {
+		// 150s out: the pre-pull pet expired at 20s and the five-minute cooldown does not return until 300.
+		const el = lustAt(150_000);
+		expect(el.fireElemental.hasteUptime).toEqual({ gradedMs: 0, coveredMs: 0 });
+		expect(metricOn(el)).toMatchObject({ unmeasurable: true });
+	});
+
+	/**
+	 * The Galakras shape: the lust is late, the cooldown has come back, and the player presses into it.
+	 * Moved to 310s so the five-minute cooldown is genuinely up rather than nearly up, and the summon is
+	 * pressed one second after the lust arrives.
+	 */
+	it('grades a late lust the player could have covered, and does', () => {
+		const el = lustAt(
+			310_000,
+			(t0) =>
+				[
+					{ timestamp: t0 + 312_777, type: 'cast', abilityGameID: FIRE_ELEMENTAL_CAST, sourceID: 2, targetID: -1 },
+					{ timestamp: t0 + 312_777, type: 'applybuff', abilityGameID: FIRE_ELEMENTAL_BUFF, sourceID: 2, targetID: 2 },
+					{ timestamp: t0 + 372_777, type: 'removebuff', abilityGameID: FIRE_ELEMENTAL_BUFF, sourceID: 2, targetID: 2 },
+				] as WclEvent[],
+		);
+		// The window is the real one moved bodily, so its length is unchanged and the coverage is the
+		// arithmetic: the lust arrives at 311 777 and the pet lands one second later.
+		expect(el.fireElemental.hasteUptime.gradedMs).toBe(40_008);
+		expect(el.fireElemental.hasteUptime.coveredMs).toBe(39_008);
+		expect(metricOn(el)).toMatchObject({ unmeasurable: false });
+		// Inside the two-second band the arms below are cut against, so a one-second press is `ok` here for
+		// the same reason it is on the pull.
+		expect(metricOn(el)?.grade).toBe('ok');
+	});
+
+	/**
+	 * And the other way to have it: **already standing when the lust arrives, and the cooldown not back.**
+	 *
+	 * This is the arm the readiness check alone would miss. The summon goes out at 300s, the moved lust
+	 * arrives at 305s, and five seconds later the five-minute cooldown is nowhere near ready — so a gate
+	 * asking only "could they press it now" would refuse a pull whose pet is visibly standing through the
+	 * whole window. A pre-pull summon cannot be stretched to make this case: `auraWindows` caps an
+	 * inferred pre-pull window at the pet's own duration, which is correct and is why the press is here.
+	 */
+	it('grades a late lust the pet was already standing through, cooldown or no', () => {
+		const el = lustAt(
+			303_223,
+			(t0) =>
+				[
+					{ timestamp: t0 + 300_000, type: 'cast', abilityGameID: FIRE_ELEMENTAL_CAST, sourceID: 2, targetID: -1 },
+					{ timestamp: t0 + 300_000, type: 'applybuff', abilityGameID: FIRE_ELEMENTAL_BUFF, sourceID: 2, targetID: 2 },
+					{ timestamp: t0 + 360_000, type: 'removebuff', abilityGameID: FIRE_ELEMENTAL_BUFF, sourceID: 2, targetID: 2 },
+				] as WclEvent[],
+		);
+		// The lust runs 305 000 to 345 008 and the pet stands 300 000 to 360 000, so it covers all of it.
+		expect(el.fireElemental.hasteUptime).toEqual({ gradedMs: 40_008, coveredMs: 40_008 });
+		expect(metricOn(el)).toMatchObject({ unmeasurable: false, grade: 'good' });
+	});
+});
+
+/**
  * ## The band, and what each of its arms is for
  *
  * Every pull here is `phased` with named events moved or removed, so the haste window is the real one —
