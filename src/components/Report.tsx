@@ -8,7 +8,7 @@ import { SpecContext } from './report/specContext';
 import { ScoreViewContext } from './report/scoreViewContext';
 import { SPEC_SECTIONS, SPEC_SUMMARY } from './report/specSections';
 import { resolveBands, resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
-import { ReportHeader, SpecRefusal, Takeaways } from './sections';
+import { ReportHeader, SegmentStrip, SpecRefusal, Takeaways } from './sections';
 
 /**
  * The summary entry, which is nav-only.
@@ -108,6 +108,12 @@ export default function Report({
 								{/* Derived from the same scorecard every section below reads, so the short list at the top
 					    cannot drift out of agreement with the detail underneath it. */}
 								<Takeaways analysis={analysis} />
+								{/* Last in the summary, and below the short list rather than above it: the tiles and the
+					    cards are the verdict on the pull, and this is the shape of the pull they were read
+					    over — so it reads as the lead-in to the sections underneath rather than as a third
+					    figure competing with them. It renders nothing at all on a pull that never changed
+					    shape, which is why it is not conditioned here. */}
+								<SegmentStrip analysis={analysis} />
 							</section>
 							{sections.map((section) =>
 								// Still props, and the mode rather than the band set, because these sections differ from

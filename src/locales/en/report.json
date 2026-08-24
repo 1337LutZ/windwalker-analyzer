@@ -1051,6 +1051,20 @@
         "body": "All {{count}} Re-Origination procs converted into {{stat}} instead of Mastery. Reforge or regem until Mastery is your highest secondary stat."
       }
     },
+    "shape": {
+      "title": "What you were fighting",
+      "row_single": "One enemy",
+      "row_cleave": "Two enemies",
+      "row_aoe": "Three or more enemies",
+      "row_mixed": "Coming and going",
+      "row_idle": "Nothing to hit",
+      "length": "for",
+      "key": {
+        "contact": "Enemies up"
+      },
+      "chartLabel": "The whole pull, split by how many enemies you had in front of you at the time. The stretches with nothing to hit are drawn last, in grey.",
+      "note": "What you press changes at two enemies, and changes again at three. This is where each of those stretches fell across the pull. The grey is time with nothing in front of you — no enemy was up to be hit, so none of it counts for or against you."
+    },
     "takeaways": {
       "title": "Key improvements",
       "title_good": "Still worth fixing",
