@@ -127,6 +127,28 @@ describe('the scorecard grid', () => {
 		}
 	});
 
+	/**
+	 * A share over a countable sample is the count, which is what the rest of the report calls it.
+	 *
+	 * `earthShockGood` on `cleave` is 57.14%, which is four good presses out of seven judged. A reader
+	 * counts presses; the card was the one place on the page saying that fact as a percentage, with a
+	 * percentage target under it restating the denominator it had just printed.
+	 */
+	it('reads a sampled share as its count, and drops the target line under it', () => {
+		const markup = html(fixture('cleave'));
+		// That card and no other: `85%` is also Flame Shock's second-target line and Searing Totem's, so a
+		// sweep of the whole render would pass while the shocks kept theirs.
+		const card = markup.slice(markup.indexOf('#earth-shock-heading'));
+		const shocks = card.slice(0, card.indexOf('</a>'));
+		expect(shocks).toContain('4/7');
+		expect(shocks).not.toContain('57.14%');
+		expect(shocks).not.toContain('target');
+		// The unsampled metric beside it keeps both, so this is a rule about samples rather than about
+		// percentages: Flame Shock's uptime is a share of a clock and has no count to fall back to.
+		expect(markup).toContain('83.9%');
+		expect(markup).toContain('target 95% or better');
+	});
+
 	it('prints a sentence and no figure for a metric whose value is not a reading', () => {
 		// The potion metric is the Windwalker's; the Elemental's case is the shield on a pull that never
 		// wore it, and `neverUpShield.test.ts` owns that render. What is asserted here is the other half:

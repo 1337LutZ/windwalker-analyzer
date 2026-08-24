@@ -114,20 +114,57 @@ type T = ReturnType<typeof useReportCopy>['t'];
  */
 const has = (key: string): boolean => i18n.exists(key);
 
+/**
+ * A share taken over countable events is read as the count, not as the share.
+ *
+ * `earthShockGood` on `cleave` is 57.14%, which is four good presses out of the seven that were judged.
+ * A reader counts presses, not percentages of them, and every other place this figure appears — the
+ * section's own copy, its ledger of why each press was not good — counts them. The percentage was the
+ * card restating a count in the one form nothing else on the page uses.
+ *
+ * **Keyed on `part`, which is why that field exists.** `sampleSize` alone would have caught
+ * `karmaCapShare` too, and that metric is a share of the absorb ceiling carrying a *cast* count as its
+ * sample — the numerator would have been a number of nothing. Only `shareOf` publishes both halves, and
+ * only a metric with both is two counts of one thing. See `Metric.part`.
+ */
+const sampled = (metric: Metric): boolean => metric.part !== undefined && metric.sampleSize !== undefined;
+
 /** The number as the reader reads it, in the unit its rule declares. */
 function reading(metric: Metric, t: T): string {
+	if (sampled(metric)) {
+		return t('summary.scorecard.value', { context: 'sample', part: metric.part, total: metric.sampleSize });
+	}
 	if (metric.unit === 'percent') return t('summary.scorecard.value', { context: 'percent', value: metric.value });
 	if (metric.unit === 'seconds') return t('summary.scorecard.value', { context: 'seconds', value: metric.value });
 	if (metric.unit === 'stacks') return t('summary.scorecard.value', { context: 'stacks', value: metric.value });
 	return t('summary.scorecard.value', { context: 'count', value: metric.value });
 }
 
-/** Where the rule's lines sit, in the same unit — the sentence under the scale. */
+/**
+ * Where the rule's line sits, in the metric's own unit — the sentence under the scale.
+ *
+ * **The unit is part of the context and not a separate placeholder**, which is the fix for a line that
+ * read "target 0% or less" under a figure in seconds. Both arms formatted their number as a percentage
+ * whatever the rule measured, because the unit was passed in and never used: Lightning Shield's overcap
+ * is a clock, and the card said its ceiling was a share. i18next takes one context, so the direction and
+ * the unit are composed into it — which also means an arm exists only for a combination some rule
+ * actually has, and `keys.test.ts` says so if one stops being used.
+ *
+ * A duration goes over in milliseconds, because `duration` is `formatSeconds` and that divides. The
+ * value above it is formatted the same way off the same number, so the two cannot disagree about scale.
+ */
 function target(metric: Metric, t: T): string {
+	const unit =
+		metric.unit === 'percent'
+			? 'Percent'
+			: metric.unit === 'seconds'
+				? 'Seconds'
+				: metric.unit === 'stacks'
+					? 'Stacks'
+					: 'Count';
 	return t('summary.scorecard.target', {
-		context: metric.higherIsBetter ? 'atLeast' : 'atMost',
-		value: metric.unit === 'seconds' ? metric.good / 1000 : metric.good,
-		unit: metric.unit,
+		context: `${metric.higherIsBetter ? 'atLeast' : 'atMost'}${unit}`,
+		value: metric.good,
 	});
 }
 
@@ -157,6 +194,10 @@ function target(metric: Metric, t: T): string {
  * below states its verdict as a *sentence*, and there is no copy anywhere that writes the letter on its
  * own. A chip reading "bad" would have been the first, invented here, for a card that already says the
  * number and draws where it fell.
+ *
+ * **A share over countable events reads as the count, and drops its target line** — see `sampled`. The
+ * rest of the report counts `earthShockGood`'s presses and so does this; a percentage target under a
+ * count would be the card changing units mid-row to restate the denominator it just printed.
  *
  * **A section nothing could be measured in is not drawn at all** — see the filter. The grid is an
  * ordered list whose promise is that the top of it is where to start, and a card reading `not measured`
@@ -255,7 +296,11 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 										{metric.unmeasurable ? null : metric.context === undefined ? (
 											<>
 												<BandScale metric={metric} />
-												<span className="font-mono text-xs text-ink-2">{target(metric, t)}</span>
+												{/* The denominator already frames the number, so a percentage target under a count
+												    would be the card changing units mid-row to say the same thing again. */}
+												{sampled(metric) ? null : (
+													<span className="font-mono text-xs text-ink-2">{target(metric, t)}</span>
+												)}
 											</>
 										) : (
 											// The number is not a reading of the thing this rule counts — see the docblock.

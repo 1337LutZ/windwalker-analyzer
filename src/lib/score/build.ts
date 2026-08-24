@@ -54,6 +54,11 @@ export interface Measured {
 	gradedMs?: number;
 	/** Events behind the value. Below `MIN_GRADED_SAMPLE` grades nothing. */
 	sampleSize?: number;
+	/**
+	 * The numerator, when the value is a share of the events in `sampleSize` rather than of anything
+	 * else. Set by `shareOf` and by nothing else — see `Metric.part`.
+	 */
+	part?: number;
 }
 
 /** What `metricOf` will take: a plain number, an outright refusal, or a number with its evidence. */
@@ -67,7 +72,11 @@ export type MetricValue = number | null | Measured;
  * three milliseconds means nothing.
  */
 export function shareOf(part: number, whole: number): Measured {
-	return { value: sharePct(part, whole), sampleSize: whole };
+	// Both halves travel, not just the denominator. `sampleSize` alone says how much evidence there was;
+	// the pair says the value *is* `part` of `whole` countable things, which is the claim the summary
+	// card needs to print the count instead of the percentage. A caller that sets `sampleSize` by hand
+	// is making the weaker statement and keeps its percentage — see `Metric.part`.
+	return { value: sharePct(part, whole), sampleSize: whole, part };
 }
 
 /**
@@ -128,6 +137,7 @@ export function metricOf<K extends string>(
 		...(context === undefined ? {} : { context }),
 		...(measured.gradedMs === undefined ? {} : { gradedMs: measured.gradedMs }),
 		...(measured.sampleSize === undefined ? {} : { sampleSize: measured.sampleSize }),
+		...(measured.part === undefined ? {} : { part: measured.part }),
 		...(exempt ? { exempt: true as const } : {}),
 	};
 }

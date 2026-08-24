@@ -125,6 +125,23 @@ export interface Metric extends MetricRule {
 	/** The denominator behind a count or share value — see `MIN_GRADED_SAMPLE`. Absent when it has none. */
 	sampleSize?: number;
 	/**
+	 * The numerator, present only when the value is a share of the very events `sampleSize` counts.
+	 *
+	 * **Why this is a field rather than something a reader multiplies back.** A share over countable
+	 * events is read as the count everywhere in this report except its summary card — nobody says a
+	 * monk clipped 25% of their Tiger Palms when the pull had eight of them and two were clipped — and
+	 * the card cannot print `2/8` from a percentage and a denominator without deriving the numerator,
+	 * which is a figure the analysis already had and threw away.
+	 *
+	 * **And the derivation would be wrong on a metric that exists.** `karmaCapShare` is a share of the
+	 * absorb *ceiling*, and carries `sampleSize` because the ceiling is only trustworthy over enough
+	 * presses — its denominator is damage, its sample is casts, and multiplying the two together yields
+	 * a number of nothing at all. Carrying the numerator makes the distinction structural: `shareOf`
+	 * sets both fields because it holds both, a hand-built `Measured` sets only the sample, and a card
+	 * that finds a `part` knows the pair are two counts of one thing rather than hoping they are.
+	 */
+	part?: number;
+	/**
 	 * True when this pull is outside the rule's bands, so it was not judged rather than judged well.
 	 *
 	 * Distinct from the plain `unmeasurable` beside it, which says the log could not answer. This says
