@@ -460,23 +460,38 @@ longest strings. A measurement written down four times is four things to update 
 not be. The arguments above now cite this block instead of repeating it, which is the same rule the
 copy itself follows — say it once, outside the arms.
 
+<!-- census:figures — every number in the paragraph below is asserted against this tree by
+     src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
+     back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
+
 As of the commit that split the nine long strings written after this standard, it prints 1377 leaves,
 697 prose, 21,725 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
 report.json 635 prose leaves, 1,088 sentences, median 17, 206 past 25 (18.9%), 261 em-dashes in 227
-sentences (20.9%); 50 / 25 / 1 / 3 on the quote lines. **Re-run it rather than trusting the line
-above** — every copy edit moves it, it moved twice during the pass that wrote it, and it had drifted
-a fourth time before this commit: the figures above read 1,064 sentences and 258 em-dashes against a
-tree already holding 1,077 and 262 with not a word of this commit's copy touched. Sentence stats
+sentences (20.9%); 50 / 25 / 1 / 3 on the quote lines.
+
+<!-- /census:figures -->
+
+**Those figures are checked now rather than trusted, because "re-run it" was an instruction and
+instructions do not run.** Every copy edit moves them, they moved twice during the pass that wrote
+them, and they had drifted a fourth time before the commit that split the nine long strings: they read
+1,064 sentences and 258 em-dashes against a tree already holding 1,077 and 262, with not a word of that
+commit's copy touched. `src/lib/i18n/__tests__/conventionsCensus.test.ts` extracts the block above,
+runs it, and compares every figure in the paragraph, so the fifth drift is a red suite rather than a
+line nobody re-read. **It gates this document's accuracy, not the copy** — the refusal three paragraphs
+up still stands, and the test has no opinion about what the median should be, only about what this
+file says it is. Sentence stats
 split on `(?<=[.!?])\s+` with `{{…}}` normalised to one token, which
 is why the block substitutes `X` for a placeholder rather than dropping it — a dropped placeholder
 merges the two words either side of it into one. `readerVoice.test.ts` has a `prose()` helper that
 strips placeholders for a different purpose (vocabulary matching, where the substitution must _not_ be
 a word); reuse that one there rather than writing a third stripper, and this one here.
 
-**A figure quoted in two files is two figures.** `readerVoice.test.ts` carries its own em-dash count
-in the comment above `keeps the em-dash under the ceiling the house style was granted`, taken on its
-own day by its own method. Whoever re-runs the block above should re-run it against that comment too;
-they are meant to be the same measurement.
+**A figure quoted in two files is two figures, so the second copy is gone.** `readerVoice.test.ts`
+used to carry its own em-dash count in the comment above `keeps the em-dash under the ceiling the
+house style was granted`, taken on its own day by its own method — it read 240 while this file read
+270 and the tree held 257. Asking whoever re-ran the block to re-run it against that comment too was
+the same instruction that failed here four times. The comment now says "about a fifth" and points at
+the paragraph above, which is the only place either number lives.
 
 **Comparisons come from inside the game.** Another ability, another spec's mechanic, another
 expansion. That is the entire domain, and it is what the audience's own writers do: no sport,

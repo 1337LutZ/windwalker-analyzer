@@ -1170,9 +1170,14 @@ describe('no string in either locale sounds machine-written', () => {
 	it('keeps the em-dash under the ceiling the house style was granted', () => {
 		// **The em-dash is kept, and this is the condition it was kept on.**
 		//
-		// 261 of them in `report.json`, 20.9% of prose sentences, and they do real appositive work:
+		// About a fifth of `report.json`'s prose sentences carry one, and they do real appositive work:
 		// defining a measurement mid-sentence, where a following sentence would put the definition after
-		// the claim that needed it. It is house punctuation — present in `ui.json`, the README, every
+		// the claim that needed it. **The exact count and share used to be written out here and are not
+		// any more.** This comment took them on its own day by its own method and read 240 while
+		// `docs/conventions.md` read 270 and the tree held 257; a figure quoted in two files is two
+		// figures. They live in that file's census paragraph now, where
+		// `src/lib/i18n/__tests__/conventionsCensus.test.ts` holds them to the tree.
+		// It is house punctuation — present in `ui.json`, the README, every
 		// code comment and this file's own prose — and a sweep against a rule the repo breaks in every
 		// file is theatre.
 		//
