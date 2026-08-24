@@ -31,6 +31,7 @@ import { ScoreViewContext } from '~/components/report/scoreViewContext';
 import { SpecContext } from '~/components/report/specContext';
 import Scorecard from '~/components/sections/Scorecard';
 import { analyse } from '~/specs/elemental/lib';
+import { analyse as windwalker } from '~/specs/windwalker/lib';
 
 const ELEMENTAL = getSpec('elemental')!;
 initI18n();
@@ -58,6 +59,26 @@ const wrap = (analysis: Analysis, node: ReactNode) =>
 
 const html = (analysis: Analysis): string =>
 	renderToStaticMarkup(wrap(analysis, createElement(Scorecard, { analysis })));
+
+/** The same render for the other spec, which owns the potion and Tiger Palm rules. */
+function wwHtml(name: string): string {
+	const analysis = windwalker(
+		JSON.parse(
+			readFileSync(resolve(import.meta.dirname, `../../../specs/windwalker/__fixtures__/${name}.json`), 'utf8'),
+		) as FightDataset,
+	);
+	return renderToStaticMarkup(
+		createElement(
+			SpecContext.Provider,
+			{ value: getSpec('windwalker')! },
+			createElement(
+				ScoreViewContext.Provider,
+				{ value: resolveBands(analysis.targets, 'auto') },
+				createElement(Scorecard, { analysis }),
+			),
+		),
+	);
+}
 
 /** The section headings the grid drew, in the order it drew them. */
 const cards = (markup: string): string[] =>
@@ -147,6 +168,44 @@ describe('the scorecard grid', () => {
 		// percentages: Flame Shock's uptime is a share of a clock and has no count to fall back to.
 		expect(markup).toContain('83.9%');
 		expect(markup).toContain('target 95% or better');
+	});
+
+	/**
+	 * A rule counting waste reads presses made over presses needed, not faults over presses.
+	 *
+	 * `tigerPalmWaste` on a pull of eighteen presses with six wasted printed "6/18", and a card reading
+	 * `n/m` is read as a score — six out of eighteen looks like a bad grade rather than like six presses
+	 * too many. Turned up: twelve presses were wanted, eighteen were made, and the gap is the waste.
+	 *
+	 * `sections` is four wasted of thirteen, so the two numbers are distinct from each other and from
+	 * the fault count — a bug that swapped them would still have to produce 13 and 9.
+	 */
+	it('reads a waste rule as attempts made over attempts needed', () => {
+		const markup = wwHtml('sections');
+		expect(markup).toContain('13/9');
+		expect(markup).not.toContain('4/13');
+	});
+
+	/**
+	 * A target nobody can beat is not written as one they can.
+	 *
+	 * Two potions is every potion a pull allows, and the card said "target 2 or more" — an instruction to
+	 * drink a third. A rule declaring a `ceiling` its `good` line already sits on reads as a count over
+	 * that lid and drops the line entirely; a share, which carries its own lid in the unit, keeps the
+	 * line and loses only the invitation.
+	 */
+	it('names a ceiling instead of inviting the reader past it', () => {
+		const potions = wwHtml('sections');
+		expect(potions).toContain('2/2');
+		expect(potions).not.toContain('target 2 or more');
+		// `phased` covers the haste share at 100%, which is the same defect in the other unit.
+		const haste = html(fixture('phased'));
+		expect(haste).toContain('target 100%<');
+		expect(haste).not.toContain('target 100% or better');
+		// The pre-pull summon is one of one, and the pull that skipped it reads zero of one rather than a
+		// bare `0` — so the lid is drawn whether or not it was reached.
+		expect(haste).toContain('1/1');
+		expect(html(fixture('addsThenBoss'))).toContain('0/1');
 	});
 
 	it('prints a sentence and no figure for a metric whose value is not a reading', () => {

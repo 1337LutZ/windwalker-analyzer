@@ -470,6 +470,9 @@ describe('the scope this rule deliberately does not declare', () => {
 			// The rule says what the number *is* as well as where its lines sit, so a scale can place it and
 			// copy can suffix it without reading the unit back out of an i18n string. See `MetricRule.unit`.
 			unit: 'percent',
+			// And that 100 is a lid rather than a bar, so the card names the line instead of writing it as
+			// "100% or better" — a share no pull can beat. See `MetricRule.ceiling`.
+			ceiling: 100,
 		});
 	});
 });

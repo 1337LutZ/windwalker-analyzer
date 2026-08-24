@@ -847,7 +847,7 @@ export const THRESHOLDS = {
 	 * ends *"nothing here counts it as a mistake"* full stop, which is true of the pull and not of the
 	 * forty seconds after it. See the note in `WEIGHTS`.
 	 */
-	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true, unit: 'count' },
+	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true, unit: 'count', ceiling: 1 },
 
 	/**
 	 * The Primal Fire Elemental's uptime inside the haste cooldown the raid brought on the pull.
@@ -949,7 +949,7 @@ export const THRESHOLDS = {
 	 * the opportunity exists identically however many enemies are up, so declining to grade it at some of
 	 * them would be silence bought with nothing.
 	 */
-	fireElementalHasteUptime: { good: 100, ok: 95, higherIsBetter: true, unit: 'percent' },
+	fireElementalHasteUptime: { good: 100, ok: 95, higherIsBetter: true, unit: 'percent', ceiling: 100 },
 
 	/**
 	 * Share of proc-window Flame Shock refreshes caught.

@@ -129,10 +129,48 @@ const has = (key: string): boolean => i18n.exists(key);
  */
 const sampled = (metric: Metric): boolean => metric.part !== undefined && metric.sampleSize !== undefined;
 
+/**
+ * A rule whose `good` line is also the best the pull could have done — see `MetricRule.ceiling`.
+ *
+ * A count against its lid is read as the count over that lid, which is the same `n/n` shape a share
+ * takes and says the same thing: two potions out of the two there were. A share already carries its own
+ * lid in the unit, so it keeps its percentage and only its target line changes.
+ */
+const capped = (metric: Metric): boolean => metric.ceiling !== undefined && metric.good >= metric.ceiling;
+
+/** Metrics read as one count over another, and which therefore need no target line under them. */
+const counted = (metric: Metric): boolean => sampled(metric) || (capped(metric) && metric.unit === 'count');
+
+/**
+ * The two counts a sampled share is read as, in the order the reader wants them.
+ *
+ * **A rule counting successes reads successes over chances**: `earthShockGood` is four good presses of
+ * the seven judged, `snapshotRate` three procs caught of the four offered. The numerator is the thing
+ * that went right and the denominator is every chance at it.
+ *
+ * **A rule counting waste reads presses made over presses needed**, which is the same pair the other
+ * way up. `tigerPalmWaste` at six wasted of eighteen printed "6/18", and a card reading `n/m` is read
+ * as a score — six out of eighteen looks like a bad grade, when what happened is that twelve presses
+ * were wanted and eighteen were made. So the fault becomes the *gap*: "18/12" says how many were spent
+ * and how many were worth spending, and the six between them is the waste without a word for it.
+ *
+ * This is exactly the case where the denominator is not the sample, which is why `part` travels with a
+ * metric rather than the card multiplying it back — see `Metric.part`.
+ */
+function counts(metric: Metric): readonly [part: number, total: number] {
+	const sample = metric.sampleSize ?? 0;
+	const part = metric.part ?? 0;
+	return metric.higherIsBetter ? [part, sample] : [sample, sample - part];
+}
+
 /** The number as the reader reads it, in the unit its rule declares. */
 function reading(metric: Metric, t: T): string {
 	if (sampled(metric)) {
-		return t('summary.scorecard.value', { context: 'sample', part: metric.part, total: metric.sampleSize });
+		const [part, total] = counts(metric);
+		return t('summary.scorecard.value', { context: 'sample', part, total });
+	}
+	if (counted(metric)) {
+		return t('summary.scorecard.value', { context: 'sample', part: metric.value, total: metric.ceiling });
 	}
 	if (metric.unit === 'percent') return t('summary.scorecard.value', { context: 'percent', value: metric.value });
 	if (metric.unit === 'seconds') return t('summary.scorecard.value', { context: 'seconds', value: metric.value });
@@ -162,10 +200,10 @@ function target(metric: Metric, t: T): string {
 				: metric.unit === 'stacks'
 					? 'Stacks'
 					: 'Count';
-	return t('summary.scorecard.target', {
-		context: `${metric.higherIsBetter ? 'atLeast' : 'atMost'}${unit}`,
-		value: metric.good,
-	});
+	// A lid is not a bar. "100% or better" asks for more of a share than exists, so a capped rule names
+	// the number and stops — the reader is being told where the line is, not invited past it.
+	const direction = capped(metric) ? 'exact' : metric.higherIsBetter ? 'atLeast' : 'atMost';
+	return t('summary.scorecard.target', { context: `${direction}${unit}`, value: metric.good });
 }
 
 /**
@@ -298,7 +336,7 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 												<BandScale metric={metric} />
 												{/* The denominator already frames the number, so a percentage target under a count
 												    would be the card changing units mid-row to say the same thing again. */}
-												{sampled(metric) ? null : (
+												{counted(metric) ? null : (
 													<span className="font-mono text-xs text-ink-2">{target(metric, t)}</span>
 												)}
 											</>

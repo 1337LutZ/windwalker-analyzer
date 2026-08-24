@@ -64,6 +64,20 @@ export interface MetricRule extends Threshold {
 	 */
 	unit: 'percent' | 'seconds' | 'count' | 'stacks';
 	/**
+	 * The best this metric can possibly read, for a rule whose `good` line is that best.
+	 *
+	 * **A target nobody can beat must not be written as one they can.** `potionsUsed` is graded `good`
+	 * at two, and two is every potion a pull allows — one before the pull and one in it — so the card's
+	 * "target 2 or more" invited a reader to drink a third. Same for `fireElementalPrepull`, where the
+	 * pull offers exactly one summon before contact, and `fireElementalHasteUptime`, whose "100% or
+	 * better" asks for more of a share than exists.
+	 *
+	 * Nothing in a threshold says whether its `good` is a bar or a lid, which is why this is declared
+	 * rather than inferred: `brewStacks` is `good` at 9.5 out of a possible 10 and a monk really can do
+	 * better than the line. Absent means the rule has no lid, which is the common case.
+	 */
+	ceiling?: number;
+	/**
 	 * The target-count bands this rule belongs to. Omitted means every band, which is most of them.
 	 *
 	 * The same `Band` the APL ladder gates its entries with, imported rather than re-spelled. Three

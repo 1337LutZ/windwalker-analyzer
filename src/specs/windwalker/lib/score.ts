@@ -772,7 +772,7 @@ export const THRESHOLDS = {
 	 * band is cut for it, because the six fixtures spread over a second and a half and a line drawn
 	 * across that would be invented precision.
 	 */
-	potionsUsed: { good: 2, ok: 1, higherIsBetter: true, unit: 'count' },
+	potionsUsed: { good: 2, ok: 1, higherIsBetter: true, unit: 'count', ceiling: 2 },
 } as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
