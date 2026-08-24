@@ -96,6 +96,18 @@ const FLAME_SHOCK = 8050;
  * The dot's exclusion is the interesting half — `SpellMaskShock & ^SpellMaskFlameShockDot` — and it is
  * what makes the snapshot below possible rather than self-cancelling: the dot ticking does not spend the
  * stack its own application captured.
+ *
+ * **`1535` is Fire Nova and this spec cannot press it — membership here is not a claim that it can.** The
+ * mask is written on the shared `Shaman`, so it names every shaman spell a stack would discount, and
+ * `shaman.FireNova` is registered in exactly two places, neither of them Elemental:
+ * `sim/shaman/enhancement/firenova.go:10` (called from `enhancement.go:140`) and
+ * `sim/shaman/fire_elemental_spells.go:37` for the pet. `sim/shaman/elemental/elemental.go:58-61`
+ * registers four spells — Thunderstorm, Lava Burst, Earthquake, Lava Beam — and Fire Nova is not among
+ * them. Recorded so the next reader who lands on this id does not re-open the question; the pet's copy is
+ * already named separately as `117588: 'Fire Elemental: Fire Nova'` in the spec's `EXTRA_NAMES`, and the
+ * `earthquake` entry in `../index.ts` carries the same finding beside the button it gets confused with.
+ * **`61_882` is Earthquake's press id**, and this transcription is why it is: see that entry for the
+ * argument against the sim's own reuse of 77478 for both halves.
  */
 const CONSUMERS = new Set([403, 421, 51_505, 1535, 8042, FLAME_SHOCK, 8056, 117_014, 73_680, 61_882, 114_074]);
 

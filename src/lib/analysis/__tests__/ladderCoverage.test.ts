@@ -94,13 +94,14 @@ const SPECS: ReadonlyArray<{
  * "add it to the list": a button the rotation presses belongs on the ladder, one the ladder delegates
  * belongs in that spec's declaration, and only what is genuinely neither belongs here.
  *
- * **The Elemental still has exactly one entry, and the three that used to be missing are the reason the
- * premise had to change rather than the exclusion list.** Thirteen of its abilities are on the GCD; ten
- * carry a rung — the last two, Chain Lightning and Lava Beam, since `e2f31a2` — three are declared
- * unarbitrated in `elemental/lib/apl.ts` (Stormlash Totem, Fire Elemental, Earth Elemental) and the
- * thirteenth is Magma Totem, which no Elemental list in the simulator presses at all. The narrower sweep
- * saw eight of the thirteen and so could not see the three; widening it is what makes this file cover the
- * class it claims to.
+ * **The Elemental has three entries, and the three that used to be *missing* are the reason the premise
+ * had to change rather than the exclusion list.** Fifteen of its abilities are on the GCD; ten carry a
+ * rung — the last two, Chain Lightning and Lava Beam, since `e2f31a2` — three are declared unarbitrated in
+ * `elemental/lib/apl.ts` (Stormlash Totem, Fire Elemental, Earth Elemental), and the remaining two are
+ * below beside Magma Totem: Frost Shock and Earthquake, declared as abilities so their presses stop being
+ * priced at zero and given no rung because no committed pull presses either. The narrower sweep saw eight
+ * of the thirteen this spec then had and so could not see the three delegated ones; widening it is what
+ * makes this file cover the class it claims to.
  *
  * So the remaining half of plan §41 was *bands*, not rungs, and that half has since been done: the ladder
  * declared `bands` on two entries and on no other, which is why all four forced walks used to collapse to
@@ -142,6 +143,32 @@ const NOT_RUNGS: Record<string, Record<string, string>> = {
 		// that exists. Charging a five-target Magma Totem against Chain Lightning is the sim's own answer to
 		// "what should that global have been", and it is a better answer than silence.
 		'magma-totem': 'in none of the five simulator lists — no rule to transcribe and no section to delegate to',
+		// **The two buttons the model had no entry for at all, and the entry that matters is Earthquake.**
+		// Both were declared in `elemental/lib/index.ts` for one reason, which is not a rotation claim: an
+		// undeclared cast id never reaches `onGcdStarts` (`analyseCore.ts:629-630` asks `abilityByCastId` and
+		// `continue`s), so every press occupies **zero** milliseconds and `gcdUtilisationPct` — a graded
+		// metric — reads low for the player who presses it. Earthquake is the expensive one because it is
+		// the only unmodelled press in this spec that carries a cast bar: `sim/shaman/elemental/
+		// earthquake.go:36` is `CastTime: 2500 * time.Millisecond`, and `analyseCore.ts:673` prices a press
+		// at `max(effectiveGcd, measured cast)` — 1.2–1.5s on the committed pulls against an effective
+		// global of 1.04–1.14s — so each press was losing a cast bar rather than a global.
+		//
+		// **Neither gets a rung, and that is the same distinction Magma Totem's entry draws above.** Whether
+		// a rotation *should* press either one is a claim about the rotation, and the evidence for it is not
+		// here: 61882, 77478 and 8056 appear **zero** times across all four committed fixtures, so there is
+		// no pull on which a rung could be checked and nothing measured moves either way. Nor do they belong
+		// in `UNARBITRATED`: nothing judges them — no section, no clock — so `off-list` would be an amnesty
+		// rather than a pointer at a verdict that exists. A press is charged to whatever rung the list
+		// wanted for that global, which is the simulator's own answer to what the global should have been,
+		// and a better answer than silence.
+		//
+		// The two differ in *why* there is no rule to transcribe, which is why they are two entries and not
+		// one. Frost Shock is a shaman button the Elemental lists simply never ask for; Earthquake is the
+		// spec's own AoE spell, so its absence from the lists is a statement about those lists.
+		'frost-shock':
+			'the third shock, in none of the five simulator lists — no rule to transcribe and no section to delegate to',
+		earthquake:
+			'in none of the five simulator lists and pressed on no committed pull — a rung would be a rotation claim with no evidence behind it',
 	},
 	// **Four of the six, and the two that left are why the remaining four are not a to-do list.** Storm,
 	// Earth and Fire and Touch of Karma were here, arguing that a per-press verdict would be unfair to
