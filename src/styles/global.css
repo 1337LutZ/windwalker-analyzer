@@ -20,6 +20,12 @@
 	background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.22) 0 3px, transparent 3px 7px);
 }
 
+/* The lightest exempt step, which carries a texture as well as a value — see `--color-exempt-unmeasured`
+ * for the red it is ΔE 1.1 from under protan simulation, and why a grey alone will not do there. */
+.hatch-unmeasured {
+	background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.26) 0 2px, transparent 2px 5px);
+}
+
 @theme {
 	/* The spec's identity colour, set at runtime from the spec's own `colors.primary` — a Windwalker
 	 * report is tinted green, an Elemental one blue. The structural colours below are all derived
@@ -141,6 +147,37 @@
 	--color-count-2: #9575e8;
 	--color-count-3: #d9c9ff;
 	--color-count-mixed: #6b6459;
+
+	/* The three kinds of exempt, as one grey at three steps — the ramp a merged track lane needs.
+	 *
+	 * A track chart used to give each exempt cause its own row and paint all of them `--color-track`,
+	 * with the row's label doing the separating. Merged into one lane there are no labels, so three
+	 * differently-meant stretches became one indistinguishable band. These are that distinction put back
+	 * into the colour, rising with how much was happening: nothing to hit at all, then a stretch a
+	 * different priority list applied to, then the thing being measured up but outside the clock.
+	 *
+	 * **Neutral greys, so colour blindness is not a question** — a grey has no hue to confuse — leaving
+	 * spacing as the only thing to get right. Adjacent steps clear ΔE 15.5 and 16.1 under deutan
+	 * simulation, against a target of 8 and a normal-vision floor of 15.
+	 *
+	 * **The step order is load-bearing rather than decorative.** `--color-miss-soft` (#783d45), the dark
+	 * red for "up on an enemy you left", sits ΔE 4.9 from the middle step under deutan — no three-step
+	 * grey ramp can avoid that and stay recessive, because the dark end always lands in that red's
+	 * confusable zone. Measured across all four Elemental pulls, the only exempt kind that ever draws
+	 * beside that red is `unmeasured`, twice, both on `cleave` — and that is the lightest step, ΔE 20.5
+	 * from it. Every one of the twelve pairings a lane actually puts side by side clears ΔE 15.4.
+	 * Re-check this before reassigning a kind to a different step.
+	 *
+	 * **And the lightest step is hatched, because a grey ramp cannot be made safe at both ends.** The two
+	 * reds squeeze it: `--color-miss-soft` sits ΔE 4.9 from the middle step, and `--color-miss` — the
+	 * bright red a dropped dot is drawn in — sits **ΔE 1.1** from the lightest under protan simulation,
+	 * which is the same colour to that reader. That pairing does not occur on any of the four committed
+	 * pulls, so it is a hazard rather than a defect today; a re-capture that put an unmeasured stretch
+	 * next to a drop would make it one. `.hatch-unmeasured` is what makes the step not depend on being a
+	 * grey, and it is why that kind is safe to keep at the light end where the ramp needs it. */
+	--color-exempt-nothing: #333635;
+	--color-exempt-other: #5c605e;
+	--color-exempt-unmeasured: #8b8f8d;
 
 	/* The exempt ground: a stretch a chart drew but did not grade.
 	 *

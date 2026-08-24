@@ -31,7 +31,8 @@ import type { Analysis, ElementalAuditResult } from '~/lib/types';
 import { fmt } from '~/components/format';
 import type { ChartTheme } from '~/components/charts/apex';
 import { exemptRows } from '~/components/charts/exempt';
-import { EXEMPT } from '~/components/charts/tones';
+import type { LaneSource } from '~/components/charts/TrackLane';
+import { EXEMPT, EXEMPT_KIND } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import DebuffTimeline from '~/specs/windwalker/components/charts/DebuffTimeline';
 import FlameShockUptime from '~/specs/elemental/components/charts/FlameShockUptime';
@@ -39,10 +40,29 @@ import { buildBars } from '~/specs/elemental/components/charts/FlameShockDepth';
 import SearingTotemUptime from '~/specs/elemental/components/charts/SearingTotemUptime';
 import { analyse } from '~/specs/elemental/lib';
 
-const drawn = vi.hoisted(() => ({ calls: [] as Array<{ tracks: readonly Track[]; label: string }> }));
+/**
+ * Both shapes, one list — see the same note in `uptimeRow.test.ts`.
+ *
+ * `FlameShockUptime` draws a merged lane now and the other charts here still draw rows. Everything
+ * below reads `label`, `tone` and `windows`, which `Track` and `LaneSource` both carry, so the harness
+ * takes whichever component rendered and the assertions stay one set.
+ */
+type Drawn = Pick<Track, 'label' | 'tone' | 'windows'> | Pick<LaneSource, 'label' | 'tone' | 'windows'>;
+
+/** Exempt, whichever table the tone came from — one `EXEMPT` on a row chart, a kind on a lane. */
+const isExempt = (tone: string): boolean => tone === EXEMPT || tone in EXEMPT_KIND;
+
+const drawn = vi.hoisted(() => ({ calls: [] as Array<{ tracks: readonly unknown[]; label: string }> }));
+
+vi.mock('~/components/charts/TrackLane', () => ({
+	default: (props: { sources: readonly unknown[]; label: string }) => {
+		drawn.calls.push({ tracks: props.sources, label: props.label });
+		return null;
+	},
+}));
 
 vi.mock('~/components/charts/WindowTracks', () => ({
-	default: (props: { tracks: readonly Track[]; label: string }) => {
+	default: (props: { tracks: readonly unknown[]; label: string }) => {
 		drawn.calls.push(props);
 		return null;
 	},
@@ -51,11 +71,11 @@ vi.mock('~/components/charts/WindowTracks', () => ({
 initI18n();
 
 /** The rows one chart asked `WindowTracks` for, top to bottom. */
-function rowsOf(element: ReactElement): readonly Track[] {
+function rowsOf(element: ReactElement): readonly Drawn[] {
 	drawn.calls.length = 0;
 	renderToStaticMarkup(element);
 	expect(drawn.calls).toHaveLength(1);
-	return drawn.calls[0]?.tracks ?? [];
+	return (drawn.calls[0]?.tracks ?? []) as readonly Drawn[];
 }
 
 /**
@@ -250,7 +270,7 @@ describe('the exempt row', () => {
 			['Searing Totem', SearingTotemUptime, cleave.searingTotem.scoredMs],
 		] as const) {
 			const rows = rowsOf(createElement(chart, { analysis: cleave }));
-			const exempt = rows.filter((row) => row.tone === EXEMPT).flatMap((row) => spans(row.windows));
+			const exempt = rows.filter((row) => isExempt(row.tone)).flatMap((row) => spans(row.windows));
 			expect(unionMs(exempt), name).toBe(cleave.durationMs - scoredMs);
 		}
 		// The two figures the equality is against, so a fixture recapture that moved them says so here.
@@ -279,7 +299,7 @@ describe('the exempt row', () => {
 		] as const) {
 			const rows = rowsOf(createElement(chart, { analysis: cleave }));
 			const row = spans(rows.find((r) => r.label === uncounted)?.windows ?? []);
-			const grounds = rows.filter((r) => r.tone === EXEMPT && r.label !== uncounted).flatMap((r) => spans(r.windows));
+			const grounds = rows.filter((r) => isExempt(r.tone) && r.label !== uncounted).flatMap((r) => spans(r.windows));
 
 			expect(unionMs(row), name).toBeGreaterThan(0); // so nothing below passes for want of data
 			expect(unionMs(intersect(row, grounds)), name).toBe(unionMs(row));
@@ -481,31 +501,61 @@ describe('the exempt row', () => {
 		},
 	);
 
-	it('is one tone across every chart that has one', () => {
-		const exempt = [
-			...rowsOf(createElement(FlameShockUptime, { analysis: phased })).slice(2),
+	/**
+	 * One tone per chart that draws rows, one ramp per chart that draws a lane, and never a mix.
+	 *
+	 * **This used to read "one tone across every chart", and that claim is genuinely narrower now.** It
+	 * was right while every exempt stretch had a row of its own: the row's label said which cause it
+	 * was, so the colour only had to say "not graded", and two greys would have been two meanings for
+	 * one concept. A merged lane has no labels, so `FlameShockUptime` separates its three causes by
+	 * `EXEMPT_KIND` instead — see that table for why, and for the red the lightest step has to clear.
+	 *
+	 * What survives is the part that was load-bearing: a reader never has two greys to tell apart
+	 * *without being told which is which*. On a row chart the label does it; on a lane the step does,
+	 * with the key naming every one drawn. What this asserts is that no chart does neither, and that no
+	 * chart mixes the two vocabularies — a lane reaching for `EXEMPT` or a row chart for a kind would be
+	 * exactly the drift the old single-tone rule was written against.
+	 */
+	it('uses one exempt vocabulary per chart, and never both', () => {
+		const lane = rowsOf(createElement(FlameShockUptime, { analysis: phased })).slice(2);
+		const rows = [
 			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })).slice(2),
 			...rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2),
 		];
 
-		expect(exempt).not.toHaveLength(0);
-		expect([...new Set(exempt.map((row) => row.tone))]).toEqual([EXEMPT]);
+		expect(lane).not.toHaveLength(0);
+		expect(rows).not.toHaveLength(0);
+		// The merged lane: every ground is a kind, and none of them is the row charts' single tone.
+		expect(lane.every((row) => row.tone in EXEMPT_KIND)).toBe(true);
+		expect(lane.some((row) => row.tone === EXEMPT)).toBe(false);
+		// The charts that kept their rows: one tone, exactly as before.
+		expect([...new Set(rows.map((row) => row.tone))]).toEqual([EXEMPT]);
 	});
 
 	/**
 	 * A ground, not a mark — with the one exception the concept allows: a row the tiles above also
 	 * *count* must stay visible however short it is, and the Fire Elemental overlap tile does exactly
 	 * that. See `Track.widen`.
+	 *
+	 * **Row charts only, because a lane has no floor to turn off.** `widen` exists so a row's own bars
+	 * stay visible when they are all the row has to show; a lane is continuous, so a bar too small to
+	 * see costs a reader nothing and its neighbours already say what that instant was. `TrackLane`
+	 * states that where the floor used to be decided, and the assertion below is scoped to the charts
+	 * the flag still applies to rather than made to tolerate its absence.
 	 */
-	it('is never widened, unless a tile above counts its spans one by one', () => {
+	it('is never widened on a chart that draws rows, unless a tile above counts its spans one by one', () => {
 		const rows = [
-			...rowsOf(createElement(FlameShockUptime, { analysis: phased })).slice(2),
 			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })).slice(2),
 			...rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2),
 		];
 
+		expect(rows).not.toHaveLength(0);
 		for (const row of rows) {
-			expect(row.widen ?? true).toBe(row.label === 'Fire Elemental out');
+			expect('widen' in row ? (row.widen ?? true) : true).toBe(row.label === 'Fire Elemental out');
+		}
+		// And the lane carries no such flag at all, which is the other half of the claim.
+		for (const row of rowsOf(createElement(FlameShockUptime, { analysis: phased }))) {
+			expect(row).not.toHaveProperty('widen');
 		}
 	});
 });
