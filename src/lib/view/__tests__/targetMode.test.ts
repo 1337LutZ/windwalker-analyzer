@@ -90,6 +90,9 @@ describe('resolveBands', () => {
 			// whole-pull weights still ask for, and on this pull it is the reading the four bands contradict.
 			mode: 'single',
 			forced: false,
+			// The default reading covers the whole pull, which is what `null` says — and deliberately not
+			// an empty array, which would read as "no stretch qualifies" and empty every clock at once.
+			spans: null,
 		});
 		expect(bandForMode('single')).toBe(1);
 	});
@@ -116,8 +119,20 @@ describe('resolveBands', () => {
 	 * pull read at one band on the reader's word is a different fact from one that was fought at one.
 	 */
 	it('narrows to the one band the reader forced', () => {
-		expect(resolveBands(windwalker('cleave').targets, 'single')).toEqual({ bands: [1], mode: 'single', forced: true });
-		expect(resolveBands(windwalker('cleave').targets, 'multi')).toEqual({ bands: [3], mode: 'multi', forced: true });
+		expect(resolveBands(windwalker('cleave').targets, 'single')).toEqual({
+			bands: [1],
+			mode: 'single',
+			forced: true,
+			// No segments handed over, so the forced reading still covers the whole pull. A caller that
+			// wants the narrower one passes the timeline; every existing caller keeps what it had.
+			spans: null,
+		});
+		expect(resolveBands(windwalker('cleave').targets, 'multi')).toEqual({
+			bands: [3],
+			mode: 'multi',
+			forced: true,
+			spans: null,
+		});
 	});
 
 	/**
@@ -127,6 +142,108 @@ describe('resolveBands', () => {
 	 */
 	it('says nothing was detected rather than inventing a band', () => {
 		expect(bandsInPull(undefined)).toBeNull();
-		expect(resolveBands(undefined, 'auto')).toEqual({ bands: null, mode: null, forced: false });
+		expect(resolveBands(undefined, 'auto')).toEqual({ bands: null, mode: null, forced: false, spans: null });
+	});
+});
+
+describe('the stretches a forced reading covers', () => {
+	/** A pull that opens single, takes an add wave, goes quiet, then cleaves — one of each mode. */
+	const timeline = {
+		floorMs: 8000,
+		segments: [
+			{
+				index: 0,
+				startMs: 0,
+				endMs: 30_000,
+				mode: 'single',
+				dominance: 1,
+				bands: [1],
+				medianEnemies: 1,
+				msByCount: {},
+			},
+			{
+				index: 1,
+				startMs: 30_000,
+				endMs: 50_000,
+				mode: 'aoe',
+				dominance: 1,
+				bands: [3],
+				medianEnemies: 4,
+				msByCount: {},
+			},
+			{
+				index: 2,
+				startMs: 50_000,
+				endMs: 70_000,
+				mode: 'idle',
+				dominance: 1,
+				bands: [],
+				medianEnemies: 0,
+				msByCount: {},
+			},
+			{
+				index: 3,
+				startMs: 70_000,
+				endMs: 90_000,
+				mode: 'cleave',
+				dominance: 1,
+				bands: [2],
+				medianEnemies: 2,
+				msByCount: {},
+			},
+			{
+				index: 4,
+				startMs: 90_000,
+				endMs: 99_000,
+				mode: 'mixed',
+				dominance: 0.5,
+				bands: [1, 2],
+				medianEnemies: 2,
+				msByCount: {},
+			},
+		],
+	} as unknown as Parameters<typeof resolveBands>[2];
+
+	const targets = windwalker('cleave').targets;
+
+	it('keeps only the stretches the reader asked for', () => {
+		expect(resolveBands(targets, 'single', timeline).spans).toEqual([[0, 30_000]]);
+	});
+
+	it('reads everything that was not single-target as the other half, and merges what abuts', () => {
+		// Cleave, aoe and mixed together — a mixed stretch is by construction one no single mode
+		// described, which makes it part of this reading and not part of the single-target one. The two
+		// that touch at 90 000 come back as one span rather than two.
+		expect(resolveBands(targets, 'multi', timeline).spans).toEqual([
+			[30_000, 50_000],
+			[70_000, 99_000],
+		]);
+	});
+
+	it('leaves idle out of both readings, because nothing was there to be hit', () => {
+		const single = resolveBands(targets, 'single', timeline).spans ?? [];
+		const multi = resolveBands(targets, 'multi', timeline).spans ?? [];
+		const covered = [...single, ...multi].some(([from, to]) => from < 70_000 && to > 50_000);
+		expect(covered).toBe(false);
+	});
+
+	it('says null rather than nothing-qualifies when the pull has no segments at all', () => {
+		// The distinction is the whole guard: an empty array would read as "no stretch qualifies" and
+		// empty every clock at once, which is the direction this mechanism exists to avoid. Every fixture
+		// captured before segments existed arrives here.
+		expect(resolveBands(targets, 'single', undefined).spans).toBeNull();
+		expect(resolveBands(targets, 'single', { floorMs: 8000, segments: [] }).spans).toBeNull();
+	});
+
+	it('says null when the pull has segments but none of the asked-for mode', () => {
+		const allSingle = {
+			floorMs: 8000,
+			segments: [timeline!.segments[0]],
+		} as unknown as Parameters<typeof resolveBands>[2];
+		expect(resolveBands(targets, 'multi', allSingle).spans).toBeNull();
+	});
+
+	it('covers the whole pull on the default reading, whatever the segments say', () => {
+		expect(resolveBands(targets, 'auto', timeline).spans).toBeNull();
 	});
 });

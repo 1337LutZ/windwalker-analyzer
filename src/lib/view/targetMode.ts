@@ -13,6 +13,8 @@
 // So it lives where the selection does: in the component that renders the report, for as long as that
 // report is on screen.
 
+import { type Interval, mergeIntervals } from '~/lib/analysis/intervals';
+import type { SegmentMode, SegmentTimeline } from '~/lib/analysis/segments';
 import type { BandView } from '~/lib/score';
 import { type Band, bandOf } from '~/lib/spec/apl';
 import type { TargetMode, TargetSummary } from '~/lib/types';
@@ -141,9 +143,49 @@ export function bandsInPull(targets: TargetSummary | undefined): readonly Band[]
  * resolving them together is what makes it impossible for the grade and the weights to be arguing
  * about different pulls.
  */
-export function resolveBands(targets: TargetSummary | undefined, choice: TargetModeChoice): BandView {
+export function resolveBands(
+	targets: TargetSummary | undefined,
+	choice: TargetModeChoice,
+	segments?: SegmentTimeline | undefined,
+): BandView {
 	const { mode } = resolveTargetMode(targets?.detected, choice);
-	if (choice === 'auto') return { bands: bandsInPull(targets), mode, forced: false };
+	if (choice === 'auto') return { bands: bandsInPull(targets), mode, forced: false, spans: null };
 	const forced = bandForMode(choice);
-	return { bands: forced === null ? null : [forced], mode, forced: true };
+	return {
+		bands: forced === null ? null : [forced],
+		mode,
+		forced: true,
+		spans: spansForChoice(segments, choice),
+	};
+}
+
+/**
+ * The stretches a forced reading covers — the union of the segments whose mode the reader asked for.
+ *
+ * **Third parameter and optional, on purpose.** Every existing caller keeps working and keeps getting
+ * `spans: null`, which grades the whole pull exactly as before; a caller that wants the narrower reading
+ * opts in by handing over the timeline. Converting them one at a time is the same sequencing argument
+ * `ScoreView` makes for being a union at all.
+ *
+ * `null` rather than `[]` when the pull has no segments — every fixture captured before they existed is
+ * in that position, and an empty array would read as "no stretch qualifies" and empty every clock at
+ * once. That is the failure direction, and it is the same one `bands: null` guards.
+ *
+ * `'multi'` collects `cleave` and `aoe` together, and `mixed` with them: the reader's switch has the two
+ * positions the mode vocabulary has, so a stretch that was not single-target belongs to the other one.
+ * A `mixed` segment is by construction a stretch no single mode described, which makes it part of the
+ * multi-target reading and not part of the single-target one. **`idle` belongs to neither** — nothing
+ * was there to be hit, so it is not evidence for either reading.
+ */
+function spansForChoice(
+	segments: SegmentTimeline | undefined,
+	choice: Exclude<TargetModeChoice, 'auto'>,
+): readonly Interval[] | null {
+	if (segments === undefined || segments.segments.length === 0) return null;
+	const wanted = (mode: SegmentMode): boolean =>
+		choice === 'single' ? mode === 'single' : mode === 'cleave' || mode === 'aoe' || mode === 'mixed';
+	const picked = segments.segments
+		.filter((segment) => wanted(segment.mode))
+		.map((segment): Interval => [segment.startMs, segment.endMs]);
+	return picked.length === 0 ? null : mergeIntervals(picked);
 }
