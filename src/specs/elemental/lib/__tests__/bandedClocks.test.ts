@@ -345,6 +345,39 @@ describe('the second dot is measured over band 2 alone', () => {
 	 * `score.ts`' `WEIGHTS`. The three assertions above are the ones this test is about, and they are
 	 * unmoved; the headline is pinned underneath them so that it cannot drift unremarked either.
 	 */
+	/**
+	 * The subject of the percentage: **every judgeable enemy that is not the primary**, not one chosen id.
+	 *
+	 * The rung this grades is `cleave.apl.json`'s ninth, `maxDots: 2` — keep the dot on *a* second target.
+	 * It was measured against `secondaryID`, the second-busiest enemy by landed hit count, and on a wave
+	 * fight that is whatever soaks the most Chain Lightning and Earthquake splash rather than the caster a
+	 * shaman spends a global dotting.
+	 *
+	 * **`addsThenBoss` is the pull that shows it and the reason this guard exists at all.** It is the one
+	 * committed fixture with a multi-add wave, and it read **18.72%** against a 174.7s band-2 clock while
+	 * the union across every judgeable non-primary body reads **61.02%** — the same dots, the same clock,
+	 * a different subject. Nothing in the suite pinned that figure, so the defect was invisible here and
+	 * had to be found on an uncommitted log.
+	 *
+	 * **`cleave` is the control and does not move**: it has exactly one other enemy, so the union over all
+	 * of them and the busiest one of them are the same array. A change that moved `cleave` would be
+	 * changing what the metric means rather than which enemies it reads.
+	 *
+	 * The lifetime floor is applied **per spawn and not per enemy id**, which is the distinction
+	 * `DotWindows` spends its docblock on: ten Kor'kron under one id are ten bodies, and an id that spans
+	 * the pull through eight adds that each lived ten seconds must not inherit a lifetime none of them
+	 * had. Asserted below by the count of spawns the floor drops.
+	 */
+	it('measures the second dot against every judgeable enemy, not the busiest one', () => {
+		expect(+fx('addsThenBoss').flameShock.multiDotUptimePct.toFixed(2)).toBe(61.02);
+		expect(fx('addsThenBoss').flameShock.multiDotUptimeMs).toBe(106_624);
+		// Non-vacuity: the clock is long and the figure is well clear of both edges, so this is a reading
+		// rather than a zero or a saturation.
+		expect(fx('addsThenBoss').flameShock.multiTargetMs).toBe(174_748);
+		// The control. One other enemy, so the two readings coincide and this figure is unchanged.
+		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
+	});
+
 	it('reads 18.73% on the mixed pull and still faults it', () => {
 		expect(+fx('cleave').flameShock.multiDotUptimePct.toFixed(2)).toBe(18.73);
 		const card = scoreAnalysis(fx('cleave'));

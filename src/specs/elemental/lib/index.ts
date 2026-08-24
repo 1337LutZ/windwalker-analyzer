@@ -1597,6 +1597,15 @@ interface DotWindows {
 	 * **Nothing graded reads it.** It exists for the timeline's per-enemy rows.
 	 */
 	byTarget: ReadonlyMap<number, Interval[]>;
+	/**
+	 * Which enemy id each spawn in `byInstance` belongs to.
+	 *
+	 * The join between the two readings above, for a caller that has to filter spawns by *which enemy*
+	 * they are — "every body that is not the primary" is the one this exists for. Built in the walk for
+	 * the same reason `byTarget` is: the loop has `targetID` in hand, and a caller that split `"470:-"`
+	 * back apart would be coupled to `instanceKey`'s string format from another module.
+	 */
+	targetOf: ReadonlyMap<string, number>;
 	/** The union across every spawn of the enemy id. */
 	merged: Interval[];
 	/**
@@ -1641,7 +1650,8 @@ function dotWindowsOnTarget(
 	sourceID: number,
 	options: { openAtPull?: boolean } = {},
 ): DotWindows {
-	if (targetID === undefined) return { byInstance: new Map(), byTarget: new Map(), merged: [], inferredAtPull: false };
+	if (targetID === undefined)
+		return { byInstance: new Map(), byTarget: new Map(), targetOf: new Map(), merged: [], inferredAtPull: false };
 	return dotWindowsBySpawn(events, aura, t0, fightEnd, sourceID, targetID, options);
 }
 
@@ -1720,6 +1730,7 @@ function dotWindowsBySpawn(
 	// Walked per spawn, kept per spawn, and merged across them: two copies of an add carrying the dot
 	// at once is the enemy covered, not twice covered, and `mergeIntervals` is what says so.
 	const byInstance = new Map<string, readonly Window[]>();
+	const targetOf = new Map<string, number>();
 	const perTarget = new Map<number, Interval[]>();
 	const all: Interval[] = [];
 	let inferredAtPull = false;
@@ -1731,6 +1742,7 @@ function dotWindowsBySpawn(
 			key,
 			spans.map(([start, end]) => ({ start, end })),
 		);
+		targetOf.set(key, bucket.target);
 		const gathered = perTarget.get(bucket.target);
 		if (gathered) gathered.push(...spans);
 		else perTarget.set(bucket.target, [...spans]);
@@ -1740,7 +1752,7 @@ function dotWindowsBySpawn(
 	// carrying the dot at once is the enemy covered, not twice covered.
 	const byTarget = new Map<number, Interval[]>();
 	for (const [id, spans] of perTarget) byTarget.set(id, mergeIntervals(spans));
-	return { byInstance, byTarget, merged: mergeIntervals(all), inferredAtPull };
+	return { byInstance, byTarget, targetOf, merged: mergeIntervals(all), inferredAtPull };
 }
 
 /**
@@ -2828,9 +2840,44 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		hitCounts.set(hit.target, (hitCounts.get(hit.target) ?? 0) + 1);
 	}
 	const secondaryID = [...hitCounts.entries()].filter(([id]) => id !== primaryID).sort((a, b) => b[1] - a[1])[0]?.[0];
-	// The union across the secondary's own spawns, for the same reason the primary's figure is: this is
-	// a percentage labelled with one enemy, not a verdict on one press.
-	const fsSecondaryWindows = dotWindowsOnTarget(events, FS_DEBUFF, t0, fightEnd, secondaryID, actor.id).merged;
+	/**
+	 * **Every judgeable enemy that is not the primary, and no longer one chosen id.**
+	 *
+	 * The rung this grades is `cleave.apl.json`'s ninth, `maxDots: 2` — keep the dot on *a* second
+	 * target. It was measured as the dot's uptime on `secondaryID`, the second-*busiest* enemy by landed
+	 * hit count, and on a wave fight those are not the same enemy at all: the busiest non-boss body is
+	 * whatever soaks the most Chain Lightning and Earthquake splash, which is the last thing a shaman
+	 * spends a global dotting.
+	 *
+	 * **Measured on the four Elemental shamans in the Galakras kill `a:yCp2XW1mYqbDjhwJ` fight 17.** Two
+	 * of them read **0%** against a 106.6s and a 99.7s band-2 clock, and neither was a refusal —
+	 * `unmeasurable` was false and they were graded `bad`. The chosen secondary on both was the Dragonmaw
+	 * Flagbearer, an enemy that carried **0.0s** of Flame Shock across the entire pull. Reading the same
+	 * clock against every non-primary body instead: 47.1%, 77.6%, 2.3% and 50.5%, against the 0%, 38.6%,
+	 * 0% and 27.8% the single id gave. All four were understated, so this is not a rounding on two
+	 * unlucky pulls — one id loses roughly half the real coverage even when it happens to pick a body the
+	 * player did dot.
+	 *
+	 * **`byInstance` and not `byTarget`**, keyed by spawn so the lifetime floor applies per body: the
+	 * same predicate over the same `spawnLives` the hit count above uses, so the two cannot disagree
+	 * about which adds were worth a global. Ten Kor'kron under one id are ten judgements, and the merge
+	 * across them is what says two copies carrying the dot at once is the enemy covered rather than
+	 * twice covered.
+	 *
+	 * **`secondaryID` stays and keeps its job**, which is not this numerator. It is published to split
+	 * the two ways `multiTargetMs` reaches zero — no second target worth dotting at all, against a second
+	 * target that was there and never dotted — and that reading is as true of the busiest enemy as of any
+	 * other. What it is no longer is the subject of the percentage.
+	 */
+	const fsSecondaryWindows = mergeIntervals(
+		[...fsAnywhere.byInstance]
+			.filter(
+				([key]) =>
+					fsAnywhere.targetOf.get(key) !== primaryID &&
+					isJudgeableTarget(spawnLives.get(key), { minLifetimeMs: FS_SECOND_TARGET_LIFETIME_MS }),
+			)
+			.flatMap(([, windows]) => toIntervals(windows)),
+	);
 	/**
 	 * The stretches this rule is graded over: **band 2 alone** — two enemies up, and not three.
 	 *
