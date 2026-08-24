@@ -152,9 +152,12 @@ describe('the summary takeaways', () => {
 			}
 		}
 		expect([...new Set(missing)].sort()).toEqual([]);
-		// Eleven, not the nine the two literals named: four Elemental pulls and seven Windwalker ones.
+		// Fourteen: four Elemental pulls and ten Windwalker ones. It was eleven until three raw Windwalker
+		// datasets were committed to give the segment work a pull with more than one target mode in it —
+		// Galakras, Immerseus and a heroic Malkorok — and nine before that, when two literals named the
+		// fixtures instead of the directory being walked.
 		// Pinned so a fixture leaving the directory shows up as a number rather than as a quieter sweep.
-		expect(swept).toBe(11);
+		expect(swept).toBe(14);
 	});
 
 	it('says so plainly when there is nothing to fix', () => {

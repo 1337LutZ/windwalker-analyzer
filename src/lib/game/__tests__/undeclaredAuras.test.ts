@@ -20,9 +20,10 @@
 // what it adds is the player's own three ids rather than every raider's debuff on the boss; the
 // measurement and the argument are on `SWEPT` and on `enemyAuraEvents`.
 //
-// **Skull Banner is what that hole cost.** 114206 goes up on all five committed pulls — 4 applications
-// on `phased`, 2 on `unbroken`, 4 on `cleave`, 6 on `addsThenBoss`, 3 on `dataset-ironJuggernaut`, apply
-// and remove in equal numbers each time. It is a twenty-percent crit-*damage* window from another player's three-minute
+// **Skull Banner is what that hole cost.** 114206 goes up on all eight committed pulls — 4 applications
+// on `phased`, 2 on `unbroken`, 4 on `cleave`, 6 on `addsThenBoss`, 3 on `dataset-ironJuggernaut`, 4 on
+// `idle`, 4 on `sections` and 7 on `uncounted`, apply and remove in equal numbers on all but the last,
+// where a banner was still up at the kill. It is a twenty-percent crit-*damage* window from another player's three-minute
 // raid cooldown, which is a real multiplier on the audited player's damage. It was named in the
 // Elemental's `EXTRA_NAMES`, so the cast-coverage ledger was satisfied; it was never declared, so the
 // drawn-aura sweep could not see it; and it was drawn nowhere, so the report simply did not mention it.
@@ -188,6 +189,43 @@ const LEDGER: Record<number, string> = {
 		'Well Fed (Agility): the food buff, +300 to a primary stat for an hour. A stat baseline, not an event on the timeline.',
 	104277:
 		'Well Fed (Intellect): the food buff, +300 to a primary stat for an hour. A stat baseline, not an event on the timeline.',
+	// The flask and the elixir, which are the same class of thing as the food buff above and are filed
+	// the same way: a stat the player carried for the whole pull, part of the baseline every figure in
+	// the report is measured on rather than a window inside it. Four, four and five apply/remove pairs
+	// across the three Windwalker pulls, because a monk who dies re-drinks. What would make either of
+	// them a gap is a section that graded *whether* they were up, and there is none — `potions.ts` grades
+	// the one consumable with a press worth timing, and neither of these has a timing.
+	105684:
+		'Elixir of the Rapids: the haste elixir (DBC aura 189, rating mask 0xE0000). A stat baseline, not an event on the timeline, and nothing here grades whether one was drunk.',
+	105689:
+		'Flask of Spring Blossoms: the agility flask (DBC aura 29, stat 1). A stat baseline, not an event on the timeline, and nothing here grades whether one was drunk.',
+	// The Monk's own defensive and utility windows, all four named as presses in the Windwalker's
+	// `EXTRA_NAMES` and none of them modelled — that table argues each one, off `StartRecoveryTime` and
+	// off the fact that not one produces a `damage` event on any committed pull. What is unmodelled is the
+	// buff window, and the same argument disposes of it: a heal, a taunt, a movement blink and an
+	// engineering toy have nothing a damage audit can coach.
+	115176:
+		"Zen Meditation: the player's own damage-reduction channel. Named as a press in the Windwalker's EXTRA_NAMES and off the global (StartRecoveryTime 0); the eight apply/remove pairs off one cast are the raid members and puddles it covered, not eight presses.",
+	116841:
+		"Tiger's Lust: the player's own movement cooldown, which also clears a root. Named as a press in the Windwalker's EXTRA_NAMES; the window says where the monk went and nothing about what the rotation wanted.",
+	126389:
+		'Goblin Glider: the engineering cloak toy, a fall-speed buff. One press on one pull, off the global, no damage and no stat — there is nothing for a lane to draw.',
+	// The Monk melee passive, and the busiest undeclared id in the whole set — 150 events on
+	// `sections.json` alone, almost all of them `refreshbuff` as the pack around the monk changes size.
+	// +5% parry per nearby attacker to a ceiling of three (DBC aura 47, base 5, `CumulativeAura` 3).
+	// Purely defensive, and the thing a reader would actually want out of it — how many enemies were in
+	// melee range — is drawn already, as the target-count series.
+	116033:
+		'Sparring: the Monk passive granting +5% parry per nearby melee attacker, stacking to three (DBC aura 47). Defensive, and the enemy count it keys off is already drawn as the target-count series.',
+	// The execute-window marker, and it is the one entry in this group with a real claim to being a gap —
+	// which is why it says so rather than being waved through. It goes up when a target the monk is on
+	// drops below 10% health, which is exactly the condition `touch-of-death` is declared `conditional`
+	// for: the ability's own note says availability is a health threshold rather than a cooldown, so
+	// drift against it would be fiction. This aura is the log's own record of when that threshold was
+	// met, so a "how many of the offered executes were taken" figure could be built on it. Nothing builds
+	// one, and until something does there is no lane for it to be missing from.
+	121125:
+		'Death Note: the marker that goes up when a target is inside the Touch of Death execute window. Not a gap in the aura model — the press is declared as `touch-of-death` with `gate: conditional`, and nothing in the report yet asks how many offered executes were taken. The id to reach for if something does.',
 	// -10% damage taken for 6s while Lightning Shield is below three charges (aura 87, school mask 127,
 	// DBC). Purely defensive: it is not in the simulator at all, and the charge bank the rotation does
 	// care about is drawn already, as `lightning-shield` above the rows.
@@ -231,6 +269,10 @@ const LEDGER: Record<number, string> = {
 	48504: healing("Living Seed, the stored heal a resto druid's crit leaves on its target"),
 	51945: healing("Earthliving, the proc on a resto shaman's heal"),
 	61295: healing('Riptide'),
+	// Sourced by another player on `idle.json`, which is the half of the classification that decides it:
+	// a discipline priest's mastery leaves this on whoever they healed, and it is the *healer's* aura on
+	// this monk rather than anything the monk did.
+	77613: healing("Grace, the stacking healing-received buff a discipline priest's heals leave on their target"),
 	64844: healing('Divine Hymn'),
 	77489: healing("Echo of Light, the trickle a priest's mastery adds to a heal"),
 	81782: healing('Power Word: Barrier'),
@@ -267,6 +309,23 @@ const LEDGER: Record<number, string> = {
 	// declared and drawn.
 	124280:
 		"Touch of Karma: the redirected-damage half of the press, on the enemy. Modelled as damage (`specs/windwalker/lib/index.ts:627` declares `damageIds: [124280]`) and drawn as the `touch-of-karma` lane off the absorb's own id 122470 — an aura row here would restate that row under a second number.",
+	// **The four the three new Windwalker pulls added to this class, and they are all crowd control or a
+	// second reading of something modelled.** `dataset-ironJuggernaut.json` is one enemy that never needs
+	// interrupting, taunting or stunning, so the whole class was invisible until a pull with adds arrived.
+	//
+	// 123586 is the shape to check first, because it is the one that could have been a gap: the id is
+	// already declared as `flying-serpent-kick`'s `damageIds`, and on `idle.json` and `sections.json` its
+	// only events *are* damage. `uncounted.json` is the pull where the same id also arrives as a debuff —
+	// two apply/remove pairs on `Living Corruption` and Malkorok — which is the kick's snare rather than a
+	// second damage source. Modelled as damage, drawn from there, and an aura row would restate it.
+	116189:
+		"Provoke: the taunt debuff, applied by the player's own Provoke (115546, named in the Windwalker's EXTRA_NAMES). Five presses, five applications, every one on a Living Corruption — a Windwalker pulling adds off the raid, which is a thing to notice about the pull and not a rotation figure the model can grade.",
+	116709:
+		"Spear Hand Strike: the silence the interrupt leaves on its target. Both the interrupt's ids are named as presses in the Windwalker's EXTRA_NAMES (116705 and 116709); nothing here counts interrupts, and a lane for a 2s lockout on an add would say less than the press already does.",
+	120086:
+		"Fists of Fury: the stun the channel puts on everything it hits. The channel is modelled — `castIds: [113656]` with a `channel`, damage under 117418 — and its self-aura is ledgered under 113656 above. Every one of the 78 `damage` events under this id across the three pulls lands for **zero**, immune or missed, because it is the stun's application and not a second damage source.",
+	123586:
+		'Flying Serpent Kick: the snare the kick leaves on what it passed through. Modelled as damage — `specs/windwalker/lib/index.ts` declares `damageIds: [123586]` on `flying-serpent-kick` — and the button is `utility: true` there because nobody presses it for the numbers, so there is nothing an aura row could add.',
 
 	// ------------------------------------------------------------ the encounters
 	144218: bossMechanic('Borer Drill', 'Iron Juggernaut'),
@@ -280,6 +339,29 @@ const LEDGER: Record<number, string> = {
 	// pool the player stood in; 147705 is the Dragonmaw Tidal Shaman's cloud.
 	147029: bossMechanic('Flames of Galakrond', 'Galakras'),
 	147705: bossMechanic('Poison Cloud', 'Galakras'),
+	// **Two encounters this ledger had never seen, and the ninth id is a third's.** Immerseus and
+	// Malkorok arrive with `idle.json` and `uncounted.json`; `sections.json` is Galakras again and adds
+	// only the archers' volley, which is the shape to expect from a second pull on a known boss.
+	//
+	// Immerseus is five ids because the fight is two halves and the player takes something in both.
+	// 143297 and 143459 come off the `Environment` actor, 143460 and 143579 off Immerseus himself. The
+	// one worth reading is 143524: it arrives as a debuff *and* as two `resourcechange` events restoring
+	// 9464 mana each, both of which the log stamps `waste: 9464` — an energy user being handed a mana
+	// return. Filed as the encounter's own like the rest, because a boss handing out a resource this
+	// class does not have is still the boss's business and not the model's.
+	143297: bossMechanic('Sha Splash', 'Immerseus'),
+	143459: bossMechanic('Sha Residue', 'Immerseus'),
+	143460: bossMechanic('Sha Pool', 'Immerseus'),
+	143524: bossMechanic('Purified Residue', 'Immerseus'),
+	143579: bossMechanic('Sha Corruption', 'Immerseus'),
+	// Malkorok's three. 143919 is sourced by a `Living Corruption` rather than by Malkorok — 18
+	// applications from the adds this pull was fetched for — and it is filed under the encounter all the
+	// same: an add is the encounter's. 142861 is the healing-absorb field, and it is the busiest single
+	// id on that pull with 164 `healabsorbed` events against two applications.
+	142861: bossMechanic('Ancient Miasma', 'Malkorok'),
+	142913: bossMechanic('Displaced Energy', 'Malkorok'),
+	143919: bossMechanic('Languish', 'Malkorok'),
+	146765: bossMechanic('Flame Arrows', 'Galakras'),
 };
 
 describe('every aura the log puts on the player is modelled or ledgered', () => {
@@ -292,22 +374,31 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 	 *
 	 * The failure this guards against is the sweep quietly reading nothing — a `targetID` that stopped
 	 * matching, an `events` array that went missing on a re-capture — which would satisfy the assertion
-	 * above by having no ids to fail on. Read off the committed streams: 46, 49, 52, 57 and 57 distinct
-	 * aura ids land on the player or on what the player was hitting, across the five pulls.
+	 * above by having no ids to fail on. Read off the committed streams: 46 to 62 distinct aura ids land
+	 * on the player or on what the player was hitting, across the eight pulls.
 	 *
 	 * Four of those were 42, 48, 53 and 53 before the sweep gained its enemy half, and the +4 on each is
 	 * the measurement rather than a coincidence — see the pin below, which is the same fact split out so a
 	 * regression names the half that broke. `addsThenBoss` arrived after the widening and its enemy half
 	 * is **five** rather than four, which is the pin's own subject: two of its five are raid buffs the
 	 * player's totems put on the encounter's friendly NPCs.
+	 *
+	 * The three Windwalker pulls span the range on their own — `idle` 62, `sections` 50, `uncounted` 46 —
+	 * and the order is not the one the fixture names suggest. `sections.json` is the longest pull in the
+	 * tree at 437s and reads *fewer* ids than the 255s Immerseus one, because a count of distinct ids is
+	 * a count of how many different things touched the player and not of how long they were touched: 150
+	 * of `sections`' aura events are one id, `Sparring` refreshing as the pack around the monk changes.
 	 */
-	it('really does sweep five pulls with dozens of ids each', () => {
+	it('really does sweep eight pulls with dozens of ids each', () => {
 		expect(byPull((sweep) => sweep.ids.size)).toEqual({
 			'elemental/addsThenBoss.json': 49,
 			'elemental/cleave.json': 57,
 			'elemental/phased.json': 46,
 			'elemental/unbroken.json': 52,
 			'windwalker/dataset-ironJuggernaut.json': 57,
+			'windwalker/idle.json': 62,
+			'windwalker/sections.json': 50,
+			'windwalker/uncounted.json': 46,
 		});
 	});
 
@@ -351,6 +442,25 @@ describe('every aura the log puts on the player is modelled or ledgered', () => 
 			'elemental/phased.json': [8050, 115_798, 144_999, 146_198],
 			'elemental/unbroken.json': [8050, 115_798, 144_999, 146_198],
 			'windwalker/dataset-ironJuggernaut.json': [115_804, 122_470, 124_280, 128_531, 130_320],
+			// **The Windwalker's enemy half was five ids of a one-enemy pull, and this is what it looks like on
+			// pulls with adds.** Everything the monk had ever put on an enemy was a debuff its own press
+			// applies to whatever it was already hitting; a fight with things to interrupt, taunt and stun adds
+			// the crowd control, and all four of those ids are new to the ledger — 116189 Provoke, 116709 Spear
+			// Hand Strike, 120086 Fists of Fury's stun and 123586 Flying Serpent Kick's snare.
+			//
+			// Two rows here are the friendly-NPC reading again, and this is the second encounter to show it —
+			// which is what turns the paragraph above from a story about Galakras into a property of the half.
+			// 115176 on `idle` is Zen Meditation covering a *Contaminated Puddle*, and 116781/117666 on
+			// `sections` are the monk's own Legacy raid buffs landing on the Dragonmaw Tidal Shamans' allies.
+			// All three are declared or raid-buff ids, so nothing is unaccounted for; the point is that
+			// "not known to be friendly" keeps meaning what its docstring says.
+			//
+			// `uncounted` is the short row at five and it is not a smaller pull: it is the one whose monk
+			// pressed no Fists of Fury stun that stuck and no Touch of Karma at all, so what is left is the two
+			// modelled debuffs, Mortal Wounds, and the two ids Provoke and the kick added.
+			'windwalker/idle.json': [115_176, 115_804, 120_086, 122_470, 124_280, 128_531, 130_320],
+			'windwalker/sections.json': [115_804, 116_709, 116_781, 117_666, 120_086, 122_470, 124_280, 128_531, 130_320],
+			'windwalker/uncounted.json': [115_804, 116_189, 123_586, 128_531, 130_320],
 		});
 	});
 
@@ -440,14 +550,26 @@ describe('Skull Banner, the id this guard was written for', () => {
 		for (const sweep of sweeps) expect(sweep.ids.has(114_207)).toBe(false);
 	});
 
-	/** Measured on the player, apply and remove in equal numbers on every pull. */
-	it('fires on all five committed pulls', () => {
+	/**
+	 * Measured on the player, apply and remove in equal numbers on every pull.
+	 *
+	 * Eight pulls now. The three that arrived read 8, 8 and 13, and `uncounted`'s **13 is odd**, which is
+	 * the first time that has happened and is worth reading rather than rounding: the last of its seven
+	 * applications lands at 201 682 ms and is never removed, because the boss died 9.6s later and inside
+	 * the window. So this is a pin on the *sweep* rather than on the fixtures — it counts every kind of
+	 * evidence, and an unclosed window is exactly the case `drawnAuras.ts`' "evidence, not application"
+	 * argument exists for, one banner short of the pre-pull `removebuff` it was originally written about.
+	 */
+	it('fires on all eight committed pulls', () => {
 		expect(byPull((sweep) => sweep.ids.get(114_206))).toEqual({
 			'elemental/addsThenBoss.json': 12,
 			'elemental/cleave.json': 8,
 			'elemental/phased.json': 8,
 			'elemental/unbroken.json': 4,
 			'windwalker/dataset-ironJuggernaut.json': 6,
+			'windwalker/idle.json': 8,
+			'windwalker/sections.json': 8,
+			'windwalker/uncounted.json': 13,
 		});
 	});
 

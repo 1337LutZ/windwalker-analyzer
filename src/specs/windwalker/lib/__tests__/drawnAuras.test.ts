@@ -69,6 +69,13 @@ const NOT_LANES: Record<string, string> = {
 	// The player survived something. It changes nothing the rotation wanted, and a row for it would push
 	// the rotation's own rows down the screen on a long pull.
 	'diffuse-magic': 'defensive, no bearing on the rotation',
+	// The same judgement as `diffuse-magic` beside it, and it took a third committed pull to surface:
+	// `idle.json` is the first raw Windwalker fixture whose monk pressed Fortifying Brew at all, so the
+	// guard had nothing to say about it until then. **That is the guard working, not a gap in it** — a
+	// declared aura that had never fired anywhere was invisible to a sweep over what the pulls contain.
+	// Ledgered rather than drawn for the same reason: a defensive is not a rotational decision, and the
+	// report grades none of it.
+	'fortifying-brew': 'defensive, no bearing on the rotation',
 	// **The one thing the enemy half of the sweep found.** Blackout Kick's dot, 128531: 18 applications,
 	// 35 refreshes and 18 removals on the committed pull, from 2.9s in to 52ms before the pull — so it is
 	// up for very nearly the whole fight and a row for it would be one solid bar carrying no information.

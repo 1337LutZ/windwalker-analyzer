@@ -464,9 +464,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the commit that graded a shield never worn and a totem never laid, it prints 1378 leaves,
-698 prose, 21,873 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
-report.json 636 prose leaves, 1,098 sentences, median 16, 206 past 25 (18.8%), 261 em-dashes in 227
+As of the change that drew the summary row naming what you were fighting, it prints 1388 leaves,
+700 prose, 21,951 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 23%;
+report.json 638 prose leaves, 1,103 sentences, median 16, 207 past 25 (18.8%), 262 em-dashes in 228
 sentences (20.7%); 50 / 25 / 1 / 3 on the quote lines.
 
 <!-- /census:figures -->
