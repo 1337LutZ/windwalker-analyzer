@@ -1148,6 +1148,8 @@
       "value_count": "{{value, integer}}",
       "target_atLeastPercent": "target {{value, percent}} or better",
       "target_exactPercent": "target {{value, percent}}",
+      "target_exactCount": "target none",
+      "target_exactSeconds": "target {{value, duration}}",
       "target_atMostPercent": "target {{value, percent}} or less",
       "target_atLeastCount": "target {{value, integer}} or more",
       "target_atMostCount": "target {{value, integer}} or fewer",

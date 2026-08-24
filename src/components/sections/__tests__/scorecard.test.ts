@@ -216,6 +216,34 @@ describe('the scorecard grid', () => {
 		expect(html(fixture('addsThenBoss'))).toContain('0/1');
 	});
 
+	/**
+	 * A floor is not a bar either, and it needs no declaring.
+	 *
+	 * Every lower-is-better rule in both specs counts a fault — seconds at a cap, presses clipped, drops —
+	 * and none of those goes below nothing, so a `good` of zero is already the best reading that exists.
+	 * The card said "target 0s or less", which asks for a duration there is no such thing as, and "target
+	 * 0 or fewer" for a count of them.
+	 *
+	 * Unlike the lid this is arithmetic rather than a judgement, so it is inferred rather than declared:
+	 * `MetricRule.ceiling` exists because nothing in a threshold says whether a `good` of 2 is a bar or a
+	 * cap, and nothing needs to say that zero faults is the floor.
+	 *
+	 * Asserted on `cleave`, whose shield sat at the cap long enough for the row to be drawn at all — a
+	 * fault rule with no fault is hidden by `silent`, so this line only exists on a pull that has one.
+	 */
+	it('names the floor on a fault rule instead of inviting the reader below it', () => {
+		const markup = html(fixture('cleave'));
+		expect(markup).toContain('target 0s');
+		expect(markup).not.toContain('target 0s or less');
+		// The count side of the same rule, on the spec that has one drawn.
+		const brews = wwHtml('sections');
+		expect(brews).toContain('target none');
+		expect(brews).not.toContain('target 0 or fewer');
+		// And a rule whose `good` is a real bar still invites the reader at it, so this is a claim about
+		// zero rather than about direction.
+		expect(markup).toContain('target 95% or better');
+	});
+
 	it('prints a sentence and no figure for a metric whose value is not a reading', () => {
 		// The potion metric is the Windwalker's; the Elemental's case is the shield on a pull that never
 		// wore it, and `neverUpShield.test.ts` owns that render. What is asserted here is the other half:

@@ -138,6 +138,21 @@ const sampled = (metric: Metric): boolean => metric.part !== undefined && metric
  */
 const capped = (metric: Metric): boolean => metric.ceiling !== undefined && metric.good >= metric.ceiling;
 
+/**
+ * A rule whose `good` line is the best the pull could have done, in either direction.
+ *
+ * The lid is one way and is declared, because nothing in a threshold says whether a `good` of 2 is a bar
+ * or a ceiling — see `MetricRule.ceiling`. The floor is the other way and needs no declaration at all,
+ * because it is arithmetic: every lower-is-better rule here counts a fault, in seconds, presses or share
+ * of a clock, and none of those goes below nothing. So a `good` of zero on such a rule is already the
+ * best reading that exists, and "target 0s or less" asks for a duration there is no such thing as.
+ *
+ * Kept separate from `counted` on purpose. This decides how the target line is *worded*; `counted`
+ * decides whether the figure is drawn as one count over another, and that one really does need the
+ * declared lid — it is the denominator.
+ */
+const atBest = (metric: Metric): boolean => capped(metric) || (!metric.higherIsBetter && metric.good === 0);
+
 /** Metrics read as one count over another, and which therefore need no target line under them. */
 const counted = (metric: Metric): boolean => sampled(metric) || (capped(metric) && metric.unit === 'count');
 
@@ -181,9 +196,10 @@ function target(metric: Metric, t: T): string {
 				: metric.unit === 'stacks'
 					? 'Stacks'
 					: 'Count';
-	// A lid is not a bar. "100% or better" asks for more of a share than exists, so a capped rule names
+	// A lid is not a bar, and neither is a floor. "100% or better" asks for more of a share than exists
+	// and "0s or less" for a duration that does not, so a rule sitting on the best reading there is names
 	// the number and stops — the reader is being told where the line is, not invited past it.
-	const direction = capped(metric) ? 'exact' : metric.higherIsBetter ? 'atLeast' : 'atMost';
+	const direction = atBest(metric) ? 'exact' : metric.higherIsBetter ? 'atLeast' : 'atMost';
 	return t('summary.scorecard.target', { context: `${direction}${unit}`, value: metric.good });
 }
 
