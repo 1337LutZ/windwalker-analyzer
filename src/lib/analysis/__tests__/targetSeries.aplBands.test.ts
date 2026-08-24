@@ -28,15 +28,15 @@
 // The trap the sibling file documents applies here too and is the reason the adds take real damage:
 // `landedHits` drops a spawn that never took any, so an immune add is absent from **both** series and
 // cannot separate them.
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, FightDataset, WclEvent } from '~/lib/types';
 import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analyseCore';
+import { capturedAnalyses, rawFixtures } from '~/lib/analysis/fixtures';
+import { unionMs } from '~/lib/analysis/intervals';
+import { countAt, intervalsAtLeast, type TargetCountPoint } from '~/lib/analysis/targets';
 import { defaultSettings } from '~/lib/settings/model';
 import { bandsInPull, resolveBands } from '~/lib/view/targetMode';
-import { analyse as analyseElemental } from '~/specs/elemental/lib';
 import { analyse as analyseWindwalker, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker/lib';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 
@@ -342,46 +342,224 @@ describe('the band questions on a pull whose extra targets are reached only by t
 });
 
 /**
- * Why none of the above moves a committed number, checked rather than asserted in prose.
+ * The two series held against each other, on every pull the tree commits.
  *
- * Every raw-event fixture in the tree is run through its own spec and the two series compared. The
- * Windwalker's one dataset is a single-target Iron Juggernaut pull with no Rushing Jade Wind damage in
- * it at all, and every Elemental fixture is on a spec that declares no `aplTargetCountExclude` — so the
- * two series coincide by construction there and by content on the one that could have differed.
+ * **This block used to be titled "the two series on every committed raw-event fixture", and it asserted
+ * that they coincide on all five of those under a docstring headed "why none of the above moves a
+ * committed number". Both halves have gone stale, and *how* they went stale is why this guard is shaped
+ * the way it is.** The old docstring named its own failure mode exactly — "this is the test that would go
+ * red if a fixture were ever recaptured off a pull that fans out with the wind" — and then the 2026-08-24
+ * re-capture landed: `cleave`'s Tiger Palm sample moved from 2 presses to 4, that pull read as
+ * single-target moved from ungraded to `good`, `mixed`'s figure moved 73.9% → 72.0%. Nothing here went
+ * red, because the sweep looked only at the five **raw** fixtures while the re-capture rewrote the six
+ * **captured** ones. A guard whose population excludes its own subject cannot fire.
  *
- * This is the test that would go red if a fixture were ever recaptured off a pull that fans out with the
- * wind: the change above would then move real figures, and that is a finding rather than a regression.
- * The band sets are compared too, since `bandsInPull` is the consumer that reads them.
+ * So the population is every Windwalker pull the tree holds — six captures and one raw dataset —
+ * discovered through `lib/analysis/fixtures` rather than listed, for the reason that module argues at
+ * length: a listed set has to be edited by whoever commits the next fixture, and that is the same person
+ * who would forget.
+ *
+ * **The four Elemental pulls are deliberately not swept here.** That spec declares no
+ * `aplTargetCountExclude`, so its two series are one array by construction, and
+ * `specs/elemental/lib/__tests__/bandedClocks.test.ts` already asserts precisely that over all four of
+ * them — *"reads one count series under both edges, because this spec excludes nothing from the ladder's"*
+ * — as the tripwire for the day that spec does declare one. A second copy of that claim here would be the
+ * copy nobody updates, and this file used to be it. Eleven committed pulls: seven held here, four there.
+ *
+ * **What is asserted is an invariant, not a pinned pair of numbers.** `aplTargetHits` is
+ * `multiTargetHits.filter(notOwnAreaDamage)` — a subset of one hit list, run through the same
+ * `targetCounts` at the same window — and `targetCounts` answers "distinct spawns hit in the trailing
+ * window", which is monotone in its input. So at every instant the ladder's count is **at most** the
+ * evidence one: *the ladder can never see an enemy the evidence did not.* That direction survives any
+ * edit to the exclusion list and holds on any spec, which is worth more than the figures three pulls
+ * happen to carry today. The figures below are pinned only as far as it takes to show the invariant is
+ * not one array compared with itself.
  */
-describe('the two series on every committed raw-event fixture', () => {
-	const load = (path: string): FightDataset =>
-		JSON.parse(readFileSync(resolve(import.meta.dirname, '../../..', path), 'utf8')) as FightDataset;
+describe('the two series on every committed pull', () => {
+	/**
+	 * One directory read each, at collection.
+	 *
+	 * `readFixtures` deliberately does not cache, and it parses **every** file in the folder per call —
+	 * seven files and about 3.5 MB for this spec. So these are read once here and shared, and the one raw
+	 * pull is analysed lazily below. Nothing in this block mutates an analysis.
+	 */
+	const CAPTURED = capturedAnalyses('windwalker');
+	const RAW = rawFixtures('windwalker');
+	const NAMES = [...CAPTURED, ...RAW].map(({ name }) => name);
 
-	const cases: Array<[string, () => Analysis]> = [
-		[
-			'windwalker/dataset-ironJuggernaut',
-			() => analyseWindwalker(load('specs/windwalker/__fixtures__/dataset-ironJuggernaut.json')),
-		],
-		['elemental/phased', () => analyseElemental(load('specs/elemental/__fixtures__/phased.json'))],
-		['elemental/unbroken', () => analyseElemental(load('specs/elemental/__fixtures__/unbroken.json'))],
-		['elemental/cleave', () => analyseElemental(load('specs/elemental/__fixtures__/cleave.json'))],
-		['elemental/addsThenBoss', () => analyseElemental(load('specs/elemental/__fixtures__/addsThenBoss.json'))],
-	];
+	const analysed = new Map<string, Analysis>();
+	const pull = (name: string): Analysis => {
+		const captured = CAPTURED.find((fixture) => fixture.name === name);
+		if (captured !== undefined) return captured.analysis;
+		const memo = analysed.get(name);
+		if (memo !== undefined) return memo;
+		const raw = RAW.find((fixture) => fixture.name === name);
+		if (raw === undefined) throw new Error(`no Windwalker fixture named ${name}`);
+		const analysis = analyseWindwalker(raw.dataset);
+		analysed.set(name, analysis);
+		return analysis;
+	};
 
-	for (const [name, run] of cases) {
-		it(`coincide on ${name}, so the band questions read the same numbers as before`, { timeout: 120_000 }, () => {
-			const targets = run().targets;
+	/** Every instant either series samples, and what each of them answers there. */
+	const readings = (analysis: Analysis): Array<[t: number, evidence: number, ladder: number]> => {
+		const evidence = analysis.targets?.counts.points ?? [];
+		const ladder = analysis.targets?.aplCounts?.points ?? [];
+		const evidenceAt = countAt(evidence);
+		const ladderAt = countAt(ladder);
+		return [...new Set([...evidence, ...ladder].map(([t]) => t))]
+			.sort((a, b) => a - b)
+			.map((t) => [t, evidenceAt(t), ladderAt(t)]);
+	};
+
+	const disagreements = (analysis: Analysis) =>
+		readings(analysis).filter(([, evidence, ladder]) => evidence !== ladder);
+
+	/**
+	 * The population itself, because a sweep over nothing passes.
+	 *
+	 * `fixtures.ts` makes this argument for the aura guards and it applies here identically: discovery is
+	 * what stops a newly committed pull from being swept by one guard and never by another, and the only
+	 * thing that can go wrong with discovery is finding nothing.
+	 */
+	it('sweeps every Windwalker pull the tree holds, found rather than listed', () => {
+		expect(CAPTURED.map(({ name }) => name)).toEqual([
+			'cleave.json',
+			'mixed.json',
+			'poor.json',
+			'strong.json',
+			'waves.json',
+			'weave.json',
+		]);
+		expect(RAW.map(({ name }) => name)).toEqual(['dataset-ironJuggernaut.json']);
+		expect(NAMES).toHaveLength(7);
+	});
+
+	/**
+	 * The invariant, per pull. One `it` each rather than one loop, because the pull's name in the title is
+	 * what a reader needs when it fails.
+	 *
+	 * A violation here is not a figure that moved: it is the two series having stopped being a list and a
+	 * filter of it, at which point neither the ladder's guards nor the target-count section's mean what
+	 * they say and the docblocks on both sides are describing a relationship that no longer exists.
+	 */
+	for (const name of NAMES) {
+		it(`never counts an enemy the evidence series did not, on ${name}`, { timeout: 120_000 }, () => {
+			const targets = pull(name).targets;
 			expect(targets, name).toBeDefined();
-			// Non-vacuity first: two undefined series are equal to each other, and a fixture that stopped
-			// producing counts at all would otherwise pass this whole block silently.
+			// Non-vacuity first: two empty series dominate each other, and a pull that stopped producing
+			// counts at all would otherwise satisfy every assertion in this block silently.
 			expect(targets?.counts.points.length, name).toBeGreaterThan(0);
 			expect(targets?.aplCounts?.points.length, name).toBeGreaterThan(0);
-			expect(bandsInPull(targets), name).not.toBeNull();
-			expect(targets?.aplCounts?.points, name).toEqual(targets?.counts.points);
-			expect(targets?.aplCounts?.max, name).toBe(targets?.counts.max);
-			// Which is the same statement made where it is consumed: the swap is invisible on this fixture.
-			const { aplCounts: _dropped, ...evidenceOnly } = targets!;
-			expect(bandsInPull(targets), name).toEqual(bandsInPull(evidenceOnly));
+			expect(
+				readings(pull(name)).filter(([, evidence, ladder]) => ladder > evidence),
+				name,
+			).toEqual([]);
+			// Which the published pair has to agree with, since it is a maximum over the same series.
+			expect(targets?.aplCounts?.max, name).toBeLessThanOrEqual(targets!.counts.max);
 		});
 	}
+
+	/**
+	 * What keeps the invariant from being one array compared with itself.
+	 *
+	 * Three of the seven genuinely disagree and four coincide, and the partition is the assertion: a
+	 * change that pointed `aplTargetPoints` back at `targetPoints` would satisfy every domination check
+	 * above and fail here, which is the regression this whole file exists to catch. The coinciding four
+	 * are asserted point for point rather than only at the sampled instants — on those pulls the two
+	 * arrays really are equal, and the weaker statement would hide a series that had merely gone flat.
+	 *
+	 * The three opening disagreements are quoted in full so "they differ" is a number rather than a
+	 * boolean. They are facts about three logs and will move if those logs are re-captured; that is a
+	 * finding to re-read, not a regression — and it is the read the old docstring predicted and never got
+	 * to make, because it was watching the wrong five files.
+	 */
+	it('disagrees on three of the seven and coincides on four, which is what makes the invariant a claim', () => {
+		expect(WW_SPEC.aplTargetCountExclude).toEqual(['rushing-jade-wind']);
+		const differ = NAMES.filter((name) => disagreements(pull(name)).length > 0);
+		expect(differ).toEqual(['cleave.json', 'strong.json', 'waves.json']);
+		for (const name of NAMES.filter((n) => !differ.includes(n))) {
+			const targets = pull(name).targets;
+			expect(targets?.aplCounts?.points, name).toEqual(targets?.counts.points);
+		}
+		// `[t, evidence, ladder]` at the first instant the two readings part company on each pull.
+		expect(disagreements(pull('cleave.json'))[0], 'cleave').toEqual([2475, 4, 0]);
+		expect(disagreements(pull('strong.json'))[0], 'strong').toEqual([12_492, 5, 1]);
+		expect(disagreements(pull('waves.json'))[0], 'waves').toEqual([6903, 5, 4]);
+	});
+
+	/**
+	 * `bandsInPull`'s own claim, now checkable on pulls where it could fail.
+	 *
+	 * Its docblock rests on "it costs no exemption on anything in the tree", and until the re-capture that
+	 * was a statement about fixtures on which the two series were the same array — true, and empty. It is
+	 * neither now: `cleave`, `strong` and `waves` hand the two readings genuinely different numbers and
+	 * still resolve to the same band set, because `bandOf` floors at 1 and both series reach 4 on each of
+	 * them. So this is a fact about three real pulls rather than a tautology, and it is the assertion that
+	 * would go red the day a divergence is deep enough to cost a band — at which point the swap stops
+	 * being free and `bandsInPull`'s argument needs re-reading rather than its result being trusted.
+	 */
+	it('answers the same band set under either reading, on all seven', () => {
+		for (const name of NAMES) {
+			const targets = pull(name).targets;
+			expect(bandsInPull(targets), name).not.toBeNull();
+			const { aplCounts: _dropped, ...evidenceOnly } = targets!;
+			expect(bandsInPull(targets), name).toEqual(bandsInPull(evidenceOnly));
+		}
+	});
+
+	/**
+	 * The other direction, and the half no guard held before: the **published** figures stay on the
+	 * evidence series.
+	 *
+	 * `multiTargetMs` and `multiTargetPct` are what the target-count section prints and what `detected`
+	 * and the whole-pull mode are derived from, and `analyseCore` takes both halves of that ratio off
+	 * `targetPoints` deliberately — a share whose numerator and denominator came off different series is
+	 * how a percentage above 100 happens. Rebuilt here from the array the chart draws and then demanded of
+	 * the published field, so the two sides of the assertion are not one number.
+	 *
+	 * Non-vacuous exactly where it matters: on the three divergent pulls the same derivation off the
+	 * *ladder's* series gives a different answer, so this cannot pass by the two series being one. The
+	 * gap is 88.3% → 74.6% on `cleave`, 13.1% → 11.8% on `strong` and 73.0% → 68.2% on `waves`, and it
+	 * moves no mode — all three land the same side of the Windwalker's 33% threshold. Latent, therefore,
+	 * rather than live; the day one of them straddles it, this is where it shows.
+	 */
+	it('keeps the published mode share on the evidence series, which the ladder’s would now move', () => {
+		const shareOf = (points: readonly TargetCountPoint[], durationMs: number): number => {
+			const contact = unionMs(intervalsAtLeast(points, 1, durationMs));
+			return contact > 0 ? (unionMs(intervalsAtLeast(points, 2, durationMs)) / contact) * 100 : 0;
+		};
+		for (const name of NAMES) {
+			const analysis = pull(name);
+			const targets = analysis.targets!;
+			expect(unionMs(intervalsAtLeast(targets.counts.points, 2, analysis.durationMs)), name).toBe(
+				targets.multiTargetMs,
+			);
+			expect(shareOf(targets.counts.points, analysis.durationMs), name).toBeCloseTo(targets.multiTargetPct, 10);
+		}
+		for (const name of ['cleave.json', 'strong.json', 'waves.json']) {
+			const analysis = pull(name);
+			expect(shareOf(analysis.targets!.aplCounts!.points, analysis.durationMs), name).not.toBeCloseTo(
+				analysis.targets!.multiTargetPct,
+				1,
+			);
+		}
+		// The three gaps, so the sentence above is executed rather than asserted in prose.
+		expect(shareOf(pull('cleave.json').targets!.aplCounts!.points, pull('cleave.json').durationMs)).toBeCloseTo(
+			74.62,
+			1,
+		);
+		expect(shareOf(pull('strong.json').targets!.aplCounts!.points, pull('strong.json').durationMs)).toBeCloseTo(
+			11.75,
+			1,
+		);
+		expect(shareOf(pull('waves.json').targets!.aplCounts!.points, pull('waves.json').durationMs)).toBeCloseTo(68.2, 1);
+		// And none of the three crosses the threshold, so no published mode is one series away from moving.
+		for (const name of ['cleave.json', 'strong.json', 'waves.json']) {
+			const analysis = pull(name);
+			const threshold = analysis.targets!.thresholdPct;
+			expect(shareOf(analysis.targets!.aplCounts!.points, analysis.durationMs) >= threshold, name).toBe(
+				analysis.targets!.multiTargetPct >= threshold,
+			);
+		}
+	});
 });

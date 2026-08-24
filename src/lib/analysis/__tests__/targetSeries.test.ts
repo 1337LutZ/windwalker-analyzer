@@ -9,14 +9,26 @@
 // Four things read the first (`multiTargetWindows`, the contact clock, the detected mode, and the
 // published `targets.counts`) and two read the second (`aplTargetCountAt`, which bands every rung of
 // the priority list, and `aoeWindows`, which is what the Elemental's graded clocks are cut with). An
-// audit found the split and nothing saying why, because **no committed fixture can tell the two series
-// apart**: only the Windwalker declares an exclusion, and the only Windwalker fixture the engine
-// actually runs on (`__fixtures__/dataset-ironJuggernaut.json`) is a single-target pull containing zero
-// Rushing Jade Wind damage events, so `targetPoints` and `aplTargetPoints` are byte-identical on it.
-// Every Elemental fixture declares no exclusion at all, which makes them identical by construction.
+// audit found the split and nothing saying why.
 //
-// So this file is the fixture that separates them: a synthetic Windwalker pull whose **only** fan-out is
-// the wind. It is deliberately built as a matched pair that differs in exactly one token — the ability
+// **When this file was written, no committed fixture could tell the two series apart. That is no longer
+// true, and the sentence that used to stand here is retracted rather than quietly edited.** The three
+// facts it rested on all still hold: only the Windwalker declares an exclusion; the one Windwalker
+// fixture the engine runs from raw events (`__fixtures__/dataset-ironJuggernaut.json`) is a single-target
+// pull containing zero Rushing Jade Wind damage, so the two series are byte-identical on it; and every
+// Elemental fixture is on a spec that declares no exclusion at all, which makes them identical by
+// construction. What changed is the population. The 2026-08-24 re-capture wrote `targets.aplCounts` into
+// the six captured Windwalker pulls, and on three of them — `cleave`, `strong` and `waves` — the two
+// series carry different numbers at the same instant. `cleave` opens the divergence 2 475ms in, where the
+// target-count section draws four enemies and the ladder was handed none.
+//
+// So separating the series is no longer this file's alone, and the guard that holds one against the other
+// on every committed pull is the second block of `targetSeries.aplBands.test.ts`. What is still this
+// file's alone is the **matched pair**: no real pull arrives with a copy of itself differing in exactly
+// one token, so nothing but the fixture below can show that the *exclusion* — and not the add, the wave
+// shape or the window — is what moved the figure.
+//
+// The fixture is a synthetic Windwalker pull whose **only** fan-out is the wind. It is deliberately built as a matched pair that differs in exactly one token — the ability
 // id on the area damage — so that "the exclusion did this" is demonstrated rather than asserted. Every
 // figure below is different between the two series on the wind pull and identical on the control.
 //
