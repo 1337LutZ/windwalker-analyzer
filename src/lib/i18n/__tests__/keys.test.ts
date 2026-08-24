@@ -858,40 +858,6 @@ describe('report copy with no reader', () => {
 				'tigerPalmWaste',
 			],
 		},
-		takeawayMetric: {
-			where: 'both specs’ `WEIGHTS`, minus the metrics weighted zero',
-			keys: () => [
-				// Through a set because both specs weigh `gcdUtilisation`, and the copy under it is one string.
-				...new Set(
-					[...Object.entries({ ...WW_WEIGHTS, ...MULTI_TARGET_WEIGHTS }), ...Object.entries(ELE_WEIGHTS)]
-						.filter(([, weight]) => weight !== 0)
-						.map(([key]) => key),
-				),
-			],
-			pinned: [
-				'brewCapWaste',
-				'brewShortUses',
-				'brewStacks',
-				'earthShockGood',
-				'fireElementalHasteUptime',
-				'fireElementalPrepull',
-				'flameShockMultiDot',
-				'flameShockSnapshots',
-				'flameShockUptime',
-				'flameShockWaste',
-				'gcdUtilisation',
-				'lightningShieldFellOff',
-				'lightningShieldOvercap',
-				'potionsUsed',
-				'rskUptime',
-				'searingTotemOverlaps',
-				'searingTotemUptime',
-				'shamanisticRageMissed',
-				'snapshotRate',
-				'thunderstormMissed',
-				'tigerPalmWaste',
-			],
-		},
 	};
 
 	/**
@@ -931,7 +897,6 @@ describe('report copy with no reader', () => {
 		'rotation.rule.*.condition': 'rotationRule',
 		'rotation.rule.*.name': 'rotationRule',
 		'stormlash.state.*': 'stormlashState',
-		'summary.takeaways.metric.*.fix': 'takeawayMetric',
 		// **The label reaches further than the fix now, which is why the two families differ.** A `fix`
 		// sentence is only ever written on a takeaway card, so its source stays the weighted metrics — a
 		// metric the model does not count cannot lead the summary. A `label` is also the row heading on
@@ -984,7 +949,6 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.fix': 24,
 		'summary.takeaways.metric.*.label': 24,
 	};
 

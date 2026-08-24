@@ -11,7 +11,6 @@ import { SpecContext } from '~/components/report/specContext';
 import { getSpec } from '~/lib/spec';
 
 import EnergizingBrew from '../EnergizingBrew';
-import Takeaways from '~/components/sections/Takeaways';
 
 // Every fixture below is a Windwalker pull, so the section is rendered under the Windwalker's own
 // scorer and copy. Named rather than left to `SpecContext`'s default, which is the build's pinned
@@ -69,10 +68,7 @@ describe('Energizing Brew section', () => {
 		expect(html).toContain(`/ ${energizing.available}`);
 	});
 
-	it('shows the RJW haste recommendation in the Summary cards', () => {
-		const html = renderToStaticMarkup(asWindwalker(createElement(Takeaways, { analysis: withRecommendation() })));
-
-		expect(html).toContain(t('summary.takeaways.metric.energizingBrewRjw.label'));
-		expect(html).toContain(t('summary.takeaways.metric.energizingBrewRjw.fix'));
-	});
+	// The summary used to repeat this as a card of its own, in the three-card "key improvements" list that
+	// the scorecard grid replaced. The card is gone with the list; the recommendation is not, and the
+	// assertions above are where it is now checked — its own section, which is where the card pointed.
 });

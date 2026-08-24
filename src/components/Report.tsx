@@ -8,7 +8,7 @@ import { SpecContext } from './report/specContext';
 import { ScoreViewContext } from './report/scoreViewContext';
 import { SPEC_SECTIONS, SPEC_SUMMARY } from './report/specSections';
 import { resolveBands, resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
-import { ReportHeader, Scorecard, SegmentStrip, SpecRefusal, Takeaways } from './sections';
+import { ReportHeader, Scorecard, SegmentStrip, SpecRefusal } from './sections';
 
 /**
  * The summary entry, which is nav-only.
@@ -119,15 +119,6 @@ export default function Report({
 								<ReportHeader analysis={analysis} />
 								{summary?.warning ? <summary.warning analysis={analysis} /> : null}
 								{summary ? <summary.kpi analysis={analysis} /> : null}
-								{/* Derived from the same scorecard every section below reads, so the short list at the top
-					    cannot drift out of agreement with the detail underneath it. */}
-								<Takeaways analysis={analysis} />
-								{/* Under the short list, because the two answer different questions and in this order: the
-					    cards say *what to fix first*, and this says *how everything scored*. A reader who
-					    trusts the short list never has to read past it; a reader who wants to see where the
-					    other twenty numbers landed, or how badly one of the three actually missed, has the
-					    bands here. Both are ordered by the same question — see `headroom` — so the first card
-					    above and the first card here are about the same section. */}
 								<Scorecard analysis={analysis} />
 								{/* Last in the summary, and below the short list rather than above it: the tiles and the
 					    cards are the verdict on the pull, and this is the shape of the pull they were read

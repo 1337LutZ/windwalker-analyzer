@@ -12,4 +12,3 @@ export { default as Resource } from './Resource';
 export type { ResourceProps } from './Resource';
 export { default as SegmentStrip } from './SegmentStrip';
 export { default as SpecRefusal } from './SpecRefusal';
-export { default as Takeaways } from './Takeaways';

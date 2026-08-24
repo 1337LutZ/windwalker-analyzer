@@ -577,9 +577,6 @@ const SHARED_REDS = [
 	'priority.unjudged',
 	'summary.judged',
 	'summary.judged_partial',
-	'summary.takeaways.clean',
-	'summary.takeaways.metric.earthShockGood.fix',
-	'summary.takeaways.metric.flameShockUptime.fix',
 	'summary.warning.runeMissing.body',
 	'timeline.eleIntent',
 	'timeline.empty',
@@ -1288,7 +1285,7 @@ const gradedArms = (): [string, string][] =>
  *
  * Twelve of the seventeen are `verdict_*` and the substring would have found those. The other five are
  * the point, and they hold fifteen arms between them: `brew.cap`, `energizingBrew.haste`,
- * `fistsOfFury.clean`, `snapshots.depth` and `summary.takeaways.title`. The last is a heading rather
+ * `fistsOfFury.clean` and `snapshots.depth`. There was a third, `summary.takeaways.title`, a heading rather
  * than a sentence and it belongs here anyway — `Takeaways.tsx:143` picks it with `context:
  * card.overall`, so it renders across a band exactly as a verdict arm does.
  */
@@ -1308,7 +1305,6 @@ const GRADED_FAMILIES = [
 	'searingTotem.verdict',
 	'snapshots.depth',
 	'snapshots.verdict',
-	'summary.takeaways.title',
 	'tigerPalm.verdict',
 ];
 

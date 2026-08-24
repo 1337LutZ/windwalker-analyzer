@@ -43,7 +43,6 @@ import type { Analysis, ElementalAuditResult, FightDataset, WclEvent } from '~/l
 
 import { ScoreViewContext } from '~/components/report/scoreViewContext';
 import { SpecContext } from '~/components/report/specContext';
-import Takeaways from '~/components/sections/Takeaways';
 import { analyse } from '~/specs/elemental/lib';
 
 import EarthShock from '../EarthShock';
@@ -416,67 +415,14 @@ describe('the shield drop count agrees with itself', () => {
 });
 
 // ================================================================= Takeaways
-
-/**
- * The three summary cards whose figure is a count, read at one and at many.
- *
- * These are the family that cannot have arms, and the reason is the render site. `Takeaways` is shared by
- * both specs and passes `value` for all twenty-three cards, of which three are counts and the rest are
- * shares and durations — so there is no `count` in the payload for i18next to choose a plural off, and
- * putting one there would be a change to a component this lane does not own and a `count` on a
- * percentage. All three are reworded so the numeral needs no agreement instead.
- *
- * Nought is not reachable on any of them: a card is only built for a metric that is measurable and not
- * `good`, and all three of these grade `good` at nought. So the readings that matter are one and many.
- */
-describe('the summary cards that print a count agree with themselves', () => {
-	/** Two of the three reach a count of one on a committed pull, under the multi-target reading. */
-	const cardsOf = (html: string): string[] =>
-		[...html.matchAll(/<span class="text-sm text-ink-2">([\s\S]*?)<\/span>/g)].map((m) => m[1] ?? '');
-
-	it('says one drop without saying one times, on the pull that dropped the shield once', () => {
-		const cleave = analysed('cleave');
-		const cards = cardsOf(render(Takeaways, cleave, 'multi'));
-		const shield = cards.find((card) => card.includes('came all the way off'));
-		expect(shield, `no shield card among:\n${cards.join('\n')}`).toBeDefined();
-		expect(shield).toContain('The shield came all the way off you — 1 in a pull where it should be none');
-		expect(shield).not.toContain('1 times');
-	});
-
-	it('says one missed Rage press without saying one times, on the pull that missed one', () => {
-		const addsThenBoss = analysed('addsThenBoss');
-		const cards = cardsOf(render(Takeaways, addsThenBoss, 'multi'));
-		const rage = cards.find((card) => card.includes('Shamanistic Rage came back'));
-		expect(rage, `no Rage card among:\n${cards.join('\n')}`).toBeDefined();
-		expect(rage).toContain('went unpressed, on 1 of its returns');
-		expect(rage).not.toContain('1 times');
-	});
-
-	/**
-	 * And every one of the three at both readings, at the translator.
-	 *
-	 * The overlap card has no committed pull at all — `searingTotemOverlaps` reads nought on all four, and
-	 * on `addsThenBoss` it declines outright — so its two readings can only be taken here. The other two
-	 * are read here as well, at a count no fixture reaches, so all three are covered by one claim.
-	 */
-	it('reads at one and at many on all three cards', () => {
-		const fix = (key: string, value: number) => t(`summary.takeaways.metric.${key}.fix`, { value });
-		for (const [key, atOne, atMany] of [
-			[
-				'searingTotemOverlaps',
-				'placed under the Fire Elemental on 1 of your presses',
-				'placed under the Fire Elemental on 4 of your presses',
-			],
-			[
-				'lightningShieldFellOff',
-				'came all the way off you — 1 in a pull where it should be none',
-				'came all the way off you — 4 in a pull where it should be none',
-			],
-			['shamanisticRageMissed', 'went unpressed, on 1 of its returns', 'went unpressed, on 4 of its returns'],
-		] as const) {
-			expect(fix(key, 1), key).toContain(atOne);
-			expect(fix(key, 1), key).not.toContain('1 times');
-			expect(fix(key, 4), key).toContain(atMany);
-		}
-	});
-});
+//
+// **The block that lived here is gone with the cards it checked.** The summary's three-card "key
+// improvements" list was replaced by the scorecard grid, which draws every section rather than the
+// three worst — so the `fix` sentences those cards printed are not rendered anywhere, and the
+// plural-agreement question they raised cannot arise. The grid prints a metric's *label* and its
+// number, never a sentence with a numeral agreeing inside it.
+//
+// What the removed block asserted, for whoever needs it back: three of the twenty-three cards print a
+// count rather than a share or a duration, `Takeaways` passed `value` for all of them, and i18next had
+// no `count` in the payload to choose a plural from — so all three were reworded to need no agreement.
+// If a card ever prints a sentence again, that is the trap to re-read.
