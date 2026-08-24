@@ -320,6 +320,27 @@ label[for],
 	box-shadow: none;
 }
 
+/* A bar raises a tooltip, so it says so under the cursor.
+ *
+ * The rule three hundred lines up gives a pointer to anything that acts like a control, named by role
+ * so a control added later inherits it. An ApexCharts bar has no role to name: it is an SVG `path` the
+ * library injects, and it was showing the arrow that means "this is text" while being the only thing on
+ * the chart that answers a hover. A reader had to discover the tooltips by accident.
+ *
+ * `.apexcharts-bar-area` is both chart types this report draws — `bar` on the damage table, `rangeBar`
+ * on every track and lane timeline — because the library paints a range bar with the same class as a
+ * plain one. `.apexcharts-canvas` qualifies it to outweigh the library's runtime stylesheet, which is
+ * the same reason the tooltip and toolbar rules around it are written that way.
+ *
+ * Only the bars. The axes, labels and grid are not hoverable, and a pointer over them would be the
+ * cursor promising something that does not happen — which is the fault this fixes, pointed the other
+ * way. Every Apex chart in the tree passes `baseTooltip`, so there is no chart where this lies; the one
+ * `tooltip: { enabled: false }` in `charts/apex.ts` is the *x-axis* tooltip inside `timeAxis`, not the
+ * series one. */
+.apexcharts-canvas .apexcharts-bar-area {
+	cursor: pointer;
+}
+
 /* The chart toolbar — zoom in, zoom out, pan, reset — and the context menu behind its own button.
  *
  * Same story as the tooltips above: a light-theme pill in white with slate icons, sitting on top of
