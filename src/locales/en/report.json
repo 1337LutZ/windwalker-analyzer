@@ -1072,7 +1072,7 @@
           "label": "Procs caught"
         },
         "tigerPalmWaste": {
-          "label": "Wasted casts"
+          "label": "Wasted Tiger Palm casts"
         },
         "gcdUtilisation": {
           "label": "Fill the globals"

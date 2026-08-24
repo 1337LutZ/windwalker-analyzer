@@ -220,8 +220,10 @@ function target(metric: Metric, t: T): string {
  * plainly a share of the thing being asked for. A **count** does not: "Stop overwriting Tiger Power"
  * over "6/18" reads as a score, and six out of eighteen looks like a bad grade rather than like six
  * presses too many. So every row whose figure is a count or a duration takes a noun that names what is
- * being counted — "Wasted casts", "Shield drops", "Time at full charge" — and the figure is left to do
- * the counting. Getting this wrong is invisible to every type in the tree and reads as a wrong number.
+ * being counted — "Wasted refreshes", "Shield drops", "Time at full charge" — and the figure is left to
+ * do the counting. Getting this wrong is invisible to every type in the tree and reads as a wrong
+ * number. The rule, its two failure modes and the worked corrections are written up for reuse at
+ * `.claude/skills/tone-of-voice/references/labels-and-figures.md`.
  *
  * **A share over countable events reads as the count, and drops its target line** — see `sampled`. The
  * rest of the report counts `earthShockGood`'s presses and so does this; a percentage target under a
