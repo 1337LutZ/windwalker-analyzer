@@ -418,6 +418,7 @@ export function pointsResourceAudit(
 	gainOf: (abilityID: number, atMs: number) => number | undefined,
 	samples: readonly ResourceSample[],
 	powerType: number = WCL_CHI,
+	reportedAs: ReadonlyMap<number, number> = new Map(),
 ): PointsResourceAudit {
 	const resourceChangeIDs = new Set<number>();
 	for (const e of events) {
@@ -429,13 +430,15 @@ export function pointsResourceAudit(
 	// The walk applies `resourcechange` gains itself, so the table must not also credit them. Chi
 	// Brew is the case this report knows (its 4-point return arrives as an event, not as a press);
 	// the exclusion is read off the log rather than hardcoded, so a second spec's brew works too.
-	const walk = chiAtCasts(
-		events,
-		actorID,
-		t0,
-		(id, atMs) => (resourceChangeIDs.has(id) ? undefined : gainOf(id, atMs)),
-		powerType,
-	);
+	//
+	// **Matching by the press's own id is not enough, and a button in this tree proved it.** Chi Brew
+	// presses and reports under 115399, so the set finds it; Rushing Jade Wind presses under 116847 and
+	// the log reports its refund under 129881, so the set never matched and the declared gain was
+	// credited on top of the event the walk had already applied. `reportedAs` is the spec saying which id
+	// its gain arrives under — see `ResourceConfig.gains.reportedAs` for what the double count cost.
+	const reported = (id: number): boolean =>
+		resourceChangeIDs.has(id) || resourceChangeIDs.has(reportedAs.get(id) ?? -1);
+	const walk = chiAtCasts(events, actorID, t0, (id, atMs) => (reported(id) ? undefined : gainOf(id, atMs)), powerType);
 	// The overflow audit has no event path — it reads gains off presses only — so it takes the
 	// whole table, resourcechange-emitters included: their whole points are the point.
 	const overflow = chiWasted(events, actorID, t0, gainOf, powerType);

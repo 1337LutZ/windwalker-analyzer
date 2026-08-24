@@ -174,7 +174,7 @@
   },
   "targets": {
     "label": "Target mode",
-    "hint": "The rotation changes shape at two or more enemies. Mixed reads the whole fight; the others read only the stretches that were that. A reading is offered when this pull held it for half a minute.",
+    "hint": "The rotation changes shape at two or more enemies. Mixed follows the pull's own counts; the others read the whole pull as though it were that one rotation. A reading is offered when this pull held it for half a minute.",
     "switchReading": "Switch the reading with the control at the top of the page if you want this counted.",
     "onlyWhole": "No one rotation held here for half a minute, so the whole fight is the only reading.",
     "auto": "Mixed",

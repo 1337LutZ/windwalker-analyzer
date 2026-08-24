@@ -76,14 +76,17 @@ describe('the table says what the article says', () => {
 	/**
 	 * The rows that leave the target count, named here rather than counted.
 	 *
-	 * Three, and all three for the same measured reason: no aimed press and no spawn held for as long as
-	 * one target window. Everything else in the table either leaves the damage attribution alone — the
-	 * add waves — or is `null`, which is this file refusing to guess rather than a row waiting to be
-	 * filled in.
+	 * Two, and both for the same measured reason: no aimed press and no spawn held for as long as one
+	 * target window. Everything else in the table either leaves the damage attribution alone — the add
+	 * waves — or is `null`, which is this file refusing to guess rather than a row waiting to be filled in.
+	 *
+	 * **`Living Corruption` was the third until a second pull of its encounter was committed**, which holds
+	 * four of its twenty bodies past a target window and so fails the second of the two conditions. It is
+	 * `'damage'` now; `game/__tests__/exclusionEvidence.test.ts` is where that was measured, and neither of
+	 * the two below has a committed pull to be re-measured against.
 	 */
-	it('leaves the target count on exactly three rows', () => {
+	it('leaves the target count on exactly two rows', () => {
 		expect(SIEGE_RANKING_EXCLUSIONS.filter((rule) => rule.reach === 'both').map((rule) => rule.npc)).toEqual([
-			'Living Corruption',
 			'Blood',
 			"Minion of Y'Shaarj",
 		]);
@@ -109,7 +112,7 @@ describe('the encounter key survives every registration of the raid', () => {
 			expect(
 				rankingExclusionFor(encounterID, HEROIC_DIFFICULTY, { name: 'Living Corruption', gameID: 71_644 })?.reach,
 				String(encounterID),
-			).toBe('both');
+			).toBe('damage');
 		}
 	});
 
@@ -160,7 +163,7 @@ describe('matching prefers the id that is stable', () => {
 
 	it('falls back to the exact name when either side has no gameID', () => {
 		expect(rankingExclusionFor(51_599, 4, { name: 'Starved Yeti' })?.reach).toBeNull();
-		expect(rankingExclusionFor(51_595, HEROIC_DIFFICULTY, { name: 'Living Corruption' })?.reach).toBe('both');
+		expect(rankingExclusionFor(51_595, HEROIC_DIFFICULTY, { name: 'Living Corruption' })?.reach).toBe('damage');
 		// The log actor is "Foul Slime"; the article writes "Foul Slimes". A name-only match misses it, and
 		// this is the assertion that says so out loud rather than a bug waiting to be found.
 		expect(rankingExclusionFor(51_606, HEROIC_DIFFICULTY, { name: 'Foul Slime' })).toBeUndefined();
@@ -332,11 +335,17 @@ describe('and it answers a committed pull, at the id that pull was logged under'
 	 * The one positive assertion in this file that nothing in this file supplied the inputs for.
 	 *
 	 * The encounter id is not written here: it is the table's own row for the encounter the fixture names,
-	 * lifted to the registration the fixture directory proves a real report uses. So this fails if the
-	 * base collapse is removed, and it fails if `Living Corruption`'s row stops leaving the count — and it
-	 * cannot be satisfied by a matcher that answers nothing, because it asserts a non-empty set.
+	 * lifted to the registration the fixture directory proves a real report uses. So this fails if the base
+	 * collapse is removed.
+	 *
+	 * **The consumer's answer here is now the empty set, and that is the assertion rather than a hole in
+	 * it.** `Living Corruption` read `reach: 'both'` and this block asserted its actor id came back; the row
+	 * is `'damage'` since a second pull of the encounter was measured against it, and `uncountedActorIDs`
+	 * reads no other reach. An empty set is exactly what a matcher that answers *nothing* would also
+	 * return, so the two halves are separated: the matcher is asserted to answer the row positively, and
+	 * the consumer is asserted to return a body for a roster whose row is still `'both'`.
 	 */
-	it("drops Malkorok's Living Corruption from the count, and leaves Malkorok in it", () => {
+	it("matches Malkorok's Living Corruption at the id the pull was logged under, and leaves it in the count", () => {
 		const captured = capturedAnalyses('windwalker').find(({ analysis }) => analysis.encounter === 'Malkorok');
 		if (captured === undefined) throw new Error('no captured Malkorok analysis under specs/windwalker/__fixtures__');
 
@@ -358,17 +367,23 @@ describe('and it answers a committed pull, at the id that pull was logged under'
 		// the id in the log, and nothing but `baseEncounterID` closes the gap.
 		expect(SIEGE_RANKING_EXCLUSIONS.some((rule) => rule.encounterID === logged)).toBe(false);
 
-		// Report-local ids, not gameIDs: the row's `gameID` is 71644 and the answer here is a three-digit
-		// actor number, so an implementation returning the wrong one of the two cannot pass.
 		expect(analysis.difficulty).toBe(HEROIC_DIFFICULTY);
-		expect([...uncountedActorIDs(logged, analysis.difficulty, enemies)]).toEqual([corruption.id]);
+		// The positive half: the matcher answers this row for an id no row in the table is written under,
+		// which is the base collapse doing its work and nothing else.
+		expect(rankingExclusionFor(logged, analysis.difficulty, corruption)?.npc).toBe('Living Corruption');
+		expect(rankingExclusionFor(logged, analysis.difficulty, corruption)?.reach).toBe('damage');
+		// Report-local ids, not gameIDs: the row's `gameID` is 71644 and the actor here is a three-digit
+		// report number, so the two cannot be confused for one another.
 		expect(corruption.id).not.toBe(row.gameID);
 
-		// The boss itself is never in the set — it is what the counted series is counting.
-		expect(uncountedActorIDs(logged, analysis.difficulty, enemies).has(analysis.primaryTarget.id ?? -1)).toBe(false);
-
-		// And the same roster on Normal, where WarcraftLogs counts the add: the row is heroic-only.
-		expect([...uncountedActorIDs(logged, 3, enemies)]).toEqual([]);
+		// And so the consumer leaves the body in the counted series, `'both'` being the only reach it reads.
+		expect([...uncountedActorIDs(logged, analysis.difficulty, enemies)]).toEqual([]);
+		// *** Which is not the empty set a matcher that answers nothing would return. *** The same consumer
+		// over a roster whose row is still `'both'` hands the body back, and hands nothing back on Normal,
+		// that row being heroic-only.
+		const blood = [{ id: 501, gameID: 71_542, name: 'Blood' }];
+		expect([...uncountedActorIDs(51_593, HEROIC_DIFFICULTY, blood)]).toEqual([501]);
+		expect([...uncountedActorIDs(51_593, 3, blood)]).toEqual([]);
 	});
 });
 

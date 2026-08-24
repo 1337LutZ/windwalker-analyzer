@@ -21,7 +21,14 @@ import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 import { analyse } from '~/specs/elemental/lib';
 
 import { unionMs } from '../intervals';
-import { intervalsAtLeast, isJudgeableTarget, spawnLives, targetCounts, type TargetHit } from '../targets';
+import {
+	intervalsAtLeast,
+	isJudgeableTarget,
+	observeSpawns,
+	spawnLives,
+	targetCounts,
+	type TargetHit,
+} from '../targets';
 
 /** `TARGET_WINDOW_MS`, the calibration both specs' configs carry and the count is taken over. */
 const WINDOW_MS = 5000;
@@ -67,11 +74,16 @@ const hitsOf = (data: FightDataset): TargetHit[] => {
 	const petIDs = new Set(actors.filter((a) => a.petOwner === me).map((a) => a.id));
 	const friendlyIDs = new Set(actors.filter((a) => a.type === 'Player' || a.type === 'Pet').map((a) => a.id));
 	const rows = data.events as unknown as ReadonlyArray<Record<string, unknown>>;
+	// One walk over the player's damage, reduced to the two facts `isJudgeableTarget` reads. The aimed set
+	// is empty because that reading counts no presses — see `observeSpawns`.
 	const lives = spawnLives(
-		rows.filter(
-			(e) => e['type'] === 'damage' && (e['sourceID'] === me || petIDs.has(e['sourceID'] as number)),
-		) as never,
-		t0,
+		observeSpawns(
+			rows.filter(
+				(e) => e['type'] === 'damage' && (e['sourceID'] === me || petIDs.has(e['sourceID'] as number)),
+			) as never,
+			t0,
+			new Set(),
+		),
 		duration,
 		WINDOW_MS,
 	);

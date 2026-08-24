@@ -8,6 +8,25 @@ import { bandForMode } from '~/lib/view/targetMode';
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '../primitives';
 
 /**
+ * Which sentence a forced reading gets, written out rather than assembled from the mode.
+ *
+ * Three sentences for four modes, and the pairing is the honest one: `aoe` and the detection's coarse
+ * `multi` both read the pull at band 3 — see `bandForMode` — so they are being told the same thing and
+ * a second string saying it differently would be two sentences about one reading. `cleave` is its own
+ * arm because band 2 is its own list: Rushing Jade Wind has moved above Rising Sun Kick and Spinning
+ * Crane Kick has not arrived, which is neither of the other two sentences.
+ *
+ * Literal keys and not a template, so every string a reader can be shown is greppable from the locale —
+ * the same reason `TargetModeControl` writes its labels out.
+ */
+const FORCED_NOTE: Record<TargetMode, string> = {
+	single: 'priority.forced_single',
+	cleave: 'priority.forced_cleave',
+	aoe: 'priority.forced_aoe',
+	multi: 'priority.forced_aoe',
+};
+
+/**
  * The sim's priority list, run against the pull press by press.
  *
  * Every other section measures one thing in isolation — how many brews, how much uptime, how much
@@ -31,25 +50,6 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * out-of-order presses are acceptable, and neither the sim nor the priority list contains such a
  * number — the ladder is a description of what the list wanted, not a target to hit.
  */
-/**
- * Which sentence a forced reading gets, written out rather than assembled from the mode.
- *
- * Three sentences for four modes, and the pairing is the honest one: `aoe` and the detection's coarse
- * `multi` both read the pull at band 3 — see `bandForMode` — so they are being told the same thing and
- * a second string saying it differently would be two sentences about one reading. `cleave` is its own
- * arm because band 2 is its own list: Rushing Jade Wind has moved above Rising Sun Kick and Spinning
- * Crane Kick has not arrived, which is neither of the other two sentences.
- *
- * Literal keys and not a template, so every string a reader can be shown is greppable from the locale —
- * the same reason `TargetModeControl` writes its labels out.
- */
-const FORCED_NOTE: Record<TargetMode, string> = {
-	single: 'priority.forced_single',
-	cleave: 'priority.forced_cleave',
-	aoe: 'priority.forced_aoe',
-	multi: 'priority.forced_aoe',
-};
-
 export default function PriorityLadder({
 	analysis,
 	forcedMode,

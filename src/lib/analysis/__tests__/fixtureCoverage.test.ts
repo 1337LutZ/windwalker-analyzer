@@ -468,17 +468,33 @@ const APL_VERDICTS: Record<
 	// pull for the first time. Nothing about the spec changed to make that happen; the fetch did.
 	//
 	// The follow rates are worth reading against each other rather than one at a time, because the three
-	// pulls differ in exactly the thing this ladder is worst at. `uncounted` is one enemy end to end —
-	// its only segment is `single`, 99.7% of the pull in contact — and reads **58.0%** followed.
-	// `sections` is seventeen segments across all five modes and reads **43.8%**. `idle` is 75s of
-	// downtime in a 255s pull and reads **43.4%**, against a denominator that is all 106 of its presses:
+	// pulls differ in exactly the thing this ladder is worst at. `uncounted` is the most nearly continuous
+	// of them — 99.7% of the pull in contact — and reads **55.2%** followed. `sections` is seventeen
+	// segments across all five modes and reads **44.2%**. `idle` is 75s of
+	// downtime in a 255s pull and reads **44.3%**, against a denominator that is all 106 of its presses:
 	// a ladder walked through a phase with nothing to hit is being asked what the list wanted at a global
 	// where the list wanted a target. `analysis/segments.ts` is what a rule that cares would read, and no
 	// rule reads it yet — so the two lower numbers are the size of that gap at least as much as they are
 	// three players.
-	'windwalker/idle.json': { presses: 106, followed: 46, skipped: 57, offList: 3, unknown: 0 },
-	'windwalker/sections.json': { presses: 292, followed: 128, skipped: 154, offList: 9, unknown: 1 },
-	'windwalker/uncounted.json': { presses: 181, followed: 105, skipped: 72, offList: 3, unknown: 1 },
+	//
+	// **46 and 128 until the chi walk stopped counting Rushing Jade Wind's refund twice**, which moved one
+	// press on each of the two pulls that press the wind and none on `uncounted`, which does not press it.
+	// Both are Jabs the ladder had been charging as skips — `idle` t=76 449ms against Rising Sun Kick,
+	// `sections` t=350 102ms against Fists of Fury — and both are the same mechanism: the walk believed
+	// the player was holding chi they had never been given, so it read a spender as affordable and charged
+	// the player with passing it over. A third press on `sections`, t=318 759ms, keeps its skip and changes
+	// only what the list wanted, Rising Sun Kick to Chi Wave. See `ResourceConfig.gains.reportedAs`. The
+	// sibling fix in the same branch — the refund's target gate reading a series the wind's own hits are in
+	// — moves **no** verdict on any committed pull, because the log reports the refund on all three and the
+	// declared gain is switched off wherever it does.
+	'windwalker/idle.json': { presses: 106, followed: 47, skipped: 56, offList: 3, unknown: 0 },
+	'windwalker/sections.json': { presses: 292, followed: 129, skipped: 153, offList: 9, unknown: 1 },
+	// **105/72 while `Living Corruption`'s ruleset row read `reach: 'both'`.** Twenty bodies were leaving
+	// the counted series on this pull, so the ladder read every press as single-target; the row is
+	// `'damage'` now and the pull reads a peak of 3 enemies and 35.4% multi-target, which moves five presses
+	// out of `followed`. The 58.0% above was the highest of the three for exactly the reason the narrowing
+	// removes. See `game/__tests__/exclusionEvidence.test.ts`.
+	'windwalker/uncounted.json': { presses: 181, followed: 100, skipped: 77, offList: 3, unknown: 1 },
 };
 
 /** `[events carrying `classResources`, events in the pull]`, straight off the raw fixture. */

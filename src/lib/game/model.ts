@@ -90,8 +90,9 @@ export interface AbilityTargeting {
 	 * it describes the **instant**, not the button, so Rushing Jade Wind comes back `isAoE: false` on the
 	 * ticks that happened to find one body. Across four pulls and 6 192 events, `!isAoE` overcounts the
 	 * ability list by 87%, and 53 of 96 spawns collect a non-AoE hit without a single aimed press —
-	 * enough to flip `Living Corruption` out of the ranking table on its own stated evidence. `isAoE` is
-	 * asserted against this set in the tests, and is not an input to it.
+	 * enough to flip `Living Corruption`'s "not one aimed press" reading, which is the half of that row's
+	 * evidence re-measurement upheld. `isAoE` is asserted against this set in the tests, and is not an
+	 * input to it.
 	 *
 	 * Ticks are not aimed presses even on an ability that declares this: a dot goes on ticking on an
 	 * enemy the player walked away from, which is why `engagedWindows` throws them out too.

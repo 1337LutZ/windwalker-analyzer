@@ -54,7 +54,7 @@ const blockHtml = (analysis: Analysis): string =>
 		}),
 	);
 
-/** The bar's rendering needs the toolbar it lives in: its switches are `Toolbar.Button`s. */
+/** The bar's rendering needs the toolbar it lives in: its trigger is a `Toolbar.Button`. */
 const barHtml = (analysis: Analysis): string =>
 	renderToStaticMarkup(
 		createElement(
@@ -79,9 +79,9 @@ const drawn = (html: string): string[] =>
 /**
  * The same, read off the bar's own labels.
  *
- * Separate because the bar's switches are the short forms — "Mixed", "1T", "2T", "AoE" — and looking
- * for "Single target" on a row that says "1T" finds nothing whether or not the switch is there, which
- * is a comparison that passes for the wrong reason.
+ * Separate because the bar's trigger uses the short forms — "Mixed", "1T", "2T", "AoE" — and looking for
+ * "Single target" on a row that says "1T" finds nothing whether or not the label is there, which is a
+ * comparison that passes for the wrong reason.
  */
 const SHORT = { auto: 'shortAuto', single: 'shortSingle', cleave: 'shortCleave', aoe: 'shortAoe' } as const;
 const drawnShort = (html: string): string[] =>
@@ -101,12 +101,48 @@ describe('the switches a pull offers', () => {
 		expect(drawn(block(elemental('unbroken')))).toEqual(['auto', 'single']);
 	});
 
-	/** And the bar's own rendering takes the same list, so the two cannot come to offer different pulls. */
-	it('offers the same readings on the sticky bar as above the report', () => {
-		for (const name of ['cleave', 'addsThenBoss', 'unbroken', 'phased']) {
+	/**
+	 * The bar's half, which is now a different question than it was.
+	 *
+	 * It used to draw the same row of switches at `md` and up, so the two renderings could come to offer
+	 * different pulls and this asserted they did not. The bar draws one button now — `TargetModeToolbar`
+	 * carries the measurement — and the list lives inside a popup that server rendering never opens, so
+	 * "the same list" is no longer a thing markup can be asked. It is also no longer a thing that can go
+	 * wrong: the toolbar derives `choices` once and hands the same array to both the visibility test and
+	 * the popup.
+	 *
+	 * What is left to assert is what the bar does say without being opened, and it is the part a reader
+	 * scrolled past the block depends on: that the button is there, that it names the reading in force
+	 * rather than the whole list, and that the detection came with it.
+	 */
+	it('puts one button on the bar, naming the reading in force and carrying the detection', () => {
+		for (const name of ['cleave', 'addsThenBoss', 'unbroken']) {
 			const pull = elemental(name);
-			expect(drawnShort(bar(pull)), name).toEqual(drawn(block(pull)));
+			expect(drawn(block(pull)).length, name).toBeGreaterThan(1);
+			expect(bar(pull), name).toContain(t('targets.mode'));
+			// The trigger's short label is the *value*, not the offered list — three switches would have
+			// drawn three of these.
+			expect(drawnShort(bar(pull)), name).toEqual(['auto']);
+			expect(barHtml(pull), name).toContain(
+				t('targets.detected', { context: pull.targets!.detected, share: pull.targets!.multiTargetPct }),
+			);
 		}
+	});
+
+	/**
+	 * And nothing at all where there is nothing to choose, which is the refusal the block makes below and
+	 * the bar did not.
+	 *
+	 * The bar drew a permanently-checked one-item radio group at `md` and up and a one-item popup below it,
+	 * on every pull whose only offer is the whole fight — which is every captured fixture in the tree.
+	 */
+	it('draws no control on the bar when the whole fight is the only reading', () => {
+		const pull = captured('cleave');
+		expect(pull.segments).toBeUndefined();
+		expect(bar(pull)).not.toContain(t('targets.mode'));
+		expect(drawnShort(barHtml(pull))).toEqual([]);
+		// Not an empty rendering for want of a fixture: the same call draws the button on the pull above.
+		expect(bar(elemental('addsThenBoss'))).toContain(t('targets.mode'));
 	});
 
 	/**

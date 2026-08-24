@@ -40,7 +40,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
-import { spawnRecords, type SpawnRecord } from '~/lib/analysis/targets';
+import { observeSpawns, spawnRecords, type SpawnRecord } from '~/lib/analysis/targets';
 import { isDamage } from '~/lib/events';
 import {
 	baseEncounterID,
@@ -223,35 +223,16 @@ const CONDITIONS = {
 	],
 } as const;
 
-/**
- * *** The conditions a committed pull contradicts, pinned so the contradiction cannot be forgotten. ***
- *
- * One entry, and it is the whole reason this file was worth writing. See the block below for the
- * measurement; the short version is that `Living Corruption`'s row is `reach: 'both'` on the strength of a
- * pull where its spawns were touched and dropped inside a target window, and the one committed pull of
- * that encounter holds four of them for longer than that.
- *
- * Carved out here rather than asserted-and-red, because **the row is not this lane's to change** and a red
- * suite is not a finding, it is a broken branch. But the carve-out is itself asserted: the block below
- * requires each entry to *still be* a real contradiction, so the day somebody re-decides the row this pin
- * fails and forces the entry out with it. A skip that outlives its reason is how a known bug becomes an
- * unknown one.
- */
-const CONTRADICTED: readonly (readonly [npc: string, condition: string])[] = [
-	['Living Corruption', 'no body held longer than one target window'],
-];
-
 describe("the evidence each row's reach rests on, re-measured", () => {
 	const CHECKABLE = REACHED.filter(({ on }) => on.length > 0);
 
-	it('holds every condition the reach implies, except the ones pinned as contradicted', () => {
+	it('holds every condition the reach implies', () => {
 		let asserted = 0;
 		for (const { rule, on } of CHECKABLE) {
 			if (rule.reach === null) continue;
 			for (const { name, analysis } of on) {
 				const m = measure(bodiesOf(analysis.spawns ?? [], rule.gameID));
 				for (const [condition, holds] of CONDITIONS[rule.reach]) {
-					if (CONTRADICTED.some(([npc, pinned]) => npc === rule.npc && pinned === condition)) continue;
 					expect(
 						holds(m),
 						`${rule.npc} on ${name}: ${rule.reach} needs ${condition} — measured ${JSON.stringify(m)}`,
@@ -260,26 +241,15 @@ describe("the evidence each row's reach rests on, re-measured", () => {
 				}
 			}
 		}
-		// One row, two conditions, one of them pinned as contradicted: exactly one assertion survives, and a
-		// count of zero would mean the loop above found nothing to say and said it confidently.
+		// One row, and `'damage'` states one necessary condition: exactly one assertion is made, and a count
+		// of zero would mean the loop above found nothing to say and said it confidently.
+		//
+		// **It was one of two until the row it checks was narrowed**, with the other carved out as a known
+		// contradiction: `Living Corruption` read `reach: 'both'`, whose second condition is "no body held
+		// longer than one target window", and the block below measures four bodies past one on the only
+		// committed pull of that encounter. The carve-out is gone because the row is — it is `'damage'` now,
+		// which is what the surviving half of the measurement supports.
 		expect(asserted).toBe(1);
-	});
-
-	it('still contradicts every condition pinned as contradicted, and no longer than it has to', () => {
-		expect(CONTRADICTED.length).toBeGreaterThan(0);
-		for (const [npc, condition] of CONTRADICTED) {
-			const found = CHECKABLE.find(({ rule }) => rule.npc === npc);
-			if (found === undefined) throw new Error(`${npc} is pinned as contradicted but no committed pull reaches it`);
-			const { rule, on } = found;
-			if (rule.reach === null) throw new Error(`${npc} is pinned as contradicted but its row is undecided`);
-			const check = CONDITIONS[rule.reach].find(([label]) => label === condition);
-			if (check === undefined) throw new Error(`${npc}: no condition named "${condition}" for reach ${rule.reach}`);
-			for (const { name, analysis } of on)
-				expect(
-					check[1](measure(bodiesOf(analysis.spawns ?? [], rule.gameID))),
-					`${npc} on ${name} now satisfies "${condition}" — the row may be decidable again, so take this pin out`,
-				).toBe(false);
-		}
 	});
 });
 
@@ -320,12 +290,18 @@ describe("the evidence each row's reach rests on, re-measured", () => {
  * case is the one a rule this sharp has to survive, and the row's stated shape (touched once, span zero) is
  * not what either reading finds.
  *
- * ## What this file does about it, which is nothing
+ * ## What was done about it
  *
- * `reach` stays `'both'`. Re-deciding a row of a ruleset table on one contradicting pull would be the same
- * mistake it is meant to prevent, one pull in the other direction, and this lane does not own that file.
- * The finding is pinned, named and measured; the decision belongs to whoever holds the second Malkorok pull
- * next to the first.
+ * The row is `reach: 'damage'`. Not `null`: the two facts do not both fail here, one of them does, and the
+ * one that survives — a body held past a window, on a unit the player never aimed at — is exactly what
+ * `'damage'` states. So this is not "the evidence ran out", it is "the evidence says something narrower
+ * than the row claimed", and the table now says the narrower thing with both pulls quoted in its
+ * `evidence`.
+ *
+ * **What it costs, which is the reason it took a second pull to earn.** `'both'` is the only reach
+ * `uncountedActorIDs` reads, so these twenty bodies were leaving the counted enemy series entirely and this
+ * 211s pull published a peak enemy count of **one**. They are in it now, and the block below is where that
+ * consequence is asserted rather than described.
  */
 describe('Living Corruption on the one committed pull of its encounter', () => {
 	const CORRUPTION = 71_644;
@@ -373,11 +349,10 @@ describe('Living Corruption on the one committed pull of its encounter', () => {
 	it('still holds one body past a target window with the pet taken out', () => {
 		const t0 = dataset.fight.startTime;
 		const own = dataset.events.filter(isDamage).filter((e) => e.sourceID === dataset.actor.id);
-		const rows = spawnRecords(own, {
+		const rows = spawnRecords(observeSpawns(own, t0, AIMED_DAMAGE_IDS), {
 			t0,
 			endMs: dataset.fight.endTime - t0,
 			windowMs: TARGET_WINDOW_MS,
-			aimedDamageIds: AIMED_DAMAGE_IDS,
 			excluded: new Set<number>(),
 			npcs: dataset.table.fight.enemyNPCs ?? [],
 		}).filter((r) => r.gameID === CORRUPTION);
@@ -395,32 +370,39 @@ describe('Living Corruption on the one committed pull of its encounter', () => {
 	});
 
 	/**
-	 * And the consequence the row was written to produce, end to end.
+	 * And the consequence the narrowing had, end to end — the size of one word in one row of one table.
 	 *
-	 * `reach: 'both'` means these bodies leave the **counted** series, and the assertion that they did is
-	 * that a 211s pull with a second enemy up for 200s of it publishes a peak enemy count of one. Twenty
-	 * judgeable, non-immune bodies with 115 hits between them were removed by one row of one table — which
-	 * is the size of the decision this whole file exists to keep honest.
+	 * `'both'` is the only reach `uncountedActorIDs` reads, so while the row carried it these twenty
+	 * judgeable, non-immune bodies left the **counted** series and a 211s pull with a second enemy up for
+	 * most of it published a peak enemy count of **one**, 0% multi-target, and a single `mixed` segment. It
+	 * reads 3, 35.4% and three segments now, and the ladder grades five presses differently for it
+	 * (`analysis/__tests__/fixtureCoverage.test.ts` carries that row).
+	 *
+	 * **Which leaves `uncountedActorIDs` exercised by no committed pull**, and that is worth saying rather
+	 * than leaving to be discovered: it was reached by exactly one row, on exactly this fixture. The grid at
+	 * the foot of this file keeps an `excluded` column that is now zero everywhere, deliberately — a column
+	 * that would go non-zero the moment a `'both'` row meets a pull is the cheapest tripwire available, and
+	 * a removed column cannot fire.
 	 */
-	it('leaves the counted series, which is what the reach decides', () => {
-		expect(published.every((r) => r.excluded)).toBe(true);
-		// Judgeable and not immune: every one of them would have counted. `excluded` is the only thing
-		// keeping them out, so the peak below is the ruleset's doing rather than the log's.
+	it('stays in the counted series, which is what the narrowed reach decides', () => {
+		expect(published.some((r) => r.excluded)).toBe(false);
+		// Judgeable and not immune: every one of them counts, and nothing but the row was keeping them out.
 		expect(published.every((r) => r.judgeable && !r.immune)).toBe(true);
-		expect(analyse(dataset).targets?.counts.max).toBe(1);
-		expect(analyse(dataset).targets?.multiTargetPct).toBe(0);
-		// And nothing else on any committed pull is excluded — the ruleset reaches exactly these twenty
-		// bodies across the whole fixture tree.
+		expect(analyse(dataset).targets?.counts.max).toBe(3);
+		expect(analyse(dataset).targets?.multiTargetPct).toBeCloseTo(35.37, 2);
+		// 1 and 0 while the row read `'both'`.
+		expect(analyse(dataset).targets?.detected).toBe('multi');
+		// And nothing on any committed pull is excluded any more — the ruleset now reaches no body in the tree.
 		expect(
 			PULLS.flatMap(({ name, analysis }) => (analysis.spawns ?? []).filter((r) => r.excluded).map(() => name)),
-		).toEqual(Array.from({ length: 20 }, () => 'uncounted.json'));
+		).toEqual([]);
 	});
 });
 
 /**
  * The aimed set reached the logs — the guard under every assertion above.
  *
- * `SpawnRecordInputs.aimedDamageIds` warns that an empty aimed set "makes every body read as splash, which
+ * `observeSpawns`' `aimedDamageIds` warns that an empty aimed set "makes every body read as splash, which
  * is not a neutral answer: it is a wrong answer shaped precisely like the finding `aimedPresses` exists to
  * report". Every `reach: 'both'` verdict in this file's sweep rests on `aimedPresses === 0`, so a set that
  * quietly shrank — a spec dropping `targeting.aimed`, the melee id going missing from the union — would
@@ -428,6 +410,10 @@ describe('Living Corruption on the one committed pull of its encounter', () => {
  *
  * So the presses are pinned per pull. These are not figures anything publishes; they are the reading's own
  * pulse, and the numbers move only when the spec's declaration does.
+ *
+ * The `excluded` column reads zero on all four now that no `reach: 'both'` row meets a committed pull. It
+ * is kept for that reason rather than in spite of it: a column pinned at zero across the tree is what turns
+ * red the day a `'both'` row does meet one, and nothing else in the suite would notice.
  */
 describe('the aimed set the sweep is measured with', () => {
 	it('finds presses on every committed pull, in the pinned quantities', () => {
@@ -456,8 +442,9 @@ describe('the aimed set the sweep is measured with', () => {
 			// Galakras, seventeen of forty-one bodies deliberately fought. Not an encounter the ruleset names;
 			// Garrosh is 1623 and this is 1622, which is the near-miss worth having a pull of.
 			'sections.json': { bodies: 41, bodiesAimedAt: 17, aimedPresses: 595, excluded: 0 },
-			// Malkorok: the boss and nothing else. Twenty bodies excluded, none of them ever aimed at.
-			'uncounted.json': { bodies: 21, bodiesAimedAt: 1, aimedPresses: 400, excluded: 20 },
+			// Malkorok: the boss and twenty Living Corruptions, one body aimed at. `excluded: 20` until that
+			// row was narrowed from `'both'` to `'damage'` — see the block above for what the twenty cost.
+			'uncounted.json': { bodies: 21, bodiesAimedAt: 1, aimedPresses: 400, excluded: 0 },
 		});
 	});
 });

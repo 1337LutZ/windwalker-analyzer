@@ -65,10 +65,16 @@ export default function Report({
 	// the mode along inside the view, so the weights still get their whole-pull reading from the same
 	// object the bands came on.
 	//
-	// The pull's own segments travel with it, which is what lets a forced reading cut the clocks and not
-	// only the bands — see `BandView.spans`. Handed over here rather than left off because this is the
-	// one place holding both halves: `resolveBands` will not go looking for a timeline it was not given,
+	// The pull's own segments travel with it, so that a forced reading *can* cut the clocks and not only
+	// the bands — see `BandView.spans`. Handed over here rather than left off because this is the one
+	// place holding both halves: `resolveBands` will not go looking for a timeline it was not given,
 	// deliberately, so every caller that omits it grades the whole pull whatever the reader asked for.
+	//
+	// **Populating it is not the same as reading it, and today nothing does.** No scoring call consumes
+	// `BandView.spans` yet — `viewBands` and `viewMode` are the whole of what the engines take off a view
+	// — so a forced reading still narrows the band set and leaves every clock running over the whole
+	// pull. The field is here ahead of its first reader, which is the sequencing `spansForChoice` argues
+	// for; until that reader exists, no copy may tell a reader their clocks were cut.
 	//
 	// Memoised because it is a provider value: a fresh object per render would re-render every graded
 	// section in the report for a reading that had not changed.

@@ -7,7 +7,7 @@ import type { SegmentTimeline } from '~/lib/analysis/segments';
 import type { TargetSummary } from '~/lib/types';
 import { type OfferedChoice, resolveTargetMode, targetModeChoices } from '~/lib/view/targetMode';
 
-import { compactChoiceClass, labelClass, toolbarChoiceClass, toolbarMenuClass } from '../primitives/controls';
+import { compactChoiceClass, labelClass, toolbarMenuClass } from '../primitives/controls';
 import { Note } from '../primitives';
 
 /**
@@ -29,10 +29,10 @@ import { Note } from '../primitives';
  * single-target segment at all. `targetModeChoices` is the derivation and carries the measurements.
  *
  * **Two renderings, one control.** This one is the block above the report, with the detection spelled
- * out; `TargetModeToolbar` below is the same switches on the sticky bar's single line. They are never
- * both on screen — see `ReportFlow`, which mounts this one directly above the sentinel that mounts the
- * bar — so the reader is looking at exactly one of them at any scroll position, and both read and
- * write the same state.
+ * out and the positions laid out as switches; `TargetModeToolbar` below is the same choice as one
+ * button on the sticky bar's single line. They are never both on screen — see `ReportFlow`, which
+ * mounts this one directly above the sentinel that mounts the bar — so the reader is looking at exactly
+ * one of them at any scroll position, and both read and write the same state.
  *
  * State lives with the caller, not here and not in `AnalysisSettings`: see `lib/view/targetMode` for
  * why this is view state rather than an analysis setting.
@@ -126,94 +126,58 @@ export default function TargetModeControl({ targets, segments, value, onChange }
 }
 
 /**
- * The same control, on the sticky bar.
+ * The same control, on the sticky bar — one button, and only where there is something to choose.
  *
- * `Toolbar.Button` rather than a bare `<button>`, which is what keeps the bar one tab stop: the
- * buttons register with the toolbar's composite and take arrow keys between them, so three switches
- * cost no tab stops at all. That also happens to be the keyboard model a radio group is supposed to
- * have, which the block above the report — three plain buttons, each its own stop — does not.
+ * **Nothing at all when the pull offers one reading**, which is the same refusal the block above the
+ * report makes and for the same reason: a permanently-checked control is not a choice, and a menu whose
+ * popup holds one item is a way in to a decision that has already been made. The bar was drawing both —
+ * a one-item radio group at `md` and up, a one-item popup below it — on every pull whose only offer is
+ * the whole fight, which is every captured fixture and Immerseus.
  *
- * `role="radiogroup"` over `Toolbar.Group`'s own `role="group"`: three switches where exactly one is
- * chosen is a radio group, and the props passed here are spread after the default. A toolbar is
- * allowed to contain one.
+ * **The switches are gone from here and the button is the only rendering.** They were the better control
+ * where there was room — one press instead of two — and the room was the problem: measured on this row a
+ * row of switches is 140px against the button's 78px, and a pull holding every rotation offers four of
+ * them, 45px more off the encounter name at every width. `md` was where the trade was drawn, and above it
+ * the bar carried a second copy of the same list, keyboard model and all. One rendering cannot disagree
+ * with itself about which readings a pull offers, which the two of them had to be tested against.
  *
- * **What this cannot show is the sentence.** The block above the report prints what the pull detected
- * and what overriding it means; a bar that has to hold an encounter name at 390px has no line for
- * either. Two things stand in for it, both on screen rather than a scroll away: the group's
- * description carries the same sentence the `Note` does, and a switch that contradicts the detection
- * is amber instead of green. A reader who forces a reading can see from the bar that the report
- * disagrees, which is the part that must never be silent.
+ * `choices` is derived here and handed down, rather than derived again inside the menu: the visibility
+ * decision above and the list inside the popup are then the same array by construction.
  */
 export function TargetModeToolbar({ targets, segments, value, onChange }: Props) {
-	const { t } = useTranslation('report');
-	const { overridden } = resolveTargetMode(targets?.detected, value);
-	const detected = detection(t, targets, value);
 	const choices = targetModeChoices(segments);
-
-	return (
-		<>
-			<TargetModeMenu targets={targets} segments={segments} value={value} onChange={onChange} />
-
-			<Toolbar.Group
-				role="radiogroup"
-				aria-label={t('targets.label')}
-				// `title` and not an `aria-describedby` on a hidden node: with no description of its own the
-				// group's title is what a screen reader announces as one, so this is a single string doing
-				// both jobs rather than the same sentence written into the tree twice.
-				title={detected}
-				className="hidden shrink-0 gap-0.5 md:flex md:gap-1"
-			>
-				{choices.map((choice) => (
-					<Toolbar.Button
-						key={choice}
-						role="radio"
-						aria-checked={choice === value}
-						className={toolbarChoiceClass(choice === value, overridden)}
-						onClick={() => onChange(choice)}
-					>
-						{t(SHORT_LABEL[choice])}
-					</Toolbar.Button>
-				))}
-			</Toolbar.Group>
-		</>
-	);
+	if (choices.length <= 1) return null;
+	return <TargetModeMenu targets={targets} choices={choices} value={value} onChange={onChange} />;
 }
 
 /**
- * The same choices as one button, for the width that cannot hold them side by side.
+ * The choices as one button and a popup — the bar's whole rendering of this control.
  *
- * Three switches measure 140px on this row and this button 78px, so collapsing them buys back 62px
- * for the encounter name — most of what the credits readout beside them costs. The switches are the
- * better control where there is room, one press instead of two, so both exist and each is hidden at
- * the width the other one owns. A pull that offers four readings makes that trade louder rather than
- * different: the fourth switch is another 45px off the encounter name at every width below `md`, and
- * this button is the same 78px whatever the menu holds.
+ * 78px against the 140px a row of switches costs on this row, which is most of what the credits readout
+ * beside it takes from the encounter name; a pull that offers four readings makes that louder rather than
+ * different, since this button is the same width whatever the menu holds. Those numbers were the argument
+ * for collapsing the switches below `md` and they are the argument for collapsing them at every width:
+ * the switches bought one press instead of two, and cost a second copy of the offered list.
  *
- * `md` and not `sm`, which is where this was first drawn, because the measurement disagreed. At 640px
- * the settings button has just begun spelling its own label out, and the switches at that width left
- * the encounter name 45px — five characters, worse than it gets at 390px. Swapping them for this
- * takes the name back to 152px, which is nearly the whole of it. `md` is the first width where the
- * switches cost the name nothing worth having.
+ * `Menu.RadioGroup` / `Menu.RadioItem` rather than three `Menu.Item`s, because exactly one of these is
+ * chosen and a list of buttons with one highlighted is not that to a screen reader. The full labels are
+ * used in here — the popup has the room the bar does not, which is what the short ones on the trigger are
+ * for.
  *
- * Rendering both costs nothing in keyboard terms: Base UI's composite treats a `display: none` item
- * as disabled and skips it, so whichever of the two is hidden is not in the bar's arrow-key order.
- *
- * `Menu.RadioGroup` / `Menu.RadioItem` rather than three `Menu.Item`s, because exactly one of these
- * is chosen and a list of buttons with one highlighted is not that to a screen reader. The full
- * labels are used in here — the popup has the room that the bar does not, which is the whole reason
- * the short ones exist.
- *
- * **The detection survives the collapse.** The trigger carries the same sentence the switches carry
- * as its `title`, and the popup states it above the choices where it can be read rather than hovered
- * — this control's docstring above insists the pull's own reading stays visible even when it is being
- * overridden, and a trigger that hid it would have quietly dropped that on phones. The trigger also
- * names the current mode, so the state is on the bar and not only inside the popup.
+ * **The detection survives the collapse.** The trigger carries the sentence as its `title` and the popup
+ * states it above the choices where it can be read rather than hovered — this control's docstring above
+ * insists the pull's own reading stays visible even when it is being overridden. The trigger also names
+ * the current mode, so the state is on the bar and not only inside the popup.
  */
-function TargetModeMenu({ targets, segments, value, onChange }: Props) {
+function TargetModeMenu({
+	targets,
+	choices,
+	value,
+	onChange,
+}: Omit<Props, 'segments'> & { choices: readonly OfferedChoice[] }) {
 	const { t } = useTranslation('report');
 	const { overridden } = resolveTargetMode(targets?.detected, value);
 	const detected = detection(t, targets, value);
-	const choices = targetModeChoices(segments);
 
 	return (
 		<Menu.Root>
@@ -221,7 +185,7 @@ function TargetModeMenu({ targets, segments, value, onChange }: Props) {
 				render={<Menu.Trigger />}
 				title={detected}
 				aria-label={`${t('targets.label')}: ${t(LABEL[value])}`}
-				className={`${toolbarMenuClass(overridden)} md:hidden`}
+				className={toolbarMenuClass(overridden)}
 			>
 				<span aria-hidden="true">{t('targets.mode')}</span>
 				{/* The chosen mode on the trigger, not only inside the popup. A control that hid the state

@@ -390,8 +390,8 @@ export function segmentPull(
 	const mixedShare = options.mixedShare ?? SEGMENT_MIXED_SHARE;
 	const idleOverMs = Math.max(0, options.contactGapMs - options.windowMs);
 
-	const spans = spansOf(points, durationMs);
 	if (durationMs <= 0) return { floorMs, segments: [] };
+	const spans = spansOf(points, durationMs);
 
 	// Merged before the length test, because two zero spans in a row are one silence the player sat
 	// through. The series should not produce them — it records one point per change — but `spansOf`

@@ -188,7 +188,8 @@ const UNREACHED: string[] = [
 	// every pull for all four readings on purpose — a branch unreachable on one pull and reachable on the
 	// next still has to be written — so an arm leaving this list means the copy exists and reads, not
 	// that a button exists to reach it here.
-	// `brew.verdict_bad_other` was here and has been read. `idle.json` reaches it — four brews spent
+	//
+	// **`brew.verdict_bad_other` was here and has been read.** `idle.json` reaches it — four brews spent
 	// averaging exactly 8.0 of 10, `brewStacks` grading `bad`, and `brewShortUses` too thin a sample to
 	// grade — so a reader sees *"4 brews spent, averaging only 8 of 10 stacks."* and nothing else about
 	// the presses.

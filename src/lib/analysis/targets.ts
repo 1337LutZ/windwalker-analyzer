@@ -82,12 +82,19 @@ export interface SpawnLife {
 /**
  * Everything one pass over the damage stream can say about one enemy body, before anything is decided.
  *
- * Not exported, and that is the point of it: `spawnLives` and `spawnRecords` are two readings of the
- * same walk, and a second walk is how the two would come to disagree about when a spawn was first
- * touched. This file already carries a comment about a count keyed two ways and the seventeen seconds
- * of coverage it cost; one accumulator is the cheap way not to repeat it.
+ * `spawnLives` and `spawnRecords` are two readings of the same walk, and a *second implementation* of
+ * the walk is how the two would come to disagree about when a spawn was first touched. This file already
+ * carries a comment about a count keyed two ways and the seventeen seconds of coverage it cost; one
+ * accumulator is the cheap way not to repeat it.
+ *
+ * **One accumulator was not one execution, and this is the fix its own docstring named.** The two
+ * readings each called the private walk, so a caller wanting both — `analyseCore` is that caller —
+ * walked its damage stream twice, 6 738 events apiece on `sections.json`. The old comment argued the
+ * pass was cheap and said that if it ever stopped being, the fix was to publish the observation map
+ * rather than to inline a second walk. This is that: the walk is `observeSpawns`, and both readings are
+ * reductions taking its output.
  */
-interface SpawnObservation {
+export interface SpawnObservation {
 	/** The report-local actor id — the enemy *kind*, which is not what the map is keyed by. */
 	targetID: number;
 	immune: boolean;
@@ -100,16 +107,7 @@ interface SpawnObservation {
 }
 
 /**
- * The empty aimed-press set, for `spawnLives`, which does not ask the question.
- *
- * A named constant rather than an inline `new Set()` so the walk is not allocating one per call, and
- * so the reading is legible at the call site: this caller is not counting presses, rather than this
- * caller has none.
- */
-const NO_AIMED_IDS: ReadonlySet<number> = new Set<number>();
-
-/**
- * One pass over the player's damage, accumulated per enemy body.
+ * One pass over the player's damage, accumulated per enemy body — the walk both readings below reduce.
  *
  * Taken over the player's *whole* damage stream — pets folded in, periodic ticks included — because
  * the question is "can anything this player does land on that unit", and the widest evidence is the
@@ -118,8 +116,22 @@ const NO_AIMED_IDS: ReadonlySet<number> = new Set<number>();
  *
  * Keyed by spawn and not by actor id, for the reason `TargetHit.instance` exists: WarcraftLogs hands
  * ten simultaneous adds one `targetID`, so an id-level verdict is a verdict about an enemy *kind*.
+ *
+ * `aimedDamageIds` is the **damage** ids that prove the player picked a body, from the spec that knows
+ * them. Damage ids and not cast ids: the walk is over damage events, and the two differ on most buttons.
+ * The Windwalker spec already declares exactly this set as `SINGLE_TARGET_DAMAGE_IDS`, measured the hard
+ * way — counting distinct enemies hit under one id at one timestamp across a Galakras pull, melee, Jab,
+ * Tiger Palm, Blackout Kick and Rising Sun Kick reach exactly one every time across 1 178 timestamps,
+ * while Rushing Jade Wind reaches five.
+ *
+ * **Required, with no empty default.** An empty set makes every body on the pull read as splash, which
+ * is not a neutral answer: it is a wrong answer shaped precisely like the finding `aimedPresses` exists
+ * to report, and a spec that forgot to declare its buttons would get an exclusion table's worth of
+ * `reach: 'both'` verdicts out of it. A caller that genuinely does not ask the question — `spawnLives`
+ * is one, and reads none of it — passes an empty set at the call site where that is legible, rather
+ * than getting one by default where it is not.
  */
-function observeSpawns(
+export function observeSpawns(
 	events: readonly WclEvent[],
 	t0: number,
 	aimedDamageIds: ReadonlySet<number>,
@@ -158,17 +170,17 @@ const lifeOf = (obs: SpawnObservation, endMs: number, windowMs: number): SpawnLi
 /**
  * Every enemy spawn the player touched, with the two facts `isJudgeableTarget` reads.
  *
- * The reduction of `observeSpawns` that the dot readers and the fan-out count take — see there for
- * what the walk sees and why it is keyed by spawn.
+ * The reduction of `observeSpawns` that the dot readers and the fan-out count take — see there for what
+ * the walk sees and why it is keyed by spawn. Reads nothing of `SpawnObservation.aimedPresses`, so a
+ * caller with no aimed set to hand the walk loses nothing by this reading.
  */
 export function spawnLives(
-	events: readonly WclEvent[],
-	t0: number,
+	observed: ReadonlyMap<string, SpawnObservation>,
 	endMs: number,
 	windowMs: number,
 ): Map<string, SpawnLife> {
 	const lives = new Map<string, SpawnLife>();
-	for (const [key, obs] of observeSpawns(events, t0, NO_AIMED_IDS)) lives.set(key, lifeOf(obs, endMs, windowMs));
+	for (const [key, obs] of observed) lives.set(key, lifeOf(obs, endMs, windowMs));
 	return lives;
 }
 
@@ -301,10 +313,12 @@ export interface SpawnRecord {
 	 * as bodies the monk chose to fight; a Dragonmaw Tidal Shaman hit 113 times across 46.8s with nothing
 	 * ever aimed at it collects 19, fourteen of them the weapon's Multistrike proc.
 	 *
-	 * **The failure mode that names the cost**: Malkorok's `Living Corruption` is the one row decided
-	 * `reach: 'both'` on the strength of "not one aimed press — every hit is Chi Wave or proc damage
-	 * arriving on its own". Under `!isAoE`, 13 of the 21 Living Corruption spawns on the pull measured
-	 * here take a press, and the row flips to a body the player fought.
+	 * **The failure mode that names the cost**: Malkorok's `Living Corruption` had its `reach` decided on
+	 * the strength of "not one aimed press — every hit is Chi Wave or proc damage arriving on its own".
+	 * Under `!isAoE`, 13 of the 21 Living Corruption spawns on the pull measured here take a press, and the
+	 * row flips to a body the player fought. (The aimed half of that reading survived re-measurement and
+	 * the *span* half did not, which is why the row now reads `'damage'` rather than `'both'` — but it was
+	 * this predicate that decided the aimed half, and `!isAoE` would have decided it the other way.)
 	 *
 	 * ## Why ticks are not presses
 	 *
@@ -324,27 +338,16 @@ export interface SpawnRecord {
 
 /** What `spawnRecords` needs beyond the damage stream. */
 export interface SpawnRecordInputs {
-	/** The fight's start, in the clock `events[].timestamp` is stamped in. Every `Ms` out is relative to it. */
+	/**
+	 * The fight's start, in the clock `enemyDeaths[].timestamp` is stamped in. Every `Ms` out is relative
+	 * to it, and it has to be the same `t0` `observeSpawns` was given or the deaths land on the wrong side
+	 * of the contact they are matched against.
+	 */
 	t0: number;
 	/** The pull's length, for the end-clamp `SpawnLife.lifetimeMs` documents. */
 	endMs: number;
 	/** One target window, likewise — `SpecThresholds.targetWindowMs`. */
 	windowMs: number;
-	/**
-	 * The **damage** ids that prove the player picked a body, from the spec that knows them.
-	 *
-	 * Damage ids and not cast ids: the walk is over damage events, and the two differ on most buttons.
-	 * The Windwalker spec already declares exactly this set as `SINGLE_TARGET_DAMAGE_IDS`, measured the
-	 * hard way — counting distinct enemies hit under one id at one timestamp across a Galakras pull,
-	 * melee, Jab, Tiger Palm, Blackout Kick and Rising Sun Kick reach exactly one every time across
-	 * 1 178 timestamps, while Rushing Jade Wind reaches five.
-	 *
-	 * **Required, with no empty default.** An empty set makes every body on the pull read as splash,
-	 * which is not a neutral answer: it is a wrong answer shaped precisely like the finding
-	 * `aimedPresses` exists to report, and a spec that forgot to declare its buttons would get an
-	 * exclusion table's worth of `reach: 'both'` verdicts out of it.
-	 */
-	aimedDamageIds: ReadonlySet<number>;
 	/**
 	 * Report-local actor ids whose damage may not raise the enemy count — resolved by the caller.
 	 *
@@ -373,16 +376,19 @@ export interface SpawnRecordInputs {
 /**
  * One row per enemy body the player touched, in the order the pull met them.
  *
- * Pure: same events in, same rows out, and nothing here reads a clock, a table or a spec. The three
- * things a spec or a report *does* know — which buttons pick a target, which NPCs the ruleset strikes
- * off the count, and who the actor ids are — arrive as arguments, so this file stays the one place that
- * knows only "a hit is a time and an enemy".
+ * Pure: same observations in, same rows out, and nothing here reads a clock, a table or a spec. The
+ * things a spec or a report *does* know — which buttons pick a target (which the walk above took), which
+ * NPCs the ruleset strikes off the count, and who the actor ids are — arrive as arguments, so this file
+ * stays the one place that knows only "a hit is a time and an enemy".
  *
  * Sorted by first contact, then by key, so two runs over one pull produce the same array and a diff of
  * two reports is a diff of the fights rather than of `Map` insertion order.
  */
-export function spawnRecords(events: readonly WclEvent[], inputs: SpawnRecordInputs): SpawnRecord[] {
-	const { t0, endMs, windowMs, aimedDamageIds, excluded, enemyDeaths = [], npcs = [] } = inputs;
+export function spawnRecords(
+	observed: ReadonlyMap<string, SpawnObservation>,
+	inputs: SpawnRecordInputs,
+): SpawnRecord[] {
+	const { t0, endMs, windowMs, excluded, enemyDeaths = [], npcs = [] } = inputs;
 
 	const identity = new Map(npcs.map((npc) => [npc.id, npc]));
 
@@ -401,7 +407,7 @@ export function spawnRecords(events: readonly WclEvent[], inputs: SpawnRecordInp
 	for (const times of deaths.values()) times.sort((a, b) => a - b);
 
 	const out: SpawnRecord[] = [];
-	for (const [key, obs] of observeSpawns(events, t0, aimedDamageIds)) {
+	for (const [key, obs] of observed) {
 		const life = lifeOf(obs, endMs, windowMs);
 		const npc = identity.get(obs.targetID);
 		const deathMs = deaths.get(key)?.find((at) => at >= obs.firstMs);

@@ -465,9 +465,9 @@ copy itself follows — say it once, outside the arms.
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
 As of the change that widened the reader's target-mode vocabulary to four, it prints 1395 leaves,
-705 prose, 22,101 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
+705 prose, 22,106 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
 report.json 643 prose leaves, 1,113 sentences, median 16, 208 past 25 (18.7%), 264 em-dashes in 230
-sentences (20.7%); 49 / 25 / 1 / 3 on the quote lines.
+sentences (20.7%); 50 / 25 / 1 / 3 on the quote lines.
 
 <!-- /census:figures -->
 

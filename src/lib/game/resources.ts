@@ -112,10 +112,31 @@ export interface ResourceConfig {
 		 * ladder makes when it calls a fanned-out wind press off-list. Two faults that cancel in a report
 		 * and hide each other, which is why this is a declaration and not a note.
 		 *
-		 * Counted against the units the press **hit**, damage or not — the same reading
-		 * `targeting.multiTargetBenefit: 'trigger'` names, because a refund that fires on units hit does not ask
-		 * whether any of them could take damage. `analyseCore`'s `triggerTargetCountAt` is that series.
+		 * Counted against the units the press **hit**, damage or not, and with the spec's own area damage
+		 * left in — `analyseCore`'s `refundTargetCountAt`, whose docblock carries the argument and the log
+		 * measurement behind it. Deliberately **not** `triggerTargetCountAt` beside it: that series has
+		 * `aplTargetCountExclude` applied, which for the Windwalker is the wind itself, so the gate would
+		 * be reading a count the gated ability had been deleted from.
 		 */
 		minTargets?: number;
+		/**
+		 * The `resourcechange` ability id the log reports this gain under, when it differs from the press.
+		 *
+		 * `pointsResourceAudit` cuts a gain the log states outright out of the walk's table so it cannot be
+		 * credited twice — but it recognises one by the `resourcechange`'s own ability id, and that is only
+		 * the press's id when the two happen to agree. Chi Brew presses and reports under 115399 and needs
+		 * nothing here. **Rushing Jade Wind presses under 116847 and reports under 129881**, so the guard
+		 * never fired and its chi was counted twice on every log that reports it.
+		 *
+		 * What that cost, measured on the two committed pulls that press the wind — the chi walk's own
+		 * agreement with the sampled bars, which is the only ground truth it has:
+		 *
+		 *     sections.json   exact 99/128 -> 117/128   gained 260 -> 241
+		 *     idle.json       exact  40/47 ->  43/47    gained  86 ->  83
+		 *
+		 * Declared rather than derived, because the two ids cannot be matched from the log: nothing in a
+		 * `resourcechange` names the press that caused it, and pairing them by timestamp would guess.
+		 */
+		reportedAs?: number;
 	}>;
 }
