@@ -4,7 +4,7 @@ Copy rule for every string that names a number the reader is looking at: summary
 
 **Where this lives, and why here rather than with the skill it was written for.** It was written as `references/labels-and-figures.md` under `.claude/skills/tone-of-voice/`, and that directory is ignored: the skill is an authoring aid for an agent working in this checkout, not something the repository ships. This is the same split `docs/audience-wow-players.md` describes, and for the same reason — `src/components/sections/Scorecard.tsx` cites this rule in the docblock that enforces it, and a citation a clone cannot open is a rule nobody can check. The skill directory keeps its own copy for the agent that loads it; **if the two ever disagree, this one is the record.**
 
-**Why it is a rule at all.** A label next to a number is read as one phrase, not as two things, so the label's grammatical form has to suit the *shape* of the figure. When it does not, the reader misreads the **number** rather than the words. That is what separates this from ordinary copy polish: every other wording defect looks like bad writing, and this one looks like bad data.
+**Why it is a rule at all.** A label next to a number is read as one phrase, not as two things, so the label's grammatical form has to suit the _shape_ of the figure. When it does not, the reader misreads the **number** rather than the words. That is what separates this from ordinary copy polish: every other wording defect looks like bad writing, and this one looks like bad data.
 
 Derived from fixing it across `windwalker-analyzer`'s summary cards on 2026-08-25, where thirteen of twenty-three rows were wrong at once.
 
@@ -14,15 +14,15 @@ Derived from fixing it across `windwalker-analyzer`'s summary cards on 2026-08-2
 
 **The label carries the noun. The figure carries the count.**
 
-| Figure shape         | Example | Label form                    | Why                                                                      |
-| -------------------- | ------- | ----------------------------- | ------------------------------------------------------------------------ |
-| Percentage of a goal | `83.9%` | An instruction is fine        | The number is plainly a share of the thing being asked for               |
-| Bare count of faults | `1`     | A noun naming what is counted | An instruction leaves the reader guessing what the number counts         |
-| Count over a sample  | `6/18`  | A noun naming the numerator   | A bare ratio under an instruction reads as a score, not a fault count    |
-| Duration             | `21.9s` | A noun naming the state       | An instruction implies the seconds are the *doing*, not the failing      |
-| Average or rate      | `9.5`   | A noun naming the unit        | Nothing in the number says what it averages                              |
+| Figure shape         | Example | Label form                    | Why                                                                   |
+| -------------------- | ------- | ----------------------------- | --------------------------------------------------------------------- |
+| Percentage of a goal | `83.9%` | An instruction is fine        | The number is plainly a share of the thing being asked for            |
+| Bare count of faults | `1`     | A noun naming what is counted | An instruction leaves the reader guessing what the number counts      |
+| Count over a sample  | `6/18`  | A noun naming the numerator   | A bare ratio under an instruction reads as a score, not a fault count |
+| Duration             | `21.9s` | A noun naming the state       | An instruction implies the seconds are the _doing_, not the failing   |
+| Average or rate      | `9.5`   | A noun naming the unit        | Nothing in the number says what it averages                           |
 
-The instruction is not lost when it leaves the label. It belongs in the section's own copy, which is where a reader goes for what to *do*. A label's job is to say what they are looking at.
+The instruction is not lost when it leaves the label. It belongs in the section's own copy, which is where a reader goes for what to _do_. A label's job is to say what they are looking at.
 
 ---
 
@@ -36,7 +36,7 @@ The tempting fix is to change the number so the label survives: show `18/12`, pr
 
 **2. The label describes an action while the figure measures its opposite.**
 
-`Spend the shield — 21.9s` — those seconds are time spent *at* the cap, which is time not spending it. `Spend fuller brews — 9.5` — that is the average stacks a brew consumed, not an answer to the instruction. Both read as the inverse of what they measure, and both are invisible in review because the label and the figure are each defensible alone.
+`Spend the shield — 21.9s` — those seconds are time spent _at_ the cap, which is time not spending it. `Spend fuller brews — 9.5` — that is the average stacks a brew consumed, not an answer to the instruction. Both read as the inverse of what they measure, and both are invisible in review because the label and the figure are each defensible alone.
 
 ---
 
@@ -44,7 +44,7 @@ The tempting fix is to change the number so the label survives: show `18/12`, pr
 
 Read the label and the figure aloud as a single phrase.
 
-- If it needs a silent "but" — *"Keep the shield up… but 1"* — the label is an instruction and the figure is a fault count. Use the noun.
+- If it needs a silent "but" — _"Keep the shield up… but 1"_ — the label is an instruction and the figure is a fault count. Use the noun.
 - If it needs arithmetic before it means anything, the number is wrong, not the label.
 - If it parses as a school grade when it is a count of mistakes, the label is missing its noun.
 
