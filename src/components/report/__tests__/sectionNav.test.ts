@@ -21,6 +21,8 @@ import { describe, expect, it } from 'vitest';
 import type { Analysis } from '~/lib/types';
 
 import { getSpec } from '~/lib/spec';
+import type { FightDataset } from '~/lib/types';
+import { analyse as analyseElemental } from '~/specs/elemental/lib';
 import Report from '../../Report';
 
 // Named rather than `DEFAULT_SPEC`: these fixtures are Windwalker pulls, so the spec they are
@@ -40,6 +42,31 @@ const xuenHtml = renderToStaticMarkup(
 );
 const nav = /<nav[^>]*>[\s\S]*?<\/nav>/.exec(html)?.[0] ?? '';
 
+/**
+ * The Elemental's own report, for the three group invariants below and nothing else.
+ *
+ * **They were asserted on one spec and broken on the other.** `damage` and `misses` are `abilities` on
+ * both, and the Elemental declared them after its cooldowns — so `foldIntoGroups` listed them in the
+ * sidebar under Searing Totem while the page printed them past every cooldown, and clicking either one
+ * jumped a reader over four sections they had not seen. Nothing failed, because nothing looked.
+ *
+ * Analysed from the raw fixture rather than read as a capture: this spec's `__fixtures__` are datasets,
+ * not `Analysis` objects. Only the group tests take it — the rest of this file is about wording and
+ * about the Windwalker sections by name.
+ */
+const ELEMENTAL_SPEC = getSpec('elemental')!;
+const elementalHtml = renderToStaticMarkup(
+	createElement(Report, {
+		analysis: analyseElemental(
+			JSON.parse(
+				readFileSync(resolve(import.meta.dirname, '../../../specs/elemental/__fixtures__/cleave.json'), 'utf8'),
+			) as FightDataset,
+		),
+		targetChoice: 'auto',
+		spec: ELEMENTAL_SPEC,
+	}),
+);
+
 const all = (source: string, pattern: RegExp): string[] => [...source.matchAll(pattern)].map((match) => match[1] ?? '');
 
 /** Every fragment the nav points at, in the order the nav lists them. */
@@ -58,11 +85,22 @@ const headings = all(html, /<h[12] id="([^"]+)"/g);
  * A group's panel holds only links, so a non-greedy match to the first `</ol>` is exact rather than
  * approximate — there is no nesting inside it to fall foul of.
  */
-const groups = [...nav.matchAll(/<ol id="nav-group-([^"]+)"([^>]*)>([\s\S]*?)<\/ol>/g)].map((match) => ({
-	key: match[1] ?? '',
-	attributes: match[2] ?? '',
-	targets: all(match[3] ?? '', /href="#([^"]+)"/g),
-}));
+const groupsOf = (source: string) => {
+	const panel = /<nav[^>]*>[\s\S]*?<\/nav>/.exec(source)?.[0] ?? '';
+	return [...panel.matchAll(/<ol id="nav-group-([^"]+)"([^>]*)>([\s\S]*?)<\/ol>/g)].map((match) => ({
+		key: match[1] ?? '',
+		attributes: match[2] ?? '',
+		targets: all(match[3] ?? '', /href="#([^"]+)"/g),
+	}));
+};
+
+const groups = groupsOf(html);
+
+/** Both reports, for the three claims that are about ordering rather than about wording. */
+const BOTH = [
+	{ spec: 'windwalker', groups, headings: all(html, /<h[12] id="([^"]+)"/g) },
+	{ spec: 'elemental', groups: groupsOf(elementalHtml), headings: all(elementalHtml, /<h[12] id="([^"]+)"/g) },
+] as const;
 
 const buttons = [...nav.matchAll(/<button([^>]*)>/g)].map((match) => match[1] ?? '');
 
@@ -101,18 +139,22 @@ describe('SectionNav', () => {
 	});
 
 	/** Reading down a group is still reading down the report. */
-	it('keeps each group in document order', () => {
-		for (const group of groups) {
-			const positions = group.targets.map((target) => headings.indexOf(target));
-			expect(positions, group.key).toEqual([...positions].sort((a, b) => a - b));
+	it.each(BOTH)('keeps each group in document order on $spec', ({ spec, groups: drawn, headings: order }) => {
+		expect(drawn.length, spec).toBeGreaterThan(1);
+		for (const group of drawn) {
+			const positions = group.targets.map((target) => order.indexOf(target));
+			expect(positions, `${spec}/${group.key}`).toEqual([...positions].sort((a, b) => a - b));
 		}
 	});
 
 	/** And the groups themselves are ordered by where each one starts in the report. */
-	it('lists the groups in the order the report reaches them', () => {
-		const starts = groups.map((group) => Math.min(...group.targets.map((target) => headings.indexOf(target))));
-		expect(starts).toEqual([...starts].sort((a, b) => a - b));
-	});
+	it.each(BOTH)(
+		'lists the groups in the order the report reaches them on $spec',
+		({ spec, groups: drawn, headings: order }) => {
+			const starts = drawn.map((group) => Math.min(...group.targets.map((target) => order.indexOf(target))));
+			expect(starts, spec).toEqual([...starts].sort((a, b) => a - b));
+		},
+	);
 
 	/**
 	 * Each group is one unbroken run of the report, which is the invariant the two above only imply
@@ -120,12 +162,16 @@ describe('SectionNav', () => {
 	 * another group's sections printed through the middle of it. `foldIntoGroups` copes with that
 	 * silently — it lists the scattered group once, at its first section — so nothing else would fail,
 	 * and the page and the sidebar would quietly stop reading in the same order.
+	 *
+	 * **Swept on both specs now, because it was true of one and false of the other.** See `elementalHtml`
+	 * above for what was wrong and how long it had been.
 	 */
-	it('keeps each group contiguous in the report', () => {
-		for (const group of groups) {
-			const positions = group.targets.map((target) => headings.indexOf(target));
+	it.each(BOTH)('keeps each group contiguous in the report on $spec', ({ spec, groups: drawn, headings: order }) => {
+		expect(drawn.length, spec).toBeGreaterThan(1);
+		for (const group of drawn) {
+			const positions = group.targets.map((target) => order.indexOf(target));
 			const first = Math.min(...positions);
-			expect(positions, group.key).toEqual(positions.map((_, index) => first + index));
+			expect(positions, `${spec}/${group.key}`).toEqual(positions.map((_, index) => first + index));
 		}
 	});
 
