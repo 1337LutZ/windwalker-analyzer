@@ -42,7 +42,6 @@ import EarthShock from '../EarthShock';
 import FlameShock from '../FlameShock';
 import LightningShield from '../LightningShield';
 import SearingTotem from '../SearingTotem';
-import Snapshots from '../Snapshots';
 
 const ELEMENTAL_SPEC = getSpec('elemental')!;
 initI18n();
@@ -78,7 +77,7 @@ const render = (
  * The graded sentence alone, rather than the whole section.
  *
  * Every one of these sections renders its verdict as the last `Prose` paragraph, and the assertions below
- * need to be about that paragraph and not about the page: `flameShockSnapshots.none` is both the verdict
+ * need to be about that paragraph and not about the page: a section's `none` key is both the verdict
  * for a pull with no window *and* the empty state of the table above it, so "the section does not contain
  * that sentence" is unsatisfiable on a pull whose table is empty and says nothing about the verdict either
  * way.
@@ -185,9 +184,9 @@ describe('a section none of whose rules were asked', () => {
 		expect(es).toContain('That is 12 in total');
 		expect(es).not.toContain('Earth Shock was never cast in this pull');
 
-		const snap = verdictOf(render(Snapshots, cleave, 'multi'));
-		expect(snap).toContain('no proc window here you were meant to snapshot');
-		expect(snap).not.toContain('No proc window was offered in this pull');
+		// The Snapshots section was the third reading checked here. It is gone — the proc windows it
+		// tabulated are the Flame Shock dot's own payoff, and that section already draws them — so the two
+		// sections above are the whole of what this file can ask.
 	});
 
 	/**
@@ -224,7 +223,6 @@ describe('a section none of whose rules were asked', () => {
 		expect(verdictOf(render(EarthShock, cleave, 'auto'))).toContain(
 			'shocks were spent with the shield charged up and the Flame Shock dot still long',
 		); // no-change guard, reworded with the string itself
-		expect(verdictOf(render(Snapshots, cleave, 'auto'))).toContain('No proc window was offered in this pull'); // no-change guard
 		// And the `_full` wording is still chosen where it belongs, so the guard above did not close the raw
 		// key by taking that variant off every pull.
 		expect(verdictOf(render(FlameShock, unbroken, 'auto'))).toContain(
@@ -253,7 +251,6 @@ describe('the instruction that used to end nine graded sentences', () => {
 			['LightningShield', LightningShield, phased],
 			['FlameShock', FlameShock, cleave],
 			['EarthShock', EarthShock, cleave],
-			['Snapshots', Snapshots, cleave],
 		] as const) {
 			const html = render(Component, pull, 'multi');
 			expect(html, name).toContain(note);
@@ -268,6 +265,5 @@ describe('the instruction that used to end nine graded sentences', () => {
 		expect(render(LightningShield, phased, 'auto')).not.toContain(note);
 		expect(render(FlameShock, cleave, 'auto')).not.toContain(note);
 		expect(render(EarthShock, cleave, 'auto')).not.toContain(note);
-		expect(render(Snapshots, cleave, 'auto')).not.toContain(note);
 	});
 });

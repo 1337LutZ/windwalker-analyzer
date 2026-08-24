@@ -515,7 +515,6 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			earthShock: 'bad',
 			searingTotem: 'ok',
 			fireElemental: 'ok',
-			flameShockSnapshots: 'ok',
 			lightningShield: 'bad',
 			mana: 'ok',
 			casts: 'good',
@@ -524,28 +523,28 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// its judged weight is one higher than the other three. Nothing here aimed a dot at either.
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
-			judged: { measured: 15, total: 23, unmeasurable: false },
+			judged: { measured: 15, total: 19, unmeasurable: false },
 			sections: { ...sections, searingTotem: 'bad' },
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'good',
 		});
 		expect(card(cleavePull)).toEqual({
 			overall: 'ok',
-			judged: { measured: 14, total: 23, unmeasurable: false },
+			judged: { measured: 14, total: 19, unmeasurable: false },
 			sections: { ...sections, searingTotem: 'good', fireElemental: 'good' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
 		});
 		expect(card(phasedPull)).toEqual({
 			overall: 'good',
-			judged: { measured: 14, total: 23, unmeasurable: false },
+			judged: { measured: 14, total: 19, unmeasurable: false },
 			sections: { ...sections, flameShock: 'ok', fireElemental: 'good' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
 		});
 		expect(card(unbrokenPull)).toEqual({
 			overall: 'ok',
-			judged: { measured: 14, total: 23, unmeasurable: false },
+			judged: { measured: 14, total: 19, unmeasurable: false },
 			sections: { ...sections, searingTotem: 'bad', fireElemental: 'good' },
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'good',
@@ -557,9 +556,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 *
 	 * `remainingMs !== null` has five readers: `fsUnjudgedRefreshes` and `wastedGcds` (both moved above),
 	 * `fsRefreshWindows` (the reported median tick window, 1762.7ms → 1755.3ms, graded by nothing), the
-	 * snapshot miss ledger, and `snapRefreshed`/`snapMissed` — which **is** graded, as
-	 * `flameShockSnapshots`' catch rate. It does not move, and the reason is the pull rather than the
-	 * mechanism.
+	 * snapshot miss ledger, and `snapRefreshed`/`snapMissed` — which **was** graded, as
+	 * `flameShockSnapshots`' catch rate, until that metric went with the Snapshots section. It does not
+	 * move, and the reason is the pull rather than the mechanism.
 	 *
 	 * **This said `addsThenBoss` "has exactly one proc window and it was already caught". It has six, and
 	 * naming the wrong count named the wrong blocker.** Six windows open — every one off `uvls-stacks`, at
@@ -568,11 +567,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 * span `[442 020, 560 218]`, since the primary is on a tower for the first seven minutes. Only the
 	 * sixth was claimable, and that one was caught.
 	 *
-	 * So the metric refuses at `sampleSize: 1` against `MIN_GRADED_SAMPLE`, and **not** on an empty
-	 * denominator — the other three pulls are the empty-denominator case, at zero windows each. Which
-	 * changes what "the metric to watch on the next fixture" means: a fixture with several proc windows
-	 * would land exactly where this one did. What is needed is three windows *with the dot already up*.
-	 * The whole measurement, with the blockers told apart, is in `__fixtures__/bands.test.ts`.
+	 * The metric refused at `sampleSize: 1` against `MIN_GRADED_SAMPLE`, and **not** on an empty
+	 * denominator — the other three pulls are the empty-denominator case, at zero windows each. It never
+	 * graded a committed pull and it is gone; the windows it read are still here, and still the dot's.
 	 */
 	it('does not move the snapshot catch rate on these four, and says why', () => {
 		expect([addsThenBoss.snapshots.refreshed, addsThenBoss.snapshots.missed]).toEqual([1, 0]);
@@ -584,14 +581,13 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		expect(addsThenBoss.flameShock.windows).toEqual([{ start: PRIMARY_OPENS_AT, end: 560_218 }]);
 		const claimable = addsThenBoss.snapshots.windows.filter((w) => w.start >= PRIMARY_OPENS_AT);
 		expect(claimable.map((w) => w.start)).toEqual([532_012]);
-		// A sample of one, so the floor is what refuses it rather than an absent denominator.
-		expect(graded(addsThenBoss, 'flameShockSnapshots')?.sampleSize).toBe(1);
-		expect(graded(addsThenBoss, 'flameShockSnapshots')?.unmeasurable).toBe(true);
+		// The metric that read these — `flameShockSnapshots` — is gone with the Snapshots section, so the
+		// sample floor is no longer what refuses anything here. The windows and the catch are still the
+		// dot's own timeline and are still asserted, which is what this file owns.
 		for (const el of [cleavePull, phasedPull, unbrokenPull]) {
 			expect([el.snapshots.refreshed, el.snapshots.missed]).toEqual([0, 0]);
 			// The genuinely empty case, which is the contrast the sentence above rests on.
 			expect(el.snapshots.windows).toEqual([]);
-			expect(graded(el, 'flameShockSnapshots')?.sampleSize).toBe(0);
 		}
 		expect(addsThenBoss.flameShock.tickMs).toBeCloseTo(1755.333, 3);
 	});

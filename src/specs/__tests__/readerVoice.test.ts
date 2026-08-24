@@ -168,7 +168,6 @@ const ELEMENTAL_SECTIONS = [
 	'earthElemental',
 	'cooldownDrift',
 	'flameShock',
-	'flameShockSnapshots',
 	'earthShock',
 	'lavaBurst',
 	'searingTotem',
@@ -213,7 +212,7 @@ const ELEMENTAL_SECTIONS = [
 // The exemption is the Windwalker's, unchanged in principle — a section explaining what it could and
 // could not measure is allowed to name the measurement — and it is the same four leaves the old comment
 // already named as out of scope. **Nothing new was exempted to make this pass**: across all thirteen
-// sections the only method-note leaves that trip at all are `flameShockSnapshots.measurable` and the
+// sections the only method-note leaf that trips at all is the
 // two `unreadable`s, which is why the list below is four names and not a growing tally.
 /**
  * **The retired selector, kept as a control rather than deleted.**
@@ -288,7 +287,6 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 		expect([...new Set(verdicts.map(([key]) => key.split('.')[0]!))].sort()).toEqual([
 			'earthShock',
 			'flameShock',
-			'flameShockSnapshots',
 			'lightningShield',
 			'mana',
 			'searingTotem',
@@ -780,7 +778,6 @@ describe('the one prophylactic word in the vocabulary', () => {
 		expect(keys).toEqual([
 			'earthShock.verdict_exempt',
 			'flameShock.verdict_exempt',
-			'flameShockSnapshots.verdict_exempt',
 			'mana.key.exempt',
 			'tigerPalm.verdict_exempt',
 		]);
@@ -1118,14 +1115,16 @@ describe('no string in either locale sounds machine-written', () => {
 			'gate',
 			'graded',
 			'judg',
-			'on offer',
 			'opportunit',
 			'rule',
 			'the list',
 			'the section',
 			'verdict',
 		]);
-		expect(prophylactic).toEqual(['band', 'exempt', 'p5', 'predicate', 'satisfied']);
+		// `on offer` moved from live to prophylactic with the Snapshots section: it fired on that copy and
+		// on nothing else, so the guard now holds it against copy nobody has written yet — which is what
+		// the rest of this list is for and why the split is stated rather than assumed.
+		expect(prophylactic).toEqual(['band', 'exempt', 'on offer', 'p5', 'predicate', 'satisfied']);
 	});
 
 	it('anchors on both sides, so an ordinary word that contains a banned one is not a red', () => {
@@ -1298,7 +1297,6 @@ const GRADED_FAMILIES = [
 	'energizingBrew.haste',
 	'fistsOfFury.clean',
 	'flameShock.verdict',
-	'flameShockSnapshots.verdict',
 	'karma.verdict',
 	'lightningShield.verdict',
 	'mana.verdict',

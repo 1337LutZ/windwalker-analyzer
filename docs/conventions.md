@@ -472,10 +472,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the scorecard grid replacing the summary's three-card short list, it prints 1379 leaves,
-682 prose, 21,232 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
-report.json 620 prose leaves, 1,058 sentences, median 17, 203 past 25 (19.2%), 257 em-dashes in 223
-sentences (21.1%); 48 / 24 / 1 / 3 on the quote lines.
+As of the Elemental snapshot section's removal, it prints 1355 leaves,
+672 prose, 20,868 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
+report.json 610 prose leaves, 1,038 sentences, median 17, 200 past 25 (19.3%), 254 em-dashes in 220
+sentences (21.2%); 48 / 21 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->
 

@@ -17,5 +17,4 @@ export { default as Mana } from './Mana';
 export { default as PullTimeline } from './PullTimeline';
 export { default as Rotation } from './Rotation';
 export { default as SearingTotem } from './SearingTotem';
-export { default as Snapshots } from './Snapshots';
 export { default as Stormlash } from './Stormlash';

@@ -1,14 +1,12 @@
-import { useContext, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import type { Metric, SectionScore } from '~/lib/score/model';
-import { overallOf } from '~/lib/score/build';
 import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 
 import { jumpToHeading } from '../jump';
-import { ScoreViewContext } from '../report/scoreViewContext';
 import { useSpec } from '../report/specContext';
 import { SPEC_TAKEAWAYS } from '../report/specSections';
 import BandScale from '../score/BandScale';
@@ -115,22 +113,6 @@ function target(metric: Metric, t: T): string {
  * own. A chip reading "bad" would have been the first, invented here, for a card that already says the
  * number and draws where it fell.
  *
- * **Each card carries the 0–100 its grade was cut from**, which is `overallOf`'s own number rather than
- * one computed here: the weighted share of the available points, over the metrics that could be
- * measured. A letter is three buckets over a continuum, so a section that only just missed and one that
- * missed by a mile read identically without it.
- *
- * **The score wears the grade's tone**, which is what makes a settled card readable without counting:
- * `kick` for good, `brew` for ok, `miss` for bad — the report's own three, so a green card here means
- * the same thing a green tile does. The border carries the grade too, and the two agree by construction
- * because both read `score.grade`.
- *
- * **The number can disagree with the tone beside it, and that is not a bug to hide.** The border is the
- * *section's* grade, which is `worst()` of its primary metrics — a section is as good as its weakest
- * part — while this is a weighted average over all of them. A section with one red primary and three
- * green secondaries is red and scores well, and both statements are true about it. The card shows both
- * because a reader deciding where to spend their next pull needs the weak part *and* the size of it.
- *
  * **A metric carrying a `context` prints its sentence and no figure**, which is the one place this grid
  * may not show a number. `Metric.context` exists for the few metrics whose value is the same on two
  * pulls that need different readings, and on one of them the value is not a reading at all:
@@ -152,8 +134,6 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 	// context rather than props, so neither arrives through a signature.
 	const { t, card } = useReportCopy(analysis);
 	const spec = useSpec();
-	const view = useContext(ScoreViewContext);
-	const weights = spec.weightsFor(view);
 
 	const ordered = useMemo(() => {
 		return Object.entries(card.sections)
@@ -176,10 +156,6 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 					// Rows worth drawing. A card can lose all of them — a section whose every rule counts a fault
 					// none of which happened — and says so in a sentence rather than rendering an empty column.
 					const shown = score.metrics.filter((metric) => !silent(metric));
-					// The same arithmetic the letter is cut from, asked of one section — see `overallOf`. Not a
-					// second scoring: a card showing a number the grade beside it was not taken from would be two
-					// opinions in one box.
-					const points = overallOf(score.metrics, weights).score;
 					// The grade, as the one thing on the card that is not a number — see the docblock.
 					const edge =
 						score.grade === 'good'
@@ -192,35 +168,12 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 							{/* The section's own heading where the page has one. `potions` has no section of its own —
 							    its evidence is the potion's row on the timeline — so it falls back to its single
 							    metric's label rather than to a key invented for one card. */}
-							<span className="flex items-baseline justify-between gap-2">
-								<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-ink-2">
-									{t(`${section}.title`, {
-										defaultValue: t(`summary.takeaways.metric.${score.metrics[0]?.key ?? ''}.label`, {
-											defaultValue: section,
-										}),
-									})}
-								</span>
-								{/* In the grade's own tone, so a card that is fine reads as fine at a glance rather than
-								    as one more box of numbers. `kick` is the report's "good" colour everywhere else — the
-								    tile, the up row on every track chart — and it follows the spec, so a Windwalker's
-								    good cards come out green and an Elemental's blue. That is the same accent those two
-								    reports already use for the thing that went right, and inventing a fixed green here
-								    would give one meaning two colours. */}
-								<span
-									className={`tabular shrink-0 font-mono text-sm ${
-										points === null
-											? 'text-muted'
-											: score.grade === 'good'
-												? 'text-kick'
-												: score.grade === 'ok'
-													? 'text-brew'
-													: 'text-miss'
-									}`}
-								>
-									{points === null
-										? t('summary.scorecard.unmeasured')
-										: t('summary.scorecard.points', { value: Math.round(points) })}
-								</span>
+							<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-ink-2">
+								{t(`${section}.title`, {
+									defaultValue: t(`summary.takeaways.metric.${score.metrics[0]?.key ?? ''}.label`, {
+										defaultValue: section,
+									}),
+								})}
 							</span>
 							<span className="flex flex-col gap-2.5">
 								{shown.length === 0 ? <span className="text-sm text-muted">{t('summary.scorecard.clean')}</span> : null}
