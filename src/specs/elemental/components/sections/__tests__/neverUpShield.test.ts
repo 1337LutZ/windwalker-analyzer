@@ -171,7 +171,7 @@ describe('a pull that never wore the shield', () => {
 		expect(section?.grade).toBe('bad');
 
 		// And the headline it now sits under: one more point in the denominator than the refusal collected.
-		expect(card.judged).toEqual({ measured: 13, total: 23, unmeasurable: false });
+		expect(card.judged).toEqual({ measured: 13, total: 19, unmeasurable: false });
 	});
 
 	/**
@@ -242,7 +242,7 @@ describe('a pull that never wore the shield', () => {
 		expect(html).not.toContain('came all the way off you');
 		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
 		expect(html).toContain(t('summary.scorecard.state', { context: 'neverUp' }));
-		expect(html).toContain('Scored on 13 of 23 points.');
+		expect(html).toContain('Scored on 13 of 19 points.');
 		// And it leads: the first card the grid draws is the shield's, which is what "leads the summary"
 		// means now that the summary is one ordered grid rather than a three-card short list.
 		const cards = [...html.matchAll(/uppercase text-ink-2">([^<]+)</g)].map((m) => m[1]);

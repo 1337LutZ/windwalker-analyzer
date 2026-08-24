@@ -187,7 +187,7 @@ describe('what the committed pulls can say about rule 5', () => {
 	 *
 	 * Two headlines move: `phased` onto **exactly** the 75% `good` line at `auto` and `single`, and
 	 * `cleave` over the 45% one at `auto`. The three `multi` cells read 100%, 100% and 90% and still print
-	 * `ok` at both weights, because 6 of 23 is under `MIN_JUDGED_WEIGHT_SHARE` — a reading whose headline is
+	 * `ok` at both weights, because 6 of 19 is under `MIN_JUDGED_WEIGHT_SHARE` — a reading whose headline is
 	 * a refusal, and one this pin would have been blind to had it only asked `auto`.
 	 *
 	 * The metric itself is `good` and the section is `good` in all nine cells at both weights, which is the
@@ -213,15 +213,15 @@ describe('what the committed pulls can say about rule 5', () => {
 			});
 		});
 		expect(cards).toEqual([
-			'phased/auto good 14/23',
-			'phased/single good 14/23',
-			'phased/multi ok 6/23',
-			'unbroken/auto ok 14/23',
-			'unbroken/single ok 14/23',
-			'unbroken/multi ok 6/23',
-			'cleave/auto ok 14/23',
-			'cleave/single ok 12/23',
-			'cleave/multi ok 6/23',
+			'phased/auto good 14/19',
+			'phased/single good 14/19',
+			'phased/multi ok 6/19',
+			'unbroken/auto ok 14/19',
+			'unbroken/single ok 14/19',
+			'unbroken/multi ok 6/19',
+			'cleave/auto ok 14/19',
+			'cleave/single ok 12/19',
+			'cleave/multi ok 6/19',
 		]);
 		expect(WEIGHTS.fireElementalHasteUptime).toBe(1);
 	});

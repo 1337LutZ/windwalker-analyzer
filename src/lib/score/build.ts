@@ -215,19 +215,6 @@ export function overallOf(
 ): {
 	grade: Grade;
 	judged: Judged;
-	/**
-	 * The weighted share of the available points, 0–100 — the number the grade is cut from.
-	 *
-	 * It was always computed here and thrown away, and the letter was all that came out. A letter is
-	 * three buckets over a continuum, so two pulls a band apart and two pulls a point apart looked
-	 * identical from outside; the scorecard grid prints this beside each section's own bands so a reader
-	 * can see which of those they are looking at.
-	 *
-	 * `null` where the grade is not a reading of the pull — nothing measurable, or too little of the
-	 * offered weight surviving to call it a verdict. Those return `ok` as a *placeholder*, and a number
-	 * beside a placeholder would be read as a score rather than as the absence of one.
-	 */
-	score: number | null;
 } {
 	let points = 0;
 	let measured = 0;
@@ -245,13 +232,12 @@ export function overallOf(
 	// end of the share test below rather than special cases of their own.
 	const share = total > 0 ? measured / total : 0;
 	if (measured === 0 || share < MIN_JUDGED_WEIGHT_SHARE) {
-		return { grade: 'ok', judged: { measured, total, unmeasurable: true }, score: null };
+		return { grade: 'ok', judged: { measured, total, unmeasurable: true } };
 	}
 	const pct = (points / measured) * 100;
 	return {
 		grade: pct >= 75 ? 'good' : pct >= 45 ? 'ok' : 'bad',
 		judged: { measured, total, unmeasurable: false },
-		score: pct,
 	};
 }
 

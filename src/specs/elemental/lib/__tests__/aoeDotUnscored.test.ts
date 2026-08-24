@@ -1,7 +1,7 @@
 // Nothing on the Elemental card grades the dot above two enemies, and this file is why that stands.
 //
 // Every Flame Shock rule in `THRESHOLDS` stops at band 2. `flameShockUptime` is `bands: [1, 2]`,
-// `flameShockWaste` is `[1]`, `flameShockMultiDot` is `[2]` and `flameShockSnapshots` is `[1]` — so on a
+// `flameShockWaste` is `[1]` and `flameShockMultiDot` is `[2]` — so on a
 // pull that spends 226.1s of 560.3s at three enemies or more, **no metric on the card has anything to say
 // about the dot across those 226.1 seconds.** The ladder grades band 3 and band 4 perfectly well; the
 // scorecard does not reach them.
@@ -317,11 +317,12 @@ describe('the card, and the pair that has to move together', () => {
 				bands.filter((b) => b >= 3),
 				key,
 			).toEqual([]);
-		// And the four dot rules by name, so the property above cannot pass by the table losing its bands.
+		// And the three dot rules by name, so the property above cannot pass by the table losing its bands.
 		expect(THRESHOLDS.flameShockUptime.bands).toEqual([1, 2]);
 		expect(THRESHOLDS.flameShockWaste.bands).toEqual([1]);
 		expect(THRESHOLDS.flameShockMultiDot.bands).toEqual([2]);
-		expect(THRESHOLDS.flameShockSnapshots.bands).toEqual([1]);
+		// There were four. `flameShockSnapshots` was the fourth, declared `[1]` like the waste rule, and it
+		// is gone with the section it graded — see `WEIGHTS` in `score.ts`.
 		// **And the clock, which is the half a widened declaration would leave behind.** `MetricRule.bands`
 		// cuts nothing — it only nulls a metric whose band set misses the pull entirely — so widening
 		// `flameShockUptime` to `[1, 2, 3, 4]` would leave it grading band-3+ play over a denominator with
@@ -351,7 +352,7 @@ describe('the card, and the pair that has to move together', () => {
 			const scored = scoreAnalysis(fx(name));
 			expect(scored.judged, name).toEqual({
 				measured: name === 'addsThenBoss' ? 15 : 14,
-				total: 23,
+				total: 19,
 				unmeasurable: false,
 			});
 		}

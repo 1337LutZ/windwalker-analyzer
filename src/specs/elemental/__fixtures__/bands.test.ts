@@ -110,7 +110,6 @@ const BANDED = [
 	'flameShockUptime',
 	'flameShockWaste',
 	'flameShockMultiDot',
-	'flameShockSnapshots',
 	'earthShockGood',
 	'searingTotemUptime',
 	'lightningShieldOvercap',
@@ -287,7 +286,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	});
 
 	/**
-	 * And the headline refuses to be a headline over what is left: 6 of 23 points, all of them habit
+	 * And the headline refuses to be a headline over what is left: 6 of 19 points, all of them habit
 	 * metrics and the summon's two rules, which is under `MIN_JUDGED_WEIGHT_SHARE`.
 	 *
 	 * One of the first three moves letter as well as meaning: `cleave` graded `bad` on that reading before
@@ -296,14 +295,14 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * printing a middling grade. A letter that stays put while its meaning inverts is the case a test on
 	 * `overall` alone would have missed.
 	 *
-	 * **5 of 22 when this was written and 6 of 23 now**, because `fireElementalHasteUptime` was priced at 1
+	 * **5 of 22 when this was written and 6 of 19 now**, because `fireElementalHasteUptime` was priced at 1
 	 * and it is one of the rules that survives this reading — it declares no bands, so a pull read wholly
-	 * as multi-target still owes it an answer. 6 of 23 is 26%, further under the floor than 5 of 22 was, so
+	 * as multi-target still owes it an answer. 6 of 19 is 26%, further under the floor than 5 of 22 was, so
 	 * the refusal this test is about is if anything more firmly the answer than before.
 	 *
 	 * **`addsThenBoss` measures five and not six, and the missing one is `searingTotemOverlaps`.** That
 	 * pull places no Searing Totem at all, so the `windows.length > 0` guard in front of that metric
-	 * refuses it — a refusal that has nothing to do with bands and survives every reading. 5 of 23 is 22%,
+	 * refuses it — a refusal that has nothing to do with bands and survives every reading. 5 of 19 is 22%,
 	 * further under the floor still, so it makes the same point one notch harder rather than a different
 	 * one. Written per pull, because a flat `toEqual` here is how the fourth pull's five would have been
 	 * read as a regression rather than as a fact about its rotation.
@@ -313,7 +312,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 		for (const name of ALL) {
 			expect(card(name, 'multi').judged, name).toEqual({
 				measured: measured[name] ?? 6,
-				total: 23,
+				total: 19,
 				unmeasurable: true,
 			});
 			expect(card(name, 'multi').overall, name).toBe('ok');
@@ -347,7 +346,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * unasked. The name of this test is kept from when that was the whole story; the letter has since moved,
 	 * and it moved for the reason below rather than for this one.
 	 *
-	 * **12 of 23 and not 14**, which is two changes and not one. The multi-dot rule's two points leave
+	 * **12 of 19 and not 14**, which is two changes and not one. The multi-dot rule's two points leave
 	 * because the reader declared one enemy — that is this test's own subject. `flameShockWaste`'s two leave
 	 * for a different reason entirely: cutting the graded clocks let `shareOf`'s sample floor apply, and this
 	 * pull's two refreshes are under it, so the metric declines at every reading rather than grading a 50%
@@ -357,7 +356,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * of that coincidence is worth naming.** The old note leaned on it: 11 of 22 is the `>=` tie, so the
 	 * letter printed by the narrowest possible margin and this pull was the live proof that
 	 * `MIN_JUDGED_WEIGHT_SHARE` judges rather than refuses on a tie. Rule 5 declares no bands and survives
-	 * every reading, so both sides gained a point: 12 of 23 is 52% and clears the floor outright. The tie
+	 * every reading, so both sides gained a point: 12 of 19 is 52% and clears the floor outright. The tie
 	 * case now has no committed pull sitting on it, and if it is to stay pinned it needs one of its own.
 	 *
 	 * **And the letter is `ok`, up from `bad`.** The arithmetic is written out rather than left to be
@@ -374,7 +373,7 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * denominator instead of a `bad` half of whose weight was add-wave time.
 	 */
 	it('drops the spreading rule from a pull read as single-target and lifts its letter', () => {
-		expect(card('cleave', 'single').judged).toEqual({ measured: 12, total: 23, unmeasurable: false });
+		expect(card('cleave', 'single').judged).toEqual({ measured: 12, total: 19, unmeasurable: false });
 		expect(card('cleave', 'single').overall).toBe('ok');
 	});
 });
@@ -527,7 +526,7 @@ describe('what deliberately does not move', () => {
 	 * bar, and this pull has one. Stated because it is the sentence a reader consults before going
 	 * looking, and the old one pointed at the wrong shortfall.
 	 */
-	it('measures the snapshot rule on the one pull that can, and names what still refuses it', () => {
+	it('reads the snapshot windows the log offered, on the one pull that has any', () => {
 		const claimable = (name: string): number[] => {
 			const el = fixture(name);
 			return el.snapshots.windows
@@ -540,7 +539,6 @@ describe('what deliberately does not move', () => {
 			const el = fixture(name);
 			expect(el.snapshots.windows, name).toEqual([]);
 			expect([el.snapshots.refreshed, el.snapshots.missed], name).toEqual([0, 0]);
-			expect(metric(name, 'auto', 'flameShockSnapshots')?.sampleSize, name).toBe(0);
 		}
 
 		// And the fourth, which has six windows, one of them claimable, and that one caught.
@@ -559,23 +557,12 @@ describe('what deliberately does not move', () => {
 		// No fault printed for any of the five the dot was down through.
 		expect(adds.misses.filter((miss) => miss.kind.startsWith('Snapshot'))).toEqual([]);
 
-		// Unmeasurable on all four, at every reading — and for two different reasons.
-		for (const name of ALL) {
-			for (const choice of ['auto', 'single', 'multi'] as const) {
-				const m = metric(name, choice, 'flameShockSnapshots');
-				expect(m?.unmeasurable, `${name}/${choice}`).toBe(true);
-			}
-		}
-		const m = metric('addsThenBoss', 'auto', 'flameShockSnapshots');
-		// A sample of one, which is a real denominator and not an empty one.
-		expect(m?.sampleSize).toBe(1);
-		expect(m?.sampleSize ?? 0).toBeLessThan(MIN_GRADED_SAMPLE);
-		// So the floor is what refuses it — not the band declaration, which intersects non-empty here.
-		expect(resolveBands(adds.targets, 'auto').bands).toEqual([1, 2, 3, 4]);
-		expect(m?.exempt).toBeUndefined();
-		// Two more claimable windows and this rule grades for the first time. Written as the arithmetic so
-		// the bar cannot drift from the constant it is a bar against.
-		expect(MIN_GRADED_SAMPLE - claimable('addsThenBoss').length).toBe(2);
+		// **The metric this block used to end on is gone.** `flameShockSnapshots` graded the share of
+		// claimable windows caught, was unmeasurable on all four committed pulls at every reading, and
+		// carried the heaviest weight on the card while never deciding anything. It went with the Snapshots
+		// section: the proc windows are the dot's own payoff and `FlameShock` already draws them. What
+		// stays asserted above is the *analysis* — the windows, the claimable one, the refresh inside it —
+		// because that is a reading of the log rather than a verdict on the player.
 	});
 });
 
@@ -583,7 +570,7 @@ describe('the denominator travels with the verdict', () => {
 	/**
 	 * `overallOf` rather than `overall`, so a `good` over half the spec cannot print as a whole-pull one.
 	 *
-	 * Under its own reading `cleave` judges **14** of 23 and the two single-target pulls judge 14 — they
+	 * Under its own reading `cleave` judges **14** of 19 and the two single-target pulls judge 14 — they
 	 * never offered a second target, a snapshot window or a mana reading, and `flameShockMultiDot` is now
 	 * unasked on them rather than merely unanswerable. `addsThenBoss` judges **15**, off a different set:
 	 * it gains `flameShockWaste` and `shamanisticRageMissed`, and loses `searingTotemOverlaps` and the
@@ -608,7 +595,7 @@ describe('the denominator travels with the verdict', () => {
 	 * Both sides then gained one when `fireElementalHasteUptime` was priced at 1, on the three pulls held
 	 * then: it declares no bands and it is measurable on every one of those, so it enters the offered
 	 * weight and the judged weight together. It is *not* measurable on `addsThenBoss`, whose raid lusted at
-	 * 438 207ms — that pull pays the offered weight and does not collect the judged half. 14 of 23 is 61%,
+	 * 438 207ms — that pull pays the offered weight and does not collect the judged half. 14 of 19 is 61%,
 	 * so the grade still prints — and the *share* barely moved, which is the point of reading this as a
 	 * fraction rather than a count.
 	 */
@@ -616,7 +603,7 @@ describe('the denominator travels with the verdict', () => {
 		for (const name of ALL) {
 			expect(card(name, 'auto').judged, name).toEqual({
 				measured: name === 'addsThenBoss' ? 15 : 14,
-				total: 23,
+				total: 19,
 				unmeasurable: false,
 			});
 		}
@@ -628,16 +615,10 @@ describe('the denominator travels with the verdict', () => {
 				.sort();
 		expect(unmeasurableOn('addsThenBoss')).toEqual([
 			'fireElementalHasteUptime',
-			'flameShockSnapshots',
 			'searingTotemOverlaps',
 			'thunderstormMissed',
 		]);
-		expect(unmeasurableOn('cleave')).toEqual([
-			'flameShockSnapshots',
-			'flameShockWaste',
-			'shamanisticRageMissed',
-			'thunderstormMissed',
-		]);
+		expect(unmeasurableOn('cleave')).toEqual(['flameShockWaste', 'shamanisticRageMissed', 'thunderstormMissed']);
 	});
 
 	/**

@@ -66,7 +66,7 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
  */
 export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
 	const el = analysis as ElementalAnalysis;
-	const { flameShock, earthShock, searingTotem, snapshots, lightningShield, fireElemental, cpm } = el;
+	const { flameShock, earthShock, searingTotem, lightningShield, fireElemental, cpm } = el;
 	// Bound once, so no metric below can be built outside the exemption. See `grader`.
 	const metric = grader(THRESHOLDS, view);
 
@@ -319,16 +319,6 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		),
 	);
 
-	// Against the windows the pull could actually have claimed, not every proc window that fired. A
-	// window the dot was down through was never a chance to refresh it. Named `flameShockSnapshots`
-	// rather than the Windwalker's `snapshotRate` so the two specs' takeaway copy does not collide:
-	// the Windwalker's says "brew on the last global of a Re-Origination window", which is not advice
-	// an Elemental can act on.
-	const snapshotRate = metric(
-		'flameShockSnapshots',
-		shareOf(snapshots.refreshed, snapshots.refreshed + snapshots.missed),
-	);
-
 	// Lightning Shield's own two faults: sitting at the ceiling so long the Rolling Thunder has
 	// nowhere to put its charge, and letting the shield come all the way off. Both are carried into
 	// the summary as cards; neither is weighted heavily enough to swing the headline, because both are
@@ -487,7 +477,6 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		searingTotemOverlaps,
 		fireElementalPrepull,
 		fireElementalHasteUptime,
-		snapshotRate,
 		lightningShieldOvercap,
 		lightningShieldFellOff,
 		thunderstormMissed,
@@ -515,7 +504,6 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 			// "was it out at all". Rule 5 is primary beside it rather than secondary, because it is a graded
 			// absolute — a section that could not go worse than `ok` cannot carry one.
 			fireElemental: section([fireElementalPrepull, fireElementalHasteUptime]),
-			flameShockSnapshots: section([snapshotRate]),
 			// The shield's section carries both of its faults; neither is primary-weighted enough to
 			// carry a headline, but the section still reads a verdict off them for its own copy.
 			lightningShield: section([lightningShieldOvercap, lightningShieldFellOff]),
@@ -998,7 +986,6 @@ export const THRESHOLDS = {
 	 * fixture that merely opens several proc windows would land exactly where this one did. Measured, with
 	 * every figure above asserted, in `__fixtures__/bands.test.ts` and `lib/__tests__/flameShockAimed.test.ts`.
 	 */
-	flameShockSnapshots: { good: 70, ok: 45, higherIsBetter: true, bands: [1], unit: 'percent' },
 
 	/**
 	 * Time the shield sat at the ceiling past the reader's leeway, in milliseconds.
@@ -1102,15 +1089,10 @@ export type MetricKey = keyof typeof THRESHOLDS;
  * they describe a habit more than a headline.
  */
 export const WEIGHTS: Record<MetricKey, number> = {
-	// Heaviest weight on the card, and the one that has never decided anything: it is `unmeasurable` on
-	// all four committed pulls. Three fail on an empty denominator; `addsThenBoss` fails on
-	// `MIN_GRADED_SAMPLE` with a sample of one, which is a *real* 100% share the floor refuses. So the
-	// fixture that would wake it needs three snapshot windows **with the dot already up** — six windows
-	// is what that pull already has, and five of them opened with the dot down.
-	//
-	// Read `snapshotRate` in this file as the local name for `flameShockSnapshots`; the Windwalker owns
-	// `snapshotRate` as a metric key, and the two must not collide in takeaway copy.
-	flameShockSnapshots: 4,
+	// **The heaviest weight here used to sit on `flameShockSnapshots`, and it never decided anything:**
+	// unmeasurable on all four committed pulls, three on an empty denominator and `addsThenBoss` on
+	// `MIN_GRADED_SAMPLE` with a sample of one. It is gone with its section — the proc windows it scored
+	// are the dot's own payoff, and `FlameShock` already draws them press by press.
 	flameShockUptime: 3,
 	gcdUtilisation: 2,
 	flameShockWaste: 2,

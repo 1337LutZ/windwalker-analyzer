@@ -13,11 +13,11 @@ import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
-import { THRESHOLDS as ELE_THRESHOLDS, WEIGHTS as ELE_WEIGHTS } from '~/specs/elemental/lib/score';
+import { THRESHOLDS as ELE_THRESHOLDS } from '~/specs/elemental/lib/score';
 import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
 import { WW_SPEC } from '~/specs/windwalker';
 import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
-import { MULTI_TARGET_WEIGHTS, THRESHOLDS as WW_THRESHOLDS, WEIGHTS as WW_WEIGHTS } from '~/specs/windwalker/lib/score';
+import { THRESHOLDS as WW_THRESHOLDS } from '~/specs/windwalker/lib/score';
 import { CROSSOVERS, flowKeys, rotationFlow } from '~/specs/windwalker/lib/view/rotationFlow';
 import { timelineBanks as windwalkerBanks } from '~/specs/windwalker/lib/view/timelineBanks';
 
@@ -794,11 +794,6 @@ describe('report copy with no reader', () => {
 				'unleash-elements',
 			],
 		},
-		snapshotSource: {
-			where: 'lib/types.ts → ElementalSnapshotWindow.source',
-			keys: () => declaredArms('lib/types.ts', /export interface ElementalSnapshotWindow \{[\s\S]*?\bsource:/),
-			pinned: ['black-blood', 'unerring-vision', 'uvls-stacks'],
-		},
 		stormlashState: {
 			where: 'the ternary inside the call in specs/elemental/components/sections/Stormlash.tsx',
 			keys: () => selfNamed('stormlash.state.*'),
@@ -839,7 +834,6 @@ describe('report copy with no reader', () => {
 				'fireElementalHasteUptime',
 				'fireElementalPrepull',
 				'flameShockMultiDot',
-				'flameShockSnapshots',
 				'flameShockUptime',
 				'flameShockWaste',
 				'gcdUtilisation',
@@ -881,7 +875,6 @@ describe('report copy with no reader', () => {
 		'elementalMastery.state.*': 'elementalMasteryReason',
 		'fireElemental.state.*': 'fireElementalReason',
 		'flameShock.state.*': 'flameShockKind',
-		'flameShockSnapshots.source.*': 'snapshotSource',
 		'overall.*': 'grade',
 		'priority.rule.*': 'ladderRule',
 		'raidBuffs.effects.*': 'raidBuffEffect',
@@ -928,7 +921,6 @@ describe('report copy with no reader', () => {
 		'fireElemental.state.*': 4,
 		// Nine against seven press kinds: `snapshot` stores two narrowings, and the peel counts both.
 		'flameShock.state.*': 9,
-		'flameShockSnapshots.source.*': 3,
 		'overall.*': 3,
 		'priority.rule.*': 22,
 		// More than the seven effects, on both: each is stored per spec where the two want different words.
@@ -949,7 +941,7 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.label': 24,
+		'summary.takeaways.metric.*.label': 23,
 	};
 
 	/**
@@ -1041,36 +1033,6 @@ describe('report copy with no reader', () => {
 			'verdict_ok_full',
 			'verdict_bad_full',
 			'verdict_exempt',
-			'verdict_none',
-		],
-		// **Seven arms, and the two new ones are here because this section counts two different things
-		// and had one sentence for the gap between them.** The table lists every window where a trigger
-		// proc overlapped an intellect proc. The share underneath it counts only the windows the dot was
-		// also up through, because `flameShockSnapshots` in `specs/elemental/lib/score.ts` narrows the
-		// denominator to the windows a refresh was possible in. So a pull can list six and share one, and
-		// `addsThenBoss` is that pull — its six windows open at 16 025, 26 834, 163 224, 265 710, 418 471
-		// and 532 012ms, the dot's only window is 442 020–560 218ms, and `shareOf` therefore hands over a
-		// sample of one, which `MIN_GRADED_SAMPLE` refuses. `gradeOf` answered `none` and `verdict()`
-		// printed "No proc window was offered in this pull." directly above the six.
-		//
-		// Three facts, so three sentences: nothing opened (`verdict_none`, exactly true on `cleave`,
-		// `phased` and `unbroken`, none of which wears a trigger trinket); windows opened and the dot was
-		// down through all of them (`verdict_noneClaimable`); windows opened, one or two had the dot up,
-		// and that is under the floor (`verdict_tooFew`). Both new arms are reached from `Snapshots` by
-		// name, off the *metric's* refusal rather than off the section letter — the section holds one
-		// metric so the two agree today, and gating on the letter is how a refused reading gets quoted as
-		// a figure. Written so no numeral needs agreement, at one window as at two.
-		//
-		// `verdict_noneClaimable` has no committed witness and is reachable: it is `addsThenBoss` without
-		// its sixth window, and it is asserted against a hand-edited audit in
-		// `specs/elemental/components/sections/__tests__/thinSnapshotSample.test.ts`, which says so.
-		flameShockSnapshots: [
-			'verdict_good',
-			'verdict_ok',
-			'verdict_bad',
-			'verdict_exempt',
-			'verdict_tooFew',
-			'verdict_noneClaimable',
 			'verdict_none',
 		],
 		// **`verdict_tooFew` is the fifth arm, and it closes the sample floor's last hole rather than a

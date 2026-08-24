@@ -66,7 +66,6 @@ import {
 	PullTimeline as ElementalPullTimeline,
 	Rotation as ElementalRotation,
 	SearingTotem,
-	Snapshots,
 	Stormlash,
 } from '~/specs/elemental/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
@@ -320,9 +319,6 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
 		// The same pull at a coarser grain: the auras without the presses, read against each other.
 		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: ElementalPullTimeline },
-		// The dot's payoff, directly under it: the proc-window reapplies are the whole reason the dot is
-		// snapshotted rather than merely kept up.
-		{ id: 'snapshots', titleKey: 'flameShockSnapshots.title', group: 'core', Component: Snapshots },
 		// The pool the casts are paid from, beside the dot it feeds — the one bar an Elemental has, and the
 		// one that is never overcap but is sometimes empty.
 		//
@@ -464,7 +460,6 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			flameShock: 'flame-shock',
 			earthShock: 'earth-shock',
 			searingTotem: 'searing-totem',
-			flameShockSnapshots: 'snapshots',
 			fireElemental: 'fire-elemental',
 			// Added with the scorecard grid, for the reason `karma` was on the Windwalker side: `#lightning-
 			// shield` is a section on the page and the map had no card that reached it. It is the section
