@@ -1072,7 +1072,7 @@
           "label": "Catch the procs"
         },
         "tigerPalmWaste": {
-          "label": "Stop overwriting Tiger Power"
+          "label": "Casts that wasted Tiger Power"
         },
         "gcdUtilisation": {
           "label": "Fill the globals"
@@ -1096,7 +1096,7 @@
           "label": "Keep the dot up"
         },
         "flameShockWaste": {
-          "label": "Stop overwriting the dot"
+          "label": "Refreshes that wasted the dot"
         },
         "flameShockMultiDot": {
           "label": "Dot the second target"

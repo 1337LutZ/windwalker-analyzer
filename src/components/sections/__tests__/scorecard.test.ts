@@ -171,19 +171,27 @@ describe('the scorecard grid', () => {
 	});
 
 	/**
-	 * A rule counting waste reads presses made over presses needed, not faults over presses.
+	 * A waste rule reads its faults over its presses, and the **label** is what makes that legible.
 	 *
-	 * `tigerPalmWaste` on a pull of eighteen presses with six wasted printed "6/18", and a card reading
-	 * `n/m` is read as a score — six out of eighteen looks like a bad grade rather than like six presses
-	 * too many. Turned up: twelve presses were wanted, eighteen were made, and the gap is the waste.
+	 * `tigerPalmWaste` on a pull of eighteen presses with six wasted printed "6/18" under the label "Stop
+	 * overwriting Tiger Power", and a bare `n/m` under an imperative reads as a score — six out of eighteen
+	 * looks like a bad grade rather than like six presses too many. Presses-made over presses-needed was
+	 * tried as the fix and is the wrong one: it asks the reader to subtract before they know what they are
+	 * looking at. The number was never the problem. The label now carries the noun — "Casts that wasted
+	 * Tiger Power" — and the figure is left to count.
 	 *
-	 * `sections` is four wasted of thirteen, so the two numbers are distinct from each other and from
-	 * the fault count — a bug that swapped them would still have to produce 13 and 9.
+	 * `sections` is four wasted of thirteen, so the two numbers are distinct from each other and from the
+	 * denominator of any other row on the card.
 	 */
-	it('reads a waste rule as attempts made over attempts needed', () => {
+	it('reads a waste rule as its faults over its presses, under a label that says so', () => {
 		const markup = wwHtml('sections');
-		expect(markup).toContain('13/9');
-		expect(markup).not.toContain('4/13');
+		expect(markup).toContain('4/13');
+		expect(markup).toContain(t('summary.takeaways.metric.tigerPalmWaste.label'));
+		// The label has to name what is being counted, or the figure beside it is ambiguous again. Asserted
+		// as the property rather than as the string, so a reworded label still has to carry the noun.
+		expect(t('summary.takeaways.metric.tigerPalmWaste.label')).toMatch(/wasted/i);
+		// And it is no longer phrased as the instruction that made `4/13` read as a score.
+		expect(t('summary.takeaways.metric.tigerPalmWaste.label')).not.toMatch(/^Stop /);
 	});
 
 	/**

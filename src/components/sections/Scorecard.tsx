@@ -141,33 +141,14 @@ const capped = (metric: Metric): boolean => metric.ceiling !== undefined && metr
 /** Metrics read as one count over another, and which therefore need no target line under them. */
 const counted = (metric: Metric): boolean => sampled(metric) || (capped(metric) && metric.unit === 'count');
 
-/**
- * The two counts a sampled share is read as, in the order the reader wants them.
- *
- * **A rule counting successes reads successes over chances**: `earthShockGood` is four good presses of
- * the seven judged, `snapshotRate` three procs caught of the four offered. The numerator is the thing
- * that went right and the denominator is every chance at it.
- *
- * **A rule counting waste reads presses made over presses needed**, which is the same pair the other
- * way up. `tigerPalmWaste` at six wasted of eighteen printed "6/18", and a card reading `n/m` is read
- * as a score — six out of eighteen looks like a bad grade, when what happened is that twelve presses
- * were wanted and eighteen were made. So the fault becomes the *gap*: "18/12" says how many were spent
- * and how many were worth spending, and the six between them is the waste without a word for it.
- *
- * This is exactly the case where the denominator is not the sample, which is why `part` travels with a
- * metric rather than the card multiplying it back — see `Metric.part`.
- */
-function counts(metric: Metric): readonly [part: number, total: number] {
-	const sample = metric.sampleSize ?? 0;
-	const part = metric.part ?? 0;
-	return metric.higherIsBetter ? [part, sample] : [sample, sample - part];
-}
-
 /** The number as the reader reads it, in the unit its rule declares. */
 function reading(metric: Metric, t: T): string {
 	if (sampled(metric)) {
-		const [part, total] = counts(metric);
-		return t('summary.scorecard.value', { context: 'sample', part, total });
+		// Always the numerator over the sample, whichever direction the rule runs. A waste rule reads "6/18"
+		// and its label says what the six are, which is the pairing that makes the number legible: the label
+		// carries the noun and the figure carries the count. Showing presses-made over presses-needed was
+		// tried instead and asks the reader to subtract before they know what they are looking at.
+		return t('summary.scorecard.value', { context: 'sample', part: metric.part, total: metric.sampleSize });
 	}
 	if (counted(metric)) {
 		return t('summary.scorecard.value', { context: 'sample', part: metric.value, total: metric.ceiling });
