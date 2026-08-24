@@ -56,12 +56,11 @@
     "title": "Tigereye Brew",
     "intent": "The bank builds up to twenty stacks and each brew spends ten. Brewing below ten stacks wastes the difference; letting the bank sit at twenty wastes every stack earned there.",
     "verdict_good_one": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks.",
+    "verdict_oneShort": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks. Whether that is stacks you earned and never spent or a press worth taking short cannot be told from one brew — the two presses worth taking short are a Re-Origination proc on its last global and the closing seconds of the fight, and one press is not enough to tell which this was.",
     "verdict_good_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks — near the cap every time.",
     "verdict_short_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks. {{short}} of them went out with the bank under ten and nothing in this pull asking for it, which is stacks you earned and never spent. Hold the brew until the bank reads ten — the two presses worth taking short are a Re-Origination proc on its last global and the closing seconds of the fight.",
     "verdict_shortExcused_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks. {{lean}} of them went out with the bank under ten, and every one caught a Re-Origination proc on its last global or came in the closing seconds of the fight. Both are worth more than the stacks, so those presses were the right ones.",
-    "verdict_ok_one": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks.",
     "verdict_ok_other": "{{count}} brews spent, averaging {{avg, decimal}} of 10 stacks. The gap is stacks you earned but never spent.",
-    "verdict_bad_one": "{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks.",
     "verdict_bad_other": "{{count}} brews spent, averaging only {{avg, decimal}} of 10 stacks.",
     "verdict_none": "No Tigereye Brew was spent in this pull.",
     "cap_good": "Nothing was lost to the stack cap.",
@@ -1482,6 +1481,8 @@
     "verdict_none": "No proc window was offered in this pull.",
     "kpi": {
       "refreshed": "Windows caught",
+      "notClaimable_one": "one more opened with the dot down",
+      "notClaimable_other": "{{count}} more opened with the dot down",
       "missed": "Windows missed"
     },
     "columns": {

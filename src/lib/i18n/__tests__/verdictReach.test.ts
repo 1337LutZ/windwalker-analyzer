@@ -167,12 +167,15 @@ const SWEEP = rendered();
  * the locale file leaves this list stale in both directions and both are reds.
  */
 const UNREACHED: string[] = [
-	'brew.verdict_bad_one',
 	'brew.verdict_bad_other',
 	'brew.verdict_good_one',
 	'brew.verdict_good_other',
 	'brew.verdict_none',
-	'brew.verdict_ok_one',
+	// The arm that replaced the singular `ok` and `bad` ones, both of which left this list by being
+	// retired rather than by being reached. It joins for the same reason they were on it: every committed
+	// Windwalker pull spends at least three brews, so no page a reader can open shows a single-brew
+	// sentence at all. The three single-brew states are read by hand in `brewBankTimeline.test.ts`.
+	'brew.verdict_oneShort',
 	'casts.verdict_none',
 	'debuff.verdict_noContact',
 	'debuff.verdict_none',

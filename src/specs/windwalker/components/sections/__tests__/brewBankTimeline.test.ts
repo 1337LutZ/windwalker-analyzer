@@ -407,3 +407,107 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		expect(render(one)).toContain('1 brew spent, averaging 10 of 10 stacks.');
 	});
 });
+
+/**
+ * The three sentences a pull with one brew could be shown, which were one sentence.
+ *
+ * `brew.verdict_good_one`, `verdict_ok_one` and `verdict_bad_one` shipped byte-identical:
+ * *"{{count}} brew spent, averaging {{avg, decimal}} of 10 stacks."* three times over. The plural arms
+ * differentiate — *"near the cap every time"*, *"The gap is stacks you earned but never spent"*,
+ * *"averaging only"* — and the singulars did not, so at one brew the letter was invisible in the copy.
+ * Rendered, before this change, a pull whose one brew spent five stacks read:
+ *
+ * > 1 brew spent, averaging 5 of 10 stacks. Nothing was lost to the stack cap. 6 stacks were still
+ * > banked when the boss died.
+ *
+ * — a `bad` section telling the reader nothing at all went wrong, and the same words a `good` one got.
+ *
+ * **Two arms and not three, and the second half of this file is the argument.** Every sentence above is
+ * chosen by the number it is about, and at one brew there is only one number available to choose with.
+ * `brewShortUses` — the count that knows the two presses the priority list takes under ten on purpose —
+ * draws its sample from the brews the list *required* ten of, which is at most one here, and
+ * `MIN_GRADED_SAMPLE` refuses a sample of one. The first case below measures that at five different
+ * stack counts rather than asserting it once: the refusal is total, so no single-brew pull can ever be
+ * told whether its short brew was a Re-Origination press, a tail dump, or a mistake.
+ *
+ * What is left to split `ok` from `bad` is `brewStacks`' own line, and over a sample of one it separates
+ * nine stacks from eight. One stack, and it decides whether the reader is told they wasted something.
+ * So the two collapse into `verdict_oneShort`, which names the shortfall, names both readings of it, and
+ * claims neither — the register `faulted === null` already asks for on the plural path.
+ *
+ * `verdict_good_one` is untouched and stays its own arm: it is reached only on `lean === 0`, where the
+ * brew took the full ten and no excuse is needed to say so.
+ *
+ * **Every pull here is synthetic.** No committed Windwalker fixture spends fewer than three brews — see
+ * `thinMean.test.ts`, which asserts that emptily — so `mixed` has its brew fields replaced with a single
+ * use. The rest of the analysis is the fixture's, which is why the cap and bank clauses below are real.
+ */
+describe('a pull with one brew', () => {
+	const mixed = fixture('mixed');
+
+	const shortUses = (analysis: Analysis) =>
+		WINDWALKER_SPEC.score(analysis).sections['brew']?.metrics.find((m) => m.key === 'brewShortUses');
+
+	/** `mixed` with exactly one brew, which spent `consumed` of the ten a full brew takes. */
+	const oneBrew = (consumed: number): Analysis => ({
+		...mixed,
+		brew: {
+			...mixed.brew,
+			uses: 1,
+			fullUses: consumed >= 10 ? 1 : 0,
+			avgConsumed: consumed,
+			totalConsumed: consumed,
+			useList: [{ ...mixed.brew.useList[0]!, consumed }],
+		},
+	});
+
+	/**
+	 * The premise the collapse rests on, measured across the whole reachable range rather than at one
+	 * point. If a single-brew pull could ever read `brewShortUses`, the two sentences would have a real
+	 * difference to carry and this arm would be hiding it.
+	 */
+	it.each([10, 9, 8, 7, 5])('cannot read the short-brew count at all with %i stacks spent', (consumed) => {
+		const metric = shortUses(oneBrew(consumed));
+		expect(metric?.unmeasurable).toBe(true);
+		expect(metric?.sampleSize).toBe(1);
+	});
+
+	/** And that the letter really does move across that range, so the sentence had three to tell apart. */
+	it('is graded good, ok and bad at ten, nine and eight stacks', () => {
+		const gradeAt = (consumed: number) =>
+			WINDWALKER_SPEC.score(oneBrew(consumed)).sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade;
+		expect([gradeAt(10), gradeAt(9), gradeAt(8), gradeAt(5)]).toEqual(['good', 'ok', 'bad', 'bad']);
+	});
+
+	/**
+	 * The `bad` one, which is the reader this change is for. The old string is quoted whole: it is what
+	 * the page said, and it says nothing.
+	 */
+	it('tells a five-stack brew it was short, where it used to tell it nothing', () => {
+		const html = render(oneBrew(5));
+		expect(html).not.toContain('1 brew spent, averaging 5 of 10 stacks. Nothing was lost to the stack cap.');
+		expect(html).toContain(t('brew.verdict', { context: 'oneShort', count: 1, avg: 5 }));
+		expect(html).toContain('and one press is not enough to tell which this was');
+	});
+
+	/** The `ok` one gets the same sentence, which is the collapse itself and not a fall-through. */
+	it('says the same thing at nine stacks, because the same thing is all that can be said', () => {
+		const nine = render(oneBrew(9));
+		expect(nine).toContain(t('brew.verdict', { context: 'oneShort', count: 1, avg: 9 }));
+		// The two arms that used to split these differ now only in the number, which is the point.
+		expect(nine.replace('9 of 10', '5 of 10')).toContain(t('brew.verdict', { context: 'oneShort', count: 1, avg: 5 }));
+	});
+
+	/** Neither of the retired arms can be resolved any more, so neither can come back by fall-through. */
+	it('leaves no singular ok or bad arm behind', () => {
+		expect(i18n.exists('brew.verdict_ok_one', { ns: 'report' })).toBe(false);
+		expect(i18n.exists('brew.verdict_bad_one', { ns: 'report' })).toBe(false);
+	});
+
+	/** A full single brew keeps its own arm, and keeps its own words. */
+	it('still praises the one brew that took the full ten', () => {
+		const html = render(oneBrew(10));
+		expect(html).toContain('1 brew spent, averaging 10 of 10 stacks.');
+		expect(html).not.toContain('one press is not enough');
+	});
+});

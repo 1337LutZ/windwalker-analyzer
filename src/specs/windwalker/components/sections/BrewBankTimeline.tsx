@@ -118,11 +118,37 @@ export default function BrewBankTimeline({ analysis }: { analysis: Analysis }) {
 				// to let the other two sentences through this arm.
 				lean === 0
 				? t('brew.verdict', { context: 'good', count: brew.uses, avg: brew.avgConsumed })
-				: faulted === null
-					? t('brew.verdict', { context: meanGrade, count: brew.uses, avg: brew.avgConsumed })
-					: faulted === 0
-						? t('brew.verdict', { context: 'shortExcused', count: brew.uses, avg: brew.avgConsumed, lean })
-						: t('brew.verdict', { context: 'short', count: brew.uses, avg: brew.avgConsumed, short: faulted }),
+				: // One brew, and it went out under ten. `verdict_ok_one` and `verdict_bad_one` used to split
+					// this case and were byte-identical to each other *and* to `verdict_good_one` — three
+					// letters, one string, so a single-brew pull that spent five stacks was told word for word
+					// what a single-brew pull that spent ten was told. Collapsed to one arm rather than
+					// differentiated into three, because the difference the two letters are drawing here is one
+					// the report has already declined to make.
+					//
+					// `brewShortUses` is the only number in this spec that knows the two presses the priority
+					// list takes under ten on purpose — a Re-Origination proc on its last global, and the
+					// closing seconds of the fight. Its sample is the brews the list *required* ten of, so at
+					// one brew that sample is at most one, `MIN_GRADED_SAMPLE` refuses it, and `faulted` is null
+					// on every single-brew pull without exception. Measured rather than reasoned: at a brew
+					// spending 10, 9, 8, 7 and 5 stacks the metric comes back unmeasurable with a sample of one
+					// every time.
+					//
+					// So the only thing left to pick a sentence with is `brewStacks`' own line, and over a
+					// sample of one it splits nine stacks from eight — one stack — and calls the second a
+					// fault. `verdict_bad_other`'s "only" would be that fault asserted over a press that may
+					// have been the list's own play, which is exactly what the refusal above says cannot be
+					// told. `ok` and `bad` at one brew are the same honest statement, so it is written once:
+					// the shortfall named, both readings of it named, and neither claimed.
+					//
+					// Keyed on `brew.uses`, a count, and never on the letter — here the letter *is* the mean's
+					// line, which is the thing being refused.
+					brew.uses === 1
+					? t('brew.verdict', { context: 'oneShort', count: brew.uses, avg: brew.avgConsumed })
+					: faulted === null
+						? t('brew.verdict', { context: meanGrade, count: brew.uses, avg: brew.avgConsumed })
+						: faulted === 0
+							? t('brew.verdict', { context: 'shortExcused', count: brew.uses, avg: brew.avgConsumed, lean })
+							: t('brew.verdict', { context: 'short', count: brew.uses, avg: brew.avgConsumed, short: faulted }),
 		// `count`, not `wasted`: the sentence has singular and plural forms, and i18next selects them
 		// off `count` alone. One stack lost at the cap is reachable, so "1 stacks" was too.
 		cap && !cap.unmeasurable ? t('brew.cap', { context: cap.grade, count: brew.wastedAtCap }) : null,

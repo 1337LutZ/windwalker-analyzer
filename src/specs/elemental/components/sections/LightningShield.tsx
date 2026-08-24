@@ -94,18 +94,34 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 				{t('lightningShield.intent')}
 			</Prose>
 
-			<div className="mt-4.5">
-				<StatTiles>
-					{/* The number stays and the label says what it is — see the same tile in `SearingTotem.tsx`. */}
-					<StatTile
-						value={formatSeconds(lightningShield.overcapMs)}
-						label={t('lightningShield.kpi.overcap')}
-						caption={overcapUnasked ? t('metric.notAsked') : undefined}
-					/>
-					<StatTile value={`${lightningShield.fellOff}`} label={t('lightningShield.kpi.fellOff')} />
-					<StatTile value={`${lightningShield.badSpends.length}`} label={t('lightningShield.kpi.badSpends')} />
-				</StatTiles>
-			</div>
+			{/* Gated on the same `curve === null` as the chart below and the plain sentence at the foot, so
+			    all three halves of this section read the log once.
+
+			    A pull that never wore the shield has nothing for these three to divide up, and each of them
+			    was saying something on it. "Fell off: 1" is the one that is simply false — `fellOff` is the
+			    count of stretches the shield was *down*, which on such a pull is the single stretch that is
+			    the whole fight — and it printed under a label that reads it as a drop. "Overcapped: 0s" and
+			    "Bad spends: 0" are true and worse than useless: three quiet zeroes read as a measurement
+			    rather than as its absence, which is the argument `BrewBankTimeline` makes for withholding
+			    its own row on a pull whose bank never moved.
+
+			    The refusal is not only a drawing decision. Both graded numbers behind this row now decline
+			    on the same reading — see `lightningShieldFellOff` in `lib/score.ts` — so a row here would
+			    also be the one place on the page still asserting what the scorer just declined to. */}
+			{curve === null ? null : (
+				<div className="mt-4.5">
+					<StatTiles>
+						{/* The number stays and the label says what it is — see the same tile in `SearingTotem.tsx`. */}
+						<StatTile
+							value={formatSeconds(lightningShield.overcapMs)}
+							label={t('lightningShield.kpi.overcap')}
+							caption={overcapUnasked ? t('metric.notAsked') : undefined}
+						/>
+						<StatTile value={`${lightningShield.fellOff}`} label={t('lightningShield.kpi.fellOff')} />
+						<StatTile value={`${lightningShield.badSpends.length}`} label={t('lightningShield.kpi.badSpends')} />
+					</StatTiles>
+				</div>
+			)}
 
 			<div className="mt-5">
 				{curve === null ? (

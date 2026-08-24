@@ -74,11 +74,42 @@ export default function Snapshots({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-4.5">
 				<StatTiles>
+					{/* `refreshed / claimable`, and the denominator stays where it is.
+
+					    It is not every window in the table below, and the gap is not small: on `addsThenBoss` six
+					    windows fired and one was claimable, because the primary is untargetable for 442 of the
+					    560 seconds and five of the six opened with the dot already down. Dividing by all six
+					    would be the Windwalker snapshot tile's own retired defect — it divided by every proc that
+					    fired while its section argued from the buyable ones, and *"counting them would tell the
+					    reader they missed something unbuyable"*. This tile is already on the figure that
+					    argument lands on: `refreshed + missed` is byte for byte the whole `flameShockSnapshots`
+					    hands `shareOf`, and byte for byte the `offered` the sentence under the table prints.
+
+					    Plain ink for the same reason DPS is, and it always has been: no rule grades this
+					    fraction and there is no sibling metric in the section to have borrowed a tint from. The
+					    Windwalker tile had one to shed; this one has nothing to declare, and `snapshotTile.test.ts`
+					    now says so rather than leaving it to the absence of a prop.
+
+					    **What the sibling precedent does ask for here is the third thing it did.** A reader sees
+					    `1` over a table of six and can only reconcile them by reading past the table to the
+					    sentence. `SnapshotTable` had the same shape and answered it with `snapshots.unaffordable`
+					    — *"the reader can see the proc on the chart, so a denominator smaller than the proc count
+					    has to explain itself"*. Said here, on the tile, where the two numbers meet.
+
+					    `notAsked` wins the slot when it applies: a figure not measured on this reading is a
+					    larger fact about the tile than which of its windows were chances, and the sentence below
+					    still carries the split. */}
 					<StatTile
 						value={`${snapshots.refreshed}`}
-						suffix={`/${snapshots.refreshed + snapshots.missed}`}
+						suffix={`/${claimable}`}
 						label={t('flameShockSnapshots.kpi.refreshed')}
-						caption={unasked('flameShockSnapshots') ? t('metric.notAsked') : undefined}
+						caption={
+							unasked('flameShockSnapshots')
+								? t('metric.notAsked')
+								: snapshots.windows.length > claimable
+									? t('flameShockSnapshots.kpi.notClaimable', { count: snapshots.windows.length - claimable })
+									: undefined
+						}
 					/>
 					<StatTile value={`${snapshots.missed}`} label={t('flameShockSnapshots.kpi.missed')} />
 				</StatTiles>

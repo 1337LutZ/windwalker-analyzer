@@ -969,14 +969,28 @@ describe('report copy with no reader', () => {
 	 *     rather than getting a line in this comment.
 	 */
 	const VERDICT_ARMS: Record<string, string[]> = {
+		// **Two arms retired and one added, and the count is not the news — the reason is.** The singular
+		// `ok` and `bad` arms were byte-identical to each other and to `verdict_good_one`, so at one brew
+		// all three letters printed one string and a pull that spent five stacks read what a pull that
+		// spent ten read. They are gone, and `verdict_oneShort` is the single arm every short single-brew
+		// pull now reaches, chosen by `BrewBankTimeline` off the brew count rather than off a letter.
+		//
+		// The argument for one arm instead of two is in that component and is a refusal: `brewShortUses`
+		// is the only metric that knows the two presses the priority list takes under ten on purpose, its
+		// sample is at most one on a single-brew pull, and `MIN_GRADED_SAMPLE` refuses it there every
+		// time — so nothing in the spec can tell a short brew that was the right press from one that was
+		// not, and two sentences claiming to would both be claiming it.
+		//
+		// `verdict_ok_other` and `verdict_bad_other` still carry the `ok` and `bad` stems, so
+		// `it('holds a sentence for every grade a section can be handed')` below is untouched by the
+		// retirement — which is the check that would have caught it had the singulars been the only arms.
 		brew: [
 			'verdict_good_one',
+			'verdict_oneShort',
 			'verdict_good_other',
 			'verdict_short_other',
 			'verdict_shortExcused_other',
-			'verdict_ok_one',
 			'verdict_ok_other',
-			'verdict_bad_one',
 			'verdict_bad_other',
 			'verdict_none',
 		],

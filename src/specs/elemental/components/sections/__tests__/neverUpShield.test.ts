@@ -52,6 +52,8 @@ import { ScoreViewContext } from '~/components/report/scoreViewContext';
 import { SpecContext } from '~/components/report/specContext';
 import { analyse } from '~/specs/elemental/lib';
 
+import Report from '~/components/Report';
+
 import LightningShield from '../LightningShield';
 
 const ELEMENTAL_SPEC = getSpec('elemental')!;
@@ -116,10 +118,86 @@ describe('a pull that never wore the shield', () => {
 		expect(pull.lightningShield.points, 'the curve the chart draws').toEqual([]);
 		expect(pull.lightningShield.maxStacks, 'the registry cap, not a reading').toBe(7);
 		expect(pull.lightningShield.overcapMs).toBe(0);
-		// The fault in the metric, asserted as it stands. Correcting this moves a published letter and is
-		// reported rather than done here; when it is done, this line is the one that says so.
-		expect(pull.lightningShield.fellOff, 'the whole fight counted as one drop').toBe(1);
-		expect(ELEMENTAL_SPEC.score(pull).sections['lightningShield']?.grade).toBe('ok');
+		// **The audit field is still one, and that is not the thing that was fixed.** `fellOff` is
+		// `downWindows.length`, an honest count of the stretches the shield was down, and on this pull that
+		// is the single stretch which is the whole fight. What was wrong is the reading of it: a metric
+		// named for the times the shield came off, grading a pull where it never went on.
+		expect(pull.lightningShield.fellOff, 'the whole fight counted as one down-stretch').toBe(1);
+	});
+
+	/**
+	 * The half this file was written to hold the record of, now that it has moved.
+	 *
+	 * It used to read *"the section grades `ok`"*, with a comment saying the metric was at fault and that
+	 * correcting it would move a published letter. It has been corrected. `lightningShieldFellOff` reaches
+	 * `metric()` through the same "was there a shield in this log at all" guard its sibling declares, so
+	 * both of the section's primaries decline and the section is unmeasurable.
+	 *
+	 * **Asserted on `unmeasurable` and never on the letter, because the letter did not move and cannot.**
+	 * `section()` parks its grade at `ok` when no primary is decided, so `grade` reads `ok` before this
+	 * change *and* after it, for two entirely different reasons — a real `ok` earned off a drop that never
+	 * happened, and a placeholder behind a refusal. A test that gated on the letter here would have passed
+	 * against both, which is exactly the trap `metricOf`'s value of nought sets one layer down.
+	 *
+	 * **Both metrics and not just the one, and that ordering is the whole of it.** `section()` takes the
+	 * worst of its *measurable* primaries, and `lightningShieldOvercap` scored `good` on this pull — nought
+	 * milliseconds over a ceiling nobody sat at — because its own guard reads `maxStacks`, the registry's
+	 * seven, which is never nought. Refusing the drop count alone would have left that `good` alone in the
+	 * section and moved the letter from `ok` to `good`: a pull that never wore the aura, top marks.
+	 */
+	it("grades neither of the shield's two habits, rather than grading a drop that never happened", () => {
+		const card = ELEMENTAL_SPEC.score(pull);
+		const section = card.sections['lightningShield'];
+		const metric = (key: string) => section?.metrics.find((m) => m.key === key);
+
+		expect(metric('lightningShieldFellOff')?.unmeasurable, 'the drop count').toBe(true);
+		expect(metric('lightningShieldOvercap')?.unmeasurable, 'the free nought beside it').toBe(true);
+		expect(section?.unmeasurable).toBe(true);
+		// And the value both of them park at, named so the next reader of this file does not take it for a
+		// measurement: a refused metric publishes nought, which is why nothing on the page may read it.
+		expect(metric('lightningShieldFellOff')?.value).toBe(0);
+
+		// What the reader is told instead: two fewer points behind the headline, and the headline says so.
+		expect(card.judged).toEqual({ measured: 12, total: 23, unmeasurable: false });
+	});
+
+	/**
+	 * The tiles, which were the last place on the page still asserting the drop.
+	 *
+	 * The sentence and the chart were fixed together off `curve === null`; the row above them was not, and
+	 * went on printing *"1 — Fell off"* beside *"No charges to draw."* It is withheld on the same
+	 * condition now, so the three halves of the section agree.
+	 */
+	it('draws no tile row for a shield that was never there', () => {
+		const html = render(LightningShield, pull);
+		expect(html).not.toContain(t('lightningShield.kpi.fellOff'));
+		expect(html).not.toContain(t('lightningShield.kpi.overcap'));
+		expect(html).not.toContain(t('lightningShield.kpi.badSpends'));
+	});
+
+	/** And every real pull keeps its row, because the row is where those three numbers belong. */
+	it('keeps the tile row on every committed pull', () => {
+		for (const name of ['addsThenBoss', 'cleave', 'phased', 'unbroken']) {
+			const html = render(LightningShield, analyse(raw(name)) as El);
+			expect(html, name).toContain(t('lightningShield.kpi.fellOff'));
+		}
+	});
+
+	/**
+	 * The summary was leading with the fault, which is the reach of this defect nobody had measured.
+	 *
+	 * `lightningShieldFellOff` carries a takeaway card, and on this pull the card came top of *Key
+	 * improvements*: *"Keep the shield up — The shield came all the way off you — 1 in a pull where it
+	 * should be none."* A refused metric leads nothing, so the card is gone and the next real fault takes
+	 * its place. Read off the whole report rather than off the section, because the summary is a different
+	 * component and this is the only assertion in the file that reaches it.
+	 */
+	it('no longer opens the summary with a fault the pull did not commit', () => {
+		const html = renderToStaticMarkup(
+			createElement(Report, { analysis: pull as Analysis, targetChoice: 'auto', spec: ELEMENTAL_SPEC }),
+		);
+		expect(html).not.toContain('came all the way off you');
+		expect(html).toContain('Scored on 12 of 23 points.');
 	});
 
 	/** And the chart says so, which is the half the sentence used to contradict. */

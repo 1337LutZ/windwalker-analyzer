@@ -343,9 +343,19 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// different question from "was anything graded".
 	//
 	// So the value arrives through `gradedOver` and `metricOf` nulls on a graded length of zero. The
-	// `maxStacks` clause stays in front of it because the two guards say different things — no shield in
-	// the log at all, against no stretch of the pull this rule could speak about — and `maxStacks` is the
-	// game model's ceiling rather than this pull's peak, so it was never the clock question in disguise.
+	// clause in front of it stays, because the two guards say different things — no shield in the log at
+	// all, against no stretch of the pull this rule could speak about.
+	//
+	// **That front guard used to read `maxStacks > 0`, and it could not fire.** `maxStacks` is
+	// `LIGHTNING_SHIELD.maxStacks ?? 0` off the spell registry, so it is seven on every pull ever
+	// analysed whether or not the buff landed — the game model's ceiling, not this pull's peak. The one
+	// state it was written to catch is therefore the one state it never caught: a log with no Lightning
+	// Shield in it at all reached this metric with `overcapMs` of nought over a full graded clock and
+	// scored `good`, the best mark on the card, for never having worn the aura. `points` is the field
+	// that actually witnesses the buff — `auraLevels` emits a stretch only at level one or above, so an
+	// empty array is exactly "never up" — and it is the same array `resourceCurveFromPoints` turns into
+	// the curve the section's chart and its plain sentence both key off. One reading of the log behind
+	// all three.
 	//
 	// `gradedMs` is `unionMs(gradedSpans)`, published by the audit next to the array the overcap was
 	// measured inside. Deriving it here from `aoeWindows` and `durationMs` was considered and rejected: it
@@ -354,11 +364,37 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// inference is that a guard reconstructed at the reader is a guard that can drift out of step with the
 	// thing it guards. `bandedClocks.test.ts` is where the empty-clock pull is built and the refusal
 	// asserted, since no committed fixture has that shape.
+	const woreTheShield = lightningShield.points.length > 0;
 	const lightningShieldOvercap = metric(
 		'lightningShieldOvercap',
-		gradedOver(lightningShield.maxStacks > 0 ? lightningShield.overcapMs : null, lightningShield.gradedMs),
+		gradedOver(woreTheShield ? lightningShield.overcapMs : null, lightningShield.gradedMs),
 	);
-	const lightningShieldFellOff = metric('lightningShieldFellOff', lightningShield.fellOff);
+	/**
+	 * How many times the shield came all the way off — **and nothing at all on a pull that never put it
+	 * on**, which is what this line was saying before.
+	 *
+	 * `fellOff` is `downWindows.length`, the count of stretches the shield was *down*. The name is a
+	 * reading of that count and not the count itself, and the two part company on exactly one pull: a log
+	 * with no Lightning Shield in it has one down-stretch, the whole fight, so the audit publishes one and
+	 * this metric graded it `ok` — a shield that came off once. It never came off. It was never on.
+	 *
+	 * **Neither number was available to say instead.** Nought is worse than one here: it is `good`, and it
+	 * would congratulate the pull for a shield it never wore. The instrument does not apply, so the answer
+	 * is the one this file already has a shape for — refuse, leave `overallOf`'s denominator, and let the
+	 * section say in words what happened. `LightningShield.tsx` has printed that sentence since the copy
+	 * half of this defect was fixed; until now it printed it over an `ok`.
+	 *
+	 * **Refused beside its sibling and not alone, and that is load-bearing rather than tidy.** `metricOf`
+	 * parks a refused metric at value nought and grade `ok`, and `section()` takes the worst of the
+	 * *measurable* primaries — so refusing this one on its own would have handed the whole section
+	 * `lightningShieldOvercap`'s free `good` and moved the letter the wrong way. The two guards are the
+	 * same reading of the same array for that reason.
+	 *
+	 * A bare number and not a `Measured`: there is no sample floor to want here. One drop is a habit worth
+	 * naming and the metric grades `ok` at exactly one, which is the point of the band. What was missing
+	 * was never a floor — it was the question of whether there was anything to count.
+	 */
+	const lightningShieldFellOff = metric('lightningShieldFellOff', woreTheShield ? lightningShield.fellOff : null);
 
 	/**
 	 * The pool's two faults, and both of them are omissions — the player is charged for *not* pressing
