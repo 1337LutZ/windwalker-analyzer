@@ -77,13 +77,29 @@ describe('a real Windwalker pull, audited from raw events', () => {
 	 *     past the last hit the contact clock ends at. Crediting it credits time the denominator does not
 	 *     contain, which is the same one-global-wide defect the Elemental's Flame Shock tile hit at 125ms.
 	 *
-	 * So 88.55 counts every millisecond of the pull at most once and only where the player had something
-	 * to hit. The band is unmoved — `gcdUtilisation` is `good` at 85 — so nothing about this pull's grade
-	 * changes.
+	 * So 88.55 counted every millisecond of the pull at most once and only where the player had something
+	 * to hit. What it did not count was two of them.
+	 *
+	 * **89.60 since a named press could state what it costs, and this pull is the plainest case there
+	 * is.** The monk opens with Legacy of the White Tiger and Legacy of the Emperor, both inside contact,
+	 * both a full 1 000ms Monk global (`SpellCooldowns.StartRecoveryTime` for 116781 and 115921, joined
+	 * on `SpellID` in the simulator's `wowsims.db`) — and both occupied *nothing*, because neither is an
+	 * `Ability` and the GCD walk skipped what the registry could not answer for. Two seconds of a
+	 * 189.6-second contact clock is 1.05 points, and that is the entire move: `gcdSlots` is unchanged at
+	 * 189, `effectiveGcd` is unchanged at 1 000, and the denominator did not move at all.
+	 *
+	 * The pull's other unmodelled presses stay free and stay free on evidence: two Rolls, which read
+	 * `StartRecoveryTime` 0, and 197 melee swings, which WarcraftLogs writes as `cast` events under id 1
+	 * and which have no button behind them. Both are declared `0` in the Windwalker's `EXTRA_GLOBALS`
+	 * rather than left to a default — the melee entry especially, since a wrong answer there would price
+	 * a Windwalker's autoattacks as 197 globals.
+	 *
+	 * The band is unmoved through both changes — `gcdUtilisation` is `good` at 85 — so nothing about this
+	 * pull's grade changes.
 	 */
 	it('prices the globals off the log rather than off the spec constant', () => {
 		expect(a.cpm.gcdSlots).toBe(189);
-		expect(+a.cpm.gcdUtilisationPct.toFixed(2)).toBe(88.55);
+		expect(+a.cpm.gcdUtilisationPct.toFixed(2)).toBe(89.6);
 	});
 
 	it('reads the brew bank through the shared stack walker', () => {

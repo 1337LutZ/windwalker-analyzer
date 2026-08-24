@@ -1294,11 +1294,16 @@ const BLOOD_FURY = registry.aura('blood-fury');
  *
  * The rest is a knowing omission and used to be described as though it were the same thing. This
  * comment claimed everything below was "off-GCD utility"; the logs say otherwise. Lightning Shield
- * (324), Ghost Wolf (2645), Bloodlust (2825), Healing Stream Totem (5394), Healing Surge (8004),
- * Thunderstorm (51490), Earthgrab Totem (51485), Chain Heal (1064), Healing Rain (73920), Healing
- * Tide Totem (108280), Totemic Projection (108287) and Purge (370) all occupy a global in game. **They
- * are off-*rotation* globals, not off-GCD ones, and this report knowingly leaves them unpriced.** Only
- * Shamanistic Rage (30823) is genuinely off the global.
+ * (324), Ghost Wolf (2645), Healing Stream Totem (5394), Healing Surge (8004), Thunderstorm (51490),
+ * Earthgrab Totem (51485), Chain Heal (1064), Healing Rain (73920), Healing Tide Totem (108280) and
+ * Purge (370) all occupy a global in game. **They are off-*rotation* globals, not off-GCD ones, and
+ * this report used to leave them unpriced — `EXTRA_GLOBALS` below is where that decision was reversed
+ * and where the reversal is argued.**
+ *
+ * **Three of them are genuinely off the global and this paragraph named only one.** It said "only
+ * Shamanistic Rage (30823)", and `SpellCooldowns.StartRecoveryTime` says otherwise: Bloodlust (2825)
+ * and Totemic Projection (108287) read **0** there alongside it. Both were in the list of twelve above
+ * as globals the report owed a price to, and both owe nothing. The full census is on `EXTRA_GLOBALS`.
  *
  * Purge is the twelfth and arrived with `addsThenBoss.json`; the eleven the deltas below were measured
  * against are the eleven named before it.
@@ -1323,16 +1328,43 @@ const BLOOD_FURY = registry.aura('blood-fury');
  * old arithmetic; what pricing these eleven would do to the figure now has not been measured, and it
  * should be re-derived rather than reasoned about from these numbers if the question is reopened.
  *
- * What survives is the reason that was never about headroom: these are off-**rotation** globals. Pricing
- * them makes the figure answer "was this player busy" when what the section asks is "of the globals the
- * rotation wanted, how many did you fill" — and a Chain Heal cast through a transition is a global the
- * rotation did not want. The clock question that used to be deferred here (plan step 44) is answered;
- * this one is a judgement about what the metric means, and it keeps them named and unpriced.
+ * **The last surviving argument for leaving them unpriced is retired too, and it is worth writing out
+ * because it was not a bad one.** It ran: these are off-**rotation** globals, so pricing them makes the
+ * figure answer "was this player busy" when what the section asks is "of the globals the rotation
+ * wanted, how many did you fill" — and a Chain Heal cast through a transition is a global the rotation
+ * did not want.
  *
- * Unpriced is no longer silent, which is the other half of the decision: `unmodelledPresses` counts
- * every press landing here, `pulls.test.ts` pins the count on all four fixtures — 25, 6, 11 and 3 — and
- * `fixtureCoverage.test.ts` fails if a cast id shows up in a fixture that is neither modelled nor
- * named below. That is what was missing when Chain Lightning went unmodelled for 53 tests.
+ * What that reasoning does not account for is that leaving the press unpriced does not remove it from
+ * the question. The denominator is the player's own contact clock, so the second the Chain Heal was
+ * cast in is in it either way; the only thing the omission changed was the numerator, and a numerator
+ * that skips the press does not say "this global was spent badly" — it says **the player was standing
+ * there doing nothing**. That is a different claim and it is false. This report already has the
+ * machinery for the first claim and it is not silence: `cpm.wastedGcds` counts a press that bought
+ * nothing and `productiveMs` subtracts it in the open, a global at a time. Occupancy measures
+ * occupation; productivity is a deduction from it. Merging the two by never counting the press made the
+ * deduction invisible and got the arithmetic wrong in the bargain.
+ *
+ * **The honest limitation, stated rather than glossed:** an off-rotation press is now counted as
+ * occupying its global and is *not* counted in `wastedGcds`, because `wastedGcds` comes from this
+ * spec's own audit and the audit grades the ladder's buttons. So the figure credits a Chain Heal at
+ * full value where it would credit a clipped Flame Shock at nothing. Closing that would mean either
+ * modelling these as `Ability`s or teaching the audit about them, and both are larger changes than the
+ * rule that forced this one. It errs upward for a shaman who healed a lot *in contact*, and how far is
+ * measurable rather than feared: on the four committed pulls `gcdUtilisationPct` moves **86.89 → 89.18
+ * on `cleave` (+1.86), 90.80 → 92.87 on `unbroken` (+0.93), 82.90 → 83.38 on `addsThenBoss` (+0.48)
+ * and 94.08 → 94.44 on `phased` (+0.37)**. `phased` is the smallest despite having by far the most
+ * newly priced presses — twenty-three against `cleave`'s five — because twenty-two of them were cast
+ * while the boss was submerged and `occupiedMs` clips those out of both halves. All four keep their
+ * `good` grade (the band starts at 80), as do every section grade and every overall grade on all eight
+ * of the two specs' raw pulls: the figure moves and no letter does.
+ *
+ * Priced is not the same as graded, which is the other half of the decision: `unmodelledPresses` still
+ * counts every press landing here, `pulls.test.ts` pins the count on all four fixtures — 25, 6, 11 and
+ * 3 — and `fixtureCoverage.test.ts` fails if a cast id shows up in a fixture that is neither modelled
+ * nor named below. On top of that it now fails if a named id a fixture *presses* carries no entry in
+ * `EXTRA_GLOBALS`, so the next Purge cannot arrive priced at nothing by default. That is what was
+ * missing when Chain Lightning went unmodelled for 53 tests, and the price half is what was missing
+ * afterwards.
  */
 const EXTRA_NAMES: Record<number, string> = {
 	1: 'Melee',
@@ -1371,15 +1403,15 @@ const EXTRA_NAMES: Record<number, string> = {
 	118350: 'Fire Elemental: Empower',
 	118345: 'Earth Elemental: Pulverize',
 	114206: 'Skull Banner',
-	// The off-rotation presses, declared rather than left to the spell map to name. Every one of them
-	// except Shamanistic Rage takes a global — see the note above for why they are named and not
-	// priced. Listing them is what lets `fixtureCoverage.test.ts` tell "known and unpriced" apart from
+	// The off-rotation presses, declared rather than left to the spell map to name. Most of them take a
+	// global — Shamanistic Rage, Bloodlust and Totemic Projection are the three that do not — and every
+	// one of them is priced in `EXTRA_GLOBALS` below, which is where the per-id `StartRecoveryTime`
+	// census lives. Listing them here is what lets `fixtureCoverage.test.ts` tell "known" apart from
 	// "forgotten", which is the distinction that was missing when Chain Lightning was neither.
 	// Purge, one press on `addsThenBoss.json` and the only cast id that fixture brought in that nothing
-	// here had a name for. It takes a global like the rest of this block, and it is off-rotation for the
-	// same reason Chain Heal is: `ui/shaman/elemental/apls/*.apl.json` never asks for it, so pricing it
-	// would make `gcdUtilisationPct` answer "were you busy" instead of "did you fill the globals the
-	// rotation wanted". Named rather than modelled, which is what keeps it out of `#370`.
+	// here had a name for. It takes a global like the rest of this block, and it is off-rotation because
+	// `ui/shaman/elemental/apls/*.apl.json` never asks for it — named rather than modelled, which is what
+	// keeps it out of `#370` and off the ladder while still costing the second it costs.
 	370: 'Purge',
 	1064: 'Chain Heal',
 	2645: 'Ghost Wolf',
@@ -1390,8 +1422,80 @@ const EXTRA_NAMES: Record<number, string> = {
 	73920: 'Healing Rain',
 	108280: 'Healing Tide Totem',
 	108287: 'Totemic Projection',
-	// The one press here that really is off the global.
+	// One of the three presses here that really are off the global — the other two are Bloodlust and
+	// Totemic Projection above, both `StartRecoveryTime` 0. This line used to claim it was the only one.
 	30823: 'Shamanistic Rage',
+};
+
+/**
+ * What one press of an unmodelled id costs this shaman, as a fraction of a caster's global.
+ *
+ * **A global spent while the player was in contact has to be measured, whether or not the rotation
+ * asked for it.** Nothing here is on the priority ladder and nothing here is graded; what changed is
+ * that a press the ladder does not want is no longer priced at *nothing*. `EXTRA_NAMES` above carries
+ * the reversal of the decision that used to leave these unpriced, `analyseCore`'s
+ * `SpecConfig.extraGlobals` carries the argument for the shape, and this is the census behind the
+ * numbers.
+ *
+ * Every figure is `SpellCooldowns.StartRecoveryTime`, joined on `SpellID` (not `ID`, which is the
+ * table's own key and joins to nothing), out of the simulator's `tools/database/wowsims.db`. The
+ * denominator is **Lightning Bolt (403), `StartRecoveryTime` 1500** — this spec's filler and the value
+ * Chain Lightning (421), Flame Shock (8050) and Lava Burst (51505) all read.
+ *
+ *   1.0    370 Purge                1500
+ *   1.0   1064 Chain Heal           1500    hard cast; occupies its measured bar, which is longer
+ *   1.0   2645 Ghost Wolf           1500
+ *   1.0   8004 Healing Surge        1500    hard cast
+ *   1.0  73920 Healing Rain         1500    hard cast
+ *   1.0    324 Lightning Shield     1500
+ *   1.0  51490 Thunderstorm         1500
+ *   2/3   5394 Healing Stream Totem 1000    a totem's global, not a caster's
+ *   2/3  51485 Earthgrab Totem      1000
+ *   2/3 108280 Healing Tide Totem   1000
+ *   0     2825 Bloodlust               0
+ *   0   108287 Totemic Projection      0
+ *   0    30823 Shamanistic Rage        0
+ *
+ * **The three totems are the entry worth reading twice, and the fraction under-prices them.** A totem
+ * triggers a 1.0s global rather than the caster's 1.5s, so the fraction is 2/3 — and the engine
+ * multiplies that by the pull's *measured* `effectiveGcd`, which is 1038–1138ms on these four pulls
+ * because this shaman is hasted. So a totem is priced at 692–759ms where the game charges a flat 1000,
+ * because a totem's global is the one thing on this list haste does not shorten. The alternative is a
+ * second unit — a duration for the ids whose global does not scale, sitting beside a fraction for the
+ * ids whose does — and that is not worth two shapes for **six presses**: `108280`×2 on
+ * `addsThenBoss`, `108280`×1 and `51485`×1 on `cleave`, `5394`×1 on `phased` and `108280`×1 on
+ * `unbroken` is every totem laid inside contact across the whole committed set. The total
+ * under-pricing is **1.5
+ * seconds** spread over four pulls whose contact clocks run 182 to 552 seconds — under a hundredth of
+ * a point on any of them — and it errs downward, the direction `analyseCore`'s occupancy figure is
+ * documented to prefer.
+ *
+ * **The three hard casts need no special handling and get none.** `analyseCore` prices a press at
+ * `max(fraction × effectiveGcd, measured cast bar)`, and all three log a `begincast`: Chain Heal
+ * measures 1456–1913ms across its fifteen presses on `phased`, Healing Rain 1166–1519ms, Healing Surge
+ * 883ms. The first two are longer than a global and occupy their bar; the third is shorter and occupies
+ * a global. That is exactly what the same expression already did for Lava Burst.
+ *
+ * **Melee (1) is named above and absent here, unlike on the Windwalker, and that is a reading rather
+ * than an oversight.** No Elemental fixture logs one `cast` of id 1 from the audited actor — a caster
+ * in caster range never swings — so the guard has nothing to ask a price for. The Windwalker declares
+ * it because that spec logs 918 melee casts across its four pulls and a wrong answer there would price
+ * autoattacks as globals.
+ */
+const EXTRA_GLOBALS: Record<number, number> = {
+	370: 1,
+	1064: 1,
+	2645: 1,
+	8004: 1,
+	73920: 1,
+	324: 1,
+	51490: 1,
+	5394: 2 / 3,
+	51485: 2 / 3,
+	108280: 2 / 3,
+	2825: 0,
+	108287: 0,
+	30823: 0,
 };
 
 // ------------------------------------------------------------------ settings
@@ -4686,6 +4790,7 @@ export const ELEMENTAL_SPEC: SpecConfig = {
 	registry,
 	gcdMs: GCD_MS,
 	extraNames: EXTRA_NAMES,
+	extraGlobals: EXTRA_GLOBALS,
 	// The Elemental ladder reads no resource bar for its decisions — the rotation is purely cooldown-
 	// and proc-driven — but the spec's *pool* is mana, which the timeline draws so a reader can see the
 	// bar refill beside the presses. A pool, not points: mana refills on a clock and is never spent by

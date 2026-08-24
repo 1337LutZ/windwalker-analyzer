@@ -484,13 +484,22 @@ describe('a multi-target pull', () => {
 	 * intersected with `contact` cannot cover more of the pull than `contact` does — and
 	 * `lib/analysis/__tests__/gcdUtilisation.test.ts` demonstrates that by forcing the numerator far past
 	 * the denominator rather than by observing that three pulls happen to land under it.
+	 *
+	 * **87.32 became 89.18 when this test's own title stopped being a half-truth.** "Every global the
+	 * player actually spent" excluded eleven presses, because a named id resolved to no `Ability` and the
+	 * GCD walk skipped what it could not look up. Five of the eleven cost this shaman a global and all
+	 * five were pressed in contact — two Ghost Wolves, a Lightning Shield, a Healing Tide Totem and an
+	 * Earthgrab Totem — so 1.86 points were being reported as time the player stood idle. The other six
+	 * are four Totemic Projections and two Shamanistic Rages, `StartRecoveryTime` 0 in the client data
+	 * and genuinely free. `unmodelledPresses` still counts all eleven and the count below is unchanged:
+	 * priced is not the same as modelled, and neither is the same as graded.
 	 */
 	it('prices every global the player actually spent', () => {
 		// 86.89 and three wasted globals until the snapshot rule cleared this pull's refresh at 29 777,
 		// which put a dot 42.7% stronger per millisecond up and is the press the list asks for. Two
 		// wasted globals left: the refresh at 57 499, which snapshotted 23.3% weaker, and one Searing
-		// Totem pressed over a healthy one.
-		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(87.32);
+		// Totem pressed over a healthy one. Then 87.32 → 89.18 for the five off-rotation globals above.
+		expect(+el.cpm.gcdUtilisationPct.toFixed(2)).toBe(89.18);
 		expect(+el.cpm.activePct.toFixed(2)).toBe(99.37);
 		expect(el.cpm.onGcdCasts).toBe(204);
 		expect(el.cpm.offGcdCasts).toBe(27);
