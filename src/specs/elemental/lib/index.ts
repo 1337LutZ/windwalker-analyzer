@@ -549,6 +549,59 @@ const ABILITIES: Ability[] = [
 		gate: 'conditional',
 	},
 	{
+		/**
+		 * The third shock, declared so a press of it is not priced at zero.
+		 *
+		 * **Read out of the simulator rather than assumed.** `sim/shaman/shocks.go:112` registers it as
+		 * `newShockSpellConfig(8056, core.SpellSchoolFrost, 21.1, shockTimer, 0.50999999046)`, and that
+		 * shared constructor at `:14-40` gives every shock the same three things: `GCD: core.GCDDefault`
+		 * with **no `CastTime`**, so this is an instant press and carries no `castTimeMs`;
+		 * `ManaCost: { BaseCostPercent: baseCostPercent }`, 21.1% here against Earth Shock's 14.4% and
+		 * Flame Shock's 11.9%; and `CD: { Timer: shockTimer, Duration: time.Second * 6 }`. `:120-124` adds
+		 * the single-target payload — `CalcAndDealDamage` on one unit, `ThreatMultiplier *= 2` — so it fans
+		 * out to nothing. `assets/database/db.json`'s `spellIcons` names 8056 "Frost Shock" with an icon,
+		 * which is the second source and agrees.
+		 *
+		 * **No `cooldownMs`, and that is consistency rather than an omission.** `registerShocks` at
+		 * `:127-132` builds **one** `shockTimer` and hands the same pointer to all three shocks, so the six
+		 * seconds is a lockout the three share and not a clock this button owns. Neither Earth Shock nor
+		 * Flame Shock declares it either — both carry it in prose on the entries above — and a number here
+		 * would say the opposite of what the sim does: `casts.ts:270` prints `cooldownMs` in the cast
+		 * table's CD column for any ability that declares one, so a reader would be told this button was
+		 * ready six seconds after *its own* last press when what actually gates it is the most recent press
+		 * of any of the three. `gate: 'conditional'` for the same reason the other two are.
+		 *
+		 * **It appears in no committed fixture: zero events of 8056 on all four pulls.** Stated rather than
+		 * dressed up, and it is the reason two things below are refused.
+		 *
+		 * **Why declare it anyway.** The same argument Magma Totem's entry makes and Chain Lightning proved:
+		 * an undeclared cast id is not merely unnamed. `analyseCore.ts:629-630` asks `abilityByCastId` and
+		 * `continue`s on `undefined`, so the press never enters `onGcdStarts`, occupies **zero** milliseconds
+		 * and deflates `gcdUtilisationPct` — a graded metric — for the one player who presses it. That is
+		 * true with no fixture to check it against.
+		 *
+		 * **No `targeting.aimed`, and this is the refusal with a measurement behind it.** The flag is
+		 * *earned* — the sim really does put this on one unit, and the Elemental single-target sweep found
+		 * nine ids reaching exactly one enemy across 1 246 timestamps. But declaring it here would not name
+		 * a button; it would flip the whole spec. `analyseCore.ts:586-588` publishes `spawns` only when the
+		 * sweep over `targeting.aimed` finds **something**, and the Elemental declares none today — so the
+		 * first declaration anywhere in this registry turns `spawns` on for all four committed pulls, whose
+		 * aimed set would then be melee plus one button nobody pressed. `analyseCore.ts:572-577` says what
+		 * that produces: "a table's worth of `reach: 'both'` verdicts handed out by a spec that simply never
+		 * declared its buttons", and `lib/game/__tests__/exclusionEvidence.test.ts:187` asserts the current
+		 * state per pull (`Object.hasOwn(analyseElemental(dataset), 'spawns')` is `false` on all four). So
+		 * the flag belongs to whichever change declares the *nine* ids together and can measure what the
+		 * spawn table then says; smuggling the switch in on a button no committed pull presses would change
+		 * four published readings on evidence that is not here.
+		 */
+		key: 'frost-shock',
+		name: 'Frost Shock',
+		castIds: [8056],
+		damageIds: [8056],
+		onGcd: true,
+		gate: 'conditional',
+	},
+	{
 		key: 'searing-totem',
 		name: 'Searing Totem',
 		castIds: [3599],
@@ -661,6 +714,132 @@ const ABILITIES: Ability[] = [
 		// Lightning — so it stays named among the overloads instead of being claimed here.
 		castTimeMs: 2000,
 		gate: 'conditional',
+	},
+	{
+		/**
+		 * The AoE button that costs the most to leave undeclared, and the reason this entry exists.
+		 *
+		 * **Every other unmodelled press in this spec's history cost one global. This one costs two and a
+		 * half seconds.** `analyseCore.ts:663-673` prices an on-GCD press at
+		 * `Math.max(effectiveGcd, c.duration)` — the *measured* begincast-to-cast gap — but only after
+		 * `:629-630` has found an `Ability` for the cast id; an id `abilityByCastId` does not know never
+		 * reaches `onGcdStarts` at all. So an unmodelled instant press loses one effective global, and an
+		 * unmodelled **cast-time** press loses its whole bar. Measured on the committed pulls, the effective
+		 * global is 1 038–1 138ms while a 2 500ms-base cast lands at a median of 1 166–1 519ms (Lightning
+		 * Bolt, which shares this button's base cast time), so a press of this one is worth 1.2–1.5s of
+		 * occupied time against Magma Totem's ~1.1s. On an AoE fight where the shaman lays it every time the
+		 * ten seconds are up, that is the report punishing a player for globals it cannot see — the exact
+		 * failure `magma-totem`'s docblock above says it exists to prevent, one step worse.
+		 *
+		 * **The size of the deflation is a ratio and not a total, which is what makes it worth pinning.**
+		 * `gcdUtilisationPct` is `(occupiedMs − wastedGcds × effectiveGcd) / inContactMs`, so N presses
+		 * missing cost `N × cast / inContactMs`, and the ten-second cooldown at `earthquake.go:41` caps N at
+		 * `inContactMs / 10 000`. The pull length cancels: a shaman laying it on cooldown from the pull to
+		 * the kill loses **~1.35s / 10s ≈ 13.5 percentage points** of the metric whatever the fight's length
+		 * is. At a tenth of that rate it is ~1.4 points. For scale, `cleave`'s contact clock is 261.6s and
+		 * `addsThenBoss`'s is 553.1s, so the ceiling is 26 and 55 presses respectively and the deflation at
+		 * the ceiling is the same 13.4 points on both.
+		 *
+		 * **And there is a second contamination on the same metric, which is *not* pinned because no
+		 * committed pull can measure it.** `analyseCore.ts:637-640` builds the sample set for
+		 * `effectiveGcd` out of consecutive `onGcdStarts` entries, taking the gap only where the *earlier*
+		 * press was instant. A press that never enters that array does not merely fail to contribute a
+		 * sample — it joins the two presses either side of it into one gap, so a stretch that really held a
+		 * global and a 2.5s cast is read as a single global. That pushes the median up, toward the 1 500ms
+		 * cap `min(median(gaps), spec.gcdMs)` puts on it, and `effectiveGcd` is a term in both halves of the
+		 * fraction above. Declaring the button removes the contamination rather than correcting for it,
+		 * which is the whole reason this is a model entry and not an adjustment somewhere downstream.
+		 *
+		 * **Confirmed in the simulator, not assumed.** `sim/shaman/elemental/earthquake.go:28-64` registers
+		 * the press: `:35-37` is `CastTime: 2500 * time.Millisecond` and `GCD: core.GCDDefault`, `:39-42` is
+		 * `CD: { Duration: time.Second * 10 }` on a timer of its own, and `:31-33` is
+		 * `ManaCost: { BaseCostPercent: 70.3 }` — far and away the most expensive button this spec has,
+		 * against Lightning Bolt's and the shocks' low teens and twenties. `:60-63` applies a dot and
+		 * nothing else; the damage comes from the pulse spell at `:12-27`, which carries
+		 * `core.SpellFlagAoE`, `SpellSchoolPhysical` and `CalcAndDealAoeDamage`, and which `:53-57` fires
+		 * from `OnTick`.
+		 *
+		 * ## The two ids, and why they differ from the sim's
+		 *
+		 * **`castIds: [61882]`, `damageIds: [77478]`.** The simulator uses `ActionID{SpellID: 77478}` for
+		 * *both* halves — `:13` on the pulse and `:29` on the press — and that is a sim simplification
+		 * rather than what the game writes. The tree already carries the other half of the pair, from the
+		 * other direction: `__tests__/clearcasting.test.ts:100` transcribes `canConsumeSpells`
+		 * (`sim/shaman/talents_elemental.go:147`) and puts **61 882** in it, and a Clearcasting stack is
+		 * spent by `OnCastComplete` — a *press*. A cast id and a damage id are exactly what those two roles
+		 * want. The item database agrees from the third side and only about the second: `db.json`'s
+		 * `spellIcons` has `{id: 77478, name: "Earthquake", icon: "spell_shaman_earthquake"}` and **no entry
+		 * for 61882 at all**, which is what a table of *damage* icons would look like — 3606, Searing
+		 * Totem's damage id, is absent from it too while 3599 is present, so the map is not a witness either
+		 * way about a press.
+		 *
+		 * **None of that can be checked against a log here, and saying so is the point.** 77478 and 61882
+		 * both appear **zero** times across all four committed fixtures — `addsThenBoss`, `cleave`, `phased`
+		 * and `unbroken` — which are three single-target-to-light-cleave pulls and one add fight whose
+		 * shaman never laid one. So this declaration is argued from two sources that disagree about the
+		 * press id and a third that is silent on it, and the first real pull that presses it is the evidence
+		 * that settles it. If the log turns out to book the press under 77478 as well, the symptom is
+		 * visible rather than silent: `fixtureCoverage.test.ts` fails on 61882 having no cast behind it
+		 * only if it is *pressed*, so what the next reader should check is a damage row named "Earthquake"
+		 * with no cast row beside it — the same shape 120687 wore on Stormlash Totem.
+		 *
+		 * ## Three things this deliberately does not do
+		 *
+		 *   - **No rung on the ladder.** Whether a rotation *should* press this is a claim about the
+		 *     rotation, and it needs a list to transcribe and a pull to check it against; this has neither.
+		 *     `magma-totem`'s entry argues the general case at length and §91's five removed rungs are the
+		 *     precedent: inventing a rung for a button no committed pull presses is that mistake in reverse.
+		 *     A press is charged to whatever rung the list wanted for that global, which is the simulator's
+		 *     own answer to what the global should have been. The ledger entry is in
+		 *     `analysis/__tests__/ladderCoverage.test.ts`.
+		 *   - **No `dot`, and this one is refused by the model rather than by the evidence.** The sim gives
+		 *     it `NumberOfTicks: 10`, `TickLength: time.Second * 1` (`earthquake.go:50-51`), which would be
+		 *     a clean 10 × 1 000ms = 10 000ms `Dot`. But `:52-53` is `AffectedByCastSpeed: true` **with**
+		 *     `HasteReducesDuration: true` — haste shortens the *duration* and the tick count stays at ten.
+		 *     That is the second kind of dot, and `game/model.ts`'s `Dot.hastedTicks` says of it: "Nothing in
+		 *     this app declares one, and the distinction is not cosmetic — backing a tick count out of a
+		 *     measured cadence is only valid for the first kind, so `tickWindowAt` refuses the second rather
+		 *     than reporting a count the dot never had." Declaring `hastedTicks: false` would hand the
+		 *     refresh machinery a shape it is written to throw on, to grade a refresh nobody performs — the
+		 *     ticks are a ground effect the shaman does not reapply. And `rollsOver` has no answer at all
+		 *     without a pull to measure it on.
+		 *   - **No `targeting.establishesCount: false`.** It looks like the obvious flag for a button whose
+		 *     whole output is a fan-out, and it is not: the question was measured separately and the answer
+		 *     was no. See the plan file, step 7.
+		 *
+		 * **`gate: 'conditional'` and not `'cooldown'`, and the ten seconds is declared anyway.** Chain
+		 * Lightning's entry above makes the argument in one line and it is stronger here: what decides this
+		 * press is how many enemies are up, so a drift verdict would invent a fault out of every
+		 * single-target stretch in which holding a 70.3%-mana ground AoE was obviously right.
+		 * `cooldowns.ts:129` reads `cooldownMs` only when `gate === 'cooldown'`, so declaring it produces no
+		 * `lostCasts` row and no drift — it reaches only the cast table's CD column via `casts.ts:270`,
+		 * which is where a reader wants to see it. Lava Burst above is the precedent for the pairing.
+		 *
+		 * ## Fire Nova is not an Elemental button, and this is where that was checked
+		 *
+		 * Recorded here because this is the entry the next person reaches for when they go looking for the
+		 * shaman's other AoE press. **It is not one, for Elemental.** `shaman.FireNova` is registered in
+		 * exactly two places: `sim/shaman/enhancement/firenova.go:10`, called from
+		 * `sim/shaman/enhancement/enhancement.go:140`, and `sim/shaman/fire_elemental_spells.go:37` for the
+		 * pet. `sim/shaman/elemental/elemental.go:58-61` registers four spells — Thunderstorm, Lava Burst,
+		 * Earthquake, Lava Beam — and Fire Nova is not among them, and no other `registerFireNova` call
+		 * exists in the tree.
+		 *
+		 * The reason it keeps coming back is that **1535 is in `canConsumeSpells`** and therefore in this
+		 * spec's own `CONSUMERS` set in `__tests__/clearcasting.test.ts:100`. That mask is written on the
+		 * shared `Shaman`, so it lists every shaman spell a Clearcasting stack would discount if the spec
+		 * had it — membership there is not a statement that Elemental can press the button. The pet's own
+		 * Fire Nova is already named, correctly and separately, as `117588: 'Fire Elemental: Fire Nova'` in
+		 * `EXTRA_NAMES` below.
+		 */
+		key: 'earthquake',
+		name: 'Earthquake',
+		castIds: [61_882],
+		damageIds: [77_478],
+		onGcd: true,
+		castTimeMs: 2500,
+		gate: 'conditional',
+		cooldownMs: 10_000,
 	},
 	{
 		key: 'ascendance',
