@@ -168,16 +168,28 @@ const POINTS: Record<Grade, number> = { good: 1, ok: 0.5, bad: 0 };
  *
  * `overall()` renormalises over the metrics it could measure, which is the right arithmetic and has a
  * consequence the report has to admit to: the grade is over the surviving weight, not over the spec.
- * A wholly band-3+ Elemental pull leaves 7 of 22 points judgeable, and the survivors are the weight-1
- * habit metrics — nothing the spec is actually about. A letter over that is a claim about a third of
- * the rotation wearing the clothes of a claim about the pull.
+ * A wholly band-3+ Elemental pull leaves only the weight-1 habit metrics judgeable — nothing the spec
+ * is actually about. A letter over that is a claim about a corner of the rotation wearing the clothes
+ * of a claim about the pull.
  *
  * Half is the line because the argument for it is the only one that does not need a distribution to
  * justify: past it the verdict is drawn from a minority of what the spec weighs, and a minority
- * reading should not be printed as a whole-pull one. The three committed Elemental fixtures measure 15
- * of 22, 13 of 22 and 13 of 22 — 68%, 59% and 59% — so every real pull we hold keeps its grade, and the
- * hypothetical the mechanism exists for (32%) loses it. A floor at 40% would have caught nothing; one
- * at 70% would refuse to grade `cleave`, which is the pull the whole exercise started from.
+ * reading should not be printed as a whole-pull one.
+ *
+ * **No fixture count is quoted here, and that is the correction rather than an omission.** This block
+ * used to carry three of them — "15 of 22, 13 of 22 and 13 of 22" — and bracket the floor with them:
+ * 40% would catch nothing, 70% would refuse `cleave`. Every one of those numbers has since moved, and
+ * the bracket did not survive the move. A fourth pull landed, `fireElementalHasteUptime` was priced,
+ * and the banded clocks were cut; all four committed pulls now judge the *same* share of the same
+ * total, so there is no longer a spread for a bracket to be drawn across — `cleave` is not the pull
+ * that would be lost first, because all four would be lost together, and no pull we hold distinguishes
+ * this floor from most of the range beneath it.
+ *
+ * What survives is the pair of inequalities rather than the arithmetic: every committed pull is above
+ * the line, and every band-3+ reading of one is well below it — which is the whole of what the floor
+ * was chosen to do. `specs/elemental/__fixtures__/bands.test.ts` asserts both, per pull and per
+ * reading, and names the differing sets behind the equal counts. That is where a number belongs:
+ * somewhere that goes red when it drifts, rather than in a comment that has now drifted twice.
  *
  * Read `>=`: exactly half is enough. A tie should judge rather than refuse, the same way the grade
  * bands are inclusive at their edges.
