@@ -167,7 +167,20 @@ const SWEEP = rendered();
  * the locale file leaves this list stale in both directions and both are reds.
  */
 const UNREACHED: string[] = [
-	'brew.verdict_bad_other',
+	// `brew.verdict_bad_other` was here and has been read. `idle.json` reaches it — four brews spent
+	// averaging exactly 8.0 of 10, `brewStacks` grading `bad`, and `brewShortUses` too thin a sample to
+	// grade — so a reader sees *"4 brews spent, averaging only 8 of 10 stacks."* and nothing else about
+	// the presses.
+	//
+	// Read, and it says the right thing, which is not something the arm's own neighbours could take for
+	// granted: `BrewBankTimeline.tsx` carries two long comments about this exact sentence going out over
+	// the wrong number. It used to be selected by the section's *letter*, which is the worst of three
+	// metrics — so "averaging only 10 of 10 stacks" was reachable, and `verdict_bad_other` was the arm it
+	// came out of. `meanGrade` fixed that by keying the fall-through on `brewStacks`' own line, and this
+	// pull is the first committed evidence that the fix lands: the mean really is the fault here, 8.0
+	// against a cap of 10 over four presses, and the "only" is earned. The clause that would have named
+	// the short presses instead is silent because it *cannot* be read at this sample size, which is the
+	// state `faulted === null` exists for.
 	'brew.verdict_good_one',
 	'brew.verdict_good_other',
 	'brew.verdict_none',

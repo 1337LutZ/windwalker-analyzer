@@ -410,7 +410,16 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 	// Rune of Re-Origination, and the one row `db.json` cannot source: see the docblock. Sourced from
 	// `game/shared.ts` for the same reason the row above is — `windwalker/lib/view/rotationFlow.ts` asks
 	// whether the monk owned it before it will warn that they did not.
-	['re-origination', [...SHARED_ITEM_SOURCES['re-origination']], ['windwalker/dataset-ironJuggernaut.json']],
+	[
+		're-origination',
+		[...SHARED_ITEM_SOURCES['re-origination']],
+		[
+			'windwalker/dataset-ironJuggernaut.json',
+			'windwalker/idle.json',
+			'windwalker/sections.json',
+			'windwalker/uncounted.json',
+		],
+	],
 
 	// --------------------------------------------------- Siege of Orgrimmar trinkets
 	['wrath-of-darkspear', [102_310, 104_652, 104_901, 105_150, 105_399, 105_648], []],
@@ -422,7 +431,16 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 	['tenacious', [102_295, 104_463, 104_712, 104_961, 105_210, 105_459], []],
 	['ferocity', [102_302, 104_584, 104_833, 105_082, 105_331, 105_580], []],
 	['restless-agility', [102_311, 104_616, 104_865, 105_114, 105_363, 105_612], []],
-	['vicious', [102_301, 104_531, 104_780, 105_029, 105_278, 105_527], ['windwalker/dataset-ironJuggernaut.json']],
+	[
+		'vicious',
+		[102_301, 104_531, 104_780, 105_029, 105_278, 105_527],
+		[
+			'windwalker/dataset-ironJuggernaut.json',
+			'windwalker/idle.json',
+			'windwalker/sections.json',
+			'windwalker/uncounted.json',
+		],
+	],
 	[
 		'expanded-mind',
 		[102_293, 104_426, 104_675, 104_924, 105_173, 105_422],
@@ -441,12 +459,30 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 		[95_347],
 		['elemental/addsThenBoss.json', 'elemental/cleave.json', 'elemental/phased.json', 'elemental/unbroken.json'],
 	],
-	['capacitance', [95_346], ['windwalker/dataset-ironJuggernaut.json']],
+	[
+		'capacitance',
+		[95_346],
+		[
+			'windwalker/dataset-ironJuggernaut.json',
+			'windwalker/idle.json',
+			'windwalker/sections.json',
+			'windwalker/uncounted.json',
+		],
+	],
 
 	// ----------------------------------------------------------- legendary cloaks
 	['spirit-of-chi-ji', [102_247], []],
 	// Two cloaks, one effect id — `db.json` gives 146194 to both melee legendaries.
-	['flurry-of-xuen', [102_248, 102_249], ['windwalker/dataset-ironJuggernaut.json']],
+	[
+		'flurry-of-xuen',
+		[102_248, 102_249],
+		[
+			'windwalker/dataset-ironJuggernaut.json',
+			'windwalker/idle.json',
+			'windwalker/sections.json',
+			'windwalker/uncounted.json',
+		],
+	],
 	[
 		'essence-of-yulon',
 		[102_246],
@@ -458,7 +494,16 @@ const GEAR_SOURCES: Array<[key: string, sources: number[], equippedOn: string[]]
 	['rivers-song', [4446], []],
 	['swordguard-embroidery', [3730, 4118, 4894], []],
 	['lord-blastingtons', [4699], []],
-	['dancing-steel', [4444], ['windwalker/dataset-ironJuggernaut.json']],
+	[
+		'dancing-steel',
+		[4444],
+		[
+			'windwalker/dataset-ironJuggernaut.json',
+			'windwalker/idle.json',
+			'windwalker/sections.json',
+			'windwalker/uncounted.json',
+		],
+	],
 	[
 		'jade-spirit',
 		[4442],
@@ -504,7 +549,7 @@ function firedOnPlayer(dataset: FightDataset, key: string): number {
 	}).length;
 }
 
-describe('absent from every fixture, because not one of the five players wore it', () => {
+describe('absent from every fixture, because not one of the eight players wore it', () => {
 	/**
 	 * The census half: which pulls equip each effect, read off the gear and pinned.
 	 *
@@ -512,6 +557,15 @@ describe('absent from every fixture, because not one of the five players wore it
 	 * once, by name, showing what it brought — which is the moment to move that id out of the report's
 	 * second tier and into its first. That is exactly what it did for `addsThenBoss.json`: one red, three
 	 * rows named, and the trinket the ladder needed among them.
+	 *
+	 * **The three Windwalker pulls brought no new row and that is the finding, not a null result.** They
+	 * joined five existing ones — `capacitance`, `dancing-steel`, `flurry-of-xuen`, `re-origination` and
+	 * `vicious` — and not one of the twenty-five rows still reading `[]` moved. Four monks on four
+	 * encounters wore the same five shared effects as each other and none of the Throne of Thunder
+	 * trinkets, which is a fact about what a Siege-era Windwalker's kit *is* rather than about which log
+	 * happened to be fetched. `re-origination` is the one that matters downstream:
+	 * `windwalker/lib/view/rotationFlow.ts` warns a monk who does not own the Rune, and the fixture set
+	 * still offers no pull on which that warning could be rendered.
 	 */
 	it('reads the same kit out of every pull it did', () => {
 		const measured = Object.fromEntries(
@@ -544,14 +598,23 @@ describe('absent from every fixture, because not one of the five players wore it
 	/**
 	 * Not vacuous, and stated as the two totals the assertions above are silent about: a table of
 	 * thirty-nine rows all reading `[]` would satisfy both.
+	 *
+	 * Fourteen of the thirty-nine are equipped somewhere, and that number is **unchanged** across the
+	 * three pulls this sweep just grew by — which is why the count is worth keeping beside the list. The
+	 * biconditional above got three whole kits it had never seen and answered them entirely out of rows
+	 * it already had; had a Windwalker turned up in a Throne of Thunder trinket, this is the line that
+	 * would have said 15.
 	 */
-	it('really does sweep five pulls, some of it equipped and most of it not', () => {
+	it('really does sweep eight pulls, some of it equipped and most of it not', () => {
 		expect(RAW_PULLS.map(([name]) => name)).toEqual([
 			'elemental/addsThenBoss.json',
 			'elemental/cleave.json',
 			'elemental/phased.json',
 			'elemental/unbroken.json',
 			'windwalker/dataset-ironJuggernaut.json',
+			'windwalker/idle.json',
+			'windwalker/sections.json',
+			'windwalker/uncounted.json',
 		]);
 		expect(GEAR_SOURCES.length).toBe(39);
 		expect(GEAR_SOURCES.filter(([, , on]) => on.length > 0).length).toBe(14);
@@ -563,19 +626,21 @@ describe('absent from every fixture, because not one of the five players wore it
 	 * *** The glove tinker is the hole in this instrument, and it is worth a test rather than a note. ***
 	 *
 	 * Synapse Springs is enchant 4898 and it is gear like any other — but `combatantinfo` reports **one**
-	 * `permanentEnchant` per slot, and on all **five** of these pulls the hand slot reports 4433, Superior
-	 * Mastery. The tinker is a second enchant on the same item and there is nowhere in this event for it
-	 * to go. So the gear reading says "no tinker" on five pulls that all press 126734 — which means the
-	 * biconditional above is a statement about trinkets, gems, cloaks and slot enchants, and **not** a
-	 * general licence to read gear as the whole of what a player is wearing.
+	 * `permanentEnchant` per slot, and on all **eight** of these pulls the hand slot reports 4433,
+	 * Superior Mastery. The tinker is a second enchant on the same item and there is nowhere in this event
+	 * for it to go. So the gear reading says "no tinker" on eight pulls that all press 126734 — which
+	 * means the biconditional above is a statement about trinkets, gems, cloaks and slot enchants, and
+	 * **not** a general licence to read gear as the whole of what a player is wearing.
 	 *
 	 * The count read "four" and the loop below has always walked `RAW_PULLS`, which is `rawFixtures` over
-	 * both specs — four Elemental pulls and one Windwalker. So the sentence was one behind its own
-	 * assertion from the moment `addsThenBoss.json` landed; the loop is asserted against the length now
-	 * rather than counted in prose.
+	 * both specs. So the sentence was one behind its own assertion from the moment `addsThenBoss.json`
+	 * landed; the loop is asserted against the length now rather than counted in prose, which is why
+	 * three more pulls cost this test a number and not a rewrite. All three press the tinker — 3, 6 and 3
+	 * times — and all three report 4433, so the hole is a property of the event format across two specs
+	 * and six encounters rather than an accident of one guild's enchanting.
 	 */
 	it('cannot see the glove tinker, which every committed pull demonstrably had', () => {
-		expect(RAW_PULLS.length).toBe(5);
+		expect(RAW_PULLS.length).toBe(8);
 		for (const [name, dataset] of RAW_PULLS) {
 			const worn = equippedIds(dataset);
 			expect(worn.has(4898), `${name} reports the tinker`).toBe(false);

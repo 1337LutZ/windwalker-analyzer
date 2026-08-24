@@ -415,6 +415,17 @@ describe('the two series on every committed pull', () => {
 		readings(analysis).filter(([, evidence, ladder]) => evidence !== ladder);
 
 	/**
+	 * The pulls whose two series genuinely part company, in `NAMES` order — named once because two tests
+	 * below ask different questions of the same partition.
+	 *
+	 * Written out rather than derived from `disagreements`, and that is the point: the test immediately
+	 * below computes the partition and asserts it *equals* this, so this literal is the claim and not a
+	 * shortcut to it. A test that filtered its own population would be asking whether pulls that disagree
+	 * disagree.
+	 */
+	const DIVERGENT = ['cleave.json', 'strong.json', 'waves.json', 'idle.json', 'sections.json'];
+
+	/**
 	 * The population itself, because a sweep over nothing passes.
 	 *
 	 * `fixtures.ts` makes this argument for the aura guards and it applies here identically: discovery is
@@ -430,8 +441,15 @@ describe('the two series on every committed pull', () => {
 			'waves.json',
 			'weave.json',
 		]);
-		expect(RAW.map(({ name }) => name)).toEqual(['dataset-ironJuggernaut.json']);
-		expect(NAMES).toHaveLength(7);
+		// Four raw pulls now rather than one, and the three that arrived are the reason this whole file
+		// stopped being a claim about synthetic events. See the partition below.
+		expect(RAW.map(({ name }) => name)).toEqual([
+			'dataset-ironJuggernaut.json',
+			'idle.json',
+			'sections.json',
+			'uncounted.json',
+		]);
+		expect(NAMES).toHaveLength(10);
 	});
 
 	/**
@@ -462,21 +480,36 @@ describe('the two series on every committed pull', () => {
 	/**
 	 * What keeps the invariant from being one array compared with itself.
 	 *
-	 * Three of the seven genuinely disagree and four coincide, and the partition is the assertion: a
-	 * change that pointed `aplTargetPoints` back at `targetPoints` would satisfy every domination check
-	 * above and fail here, which is the regression this whole file exists to catch. The coinciding four
-	 * are asserted point for point rather than only at the sampled instants — on those pulls the two
-	 * arrays really are equal, and the weaker statement would hide a series that had merely gone flat.
+	 * Five of the ten genuinely disagree and five coincide, and the partition is the assertion: a change
+	 * that pointed `aplTargetPoints` back at `targetPoints` would satisfy every domination check above
+	 * and fail here, which is the regression this whole file exists to catch. The coinciding five are
+	 * asserted point for point rather than only at the sampled instants — on those pulls the two arrays
+	 * really are equal, and the weaker statement would hide a series that had merely gone flat.
 	 *
-	 * The three opening disagreements are quoted in full so "they differ" is a number rather than a
-	 * boolean. They are facts about three logs and will move if those logs are re-captured; that is a
+	 * **The three that arrived are the first time the exclusion had anything to remove on a raw pull, and
+	 * that is the correction worth reading rather than the count going 3 → 5.** `aplTargetCountExclude` is
+	 * one key, `rushing-jade-wind`, and `dataset-ironJuggernaut.json`'s monk never talented it — so for
+	 * every raw fixture in the tree the two series were *the same array*, and the three pulls that
+	 * disagreed were all synthetic or captured. The exclusion was being asserted against events written to
+	 * exercise it. `sections.json` presses the wind 33 times and `idle.json` 9, both into real packs, and
+	 * both now part company with the evidence series: 62 sampled instants disagree on the first and 49 on
+	 * the second, against `cleave`'s 61.
+	 *
+	 * `uncounted.json` is the control and it earns its place in the coinciding half honestly: 63 hits on
+	 * 14 separate `Living Corruption` spawns, a pull with plenty of fan-out — and **zero** Rushing Jade
+	 * Wind presses, so the exclusion has nothing to take and the two series are identical point for point.
+	 * That is the pairing the synthetic fixture at the top of this file was built to fake, arriving off a
+	 * real log.
+	 *
+	 * The five opening disagreements are quoted in full so "they differ" is a number rather than a
+	 * boolean. They are facts about five logs and will move if those logs are re-captured; that is a
 	 * finding to re-read, not a regression — and it is the read the old docstring predicted and never got
 	 * to make, because it was watching the wrong five files.
 	 */
-	it('disagrees on three of the seven and coincides on four, which is what makes the invariant a claim', () => {
+	it('disagrees on five of the ten and coincides on five, which is what makes the invariant a claim', () => {
 		expect(WW_SPEC.aplTargetCountExclude).toEqual(['rushing-jade-wind']);
 		const differ = NAMES.filter((name) => disagreements(pull(name)).length > 0);
-		expect(differ).toEqual(['cleave.json', 'strong.json', 'waves.json']);
+		expect(differ).toEqual(DIVERGENT);
 		for (const name of NAMES.filter((n) => !differ.includes(n))) {
 			const targets = pull(name).targets;
 			expect(targets?.aplCounts?.points, name).toEqual(targets?.counts.points);
@@ -485,6 +518,8 @@ describe('the two series on every committed pull', () => {
 		expect(disagreements(pull('cleave.json'))[0], 'cleave').toEqual([2475, 4, 0]);
 		expect(disagreements(pull('strong.json'))[0], 'strong').toEqual([12_492, 5, 1]);
 		expect(disagreements(pull('waves.json'))[0], 'waves').toEqual([6903, 5, 4]);
+		expect(disagreements(pull('idle.json'))[0], 'idle').toEqual([32_851, 2, 1]);
+		expect(disagreements(pull('sections.json'))[0], 'sections').toEqual([9329, 5, 3]);
 	});
 
 	/**
@@ -492,13 +527,18 @@ describe('the two series on every committed pull', () => {
 	 *
 	 * Its docblock rests on "it costs no exemption on anything in the tree", and until the re-capture that
 	 * was a statement about fixtures on which the two series were the same array — true, and empty. It is
-	 * neither now: `cleave`, `strong` and `waves` hand the two readings genuinely different numbers and
-	 * still resolve to the same band set, because `bandOf` floors at 1 and both series reach 4 on each of
-	 * them. So this is a fact about three real pulls rather than a tautology, and it is the assertion that
-	 * would go red the day a divergence is deep enough to cost a band — at which point the swap stops
-	 * being free and `bandsInPull`'s argument needs re-reading rather than its result being trusted.
+	 * neither now: five of the ten hand the two readings genuinely different numbers and still resolve to
+	 * the same band set, because `bandOf` floors at 1 and both series reach 4 on each of them. So this is
+	 * a fact about five real pulls rather than a tautology, and it is the assertion that would go red the
+	 * day a divergence is deep enough to cost a band — at which point the swap stops being free and
+	 * `bandsInPull`'s argument needs re-reading rather than its result being trusted.
+	 *
+	 * It survived the two Windwalker pulls that press the wind for real, which is the first time the claim
+	 * was asked of a divergence off a raw log. `sections` reaches 7 on the evidence series and 6 on the
+	 * ladder's, `idle` reaches 11 and 6 — the widest gap in the tree — and both still band identically,
+	 * because `bandOf` caps at 4 and both readings clear it.
 	 */
-	it('answers the same band set under either reading, on all seven', () => {
+	it('answers the same band set under either reading, on all ten', () => {
 		for (const name of NAMES) {
 			const targets = pull(name).targets;
 			expect(bandsInPull(targets), name).not.toBeNull();
@@ -517,11 +557,17 @@ describe('the two series on every committed pull', () => {
 	 * how a percentage above 100 happens. Rebuilt here from the array the chart draws and then demanded of
 	 * the published field, so the two sides of the assertion are not one number.
 	 *
-	 * Non-vacuous exactly where it matters: on the three divergent pulls the same derivation off the
+	 * Non-vacuous exactly where it matters: on the five divergent pulls the same derivation off the
 	 * *ladder's* series gives a different answer, so this cannot pass by the two series being one. The
-	 * gap is 88.3% → 74.6% on `cleave`, 13.1% → 11.8% on `strong` and 73.0% → 68.2% on `waves`, and it
-	 * moves no mode — all three land the same side of the Windwalker's 33% threshold. Latent, therefore,
-	 * rather than live; the day one of them straddles it, this is where it shows.
+	 * gap is 88.3% → 74.6% on `cleave`, 13.1% → 11.8% on `strong`, 73.0% → 68.2% on `waves`, 66.6% →
+	 * 62.3% on `sections` and 37.6% → 34.5% on `idle`.
+	 *
+	 * **It still moves no mode, and `idle.json` is the pull that shows how little room is left.** All five
+	 * land the same side of the Windwalker's 33% threshold — but the four before it clear it by 30 points
+	 * or miss it by 20, where `idle`'s ladder reading is **1.5 points** above the line against the
+	 * evidence reading's 4.6. That is the same latency the old note called latent rather than live, with a
+	 * real number under it for the first time: one more wind-covered add wave on a pull like this one and
+	 * the two series answer different whole-pull modes. This is the assertion that would say so.
 	 */
 	it('keeps the published mode share on the evidence series, which the ladder’s would now move', () => {
 		const shareOf = (points: readonly TargetCountPoint[], durationMs: number): number => {
@@ -536,14 +582,14 @@ describe('the two series on every committed pull', () => {
 			);
 			expect(shareOf(targets.counts.points, analysis.durationMs), name).toBeCloseTo(targets.multiTargetPct, 10);
 		}
-		for (const name of ['cleave.json', 'strong.json', 'waves.json']) {
+		for (const name of DIVERGENT) {
 			const analysis = pull(name);
 			expect(shareOf(analysis.targets!.aplCounts!.points, analysis.durationMs), name).not.toBeCloseTo(
 				analysis.targets!.multiTargetPct,
 				1,
 			);
 		}
-		// The three gaps, so the sentence above is executed rather than asserted in prose.
+		// The five gaps, so the sentence above is executed rather than asserted in prose.
 		expect(shareOf(pull('cleave.json').targets!.aplCounts!.points, pull('cleave.json').durationMs)).toBeCloseTo(
 			74.62,
 			1,
@@ -553,8 +599,13 @@ describe('the two series on every committed pull', () => {
 			1,
 		);
 		expect(shareOf(pull('waves.json').targets!.aplCounts!.points, pull('waves.json').durationMs)).toBeCloseTo(68.2, 1);
-		// And none of the three crosses the threshold, so no published mode is one series away from moving.
-		for (const name of ['cleave.json', 'strong.json', 'waves.json']) {
+		expect(shareOf(pull('sections.json').targets!.aplCounts!.points, pull('sections.json').durationMs)).toBeCloseTo(
+			62.3,
+			1,
+		);
+		expect(shareOf(pull('idle.json').targets!.aplCounts!.points, pull('idle.json').durationMs)).toBeCloseTo(34.49, 1);
+		// And none of the five crosses the threshold, so no published mode is one series away from moving.
+		for (const name of DIVERGENT) {
 			const analysis = pull(name);
 			const threshold = analysis.targets!.thresholdPct;
 			expect(shareOf(analysis.targets!.aplCounts!.points, analysis.durationMs) >= threshold, name).toBe(

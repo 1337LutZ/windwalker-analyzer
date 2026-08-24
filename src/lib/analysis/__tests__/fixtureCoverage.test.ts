@@ -64,11 +64,22 @@ const FIXTURE_CENSUS: Record<string, { raw: string[]; captured: string[] }> = {
 	// alone for the last fifty-seven seconds, where `cleave` interleaves adds to its last hit and
 	// `phased` and `unbroken` never leave one enemy. Measured in `__fixtures__/addsThenBoss.test.ts`.
 	elemental: { raw: ['addsThenBoss.json', 'cleave.json', 'phased.json', 'unbroken.json'], captured: [] },
-	// One raw pull, and six captures written by `__fixtures__/capture.test.ts` — `analyse()`'s output
-	// rather than its input, which is why they carry no `events` and cannot answer half of these
-	// questions.
+	// Four raw pulls and six captures. The captures are written by `__fixtures__/capture.test.ts` —
+	// `analyse()`'s output rather than its input, which is why they carry no `events` and cannot answer
+	// half of these questions.
+	//
+	// **Three of the four raw pulls arrived together, and the reason to know their names is that each
+	// answers a question `dataset-ironJuggernaut.json` could not.** That pull is one enemy for its whole
+	// length, from a monk who talented none of the three optional buttons, on a log fetched before
+	// `includeResources: true`. So `sections.json` (heroic Galakras) is the target-mode pull — seventeen
+	// segments across all five modes, and the first committed pull to press Rushing Jade Wind at all, 33
+	// times, 27 of them into three enemies or more. `idle.json` (heroic Immerseus) is the downtime pull —
+	// four `idle` segments totalling 75s of a 255s fight, which is where `activePct` reads 51.08% against
+	// the other three pulls' 83–99.7%. `uncounted.json` (heroic Malkorok) is the first committed pull from
+	// an encounter WarcraftLogs' own Siege ranking rules name, and it brings 14 separate `Living
+	// Corruption` spawns for the add-handling code to be wrong about.
 	windwalker: {
-		raw: ['dataset-ironJuggernaut.json'],
+		raw: ['dataset-ironJuggernaut.json', 'idle.json', 'sections.json', 'uncounted.json'],
 		captured: ['cleave.json', 'mixed.json', 'poor.json', 'strong.json', 'waves.json', 'weave.json'],
 	},
 };
@@ -193,10 +204,29 @@ describe('every aura a spec declares either fires in a committed fixture or is o
  *   `capacitance [137596]` is the legendary meta gem. It is also referenced by bare key in shared chart
  *   code, which `docs/conventions.md` would rather it were not.
  *
- * The Windwalker list is short on core abilities — `rushing-jade-wind`, `storm-earth-and-fire`,
- * `fortifying-brew`, `dampen-harm` — because that spec has exactly one raw-event fixture and its monk
- * talented none of them. That is a statement about the fixture set, not about the model, and it is a
- * decent argument for a second Windwalker dataset.
+ * **The Windwalker list used to be short on core abilities, and three of them have now fired.** It
+ * carried `rushing-jade-wind`, `storm-earth-and-fire`, `fortifying-brew` and `dampen-harm`, entirely
+ * because that spec had exactly one raw-event fixture and its monk talented none of them — a statement
+ * about the fixture set rather than about the model, and the docblock said so and called for a second
+ * dataset. Three landed, and the argument was right:
+ *
+ *   `rushing-jade-wind [116847]` is the one that mattered and the reason `sections.json` was fetched.
+ *   The wind is the only ability in this spec's `aplTargetCountExclude`, so every claim resting on that
+ *   exclusion — `targetSeries.aplBands.test.ts`' whole invariant, `bandsInPull`, `tigerPalmShare` — was
+ *   being asserted against pulls on which the two target series were the *same array*. That pull presses
+ *   it **33** times, 27 of them into three enemies or more, and `idle.json` presses it a further 9. The
+ *   exclusion finally has something to remove on a raw fixture, and the two series part company on both.
+ *
+ *   `fortifying-brew [120954]` is the entry that was one id away from being the 144998 mistake, and the
+ *   fixtures now settle it in the right direction. The aura's own declaration argues at length that the
+ *   number a Classic log carries is 120954 and not 115203 or the sim's 126456, verified on one anonymous
+ *   fight; `idle.json` is the first *committed* pull to write it, and writes it exactly once.
+ *
+ *   `blood-fury [33697]` is the plain kind: a racial, on the two of the four monks who are orcs — two
+ *   presses each on `idle.json` and `uncounted.json`, four aura events apiece.
+ *
+ * `dampen-harm`, `storm-earth-and-fire` and `berserking` stay on the list: four monks in, nobody has
+ * talented the first two or been a troll.
  *
  * **The item sweep (plan §51a) grew both lists, and what it took *off* them is the finding.** One entry
  * left the lists and one was re-keyed on them, and neither because anything was deleted:
@@ -274,7 +304,6 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'berserking [26297]',
 		'blades-of-renataki [138756]',
 		'blades-of-renataki-stacks [138737]',
-		'blood-fury [33697]',
 		'breath-of-hydra [138898]',
 		'chayes [139133]',
 		'cloudburst [138856]',
@@ -288,7 +317,6 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'feathers-of-fury [138759]',
 		'feathers-of-fury-stacks [138760]',
 		'ferocity [148896]',
-		'fortifying-brew [120954]',
 		'fortitude [137593]',
 		'jade-spirit [104993]',
 		'juju-madness [138938]',
@@ -297,7 +325,6 @@ const SILENT_AURAS: Record<string, string[]> = {
 		'rampage [138870]',
 		'restless-agility [146310]',
 		'rivers-song [116660]',
-		'rushing-jade-wind [116847]',
 		'spirit-of-chi-ji [146200]',
 		'storm-earth-and-fire [137639]',
 		'swordguard-embroidery [125489]',
@@ -324,11 +351,27 @@ const SILENT_AURAS: Record<string, string[]> = {
  * pull. Nothing held `cleave`, which is the pull those rungs were built for and the only one that can
  * move when they change, and nothing anywhere held `unknown`.
  *
- * `unknown` is the column to read. It is zero on all three, which is the property
- * `spec/__tests__/aplFixtures.test.ts` asserts only loosely (under 10%) and only on the Windwalker's
- * pre-analysed pulls: a ladder that answers "cannot say" is as useless as one that cries wolf, and a
- * rung quietly losing its inputs surfaces as verdicts moving into that column rather than as anything
- * failing.
+ * `unknown` is the column to read. It is the property `spec/__tests__/aplFixtures.test.ts` asserts only
+ * loosely (under 10%) and only on the Windwalker's pre-analysed pulls: a ladder that answers "cannot
+ * say" is as useless as one that cries wolf, and a rung quietly losing its inputs surfaces as verdicts
+ * moving into that column rather than as anything failing.
+ *
+ * **It was asserted `0` on every row here, and it is on the grid now — the same correction `offList`
+ * got two paragraphs down, for the same reason and with a real reading behind it this time.** Three
+ * Windwalker pulls arrived carrying `classResources`, and two of them read `unknown: 1`:
+ * `sections.json` and `uncounted.json`. In both cases it is the pull's **first graded press**, and in
+ * both cases the cause is the same and is not a defect. `affordable` answers `'unknown'` when a rung
+ * charges a resource the log has not yet reported, and a Windwalker log reports chi only on an event
+ * that moves it. `idle.json`'s first press is a Blackout Kick at 540ms carrying `chi = 2`, so chi is
+ * known from the first global and the pull reads `0`. `sections.json` opens with an Expel Harm at 934ms
+ * and does not report chi until a Tiger Palm at **6322ms**; `uncounted.json` opens with Invoke Xuen at
+ * 392ms and does not report chi until a Rising Sun Kick at **3177ms**. One press each falls in that
+ * gap, and `judge` stops the walk and says so rather than grading a press against a bar it cannot read.
+ *
+ * That is the column doing its job, which is precisely why pinning it at zero was the wrong shape: the
+ * assertion would have to be relaxed or deleted the first time a pull legitimately produced one, and a
+ * deleted assertion is how the *illegitimate* ones get in afterwards. Pinned per pull, a rung losing
+ * its inputs still shows up here as a number that moved.
  *
  * **`dataset-ironJuggernaut` is `null`, and not for the reason two lane briefs gave.** It is not that
  * the pull carries no `classResources`. `phased` and `unbroken` carry none either — the counts below
@@ -339,7 +382,10 @@ const SILENT_AURAS: Record<string, string[]> = {
  * whole audit bails. The resource counts are pinned below precisely so the wrong explanation cannot be
  * reached from them a third time.
  */
-const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped: number; offList: number } | null> = {
+const APL_VERDICTS: Record<
+	string,
+	{ presses: number; followed: number; skipped: number; offList: number; unknown: number } | null
+> = {
 	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
 	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
 	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
@@ -364,7 +410,7 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// `UNARBITRATED` in `elemental/lib/apl.ts`. The four presses that moved are two Stormlash Totems and
 	// two Fire Elementals, and they moved out of `skipped` and into `offList` without touching `followed`,
 	// which is the whole of what that declaration can do.
-	'elemental/addsThenBoss.json': { presses: 408, followed: 140, skipped: 264, offList: 4 },
+	'elemental/addsThenBoss.json': { presses: 408, followed: 140, skipped: 264, offList: 4, unknown: 0 },
 	// 81/123 until the Flame Shock rung learned that `cleave.apl.json` and `aoe.apl.json` ask a
 	// different question than `p5.apl.json` does — see `FS_CLEAVE_OVERLAP_MS` in `elemental/lib/apl.ts`
 	// — then 83/121, and 99/105 since the five rungs `aoe.apl.json` has no counterpart for were banded to
@@ -382,10 +428,27 @@ const APL_VERDICTS: Record<string, { presses: number; followed: number; skipped:
 	// they were charged from are Chain Lightnings and beams the aoe list does ask for. **Only this pull
 	// moves**: `phased` and `unbroken` never exceed one enemy, so a band-3 rung is not in their list at
 	// any press, and `addsThenBoss` wears the trinket. See `lib/spec/__tests__/aoeFlameShockGear.test.ts`.
-	'elemental/cleave.json': { presses: 204, followed: 131, skipped: 72, offList: 1 },
-	'elemental/phased.json': { presses: 159, followed: 107, skipped: 50, offList: 2 },
-	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 43, offList: 2 },
+	'elemental/cleave.json': { presses: 204, followed: 131, skipped: 72, offList: 1, unknown: 0 },
+	'elemental/phased.json': { presses: 159, followed: 107, skipped: 50, offList: 2, unknown: 0 },
+	'elemental/unbroken.json': { presses: 142, followed: 97, skipped: 43, offList: 2, unknown: 0 },
 	'windwalker/dataset-ironJuggernaut.json': null,
+	// **The three rows that show the `null` above is the setting and not the encounter.** All three carry
+	// `classResources` — 1476, 4503 and 2141 events of them below — so `energy.points` is populated, the
+	// `barsRequired` gate at `spec/apl.ts:686-687` never fires, and the Windwalker ladder audits on a raw
+	// pull for the first time. Nothing about the spec changed to make that happen; the fetch did.
+	//
+	// The follow rates are worth reading against each other rather than one at a time, because the three
+	// pulls differ in exactly the thing this ladder is worst at. `uncounted` is one enemy end to end —
+	// its only segment is `single`, 99.7% of the pull in contact — and reads **58.0%** followed.
+	// `sections` is seventeen segments across all five modes and reads **43.8%**. `idle` is 75s of
+	// downtime in a 255s pull and reads **43.4%**, against a denominator that is all 106 of its presses:
+	// a ladder walked through a phase with nothing to hit is being asked what the list wanted at a global
+	// where the list wanted a target. `analysis/segments.ts` is what a rule that cares would read, and no
+	// rule reads it yet — so the two lower numbers are the size of that gap at least as much as they are
+	// three players.
+	'windwalker/idle.json': { presses: 106, followed: 46, skipped: 57, offList: 3, unknown: 0 },
+	'windwalker/sections.json': { presses: 292, followed: 128, skipped: 154, offList: 9, unknown: 1 },
+	'windwalker/uncounted.json': { presses: 181, followed: 105, skipped: 72, offList: 3, unknown: 1 },
 };
 
 /** `[events carrying `classResources`, events in the pull]`, straight off the raw fixture. */
@@ -398,6 +461,17 @@ const RESOURCE_EVENTS: Record<string, [number, number]> = {
 	'elemental/phased.json': [0, 3454],
 	'elemental/unbroken.json': [0, 2848],
 	'windwalker/dataset-ironJuggernaut.json': [0, 3181],
+	// The three Windwalker pulls fetched with `includeResources: true`. The share is 58.5%, 66.8% and
+	// 59.5%, against the two Elemental pulls' 70.6% and 69.7% — the same order of magnitude across two
+	// specs and six encounters, which is the point: it is a property of the *capture*, as
+	// `addsThenBoss`'s entry already argued, and not of the boss. What is missing a bar on all five is
+	// overwhelmingly aura traffic rather than presses — applications, removals, refreshes and stack
+	// changes, none of which moves a bar and none of which the ladder reads a press from — so a low
+	// share here says the player had a lot of buffs moving, not that the ladder is short of readings.
+	// Measured: aura events are 66.8% to 86.9% of the barless remainder on all five.
+	'windwalker/idle.json': [1476, 2524],
+	'windwalker/sections.json': [4503, 6738],
+	'windwalker/uncounted.json': [2141, 3599],
 };
 
 describe('the priority ladder grades every committed pull the same way it did', () => {
@@ -422,15 +496,23 @@ describe('the priority ladder grades every committed pull the same way it did', 
 					followed: apl.followed,
 					skipped: apl.skipped,
 					offList: apl.offList,
+					unknown: apl.unknown,
 				}).toEqual(expected);
 				// **`offList` is on the grid rather than pinned at zero, and that is the correction rather
 				// than a loosened assertion.** It used to be asserted `0` on every row, which was true and
 				// was not a property: the Elemental ladder's bottom rung is unconditional, so nothing could
 				// reach the engine's fall-through, and the three on-GCD buttons that ladder delegates
 				// elsewhere were being charged to a filler rung instead. A column pinned at zero is exactly
-				// where that hid. `unknown` stays pinned, because an unreadable rule really is a thing no
-				// committed pull produces.
-				expect(apl.unknown, `${key} unknown`).toBe(0);
+				// where that hid.
+				//
+				// **`unknown` joined it, and it took a real reading to get there rather than an argument.**
+				// It was `expect(apl.unknown).toBe(0)` on the reasoning that an unreadable rule is a thing no
+				// committed pull produces, and two of the three Windwalker pulls fetched with resources
+				// produce exactly one each — the pull's first press, decided before the log's first chi
+				// reading. That is the column answering honestly, so it belongs on the grid where a number
+				// that moves is visible, and not behind an assertion that has to be relaxed the first time it
+				// is right. The reading is on `APL_VERDICTS` above.
+				//
 				// Every press lands in exactly one column. Asserted as the sum rather than as four numbers
 				// so a verdict moving *between* columns cannot cancel out.
 				expect(apl.followed + apl.skipped + apl.unknown + apl.offList).toBe(apl.presses.length);
