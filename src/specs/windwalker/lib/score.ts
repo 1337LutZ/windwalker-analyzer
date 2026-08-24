@@ -530,7 +530,7 @@ export const THRESHOLDS = {
 	 * `ok`, which is the correction — a pull cannot be near the ceiling on globals while throwing away
 	 * one press in eight.
 	 */
-	gcdUtilisation: { good: 85, ok: 75, higherIsBetter: true },
+	gcdUtilisation: { good: 85, ok: 75, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Share of Re-Origination procs converted into a Tigereye Brew.
@@ -542,7 +542,7 @@ export const THRESHOLDS = {
 	 * Measured against the procs the bank could have paid for. Procs that arrived with too few stacks
 	 * to be worth a brew are not chances and never count against this.
 	 */
-	snapshotRate: { good: 70, ok: 45, higherIsBetter: true },
+	snapshotRate: { good: 70, ok: 45, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * How deep into the proc the brew landed, averaged over the procs that *were* caught.
@@ -565,7 +565,7 @@ export const THRESHOLDS = {
 	 * The bands themselves are the recalibrated ones: the 25-kill sample runs 51.6% to 96.2%, so
 	 * nothing could reach the old 45% floor either.
 	 */
-	snapshotDepth: { good: 80, ok: 65, higherIsBetter: true },
+	snapshotDepth: { good: 80, ok: 65, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Rising Sun Kick's debuff uptime against engaged time.
@@ -628,7 +628,7 @@ export const THRESHOLDS = {
 	 * reading, and the split they would have keyed on is recorded here as measured and rejected rather
 	 * than left standing as an open invitation.
 	 */
-	rskUptime: { good: 95, ok: 88, higherIsBetter: true },
+	rskUptime: { good: 95, ok: 88, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Share of Tiger Palm presses that bought nothing.
@@ -657,7 +657,7 @@ export const THRESHOLDS = {
 	 * presses made outside band 1 leave the sample — and it is what turns the declaration into a
 	 * control. With the sample honest the weight no longer needs its whole-pull discount; see `WEIGHTS`.
 	 */
-	tigerPalmWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1] },
+	tigerPalmWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1], unit: 'percent' },
 
 	/**
 	 * Average stacks consumed per brew, out of the ten a full brew spends.
@@ -665,7 +665,7 @@ export const THRESHOLDS = {
 	 * This one grades tightly on purpose: brewing under a full ten is throwing away the difference,
 	 * and even weak pulls tend to land near the cap, so the interesting range is narrow.
 	 */
-	brewStacks: { good: 9.5, ok: 8.5, higherIsBetter: true },
+	brewStacks: { good: 9.5, ok: 8.5, higherIsBetter: true, unit: 'stacks' },
 
 	/**
 	 * Stacks lost to sitting at the twenty-stack cap.
@@ -674,7 +674,7 @@ export const THRESHOLDS = {
 	 * only asks that a brew goes out before the bank fills — so anything above zero is a real miss
 	 * rather than a rounding error.
 	 */
-	brewCapWaste: { good: 0, ok: 5, higherIsBetter: false },
+	brewCapWaste: { good: 0, ok: 5, higherIsBetter: false, unit: 'percent' },
 
 	/**
 	 * Brews that spent under ten with no proc expiring and fight left to spend the stacks in.
@@ -709,7 +709,7 @@ export const THRESHOLDS = {
 	 * **No band.** Banking and spending brew stacks is the same job at every target count, which is the
 	 * sentence `tigerPalmWaste` uses to say why it is the only entry in this table that carries one.
 	 */
-	brewShortUses: { good: 0, ok: 1, higherIsBetter: false },
+	brewShortUses: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
 
 	/**
 	 * Share of Touch of Karma presses that redirected nothing at all.
@@ -724,7 +724,7 @@ export const THRESHOLDS = {
 	 * third, a half. `ok` sits at a quarter, which is one empty press in four or more — a pull that
 	 * pressed it six times and mistimed one is not the same fault as a pull that mistimed one of two.
 	 */
-	karmaEmpty: { good: 0, ok: 25, higherIsBetter: false },
+	karmaEmpty: { good: 0, ok: 25, higherIsBetter: false, unit: 'percent' },
 
 	/**
 	 * How full the presses that *were* taken got, as a share of what they could have returned.
@@ -746,7 +746,7 @@ export const THRESHOLDS = {
 	 * two numbers against each other, so moving this one fails there rather than quietly loosening a
 	 * floor derived from it.
 	 */
-	karmaCapShare: { good: 75, ok: 40, higherIsBetter: true },
+	karmaCapShare: { good: 75, ok: 40, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Potions drunk, out of the two a pull allows.
@@ -772,7 +772,7 @@ export const THRESHOLDS = {
 	 * band is cut for it, because the six fixtures spread over a second and a half and a line drawn
 	 * across that would be invented precision.
 	 */
-	potionsUsed: { good: 2, ok: 1, higherIsBetter: true },
+	potionsUsed: { good: 2, ok: 1, higherIsBetter: true, unit: 'count' },
 } as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;

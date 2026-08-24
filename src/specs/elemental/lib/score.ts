@@ -590,7 +590,7 @@ export const THRESHOLDS = {
 	 * at all four counts. Filling globals is the one thing this spec is asked for identically however many
 	 * enemies are up, and the aoe list is if anything the easiest of the three to fill them from.
 	 */
-	gcdUtilisation: { good: 80, ok: 65, higherIsBetter: true },
+	gcdUtilisation: { good: 80, ok: 65, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Flame Shock's uptime on the primary target, against engaged time.
@@ -649,7 +649,7 @@ export const THRESHOLDS = {
 	 *   inside it. A band-3+ metric needs the same pair cut the other way, published from `index.ts`;
 	 *   widening `bands` here would buy nothing, because `MetricRule.bands` cuts no clock.
 	 */
-	flameShockUptime: { good: 95, ok: 85, higherIsBetter: true, bands: [1, 2] },
+	flameShockUptime: { good: 95, ok: 85, higherIsBetter: true, bands: [1, 2], unit: 'percent' },
 
 	/**
 	 * Share of Flame Shock refreshes that bought nothing.
@@ -691,7 +691,7 @@ export const THRESHOLDS = {
 	 * `MIN_GRADED_SAMPLE` rather than grading a 50% that was that one press. See the metric itself for
 	 * what each pull reads before and after.
 	 */
-	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1] },
+	flameShockWaste: { good: 10, ok: 30, higherIsBetter: false, bands: [1], unit: 'percent' },
 
 	/**
 	 * The dot's uptime on the secondary target while **two** enemies were up — the cleave preset's
@@ -732,7 +732,7 @@ export const THRESHOLDS = {
 	 * What the cut buys is that the published figure is now a reading of the rung it names, and that a pull
 	 * whose only two-target seconds fell inside an add wave says "cannot say" instead of 0%.
 	 */
-	flameShockMultiDot: { good: 85, ok: 60, higherIsBetter: true, bands: [2] },
+	flameShockMultiDot: { good: 85, ok: 60, higherIsBetter: true, bands: [2], unit: 'percent' },
 
 	/**
 	 * Share of Earth Shock presses the sim's rule wanted.
@@ -752,7 +752,7 @@ export const THRESHOLDS = {
 	 * wholly above two enemies now reads `exempt` — the rule was not asked — rather than merely arriving at
 	 * a denominator of zero, which is "the log could not say" and is a different sentence.
 	 */
-	earthShockGood: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2] },
+	earthShockGood: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2], unit: 'percent' },
 
 	/**
 	 * Searing Totem's uptime against the time it could have been up.
@@ -783,7 +783,7 @@ export const THRESHOLDS = {
 	 * was time no list had a fire-totem rung in, and the player kept the totem up through most of what was
 	 * left. Neither single-target fixture moves.
 	 */
-	searingTotemUptime: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2] },
+	searingTotemUptime: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2], unit: 'percent' },
 
 	/**
 	 * Placements made while the Fire Elemental was out.
@@ -799,7 +799,7 @@ export const THRESHOLDS = {
 	 * every target count, so the global was wasted whichever list was running — a slot fact, not a list
 	 * fact, and the same shape as `lightningShieldFellOff`. See the note at the metric.
 	 */
-	searingTotemOverlaps: { good: 0, ok: 1, higherIsBetter: false },
+	searingTotemOverlaps: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
 
 	/**
 	 * Whether the Fire Elemental was out when the pull started — 1 for yes, 0 for no.
@@ -859,7 +859,7 @@ export const THRESHOLDS = {
 	 * ends *"nothing here counts it as a mistake"* full stop, which is true of the pull and not of the
 	 * forty seconds after it. See the note in `WEIGHTS`.
 	 */
-	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true },
+	fireElementalPrepull: { good: 1, ok: 0, higherIsBetter: true, unit: 'count' },
 
 	/**
 	 * The Primal Fire Elemental's uptime inside the haste cooldown the raid brought on the pull.
@@ -961,7 +961,7 @@ export const THRESHOLDS = {
 	 * the opportunity exists identically however many enemies are up, so declining to grade it at some of
 	 * them would be silence bought with nothing.
 	 */
-	fireElementalHasteUptime: { good: 100, ok: 95, higherIsBetter: true },
+	fireElementalHasteUptime: { good: 100, ok: 95, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Share of proc-window Flame Shock refreshes caught.
@@ -998,7 +998,7 @@ export const THRESHOLDS = {
 	 * fixture that merely opens several proc windows would land exactly where this one did. Measured, with
 	 * every figure above asserted, in `__fixtures__/bands.test.ts` and `lib/__tests__/flameShockAimed.test.ts`.
 	 */
-	flameShockSnapshots: { good: 70, ok: 45, higherIsBetter: true, bands: [1] },
+	flameShockSnapshots: { good: 70, ok: 45, higherIsBetter: true, bands: [1], unit: 'percent' },
 
 	/**
 	 * Time the shield sat at the ceiling past the reader's leeway, in milliseconds.
@@ -1023,7 +1023,7 @@ export const THRESHOLDS = {
 	 * `overcapMs` itself does not move on any fixture — this clock was already cut — so `cleave` stays at
 	 * 42 157ms and `bad`. What changed is only that an empty one can no longer pass for a perfect one.
 	 */
-	lightningShieldOvercap: { good: 0, ok: 5000, higherIsBetter: false, bands: [1, 2] },
+	lightningShieldOvercap: { good: 0, ok: 5000, higherIsBetter: false, bands: [1, 2], unit: 'seconds' },
 
 	/**
 	 * How many times the shield came all the way off.
@@ -1039,7 +1039,7 @@ export const THRESHOLDS = {
 	 * as p5 does. What the target count changes is only whether the *stacks* are spendable, which is the
 	 * entry above. The resource exists identically at every count; only the rung that spends it does not.
 	 */
-	lightningShieldFellOff: { good: 0, ok: 1, higherIsBetter: false },
+	lightningShieldFellOff: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
 
 	/**
 	 * Time spent at or under 15% mana with Thunderstorm in hand, in milliseconds.
@@ -1066,7 +1066,7 @@ export const THRESHOLDS = {
 	 * Chain Lightning cost mana like anything else. The rescue is on the bar and off the global at every
 	 * count. This is the shape the module doc calls a resource rather than a rung.
 	 */
-	thunderstormMissed: { good: 0, ok: 5000, higherIsBetter: false },
+	thunderstormMissed: { good: 0, ok: 5000, higherIsBetter: false, unit: 'seconds' },
 
 	/**
 	 * Stretches at or under 70% mana with Shamanistic Rage in hand and never pressed.
@@ -1088,7 +1088,7 @@ export const THRESHOLDS = {
 	 * names no mana button of its own. It is the one press in this spec that is asked for at every count
 	 * by every list.
 	 */
-	shamanisticRageMissed: { good: 0, ok: 1, higherIsBetter: false },
+	shamanisticRageMissed: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
 } as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;

@@ -463,7 +463,14 @@ describe('the scope this rule deliberately does not declare', () => {
 	 * is on the `THRESHOLDS` entry.
 	 */
 	it('grades the full mark as an absolute and cuts the band at two seconds of the window', () => {
-		expect(THRESHOLDS.fireElementalHasteUptime).toEqual({ good: 100, ok: 95, higherIsBetter: true });
+		expect(THRESHOLDS.fireElementalHasteUptime).toEqual({
+			good: 100,
+			ok: 95,
+			higherIsBetter: true,
+			// The rule says what the number *is* as well as where its lines sit, so a scale can place it and
+			// copy can suffix it without reading the unit back out of an i18n string. See `MetricRule.unit`.
+			unit: 'percent',
+		});
 	});
 });
 

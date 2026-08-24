@@ -1164,8 +1164,27 @@
         "fireElementalHasteUptime": {
           "label": "Cover the haste cooldown",
           "fix": "The Fire Elemental was out for {{value, percent}} of your raid's haste cooldown, against {{target, percent}}. Its minute outlasts the lust's forty seconds, so a summon already standing when the lust lands covers all of it — press it last before the pull, not first after it. Do not glyph it: thirty seconds cannot cover forty, and the second elemental the glyph buys is worth less than the procs the first one gives up."
+        },
+        "snapshotDepth": {
+          "label": "Snapshot depth"
+        },
+        "karmaEmpty": {
+          "label": "Karma wasted"
+        },
+        "karmaCapShare": {
+          "label": "Karma filled"
         }
       }
+    },
+    "scorecard": {
+      "title": "Every section, scored",
+      "value_percent": "{{value, percent}}",
+      "value_seconds": "{{value, duration}}",
+      "value_stacks": "{{value, decimal}}",
+      "value_count": "{{value, integer}}",
+      "target_atLeast": "target {{value, percent}} or better",
+      "target_atMost": "target {{value, percent}} or less",
+      "unmeasured": "not measured"
     }
   },
   "priority": {

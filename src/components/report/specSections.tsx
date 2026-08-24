@@ -452,6 +452,9 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			casts: 'cpm',
 			debuff: 'debuff',
 			tigerPalm: 'tiger-palm',
+			// Added with the scorecard grid, which links every section it draws rather than only the three
+			// worst. The id was always there — `#karma` — and the map simply had no card that reached it.
+			karma: 'karma',
 			energizingBrew: 'energizing',
 			// The one card whose section is not a section. Nothing on the page argues the potion count in
 			// prose — the evidence is the potion's own row on the timeline — so that is where the reader
@@ -468,14 +471,19 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 	elemental: {
 		// The same join the Windwalker map makes, in the Elemental's own section ids. `casts` is absent
 		// on purpose: the Elemental report draws no cast-rate section of its own yet, so the gcd card
-		// has no heading to jump to and its takeaway renders without a link rather than being sent
-		// somewhere that argues a different number.
+		// has no heading to jump to and its card renders without a link rather than being sent somewhere
+		// that argues a different number.
 		anchors: {
 			flameShock: 'flame-shock',
 			earthShock: 'earth-shock',
 			searingTotem: 'searing-totem',
 			flameShockSnapshots: 'snapshots',
 			fireElemental: 'fire-elemental',
+			// Added with the scorecard grid, for the reason `karma` was on the Windwalker side: `#lightning-
+			// shield` is a section on the page and the map had no card that reached it. It is the section
+			// behind the largest graded fault on `cleave`, so a grid that could not link it would be
+			// linking everything except the thing a reader most wants to open.
+			lightningShield: 'lightning-shield',
 			mana: 'mana',
 		},
 	},
