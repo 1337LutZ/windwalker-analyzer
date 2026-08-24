@@ -1069,10 +1069,10 @@
     "takeaways": {
       "metric": {
         "snapshotRate": {
-          "label": "Catch the procs"
+          "label": "Procs caught"
         },
         "tigerPalmWaste": {
-          "label": "Casts that wasted Tiger Power"
+          "label": "Wasted casts"
         },
         "gcdUtilisation": {
           "label": "Fill the globals"
@@ -1081,49 +1081,49 @@
           "label": "Keep the kick rolling"
         },
         "brewStacks": {
-          "label": "Spend fuller brews"
+          "label": "Stacks per brew"
         },
         "brewShortUses": {
-          "label": "Wait for the tenth stack"
+          "label": "Brews spent early"
         },
         "brewCapWaste": {
           "label": "Stop overflowing the bank"
         },
         "potionsUsed": {
-          "label": "Drink both potions"
+          "label": "Potions drunk"
         },
         "flameShockUptime": {
           "label": "Keep the dot up"
         },
         "flameShockWaste": {
-          "label": "Refreshes that wasted the dot"
+          "label": "Wasted refreshes"
         },
         "flameShockMultiDot": {
           "label": "Dot the second target"
         },
         "earthShockGood": {
-          "label": "Spend the shocks right"
+          "label": "Good shocks"
         },
         "searingTotemUptime": {
           "label": "Keep the totem ticking"
         },
         "searingTotemOverlaps": {
-          "label": "Keep the summons apart"
+          "label": "Overlapping summons"
         },
         "fireElementalPrepull": {
-          "label": "Summon before the pull"
+          "label": "Pre-pull summon"
         },
         "lightningShieldOvercap": {
-          "label": "Spend the shield"
+          "label": "Time at full charge"
         },
         "lightningShieldFellOff": {
-          "label": "Keep the shield up"
+          "label": "Shield drops"
         },
         "thunderstormMissed": {
-          "label": "Press Thunderstorm when you are dry"
+          "label": "Dry without Thunderstorm"
         },
         "shamanisticRageMissed": {
-          "label": "Put Shamanistic Rage down"
+          "label": "Shamanistic Rage missed"
         },
         "fireElementalHasteUptime": {
           "label": "Cover the haste cooldown"

@@ -214,6 +214,15 @@ function target(metric: Metric, t: T): string {
  * own. A chip reading "bad" would have been the first, invented here, for a card that already says the
  * number and draws where it fell.
  *
+ * **A row's label has to suit the shape of its figure**, which is a rule about the locale rather than
+ * about this file, and it is written here because this is the only thing that reads those labels. A
+ * percentage sits happily under an instruction — "Keep the dot up", 83.9% — because the number is
+ * plainly a share of the thing being asked for. A **count** does not: "Stop overwriting Tiger Power"
+ * over "6/18" reads as a score, and six out of eighteen looks like a bad grade rather than like six
+ * presses too many. So every row whose figure is a count or a duration takes a noun that names what is
+ * being counted — "Wasted casts", "Shield drops", "Time at full charge" — and the figure is left to do
+ * the counting. Getting this wrong is invisible to every type in the tree and reads as a wrong number.
+ *
  * **A share over countable events reads as the count, and drops its target line** — see `sampled`. The
  * rest of the report counts `earthShockGood`'s presses and so does this; a percentage target under a
  * count would be the card changing units mid-row to restate the denominator it just printed.
