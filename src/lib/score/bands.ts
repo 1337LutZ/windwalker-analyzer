@@ -15,6 +15,7 @@
 // Nothing here decides *how much* of a clock to cut — that is the audit's, which already restarts its
 // clocks at every regime boundary. This is the declaration side, plus the one honest conversion.
 
+import type { Interval } from '~/lib/analysis/intervals';
 import { ALL_BANDS, type Band } from '~/lib/spec/apl';
 import type { TargetMode } from '~/lib/types';
 
@@ -68,6 +69,23 @@ export interface BandView {
 	mode: TargetMode | null;
 	/** True when the reader forced the reading rather than the counts detecting it. */
 	forced: boolean;
+	/**
+	 * The stretches of the pull this reading covers, or `null` for the whole of it.
+	 *
+	 * **This is the half `bands` alone could never express, and its absence is a defect this interface
+	 * documented for a long time before it could be fixed.** `viewBands`' own docblock states it: a mixed
+	 * pull forced to one mode *"arrives here as one band, and the four minutes that were not at that
+	 * count are graded against a list that did not apply to them"*. Narrowing the band set says which
+	 * rules apply; it does nothing to the clock they are measured over, so a reader asking to see the
+	 * single-target half of a pull still got every metric measured across all of it.
+	 *
+	 * Populated from `Analysis.segments` — the union of the segments whose mode the reader chose. `null`
+	 * on the default reading, which grades the whole pull exactly as before, and `null` on any pull whose
+	 * segments are absent (every fixture captured before they existed). **Null must never be read as "no
+	 * span applies"**: that would empty every clock at once, which is the failure direction this whole
+	 * mechanism is built to avoid, and it is the same trap `bands: null` carries.
+	 */
+	spans?: readonly Interval[] | null;
 }
 
 /**
