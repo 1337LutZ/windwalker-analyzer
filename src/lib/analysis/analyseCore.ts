@@ -275,6 +275,42 @@ export interface SpecConfig {
 	/** Names for ids the model deliberately does not carry — see the module doc in `spec/windwalker`. */
 	extraNames: Record<number, string>;
 	/**
+	 * What one press of an id the model does not carry costs, as a fraction of this spec's own global.
+	 *
+	 * **The rule this exists for: a global spent while the player was in contact must be measured.** An
+	 * id that is only *named* resolves to no `Ability`, so `abilityByCastId` returns `undefined`, so the
+	 * walk below skipped it and it occupied zero milliseconds — a player who spent a real global on it
+	 * read as one who pressed nothing. Fourteen Healing Spheres, two Tiger's Lusts, a Purge, a Ghost
+	 * Wolf and both of a monk's own Legacy buffs were being priced at nothing on committed pulls.
+	 *
+	 * **A fraction and not a duration, because the game's number is a base and the pull's is measured.**
+	 * `SpellCooldowns.StartRecoveryTime` (joined on `SpellID`, in the simulator's
+	 * `tools/database/wowsims.db`) is the global a spell triggers *before haste*, and it is a base for
+	 * that spell's class: every Windwalker button reads 1000 there and every Elemental one reads 1500,
+	 * so the same 500ms Healing Sphere is half a monk's global and a third of a caster's. Writing 500
+	 * here would be right for the monk by coincidence and wrong for the next spec, and it would ignore
+	 * haste on a spec that has any. So each spec states `StartRecoveryTime(id) / StartRecoveryTime(its
+	 * own rotational button)` and the engine multiplies that by the pull's **measured** `effectiveGcd`.
+	 *
+	 * **A sibling table rather than a richer `extraNames`, and the reason is what `extraNames` holds.**
+	 * That map is read by `nameOf` for any id a *damage* row can carry, so most of its entries are
+	 * mastery overloads, weapon procs, meta gems and pet spells — things that never appear as a `cast`
+	 * at all and have no global to state. Widening its value type would force twenty-odd passives per
+	 * spec to answer a question that does not apply to them, and the honest answer would be a zero
+	 * indistinguishable from "a real button nobody priced". This table carries an entry only where a
+	 * press exists, so its length is the length of the census. It also lets a spec price a press whose
+	 * *name* is settled elsewhere: the two Legacy buffs are named in the shared `RAID_BUFF_NAMES`
+	 * roster, and what a monk's global costs a monk is not a fact that roster could hold.
+	 *
+	 * `0` means genuinely off the global and is the right answer for most of what lands here — Roll,
+	 * Provoke, Zen Meditation, Shamanistic Rage and the melee swing all read `StartRecoveryTime` 0. It
+	 * is not a *default*, though, which is the whole of the guard: `analysis/__tests__/fixtureCoverage.test.ts`
+	 * fails on any unmodelled id a committed fixture presses that has no entry here, so the next button
+	 * cannot slip through by being silent. Absent and zero mean different things, and only one of them
+	 * is a decision.
+	 */
+	extraGlobals: Record<number, number>;
+	/**
 	 * The resource bars this spec's rotation spends, keyed by the name the audit reads them under.
 	 *
 	 * Declared in the sim's own vocabulary (`~/lib/game/resources` — its `spell.proto` `ResourceType`
@@ -616,27 +652,78 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	);
 
 	// ------------------------------------------------------------- the GCD
-	// The effective global cooldown, measured rather than taken off the spec. The start of an instant
-	// on-GCD press to the start of the next on-GCD press is exactly one GCD; a cast-time spell's gap
-	// is its cast time, so those pairs are excluded. Floored at the game's 1s minimum and capped at the
-	// spec's own GCD, so a fixed-GCD spec (Windwalker) keeps its declared value while a hasted one
-	// (Elemental) lands on what the log actually did.
-	const onGcdStarts: Array<{ start: number; instant: boolean; duration: number }> = [];
+	/**
+	 * Every press that took a global, and how much of one it took.
+	 *
+	 * **A press is here if the spec priced it, not if the spec modelled it.** It used to require an
+	 * `Ability` with `onGcd: true`, which made "did this cost a global" a side effect of "is this on the
+	 * priority ladder" — two different questions that a rotational button happens to answer the same
+	 * way. Everything else a player presses answers them differently: a monk's Legacy of the White
+	 * Tiger, a shaman's Purge, a Tiger's Lust to reach the next pack. None of those is on any ladder and
+	 * every one of them costs the player a global they cannot spend on damage, and every one of them was
+	 * priced at **zero** occupied milliseconds. `spec.extraGlobals` is where a named id states its cost
+	 * and the docblock on that field argues its shape; `0` there — Roll, Provoke, the melee swing — is a
+	 * decision and skips the press exactly as before.
+	 *
+	 * Measured rather than taken off the spec: the start of an instant full-global press to the start of
+	 * the next press is exactly one GCD. Three kinds of pair are excluded from the sample and each for
+	 * its own reason.
+	 *
+	 *   A **cast-time** spell's gap is its cast time, so a pair whose earlier press is a hard cast says
+	 *   nothing about the global. That exclusion is the original one and is unchanged.
+	 *
+	 *   A **part-global** press — `globals < 1` — is the exclusion this lane added, and it is the reason
+	 *   `globals` is carried on the row rather than resolved straight into the interval below. Healing
+	 *   Sphere costs a monk half a global (`StartRecoveryTime` 500 against Jab's 1000) and the three
+	 *   shaman totems cost two thirds of a caster's (1000 against Lightning Bolt's 1500). A press that
+	 *   frees the player again after 500ms is followed 500ms later, so counting that pair would feed the
+	 *   median a sample of half a global fourteen times over on `idle.json` and drag the estimate of the
+	 *   *standard* global down — which is what this number is for, and what `gcdSlots` and `targetTails`
+	 *   both read it as. **They occupy time and they do not vote**, which is the split the two loops
+	 *   below make: the interval loop reads every row, the sample loop reads only the full ones.
+	 *
+	 *   A pair whose *later* press is part-global is kept, and deliberately: what that gap measures is
+	 *   the **earlier** press's global, and the earlier press is a full one or the pair was already
+	 *   dropped. Excluding it would throw away a sample for a property of the wrong press.
+	 *
+	 * **The sample count goes up, and that is the second half of the fix.** A press missing from this
+	 * list did not merely cost nothing — it welded the two presses either side of it into one gap of two
+	 * globals, and that gap was fed to the median as though it were one. Both effects are corrected by
+	 * the same line, and the correction is measurable and small. Across the eight committed raw pulls the
+	 * sample count rises by 1, 3, 1, 1, 2, 5, 4 and 1 — `ele/addsThenBoss` 111 → 112, `ele/cleave`
+	 * 46 → 49, `ele/phased` 41 → 42, `ele/unbroken` 45 → 46, `ww/dataset-ironJuggernaut` 166 → 168,
+	 * `ww/idle` 105 → 110, `ww/sections` 291 → 295, `ww/uncounted` 180 → 181 — and **`effectiveGcd` does
+	 * not move on any of them**. The raw median under it moves on two, by one millisecond each and in
+	 * opposite directions (`ww/idle` 1012 → 1013, `ww/uncounted` 1008 → 1007), and both are clamped to
+	 * the Windwalker's flat 1000 before anything reads them. A median over forty-plus samples is robust
+	 * and the welded gaps were a handful, so what this bought is a better-founded number rather than a
+	 * different one. That it is small is worth knowing rather than assuming: `gcdSlots`, `aoeWindows` and
+	 * `targetTails` all divide by this, and a large move would have reached them without anyone asking.
+	 *
+	 * Floored at the game's 1s minimum and capped at the spec's own GCD, so a fixed-GCD spec
+	 * (Windwalker) keeps its declared value while a hasted one (Elemental) lands on what the log did.
+	 */
+	const onGcdStarts: Array<{ start: number; instant: boolean; duration: number; globals: number }> = [];
 	for (const e of events) {
 		if (e.sourceID !== actor.id || !isCast(e)) continue;
 		const id = abilityIdOf(e);
 		if (id === null || spec.registry.isChannelTick(id)) continue;
 		const ability = spec.registry.abilityByCastId(id);
-		if (ability === undefined || !ability.onGcd) continue;
+		// A modelled button is one global or none, which is the whole of what `onGcd` can say. An
+		// unmodelled one says how much of a global it took, and `?? 0` is not a default the guard leaves
+		// reachable — `fixtureCoverage.test.ts` fails on an unpriced press before it can be read here.
+		const globals = ability === undefined ? (spec.extraGlobals[id] ?? 0) : ability.onGcd ? 1 : 0;
+		if (globals <= 0) continue;
 		const t = e.timestamp - t0;
 		const duration = castDurations.get(`${id}:${t}`);
-		onGcdStarts.push({ start: t - (duration ?? 0), instant: duration === undefined, duration: duration ?? 0 });
+		onGcdStarts.push({ start: t - (duration ?? 0), instant: duration === undefined, duration: duration ?? 0, globals });
 	}
 	onGcdStarts.sort((a, b) => a.start - b.start);
 	const gcdGaps: number[] = [];
 	for (let i = 1; i < onGcdStarts.length; i++) {
-		if (!onGcdStarts[i - 1]!.instant) continue;
-		gcdGaps.push(onGcdStarts[i]!.start - onGcdStarts[i - 1]!.start);
+		const previous = onGcdStarts[i - 1]!;
+		if (!previous.instant || previous.globals < 1) continue;
+		gcdGaps.push(onGcdStarts[i]!.start - previous.start);
 	}
 	const effectiveGcd = gcdGaps.length > 0 ? Math.max(GCD_MIN_MS, Math.min(median(gcdGaps), spec.gcdMs)) : spec.gcdMs;
 
@@ -644,11 +731,24 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * Where each on-GCD press sat on the clock — spans, not a sum.
 	 *
 	 * Time *occupied*, which is not the same as time *used*: a press that bought nothing occupies its
-	 * global just as thoroughly as one that did. Each on-GCD press occupies one effective GCD, except a
-	 * cast-time spell, which occupies its *measured* cast length — the begincast-to-cast gap, with haste
-	 * and reaction already in it, so no base-cast-time scaling is needed — and a channel, which occupies
-	 * its real measured length instead. The deduction for a press that bought nothing happens in the
-	 * spec's audit, via `cpm.wastedGcds`.
+	 * global just as thoroughly as one that did. Each on-GCD press occupies its share of an effective
+	 * GCD — one for a modelled button and whatever `spec.extraGlobals` declared for a named one, so a
+	 * Healing Sphere occupies half of the pull's measured global rather than all of it or none of it —
+	 * except a cast-time spell, which occupies its *measured* cast length (the begincast-to-cast gap,
+	 * with haste and reaction already in it, so no base-cast-time scaling is needed), and a channel,
+	 * which occupies its real measured length instead. The deduction for a press that bought nothing
+	 * happens in the spec's audit, via `cpm.wastedGcds`.
+	 *
+	 * A press made outside the player's contact windows is *not* excluded here and must not be: it is
+	 * dropped further down, by `occupiedMs`, from numerator and denominator together. That is the
+	 * documented rule — a global spent during an intermission is neither counted as filled nor held
+	 * against the player — and it only works because both halves are clipped to one clock. It is doing
+	 * real work here: of `ele/phased`'s twenty-three newly priced presses, twenty-two are Chain Heals,
+	 * Healing Rains and a Healing Surge cast while nothing was in reach, leaving one Healing Stream
+	 * Totem inside contact and moving the pull's figure **+0.37**. `ww/idle`'s eighteen are five whole
+	 * globals inside contact and thirteen presses outside, and it moves **+3.13**. Two pulls with
+	 * comparable numbers of newly priced presses and an order of magnitude between their answers,
+	 * decided entirely by where the presses fell.
 	 *
 	 * Kept as intervals rather than summed, because the total is about to be divided by a clock and a
 	 * sum cannot be clipped to one. Two things a sum gets wrong, both of which push a share of a whole
@@ -667,7 +767,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		// arithmetic the summed version did by deducting one global per channel before adding the
 		// measured channel time back.
 		const channelMs = channelMsAt.get(c.start);
-		const ms = channelMs === undefined ? Math.max(effectiveGcd, c.duration) : channelMs;
+		const ms = channelMs === undefined ? Math.max(effectiveGcd * c.globals, c.duration) : channelMs;
 		return [c.start, c.start + ms];
 	});
 

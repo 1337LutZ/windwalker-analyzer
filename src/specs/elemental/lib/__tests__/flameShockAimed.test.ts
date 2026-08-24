@@ -427,6 +427,14 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 * `p.remainingMs !== null` — the exact predicate this change flips. Four more globals are charged, so
 	 * it reads **83.722% → 82.898%**: strictly worse.
 	 *
+	 * **83.378% since off-rotation presses were priced, and that is a second change arriving at the same
+	 * figure rather than a revision of the sentence above.** This pull presses three ids no `Ability`
+	 * claims — two Healing Tide Totems and a Purge — all three in contact, and all three used to occupy
+	 * zero milliseconds. `SpecConfig.extraGlobals` prices them now, so 0.480 points come back. The ten
+	 * charged wasted globals are untouched, which is the thing to notice: none of the three is on the
+	 * ladder and `wastedGcds` grades the ladder's buttons, so this figure moves while the count beside it
+	 * does not. The 0.824-point cost of the aimed-dot change is unaffected wherever the arithmetic starts.
+	 *
 	 * `flameShockWaste` is the one that needs stating carefully. Its *count* of wasted refreshes goes
 	 * **4 → 7** and its denominator **5 → 9**, so as a share it reads 80.000% → 77.778% — 2.2 points
 	 * *lower* on a metric where lower is better, while the fault behind it nearly doubles. It is a wash
@@ -435,7 +443,7 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	 */
 	it('charges four more globals and seven wasted refreshes instead of four', () => {
 		expect(addsThenBoss.cpm.wastedGcds).toBe(10);
-		expect(graded(addsThenBoss, 'gcdUtilisation')?.value).toBeCloseTo(82.897_795, 5);
+		expect(graded(addsThenBoss, 'gcdUtilisation')?.value).toBeCloseTo(83.377_925, 5);
 		expect(graded(addsThenBoss, 'gcdUtilisation')?.grade).toBe('good');
 		const waste = graded(addsThenBoss, 'flameShockWaste');
 		expect(waste?.value).toBeCloseTo(77.777_778, 5);

@@ -1246,7 +1246,9 @@ const NEEDS_TARGET: ReadonlySet<string> = new Set(['rising-sun-kick', 'chi-wave'
  *
  * Raid buffs are deliberately absent: `RAID_BUFF_NAMES` already carries every provider id the buff
  * section knows, so naming the Monk's own two here would be a second copy of a number that is settled
- * over there — including the one whose cast and aura ids differ.
+ * over there — including the one whose cast and aura ids differ. That is still true of their *names*
+ * and is not true of what they cost: `EXTRA_GLOBALS` below prices both, because what a global costs a
+ * Monk is a fact about this spec and a roster shared with every class could not hold it.
  *
  * **The four ids the second, third and fourth raw pulls added, and why none of them is modelled.**
  * `analysis/__tests__/fixtureCoverage.test.ts` refuses an id that is neither an `Ability` nor named
@@ -1262,9 +1264,23 @@ const NEEDS_TARGET: ReadonlySet<string> = new Set(['rising-sun-kick', 'chi-wave'
  * (The reverse does not hold and is not claimed: Tiger's Lust reads 1000 and has always been named here
  * rather than modelled.) Healing Sphere reads **500** — half the monk's global, and the only id in this
  * spec's whole cast-id set that reads anything but 1000 or 0 — so there is no honest `onGcd` for it.
- * `true` would credit a full 1.0s slot in the GCD walk for a press that costs half of one, fourteen
- * times over on `idle.json`; naming it errs the other way, and errs downward, which is the direction
- * `analyseCore`'s own occupancy figure is documented to prefer.
+ *
+ * **What this paragraph used to conclude from that was wrong, and `EXTRA_GLOBALS` below is the
+ * correction.** It said `onGcd: true` "would credit a full 1.0s slot for a press that costs half of
+ * one, fourteen times over on `idle.json`; naming it errs the other way, and errs downward, which is
+ * the direction `analyseCore`'s occupancy figure is documented to prefer." Both halves of that were
+ * true and the conclusion did not follow. Erring downward is a preference between two defensible
+ * prices; **zero** is not a price at all. A named id resolved to no `Ability`, so the GCD walk skipped
+ * it outright and it occupied no milliseconds — so the choice on offer was never 1000 against 500, it
+ * was 1000 against nothing, and the report said a monk who spent fourteen halves of a global had spent
+ * none of it. Two Tiger's Lusts on `idle.json`, both in contact, cost a *full* global each and were
+ * priced the same way, which is the same defect with none of the rounding to hide behind.
+ *
+ * The third option is the one that was missing: state the fraction and let the engine multiply it by
+ * the pull's own measured global. `EXTRA_GLOBALS` does that and `SpecConfig.extraGlobals` argues the
+ * shape; on this spec `effectiveGcd` measures 1000ms on all four raw pulls, so Healing Sphere is
+ * priced at exactly the 500ms the client data says it costs, and nothing is rounded in either
+ * direction.
  *
  * The second is damage, and it is the half the Chain Lightning failure actually cost. All four produce
  * **zero** `damage` events across all four raw pulls — Healing Sphere and Provoke log a bare `cast` and
@@ -1303,6 +1319,94 @@ const EXTRA_NAMES: Record<number, string> = {
 	26297: 'Berserking',
 	120032: 'Dancing Steel',
 	148903: 'Vicious',
+};
+
+/**
+ * What one press of an unmodelled id costs this Monk, as a fraction of a Monk's global.
+ *
+ * **A global spent while the player was in contact has to be measured, whether or not the rotation
+ * asked for it.** Nothing here is on the priority ladder and nothing here is graded; what changed is
+ * that a press the ladder does not want is no longer priced at *nothing*. `analyseCore`'s
+ * `SpecConfig.extraGlobals` carries the argument for the shape and for why the value is a fraction
+ * rather than a duration; this is the census behind the numbers.
+ *
+ * Every figure is `SpellCooldowns.StartRecoveryTime`, joined on `SpellID` (not `ID`, which is the
+ * table's own key and joins to nothing), out of the simulator's `tools/database/wowsims.db`. The
+ * denominator is **Jab (100780), `StartRecoveryTime` 1000** — this spec's plainest rotational button
+ * and the value every one of its `onGcd: true` abilities reads.
+ *
+ *   1.0   116841 Tiger's Lust          1000    a full Monk global
+ *   1.0   116781 Legacy of the White Tiger 1000
+ *   1.0   115921 Legacy of the Emperor  1000
+ *   0.5   115460 Healing Sphere          500    the one id in this spec's cast set that is neither 1000 nor 0
+ *   0     109132 Roll                      0
+ *   0     115176 Zen Meditation            0
+ *   0     115546 Provoke                   0
+ *   0     126389 Goblin Glider             0
+ *   0     116705 Spear Hand Strike         0
+ *   0     116709 Spear Hand Strike       n/a    absent from the table — see below
+ *   0     1      Melee                   n/a    absent from the table — no button, no global
+ *
+ * **The melee entry is the load-bearing one and it is not a formality.** WarcraftLogs writes a `cast`
+ * event for every auto-attack under id 1 — 197, 116, 369 and 236 of them on the four raw pulls — so
+ * this table is consulted 918 times for the swing and once each for everything else on the list. A
+ * missing entry would be read as "no global", which is correct; a wrong one would price a Windwalker's
+ * autoattacks at nine hundred globals. It is stated rather than left to a default for the same reason
+ * the guard exists at all.
+ *
+ * **Two ids are not in `SpellCooldowns` and both are `0` on evidence rather than on absence.** 116709
+ * is Spear Hand Strike's second `cast` row: `sections.json` logs 116705 and 116709 within one
+ * millisecond of each other, twice, and 116709 carries the silence debuff — one press of the interrupt
+ * writing two cast events, and 116705 is the one the table prices at 0. (Pricing both would be
+ * harmless anyway: occupancy is a union of intervals, so two spans over the same millisecond count
+ * once.) Id 1 has no row because an auto-attack is not a spell.
+ *
+ * **The two Legacy buffs are here and their names are not.** They are named in the shared
+ * `RAID_BUFF_NAMES` roster, which is exactly where a provider id belongs and why `EXTRA_NAMES` above
+ * declines to copy them. A global is the other kind of fact: Legacy of the White Tiger costs a Monk
+ * 1000ms and a Paladin's Blessing costs a Paladin 1500ms, so the number is the *spec's* and cannot
+ * live in a roster shared across every class. Both are pressed once each on `dataset-ironJuggernaut`
+ * and `idle` **inside contact**, and once each on `sections` outside it — where the clipping in
+ * `occupiedMs` drops them from numerator and denominator together, which is the documented rule and
+ * why that pull's figure does not move for them.
+ *
+ * **`122783` Diffuse Magic is named above and absent here on purpose.** No committed fixture presses
+ * it, and the guard asks for a price when a press appears rather than in advance. Declaring one now
+ * would be a number nothing in the repository could check — the discipline `SILENT_AURAS` already
+ * applies from the other end.
+ *
+ * **What it moves, measured on the four raw pulls.** `gcdUtilisationPct` reads 88.55 → 89.60 on
+ * `dataset-ironJuggernaut` (+1.05, both Legacy buffs in contact), 66.40 → 69.53 on `idle` (+3.13, five
+ * whole globals in contact and the largest move in either spec), 89.67 → 90.15 on `uncounted` (+0.48,
+ * one Tiger's Lust) and 75.62 → 76.13 on `sections` (+0.50). `sections` is the one to read against the
+ * others: it presses eight unmodelled ids and six of them are in contact, but four of those six are
+ * the two Spear Hand Strike rows, which are one interrupt at `StartRecoveryTime` 0 — so only its two
+ * Tiger's Lusts cost anything, and both of its Legacy presses fall outside contact and are clipped
+ * away by `occupiedMs`. Two globals against a 385.8s contact clock is 0.52 points before the union
+ * trims the overlap, and 0.50 after.
+ *
+ * `effectiveGcd` measures 1000ms on all four, which is what makes this spec the clean case: the
+ * fraction and the millisecond agree exactly, and Healing Sphere is priced at the 500ms the client
+ * data says it costs with nothing rounded in either direction.
+ *
+ * **No letter moved, on either spec.** `gcdUtilisation` bands at `good` 85 / `ok` 75 here and at 80/65
+ * on the Elemental, and all eight raw pulls keep the grade they had — as does every section grade and
+ * every overall grade. `idle` at 69.53 is still short of the 75 it would need and `sections` at 76.13
+ * was already past it. The figure is a point or three more honest and no reader is told anything
+ * different about the player, which is the outcome a measurement correction should want.
+ */
+const EXTRA_GLOBALS: Record<number, number> = {
+	1: 0,
+	116841: 1,
+	116781: 1,
+	115921: 1,
+	115460: 0.5,
+	109132: 0,
+	115176: 0,
+	115546: 0,
+	126389: 0,
+	116705: 0,
+	116709: 0,
 };
 
 // ---------------------------------------------------------------- thresholds
@@ -1652,6 +1756,7 @@ export const WW_SPEC: SpecConfig = {
 	registry,
 	gcdMs: GCD_MS,
 	extraNames: EXTRA_NAMES,
+	extraGlobals: EXTRA_GLOBALS,
 	// The two bars the rotation spends, named by the sim's own vocabulary and audited by the engine:
 	// energy is a pool that refills on a clock and wastes by the second, chi arrives in whole points
 	// from a press and wastes by the point. The generators are the model's own buttons, so the config

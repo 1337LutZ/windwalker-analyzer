@@ -13,6 +13,15 @@
 // they were in a position to press something — and the numerator is the occupied globals *clipped to
 // that same clock*, which is what makes the bound structural rather than a clamp.
 //
+// **Those twenty-three healing globals have since been priced, and this file is where the forecast was
+// settled.** A named id a fixture presses now has to state what it costs — `SpecConfig.extraGlobals`,
+// with `fixtureCoverage.test.ts` refusing a silent one — so the Chain Heals, Healing Rains, Purges,
+// totems, Legacy buffs and Tiger's Lusts these pulls spend off-rotation occupy their globals instead of
+// occupying nothing. Against the old denominator that was the change forecast to print over 100%.
+// Against contact `phased` reads **94.44**, because twenty-two of its twenty-three newly priced presses
+// were made while nothing was in reach and the clipping drops them from both halves together. Every
+// figure below moved, by 0.37 to 3.13 points, and none of them approached the bound.
+//
 // It lives here rather than in either spec's test directory because the change is one clock in shared
 // code and it moves both specs' graded numbers. A per-spec copy would pass while the other spec
 // silently regressed, which is the argument `immuneTargets.test.ts` beside it makes at length.
@@ -56,16 +65,24 @@ describe('gcdUtilisationPct is measured against the contact clock', () => {
 	 *
 	 * The premise is asserted before the figure, so the pin cannot be satisfied by accident: WCL's
 	 * `activeTime` and this engine's contact clock are 32 689 ms apart here, and 84.21% against the
-	 * first is 94.08% against the second. The boss submerges from 142.3s to 192.5s and the player spends
+	 * first was 94.08% against the second. The boss submerges from 142.3s to 192.5s and the player spends
 	 * it healing, which is time they were in no position to press a Lightning Bolt — so it belongs in
 	 * neither half of a figure about globals filled.
+	 *
+	 * **94.44 since the off-rotation presses were priced, and this is the pull that shows the clipping is
+	 * what makes that safe.** It gained twenty-three priced presses, more than any other committed
+	 * fixture and three times `cleave`'s five — and moved the least of the eight, by 0.37 points, because
+	 * twenty-two of them are the healing spent inside that submerge. `occupiedMs` intersects the
+	 * occupancy with `contact`, so a global spent when nothing was in reach is in neither half. The one
+	 * that landed in contact is a Healing Stream Totem, two thirds of a caster's global, and it is the
+	 * whole of the move.
 	 */
 	it('reads the phased pull against contact and not against WarcraftLogs active time', () => {
 		const el = analyseElemental(load(EL('phased')));
 		expect(el.cpm.activeMs).toBe(239_246);
 		expect(contactMs(el)).toBe(206_557);
 		expect(el.cpm.activeMs - contactMs(el)).toBe(32_689);
-		expect(pct(el.cpm.gcdUtilisationPct)).toBe(94.08);
+		expect(pct(el.cpm.gcdUtilisationPct)).toBe(94.44);
 	});
 
 	/**
@@ -81,12 +98,21 @@ describe('gcdUtilisationPct is measured against the contact clock', () => {
 	 * out to snapshot a dot 42.7% stronger per millisecond — a press the priority list wants — so it is
 	 * no longer charged as a wasted global. One global's worth of occupancy came back, on both fixtures
 	 * below as well. Not a re-grade anywhere: the band is `good` at 80.
+	 *
+	 * **89.18 since the off-rotation presses were priced, and this pull is where that change is largest
+	 * on the Elemental.** Its two clocks are still identical, so once again only the numerator can have
+	 * moved: five presses that used to occupy nothing now occupy something — two Ghost Wolves, a
+	 * Lightning Shield, a Healing Tide Totem and an Earthgrab Totem — and all five were made *in
+	 * contact*, which is the whole reason this pull moves 1.86 points where `phased` moves 0.37 on
+	 * twenty-three. The four Totemic Projections and two Shamanistic Rages are priced at zero because
+	 * `SpellCooldowns.StartRecoveryTime` reads 0 for both, and that is a declaration rather than a
+	 * default. Still `good`: the band starts at 80.
 	 */
 	it('drops the occupancy a sum double-counted, on the pull where the clocks agree', () => {
 		const el = analyseElemental(load(EL('cleave')));
 		expect(el.cpm.activeMs).toBe(261_572);
 		expect(contactMs(el)).toBe(261_572);
-		expect(pct(el.cpm.gcdUtilisationPct)).toBe(87.32);
+		expect(pct(el.cpm.gcdUtilisationPct)).toBe(89.18);
 	});
 
 	/**
@@ -103,6 +129,13 @@ describe('gcdUtilisationPct is measured against the contact clock', () => {
 	 * for the question to arise, and the size of the global they are charged against. The lines those
 	 * presses draw are pinned in `components/charts/__tests__/gcdRules.test.ts`, which is the half of §44
 	 * the user could see.
+	 *
+	 * **The four left-hand figures in that counterfactual are pre-`extraGlobals` baselines** — 87.32,
+	 * 94.08, 91.94 and 88.55 are what those pulls read before an unmodelled press had a price, and they
+	 * now read 89.18, 94.44, 92.87 and 89.60. The counterfactual has not been re-run against the new
+	 * baselines and the deltas should not be read off the pair; what it was recorded to establish is the
+	 * *direction and rough size* of charging a measured cast instead of a global, and the assertions
+	 * below are on the inputs rather than on either figure.
 	 *
 	 * **And the floor is not what is doing the work on this pull**, which is worth pinning because it is
 	 * what a reader assumes. `effectiveGcd` is the measured median gap, floored at `GCD_MIN_MS` and
@@ -129,18 +162,34 @@ describe('gcdUtilisationPct is measured against the contact clock', () => {
 		expect((ww.timeline?.casts ?? []).filter((c) => c.onGcd).length).toBe(167);
 	});
 
-	/** 90.80 until two of this pull's four early refreshes were found to be the list's own play. */
-	it('reads the single-target pull at 91.94', () => {
+	/**
+	 * 90.80 until two of this pull's four early refreshes were found to be the list's own play, then
+	 * 91.94, and 92.87 since a Ghost Wolf and a Healing Tide Totem stopped being free. Both were pressed
+	 * in contact; the pull's Bloodlust, Shamanistic Rage and two Totemic Projections stay at zero on
+	 * `StartRecoveryTime` 0, and its Bloodlust was outside contact besides.
+	 */
+	it('reads the single-target pull at 92.87', () => {
 		const el = analyseElemental(load(EL('unbroken')));
 		expect(contactMs(el)).toBe(181_775);
-		expect(pct(el.cpm.gcdUtilisationPct)).toBe(91.94);
+		expect(pct(el.cpm.gcdUtilisationPct)).toBe(92.87);
 	});
 
-	/** The other spec, on the same shared clock — this file's reason for not living under either. */
-	it('reads the Windwalker pull at 88.55', () => {
+	/**
+	 * The other spec, on the same shared clock — this file's reason for not living under either.
+	 *
+	 * 88.55 until the monk's own two raid buffs were priced. Both Legacy of the White Tiger and Legacy of
+	 * the Emperor cost a Monk a full 1 000ms global (`SpellCooldowns.StartRecoveryTime`), both are
+	 * pressed inside contact on this pull, and both used to occupy nothing — so the figure moves 1.05
+	 * points on a fixture whose two clocks are 117ms apart and whose bar is entirely instant. That is the
+	 * canary row doing its job in the other direction: nothing about the *clock* moved here, and the
+	 * whole of the movement is two globals that were being reported as unspent.
+	 *
+	 * The pull's other two unmodelled presses are Rolls, and they stay free: `StartRecoveryTime` 0.
+	 */
+	it('reads the Windwalker pull at 89.60', () => {
 		const ww = analyseWindwalker(load(WW));
 		expect(contactMs(ww)).toBe(189_618);
-		expect(pct(ww.cpm.gcdUtilisationPct)).toBe(88.55);
+		expect(pct(ww.cpm.gcdUtilisationPct)).toBe(89.6);
 	});
 });
 
@@ -515,19 +564,31 @@ describe('activePct stays on the pull length, and the obvious repair is the defe
 	 * there are hard casts and nothing else. The numbers are the ones now written in `PaceTiles.tsx`, and
 	 * the assertions are guards on that comment: if someone makes the two tiles agree, this is where the
 	 * claim gets found rather than left lying.
+	 *
+	 * **Pricing the off-rotation presses widened all four gaps, and it did so through one side only.**
+	 * `tileRatio` is built from `totalCpm` and `gcdSlots`, and neither moved: `totalCpm` counts
+	 * `onGcdCasts`, which comes off `buildCastTable`'s `ability?.onGcd ?? false` and still reads `false`
+	 * for an id no `Ability` claims, and `gcdSlots` divides an unmoved `activeMs` by an unmoved
+	 * `effectiveGcd`. So every one of the four left-hand numbers is unchanged and every right-hand one
+	 * rose — 94.08 → 94.44, 91.94 → 92.87, 88.55 → 89.60, 87.32 → 89.18 — which is the same divergence
+	 * this test was written to name, one notch wider. **A press that occupies a global is not counted as
+	 * an on-GCD cast**, and that asymmetry is deliberate: `extraGlobals` prices a press without putting
+	 * it on the ladder or in the rotation's cast count. `cleave` is the row that makes it visible, having
+	 * crossed from 0.61 below its GCD tile to 1.25 above it.
 	 */
 	it('measures how far the CPM tile is from the GCD tile it was said to match', () => {
 		const tileRatio = (a: Analysis): number => {
 			const targetCpm = a.cpm.gcdSlots / (a.cpm.activeMs / 60_000);
 			return pct((a.cpm.totalCpm / targetCpm) * 100);
 		};
-		expect([tileRatio(analysed.phased), pct(analysed.phased.cpm.gcdUtilisationPct)]).toEqual([87.28, 94.08]);
-		expect([tileRatio(analysed.unbroken), pct(analysed.unbroken.cpm.gcdUtilisationPct)]).toEqual([81.35, 91.94]);
-		// The two that do agree, and the reason: an all-instant bar with nothing wasted is the case where
-		// counting presses and counting milliseconds give the same answer. Their two clocks were already
-		// 117ms and 0ms apart, so these rows moved by 0.05 and by nothing at all — which is what makes the
-		// Windwalker row the canary for this change rather than a result of it.
-		expect([tileRatio(analysed.iron), pct(analysed.iron.cpm.gcdUtilisationPct)]).toEqual([88.41, 88.55]);
-		expect([tileRatio(analysed.cleave), pct(analysed.cleave.cpm.gcdUtilisationPct)]).toEqual([87.93, 87.32]);
+		expect([tileRatio(analysed.phased), pct(analysed.phased.cpm.gcdUtilisationPct)]).toEqual([87.28, 94.44]);
+		expect([tileRatio(analysed.unbroken), pct(analysed.unbroken.cpm.gcdUtilisationPct)]).toEqual([81.35, 92.87]);
+		// The two that used to agree, and the reason they did: an all-instant bar with nothing wasted is
+		// the case where counting presses and counting milliseconds give the same answer. Their two clocks
+		// were already 117ms and 0ms apart, so neither row moved when the clock did — which is what made
+		// the Windwalker row the canary for that change. They part company here for the other reason: two
+		// Legacy buffs and five off-rotation shaman presses occupy globals that no press count sees.
+		expect([tileRatio(analysed.iron), pct(analysed.iron.cpm.gcdUtilisationPct)]).toEqual([88.41, 89.6]);
+		expect([tileRatio(analysed.cleave), pct(analysed.cleave.cpm.gcdUtilisationPct)]).toEqual([87.93, 89.18]);
 	});
 });

@@ -179,7 +179,7 @@ const LEDGER: Record<number, string> = {
 	546: "Water Walking: the player's own out-of-combat convenience, a ten-minute buff that does nothing in a fight.",
 	2645: "Ghost Wolf: the player's own travel form. Off-rotation, and named as a press in EXTRA_NAMES.",
 	30823:
-		"Shamanistic Rage: the player's own off-GCD mana-and-mitigation press. Named in EXTRA_NAMES, and the only press on that list genuinely off the global.",
+		"Shamanistic Rage: the player's own off-GCD mana-and-mitigation press. Named in EXTRA_NAMES and priced at 0 in EXTRA_GLOBALS — one of the three presses on that list genuinely off the global, with Bloodlust and Totemic Projection. This line used to call it the only one; StartRecoveryTime says three.",
 	54861:
 		'Nitro Boosts: the engineering boot tinker — +150% run speed for 5s (aura 171, DBC), no stat and no damage. The glove tinker is declared because it grants a stat; this one has nothing to draw.',
 	// The food buff. A flat +300 to one primary stat for an hour (aura 29, DBC), so it is part of the

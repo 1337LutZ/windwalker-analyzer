@@ -122,6 +122,36 @@ describe('every cast id a committed fixture presses is modelled or declared', ()
 				// under test cancels and the check would be green by construction — decoration that reads
 				// like a guard. What these rows cost is a *number*, and numbers are pinned where they can
 				// move: `gcdUtilisationPct` and the unmodelled press count, per pull, in `pulls.test.ts`.
+
+				/*
+				 * The second half of the same question, and the one a name could never answer: what did the
+				 * press *cost*.
+				 *
+				 * A name settles that the id was looked at. It settles nothing about the global, and the
+				 * engine's answer in the absence of one was **zero occupied milliseconds** — so a monk who
+				 * spent fourteen half-globals on Healing Sphere and two whole ones on Tiger's Lust read as
+				 * one who had pressed nothing, and a shaman's Purge, Ghost Wolf and Healing Tide Totem were
+				 * free. Same failure as Chain Lightning's, one layer in: not a button nobody named, a button
+				 * nobody priced.
+				 *
+				 * **Off the global is right for most of what lands here and is exactly the bug for a real
+				 * button**, which is why it cannot stay a *default*. `0` has to be typed out by the spec
+				 * that owns the id, next to the `StartRecoveryTime` it was read from — Roll, Provoke, Zen
+				 * Meditation, Shamanistic Rage and the melee swing all say it, and all five say it on
+				 * evidence. Absent and zero are different states and only one of them is a decision.
+				 *
+				 * Asked of `unmodelled` rather than of the spec's table, so it is scoped to ids a committed
+				 * pull actually presses. The passive half of `extraNames` — mastery overloads, weapon procs,
+				 * pet spells, a meta gem, twenty-odd ids per spec — never appears as a `cast` and is never
+				 * asked for a global it does not have. A spec may declare a price ahead of the fixture that
+				 * needs it and this stays green; it goes red the moment a *press* arrives without one, which
+				 * is the moment there is something to decide.
+				 */
+				const unpriced = unmodelled.filter((row) => spec.config.extraGlobals[row.id] === undefined);
+				expect(
+					unpriced.map((row) => `${row.id} ${row.name} x${row.count}`),
+					`${spec.dir}/${name} presses ${unpriced.length} named cast id(s) with no entry in this spec's extraGlobals, so each occupies zero time in gcdUtilisationPct. Read StartRecoveryTime for the id out of SpellCooldowns (joined on SpellID, in wowsims.db) and declare it as a fraction of this spec's own base global — 0 if it is genuinely off the GCD.`,
+				).toEqual([]);
 			});
 		}
 	}
