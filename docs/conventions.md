@@ -357,6 +357,12 @@ six is that writer's tic rather than the genre. Sections 8–13 of it are delibe
 `[not captured]` — there is no personal voice profile here and the output is voice-neutral on
 purpose. Never fill a blank slot with a guess.
 
+`docs/labels-and-figures.md` is tracked beside it and is the narrower rule: a label that names a number
+is read as one phrase with it, so its form follows the figure's shape rather than the voice. A
+percentage takes an instruction; a count or a duration takes a noun naming what is counted. Getting it
+wrong reads as a wrong figure rather than as bad writing, which is why it is written down at all —
+`components/sections/Scorecard.tsx` cites it and `scorecard.test.ts` guards it.
+
 The other half is `.claude/skills/tone-of-voice/SKILL.md`, the universal layer — the rules that stop
 prose reading as machine-made — and **it is ignored by `.gitignore`, so a clone does not have it.**
 That is deliberate: it is a procedure an agent loads while working in this checkout, not an artifact

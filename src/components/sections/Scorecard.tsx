@@ -238,8 +238,9 @@ function target(metric: Metric, t: T): string {
  * presses too many. So every row whose figure is a count or a duration takes a noun that names what is
  * being counted — "Wasted refreshes", "Shield drops", "Time at full charge" — and the figure is left to
  * do the counting. Getting this wrong is invisible to every type in the tree and reads as a wrong
- * number. The rule, its two failure modes and the worked corrections are written up for reuse at
- * `.claude/skills/tone-of-voice/references/labels-and-figures.md`.
+ * number. The rule, its two failure modes and the thirteen worked corrections are at
+ * `docs/labels-and-figures.md`, which is tracked for the reason that file's own header gives: the skill
+ * directory it was written in is ignored, and a citation a clone cannot open is a rule nobody can check.
  *
  * **A share over countable events reads as the count, and drops its target line** — see `sampled`. The
  * rest of the report counts `earthShockGood`'s presses and so does this; a percentage target under a
