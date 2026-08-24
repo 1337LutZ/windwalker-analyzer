@@ -80,7 +80,7 @@ describe('the table says what the article says', () => {
 	 * target window. Everything else in the table either leaves the damage attribution alone — the add
 	 * waves — or is `null`, which is this file refusing to guess rather than a row waiting to be filled in.
 	 *
-	 * **`Living Corruption` was the third until a second pull of its encounter was committed**, which holds
+	 * `Living Corruption` was the third until a second pull of its encounter was committed, which holds
 	 * four of its twenty bodies past a target window and so fails the second of the two conditions. It is
 	 * `'damage'` now; `game/__tests__/exclusionEvidence.test.ts` is where that was measured, and neither of
 	 * the two below has a committed pull to be re-measured against.
@@ -341,7 +341,7 @@ describe('and it answers a committed pull, at the id that pull was logged under'
 	 * **The consumer's answer here is now the empty set, and that is the assertion rather than a hole in
 	 * it.** `Living Corruption` read `reach: 'both'` and this block asserted its actor id came back; the row
 	 * is `'damage'` since a second pull of the encounter was measured against it, and `uncountedActorIDs`
-	 * reads no other reach. An empty set is exactly what a matcher that answers *nothing* would also
+	 * reads no other reach. An empty set is what a matcher that answers *nothing* would also
 	 * return, so the two halves are separated: the matcher is asserted to answer the row positively, and
 	 * the consumer is asserted to return a body for a roster whose row is still `'both'`.
 	 */

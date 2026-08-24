@@ -244,7 +244,7 @@ describe("the evidence each row's reach rests on, re-measured", () => {
 		// One row, and `'damage'` states one necessary condition: exactly one assertion is made, and a count
 		// of zero would mean the loop above found nothing to say and said it confidently.
 		//
-		// **It was one of two until the row it checks was narrowed**, with the other carved out as a known
+		// It was one of two until the row it checks was narrowed, with the other carved out as a known
 		// contradiction: `Living Corruption` read `reach: 'both'`, whose second condition is "no body held
 		// longer than one target window", and the block below measures four bodies past one on the only
 		// committed pull of that encounter. The carve-out is gone because the row is — it is `'damage'` now,
@@ -298,7 +298,7 @@ describe("the evidence each row's reach rests on, re-measured", () => {
  * than the row claimed", and the table now says the narrower thing with both pulls quoted in its
  * `evidence`.
  *
- * **What it costs, which is the reason it took a second pull to earn.** `'both'` is the only reach
+ * What it costs, and the reason it took a second pull to earn: `'both'` is the only reach
  * `uncountedActorIDs` reads, so these twenty bodies were leaving the counted enemy series entirely and this
  * 211s pull published a peak enemy count of **one**. They are in it now, and the block below is where that
  * consequence is asserted rather than described.
@@ -379,7 +379,7 @@ describe('Living Corruption on the one committed pull of its encounter', () => {
 	 * (`analysis/__tests__/fixtureCoverage.test.ts` carries that row).
 	 *
 	 * **Which leaves `uncountedActorIDs` exercised by no committed pull**, and that is worth saying rather
-	 * than leaving to be discovered: it was reached by exactly one row, on exactly this fixture. The grid at
+	 * than leaving to be discovered: it was reached by one row, on this fixture. The grid at
 	 * the foot of this file keeps an `excluded` column that is now zero everywhere, deliberately — a column
 	 * that would go non-zero the moment a `'both'` row meets a pull is the cheapest tripwire available, and
 	 * a removed column cannot fire.

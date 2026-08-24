@@ -468,7 +468,7 @@ const APL_VERDICTS: Record<
 	// pull for the first time. Nothing about the spec changed to make that happen; the fetch did.
 	//
 	// The follow rates are worth reading against each other rather than one at a time, because the three
-	// pulls differ in exactly the thing this ladder is worst at. `uncounted` is the most nearly continuous
+	// pulls differ in the thing this ladder is worst at. `uncounted` is the most nearly continuous
 	// of them — 99.7% of the pull in contact — and reads **55.2%** followed. `sections` is seventeen
 	// segments across all five modes and reads **44.2%**. `idle` is 75s of
 	// downtime in a 255s pull and reads **44.3%**, against a denominator that is all 106 of its presses:
@@ -489,10 +489,10 @@ const APL_VERDICTS: Record<
 	// declared gain is switched off wherever it does.
 	'windwalker/idle.json': { presses: 106, followed: 47, skipped: 56, offList: 3, unknown: 0 },
 	'windwalker/sections.json': { presses: 292, followed: 129, skipped: 153, offList: 9, unknown: 1 },
-	// **105/72 while `Living Corruption`'s ruleset row read `reach: 'both'`.** Twenty bodies were leaving
+	// 105/72 while `Living Corruption`'s ruleset row read `reach: 'both'`. Twenty bodies were leaving
 	// the counted series on this pull, so the ladder read every press as single-target; the row is
 	// `'damage'` now and the pull reads a peak of 3 enemies and 35.4% multi-target, which moves five presses
-	// out of `followed`. The 58.0% above was the highest of the three for exactly the reason the narrowing
+	// out of `followed`. The 58.0% above was the highest of the three for the reason the narrowing
 	// removes. See `game/__tests__/exclusionEvidence.test.ts`.
 	'windwalker/uncounted.json': { presses: 181, followed: 100, skipped: 77, offList: 3, unknown: 1 },
 };

@@ -134,7 +134,7 @@ export default function TargetModeControl({ targets, segments, value, onChange }
  * a one-item radio group at `md` and up, a one-item popup below it — on every pull whose only offer is
  * the whole fight, which is every captured fixture and Immerseus.
  *
- * **The switches are gone from here and the button is the only rendering.** They were the better control
+ * The switches are gone from here and the button is the only rendering. They were the better control
  * where there was room — one press instead of two — and the room was the problem: measured on this row a
  * row of switches is 140px against the button's 78px, and a pull holding every rotation offers four of
  * them, 45px more off the encounter name at every width. `md` was where the trade was drawn, and above it
@@ -164,7 +164,7 @@ export function TargetModeToolbar({ targets, segments, value, onChange }: Props)
  * used in here — the popup has the room the bar does not, which is what the short ones on the trigger are
  * for.
  *
- * **The detection survives the collapse.** The trigger carries the sentence as its `title` and the popup
+ * The detection survives the collapse. The trigger carries the sentence as its `title` and the popup
  * states it above the choices where it can be read rather than hovered — this control's docstring above
  * insists the pull's own reading stays visible even when it is being overridden. The trigger also names
  * the current mode, so the state is on the bar and not only inside the popup.
