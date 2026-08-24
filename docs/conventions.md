@@ -384,8 +384,16 @@ census below prints the exact count, and is the only place in this file that doe
 measurement inside the sentence that used it, where a following sentence would put the definition
 after the claim it was needed for. Record it as
 an override and not as genre support — an honest override survives the next reviewer and a false
-claim does not. **Ceiling of two in one sentence.** Nothing reaches three today, and a sentence that
-wants three is two sentences.
+claim does not. **Ceiling of two in one sentence.** A sentence that wants three is two sentences.
+
+**The ceiling reaches the docblocks too, and "nothing reaches three today" was only ever measured
+against the copy.** Most of this repository's prose is in comments rather than in `report.json`, written
+in the same voice by the same hands, and the reason the override gives — an appositive defines a
+measurement inside the sentence that used it — is an argument about explanatory prose, which is what a
+docblock is. Measured across 461 source files and about 23,800 comment sentences, **six reached three or
+four**: `FlameShockUptime.tsx`, `ascendance.ts`, `index.ts` twice, `score.ts` and `RushingJadeWind.tsx`.
+Each is two sentences now, or has one pair turned into parentheses. `src/__tests__/proseDashes.test.ts`
+is the gate, and it reads the ceiling out of the sentence above rather than carrying its own copy of it.
 
 **Sentence rhythm is a target, not a gate.** Measured across the prose leaves of `report.json` —
 counting only strings of eight words or more, since a header, a chip and a table cell are not

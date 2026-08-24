@@ -14,7 +14,7 @@ import LogLink from '~/components/sections/LogLink';
  *
  * It earns a heading of its own rather than a paragraph inside one of the two sections that already
  * cite it. Fists of Fury asks a boolean of it — did the wind cover this channel — and Energizing Brew
- * asks a second one — is it in the build at all, which is what excuses a press under Bloodlust.
+ * asks a second one (is it in the build at all), which is what excuses a press under Bloodlust.
  * Neither has a clock for the button, and the question here is how many targets the wind actually hit
  * and how often the priority list offered it. The ladder is quoted rather than recomputed so this
  * section and the priority section cannot disagree.
