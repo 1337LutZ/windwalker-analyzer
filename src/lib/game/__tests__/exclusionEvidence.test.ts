@@ -1,0 +1,463 @@
+// The evidence `SIEGE_RANKING_EXCLUSIONS` decides each row on, re-measured against the logs.
+//
+// ## What this is for, and why it is not in `rankingExclusions.test.ts`
+//
+// That file tests the table as a **lookup**: the transcription against the article, the encounter key
+// against Classic's three registrations, the difficulty gate, and `uncountedActorIDs` over a real enemy
+// roster. Every one of those questions is answerable without opening a log.
+//
+// This file asks the other half, which nothing asked before it: **is what the rows say still true.**
+// Each row carries an `evidence` string full of hand-measured numbers — *"not one aimed press"*, *"157
+// hits on one spawn across a contiguous 39.6s, including 60 aimed presses of which 42 are melee
+// auto-attacks"* — and those numbers decided the row's `reach`, which decides whether an add leaves this
+// report's enemy count. They were measured by hand, once, against pulls that are now committed, and until
+// `Analysis.spawns` existed there was no shape in the engine that could state them back. There is now:
+// one row per enemy **body**, carrying `hits`, `aimedPresses` and a first-to-last contact span, which are
+// exactly the three quantities the evidence is written in.
+//
+// Separate file rather than a seventh block over there for two reasons. It has a different **subject** —
+// the world the table describes, not the table — so a failure here means "a measurement has gone stale"
+// while a failure there means "the transcription or the keying is wrong", and a reader should not have to
+// work out which from the file name. And it has different **machinery**: this one runs the whole analysis
+// engine over every committed raw pull, which is 4 megabytes of fixture and a second of work that the
+// lookup tests neither need nor should pay for.
+//
+// ## What "reachable" means, and why unreachable has to be loud
+//
+// A row is checkable only where a committed fixture is a pull of its encounter at a difficulty the row
+// applies to. That is **one row of thirteen** today: `Living Corruption` on heroic Malkorok, via
+// `uncounted.json`. The reference report the other twelve were measured against — `a:6MhZgjyAknFWrYfK`,
+// fourteen kills in one night — is not in this repository, and committing thirteen more multi-megabyte
+// pulls to check thirteen rows is not a trade anyone would take.
+//
+// So the twelve are **named** as unreachable rather than quietly skipped. A sweep that iterates a table,
+// finds nothing it can assert, and reports success is the exact failure `undeclaredAuras.test.ts` carries
+// its own non-vacuity test against, and this file is more exposed to it than most: the natural shape here
+// is a loop over thirteen rows where twelve `continue`. The partition is pinned as a literal, so the day
+// a Thok or Garrosh pull is committed the pin reddens and whoever committed it is told there is now a row
+// to check.
+
+import { describe, expect, it } from 'vitest';
+
+import { rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
+import { spawnRecords, type SpawnRecord } from '~/lib/analysis/targets';
+import { isDamage } from '~/lib/events';
+import {
+	baseEncounterID,
+	HEROIC_DIFFICULTY,
+	SIEGE_RANKING_EXCLUSIONS,
+	type RankingExclusion,
+} from '~/lib/game/rankingExclusions';
+import type { FightDataset } from '~/lib/types';
+import { analyse as analyseElemental } from '~/specs/elemental/lib';
+import { analyse, registry, WW_SPEC } from '~/specs/windwalker';
+
+/** The window a body has to outlive to be one the rotation had time to react to. The spec's own number. */
+const TARGET_WINDOW_MS = WW_SPEC.thresholds.targetWindowMs;
+
+/**
+ * The aimed set, rebuilt the way `analyseCore` builds it — the spec's declaration, plus melee.
+ *
+ * Rebuilt rather than imported because `analyseCore` does not export it, and rebuilt from
+ * `targeting.aimed` rather than listed because a list here would be a second statement of which buttons
+ * pick a target: a button gaining the flag would move the published reading and not this one, and the
+ * block that uses this exists precisely to check the published reading against a narrower stream. Melee is
+ * written out for the reason `analyseCore` writes it out — an auto-attack has no `Ability` behind it that
+ * could carry the flag.
+ */
+const AIMED_DAMAGE_IDS: ReadonlySet<number> = new Set([
+	1,
+	...registry.abilities.filter((ability) => ability.targeting?.aimed === true).flatMap((a) => a.damageIds ?? []),
+]);
+
+/**
+ * Every committed Windwalker pull, analysed once.
+ *
+ * Windwalker only, and that is a fact about the field rather than a shortcut. `analyseCore` publishes
+ * `spawns` only for a spec that declares `targeting.aimed` on at least one button, because an empty aimed
+ * set makes every body on the pull read as splash — a wrong answer shaped exactly like the finding the
+ * field exists to report. The Elemental declares none, so its four fixtures carry no `spawns` at all and
+ * there is nothing here to sweep. `absent for the Elemental` is asserted below rather than assumed, since
+ * "the sweep found nothing" and "the sweep was handed nothing" are the two states this file must never
+ * confuse.
+ */
+const PULLS = rawFixtures('windwalker').map(({ name, dataset }) => ({
+	name,
+	dataset,
+	analysis: analyse(dataset),
+}));
+
+/** The two facts the header's own test reads, plus the denominators its sentences quote. */
+interface Measured {
+	/** Enemy **bodies**, not kinds — ten simultaneous adds under one `targetID` are ten of these. */
+	bodies: number;
+	/** Every damage event the player and their pets put on them: ticks, misses and immune returns. */
+	hits: number;
+	/** Melee, Jab, Tiger Palm, Blackout Kick, Rising Sun Kick — the presses that prove a choice. */
+	aimedPresses: number;
+	/** Bodies whose first-to-last contact ran longer than one target window. */
+	bodiesOverWindow: number;
+	/** The longest of those spans, so a row that just clears the window is distinguishable from one that buries it. */
+	longestSpanMs: number;
+	/** Bodies touched exactly once — the "contact span of zero" several rows quote. */
+	bodiesTouchedOnce: number;
+}
+
+const measure = (rows: readonly SpawnRecord[]): Measured => ({
+	bodies: rows.length,
+	hits: rows.reduce((n, r) => n + r.hits, 0),
+	aimedPresses: rows.reduce((n, r) => n + r.aimedPresses, 0),
+	bodiesOverWindow: rows.filter((r) => r.lastMs - r.firstMs > TARGET_WINDOW_MS).length,
+	longestSpanMs: rows.reduce((most, r) => Math.max(most, r.lastMs - r.firstMs), 0),
+	bodiesTouchedOnce: rows.filter((r) => r.lastMs === r.firstMs).length,
+});
+
+/** Whether this pull is one the row applies to at all — the same two gates `rankingExclusionFor` uses. */
+const reaches = (rule: RankingExclusion, fight: FightDataset['fight']): boolean =>
+	baseEncounterID(fight.encounterID) === rule.encounterID &&
+	(!rule.heroicOnly || fight.difficulty === HEROIC_DIFFICULTY);
+
+/** The bodies of one NPC on one pull, keyed by the id the ruleset is written in. */
+const bodiesOf = (rows: readonly SpawnRecord[], gameID: number | null): SpawnRecord[] =>
+	gameID === null ? [] : rows.filter((r) => r.gameID === gameID);
+
+/** Every row, with the pull that can check it — or nothing, which is the answer this file has to say out loud. */
+const REACHED = SIEGE_RANKING_EXCLUSIONS.map((rule) => ({
+	rule,
+	on: PULLS.filter(({ dataset }) => reaches(rule, dataset.fight)),
+}));
+
+describe('which rows a committed pull can actually check', () => {
+	/**
+	 * The partition, written out. Twelve rows, one line each, so removing a fixture is as loud as adding one.
+	 *
+	 * These are not rows anybody decided to skip — they are rows of encounters this repository holds no pull
+	 * of. Three of them would stay unmeasurable even with the pull committed, and say so themselves:
+	 * `Starved Yeti`, `Amber Parasites` and `Manifestation of Rage` are all *"Absent from the reference
+	 * pull"*, so a second pull of the same encounter is as likely to be silent about them as the first was.
+	 * The other nine are rows with real hand-measured numbers behind them and nothing in this tree to check
+	 * them against.
+	 */
+	const UNREACHABLE = [
+		'Despair Spawn',
+		'Desperation Spawn',
+		'Darkfang',
+		'Bloodclaw',
+		'Foul Slimes',
+		"Kor'kron Jailer",
+		'Starved Yeti',
+		'Amber Parasites',
+		'Blood',
+		'Desecrated Weapon',
+		'Manifestation of Rage',
+		"Minion of Y'Shaarj",
+	];
+
+	it('names every row no committed pull reaches, rather than passing over it', () => {
+		expect(REACHED.filter(({ on }) => on.length === 0).map(({ rule }) => rule.npc)).toEqual(UNREACHABLE);
+	});
+
+	/**
+	 * *** The non-vacuity test. *** Twelve of thirteen rows have nothing behind them, so this file is one
+	 * committed fixture away from being a sweep that asserts nothing and reports success — which is the
+	 * failure `undeclaredAuras.test.ts` already carries its own version of this against.
+	 */
+	it('has at least one row with a real pull behind it, and finds the NPC on it', () => {
+		const checkable = REACHED.filter(({ on }) => on.length > 0);
+		expect(checkable.map(({ rule }) => rule.npc)).toEqual(['Living Corruption']);
+		for (const { rule, on } of checkable) {
+			for (const { name, analysis } of on) {
+				expect(analysis.spawns, `${name} publishes no spawns`).toBeDefined();
+				expect(bodiesOf(analysis.spawns ?? [], rule.gameID).length, `${rule.npc} on ${name}`).toBeGreaterThan(0);
+			}
+		}
+	});
+
+	/**
+	 * And the other half of "the sweep was handed something": the Elemental's four pulls carry no `spawns`.
+	 *
+	 * Absent, not empty. A spec that declares no aimed button gets no rows rather than a row per body reading
+	 * zero presses, because zero presses on every body *is* the `reach: 'both'` signature and a spec that
+	 * simply never declared its buttons would hand out a table's worth of them. So the Elemental appearing
+	 * here with an empty array would be the bug, and an Elemental pull silently joining `PULLS` above would
+	 * be a sweep measuring a caster's rotation against a melee's discriminator.
+	 */
+	it('is handed nothing at all by a spec that declares no aimed button', () => {
+		for (const { name, dataset } of rawFixtures('elemental'))
+			expect(Object.hasOwn(analyseElemental(dataset), 'spawns'), name).toBe(false);
+	});
+});
+
+/**
+ * The necessary conditions each `reach` implies, taken from the header rather than paraphrased.
+ *
+ * The header states one test in three sentences, and only two of the three are mechanical:
+ *
+ *   - *"A row is `'both'` only where **neither** fact is present"* — no aimed press, and no spawn held
+ *     longer than one target window. Two necessary conditions, both checkable.
+ *   - *"`'damage'` — the NPC is a real body the player was engaged with"* — so at least one of the two
+ *     facts is present. One necessary condition, checkable.
+ *   - *"`null` … nobody has evidence either way"*, or the two readings disagree. **No** necessary
+ *     condition, and deliberately none asserted: `Foul Slimes` is `null` while matching the splash
+ *     signature exactly, on an argument about twenty-two bodies and a Rushing Jade Wind that no
+ *     measurement makes.
+ *
+ * The third sentence — *"where the two disagree … the row is left `null`"* — is **not** encoded, because
+ * the table does not follow it as a rule and encoding it would make this file assert something the rows
+ * it is checking never claimed. `Despair Spawn` has no aimed press and four spawns held 16–29s and is
+ * `'damage'`; `Desecrated Weapon` is the same shape and says why in as many words ("Sustained contact and
+ * encounter structure agree, so this is a body"). Encounter structure is a judgement, not a number, and a
+ * guard that cannot see it must not pretend the numbers settle it. What the numbers *do* settle is that
+ * neither of those rows is splash — which is the `'damage'` condition above, and it holds for both.
+ */
+const CONDITIONS = {
+	both: [
+		['no aimed press', (m: Measured): boolean => m.aimedPresses === 0],
+		['no body held longer than one target window', (m: Measured): boolean => m.bodiesOverWindow === 0],
+	],
+	damage: [
+		[
+			'an aimed press, or a body held longer than one target window',
+			(m: Measured): boolean => m.aimedPresses > 0 || m.bodiesOverWindow > 0,
+		],
+	],
+} as const;
+
+/**
+ * *** The conditions a committed pull contradicts, pinned so the contradiction cannot be forgotten. ***
+ *
+ * One entry, and it is the whole reason this file was worth writing. See the block below for the
+ * measurement; the short version is that `Living Corruption`'s row is `reach: 'both'` on the strength of a
+ * pull where its spawns were touched and dropped inside a target window, and the one committed pull of
+ * that encounter holds four of them for longer than that.
+ *
+ * Carved out here rather than asserted-and-red, because **the row is not this lane's to change** and a red
+ * suite is not a finding, it is a broken branch. But the carve-out is itself asserted: the block below
+ * requires each entry to *still be* a real contradiction, so the day somebody re-decides the row this pin
+ * fails and forces the entry out with it. A skip that outlives its reason is how a known bug becomes an
+ * unknown one.
+ */
+const CONTRADICTED: readonly (readonly [npc: string, condition: string])[] = [
+	['Living Corruption', 'no body held longer than one target window'],
+];
+
+describe("the evidence each row's reach rests on, re-measured", () => {
+	const CHECKABLE = REACHED.filter(({ on }) => on.length > 0);
+
+	it('holds every condition the reach implies, except the ones pinned as contradicted', () => {
+		let asserted = 0;
+		for (const { rule, on } of CHECKABLE) {
+			if (rule.reach === null) continue;
+			for (const { name, analysis } of on) {
+				const m = measure(bodiesOf(analysis.spawns ?? [], rule.gameID));
+				for (const [condition, holds] of CONDITIONS[rule.reach]) {
+					if (CONTRADICTED.some(([npc, pinned]) => npc === rule.npc && pinned === condition)) continue;
+					expect(
+						holds(m),
+						`${rule.npc} on ${name}: ${rule.reach} needs ${condition} — measured ${JSON.stringify(m)}`,
+					).toBe(true);
+					asserted++;
+				}
+			}
+		}
+		// One row, two conditions, one of them pinned as contradicted: exactly one assertion survives, and a
+		// count of zero would mean the loop above found nothing to say and said it confidently.
+		expect(asserted).toBe(1);
+	});
+
+	it('still contradicts every condition pinned as contradicted, and no longer than it has to', () => {
+		expect(CONTRADICTED.length).toBeGreaterThan(0);
+		for (const [npc, condition] of CONTRADICTED) {
+			const found = CHECKABLE.find(({ rule }) => rule.npc === npc);
+			if (found === undefined) throw new Error(`${npc} is pinned as contradicted but no committed pull reaches it`);
+			const { rule, on } = found;
+			if (rule.reach === null) throw new Error(`${npc} is pinned as contradicted but its row is undecided`);
+			const check = CONDITIONS[rule.reach].find(([label]) => label === condition);
+			if (check === undefined) throw new Error(`${npc}: no condition named "${condition}" for reach ${rule.reach}`);
+			for (const { name, analysis } of on)
+				expect(
+					check[1](measure(bodiesOf(analysis.spawns ?? [], rule.gameID))),
+					`${npc} on ${name} now satisfies "${condition}" — the row may be decidable again, so take this pin out`,
+				).toBe(false);
+		}
+	});
+});
+
+/**
+ * *** Living Corruption, measured on a pull its row was never measured against. ***
+ *
+ * The row reads, in full: *"28 hits across 11 spawns spread over the whole 201s pull. Not one aimed press
+ * — no melee, no Tiger Palm, no Blackout Kick, no Rising Sun Kick, not even Spinning Crane Kick or Rushing
+ * Jade Wind; every hit is Chi Wave or proc damage arriving on its own. Eight of the eleven spawns were
+ * touched once, for a contact span of zero."* That was measured on `a:6MhZgjyAknFWrYfK`, the reference
+ * clear, which is not committed. `uncounted.json` is a **different** heroic Malkorok kill — `a:XkDQJHaztfnCd9Yj`
+ * fight 29 — so the arithmetic cannot be expected to repeat and is not asserted. The **claim** can, and is:
+ * a judgement about an NPC that only holds on the pull it was taken from is not a judgement about the NPC.
+ *
+ * ## What survived
+ *
+ * *"Not one aimed press"* — **yes, and decisively.** Zero of 115 hits across 20 bodies, and zero of the 63
+ * the monk landed with their own hands. The eight ability ids that ever touch a Living Corruption on this
+ * pull are Crackling Tiger Lightning (46), Flurry of Xuen (41), Multistrike (10), Chi Wave (8), Stormlash
+ * (6), Flying Serpent Kick (2) and two Fists of Fury ids (1 each) — Xuen, procs, a dash and a channel.
+ * Not one is melee, and not one is a button a monk has to be facing a unit to press. The row's own enumeration is
+ * narrower than the truth (it names Spinning Crane Kick and Rushing Jade Wind, neither of which this pull
+ * has at all) but the claim it draws is the wider one, and the wider one holds.
+ *
+ * ## What did not
+ *
+ * *"Eight of the eleven spawns were touched once, for a contact span of zero"* — **two of twenty**, and
+ * four of twenty were in contact for longer than one 5 000ms target window: 7 646ms, 6 998ms, 6 220ms and
+ * 5 153ms. That is the second of the header's two facts, and the header is explicit that a row is `'both'`
+ * *"only where **neither** fact is present"* and that a spawn held longer than one window *"is a body the
+ * rotation had time to react to"*. On this pull, four were.
+ *
+ * **And it is not an artefact of the pet.** `Analysis.spawns` folds Xuen's damage in, deliberately —
+ * `SpawnRecordInputs` argues that the widest evidence is the honest answer to "can anything this player
+ * does land on that unit" — and a tiger that picks its own targets can stretch a span the monk never held.
+ * So the same walk is run below over the monk's own damage alone: 14 bodies, 63 hits, still zero aimed
+ * presses, and **still one body held past a window** at 5 153ms. Marginal — 153ms over — but the marginal
+ * case is the one a rule this sharp has to survive, and the row's stated shape (touched once, span zero) is
+ * not what either reading finds.
+ *
+ * ## What this file does about it, which is nothing
+ *
+ * `reach` stays `'both'`. Re-deciding a row of a ruleset table on one contradicting pull would be the same
+ * mistake it is meant to prevent, one pull in the other direction, and this lane does not own that file.
+ * The finding is pinned, named and measured; the decision belongs to whoever holds the second Malkorok pull
+ * next to the first.
+ */
+describe('Living Corruption on the one committed pull of its encounter', () => {
+	const CORRUPTION = 71_644;
+	const dataset = rawFixture('windwalker', 'uncounted.json');
+	const published = (analyse(dataset).spawns ?? []).filter((r) => r.gameID === CORRUPTION);
+
+	it('is the encounter and the difficulty the row is written for', () => {
+		expect(dataset.fight.name).toBe('Malkorok');
+		expect(baseEncounterID(dataset.fight.encounterID)).toBe(1595);
+		expect(dataset.fight.difficulty).toBe(HEROIC_DIFFICULTY);
+		// The row is heroic-only, so a Normal pull of the same boss would reach nothing — see the gate in
+		// `rankingExclusionFor`, which `reaches` above mirrors.
+		expect(SIEGE_RANKING_EXCLUSIONS.find((rule) => rule.gameID === CORRUPTION)?.heroicOnly).toBe(true);
+	});
+
+	it('lands not one aimed press on any of its twenty bodies', () => {
+		expect(measure(published)).toEqual({
+			bodies: 20,
+			hits: 115,
+			aimedPresses: 0,
+			bodiesOverWindow: 4,
+			longestSpanMs: 7646,
+			bodiesTouchedOnce: 2,
+		});
+		// Named and identified, which is what makes the join to the ruleset a `gameID` join rather than a
+		// name match — see the header of `rankingExclusions.ts` for why that distinction is load-bearing.
+		expect([...new Set(published.map((r) => r.name))]).toEqual(['Living Corruption']);
+	});
+
+	/**
+	 * The monk's own hands, without the tiger — the same walk over a narrower stream.
+	 *
+	 * A second call to `spawnRecords` rather than a hand-rolled loop, so the two readings cannot come to
+	 * disagree about when a body was first touched; that is the drift `observeSpawns` exists as one
+	 * accumulator to prevent, and re-using the function is how this block inherits the guarantee instead of
+	 * re-earning it. The aimed set is the analyser's own, lifted off the spec's declaration by the same
+	 * sweep `analyseCore` runs, so a button gaining or losing `targeting.aimed` moves both readings together.
+	 *
+	 * These are also the numbers `capture.test.ts` quotes for this fixture — *"63 of the monk's hits on 14
+	 * separate Living Corruption spawns across 194s"* — which is worth stating because they are **not** the
+	 * published ones. That comment is a player-only measurement and `Analysis.spawns` folds the pet in, so a
+	 * reader comparing 63/14 with the 115/20 above would otherwise conclude one of them is wrong. Both are
+	 * right; they are different questions, and both are asserted here so neither can drift.
+	 */
+	it('still holds one body past a target window with the pet taken out', () => {
+		const t0 = dataset.fight.startTime;
+		const own = dataset.events.filter(isDamage).filter((e) => e.sourceID === dataset.actor.id);
+		const rows = spawnRecords(own, {
+			t0,
+			endMs: dataset.fight.endTime - t0,
+			windowMs: TARGET_WINDOW_MS,
+			aimedDamageIds: AIMED_DAMAGE_IDS,
+			excluded: new Set<number>(),
+			npcs: dataset.table.fight.enemyNPCs ?? [],
+		}).filter((r) => r.gameID === CORRUPTION);
+
+		expect(measure(rows)).toEqual({
+			bodies: 14,
+			hits: 63,
+			aimedPresses: 0,
+			bodiesOverWindow: 1,
+			longestSpanMs: 5153,
+			bodiesTouchedOnce: 4,
+		});
+		// 194s, as `capture.test.ts` says — the span of the monk's own contact with the add, end to end.
+		expect(Math.max(...rows.map((r) => r.lastMs)) - Math.min(...rows.map((r) => r.firstMs))).toBe(193_841);
+	});
+
+	/**
+	 * And the consequence the row was written to produce, end to end.
+	 *
+	 * `reach: 'both'` means these bodies leave the **counted** series, and the assertion that they did is
+	 * that a 211s pull with a second enemy up for 200s of it publishes a peak enemy count of one. Twenty
+	 * judgeable, non-immune bodies with 115 hits between them were removed by one row of one table — which
+	 * is the size of the decision this whole file exists to keep honest.
+	 */
+	it('leaves the counted series, which is what the reach decides', () => {
+		expect(published.every((r) => r.excluded)).toBe(true);
+		// Judgeable and not immune: every one of them would have counted. `excluded` is the only thing
+		// keeping them out, so the peak below is the ruleset's doing rather than the log's.
+		expect(published.every((r) => r.judgeable && !r.immune)).toBe(true);
+		expect(analyse(dataset).targets?.counts.max).toBe(1);
+		expect(analyse(dataset).targets?.multiTargetPct).toBe(0);
+		// And nothing else on any committed pull is excluded — the ruleset reaches exactly these twenty
+		// bodies across the whole fixture tree.
+		expect(
+			PULLS.flatMap(({ name, analysis }) => (analysis.spawns ?? []).filter((r) => r.excluded).map(() => name)),
+		).toEqual(Array.from({ length: 20 }, () => 'uncounted.json'));
+	});
+});
+
+/**
+ * The aimed set reached the logs — the guard under every assertion above.
+ *
+ * `SpawnRecordInputs.aimedDamageIds` warns that an empty aimed set "makes every body read as splash, which
+ * is not a neutral answer: it is a wrong answer shaped precisely like the finding `aimedPresses` exists to
+ * report". Every `reach: 'both'` verdict in this file's sweep rests on `aimedPresses === 0`, so a set that
+ * quietly shrank — a spec dropping `targeting.aimed`, the melee id going missing from the union — would
+ * turn this file from a guard into a rubber stamp, silently and in the passing direction.
+ *
+ * So the presses are pinned per pull. These are not figures anything publishes; they are the reading's own
+ * pulse, and the numbers move only when the spec's declaration does.
+ */
+describe('the aimed set the sweep is measured with', () => {
+	it('finds presses on every committed pull, in the pinned quantities', () => {
+		const grid = Object.fromEntries(
+			PULLS.map(({ name, analysis }) => {
+				const rows = analysis.spawns ?? [];
+				return [
+					name,
+					{
+						bodies: rows.length,
+						bodiesAimedAt: rows.filter((r) => r.aimedPresses > 0).length,
+						aimedPresses: rows.reduce((n, r) => n + r.aimedPresses, 0),
+						excluded: rows.filter((r) => r.excluded).length,
+					},
+				];
+			}),
+		);
+		expect(grid).toEqual({
+			// One body aimed at, which is right: the other nine are Crawler Mines, wholly immune, swept by
+			// area damage and chosen by nobody. The pull `targets.ts` established `IMMUNE_HIT_TYPE` on.
+			'dataset-ironJuggernaut.json': { bodies: 10, bodiesAimedAt: 1, aimedPresses: 346, excluded: 0 },
+			// Immerseus: the boss plus ten Sha Puddles the monk went and hit, and thirteen bodies the fight
+			// list never named. The ruleset says nothing about this encounter — it is an ASP removal, which
+			// the table's header explains cannot be a row at all.
+			'idle.json': { bodies: 24, bodiesAimedAt: 11, aimedPresses: 198, excluded: 0 },
+			// Galakras, seventeen of forty-one bodies deliberately fought. Not an encounter the ruleset names;
+			// Garrosh is 1623 and this is 1622, which is the near-miss worth having a pull of.
+			'sections.json': { bodies: 41, bodiesAimedAt: 17, aimedPresses: 595, excluded: 0 },
+			// Malkorok: the boss and nothing else. Twenty bodies excluded, none of them ever aimed at.
+			'uncounted.json': { bodies: 21, bodiesAimedAt: 1, aimedPresses: 400, excluded: 20 },
+		});
+	});
+});

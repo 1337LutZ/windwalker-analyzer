@@ -75,6 +75,7 @@ import {
 	intervalsAtLeast,
 	isJudgeableTarget,
 	spawnLives,
+	spawnRecords,
 	targetCounts,
 	type SpawnLife,
 	type TargetHit,
@@ -350,6 +351,21 @@ export interface SpecConfig {
  */
 export const GCD_MIN_MS = 1000;
 
+/**
+ * The id every melee auto-attack in the game is logged under.
+ *
+ * Not a spec's number and deliberately not a spec's declaration: an auto-attack has no button behind it,
+ * so no `Ability` can carry `targeting.aimed` for it however many a spec declares. It is the one aimed
+ * hit the model structurally cannot state, which is why the sweep below adds it by hand.
+ *
+ * **It is written out in three places and this comment is the map**, rather than a fourth copy pretending
+ * to be the only one. Both specs name `1: 'Melee'` in their `extraNames` — the names table, a different
+ * question — and the Windwalker's `SINGLE_TARGET_DAMAGE_IDS` writes it for its Storm, Earth and Fire
+ * audit. Collapsing the three would mean giving one module the say over what the other two mean by it,
+ * and the three mean three things; the shared fact is the game's, not this engine's.
+ */
+const MELEE_DAMAGE_ID = 1;
+
 /** The full analysis of one fight for one spec. */
 export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, spec: SpecConfig): Analysis {
 	// The thresholds the reader owns, clamped against the spec's own schema. Everything else here is
@@ -519,6 +535,78 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 */
 	const spawnLifeByKey = spawnLives(damageEvents, t0, duration, spec.thresholds.targetWindowMs);
 	const immuneSpawns = new Set([...spawnLifeByKey].filter(([, life]) => !isJudgeableTarget(life)).map(([key]) => key));
+	/**
+	 * The same walk kept whole: one row per enemy **body**, published as `Analysis.spawns`.
+	 *
+	 * Here rather than beside the count series further down, and that placement is the point.
+	 * `spawnRecords` and `spawnLives` are two readings of one pass over `damageEvents` — `targets.ts` says
+	 * so in as many words, and says a second walk is how the two would come to disagree about when a spawn
+	 * was first touched. Built on the line below the reading it shares a walk with, both take the same
+	 * three arguments from the same expressions, and there is nowhere for a divergence to hide.
+	 *
+	 * ## Where the aimed set comes from, and why not the spec's own constant
+	 *
+	 * Swept off the model — every `Ability` declaring `targeting.aimed`, unioned over its `damageIds` —
+	 * rather than imported from the Windwalker's `SINGLE_TARGET_DAMAGE_IDS`, which builds the same union
+	 * from the same declaration and is not exported.
+	 *
+	 * `AbilityTargeting.aimed` is a **spec-agnostic** field in `game/model.ts` whose docblock is written
+	 * for exactly this question ("the discriminator between a body a player fought and one their area
+	 * damage happened to touch"), and this file is the spec-agnostic half of the engine: it already sweeps
+	 * `spec.registry.abilities` for `channel` a hundred lines above. Reaching into one spec's private
+	 * constant would make the core unable to answer for the other spec it serves, and it would tie this
+	 * reading to a metric's needs rather than to the model's — that constant's own docblock argues its
+	 * membership from *where an actor stood*, for the Storm, Earth and Fire audit, which is a different
+	 * question that happens to have the same answer today. Two questions sharing one set by coincidence
+	 * is not a reason to give them one name.
+	 *
+	 * Melee is added because it is declared nowhere and cannot be: there is no button behind an auto-attack,
+	 * so no `Ability` can carry the flag for it. Id 1 is the game's number rather than a spec's — both
+	 * specs already name it `Melee` in their `extraNames`, and the Windwalker's constant writes it out for
+	 * the same reason this does. It is load-bearing here rather than tidy: 42 of the 60 aimed presses
+	 * `rankingExclusions` quotes for Thok's `Kor'kron Jailer` are melee auto-attacks, and a body a monk only
+	 * ever meleed would read as splash without it.
+	 *
+	 * ## Why a spec that declares none gets no `spawns` at all
+	 *
+	 * `SpawnRecordInputs.aimedDamageIds` refuses an empty set, and the reason it gives is the reason for
+	 * the guard here: an empty aimed set makes **every** body on the pull read as splash, which is not a
+	 * neutral answer but a wrong one shaped exactly like the finding `aimedPresses` exists to report — a
+	 * table's worth of `reach: 'both'` verdicts handed out by a spec that simply never declared its buttons.
+	 * The Elemental is that spec today: it declares no `targeting.aimed` anywhere, so the sweep finds
+	 * nothing and melee alone would be a caster's aimed set, which is emptiness wearing a number.
+	 *
+	 * So the field is published only where the sweep found something, and absent means "this spec has not
+	 * answered the question" rather than "no body was ever chosen". The two are indistinguishable in the
+	 * rows themselves, which is why the difference has to live in whether there are rows at all.
+	 */
+	const declaredAimedIds = spec.registry.abilities
+		.filter((ability) => ability.targeting?.aimed === true)
+		.flatMap((ability) => ability.damageIds ?? []);
+	const spawns =
+		declaredAimedIds.length === 0
+			? undefined
+			: spawnRecords(damageEvents, {
+					t0,
+					endMs: duration,
+					windowMs: spec.thresholds.targetWindowMs,
+					aimedDamageIds: new Set([MELEE_DAMAGE_ID, ...declaredAimedIds]),
+					excluded: uncountedIDs,
+					// Straight through from the fetch, and absent is a real state rather than a default: the
+					// three Windwalker pulls captured on 2026-08-24 carry it and every fixture older than that
+					// does not. `SpawnRecord.deathMs` documents what a reader may and may not conclude from a
+					// row with no death on it.
+					...(dataset.enemyDeaths === undefined ? {} : { enemyDeaths: dataset.enemyDeaths }),
+					// Both halves of the report's answer to "who is actor 237", merged because neither half is
+					// whole. `enemyNPCs` carries `gameID` and `reportFights.graphql` asks it for no name at all;
+					// the report's `actors` list carries the name and no `gameID`. A row that had only the first
+					// could not be read by a human and one that had only the second could not be joined to a
+					// ruleset written in `gameID`s.
+					npcs: (table.fight.enemyNPCs ?? []).map((npc) => ({
+						...npc,
+						name: actors.find((a) => a.id === npc.id)?.name ?? null,
+					})),
+				});
 	const { abilities, eventTotal } = aggregateDamage(
 		damageEvents,
 		spec.registry,
@@ -1534,6 +1622,11 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			thresholdPct: spec.thresholds.multiTargetSharePct,
 			detected: detectedMode,
 		},
+		// The evidence both series above are reductions of, spread rather than assigned so a spec that
+		// declared no aimed button writes no key at all. `spawns: undefined` and no `spawns` are different
+		// facts to a reader that guards on `'spawns' in analysis`, and the second is the true one — see the
+		// field's own docblock for why an empty aimed set may not produce rows.
+		...(spawns === undefined ? {} : { spawns }),
 		gear,
 		raidBuffs,
 		potions,
