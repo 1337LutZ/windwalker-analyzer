@@ -276,6 +276,7 @@ describe('the worst case a good letter permits', () => {
 		good: 1,
 		ok: 0,
 		higherIsBetter: true,
+		unit: 'count',
 		value: 0,
 		grade: grade ?? 'ok',
 		unmeasurable: grade === null,

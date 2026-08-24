@@ -24,11 +24,11 @@ import {
 
 const RULES = {
 	/** A clock, lower better, and banded: the shape of Lightning Shield's spending. */
-	overcapMs: { good: 0, ok: 5_000, higherIsBetter: false, bands: [1, 2] },
+	overcapMs: { good: 0, ok: 5_000, higherIsBetter: false, bands: [1, 2], unit: 'seconds' },
 	/** A share counted in presses, lower better: the shape of `flameShockWaste`. */
-	wastePct: { good: 10, ok: 25, higherIsBetter: false },
+	wastePct: { good: 10, ok: 25, higherIsBetter: false, unit: 'percent' },
 	/** Graded at every band — a resource that exists identically at every target count. */
-	uptimePct: { good: 90, ok: 75, higherIsBetter: true },
+	uptimePct: { good: 90, ok: 75, higherIsBetter: true, unit: 'percent' },
 } as const satisfies Record<string, MetricRule>;
 
 describe('an empty graded clock', () => {
@@ -170,6 +170,7 @@ const at = (key: string, grade: Metric['grade'], unmeasurable = false): Metric =
 	good: 0,
 	ok: 0,
 	higherIsBetter: true,
+	unit: 'count',
 	grade,
 	unmeasurable,
 });

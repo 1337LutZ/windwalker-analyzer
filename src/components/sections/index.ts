@@ -7,6 +7,7 @@ export { default as MissLedger } from './MissLedger';
 export { default as PriorityLadder } from './PriorityLadder';
 export { default as RaidBuffs } from './RaidBuffs';
 export { default as ReportHeader } from './ReportHeader';
+export { default as Scorecard } from './Scorecard';
 export { default as Resource } from './Resource';
 export type { ResourceProps } from './Resource';
 export { default as SegmentStrip } from './SegmentStrip';

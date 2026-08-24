@@ -13,11 +13,11 @@ import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
-import { WEIGHTS as ELE_WEIGHTS } from '~/specs/elemental/lib/score';
+import { THRESHOLDS as ELE_THRESHOLDS, WEIGHTS as ELE_WEIGHTS } from '~/specs/elemental/lib/score';
 import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
 import { WW_SPEC } from '~/specs/windwalker';
 import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
-import { MULTI_TARGET_WEIGHTS, WEIGHTS as WW_WEIGHTS } from '~/specs/windwalker/lib/score';
+import { MULTI_TARGET_WEIGHTS, THRESHOLDS as WW_THRESHOLDS, WEIGHTS as WW_WEIGHTS } from '~/specs/windwalker/lib/score';
 import { CROSSOVERS, flowKeys, rotationFlow } from '~/specs/windwalker/lib/view/rotationFlow';
 import { timelineBanks as windwalkerBanks } from '~/specs/windwalker/lib/view/timelineBanks';
 
@@ -820,6 +820,44 @@ describe('report copy with no reader', () => {
 		 * to do: it asks for the two deleted strings back rather than letting a computed key print at a
 		 * reader.
 		 */
+		/**
+		 * Every metric either spec grades — the row headings the scorecard grid draws.
+		 *
+		 * Wider than `takeawayMetric` below by exactly the metrics weighted zero: `snapshotDepth`,
+		 * `karmaEmpty` and `karmaCapShare` never lead the summary and so never need a `fix`, but the grid
+		 * draws them under their section like any other number and a row without a heading would print a
+		 * computed key at a reader.
+		 */
+		scorecardMetric: {
+			where: 'both specs’ `THRESHOLDS`',
+			keys: () => [...new Set([...Object.keys(WW_THRESHOLDS), ...Object.keys(ELE_THRESHOLDS)])],
+			pinned: [
+				'brewCapWaste',
+				'brewShortUses',
+				'brewStacks',
+				'earthShockGood',
+				'fireElementalHasteUptime',
+				'fireElementalPrepull',
+				'flameShockMultiDot',
+				'flameShockSnapshots',
+				'flameShockUptime',
+				'flameShockWaste',
+				'gcdUtilisation',
+				'karmaCapShare',
+				'karmaEmpty',
+				'lightningShieldFellOff',
+				'lightningShieldOvercap',
+				'potionsUsed',
+				'rskUptime',
+				'searingTotemOverlaps',
+				'searingTotemUptime',
+				'shamanisticRageMissed',
+				'snapshotDepth',
+				'snapshotRate',
+				'thunderstormMissed',
+				'tigerPalmWaste',
+			],
+		},
 		takeawayMetric: {
 			where: 'both specs’ `WEIGHTS`, minus the metrics weighted zero',
 			keys: () => [
@@ -894,7 +932,12 @@ describe('report copy with no reader', () => {
 		'rotation.rule.*.name': 'rotationRule',
 		'stormlash.state.*': 'stormlashState',
 		'summary.takeaways.metric.*.fix': 'takeawayMetric',
-		'summary.takeaways.metric.*.label': 'takeawayMetric',
+		// **The label reaches further than the fix now, which is why the two families differ.** A `fix`
+		// sentence is only ever written on a takeaway card, so its source stays the weighted metrics — a
+		// metric the model does not count cannot lead the summary. A `label` is also the row heading on
+		// every card of the scorecard grid, which draws *every* metric a section grades including the
+		// zero-weighted ones, so its source is the thresholds table itself.
+		'summary.takeaways.metric.*.label': 'scorecardMetric',
 	};
 
 	/**
@@ -942,7 +985,7 @@ describe('report copy with no reader', () => {
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
 		'summary.takeaways.metric.*.fix': 24,
-		'summary.takeaways.metric.*.label': 21,
+		'summary.takeaways.metric.*.label': 24,
 	};
 
 	/**

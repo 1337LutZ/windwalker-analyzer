@@ -49,6 +49,21 @@ export interface Threshold {
  */
 export interface MetricRule extends Threshold {
 	/**
+	 * What the number is, so a chart can put it on a scale and copy can suffix it.
+	 *
+	 * Required rather than optional, and that is the point: the alternative was reading the unit back out
+	 * of the metric's own i18n string, where `{{value, percent}}` already encodes it. That would make the
+	 * *copy* decide a chart's geometry — reword the sentence and the axis changes — and it fails silently
+	 * for a metric whose sentence has not been written yet. Declared here it sits beside `good` and `ok`,
+	 * which is where the rest of what a number *is* already lives, and the compiler asks every new rule
+	 * for it.
+	 *
+	 * `percent` is the only one that fixes its own domain: a share is out of 100 whatever this pull did,
+	 * so a scale drawn for one is honest at 0–100 and a scale drawn for a count is not. The others are
+	 * open-ended and a chart has to derive a domain from the numbers it was given.
+	 */
+	unit: 'percent' | 'seconds' | 'count' | 'stacks';
+	/**
 	 * The target-count bands this rule belongs to. Omitted means every band, which is most of them.
 	 *
 	 * The same `Band` the APL ladder gates its entries with, imported rather than re-spelled. Three
