@@ -3101,7 +3101,7 @@ export interface LightningShieldAudit {
 	/** Time spent at the ceiling past the reader's leeway, summed across `gradedMs`. */
 	overcapMs: number;
 	/**
-	 * The length of the clock `overcapMs` was measured inside — the pull less `aoeWindows`.
+	 * The length of the clock `overcapMs` was measured inside — the pull less `aoeWindows` and `awayWindows`.
 	 *
 	 * **The field that keeps this exemption from becoming a free pass**, and the reason it is a published
 	 * number rather than something the score infers. `overcapMs` is a fault counted only inside the
@@ -3126,6 +3126,20 @@ export interface LightningShieldAudit {
 	 * a rung spends them, and from three targets none does.
 	 */
 	aoeWindows: Window[];
+	/**
+	 * The stretches with no enemy in contact at all, which `overcapMs` also drops.
+	 *
+	 * A stack is spent with Earth Shock and Earth Shock needs a target, so time with nothing to press at
+	 * is not time the player failed to spend. This clock was the last in the audit still measured over
+	 * the whole pull; `flameShockUptime` and `searingTotemUptime` were both cut to contact and this was
+	 * not, for no reason anything recorded. On the Galakras kill it was found on, the four Elemental
+	 * shamans were charged 18.4%, 43.9%, 65.1% and 7.5% of their overcap for stretches they had no
+	 * target in.
+	 *
+	 * Published for the same reason `aoeWindows` is: the chart greys exactly what the denominator
+	 * dropped, rather than a second guess at the same idea.
+	 */
+	awayWindows: Window[];
 	/** The overcap stretches, for drawing red. */
 	overcapWindows: Window[];
 	/** How many times the shield came all the way off. */

@@ -140,18 +140,27 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	 * The shield's clock, and the only one of the three whose length had no published field at all before
 	 * this. The array was published, the overcap was measured inside it, and the length — the one number
 	 * that can tell "nothing to fault" from "nothing judged" — was not.
+	 *
+	 * **Contact is the second cut, and it arrived late.** This clock read the aoe complement alone while
+	 * the two beside it were already narrowed to the stretches the player was hitting something, so a
+	 * shaman with no enemy in range was charged for a shield they had nothing to spend — Earth Shock needs
+	 * a target. Nothing argued for the difference; it is the oldest of the three clocks and was simply
+	 * never revisited. Found on the Galakras kill `a:yCp2XW1mYqbDjhwJ` fight 17, where it was worth 18.4%,
+	 * 43.9%, 65.1% and 7.5% of four Elemental shamans' overcap.
 	 */
 	it('publishes the length of the clock the overcap was measured inside', () => {
 		for (const name of FIXTURES) {
 			const a = fx(name);
-			expect(a.lightningShield.gradedMs, name).toBe(
-				unionMs(complementOf(toIntervals(a.lightningShield.aoeWindows), a.durationMs)),
-			);
+			expect(a.lightningShield.gradedMs, name).toBe(unionMs(gradedContact(a)));
 		}
-		expect(fx('cleave').lightningShield.gradedMs).toBe(263_233 - 82_858);
-		// The whole pull on the two that never leave one enemy — no-change guards.
-		expect(fx('phased').lightningShield.gradedMs).toBe(fx('phased').durationMs);
-		expect(fx('unbroken').lightningShield.gradedMs).toBe(fx('unbroken').durationMs);
+		expect(fx('cleave').lightningShield.gradedMs).toBe(178_814);
+		// Contact time rather than the whole pull on the two that never leave one enemy, which is the half
+		// of the change these two carry: their aoe array is empty, so every millisecond dropped here is a
+		// millisecond with nothing in range.
+		expect(fx('phased').lightningShield.gradedMs).toBe(206_557);
+		expect(fx('unbroken').lightningShield.gradedMs).toBe(181_775);
+		expect(fx('phased').lightningShield.gradedMs).toBeLessThan(fx('phased').durationMs);
+		expect(fx('unbroken').lightningShield.gradedMs).toBeLessThan(fx('unbroken').durationMs);
 	});
 
 	/**
@@ -164,11 +173,14 @@ describe('the graded clocks drop the stretches three or more enemies were up', (
 	it('cuts all three clocks with the same stretches', () => {
 		const a = fx('cleave');
 		const exempt = toIntervals(a.lightningShield.aoeWindows);
-		expect(a.lightningShield.gradedMs).toBe(a.durationMs - unionMs(exempt));
-		// The dot's clock is the shield's clock narrowed by contact, and the totem's is that narrowed again
-		// by the elemental's window. Each is a subset of the one before it, in that order.
-		expect(a.flameShock.scoredMs).toBeLessThan(a.lightningShield.gradedMs);
+		// The shield's clock and the dot's are now the same derivation — contact less the add waves — so
+		// they are equal rather than nested, and the totem's is that narrowed once more by the elemental's
+		// window. Equality is the stronger statement and the one that would break first if either grew a
+		// cut of its own.
+		expect(a.lightningShield.gradedMs).toBe(a.flameShock.scoredMs);
 		expect(a.searingTotem.scoredMs).toBeLessThan(a.flameShock.scoredMs);
+		// Both are strictly inside the aoe complement, which is what the contact cut buys over it.
+		expect(a.lightningShield.gradedMs).toBeLessThan(a.durationMs - unionMs(exempt));
 		// And no clock retains a single millisecond of exempt time.
 		expect(unionMs(intersect(gradedContact(a), exempt))).toBe(0);
 	});

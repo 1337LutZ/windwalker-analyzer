@@ -1634,10 +1634,12 @@
     "key": {
       "shield": "Charges",
       "fault": "Fell off, overcapped, or spent early",
-      "aoe": "AoE — left out"
+      "aoe": "AoE — left out",
+      "away": "Nothing to hit — left out"
     },
     "noBadSpends": "No Earth Shock was spent below the ceiling in this pull.",
-    "aoeNote": "The greyed stretches are the ones with three or more enemies up. The AoE priority list has no Earth Shock in it at all, so those seconds are left out of the overcap figure rather than counted against you. At two enemies the figure still holds you to it, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count."
+    "aoeNote": "The stretches greyed as three or more enemies are left out of the overcap figure. The AoE priority list has no Earth Shock in it at all, so those seconds are not counted against you. At two enemies the figure still holds you to it, because that list does spend the shield, just at six stacks instead of seven. Dropping the shield counts throughout either way: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so keeping it up is right at every target count.",
+    "awayNote": "The stretches greyed as nothing to hit are the ones you had no enemy in range for. Earth Shock needs a target, so a full shield there is not a spend you missed, and those seconds leave the overcap figure the same way."
   },
   "stormlash": {
     "title": "Stormlash Totem",

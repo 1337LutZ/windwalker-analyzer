@@ -78,6 +78,11 @@ describe('the shield chart says what its grey band means', () => {
 	 * The negative half, on the two fixtures that cannot have a band: `phased` and `unbroken` never
 	 * exceed one enemy, so `aoeWindows` is empty on both and every assertion here is a no-change guard —
 	 * this is what the section looked like before the note existed and what it must still look like.
+	 *
+	 * **The grey is no longer one cause, which is what makes the negative worth keeping.** Both pulls do
+	 * have exempt stretches now — the ones with no enemy in range — so a single sentence keyed on "is
+	 * anything greyed" would print the AoE reason on a pull that never saw three enemies. Each cause
+	 * carries its own note, and this is the guard that they did not get merged back into one.
 	 */
 	it.each(['phased', 'unbroken'])('says nothing about AoE on %s, which never left one enemy', (name) => {
 		const single = analysed(name);
@@ -88,5 +93,24 @@ describe('the shield chart says what its grey band means', () => {
 		// The other note in the same stack is still there, so the two above are not passing on a section
 		// that failed to render its notes at all.
 		expect(html).toContain('Overcap is measured past a');
+	});
+
+	/**
+	 * The second cause, and the sentence that belongs to it.
+	 *
+	 * The shield's clock was the last in the audit still measured over the whole pull: Flame Shock's and
+	 * the totem's were both cut to contact and this one was not, so a shaman with no enemy in range was
+	 * charged for a full shield they had nothing to spend. On the Galakras kill it was found on, that was
+	 * between 7.5% and 65.1% of four shamans' overcap.
+	 *
+	 * Asserted on `phased`, which has the away stretches and none of the AoE ones, so the two causes are
+	 * told apart by the pull rather than by reading them off one render.
+	 */
+	it('prints the away reason, and only it, on a pull that never left one enemy', () => {
+		const single = analysed('phased');
+		expect(single.lightningShield.awayWindows.length).toBeGreaterThan(0);
+		const html = render(single);
+		expect(html).toContain(t('lightningShield.key.away'));
+		expect(html).toContain('Earth Shock needs a target');
 	});
 });

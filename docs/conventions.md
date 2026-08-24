@@ -472,9 +472,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the card naming a ceiling instead of inviting a reader past it, it prints 1361 leaves,
-672 prose, 20,868 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
-report.json 610 prose leaves, 1,038 sentences, median 17, 200 past 25 (19.3%), 254 em-dashes in 220
+As of the shield's clock being cut to contact like the two beside it, it prints 1363 leaves,
+673 prose, 20,907 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
+report.json 611 prose leaves, 1,040 sentences, median 17, 200 past 25 (19.2%), 255 em-dashes in 220
 sentences (21.2%); 48 / 21 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->

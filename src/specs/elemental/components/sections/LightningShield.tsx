@@ -56,24 +56,34 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 	const narrowed = curve !== null && overcapUnasked && grade !== 'none' && grade !== 'exempt';
 
 	/**
-	 * The stretches left out of the overcap figure, as the chart's exempt row.
+	 * The stretches left out of the overcap figure, as the chart's exempt rows.
 	 *
-	 * Straight off `lightningShield.aoeWindows`, which is the array the audit's own denominator dropped —
-	 * not a second derivation of "when was it AoE". That identity is the rule `exemptTrack.test.ts` was
-	 * written to enforce, after three charts each guessed at the same idea differently.
+	 * Straight off `lightningShield.aoeWindows` and `awayWindows`, which are the two arrays the audit's
+	 * own denominator dropped — not a second derivation of "when was it AoE". That identity is the rule
+	 * `exemptTrack.test.ts` was written to enforce, after three charts each guessed at the same idea
+	 * differently.
+	 *
+	 * **Away first, because precedence is argument order and the stronger claim leads.** "There was
+	 * nothing to press at" outranks "you were pressing a different order", the same way round
+	 * `FlameShockUptime` puts them: a reader shown the aoe grey over a stretch with no enemy in it would
+	 * conclude the multi-target list excused them, when in fact there was nothing there at all.
 	 */
-	const aoeBand = useMemo(
+	const exemptBands = useMemo(
 		() =>
 			exemptRows(
 				[
+					{
+						label: t('lightningShield.key.away'),
+						windows: el.lightningShield.awayWindows.map((w): [number, number] => [w.start, w.end]),
+					},
 					{
 						label: t('lightningShield.key.aoe'),
 						windows: el.lightningShield.aoeWindows.map((w): [number, number] => [w.start, w.end]),
 					},
 				],
 				analysis.durationMs,
-			)[0]?.windows ?? [],
-		[el.lightningShield.aoeWindows, analysis.durationMs, t],
+			),
+		[el.lightningShield.awayWindows, el.lightningShield.aoeWindows, analysis.durationMs, t],
 	);
 
 	const badRows = useMemo<GridRow[]>(
@@ -143,18 +153,17 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 						legend={t('lightningShield.key.shield')}
 						bands={[
 							// Widest claim first, so the red paints on top of the ground it is measured against.
-							// Through `exemptRows` even though there is only one cause here: the day this chart also
-							// shades an intermission, the overlap is resolved by the same precedence every other
-							// exempt row uses rather than two washes stacking darker than either.
-							...(aoeBand.length === 0
-								? []
-								: ([
-										{
-											tone: EXEMPT,
-											windows: aoeBand.map(([start, end]) => ({ start, end })),
-											legend: t('lightningShield.key.aoe'),
-										},
-									] satisfies TrackBand[])),
+							// Through `exemptRows` because there are two causes and they touch: an add wave the
+							// player fell out of contact during belongs to one of them and not to both, and the
+							// overlap is resolved by the same precedence every other exempt row uses rather than
+							// two washes stacking darker than either.
+							...exemptBands
+								.filter((row) => row.windows.length > 0)
+								.map((row): TrackBand => ({
+									tone: EXEMPT,
+									windows: row.windows.map(([start, end]) => ({ start, end })),
+									legend: row.label,
+								})),
 							{
 								// The three faults share one colour and now one key entry: fell off, overcapped,
 								// or spent below the ceiling are all "the shield went wrong" in the same red.
@@ -274,7 +283,12 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 				    pull. Still said per section rather than left to the control: by the time a reader is here the
 				    toggle is off screen, which is the argument `PriorityLadder` and `Rotation` both make. */}
 				{narrowed ? <Note>{t('targets.switchReading')}</Note> : null}
-				{aoeBand.length === 0 ? null : <Note>{t('lightningShield.aoeNote')}</Note>}
+				{/* One note per cause, each on exactly the pulls that have that band. Two causes now share the
+				    grey, and a single sentence claiming the grey is "three or more enemies" is false on a pull
+				    whose only exempt stretches are ones with nothing in range — which is both of the two
+				    committed fixtures that never leave one enemy. */}
+				{exemptBands[0]?.windows.length ? <Note>{t('lightningShield.awayNote')}</Note> : null}
+				{exemptBands[1]?.windows.length ? <Note>{t('lightningShield.aoeNote')}</Note> : null}
 				<Note>{t('lightningShield.leeway', { leeway: formatSeconds(lightningShield.leewayMs) })}</Note>
 			</div>
 		</Section>

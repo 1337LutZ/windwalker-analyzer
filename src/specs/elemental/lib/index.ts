@@ -3261,7 +3261,34 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * charge and only while the buff is up, so keeping the shield up is right at every target count and
 	 * only spending its stacks is band-dependent.
 	 */
-	const overcapWindows = atCapWindowsIn(lsLevels, gradedSpans, lightningShieldCap, lightningShieldOvercapMs);
+	/**
+	 * **And `contact` on top of it, because a stack cannot be spent at nothing.**
+	 *
+	 * Earth Shock needs a target. On a pull with a phase the player cannot reach — Galakras is the case
+	 * this was found on, where the boss is on his tower and the adds have not arrived — the shield sits
+	 * at seven because there is nothing to shock, and every one of those seconds was charged as a
+	 * spending failure. The shield's clock was the only one in this file that was not cut to contact:
+	 * `fsGraded` is `intersect(contact, gradedSpans)` and `stScored` intersects it too, and this line
+	 * read `gradedSpans` alone. Nothing argued for the difference; it is the older of the two clocks and
+	 * was simply never revisited when the contact cut arrived.
+	 *
+	 * **Measured on the four Elemental shamans in the Galakras kill `a:yCp2XW1mYqbDjhwJ` fight 17**,
+	 * the share of each one's overcap charge that fell in stretches with no enemy in contact at all:
+	 * 18.4%, 43.9%, 65.1% and 7.5%. The 65% pull is the one that makes it a defect rather than a
+	 * rounding — a shaman was reading 179.8s of "spend the shield" for 117.0s in which they had nothing
+	 * to spend it on.
+	 *
+	 * **It is the same forgiveness the two clocks beside it already take**, and it carries the same
+	 * risk: a player who simply stops casting while an add is up falls out of contact after a target
+	 * window and is forgiven with them. That trade was argued when `fsGraded` took it and is not
+	 * reopened here — what would be indefensible is one audit answering the question two ways.
+	 *
+	 * **Fragmenting the clock hands out more leeway, and that is correct rather than incidental.**
+	 * `atCapWindowsIn` restarts the grace per segment, so a return from an empty phase to a target gets
+	 * its own press's worth — exactly the argument the aoe boundary already makes two paragraphs up.
+	 */
+	const shieldSpans = intersect(contact, gradedSpans);
+	const overcapWindows = atCapWindowsIn(lsLevels, shieldSpans, lightningShieldCap, lightningShieldOvercapMs);
 	const overcapMs = unionMs(toIntervals(overcapWindows));
 	/**
 	 * The length of the clock above — the number that keeps this exemption from becoming a free pass.
@@ -3280,7 +3307,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * is what `exemptTrack.test.ts` was written after. `ManaAudit`'s two clocks already carry a field of
 	 * this name for this exact purpose, so the name is this audit's own rather than invented here.
 	 */
-	const shieldGradedMs = unionMs(gradedSpans);
+	const shieldGradedMs = unionMs(shieldSpans);
 	// Fell off: the stretches the shield was down, which is the complement of the stretches it was up.
 	// `complementOf` rather than the walk that was written here — same merge, same gap-push, same tail,
 	// and it is imported into this file already. `auraLevels` only ever emits stretches at level 1 or
@@ -4765,6 +4792,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// The stretches `overcapMs` above dropped, so the chart can grey exactly what the denominator
 			// refused rather than a second guess at it — the rule `exemptTrack.test.ts` exists to enforce.
 			aoeWindows: aoeWindows.map(([start, end]): Window => ({ start, end })),
+			// The other half of what the denominator dropped: the stretches with no enemy in contact. Two
+			// causes now, so the chart greys both rather than greying one and quietly under-drawing the
+			// clock it claims to picture — the identity `exemptTrack.test.ts` enforces.
+			awayWindows: complementOf(contact, duration).map(([start, end]): Window => ({ start, end })),
 			overcapWindows,
 			fellOff,
 			downWindows,
