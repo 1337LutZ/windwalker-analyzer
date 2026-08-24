@@ -7,8 +7,13 @@
 //
 // And the question before that one, which the counts are only as good as: *which* enemies deserve to be
 // counted. That is `spawnLives` and `isJudgeableTarget` at the top of the file.
+//
+// `spawnRecords` beside them is the same walk kept whole rather than reduced: one row per enemy body,
+// carrying the range the other two throw away plus the facts that separate a body the player fought
+// from one their area damage happened to land on. Nothing in this file grades anything — a record is
+// evidence, and what a section or a scorecard makes of it is the caller's decision.
 
-import { instanceKey, isDamage, type WclEvent } from '~/lib/events';
+import { abilityIdOf, instanceKey, isDamage, isDeath, type WclEvent } from '~/lib/events';
 
 import type { Interval } from './intervals';
 import { valueAtOrBefore } from './search';
@@ -75,15 +80,86 @@ export interface SpawnLife {
 }
 
 /**
- * Every enemy spawn the player touched, with the two facts `isJudgeableTarget` reads.
+ * Everything one pass over the damage stream can say about one enemy body, before anything is decided.
+ *
+ * Not exported, and that is the point of it: `spawnLives` and `spawnRecords` are two readings of the
+ * same walk, and a second walk is how the two would come to disagree about when a spawn was first
+ * touched. This file already carries a comment about a count keyed two ways and the seventeen seconds
+ * of coverage it cost; one accumulator is the cheap way not to repeat it.
+ */
+interface SpawnObservation {
+	/** The report-local actor id — the enemy *kind*, which is not what the map is keyed by. */
+	targetID: number;
+	immune: boolean;
+	firstMs: number;
+	lastMs: number;
+	/** Every damage event on this body: ticks, misses and immune returns included. */
+	hits: number;
+	/** Of those, the ones that prove the player chose it — see `SpawnRecord.aimedPresses`. */
+	aimedPresses: number;
+}
+
+/**
+ * The empty aimed-press set, for `spawnLives`, which does not ask the question.
+ *
+ * A named constant rather than an inline `new Set()` so the walk is not allocating one per call, and
+ * so the reading is legible at the call site: this caller is not counting presses, rather than this
+ * caller has none.
+ */
+const NO_AIMED_IDS: ReadonlySet<number> = new Set<number>();
+
+/**
+ * One pass over the player's damage, accumulated per enemy body.
  *
  * Taken over the player's *whole* damage stream — pets folded in, periodic ticks included — because
  * the question is "can anything this player does land on that unit", and the widest evidence is the
- * honest answer to it. That is deliberately a wider set of events than the landed-hit list this
- * verdict is then applied to.
+ * honest answer to it. That is deliberately a wider set of events than the landed-hit list the verdict
+ * is then applied to.
  *
  * Keyed by spawn and not by actor id, for the reason `TargetHit.instance` exists: WarcraftLogs hands
  * ten simultaneous adds one `targetID`, so an id-level verdict is a verdict about an enemy *kind*.
+ */
+function observeSpawns(
+	events: readonly WclEvent[],
+	t0: number,
+	aimedDamageIds: ReadonlySet<number>,
+): Map<string, SpawnObservation> {
+	const seen = new Map<string, SpawnObservation>();
+	for (const e of events) {
+		if (!isDamage(e) || e.targetID === undefined) continue;
+		const key = instanceKey(e.targetID, e.targetInstance);
+		const t = e.timestamp - t0;
+		const immune = e.hitType === IMMUNE_HIT_TYPE;
+		const id = abilityIdOf(e);
+		// A dot tick is not a press. It is the same press still ticking, on a body the player may have
+		// walked away from — the reading `engagedWindows` throws ticks out for.
+		const aimed = e.tick !== true && id !== null && aimedDamageIds.has(id) ? 1 : 0;
+		const rec = seen.get(key);
+		if (rec === undefined) {
+			seen.set(key, { targetID: e.targetID, immune, firstMs: t, lastMs: t, hits: 1, aimedPresses: aimed });
+		} else {
+			// `&&`, so one hit that landed is enough to make the unit a target for the whole pull.
+			rec.immune = rec.immune && immune;
+			rec.firstMs = Math.min(rec.firstMs, t);
+			rec.lastMs = Math.max(rec.lastMs, t);
+			rec.hits += 1;
+			rec.aimedPresses += aimed;
+		}
+	}
+	return seen;
+}
+
+/** The observation reduced to the two facts `isJudgeableTarget` reads, with the fight's end applied. */
+const lifeOf = (obs: SpawnObservation, endMs: number, windowMs: number): SpawnLife => {
+	const seenTo = obs.lastMs + windowMs >= endMs ? endMs : obs.lastMs;
+	return { immune: obs.immune, lifetimeMs: Math.max(0, seenTo - obs.firstMs) };
+};
+
+/**
+ * Every enemy spawn the player touched, with the two facts `isJudgeableTarget` reads.
+ *
+ * The reduction of `observeSpawns` that the dot readers and the fan-out count take — see there for
+ * what the walk sees and why it is keyed by spawn.
  */
 export function spawnLives(
 	events: readonly WclEvent[],
@@ -91,26 +167,8 @@ export function spawnLives(
 	endMs: number,
 	windowMs: number,
 ): Map<string, SpawnLife> {
-	const seen = new Map<string, { immune: boolean; firstMs: number; lastMs: number }>();
-	for (const e of events) {
-		if (!isDamage(e) || e.targetID === undefined) continue;
-		const key = instanceKey(e.targetID, e.targetInstance);
-		const t = e.timestamp - t0;
-		const immune = e.hitType === IMMUNE_HIT_TYPE;
-		const rec = seen.get(key);
-		if (rec === undefined) seen.set(key, { immune, firstMs: t, lastMs: t });
-		else {
-			// `&&`, so one hit that landed is enough to make the unit a target for the whole pull.
-			rec.immune = rec.immune && immune;
-			rec.firstMs = Math.min(rec.firstMs, t);
-			rec.lastMs = Math.max(rec.lastMs, t);
-		}
-	}
 	const lives = new Map<string, SpawnLife>();
-	for (const [key, rec] of seen) {
-		const seenTo = rec.lastMs + windowMs >= endMs ? endMs : rec.lastMs;
-		lives.set(key, { immune: rec.immune, lifetimeMs: Math.max(0, seenTo - rec.firstMs) });
-	}
+	for (const [key, obs] of observeSpawns(events, t0, NO_AIMED_IDS)) lives.set(key, lifeOf(obs, endMs, windowMs));
 	return lives;
 }
 
@@ -132,6 +190,236 @@ export function spawnLives(
 export function isJudgeableTarget(life: SpawnLife | undefined, opts: { minLifetimeMs?: number } = {}): boolean {
 	if (life === undefined || life.immune) return false;
 	return opts.minLifetimeMs === undefined || life.lifetimeMs > opts.minLifetimeMs;
+}
+
+/**
+ * One enemy **body** the player touched, and everything the log can say about it without judging it.
+ *
+ * A body and not a kind: the key is `instanceKey`'s, so ten Kor'kron Ironblades arriving under one
+ * `targetID` are ten rows here. Every other reading of "how many enemies" in this file keys the same
+ * way, for the reason `TargetHit.instance` spends its docblock on.
+ *
+ * **This is deliberately evidence and not a verdict.** `spawnLives` reduces the same walk to a
+ * duration and throws the range away, which is right for the two questions it was written for and
+ * useless for a third: where in the pull the body was. Sectioning a fight by what the rotation should
+ * have been needs the range, the deaths, and the two facts that separate a body the player fought from
+ * one their area damage reached — so the record carries them and decides nothing. `judgeable` and
+ * `excluded` are the two verdicts that *are* here, and both are other people's: one is
+ * `isJudgeableTarget` over the same `SpawnLife` the dot readers use, the other is a set the caller
+ * resolved.
+ */
+export interface SpawnRecord {
+	/** `instanceKey(targetID, targetInstance)` — the same key `spawnLives` maps by, so the two join. */
+	key: string;
+	/**
+	 * The NPC's stable game id, where the caller could name one. `null` where it could not.
+	 *
+	 * `gameID` and not the report-local actor id, for the reason `SIEGE_RANKING_EXCLUSIONS` and
+	 * `IGNORED_MULTI_TARGET_ACTORS` are both keyed by it: an actor id is a number this report made up,
+	 * and anything written down about an NPC has to survive the next report. `null` is a real answer —
+	 * `reportFights.graphql` asks `enemyNPCs` for `id` and `gameID` only, so a pull whose caller passed
+	 * no identities at all gets `null` for every row rather than a fabricated id.
+	 */
+	gameID: number | null;
+	/** The NPC's name, where the caller could name one. Never a key — see `rankingExclusions`' header. */
+	name: string | null;
+	/** The first moment the log proves the player could reach this body, fight-relative. */
+	firstMs: number;
+	/**
+	 * The last hit the player landed on it, fight-relative, and **not** clamped to the fight's end.
+	 *
+	 * `SpawnLife.lifetimeMs` is clamped — a spawn still being hit within one target window of the finish
+	 * runs to the finish, because it had no observable end. That clamp is a judgement about how long the
+	 * body was *judgeable for*, and it belongs to the reader that needs it. `lastMs - firstMs` therefore
+	 * need not equal `lifetimeMs`, which is why both readings exist and why this one says what it is.
+	 */
+	lastMs: number;
+	/**
+	 * When the log says this body died, fight-relative — absent when it does not.
+	 *
+	 * **Absent is not "it survived".** Three different things arrive here as no value, and only the
+	 * caller can tell them apart: the body was still up at the finish, nothing hostile died on the pull,
+	 * or the deaths were never fetched. `PhasedFightDataset.enemyDeaths` is required at the fetch
+	 * boundary precisely so the first two are distinguishable there — an empty array is a wipe on a
+	 * single-target boss — while a fixture captured before that pass existed arrives as a plain
+	 * `FightDataset` and carries none at all. This module is handed the array or is not, behaves the same
+	 * either way, and claims nothing about which case it was in.
+	 *
+	 * Matched by the same `instanceKey`, and only a death at or after `firstMs` is taken. A death stamped
+	 * before the player's first hit on that key is a different body wearing the same instance number, and
+	 * attributing it would report a spawn that died before anything touched it — a negative lifetime, and
+	 * a section boundary in front of the add that caused it.
+	 */
+	deathMs?: number;
+	/**
+	 * Every damage event the player and their pets put on this body: ticks, misses and immune returns.
+	 *
+	 * The widest count on purpose, and the same doctrine `observeSpawns` walks under — this is the
+	 * denominator the ranking-exclusion evidence is written in ("196 hits across 7 spawns"), so a reader
+	 * comparing a row there with a row here is comparing the same number.
+	 */
+	hits: number;
+	/**
+	 * How many of those hits prove the player **chose** this body — the discriminator the whole record
+	 * exists to carry.
+	 *
+	 * A monk cannot auto-attack, Jab or Rising Sun Kick a unit it has not targeted, so one such hit is
+	 * proof of a decision. Rushing Jade Wind, Spinning Crane Kick, Chi Wave, Flurry of Xuen and every
+	 * proc are centred on the player and pick nothing, so a hundred of them prove only that the body
+	 * stood nearby. That distinction is what made `SIEGE_RANKING_EXCLUSIONS` decidable at all: eleven of
+	 * its thirteen rows quote it.
+	 *
+	 * ## Why the caller's ability list, and not `!isAoE`
+	 *
+	 * WarcraftLogs stamps every damage event with `isAoE`, a real per-hit boolean, and defining this as
+	 * `!isAoE` would need no argument from any spec. **It was measured against the ability list rather
+	 * than assumed worse, and it loses in one direction only.**
+	 *
+	 * Measured over four Windwalker pulls — the committed `windwalker/__fixtures__/dataset-ironJuggernaut.json`
+	 * (`a:6MhZgjyAknFWrYfK`), Immerseus and Malkorok from `a:XkDQJHaztfnCd9Yj`, and Galakras from
+	 * `a:kgt1BMqf3QrybpJR` — 6 192 player-sourced damage events on 96 spawns, with the ability list taken
+	 * as melee (id 1), Jab, Tiger Palm, Blackout Kick and Rising Sun Kick:
+	 *
+	 *  - **`isAoE` never contradicts the list.** Not one of the 2 119 hits on the list carries
+	 *    `isAoE: true` — 496 of 496 on the committed dataset alone. So the flag is a free cross-check
+	 *    and cannot be the thing that is wrong; `spawns.test.ts` asserts it rather than this code
+	 *    re-deriving it, because a redundant `&& !isAoE` clause that has never fired is a clause that
+	 *    hides the day it starts firing.
+	 *  - **`!isAoE` is far wider than "chosen".** 3 957 of the 6 192 hits carry `isAoE: false`, against
+	 *    the list's 2 119 — an 87% overcount, and the excess is proc and pet damage that lands wherever
+	 *    the player happened to be swinging.
+	 *  - **Per body, which is the reading that decides anything, it fails 55% of the time.** Of the 96
+	 *    spawns, 43 agree and **53 collect a non-AoE hit while never taking a single aimed press**. Zero
+	 *    go the other way.
+	 *
+	 * The reason is that **`isAoE` is a fact about the instant, not about the button**. Rushing Jade
+	 * Wind — the archetypal area button, the one a monk presses *because* it picks nothing — carries
+	 * `isAoE: false` on 20 of its 1 011 ticks on the Galakras pull: exactly the ticks that found one
+	 * body. On the committed Iron Juggernaut dataset all nine Crawler Mine spawns collect a non-AoE hit
+	 * and no press. On Galakras, five Alliance NPCs — King Varian Wrynn, Vereesa Windrunner, Lady Jaina
+	 * Proudmoore and two Highguards — take one immune (`hitType` 10), non-AoE hit apiece and would read
+	 * as bodies the monk chose to fight; a Dragonmaw Tidal Shaman hit 113 times across 46.8s with nothing
+	 * ever aimed at it collects 19, fourteen of them the weapon's Multistrike proc.
+	 *
+	 * **The failure mode that names the cost**: Malkorok's `Living Corruption` is the one row decided
+	 * `reach: 'both'` on the strength of "not one aimed press — every hit is Chi Wave or proc damage
+	 * arriving on its own". Under `!isAoE`, 13 of the 21 Living Corruption spawns on the pull measured
+	 * here take a press, and the row flips to a body the player fought.
+	 *
+	 * ## Why ticks are not presses
+	 *
+	 * A dot goes on ticking on a body the player walked away from, which is the reason `engagedWindows`
+	 * throws ticks out too. 580 of the 2 119 list hits are Blackout Kick's dot, and **no spawn on any of
+	 * the four pulls has a dot tick as its only aimed evidence** — so the exclusion moves no verdict
+	 * measured here, and is in place for the pull where it would.
+	 */
+	aimedPresses: number;
+	/** Every hit came back immune — `SpawnLife.immune`, off the same walk. */
+	immune: boolean;
+	/** `isJudgeableTarget` asked the plain question, over the same clamped `SpawnLife` the dot readers use. */
+	judgeable: boolean;
+	/** This body's actor id was in the caller's uncounted set — see `SpawnRecordInputs.excluded`. */
+	excluded: boolean;
+}
+
+/** What `spawnRecords` needs beyond the damage stream. */
+export interface SpawnRecordInputs {
+	/** The fight's start, in the clock `events[].timestamp` is stamped in. Every `Ms` out is relative to it. */
+	t0: number;
+	/** The pull's length, for the end-clamp `SpawnLife.lifetimeMs` documents. */
+	endMs: number;
+	/** One target window, likewise — `SpecThresholds.targetWindowMs`. */
+	windowMs: number;
+	/**
+	 * The **damage** ids that prove the player picked a body, from the spec that knows them.
+	 *
+	 * Damage ids and not cast ids: the walk is over damage events, and the two differ on most buttons.
+	 * The Windwalker spec already declares exactly this set as `SINGLE_TARGET_DAMAGE_IDS`, measured the
+	 * hard way — counting distinct enemies hit under one id at one timestamp across a Galakras pull,
+	 * melee, Jab, Tiger Palm, Blackout Kick and Rising Sun Kick reach exactly one every time across
+	 * 1 178 timestamps, while Rushing Jade Wind reaches five.
+	 *
+	 * **Required, with no empty default.** An empty set makes every body on the pull read as splash,
+	 * which is not a neutral answer: it is a wrong answer shaped precisely like the finding
+	 * `aimedPresses` exists to report, and a spec that forgot to declare its buttons would get an
+	 * exclusion table's worth of `reach: 'both'` verdicts out of it.
+	 */
+	aimedDamageIds: ReadonlySet<number>;
+	/**
+	 * Report-local actor ids whose damage may not raise the enemy count — resolved by the caller.
+	 *
+	 * Resolved there and not here for the reason `uncountedActorIDs` exists at all: the rules are
+	 * written in `gameID`s and every reader downstream holds a report-local `targetID`, so the match
+	 * happens once or the several numbers this report prints about "how many enemies" resolve the same
+	 * table two ways and disagree. Importing the table here would be that second resolution. An empty
+	 * set is the ordinary answer — no row of the ruleset reached this pull.
+	 */
+	excluded: ReadonlySet<number>;
+	/**
+	 * The pull's hostile deaths, when the fetch made the pass — `PhasedFightDataset.enemyDeaths`.
+	 *
+	 * Optional because a dataset loaded from a fixture captured before that pass existed genuinely has
+	 * none. Absent and empty produce identical records; see `SpawnRecord.deathMs` for why that is the
+	 * honest reading here and where the difference does live.
+	 */
+	enemyDeaths?: readonly WclEvent[];
+	/**
+	 * Who the report's actor ids are, where the caller can say — `fight.enemyNPCs`, or the report's own
+	 * actor list, or both merged. Anything not in it is named `null` rather than guessed.
+	 */
+	npcs?: readonly { id: number; gameID?: number | null; name?: string | null }[];
+}
+
+/**
+ * One row per enemy body the player touched, in the order the pull met them.
+ *
+ * Pure: same events in, same rows out, and nothing here reads a clock, a table or a spec. The three
+ * things a spec or a report *does* know — which buttons pick a target, which NPCs the ruleset strikes
+ * off the count, and who the actor ids are — arrive as arguments, so this file stays the one place that
+ * knows only "a hit is a time and an enemy".
+ *
+ * Sorted by first contact, then by key, so two runs over one pull produce the same array and a diff of
+ * two reports is a diff of the fights rather than of `Map` insertion order.
+ */
+export function spawnRecords(events: readonly WclEvent[], inputs: SpawnRecordInputs): SpawnRecord[] {
+	const { t0, endMs, windowMs, aimedDamageIds, excluded, enemyDeaths = [], npcs = [] } = inputs;
+
+	const identity = new Map(npcs.map((npc) => [npc.id, npc]));
+
+	// Deaths per body, earliest first. Filtered through `isDeath` rather than trusted: the argument is
+	// typed as the raw event union, and a caller handing over the wrong stream should record no deaths
+	// rather than the timestamps of somebody else's events.
+	const deaths = new Map<string, number[]>();
+	for (const e of enemyDeaths) {
+		if (!isDeath(e) || e.targetID === undefined) continue;
+		const key = instanceKey(e.targetID, e.targetInstance);
+		const at = e.timestamp - t0;
+		const seen = deaths.get(key);
+		if (seen === undefined) deaths.set(key, [at]);
+		else seen.push(at);
+	}
+	for (const times of deaths.values()) times.sort((a, b) => a - b);
+
+	const out: SpawnRecord[] = [];
+	for (const [key, obs] of observeSpawns(events, t0, aimedDamageIds)) {
+		const life = lifeOf(obs, endMs, windowMs);
+		const npc = identity.get(obs.targetID);
+		const deathMs = deaths.get(key)?.find((at) => at >= obs.firstMs);
+		out.push({
+			key,
+			gameID: npc?.gameID ?? null,
+			name: npc?.name ?? null,
+			firstMs: obs.firstMs,
+			lastMs: obs.lastMs,
+			...(deathMs === undefined ? {} : { deathMs }),
+			hits: obs.hits,
+			aimedPresses: obs.aimedPresses,
+			immune: life.immune,
+			judgeable: isJudgeableTarget(life),
+			excluded: excluded.has(obs.targetID),
+		});
+	}
+	return out.sort((a, b) => a.firstMs - b.firstMs || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
 
 /** One landed hit: when it landed, and on whom. */
