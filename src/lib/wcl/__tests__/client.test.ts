@@ -54,15 +54,25 @@ interface Sent {
 }
 
 /**
- * Answers each of the four documents by name.
+ * Answers each of the documents by name, and the one document that is asked twice by its variables.
  *
  * Matching on the operation name is deliberate: it is only in the request because the .graphql file
  * beside the client was loaded and sent, so a broken `?raw` import fails these tests rather than
  * silently shipping an empty query.
+ *
+ * `FightEvents` is the exception, because it answers two questions — the player's stream and the
+ * pull's enemy deaths — and splitting on `dataType` here is what the server does with the same
+ * argument. `deathPages` defaults to none so every existing case keeps describing one stream, and it
+ * is a page list rather than a row list because the deaths follow the same cursor the player's stream
+ * does.
  */
-function stubApi(pages: Array<{ data: unknown; nextPageTimestamp: number | null }>): Sent[] {
+function stubApi(
+	pages: Array<{ data: unknown; nextPageTimestamp: number | null }>,
+	deathPages: Array<{ data: unknown; nextPageTimestamp: number | null }> = [],
+): Sent[] {
 	const sent: Sent[] = [];
 	let page = 0;
+	let deathPage = 0;
 
 	vi.stubGlobal('fetch', async (url: string, init: { body: string; headers: Record<string, string> }) => {
 		const body = JSON.parse(init.body) as {
@@ -104,6 +114,18 @@ function stubApi(pages: Array<{ data: unknown; nextPageTimestamp: number | null 
 			return answer({ reportData: { report: { table: TABLE } } });
 		}
 		if (body.query.includes('query FightEvents')) {
+			// The deaths pass must not eat a page the cursor assertions are counting: `pages` describes
+			// the player's stream, and a second reader of it would make every paging case assert against
+			// a stream it did not set up.
+			if (body.variables['dataType'] === 'Deaths') {
+				return answer({
+					reportData: {
+						report: {
+							events: deathPages[deathPage++] ?? { data: [], nextPageTimestamp: null },
+						},
+					},
+				});
+			}
 			return answer({
 				reportData: {
 					report: {
@@ -443,7 +465,11 @@ describe('fetchFightDataset', () => {
 
 		// Treating the first page as the whole fight is how a nine-minute pull becomes 90 seconds.
 		expect(dataset.events).toHaveLength(3);
-		const eventCalls = sent.filter((s) => s.query.includes('query FightEvents'));
+		// The player's pass only: `FightEvents` also carries the enemy-deaths request, and counting both
+		// here would turn a page count into a request count and stop describing the cursor at all.
+		const eventCalls = sent.filter(
+			(s) => s.query.includes('query FightEvents') && s.variables['dataType'] !== 'Deaths',
+		);
 		expect(eventCalls).toHaveLength(3);
 		expect(eventCalls.map((c) => c.variables['startTime'])).toEqual([1000, 150000, 280000]);
 		expect(progress.map((p) => p.phase)).toEqual(['report', 'table', 'events', 'events', 'events', 'done']);
@@ -512,6 +538,97 @@ describe('fetchFightDataset', () => {
 			activeTime: 250000,
 			itemLevel: 553,
 		});
+	});
+
+	/**
+	 * The pass this whole widening exists for.
+	 *
+	 * A death is filed under the actor that died, so the player-scoped stream can only ever carry the
+	 * player's own — which is why `spawnLives` infers a spawn's lifetime from its last landed hit. The
+	 * three arguments asserted here are the whole difference: drop the source filter, and narrow to
+	 * hostile deaths so that dropping it does not ask for the entire raid's stream. Asserting the
+	 * request and not only the result is deliberate — a pass that quietly kept `sourceID: 7` would
+	 * still return rows here, and they would be the wrong rows for a reason no result-shaped assertion
+	 * can see.
+	 */
+	it('asks for the pull’s enemy deaths in a pass of their own, unscoped by the player', async () => {
+		const juggernaut = { timestamp: 240000, type: 'death', targetID: 20, targetInstance: 1 };
+		const sent = stubApi([page([], null)], [page([juggernaut], null)]);
+
+		const dataset = await fetchFightDataset(new WclClient({ token: TOKEN }), {
+			code: 'abc123',
+			fightID: 1,
+			playerName: 'Bigdogmo',
+		});
+
+		const deathCalls = sent.filter(
+			(s) => s.query.includes('query FightEvents') && s.variables['dataType'] === 'Deaths',
+		);
+		expect(deathCalls).toHaveLength(1);
+		expect(deathCalls[0]?.variables).toMatchObject({
+			fightID: 1,
+			// 0 is the schema's own "every source". Anything else here is the pass asking the question the
+			// player's own stream already answered.
+			sourceID: 0,
+			hostilityType: 'Enemies',
+			startTime: 1000,
+			endTime: 300000,
+		});
+
+		expect(dataset.enemyDeaths).toEqual([juggernaut]);
+		// And the two streams stay apart: a death of an enemy is not something the player sourced, so
+		// folding it into `events` would put it in front of every walk that reads that array.
+		expect(dataset.events).toEqual([]);
+	});
+
+	/**
+	 * The player's stream is unchanged by the widening, which is the other half of the claim.
+	 *
+	 * `dataType` is left off the request entirely rather than sent as `'All'`, so the default declared
+	 * in the document is what applies — the argument the docblock spends its first paragraph on. A
+	 * variable that started arriving as `null` would silently narrow that pass to nothing.
+	 */
+	it('leaves the player’s own pass wide and scoped to them', async () => {
+		const sent = stubApi([page([], null)]);
+		await fetchFightDataset(new WclClient({ token: TOKEN }), {
+			code: 'abc123',
+			fightID: 1,
+			playerName: 'Bigdogmo',
+		});
+
+		const streamCalls = sent.filter(
+			(s) => s.query.includes('query FightEvents') && s.variables['dataType'] !== 'Deaths',
+		);
+		expect(streamCalls).toHaveLength(1);
+		expect(streamCalls[0]?.variables).toMatchObject({ sourceID: 7 });
+		expect(streamCalls[0]?.variables).not.toHaveProperty('dataType');
+		expect(streamCalls[0]?.variables).not.toHaveProperty('hostilityType');
+	});
+
+	/**
+	 * The deaths follow the cursor too.
+	 *
+	 * A Siege pull's enemy deaths fit in one page, which is an observation about content rather than
+	 * about the API — and the fights where it would stop being true are the add-heavy ones the deaths
+	 * are fetched for in the first place. So the second pass walks the same loop, and this is the case
+	 * that fails if it is ever swapped for a single-page read on that reasoning.
+	 */
+	it('follows nextPageTimestamp through the deaths as well', async () => {
+		const first = { timestamp: 60000, type: 'death', targetID: 20, targetInstance: 1 };
+		const second = { timestamp: 200000, type: 'death', targetID: 20, targetInstance: 2 };
+		const sent = stubApi([page([], null)], [page([first], 150000), page([second], null)]);
+
+		const dataset = await fetchFightDataset(new WclClient({ token: TOKEN }), {
+			code: 'abc123',
+			fightID: 1,
+			playerName: 'Bigdogmo',
+		});
+
+		expect(dataset.enemyDeaths).toEqual([first, second]);
+		const deathCalls = sent.filter(
+			(s) => s.query.includes('query FightEvents') && s.variables['dataType'] === 'Deaths',
+		);
+		expect(deathCalls.map((c) => c.variables['startTime'])).toEqual([1000, 150000]);
 	});
 
 	it('names the players in the report when the one asked for is not in it', async () => {

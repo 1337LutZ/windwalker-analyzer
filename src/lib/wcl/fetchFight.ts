@@ -2,6 +2,7 @@
 //
 // Two entry points: `listReportFights` for the fight picker, `fetchFightDataset` for the run itself.
 
+import type { FightEventsQueryVariables } from '~/generated/wcl-operations';
 import type { WclEvent } from '~/lib/events';
 // The shell copy, reached through the instance rather than a hook: this is not a component, and the
 // two phase messages below are the same two sentences `useFightAnalysis` shows before this function
@@ -16,6 +17,27 @@ import { resolveFightPhases, type FightPhase } from './phases';
  * refuses to advance from spending the hourly point budget in a loop; no real fight approaches it.
  */
 const MAX_EVENT_PAGES = 60;
+
+/**
+ * Which of the two questions a pass through `fetchAllEvents` is asking, in the query document's own
+ * vocabulary rather than a translation of it.
+ *
+ * Taken as a `Pick` of the generated variables for the reason codegen exists at all: these three are
+ * arguments of one `events(…)` call, the schema already names their types, and a hand-rolled
+ * `'All' | 'Deaths'` here would be a second, unchecked copy of an enum WarcraftLogs is free to add
+ * to.
+ */
+type EventScope = Pick<FightEventsQueryVariables, 'sourceID' | 'dataType' | 'hostilityType'>;
+
+/**
+ * The enemy deaths pass — see the docblock on fightEvents.graphql for what each argument is doing.
+ *
+ * `sourceID: 0` is the schema's own value for "every source", written out rather than left to a
+ * default so that dropping the source filter is a decision visible at this call site. It is the one
+ * request this module makes that is not about the player, and it is only affordable because
+ * `dataType` and `hostilityType` narrow it: `All` with no source is the whole raid's stream.
+ */
+const ENEMY_DEATHS: EventScope = { sourceID: 0, dataType: 'Deaths', hostilityType: 'Enemies' };
 
 export interface FetchProgress {
 	phase: 'report' | 'table' | 'events' | 'done';
@@ -35,14 +57,28 @@ export interface FetchFightOptions {
 }
 
 /**
- * A fetched dataset, plus the boss phases WarcraftLogs reported for that pull.
+ * A fetched dataset, plus the boss phases WarcraftLogs reported for that pull and the pull's enemy
+ * deaths.
  *
  * `phases` is declared here rather than on `FightDataset` itself only because `lib/types.ts` is the
  * most contended file in the tree; the intersection keeps the field real at the fetch boundary
  * without touching it. Empty for the several encounters WarcraftLogs has no phases for — see
  * phases.ts for which, and for what MoP Classic actually returns.
+ *
+ * `enemyDeaths` is here for the same reason and one more: **nothing reads it yet.** It is every
+ * `death` event WarcraftLogs recorded for a hostile actor in this pull, in order, and it is
+ * published ahead of its first reader on purpose — `spawnLives` (~/lib/analysis/targets) currently
+ * infers a spawn's lifetime from its last landed hit because no death was in the stream to measure
+ * to, and that is the reading this field exists to replace. Adding the field and changing that
+ * reading in one step would make a fetch change and a grade change indistinguishable in the diff, so
+ * this half lands alone and moves no published figure.
+ *
+ * Required rather than optional, because the fetch always makes the pass: an empty array is a pull
+ * where nothing hostile died — a wipe on a single-target boss — and not a dataset that forgot to
+ * ask. Datasets loaded from a fixture captured before this field existed are the case that is
+ * genuinely absent, and they arrive as `FightDataset`, which has no opinion about it.
  */
-export type PhasedFightDataset = FightDataset & { phases: FightPhase[] };
+export type PhasedFightDataset = FightDataset & { phases: FightPhase[]; enemyDeaths: WclEvent[] };
 
 /** A fight plus the players who were actually in that pull, for the fight picker. */
 export type FightWithRoster = FightWithNpcs & { roster: Actor[] };
@@ -130,9 +166,18 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 	onProgress?.({ phase: 'table', message: i18n.t('progress.table', { ns: 'ui' }) });
 	const damageDone = await client.fetchDamageTable(code, fightID);
 
-	const events = await fetchAllEvents(client, code, fight, actor.id, onProgress);
-	// The raid's Stormlash placements ride alongside the player's own stream, for the Stormlash section.
-	const raidStormlash = await client.fetchRaidStormlash(code, fightID, fight.startTime, fight.endTime);
+	const events = await fetchAllEvents(client, code, fight, { sourceID: actor.id }, onProgress);
+	// The two requests the player-scoped stream above cannot answer, and they go out together for the
+	// reason `listReportFights` fires its two together: they are independent, so serialising them buys
+	// nothing and costs the reader a round trip. Neither reports progress — the counter is the player's
+	// event stream, and a second pass restarting it at zero would read as the first one having lost its
+	// place.
+	const [enemyDeaths, raidStormlash] = await Promise.all([
+		// Every hostile death in the pull, for the spawn lifetimes `spawnLives` currently has to infer.
+		fetchAllEvents(client, code, fight, ENEMY_DEATHS, undefined),
+		// The raid's Stormlash placements ride alongside the player's own stream, for the Stormlash section.
+		client.fetchRaidStormlash(code, fightID, fight.startTime, fight.endTime),
+	]);
 	onProgress?.({
 		phase: 'done',
 		events: events.length,
@@ -148,22 +193,28 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 		table: { fight, damageDone },
 		actors,
 		raidStormlash,
+		enemyDeaths,
 		phases: resolveFightPhases(fight, report.encounterPhases),
 	};
 }
 
 /**
- * Every event the player sourced during the fight, in order.
+ * One scope's events for the whole fight, in order — the player's own stream, or the enemy deaths.
  *
  * The cursor is the whole point. `limit` does not decide the page size — the server does — so a page
  * that comes back with a non-null `nextPageTimestamp` is a partial answer, and treating the first
  * page as the fight is how a nine-minute pull silently turns into its first ninety seconds.
+ *
+ * Both scopes walk it, rather than the deaths getting a shorter reader on the grounds that a pull
+ * only produces a few dozen of them: that reasoning is true of the Siege pulls measured and is an
+ * assumption about content, not about the API, and the failure it buys is silent truncation of the
+ * exact fights — the add-heavy ones — the deaths were fetched for.
  */
 async function fetchAllEvents(
 	client: WclClient,
 	code: string,
 	fight: FightWithNpcs,
-	sourceID: number,
+	scope: EventScope,
 	onProgress: FetchFightOptions['onProgress'],
 ): Promise<WclEvent[]> {
 	const events: WclEvent[] = [];
@@ -173,7 +224,7 @@ async function fetchAllEvents(
 		const result = await client.fetchEventPage({
 			code,
 			fightID: fight.id,
-			sourceID,
+			...scope,
 			startTime: cursor,
 			endTime: fight.endTime,
 		});

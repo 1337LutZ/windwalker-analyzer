@@ -4,6 +4,44 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import * as Types from './wcl-schema';
 
+/** The type of events or tables to examine. */
+export type EventDataType =
+  /** All Events */
+  | 'All'
+  /** Buffs. */
+  | 'Buffs'
+  /** Casts. */
+  | 'Casts'
+  /** Combatant info events (includes gear). */
+  | 'CombatantInfo'
+  /** Damage done. */
+  | 'DamageDone'
+  /** Damage taken. */
+  | 'DamageTaken'
+  /** Deaths. */
+  | 'Deaths'
+  /** Debuffs. */
+  | 'Debuffs'
+  /** Dispels. */
+  | 'Dispels'
+  /** Healing done. */
+  | 'Healing'
+  /** Interrupts. */
+  | 'Interrupts'
+  /** Resources. */
+  | 'Resources'
+  /** Summons */
+  | 'Summons'
+  /** Threat. */
+  | 'Threat';
+
+/** Whether or not to fetch information for friendlies or enemies. */
+export type HostilityType =
+  /** Fetch information for enemies. */
+  | 'Enemies'
+  /** Fetch information for friendlies. */
+  | 'Friendlies';
+
 export type FightDamageTableQueryVariables = Exact<{
   code: string;
   fightID: number;
@@ -18,6 +56,8 @@ export type FightEventsQueryVariables = Exact<{
   sourceID: number;
   startTime: number;
   endTime: number;
+  dataType?: Types.EventDataType | null | undefined;
+  hostilityType?: Types.HostilityType | null | undefined;
 }>;
 
 
