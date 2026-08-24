@@ -58,20 +58,41 @@ import { intersect, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { initI18n } from '~/lib/i18n/config';
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
 
-import { EXEMPT } from '~/components/charts/tones';
+import type { LaneSource } from '~/components/charts/TrackLane';
+import { EXEMPT, EXEMPT_KIND } from '~/components/charts/tones';
 import type { Track } from '~/components/charts/WindowTracks';
 import { analyse } from '~/specs/elemental/lib';
 import FlameShockUptime from '../FlameShockUptime';
 import SearingTotemUptime from '../SearingTotemUptime';
 
-const drawn = vi.hoisted(() => ({ calls: [] as Array<{ tracks: readonly Track[] }> }));
+/**
+ * Both shapes, one list — the two charts here no longer draw with the same component.
+ *
+ * `FlameShockUptime` merged its rows into one lane and `SearingTotemUptime` has not, because a lane
+ * needs one grey step per exempt cause and that chart has four causes to three steps. What every
+ * assertion below reads is `label`, `tone` and `windows`, which `Track` and `LaneSource` both carry
+ * under those names, so the harness takes whichever component was rendered and the tests stay one set.
+ */
+type Drawn = Pick<Track, 'label' | 'tone' | 'windows'> | Pick<LaneSource, 'label' | 'tone' | 'windows'>;
+
+const drawn = vi.hoisted(() => ({ calls: [] as Array<readonly unknown[]> }));
 
 vi.mock('~/components/charts/WindowTracks', () => ({
-	default: (props: { tracks: readonly Track[] }) => {
-		drawn.calls.push(props);
+	default: (props: { tracks: readonly unknown[] }) => {
+		drawn.calls.push(props.tracks);
 		return null;
 	},
 }));
+
+vi.mock('~/components/charts/TrackLane', () => ({
+	default: (props: { sources: readonly unknown[] }) => {
+		drawn.calls.push(props.sources);
+		return null;
+	},
+}));
+
+/** Exempt, whichever table the tone came from — one `EXEMPT` on a row chart, a kind on a lane. */
+const isExempt = (tone: string): boolean => tone === EXEMPT || tone in EXEMPT_KIND;
 
 initI18n();
 
@@ -84,18 +105,18 @@ const elemental = (name: string): El =>
 		) as FightDataset,
 	) as El;
 
-function rowsOf(element: ReactElement): readonly Track[] {
+function rowsOf(element: ReactElement): readonly Drawn[] {
 	drawn.calls.length = 0;
 	renderToStaticMarkup(element);
 	expect(drawn.calls).toHaveLength(1);
-	return drawn.calls[0]?.tracks ?? [];
+	return (drawn.calls[0] ?? []) as readonly Drawn[];
 }
 
 const spans = (windows: ReadonlyArray<readonly [number, number]>): Interval[] => windows.map((w) => [w[0], w[1]]);
-const rowOf = (rows: readonly Track[], label: string): Interval[] =>
+const rowOf = (rows: readonly Drawn[], label: string): Interval[] =>
 	spans(rows.find((r) => r.label === label)?.windows ?? []);
-const exemptOf = (rows: readonly Track[], uncountedLabel: string): Interval[] =>
-	rows.filter((r) => r.tone === EXEMPT && r.label !== uncountedLabel).flatMap((r) => spans(r.windows));
+const exemptOf = (rows: readonly Drawn[], uncountedLabel: string): Interval[] =>
+	rows.filter((r) => isExempt(r.tone) && r.label !== uncountedLabel).flatMap((r) => spans(r.windows));
 
 /**
  * Every raw Elemental pull, found rather than listed — and the analysis memoised, the way
@@ -277,7 +298,9 @@ describe('the up row is the clock the percentage is taken over', () => {
 			expect(unionMs(intersect(uncounted, exempt)), label).toBe(unionMs(uncounted));
 			// Never `miss`: the aura was up, and painting that as a drop is the disagreement this file is about.
 			const row = rows.find((r) => r.label === c.uncounted);
-			if (uncounted.length > 0) expect(row?.tone, label).toBe(EXEMPT);
+			// `EXEMPT` on the chart that kept its rows, the `unmeasured` step on the one that merged: both
+			// mean "this was up and the clock did not count it", drawn by whichever table its chart reads.
+			if (uncounted.length > 0) expect(isExempt(row?.tone ?? ''), label).toBe(true);
 		}
 	});
 
@@ -490,7 +513,11 @@ describe('the up row is the clock the percentage is taken over', () => {
 			const row = rows.find((r) => r.label === 'Dot up on an enemy you left');
 			if ((analysis.targets?.counts.max ?? 1) > 1) {
 				expect(row?.tone, name).toBe('missSoft');
-				expect(row?.widen, name).toBe(false);
+				// `widen` was asserted here while this chart drew rows: the flag turns off a row's
+				// minimum-span floor, and this row fragments on every refresh the log stamped early. A lane
+				// has no such flag and needs none — it is continuous, so a bar too small to see costs a
+				// reader nothing, and `TrackLane` states that where the floor used to be decided.
+				expect(row, name).not.toHaveProperty('widen');
 			} else {
 				expect(row, name).toBeUndefined(); // no-change guard: one spawn, so no other enemy to be on
 			}

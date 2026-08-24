@@ -227,3 +227,61 @@ export const COUNT = {
 } as const;
 
 export type CountTone = keyof typeof COUNT;
+
+/**
+ * The three kinds of exempt, as one grey at three steps — what a merged track lane needs and a stack
+ * of rows never did.
+ *
+ * `EXEMPT` is one value because a chart drawing exempt time in two greys would be claiming a
+ * distinction its rows already carried in their labels. A lane has no labels: `FlameShockUptime` drew
+ * "dot up, not measured", "nothing to hit" and "three or more enemies" as three rows of one grey, and
+ * merged into one line they become an indistinguishable band. So the distinction moves into the colour,
+ * and this is the only place in this module where a tone means *which kind of not-graded* rather than
+ * which mechanic.
+ *
+ * `EXEMPT` is unchanged and still correct for a chart that keeps its rows. This is not a second strength
+ * of it — the rule that forbids one mechanic at two strengths is about a mechanic, and these are three
+ * different facts that happened to share a swatch while a label distinguished them.
+ *
+ *   - `idle` — nothing was up to act on. The darkest: least was happening.
+ *   - `other` — a different priority list applied. Add waves, or the Fire Elemental holding the one
+ *     totem slot: the player was acting, just not against this chart's clock.
+ *   - `unmeasured` — the thing *was* up, and the clock did not count it. The lightest, and the step that
+ *     may not move: see the note in `styles/global.css` for the red it has to stay clear of.
+ *
+ * `text` is `ink-2` on the two dark steps for the reason `BAND.track` gives — a note written in the
+ * ground it sits on is nothing at all — and dark ink on the lightest, which is bright enough to carry it.
+ */
+export const EXEMPT_KIND = {
+	nothing: {
+		fill: 'bg-[var(--color-exempt-nothing)]',
+		swatch: 'bg-[var(--color-exempt-nothing)]',
+		text: 'text-ink-2',
+	},
+	otherList: {
+		fill: 'bg-[var(--color-exempt-other)]',
+		swatch: 'bg-[var(--color-exempt-other)]',
+		text: 'text-ink-2',
+	},
+	unmeasured: {
+		fill: 'bg-[var(--color-exempt-unmeasured)] hatch-unmeasured',
+		swatch: 'bg-[var(--color-exempt-unmeasured)] hatch-unmeasured',
+		text: 'text-[#14100f]',
+	},
+} as const;
+
+export type ExemptKind = keyof typeof EXEMPT_KIND;
+
+/** Every fill a merged lane can draw: the marks, by mechanic, and the exempt grounds, by kind. */
+export type LaneTone = Tone | ExemptKind;
+
+/**
+ * The fill class for one lane bar, from whichever of the two tables owns the tone.
+ *
+ * A lookup and not a template: Tailwind reads class names out of the source, so a class built by
+ * concatenation is a class the stylesheet never contains. `SWATCH` already holds the literal for every
+ * mechanic tone, which is the whole reason it holds literals.
+ */
+export function laneFill(tone: LaneTone): string {
+	return tone in EXEMPT_KIND ? EXEMPT_KIND[tone as ExemptKind].fill : SWATCH[tone as Tone];
+}

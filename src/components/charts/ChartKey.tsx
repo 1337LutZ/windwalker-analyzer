@@ -10,18 +10,20 @@
 // visibly different one on the page — so which of the two a key is describing has to be said, not
 // assumed.
 //
-// `count` is the third table, and it is here for the same reason `band` is: the enemy-count ramp is
-// painted from `COUNT` rather than from `SWATCH`, and a legend reaching for the wrong table is a
-// legend naming a colour the chart did not draw. Passing the swatch in as a raw class would work and
-// is exactly what this component was written to stop.
+// `count` is the third table and `kind` the fourth, and both are here for the same reason `band` is:
+// the enemy-count ramp is painted from `COUNT` and a merged lane's exempt grounds from `EXEMPT_KIND`,
+// neither of which is `SWATCH`, and a legend reaching for the wrong table is a legend naming a colour
+// the chart did not draw. Passing the swatch in as a raw class would work and is exactly what this
+// component was written to stop.
 
-import { BAND, COUNT, SWATCH, type BandTone, type CountTone, type Tone } from './tones';
+import { BAND, COUNT, EXEMPT_KIND, SWATCH, type BandTone, type CountTone, type ExemptKind, type Tone } from './tones';
 
 export default function ChartKey(
 	props: { children: string } & (
-		| { band: true; count?: false; tone: BandTone }
-		| { count: true; band?: false; tone: CountTone }
-		| { band?: false; count?: false; tone: Tone }
+		| { band: true; count?: false; kind?: false; tone: BandTone }
+		| { count: true; band?: false; kind?: false; tone: CountTone }
+		| { kind: true; band?: false; count?: false; tone: ExemptKind }
+		| { band?: false; count?: false; kind?: false; tone: Tone }
 	) & {
 			/** The spec's own colour, drawn inline when the bar it names is not a token colour. */
 			color?: string;
@@ -32,7 +34,9 @@ export default function ChartKey(
 			? BAND[props.tone].swatch
 			: props.count === true
 				? COUNT[props.tone].swatch
-				: SWATCH[props.tone];
+				: props.kind === true
+					? EXEMPT_KIND[props.tone].swatch
+					: SWATCH[props.tone];
 
 	return (
 		<span className="flex items-center gap-2">

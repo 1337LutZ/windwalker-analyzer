@@ -8,9 +8,7 @@ import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import { exemptRows } from '~/components/charts/exempt';
-import { EXEMPT } from '~/components/charts/tones';
-import type { Track } from '~/components/charts/WindowTracks';
-import WindowTracks from '~/components/charts/WindowTracks';
+import TrackLane, { type LaneSource } from '~/components/charts/TrackLane';
 
 /**
  * Flame Shock across the pull: where the dot was up, where it was not, and where there was nothing to
@@ -246,8 +244,22 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	 * make that 84 319 against a denominator that dropped 84 419. `DebuffTimeline` and `CastTimeline` both
 	 * had a floor and both lost it for this reason.
 	 */
-	const rows = useMemo(
-		(): Track[] => [
+	/**
+	 * The five things this chart draws, in precedence order — first one wins a millisecond two claim.
+	 *
+	 * Order matters in exactly one place and it is deliberate: `uncounted` sits **inside** the exempt
+	 * grounds on every committed pull (74 714ms of 74 714 on `cleave`), so putting it ahead of them is
+	 * what paints "the dot was up here, the clock did not count it" over "this is why it was not
+	 * counted". The four before it do not overlap each other at all — they sum to the pull to the
+	 * millisecond, which is the partition `uptimeRow.test.ts` asserts — so their order says nothing.
+	 *
+	 * The two grounds take a *kind* rather than one `EXEMPT`: merged onto one line there is no row label
+	 * left to tell three greys apart, which is what `EXEMPT_KIND` in `charts/tones.ts` exists for. Away
+	 * is `idle` — nothing was there to act on. The add wave is `other` — the player was acting, against a
+	 * list this chart does not measure.
+	 */
+	const sources = useMemo(
+		(): LaneSource[] => [
 			{ label: t('flameShock.track.up'), tone: 'kick', windows: up, lengthLabel: 'held for' },
 			...(elsewhere.length > 0
 				? [
@@ -256,34 +268,27 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 							tone: 'missSoft',
 							windows: elsewhere,
 							lengthLabel: 'up elsewhere for',
-							widen: false,
-						} satisfies Track,
+						} satisfies LaneSource,
 					]
 				: []),
-			{
-				label: t('flameShock.track.dropped'),
-				tone: 'miss',
-				windows: dropped,
-				lengthLabel: 'without it for',
-				widen: false,
-			},
+			{ label: t('flameShock.track.dropped'), tone: 'miss', windows: dropped, lengthLabel: 'without it for' },
 			...(uncounted.length > 0
 				? [
 						{
 							label: t('flameShock.track.uncounted'),
-							tone: EXEMPT,
+							tone: 'unmeasured',
 							windows: uncounted,
 							lengthLabel: 'up but unmeasured for',
-							widen: false,
-						} satisfies Track,
+						} satisfies LaneSource,
 					]
 				: []),
-			...exempt.map((row): Track => ({
+			...exempt.map((row, index): LaneSource => ({
 				label: row.label,
-				tone: EXEMPT,
+				// `exemptRows` is handed the intermission first and the add wave second, and returns them
+				// in that order — the same order the precedence argument above it is written in.
+				tone: index === 0 ? 'nothing' : 'otherList',
 				windows: row.windows,
 				lengthLabel: 'for',
-				widen: false,
 			})),
 		],
 		[t, up, elsewhere, uncounted, dropped, exempt],
@@ -306,21 +311,20 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 					<ChartKey tone="kick">{t('flameShock.track.up')}</ChartKey>
 					{elsewhere.length > 0 ? <ChartKey tone="missSoft">{t('flameShock.track.elsewhere')}</ChartKey> : null}
 					<ChartKey tone="miss">{t('flameShock.track.dropped')}</ChartKey>
-					{uncounted.length > 0 ? <ChartKey tone={EXEMPT}>{t('flameShock.track.uncounted')}</ChartKey> : null}
-					{exempt.map((row) => (
-						<ChartKey key={row.label} tone={EXEMPT}>
+					{uncounted.length > 0 ? (
+						<ChartKey kind tone="unmeasured">
+							{t('flameShock.track.uncounted')}
+						</ChartKey>
+					) : null}
+					{exempt.map((row, index) => (
+						<ChartKey key={row.label} kind tone={index === 0 ? 'nothing' : 'otherList'}>
 							{row.label}
 						</ChartKey>
 					))}
 				</>
 			}
 		>
-			<WindowTracks
-				tracks={rows}
-				chartId="ele-flame-shock-uptime"
-				durationMs={analysis.durationMs}
-				label={t('flameShock.chart.uptimeLabel')}
-			/>
+			<TrackLane sources={sources} durationMs={analysis.durationMs} label={t('flameShock.chart.uptimeLabel')} />
 		</ChartFigure>
 	);
 }
