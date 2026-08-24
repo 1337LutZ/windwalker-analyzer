@@ -80,8 +80,15 @@ import i18n, { initI18n } from '../config';
 
 initI18n();
 
-/** Every reading a reader can put the report into, because a branch only one of them draws is still copy. */
-const READINGS: TargetModeChoice[] = ['auto', 'single', 'multi'];
+/**
+ * Every reading a reader can put the report into, because a branch only one of them draws is still copy.
+ *
+ * Four since the vocabulary widened. `'multi'` is deliberately not among them — no control offers it,
+ * so a sentence only it can reach is a sentence no reader can be shown. Every pull is asked for all
+ * four whether or not its own menu offers them: this is a sweep for copy, and a branch that is
+ * unreachable on one pull and reachable on the next still has to be written.
+ */
+const READINGS: TargetModeChoice[] = ['auto', 'single', 'cleave', 'aoe'];
 
 /**
  * Every pull a spec has committed, analysed if it needs analysing, named by its file.
@@ -167,6 +174,20 @@ const SWEEP = rendered();
  * the locale file leaves this list stale in both directions and both are reds.
  */
 const UNREACHED: string[] = [
+	// **Both `flameShock.verdict_goodSome` arms were here and have been read.** They arrived with the
+	// reader's third position: at Cleave the Elemental's banded Flame Shock rules leave only the refresh
+	// waste to grade, so a pull whose dot never dropped and whose refreshes clipped a few ticks lands on
+	// `good` with something still to say. `phased` reaches the plain arm at that reading and `unbroken`
+	// the `_full` one, and both say the right thing — *"the dot is not what is holding this pull back …
+	// hold Flame Shock until the dot's last tick and that goes too"* is exactly the sentence a good
+	// keep-up with clipped refreshes has earned.
+	//
+	// **What no reader sees on these two pulls is the reading itself**, and that is the derived menu
+	// working rather than a hole in this sweep. Neither pull ever exceeds one enemy, so
+	// `targetModeChoices` offers them the whole fight and Single Target and nothing else. The sweep asks
+	// every pull for all four readings on purpose — a branch unreachable on one pull and reachable on the
+	// next still has to be written — so an arm leaving this list means the copy exists and reads, not
+	// that a button exists to reach it here.
 	// `brew.verdict_bad_other` was here and has been read. `idle.json` reaches it — four brews spent
 	// averaging exactly 8.0 of 10, `brewStacks` grading `bad`, and `brewShortUses` too thin a sample to
 	// grade — so a reader sees *"4 brews spent, averaging only 8 of 10 stacks."* and nothing else about
@@ -197,8 +218,6 @@ const UNREACHED: string[] = [
 	'earthShock.verdict_ok',
 	'earthShock.verdict_tooFew',
 	'flameShock.verdict_good',
-	'flameShock.verdict_goodSome',
-	'flameShock.verdict_goodSome_full',
 	'flameShock.verdict_good_full',
 	'flameShock.verdict_none',
 	'flameShock.verdict_ok_full',

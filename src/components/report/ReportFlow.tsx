@@ -10,7 +10,7 @@ import { shouldAutoRun, useInitialUrlSelection, useUrlSelectionWriter } from '~/
 import { useFightPlayers } from '~/hooks/useFightPlayers';
 import { useReportFights } from '~/hooks/useReportFights';
 
-import type { TargetModeChoice } from '~/lib/view/targetMode';
+import type { OfferedChoice } from '~/lib/view/targetMode';
 import { DEFAULT_SPEC, getSpec } from '~/lib/spec';
 import { forgetCredits } from '~/lib/wcl';
 
@@ -94,7 +94,7 @@ export default function ReportFlow() {
 	 * That reset used to be free — `Report` unmounts when the analysis it is showing is dropped, and
 	 * took the state with it — and lifting the state is what made it something to do on purpose.
 	 */
-	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
+	const [targetChoice, setTargetChoice] = useState<OfferedChoice>('auto');
 	/**
 	 * Whether the selection carried in the URL has already been run.
 	 *
@@ -453,7 +453,12 @@ export default function ReportFlow() {
 			    Gated on `gradeable`, the same condition the bar's own switches take. */}
 			{gradeable && analysis !== null ? (
 				<div className="mt-4 sm:mt-5">
-					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
+					<TargetModeControl
+						targets={analysis.targets}
+						segments={analysis.segments}
+						value={targetChoice}
+						onChange={setTargetChoice}
+					/>
 				</div>
 			) : null}
 
@@ -477,6 +482,7 @@ export default function ReportFlow() {
 						gradeable && analysis !== null
 							? {
 									targets: analysis.targets,
+									segments: analysis.segments,
 									value: targetChoice,
 									onChange: setTargetChoice,
 								}

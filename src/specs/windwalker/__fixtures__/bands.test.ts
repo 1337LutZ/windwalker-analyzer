@@ -187,6 +187,22 @@ describe('the weight the band replaced', () => {
 	});
 
 	/**
+	 * The question the widened vocabulary put to this table, answered once rather than per reading.
+	 *
+	 * `cleave` and `aoe` take the same discount, because what the table prices is *spreading* and not a
+	 * count — and at two enemies `rushing-jade-wind-open` has already moved above Rising Sun Kick, so a
+	 * full-price one-target number there would disagree with the list the pull is scored against. A
+	 * graduated table is the tempting alternative and is refused for the reason `tigerPalmWaste` left
+	 * this map: a difference between two counts is a band claim, and a weight cannot tell a press at two
+	 * enemies from a press at six.
+	 */
+	it('discounts the same at a cleave as at a pack, and not at all at one target', () => {
+		const at = (choice: 'single' | 'cleave' | 'aoe' | 'multi') =>
+			weightsFor(resolveBands(fixture('cleave').targets, choice)).rskUptime;
+		expect([at('single'), at('cleave'), at('aoe'), at('multi')]).toEqual([2, 1, 1, 1]);
+	});
+
+	/**
 	 * What that costs. This test was written as "the band moves two headlines", and **both halves of that
 	 * have since been taken back, by two unrelated mechanisms and on two different dates.** Neither
 	 * retraction touches the band's own arithmetic, which is asserted above and is worth exactly what it

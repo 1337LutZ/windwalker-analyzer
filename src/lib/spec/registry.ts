@@ -74,11 +74,15 @@ export interface SpecDefinition {
 	/**
 	 * Turns one analysis into a scorecard, read at the target counts the pull was fought at.
 	 *
-	 * `ScoreView` and not a `TargetMode`, because a mode is a whole-pull binary and the pull the report
-	 * gets this wrong on is not binary: add waves and then a boss is one pull whose dot clocks run
-	 * through stretches no priority list asked a dot of. A mode cannot say that — whichever of its two
-	 * words wins, one of those stretches is graded against a list that never applied to it — so the seam
+	 * `ScoreView` and not a `TargetMode`, because a mode is one word for a whole pull and the pull the
+	 * report gets this wrong on took several: add waves and then a boss is one pull whose dot clocks run
+	 * through stretches no priority list asked a dot of. A mode cannot say that — whichever of its words
+	 * wins, one of those stretches is graded against a list that never applied to it — so the seam
 	 * carries the *bands*, which can. `~/lib/view/targetMode.resolveBands` is what builds one.
+	 *
+	 * Widening the mode from two words to four sharpened that arm without closing it: a `cleave` now
+	 * arrives at band 2 rather than band 3, so it is read against the list it belongs to. What no single
+	 * word can still say is that a pull was several of them at different minutes.
 	 *
 	 * `TargetMode` stays in the union rather than being replaced, and only for sequencing: every caller
 	 * today hands over a mode, both engines take one, and the conversion is one caller at a time. It is

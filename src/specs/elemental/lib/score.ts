@@ -1233,6 +1233,15 @@ export const WEIGHTS: Record<MetricKey, number> = {
  * `'multi'` — always false, silently, with the type system satisfied by method bivariance. `viewMode` in
  * `lib/score` is the accessor for the half of a view that is a mode, and is what a whole-pull weight here
  * would read if this spec ever grows one.
+ *
+ * **The reader's vocabulary widening to `cleave` and `aoe` changes nothing here, and it is worth saying
+ * why rather than leaving an empty table to be read as an oversight.** The widening asks one question of
+ * a weight table: does the discount you apply when the job is spreading depend on *how much* spreading.
+ * This table applies no discount at any count, so it has no answer to give and needs none. Where the
+ * Elemental's seven scoped rules genuinely do split two enemies from three — `earthShockGood` at bands 1
+ * and 2 is exactly that line — they say so through `bands`, which is the mechanism that can tell the two
+ * apart. A weight cannot, and adding one here to look responsive to the new words would charge the same
+ * pull twice for one fact, which is what the paragraph above already refuses.
  */
 export function weightsFor(_view: ScoreView): Record<MetricKey, number> {
 	return WEIGHTS;

@@ -1,10 +1,10 @@
-// The band declaration read from the rule's end, and the one conversion that loses information.
+// The band declaration read from the rule's end, and the one conversion between the two vocabularies.
 
 import { describe, expect, it } from 'vitest';
 
 import { ALL_BANDS } from '~/lib/spec/apl';
 
-import { appliesAt, bandsOf, gradedBands, viewBands, viewMode } from '../index';
+import { appliesAt, bandsOf, gradedBands, spreading, viewBands, viewMode } from '../index';
 
 describe('a rule’s declared bands', () => {
 	/** Undeclared means every band, the same default `ladderEntries` resolves for an APL entry. */
@@ -49,11 +49,15 @@ describe('viewBands', () => {
 	});
 
 	/**
-	 * The lossy arm, pinned so the loss is a documented fact rather than a surprise: a whole-pull mode
-	 * arrives as exactly one band, which is all a two-position switch can say.
+	 * A whole-pull mode arrives as exactly one band, which is all a mode can say — but which band is no
+	 * longer guessed. Three of the four name their own: the two-target reading used to arrive at band 3
+	 * and be judged against a list holding Spinning Crane Kick, which the priority list does not contain
+	 * until three enemies.
 	 */
-	it('flattens a mode to a single band', () => {
+	it('gives each mode its own band, and the coarse one keeps three', () => {
 		expect(viewBands('single')).toEqual([1]);
+		expect(viewBands('cleave')).toEqual([2]);
+		expect(viewBands('aoe')).toEqual([3]);
 		expect(viewBands('multi')).toEqual([3]);
 	});
 
@@ -90,5 +94,33 @@ describe('viewMode', () => {
 		expect(viewMode(null)).toBeNull();
 		expect(viewMode(undefined)).toBeNull();
 		expect(viewMode({ bands: null, mode: null, forced: false })).toBeNull();
+	});
+});
+
+describe('whether the job was spreading', () => {
+	/**
+	 * The line sits at two enemies, and three places in the tree already draw it there: `multiTargetMs`
+	 * is time at two or more, `MULTI_TARGET_SHARE_PCT` decides the whole pull against that clock, and
+	 * `rushing-jade-wind-open` carries `bands: [2, 3, 4]` — so from two up the priority list has already
+	 * moved a spreading button above Rising Sun Kick. A weight table that called two targets "aimed"
+	 * would be scoring against a list it disagreed with.
+	 */
+	it('counts a cleave as spreading, alongside the pack and the coarse reading', () => {
+		expect([spreading('single'), spreading('cleave'), spreading('aoe'), spreading('multi')]).toEqual([
+			false,
+			true,
+			true,
+			true,
+		]);
+	});
+
+	/**
+	 * Nothing said is not spreading — and not because a pull with no reading was aimed at one body, but
+	 * because the only caller is choosing between a base table and a discount, and the base table is what
+	 * every pull got before any of this existed.
+	 */
+	it('treats nothing said as the base reading rather than the discount', () => {
+		expect(spreading(null)).toBe(false);
+		expect(spreading(undefined)).toBe(false);
 	});
 });

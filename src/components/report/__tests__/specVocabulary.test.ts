@@ -143,8 +143,15 @@ const readableText = (html: string): string => {
 	return `${body} ${labels}`.replaceAll('&#x27;', "'").replaceAll('&quot;', '"').replaceAll('&amp;', '&');
 };
 
-/** Every reading a reader can put the report into, because a branch only one of them draws is still copy. */
-const READINGS: TargetModeChoice[] = ['auto', 'single', 'multi'];
+/**
+ * Every reading a reader can put the report into, because a branch only one of them draws is still copy.
+ *
+ * Four since the vocabulary widened. `'multi'` is deliberately not among them — no control offers it,
+ * so a sentence only it can reach is a sentence no reader can be shown. Every pull is asked for all
+ * four whether or not its own menu offers them: this is a sweep for copy, and a branch that is
+ * unreachable on one pull and reachable on the next still has to be written.
+ */
+const READINGS: TargetModeChoice[] = ['auto', 'single', 'cleave', 'aoe'];
 
 const render = (spec: SpecDefinition, analysis: Analysis, targetChoice: TargetModeChoice): string =>
 	readableText(renderToStaticMarkup(createElement(Report, { analysis, targetChoice, spec })));

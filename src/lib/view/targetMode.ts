@@ -1,10 +1,10 @@
-// Reading a pull as single- or multi-target, and letting the reader disagree.
+// Reading a pull at one of its rotations, and letting the reader disagree.
 //
 // View state, and deliberately not an analysis setting. `lib/settings` says what belongs to it in its
 // own opening lines — the handful of thresholds "a reader is entitled to disagree with", numbers that
 // "depend on the person, not on the spec", like how fast someone can react to a proc. This is not one
 // of those. Forcing a pull to be read as single-target changes nothing the engine measured: the
-// counts stand, the uptime stands, and only which of the two readings the report argues from moves.
+// counts stand, the uptime stands, and only which reading the report argues from moves.
 //
 // Putting it in `AnalysisSettings` would do two things nobody wants. It would persist to
 // localStorage and follow the reader onto the next fight they picked — a Galakras pull silently
@@ -15,15 +15,92 @@
 
 import { type Interval, mergeIntervals } from '~/lib/analysis/intervals';
 import type { SegmentMode, SegmentTimeline } from '~/lib/analysis/segments';
-import type { BandView } from '~/lib/score';
+import { type BandView, spreading } from '~/lib/score';
 import { type Band, bandOf } from '~/lib/spec/apl';
 import type { TargetMode, TargetSummary } from '~/lib/types';
 
-/** What the reader can ask for: the detected answer, or one of the two readings outright. */
+/** What the reader can ask for: the whole fight, or one of its readings outright. */
 export type TargetModeChoice = 'auto' | TargetMode;
 
-/** The three, in the order a control offers them. Detection first, because it is the default. */
-export const TARGET_MODE_CHOICES: readonly TargetModeChoice[] = ['auto', 'single', 'multi'];
+/**
+ * The choices a control may put in front of a reader, which is every one but `'multi'`.
+ *
+ * `'multi'` is the detection's word and not a rotation: it means "two or more", which is a cleave and
+ * an eight-target pack folded together, and the fold is the thing this vocabulary was widened to undo.
+ * A button offering it would hand back the reading the whole exercise removed. It stays a legal
+ * `TargetModeChoice` because `TargetSummary.detected` produces it and a caller may hand it straight
+ * on — see `bandForMode` and `spansForChoice`, both of which answer for it.
+ */
+export type OfferedChoice = Exclude<TargetModeChoice, 'multi'>;
+
+/**
+ * How long a mode has to hold, across the whole pull, before the control offers it as a reading.
+ *
+ * **30 000 ms — about twenty globals, and roughly four times `MIN_GRADED_SAMPLE`'s worth of presses.**
+ * A position that grades nothing is worse than a missing one: `MIN_GRADED_SAMPLE` and
+ * `MIN_JUDGED_WEIGHT_SHARE` would refuse most of the card, so the reader clicks a button and is told
+ * the report cannot say — which reads as a broken control rather than as an honest refusal.
+ *
+ * Measured across the eight committed pulls that carry a timeline, this is what the menu comes out as:
+ *
+ * ```
+ *                          single   cleave      aoe   offers
+ *   ww/ironJuggernaut      190.3s        -        -   single
+ *   ww/idle                 28.1s     8.1s    15.7s   —                (128s of it is mixed, 75s idle)
+ *   ww/sections            106.8s    68.3s   138.4s   single cleave aoe
+ *   ww/uncounted           211.3s        -        -   single
+ *   el/addsThenBoss        105.9s    96.0s   317.4s   single cleave aoe
+ *   el/cleave              106.7s    15.4s    67.5s   single aoe
+ *   el/phased              245.4s        -        -   single
+ *   el/unbroken            184.4s        -        -   single
+ * ```
+ *
+ * Two of those rows are the argument for deriving the menu at all. **`el/cleave` does not offer
+ * Cleave** — the fixture named for cleaving spends 15.4 s of 263 s in a cleave segment, and its
+ * multi-target time is an eight-target reading rather than a two-target one. **`ww/idle` offers
+ * nothing but the whole fight**: no rotation held for half a minute, so every narrower reading there
+ * would be a letter earned on scraps. The plan's own case is the same shape from the other side —
+ * Norushen has no single-target segment at all, and a fixed list would put a Single Target button on a
+ * pull with nothing behind it.
+ */
+export const TARGET_MODE_MIN_MS = 30_000;
+
+/** The three the menu is drawn from, in ascending enemy count — the order a reader expects them in. */
+const OFFERABLE: readonly Extract<SegmentMode, TargetMode>[] = ['single', 'cleave', 'aoe'];
+
+/**
+ * The readings this pull can carry, in the order a control offers them.
+ *
+ * **A function of the analysis, where it used to be a constant.** `TARGET_MODE_CHOICES` was
+ * `['auto', 'single', 'multi']` for every pull in the game, which is a claim about the encounter roster
+ * and not about the fight in front of the reader. The menu is now a claim about *this* pull: each
+ * position says "there was enough of that rotation here to read it on its own", and the pull's own
+ * segments are the only thing that can say so.
+ *
+ * `'auto'` is always first and is always offered, because reading the whole fight needs no evidence —
+ * it is the fight. Everything after it is earned, at `TARGET_MODE_MIN_MS`.
+ *
+ * **A pull with no timeline offers nothing but the whole fight, and that is the honest answer rather
+ * than a degraded one.** Every committed `Analysis` capture predates `Analysis.segments` and arrives
+ * here `undefined`; `analyse()` has filled it in for every pull since. Offering the three anyway on
+ * such a capture would offer precisely the defect this widening removes — `spansForChoice` returns
+ * `null` without a timeline, so the reading would narrow the bands and leave every clock running over
+ * the whole pull, which is the lossy arm `BandView.spans` exists to close.
+ *
+ * `mixed` and `idle` are never positions. A `mixed` stretch is one no single rotation described, so
+ * the reading that keeps it is the whole fight; `idle` is time nothing was there to be hit, which is
+ * evidence for no reading at all.
+ */
+export function targetModeChoices(segments: SegmentTimeline | undefined): readonly OfferedChoice[] {
+	const offered: OfferedChoice[] = ['auto'];
+	if (segments === undefined) return offered;
+	const held = new Map<SegmentMode, number>();
+	for (const segment of segments.segments) {
+		held.set(segment.mode, (held.get(segment.mode) ?? 0) + segment.endMs - segment.startMs);
+	}
+	for (const mode of OFFERABLE) if ((held.get(mode) ?? 0) >= TARGET_MODE_MIN_MS) offered.push(mode);
+	return offered;
+}
 
 export interface ResolvedTargetMode {
 	/**
@@ -40,14 +117,27 @@ export interface ResolvedTargetMode {
 	overridden: boolean;
 }
 
-/** Reconciles what the pull looked like with what the reader asked for. */
+/**
+ * Reconciles what the pull looked like with what the reader asked for.
+ *
+ * **The disagreement is decided in the coarser of the two vocabularies, and it has to be.** The reader
+ * now has three words and the detection still has two: `TargetSummary.detected` is one share against
+ * one threshold, and neither a cleave nor an eight-target pack is a thing that number can name. So
+ * comparing them literally would report a reader who chose Cleave on a pull detected `multi` as
+ * contradicting it, when the two agree about everything the detection actually claimed. `spreading`
+ * folds the choice back down to the detection's own pair, and the comparison happens there.
+ *
+ * What survives that fold is the disagreement the control exists to show: single against spreading,
+ * either way round. A reader who forces one target on an add fight is still told the pull disagrees,
+ * which is the case the whole override was built for.
+ */
 export function resolveTargetMode(
 	detected: TargetMode | null | undefined,
 	choice: TargetModeChoice,
 ): ResolvedTargetMode {
 	const seen = detected ?? null;
 	if (choice === 'auto') return { mode: seen, detected: seen, overridden: false };
-	return { mode: choice, detected: seen, overridden: seen !== null && seen !== choice };
+	return { mode: choice, detected: seen, overridden: seen !== null && spreading(seen) !== spreading(choice) };
 }
 
 /**
@@ -58,11 +148,18 @@ export function resolveTargetMode(
  * from a skip to the reference would arrive at a list that never contained the button they were told
  * they passed over — which is the one failure the pairing exists to prevent.
  *
+ * **Three of the four modes now name their band outright, and only the coarse one has to be argued.**
+ * `single` is one and `cleave` is two, which is what those words mean; `aoe` is `n >= 3` in
+ * `SegmentMode`'s own reading and lands on three. That is the whole of the widening's benefit here —
+ * a two-target reading used to arrive as band 3 and be shown a list that wants Spinning Crane Kick,
+ * which the list does not contain until three.
+ *
  * `multi` is three rather than two or four, because three is where the multi-target list has taken
  * its shape: Rushing Jade Wind is above Rising Sun Kick, Spinning Crane Kick is in the list, and the
  * chi dump's energy reserve has moved to the higher of its two numbers. Four adds exactly one more
  * rung — the `targets >= 4` Crane Kick of entry 20 — and reading every pack as though it were four
- * enemies would print a rung most packs never reach.
+ * enemies would print a rung most packs never reach. `aoe` shares that answer for the same reason and
+ * keeps every reading that used to arrive as `multi` exactly where it was.
  *
  * Null when nothing detected a reading and the reader has not chosen one, which is the same null
  * `resolveTargetMode` returns and means the same thing: no basis to pick, so do not pick.
@@ -75,7 +172,8 @@ export function resolveTargetMode(
  */
 export function bandForMode(mode: TargetMode | null): Band | null {
 	if (mode === null) return null;
-	return mode === 'single' ? 1 : 3;
+	if (mode === 'single') return 1;
+	return mode === 'cleave' ? 2 : 3;
 }
 
 /**
@@ -129,10 +227,10 @@ export function bandsInPull(targets: TargetSummary | undefined): readonly Band[]
  * The bands to score a pull at: what it was fought at, or the one reading the reader forced.
  *
  * The counterpart of `resolveTargetMode` for everything downstream of a grade, and the reason it is a
- * separate function rather than a field on that one: the reader's override genuinely is a mode — their
- * switch has two positions and they are saying "read the whole pull as this" — while the detection is
- * a set, and a mixed pull is only expressible as the set. Forcing therefore narrows to one band
- * through `bandForMode`, and that narrowing is the reader's own claim rather than this module's guess.
+ * separate function rather than a field on that one: the reader's override genuinely is a mode — they
+ * pick one position and are saying "read the pull as this" — while the detection is a set, and a mixed
+ * pull is only expressible as the set. Forcing therefore narrows to one band through `bandForMode`,
+ * and that narrowing is the reader's own claim rather than this module's guess.
  *
  * The three committed Elemental fixtures make the difference concrete: `phased` and `unbroken` never
  * exceed one enemy, so both readings agree on band 1 and nothing here can change them, while `cleave`
@@ -171,11 +269,24 @@ export function resolveBands(
  * in that position, and an empty array would read as "no stretch qualifies" and empty every clock at
  * once. That is the failure direction, and it is the same one `bands: null` guards.
  *
- * `'multi'` collects `cleave` and `aoe` together, and `mixed` with them: the reader's switch has the two
- * positions the mode vocabulary has, so a stretch that was not single-target belongs to the other one.
- * A `mixed` segment is by construction a stretch no single mode described, which makes it part of the
- * multi-target reading and not part of the single-target one. **`idle` belongs to neither** — nothing
- * was there to be hit, so it is not evidence for either reading.
+ * **The three offered readings take their own segments and nothing else.** This is where the fold that
+ * `TargetMode`'s widening exists to remove used to live: `'multi'` collected `cleave` and `aoe`
+ * together, so a reader asking about the pack got a clock that also ran through every two-target
+ * stretch. `single` takes `single`, `cleave` takes `cleave`, `aoe` takes `aoe`, and the answer is what
+ * the reader asked for rather than the nearest available union.
+ *
+ * **`mixed` belongs to no narrowed reading, which is a change of side rather than an omission.** It
+ * used to be filed with the multi-target half on the argument that a stretch which was not
+ * single-target must be the other thing. With three positions that argument is gone: a `mixed` segment
+ * is by construction one that no single rotation described, so handing it to `cleave` or to `aoe` would
+ * be picking a winner the segmentation already declined to pick. The reading that keeps it is the whole
+ * fight, which is the default and covers everything. **`idle` belongs to none of them** for the older
+ * reason — nothing was there to be hit, so it is evidence for no reading at all.
+ *
+ * `'multi'` keeps the old union, because it keeps the old meaning: it is the detection's "two or more",
+ * and a caller handing it on is asking for exactly the stretches that were not one target. No control
+ * offers it — see `OfferedChoice` — so this arm answers callers holding a detected mode rather than a
+ * reader's press.
  */
 function spansForChoice(
 	segments: SegmentTimeline | undefined,
@@ -183,7 +294,7 @@ function spansForChoice(
 ): readonly Interval[] | null {
 	if (segments === undefined || segments.segments.length === 0) return null;
 	const wanted = (mode: SegmentMode): boolean =>
-		choice === 'single' ? mode === 'single' : mode === 'cleave' || mode === 'aoe' || mode === 'mixed';
+		choice === 'multi' ? mode === 'cleave' || mode === 'aoe' || mode === 'mixed' : mode === choice;
 	const picked = segments.segments
 		.filter((segment) => wanted(segment.mode))
 		.map((segment): Interval => [segment.startMs, segment.endMs]);

@@ -20,6 +20,7 @@ import {
 	section,
 	shareOf,
 	sharePct,
+	spreading,
 	viewMode,
 } from '~/lib/score';
 import type { Grade, Measured, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
@@ -865,19 +866,42 @@ export const WEIGHTS: Record<MetricKey, number> = {
  * neither fight's own distribution supports. The weight stays at 1 regardless — it is a claim about
  * how much a one-target number should matter when the job is spreading, not a claim about where add
  * fights land, and nothing in the sweep touches it.
+ *
+ * ***One table for `cleave` and `aoe` both, and it is a decision rather than the old behaviour left
+ * where it fell.*** The reader's vocabulary widened from two readings to four, so this table had to be
+ * asked a question it had never been asked: does a two-target pull discount Rising Sun Kick uptime the
+ * way an eight-target one does. **It does, and the reason is that this table's own claim is about
+ * spreading rather than about a count.** Three places in the tree already draw that line at two:
+ * `multiTargetMs` is time at two or more, `MULTI_TARGET_SHARE_PCT` decides the whole pull against that
+ * clock, and — the structural one — `rushing-jade-wind-open` carries `bands: [2, 3, 4]`, so from two
+ * enemies up the priority list has *already* moved a spreading button above Rising Sun Kick. Pricing
+ * band 2 as though the one-target number were still the whole story would put this table at odds with
+ * the ladder it is scoring against.
+ *
+ * **What must not follow from that is a graduated table.** The tempting next move is `rskUptime: 1` at
+ * cleave and something lower at aoe, and it is wrong for the reason `tigerPalmWaste` left this map in
+ * the first place: a difference between two counts is a *band* claim, and bands say it with a
+ * mechanism that can tell a press at two enemies from a press at six. A weight cannot. This table
+ * carries only what a whole-pull word can honestly carry, and "the job was spreading" is the whole of
+ * that.
  */
 export const MULTI_TARGET_WEIGHTS: Partial<Record<MetricKey, number>> = {
 	rskUptime: 1,
 };
 
 /**
- * The weights for a reading: the base set, unless the pull is being read as multi-target.
+ * The weights for a reading: the base set, unless the job was spreading.
  *
  * Takes the whole `ScoreView` and reads the mode off it rather than being handed a mode, so the
  * weights and the grades come off one object and cannot be arguing about different pulls. `viewMode`
  * is the half of the view a band set cannot supply and the half this function needs — see
  * `BandView.mode` for why both readings travel together.
+ *
+ * `spreading` and not a comparison against `'multi'`, which is what this read before the vocabulary
+ * widened and what would have silently stopped discounting anything the day the control started
+ * handing over `'cleave'` and `'aoe'` instead. Where the line sits, and why it sits at two enemies
+ * rather than three, is argued on `spreading` itself and on the table above.
  */
 export function weightsFor(view: ScoreView): Record<MetricKey, number> {
-	return viewMode(view) === 'multi' ? { ...WEIGHTS, ...MULTI_TARGET_WEIGHTS } : WEIGHTS;
+	return spreading(viewMode(view)) ? { ...WEIGHTS, ...MULTI_TARGET_WEIGHTS } : WEIGHTS;
 }

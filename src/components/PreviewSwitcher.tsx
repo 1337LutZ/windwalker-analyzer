@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import type { Analysis } from '~/lib/types';
-import type { TargetModeChoice } from '~/lib/view/targetMode';
+import type { OfferedChoice } from '~/lib/view/targetMode';
 import { DEFAULT_SPEC, SPECS } from '~/lib/spec';
 
 import Report from './Report';
@@ -29,7 +29,7 @@ export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string,
 	// The report takes the reading as a prop now — the control that sets it lives on the sticky bar,
 	// which this harness does not render — so previewing a fixture in both readings means holding it
 	// here. `ReportFlow` puts it back to `auto` per pull; switching fixtures here does the same.
-	const [targetChoice, setTargetChoice] = useState<TargetModeChoice>('auto');
+	const [targetChoice, setTargetChoice] = useState<OfferedChoice>('auto');
 	const analysis = fixtures[name];
 
 	return (
@@ -51,7 +51,12 @@ export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string,
 			</div>
 			{analysis ? (
 				<>
-					<TargetModeControl targets={analysis.targets} value={targetChoice} onChange={setTargetChoice} />
+					<TargetModeControl
+						targets={analysis.targets}
+						segments={analysis.segments}
+						value={targetChoice}
+						onChange={setTargetChoice}
+					/>
 					<Report key={name} analysis={analysis} targetChoice={targetChoice} spec={specFor(analysis)} />
 				</>
 			) : null}
