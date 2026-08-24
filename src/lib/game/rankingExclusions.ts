@@ -294,3 +294,54 @@ export function rankingExclusionFor(
 		return rule.npc === npc.name;
 	});
 }
+
+/**
+ * The table above resolved to this report's actor ids — *the enemies that must not raise the count*.
+ *
+ * ## What it answers, and the one thing it deliberately does not
+ *
+ * One question only: **which bodies leave the counted enemy series**. `reach` is the whole of the
+ * decision and it is already made, per row, against a measured pull:
+ *
+ *   - `'both'` — in the set. The player was never fighting this unit, so each stray hit buying a
+ *     target window of elevated count is the count lying about the pull.
+ *   - `'damage'` — **not** in the set, and that is the interesting half. WarcraftLogs still strikes the
+ *     damage out, but the add was a body the rotation was right to react to; dropping it from the count
+ *     would report an add wave as single-target, which is a worse reading than the one it replaces.
+ *   - `null` — not in the set. An undecided row is a row with no evidence either way, and the safe
+ *     reading of "nobody has measured this" is to change nothing. It is not a `'both'` awaiting paperwork.
+ *
+ * Nothing here removes damage from anything. The ruleset's own effect on rankings is WarcraftLogs'
+ * business; this is only the second decision the header argues for, applied.
+ *
+ * ## Why a `Set` of report-local ids, and not of `gameID`s
+ *
+ * Same reason `ignoredMultiTargetActorIDs` in the Windwalker spec returns one: the rules are written in
+ * `gameID`s, which are stable across reports, and every reader downstream holds a damage event whose
+ * `targetID` is the report's *local* actor number, which is not. The match happens here, once, so that
+ * the several numbers this report prints about "how many enemies was this" cannot resolve the same table
+ * two ways and disagree — the failure that comment records having already happened once.
+ *
+ * ## What `enemyNPCs` actually carries, and the row it therefore cannot reach
+ *
+ * `reportFights.graphql` asks an `enemyNPCs` entry for `id` and `gameID` and for no name, and
+ * `normaliseFight` then drops any entry missing either — so on the list `analyseCore` holds, **the name
+ * fallback never fires**. That is fine today and is asserted rather than assumed: every row whose
+ * `gameID` is `null` is also `reach: null`, so nothing decided is out of reach. It stops being fine the
+ * moment a row is decided without a `gameID`, which is why `name` is accepted here at all — a caller
+ * holding the report's `actors` can name a unit the fight list cannot, and passing it costs nothing.
+ *
+ * `difficulty` is taken rather than inferred for the same reason `rankingExclusionFor` takes it: most
+ * rows are heroic-only, Thok's is not, and a pull records which it was.
+ */
+export function uncountedActorIDs(
+	encounterID: number | undefined,
+	difficulty: number | undefined,
+	enemyNPCs: readonly { id: number; gameID?: number | null; name?: string | null }[] | undefined,
+): Set<number> {
+	return new Set(
+		(enemyNPCs ?? [])
+			.filter((npc) => rankingExclusionFor(encounterID, difficulty, npc)?.reach === 'both')
+			.map((npc) => npc.id),
+	);
+}
