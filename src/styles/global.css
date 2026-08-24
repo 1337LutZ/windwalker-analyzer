@@ -26,6 +26,13 @@
 	background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.26) 0 2px, transparent 2px 5px);
 }
 
+/* `slot` — something else held the one slot this could have gone in — sharing the darkest step with
+ * `nothing` and separated from it by angle. The opposite 135° to `.hatch-unmeasured`, so the two
+ * textured kinds are never a question either. See `EXEMPT_KIND` for why this shares a step at all. */
+.hatch-slot {
+	background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.16) 0 2px, transparent 2px 5px);
+}
+
 @theme {
 	/* The spec's identity colour, set at runtime from the spec's own `colors.primary` — a Windwalker
 	 * report is tinted green, an Elemental one blue. The structural colours below are all derived
