@@ -486,6 +486,7 @@ export const RSK_TARGET_LANES = 6;
 const ABILITIES: Ability[] = [
 	{
 		key: 'jab',
+		targeting: { aimed: true },
 		name: 'Jab',
 		// One id per weapon type, and the full set matters: a monk holding a weapon whose id is missing
 		// has every Jab dropped from the cast table silently. Verified against the sim's game database
@@ -503,6 +504,7 @@ const ABILITIES: Ability[] = [
 	},
 	{
 		key: 'tiger-palm',
+		targeting: { aimed: true },
 		name: 'Tiger Palm',
 		castIds: [100787],
 		damageIds: [100787],
@@ -513,6 +515,7 @@ const ABILITIES: Ability[] = [
 	},
 	{
 		key: 'blackout-kick',
+		targeting: { aimed: true },
 		name: 'Blackout Kick',
 		castIds: [100784],
 		damageIds: [100784, 128531],
@@ -523,6 +526,7 @@ const ABILITIES: Ability[] = [
 	},
 	{
 		key: 'rising-sun-kick',
+		targeting: { aimed: true },
 		name: 'Rising Sun Kick',
 		castIds: [107428],
 		damageIds: [107428],
@@ -574,7 +578,7 @@ const ABILITIES: Ability[] = [
 		 * Kick's flat chi, Rising Sun Kick's cleave, the fan-out averages — is about damage and gains
 		 * nothing from a unit that cannot take any.
 		 */
-		multiTargetBenefit: 'trigger',
+		targeting: { multiTargetBenefit: 'trigger' },
 		cooldownMs: 6000,
 		applies: ['rushing-jade-wind'],
 	},
@@ -1203,7 +1207,11 @@ const POTION_CAST = registry.ability('virmens-bite');
 const SINGLE_TARGET_DAMAGE_IDS: ReadonlySet<number> = new Set([
 	// Melee. Modelled nowhere, because there is no button behind it; `EXTRA_NAMES` is what names it.
 	1,
-	...['jab', 'tiger-palm', 'blackout-kick', 'rising-sun-kick'].flatMap((key) => registry.ability(key).damageIds ?? []),
+	// **Swept off the declaration rather than listed here.** The four keys used to be spelled out on this
+	// line, which made this the second place the same judgement lived — a button could be given the
+	// property in the model and still be missed here, or dropped from the model and still be counted.
+	// `targeting.aimed` is the one statement; a new single-target button joins this set by declaring it.
+	...registry.abilities.filter((a) => a.targeting?.aimed === true).flatMap((a) => a.damageIds ?? []),
 ]);
 
 /** The id an aura is reported under. Every aura above declares at least one. */
@@ -1239,6 +1247,36 @@ const NEEDS_TARGET: ReadonlySet<string> = new Set(['rising-sun-kick', 'chi-wave'
  * Raid buffs are deliberately absent: `RAID_BUFF_NAMES` already carries every provider id the buff
  * section knows, so naming the Monk's own two here would be a second copy of a number that is settled
  * over there — including the one whose cast and aura ids differ.
+ *
+ * **The four ids the second, third and fourth raw pulls added, and why none of them is modelled.**
+ * `analysis/__tests__/fixtureCoverage.test.ts` refuses an id that is neither an `Ability` nor named
+ * here, and it named these four the moment `idle.json` and `uncounted.json` landed: 115460 Healing
+ * Sphere ×14, 115176 Zen Meditation ×1, 115546 Provoke ×5 and 126389 Goblin Glider ×1. The question
+ * that guard exists to force is whether each is the Chain Lightning shape — a rotational button priced
+ * at nothing — and for these four it is not, on two measurements rather than on a reading of the names.
+ *
+ * The first is the global. `StartRecoveryTime` in the client data is the global a spell triggers, and
+ * every button this spec models as `onGcd: true` reads **1000** there without exception — Tiger Palm,
+ * Chi Wave, Leg Sweep, Expel Harm, Flying Serpent Kick, Touch of Karma. Zen Meditation, Provoke and the
+ * glider read **0**: off the global entirely, which is exactly the class the paragraph above describes.
+ * (The reverse does not hold and is not claimed: Tiger's Lust reads 1000 and has always been named here
+ * rather than modelled.) Healing Sphere reads **500** — half the monk's global, and the only id in this
+ * spec's whole cast-id set that reads anything but 1000 or 0 — so there is no honest `onGcd` for it.
+ * `true` would credit a full 1.0s slot in the GCD walk for a press that costs half of one, fourteen
+ * times over on `idle.json`; naming it errs the other way, and errs downward, which is the direction
+ * `analyseCore`'s own occupancy figure is documented to prefer.
+ *
+ * The second is damage, and it is the half the Chain Lightning failure actually cost. All four produce
+ * **zero** `damage` events across all four raw pulls — Healing Sphere and Provoke log a bare `cast` and
+ * nothing else, Zen Meditation and the glider log a `cast` and their own buff window — so there is no
+ * output to be filed under `passive` as though no press had produced it. An id with no damage and no
+ * rung in the priority list has nothing for a row to say, and modelling it would put a heal, a taunt
+ * and an engineering toy in front of a ladder that grades globals.
+ *
+ * 115546 is worth naming for its own sake: it renders as a bare `#115546` because it is in neither
+ * `generated/spells.json` nor WarcraftLogs' damage table, and it is **Provoke**, the Monk taunt. The
+ * five presses on `uncounted.json` are the pull's finding rather than a curiosity — each one lands an
+ * applydebuff of 116189 on a `Living Corruption`, which is a Windwalker picking adds up off the raid.
  */
 const EXTRA_NAMES: Record<number, string> = {
 	1: 'Melee',
@@ -1247,6 +1285,10 @@ const EXTRA_NAMES: Record<number, string> = {
 	122783: 'Diffuse Magic',
 	116705: 'Spear Hand Strike',
 	116709: 'Spear Hand Strike',
+	115460: 'Healing Sphere',
+	115176: 'Zen Meditation',
+	115546: 'Provoke',
+	126389: 'Goblin Glider',
 	120273: 'Tiger Strikes',
 	120274: 'Tiger Strikes',
 	120278: 'Tiger Strikes',
@@ -1623,7 +1665,8 @@ export const WW_SPEC: SpecConfig = {
 			gains: [
 				{ abilityKey: 'jab', amount: 2 },
 				{ abilityKey: 'spinning-crane-kick', amount: 1 },
-				{ abilityKey: 'rushing-jade-wind', amount: 1 },
+				// Three or more, per wowsims' `registerRushingJadeWind`. See `ResourceConfig.gains.minTargets`.
+				{ abilityKey: 'rushing-jade-wind', amount: 1, minTargets: 3 },
 			],
 		},
 	},
@@ -3703,7 +3746,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		// has two rungs (17 and 31) and hand-writing the flavour on each is how the two would come to
 		// disagree. An id no ability claims bands on damage, which is the safe direction — it can only
 		// under-count, never invent a target.
-		benefitOf: (id) => registry.abilityByCastId(id)?.multiTargetBenefit ?? 'damage',
+		benefitOf: (id) => registry.abilityByCastId(id)?.targeting?.multiTargetBenefit ?? 'damage',
 		// The two on-GCD buttons the ladder declares off its own business, so their presses read `off-list`
 		// naming the section that judges them instead of being charged to whichever rung the band happened
 		// to leave standing. The declaration lives on the ladder and is read here: `LADDER` and this belong

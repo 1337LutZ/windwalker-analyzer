@@ -45,7 +45,7 @@ export interface DamageAggregate {
  * so the mines come out of its average. An ability whose benefit is a hit-count *trigger* — Rushing
  * Jade Wind, whose chi refund fires on three units hit whether or not damage lands — really did hit
  * them, and its average is the number a reader checks that refund against. The ability model says
- * which (`multiTargetBenefit`), so the answer is the same everywhere it is asked.
+ * which (`targeting.multiTargetBenefit`), so the answer is the same everywhere it is asked.
  */
 export function aggregateDamage(
 	damageEvents: readonly DamageEvent[],
@@ -91,7 +91,7 @@ export function aggregateDamage(
 		// `immuneSpawns` and the spawns counted here are keyed identically by construction.
 		const spawn = e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance);
 		// A hit-count trigger counts a unit it could not damage; damage does not. Absent means damage.
-		const countsImmune = ability?.multiTargetBenefit === 'trigger';
+		const countsImmune = ability?.targeting?.multiTargetBenefit === 'trigger';
 		if (
 			e.targetID !== undefined &&
 			spawn !== null &&

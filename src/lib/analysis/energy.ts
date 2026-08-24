@@ -401,7 +401,11 @@ export function poolResourceAudit(
  *
  * A points bar arrives in whole units from a button, so its fault is a count — and the count has to
  * be *walked* rather than read off, because the log reports a spender's bar and says nothing about
- * a generator's. `gainOf` names the presses that put whole units on it (the config's `gains`,
+ * a generator's. `gainOf` is asked with the press's own moment as well as its id, because a generator's
+ * yield is not always a constant: Rushing Jade Wind pays its chi only when it hits three or more, and a
+ * flat lookup credited it on every press. See `ResourceConfig.gains.minTargets`.
+ *
+ * `gainOf` names the presses that put whole units on it (the config's `gains`,
  * resolved through the registry), with one exception derived from the log itself: an ability that
  * reports its own gain as a `resourcechange` event is applied from that event and must not be
  * credited twice, so its presses are cut out of the walk's table wherever the events prove it.
@@ -411,7 +415,7 @@ export function pointsResourceAudit(
 	events: readonly WclEvent[],
 	actorID: number,
 	t0: number,
-	gainOf: (abilityID: number) => number | undefined,
+	gainOf: (abilityID: number, atMs: number) => number | undefined,
 	samples: readonly ResourceSample[],
 	powerType: number = WCL_CHI,
 ): PointsResourceAudit {
@@ -425,7 +429,13 @@ export function pointsResourceAudit(
 	// The walk applies `resourcechange` gains itself, so the table must not also credit them. Chi
 	// Brew is the case this report knows (its 4-point return arrives as an event, not as a press);
 	// the exclusion is read off the log rather than hardcoded, so a second spec's brew works too.
-	const walk = chiAtCasts(events, actorID, t0, (id) => (resourceChangeIDs.has(id) ? undefined : gainOf(id)), powerType);
+	const walk = chiAtCasts(
+		events,
+		actorID,
+		t0,
+		(id, atMs) => (resourceChangeIDs.has(id) ? undefined : gainOf(id, atMs)),
+		powerType,
+	);
 	// The overflow audit has no event path — it reads gains off presses only — so it takes the
 	// whole table, resourcechange-emitters included: their whole points are the point.
 	const overflow = chiWasted(events, actorID, t0, gainOf, powerType);
@@ -460,7 +470,7 @@ export function chiWasted(
 	events: readonly WclEvent[],
 	actorID: number,
 	t0: number,
-	gainOf: (abilityID: number) => number | undefined,
+	gainOf: (abilityID: number, atMs: number) => number | undefined,
 	powerType: number = WCL_CHI,
 ): Array<{ t: number; wasted: number }> {
 	const out: Array<{ t: number; wasted: number }> = [];
@@ -480,7 +490,7 @@ export function chiWasted(
 			max = bar.max;
 		}
 
-		const gain = gainOf(abilityIdOf(e) ?? 0) ?? 0;
+		const gain = gainOf(abilityIdOf(e) ?? 0, e.timestamp - t0) ?? 0;
 		if (gain > 0 && chi !== null && max > 0) {
 			const wasted = Math.max(0, chi + gain - max);
 			if (wasted > 0) out.push({ t: e.timestamp - t0, wasted });
@@ -524,7 +534,7 @@ export function chiAtCasts(
 	events: readonly WclEvent[],
 	actorID: number,
 	t0: number,
-	gainOf: (abilityID: number) => number | undefined,
+	gainOf: (abilityID: number, atMs: number) => number | undefined,
 	powerType: number = WCL_CHI,
 ): {
 	points: Array<[number, number]>;
@@ -594,7 +604,7 @@ export function chiAtCasts(
 			chi = Math.max(0, chi - (bar.cost ?? 0));
 		}
 
-		const gain = gainOf(abilityIdOf(e) ?? 0) ?? 0;
+		const gain = gainOf(abilityIdOf(e) ?? 0, e.timestamp - t0) ?? 0;
 		if (gain > 0 && chi !== null && max > 0) {
 			gained += Math.max(0, Math.min(max - chi, gain));
 			chi = Math.min(max, chi + gain);

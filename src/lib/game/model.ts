@@ -31,6 +31,75 @@ export type Gate =
 	| 'other';
 
 /**
+ * One button's whole relationship to the enemy count, in one declaration.
+ *
+ * **This exists because the same question used to be answered in three unrelated shapes, with three
+ * different keyings, in two files** — `AplRule.bands` keyed by rung, `SpecConfig.aplTargetCountExclude`
+ * keyed by ability key, and `AplInputs.unarbitrated` keyed by raw cast id. Three statements about one
+ * subject is how a rule gets declared against an ability and silently misses the reader keyed the other
+ * way, and one of the three was worse than that: `aplTargetCountExclude` sat on `SpecConfig` rather than
+ * on the spec definition, so `getSpec('elemental')?.aplTargetCountExclude` was always `undefined` — a
+ * test written against it would have passed forever.
+ *
+ * **Deliberately not here: the ladder's band scope.** That belongs to a *rung*, not to a button, and one
+ * button can hold several rungs at different scopes — Rushing Jade Wind is `bands: [2, 3, 4]` where it
+ * opens the list and unbanded where it fills, under one ability id. Folding scope up to the ability
+ * would collapse the two and delete the structure that says the wind both opens and fills.
+ *
+ * Every field is optional and absent means the ordinary case, so a spec declares only what is unusual
+ * about a button and a new spec inherits the defaults without writing anything.
+ */
+export interface AbilityTargeting {
+	/**
+	 * `false` when this button's own damage may not be used to establish how many enemies were up.
+	 *
+	 * The ladder's count, not the evidence count. Without it a spell that fans out reports its own
+	 * fan-out as the fight's enemy count and then recommends more of itself — "the wind hit three, so
+	 * press more wind". It is **not** a claim the enemies were imaginary: the evidence series still sees
+	 * them, because a spec's area damage landing on an add is proof the add was there.
+	 */
+	establishesCount?: false;
+	/**
+	 * Judge this press here rather than arbitrating it against the priority list.
+	 *
+	 * Names an audit on the analysis — `'sef'`, `'karma'` — for a button whose correctness is not a
+	 * rotational condition and so is not a thing a filler rung can read. Storm, Earth and Fire is judged
+	 * by where its clones went; Touch of Karma by the damage that was incoming. A ladder asked to
+	 * arbitrate either one answers confidently and wrongly, and the rung it names moves with the band.
+	 */
+	judgedBy?: string;
+	/**
+	 * What this button gets out of extra enemies — see `MultiTargetBenefit`.
+	 *
+	 * Absent means `'damage'`, which is the honest default: an ability that says nothing about a
+	 * hit-count trigger does not have one, and a button that hit four things for no damage hit nothing.
+	 * Declaring it wrong is the failure mode to watch, in one direction only — marking a damage ability
+	 * `'trigger'` puts immune units back into its fan-out and its ladder band.
+	 */
+	multiTargetBenefit?: MultiTargetBenefit;
+	/**
+	 * This button lands on the one body the player chose, so a hit from it is evidence they fought it.
+	 *
+	 * **The discriminator between a body a player fought and one their area damage happened to touch.**
+	 * A pull's enemy list is full of things nobody chose — an immune mine a spinning kick swept, an
+	 * Alliance NPC standing where a fan-out landed — and the difference decides whether an add belongs in
+	 * the enemy count and whether an exclusion row is honest.
+	 *
+	 * Declared per ability rather than measured per hit, and that is the measured choice rather than the
+	 * convenient one. Every damage event carries `isAoE`, which looks like the same signal and is not:
+	 * it describes the **instant**, not the button, so Rushing Jade Wind comes back `isAoE: false` on the
+	 * ticks that happened to find one body. Across four pulls and 6 192 events, `!isAoE` overcounts the
+	 * ability list by 87%, and 53 of 96 spawns collect a non-AoE hit without a single aimed press —
+	 * enough to flip `Living Corruption` out of the ranking table on its own stated evidence. `isAoE` is
+	 * asserted against this set in the tests, and is not an input to it.
+	 *
+	 * Ticks are not aimed presses even on an ability that declares this: a dot goes on ticking on an
+	 * enemy the player walked away from, which is why `engagedWindows` throws them out too.
+	 */
+	aimed?: true;
+}
+
+/**
  * What an ability gets out of there being more enemies in front of it.
  *
  * The distinction exists because an **immune** unit is a target for one of these and not for the other,
@@ -181,14 +250,12 @@ export interface Ability {
 	onGcd: boolean;
 	gate: Gate;
 	/**
-	 * What this button gets out of extra enemies — see `MultiTargetBenefit`.
+	 * Everything this button's relationship to *how many enemies there are* — one block, one keying.
 	 *
-	 * Absent means `'damage'`, which is the honest default: an ability that says nothing about a
-	 * hit-count trigger does not have one, and a button that hit four things for no damage hit nothing.
-	 * Declaring it wrong is the failure mode to watch, in one direction only — marking a damage ability
-	 * `'trigger'` puts immune units back into its fan-out and its ladder band.
+	 * See `AbilityTargeting`. Absent means every default: it establishes the count, it is arbitrated on
+	 * the ladder, and its benefit is damage.
 	 */
-	multiTargetBenefit?: MultiTargetBenefit;
+	targeting?: AbilityTargeting;
 	cooldownMs?: number;
 	/** Present when pressing it locks out every other button for a while. */
 	channel?: Channel;
