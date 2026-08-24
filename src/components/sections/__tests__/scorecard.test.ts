@@ -107,6 +107,26 @@ describe('the scorecard grid', () => {
 		expect(markup).toContain(t('summary.takeaways.metric.searingTotemUptime.label'));
 	});
 
+	/**
+	 * The raw key this shipped, and the trap behind it.
+	 *
+	 * `potions` is the one section with no heading of its own — its evidence is the potion's row on the
+	 * timeline — so the card falls back to its single metric's label. That fallback was written as
+	 * `t(key, { defaultValue })`, which does nothing here: `i18n/config.ts` sets a
+	 * `parseMissingKeyHandler` so a missing key renders as itself, and i18next gives that handler
+	 * precedence *over* `defaultValue`. The card read `potions.title` on screen.
+	 *
+	 * Asserted over every heading rather than that one, because the next section without a title will not
+	 * announce itself either.
+	 */
+	it('never prints a key where a section heading belongs', () => {
+		for (const name of ['cleave', 'phased', 'unbroken', 'addsThenBoss']) {
+			for (const heading of cards(html(fixture(name)))) {
+				expect(heading, `${name}: ${heading}`).not.toMatch(/^[a-z][A-Za-z]*\./);
+			}
+		}
+	});
+
 	it('prints a sentence and no figure for a metric whose value is not a reading', () => {
 		// The potion metric is the Windwalker's; the Elemental's case is the shield on a pull that never
 		// wore it, and `neverUpShield.test.ts` owns that render. What is asserted here is the other half:
