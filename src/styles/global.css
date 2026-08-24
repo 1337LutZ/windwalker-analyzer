@@ -67,6 +67,23 @@
 	 * of the spec's own primary toward white, which is what keeps it legible as text on the dark
 	 * ground; the primary alone (the monk's neon green, the shaman's deep blue) is a bar colour, not
 	 * a text colour. */
+	/* The `good` verdict, and the one grade colour that is **not** derived from the spec.
+	 *
+	 * It was `kick`, which follows `--spec-primary` — so a Windwalker's good grades came out green and an
+	 * Elemental's came out blue, and "the report went blue" meant nothing to a reader while "the report
+	 * went green" means something to everyone. A verdict is the one thing on the page that must read the
+	 * same whoever is reading it: `miss` and `brew` are already fixed for exactly that reason, and this
+	 * was the odd one out of the three.
+	 *
+	 * Validated against its two siblings at the surface they are drawn on: the worst adjacent pair clears
+	 * ΔE 9.9 under protan and 15.9 under tritan, and all three clear 3:1 against the ground. Against the
+	 * monk's own `kick` it reads ΔE 11.9, which is close — but the two never mean the same thing, they are
+	 * rarely adjacent, and on a monk's report both being green is the point rather than a collision.
+	 *
+	 * `kick` keeps every other job it had: the active selection, the primary button, the focus ring, the
+	 * bar a chart draws its subject in. What it stops being is a verdict. */
+	--color-good: #3ddc97;
+
 	--color-brew: #fbbf24;
 	--color-rune: #a78bfa;
 	--color-kick: color-mix(in oklch, var(--spec-primary) 65%, white);

@@ -21,7 +21,7 @@ const WINDWALKER_SPEC = getSpec('windwalker')!;
 const asWindwalker = (node: ReactNode): ReactElement =>
 	createElement(SpecContext.Provider, { value: WINDWALKER_SPEC }, node);
 
-const TONE = { good: 'text-kick', ok: 'text-brew', bad: 'text-miss' } as const;
+const TONE = { good: 'text-good', ok: 'text-brew', bad: 'text-miss' } as const;
 
 /** The grade the scorecard gives a metric, so the expectation cannot drift from the thresholds. */
 function gradeOf(analysis: Analysis, key: string) {
@@ -47,7 +47,7 @@ const PULLS = ['strong', 'mixed', 'cleave', 'waves', 'weave', 'poor'] as const;
  * and the reader has to go and look up which one meant which verdict.
  */
 const HUE: Record<string, string> = {
-	'text-kick': 'the good colour',
+	'text-good': 'the good colour',
 	'text-brew': 'the middling colour',
 	'text-miss': 'the bad colour',
 	'text-ink': 'plain ink',
@@ -145,7 +145,7 @@ describe('KPI tiles', () => {
 		for (const name of ['strong', 'mixed', 'poor']) {
 			const dps = tile(render(fixture(name)), 'DPS');
 			expect(dps, `${name} DPS`).toContain('text-ink');
-			expect(dps, `${name} DPS`).not.toContain('text-kick');
+			expect(dps, `${name} DPS`).not.toContain('text-good');
 			expect(dps, `${name} DPS`).not.toContain('text-miss');
 		}
 	});

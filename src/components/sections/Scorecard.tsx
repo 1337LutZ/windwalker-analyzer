@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 
-import type { Metric, SectionScore } from '~/lib/score/model';
+import type { Grade, Metric, SectionScore } from '~/lib/score/model';
 import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
+
+import { gradeClass } from '../primitives/grade';
 
 import { jumpToHeading } from '../jump';
 import { useSpec } from '../report/specContext';
@@ -66,6 +68,25 @@ function headroom(score: SectionScore): number {
  */
 const silent = (metric: Metric): boolean =>
 	!metric.unmeasurable && !metric.higherIsBetter && metric.good === 0 && metric.value === 0;
+
+/**
+ * The card's own ground, washed in its verdict.
+ *
+ * A stripe down one edge is what `Takeaways` used and it was right for three cards; across twenty it is
+ * a column of near-identical boxes with a coloured pixel each. The wash is the same tone at a strength
+ * that reads as ground rather than as a mark — `bg-surface` mixed with about a tenth of the verdict —
+ * so the grid sorts itself into three visible bands before a word is read, which is what an ordered
+ * summary is for.
+ *
+ * A tenth and not more: the card carries a metric label, a number, a scale and a target, and every one
+ * of them is text on this ground. Past about 15% the amber and the rose start competing with the marks
+ * on the scales they sit behind, which are the same three hues.
+ */
+const TINT: Record<Grade, string> = {
+	good: 'bg-[color-mix(in_oklch,var(--color-good)_10%,var(--color-surface))]',
+	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_10%,var(--color-surface))]',
+	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_10%,var(--color-surface))]',
+};
 
 type T = ReturnType<typeof useReportCopy>['t'];
 
@@ -156,13 +177,10 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 					// Rows worth drawing. A card can lose all of them — a section whose every rule counts a fault
 					// none of which happened — and says so in a sentence rather than rendering an empty column.
 					const shown = score.metrics.filter((metric) => !silent(metric));
-					// The grade, as the one thing on the card that is not a number — see the docblock.
-					const edge =
-						score.grade === 'good'
-							? 'border-l-2 border-l-kick'
-							: score.grade === 'ok'
-								? 'border-l-2 border-l-brew'
-								: 'border-l-2 border-l-miss';
+					// The grade, as the one thing on the card that is not a number — see the docblock. The stripe
+					// comes from `GRADE`, which is where every verdict colour on the page comes from; the wash is
+					// the same tone at a strength a card can carry behind text.
+					const edge = `border-l-2 ${gradeClass('edge', score.grade)} ${TINT[score.grade]}`;
 					const body = (
 						<>
 							{/* The section's own heading where the page has one. `potions` has no section of its own —
@@ -218,7 +236,7 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 								<a
 									href={`#${anchor}-heading`}
 									onClick={(event) => jumpToHeading(`${anchor}-heading`, event)}
-									className={`flex flex-col gap-3 rounded-sm border border-line ${edge} bg-surface p-3.5 no-underline transition-colors hover:border-muted hover:bg-raised`}
+									className={`flex flex-col gap-3 rounded-sm border border-line ${edge} p-3.5 no-underline transition-colors hover:border-muted`}
 								>
 									{body}
 								</a>

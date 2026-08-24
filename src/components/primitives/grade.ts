@@ -16,6 +16,12 @@ import type { Grade } from '~/lib/score';
  * it can see spelled, so `text-${tone}` compiles to nothing at all. See the same note in
  * `charts/tones.ts`, which governs the band colours for the same reason.
  *
+ * **`good` is `--color-good` and not `kick`, which is the one change worth knowing about here.** `kick`
+ * follows the spec, so a Windwalker's good verdicts were green and an Elemental's blue — and a verdict is
+ * the one thing on the page that has to read the same whoever is reading it. `miss` and `brew` were
+ * already fixed for that reason and this was the odd one out. See `--color-good` in `styles/global.css`
+ * for the values and what `kick` still does.
+ *
  * `null` is not a fourth grade. It means the figure has no threshold behind it, or the pull could not
  * answer it — and those must look like an ordinary number rather than a silent pass, which is why the
  * neutral values live here too instead of being spelled at each call site.
@@ -23,19 +29,19 @@ import type { Grade } from '~/lib/score';
 export const GRADE = {
 	/** A headline number, coloured by its own verdict. */
 	text: {
-		good: 'text-kick',
+		good: 'text-good',
 		ok: 'text-brew',
 		bad: 'text-miss',
 	},
 	/** The stripe down the side of a card or tile. */
 	edge: {
-		good: 'border-l-kick',
+		good: 'border-l-good',
 		ok: 'border-l-brew',
 		bad: 'border-l-miss',
 	},
 	/** A whole outline, for a panel that is itself the verdict. */
 	border: {
-		good: 'border-kick',
+		good: 'border-good',
 		ok: 'border-brew',
 		bad: 'border-miss',
 	},
