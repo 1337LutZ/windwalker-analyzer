@@ -25,6 +25,11 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 	const { lightningShield } = el;
 	const { t, gradeOf, unasked, verdict } = useReportCopy(analysis);
 
+	const curve = useMemo(
+		() => resourceCurveFromPoints(lightningShield.points, lightningShield.maxStacks),
+		[lightningShield.points, lightningShield.maxStacks],
+	);
+
 	/**
 	 * Which of the shield's two faults the verdict below is answering for — because on one reading it is
 	 * only one of them.
@@ -39,10 +44,16 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 	 * same state for the same reason. Here the old sentence was worse than a mislead: `verdict_good` says
 	 * "The shield never sat at seven past the leeway", which is a positive claim about a duration nothing
 	 * had measured, and on `phased` that duration is not zero.
+	 *
+	 * **And off the curve as well, which the letter alone no longer covers.** A pull that never wore the
+	 * shield used to reach here on `none` and fail the test on that; it now grades `bad`, so the letter
+	 * says nothing about whether there was a shield to narrow the reading of. Both narrowed arms name the
+	 * drop count, and the count on such a pull is the audit's fabricated one — so the same condition that
+	 * withholds the tiles and the chart withholds this, and the plain sentence below is what is left.
 	 */
 	const grade = gradeOf('lightningShield');
 	const overcapUnasked = unasked('lightningShieldOvercap');
-	const narrowed = overcapUnasked && grade !== 'none' && grade !== 'exempt';
+	const narrowed = curve !== null && overcapUnasked && grade !== 'none' && grade !== 'exempt';
 
 	/**
 	 * The stretches left out of the overcap figure, as the chart's exempt row.
@@ -63,11 +74,6 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 				analysis.durationMs,
 			)[0]?.windows ?? [],
 		[el.lightningShield.aoeWindows, analysis.durationMs, t],
-	);
-
-	const curve = useMemo(
-		() => resourceCurveFromPoints(lightningShield.points, lightningShield.maxStacks),
-		[lightningShield.points, lightningShield.maxStacks],
 	);
 
 	const badRows = useMemo<GridRow[]>(
@@ -105,9 +111,11 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 			    rather than as its absence, which is the argument `BrewBankTimeline` makes for withholding
 			    its own row on a pull whose bank never moved.
 
-			    The refusal is not only a drawing decision. Both graded numbers behind this row now decline
-			    on the same reading — see `lightningShieldFellOff` in `lib/score.ts` — so a row here would
-			    also be the one place on the page still asserting what the scorer just declined to. */}
+			    The withholding is not only a drawing decision, and what it answers to has changed. The
+			    overcap beside it still declines on this reading, so a tile of "0s" would assert what the
+			    scorer would not. The drop count no longer declines — it grades `bad`, on a mark standing for
+			    "the buff was never up" rather than on `fellOff` (see `lib/score.ts`) — so a tile of "1"
+			    here would print the one number the red letter is built to keep off the page. */}
 			{curve === null ? null : (
 				<div className="mt-4.5">
 					<StatTiles>
@@ -210,9 +218,13 @@ export default function LightningShield({ analysis }: { analysis: Analysis }) {
 							 * chart cannot come apart: `curve === null` is the same condition that prints "No charges to
 							 * draw." fifty lines above.
 							 *
-							 * **The grade is left where it is, and that is a report rather than a decision.**
-							 * `lightningShieldFellOff` reading one on a pull that never wore the buff is a fault in the
-							 * metric rather than in the copy, and moving it moves a published letter.
+							 * **The grade has since moved, and this arm is what it moved under.**
+							 * `lightningShieldFellOff` grades `bad` on a pull that never wore the buff — a shield never
+							 * worn is the worst use of the button, not a question the report declines — so the section
+							 * carries a red letter and this sentence is the only one under it. It says the buff was never
+							 * up and quotes no figure, which is what keeps the letter off the fabricated drop the audit
+							 * publishes: the grade is bad because the shield was never on, and the sentence says exactly
+							 * that.
 							 */
 							t('lightningShield.verdict', { context: 'none' })
 						: narrowed

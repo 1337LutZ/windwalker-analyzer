@@ -1134,7 +1134,8 @@
         },
         "lightningShieldFellOff": {
           "label": "Keep the shield up",
-          "fix": "The shield came all the way off you — {{value, integer}} in a pull where it should be none. A full removal throws the whole counter away and the shield has to be rebuilt from one."
+          "fix": "The shield came all the way off you — {{value, integer}} in a pull where it should be none. A full removal throws the whole counter away and the shield has to be rebuilt from one.",
+          "fix_neverUp": "Lightning Shield was never on you at all in this pull. Rolling Thunder returns 2% of your maximum mana per charge, and only while the buff is up. Cast it before you pull, and put it straight back if it drops."
         },
         "thunderstormMissed": {
           "label": "Press Thunderstorm when you are dry",
@@ -1433,7 +1434,7 @@
     "verdict_good_noUptime": "You kept the slot clear: no Searing Totem of yours went down while the Fire Elemental was holding it, and the slot is what is measured at every enemy count. From three enemies up nothing in the multi-target order asks for a fire totem, so your {{uptime, percent}} totem uptime is not measured on this reading.",
     "verdict_ok_noUptime": "One Searing Totem went down while the Fire Elemental was holding the slot, and the slot is what is measured at every enemy count. The elemental destroys whatever fire totem you lay under it, so that global bought nothing at any number of enemies — wait for the elemental to run out. From three enemies up nothing in the multi-target order asks for a fire totem, so your {{uptime, percent}} totem uptime is not measured on this reading.",
     "verdict_bad_noUptime": "{{overlaps, integer}} Searing Totems went down while the Fire Elemental was holding the slot, and the slot is what is measured at every enemy count. The elemental destroys whatever fire totem you lay under it, so those globals bought nothing at any number of enemies — wait for the elemental to run out. From three enemies up nothing in the multi-target order asks for a fire totem, so your {{uptime, percent}} totem uptime is not measured on this reading.",
-    "verdict_none": "Searing Totem was never cast in this pull.",
+    "verdict_none": "Searing Totem was never cast in this pull. The slot was yours and stood empty for every second of it. One global buys a minute of ticks, so nothing on your bar is cheaper to press. Never pressing it at all is as bad as this gets. Drop one at the pull, and again whenever the Fire Elemental is not holding the slot.",
     "kpi": {
       "uptime": "Totem uptime",
       "clipped": "Clipped presses",
@@ -1635,7 +1636,7 @@
     "verdict_good_noOvercap": "Your shield never came off, and keeping it up is measured at every enemy count: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so it pays no matter how many enemies are in front of you. From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading.",
     "verdict_ok_noOvercap": "Your shield came off once, and keeping it up is measured at every enemy count. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without. From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading.",
     "verdict_bad_noOvercap": "Your shield came off {{fellOff, integer}} times, and keeping it up is measured at every enemy count. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without. From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading.",
-    "verdict_none": "Lightning Shield was never up in this pull.",
+    "verdict_none": "Lightning Shield was never up in this pull, and nothing worse can happen to it. Rolling Thunder returns 2% of your maximum mana per charge, and only while the buff is up. None of that mana was ever yours, and Earth Shock had nothing to spend. Cast it before you pull, and put it straight back the moment it drops.",
     "kpi": {
       "overcap": "Overcapped",
       "fellOff": "Fell off",

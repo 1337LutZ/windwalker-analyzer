@@ -512,10 +512,12 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			mana: 'ok',
 			casts: 'good',
 		};
+		// `addsThenBoss` never laid a Searing Totem, so its totem letter is `bad` off nought per cent and
+		// its judged weight is one higher than the other three. Nothing here aimed a dot at either.
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
-			judged: { measured: 14, total: 23, unmeasurable: false },
-			sections,
+			judged: { measured: 15, total: 23, unmeasurable: false },
+			sections: { ...sections, searingTotem: 'bad' },
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'good',
 		});

@@ -42,10 +42,20 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 	 *
 	 * Only over the three real grades. With the totem never cast the overlap count is unmeasurable too and
 	 * `gradeOf` already answers `none`, which is the honest "never pressed" sentence and needs no variant.
+	 *
+	 * **That last clause has stopped being true, and `neverPressed` is what replaces it.** The uptime now
+	 * grades a pull that never laid a totem `bad` off its own nought per cent — the slot was the player's
+	 * for 226.9s of `addsThenBoss` and stood empty, which is the worst reading of this section and not a
+	 * question the report declines. So the letter is a real one there, and every arm it can select opens
+	 * on a press ledger that is empty: the un-narrowed family reads out a clip count of nought as though
+	 * nought clips were a habit worth crediting, three lines under the table's own *"No presses to list."*
+	 * The plain sentence is reached by name off the ledger instead, the same call `LightningShield.tsx`
+	 * makes off its curve and for the same reason — one reading of the log, not a second one.
 	 */
+	const neverPressed = searingTotem.presses.length === 0;
 	const grade = gradeOf('searingTotem');
 	const uptimeUnasked = unasked('searingTotemUptime');
-	const narrowed = uptimeUnasked && grade !== 'none' && grade !== 'exempt';
+	const narrowed = !neverPressed && uptimeUnasked && grade !== 'none' && grade !== 'exempt';
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -122,37 +132,53 @@ export default function SearingTotem({ analysis }: { analysis: Analysis }) {
 
 			<div className="mt-5 flex flex-col gap-3.5">
 				<Prose>
-					{narrowed
-						? t('searingTotem.verdict', {
-								context: `${grade}_noUptime`,
-								uptime: searingTotem.uptimePct,
-								overlaps: searingTotem.feOverlaps,
-							})
-						: /*
-							 * `count` is the clipped-press figure, so the sentence agrees with it at every value it
-							 * can take — *"1 presses clipped"* and *"0 presses clipped, throwing away 0s"* were both
-							 * reachable, and the second one on two committed pulls.
+					{neverPressed
+						? /*
+							 * No totem was ever laid, and the graded arms cannot say that.
 							 *
-							 * Only the un-narrowed route needs it. Clipping is not one of this section's two graded
-							 * metrics, so the letter above the sentence says nothing about how many presses clipped
-							 * — `phased` grades `ok` on uptime alone with nothing clipped at all — which is exactly
-							 * why the figure has to carry its own agreement rather than borrow it from the grade. The
-							 * narrowed route names the overlap count instead and no arm of it prints this one.
+							 * Reached by name rather than through `verdict()`, because `verdict()` picks its arm off a
+							 * letter and this pull now has one: the uptime grades `bad` at nought per cent over a clock
+							 * the audit ruled gradable, so `gradeOf` answers `bad` and the `bad` arms are three
+							 * sentences about clipped presses on a pull with no presses in it. `verdict_bad_zero` is
+							 * the one it would land on — *"and no press landed over a live totem"* — which is a credit
+							 * for a habit nobody had the chance to break, printed over *"No presses to list."*
 							 *
-							 * **All three letters, and `good` was the one that had to be talked into it.** It is the
-							 * same fact as the paragraph above read the other way round: the one sentence stored under
-							 * `good` asserted that no press landed over a live totem, which `cleave` disproves at 88.5%
-							 * uptime, no overlap and one clip. So the clean claim moved to the arm the count can only be
-							 * nought on, and the other two report the clip and say plainly it is not part of what was
-							 * measured. The alternative was to grade the clip — a new rule, a weight and four fixtures
-							 * re-measured to fix a sentence; the argument is in the suite beside this component.
+							 * Gated on the press ledger and not on the window list, because the ledger is the array the
+							 * table below draws from: whatever puts "No presses to list." on the page is what puts this
+							 * sentence on it, and the two cannot come apart.
 							 */
-							verdict('searingTotem', {
-								uptime: searingTotem.uptimePct,
-								clipped: searingTotem.clipped,
-								count: searingTotem.clipped,
-								wasted: searingTotem.wastedMs,
-							})}
+							t('searingTotem.verdict', { context: 'none' })
+						: narrowed
+							? t('searingTotem.verdict', {
+									context: `${grade}_noUptime`,
+									uptime: searingTotem.uptimePct,
+									overlaps: searingTotem.feOverlaps,
+								})
+							: /*
+								 * `count` is the clipped-press figure, so the sentence agrees with it at every value it
+								 * can take — *"1 presses clipped"* and *"0 presses clipped, throwing away 0s"* were both
+								 * reachable, and the second one on two committed pulls.
+								 *
+								 * Only the un-narrowed route needs it. Clipping is not one of this section's two graded
+								 * metrics, so the letter above the sentence says nothing about how many presses clipped
+								 * — `phased` grades `ok` on uptime alone with nothing clipped at all — which is exactly
+								 * why the figure has to carry its own agreement rather than borrow it from the grade. The
+								 * narrowed route names the overlap count instead and no arm of it prints this one.
+								 *
+								 * **All three letters, and `good` was the one that had to be talked into it.** It is the
+								 * same fact as the paragraph above read the other way round: the one sentence stored under
+								 * `good` asserted that no press landed over a live totem, which `cleave` disproves at 88.5%
+								 * uptime, no overlap and one clip. So the clean claim moved to the arm the count can only be
+								 * nought on, and the other two report the clip and say plainly it is not part of what was
+								 * measured. The alternative was to grade the clip — a new rule, a weight and four fixtures
+								 * re-measured to fix a sentence; the argument is in the suite beside this component.
+								 */
+								verdict('searingTotem', {
+									uptime: searingTotem.uptimePct,
+									clipped: searingTotem.clipped,
+									count: searingTotem.clipped,
+									wasted: searingTotem.wastedMs,
+								})}
 				</Prose>
 				{/* What the grey band on the graph above means, on the pulls that have one. Same gate and same
 				    argument as `lightningShield.aoeNote` — see the note in the Flame Shock section. */}

@@ -224,10 +224,20 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// `gradedOver` for the reason `flameShockUptime` above gives: `scoredMs` here composes three exempt
 	// causes — the elemental's window, the intermissions and the add waves — and a pull that is all three
 	// arrives with an empty clock. A totem clock nobody measured must not read as a totem nobody dropped.
-	const searingTotemUptime = metric(
-		'searingTotemUptime',
-		gradedOver(searingTotem.windows.length > 0 ? searingTotem.uptimePct : null, searingTotem.scoredMs),
-	);
+	//
+	// **And a totem nobody dropped must not read as a clock nobody measured, which is the other way round
+	// and is what this line used to do.** A `windows.length > 0` clause sat in front of the percentage, so
+	// a pull that never put a Searing Totem down refused instead of scoring. `addsThenBoss` is that pull:
+	// no windows, no presses, nought per cent — over 226.9s of clock the audit had already ruled gradable.
+	// The refusal threw a real denominator away and left the section with nothing to say about the one
+	// habit it exists to measure, on the only pull in the suite that got it wholly wrong.
+	//
+	// The two states are told apart by the clock alone now, which is the field that actually knows: an
+	// empty `scoredMs` is "no stretch of this pull could be read", and a full one with nought per cent in
+	// it is "the slot was yours for all of it and stood empty". Nought is the bad end here —
+	// `higherIsBetter`, `ok` at 65 — so the worst reading of the pull is the one it lands on, and no
+	// number had to be invented to put it there.
+	const searingTotemUptime = metric('searingTotemUptime', gradedOver(searingTotem.uptimePct, searingTotem.scoredMs));
 
 	// Placements under the Fire Elemental: the one case the list forbids outright, so it is counted on
 	// its own rather than folded into the uptime figure. Null when the totem was never cast, so the
@@ -370,31 +380,51 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		gradedOver(woreTheShield ? lightningShield.overcapMs : null, lightningShield.gradedMs),
 	);
 	/**
-	 * How many times the shield came all the way off — **and nothing at all on a pull that never put it
-	 * on**, which is what this line was saying before.
+	 * How many times the shield came all the way off — **and the worst mark on the scale for a pull that
+	 * never put it on**, which is neither of the two things this line has said before.
 	 *
 	 * `fellOff` is `downWindows.length`, the count of stretches the shield was *down*. The name is a
 	 * reading of that count and not the count itself, and the two part company on exactly one pull: a log
 	 * with no Lightning Shield in it has one down-stretch, the whole fight, so the audit publishes one and
-	 * this metric graded it `ok` — a shield that came off once. It never came off. It was never on.
+	 * this metric graded it `ok` — a shield that came off once. It never came off. It was never on. That
+	 * reading was retired, and the refusal that replaced it went one step too far: a shield never worn is
+	 * the worst a shaman can do with this button, and a report that declines to say so has left the reader
+	 * exactly where a wrong answer would. Refusing also *paid*, which is the part that decides it — the
+	 * pull left `overallOf`'s denominator two points lighter and came out `good` overall.
 	 *
-	 * **Neither number was available to say instead.** Nought is worse than one here: it is `good`, and it
-	 * would congratulate the pull for a shield it never wore. The instrument does not apply, so the answer
-	 * is the one this file already has a shape for — refuse, leave `overallOf`'s denominator, and let the
-	 * section say in words what happened. `LightningShield.tsx` has printed that sentence since the copy
-	 * half of this defect was fixed; until now it printed it over an `ok`.
+	 * **So the pull is graded, and the number it is graded on is not `fellOff`.** Charging it the audit's
+	 * one is the retired defect coming back through the fix: the whole fight counted as a drop, sentence
+	 * and card following it down. `NEVER_UP` is a mark on this rule's own scale — one past the `ok` edge,
+	 * so it is bad at whatever the edge is moved to — and it stands for "the buff was never up", not for a
+	 * count of anything. Nought was not available to say it with: nought is `good` here, and it is what
+	 * three of the four committed pulls honestly read.
 	 *
-	 * **Refused beside its sibling and not alone, and that is load-bearing rather than tidy.** `metricOf`
-	 * parks a refused metric at value nought and grade `ok`, and `section()` takes the worst of the
-	 * *measurable* primaries — so refusing this one on its own would have handed the whole section
-	 * `lightningShieldOvercap`'s free `good` and moved the letter the wrong way. The two guards are the
-	 * same reading of the same array for that reason.
+	 * **A value nothing may print, so `context` carries it out to the copy.** `metricOf` publishes the
+	 * number, `Takeaways` interpolates it into the card, and a card reading *"came all the way off you —
+	 * 2"* is the same fabricated drop in a new place. `neverUp` selects a card that names the state and
+	 * quotes no count, the way `Metric.context` is used for every other pair of pulls whose number means
+	 * two different things. The section's own sentence is reached by name off the curve — see
+	 * `LightningShield.tsx` — and the tile row is withheld there, so no reader-facing string is holding
+	 * this figure.
+	 *
+	 * **Its sibling still refuses, and the asymmetry is the point rather than an oversight.**
+	 * `lightningShieldOvercap` is time spent at a ceiling; a pull with no counter never sat at one, and
+	 * there is no worst-case reading of a duration that was never available to measure. The letter does
+	 * not need it — `section()` takes the worst of the *measurable* primaries, and this metric is now one
+	 * of them, so the section reads `bad` with the overcap out of the way. It is also the metric that must
+	 * carry this: `lightningShieldOvercap` is `bands: [1, 2]` and unasked from three enemies up, while
+	 * this one has no scope at all, so only this one reaches a reader on all three readings.
 	 *
 	 * A bare number and not a `Measured`: there is no sample floor to want here. One drop is a habit worth
 	 * naming and the metric grades `ok` at exactly one, which is the point of the band. What was missing
-	 * was never a floor — it was the question of whether there was anything to count.
+	 * was never a floor — it was the question of what to say when there was nothing to count.
 	 */
-	const lightningShieldFellOff = metric('lightningShieldFellOff', woreTheShield ? lightningShield.fellOff : null);
+	const NEVER_UP = THRESHOLDS.lightningShieldFellOff.ok + 1;
+	const lightningShieldFellOff = metric(
+		'lightningShieldFellOff',
+		woreTheShield ? lightningShield.fellOff : NEVER_UP,
+		woreTheShield ? undefined : 'neverUp',
+	);
 
 	/**
 	 * The pool's two faults, and both of them are omissions — the player is charged for *not* pressing

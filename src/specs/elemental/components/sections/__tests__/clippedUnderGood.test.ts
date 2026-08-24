@@ -188,7 +188,12 @@ describe('a good totem section that clipped a totem', () => {
 		expect(verdictOf(render(SearingTotem, phased, 'multi'))).toContain(
 			'no Searing Totem of yours went down while the Fire Elemental was holding it',
 		); // no-change guard
-		expect(verdictOf(render(SearingTotem, addsThenBoss))).toBe('Searing Totem was never cast in this pull.'); // no-change guard
+		// The never-cast pull still reads the plain sentence and still names no clip, which is the half of
+		// this claim that had to survive its letter moving. The sentence itself was rewritten when the
+		// uptime started grading that pull, so it opens on the same clause and no longer stops there.
+		expect(verdictOf(render(SearingTotem, addsThenBoss))).toBe(t('searingTotem.verdict_none'));
+		expect(verdictOf(render(SearingTotem, addsThenBoss))).toMatch(/^Searing Totem was never cast in this pull\./);
+		expect(verdictOf(render(SearingTotem, addsThenBoss))).not.toContain('clip');
 	});
 
 	/**
@@ -218,9 +223,12 @@ describe('a good totem section that clipped a totem', () => {
 			cleave: ['good', 'ok'],
 			phased: ['ok', 'good'],
 			unbroken: ['bad', 'ok'],
-			// The one pull that never lays a totem: both metrics decline, so the section has no letter and
-			// parks at `ok` with `unmeasurable` set. Its whole-pull `bad` is earned elsewhere.
-			addsThenBoss: ['ok', 'bad'],
+			// The one pull that never lays a totem, and the only letter here this file did not pin itself.
+			// It used to read `ok` with `unmeasurable` set — both metrics declined, so the section had no
+			// letter at all — and now reads `bad` off nought per cent uptime over a gradable 226.9s. Its
+			// whole-pull `bad` is unchanged and was always earned elsewhere. Nothing about the clip moved it:
+			// this pull has no presses to clip, which is the whole of why its totem letter is red.
+			addsThenBoss: ['bad', 'bad'],
 		});
 	});
 });

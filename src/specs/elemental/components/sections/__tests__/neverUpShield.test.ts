@@ -29,10 +29,13 @@
 // shield in it rather than whatever this file asserts they are. The premise test below reads all three
 // back out, because a fixture that quietly still had a shield would make every assertion here vacuous.
 //
-// **The grade is not touched, and that is deliberate.** `lightningShieldFellOff` reading one on a pull
-// that never wore the buff is a fault in the metric, and correcting it moves a published letter — which
-// is not this change. It is reported instead, and asserted here as it stands so that the day someone
-// does fix it, this file says out loud what it was.
+// **The grade has since been touched twice, and the second time is the one that stuck.** First the
+// metric was made to refuse, on the argument that an instrument with no readings does not apply; the
+// section then had no letter at all and the pull came out `good` overall, two points lighter in the
+// denominator for never having worn the aura. That is the wrong answer to the wrong question. A shield
+// never worn is the worst a shaman can do with the button, so the pull is graded and graded at the
+// bottom — on a mark that stands for "the buff was never up", never on the audit's `fellOff`, which is
+// the fabricated drop this whole file exists to keep off the page.
 //
 // `createElement` rather than JSX so this stays a `.ts` file and is picked up by the project's own
 // vitest include patterns, as its siblings do.
@@ -126,39 +129,67 @@ describe('a pull that never wore the shield', () => {
 	});
 
 	/**
-	 * The half this file was written to hold the record of, now that it has moved.
+	 * The half this file was written to hold the record of, and it has now moved twice.
 	 *
-	 * It used to read *"the section grades `ok`"*, with a comment saying the metric was at fault and that
-	 * correcting it would move a published letter. It has been corrected. `lightningShieldFellOff` reaches
-	 * `metric()` through the same "was there a shield in this log at all" guard its sibling declares, so
-	 * both of the section's primaries decline and the section is unmeasurable.
+	 * It first read *"the section grades `ok`"*, with a comment saying the metric was at fault and that
+	 * correcting it would move a published letter. Correcting it made both primaries refuse, which put the
+	 * section at `unmeasurable` — and that was one step too far. A shield never worn is the worst a shaman
+	 * can do with the button, so the answer is the bottom of the scale and not a declined question. The
+	 * refusal also *paid*: the pull left two points of the denominator behind and came out `good` overall.
 	 *
-	 * **Asserted on `unmeasurable` and never on the letter, because the letter did not move and cannot.**
-	 * `section()` parks its grade at `ok` when no primary is decided, so `grade` reads `ok` before this
-	 * change *and* after it, for two entirely different reasons — a real `ok` earned off a drop that never
-	 * happened, and a placeholder behind a refusal. A test that gated on the letter here would have passed
-	 * against both, which is exactly the trap `metricOf`'s value of nought sets one layer down.
+	 * **Asserted on `unmeasurable`, the value and the letter together, because no one of them is enough.**
+	 * `section()` parks its grade at `ok` when no primary is decided, so the section letter read `ok`
+	 * before the first change *and* after it, for two entirely different reasons; and `metricOf` parks a
+	 * refused metric at value nought, so a value-only check cannot tell a refusal from a real reading
+	 * either. All three are pinned, which is the only combination that separates the three states this one
+	 * pull has been through.
 	 *
-	 * **Both metrics and not just the one, and that ordering is the whole of it.** `section()` takes the
-	 * worst of its *measurable* primaries, and `lightningShieldOvercap` scored `good` on this pull — nought
-	 * milliseconds over a ceiling nobody sat at — because its own guard reads `maxStacks`, the registry's
-	 * seven, which is never nought. Refusing the drop count alone would have left that `good` alone in the
-	 * section and moved the letter from `ok` to `good`: a pull that never wore the aura, top marks.
+	 * **The drop count carries it and the overcap does not, which is a ruling rather than an oversight.**
+	 * `lightningShieldOvercap` is time spent at a ceiling, and this pull had no counter to sit at one, so
+	 * there is nothing there to read at its worst; it still declines, through the `points` guard that
+	 * replaced the `maxStacks` one it could never fire from. The drop count is also the only one of the two
+	 * with no bands, so it is the only one that reaches a reader on all three readings — see below.
+	 *
+	 * **And the mark it grades on is not `fellOff`.** The audit publishes one down-stretch, the whole
+	 * fight, and charging the pull for that is the retired defect coming back through its own fix. The
+	 * value is one past this rule's `ok` edge and stands for "the buff was never up"; it is pinned here so
+	 * nothing may quietly start printing it as a count.
 	 */
-	it("grades neither of the shield's two habits, rather than grading a drop that never happened", () => {
+	it('grades a shield never worn at the bottom of the scale, off a mark that is not a drop count', () => {
 		const card = ELEMENTAL_SPEC.score(pull);
 		const section = card.sections['lightningShield'];
 		const metric = (key: string) => section?.metrics.find((m) => m.key === key);
 
-		expect(metric('lightningShieldFellOff')?.unmeasurable, 'the drop count').toBe(true);
-		expect(metric('lightningShieldOvercap')?.unmeasurable, 'the free nought beside it').toBe(true);
-		expect(section?.unmeasurable).toBe(true);
-		// And the value both of them park at, named so the next reader of this file does not take it for a
-		// measurement: a refused metric publishes nought, which is why nothing on the page may read it.
-		expect(metric('lightningShieldFellOff')?.value).toBe(0);
+		expect(metric('lightningShieldFellOff')?.unmeasurable, 'the drop count').toBe(false);
+		expect(metric('lightningShieldFellOff')?.grade, 'the drop count').toBe('bad');
+		expect(metric('lightningShieldFellOff')?.value, 'one past the ok edge, not the audit’s fellOff').toBe(2);
+		expect(pull.lightningShield.fellOff, 'which the audit still publishes as one').toBe(1);
+		expect(metric('lightningShieldFellOff')?.context, 'so no card prints that mark as a count').toBe('neverUp');
 
-		// What the reader is told instead: two fewer points behind the headline, and the headline says so.
-		expect(card.judged).toEqual({ measured: 12, total: 23, unmeasurable: false });
+		expect(metric('lightningShieldOvercap')?.unmeasurable, 'no ceiling to have sat at').toBe(true);
+		expect(section?.unmeasurable).toBe(false);
+		expect(section?.grade).toBe('bad');
+
+		// And the headline it now sits under: one more point in the denominator than the refusal collected.
+		expect(card.judged).toEqual({ measured: 13, total: 23, unmeasurable: false });
+	});
+
+	/**
+	 * The reading the overcap cannot reach, and therefore the one that shows which metric carries this.
+	 *
+	 * `lightningShieldOvercap` is `bands: [1, 2]` — nothing in the multi-target order spends the charges —
+	 * so from three enemies up it is unasked and cannot be the section's letter under any rule. Had the bad
+	 * grade ridden on the overcap, a never-worn shield read at three or more enemies would have gone back
+	 * to saying nothing at all. It does not: the drop count has no scope, so the letter is `bad` on every
+	 * reading a user of the control can produce.
+	 */
+	it('says the same thing at every enemy count the reader can switch to', () => {
+		for (const choice of ['auto', 'single', 'multi'] as TargetModeChoice[]) {
+			const card = ELEMENTAL_SPEC.score(pull, resolveBands(pull.targets, choice));
+			const section = card.sections['lightningShield'];
+			expect(section?.grade, choice).toBe('bad');
+			expect(section?.metrics.find((m) => m.key === 'lightningShieldFellOff')?.grade, choice).toBe('bad');
+		}
 	});
 
 	/**
@@ -188,16 +219,25 @@ describe('a pull that never wore the shield', () => {
 	 *
 	 * `lightningShieldFellOff` carries a takeaway card, and on this pull the card came top of *Key
 	 * improvements*: *"Keep the shield up — The shield came all the way off you — 1 in a pull where it
-	 * should be none."* A refused metric leads nothing, so the card is gone and the next real fault takes
-	 * its place. Read off the whole report rather than off the section, because the summary is a different
-	 * component and this is the only assertion in the file that reaches it.
+	 * should be none."* A refused metric leads nothing, so for one change the card was gone altogether.
+	 *
+	 * **It is back, and it must be — a card is exactly where the worst thing on a pull belongs.** What
+	 * cannot come back is the sentence, because the base card prints the metric's value as a count of
+	 * drops and the value here is a mark standing for "never up". `Metric.context` picks a second wording
+	 * that names the state and quotes no figure, which is the same mechanism two other cards already use.
+	 * Both halves are asserted: the fabricated drop is absent, and the true card is present.
+	 *
+	 * Read off the whole report rather than off the section, because the summary is a different component
+	 * and this is the only assertion in the file that reaches it.
 	 */
-	it('no longer opens the summary with a fault the pull did not commit', () => {
+	it('leads the summary with the shield, and not with a fault the pull did not commit', () => {
 		const html = renderToStaticMarkup(
 			createElement(Report, { analysis: pull as Analysis, targetChoice: 'auto', spec: ELEMENTAL_SPEC }),
 		);
 		expect(html).not.toContain('came all the way off you');
-		expect(html).toContain('Scored on 12 of 23 points.');
+		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
+		expect(html).toContain('Lightning Shield was never on you at all in this pull.');
+		expect(html).toContain('Scored on 13 of 23 points.');
 	});
 
 	/** And the chart says so, which is the half the sentence used to contradict. */

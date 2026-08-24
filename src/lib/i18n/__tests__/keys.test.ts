@@ -937,8 +937,11 @@ describe('report copy with no reader', () => {
 		'rotation.rule.*.condition': 16,
 		'rotation.rule.*.name': 16,
 		'stormlash.state.*': 2,
-		// Twenty cards, two of which store a second wording for a number that needs different advice.
-		'summary.takeaways.metric.*.fix': 23,
+		// Twenty-one cards, three of which store a second wording for a number that needs different
+		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
+		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
+		// which prints that mark as a number of drops — is the one wording it must never be handed.
+		'summary.takeaways.metric.*.fix': 24,
 		'summary.takeaways.metric.*.label': 21,
 	};
 

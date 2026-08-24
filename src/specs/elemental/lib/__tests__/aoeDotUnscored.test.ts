@@ -332,9 +332,14 @@ describe('the card, and the pair that has to move together', () => {
 		}
 	});
 
-	it('leaves the judged denominator at 14 of 23 on all four pulls', () => {
+	it('leaves the judged denominator where it stands on all four pulls', () => {
 		// The hole's size, stated as the thing a reader is actually shown: 23 points of weight offered, 14
-		// judged, identically on every committed pull.
+		// judged on three of the four pulls and 15 on `addsThenBoss`.
+		//
+		// That pull is the odd one for a reason nothing to do with the dot. It never laid a Searing Totem,
+		// and `searingTotemUptime` used to refuse on that rather than mark it down; nought per cent over
+		// 226.9s the audit had already ruled gradable is a reading and not an absence, so the rule is
+		// answered now and its point collected. Quoted here only so this file's own claim keeps a target.
 		//
 		// **And this is the last argument against landing the metric anyway.** `judged.total` is the summed
 		// weight of every metric *offered*, and it does not care which bands a pull visited — a new weighted
@@ -344,7 +349,11 @@ describe('the card, and the pair that has to move together', () => {
 		// reason `judged` exists at all: a verdict has to say how much of the card it is a verdict on.
 		for (const name of FIXTURES) {
 			const scored = scoreAnalysis(fx(name));
-			expect(scored.judged, name).toEqual({ measured: 14, total: 23, unmeasurable: false });
+			expect(scored.judged, name).toEqual({
+				measured: name === 'addsThenBoss' ? 15 : 14,
+				total: 23,
+				unmeasurable: false,
+			});
 		}
 		// The overalls beside it, so a change that moved a grade without moving the denominator cannot pass
 		// here either. Two of the four are the multi-target pulls this file is about.

@@ -585,11 +585,19 @@ describe('the denominator travels with the verdict', () => {
 	 *
 	 * Under its own reading `cleave` judges **14** of 23 and the two single-target pulls judge 14 — they
 	 * never offered a second target, a snapshot window or a mana reading, and `flameShockMultiDot` is now
-	 * unasked on them rather than merely unanswerable. `addsThenBoss` also judges 14, off a different set:
-	 * it gains `flameShockWaste` and `shamanisticRageMissed`, and loses both Searing Totem rules and the
-	 * summon's haste, which is worth stating because the same count over a different set is exactly what a
+	 * unasked on them rather than merely unanswerable. `addsThenBoss` judges **15**, off a different set:
+	 * it gains `flameShockWaste` and `shamanisticRageMissed`, and loses `searingTotemOverlaps` and the
+	 * summon's haste, which is worth stating because a count over a different set is exactly what a
 	 * bare total hides. Both lists are asserted below rather than described. All four are above `MIN_JUDGED_WEIGHT_SHARE`, so every real pull we hold keeps its
 	 * grade, which is the claim that floor was chosen to make.
+	 *
+	 * **`addsThenBoss` is the one that moved, and it moved by keeping a rule it used to drop.** It never
+	 * laid a Searing Totem, and `searingTotemUptime` used to refuse on that — a `windows.length > 0` clause
+	 * in front of the percentage — so a pull that got the habit wholly wrong left the numerator instead of
+	 * being marked down for it. The percentage is nought over 226.9s the audit had already ruled gradable,
+	 * which is a reading rather than an absence, so the rule is answered and the point is collected. Its
+	 * sibling `searingTotemOverlaps` still declines, and honestly: no press was laid under the elemental
+	 * because no press was laid at all.
 	 *
 	 * `cleave` was 15 of 22 when the declarations landed and 13 of 22 after them: `flameShockWaste` carries
 	 * weight 2 and left the denominator, because cutting the graded clocks let `shareOf`'s sample floor apply
@@ -606,7 +614,11 @@ describe('the denominator travels with the verdict', () => {
 	 */
 	it('publishes what each pull was judged on', () => {
 		for (const name of ALL) {
-			expect(card(name, 'auto').judged, name).toEqual({ measured: 14, total: 23, unmeasurable: false });
+			expect(card(name, 'auto').judged, name).toEqual({
+				measured: name === 'addsThenBoss' ? 15 : 14,
+				total: 23,
+				unmeasurable: false,
+			});
 		}
 		// Not the same fourteen. Named so that the equal count above cannot be read as an equal set.
 		const unmeasurableOn = (name: string): string[] =>
@@ -618,7 +630,6 @@ describe('the denominator travels with the verdict', () => {
 			'fireElementalHasteUptime',
 			'flameShockSnapshots',
 			'searingTotemOverlaps',
-			'searingTotemUptime',
 			'thunderstormMissed',
 		]);
 		expect(unmeasurableOn('cleave')).toEqual([
