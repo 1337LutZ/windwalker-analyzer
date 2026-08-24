@@ -4,6 +4,8 @@ import type { Grade, Metric, SectionScore } from '~/lib/score/model';
 import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 
+import i18n from '~/lib/i18n/config';
+
 import { useReportCopy } from '~/hooks/useReportCopy';
 
 import { gradeClass } from '../primitives/grade';
@@ -81,6 +83,12 @@ const silent = (metric: Metric): boolean =>
  * A tenth and not more: the card carries a metric label, a number, a scale and a target, and every one
  * of them is text on this ground. Past about 15% the amber and the rose start competing with the marks
  * on the scales they sit behind, which are the same three hues.
+ *
+ * **The text on it is `ink-2` and not `muted`, and the reason is not a contrast failure.** Measured on
+ * all three tints, `muted` clears 6.6:1 — comfortably past AA. What was actually hard to read was 12px
+ * of it: the target line under each scale is `text-xs`, and small type on a tinted ground loses more
+ * than the ratio predicts. `ink-2` reads 12.3:1 there, and the hierarchy that `muted` was carrying moves
+ * to size and to the value's own mono weight, which is where it survives being small.
  */
 const TINT: Record<Grade, string> = {
 	good: 'bg-[color-mix(in_oklch,var(--color-good)_10%,var(--color-surface))]',
@@ -89,6 +97,22 @@ const TINT: Record<Grade, string> = {
 };
 
 type T = ReturnType<typeof useReportCopy>['t'];
+
+/**
+ * One key if the locale has it, a fallback if it does not — and **not** `t(key, { defaultValue })`.
+ *
+ * `config.ts` sets `parseMissingKeyHandler` so a missing key renders as itself: loud in development,
+ * harmless in production. i18next gives that handler precedence *over* `defaultValue`, so the obvious
+ * spelling of a fallback silently does nothing and the reader gets the raw key. That is not theoretical
+ * — this grid shipped `potions.title` on screen, because `potions` is the one section with no heading of
+ * its own and the chain that was meant to catch it was written with `defaultValue`.
+ *
+ * **The `t()` calls stay written out at the call sites rather than moving in here**, and that is not
+ * repetition for its own sake: `i18n/__tests__/keys.test.ts` finds a computed key by reading the
+ * template literal inside a `t(...)` in the source. A key assembled behind a helper is a key that guard
+ * cannot see, and it went straight to "copy nothing reads" for six families the moment it was tried.
+ */
+const has = (key: string): boolean => i18n.exists(key);
 
 /** The number as the reader reads it, in the unit its rule declares. */
 function reading(metric: Metric, t: T): string {
@@ -204,19 +228,21 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 							    its evidence is the potion's row on the timeline — so it falls back to its single
 							    metric's label rather than to a key invented for one card. */}
 							<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-ink-2">
-								{t(`${section}.title`, {
-									defaultValue: t(`summary.takeaways.metric.${score.metrics[0]?.key ?? ''}.label`, {
-										defaultValue: section,
-									}),
-								})}
+								{has(`${section}.title`)
+									? t(`${section}.title`)
+									: has(`summary.takeaways.metric.${score.metrics[0]?.key ?? ''}.label`)
+										? t(`summary.takeaways.metric.${score.metrics[0]?.key ?? ''}.label`)
+										: section}
 							</span>
 							<span className="flex flex-col gap-2.5">
 								{shown.length === 0 ? <span className="text-sm text-muted">{t('summary.scorecard.clean')}</span> : null}
 								{shown.map((metric) => (
 									<span key={metric.key} className="flex flex-col gap-1">
 										<span className="flex items-baseline justify-between gap-2">
-											<span className="text-sm text-muted">
-												{t(`summary.takeaways.metric.${metric.key}.label`, { defaultValue: metric.key })}
+											<span className="text-sm text-ink-2">
+												{has(`summary.takeaways.metric.${metric.key}.label`)
+													? t(`summary.takeaways.metric.${metric.key}.label`)
+													: metric.key}
 											</span>
 											<span className="tabular font-mono text-sm text-ink">
 												{metric.unmeasurable
@@ -229,7 +255,7 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 										{metric.unmeasurable ? null : metric.context === undefined ? (
 											<>
 												<BandScale metric={metric} />
-												<span className="font-mono text-xs text-muted">{target(metric, t)}</span>
+												<span className="font-mono text-xs text-ink-2">{target(metric, t)}</span>
 											</>
 										) : (
 											// The number is not a reading of the thing this rule counts — see the docblock.
@@ -246,9 +272,7 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 					return (
 						<li key={section} className="contents">
 							{anchor === undefined ? (
-								<div className={`flex flex-col gap-3 rounded-sm border border-line ${edge} bg-surface p-3.5`}>
-									{body}
-								</div>
+								<div className={`flex flex-col gap-3 rounded-sm border border-line ${edge} p-3.5`}>{body}</div>
 							) : (
 								<a
 									href={`#${anchor}-heading`}

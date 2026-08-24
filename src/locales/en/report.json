@@ -1140,7 +1140,7 @@
       }
     },
     "scorecard": {
-      "title": "Every section, scored",
+      "title": "Scores",
       "value_percent": "{{value, percent}}",
       "value_seconds": "{{value, duration}}",
       "value_stacks": "{{value, decimal}}",
