@@ -929,8 +929,8 @@ export const THRESHOLDS = {
 	 * **Three of the four committed fixtures read exactly 100.00% and the figure has no variance at all.**
 	 * Every
 	 * one of them took Primal Elementalist — 117013 is in all **four** `combatantinfo` lists, the refused
-	 * pull's included — every one had
-	 * the elemental out before the pull — `[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]` — and every one was
+	 * pull's included — and every one had
+	 * the elemental out before the pull (`[0, 57 259]`, `[0, 58 014]`, `[0, 58 298]`). Every one was
 	 * lusted inside the first two seconds for forty seconds, under a different spell each time (Heroism,
 	 * Bloodlust, Time Warp). A pre-pull summon's minute contains an on-pull lust's forty seconds by
 	 * construction, so this is structural rather than three players getting it right — and the whole fault

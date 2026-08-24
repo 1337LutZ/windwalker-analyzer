@@ -57,11 +57,11 @@ import WindowTracks from '~/components/charts/WindowTracks';
  * an enemy the player had stopped hitting.
  *
  * That residual is now a row rather than a discrepancy, and the shape of the fix is a **re-partition and
- * not a substitution**. `84d41f8` published `contactWindows` — the numerator's own spans, union exactly
- * `contactUptimeMs` — and simply sourcing green from it was measured and refused: on `cleave`
+ * not a substitution**. `84d41f8` published `contactWindows`, the numerator's own spans, union exactly
+ * `contactUptimeMs`. Simply sourcing green from it was measured and refused: on `cleave`
  * `contactWindows` sits *wholly inside* the clipped row, so swapping the source would have deleted
  * 10 270ms of dot the player really did have on the primary target *inside the graded clock*, which is
- * `8e011ac`'s rule — an unmeasured figure is not a deleted one — pointed the other way. So green becomes
+ * where `8e011ac`'s rule — an unmeasured figure is not a deleted one — points the other way. So green becomes
  * the published numerator and the difference becomes a row of its own: `flameShock.track.elsewhere`, the
  * dot up inside the graded clock on an enemy the player had left.
  *

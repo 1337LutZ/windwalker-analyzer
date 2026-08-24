@@ -990,7 +990,7 @@ const AURAS: Aura[] = [
 	/**
 	 * **Clearcasting — the Elemental Focus proc, and a +20% damage multiplier nothing in this report knew
 	 * about.** Found by the undeclared-aura sweep (`68671a5`, plan §82) with **728 events across the three
-	 * committed pulls held then** — 219, 210 and 299 on `phased`, `unbroken` and `cleave` — the busiest id
+	 * committed pulls held then** (219, 210 and 299 on `phased`, `unbroken` and `cleave`), the busiest id
 	 * it turned up; until now the only thing in the repository that knew the number existed was
 	 * `EXTRA_NAMES` below, labelling a damage-table row. `addsThenBoss` adds **612** of its own, so the
 	 * sweep's figure is a record of what it found rather than a count of what fires today: 1 340 across the
@@ -1012,7 +1012,7 @@ const AURAS: Aura[] = [
 	 *
 	 * **Both numbers are the log's as well as the sim's.** The ceiling is measured on all four fixtures —
 	 * no pull ever shows a third stack — and the drop tally is a reading of the three held when it was
-	 * taken: of 361 drops on those three, 291 coincide with a cast of a consuming spell — 403, 421, 51505,
+	 * taken. Of 361 drops on those three, 291 coincide with a cast of a consuming spell — 403, 421, 51505,
 	 * 8042, 8050 and 114074, exactly `canConsumeSpells` — while 70 fell off unspent. `addsThenBoss` has not
 	 * been added to that tally, which is why it is stated as three pulls' worth and not as the model.
 	 *

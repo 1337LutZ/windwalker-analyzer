@@ -847,8 +847,8 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 				t,
 				rule,
 				// Rule 1, entry 14 and rule 3, all three necessary: the press must be in the opener, and —
-				// where there was a haste cooldown to be late into — inside the haste bound as well, and —
-				// where the pull carried a banner to measure — holding 9 000 ms of it. A null `delayMs` is "no
+				// where there was a haste cooldown to be late into — inside the haste bound as well, and
+				// (where the pull carried a banner to measure) holding 9 000 ms of it. A null `delayMs` is "no
 				// cooldown to measure against" and a null `bannerOverlapMs` is "no banner to measure
 				// against"; neither can fault a press, so each passes its own half.
 				grade: t <= OPENER_DEADLINE_MS && (delayMs === null || delayMs <= limitMs) && bannerOk ? 'good' : 'bad',
