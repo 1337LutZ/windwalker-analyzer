@@ -517,11 +517,11 @@ describe('the exempt row', () => {
 	 * exactly the drift the old single-tone rule was written against.
 	 */
 	it('uses one exempt vocabulary per chart, and never both', () => {
-		const lane = rowsOf(createElement(FlameShockUptime, { analysis: phased })).slice(2);
-		const rows = [
+		const lane = [
+			...rowsOf(createElement(FlameShockUptime, { analysis: phased })).slice(2),
 			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })).slice(2),
-			...rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2),
 		];
+		const rows = rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2);
 
 		expect(lane).not.toHaveLength(0);
 		expect(rows).not.toHaveLength(0);
@@ -533,9 +533,14 @@ describe('the exempt row', () => {
 	});
 
 	/**
-	 * A ground, not a mark — with the one exception the concept allows: a row the tiles above also
-	 * *count* must stay visible however short it is, and the Fire Elemental overlap tile does exactly
-	 * that. See `Track.widen`.
+	 * A ground, not a mark.
+	 *
+	 * **The one exception this used to carry is gone with the chart that needed it.** A row the tiles
+	 * above also *count* had to stay visible however short it was, and the Fire Elemental overlap row was
+	 * that row — so it kept its widening floor while every other ground dropped one. Searing Totem draws
+	 * a lane now, which has no floor to keep, and the worry turns out to have been theoretical anyway:
+	 * measured across the four Elemental fixtures the elemental holds the totem slot for 10.7%, 22.2%,
+	 * 22.2% and 31.5% of the pull, in one or two spans. Nothing near a sliver.
 	 *
 	 * **Row charts only, because a lane has no floor to turn off.** `widen` exists so a row's own bars
 	 * stay visible when they are all the row has to show; a lane is continuous, so a bar too small to
@@ -543,18 +548,17 @@ describe('the exempt row', () => {
 	 * states that where the floor used to be decided, and the assertion below is scoped to the charts
 	 * the flag still applies to rather than made to tolerate its absence.
 	 */
-	it('is never widened on a chart that draws rows, unless a tile above counts its spans one by one', () => {
-		const rows = [
-			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })).slice(2),
-			...rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2),
-		];
+	it('is never widened on a chart that draws rows', () => {
+		const rows = rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2);
 
 		expect(rows).not.toHaveLength(0);
-		for (const row of rows) {
-			expect('widen' in row ? (row.widen ?? true) : true).toBe(row.label === 'Fire Elemental out');
-		}
-		// And the lane carries no such flag at all, which is the other half of the claim.
-		for (const row of rowsOf(createElement(FlameShockUptime, { analysis: phased }))) {
+		for (const row of rows) expect('widen' in row ? (row.widen ?? true) : true).toBe(false);
+
+		// And neither lane carries the flag at all, which is the other half of the claim.
+		for (const row of [
+			...rowsOf(createElement(FlameShockUptime, { analysis: phased })),
+			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })),
+		]) {
 			expect(row).not.toHaveProperty('widen');
 		}
 	});

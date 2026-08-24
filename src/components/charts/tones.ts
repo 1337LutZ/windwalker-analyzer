@@ -258,6 +258,11 @@ export const EXEMPT_KIND = {
 		swatch: 'bg-[var(--color-exempt-nothing)]',
 		text: 'text-ink-2',
 	},
+	slot: {
+		fill: 'bg-[var(--color-exempt-nothing)] hatch-slot',
+		swatch: 'bg-[var(--color-exempt-nothing)] hatch-slot',
+		text: 'text-ink-2',
+	},
 	otherList: {
 		fill: 'bg-[var(--color-exempt-other)]',
 		swatch: 'bg-[var(--color-exempt-other)]',

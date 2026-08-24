@@ -8,9 +8,7 @@ import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import { exemptRows } from '~/components/charts/exempt';
-import { EXEMPT } from '~/components/charts/tones';
-import type { Track } from '~/components/charts/WindowTracks';
-import WindowTracks from '~/components/charts/WindowTracks';
+import TrackLane, { type LaneSource } from '~/components/charts/TrackLane';
 
 /**
  * Searing Totem across the pull: where the totem was ticking, where it was not, and the two reasons it
@@ -126,38 +124,48 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 	 * reader can read, and it stays widened. Which way a row goes is a fact about the data behind it, not
 	 * about its colour. See `Track.widen`.
 	 */
-	const rows = useMemo(
-		(): Track[] => [
+	/**
+	 * The five things this chart draws, in precedence order — first one wins a millisecond two claim.
+	 *
+	 * `uncounted` goes ahead of the grounds for the reason `FlameShockUptime` gives: it sits inside them,
+	 * so it has to paint over them or it is not drawn at all. The rest do not overlap — up, dropped and
+	 * the three grounds sum to the pull to the millisecond on all four fixtures, which is the partition
+	 * `exemptTrack.test.ts` asserts.
+	 *
+	 * **Four exempt causes to three grey steps**, which is why this chart waited a commit while Flame
+	 * Shock went first. `slot` shares the darkest step with `nothing` and is told apart by a texture,
+	 * because both mean "this could not have been up" and because the two never draw next to each other
+	 * on any committed pull. `EXEMPT_KIND` carries that measurement.
+	 */
+	const sources = useMemo(
+		(): LaneSource[] => [
 			{ label: t('searingTotem.track.up'), tone: 'kick', windows: up, lengthLabel: 'ticking for' },
-			{
-				label: t('searingTotem.track.dropped'),
-				tone: 'miss',
-				windows: dropped,
-				lengthLabel: 'without it for',
-				widen: false,
-			},
-			// The totem's own life outside the clock, on the pulls that have any: `phased` has none, so the
-			// row is gated the same way the add-wave row is and for the same reason.
+			{ label: t('searingTotem.track.dropped'), tone: 'miss', windows: dropped, lengthLabel: 'without it for' },
 			...(uncounted.length === 0
 				? []
 				: [
 						{
 							label: t('searingTotem.track.uncounted'),
-							tone: EXEMPT,
+							tone: 'unmeasured',
 							windows: uncounted,
 							lengthLabel: 'ticking but unmeasured for',
-							widen: false,
-						} satisfies Track,
+						} satisfies LaneSource,
 					]),
-			{ label: away?.label ?? '', tone: EXEMPT, windows: away?.windows ?? [], lengthLabel: 'for', widen: false },
-			// Only on the pulls that have one, unlike the two rows either side of it. Those two are on every
-			// pull the chart draws at all, so a row of theirs that came and went would read as a rendering
-			// fault; a pull that never exceeded two enemies has no add wave to draw and its absence is the
-			// answer. Same reasoning as the note under the section.
+			// The three grounds in the order the rows drew them, which `exemptRows` has already made disjoint
+			// by its own precedence — so unlike `uncounted` above, their order here decides only the key's,
+			// not what is painted.
+			{ label: away?.label ?? '', tone: 'nothing', windows: away?.windows ?? [], lengthLabel: 'for' },
 			...(aoe === undefined || aoe.windows.length === 0
 				? []
-				: [{ label: aoe.label, tone: EXEMPT, windows: aoe.windows, lengthLabel: 'for', widen: false } satisfies Track]),
-			{ label: slot?.label ?? '', tone: EXEMPT, windows: slot?.windows ?? [], lengthLabel: 'out for' },
+				: [
+						{
+							label: aoe.label,
+							tone: 'otherList',
+							windows: aoe.windows,
+							lengthLabel: 'for',
+						} satisfies LaneSource,
+					]),
+			{ label: slot?.label ?? '', tone: 'slot', windows: slot?.windows ?? [], lengthLabel: 'out for' },
 		],
 		[t, up, uncounted, dropped, away, aoe, slot],
 	);
@@ -176,10 +184,22 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				<>
 					<ChartKey tone="kick">{t('searingTotem.track.up')}</ChartKey>
 					<ChartKey tone="miss">{t('searingTotem.track.dropped')}</ChartKey>
-					{uncounted.length === 0 ? null : <ChartKey tone={EXEMPT}>{t('searingTotem.track.uncounted')}</ChartKey>}
-					{[away, aoe, slot].map((row) =>
+					{uncounted.length === 0 ? null : (
+						<ChartKey kind tone="unmeasured">
+							{t('searingTotem.track.uncounted')}
+						</ChartKey>
+					)}
+					{/* Each ground with the kind it is drawn in, so the key cannot name a grey the lane did not
+					    use — the two that share the darkest step are the two the reader most needs the chip for. */}
+					{(
+						[
+							[away, 'nothing'],
+							[aoe, 'otherList'],
+							[slot, 'slot'],
+						] as const
+					).map(([row, kind]) =>
 						row === undefined || row.windows.length === 0 ? null : (
-							<ChartKey key={row.label} tone={EXEMPT}>
+							<ChartKey key={row.label} kind tone={kind}>
 								{row.label}
 							</ChartKey>
 						),
@@ -187,12 +207,7 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 				</>
 			}
 		>
-			<WindowTracks
-				tracks={rows}
-				chartId="ele-searing-totem-uptime"
-				durationMs={analysis.durationMs}
-				label={t('searingTotem.chart.uptimeLabel')}
-			/>
+			<TrackLane sources={sources} durationMs={analysis.durationMs} label={t('searingTotem.chart.uptimeLabel')} />
 		</ChartFigure>
 	);
 }
