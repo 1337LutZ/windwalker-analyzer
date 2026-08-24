@@ -148,7 +148,7 @@ describe('the pool at no missed Rage press', () => {
 
 	it('does not fault the Rage on the ok letter, where nought is the only count it can have', () => {
 		const sentence = verdictOf(render(Mana, bothHalves(733)));
-		expect(sentence).toContain('no stretch under 70% went by with Shamanistic Rage sitting unpressed');
+		expect(sentence).toContain('No stretch under 70% went by with Shamanistic Rage sitting unpressed');
 		expect(sentence).not.toContain('0 times');
 		expect(sentence).not.toContain('put the Rage down every time');
 		// The Thunderstorm's half is untouched — this is a narrowing of one clause, not a new sentence.
@@ -160,7 +160,7 @@ describe('the pool at no missed Rage press', () => {
 		const pull = bothHalves(20_000);
 		expect(ELEMENTAL_SPEC.score(pull).sections['mana']?.grade).toBe('bad');
 		const sentence = verdictOf(render(Mana, pull));
-		expect(sentence).toContain('no stretch under 70% went by with Shamanistic Rage sitting unpressed');
+		expect(sentence).toContain('No stretch under 70% went by with Shamanistic Rage sitting unpressed');
 		expect(sentence).not.toContain('0 times');
 		expect(sentence).not.toContain('press it whenever it is up');
 		expect(sentence).toContain('your next Lava Burst may not go out');

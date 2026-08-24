@@ -1170,7 +1170,7 @@ describe('no string in either locale sounds machine-written', () => {
 	it('keeps the em-dash under the ceiling the house style was granted', () => {
 		// **The em-dash is kept, and this is the condition it was kept on.**
 		//
-		// 258 of them in `report.json`, 21.1% of prose sentences, and they do real appositive work:
+		// 261 of them in `report.json`, 20.9% of prose sentences, and they do real appositive work:
 		// defining a measurement mid-sentence, where a following sentence would put the definition after
 		// the claim that needed it. It is house punctuation — present in `ui.json`, the README, every
 		// code comment and this file's own prose — and a sweep against a rule the repo breaks in every

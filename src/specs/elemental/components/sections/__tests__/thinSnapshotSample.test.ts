@@ -203,7 +203,7 @@ describe('a pull whose proc windows are too few to read', () => {
 		expect(sentence).not.toContain(NOTHING_OPENED);
 		expect(sentence).not.toContain(THIN);
 		expect(sentence).toContain('Every proc window in the table above opened with your Flame Shock already down');
-		expect(sentence).toContain('none of them was a chance to refresh it');
+		expect(sentence).toContain('None of them was a chance to refresh it');
 		for (const window of adds.snapshots.windows) expect(html).toContain(formatClock(window.start));
 		noRawKey(sentence);
 	});

@@ -395,6 +395,17 @@ are touched. No gate, because a gate's honest floor is today's number, which mak
 than a standard, and because it could not tell a 40-word sentence that earns its length from one that
 does not.
 
+**"Write new copy to that" did not hold, and the eleven strings written after this paragraph are the
+evidence.** Measured with the block below, they came in at a median of 22 against the 17 of the file
+they joined — one of them a single 54-word sentence — so the copy written to the standard was worse
+than the copy the standard was written about. Nine were split rather than cut, and the pool now reads
+median 11 with nothing past 25. **Splitting, not trimming, is what moved it**: every one of the nine
+was carrying an argument that a shorter sentence would have dropped — a refusal to call one brew good
+or bad, three snapshot facts a single sentence had been collapsing, a "no fault here" clause the
+un-zeroed arms had been printing as "0 times". A sentence you cannot shorten without weakening is a
+result, not a failure; the target is a short median with a long tail, and capping everything at 25
+would have produced the uniform rhythm this file bans elsewhere.
+
 **Every locale number in this document comes out of one block, and it is this one.** They used to come
 out of four separate measurements taken on four different days, which is how the em-dash count above
 was 270 against a tree holding 257, and how the density census further down was still describing the
@@ -449,11 +460,14 @@ longest strings. A measurement written down four times is four things to update 
 not be. The arguments above now cite this block instead of repeating it, which is the same rule the
 copy itself follows — say it once, outside the arms.
 
-As of the commit that wrote this paragraph it prints 1370 leaves, 692 prose, 21,418 words; median 26,
-p75 40, p90 62, p95 77, p99 97, max 160; longest 9% carry 24%; report.json 630 prose leaves, 1,064
-sentences, median 17, 207 past 25 (19.5%), 258 em-dashes in 224 sentences (21.1%); 49 / 25 / 1 / 3 on
-the quote lines. **Re-run it rather than trusting the line above** — every copy edit moves it, and it
-moved twice during the pass that wrote it. Sentence stats split on `(?<=[.!?])\s+` with `{{…}}` normalised to one token, which
+As of the commit that split the nine long strings written after this standard, it prints 1377 leaves,
+697 prose, 21,725 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
+report.json 635 prose leaves, 1,088 sentences, median 17, 206 past 25 (18.9%), 261 em-dashes in 227
+sentences (20.9%); 50 / 25 / 1 / 3 on the quote lines. **Re-run it rather than trusting the line
+above** — every copy edit moves it, it moved twice during the pass that wrote it, and it had drifted
+a fourth time before this commit: the figures above read 1,064 sentences and 258 em-dashes against a
+tree already holding 1,077 and 262 with not a word of this commit's copy touched. Sentence stats
+split on `(?<=[.!?])\s+` with `{{…}}` normalised to one token, which
 is why the block substitutes `X` for a placeholder rather than dropping it — a dropped placeholder
 merges the two words either side of it into one. `readerVoice.test.ts` has a `prose()` helper that
 strips placeholders for a different purpose (vocabulary matching, where the substitution must _not_ be

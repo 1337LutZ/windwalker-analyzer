@@ -487,7 +487,7 @@ describe('a pull with one brew', () => {
 		const html = render(oneBrew(5));
 		expect(html).not.toContain('1 brew spent, averaging 5 of 10 stacks. Nothing was lost to the stack cap.');
 		expect(html).toContain(t('brew.verdict', { context: 'oneShort', count: 1, avg: 5 }));
-		expect(html).toContain('and one press is not enough to tell which this was');
+		expect(html).toContain('One press is not enough to tell which this was');
 	});
 
 	/** The `ok` one gets the same sentence, which is the collapse itself and not a fall-through. */
@@ -508,6 +508,6 @@ describe('a pull with one brew', () => {
 	it('still praises the one brew that took the full ten', () => {
 		const html = render(oneBrew(10));
 		expect(html).toContain('1 brew spent, averaging 10 of 10 stacks.');
-		expect(html).not.toContain('one press is not enough');
+		expect(html).not.toContain('not enough to tell which this was');
 	});
 });
