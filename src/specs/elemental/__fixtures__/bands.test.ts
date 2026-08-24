@@ -19,7 +19,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { Analysis, ElementalAuditResult, FightDataset } from '~/lib/types';
-import { GRADE_ORDER, MIN_GRADED_SAMPLE, type Metric } from '~/lib/score';
+import { GRADE_ORDER, type Metric } from '~/lib/score';
 import { rawFixtures } from '~/lib/analysis/fixtures';
 import { countAt } from '~/lib/analysis/targets';
 import { resolveBands, type TargetModeChoice } from '~/lib/view/targetMode';
