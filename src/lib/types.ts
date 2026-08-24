@@ -20,6 +20,7 @@ import type { AplAudit, Band } from '~/lib/spec/apl';
 // Circular with `analysis/auras` in the same way and for the same reason: a window that remembers
 // which of an aura's ids opened it is defined beside the walk that produces it, and an audit below
 // carries those rather than a copy of the shape that could drift from them.
+import type { SegmentTimeline } from '~/lib/analysis/segments';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
 // Type-only, and pointing at a spec rather than at `lib`, which is the same trade the two imports
@@ -1904,6 +1905,25 @@ export interface AnalysisCore {
 	 * guard on truthiness.
 	 */
 	targets?: TargetSummary;
+	/**
+	 * The pull cut into stretches of one rotation mode, and the idle spans between them.
+	 *
+	 * **The single reading of "which part of the fight was this".** Everything downstream of it — the
+	 * summary strip, the reader's mode toggle, any metric scoped to a segment — reads this array and
+	 * derives nothing of its own. That is not tidiness: `viewBands` already documents a third reading of
+	 * the target count as *"free to disagree with both"*, and `exemptTrack.test.ts` exists because one
+	 * appeared. A second segmentation would be the same defect one level up.
+	 *
+	 * Built from the **ladder's** count series (`targets.aplCounts`), which is the series a question
+	 * about which priority list applied has to read — see `TargetSummary.aplCounts`. The segments
+	 * therefore describe what *this player* did on *this pull*: two players on the same kill produce
+	 * different arrays, and that is the correct output rather than drift to be reconciled. Nothing about
+	 * the encounter reaches the cut; `segmentPull`'s signature takes no encounter id, deliberately.
+	 *
+	 * Optional for the reason `targets` above it is: the committed fixtures are captured `analyse()`
+	 * output from before this existed. Guard on truthiness rather than assuming an array.
+	 */
+	segments?: SegmentTimeline;
 	/**
 	 * What the player was wearing. Empty when the log carried no `combatantinfo` for them, which the
 	 * UI has to treat as "not reported" rather than as "nothing equipped".

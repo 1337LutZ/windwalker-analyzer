@@ -26,6 +26,7 @@ import {
 	isResurrect,
 } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
+import { uncountedActorIDs } from '~/lib/game/rankingExclusions';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
 import type { SpecColors } from '~/lib/game/classes';
@@ -65,6 +66,7 @@ import { aggregateDamage, damageByTarget, primaryTargetID } from './damage';
 import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf } from './energy';
 import { engagedWindows } from './engagement';
 import { readGear } from './gear';
+import { segmentPull } from './segments';
 import { intersect, type Interval, unionMs } from './intervals';
 import { makeLinker } from './links';
 import { RAID_BUFF_NAMES, readRaidBuffs } from './raidBuffs';
@@ -226,7 +228,7 @@ export interface Handles {
 	aplTargetCountAt(t: number): number;
 	/**
 	 * The same reading counting every unit the player *hit*, damage or not — what a hit-count trigger
-	 * fires on. Only a rule whose ability declares `multiTargetBenefit: 'trigger'` should band on it.
+	 * fires on. Only a rule whose ability declares `targeting.multiTargetBenefit: 'trigger'` should band on it.
 	 */
 	triggerTargetCountAt(t: number): number;
 	/**
@@ -486,6 +488,25 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// Resolved here rather than beside the target count further down, because both readers need it and
 	// the damage table is the earlier of the two. See `ignoredMultiTargetActors` on the spec config.
 	const ignoredMultiTargetIDs = spec.ignoredMultiTargetActors(fight.encounterID, table.fight.enemyNPCs);
+	/**
+	 * The bodies WarcraftLogs strikes off a ranking, where striking off the damage strikes off the enemy.
+	 *
+	 * **Damage that does not count must not raise the enemy count either**, which is the whole of the
+	 * rule and is what `reach: 'both'` says on a row of `game/rankingExclusions`. Rows reaching only the
+	 * damage stay in the count: an add whose damage is discounted was still a body in front of the
+	 * player, and the rotation had to deal with it.
+	 *
+	 * Joined to the filter beside it rather than made a series of its own, and that is deliberate. This
+	 * file already publishes three readings of "how many enemies" — the damage count, the ladder's, and
+	 * the hit-count a trigger fires on — and its own comments record what a reading free to disagree with
+	 * the others costs. A fourth would be that mistake again; a second predicate on one filter cannot
+	 * drift from anything.
+	 *
+	 * Measured reach: only three of the thirteen rows carry `both` — Living Corruption on Malkorok, Blood
+	 * on the Paragons, Minion of Y'Shaarj on Garrosh — and **all three are heroic-only**, so a Normal
+	 * pull's counted series is the raw one by construction.
+	 */
+	const uncountedIDs = uncountedActorIDs(fight.encounterID, fight.difficulty, table.fight.enemyNPCs);
 	const damageEvents = events.filter(isDamage).filter((e) => mine(e.sourceID));
 	/**
 	 * Which enemy spawns were ever targets at all — the question before "how many of them were there".
@@ -762,7 +783,9 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * one — and the priority list reads the live count at each press rather than a whole-pull number,
 	 * because nothing could tell it which minute it was in.
 	 */
-	const multiTargetHits = landedHits.filter((hit) => !ignoredMultiTargetIDs.has(hit.target));
+	const multiTargetHits = landedHits.filter(
+		(hit) => !ignoredMultiTargetIDs.has(hit.target) && !uncountedIDs.has(hit.target),
+	);
 	const targetPoints = targetCounts(multiTargetHits, spec.thresholds.targetWindowMs);
 	// The spec may keep its own area damage from establishing multi-target evidence for the priority
 	// list — WW does, for Rushing Jade Wind. This matters when WarcraftLogs omits the periodic `tick`
@@ -789,7 +812,9 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * the two series cannot drift apart for any other reason.
 	 */
 	const triggerTargetPoints = targetCounts(
-		hitsOnAnything.filter((hit) => !ignoredMultiTargetIDs.has(hit.target)).filter(notOwnAreaDamage),
+		hitsOnAnything
+			.filter((hit) => !ignoredMultiTargetIDs.has(hit.target) && !uncountedIDs.has(hit.target))
+			.filter(notOwnAreaDamage),
 		spec.thresholds.targetWindowMs,
 	);
 	const triggerTargetCountAt = countAt(triggerTargetPoints);
@@ -817,6 +842,24 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * with an add up for half a minute, and it would tell the Windwalker's Storm, Earth and Fire audit
 	 * that the pull never justified the cooldown — on exactly the pull the cooldown is for.
 	 */
+	/**
+	 * The pull cut into stretches of one rotation mode — the single reading, published on `Analysis`.
+	 *
+	 * **Off `aplTargetPoints` and not `targetPoints`, for the reason `aoeWindows` below is.** A segment
+	 * says which priority list applied over a stretch, which is a *band* question, and a band question
+	 * has to read the series the ladder bands on or it is not asking about the ladder at all. The two
+	 * arrays are identical for a spec declaring no `aplTargetCountExclude`, so no committed Elemental
+	 * pull can tell them apart and the choice has to be argued rather than observed.
+	 *
+	 * The two constants are handed over rather than defaulted inside `segmentPull`, so the idle cut and
+	 * the contact clock cannot drift apart: `engagedGapMs` is what `engagedWindows` built `contact` with
+	 * above, and the count series lags the last hit by a whole `targetWindowMs`, so a zero-run longer
+	 * than the difference is exactly a hit gap longer than the gap. One number, read from one place.
+	 */
+	const segments = segmentPull(aplTargetPoints, duration, {
+		contactGapMs: spec.thresholds.engagedGapMs,
+		windowMs: spec.thresholds.targetWindowMs,
+	});
 	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
 	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
@@ -932,11 +975,19 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			// The config names its generators by the model's own ability keys, so a button cannot be
 			// listed under one name in the model and another here — and an unknown key fails loudly at
 			// construction rather than silently generating nothing.
-			const gainsOf = (abilityID: number): number | undefined => {
+			// **Asked with the press's own moment, because a generator's yield is not always constant.**
+			// Rushing Jade Wind pays its chi only at three units or more, and a flat lookup credited it on
+			// every press — a fault pointing the opposite way to the ladder's, so the two cancelled in a
+			// report and hid each other. `minTargets` is counted against `triggerTargetCountAt`, the units
+			// the press *hit*, damage or not: a refund that fires on units hit does not ask whether any of
+			// them could take damage, which is the same reading `targeting.multiTargetBenefit: 'trigger'` names.
+			const gainsOf = (abilityID: number, atMs: number): number | undefined => {
 				const ability = spec.registry.abilityByCastId(abilityID);
 				if (ability === undefined) return undefined;
 				for (const gain of config.gains ?? []) {
-					if (gain.abilityKey === ability.key) return gain.amount;
+					if (gain.abilityKey !== ability.key) continue;
+					if (gain.minTargets !== undefined && triggerTargetCountAt(atMs) < gain.minTargets) return undefined;
+					return gain.amount;
 				}
 				return undefined;
 			};
@@ -1457,6 +1508,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		// The core's half of the timeline: the deaths, and the contact clock every spec shades
 		// intermissions against — the spec's audit merges its own presses and lanes over this.
 		timeline: { deaths, contactSegments: contact, cancels, hasteWindows, berserkingWindows },
+		segments,
 		lostCasts,
 		// **Both series are published, because both questions are asked downstream.** `counts` is
 		// `targetPoints`, the evidence one — what the target-count section draws, and the half of
