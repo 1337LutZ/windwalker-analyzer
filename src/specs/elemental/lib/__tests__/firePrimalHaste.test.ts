@@ -459,13 +459,14 @@ describe('the scope this rule deliberately does not declare', () => {
 
 	/**
 	 * The line itself, so moving it again has to be argued rather than typed. `good` stays the absolute the
-	 * user's sentence names; `ok` is 95, which on a forty-second window is two seconds. The whole argument
-	 * is on the `THRESHOLDS` entry.
+	 * user's sentence names; `ok` is 90, which on a forty-second window is four seconds. The whole argument
+	 * is on the `THRESHOLDS` entry — in short, the rule now grades late lusts too, and a shaman meeting one
+	 * of those is reacting rather than pre-summoning, which the two-second band priced as a planning error.
 	 */
-	it('grades the full mark as an absolute and cuts the band at two seconds of the window', () => {
+	it('grades the full mark as an absolute and cuts the band at four seconds of the window', () => {
 		expect(THRESHOLDS.fireElementalHasteUptime).toEqual({
 			good: 100,
-			ok: 95,
+			ok: 90,
 			higherIsBetter: true,
 			// The rule says what the number *is* as well as where its lines sit, so a scale can place it and
 			// copy can suffix it without reading the unit back out of an i18n string. See `MetricRule.unit`.
@@ -619,19 +620,22 @@ describe('the band, and where it was cut', () => {
 	});
 
 	/**
-	 * The band is two seconds of the window, so on this pull the boundary is a press at **3 777ms** — the
-	 * lust's 1 777 plus two. Asserted from both sides at one millisecond of separation, because a band whose
-	 * edge is not pinned is a band that drifts.
+	 * The band is four seconds of the window, so on this pull the boundary is a press at **5 777ms** — the
+	 * lust's 1 777 plus four. Asserted from both sides at one millisecond of separation, because a band
+	 * whose edge is not pinned is a band that drifts.
 	 *
-	 * Two seconds is what the pull's own physics can impose on a player whose only lapse is not having
-	 * pre-pulled: the lust is itself a cast and lands 0.785–1.777s in on the three pulls we hold, and the
-	 * totem pressed as the opening global puts the pet out one cast behind the pull.
+	 * Two of those four seconds are what the pull's own physics can impose on a player whose only lapse is
+	 * not having pre-pulled: the lust is itself a cast and lands 0.785–1.777s in on the three pulls we
+	 * hold, and the totem pressed as the opening global puts the pet out one cast behind the pull. The
+	 * other two are the reaction, which the rule started needing to price when it began grading haste
+	 * cooldowns that went out later in the fight — a shaman meeting one of those has no pre-pull to make
+	 * and is answering the buff as it lands.
 	 */
-	it('puts the edge of the band two seconds behind the lust', () => {
-		expect(metricOn(press(3777))).toMatchObject({ grade: 'ok' });
-		expect(metricOn(press(3778))).toMatchObject({ grade: 'bad' });
-		// And the edge really is the lust's arrival plus two, not the pull's plus two.
-		expect(hasteWindow(press(3777))?.start).toBe(1777);
+	it('puts the edge of the band four seconds behind the lust', () => {
+		expect(metricOn(press(5777))).toMatchObject({ grade: 'ok' });
+		expect(metricOn(press(5778))).toMatchObject({ grade: 'bad' });
+		// And the edge really is the lust's arrival plus four, not the pull's plus four.
+		expect(hasteWindow(press(5777))?.start).toBe(1777);
 	});
 
 	/**
@@ -674,7 +678,7 @@ describe('the band, and where it was cut', () => {
 		expect(metricOn(glyphedPress)).toMatchObject({ grade: 'bad' });
 
 		// The construction, stated as arithmetic rather than as a third fixture: the best a thirty-second
-		// summon can do against this forty-second window is 74.99%, and the band is 95.
+		// summon can do against this forty-second window is 74.99%, and the band is 90.
 		const best = (30_000 / 40_008) * 100;
 		expect(best).toBeLessThan(THRESHOLDS.fireElementalHasteUptime.ok);
 	});
@@ -708,7 +712,7 @@ describe('the band, and where it was cut', () => {
 	 * ruling, and the section would carry two metrics disagreeing about one press.
 	 *
 	 * It does not, and the band is why: **the pre-pull absence on its own costs nothing here.** A press that
-	 * beats the lust reads this rule's `good`, and a press up to two seconds behind it reads this rule's
+	 * beats the lust reads this rule's `good`, and a press up to four seconds behind it reads this rule's
 	 * `ok` — the same half-mark rule 4 gives. So on the pull rule 4 declines to fault, rule 5 declines with
 	 * it, and what rule 5 faults is a summon seconds behind the lust, or one that left inside it, or one
 	 * that never came — none of which "the cooldown may still have been down at the pull" explains.
@@ -717,7 +721,7 @@ describe('the band, and where it was cut', () => {
 	 * that must not read as a contradiction.
 	 */
 	it('never reverses the pre-pull ruling on a prompt in-fight press', () => {
-		for (const at of [1000, 1777, 2000, 3000, 3777]) {
+		for (const at of [1000, 1777, 2000, 3000, 5777]) {
 			const el = press(at);
 			expect(el.fireElemental.prepull, `${at}`).toBe(false);
 			for (const choice of ['auto', 'single', 'multi'] as const) {

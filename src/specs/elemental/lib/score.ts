@@ -863,23 +863,33 @@ export const THRESHOLDS = {
 	 * totem slot walk) is where a rounding tolerance would have been needed, and the argument against it
 	 * is on the audit.
 	 *
-	 * ## `ok` is 95, and what that band is, is two seconds of the lust
+	 * ## `ok` is 90, and what that band is, is four seconds of the lust
 	 *
 	 * **What the figure means is what puts the line there.** It is a share of the raid's haste cooldown, so
-	 * a band is not a score but a *duration*: the seconds of the lust that ran with no pet under it. Five
-	 * per cent of a forty-second window is two seconds, and two seconds is the whole of what the pull's own
-	 * physics imposes on a player whose only lapse is not having pre-pulled:
+	 * a band is not a score but a *duration*: the seconds of the lust that ran with no pet under it. Ten
+	 * per cent of a forty-second window is four seconds, and four seconds is what the two ways of meeting a
+	 * lust cost between them.
+	 *
+	 * **The first is the pull's own physics, and it is the cheaper of the two.** A player whose only lapse
+	 * is not having pre-pulled pays about a global:
 	 *
 	 *   - the haste cooldown does not land on the pull. It is a cast like any other, and it lands **0.785s
-	 *     to 1.777s** in on the three pulls that lust on the pull at all — `addsThenBoss` lusts at
-	 *     438 207ms and is refused rather than banded;
+	 *     to 1.777s** in on the three pulls that lust on the pull at all;
 	 *   - the totem pressed as the opening global puts the pet out one cast behind the pull, and the pet is
 	 *     standing from the press.
 	 *
 	 * So that player reads between a flat 100% — the press beat the lust, which is what `phased`'s 1.777s
 	 * arrival does to a press at 1.000s — and about 96%, one global behind a lust that landed at 0.785s.
-	 * Two seconds covers all of it with a beat to spare, and **below the band the shortfall stops being a
-	 * reaction.** A press a dozen seconds in has spent ten of them somewhere other than the lust. A summon
+	 *
+	 * **The second is a reaction, and it is why the band is four seconds rather than two.** The rule no
+	 * longer grades only the lust that went out on the pull: a raid that lusts at six minutes is asked the
+	 * same question, and a shaman meeting *that* one has no pre-pull to make. They see the buff land and
+	 * press. Two seconds was measured against a player who could have pre-summoned and simply did not, and
+	 * charging a reaction the same two seconds prices human latency as if it were a planning error. On the
+	 * Galakras kill this was found on, a shaman who summoned into the lust 2.1s after it landed read
+	 * **94.71%** and graded `bad` — for two seconds of reflex.
+	 *
+	 * **Below the band the shortfall stops being either one.** A press a dozen seconds in has spent ten of them somewhere other than the lust. A summon
 	 * that came off inside the window was pre-pulled far too early, or halved by Glyph of Fire Elemental
 	 * Totem — and *"you never want to glyph your fele for damage: having a 2nd FEle earlier is almost
 	 * always worse due to less procs available"*, so faulting the glyphed pull is the ruling rather than a
@@ -900,17 +910,19 @@ export const THRESHOLDS = {
 	 *   pre-pulled, or pressed before the lust landed   100.000%   good
 	 *   pressed at 2.0s (0.2s behind the lust)           99.443%   ok
 	 *   pressed at 3.0s                                  96.943%   ok
-	 *   pressed at 3.8s                                  94.944%   bad
+	 *   pressed at 3.8s                                  94.944%   ok
+	 *   pressed at 5.777s (4.0s behind the lust)         90.002%   ok
+	 *   pressed at 5.778s                                89.999%   bad
 	 *   pressed at 10.0s                                 79.447%   bad
 	 *   pre-pulled 22s early, off at 35.0s               83.041%   bad
 	 *   glyphed, pre-pulled                              63.692%   bad
 	 *   never summoned at all                             0.000%   bad
 	 * ```
 	 *
-	 * Measured on `phased`, whose lust runs 1 777 → 41 785ms; the boundary there is a press at 3.777s. The
-	 * line is stated as a share rather than as two literal seconds because the clock belongs to the raid
-	 * and not to us — a shorter haste cooldown makes two seconds a larger share of it, and it should. Two
-	 * seconds missing out of twenty is a worse miss than two out of forty.
+	 * Measured on `phased`, whose lust runs 1 777 → 41 785ms; the boundary there is a press at 5.777s. The
+	 * line is stated as a share rather than as four literal seconds because the clock belongs to the raid
+	 * and not to us — a shorter haste cooldown makes four seconds a larger share of it, and it should. Four
+	 * seconds missing out of twenty is a worse miss than four out of forty.
 	 *
 	 * ## What this measures on the pulls we hold, and what it does not
 	 *
@@ -949,7 +961,7 @@ export const THRESHOLDS = {
 	 * the opportunity exists identically however many enemies are up, so declining to grade it at some of
 	 * them would be silence bought with nothing.
 	 */
-	fireElementalHasteUptime: { good: 100, ok: 95, higherIsBetter: true, unit: 'percent', ceiling: 100 },
+	fireElementalHasteUptime: { good: 100, ok: 90, higherIsBetter: true, unit: 'percent', ceiling: 100 },
 
 	/**
 	 * Share of proc-window Flame Shock refreshes caught.
@@ -1120,7 +1132,7 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	 *
 	 *   - **The flatness was the binary, and the binary is gone.** `ok: 100` gave the rule two states and
 	 *     no middle; it now has a band (see `THRESHOLDS`) and a measured continuum through it — 100.000%,
-	 *     99.443%, 96.943%, 94.944%, 79.447%, 63.692%, 0.000% across the synthetic pulls, with `good`,
+	 *     99.443%, 96.943%, 90.002%, 89.999%, 79.447%, 63.692%, 0.000% across the synthetic pulls, with `good`,
 	 *     `ok` and `bad` all reachable. What the three fixtures below are flat *on* is the axis the rule
 	 *     grades: all three of those shamans pre-pulled, and a pre-pull summon's minute contains an on-pull
 	 *     lust's forty seconds by construction. That is three players on the right side of a real line, not
