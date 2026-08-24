@@ -1,13 +1,46 @@
-# One page of every event the player was the source of.
+# One page of events out of one fight — asked twice, for two questions that cannot share a pass.
+#
+# ## The player's own stream: `dataType: All`, scoped to `$sourceID`
 #
 # `dataType: All` on purpose. A query costs the same point whether it returns 61 bytes or 500 KB, and
 # `filterExpression` or a narrower `dataType` saves bandwidth but not points — so fetching casts,
 # buffs, debuffs and damage in one wide pass costs one point per page, while fetching them per
 # ability would cost one point per ability and still return strictly less.
 #
+# ## The enemy deaths: `dataType: Deaths`, `hostilityType: Enemies`, no source
+#
+# WarcraftLogs files a death under the actor that died, so the wide pass above — scoped to the player
+# as source — can only ever return the player's own deaths, and never an enemy's. `spawnLives` in
+# ~/lib/analysis/targets records that as measured fact and infers each spawn's lifetime from its
+# first landed hit to its last, because no death was available to measure to: all three committed
+# Iron Juggernaut datasets carry zero `death` events for an enemy NPC between them.
+#
+# So the deaths are a second pass with the source filter dropped, and **both of its narrowings are
+# load-bearing rather than bandwidth savings** — which is the reverse of the argument above, and the
+# reason this document takes them as variables rather than hardcoding one shape:
+#
+# - `hostilityType: Enemies` because the argument's default is `Friendlies`. Dropping `sourceID`
+#   without it would not widen the answer, it would swap it: the raid's own deaths instead of the
+#   enemies'.
+# - `dataType: Deaths` because `All` with no source is thirty actors' full streams instead of one, at
+#   one point per page and many more pages of it. Narrowing here is what makes dropping the source
+#   filter affordable at all, and it is the one place in this folder where a narrower `dataType`
+#   saves points rather than only bytes.
+#
+# **The deaths pass costs one point per page, like every other events request**, and a Siege pull's
+# enemy deaths are a few dozen rows against a server that pages at ten thousand — so one extra point
+# per fight, not one per page of the player's stream.
+#
+# `$sourceID` stays non-null rather than taking the schema's own `0` as a default, so the wide pass
+# cannot lose its source filter by omission and quietly become that thirty-actor request. The deaths
+# pass writes the `0` out at its call site, and writing it is the point: "every source" is a decision
+# there, not a forgotten argument.
+#
 # `limit` does not set the page size: the server pages on its own schedule and signals more data with
 # `nextPageTimestamp`. Callers must follow that cursor to exhaustion, or a nine-minute pull silently
-# becomes its first ninety seconds.
+# becomes its first ninety seconds. Both passes go through the one loop in fetchFight.ts for exactly
+# that reason — a second, non-paging reader of this document would truncate the moment a pull
+# produced enough deaths to spill.
 #
 # `includeResources: true` is what puts the energy bar in the payload, and it is free.
 #
@@ -25,7 +58,15 @@
 # `data` is the untyped JSON scalar — the schema cannot describe a combat-log event — so codegen
 # types it `unknown` and it is narrowed through ~/lib/events.
 
-query FightEvents($code: String!, $fightID: Int!, $sourceID: Int!, $startTime: Float!, $endTime: Float!) {
+query FightEvents(
+	$code: String!
+	$fightID: Int!
+	$sourceID: Int!
+	$startTime: Float!
+	$endTime: Float!
+	$dataType: EventDataType = All
+	$hostilityType: HostilityType = Friendlies
+) {
 	# The hourly point budget, riding along for free: measured, this document costs the same with the
 	# field as without it, while asking for it alone costs a point. See rateLimit.ts.
 	rateLimitData {
@@ -37,7 +78,8 @@ query FightEvents($code: String!, $fightID: Int!, $sourceID: Int!, $startTime: F
 		report(code: $code) {
 			events(
 				fightIDs: [$fightID]
-				dataType: All
+				dataType: $dataType
+				hostilityType: $hostilityType
 				sourceID: $sourceID
 				startTime: $startTime
 				endTime: $endTime
