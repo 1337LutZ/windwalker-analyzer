@@ -1063,12 +1063,9 @@
       "row_aoe": "Three or more enemies",
       "row_mixed": "Coming and going",
       "row_idle": "Nothing to hit",
-      "length": "for",
-      "key": {
-        "contact": "Enemies up"
-      },
-      "chartLabel": "The whole pull, split by how many enemies you had in front of you at the time. The stretches with nothing to hit are drawn last, in grey.",
-      "note": "What you press changes at two enemies, and changes again at three. This is where each of those stretches fell across the pull. The grey is time with nothing in front of you — no enemy was up to be hit, so none of it counts for or against you."
+      "length": "{{seconds}}s",
+      "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches with nothing to hit are grey.",
+      "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time with nothing in front of you — no enemy was up to be hit, so none of it counts for or against you."
     },
     "takeaways": {
       "title": "Key improvements",

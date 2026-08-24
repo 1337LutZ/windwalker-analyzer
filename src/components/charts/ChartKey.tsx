@@ -9,16 +9,30 @@
 // fraction of its token, and the full-strength chip beside it is the same colour by name and a
 // visibly different one on the page — so which of the two a key is describing has to be said, not
 // assumed.
+//
+// `count` is the third table, and it is here for the same reason `band` is: the enemy-count ramp is
+// painted from `COUNT` rather than from `SWATCH`, and a legend reaching for the wrong table is a
+// legend naming a colour the chart did not draw. Passing the swatch in as a raw class would work and
+// is exactly what this component was written to stop.
 
-import { BAND, SWATCH, type BandTone, type Tone } from './tones';
+import { BAND, COUNT, SWATCH, type BandTone, type CountTone, type Tone } from './tones';
 
 export default function ChartKey(
-	props: { children: string } & ({ band: true; tone: BandTone } | { band?: false; tone: Tone }) & {
+	props: { children: string } & (
+		| { band: true; count?: false; tone: BandTone }
+		| { count: true; band?: false; tone: CountTone }
+		| { band?: false; count?: false; tone: Tone }
+	) & {
 			/** The spec's own colour, drawn inline when the bar it names is not a token colour. */
 			color?: string;
 		},
 ) {
-	const swatch = props.band === true ? BAND[props.tone].swatch : SWATCH[props.tone];
+	const swatch =
+		props.band === true
+			? BAND[props.tone].swatch
+			: props.count === true
+				? COUNT[props.tone].swatch
+				: SWATCH[props.tone];
 
 	return (
 		<span className="flex items-center gap-2">

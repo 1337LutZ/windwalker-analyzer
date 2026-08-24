@@ -11,6 +11,15 @@
  *   brew  Tigereye Brew        rune  Re-Origination        kick  Rising Sun Kick
  *   miss  a mistake or a drop  trk   an empty track
  */
+/* The hatch over a `mixed` bar on "What you were fighting" — the stretch where no one enemy count held
+ * long enough to name, so there is no step on the ramp to give it. Written here rather than as a second
+ * background utility on the bar: `background-image` and `background-color` set through two classes
+ * resolve by stylesheet order, and a hatch that lost that race would paint over the colour instead of
+ * over the ground. See `COUNT` in `components/charts/tones.ts`. */
+.hatch-mixed {
+	background-image: repeating-linear-gradient(45deg, rgb(0 0 0 / 0.22) 0 3px, transparent 3px 7px);
+}
+
 @theme {
 	/* The spec's identity colour, set at runtime from the spec's own `colors.primary` — a Windwalker
 	 * report is tinted green, an Elemental one blue. The structural colours below are all derived
@@ -99,6 +108,40 @@
 	 * it and a lane label at 10.6:1. What makes the window *findable* is not the fill but the two
 	 * full-strength edges the timeline draws it with. */
 	--color-band-lust: color-mix(in oklch, var(--color-lust) 20%, var(--color-surface));
+	/* The enemy count, as one ordered ramp — the only place in this palette where a colour means a
+	 * *quantity* rather than a mechanic.
+	 *
+	 * "What you were fighting" draws one bar per stretch of the pull, and what separates those bars is
+	 * how many enemies were up: one, two, three or more. That is a single ordered quantity, so it gets a
+	 * single hue at three rising steps rather than three of the mechanic tones above — spending `brew`
+	 * on "two enemies" would give amber a second meaning on a page where it already means Tigereye Brew,
+	 * which is the drift this file's naming exists to stop.
+	 *
+	 * Violet, because it is the one hue in the palette with no mechanic on it: `rune` uses it for a mark
+	 * and this is a region, so the two never appear as the same shape.
+	 *
+	 * **The header's L 0.48–0.67 band is a rule for a *categorical* palette and this is a ramp, so the
+	 * check it answers to is monotonic lightness instead**: 0.434, 0.672, 0.867, rising with the count so
+	 * the busiest stretches read as the loudest. Re-validated with the same checker the header names, at
+	 * the surface these are drawn on. Every adjacent pair across all five clears ΔE 16.9 under protan and
+	 * 18.4 under tritan, against a target of 8, and 18.1 for normal vision against a floor of 15.
+	 *
+	 * Two of the five sit under 3:1 against the ground — `--color-count-1` at 2.25 and the exempt grey at
+	 * 1.54 — which is allowed for a region this size only because the colour is never the only thing
+	 * saying which bar it is: the count is written on every bar wide enough to hold it, every bar names
+	 * itself in a tooltip whatever its width, and the key names each tone drawn.
+	 *
+	 * `mixed` is not a step on the ramp and must not look like one: it is the stretch where no single
+	 * count held long enough to name, so it is a neutral the ramp does not reach, hatched by
+	 * `.hatch-mixed` above. It is this dark rather than lighter for a measured reason — at `#8b8175` it
+	 * separated from `--color-count-1` by only ΔE 5.7 under tritan, below even the floor a texture is
+	 * allowed to rescue; at this value the pair reads 8.9. Time with nothing up takes `--color-track`
+	 * like every other exempt region. */
+	--color-count-1: #54408f;
+	--color-count-2: #9575e8;
+	--color-count-3: #d9c9ff;
+	--color-count-mixed: #6b6459;
+
 	--color-track: #2b3833;
 
 	/* Faint row bands for grouping paired rows in dense tables. */
