@@ -341,6 +341,15 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// grade the two halves of that loop.
 		{ id: 'lightning-shield', titleKey: 'lightningShield.title', group: 'abilities', Component: LightningShield },
 		{ id: 'searing-totem', titleKey: 'searingTotem.title', group: 'abilities', Component: SearingTotem },
+		// The generic tables: what dealt the damage, and every mistake with a link back to the replay.
+		//
+		// **Here rather than after the cooldowns, which is where they sat.** They are `abilities`, and a
+		// group has to be one unbroken run of the report or the page and the sidebar stop reading in the
+		// same order: `foldIntoGroups` lists a scattered group once, at its first section, so these two
+		// appeared in the sidebar directly under Searing Totem while the page put them past every
+		// cooldown. Clicking either one jumped a reader over four sections they had not seen.
+		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
+		{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
 
 		// ------------------------------------------------------------- the cooldowns, one section each
 		//
@@ -382,10 +391,6 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 			Component: CooldownDrift,
 			when: hasHeldCooldowns,
 		},
-
-		// The generic tables: what dealt the damage, and every mistake with a link back to the replay.
-		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
-		{ id: 'misses', titleKey: 'misses.title', group: 'abilities', Component: MissLedger },
 
 		// Reference: what the character walked in carrying, and how the report reached its numbers.
 		{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
