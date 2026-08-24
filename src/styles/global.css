@@ -142,7 +142,24 @@
 	--color-count-3: #d9c9ff;
 	--color-count-mixed: #6b6459;
 
-	--color-track: #2b3833;
+	/* The exempt ground: a stretch a chart drew but did not grade.
+	 *
+	 * **Lifted from `#2b3833`, which was too dark to find on the ground it is drawn on.** Three keys on
+	 * one Flame Shock chart — "Dot up, not measured", "Nothing to hit", "Three or more enemies" — are all
+	 * this one tone, and at the old value each read as a dark grey chip on a dark grey surface: 1.54:1
+	 * against `--color-surface`, where the eye needs about 2 to place an edge. This reads 2.30:1 against
+	 * the surface and 2.38:1 against the page, and it is still 3.04:1 *below* a `miss` mark, which is the
+	 * other half of the requirement — an exempt region has to be findable without competing with the
+	 * marks it sits behind.
+	 *
+	 * **Opaque, and a translucent white is not an option here however well it would read.** It was the
+	 * first thing tried and it fails twice. White at 10% over this surface composites to `#262a28`, which
+	 * is *darker* than the value it was replacing, so the alpha has to reach 16% before it breaks even.
+	 * And `CastTimeline` uses this token as a gradient stop in the hatch over its lane bars, where the
+	 * comment above `HATCH` sets out why both stops are opaque: a translucent fill takes its colour partly
+	 * from what is under it, and under a lane bar that is the plot surface in one place and a haste wash
+	 * in another, so one alpha would draw two colours. That argument holds whatever the alpha is. */
+	--color-track: #41534b;
 
 	/* Faint row bands for grouping paired rows in dense tables. */
 	--color-band-warn: #2e1d1f;
