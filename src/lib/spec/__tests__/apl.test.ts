@@ -417,7 +417,7 @@ describe('the priority ladder', () => {
  */
 describe('the two target counts', () => {
 	const benefitOf = (id: number): MultiTargetBenefit =>
-		windwalkerRegistry.abilityByCastId(id)?.multiTargetBenefit ?? 'damage';
+		windwalkerRegistry.abilityByCastId(id)?.targeting?.multiTargetBenefit ?? 'damage';
 
 	/** One enemy taking damage, three being hit: a boss flanked by two immune mines. */
 	const immunePack = {

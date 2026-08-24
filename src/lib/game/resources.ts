@@ -99,5 +99,23 @@ export type ResourceKind = 'pool' | 'points';
 export interface ResourceConfig {
 	type: ResourceTypeValue;
 	kind: ResourceKind;
-	gains?: ReadonlyArray<{ abilityKey: string; amount: number }>;
+	gains?: ReadonlyArray<{
+		abilityKey: string;
+		amount: number;
+		/**
+		 * The button pays this only when it hit at least this many units. Omitted means it always pays.
+		 *
+		 * One button in the tree needs it and it was wrong without it: **Rushing Jade Wind pays its chi
+		 * only at three or more** — wowsims' `registerRushingJadeWind` guards the refund with
+		 * `if sim.Environment.ActiveTargetCount() >= 3`. Declared as a flat gain, the walk credited a chi
+		 * to every single-target press, which is a fault in the *opposite* direction from the one the
+		 * ladder makes when it calls a fanned-out wind press off-list. Two faults that cancel in a report
+		 * and hide each other, which is why this is a declaration and not a note.
+		 *
+		 * Counted against the units the press **hit**, damage or not — the same reading
+		 * `targeting.multiTargetBenefit: 'trigger'` names, because a refund that fires on units hit does not ask
+		 * whether any of them could take damage. `analyseCore`'s `triggerTargetCountAt` is that series.
+		 */
+		minTargets?: number;
+	}>;
 }

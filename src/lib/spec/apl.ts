@@ -241,7 +241,7 @@ export interface AplInputs {
 	/**
 	 * Which of the two counts a button is banded on, by cast id.
 	 *
-	 * Resolved by the spec through its own registry — `abilityByCastId(id)?.multiTargetBenefit` — rather
+	 * Resolved by the spec through its own registry — `abilityByCastId(id)?.targeting?.multiTargetBenefit` — rather
 	 * than declared per ladder entry. That is deliberate: the fact is a property of the *ability*, so
 	 * writing it per rule would let two rules for one button disagree, and would make the next spec with
 	 * a hit-count trigger rediscover it in its ladder instead of reading it off its ability model.
