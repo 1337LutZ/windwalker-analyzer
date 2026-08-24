@@ -1,6 +1,6 @@
 export { GRADE_ORDER, gradeOf, worst } from './model';
 export type { Grade, Judged, Metric, MetricRule, Scorecard, SectionScore, Threshold } from './model';
-export { appliesAt, bandsOf, gradedBands, viewBands, viewMode } from './bands';
+export { appliesAt, bandsOf, gradedBands, spreading, viewBands, viewMode } from './bands';
 export type { BandView, ScoreView } from './bands';
 export {
 	gradedOver,

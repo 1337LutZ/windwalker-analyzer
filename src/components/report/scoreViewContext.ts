@@ -13,11 +13,12 @@ import type { BandView } from '~/lib/score';
  * changed to carry one value none of them use directly.
  *
  * **A `BandView` and no longer a `TargetMode`, which is the point of this module rather than a detail
- * of it.** A mode is a whole-pull binary and the pull this report gets wrong is not binary: add waves
- * and then a boss is one pull whose clocks run through stretches no priority list asked their button
- * of, and whichever of the two words won, one of those stretches was graded against a list that never
- * applied to it. The set can say that; the mode carries on beside it inside the view, for the one
- * question that genuinely is whole-pull — see `BandView.mode`.
+ * of it.** A mode is one word for a whole pull and the pull this report gets wrong took several: add
+ * waves and then a boss is one pull whose clocks run through stretches no priority list asked their
+ * button of, and whichever word won, one of those stretches was graded against a list that never
+ * applied to it. Widening the vocabulary to four does not change that — four words are still one word
+ * per pull. The set can say it; the mode carries on beside it inside the view, for the one question
+ * that genuinely is whole-pull — see `BandView.mode`.
  *
  * The sections that select *data* by target count still take a mode as a prop from `Report.tsx` and
  * deliberately do not read this: `PriorityLadder` judges at one band and `Rotation` prints the list at

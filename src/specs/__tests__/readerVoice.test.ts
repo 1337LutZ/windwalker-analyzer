@@ -522,12 +522,18 @@ const REFERENCE_SECTIONS = ['rotation'];
  * flow". Nothing is lost by that — which reading the report took is already said in swept copy, by
  * `targets.detected_*` and `targets.overridden_*` beside the control that sets it.
  *
+ * **Three now, and the third arrived exactly the way this list was built to make visible.** The
+ * reader's vocabulary widened to Single Target / Cleave / AoE, so `reading_multi` became `reading_aoe`
+ * and a `reading_cleave` was written beside it for the chart band 2 actually draws. A rename and a new
+ * sentence are the two ways a leaf leaves a sweep quietly; naming them here is what makes both an edit
+ * with a reason next to it.
+ *
  * Note what this is *not*: an exception for the second person. Two dozen `rotation` strings say "you"
  * and "your" — "It deals a lump equal to your own maximum health" — and they stay exempt, because
  * that is reference material addressed to a reader rather than a claim about the pull in front of
- * them. These two made the claim.
+ * them. These three made the claim.
  */
-const REFERENCE_READER_KEYS = ['reading_single', 'reading_multi'];
+const REFERENCE_READER_KEYS = ['reading_single', 'reading_cleave', 'reading_aoe'];
 
 const isReferenceReader = ([key]: [string, string]) => REFERENCE_READER_KEYS.includes(key.split('.').pop()!);
 
@@ -562,7 +568,8 @@ const SHARED_REDS = [
 	'overall.none',
 	'overall.ok',
 	'priority.clean',
-	'priority.forced_multi',
+	'priority.forced_aoe',
+	'priority.forced_cleave',
 	'priority.forced_single',
 	'priority.noResources',
 	'priority.rule.rising-sun-kick-filler',
@@ -654,7 +661,7 @@ describe('the shared copy is about the pull, not about the audit', () => {
 		expect(violations(reference).length).toBeGreaterThan(15);
 	});
 
-	it('sweeps the two leaves of that section that are about the reader, and only leaves that exist', () => {
+	it('sweeps the leaves of that section that are about the reader, and only leaves that exist', () => {
 		// Both directions, as every other exception list in this file: a name with no key behind it is a
 		// pre-emptive carve-out, and the keys are written out so that moving either sentence is a visible
 		// edit here rather than a quiet exit from the sweep.
@@ -662,7 +669,7 @@ describe('the shared copy is about the pull, not about the audit', () => {
 			referenceReaderStrings()
 				.map(([key]) => key)
 				.sort(),
-		).toEqual(['rotation.flow.reading_multi', 'rotation.flow.reading_single']);
+		).toEqual(['rotation.flow.reading_aoe', 'rotation.flow.reading_cleave', 'rotation.flow.reading_single']);
 		expect(violations(referenceReaderStrings())).toEqual([]);
 	});
 

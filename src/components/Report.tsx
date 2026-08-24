@@ -65,9 +65,17 @@ export default function Report({
 	// the mode along inside the view, so the weights still get their whole-pull reading from the same
 	// object the bands came on.
 	//
+	// The pull's own segments travel with it, which is what lets a forced reading cut the clocks and not
+	// only the bands — see `BandView.spans`. Handed over here rather than left off because this is the
+	// one place holding both halves: `resolveBands` will not go looking for a timeline it was not given,
+	// deliberately, so every caller that omits it grades the whole pull whatever the reader asked for.
+	//
 	// Memoised because it is a provider value: a fresh object per render would re-render every graded
 	// section in the report for a reading that had not changed.
-	const scoreView = useMemo(() => resolveBands(analysis.targets, targetChoice), [analysis, targetChoice]);
+	const scoreView = useMemo(
+		() => resolveBands(analysis.targets, targetChoice, analysis.segments),
+		[analysis, targetChoice],
+	);
 	// The sections this pull actually renders, and the list the nav is built from — one array, so a
 	// section that declines to appear cannot leave a link behind pointing at a heading that is not
 	// there. Memoised because `SectionNav` observes whatever it is handed and rebuilds its observer

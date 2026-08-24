@@ -21,6 +21,10 @@ import type { AplAudit, Band } from '~/lib/spec/apl';
 // which of an aura's ids opened it is defined beside the walk that produces it, and an audit below
 // carries those rather than a copy of the shape that could drift from them.
 import type { SegmentTimeline } from '~/lib/analysis/segments';
+// And again for the same reason: a spawn record is the shape of one pass over the damage stream, so it
+// is declared beside that pass rather than restated here. A restatement is how a field gets added to one
+// copy and not the other, and the two silently stop describing the same rows.
+import type { SpawnRecord } from '~/lib/analysis/targets';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
 // Type-only, and pointing at a spec rather than at `lib`, which is the same trade the two imports
@@ -142,6 +146,22 @@ export interface FightDataset {
 	 * MoP gives.
 	 */
 	phases?: FightPhase[];
+	/**
+	 * Every `death` event WarcraftLogs recorded for a hostile actor in this pull, in time order.
+	 *
+	 * Declared here for exactly the reason `phases` above it is, and read the same way. `fetchFightDataset`
+	 * always makes the pass, so `PhasedFightDataset` narrows this to required and an **empty array there
+	 * means nothing hostile died** — a wipe on a single-target boss. Optional here because a dataset can
+	 * predate the field: `dataset-ironJuggernaut.json` and all four Elemental fixtures were captured before
+	 * the fetch asked, and arrive with the key genuinely absent. The three Windwalker pulls committed on
+	 * 2026-08-24 — `sections`, `idle`, `uncounted` — do carry it.
+	 *
+	 * **Absent and empty are therefore different facts here and the same fact downstream**, which is the
+	 * trap. `SpawnRecord.deathMs` spends a docblock on it: a record with no `deathMs` may be a body that
+	 * survived, a body on a pull where nothing died, or a body on a pull nobody asked. Only a caller
+	 * holding this field can tell the first two from the third, and nothing in `analysis/` claims to.
+	 */
+	enemyDeaths?: WclEvent[];
 	/**
 	 * Every Stormlash Totem placement in the fight, from every shaman — the raid-wide view the
 	 * Stormlash section needs, since the player's own stream hides the other shamans' totems.
@@ -951,13 +971,30 @@ export interface DebuffSummary {
 }
 
 /**
- * What a pull was fought against: one enemy, or several.
+ * What a pull, or one stretch of it, was fought against.
  *
- * Two values and no third. `unknown` was considered and rejected — a pull always has a count of
- * enemies being hit, and the honest expression of doubt here is the detected/overridden pair below
- * rather than a mode nothing can act on.
+ * **Four values, and three of them are the rotation's own vocabulary.** `single`, `cleave` and `aoe`
+ * are exactly the three readings `SegmentMode` takes off a live enemy count, and they are the three
+ * positions the reader's control offers. Deliberately the same three words: two vocabularies for one
+ * question is how this tree has been bitten before, and `viewBands` spent a long time documenting
+ * itself as a third reading of the target count that was "free to disagree with both".
+ *
+ * **`multi` is the fourth, and it is the coarse one.** It is what `analyseCore` detects for the whole
+ * pull against `MULTI_TARGET_SHARE_PCT`, and it is what `MULTI_TARGET_WEIGHTS` prices. It answers a
+ * real question — was the job spreading — and it is not a position the control offers, because "the
+ * multi-target stretches" folds two different rotations into one word, and separating them is the
+ * whole of what widening this type buys. `targetModeChoices` is where that line is drawn.
+ *
+ * `mixed` is deliberately absent, though `SegmentMode` carries it. A stretch no single mode described
+ * is read by reading the whole fight, which is what the default position already does, so a `mixed`
+ * value here would give the reader two ways to ask for one thing. `idle` is absent for the older
+ * reason: nothing was there to be hit, so it is evidence for no reading at all.
+ *
+ * `unknown` was considered and rejected — a pull always has a count of enemies being hit, and the
+ * honest expression of doubt here is the detected/overridden pair below rather than a mode nothing can
+ * act on.
  */
-export type TargetMode = 'single' | 'multi';
+export type TargetMode = 'single' | 'cleave' | 'aoe' | 'multi';
 
 /**
  * How many enemies the player was damaging, moment by moment, and what that makes the pull.
@@ -1026,6 +1063,13 @@ export interface TargetSummary {
 	 * Detected, never enforced: a reader who deliberately ignored the adds to parse can say so, and
 	 * `lib/view/targetMode` is where their answer and this one are reconciled. This field is what the
 	 * report shows them so they can see they are disagreeing with it.
+	 *
+	 * **Only ever `'single'` or `'multi'`, though the type now carries four.** One share against one
+	 * threshold cannot say which of the three rotations a pull was, and a whole-pull word never could —
+	 * that is what `Analysis.segments` is for. The type is the wider one because a narrower one here
+	 * would put `analyseCore`'s own annotation out of reach, and because the reconciliation reads both
+	 * vocabularies anyway: `resolveTargetMode` coarsens the reader's finer answer down to this one
+	 * before asking whether the two disagree.
 	 */
 	detected: TargetMode;
 }
@@ -1924,6 +1968,32 @@ export interface AnalysisCore {
 	 * output from before this existed. Guard on truthiness rather than assuming an array.
 	 */
 	segments?: SegmentTimeline;
+	/**
+	 * One row per enemy **body** the player touched — the evidence the two series above are reductions of.
+	 *
+	 * A body and not a kind: WarcraftLogs hands ten simultaneous adds one `targetID` and tells them apart
+	 * only by `targetInstance`, so `targets.counts` reads fourteen Living Corruptions where a row keyed on
+	 * the actor id would read one. See `SpawnRecord`, which argues the whole shape.
+	 *
+	 * **Published because a reduction cannot be re-checked and a record can.** `targets` is a step series
+	 * and `segments` is a cut of it, and neither can answer *which* enemy, hit how often, aimed at or not.
+	 * That question is what `game/rankingExclusions` decides every row of its table on — "not one aimed
+	 * press", "157 hits on one spawn across a contiguous 39.6s" — and those numbers were measured by hand
+	 * against pulls that are now committed. `game/__tests__/exclusionEvidence.test.ts` re-measures them off
+	 * this field, which is the only reader today and the reason it exists.
+	 *
+	 * **Nothing here is graded and nothing downstream of it moved.** A record carries `judgeable` and
+	 * `excluded`, and both are verdicts other modules already made and this array only reports; adding the
+	 * field moved no figure in any committed fixture, which the suite asserts by not changing.
+	 *
+	 * Optional for the reason `targets` and `segments` above it are — the captured fixtures predate it —
+	 * and for one more that is specific to it: `analyseCore` publishes it **only for a spec that declares
+	 * which of its buttons are aimed** (`AbilityTargeting.aimed`). A spec that declares none would get a
+	 * row per body reading zero aimed presses, which is not a neutral answer but a wrong one shaped exactly
+	 * like the finding the field exists to report. Absent therefore means "this spec has not answered the
+	 * question", never "no body was ever chosen". Guard on truthiness.
+	 */
+	spawns?: SpawnRecord[];
 	/**
 	 * What the player was wearing. Empty when the log carried no `combatantinfo` for them, which the
 	 * UI has to treat as "not reported" rather than as "nothing equipped".

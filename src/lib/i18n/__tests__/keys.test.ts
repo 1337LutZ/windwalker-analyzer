@@ -353,7 +353,7 @@ describe('report copy with no reader', () => {
 	 * Every quoted key path anywhere in a file, not only the ones sitting in a `t(`.
 	 *
 	 * Two live routes put the string somewhere else and hand it over later — a `Record` of keys indexed
-	 * by a mode (`SectionNav`'s nav groups, `TargetModeControl`'s three labels) and a ternary chosen
+	 * by a mode (`SectionNav`'s nav groups, `TargetModeControl`'s four labels) and a ternary chosen
 	 * inside the call (`CastTimeline`'s six tooltips). Both are as statically visible as `t('x.y')`; only
 	 * the regex was narrower than they are. At least one dot, so `'auto'` and `'S256'` are not keys.
 	 */

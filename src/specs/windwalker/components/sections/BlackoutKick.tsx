@@ -28,6 +28,22 @@ import LogLink from '~/components/sections/LogLink';
  * pulls. And encounter alone explains 30.7% of the variance, with single fights spreading as wide as
  * the sample. Starvation has no target either: following the list does not produce zero.
  */
+/**
+ * Which sentence a forced reading gets — the same three-for-four pairing `PriorityLadder` uses, and
+ * for the same reason: `aoe` and the coarse `multi` are both read at band 3, and `cleave` is not.
+ *
+ * The difference this section reports is the dump's energy reserve, and band 2 sits with band 1 rather
+ * than with the packs: `DUMP_ENERGY` is `{ few: 35, many: 105 }` and the `many` arm starts at three
+ * targets, so a cleave still spends chi off a 35-energy bar. What has changed at two is which button is
+ * above the kick, which is the half the cleave sentence names.
+ */
+const FORCED_NOTE: Record<TargetMode, string> = {
+	single: 'blackoutKick.forced_single',
+	cleave: 'blackoutKick.forced_cleave',
+	aoe: 'blackoutKick.forced_aoe',
+	multi: 'blackoutKick.forced_aoe',
+};
+
 export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analysis; forcedMode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);
 
@@ -246,7 +262,7 @@ export default function BlackoutKick({ analysis, forcedMode }: { analysis: Analy
 				    is the one thing a reader would otherwise assume it did. */}
 				{forcedMode === null || forcedMode === undefined ? null : (
 					<>
-						<Note>{t(forcedMode === 'single' ? 'blackoutKick.forced_single' : 'blackoutKick.forced_multi')}</Note>
+						<Note>{t(FORCED_NOTE[forcedMode])}</Note>
 						<Note>{t('blackoutKick.starveUnbanded')}</Note>
 					</>
 				)}

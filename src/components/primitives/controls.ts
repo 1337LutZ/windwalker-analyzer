@@ -60,7 +60,9 @@ export const compactChoiceClass = (selected: boolean): string =>
  *
  * `compactChoiceClass` cannot be used there: it is `flex-1`, so in a toolbar it would eat the width
  * the encounter name needs. This is the same palette at the same height with the padding cut to what
- * a 390px bar can spare, which is what makes three switches fit beside the pull's name.
+ * a 390px bar can spare, which is what makes a row of them fit beside the pull's name. Three was the
+ * whole row when this was measured; a pull that held every rotation offers four, which is what the
+ * collapsed button below exists for.
  *
  * `min-w-11` as well as `min-h-11`, which the other pick-one classes get for free from `flex-1` or
  * `w-full`. Nothing stretches these, and without it the two short labels measure 29px and 37px wide
@@ -83,7 +85,7 @@ export const toolbarChoiceClass = (selected: boolean, overridden: boolean): stri
  * settings buttons and is a way in to a choice rather than the choice itself, so colouring it as
  * selected would have it shouting louder than either of its neighbours. It keeps only the amber,
  * which is not decoration — a reading that contradicts what the pull detected has to be visible from
- * the bar, and collapsing three switches into one button is exactly where that could have been lost.
+ * the bar, and collapsing that row into one button is exactly where that could have been lost.
  *
  * Written as one string per state rather than as overrides appended to `buttonClass`, for the reason
  * `max-sm:px-2` exists on the Change button: two classes setting the same property resolve by

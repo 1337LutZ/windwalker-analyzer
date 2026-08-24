@@ -1,11 +1,16 @@
 // Which target counts a pull was fought at, and which of them a rule is honest over.
 //
 // The report has always had two vocabularies for "how many enemies". The APL ladder has four bands
-// and gates each entry on the ones its rung exists in; everything else has `TargetMode`, which is
-// `'single' | 'multi'` for a whole pull. `view/targetMode.bandForMode` is where they meet, and it
-// meets them by collapsing four values into two and expanding two back into `{1, 3}` — so a pull that
-// spent four minutes on a boss and one on a pack of six is a single word, and whichever word wins,
-// one of those two stretches is graded against a list that was never applicable to it.
+// and gates each entry on the ones its rung exists in; everything else has `TargetMode`, which was
+// `'single' | 'multi'` for a whole pull. `view/targetMode.bandForMode` is where they meet, and it used
+// to meet them by collapsing four values into two and expanding two back into `{1, 3}` — so a pull
+// that spent four minutes on a boss and one on a pack of six was a single word, and whichever word
+// won, one of those two stretches was graded against a list that was never applicable to it.
+//
+// **`TargetMode` carries four values now**, three of them the segments' own, so the conversion below
+// is a mapping between vocabularies of the same width rather than a fold — a two-target reading no
+// longer arrives at the three-target list. What a mode still cannot express is a pull that was several
+// of them at different minutes, which is the whole reason `BandView` is a set.
 //
 // That is the whole of the bug this module exists for: an add wave then a boss produces a report whose
 // every complaint is about dot uptime, because the dot clocks ran through stretches where no list
@@ -93,7 +98,7 @@ export interface BandView {
  *
  * A union, and only because of sequencing: every caller today hands over a `TargetMode`, and the
  * bands cannot arrive at all until the callers are converted one at a time. `BandView` is the form
- * that can express a mixed pull; `TargetMode` is the form the reader's own two-way switch produces,
+ * that can express a mixed pull; `TargetMode` is the form one press of the reader's control produces,
  * and passing one is a statement that the whole pull is to be read at one band. `null` is "nothing
  * said", which grades everything.
  */
@@ -128,19 +133,52 @@ export function gradedBands(rule: Pick<MetricRule, 'bands'>, pull: readonly Band
 }
 
 /**
- * The bands a scoring call was told about — the only place a mode becomes bands, and it is lossy.
+ * The bands a scoring call was told about — the only place a mode becomes bands.
  *
- * `'single'` is band 1 and `'multi'` is band 3, the same two answers `bandForMode` gives and for the
- * same reason (three is where the multi-target lists have taken their shape; four adds one rung most
- * packs never reach). It is lossy in the direction that matters: a mixed pull handed over as a mode
- * arrives here as one band, and the four minutes that were not at that count are graded against a
- * list that did not apply to them. The fix for a caller that minds is to hand over a `BandView`, not
- * to make this function cleverer — it has nothing to be clever with.
+ * **This docblock used to open by calling itself lossy, and half of that defect has been fixed rather
+ * than re-argued.** The lossy half was the vocabulary: two words expanded into `{1, 3}`, so a
+ * two-target reading was handed the three-target list, which contains Spinning Crane Kick and moves
+ * the chi dump's energy reserve to its higher number. `TargetMode` has four values now and three of
+ * them name a band outright — `single` is 1, `cleave` is 2, `aoe` is 3 — so nothing is guessed on the
+ * way through. `multi` keeps 3 because that is what the word has always meant here and because every
+ * reading that used to arrive under it lands where it landed before. These are the same answers
+ * `bandForMode` gives, and they have to be: a press judged at one band and a list printed at another
+ * is the one failure that pairing exists to prevent.
+ *
+ * **What is still lossy is the arithmetic, not the vocabulary, and it cannot be fixed here.** A mixed
+ * pull handed over as a mode arrives as one band whatever that band is, and the minutes that were not
+ * at that count are graded against a list that did not apply to them. `BandView` is the shape that
+ * answers it — a set for which rules applied, and `spans` for how much of the clock they applied over.
+ * The fix for a caller that minds is still to hand one over, not to make this function cleverer: it
+ * has one word to work from and nothing to be clever with.
  */
 export function viewBands(view: ScoreView): readonly Band[] | null {
 	if (view === null || view === undefined) return null;
-	if (typeof view === 'string') return view === 'single' ? [1] : [3];
+	if (typeof view === 'string') return view === 'single' ? [1] : view === 'cleave' ? [2] : [3];
 	return view.bands;
+}
+
+/**
+ * Whether a reading is one where the job was spreading damage rather than aimed at one body.
+ *
+ * **The line is drawn at two enemies, not at three, and the tree draws it there three times already.**
+ * `TargetSummary.multiTargetMs` counts time at two or more; `MULTI_TARGET_SHARE_PCT` decides the whole
+ * pull against that clock; and the Windwalker's ladder puts `rushing-jade-wind-open` at `bands: [2, 3,
+ * 4]`, so from two enemies up the priority list has already moved a spreading button above Rising Sun
+ * Kick. A fourth reading that called two targets "aimed" would disagree with all three.
+ *
+ * The one caller today is `weightsFor`, and what it prices is a claim about the pull rather than about
+ * a rung: how much a one-target number should matter when the job was spreading. `cleave` and `aoe`
+ * answer that question the same way, because at both counts the list has stopped asking for the
+ * one-target button first. Where they differ is *which* rungs apply, and that difference is carried by
+ * the band — which is the division of labour `BandView.mode` and `BandView.bands` exist to keep.
+ *
+ * Null is not spreading, and it is not aimed either: it is nothing said. It reads as `false` here
+ * because the caller is choosing between a base table and a discount, and the base table is what every
+ * pull got before any of this existed.
+ */
+export function spreading(mode: TargetMode | null | undefined): boolean {
+	return mode === 'cleave' || mode === 'aoe' || mode === 'multi';
 }
 
 /**

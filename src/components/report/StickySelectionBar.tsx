@@ -5,7 +5,8 @@ import '~/lib/i18n';
 
 import type { SettingsState } from '~/hooks/useSettings';
 import type { TargetSummary } from '~/lib/types';
-import type { TargetModeChoice } from '~/lib/view/targetMode';
+import type { SegmentTimeline } from '~/lib/analysis/segments';
+import type { OfferedChoice } from '~/lib/view/targetMode';
 
 import { ApiCreditsToolbar } from '../ApiCredits';
 import { buttonClass } from '../primitives/controls';
@@ -39,8 +40,9 @@ interface Props {
 	 */
 	targetMode?: {
 		targets: TargetSummary | undefined;
-		value: TargetModeChoice;
-		onChange: (choice: TargetModeChoice) => void;
+		segments: SegmentTimeline | undefined;
+		value: OfferedChoice;
+		onChange: (choice: OfferedChoice) => void;
 	};
 }
 

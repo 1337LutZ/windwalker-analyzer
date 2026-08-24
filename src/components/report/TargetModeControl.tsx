@@ -3,14 +3,15 @@ import { Toolbar } from '@base-ui/react/toolbar';
 import { type TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
+import type { SegmentTimeline } from '~/lib/analysis/segments';
 import type { TargetSummary } from '~/lib/types';
-import { TARGET_MODE_CHOICES, resolveTargetMode, type TargetModeChoice } from '~/lib/view/targetMode';
+import { type OfferedChoice, resolveTargetMode, targetModeChoices } from '~/lib/view/targetMode';
 
 import { compactChoiceClass, labelClass, toolbarChoiceClass, toolbarMenuClass } from '../primitives/controls';
 import { Note } from '../primitives';
 
 /**
- * Whether to read this pull as one target or several, and the reader's right to disagree.
+ * Which of this pull's rotations to read it at, and the reader's right to disagree.
  *
  * The report detects the mode from how many enemies were being damaged moment by moment
  * (`analysis.targets`), which is right for the pull as it happened and wrong for the player who
@@ -21,11 +22,17 @@ import { Note } from '../primitives';
  * it detected would let a reader force single target on a genuine add fight and never learn that the
  * report disagreed — which is the whole thing this is here to make visible.
  *
+ * **The positions come from the pull, and there are up to four of them.** The whole fight first, then
+ * Single Target, Cleave and AoE — but only the ones this pull held for `TARGET_MODE_MIN_MS`. A fixed
+ * menu offered a reading of nothing: measured on the committed pulls, the Elemental fixture *named*
+ * `cleave` spends 15 s of 263 s in a cleave segment, and the plan's own case is a Norushen pull with no
+ * single-target segment at all. `targetModeChoices` is the derivation and carries the measurements.
+ *
  * **Two renderings, one control.** This one is the block above the report, with the detection spelled
- * out; `TargetModeToolbar` below is the same three switches on the sticky bar's single line. They are
- * never both on screen — see `ReportFlow`, which mounts this one directly above the sentinel that
- * mounts the bar — so the reader is looking at exactly one of them at any scroll position, and both
- * read and write the same state.
+ * out; `TargetModeToolbar` below is the same switches on the sticky bar's single line. They are never
+ * both on screen — see `ReportFlow`, which mounts this one directly above the sentinel that mounts the
+ * bar — so the reader is looking at exactly one of them at any scroll position, and both read and
+ * write the same state.
  *
  * State lives with the caller, not here and not in `AnalysisSettings`: see `lib/view/targetMode` for
  * why this is view state rather than an analysis setting.
@@ -33,29 +40,40 @@ import { Note } from '../primitives';
 interface Props {
 	/** The pull's own counts. Undefined on an analysis captured before they existed. */
 	targets: TargetSummary | undefined;
-	value: TargetModeChoice;
-	onChange: (choice: TargetModeChoice) => void;
+	/** The pull's own mode timeline, which is what the menu is derived from. Undefined on an old capture. */
+	segments: SegmentTimeline | undefined;
+	value: OfferedChoice;
+	onChange: (choice: OfferedChoice) => void;
 }
 
-/** Deliberately literal rather than built from the choice, so the copy is greppable from the locale. */
-const LABEL: Record<TargetModeChoice, string> = {
+/**
+ * Deliberately literal rather than built from the choice, so the copy is greppable from the locale.
+ *
+ * Keyed by `OfferedChoice` and not by `TargetModeChoice`, which is the type doing a job here: `'multi'`
+ * is a legal reading for a caller holding a detected mode and is not a position any control offers, so
+ * a record over the wider type would have demanded a label for a button that cannot exist — and then
+ * left it in the locale for ever, unread, which is the shape of dead copy `keys.test.ts` hunts.
+ */
+const LABEL: Record<OfferedChoice, string> = {
 	auto: 'targets.auto',
 	single: 'targets.single',
-	multi: 'targets.multi',
+	cleave: 'targets.cleave',
+	aoe: 'targets.aoe',
 };
 
 /**
- * The same three, at the length a toolbar can hold.
+ * The same four, at the length a toolbar can hold.
  *
  * Separate keys rather than a truncation of the ones above, for the same reason those are spelled
  * out: what renders has to be findable in the locale. "Single target" is 75px of mono capitals and
  * the bar has the encounter name to fit beside it, which is what these are shorter for — not a
  * different meaning, a different width.
  */
-const SHORT_LABEL: Record<TargetModeChoice, string> = {
+const SHORT_LABEL: Record<OfferedChoice, string> = {
 	auto: 'targets.shortAuto',
 	single: 'targets.shortSingle',
-	multi: 'targets.shortMulti',
+	cleave: 'targets.shortCleave',
+	aoe: 'targets.shortAoe',
 };
 
 /**
@@ -64,7 +82,7 @@ const SHORT_LABEL: Record<TargetModeChoice, string> = {
  * Shared by both renderings so they cannot come to disagree about a pull: one says it in a `Note`
  * under the switches, the other has no line for it and carries it as the group's description.
  */
-function detection(t: TFunction<'report'>, targets: TargetSummary | undefined, value: TargetModeChoice): string {
+function detection(t: TFunction<'report'>, targets: TargetSummary | undefined, value: OfferedChoice): string {
 	const { detected, overridden } = resolveTargetMode(targets?.detected, value);
 	const seen =
 		detected === null
@@ -73,28 +91,36 @@ function detection(t: TFunction<'report'>, targets: TargetSummary | undefined, v
 	return overridden ? `${seen} ${t('targets.overridden', { context: value })}` : seen;
 }
 
-export default function TargetModeControl({ targets, value, onChange }: Props) {
+export default function TargetModeControl({ targets, segments, value, onChange }: Props) {
 	const { t } = useTranslation('report');
+	const choices = targetModeChoices(segments);
 
 	return (
 		<div className="flex flex-col gap-2.5">
 			<span className={labelClass}>{t('targets.label')}</span>
-			<div className="flex gap-2" role="radiogroup" aria-label={t('targets.label')}>
-				{TARGET_MODE_CHOICES.map((choice) => (
-					<button
-						key={choice}
-						type="button"
-						role="radio"
-						aria-checked={choice === value}
-						className={compactChoiceClass(choice === value)}
-						onClick={() => onChange(choice)}
-					>
-						{t(LABEL[choice])}
-					</button>
-				))}
-			</div>
+			{/* No switches at all when the whole fight is the only reading, and the sentence below says so
+			    instead. One always-checked radio is not a choice: it reads as a control that has broken
+			    rather than as a pull that held one rotation, which is the fact there is to report. What is
+			    *not* dropped with it is the detection — a reader is still told what the pull looked like,
+			    which is this control's first job and the one it has whether or not it has switches. */}
+			{choices.length > 1 ? (
+				<div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('targets.label')}>
+					{choices.map((choice) => (
+						<button
+							key={choice}
+							type="button"
+							role="radio"
+							aria-checked={choice === value}
+							className={compactChoiceClass(choice === value)}
+							onClick={() => onChange(choice)}
+						>
+							{t(LABEL[choice])}
+						</button>
+					))}
+				</div>
+			) : null}
 			<Note>{detection(t, targets, value)}</Note>
-			<span className="text-sm text-muted">{t('targets.hint')}</span>
+			<span className="text-sm text-muted">{choices.length > 1 ? t('targets.hint') : t('targets.onlyWhole')}</span>
 		</div>
 	);
 }
@@ -118,14 +144,15 @@ export default function TargetModeControl({ targets, value, onChange }: Props) {
  * is amber instead of green. A reader who forces a reading can see from the bar that the report
  * disagrees, which is the part that must never be silent.
  */
-export function TargetModeToolbar({ targets, value, onChange }: Props) {
+export function TargetModeToolbar({ targets, segments, value, onChange }: Props) {
 	const { t } = useTranslation('report');
 	const { overridden } = resolveTargetMode(targets?.detected, value);
 	const detected = detection(t, targets, value);
+	const choices = targetModeChoices(segments);
 
 	return (
 		<>
-			<TargetModeMenu targets={targets} value={value} onChange={onChange} />
+			<TargetModeMenu targets={targets} segments={segments} value={value} onChange={onChange} />
 
 			<Toolbar.Group
 				role="radiogroup"
@@ -136,7 +163,7 @@ export function TargetModeToolbar({ targets, value, onChange }: Props) {
 				title={detected}
 				className="hidden shrink-0 gap-0.5 md:flex md:gap-1"
 			>
-				{TARGET_MODE_CHOICES.map((choice) => (
+				{choices.map((choice) => (
 					<Toolbar.Button
 						key={choice}
 						role="radio"
@@ -153,12 +180,14 @@ export function TargetModeToolbar({ targets, value, onChange }: Props) {
 }
 
 /**
- * The same three choices as one button, for the width that cannot hold three.
+ * The same choices as one button, for the width that cannot hold them side by side.
  *
  * Three switches measure 140px on this row and this button 78px, so collapsing them buys back 62px
  * for the encounter name — most of what the credits readout beside them costs. The switches are the
  * better control where there is room, one press instead of two, so both exist and each is hidden at
- * the width the other one owns.
+ * the width the other one owns. A pull that offers four readings makes that trade louder rather than
+ * different: the fourth switch is another 45px off the encounter name at every width below `md`, and
+ * this button is the same 78px whatever the menu holds.
  *
  * `md` and not `sm`, which is where this was first drawn, because the measurement disagreed. At 640px
  * the settings button has just begun spelling its own label out, and the switches at that width left
@@ -180,10 +209,11 @@ export function TargetModeToolbar({ targets, value, onChange }: Props) {
  * overridden, and a trigger that hid it would have quietly dropped that on phones. The trigger also
  * names the current mode, so the state is on the bar and not only inside the popup.
  */
-function TargetModeMenu({ targets, value, onChange }: Props) {
+function TargetModeMenu({ targets, segments, value, onChange }: Props) {
 	const { t } = useTranslation('report');
 	const { overridden } = resolveTargetMode(targets?.detected, value);
 	const detected = detection(t, targets, value);
+	const choices = targetModeChoices(segments);
 
 	return (
 		<Menu.Root>
@@ -209,17 +239,17 @@ function TargetModeMenu({ targets, value, onChange }: Props) {
 						<p className="m-0 max-w-[36ch] text-sm leading-relaxed text-muted">{detected}</p>
 						<Menu.RadioGroup
 							value={value}
-							onValueChange={(next) => onChange(next as TargetModeChoice)}
+							onValueChange={(next) => onChange(next as OfferedChoice)}
 							aria-label={t('targets.label')}
 							className="flex flex-col gap-1"
 						>
-							{TARGET_MODE_CHOICES.map((choice) => (
+							{choices.map((choice) => (
 								<Menu.RadioItem
 									key={choice}
 									value={choice}
 									// Base UI leaves a radio item's menu open by default, which suits a menu of several
-									// settings and not this one: these three are the whole popup, so staying open after
-									// a choice leaves the reader covering the report with a menu they are done with.
+									// settings and not this one: these are the whole popup, so staying open after a
+									// choice leaves the reader covering the report with a menu they are done with.
 									closeOnClick
 									className="flex min-h-11 cursor-pointer items-center gap-2 rounded-sm px-2 font-mono text-sm font-semibold tracking-[0.1em] text-ink-2 uppercase transition-colors data-highlighted:bg-raised data-highlighted:text-ink"
 								>

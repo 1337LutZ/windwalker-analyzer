@@ -6,7 +6,15 @@ import i18n, { initI18n } from '~/lib/i18n/config';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { analyse as analyseElemental } from '~/specs/elemental';
 
-import { bandForMode, bandsInPull, resolveBands, TARGET_MODE_CHOICES, resolveTargetMode } from '../targetMode';
+import {
+	bandForMode,
+	bandsInPull,
+	type OfferedChoice,
+	resolveBands,
+	resolveTargetMode,
+	targetModeChoices,
+	TARGET_MODE_MIN_MS,
+} from '../targetMode';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');
@@ -30,6 +38,23 @@ describe('resolveTargetMode', () => {
 	});
 
 	/**
+	 * The half the widening added, and the one a literal comparison would have got wrong.
+	 *
+	 * The detection has two words and the reader has three, so `'cleave'` against a pull detected
+	 * `'multi'` is not a contradiction — it is the reader saying which kind of spreading, about a
+	 * measurement that never claimed to know. Reporting it as an override would put an amber switch and
+	 * a "you are reading it as a cleave anyway" on a pull that agrees with them.
+	 */
+	it('does not call a finer answer a contradiction of the coarse one', () => {
+		expect(resolveTargetMode('multi', 'cleave').overridden).toBe(false);
+		expect(resolveTargetMode('multi', 'aoe').overridden).toBe(false);
+		// And the disagreement that survives the fold is the one the override exists for, both ways round.
+		expect(resolveTargetMode('single', 'cleave').overridden).toBe(true);
+		expect(resolveTargetMode('single', 'aoe').overridden).toBe(true);
+		expect(resolveTargetMode('multi', 'single').overridden).toBe(true);
+	});
+
+	/**
 	 * An analysis captured before the counts existed has no detected mode, and this must not invent
 	 * one: a caller handed `'single'` here would grade a pull against the single-target list on the
 	 * strength of a guess.
@@ -44,17 +69,31 @@ describe('resolveTargetMode', () => {
  * The control's own copy, enumerated here rather than checked by the key test — it reads its labels
  * out of a record keyed by the choice, and that test can only see literal keys.
  */
+const OFFERED: readonly OfferedChoice[] = ['auto', 'single', 'cleave', 'aoe'];
+
 describe('target mode copy', () => {
-	it('names every choice', () => {
-		for (const choice of TARGET_MODE_CHOICES) {
-			expect(t(`targets.${choice}`)).not.toBe(`targets.${choice}`);
+	it('names every choice a control can offer, long and short', () => {
+		for (const choice of OFFERED) {
+			expect(t(`targets.${choice}`), choice).not.toBe(`targets.${choice}`);
 		}
+		// The toolbar's own labels, which are separate keys rather than truncations of the ones above and
+		// so can go missing on their own. Spelled out because the record that reads them is keyed by
+		// choice, which the key test cannot see through.
+		for (const key of ['shortAuto', 'shortSingle', 'shortCleave', 'shortAoe']) {
+			expect(t(`targets.${key}`), key).not.toBe(`targets.${key}`);
+		}
+		expect(t('targets.onlyWhole')).not.toBe('targets.onlyWhole');
 	});
 
 	it('says what was detected, in both modes, and what an override contradicts', () => {
+		// Two arms for the detection and three for the override, because the two answer different
+		// questions: `TargetSummary.detected` only ever produces the coarse pair, and the override is the
+		// reader's own finer word.
 		for (const mode of ['single', 'multi'] as const) {
 			expect(t('targets.detected', { context: mode, share: 40 })).toContain('40');
-			expect(t('targets.overridden', { context: mode })).not.toBe('targets.overridden');
+		}
+		for (const mode of ['single', 'cleave', 'aoe'] as const) {
+			expect(t('targets.overridden', { context: mode }), mode).not.toBe('targets.overridden');
 		}
 		expect(t('targets.detectedNone')).not.toBe('targets.detectedNone');
 	});
@@ -76,6 +115,19 @@ const elemental = (name: string): Analysis =>
 			readFileSync(resolve(import.meta.dirname, `../../../specs/elemental/__fixtures__/${name}.json`), 'utf8'),
 		) as FightDataset,
 	);
+
+/** A timeline of nothing but mode durations, for the arithmetic the fixtures cannot pin on their own. */
+const timelineOf = (runs: readonly [string, number][]): Parameters<typeof resolveBands>[2] => {
+	let at = 0;
+	return {
+		floorMs: 8000,
+		segments: runs.map(([mode, ms], index) => {
+			const startMs = at;
+			at += ms;
+			return { index, startMs, endMs: at, mode, dominance: 1, bands: [], medianEnemies: 0, msByCount: {} };
+		}),
+	} as unknown as Parameters<typeof resolveBands>[2];
+};
 
 describe('resolveBands', () => {
 	/**
@@ -127,12 +179,24 @@ describe('resolveBands', () => {
 			// wants the narrower one passes the timeline; every existing caller keeps what it had.
 			spans: null,
 		});
-		expect(resolveBands(windwalker('cleave').targets, 'multi')).toEqual({
+		expect(resolveBands(windwalker('cleave').targets, 'aoe')).toEqual({
 			bands: [3],
-			mode: 'multi',
+			mode: 'aoe',
 			forced: true,
 			spans: null,
 		});
+		// The band the two-value vocabulary could not name. `cleave` used to arrive as band 3 and be
+		// judged against a list holding Spinning Crane Kick, which the priority list does not contain
+		// until three enemies.
+		expect(resolveBands(windwalker('cleave').targets, 'cleave')).toEqual({
+			bands: [2],
+			mode: 'cleave',
+			forced: true,
+			spans: null,
+		});
+		expect([bandForMode('single'), bandForMode('cleave'), bandForMode('aoe'), bandForMode('multi')]).toEqual([
+			1, 2, 3, 3,
+		]);
 	});
 
 	/**
@@ -143,6 +207,69 @@ describe('resolveBands', () => {
 	it('says nothing was detected rather than inventing a band', () => {
 		expect(bandsInPull(undefined)).toBeNull();
 		expect(resolveBands(undefined, 'auto')).toEqual({ bands: null, mode: null, forced: false, spans: null });
+	});
+});
+
+/**
+ * The menu, which is a claim about this pull and no longer a constant.
+ *
+ * Measured on the analysed fixtures rather than on a hand-built timeline, because the point of
+ * deriving it is that real pulls disagree — a hand-built one would only prove the arithmetic.
+ */
+describe('the readings a pull offers', () => {
+	it('offers the whole fight and nothing else when the pull has no timeline', () => {
+		// Every committed `Analysis` capture predates `Analysis.segments`. Offering the three anyway
+		// would offer the reading this whole mechanism removes: `spansForChoice` has no timeline to cut
+		// with, so the bands would narrow and every clock would keep running over the whole pull.
+		expect(targetModeChoices(undefined)).toEqual(['auto']);
+		expect(windwalker('cleave').segments).toBeUndefined();
+	});
+
+	it('offers only single target on a pull that never left one enemy', () => {
+		expect(targetModeChoices(elemental('unbroken').segments)).toEqual(['auto', 'single']);
+		expect(targetModeChoices(elemental('phased').segments)).toEqual(['auto', 'single']);
+	});
+
+	/**
+	 * ***The fixture named `cleave` does not offer Cleave, and that is the case for deriving the menu.***
+	 * It spends 15.4s of 263s in a cleave segment against 67.5s of aoe: its multi-target time is an
+	 * eight-target reading, not a two-target one, and a fixed list would have put a button on the page
+	 * offering a letter earned over fifteen seconds.
+	 */
+	it('offers only what the pull held for long enough, not everything it touched', () => {
+		expect(targetModeChoices(elemental('cleave').segments)).toEqual(['auto', 'single', 'aoe']);
+		expect(targetModeChoices(elemental('addsThenBoss').segments)).toEqual(['auto', 'single', 'cleave', 'aoe']);
+	});
+
+	it('never offers a mode under the floor, and offers one exactly on it', () => {
+		const at = (ms: number) => targetModeChoices(timelineOf([['cleave', ms]]));
+		expect(at(TARGET_MODE_MIN_MS - 1)).toEqual(['auto']);
+		expect(at(TARGET_MODE_MIN_MS)).toEqual(['auto', 'cleave']);
+	});
+
+	/**
+	 * `mixed` and `idle` are never positions, however much of the pull they are. A `mixed` stretch is one
+	 * no single rotation described, so the reading that keeps it is the whole fight; `idle` is time
+	 * nothing was there to be hit. A pull that is all of those two offers the whole fight alone.
+	 */
+	it('offers no position for mixed or idle, whatever they add up to', () => {
+		expect(
+			targetModeChoices(
+				timelineOf([
+					['mixed', 200_000],
+					['idle', 90_000],
+				]),
+			),
+		).toEqual(['auto']);
+	});
+
+	it('always puts the whole fight first, then the readings in ascending enemy count', () => {
+		const every = timelineOf([
+			['aoe', 60_000],
+			['single', 60_000],
+			['cleave', 60_000],
+		]);
+		expect(targetModeChoices(every)).toEqual(['auto', 'single', 'cleave', 'aoe']);
 	});
 });
 
@@ -210,20 +337,41 @@ describe('the stretches a forced reading covers', () => {
 		expect(resolveBands(targets, 'single', timeline).spans).toEqual([[0, 30_000]]);
 	});
 
-	it('reads everything that was not single-target as the other half, and merges what abuts', () => {
-		// Cleave, aoe and mixed together — a mixed stretch is by construction one no single mode
-		// described, which makes it part of this reading and not part of the single-target one. The two
-		// that touch at 90 000 come back as one span rather than two.
+	/**
+	 * The fold this widening exists to remove. Asking for the pack used to hand back every two-target
+	 * stretch with it, so the clock a reader thought was about the pack ran through both.
+	 */
+	it('gives each offered reading its own stretches and nobody else’s', () => {
+		expect(resolveBands(targets, 'cleave', timeline).spans).toEqual([[70_000, 90_000]]);
+		expect(resolveBands(targets, 'aoe', timeline).spans).toEqual([[30_000, 50_000]]);
+	});
+
+	/**
+	 * `mixed` changed sides and belongs to no narrowed reading now. It used to be filed with the
+	 * multi-target half on the argument that a stretch which was not single-target must be the other
+	 * thing; with three positions that argument is gone, and handing it to `cleave` or `aoe` would pick a
+	 * winner the segmentation already declined to pick. The whole fight is what keeps it.
+	 */
+	it('leaves the mixed stretch to the whole fight and to nothing narrower', () => {
+		const narrowed = (['single', 'cleave', 'aoe'] as const).flatMap(
+			(choice) => resolveBands(targets, choice, timeline).spans ?? [],
+		);
+		expect(narrowed.some(([from, to]) => from < 99_000 && to > 90_000)).toBe(false);
+	});
+
+	it('keeps the old union under the coarse reading no control offers, and merges what abuts', () => {
+		// Cleave, aoe and mixed together — `'multi'` means "two or more", which is what a caller holding
+		// a detected mode is asking for. The two that touch at 90 000 come back as one span, not two.
 		expect(resolveBands(targets, 'multi', timeline).spans).toEqual([
 			[30_000, 50_000],
 			[70_000, 99_000],
 		]);
 	});
 
-	it('leaves idle out of both readings, because nothing was there to be hit', () => {
-		const single = resolveBands(targets, 'single', timeline).spans ?? [];
-		const multi = resolveBands(targets, 'multi', timeline).spans ?? [];
-		const covered = [...single, ...multi].some(([from, to]) => from < 70_000 && to > 50_000);
+	it('leaves idle out of every reading, because nothing was there to be hit', () => {
+		const covered = (['single', 'cleave', 'aoe', 'multi'] as const)
+			.flatMap((choice) => resolveBands(targets, choice, timeline).spans ?? [])
+			.some(([from, to]) => from < 70_000 && to > 50_000);
 		expect(covered).toBe(false);
 	});
 
@@ -240,7 +388,7 @@ describe('the stretches a forced reading covers', () => {
 			floorMs: 8000,
 			segments: [timeline!.segments[0]],
 		} as unknown as Parameters<typeof resolveBands>[2];
-		expect(resolveBands(targets, 'multi', allSingle).spans).toBeNull();
+		expect(resolveBands(targets, 'aoe', allSingle).spans).toBeNull();
 	});
 
 	it('covers the whole pull on the default reading, whatever the segments say', () => {

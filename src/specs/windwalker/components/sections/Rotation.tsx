@@ -53,6 +53,21 @@ import { FlowChart } from '../rotation';
  * node's height after layout on every resize, and which is precisely what a graph-layout dependency
  * would have signed this section up for.
  */
+/**
+ * Which sentence says what this drawing left out, written out rather than assembled from the mode.
+ *
+ * Three arms for four modes, the same pairing `PriorityLadder` uses: `aoe` and the coarse `multi` are
+ * drawn at band 3 by `bandForMode`, so they are looking at one chart and get one sentence. `cleave` is
+ * separate because band 2 draws a different chart — Rushing Jade Wind is on it and neither Spinning
+ * Crane Kick is — and the sentence a reader needs is the one about the chart in front of them.
+ */
+const READING_NOTE: Record<TargetMode, string> = {
+	single: 'rotation.flow.reading_single',
+	cleave: 'rotation.flow.reading_cleave',
+	aoe: 'rotation.flow.reading_aoe',
+	multi: 'rotation.flow.reading_aoe',
+};
+
 export default function Rotation({ analysis, mode }: { analysis: Analysis; mode?: TargetMode | null }) {
 	const { t } = useReportCopy(analysis);
 
@@ -137,9 +152,7 @@ export default function Rotation({ analysis, mode }: { analysis: Analysis; mode?
 			    and it is the number that visibly moves when the control does. */}
 			<div className="mt-3.5 flex flex-col gap-2">
 				<Note>{t('rotation.flow.count', { count: flow.length, total: unfiltered.length })}</Note>
-				{mode === undefined || mode === null ? null : (
-					<Note>{t(mode === 'single' ? 'rotation.flow.reading_single' : 'rotation.flow.reading_multi')}</Note>
-				)}
+				{mode === undefined || mode === null ? null : <Note>{t(READING_NOTE[mode])}</Note>}
 			</div>
 
 			<FlowChart flow={flow} />
