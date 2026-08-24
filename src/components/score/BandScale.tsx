@@ -11,6 +11,10 @@ import type { Metric } from '~/lib/score/model';
  */
 function domainOf(metric: Metric): number {
 	if (metric.unit === 'percent') return 100;
+	// A rule with a lid is drawn to the lid, so a pull that reached it fills the bar. Two potions out of
+	// the two a pull allows was drawing at 80%: the headroom below is for open-ended counts, and adding a
+	// quarter past a number nothing can exceed leaves the best possible reading short of the end.
+	if (metric.ceiling !== undefined) return metric.ceiling;
 	const reach = Math.max(metric.value, metric.good, metric.ok);
 	// A floor, so a rule whose numbers are all zero — "never let this happen" — still has a scale to sit
 	// on rather than dividing by nothing.
