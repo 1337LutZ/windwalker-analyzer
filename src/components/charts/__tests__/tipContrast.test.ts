@@ -148,9 +148,10 @@ describe('the tooltip title is legible in every tone a chart can raise', () => {
 	it.each([
 		// `track` read 1.31 until the exempt ground was lifted out of the dark it was lost in — three keys
 		// on one Flame Shock chart are this tone, and each was a dark grey chip on a dark grey surface. It
-		// is 1.95 now and the entry stays: a ground legible as a *region* is nowhere near legible as
-		// six-point text on that same region, which is the whole distinction `TIP_TITLE` encodes.
-		['track', 1.95],
+		// is 2.26 now and the entry stays: a ground legible as a *region* is nowhere near legible as
+		// six-point text on that same region, which is the whole distinction `TIP_TITLE` encodes, and 2.26
+		// is still half of AA.
+		['track', 2.26],
 		['missSoft', 1.94],
 	])('would be unreadable if %s were used as its own title', (tone, expected) => {
 		const ratio = contrast(themeColour(tone), SURFACE);

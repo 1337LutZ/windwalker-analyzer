@@ -86,7 +86,7 @@ export const BAND = {
 	 *
 	 * **No `--color-band-track`, and that is not an oversight.** The three above are their tone mixed
 	 * against the surface in `styles/global.css`, because a translucent band borrows the colour of
-	 * whatever it is drawn over. `--color-track` is already an opaque ground — a flat `#41534b`, not
+	 * whatever it is drawn over. `--color-track` is already an opaque ground — a flat `#565958`, not
 	 * derived from a spec hue — so it has nothing to mix and the wash and the mark are the same value.
 	 * That is also what keeps the chip identical to `SWATCH.track`: one grey means exempt whether it is
 	 * a row on a track chart or a band under a bar, which is the whole reason there is one `EXEMPT`.
