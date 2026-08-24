@@ -230,7 +230,6 @@ const UNREACHED: string[] = [
 	'lightningShield.verdict_none',
 	'lightningShield.verdict_ok_one',
 	'lightningShield.verdict_ok_other',
-	'lightningShield.verdict_ok_zero',
 	'mana.verdict_bad_noRage',
 	'mana.verdict_bad_noThunderstorm',
 	'mana.verdict_bad_one',

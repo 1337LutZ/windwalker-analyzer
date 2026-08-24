@@ -482,10 +482,15 @@ const CLEARCASTING_DAMAGE_MULT = 1.2;
  *
  * The shield is spent by Earth Shock's Fulmination, so sitting at seven stacks is a shock the player
  * is not taking — and every Lightning Bolt after that is Rolling Thunder that has nowhere to put its
- * charge. A press worth of grace is forgiven, as with the cooldown leeway; past it, each second at
- * seven is a second of overcapping.
+ * charge. Past the grace, each second at seven is a second of overcapping.
+ *
+ * **The grace is five seconds, and it was one press.** A press worth was the cooldown leeway's
+ * reasoning borrowed — the shock has to finish and the reaction has to land — and it charged a player
+ * for the ordinary gap between a shield reaching seven and the next shock coming up. Five is the
+ * owner's number and is provisional: it is the top of the slider's own range, so a reader who wants the
+ * stricter reading still has it and nobody has to be told a new maximum.
  */
-const LIGHTNING_SHIELD_OVERCAP_DEFAULT_MS = 1500;
+const LIGHTNING_SHIELD_OVERCAP_DEFAULT_MS = 5000;
 const LIGHTNING_SHIELD_OVERCAP_MIN_MS = 1000;
 const LIGHTNING_SHIELD_OVERCAP_MAX_MS = 5000;
 

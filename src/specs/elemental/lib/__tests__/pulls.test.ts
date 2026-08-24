@@ -215,9 +215,9 @@ describe('a phased pull', () => {
 	 * and came back with identical window lists.
 	 */
 	it('charges the shield for the time it sat at seven charges', () => {
-		expect(el.lightningShield.leewayMs).toBe(1500);
-		expect(el.lightningShield.overcapMs).toBe(40_441);
-		expect(el.lightningShield.overcapWindows).toHaveLength(10);
+		expect(el.lightningShield.leewayMs).toBe(5000);
+		expect(el.lightningShield.overcapMs).toBe(17_568);
+		expect(el.lightningShield.overcapWindows).toHaveLength(6);
 	});
 
 	/**
@@ -315,8 +315,8 @@ describe('an unbroken pull', () => {
 	});
 
 	it('charges the shield for the time it sat at seven charges', () => {
-		expect(el.lightningShield.overcapMs).toBe(23_387);
-		expect(el.lightningShield.overcapWindows).toHaveLength(7);
+		expect(el.lightningShield.overcapMs).toBe(4514);
+		expect(el.lightningShield.overcapWindows).toHaveLength(2);
 	});
 
 	/**

@@ -28,8 +28,8 @@ const ms = (windows: ReadonlyArray<{ start: number; end: number }>) =>
 describe('the shield overcap clock', () => {
 	it('is untouched on the two pulls that never reach three enemies', () => {
 		// Not vacuous: both have real overcap to lose, and they keep all of it.
-		expect(load('phased').lightningShield.overcapMs).toBe(40_441);
-		expect(load('unbroken').lightningShield.overcapMs).toBe(23_387);
+		expect(load('phased').lightningShield.overcapMs).toBe(17_568);
+		expect(load('unbroken').lightningShield.overcapMs).toBe(4514);
 		for (const name of ['phased', 'unbroken'] as const) {
 			expect(load(name).lightningShield.aoeWindows).toEqual([]);
 			expect(load(name).targets?.counts?.max).toBe(1);
@@ -50,7 +50,7 @@ describe('the shield overcap clock', () => {
 		// `analyseCore`'s `aoeWindows` now cuts that tail to one measured global, and
 		// `targetTails.test.ts` derives the 27 011ms that removes and reproduces this array from the
 		// fixture's raw damage rows.
-		expect(cleave.lightningShield.overcapMs).toBe(42_157);
+		expect(cleave.lightningShield.overcapMs).toBe(21_864);
 		expect(ms(cleave.lightningShield.aoeWindows)).toBe(82_858);
 		expect(cleave.lightningShield.aoeWindows).toHaveLength(7);
 	});
@@ -80,11 +80,11 @@ describe('the shield overcap clock', () => {
 	it('restarts the grace at each boundary rather than subtracting afterwards', () => {
 		const cleave = load('cleave');
 		const { leewayMs, aoeWindows, overcapWindows } = cleave.lightningShield;
-		expect(leewayMs).toBe(1500);
+		expect(leewayMs).toBe(5000);
 		const exemptCloses = new Set(aoeWindows.map((w) => w.end));
 		const graceRestarted = overcapWindows.filter((w) => exemptCloses.has(w.start - leewayMs));
 		const graceAlreadySpent = overcapWindows.filter((w) => exemptCloses.has(w.start));
-		expect(graceRestarted).toHaveLength(4);
+		expect(graceRestarted).toHaveLength(3);
 		// The rejected form's own signature, and it must be absent: a graded window opening flush against a
 		// boundary is a stretch that crossed one and was charged from the first millisecond of the far side.
 		expect(graceAlreadySpent).toEqual([]);

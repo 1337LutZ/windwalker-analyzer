@@ -116,8 +116,10 @@ describe('a shield inferred from four charges, and the two shocks that wasted it
  */
 describe('how long the shield sat at seven', () => {
 	it('echoes the grace it measured against', () => {
-		expect(fx('phased').lightningShield.leewayMs).toBe(1500);
-		expect(fx('phased', 5000).lightningShield.leewayMs).toBe(5000);
+		// The setting's own default, and a reader's override — one of each, so the field is shown to
+		// follow the setting rather than to hold a constant that happens to match it.
+		expect(fx('phased').lightningShield.leewayMs).toBe(5000);
+		expect(fx('phased', 1000).lightningShield.leewayMs).toBe(1000);
 	});
 
 	it('reports the tail of each stretch past the grace', () => {
@@ -258,7 +260,19 @@ const synthetic: FightDataset = {
 	},
 };
 
-const el = analyse(synthetic) as Analysis & ElementalAuditResult;
+/**
+ * Analysed at an explicit 1.5s grace rather than at whatever the setting currently defaults to.
+ *
+ * The two stretches below are 14s and 4s, and the second is the one the block exists for — that a
+ * stretch's end is read from the counter rather than inferred from the next entry. At the 5s default
+ * the 4s stretch is shorter than the grace and forgiven whole, so the claim becomes invisible and the
+ * test would pass while measuring nothing. A synthetic fixture built around a duration should name the
+ * duration it was built around; `overcapClock.test.ts` is where the default itself is pinned.
+ */
+const el = analyse(synthetic, {
+	...defaultSettings(ELEMENTAL_SETTINGS),
+	lightningShieldOvercapMs: 1500,
+}) as Analysis & ElementalAuditResult;
 const ls = el.lightningShield;
 
 describe('what Fulmination leaves behind', () => {

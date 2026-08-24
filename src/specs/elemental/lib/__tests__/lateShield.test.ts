@@ -186,7 +186,7 @@ describe('a pull whose shield went on late', () => {
 
 		const sentence = verdictOf(render(late));
 		expect(sentence).toBe(
-			'The shield sat at seven for 36s past the leeway, and came all the way off once — both are charges the next spend lost.',
+			'The shield sat at seven for 19.2s past the leeway, and came all the way off once — both are charges the next spend lost.',
 		);
 		// The clause under discussion, named rather than left inside the equality above: it says a removal,
 		// and this pull had none. If it is ever reworded, this is the line that should go red.

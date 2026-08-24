@@ -545,7 +545,10 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		expect(card(unbrokenPull)).toEqual({
 			overall: 'ok',
 			judged: { measured: 14, total: 19, unmeasurable: false },
-			sections: { ...sections, searingTotem: 'bad', fireElemental: 'good' },
+			// **The one shield letter the five-second grace moved.** `unbroken` sat at seven for 4.5s past
+			// the grace where it used to be 23.4s, which is the only one of the four to come under the
+			// rule's 5 000ms `ok` line — the other three are 9.6s, 17.6s and 21.9s and stay `bad`.
+			sections: { ...sections, searingTotem: 'bad', fireElemental: 'good', lightningShield: 'ok' },
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'good',
 		});

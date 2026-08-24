@@ -128,8 +128,8 @@ describe('a section whose only graded metric was never asked', () => {
 		const html = render(LightningShield, phased, 'multi');
 		expect(verdictOf(html)).toContain('nothing in the multi-target order spends the shield');
 		expect(verdictOf(html)).toContain('Rolling Thunder returns 2% of your maximum mana per charge');
-		// 40.4s of it, still printed and still named — an unmeasured figure is not a deleted one.
-		expect(verdictOf(html)).toContain('40.4s');
+		// 17.6s of it, still printed and still named — an unmeasured figure is not a deleted one.
+		expect(verdictOf(html)).toContain('17.6s');
 		expect(html).toContain(`Overcapped — ${t('metric.notAsked')}`);
 		expect(verdictOf(html)).not.toContain('The shield never sat at seven past the leeway');
 	});
@@ -150,7 +150,7 @@ describe('a section whose only graded metric was never asked', () => {
 		); // no-change guard, reworded with the string itself
 		expect(verdictOf(render(SearingTotem, phased, 'auto'))).not.toContain('put the totem back the moment it drops');
 		expect(verdictOf(render(LightningShield, phased, 'auto'))).toContain(
-			'The shield sat at seven for 40.4s past the leeway',
+			'The shield sat at seven for 17.6s past the leeway',
 		); // no-change guard
 		for (const html of [render(SearingTotem, phased, 'auto'), render(LightningShield, phased, 'auto')]) {
 			expect(html).not.toContain(t('metric.notAsked')); // no-change guard

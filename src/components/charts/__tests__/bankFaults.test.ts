@@ -52,13 +52,14 @@ describe("the Lightning Shield bank's faults", () => {
 		const shield = cleave.lightningShield;
 		// Pinned so the fixture cannot quietly stop covering a fault and leave the rest of this suite
 		// asserting over an empty list.
-		// Nine overcap windows, and this figure has now moved twice in opposite directions: nine until the
-		// clock learned to drop this pull's AoE stretches, eight after that, and nine again now those
-		// stretches no longer carry a full 5 000ms window of lag past the last hit that made them — the
-		// trailing-edge trim on `analyseCore`'s `aoeWindows`, derived in `analysis/targetTails.test.ts`.
-		// Each time the bank moved with the section rather than against it, which is the point of the
-		// pass-through and not a drift: the two drawings of one aura cannot disagree about the pull.
-		expect([shield.downWindows.length, shield.overcapWindows.length, shield.badSpends.length]).toEqual([1, 9, 1]);
+		// Five overcap windows, and this figure has now moved three times: nine until the clock learned to
+		// drop this pull's AoE stretches, eight after that, nine again once those stretches stopped
+		// carrying a full 5 000ms window of lag past the last hit that made them, and five now the grace
+		// itself is five seconds rather than one press — a stretch shorter than the grace is forgiven
+		// whole, so four of the nine stopped being windows at all. Each time the bank moved with the
+		// section rather than against it, which is the point of the pass-through and not a drift: the two
+		// drawings of one aura cannot disagree about the pull.
+		expect([shield.downWindows.length, shield.overcapWindows.length, shield.badSpends.length]).toEqual([1, 5, 1]);
 
 		const bank = timelineBanks(cleave)[0]!;
 		expect(bank.faultWindows).toEqual([
@@ -91,7 +92,7 @@ describe("the Lightning Shield bank's faults", () => {
 		// `cappedOf` still finds *nothing* on this series, whatever the audit's figure is, because a stretch
 		// at the ceiling is a single point in `lsPoints`. The number is here only so the two mechanisms are
 		// compared against a stated figure rather than against each other.
-		expect(cleave.lightningShield.overcapMs).toBe(42_157);
+		expect(cleave.lightningShield.overcapMs).toBe(21_864);
 	});
 
 	it('reach the cast log as shaded rects, one per fault', () => {
