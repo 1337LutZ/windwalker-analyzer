@@ -134,6 +134,10 @@ function target(metric: Metric, t: T): string {
  * own. A chip reading "bad" would have been the first, invented here, for a card that already says the
  * number and draws where it fell.
  *
+ * **A section nothing could be measured in is not drawn at all** — see the filter. The grid is an
+ * ordered list whose promise is that the top of it is where to start, and a card reading `not measured`
+ * twice takes a slot without earning one.
+ *
  * **A metric carrying a `context` prints its sentence and no figure**, which is the one place this grid
  * may not show a number. `Metric.context` exists for the few metrics whose value is the same on two
  * pulls that need different readings, and on one of them the value is not a reading at all:
@@ -157,9 +161,22 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 	const spec = useSpec();
 
 	const ordered = useMemo(() => {
-		return Object.entries(card.sections)
-			.filter(([, score]) => score.metrics.length > 0)
-			.sort(([, a], [, b]) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade) || headroom(b) - headroom(a));
+		return (
+			Object.entries(card.sections)
+				.filter(([, score]) => score.metrics.length > 0)
+				// A section nothing could be measured in has nothing to say, so it is not drawn. **Mana is the
+				// case this is for and it is exact rather than approximate**: both of its rules are `null` unless
+				// the pool actually went starved or strained, so "every metric unmeasurable" *is* "the player
+				// never ran low". A card reading `not measured` twice under a heading is worse than no card —
+				// it takes a slot in an ordered grid whose whole promise is that the top of it is where to start.
+				//
+				// The coverage is not lost with the card: the headline above the grid already says how many of
+				// the spec's points were judged, which is where a reader learns that something went unasked.
+				.filter(([, score]) => !score.metrics.every((metric) => metric.unmeasurable))
+				.sort(
+					([, a], [, b]) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade) || headroom(b) - headroom(a),
+				)
+		);
 	}, [card]);
 
 	if (ordered.length === 0) return null;

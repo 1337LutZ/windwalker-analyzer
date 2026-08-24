@@ -1,0 +1,119 @@
+// The summary grid: which sections it draws, in what order, and what it refuses to draw.
+//
+// The grid replaced a three-card "key improvements" short list, and the three claims below are the ones
+// that replacement rests on. None is expressible as a type and each has already been got wrong once:
+//
+//   - **Order.** The list is sorted by how far each section sits from `good`, in bands. It was sorted by
+//     distance past `ok` first, which returns zero for every section that is not failing — so most of
+//     the grid was in `Object.entries` order and the promise that the top is where to start was false.
+//   - **What is not drawn.** A section nothing could be measured in has nothing to say. Mana is the case
+//     it is for: both of its rules are `null` unless the pool actually went starved or strained, so a
+//     card reading `not measured` twice is the report telling a reader who never ran low that it has
+//     nothing to tell them, in a slot an ordered grid cannot spare.
+//   - **A metric whose fault never happened.** A rule counting a mistake, with `good` at none and none of
+//     them, draws no row — the scale would be a full green band with the mark pinned to the left edge.
+//
+// Rendered rather than inspected, because two of the three are decisions about markup and the third is
+// an order a reader sees rather than an array anything exports.
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { createElement, type ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it } from 'vitest';
+
+import i18n, { initI18n } from '~/lib/i18n/config';
+import { getSpec } from '~/lib/spec';
+import type { Analysis, FightDataset } from '~/lib/types';
+import { resolveBands } from '~/lib/view/targetMode';
+
+import { ScoreViewContext } from '~/components/report/scoreViewContext';
+import { SpecContext } from '~/components/report/specContext';
+import Scorecard from '~/components/sections/Scorecard';
+import { analyse } from '~/specs/elemental/lib';
+
+const ELEMENTAL = getSpec('elemental')!;
+initI18n();
+const t = i18n.getFixedT('en', 'report');
+
+const fixture = (name: string): Analysis =>
+	analyse(
+		JSON.parse(
+			readFileSync(resolve(import.meta.dirname, `../../../specs/elemental/__fixtures__/${name}.json`), 'utf8'),
+		) as FightDataset,
+	);
+
+/**
+ * The reading the report is on, which `useReportCopy` needs and cannot default.
+ *
+ * `'auto'` — the pull's own detection, the reading nobody forced — because every claim below is about
+ * what the grid does with a scorecard rather than about which scorecard it was handed.
+ */
+const wrap = (analysis: Analysis, node: ReactNode) =>
+	createElement(
+		SpecContext.Provider,
+		{ value: ELEMENTAL },
+		createElement(ScoreViewContext.Provider, { value: resolveBands(analysis.targets, 'auto') }, node),
+	);
+
+const html = (analysis: Analysis): string =>
+	renderToStaticMarkup(wrap(analysis, createElement(Scorecard, { analysis })));
+
+/** The section headings the grid drew, in the order it drew them. */
+const cards = (markup: string): string[] =>
+	[...markup.matchAll(/uppercase text-ink-2">([^<]+)</g)].map((match) => match[1]!);
+
+describe('the scorecard grid', () => {
+	it('leads with the section furthest from good, and ends with the ones already there', () => {
+		// `cleave` is the pull with something wrong in three different places, so it is the one that can
+		// show an order at all. The shield is the largest miss on it by a distance — 42.2s at the ceiling
+		// against a rule whose `ok` band ends at 5s — and `casts` is 89.2% against an 80% target.
+		const drawn = cards(html(fixture('cleave')));
+		expect(drawn[0]).toBe('Lightning Shield');
+		expect(drawn.at(-1)).toBe('Casts per minute');
+		// Non-vacuity: an order over one card is not an order.
+		expect(drawn.length).toBeGreaterThan(4);
+	});
+
+	/**
+	 * Mana is the case the rule was written for, and the fixtures give it both directions.
+	 *
+	 * Both of its rules are `null` unless the pool actually went starved or strained, so on a pull where
+	 * nobody ran low the card would read `not measured` twice — the report telling a reader who never had
+	 * the problem that it has nothing to tell them, in a slot an ordered grid cannot spare.
+	 *
+	 * **`addsThenBoss` is the pull that did run low**, and its card is drawn. That is the half that makes
+	 * this a rule rather than a way of hiding a section: the same filter, the same section, opposite
+	 * answers, decided by the pull.
+	 */
+	it('draws no card for a section nothing could be measured in, and draws it when something was', () => {
+		for (const name of ['cleave', 'phased', 'unbroken']) {
+			const markup = html(fixture(name));
+			expect(cards(markup), name).not.toContain(t('mana.title'));
+			// And the grid did draw — otherwise the assertion above passes on an empty render, which is the
+			// failure this whole family of guards keeps being written against.
+			expect(cards(markup).length, name).toBeGreaterThan(3);
+		}
+		expect(cards(html(fixture('addsThenBoss')))).toContain(t('mana.title'));
+	});
+
+	it('draws no row for a rule whose fault never happened', () => {
+		// `searingTotemOverlaps` is `good: 0` and the pull laid no totem under the elemental, so the row
+		// would read `0` under a full green band. Its section is still drawn, off its other metric.
+		const markup = html(fixture('phased'));
+		expect(cards(markup)).toContain(t('searingTotem.title'));
+		expect(markup).not.toContain(t('summary.takeaways.metric.searingTotemOverlaps.label'));
+		// The sibling row that *is* a reading stays, so the filter is not simply hiding the section.
+		expect(markup).toContain(t('summary.takeaways.metric.searingTotemUptime.label'));
+	});
+
+	it('prints a sentence and no figure for a metric whose value is not a reading', () => {
+		// The potion metric is the Windwalker's; the Elemental's case is the shield on a pull that never
+		// wore it, and `neverUpShield.test.ts` owns that render. What is asserted here is the other half:
+		// on a pull where the value *is* a reading, the number and its scale are both drawn.
+		const markup = html(fixture('cleave'));
+		expect(markup).toContain(t('summary.takeaways.metric.flameShockUptime.label'));
+		expect(markup).toContain('83.9%');
+		expect(markup).toContain('target 95% or better');
+	});
+});
