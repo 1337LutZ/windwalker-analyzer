@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
 
-import { intervalsAtLeast, isJudgeableTarget, overlapPoints, spawnLives, targetCounts } from '../targets';
+import {
+	intervalsAtLeast,
+	isJudgeableTarget,
+	observeSpawns,
+	overlapPoints,
+	spawnLives,
+	targetCounts,
+} from '../targets';
 
 /**
  * The per-moment target count, pinned at the shapes that decide whether a pull reads as an add fight.
@@ -392,8 +399,18 @@ describe('spawnLives and isJudgeableTarget', () => {
 	const HIT = 1;
 	const IMMUNE = 10;
 
+	/**
+	 * The walk and the reduction, at the call sites that used to hand `spawnLives` its events.
+	 *
+	 * `observeSpawns` is the pass over the damage stream and `spawnLives` is one reading of it, so a test
+	 * naming events says both. The aimed set is empty because this reading counts no presses — that is the
+	 * whole of what it does not ask.
+	 */
+	const livesOf = (events: readonly WclEvent[], t0: number, endMs: number, windowMs: number) =>
+		spawnLives(observeSpawns(events, t0, new Set()), endMs, windowMs);
+
 	it('marks a spawn immune only when every hit on it came back immune', () => {
-		const lives = spawnLives(
+		const lives = livesOf(
 			[
 				// The mine: three hits, all immune.
 				hit(1000, 9, 1, IMMUNE),
@@ -421,13 +438,13 @@ describe('spawnLives and isJudgeableTarget', () => {
 	 * one `targetID`.
 	 */
 	it('reaches its verdict per spawn rather than per actor id', () => {
-		const lives = spawnLives([hit(1000, 9, 1, IMMUNE), hit(1000, 9, 2, HIT)], 0, END, WINDOW);
+		const lives = livesOf([hit(1000, 9, 1, IMMUNE), hit(1000, 9, 2, HIT)], 0, END, WINDOW);
 		expect(isJudgeableTarget(lives.get('9:1'))).toBe(false);
 		expect(isJudgeableTarget(lives.get('9:2'))).toBe(true);
 	});
 
 	it('is not a target at all when the player never hit it', () => {
-		expect(isJudgeableTarget(spawnLives([], 0, END, WINDOW).get('9:1'))).toBe(false);
+		expect(isJudgeableTarget(livesOf([], 0, END, WINDOW).get('9:1'))).toBe(false);
 	});
 
 	/**
@@ -435,7 +452,7 @@ describe('spawnLives and isJudgeableTarget', () => {
 	 * threshold is exclusive — "lived *more than* 20 seconds".
 	 */
 	it('scores a second target that lived long enough and refuses one that did not', () => {
-		const lives = spawnLives(
+		const lives = livesOf(
 			[
 				hit(10_000, 9, 1, HIT),
 				hit(40_000, 9, 1, HIT), // 30s
@@ -463,11 +480,11 @@ describe('spawnLives and isJudgeableTarget', () => {
 	 * the finish is scored on its last hit and can fail a threshold it never had a chance to clear.
 	 */
 	it('runs a spawn still being hit at the finish to the end of the pull', () => {
-		const lives = spawnLives([hit(180_000, 9, 1, HIT), hit(196_000, 9, 1, HIT)], 0, END, WINDOW);
+		const lives = livesOf([hit(180_000, 9, 1, HIT), hit(196_000, 9, 1, HIT)], 0, END, WINDOW);
 		// Last hit 196s, one window short of the 200s end, so the life is 200s - 180s and not 16s.
 		expect(lives.get('9:1')?.lifetimeMs).toBe(20_000);
 		// And one that stopped being hit well before the end is measured to its last hit.
-		const early = spawnLives([hit(10_000, 9, 1, HIT), hit(26_000, 9, 1, HIT)], 0, END, WINDOW);
+		const early = livesOf([hit(10_000, 9, 1, HIT), hit(26_000, 9, 1, HIT)], 0, END, WINDOW);
 		expect(early.get('9:1')?.lifetimeMs).toBe(16_000);
 	});
 
@@ -481,7 +498,7 @@ describe('spawnLives and isJudgeableTarget', () => {
 	 * of a 200s pull read as ending before it began, and the lifetime collapses to zero.
 	 */
 	it('measures against the fight clock rather than the report clock', () => {
-		const lives = spawnLives([hit(280_000, 9, 1, HIT), hit(296_000, 9, 1, HIT)], 100_000, END, WINDOW);
+		const lives = livesOf([hit(280_000, 9, 1, HIT), hit(296_000, 9, 1, HIT)], 100_000, END, WINDOW);
 		expect(lives.get('9:1')?.lifetimeMs).toBe(20_000);
 	});
 });

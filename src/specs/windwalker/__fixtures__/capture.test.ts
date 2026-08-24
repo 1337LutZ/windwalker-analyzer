@@ -51,10 +51,12 @@
 //     which is the time `bandOf(0) === 1` used to file as single-target. Cheapest of the three, and it
 //     carries a second, smaller two-sided Rushing Jade Wind sample (9 presses, 4 under three targets).
 //   - `uncounted` is heroic Malkorok, and it is the only committed fixture from an encounter the
-//     WarcraftLogs Siege parsing rules name. `Living Corruption` is one of exactly three NPCs the rules
-//     take out of the enemy *count* as well as the damage rankings, all three heroic-only; this pull
-//     lands 63 of the monk's hits on 14 separate Living Corruption spawns across 194s of it, so
-//     `uncountedActorIDs` has something real to remove here. It carries no Rushing Jade Wind at all.
+//     WarcraftLogs Siege parsing rules name. It was fetched because `Living Corruption` read `reach:
+//     'both'` and `uncountedActorIDs` would therefore have something real to remove — and the fixture
+//     then took the row off that reading: 63 of the monk's hits on 14 separate Living Corruption spawns
+//     across 194s, one of them held past a target window, so the row is `'damage'` and nothing in the
+//     tree is uncounted. The pull earned its place by disproving its own reason for being fetched. It
+//     carries no Rushing Jade Wind at all.
 //
 // Each writes `analysis.json`, which is gitignored staging — rename it to the fixture's own name, then
 // run `npx oxfmt` on the renamed file alone. **The staging file keeps that name because .gitignore names

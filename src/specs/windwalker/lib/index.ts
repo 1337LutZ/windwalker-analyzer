@@ -175,6 +175,14 @@ const ENERGIZING_BREW_PER_SEC = 10;
 /** Chi Brew reports its own return as a `resourcechange`, so the walk must not also read it here. */
 const CHI_BREW_ID = 115399;
 /**
+ * The id WarcraftLogs reports Rushing Jade Wind's chi refund under — not the wind's own cast id.
+ *
+ * Established off the logs rather than looked up: across the three raw Windwalker pulls this id appears
+ * beside a wind press and nowhere else — 27 events against 33 presses on `sections.json`, 4 against 9 on
+ * `idle.json`, and zero on `uncounted.json`, which presses the wind zero times.
+ */
+const RJW_CHI_ID = 129_881;
+/**
  * Fortifying Brew's window: 20s, from `sim/monk/fortifying_brew.go` (`Duration: time.Second * 20`)
  * and from the client data for aura 120954. Only used to bound the overlap below — nothing here
  * grades it, because Windwalker presses it to survive.
@@ -1771,7 +1779,9 @@ export const WW_SPEC: SpecConfig = {
 				{ abilityKey: 'jab', amount: 2 },
 				{ abilityKey: 'spinning-crane-kick', amount: 1 },
 				// Three or more, per wowsims' `registerRushingJadeWind`. See `ResourceConfig.gains.minTargets`.
-				{ abilityKey: 'rushing-jade-wind', amount: 1, minTargets: 3 },
+				// The gain is declared even though this log reports it — `reportedAs` makes the walk take the
+				// log's word wherever it is given and fall back to this only where it is not.
+				{ abilityKey: 'rushing-jade-wind', amount: 1, minTargets: 3, reportedAs: RJW_CHI_ID },
 			],
 		},
 	},

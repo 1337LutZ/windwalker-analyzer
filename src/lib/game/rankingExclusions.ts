@@ -199,9 +199,9 @@ export const SIEGE_RANKING_EXCLUSIONS: readonly RankingExclusion[] = [
 		npc: 'Living Corruption',
 		gameID: 71_644,
 		heroicOnly: true,
-		reach: 'both',
+		reach: 'damage',
 		evidence:
-			'28 hits across 11 spawns spread over the whole 201s pull. Not one aimed press — no melee, no Tiger Palm, no Blackout Kick, no Rising Sun Kick, not even Spinning Crane Kick or Rushing Jade Wind; every hit is Chi Wave or proc damage arriving on its own. Eight of the eleven spawns were touched once, for a contact span of zero. The monk never chose these, and each stray hit still bought a full five seconds of "two enemies": they hold 20.7% of the pull\'s contact time at band 2 off 3% of its hits.',
+			"*** Decided 'both' on the reference clear, and narrowed on a second pull of the same boss. *** On `a:6MhZgjyAknFWrYfK`: 28 hits across 11 spawns, not one aimed press, and eight of the eleven touched once for a contact span of zero — the splash signature, and the row read 'both' on it. `uncounted.json` (`a:XkDQJHaztfnCd9Yj` fight 29, the same boss and difficulty) holds the first half and breaks the second: still zero aimed presses of 115 hits across 20 bodies, but **four of the twenty were in contact for longer than one 5 000ms target window** — 7 646ms, 6 998ms, 6 220ms and 5 153ms — and one still is at 5 153ms with the pet's damage taken out. This table's own header calls a spawn held past a window \"a body the rotation had time to react to\" and allows 'both' *\"only where **neither** fact is present\"*, so the second pull disallows it. 'damage' rather than `null` because the surviving half is exactly the 'damage' condition: a body the player was engaged with, whose hits should not pad a parse and whose presence the count is right to see. Measured in `game/__tests__/exclusionEvidence.test.ts`.",
 	},
 	{
 		encounterID: 1599,

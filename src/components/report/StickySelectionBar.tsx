@@ -36,7 +36,8 @@ interface Props {
 	 * Optional for a sharper reason than `settings`: this bar can be on screen with no analysis behind
 	 * it — while a pull is being fetched, where the skeleton is tall enough to scroll the pickers away
 	 * — and on a report that refused the player as the wrong spec. Neither has a reading to change, so
-	 * the caller withholds this and the switches are not rendered rather than rendered inert.
+	 * the caller withholds this and the control is not rendered rather than rendered inert. A pull that
+	 * offers only the whole fight withholds it a second time, from inside — see `TargetModeToolbar`.
 	 */
 	targetMode?: {
 		targets: TargetSummary | undefined;
@@ -51,8 +52,9 @@ interface Props {
  *
  * A `Toolbar` rather than a styled `div`, for what comes with it: the ARIA `toolbar` role and roving
  * focus, so the bar is one tab stop on the way down the page instead of adding a stop per control.
- * That is why the target-mode switches are `Toolbar.Button`s: three of them added as plain buttons
- * would have been three more stops between the report and everything under it.
+ * That is why the target-mode trigger is a `Toolbar.Button`: a plain button would have been another
+ * stop between the report and everything under it, and it was three of them while the bar still drew a
+ * row of switches.
  *
  * The caller decides when this exists — it appears only once a full selection has been made *and*
  * the selection block has left the viewport, so it never duplicates controls that are already on
@@ -115,11 +117,16 @@ export default function StickySelectionBar({
 
 				      390  row 358, controls 276 (Change 72, Mode 78, settings 49, credits 47, gaps 32)
 				           -> 82 for the name, ~10 of 20 characters
-				      640  row 592, controls 440 (the switches replace Mode at `md`, so still Mode here)
+				      640  row 592, controls 440
 				           -> 152 for the name, which is nearly all of it
-				      768  row 704, controls 504 (switches 140 now, credits still compact)
+				      768  row 704, controls 504 (credits still compact)
 				           -> 201, the whole name
 				     1024  row 960, controls 550 -> 414, the name and both suffixes with room over
+
+				    Measured while the bar swapped Mode for a row of switches at `md`, which cost the name
+				    140px there against Mode's 78 and is why it no longer does — `TargetModeToolbar` carries
+				    that. The 78px column above is the one the bar keeps at every width now, so the two
+				    tighter rows are unchanged and the two wider ones gained 62px.
 
 				    The docstring above names the encounter as the part a reader recognises, so the suffixes
 				    are what yield, and both now yield to `lg`. The outcome used to return at `md`, where

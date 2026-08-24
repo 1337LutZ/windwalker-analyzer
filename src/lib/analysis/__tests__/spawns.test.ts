@@ -3,9 +3,9 @@
 // Two halves, and they answer different kinds of question. The synthetic half pins the mechanics —
 // keying, the range, deaths, the caller's two lookups — on events small enough to read. The fixture
 // half is the one this file exists for: `aimedPresses` is the fact that separates a body the player
-// fought from one their area damage happened to land on, and `spawnRecords` takes it from an ability
-// list the spec hands over rather than from `isAoE`, the per-hit boolean WarcraftLogs already stamps
-// on every damage event. That choice is only defensible against a measurement, so the measurement is
+// fought from one their area damage happened to land on, and `observeSpawns` counts it against an
+// ability list the spec hands over rather than against `isAoE`, the per-hit boolean WarcraftLogs
+// already stamps on every damage event. That choice is only defensible against a measurement, so the measurement is
 // here rather than in a comment: the flag never contradicts the list, and it is far too wide to be it.
 //
 // A separate file rather than more of `targets.test.ts` on purpose. That file is about *counting*
@@ -21,7 +21,7 @@ import { abilityIdOf, isDamage, type DamageEvent, type WclEvent } from '~/lib/ev
 import type { FightDataset } from '~/lib/types';
 import { registry as wwRegistry } from '~/specs/windwalker';
 
-import { isJudgeableTarget, spawnLives, spawnRecords } from '../targets';
+import { isJudgeableTarget, observeSpawns, spawnLives, spawnRecords } from '../targets';
 
 const WINDOW = 5000;
 const END = 200_000;
@@ -60,10 +60,23 @@ const inputs = (over: Partial<Parameters<typeof spawnRecords>[1]> = {}): Paramet
 	t0: 0,
 	endMs: END,
 	windowMs: WINDOW,
-	aimedDamageIds: AIMED,
 	excluded: new Set<number>(),
 	...over,
 });
+
+/**
+ * The walk and one of its reductions, at the call sites that used to hand `spawnRecords` its events.
+ *
+ * `observeSpawns` is the pass and `spawnRecords` is a reduction of it, so a test naming events has to
+ * say both. Written out here rather than at eighteen call sites, and with the aimed set beside the walk
+ * where it belongs — it is what the walk counts presses against, and nothing downstream of it reads it.
+ */
+const recordsOf = (events: readonly WclEvent[], over: Partial<Parameters<typeof spawnRecords>[1]> = {}) =>
+	spawnRecords(observeSpawns(events, over.t0 ?? 0, AIMED), inputs(over));
+
+/** The other reduction of the same walk, likewise. `spawnLives` reads no aimed press, hence the empty set. */
+const livesOf = (events: readonly WclEvent[], t0: number, endMs: number, windowMs: number) =>
+	spawnLives(observeSpawns(events, t0, new Set()), endMs, windowMs);
 
 describe('spawnRecords', () => {
 	/**
@@ -73,10 +86,7 @@ describe('spawnRecords', () => {
 	 * all — WarcraftLogs hands ten simultaneous adds one `targetID`.
 	 */
 	it('keeps the range spawnLives reduces away, one row per body', () => {
-		const records = spawnRecords(
-			[hit(40_000, 9, 2), hit(10_000, 9, 1), hit(26_000, 9, 1), hit(44_000, 9, 2)],
-			inputs(),
-		);
+		const records = recordsOf([hit(40_000, 9, 2), hit(10_000, 9, 1), hit(26_000, 9, 1), hit(44_000, 9, 2)]);
 		expect(records.map((r) => [r.key, r.firstMs, r.lastMs, r.hits])).toEqual([
 			['9:1', 10_000, 26_000, 2],
 			['9:2', 40_000, 44_000, 2],
@@ -91,7 +101,7 @@ describe('spawnRecords', () => {
 	 * *event*, which is the same thing until a stream arrives unsorted, and then it silently is not.
 	 */
 	it('orders the rows by first contact', () => {
-		const records = spawnRecords([hit(9000, 8, undefined), hit(1000, 9, 1), hit(5000, 9, 2)], inputs());
+		const records = recordsOf([hit(9000, 8, undefined), hit(1000, 9, 1), hit(5000, 9, 2)]);
 		expect(records.map((r) => r.key)).toEqual(['9:1', '9:2', '8:-']);
 	});
 
@@ -100,10 +110,7 @@ describe('spawnRecords', () => {
 	 * body was fought once and stood in the wind three times, and those are different facts about it.
 	 */
 	it('counts an aimed press only for the buttons that pick a target', () => {
-		const [record] = spawnRecords(
-			[hit(1000, 9, 1), hit(2000, 9, 1), hit(2500, 9, 1, { id: MELEE }), hit(3000, 9, 1)],
-			inputs(),
-		);
+		const [record] = recordsOf([hit(1000, 9, 1), hit(2000, 9, 1), hit(2500, 9, 1, { id: MELEE }), hit(3000, 9, 1)]);
 		expect(record?.hits).toBe(4);
 		expect(record?.aimedPresses).toBe(1);
 	});
@@ -114,7 +121,7 @@ describe('spawnRecords', () => {
 	 * only aimed evidence is one was never chosen — it inherited a dot from a kick aimed elsewhere.
 	 */
 	it('refuses a dot tick as a press even under an aimed id', () => {
-		const [record] = spawnRecords([hit(1000, 9, 1, { id: MELEE, tick: true })], inputs());
+		const [record] = recordsOf([hit(1000, 9, 1, { id: MELEE, tick: true })]);
 		expect(record?.hits).toBe(1);
 		expect(record?.aimedPresses).toBe(0);
 	});
@@ -134,12 +141,12 @@ describe('spawnRecords', () => {
 			hit(1000, 8, undefined),
 			hit(71_000, 8, undefined, { hitType: IMMUNE }),
 		];
-		const lives = spawnLives(events, 0, END, WINDOW);
-		for (const record of spawnRecords(events, inputs())) {
+		const lives = livesOf(events, 0, END, WINDOW);
+		for (const record of recordsOf(events)) {
 			expect(record.immune).toBe(lives.get(record.key)?.immune);
 			expect(record.judgeable).toBe(isJudgeableTarget(lives.get(record.key)));
 		}
-		expect(spawnRecords(events, inputs()).map((r) => [r.key, r.immune, r.judgeable])).toEqual([
+		expect(recordsOf(events).map((r) => [r.key, r.immune, r.judgeable])).toEqual([
 			['8:-', false, true],
 			['9:1', true, false],
 		]);
@@ -154,9 +161,9 @@ describe('spawnRecords', () => {
 	 */
 	it('reports the last hit unclamped, where the life is clamped to the finish', () => {
 		const events = [hit(180_000, 9, 1), hit(196_000, 9, 1)];
-		const [record] = spawnRecords(events, inputs());
+		const [record] = recordsOf(events);
 		expect(record?.lastMs).toBe(196_000);
-		expect(spawnLives(events, 0, END, WINDOW).get('9:1')?.lifetimeMs).toBe(20_000);
+		expect(livesOf(events, 0, END, WINDOW).get('9:1')?.lifetimeMs).toBe(20_000);
 	});
 
 	/**
@@ -167,10 +174,7 @@ describe('spawnRecords', () => {
 	 */
 	it('takes a death from the same body, and only one at or after first contact', () => {
 		const events = [hit(20_000, 9, 1), hit(30_000, 9, 2)];
-		const records = spawnRecords(
-			events,
-			inputs({ enemyDeaths: [died(5000, 9, 1), died(35_000, 9, 1), died(60_000, 9, 3)] }),
-		);
+		const records = recordsOf(events, { enemyDeaths: [died(5000, 9, 1), died(35_000, 9, 1), died(60_000, 9, 3)] });
 		expect(records.map((r) => [r.key, r.deathMs])).toEqual([
 			['9:1', 35_000],
 			// Instance 2 died never, and instance 3's death belongs to a body the player never hit.
@@ -185,13 +189,13 @@ describe('spawnRecords', () => {
 	 */
 	it('behaves the same whether the deaths were empty or never fetched', () => {
 		const events = [hit(20_000, 9, 1)];
-		expect(spawnRecords(events, inputs({ enemyDeaths: [] }))).toEqual(spawnRecords(events, inputs()));
-		expect(spawnRecords(events, inputs())[0]).not.toHaveProperty('deathMs');
+		expect(recordsOf(events, { enemyDeaths: [] })).toEqual(recordsOf(events));
+		expect(recordsOf(events)[0]).not.toHaveProperty('deathMs');
 	});
 
 	/** A stream of the wrong shape records no deaths rather than the timestamps of somebody else's events. */
 	it('ignores anything in the death stream that is not a death', () => {
-		const records = spawnRecords([hit(20_000, 9, 1)], inputs({ enemyDeaths: [hit(30_000, 9, 1)] }));
+		const records = recordsOf([hit(20_000, 9, 1)], { enemyDeaths: [hit(30_000, 9, 1)] });
 		expect(records[0]?.deathMs).toBeUndefined();
 	});
 
@@ -201,10 +205,9 @@ describe('spawnRecords', () => {
 	 * would be a name nothing in the report can be checked against.
 	 */
 	it('names a body only from what the caller passed', () => {
-		const records = spawnRecords(
-			[hit(1000, 9, 1), hit(2000, 8, undefined)],
-			inputs({ npcs: [{ id: 9, gameID: 71_644, name: 'Living Corruption' }] }),
-		);
+		const records = recordsOf([hit(1000, 9, 1), hit(2000, 8, undefined)], {
+			npcs: [{ id: 9, gameID: 71_644, name: 'Living Corruption' }],
+		});
 		expect(records.map((r) => [r.key, r.gameID, r.name])).toEqual([
 			['9:1', 71_644, 'Living Corruption'],
 			['8:-', null, null],
@@ -217,10 +220,9 @@ describe('spawnRecords', () => {
 	 * every spawn of an excluded NPC carries the flag, which is what the rule says.
 	 */
 	it('marks every spawn of an actor id the caller excluded', () => {
-		const records = spawnRecords(
-			[hit(1000, 9, 1), hit(2000, 9, 2), hit(3000, 8, undefined)],
-			inputs({ excluded: new Set([9]) }),
-		);
+		const records = recordsOf([hit(1000, 9, 1), hit(2000, 9, 2), hit(3000, 8, undefined)], {
+			excluded: new Set([9]),
+		});
 		expect(records.map((r) => [r.key, r.excluded])).toEqual([
 			['9:1', true],
 			['9:2', true],
@@ -281,11 +283,10 @@ describe('what proves the player chose a body, on the committed pull', () => {
 	const mine = (id: number | undefined): boolean => id === dataset.actor.id || (id !== undefined && pets.has(id));
 	const damage = dataset.events.filter(isDamage).filter((e) => mine(e.sourceID) && e.targetID !== undefined);
 
-	const records = spawnRecords(damage, {
+	const records = spawnRecords(observeSpawns(damage, t0, AIMED_WW), {
 		t0,
 		endMs,
 		windowMs: 5000,
-		aimedDamageIds: AIMED_WW,
 		excluded: new Set<number>(),
 		npcs: dataset.actors.map((a) => ({ id: a.id, name: a.name })),
 	});

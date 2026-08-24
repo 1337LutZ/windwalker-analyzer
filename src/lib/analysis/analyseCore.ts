@@ -74,6 +74,7 @@ import {
 	countAt,
 	intervalsAtLeast,
 	isJudgeableTarget,
+	observeSpawns,
 	spawnLives,
 	spawnRecords,
 	targetCounts,
@@ -484,6 +485,9 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const nameOf = (id: number): string =>
 		spec.extraNames[id] ?? RAID_BUFF_NAMES.get(id) ?? tableNames[id] ?? SPELL_NAMES[String(id)]?.name ?? `#${id}`;
 
+	/** Actor id to name, built once — the same reason `petIDs` and `enemyIDs` below are sets. */
+	const actorNames = new Map(actors.map((a) => [a.id, a.name]));
+
 	const petIDs = new Set(actors.filter((a) => a.petOwner === actor.id).map((a) => a.id));
 	const mine = (id: number | undefined): boolean => id !== undefined && (id === actor.id || petIDs.has(id));
 	const link = makeLinker({
@@ -554,9 +558,15 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * the others costs. A fourth would be that mistake again; a second predicate on one filter cannot
 	 * drift from anything.
 	 *
-	 * Measured reach: only three of the thirteen rows carry `both` — Living Corruption on Malkorok, Blood
-	 * on the Paragons, Minion of Y'Shaarj on Garrosh — and **all three are heroic-only**, so a Normal
-	 * pull's counted series is the raw one by construction.
+	 * Measured reach: two of the thirteen rows carry `both` — Blood on the Paragons and Minion of Y'Shaarj
+	 * on Garrosh — and **both are heroic-only**, so a Normal pull's counted series is the raw one by
+	 * construction. Neither has a committed pull, so nothing in the fixture tree is uncounted today;
+	 * `game/__tests__/exclusionEvidence.test.ts` keeps a column pinned at zero for the day one arrives.
+	 *
+	 * Malkorok's Living Corruption was the third until `uncounted.json` was measured against it and found
+	 * four of its twenty bodies held past a target window, which the table's own header says makes a body
+	 * one the rotation had time to react to. That row is `'damage'` now and this pull publishes a peak of
+	 * three enemies where it published one.
 	 */
 	const uncountedIDs = uncountedActorIDs(fight.encounterID, fight.difficulty, table.fight.enemyNPCs);
 	const damageEvents = events.filter(isDamage).filter((e) => mine(e.sourceID));
@@ -569,16 +579,31 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * count in the damage table and the per-moment count further down cannot disagree — which is the
 	 * mistake `ignoredMultiTargetActorIDs`' own comment records having already made once.
 	 */
-	const spawnLifeByKey = spawnLives(damageEvents, t0, duration, spec.thresholds.targetWindowMs);
+	/**
+	 * One walk over the damage stream, reduced two ways below — the lives every dot reader takes, and the
+	 * published spawn table. `observeSpawns`' own docblock carries why that is one walk and not two.
+	 *
+	 * The aimed set is handed over here even though `spawnLives` reads none of it, because the *records*
+	 * do and the two must not be observed differently. A spec that declares no aimed button hands over an
+	 * empty set and publishes no records at all — see `spawns` below.
+	 */
+	const declaredAimedIds = spec.registry.abilities
+		.filter((ability) => ability.targeting?.aimed === true)
+		.flatMap((ability) => ability.damageIds ?? []);
+	const aimedDamageIds = new Set([MELEE_DAMAGE_ID, ...declaredAimedIds]);
+	const observedSpawns = observeSpawns(damageEvents, t0, aimedDamageIds);
+	const spawnLifeByKey = spawnLives(observedSpawns, duration, spec.thresholds.targetWindowMs);
 	const immuneSpawns = new Set([...spawnLifeByKey].filter(([, life]) => !isJudgeableTarget(life)).map(([key]) => key));
 	/**
 	 * The same walk kept whole: one row per enemy **body**, published as `Analysis.spawns`.
 	 *
 	 * Here rather than beside the count series further down, and that placement is the point.
-	 * `spawnRecords` and `spawnLives` are two readings of one pass over `damageEvents` — `targets.ts` says
-	 * so in as many words, and says a second walk is how the two would come to disagree about when a spawn
-	 * was first touched. Built on the line below the reading it shares a walk with, both take the same
-	 * three arguments from the same expressions, and there is nowhere for a divergence to hide.
+	 * `spawnRecords` and `spawnLives` are two readings of one *walk* over `damageEvents` — `targets.ts`
+	 * says so in as many words, and says a second implementation of that walk is how the two would come
+	 * to disagree about when a spawn was first touched. Built on the line below the reading it shares the
+	 * walk with, both take the same three arguments from the same expressions, and there is nowhere for a
+	 * divergence to hide. They are still two *calls*, so the array is traversed twice; that is a cost
+	 * rather than a risk, and `SpawnObservation` carries the note about when it stops being worth paying.
 	 *
 	 * ## Where the aimed set comes from, and why not the spec's own constant
 	 *
@@ -616,17 +641,13 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * answered the question" rather than "no body was ever chosen". The two are indistinguishable in the
 	 * rows themselves, which is why the difference has to live in whether there are rows at all.
 	 */
-	const declaredAimedIds = spec.registry.abilities
-		.filter((ability) => ability.targeting?.aimed === true)
-		.flatMap((ability) => ability.damageIds ?? []);
 	const spawns =
 		declaredAimedIds.length === 0
 			? undefined
-			: spawnRecords(damageEvents, {
+			: spawnRecords(observedSpawns, {
 					t0,
 					endMs: duration,
 					windowMs: spec.thresholds.targetWindowMs,
-					aimedDamageIds: new Set([MELEE_DAMAGE_ID, ...declaredAimedIds]),
 					excluded: uncountedIDs,
 					// Straight through from the fetch, and absent is a real state rather than a default: the
 					// three Windwalker pulls captured on 2026-08-24 carry it and every fixture older than that
@@ -638,10 +659,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 					// the report's `actors` list carries the name and no `gameID`. A row that had only the first
 					// could not be read by a human and one that had only the second could not be joined to a
 					// ruleset written in `gameID`s.
-					npcs: (table.fight.enemyNPCs ?? []).map((npc) => ({
-						...npc,
-						name: actors.find((a) => a.id === npc.id)?.name ?? null,
-					})),
+					npcs: (table.fight.enemyNPCs ?? []).map((npc) => ({ ...npc, name: actorNames.get(npc.id) ?? null })),
 				});
 	const { abilities, eventTotal } = aggregateDamage(
 		damageEvents,
@@ -999,13 +1017,49 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * list, the same own-area-damage exclusion, the same window. Only the immunity question differs, so
 	 * the two series cannot drift apart for any other reason.
 	 */
-	const triggerTargetPoints = targetCounts(
-		hitsOnAnything
-			.filter((hit) => !ignoredMultiTargetIDs.has(hit.target) && !uncountedIDs.has(hit.target))
-			.filter(notOwnAreaDamage),
-		spec.thresholds.targetWindowMs,
+	const triggerHits = hitsOnAnything.filter(
+		(hit) => !ignoredMultiTargetIDs.has(hit.target) && !uncountedIDs.has(hit.target),
 	);
+	const triggerTargetPoints = targetCounts(triggerHits.filter(notOwnAreaDamage), spec.thresholds.targetWindowMs);
 	const triggerTargetCountAt = countAt(triggerTargetPoints);
+	/**
+	 * The same hits with the spec's own area damage **left in** — the series a declared refund is gated on.
+	 *
+	 * `ResourceConfig.gains.minTargets` models a rule the game applies to the world and not to the priority
+	 * list: wowsims' `registerRushingJadeWind` pays its chi under
+	 * `if sim.Environment.ActiveTargetCount() >= 3`, which is a fact about how many enemies were up. So the
+	 * gate wants the widest honest count of what the press reached, and `triggerTargetPoints` above is not
+	 * it — that series has `notOwnAreaDamage` applied, and for the Windwalker that filter is exactly
+	 * `rushing-jade-wind`, the **one button in the tree that declares `minTargets`**. The gate was reading a
+	 * count its own ability had been deleted from, so on a pack the wind alone was reaching it fell under
+	 * the floor and denied a refund the game had paid.
+	 *
+	 * **The exclusion is not wrong where it lives; it is wrong here.** It exists to stop a button citing
+	 * itself on the ladder — "the wind hit three, so press more wind" — and a refund is not a
+	 * recommendation. Nothing circular follows from counting the hits that earned it.
+	 *
+	 * **Scored against the log's own record of the refund rather than against the other series.**
+	 * WarcraftLogs reports the wind's chi as a `resourcechange` under 129881 — see
+	 * `ResourceConfig.gains.reportedAs` for how that id was established — so each press can be checked
+	 * against whether the game actually paid it. Pairing every event with the press it follows:
+	 *
+	 *     sections.json  33 presses, log paid 27  this series pays 26, wrong on 7   excluded pays 23, wrong on 10
+	 *     idle.json       9 presses, log paid  4  this series pays  4, wrong on 4   excluded pays  4, wrong on  4
+	 *
+	 * Three of `sections`' ten wrong verdicts go away and none of `idle`'s four, because the two series part
+	 * company at exactly three presses — t=233 185ms, 248 986ms and 360 082ms, where the excluded series
+	 * reads 1, 2 and 2 against this one's 4, 3 and 5 — and the log paid all three. **Neither series
+	 * reproduces the log press for press**: a trailing-window count of hits is a proxy for a live target
+	 * count, and 7 of 33 is the size of that gap. What the change does is stop the proxy being made worse on
+	 * purpose.
+	 *
+	 * **On both of those pulls the gate now decides nothing**, because `reportedAs` takes the log's word for
+	 * the whole pull wherever the log gives one. What is left for the gate is a log carrying no 129881 at
+	 * all, and no committed fixture is one — so the synthetic pulls in `__tests__/resourceGains.test.ts` are
+	 * the only thing holding it, deliberately, and that file's header says so.
+	 */
+	const refundTargetPoints = targetCounts(triggerHits, spec.thresholds.targetWindowMs);
+	const refundTargetCountAt = countAt(refundTargetPoints);
 	/**
 	 * The stretches a **second enemy existed** — two or more, and the stretches themselves rather than
 	 * only their total, because some audits ask whether any *one* of them ran long enough to be worth
@@ -1030,6 +1084,8 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * with an add up for half a minute, and it would tell the Windwalker's Storm, Earth and Fire audit
 	 * that the pull never justified the cooldown — on exactly the pull the cooldown is for.
 	 */
+	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
+	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
 	 * The pull cut into stretches of one rotation mode — the single reading, published on `Analysis`.
 	 *
@@ -1039,17 +1095,23 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	 * arrays are identical for a spec declaring no `aplTargetCountExclude`, so no committed Elemental
 	 * pull can tell them apart and the choice has to be argued rather than observed.
 	 *
-	 * The two constants are handed over rather than defaulted inside `segmentPull`, so the idle cut and
-	 * the contact clock cannot drift apart: `engagedGapMs` is what `engagedWindows` built `contact` with
-	 * above, and the count series lags the last hit by a whole `targetWindowMs`, so a zero-run longer
-	 * than the difference is exactly a hit gap longer than the gap. One number, read from one place.
+	 * The two constants are handed over rather than defaulted inside `segmentPull`, so the *threshold*
+	 * the idle cut uses is the one `engagedWindows` built `contact` with above: `engagedGapMs` is that
+	 * number, the count series lags the last hit by a whole `targetWindowMs`, and a zero-run longer than
+	 * the difference is exactly a hit gap longer than the gap. One number, read from one place.
+	 *
+	 * **What that does not make the two is the same clock, and no reader downstream may assume it.** The
+	 * threshold is shared; the series are not. `contact` is built from the player's own direct, non-tick,
+	 * modelled damage on an enemy actor, while `aplTargetPoints` counts landed hits with pets folded in,
+	 * ticks included, immune and short-lived bodies dropped, and this spec's own area damage taken out —
+	 * and it pads the last point by a window where `engagedWindows` stops at the last hit. So an `idle`
+	 * span is not the complement of `contact` and the two totals differ: on `elemental/phased` the
+	 * segments report 12.9s of idle against the 51.7s that clock leaves out.
 	 */
 	const segments = segmentPull(aplTargetPoints, duration, {
 		contactGapMs: spec.thresholds.engagedGapMs,
 		windowMs: spec.thresholds.targetWindowMs,
 	});
-	const multiTargetWindows = intervalsAtLeast(targetPoints, 2, duration);
-	const multiTargetMs = unionMs(multiTargetWindows);
 	/**
 	 * The stretches the **aoe** priority list was the applicable one — three enemies or more.
 	 *
@@ -1166,19 +1228,28 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			// **Asked with the press's own moment, because a generator's yield is not always constant.**
 			// Rushing Jade Wind pays its chi only at three units or more, and a flat lookup credited it on
 			// every press — a fault pointing the opposite way to the ladder's, so the two cancelled in a
-			// report and hid each other. `minTargets` is counted against `triggerTargetCountAt`, the units
-			// the press *hit*, damage or not: a refund that fires on units hit does not ask whether any of
-			// them could take damage, which is the same reading `targeting.multiTargetBenefit: 'trigger'` names.
+			// report and hid each other. `minTargets` is counted against `refundTargetCountAt`, whose
+			// docblock carries the argument for that series and the log measurement that settles it.
 			const gainsOf = (abilityID: number, atMs: number): number | undefined => {
 				const ability = spec.registry.abilityByCastId(abilityID);
 				if (ability === undefined) return undefined;
 				for (const gain of config.gains ?? []) {
 					if (gain.abilityKey !== ability.key) continue;
-					if (gain.minTargets !== undefined && triggerTargetCountAt(atMs) < gain.minTargets) return undefined;
+					if (gain.minTargets !== undefined && refundTargetCountAt(atMs) < gain.minTargets) return undefined;
 					return gain.amount;
 				}
 				return undefined;
 			};
+			// A gain the log reports itself, keyed by the id it presses under rather than the id it is
+			// reported under — `pointsResourceAudit` cuts those out of the table so the walk cannot credit
+			// them twice, and it can only recognise them by the `resourcechange`'s own ability. Chi Brew
+			// presses and reports under one id and needs nothing here; Rushing Jade Wind does not, and was
+			// counted twice on every log that reports it. See `ResourceConfig.gains.reportedAs`.
+			const reportedAs = new Map<number, number>();
+			for (const gain of config.gains ?? []) {
+				if (gain.reportedAs === undefined) continue;
+				for (const castId of spec.registry.ability(gain.abilityKey).castIds) reportedAs.set(castId, gain.reportedAs);
+			}
 			resourceAudits[key] = pointsResourceAudit(
 				config.type,
 				events,
@@ -1187,6 +1258,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 				gainsOf,
 				samples,
 				wclPowerTypeOf(config.type),
+				reportedAs,
 			);
 		}
 	}
