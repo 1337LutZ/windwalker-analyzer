@@ -472,8 +472,8 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the change that widened the reader's target-mode vocabulary to four, it prints 1395 leaves,
-705 prose, 22,106 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
+As of the change that drew "What you were fighting" as one lane of bars, it prints 1394 leaves,
+705 prose, 22,109 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
 report.json 643 prose leaves, 1,113 sentences, median 16, 208 past 25 (18.7%), 264 em-dashes in 230
 sentences (20.7%); 50 / 25 / 1 / 3 on the quote lines.
 

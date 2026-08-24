@@ -200,3 +200,30 @@ export const TIP_TITLE = {
 } as const satisfies Record<Tone, Tone | 'ink2'>;
 
 export const EXEMPT = 'track' satisfies Tone;
+
+/**
+ * The enemy count, as one ordered ramp — the only entry in this module that means a quantity.
+ *
+ * Every other tone here is named for a mechanic, and that is the rule the module exists to hold:
+ * `brew` *is* Tigereye Brew wherever it appears, `miss` *is* a fault. "What you were fighting" needs
+ * five bars on one lane and only one thing separates them, how many enemies were up — so it gets a
+ * ramp of its own rather than four mechanic tones pressed into service, which would leave amber
+ * meaning Tigereye Brew on one chart and two enemies on another.
+ *
+ * `single`, `cleave` and `aoe` are three steps of one hue because the count is ordered and rises with
+ * them. `mixed` is deliberately off the ramp — no count held the stretch long enough to name, so there
+ * is no step to put it on — and `idle` is `EXEMPT`, the same grey every chart uses for time it left out
+ * of its figures. The values and the reasoning are in `styles/global.css`.
+ *
+ * Keyed by `SegmentMode` at the call site rather than typed against it here, for the reason the rest of
+ * this module is untyped against its callers: `charts/` may not import from `analysis/`.
+ */
+export const COUNT = {
+	single: { fill: 'bg-[var(--color-count-1)]', swatch: 'bg-[var(--color-count-1)]', ink: 'text-white' },
+	cleave: { fill: 'bg-[var(--color-count-2)]', swatch: 'bg-[var(--color-count-2)]', ink: 'text-[#14101f]' },
+	aoe: { fill: 'bg-[var(--color-count-3)]', swatch: 'bg-[var(--color-count-3)]', ink: 'text-[#1c1330]' },
+	mixed: { fill: 'bg-[var(--color-count-mixed)]', swatch: 'bg-[var(--color-count-mixed)]', ink: 'text-white' },
+	idle: { fill: 'bg-track', swatch: SWATCH.track, ink: 'text-ink-2' },
+} as const;
+
+export type CountTone = keyof typeof COUNT;
