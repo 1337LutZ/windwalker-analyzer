@@ -128,12 +128,10 @@ describe('report copy', () => {
 	 * has a press above it.
 	 */
 	it('names each potion slot with its own sentence', () => {
-		const both = { value: 1, target: 2 };
-		const prepull = t('summary.takeaways.metric.potionsUsed.fix', { context: 'prepull', ...both });
-		const combat = t('summary.takeaways.metric.potionsUsed.fix', { context: 'combat', ...both });
-		expect(prepull).not.toBe(combat);
-		expect(prepull).toContain('pre-pull one');
-		expect(combat).toContain('in-combat one');
+		// The two `fix` arms this opened on are gone with the summary's three-card short list: the
+		// scorecard grid that replaced it prints a metric's label and its number, never a sentence, so
+		// there is no wording left to disagree with itself. What the arms were for is recorded in
+		// `Metric.context`, which still exists and still means what it did.
 
 		const early = t('castLog.prePull.note', { context: 'early', aura: "Virmen's Bite", drunk: '92ms' });
 		expect(early).toContain('92ms');

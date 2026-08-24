@@ -1068,102 +1068,69 @@
       "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time with nothing in front of you — no enemy was up to be hit, so none of it counts for or against you."
     },
     "takeaways": {
-      "title": "Key improvements",
-      "title_good": "Still worth fixing",
-      "title_clean": "Nothing below target",
-      "clean": "Nothing came out below its target, so there is no short list to give you. The detail on each is further down the page.",
-      "jump": "See the detail",
       "metric": {
         "snapshotRate": {
-          "label": "Catch the procs",
-          "fix": "You brewed on the last global of {{value, percent}} of your Re-Origination windows. Aim for {{target, percent}} — brewing one global early loses the proc's strongest seconds."
+          "label": "Catch the procs"
         },
         "tigerPalmWaste": {
-          "label": "Stop overwriting Tiger Power",
-          "fix": "{{value, percent}} of your Tiger Palms went out with the buff still up, so they bought nothing. Keep it under {{target, percent}} — those globals could have been spent on damaging abilities."
+          "label": "Stop overwriting Tiger Power"
         },
         "gcdUtilisation": {
-          "label": "Fill the globals",
-          "fix": "You spent {{value, percent}} of your globals on a press that achieved something, against {{target, percent}}. The gap is rotation time that went unused."
+          "label": "Fill the globals"
         },
         "rskUptime": {
-          "label": "Keep the kick rolling",
-          "fix": "The debuff was up for {{value, percent}} of the time you could reach a target, against {{target, percent}}. It raises everything else you do, so a gap costs more than the kick itself."
+          "label": "Keep the kick rolling"
         },
         "brewStacks": {
-          "label": "Spend fuller brews",
-          "fix": "Your brews averaged {{value, decimal}} stacks. A brew can spend a maximum of 10, and {{target, decimal}} is the target — every stack below that is lost damage."
+          "label": "Spend fuller brews"
         },
         "brewShortUses": {
-          "label": "Wait for the tenth stack",
-          "fix": "You spent {{value, integer}} of your Tigereye Brews with the bank under ten, with no Re-Origination proc about to run out and more than fifteen seconds of fight still to come. Those two are the only reasons to brew short. Hold the rest until the bank reads ten."
+          "label": "Wait for the tenth stack"
         },
         "brewCapWaste": {
-          "label": "Stop overflowing the bank",
-          "fix": "{{value, integer}} stacks were earned with the bank already full, so they never landed. Spend a brew before the bank caps and the next stacks have somewhere to go."
+          "label": "Stop overflowing the bank"
         },
         "potionsUsed": {
-          "label": "Drink both potions",
-          "fix": "{{value, integer}}/{{target, integer}} potions used. One goes down in the last second before the pull, the next a minute in when it comes off cooldown.",
-          "fix_prepull": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the pre-pull one — drink it in the last second before the pull and it is running through your opener.",
-          "fix_combat": "{{value, integer}}/{{target, integer}} potions used. The one you skipped is the in-combat one, which comes off cooldown a minute after the pre-pull potion."
-        },
-        "energizingBrewRjw": {
-          "label": "Use Energizing Brew with RJW",
-          "fix": "Bloodlust or Time Warp was up with Rushing Jade Wind talented, but you did not press Energizing Brew. From two targets up the rotation allows both together, and the extra energy is worth most in AoE."
+          "label": "Drink both potions"
         },
         "flameShockUptime": {
-          "label": "Keep the dot up",
-          "fix": "Flame Shock was up for {{value, percent}} of the time you had something to hit, against {{target, percent}}. Lava Burst needs that dot on the target, so a gap costs more than the dot itself."
+          "label": "Keep the dot up"
         },
         "flameShockWaste": {
-          "label": "Stop overwriting the dot",
-          "fix": "{{value, percent}} of your Flame Shock refreshes bought nothing — they were not in the dot’s last tick, not Ascendance prep, and did not snapshot a stronger dot. Keep it under {{target, percent}}; those globals could have been Lightning Bolts."
+          "label": "Stop overwriting the dot"
         },
         "flameShockMultiDot": {
-          "label": "Dot the second target",
-          "fix": "The dot was up on the secondary target for {{value, percent}} of the time two enemies were up, against {{target, percent}}. The gap is damage the second dot would have done."
+          "label": "Dot the second target"
         },
         "earthShockGood": {
-          "label": "Spend the shocks right",
-          "fix": "{{value, percent}} of your Earth Shocks went out with the shield charged up and the dot still long, against {{target, percent}}. An early shock spends the shield the next proc wants."
+          "label": "Spend the shocks right"
         },
         "searingTotemUptime": {
-          "label": "Keep the totem ticking",
-          "fix": "Searing Totem was up for {{value, percent}} of the time it could have been, against {{target, percent}}. It is one global for a minute of damage."
+          "label": "Keep the totem ticking"
         },
         "searingTotemOverlaps": {
-          "label": "Keep the summons apart",
-          "fix": "Searing Totem was placed under the Fire Elemental on {{value, integer}} of your presses. The Fire Elemental replaces the totem the instant it lands, so a press under it buys nothing."
+          "label": "Keep the summons apart"
         },
         "fireElementalPrepull": {
-          "label": "Summon before the pull",
-          "fix": "The Fire Elemental was not out when the pull started. Summoning it in the last second before the pull gets you its whole minute from the first second, and starts its five-minute cooldown that much earlier. This log cannot see whether it was still down from the attempt before, so a late summon is not counted against the pull."
+          "label": "Summon before the pull"
         },
         "flameShockSnapshots": {
-          "label": "Catch the proc windows",
-          "fix": "You refreshed Flame Shock inside {{value, percent}} of your proc windows, against {{target, percent}}. A missed window is a snapshot that never got its spellpower."
+          "label": "Catch the proc windows"
         },
         "lightningShieldOvercap": {
-          "label": "Spend the shield",
-          "fix": "The shield sat at seven for {{value, duration}} past the grace. A shield at seven is a shock not taken, and every Lightning Bolt after that is Rolling Thunder with nowhere to put its charge."
+          "label": "Spend the shield"
         },
         "lightningShieldFellOff": {
-          "label": "Keep the shield up",
-          "fix": "The shield came all the way off you — {{value, integer}} in a pull where it should be none. A full removal throws the whole counter away and the shield has to be rebuilt from one.",
-          "fix_neverUp": "Lightning Shield was never on you at all in this pull. Rolling Thunder returns 2% of your maximum mana per charge, and only while the buff is up. Cast it before you pull, and put it straight back if it drops."
+          "label": "Keep the shield up"
         },
         "thunderstormMissed": {
-          "label": "Press Thunderstorm when you are dry",
-          "fix": "You spent {{value, duration}} at or under 15% mana with Thunderstorm off cooldown. It is free, hands back 15% of your maximum, and at that mana your next Lava Burst may not go out at all. Press it at 15%."
+          "label": "Press Thunderstorm when you are dry"
         },
         "shamanisticRageMissed": {
-          "label": "Put Shamanistic Rage down",
-          "fix": "Shamanistic Rage came back to a pool already at or under 70% and went unpressed, on {{value, integer}} of its returns. It costs no global and cuts what your casts cost for fifteen seconds. Press it whenever it is up and you are under 70%."
+          "label": "Put Shamanistic Rage down"
         },
         "fireElementalHasteUptime": {
-          "label": "Cover the haste cooldown",
-          "fix": "The Fire Elemental was out for {{value, percent}} of your raid's haste cooldown, against {{target, percent}}. Its minute outlasts the lust's forty seconds, so a summon already standing when the lust lands covers all of it — press it last before the pull, not first after it. Do not glyph it: thirty seconds cannot cover forty, and the second elemental the glyph buys is worth less than the procs the first one gives up."
+          "label": "Cover the haste cooldown"
         },
         "snapshotDepth": {
           "label": "Snapshot depth"
@@ -1184,7 +1151,12 @@
       "value_count": "{{value, integer}}",
       "target_atLeast": "target {{value, percent}} or better",
       "target_atMost": "target {{value, percent}} or less",
-      "unmeasured": "not measured"
+      "unmeasured": "not measured",
+      "clean": "Nothing went wrong here.",
+      "state_neverUp": "Lightning Shield was never on you at all in this pull.",
+      "state_prepull": "One of two potions, and the pre-pull one was skipped.",
+      "state_combat": "One of two potions, and the in-combat one was skipped.",
+      "points": "{{value, integer}}/100"
     }
   },
   "priority": {

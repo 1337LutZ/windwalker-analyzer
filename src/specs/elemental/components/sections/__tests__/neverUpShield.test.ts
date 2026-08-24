@@ -221,11 +221,16 @@ describe('a pull that never wore the shield', () => {
 	 * improvements*: *"Keep the shield up — The shield came all the way off you — 1 in a pull where it
 	 * should be none."* A refused metric leads nothing, so for one change the card was gone altogether.
 	 *
-	 * **It is back, and it must be — a card is exactly where the worst thing on a pull belongs.** What
-	 * cannot come back is the sentence, because the base card prints the metric's value as a count of
-	 * drops and the value here is a mark standing for "never up". `Metric.context` picks a second wording
-	 * that names the state and quotes no figure, which is the same mechanism two other cards already use.
-	 * Both halves are asserted: the fabricated drop is absent, and the true card is present.
+	 * **It is back, and it must be — the summary is exactly where the worst thing on a pull belongs.**
+	 * What cannot come back is the *number*, because the metric's value here is a mark standing for
+	 * "never up" rather than a count of drops. `Metric.context` picks a wording that names the state and
+	 * quotes no figure, which is the same mechanism the potion metric uses.
+	 *
+	 * **The three-card short list this was written against is gone; the scorecard grid replaced it, and
+	 * the claim survives the move intact.** The grid is ordered by how far each section sits from `good`,
+	 * and a shield never worn is the furthest thing on this pull — so the shield still leads. The
+	 * fabricated drop still must not appear, and the grid honours `context` for the same reason the card
+	 * did: it prints the sentence in place of the figure and draws no scale under it.
 	 *
 	 * Read off the whole report rather than off the section, because the summary is a different component
 	 * and this is the only assertion in the file that reaches it.
@@ -236,8 +241,12 @@ describe('a pull that never wore the shield', () => {
 		);
 		expect(html).not.toContain('came all the way off you');
 		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
-		expect(html).toContain('Lightning Shield was never on you at all in this pull.');
+		expect(html).toContain(t('summary.scorecard.state', { context: 'neverUp' }));
 		expect(html).toContain('Scored on 13 of 23 points.');
+		// And it leads: the first card the grid draws is the shield's, which is what "leads the summary"
+		// means now that the summary is one ordered grid rather than a three-card short list.
+		const cards = [...html.matchAll(/uppercase text-ink-2">([^<]+)</g)].map((m) => m[1]);
+		expect(cards[0]).toBe('Lightning Shield');
 	});
 
 	/** And the chart says so, which is the half the sentence used to contradict. */

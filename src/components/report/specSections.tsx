@@ -419,25 +419,18 @@ export const SPEC_SUMMARY: Record<string, SpecSummary | undefined> = {
 };
 
 /**
- * A spec-specific advice card, folded into the summary's short list ahead of the metric cards.
+ * The spec-scoped half of the scorecard grid: where each of its sections lives on the page.
  *
- * The metric cards are derived from the scorecard and so are the same for every spec; advice is the
- * one card a spec writes by hand, for the case its own model can see that no metric expresses — the
- * Windwalker's "Energizing Brew through Bloodlust with Rushing Jade Wind, but never used to cover
- * it" is a play the ladder condones, so no threshold catches it, and a hand-written card is the only
- * route to a reader's eye.
+ * **It carried a second half until the summary's three-card short list was replaced by the grid**: a
+ * spec could add a hand-written `advice` card for a finding no metric expresses, and the Windwalker had
+ * one — press Energizing Brew with Rushing Jade Wind under Bloodlust. That is not lost with the list.
+ * `EnergizingBrew` raises the same recommendation as a callout in its own section, under
+ * `hasteRjwEligible && hasteRjwUses === 0`, which is the card's condition plus a check that the brew was
+ * actually pressable in the window — the same finding, better qualified, where the card was pointing.
  */
-export interface AdviceTakeaway {
-	kind: 'advice';
-	key: string;
-	section: string;
-}
-
-/** The spec-scoped half of `Takeaways`: where its sections live, and its hand-written advice. */
 export interface SpecTakeaways {
-	/** Scorecard section name → page anchor id, for the takeaway card's jump link. */
+	/** Scorecard section name → page anchor id, for the card's link. */
 	anchors: Record<string, string>;
-	advice?: (analysis: Analysis) => AdviceTakeaway[];
 }
 
 export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
@@ -460,12 +453,6 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 			// prose — the evidence is the potion's own row on the timeline — so that is where the reader
 			// is sent.
 			potions: 'timeline',
-		},
-		advice: (analysis) => {
-			const energizing = analysis.energizing;
-			return energizing?.rushingJadeWind === true && energizing.hasteWindows.length > 0 && energizing.hasteRjwUses === 0
-				? [{ kind: 'advice', key: 'energizingBrewRjw', section: 'energizingBrew' }]
-				: [];
 		},
 	},
 	elemental: {

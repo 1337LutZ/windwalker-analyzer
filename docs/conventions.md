@@ -472,10 +472,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the scorecard grid in the summary, it prints 1405 leaves,
-705 prose, 22,109 words; median 26, p75 41, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
-report.json 643 prose leaves, 1,113 sentences, median 16, 208 past 25 (18.7%), 264 em-dashes in 230
-sentences (20.7%); 50 / 25 / 1 / 3 on the quote lines.
+As of the scorecard grid replacing the summary's three-card short list, it prints 1379 leaves,
+682 prose, 21,232 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
+report.json 620 prose leaves, 1,058 sentences, median 17, 203 past 25 (19.2%), 257 em-dashes in 223
+sentences (21.1%); 48 / 24 / 1 / 3 on the quote lines.
 
 <!-- /census:figures -->
 
