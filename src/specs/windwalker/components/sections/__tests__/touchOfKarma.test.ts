@@ -90,7 +90,7 @@ function tile(html: string, label: string): string {
 	return parts.find((part) => part.toLowerCase().includes(needle)) ?? '';
 }
 
-const TONE = { good: 'text-kick', ok: 'text-brew', bad: 'text-miss', none: 'text-ink' } as const;
+const TONE = { good: 'text-good', ok: 'text-brew', bad: 'text-miss', none: 'text-ink' } as const;
 
 /**
  * The paragraphs the section prints, tags stripped, so a failure quotes the sentence a reader gets

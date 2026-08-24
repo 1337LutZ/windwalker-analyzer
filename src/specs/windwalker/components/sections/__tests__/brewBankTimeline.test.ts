@@ -104,7 +104,7 @@ describe('Tigereye Brew tile row', () => {
 			brew: { ...poor.brew, wastedProtecting: poor.brew.wastedAtCap },
 		};
 		const forgiven = render(protectedPull);
-		expect(tile(forgiven, t('brew.kpi.capped')).classes).toContain('border-l-kick');
+		expect(tile(forgiven, t('brew.kpi.capped')).classes).toContain('border-l-good');
 		// Still the raw ten, because the count is what happened and the grade is what was yours.
 		expect(tile(forgiven, t('brew.kpi.capped')).markup).toContain('>10<');
 		// And the ratio eases too, rather than charging the same ten stacks a second time.

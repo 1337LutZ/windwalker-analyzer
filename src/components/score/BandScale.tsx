@@ -37,13 +37,13 @@ function zonesOf(metric: Metric): Array<readonly [grade: 'good' | 'ok' | 'bad', 
 }
 
 const ZONE: Record<'good' | 'ok' | 'bad', string> = {
-	good: 'bg-[color-mix(in_oklch,var(--color-kick)_26%,var(--color-surface))]',
+	good: 'bg-[color-mix(in_oklch,var(--color-good)_26%,var(--color-surface))]',
 	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_26%,var(--color-surface))]',
 	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_26%,var(--color-surface))]',
 };
 
 const MARK: Record<'good' | 'ok' | 'bad', string> = {
-	good: 'bg-kick',
+	good: 'bg-good',
 	ok: 'bg-brew',
 	bad: 'bg-miss',
 };
