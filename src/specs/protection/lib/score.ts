@@ -19,7 +19,7 @@
 // reasoning applies unchanged to those — a threshold on them would be invented.
 
 import { overallOf, section, sharePct, grader, gradeOf, GRADE_ORDER } from '~/lib/score';
-import type { Grade, Scorecard, ScoreView, Threshold } from '~/lib/score';
+import type { Grade, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
 import type { Analysis, ProtectionAudit } from '~/lib/types';
 import { GCD_FLOOR_HASTE } from '~/lib/analysis/haste';
 
@@ -210,15 +210,32 @@ export const THRESHOLDS = {
 	 *
 	 * `good` is the breakpoint itself, derived from `GCD_FLOOR_HASTE` rather than typed as 50 so the two
 	 * cannot drift apart. `ok` is two and a half points under it — close enough that one piece of gear
-	 * closes the gap, which is what separates "nearly there" from "this needs a plan".
+	 * closes the gap, which is what separates "nearly there" from "this needs a plan". `ceiling` is the
+	 * same number again and is what stops the card inviting a reader past it — see below.
 	 */
 	hasteToBreakpoint: {
 		good: (GCD_FLOOR_HASTE - 1) * 100,
 		ok: (GCD_FLOOR_HASTE - 1) * 100 - 2.5,
 		higherIsBetter: true,
 		unit: 'percent',
+		/**
+		 * **The breakpoint is a lid, not a bar, and the card has to word it that way.**
+		 *
+		 * `MetricRule.ceiling` is what tells the scorecard that a `good` line is the best reading the pull
+		 * could have rather than a floor to clear, and it changes the target line from "target 50% or
+		 * better" to "target 50%". The distinction is the whole of what a reader was getting wrong here:
+		 * fifty percent is where Sanctity of Battle's reduction stops buying globals, so haste past it is
+		 * not a better score — it is haste buying something this metric does not measure.
+		 *
+		 * The same field `potionsUsed` and `fireElementalPrepull` use, for the same reason their docblock
+		 * gives: a target nobody should chase past must not be written as one they can.
+		 */
+		ceiling: (GCD_FLOOR_HASTE - 1) * 100,
 	},
-} as const satisfies Record<string, Threshold & { unit: string }>;
+	// `MetricRule` rather than `Threshold & { unit }`, which is what the Elemental's table satisfies and
+	// what `ceiling` needs — see the note on `hasteToBreakpoint`. The narrower shape was fine while every
+	// rule here was a plain bar.
+} as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
 
