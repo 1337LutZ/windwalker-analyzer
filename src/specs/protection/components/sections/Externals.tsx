@@ -8,7 +8,6 @@ import type { Analysis } from '~/lib/types';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import WindowTracks, { type Track } from '~/components/charts/WindowTracks';
-import ResourceTrack from '~/components/charts/ResourceTrack';
 import type { VengeanceAudit } from '~/lib/analysis/vengeance';
 import {
 	Callout,
@@ -180,39 +179,27 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 							</>
 						}
 					>
-						{/* Vengeance over the same seconds, above the rows and on the same time axis.
-						    
-						    **Above rather than behind, and the reason is the chart library.** `WindowTracks` is a
-						    horizontal `rangeBar`, so its y-axis is the row *labels* — a categorical axis. ApexCharts
-						    cannot mix a time-series line into that plot, and compositing an SVG behind the plot area
-						    would mean guessing the library's own left offset, which moves with the label width and
-						    the breakpoint. Stacked and sharing `durationMs`, the two read as one figure and the
-						    alignment is exact at every width.
-						    
-						    It is here because it is what the section argues from: an external cuts damage taken and
-						    does not cut the attack power that damage pays, so the stretches where Vengeance was high
-						    are the stretches an external was worth most — and a reader can now see whether the bars
-						    below line up with them. */}
-						{vengeance === undefined ? null : (
-							<ResourceTrack
-								curve={vengeance.curve}
-								durationMs={analysis.durationMs}
-								stroke="var(--color-rune)"
-								fill="var(--color-rune-wash)"
-								mode="line"
-								smooth
-								showStepLabels={false}
-								label={t('externals.vengeanceLabel', {
-									peak: vengeance.peak?.attackPower ?? 0,
-									duration: analysis.durationMs,
-								})}
-							/>
-						)}
 						<WindowTracks
 							tracks={tracks}
 							chartId="prot-externals"
 							durationMs={analysis.durationMs}
 							label={t('externals.chartLabel', { landed: externals.used, duration: analysis.durationMs })}
+							// Vengeance behind the rows and inside the same plot rectangle, so a reader can look
+							// straight down from a stretch of the curve to the cooldowns that were up under it.
+							// That correlation is the section's whole subject: an external cuts the damage and
+							// not the attack power, so the moments worth spending one are the moments the curve
+							// is high — and stacked in a second chart above, the eye has to carry between plots
+							// to ask which window sat under which part of it. See `WindowTracks`'s `behind`.
+							{...(vengeance === undefined
+								? {}
+								: {
+										behind: {
+											curve: vengeance.curve,
+											label: t('externals.key.vengeance'),
+											stroke: 'var(--color-rune)',
+											fill: 'color-mix(in srgb, var(--color-rune) 12%, transparent)',
+										},
+									})}
 						/>
 					</ChartFigure>
 				)}

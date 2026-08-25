@@ -1885,7 +1885,6 @@
     "cuts_all": "{{percent, percent}} of all damage",
     "cuts_magic": "{{percent, percent}} of magic damage",
     "cuts_unknown": "not modelled by the simulator",
-    "vengeanceLabel": "Attack power from Vengeance over the pull, peaking at {{peak, compact}}, drawn on the same seconds as the cooldowns below over {{duration, duration}}",
     "unreadable": "{{names}} would also have helped here and this report cannot see it. It works by weakening what is hitting you rather than by shielding you, so it lands on the enemy — and the events this page is built from only cover you. Whether anyone used it is not something the numbers above answer either way."
   }
 }

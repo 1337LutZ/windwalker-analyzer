@@ -1,8 +1,9 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApexOptions } from 'apexcharts';
 
 import { DROP_MS } from '~/lib/analysis/auras';
 import { formatSeconds, formatStamp } from '~/lib/format';
+import type { ResourceCurve } from '~/lib/types';
 
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
@@ -135,6 +136,7 @@ export default function WindowTracks({
 	chartId,
 	durationMs,
 	label,
+	behind,
 }: {
 	/**
 	 * The rows, top to bottom. Empty ones are dropped — see `drawn`.
@@ -148,6 +150,22 @@ export default function WindowTracks({
 	durationMs: number;
 	/** Describes the finished picture for a reader who cannot see it. */
 	label: string;
+	/**
+	 * A curve drawn *behind* the rows, on the same time axis and inside the same plot area.
+	 *
+	 * **Why this is an overlay and not a second chart.** ApexCharts cannot mix a time-series line into a
+	 * horizontal `rangeBar`: the bars run along x, so the y-axis is the row *labels* — a categorical
+	 * scale with no room for a number. Stacking a second chart above gets the alignment right and
+	 * answers a different question, because the reader has to carry their eye between two plots to ask
+	 * which window sat under which part of the curve.
+	 *
+	 * So the curve is its own SVG, positioned over the library's plot rectangle. The rectangle is
+	 * **measured rather than assumed** — ApexCharts sizes its left gutter from the widest y-axis label,
+	 * which changes with the rows, the breakpoint and the font — by reading `.apexcharts-grid`'s own box
+	 * after render and again whenever the element resizes. Guessing it from `grid.padding` would line up
+	 * on one chart and drift on the next.
+	 */
+	behind?: { curve: ResourceCurve; label: string; stroke: string; fill: string };
 }) {
 	/**
 	 * Only the rows that have something in them.
@@ -219,5 +237,95 @@ export default function WindowTracks({
 		[chartId, durationMs, drawn, height],
 	);
 
-	return <ApexChart build={build} height={height} label={label} />;
+	if (behind === undefined) return <ApexChart build={build} height={height} label={label} />;
+	return (
+		<Overlaid behind={behind} durationMs={durationMs}>
+			<ApexChart build={build} height={height} label={label} />
+		</Overlaid>
+	);
+}
+
+/**
+ * The curve, laid into the chart's own plot rectangle.
+ *
+ * Behind the bars in paint order and inert to the pointer, so the tooltip, the scrub and the keyboard
+ * path all still belong to the chart. It draws nothing until the rectangle has been measured, which is
+ * the honest state: an overlay at the wrong offset is worse than one that arrives a frame late.
+ */
+function Overlaid({
+	behind,
+	durationMs,
+	children,
+}: {
+	behind: { curve: ResourceCurve; label: string; stroke: string; fill: string };
+	durationMs: number;
+	children: React.ReactNode;
+}) {
+	const host = useRef<HTMLDivElement>(null);
+	const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+
+	useEffect(() => {
+		const element = host.current;
+		if (element === null) return;
+
+		const measure = () => {
+			const grid = element.querySelector('.apexcharts-grid');
+			if (grid === null) return false;
+			const outer = element.getBoundingClientRect();
+			const inner = grid.getBoundingClientRect();
+			if (inner.width <= 0) return false;
+			setBox({
+				left: inner.left - outer.left,
+				top: inner.top - outer.top,
+				width: inner.width,
+				height: inner.height,
+			});
+			return true;
+		};
+
+		// The chart imports ApexCharts lazily and draws on a later tick, so the grid does not exist yet on
+		// the first pass. Poll briefly rather than racing it, then stop: a chart that never drew is a
+		// chart with nothing to align to.
+		let tries = 0;
+		const timer = window.setInterval(() => {
+			tries += 1;
+			if (measure() || tries > 40) window.clearInterval(timer);
+		}, 50);
+
+		const observer = new ResizeObserver(() => measure());
+		observer.observe(element);
+		return () => {
+			window.clearInterval(timer);
+			observer.disconnect();
+		};
+	}, []);
+
+	const path = useMemo(() => {
+		if (box === null) return '';
+		const span = Math.max(1, durationMs);
+		const max = Math.max(1, behind.curve.max);
+		const x = (t: number) => (t / span) * box.width;
+		const y = (v: number) => box.height - (v / max) * box.height;
+		return behind.curve.points
+			.map(([t, v], i) => `${i === 0 ? 'M' : 'L'}${x(t).toFixed(1)} ${y(v).toFixed(1)}`)
+			.join('');
+	}, [behind.curve, box, durationMs]);
+
+	return (
+		<div ref={host} className="relative">
+			{box === null || path === '' ? null : (
+				<svg
+					className="pointer-events-none absolute"
+					style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+					viewBox={`0 0 ${box.width} ${box.height}`}
+					preserveAspectRatio="none"
+					aria-hidden="true"
+				>
+					<path d={`${path}L${box.width.toFixed(1)} ${box.height}L0 ${box.height}Z`} fill={behind.fill} stroke="none" />
+					<path d={path} fill="none" stroke={behind.stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+				</svg>
+			)}
+			{children}
+		</div>
+	);
 }
