@@ -117,6 +117,14 @@ interface BaseChartArgs {
 	durationMs?: number;
 	/** True on a touch device, which changes which drag tool is armed by default. */
 	touch?: boolean;
+	/**
+	 * Called with the x-window the reader is looking at, whenever it changes.
+	 *
+	 * Only meaningful on a `scrubbable` chart, since nothing else moves. Exists for `WindowTracks`'s
+	 * `behind` overlay, which draws outside the library and would otherwise keep painting the whole
+	 * pull across a plot rectangle showing twenty seconds of it.
+	 */
+	onView?: (min: number, max: number) => void;
 }
 
 /**
@@ -129,7 +137,7 @@ interface BaseChartArgs {
  * when the view is genuinely outside the pull, which is what stops `zoomX` from re-triggering
  * `scrolled` into a loop.
  */
-export function boundsWithin(durationMs: number) {
+export function boundsWithin(durationMs: number, onView?: (min: number, max: number) => void) {
 	// Keep the width the reader chose and slide it inside the fight, rather than clipping it — a pan
 	// that hits the end should stop, not shrink the window under the cursor.
 	const clamp = (rawMin: number, rawMax: number) => {
@@ -143,16 +151,33 @@ export function boundsWithin(durationMs: number) {
 	// be "corrected" on every frame.
 	const outside = (a: number, b: number) => Math.abs(a - b) > 1;
 
+	// The window the reader is actually looking at, published to whoever asked for it. Reported from
+	// inside the fence rather than beside it, so an overlay is told the clamped view and never the raw
+	// request — the two differ on every pan that hits an end, which is exactly when a drift would show.
+	const publish = (min: number, max: number) => onView?.(min, max);
+
 	return {
-		beforeZoom: (_chart: unknown, { xaxis }: { xaxis: { min: number; max: number } }) => ({
-			xaxis: clamp(xaxis.min, xaxis.max),
-		}),
-		beforeResetZoom: () => ({ xaxis: { min: 0, max: durationMs } }),
+		beforeZoom: (_chart: unknown, { xaxis }: { xaxis: { min: number; max: number } }) => {
+			const held = clamp(xaxis.min, xaxis.max);
+			publish(held.min, held.max);
+			return { xaxis: held };
+		},
+		beforeResetZoom: () => {
+			publish(0, durationMs);
+			return { xaxis: { min: 0, max: durationMs } };
+		},
+		// Also after the fact, because the toolbar's zoom buttons and a pinch settle without always
+		// passing through `beforeZoom`, and a view reported once too often costs nothing.
+		zoomed: (_chart: unknown, { xaxis }: { xaxis: { min?: number; max?: number } }) => {
+			const held = clamp(xaxis.min ?? 0, xaxis.max ?? durationMs);
+			publish(held.min, held.max);
+		},
 		scrolled: (
 			chart: { zoomX?: (min: number, max: number) => void },
 			{ xaxis }: { xaxis: { min: number; max: number } },
 		) => {
 			const held = clamp(xaxis.min, xaxis.max);
+			publish(held.min, held.max);
 			if (outside(held.min, xaxis.min) || outside(held.max, xaxis.max)) chart.zoomX?.(held.min, held.max);
 		},
 	};
@@ -348,7 +373,10 @@ export function baseChart(args: BaseChartArgs): NonNullable<ApexOptions['chart']
 		// `{ xaxis: { min, max } }` as the corrected range. Without that return there is no way to
 		// refuse a zoom, only to observe one.
 		...(args.scrubbable && args.durationMs
-			? ({ events: boundsWithin(args.durationMs) } as unknown as Pick<NonNullable<ApexOptions['chart']>, 'events'>)
+			? ({ events: boundsWithin(args.durationMs, args.onView) } as unknown as Pick<
+					NonNullable<ApexOptions['chart']>,
+					'events'
+				>)
 			: {}),
 	};
 }

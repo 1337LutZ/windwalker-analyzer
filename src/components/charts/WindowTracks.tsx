@@ -181,8 +181,10 @@ export default function WindowTracks({
 	const drawn = useMemo(() => tracks.filter((track) => track.windows.length > 0), [tracks]);
 	const height = drawn.length * ROW_HEIGHT + CHROME;
 
+	// Takes the view reporter as a second argument rather than closing over one, so the same builder
+	// serves the plain chart and the overlaid one — see `Overlaid`.
 	const build = useCallback(
-		({ theme, narrow, animate, touch }: ChartEnv): ApexOptions => {
+		({ theme, narrow, animate, touch }: ChartEnv, onView?: (min: number, max: number) => void): ApexOptions => {
 			const floor = minimumSpan(durationMs);
 			const spans = drawn.flatMap(({ label: row, tone, windows, lengthLabel, widen = true }) =>
 				windows.map(([start, end]): Span => ({
@@ -211,6 +213,7 @@ export default function WindowTracks({
 						scrubbable: true,
 						durationMs,
 						touch,
+						onView,
 					}),
 				},
 				// One series for every row: the tracks are one measurement split by state, not several
@@ -238,11 +241,7 @@ export default function WindowTracks({
 	);
 
 	if (behind === undefined) return <ApexChart build={build} height={height} label={label} />;
-	return (
-		<Overlaid behind={behind} durationMs={durationMs}>
-			<ApexChart build={build} height={height} label={label} />
-		</Overlaid>
-	);
+	return <Overlaid behind={behind} durationMs={durationMs} build={build} height={height} label={label} />;
 }
 
 /**
@@ -255,13 +254,29 @@ export default function WindowTracks({
 function Overlaid({
 	behind,
 	durationMs,
-	children,
+	build: outer,
+	height,
+	label,
 }: {
 	behind: { curve: ResourceCurve; label: string; stroke: string; fill: string };
 	durationMs: number;
-	children: React.ReactNode;
+	/** The parent's builder, which takes the view reporter this component supplies. */
+	build: (env: ChartEnv, onView?: (min: number, max: number) => void) => ApexOptions;
+	height: number;
+	label: string;
 }) {
 	const host = useRef<HTMLDivElement>(null);
+	/**
+	 * The window the reader is looking at, which is the whole pull until they zoom.
+	 *
+	 * Reported by the chart rather than inferred, because the overlay has no other way to know: zooming
+	 * does not move or resize the plot rectangle, it redraws different data inside the same one, so
+	 * nothing the `ResizeObserver` watches changes at all.
+	 *
+	 * The reporter only ever calls `setView`, whose identity React guarantees is stable — which is what
+	 * makes it safe to hand to event handlers the library captures once when it builds its options.
+	 */
+	const [view, setView] = useState<{ min: number; max: number }>({ min: 0, max: durationMs });
 	const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
 
 	useEffect(() => {
@@ -300,16 +315,36 @@ function Overlaid({
 		};
 	}, []);
 
+	/**
+	 * The curve across the *visible* window, not across the pull.
+	 *
+	 * Zooming does not move this SVG — the library redraws its own plot inside the same rectangle — so
+	 * the mapping has to follow `view` or the overlay keeps painting four minutes across a chart showing
+	 * twenty seconds of them. Readings outside the window are dropped rather than clipped, with one kept
+	 * on each side so the line still enters and leaves at the edges instead of starting at the first
+	 * sample inside.
+	 */
 	const path = useMemo(() => {
 		if (box === null) return '';
-		const span = Math.max(1, durationMs);
+		const span = Math.max(1, view.max - view.min);
 		const max = Math.max(1, behind.curve.max);
-		const x = (t: number) => (t / span) * box.width;
+		const x = (t: number) => ((t - view.min) / span) * box.width;
 		const y = (v: number) => box.height - (v / max) * box.height;
-		return behind.curve.points
-			.map(([t, v], i) => `${i === 0 ? 'M' : 'L'}${x(t).toFixed(1)} ${y(v).toFixed(1)}`)
-			.join('');
-	}, [behind.curve, box, durationMs]);
+
+		const points = behind.curve.points;
+		let from = 0;
+		let to = points.length - 1;
+		while (from < points.length - 1 && (points[from + 1]?.[0] ?? 0) < view.min) from += 1;
+		while (to > 0 && (points[to - 1]?.[0] ?? 0) > view.max) to -= 1;
+		const visible = points.slice(from, to + 1);
+		if (visible.length < 2) return '';
+
+		return visible.map(([t, v], i) => `${i === 0 ? 'M' : 'L'}${x(t).toFixed(1)} ${y(v).toFixed(1)}`).join('');
+	}, [behind.curve, box, view]);
+
+	// Rebuilt here rather than in the parent so the chart's own `onView` can reach this component's
+	// state. The dependency list is the parent's plus the setter, which never changes identity.
+	const build = useCallback((env: ChartEnv): ApexOptions => outer(env, (min, max) => setView({ min, max })), [outer]);
 
 	return (
 		<div ref={host} className="relative">
@@ -325,7 +360,7 @@ function Overlaid({
 					<path d={path} fill="none" stroke={behind.stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
 				</svg>
 			)}
-			{children}
+			<ApexChart build={build} height={height} label={label} />
 		</div>
 	);
 }

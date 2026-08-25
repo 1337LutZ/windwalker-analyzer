@@ -296,9 +296,13 @@ describe('the catalogue', () => {
 			scope: 'physical',
 			readable: false,
 		});
-		// The two off the 5.4 tooltip, where the simulator implements nothing at all.
+		// The three off the 5.4 tooltips, where the simulator implements no mitigation at all.
 		expect(by('hand-of-sacrifice')).toMatchObject({ takenMultiplier: 0.7, evidence: 'tooltip' });
 		expect(by('power-word-barrier')).toMatchObject({ takenMultiplier: 0.75, evidence: 'tooltip' });
+		expect(by('smoke-bomb')).toMatchObject({ takenMultiplier: 0.8, evidence: 'tooltip', durationMs: 5_000 });
+		// And nothing is left with an unstated reduction, which is what makes `log` an unused arm rather
+		// than a hiding place — see the catalogue's own note.
+		expect(EXTERNALS.filter((entry) => entry.takenMultiplier === null)).toEqual([]);
 	});
 
 	/**

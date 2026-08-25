@@ -136,11 +136,11 @@ export interface ExternalSpell {
 	/** The button's own cooldown in ms, or null where the sim does not model it. */
 	cooldownMs: number | null;
 	/**
-	 * The multiplier the sim puts on damage taken — `0.6` is a 40% reduction — or null when unmodelled.
+	 * The multiplier on damage taken — `0.6` is a 40% reduction — or null when no source states one.
 	 *
-	 * Null is not "no reduction". It is "the source of truth does not state one", which is a different
-	 * claim and the only one this module is entitled to make about a spell wowsims-mop has no
-	 * implementation for. See the `log` evidence note above.
+	 * Null is not "no reduction". It is "no source of truth states one", which is a different claim and
+	 * the only one this module is entitled to make about a spell neither the simulator nor a tooltip
+	 * pins down. `evidence` says which of the three the number came from.
 	 */
 	takenMultiplier: number | null;
 	scope: ExternalScope;
@@ -198,12 +198,12 @@ export interface ExternalSpell {
  * | Pain Suppression  | 33206  | 8s  (`core/buffs.go:927`)   | 8.0s, n=5 | ×0.6 all (`core/buffs.go:966`)           |
  * | Vigilance         | 114030 | 12s (`core/buffs.go:882`)   | 12.0s,n=10| ×0.7 all (`core/buffs.go:922`)           |
  * | Devotion Aura     | 31821  | 6s  (`core/buffs.go:813`)   | 6.0s, n=8 | ×0.8 (`core/buffs.go:858`)               |
- * | Anti-Magic Zone   | 145629 | 3s  (`death_knight/talents.go:245`) | 3.0s, n=3 | ×0.6 magic (`…:246-252`)         |
  * | Hand of Purity    | 114039 | 6s  (`paladin/talents.go:379`) | never landed | ×0.9 all (`paladin/talents.go:381`) |
+ * | Demoral. Banner   | 114203 | 15s (`warrior/banners.go:50`) | unobservable | ×0.9 physical (`warrior/banners.go:51`) |
  *
  * Cooldowns come from the same blocks: Pain Suppression 3min (`core/buffs.go:928`), Vigilance 2min
- * (`core/buffs.go:883`), Devotion Aura 3min (`core/buffs.go:814`), Anti-Magic Zone 2min
- * (`death_knight/talents.go:279`), Hand of Purity 30s (`paladin/talents.go:415`).
+ * (`core/buffs.go:883`), Devotion Aura 3min (`core/buffs.go:814`), Hand of Purity 30s
+ * (`paladin/talents.go:415`), Demoralizing Banner 3min (`warrior/banners.go:70`).
  *
  * **Devotion Aura is filed as `magic` and it is the one row where that understates the button.** The sim
  * branches on the caster's spec (`core/buffs.go:852-867`): a Holy Paladin's reduces *all* damage by 20%,
@@ -217,16 +217,28 @@ export interface ExternalSpell {
  * is additionally cut to a fifth (`paladin/talents.go:384-388`). The ×0.9 recorded here is the part that
  * applies to everything, and it is the conservative half.
  *
- * ## The five the simulator does not model
+ * ## The three the simulator does not model
  *
- * Hand of Sacrifice, Power Word: Barrier, Life Cocoon and Smoke Bomb land on the tank in the captures — so
- * their ids are measured fact rather than recollection — and wowsims-mop implements none of them.
- * `grep -rn` over `sim/` returns nothing for any, and `assets/database/db.json`, which is the project's
- * own spell table, carries no entry either. They are in the catalogue with `evidence: 'log'` and a null
- * reduction, because a raid that used Power Word: Barrier did not miss it, and a catalogue that omitted
- * the spell would report that it had. Their durations are the captures' own: Hand of Sacrifice 12.0s
- * across 7 windows, Smoke Bomb 5.0s across 3, Power Word: Barrier and Life Cocoon consumed early often
- * enough that the nominal figure is taken from the longest window observed.
+ * Hand of Sacrifice, Power Word: Barrier and Smoke Bomb land on the tank in the captures — so their ids
+ * are measured fact rather than recollection — and wowsims-mop implements none of their mitigation.
+ * `grep -rn` over `sim/` returns nothing for any, and `assets/database/db.json`, the project's own spell
+ * table, carries no entry either.
+ *
+ * Their reductions come from the 5.4 tooltips instead, which is what `evidence: 'tooltip'` records —
+ * a weaker source than the sim and a much stronger one than nothing:
+ *
+ * | external            | id    | reduction                | tooltip                                     |
+ * | ------------------- | ----- | ------------------------ | ------------------------------------------- |
+ * | Hand of Sacrifice   | 6940  | ×0.7 all, 12s / 2min     | 30% of damage redirected to the paladin      |
+ * | Power Word: Barrier | 81782 | ×0.75 all, 10s / 3min    | all damage to friendly targets reduced 25%   |
+ * | Smoke Bomb          | 76577 | ×0.8 all, 5s / 3min      | all damage taken reduced 20%                 |
+ *
+ * Hand of Sacrifice's redirect also ends once it has moved a full health bar, which nothing here models
+ * and which errs towards crediting the external with more than it gave.
+ *
+ * **`evidence: 'log'` is now unused and stays in the union deliberately.** It is the arm for an entry
+ * whose id is measured and whose size nothing states, and the catalogue should be able to say that
+ * rather than being forced to guess a number to fit the shape.
  *
  * ## What was rejected, and why
  *
@@ -347,11 +359,13 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		ids: [76577],
 		providedBy: 'Rogue',
 		durationMs: 5_000,
-		cooldownMs: null,
-		takenMultiplier: null,
+		cooldownMs: 180_000,
+		// "Reduces all damage taken by 20%" — the 5.4 tooltip. The simulator implements the spell's
+		// targeting denial and no mitigation at all, so this is the tooltip's number and not the sim's.
+		takenMultiplier: 0.8,
 		scope: 'all',
 		delivery: 'ground',
-		evidence: 'log',
+		evidence: 'tooltip',
 	},
 	{
 		key: 'demoralizing-banner',
