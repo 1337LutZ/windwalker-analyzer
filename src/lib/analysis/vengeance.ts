@@ -343,12 +343,15 @@ export function readVengeance({
  * curve and the ceiling in the same direction, so it very nearly cancels in the share. It is far
  * inside the five percent band `NEAR_CAP_SHARE` draws.
  *
- * **`curve.max` is the ceiling at its highest, not at rest**, and this is a compromise forced by the
- * chart rather than a reading of the mechanic. `ResourceCurve` carries one scalar `max`
- * (`lib/types.ts`) and `ResourceTrack` scales its whole y-axis by it, so a ceiling that moves cannot
- * be drawn as a line — see the note in the section component. Taking the highest means the curve never
- * runs off the top of its own axis, and the stretches where it was raised are handed back in
- * `capWindows` for the chart to shade instead.
+ * **`curve.max` is the ceiling at its highest, not at rest**, and `curve.ceiling` is where it actually
+ * was. The scalar scales the chart's y-axis, so taking the highest is what keeps the curve inside its
+ * own axis for the whole pull; the step series beside it is the limit in force at each moment, which
+ * is what `cappedOf` compares against and what `ResourceTrack` draws. Both are needed and they are not
+ * the same number on any pull carrying a health buff — which is all three committed captures.
+ *
+ * `capWindows` stays as well, because a shaded stretch and a drawn ceiling answer different questions:
+ * the line says what the limit was, the shading says *who raised it*, and only the second can name
+ * Rallying Cry.
  *
  * Falls back to the samples' own peak when there is no stamina to compute a ceiling from, so a log
  * with no `combatantinfo` still draws its attack power rather than nothing.
@@ -401,9 +404,38 @@ export function vengeanceAudit({
 	};
 	const highestCeiling =
 		peakCap === null || baseAttackPower === null ? null : baseAttackPower + attackPowerMultiplier * peakCap;
+	/**
+	 * The ceiling as a step series, built from the cap windows rather than sampled.
+	 *
+	 * One entry at the pull's start for the resting ceiling, then one at each edge of every window that
+	 * raised it — the value being whatever `capAt` says is in force from that instant, so overlapping
+	 * buffs resolve to the highest exactly as they do everywhere else in this module. Adjacent entries
+	 * holding the same level are dropped: a series that repeats itself draws the same line and makes a
+	 * reader look for a change that did not happen.
+	 *
+	 * Omitted entirely when nothing moved the ceiling, so a curve with a fixed limit carries the scalar
+	 * alone and every consumer behaves as it did before the field existed.
+	 */
+	const ceilingSteps: Array<[number, number]> = [];
+	if (baseAttackPower !== null && maxHealth !== null && capWindows.length > 0) {
+		// `w.end + 1` and not `w.end`, because `capAt` treats a window as closed at both ends — the buff is
+		// up on the millisecond it falls off. Sampling at `w.end` would therefore read the raised ceiling
+		// and the series would never come back down.
+		const edges = [0, ...capWindows.flatMap((w) => [w.start, w.end + 1])].sort((a, b) => a - b);
+		for (const t of edges) {
+			const cap = capAt(t);
+			if (cap === null) continue;
+			const level = baseAttackPower + attackPowerMultiplier * cap;
+			const previous = ceilingSteps[ceilingSteps.length - 1];
+			if (previous !== undefined && previous[1] === level) continue;
+			ceilingSteps.push([t, level]);
+		}
+	}
+
 	const curve: ResourceCurve = {
 		max: highestCeiling ?? samples.reduce((widest, s) => Math.max(widest, s.attackPower), 0),
 		points: samples.map((s): [number, number] => [s.t, s.attackPower]),
+		...(ceilingSteps.length > 0 ? { ceiling: ceilingSteps } : {}),
 	};
 
 	const peakSample = samples.reduce<AttackPowerSample | null>(

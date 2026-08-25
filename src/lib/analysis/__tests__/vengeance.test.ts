@@ -438,3 +438,51 @@ describe.each(PULLS)('the $file capture', (expected) => {
 		expect(audit.medianGapMs).toBeLessThan(100);
 	});
 });
+
+describe('the ceiling the chart draws', () => {
+	/**
+	 * The step series, checked against the windows it is built from rather than against itself.
+	 *
+	 * Two edges per window and one for the pull's opening, and no adjacent pair holding the same level —
+	 * which together are the whole shape. Asserting the count this way rather than as a literal is what
+	 * makes it a check: a series built off the wrong edge would still have some length, and one that
+	 * never came back down would have exactly half as many.
+	 */
+	it.each(PULLS)('steps once at each edge of every raise on $file', (expected) => {
+		const { audit } = auditOf(expected);
+		const steps = audit.curve.ceiling;
+		expect(steps).toBeDefined();
+		expect(steps).toHaveLength(expected.rallyingCryWindows * 2 + 1);
+
+		// The opening entry is the resting ceiling, and every level alternates from there — a raise and a
+		// return, never two of either in a row.
+		const levels = (steps ?? []).map(([, level]) => level);
+		const resting = levels[0];
+		const raised = levels[1];
+		expect(resting).toBeDefined();
+		expect(raised).toBeGreaterThan(resting ?? 0);
+		levels.forEach((level, i) => expect(level).toBe(i % 2 === 0 ? resting : raised));
+
+		// And the scalar the axis is scaled by is the raised level, so the curve can never leave it.
+		expect(audit.curve.max).toBe(raised);
+		expect((steps ?? [])[0]?.[0]).toBe(0);
+	});
+
+	/**
+	 * A pull whose ceiling never moved carries no series at all, which is the fallback every other bar
+	 * in this tree relies on. Asserted with the health buffs withheld rather than by finding a capture
+	 * without one — all three carry a Rallying Cry, so the case has to be constructed.
+	 */
+	it('omits the series entirely when nothing raised the ceiling', () => {
+		const dataset = rawFixture('protection', 'garrosh.json');
+		const audit = readVengeance({
+			events: dataset.events,
+			actorID: dataset.actor.id,
+			t0: dataset.fight.startTime,
+			durationMs: dataset.fight.endTime - dataset.fight.startTime,
+			stamina: readGear(dataset.events, dataset.actor.id).stamina,
+		});
+		expect(audit.curve.ceiling).toBeUndefined();
+		expect(audit.capWindows).toEqual([]);
+	});
+});

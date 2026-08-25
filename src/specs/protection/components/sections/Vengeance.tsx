@@ -22,19 +22,20 @@ import { Note, Prose, Section, StatTile, StatTiles } from '~/components/primitiv
  *
  * ---
  *
- * **The ceiling moves, and this chart cannot draw it moving.** `ResourceCurve` carries a single scalar
- * `max` and `ResourceTrack` scales its whole y-axis by it, so a ceiling that changes mid-pull has no
- * shape to be drawn as. Three ways out were considered:
+ * **The ceiling moves, and the chart draws it moving.** `ResourceCurve.ceiling` is a step series of
+ * what the limit was at each moment, beside the scalar `max` that scales the axis — the scalar is the
+ * highest the ceiling ever reached, so the curve stays inside its own axis, and the series is the
+ * dashed line `ResourceTrack` draws across it. `cappedOf` reads the same series, so a reading taken
+ * under a raised ceiling is measured against *that* ceiling rather than against the pull's highest.
  *
- *   1. Draw the resting ceiling and let the curve run past it during a raised stretch — rejected: the
- *      line would leave the top of its own axis and read as broken.
- *   2. Draw the *highest* ceiling the pull reached, and shade the stretches where it was that high.
- *   3. Widen `ResourceCurve` with an optional ceiling series.
+ * Two weaker answers were tried first and are worth recording, because both are what this looks like
+ * from the outside. Drawing the resting ceiling alone lets the curve leave the top of its own axis
+ * during a raised stretch, which reads as a broken chart. Drawing only the highest and shading the
+ * raised stretches keeps the axis honest but inverts the thing the section is for: a player whose
+ * ceiling rose to meet them reads as having fallen further from it.
  *
- * This section takes (2). The axis top is then a real ceiling that the pull genuinely had, the shaded
- * stretches say when, and the two figures are stated in full in the tiles and the sentence. (3) is the
- * better answer and is a change to a shared type and a shared chart, which is a lane of its own —
- * the note under the chart is what stands in for it until then.
+ * The shading stays alongside the line, because the two answer different questions. The line says what
+ * the limit was; the shading says who raised it, and only the shading can name Rallying Cry.
  */
 export default function Vengeance({ analysis }: { analysis: Analysis }) {
 	// Read as optional rather than through `Analysis & ProtectionAudit`, and for the reason every other

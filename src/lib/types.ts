@@ -1358,8 +1358,34 @@ export type ResourceBarAudit = PoolResourceAudit | PointsResourceAudit;
  * between the points.
  */
 export interface ResourceCurve {
+	/**
+	 * The ceiling the chart's vertical axis is scaled by.
+	 *
+	 * For a bar with a fixed ceiling this *is* the ceiling. For one whose ceiling moves — see
+	 * `ceiling` below — it is the **highest** the ceiling ever reached on this pull, so the line can
+	 * never leave its own axis, and the ceiling in force at any given moment is the step series
+	 * rather than this number.
+	 */
 	max: number;
 	points: Array<[number, number]>;
+	/**
+	 * The ceiling over time, when it is not one number for the whole pull.
+	 *
+	 * A step series in the same shape as `points`: each entry is the moment a new ceiling took effect
+	 * and what it became, holding until the next entry. Absent means the ceiling is `max` throughout,
+	 * which is every bar in the game except one.
+	 *
+	 * **Vengeance is why this exists.** Its ceiling is the tank's maximum health
+	 * (`sim/core/vengeance.go:106`), and `MaxHealth()` reads the live Health stat rather than a
+	 * constant — so a Rallying Cry or a Last Stand raises it for as long as it holds, and all three
+	 * committed Protection pulls carry one doing exactly that. Drawn against a single `max` the raised
+	 * stretches read as the player falling further from a ceiling that had in fact moved up to meet
+	 * them, which inverts what the chart is for.
+	 *
+	 * Optional and additive: every existing curve omits it and is scaled and shaded by `max` exactly
+	 * as before.
+	 */
+	ceiling?: Array<[number, number]>;
 	/**
 	 * Moments the bar overflowed, and by how much.
 	 *
