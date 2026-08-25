@@ -258,6 +258,22 @@ export interface Ability {
 	 */
 	targeting?: AbilityTargeting;
 	cooldownMs?: number;
+	/**
+	 * True when haste shortens this cooldown, so `cooldownMs` is the value at no haste rather than the
+	 * value on any real pull.
+	 *
+	 * Absent on every Windwalker and Elemental button, and that is the honest default rather than an
+	 * oversight: an energy or mana cooldown does not read haste at all. Protection Paladin is the spec
+	 * this exists for — Sanctity of Battle (25956) turns melee haste into cooldown reduction on every
+	 * generator and on Shield of the Righteous, so on a geared pull the base numbers here are a third
+	 * too long and every drift figure built on them would invent lost casts.
+	 *
+	 * Nothing reads this on its own. A spec that declares it also declares `cooldownAt` on its
+	 * `SpecConfig`, which is what turns the flag into a number at the moment of a press — see
+	 * `cooldownDrift`, where the *when* matters: the game arms a cooldown when the button goes out, so
+	 * a press made inside Bloodlust stamps a shorter one than the press before it.
+	 */
+	hasteScaled?: boolean;
 	/** Present when pressing it locks out every other button for a while. */
 	channel?: Channel;
 	/**

@@ -367,6 +367,19 @@ export interface SpecConfig {
 	 * periodic damage would keep the ladder in its multi-target branch long after the adds are gone.
 	 */
 	aplTargetCountExclude?: readonly string[];
+	/**
+	 * This spec's cooldowns at a moment in the pull, for a spec whose cooldowns move with haste.
+	 *
+	 * Absent on every spec whose cooldowns are fixed, which is both of the first two, and every drift
+	 * figure on their captures is unchanged by this existing — `cooldownDrift` takes the declared
+	 * number when nothing is passed. A spec that declares `hasteScaled` on an ability declares this
+	 * too, and the two together are the whole of the feature.
+	 *
+	 * Built from the dataset rather than from the handles, because the handles are what it feeds: the
+	 * curve needs the haste rating off `combatantinfo` and the Bloodlust windows, and both are read
+	 * before the cast tables that consume it.
+	 */
+	cooldownAt?(dataset: FightDataset, ability: Ability, t: number): number;
 	/** Whether this player was actually playing the spec. False means the UI must refuse to render. */
 	identify(h: Handles): boolean;
 	/** The spec's half of the analysis, computed from the handles and nothing else. */
@@ -1298,7 +1311,17 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			const times = castTimes(ability);
 			if (!times.length) return null;
 			const live: Interval[] = spec.needsTarget.has(ability.key) && engaged.length ? engaged : [[0, duration]];
-			const drift = cooldownDrift(times, ability, live, duration, cooldownLeewayMs, castBeginTimes(ability));
+			const drift = cooldownDrift(
+				times,
+				ability,
+				live,
+				duration,
+				cooldownLeewayMs,
+				castBeginTimes(ability),
+				// Only for a spec that declares one. Everything else takes the declared `cooldownMs`, which
+				// is what every committed capture was measured against.
+				spec.cooldownAt === undefined ? undefined : (t) => spec.cooldownAt!(dataset, ability, t),
+			);
 			return {
 				id: ability.castIds[0] ?? 0,
 				name: ability.name,

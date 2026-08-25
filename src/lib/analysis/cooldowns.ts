@@ -118,6 +118,21 @@ export function cooldownDrift(
 	 * `specs/windwalker/lib/index.ts`' Xuen call relies on that and is correct without it.
 	 */
 	commits: readonly number[] = times,
+	/**
+	 * This ability's cooldown as a press at that moment stamps it, in ms — for a spec whose cooldowns
+	 * move with haste.
+	 *
+	 * Absent is the ordinary case and keeps every figure exactly where it was: `ability.cooldownMs`, one
+	 * number for the whole pull. A spec that declares `hasteScaled` passes this instead, and the *when*
+	 * is the whole point — `sim/core/cast.go` stamps `spell.CD.Set(sim.CurrentTime + cd)` at the press,
+	 * so a cooldown started before Bloodlust runs its full length and one started inside it does not.
+	 *
+	 * `lostCasts` changes shape with it, and has to: dividing a total drift by one cooldown is only
+	 * sound when there is one cooldown. With a curve, each idle window is priced at the cooldown that
+	 * was running when it opened and the counts are summed. The two agree exactly when the curve is
+	 * flat, which is what keeps the specs that pass nothing here untouched.
+	 */
+	cooldownAt?: (t: number) => number,
 ): CooldownDrift {
 	const nothing: CooldownDrift = {
 		driftMs: 0,
@@ -130,8 +145,16 @@ export function cooldownDrift(
 	const first = times[0];
 	if (first === undefined || cooldownMs <= 0) return nothing;
 
+	const cdAt = (t: number): number => {
+		if (cooldownAt === undefined) return cooldownMs;
+		const scaled = cooldownAt(t);
+		// A curve that answers nothing sensible falls back to the declared number rather than dividing by
+		// it: a zero here would make `ready` never advance and every gap an infinite idle window.
+		return Number.isFinite(scaled) && scaled > 0 ? scaled : cooldownMs;
+	};
+
 	const idle: Interval[] = [];
-	let ready = first + cooldownMs;
+	let ready = first + cdAt(first);
 	// Indexed rather than `times.slice(1)`, because the closing end of each window comes from the
 	// parallel `commits` array and needs the position to find it.
 	for (const [i, t] of times.entries()) {
@@ -139,7 +162,7 @@ export function cooldownDrift(
 		// Opened at the completion, closed at the commit — see the two-clocks note above.
 		const committed = commits[i] ?? t;
 		if (committed > ready) idle.push([ready, committed]);
-		ready = t + cooldownMs;
+		ready = t + cdAt(t);
 	}
 
 	const windows = idle
@@ -154,7 +177,10 @@ export function cooldownDrift(
 
 	return {
 		driftMs,
-		lostCasts: Math.floor(driftMs / cooldownMs),
+		lostCasts:
+			cooldownAt === undefined
+				? Math.floor(driftMs / cooldownMs)
+				: windows.reduce((sum, w) => sum + Math.floor(w.ms / cdAt(w.start)), 0),
 		openerMs: overlapMs(0, commits[0] ?? first, live),
 		tailMs: overlapMs(Math.min(ready, durationMs), durationMs, live),
 		windows,
