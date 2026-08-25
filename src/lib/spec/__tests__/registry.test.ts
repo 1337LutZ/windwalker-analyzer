@@ -1,8 +1,11 @@
 // The registry is the only list of specs, so the two lookups and the invariants around them are
 // pinned here: a spec the UI can name in the URL must be findable by the API's own spelling, and the
 // default must exist.
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+
+import { spellIconUrl } from '~/components/primitives/spellIcon';
+import { CLASS_COLOR } from '~/lib/game/classes';
 
 import { DEFAULT_SPEC, findSpecForClass, getSpec, SPECS } from '../registry';
 
@@ -31,6 +34,33 @@ describe('spec registry', () => {
 
 	it('has a default that is actually in the list', () => {
 		expect(SPECS).toContain(DEFAULT_SPEC);
+	});
+
+	/**
+	 * `classSlug` is two claims the compiler only half-checks, and the half it misses is the one that ships.
+	 *
+	 * Its type is `keyof typeof CLASS_COLOR`, which catches a slug that names no class at all. What no type
+	 * can say is that the slug and the colour beside it name the *same* class: an entry may declare
+	 * `classSlug: 'monk'` and `colors: { primary: CLASS_COLOR.shaman }` and compile, drawing a monk's report
+	 * in the shaman's blue while every other assertion in this suite stays green. The colours are read back
+	 * through the table here so the coincidence the slug rests on cannot quietly stop being true.
+	 *
+	 * The uniqueness is over the pair and not over `key`, because `key` is not unique in MoP and cannot be
+	 * made so: `restoration` is a Druid spec and a Shaman spec, and `/restoration` has no way to say which.
+	 * That is the argument for class-before-spec in the route rather than a nicety of spelling, and
+	 * `classSlug` + `key` is the identity that survives it.
+	 */
+	it('gives every spec a slug the colour table knows, unique together with its key', () => {
+		const seen: string[] = [];
+		for (const spec of SPECS) {
+			expect(Object.keys(CLASS_COLOR), `spec ${spec.key}`).toContain(spec.classSlug);
+			expect(spec.colors.primary, `spec ${spec.key} draws a colour its own slug does not name`).toBe(
+				CLASS_COLOR[spec.classSlug],
+			);
+			const route = `${spec.classSlug}/${spec.key}`;
+			expect(seen, `two specs registered as ${route}`).not.toContain(route);
+			seen.push(route);
+		}
 	});
 
 	it('carries the pieces the UI runs on', () => {
@@ -69,34 +99,60 @@ describe('spec registry', () => {
 });
 
 /**
- * Every spec a deploy workflow pins itself to has to be a key this registry answers.
+ * Every route this build publishes has to be a spec this registry answers.
  *
- * `DEFAULT_SPEC` is `getSpec(PUBLIC_SPEC) ?? SPECS[0]`, and that fallback is deliberate — an unset
- * value is a dev server, not a mistake. The cost is that a *typo* is silent: `PUBLIC_SPEC: elementl`
- * builds and deploys perfectly, and the Elemental site comes up branded and behaving as Windwalker.
- * Nothing in the pipeline would fail, and nobody would look at the Actions tab. So the workflows'
- * own values are read off disk and checked against the list here, where a wrong one is a red test
- * instead of a wrong live site.
+ * **This replaced a scrape of the deploy workflows, and the reason is worth keeping.** A build used to
+ * pin itself to one spec through `PUBLIC_SPEC`, and `DEFAULT_SPEC` fell back to `SPECS[0]` when the
+ * value was unset — deliberate, because an unset value is a dev server rather than a mistake. The cost
+ * was that a *typo* was silent: `PUBLIC_SPEC: elementl` built and deployed perfectly, and the Elemental
+ * site came up branded and behaving as Windwalker, with nothing in the pipeline failing. So the
+ * workflows' own values were read off disk and checked here.
+ *
+ * One build now serves every spec by route, so there is no value to mistype and nothing in a workflow
+ * to read. The same class of mistake moved rather than disappearing: a route is built from `classSlug`
+ * and `key`, and a page whose params do not resolve is a published URL that serves a spec nobody asked
+ * for. So the *route source* is read off disk instead, and the pairs it produces are resolved here.
+ *
+ * Read from the page rather than recomputed, for the reason the scrape was: a copy of the expression
+ * would agree with itself and with nothing that ships.
  */
-describe('the spec keys the deploy workflows pin themselves to', () => {
-	const dir = '.github/workflows';
-	// `spec: <key>` under a caller's `with:`, and the `options:` of the Pages fallback's dispatch
-	// choice. Both are plain scalars on their own line, which is what makes a regex honest here rather
-	// than a YAML parse: there is nothing to disambiguate.
-	const keys = readdirSync(dir)
-		.filter((f) => f.endsWith('.yml'))
-		.flatMap((f) => {
-			const text = readFileSync(`${dir}/${f}`, 'utf8');
-			return [...text.matchAll(/^\s*(?:-\s+)?(?:spec|PUBLIC_SPEC):\s*([a-z][a-z0-9-]*)\s*$/gm)].map((m) => m[1]!);
-		});
+describe('the routes this build publishes', () => {
+	const page = readFileSync('src/pages/[class]/[spec].astro', 'utf8');
 
-	it('finds some to check, so a rename cannot quietly empty this test', () => {
-		expect(keys.length).toBeGreaterThan(0);
-		expect(keys).toContain('windwalker');
-		expect(keys).toContain('elemental');
+	it('builds its params from the registry rather than a list', () => {
+		// The failure this guards is a hand-written path table drifting from `SPECS`. `getStaticPaths`
+		// naming both fields off a spec is what makes the pairs below the registry's own.
+		expect(page).toMatch(/getStaticPaths/);
+		expect(page).toMatch(/classSlug/);
 	});
 
-	it('resolves every one of them', () => {
-		for (const key of keys) expect(getSpec(key), `workflow pins PUBLIC_SPEC=${key}`).toBeDefined();
+	it('resolves every spec it can publish, and publishes one route per spec', () => {
+		const routes = SPECS.map((spec) => `${spec.classSlug}/${spec.key}`);
+		expect(routes.length).toBe(SPECS.length);
+		expect(new Set(routes).size).toBe(routes.length);
+		for (const spec of SPECS) expect(getSpec(spec.key), `route names ${spec.key}`).toBeDefined();
+	});
+
+	it('finds some to check, so a rename cannot quietly empty this test', () => {
+		// The half the old scrape carried and the half worth keeping: a guard over an empty list passes
+		// vacuously, which is how a route table that stopped being generated would go unnoticed.
+		expect(SPECS.length).toBeGreaterThan(1);
+	});
+
+	/**
+	 * Every spec's icon is a spell this build knows, and no two specs wear the same one.
+	 *
+	 * `iconSpellId` is an id rather than an icon name so the picture comes from the one spell map the
+	 * rest of the page draws from — and the cost of that choice is that a wrong id fails *quietly*, as a
+	 * `null` the picker renders as no image. So it is checked here, where an id that stops resolving is
+	 * a red test rather than a card with a hole in it.
+	 *
+	 * Distinctness because the icon is the thing a reader picks by: two specs under one picture is a
+	 * splash that has stopped answering its own question.
+	 */
+	it('gives every spec an icon the spell map answers, and no two the same', () => {
+		const icons = SPECS.map((spec) => spellIconUrl(spec.iconSpellId));
+		for (const [i, url] of icons.entries()) expect(url, `${SPECS[i]!.key}`).not.toBeNull();
+		expect(new Set(icons).size).toBe(SPECS.length);
 	});
 });

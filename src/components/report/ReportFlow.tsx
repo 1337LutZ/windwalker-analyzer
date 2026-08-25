@@ -11,7 +11,7 @@ import { useFightPlayers } from '~/hooks/useFightPlayers';
 import { useReportFights } from '~/hooks/useReportFights';
 
 import type { OfferedChoice } from '~/lib/view/targetMode';
-import { DEFAULT_SPEC, getSpec } from '~/lib/spec';
+import type { SpecDefinition } from '~/lib/spec';
 import { forgetCredits } from '~/lib/wcl';
 
 import { useSession } from '../auth';
@@ -47,8 +47,15 @@ import { selectionDiverged } from './selectionDiverged';
  * button. The request doubles as the record of what the report below is about, and the divergence
  * effect drops it the moment the pickers move off it: a request that outlived its selection is a
  * previous fight's report sitting under the new fight's name.
+ *
+ * **The spec arrives as a prop and is fixed for the life of the page.** It used to be read out of the
+ * address bar here — `getSpec(fromUrl.spec ?? '') ?? DEFAULT_SPEC` — which put a report's whole
+ * identity behind a query key that anything could edit and that resolved to a default when it named
+ * nothing. The route decides it now, so there is no default to fall back to and no second opinion for
+ * the URL to hold: `/monk/windwalker` is the address, the page's own colour and title come from the
+ * same value, and everything below reads one spec that cannot change under it.
  */
-export default function ReportFlow() {
+export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 	// Step labels are shell copy, so they come from the `ui` namespace, not the report's.
 	const { t } = useTranslation('ui');
 	const { token, signOut } = useSession();
@@ -56,18 +63,8 @@ export default function ReportFlow() {
 	// once on mount and then only written to; after the first render the app's state is the truth.
 	const fromUrl = useInitialUrlSelection();
 	const writeUrl = useUrlSelectionWriter();
-	// The spec the URL names, or the registered default when it names none. `getSpec` returns the
-	// registry's own stable reference, so the identity is safe for the memos and queries below.
-	const spec = getSpec(fromUrl.spec ?? '') ?? DEFAULT_SPEC;
-	// The whole page's theme follows the spec: every structural colour in `global.css` is derived from
-	// `--spec-primary`, so setting it recolours the page to whatever the URL named (or the build's
-	// default). The build's spec is painted before first paint in `index.astro`; this is the
-	// hydration-time correction for a URL that names a different one.
-	useEffect(() => {
-		document.documentElement.style.setProperty('--spec-primary', spec.colors.primary);
-	}, [spec]);
-	// The thresholds the reader owns. Held here because this is where the analysis is derived. The
-	// spec's schema drives the panel; the default is the registered spec until the URL names one.
+	// The thresholds the reader owns. Held here because this is where the analysis is derived, and the
+	// spec's own schema is what the panel draws.
 	const settingsState = useSettings(spec.settings);
 	const queryClient = useQueryClient();
 
@@ -216,10 +213,14 @@ export default function ReportFlow() {
 
 	// Mirrored out whenever the resolved selection changes — including the defaults the pickers chose,
 	// so a link copied without touching anything still reproduces what is on screen.
+	//
+	// The spec is not in it. The path already names it, and a link carrying it in both places is a link
+	// whose two answers can disagree; `nextHref` drops the key rather than leaving it to the reader to
+	// notice which one the page obeyed.
 	useEffect(() => {
 		if (code === null) return;
-		writeUrl({ code, fightID, player: playerName, spec: spec.key });
-	}, [code, fightID, playerName, spec, writeUrl]);
+		writeUrl({ code, fightID, player: playerName });
+	}, [code, fightID, playerName, writeUrl]);
 
 	// The tab title follows the same selection the URL does, for the same reason: several tabs are
 	// how several pulls get compared, and the spec's name times four in a tab strip names none of

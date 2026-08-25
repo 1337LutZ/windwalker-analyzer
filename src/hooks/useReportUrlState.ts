@@ -18,9 +18,26 @@ export interface UrlSelection {
 	code: string | null;
 	fightID: number | null;
 	player: string | null;
-	/** The registry's own key — what `getSpec` reads. Absent means the default spec. */
+	/**
+	 * The registry's own key, from the query — what `getSpec` reads.
+	 *
+	 * **Read-only now, and only for the links that predate the routes.** The path names the spec today
+	 * (`/monk/windwalker`), so nothing writes this key any more and the report page does not consult it
+	 * either. It is still parsed because `/?report=…&spec=elemental` is the address bar this app had
+	 * for its whole life so far, and those links are in other people's histories: `SpecPicker` reads it
+	 * and forwards such a link to the route it names.
+	 */
 	spec: string | null;
 }
+
+/**
+ * The part of the selection this app writes back.
+ *
+ * The spec is not in it, and it is `Omit`ted rather than left optional so that a caller passing one is
+ * a compile error rather than a value silently dropped — which is the shape the bug would take if the
+ * path and the query ever disagreed about which spec a report belongs to.
+ */
+export type WrittenSelection = Omit<UrlSelection, 'spec'>;
 
 const EMPTY: UrlSelection = { code: null, fightID: null, player: null, spec: null };
 
@@ -84,7 +101,7 @@ export function useInitialUrlSelection(): UrlSelection {
  * Pulled out of the hook so that survival is a testable claim rather than a line to be read
  * carefully.
  */
-function nextHref(href: string, selection: UrlSelection): string {
+function nextHref(href: string, selection: WrittenSelection): string {
 	const url = new URL(href);
 	const set = (key: string, value: string | null) => {
 		if (value === null || value === '') url.searchParams.delete(key);
@@ -93,15 +110,19 @@ function nextHref(href: string, selection: UrlSelection): string {
 	set(PARAM.code, selection.code);
 	set(PARAM.fight, selection.fightID === null ? null : String(selection.fightID));
 	set(PARAM.player, selection.player);
-	set(PARAM.spec, selection.spec);
+	// **Dropped, not written.** The path names the spec now, so writing it here would put it in the
+	// address twice — and two spellings of one fact can disagree, whether by a hand-edited link or by
+	// an old `?spec=` outliving the route it was migrated to. Only one of the two chose the page, so
+	// the other one goes.
+	set(PARAM.spec, null);
 	// `URL` percent-encodes for us, which matters: anonymous reports name players `Player (17)`,
 	// and the parentheses and space have to survive the round trip.
 	return `${url.pathname}${url.search}${url.hash}`;
 }
 
 /** Writes the selection back, dropping the keys that are not set rather than writing empty ones. */
-export function useUrlSelectionWriter(): (selection: UrlSelection) => void {
-	return useCallback((selection: UrlSelection) => {
+export function useUrlSelectionWriter(): (selection: WrittenSelection) => void {
+	return useCallback((selection: WrittenSelection) => {
 		window.history.replaceState(null, '', nextHref(window.location.href, selection));
 	}, []);
 }

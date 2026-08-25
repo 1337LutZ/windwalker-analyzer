@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import type { Analysis } from '~/lib/types';
 import type { OfferedChoice } from '~/lib/view/targetMode';
-import { DEFAULT_SPEC, SPECS } from '~/lib/spec';
+import { SPECS } from '~/lib/spec';
 
 import Report from './Report';
 import TargetModeControl from './report/TargetModeControl';
@@ -17,10 +17,17 @@ import { compactChoiceClass } from './primitives/controls';
  * would have rendered it through the Windwalker's section list and scorecard.
  *
  * Off `analysis.specName`, which is `analyseCore`'s copy of the engine config's own spelling and the
- * same string `SpecDefinition.specName` carries, so the two cannot name different specs. Still not
- * `DEFAULT_SPEC` first: which spec a *fixture* is has nothing to do with which spec the build serves.
+ * same string `SpecDefinition.specName` carries, so the two cannot name different specs. Still not the
+ * build's pinned default first: which spec a *fixture* is has nothing to do with which spec the build
+ * serves.
+ *
+ * A name no definition answers falls to `SPECS[0]` rather than to that default, which is what
+ * `lib/view/specColors` already does with the same lookup. The pin is a deployment's answer to "which
+ * spec is this site", and a fixture whose spelling matches nothing is a bug in the fixture: reading the
+ * pin there would let the harness render one spec's pull through another's sections and call it the
+ * configuration working.
  */
-const specFor = (analysis: Analysis) => SPECS.find((spec) => spec.specName === analysis.specName) ?? DEFAULT_SPEC;
+const specFor = (analysis: Analysis) => SPECS.find((spec) => spec.specName === analysis.specName) ?? SPECS[0]!;
 
 /** TEMPORARY dev harness — delete before shipping, along with src/pages/preview.astro. */
 export default function PreviewSwitcher({ fixtures }: { fixtures: Record<string, Analysis> }) {

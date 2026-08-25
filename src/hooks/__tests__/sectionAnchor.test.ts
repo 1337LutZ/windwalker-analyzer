@@ -166,19 +166,36 @@ describe('the section fragment', () => {
 describe('the selection writer', () => {
 	it('carries the fragment through a selection write', () => {
 		expect(
-			nextHref('https://example.test/app?report=Older#bank-heading', {
+			nextHref('https://example.test/app/monk/windwalker?report=Older#bank-heading', {
 				code: 'a:6MhZgjyAknFWrYfK',
 				fightID: 57,
 				player: 'Player (17)',
-				spec: 'windwalker',
 			}),
-		).toBe('/app?report=a%3A6MhZgjyAknFWrYfK&fight=57&player=Player+%2817%29&spec=windwalker#bank-heading');
+		).toBe('/app/monk/windwalker?report=a%3A6MhZgjyAknFWrYfK&fight=57&player=Player+%2817%29#bank-heading');
 	});
 
 	it('still writes a bare selection when there is no fragment', () => {
-		expect(nextHref('https://example.test/app', { code: 'AbCd1234', fightID: 3, player: null, spec: null })).toBe(
+		expect(nextHref('https://example.test/app', { code: 'AbCd1234', fightID: 3, player: null })).toBe(
 			'/app?report=AbCd1234&fight=3',
 		);
+	});
+
+	/**
+	 * The spec is the path's now, so a `?spec=` in the bar is a second answer to a settled question.
+	 *
+	 * It reaches a route two ways and neither is exotic: a hand-edited link, and a bookmark taken
+	 * before the routes existed that somebody re-typed a path onto. Left in place it survives every
+	 * subsequent write, so the address goes on naming a spec the page is not — and the next person to
+	 * copy that link out of the bar shares the disagreement rather than the report.
+	 */
+	it('drops a stale ?spec= rather than leaving the address naming two of them', () => {
+		expect(
+			nextHref('https://example.test/monk/windwalker?report=Older&spec=elemental', {
+				code: 'AbCd1234',
+				fightID: 3,
+				player: null,
+			}),
+		).toBe('/monk/windwalker?report=AbCd1234&fight=3');
 	});
 });
 

@@ -20,7 +20,7 @@
 //     chunk*, `_astro/TargetModeControl.*.js`, one occurrence each, whichever spec built it.
 //   - **And greping the HTML instead of the JS does not fix it either**, which is the trap worth naming
 //     because it is the obvious correction. `client:load` serialises the whole `fixtures` map into the
-//     island's props, so `dist/preview/index.html` carries every fixture's `abilities[].name` as
+//     island's props, so `dist/preview.html` carries every fixture's `abilities[].name` as
 //     entity-encoded JSON: `&quot;name&quot;:[0,&quot;Lava Burst&quot;]` is in there at byte 1 710 476 of
 //     3 334 286, and `Tigereye Brew` at 22 012. Both are data, neither is copy, and no grep can tell
 //     them apart from a sentence.

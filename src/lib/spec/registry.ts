@@ -16,7 +16,7 @@ import type { Handles } from '~/lib/analysis/analyseCore';
 import type { RaidBuffEffect } from '~/lib/analysis/raidBuffs';
 import type { GameData } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
-import type { SpecColors } from '~/lib/game/classes';
+import type { CLASS_COLOR, SpecColors } from '~/lib/game/classes';
 import type { Grade, Scorecard, ScoreView } from '~/lib/score';
 import type { Analysis, FightDataset } from '~/lib/types';
 import type { AnalysisSettings, SettingSchema } from '~/lib/settings';
@@ -57,7 +57,36 @@ export interface SpecDefinition {
 	key: string;
 	/** WarcraftLogs' own class spelling, exactly as the API returns it. */
 	classKey: string;
+	/**
+	 * The class's own slug: the class half of the per-spec route (`/monk/windwalker`), and the key the
+	 * spec's colour is already read by.
+	 *
+	 * Declared rather than derived from `classKey`, because lowercasing that only works by luck on the
+	 * two classes shipped so far. MoP's own spelling includes `Death Knight`, and `'Death Knight'
+	 * .toLowerCase()` is a path segment with a space in it — a URL nobody can type and no router can
+	 * match on. The luck runs out at the first class whose name is two words.
+	 *
+	 * Typed as a `CLASS_COLOR` key because that table is the de-facto slug list already: every spec
+	 * reads its primary through it (`colors: { primary: CLASS_COLOR.monk }`), so the lowercase class
+	 * names exist and are spelled once. Nothing made a spec's slug and the key it reads its colour by
+	 * agree until now, which is the coincidence `registry.test.ts` turns into an invariant.
+	 */
+	classSlug: keyof typeof CLASS_COLOR;
 	/** WarcraftLogs' own spec spelling, exactly as `playerDetails` returns it. */
+	/**
+	 * The spell whose icon stands for this spec, by id.
+	 *
+	 * An id and not an icon name, so the picture is looked up in the same spell map every other icon on
+	 * the page comes from — `spellIconName` answers `null` for an id nothing knows, which is a test
+	 * failure rather than a broken image at a reader. A filename written here would be a second source
+	 * for a thing this repo already has one source for, and the way to find out it was wrong would be to
+	 * look at the page.
+	 *
+	 * The signature ability rather than the class crest: a reader picking between two specs of the same
+	 * class needs the half that differs, and `restoration` under a shaman crest beside `elemental` under
+	 * the same crest tells them nothing.
+	 */
+	iconSpellId: number;
 	specName: string;
 	/** What the page calls it. */
 	displayName: string;
@@ -186,6 +215,9 @@ export const SPECS: SpecDefinition[] = [
 	{
 		key: 'windwalker',
 		classKey: 'Monk',
+		classSlug: 'monk',
+		// Rising Sun Kick: the Windwalker's own button, and not one a Brewmaster or a Mistweaver presses.
+		iconSpellId: 107_428,
 		specName: 'Windwalker',
 		displayName: 'Windwalker Monk',
 		colors: WW_SPEC.colors,
@@ -208,6 +240,9 @@ export const SPECS: SpecDefinition[] = [
 	{
 		key: 'elemental',
 		classKey: 'Shaman',
+		classSlug: 'shaman',
+		// Lava Burst: Elemental's, where Flame Shock and Earth Shock are every shaman's.
+		iconSpellId: 51_505,
 		specName: 'Elemental',
 		displayName: 'Elemental Shaman',
 		colors: ELEMENTAL_SPEC.colors,

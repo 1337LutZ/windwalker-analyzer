@@ -43,7 +43,7 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  * "~25ms" this used to quote came from. `npm run build` cannot see it either: three interleaved warm
  * runs a side in a clean worktree land 2.54–3.33s with this entry against 2.56–2.73s without, one
  * spread inside the other. The price is the page. `client:load` serialises the whole `fixtures` map into
- * the island's props, so `dist/preview/index.html` goes **2 689 686 → 2 924 979 bytes**, +235 293
+ * the island's props, so `dist/preview.html` goes **2 689 686 → 2 924 979 bytes**, +235 293
  * (+8.75%). Paid by a dev harness that ships to nobody, and the reason a third Elemental entry needs its
  * own argument rather than following from this one.
  *
@@ -84,7 +84,7 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  * markup is 549 340 characters against `phased`'s 364 888, and that difference is the thing a narrow
  * viewport has to survive.
  *
- * Its price, measured the same way the second entry's was: `dist/preview/index.html` goes
+ * Its price, measured the same way the second entry's was: `dist/preview.html` goes
  * **2 943 573 → 3 319 162 bytes**, +375 589 (+12.8%), three interleaved builds a side in a clean
  * worktree. Larger than the second entry's +235 293 because this pull is the biggest of the three
  * (`cleave.json` is 1.2MB of raw events against `phased`'s 661KB), and still paid by a dev harness that

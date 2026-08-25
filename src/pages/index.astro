@@ -1,16 +1,27 @@
 ---
+// The splash: which spec do you want read?
+//
+// This used to be the report page, and it was one spec's report page — the build was pinned to a spec
+// and the root served it. One build serves every spec by route now, so the root is the question and
+// `pages/[class]/[spec].astro` is the answer.
+//
+// Spec-neutral down to the colour it paints — see `NEUTRAL_PRIMARY`. `SpecPicker` carries what the
+// island does with an old `?spec=` link, and `Splash` why the root is also where every OAuth callback
+// lands.
 import '~/styles/global.css';
 
+import Splash from '~/components/Splash';
 import Base from '~/layouts/Base.astro';
-import App from '~/components/App';
-import { DEFAULT_SPEC } from '~/lib/spec';
+import { NEUTRAL_PRIMARY } from '~/lib/view/specColors';
 ---
 
 <Base
-	title={`${DEFAULT_SPEC.displayName} analyzer (alpha)`}
-	description={`Read a Mists of Pandaria ${DEFAULT_SPEC.displayName} pull from its own event stream: economy discipline, buff snapshots, lost casts and a timestamped miss ledger. Runs entirely in your browser.`}
-	specColor={DEFAULT_SPEC.colors.primary}
+	title="Mists of Pandaria log analyzer (alpha)"
+	description="Read a single Mists of Pandaria pull from its own event stream: economy discipline, buff snapshots, lost casts and a timestamped miss ledger. Pick the spec you played. Runs entirely in your browser."
+	specColor={NEUTRAL_PRIMARY}
 >
-	{/* client:load, not client:visible: the island is the entire page, so there is nothing to defer. */}
-	<App client:load />
+	{/* client:load, not client:visible: the island is the entire page, it is what forwards an old
+	    `?spec=` link on to its route, and it is what spends the authorization code a sign-in comes back
+	    with. Deferring any of the three would leave a reader waiting on a scroll. */}
+	<Splash client:load />
 </Base>

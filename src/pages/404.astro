@@ -1,0 +1,29 @@
+---
+// Every address this build does not serve, answered with the splash's own picker.
+//
+// **A top-level `404.html` is the whole mechanism, and it is deliberately the only one.** Cloudflare
+// Pages serves this file for any path that matches no asset, and GitHub Pages does the same. The
+// obvious alternatives are both worse than nothing here: a `/*` splat in `public/_headers` sets
+// headers rather than serving anything, and a `_redirects` catch-all would swallow the site — the
+// documented rule is that "redirects are always followed, regardless of whether or not an asset
+// matches", so `/*` would redirect `_astro/*.js` and the stylesheet along with the typo it was aimed
+// at.
+//
+// It renders the picker rather than an apology with a link home, because the reader who lands here is
+// almost always one address away from what they wanted: a `/windwalker` from before the routes had a
+// class in front of them, or a hand-typed spec. The picker is the shortest route to the page that
+// does exist, and it carries any report in the query on to it.
+import '~/styles/global.css';
+
+import Splash from '~/components/Splash';
+import Base from '~/layouts/Base.astro';
+import { NEUTRAL_PRIMARY } from '~/lib/view/specColors';
+---
+
+<Base
+	title="Not a page here - Mists of Pandaria log analyzer"
+	description="That address is not a page on this site. Pick the spec you played and the analyzer opens on its own page."
+	specColor={NEUTRAL_PRIMARY}
+>
+	<Splash client:load unknownAddress />
+</Base>

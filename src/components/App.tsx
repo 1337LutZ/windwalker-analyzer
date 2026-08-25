@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { getSpec } from '~/lib/spec';
+
 import Analyzer from './Analyzer';
 import SessionProvider from './auth/SessionProvider';
 
@@ -30,15 +32,33 @@ function createQueryClient(): QueryClient {
 	});
 }
 
-export default function App() {
+export interface AppProps {
+	/**
+	 * The registry key of the spec this page is, from the route that built it.
+	 *
+	 * A key and not a `SpecDefinition`, because this is the island boundary: Astro serialises an
+	 * island's props into the document, and most of a definition is functions that no serialiser can
+	 * carry. So the route hands over the one part that survives and this resolves the rest, out of the
+	 * same registry the route read it from. Everything below here takes the definition itself.
+	 */
+	specKey: string;
+}
+
+export default function App({ specKey }: AppProps) {
 	// Built on mount rather than at module scope: Astro prerenders this island, and a client created
 	// during that pass would be a second, dead cache built into the bundle.
 	const [queryClient] = useState(createQueryClient);
 
+	const spec = getSpec(specKey);
+	// Thrown rather than defaulted to the first registered spec, which is the tempting shape and the
+	// dangerous one: a pull scored against a spec the address did not name is a report that is
+	// confidently wrong at every heading rather than one that is visibly broken.
+	if (spec === undefined) throw new Error(`No spec is registered as "${specKey}".`);
+
 	return (
 		<QueryClientProvider client={queryClient}>
 			<SessionProvider>
-				<Analyzer />
+				<Analyzer spec={spec} />
 			</SessionProvider>
 		</QueryClientProvider>
 	);

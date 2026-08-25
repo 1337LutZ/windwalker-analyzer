@@ -34,11 +34,12 @@
 }
 
 @theme {
-	/* The spec's identity colour, set at runtime from the spec's own `colors.primary` — a Windwalker
-	 * report is tinted green, an Elemental one blue. The structural colours below are all derived
-	 * from it, so one value recolours the whole dark theme. The default is the monk's green; the page
-	 * sets the build's spec before first paint (index.astro) and the URL's spec after hydration
-	 * (ReportFlow), so an Elemental deployment never flashes green. */
+	/* The spec's identity colour, set from the spec's own `colors.primary` — a Windwalker report is
+	 * tinted green, an Elemental one blue. The structural colours below are all derived from it, so one
+	 * value recolours the whole dark theme. Every page sets it in `Base.astro` before first paint, from
+	 * the route it belongs to: a spec's own primary on `[class]/[spec].astro`, and `NEUTRAL_PRIMARY` on
+	 * the two pages that are about no spec. The default below is the monk's green and reaches nothing
+	 * the site serves, so an Elemental page never flashes green on the way in. */
 	--spec-primary: #00ff98;
 
 	/* The dark ground, tinted by the spec rather than fixed. Each mixes a little of the primary into a

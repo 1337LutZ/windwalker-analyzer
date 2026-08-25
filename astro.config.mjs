@@ -31,6 +31,16 @@ export default defineConfig({
 	// Static only: there is no server on Pages, and there must not be one — the WarcraftLogs token
 	// stays in the visitor's browser and is sent straight to warcraftlogs.com, never to us.
 	output: 'static',
+	// One file per route rather than a directory with an `index.html` inside it, so `/monk/windwalker`
+	// emits `dist/monk/windwalker.html` and the address a reader copies out of the bar carries no
+	// trailing slash.
+	//
+	// The default would emit `dist/monk/windwalker/index.html`, whose canonical address is
+	// `/monk/windwalker/`. That slash is not cosmetic on this site. It is the string a reader shares,
+	// the string every link on the splash has to spell the same way, and one more spelling for the
+	// redirect-URI comparison in `lib/auth/config.ts` to normalise away. Both hosts serve `/foo` from
+	// `foo.html`, so nothing is lost by picking the shorter of the two.
+	build: { format: 'file' },
 	integrations: [react()],
 	vite: {
 		plugins: [tailwindcss()],
