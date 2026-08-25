@@ -448,9 +448,11 @@ export function pointsResourceAudit(
 	const reported = (id: number): boolean =>
 		resourceChangeIDs.has(id) || resourceChangeIDs.has(reportedAs.get(id) ?? -1);
 	const walk = chiAtCasts(events, actorID, t0, (id, atMs) => (reported(id) ? undefined : gainOf(id, atMs)), powerType);
-	// The overflow audit has no event path — it reads gains off presses only — so it takes the
-	// whole table, resourcechange-emitters included: their whole points are the point.
-	const overflow = chiWasted(events, actorID, t0, gainOf, powerType);
+	// The overflow audit takes the same split: an emitter's waste is read off its own event, and the
+	// declared table covers only the presses the log says nothing about. Handing it the whole table
+	// instead double-counted every emitter — and on holy power, where every generator emits, it made
+	// the entire figure a reconstruction of a bar the log had already measured.
+	const overflow = chiWasted(events, actorID, t0, gainOf, powerType, reported);
 	return {
 		kind: 'points',
 		type,
@@ -463,20 +465,28 @@ export function pointsResourceAudit(
 }
 
 /**
- * Chi thrown away, press by press.
+ * Points thrown away — read off the log where the log counts them, walked forward where it does not.
  *
- * Chi has to be tracked forward rather than read off, because the log reports it asymmetrically:
- * measured on a real pull, a chi *spender* carries an exact pre-spend reading (`Blackout Kick` with
- * `{amount: 4, max: 4, cost: 2}`) while a *generator* carries only the energy it paid — a Jab reports
- * 40 energy and says nothing about the chi it returned. So there is no reading to compare a gain
- * against at the moment the gain happens.
+ * **Two sources, and which one applies is a property of the bar rather than a preference.** A gain the
+ * log emits as a `resourcechange` carries `waste` on it: WarcraftLogs' own arithmetic against the bar
+ * it sampled at that instant, which is ground truth and needs no reconstruction. Everything else has
+ * to be tracked forward, because the log reports those bars asymmetrically: measured on a real pull, a
+ * chi *spender* carries an exact pre-spend reading (`Blackout Kick` with `{amount: 4, max: 4, cost: 2}`)
+ * while a *generator* carries only the energy it paid — a Jab reports 40 energy and says nothing about
+ * the chi it returned. So there is no reading to compare that gain against at the moment it happens.
  *
  * The walk: hold a running count, add what each generator returns, subtract what each spender costs,
  * and overwrite the count with the real number every time a reading appears. Every spender is a
  * resync, so an error cannot accumulate for long — and until the first reading arrives the count is
- * unknown and nothing is claimed.
+ * unknown and nothing is claimed. Overflow is the excess: three chi in hand, a Jab worth two, a cap of
+ * four, one wasted.
  *
- * Overflow is the excess: three chi in hand, a Jab worth two, a cap of four, one wasted.
+ * **`reported` is what keeps the two apart, and holy power is why it exists.** Every Paladin generator
+ * emits its gain as an event, so the whole bar is readable — and walking it instead invented faults in
+ * both directions on the same pull. A Crusader Strike the boss dodged pays nothing and the log emits
+ * nothing, but a flat table credits it anyway; a generator pressed under Holy Avenger pays *three* and
+ * the same table credits one. Iron Juggernaut, 98 presses: the walk read 2 wasted where the log's own
+ * `waste` fields sum to none, and read 98 generated against the log's 128.
  */
 export function chiWasted(
 	events: readonly WclEvent[],
@@ -484,16 +494,30 @@ export function chiWasted(
 	t0: number,
 	gainOf: (abilityID: number, atMs: number) => number | undefined,
 	powerType: number = WCL_CHI,
+	reported: (abilityID: number) => boolean = () => false,
 ): Array<{ t: number; wasted: number }> {
 	const out: Array<{ t: number; wasted: number }> = [];
 	let chi: number | null = null;
 	let max = 0;
 
 	for (const e of events) {
-		if (e.type !== 'cast') continue;
 		const side = resourceActorOf(e);
 		const owner = side === 1 ? e.sourceID : side === 2 ? e.targetID : undefined;
 		if (owner !== actorID) continue;
+
+		// A gain the log states outright, with the overflow already measured on it.
+		if (isResourceChange(e) && e.resourceChangeType === powerType) {
+			const wasted = e.waste ?? 0;
+			if (wasted > 0) out.push({ t: e.timestamp - t0, wasted });
+			// The ceiling comes with the event, so a bar whose first reading has not arrived yet still
+			// clamps correctly once one does.
+			if (e.maxResourceAmount !== undefined && e.maxResourceAmount > 0) max = e.maxResourceAmount;
+			const amount = e.resourceChange ?? 0;
+			if (chi !== null && amount > 0) chi = Math.min(max, chi + amount);
+			continue;
+		}
+
+		if (e.type !== 'cast') continue;
 
 		const bar = classResourcesOf(e)?.find((r) => r.type === powerType);
 		// A reading is the truth, whatever the walk believed a moment ago.
@@ -502,7 +526,9 @@ export function chiWasted(
 			max = bar.max;
 		}
 
-		const gain = gainOf(abilityIdOf(e) ?? 0, e.timestamp - t0) ?? 0;
+		const id = abilityIdOf(e) ?? 0;
+		// A press whose gain arrived as an event above has already been applied, waste included.
+		const gain = reported(id) ? 0 : (gainOf(id, e.timestamp - t0) ?? 0);
 		if (gain > 0 && chi !== null && max > 0) {
 			const wasted = Math.max(0, chi + gain - max);
 			if (wasted > 0) out.push({ t: e.timestamp - t0, wasted });

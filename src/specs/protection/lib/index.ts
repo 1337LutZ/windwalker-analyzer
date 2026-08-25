@@ -19,10 +19,11 @@
 // which is the fork's rule and the reason the section can be read at all.
 
 import { enforcedDowntime, type EnforcedDowntime } from '~/lib/analysis/enforced';
-import { buildHasteCurve, SEAL_OF_INSIGHT_HASTE, type HasteCurve } from '~/lib/analysis/haste';
+import { buildHasteCurve, checkHaste, SEAL_OF_INSIGHT_HASTE, type HasteCurve } from '~/lib/analysis/haste';
 import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analyseCore';
 import { auraWindows } from '~/lib/analysis/auras';
 import { readGear } from '~/lib/analysis/gear';
+import { readVengeance } from '~/lib/analysis/vengeance';
 import { eventsOn } from '~/lib/events';
 import { unionMs, type Interval } from '~/lib/analysis/intervals';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
@@ -122,6 +123,51 @@ const identify = (h: Handles): boolean => h.castCount(registry.ability('shield-o
 function curveFor(h: Handles): HasteCurve {
 	const lust = h.hasteWindows.map((w) => ({ start: w.start, end: w.end }));
 	return buildHasteCurve(h.gear.hasteRating ?? null, lust, SEAL_OF_INSIGHT_HASTE);
+}
+
+/**
+ * The buttons whose gaps say nothing about haste, and why each one is out.
+ *
+ * `checkHaste` reads the shortest gap between two presses of a button as a *measurement* of that
+ * button's cooldown, which holds only while haste is the sole thing that moves it. Two of this spec's
+ * haste-scaled buttons have something else on them and both fail loudly rather than subtly:
+ *
+ *   - **Avenger's Shield.** Grand Crusader (85416) resets the cooldown outright, and the reset is not
+ *     rare — the shortest gap on all three committed pulls is a second or two against a nine-and-a-
+ *     half-second cooldown, and 14 of 27, 12 of 43 and 20 of 61 gaps come back faster than the model
+ *     allows. Left in, it is the worst row on every pull and the check reports nothing but itself.
+ *   - **Hammer of Wrath.** Not a proc, but the same shape of problem from the other end: it is an
+ *     execute, so its gaps outside twenty percent health are the boss's health bar rather than a
+ *     cooldown. Nine and thirteen gaps on the two pulls that reach an execute, most of them minutes
+ *     long. It happens to pass — worst margins of +21ms and −1ms — and passing on evidence that could
+ *     not have failed is not a check.
+ *
+ * The builders are the opposite case and stay: Crusader Strike and Hammer of the Righteous share one
+ * timer, so their presses arrive **merged** under one key below rather than as two buttons each of
+ * which looks like it came back impossibly fast.
+ */
+const CHECK_EXCLUDES: ReadonlySet<string> = new Set(['avengers-shield', 'hammer-of-wrath']);
+
+/**
+ * The press streams the haste check is run over: one entry per cooldown, not per button.
+ *
+ * The merge is the whole reason this is a function rather than a comprehension. `sharesCooldownWith`
+ * names a pair, and a pair read as two buttons produces two rows that are both wrong — a Hammer of the
+ * Righteous three seconds after a Crusader Strike is that shared timer coming back on schedule, and
+ * counted under either key alone it reads as the other button returning in no time at all. Keyed by
+ * whichever half of the pair sorts first so the choice does not depend on table order.
+ */
+function checkPresses(h: Handles): Array<{ ability: Ability; times: number[] }> {
+	const merged = new Map<string, { ability: Ability; times: number[] }>();
+	for (const ability of registry.abilities) {
+		if (ability.hasteScaled !== true || CHECK_EXCLUDES.has(ability.key)) continue;
+		const partner = ability.sharesCooldownWith;
+		const key = partner === undefined ? ability.key : [ability.key, partner].sort()[0]!;
+		const entry = merged.get(key) ?? { ability: registry.ability(key), times: [] };
+		entry.times.push(...h.castTimes(ability));
+		merged.set(key, entry);
+	}
+	return [...merged.values()];
 }
 
 /**
@@ -236,7 +282,17 @@ function protectionAudit(h: Handles): ProtectionAudit {
 	});
 
 	return {
-		haste: curve.measure,
+		/**
+		 * The curve's own three terms, with the pull's presses asked whether they agree.
+		 *
+		 * `buildHasteCurve` leaves `check` null because it has no press stream to look at, and this is the
+		 * first caller in the tree that has one. The spread rather than a mutation because `HasteMeasure`
+		 * is the curve's, not ours — `cooldownAt` hands the same memoised curve to every drift figure on
+		 * the page, and an audit that reached in and set a field on it would be editing the thing the cast
+		 * table was built from.
+		 */
+		haste: { ...curve.measure, check: checkHaste(curve, checkPresses(h)) },
+		measuredGcd: h.measuredGcd,
 		globals: globalsOf(h, enforced),
 		/**
 		 * The two fields `analyseCore` reads back off an audit, rather than merges blindly.
@@ -283,6 +339,34 @@ function protectionAudit(h: Handles): ProtectionAudit {
 			})),
 			enforcedMs: enforced.ms,
 		},
+		/**
+		 * Vengeance, read rather than modelled: the log carries the player's attack power on most
+		 * events, so the curve is a measurement and the simulator is consulted only for the ceiling.
+		 *
+		 * Rallying Cry is the one health buff these pulls carry and it lands on all three, so the
+		 * ceiling genuinely moves — see `capWindows`. Ancestral Vigor is passed too because a healer
+		 * who happened to bring it would move it the same way, and its absence here is a fact about
+		 * these captures rather than about the mechanic.
+		 */
+		vengeance: readVengeance({
+			events: h.events,
+			actorID: h.actor.id,
+			t0: h.t0,
+			durationMs: h.duration,
+			stamina: h.gear.stamina,
+			healthBuffs: [
+				{
+					name: registry.aura('rallying-cry').name,
+					multiplier: 1.2,
+					windows: auraWindows(eventsOn(h.events, h.actor.id), registry.aura('rallying-cry'), h.t0, h.fight.endTime),
+				},
+				{
+					name: registry.aura('ancestral-vigor').name,
+					multiplier: 1.1,
+					windows: auraWindows(eventsOn(h.events, h.actor.id), registry.aura('ancestral-vigor'), h.t0, h.fight.endTime),
+				},
+			],
+		}),
 	};
 }
 
@@ -295,9 +379,29 @@ export const PROTECTION_SPEC: SpecConfig = {
 	gcdMs: GCD_MS,
 	extraNames: EXTRA_NAMES,
 	extraGlobals: EXTRA_GLOBALS,
-	// A points bar: holy power arrives in whole units from a button that was pressed, so its fault is a
-	// count — a return the cap refused — rather than a duration spent full. The generators are declared
-	// with what they pay so the walk can rebuild the bar between the log's own samples.
+	/**
+	 * A points bar, and the first one in this tree the log reports **in full**.
+	 *
+	 * Holy power arrives in whole units from a button that was pressed, so its fault is a count — a
+	 * return the cap refused — rather than a duration spent full. What makes this bar different from
+	 * chi is that every one of its four generators emits a `resourcechange` carrying its own amount and
+	 * its own `waste`, so the audit reads the bar rather than rebuilding it. The amounts below are the
+	 * fallback for a log that reports nothing, and every one of them is *wrong* on a real pull in two
+	 * ways this spec cannot model from a press alone:
+	 *
+	 *   - **A generator that did not land pays nothing.** Iron Juggernaut, 43 Crusader Strikes, 38 gains
+	 *     — five were dodged. The log emits no event for those; a flat table credits them anyway.
+	 *   - **Holy Avenger pays three.** Its 18 seconds turn every generator into a triple, and the log
+	 *     says so outright (`resourceChange: 3`). The same 98-press pull generated 128, not 98.
+	 *
+	 * Together they made the walk report 2 wasted where the log's own `waste` sums to none. See
+	 * `chiWasted`, which now takes the split.
+	 *
+	 * `reportedAs` on two of the four, because a Paladin's passives are what pay rather than the button:
+	 * Judgment presses under 20271 and is paid by **Judgments of the Wise** (105427), and Avenger's
+	 * Shield presses under 31935 and is paid by **Grand Crusader** (98057) — which is also why only
+	 * 18 of 28 presses on the Fallen Protectors capture returned anything at all.
+	 */
 	resources: {
 		holyPower: {
 			type: SECONDARY_RESOURCE_TYPE.holyPower,
@@ -305,8 +409,8 @@ export const PROTECTION_SPEC: SpecConfig = {
 			gains: [
 				{ abilityKey: 'crusader-strike', amount: 1 },
 				{ abilityKey: 'hammer-of-the-righteous', amount: 1 },
-				{ abilityKey: 'judgment', amount: 1 },
-				{ abilityKey: 'avengers-shield', amount: 1 },
+				{ abilityKey: 'judgment', amount: 1, reportedAs: 105_427 },
+				{ abilityKey: 'avengers-shield', amount: 1, reportedAs: 98_057 },
 			],
 		},
 	},

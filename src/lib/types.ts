@@ -223,6 +223,30 @@ export interface AbilityDamage {
 	utility: boolean;
 }
 
+/**
+ * What the pull's own presses say a global was, before anything clamps it.
+ *
+ * `analyseCore` measures this and then squeezes it into `[GCD_MIN_MS, spec.gcdMs]` before publishing
+ * it as `effectiveGcd`, which is right for what `effectiveGcd` is used for — dividing a pull's active
+ * time into press slots, where a median drawn from nine gaps on a wipe must not be allowed to invent
+ * a two-second global. It is wrong for the one question that wants a *second opinion*: on a spec
+ * whose declared `gcdMs` is already the floor, the clamp pins the published figure to that floor from
+ * both sides, so it agrees with any model by construction and can never disagree with one.
+ *
+ * Protection is exactly that spec — `PROTECTION_SPEC.gcdMs` is `GCD_FLOOR_MS`, so `effectiveGcd` is
+ * 1000ms on every pull however the presses actually fell — which is why the raw figure is published
+ * beside it rather than left for a reader to recover. **Nothing divides by this**; it is evidence.
+ *
+ * Generic on purpose. Any spec whose global moves with haste can check a model of it against its own
+ * press stream from here, and there is nothing about a Paladin in it.
+ */
+export interface MeasuredGcd {
+	/** The median gap between consecutive instant on-GCD presses, in ms, or null when none was seen. */
+	medianMs: number | null;
+	/** How many gaps that median was taken over — a median over three is not a measurement. */
+	samples: number;
+}
+
 export interface CastRow {
 	id: number;
 	name: string;
@@ -2196,6 +2220,7 @@ export type Analysis = AnalysisCore & SpecAuditResult;
 // --------------------------------------------------------------- Protection
 
 import type { HasteMeasure } from '~/lib/analysis/haste';
+import type { VengeanceAudit } from '~/lib/analysis/vengeance';
 
 /**
  * The Protection Paladin audit's own shape, alongside `SpecAuditResult` on the same terms the
@@ -2219,6 +2244,14 @@ export interface ProtectionAudit {
 	misses: SpecAuditResult['misses'];
 	/** The three terms of the pull's haste and what they came to — see `lib/analysis/haste`. */
 	haste: HasteMeasure;
+	/**
+	 * The same global arrived at from the other side: the median gap this pull's presses actually left.
+	 *
+	 * Carried so the Haste section can put a measurement next to a model. `globals.gcdMs` cannot do
+	 * that job on this spec — see `MeasuredGcd`, where the clamp that makes it useless as a check is
+	 * the same clamp that makes it right as a divisor.
+	 */
+	measuredGcd: MeasuredGcd;
 	globals: {
 		/** How many globals the pull had room for: active time over the measured global. */
 		available: number;
@@ -2261,6 +2294,13 @@ export interface ProtectionAudit {
 		}>;
 		enforcedMs: number;
 	};
+	/**
+	 * The attack power Vengeance paid, and the ceiling the player's own health put on it.
+	 *
+	 * Generic rather than this spec's — every tank has Vengeance — so the shape lives beside the
+	 * arithmetic in `lib/analysis/vengeance` and is borrowed here the way `HasteMeasure` is.
+	 */
+	vengeance: VengeanceAudit;
 }
 
 // ---------------------------------------------------------------- Elemental

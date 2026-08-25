@@ -44,6 +44,7 @@ import type {
 	FightDataset,
 	GearSummary,
 	LostCastRow,
+	MeasuredGcd,
 	PotionAudit,
 	RaidBuffSummary,
 	ResourceBarAudit,
@@ -264,6 +265,14 @@ export interface Handles {
 	 * count globals — see `lib/analysis/haste`, which models the cooldowns instead.
 	 */
 	effectiveGcd: number;
+	/**
+	 * The same median before either end of the clamp — the reading, rather than the divisor.
+	 *
+	 * Here so an audit that wants to *check* a model of the global has something the model cannot have
+	 * already agreed with. `effectiveGcd` above is capped at `spec.gcdMs`, and a spec that declares its
+	 * floor as its GCD gets the same number back on every pull. See `MeasuredGcd`.
+	 */
+	measuredGcd: MeasuredGcd;
 	/** WarcraftLogs' own active time for this player, falling back to the pull's length. */
 	activeMs: number;
 	/** How many globals the pull had room for: `activeMs` over `effectiveGcd`, floored. */
@@ -787,6 +796,20 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		gcdGaps.push(onGcdStarts[i]!.start - previous.start);
 	}
 	const effectiveGcd = gcdGaps.length > 0 ? Math.max(GCD_MIN_MS, Math.min(median(gcdGaps), spec.gcdMs)) : spec.gcdMs;
+	/**
+	 * The same median with neither end of the clamp on it, published beside the clamped one.
+	 *
+	 * Two figures out of one measurement, because they answer two questions and only the clamped one
+	 * can answer the first. `effectiveGcd` is a **divisor** — a slot count, a track width, a leeway —
+	 * and a divisor has to be a plausible global whatever a nine-gap wipe hands it. This is
+	 * **evidence**, and evidence that has been squeezed to fit the thing it is meant to check is not
+	 * evidence: on a spec whose `gcdMs` is already `GCD_MIN_MS`, the floor and the cap meet, and the
+	 * published figure is 1000ms on every pull however the presses fell. See `MeasuredGcd`.
+	 */
+	const measuredGcd: MeasuredGcd = {
+		medianMs: gcdGaps.length > 0 ? median(gcdGaps) : null,
+		samples: gcdGaps.length,
+	};
 
 	/**
 	 * Where each on-GCD press sat on the clock — spans, not a sum.
@@ -1682,6 +1705,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	const h: Handles = {
 		phases: dataset.phases ?? [],
 		effectiveGcd,
+		measuredGcd,
 		activeMs,
 		gcdSlots: Math.floor(activeMs / effectiveGcd),
 		onGcdCasts,

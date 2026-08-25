@@ -111,6 +111,21 @@ export const BASE_GCD_MS = 1500;
 export const GCD_FLOOR_MS = 1000;
 export const MAX_GCD_REDUCTION_MS = 500;
 
+/**
+ * The haste the cap binds at, and so the one number a player of this spec is actually aiming for.
+ *
+ * Derived rather than written down as 1.5, because the two constants above are what decide it: the
+ * uncapped reduction reaches `MAX_GCD_REDUCTION_MS` exactly when `BASE_GCD_MS / haste` equals what is
+ * left, and a hand-typed 1.5 would survive either of them being corrected. `data.test.ts` already
+ * pins `gcdMsFor(1.5) === GCD_FLOOR_MS` from the other side.
+ *
+ * **It is a breakpoint and not a ceiling.** Above it the global does not improve again — the sim caps
+ * the reduction at half a second and floors the result at `GCDMin` besides, two mechanisms landing on
+ * the same 1.0s — while every cooldown `cooldownMsFor` scales keeps shortening with no cap at all. So
+ * haste past this point still buys presses; it just stops buying room to make them in.
+ */
+export const GCD_FLOOR_HASTE = BASE_GCD_MS / (BASE_GCD_MS - MAX_GCD_REDUCTION_MS);
+
 /** What a haste rating alone buys, as a multiplier. */
 export function hasteFromRating(rating: number): number {
 	return 1 + rating / (HASTE_RATING_PER_PCT * 100);

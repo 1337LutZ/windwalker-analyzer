@@ -478,10 +478,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the sweep over the Protection copy's own values, it prints 1436 leaves, 704 prose, 22,222 words;
-median 26, p75 43, p90 64, p95 77, p99 95, max 160; longest 9% carry 24%; report.json 635 prose leaves,
-1,094 sentences, median 17, 213 past 25 (19.5%), 266 em-dashes in 230 sentences (21.0%);
-48 / 22 / 1 / 2 on the quote lines.
+As of the Protection report gaining its Haste and Vengeance sections, it prints 1486 leaves, 724 prose,
+23,056 words; median 26, p75 43, p90 64, p95 77, p99 95, max 160; longest 9% carry 23%; report.json 655
+prose leaves, 1,135 sentences, median 17, 223 past 25 (19.6%), 272 em-dashes in 235 sentences (20.7%);
+51 / 22 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->
 

@@ -67,7 +67,7 @@ import {
 	Stormlash,
 } from '~/specs/elemental/components/sections';
 import { PROTECTION_SPEC } from '~/specs/protection';
-import { FightRules, Globals } from '~/specs/protection/components/sections';
+import { FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -399,16 +399,28 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: ElementalRotation },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 	],
-	// Two sections of its own and nine shared ones, which is the whole shape of this port: every figure
-	// a generic audit produces is drawn by a component that already exists, and what the spec adds is
-	// the two questions no generic audit can ask.
+	// Three sections of its own and nine shared ones, which is the whole shape of this port: every
+	// figure a generic audit produces is drawn by a component that already exists, and what the spec
+	// adds is the three questions no generic audit can ask.
 	protection: [
-		// First, because it is the report's subject. Everything under it explains a part of this number.
+		// The pull before any argument about it. A reader arriving here has just been handed a score,
+		// and what they want first is the four minutes it was taken from — every heading below this one
+		// is an argument about some slice of this chart, and none of them can be checked without it.
+		// Both other specs open the same way for the same reason.
+		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// The report's subject, and the reason this spec was worth porting: everything under it explains
+		// a part of this number.
 		{ id: 'globals', titleKey: 'globals.title', group: 'core', Component: Globals },
 		// Directly under the globals it explains — the two are one question read from both ends: the
 		// first counts what went unpressed, the second says how much of it anybody could have helped.
 		{ id: 'fight', titleKey: 'fight.title', group: 'core', Component: FightRules },
-		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// The third thing that decides the same number, and the one the first two take for granted.
+		// `available` is active time over the global, and the global is what haste sets — so this is the
+		// denominator both headings above divide by, and the cooldowns every held press below is
+		// measured against. It sits after them rather than before because a reader wants the count
+		// before its arithmetic; it sits here rather than further down because everything from the holy
+		// power bar onwards is a figure this one has already scaled.
+		{ id: 'haste', titleKey: 'haste.title', group: 'core', Component: Haste },
 		// The bar the spenders are paid from. A points bar, so its fault is a count rather than a
 		// duration — see `ResourceKind`.
 		{
@@ -423,11 +435,16 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 				color: PROTECTION_SPEC.colors.primary,
 			}),
 		},
+		// Under the holy power bar because it is the other half of the same economy: that one is what a
+		// press buys, this one is what being hit pays. Nothing in it is a fault — a tank against their
+		// Vengeance ceiling is a tank the fight is hitting harder than their health can convert.
+		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
 		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
 		// No miss ledger yet, and its absence is the honest report rather than an oversight: the ledger
-		// lists what the sections found, and neither of this spec's two finds anything a row can point
-		// at. It arrives with the priority ladder, which is the first thing here that can name a press
-		// and say what was wrong with it.
+		// lists what the sections found, and none of this spec's own three finds anything a row can point
+		// at. A globals count is a total, an enforced window is the encounter's, and a haste reading is a
+		// fact about the character. It arrives with the priority ladder, which is the first thing here
+		// that can name a press and say what was wrong with it.
 		{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
 		{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },

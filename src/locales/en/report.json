@@ -1744,6 +1744,55 @@
       "held": "held"
     }
   },
+  "haste": {
+    "title": "Haste",
+    "intent": "Haste is the number the rest of this report divides by. Sanctity of Battle turns melee haste into a shorter cooldown on every generator and a shorter global on top, so how many presses your pull had room for is a haste figure before it is anything else. Three things set it: what you were wearing, the seal you were running, and whether a Bloodlust landed.",
+    "kpi": {
+      "rating": "Haste rating",
+      "haste": "Melee haste",
+      "past": "Past the breakpoint",
+      "short": "Short of the breakpoint",
+      "gcd": "Modelled global",
+      "assumed": "none reported"
+    },
+    "summary": "The global stops improving at {{breakpoint, percent}} melee haste. Sanctity of Battle takes at most half a second off it, so from there upwards every Protection Paladin presses on the same {{floor, millis}} global, whatever else the gear adds. You are {{distance, percent}} past that, so more haste buys no more room between presses — what it still buys is the table below, where every cooldown keeps shortening with no cap on it at all.",
+    "summary_short": "The global stops improving at {{breakpoint, percent}} melee haste. Sanctity of Battle takes at most half a second off it, so from there upwards every Protection Paladin presses on the same {{floor, millis}} global, whatever else the gear adds. You are {{distance, percent}} under that, so haste is still buying you room between presses as well as shorter cooldowns.",
+    "key": {
+      "bar": "Melee haste, percent",
+      "lust": "Bloodlust"
+    },
+    "chartLabel": "Melee haste across the pull: {{base, percent}}, rising to {{lust, percent}} for the {{lustMs, duration}} Bloodlust was up.",
+    "terms": {
+      "caption": "What each term of your haste came to",
+      "columns": {
+        "term": "term",
+        "adds": "adds",
+        "haste": "melee haste",
+        "gcd": "global"
+      },
+      "gear": "Gear",
+      "seal": "Seal of Insight",
+      "lust": "Bloodlust"
+    },
+    "gcdNote": "Modelled at {{modelled, millis}}, and your own presses fell a median {{observed, millis}} apart over {{samples, integer}} gaps. Those are two readings of one number — the first from your rating, the second from the log — and it is them agreeing that says the figure above can be trusted.",
+    "gcdNote_none": "Modelled at {{modelled, millis}}. This pull left too few presses in a row to measure a global from, so there is nothing here to hold that figure against.",
+    "check": {
+      "caption": "The tightest gap between two presses of each button, against the cooldown your haste gives it",
+      "columns": {
+        "ability": "button",
+        "samples": "gaps",
+        "observed": "tightest",
+        "modelled": "modelled",
+        "margin": "margin"
+      },
+      "lust": "under Bloodlust",
+      "none": "No button was pressed often enough for its gaps to say anything about your haste."
+    },
+    "reading_agrees": "Nothing came back sooner than that haste allows, give or take {{tolerance, millis}} of timing jitter. A button cannot return before its cooldown, so a tightest gap that sits on the modelled figure is your own pull confirming it.",
+    "reading_faster": "{{worst}} came back {{margin, millis}} sooner than these three terms allow, which no amount of pressing can do. Something added haste they do not carry: a proc your rating cannot show, a Bloodlust arriving while the cooldown was already running, or the log stamping a run of presses closer together than you made them.",
+    "reading_unmeasured": "No button here was pressed often enough for its gaps to hold the haste above to anything. That is a fact about the pull's length rather than about your gear — a tightest gap means nothing until there are a few of them.",
+    "avengersShieldNote": "Avenger's Shield and Hammer of Wrath are left out of that table, and neither absence is an oversight. Grand Crusader resets the shield outright, so its gaps measure a proc rate rather than a cooldown; Hammer of Wrath needs the boss under twenty percent health, so its gaps outside the execute are the health bar."
+  },
   "holyPower": {
     "title": "Holy Power",
     "intent": "Holy power is only wasted when you press a generator while the bar is already full — the point it gives back has nowhere to go, and the global that bought it achieved nothing. Neither spender costs you a global on this spec, so a full bar is never something you were waiting for a free moment to empty.",
@@ -1767,5 +1816,26 @@
       "at": "at",
       "wasted": "power lost"
     }
+  },
+  "vengeance": {
+    "title": "Vengeance",
+    "intent": "Being hit gives a tank attack power, and your own maximum health is the most it can ever give you. This is what you actually had, moment by moment, drawn under the ceiling your health pool set. Nothing here is a mistake to fix: sitting against that ceiling means the fight was hitting you faster than your health could turn into damage, which is the encounter's doing rather than yours.",
+    "noReadings": "This log carried no attack power readings, so there is no Vengeance to show. Nothing is wrong with the pull — the report was not given the numbers.",
+    "kpi": {
+      "peak": "Highest attack power",
+      "share": "Of your ceiling",
+      "cap": "Your ceiling",
+      "atCap": "Spent at the ceiling"
+    },
+    "key": {
+      "bar": "Attack power",
+      "raised": "Ceiling raised by {{names}}",
+      "atCap": "At or near the ceiling"
+    },
+    "chartLabel": "Attack power over the pull, peaking at {{peak, compact}} against a ceiling of {{max, compact}}, over {{duration, duration}}",
+    "summary": "Your attack power peaked at {{peak, compact}} at {{at, clock}}, which was {{share, percent}} of what your health pool allowed. You held it at or near that ceiling for {{held, duration}} — damage taken beyond that point bought you nothing more.",
+    "summary_clear": "Your attack power peaked at {{peak, compact}} at {{at, clock}}, which was {{share, percent}} of what your health pool allowed. You never reached the ceiling, so every hit you took was still paying you.",
+    "capMoved": "Your ceiling is your maximum health, so anything that raises your health raises it too. {{names}} landed {{times, integer}} times on this pull and held for {{held, duration}}, lifting the most you could hold from {{resting, compact}} to {{raised, compact}} while it was up. The shaded stretches on the chart are where that applied.",
+    "resolution": "Attack power is sampled rather than tracked: WarcraftLogs staples it onto casts, hits and heals rather than reporting it on a timer. This pull carried {{samples, integer}} readings, typically {{median, gap}} apart and at worst {{p99, gap}}. A moment at the ceiling that opened and closed between two readings leaves no trace here, so treat the time at the ceiling as a minimum."
   }
 }
