@@ -75,11 +75,19 @@
 //     it needs a second, raid-scoped fetch on the model of `raidStormlash` (one query, one point per page,
 //     narrowed by `abilityID`). That fetch does not exist and this module does not pretend to it.
 //
-// **A self-cast is not an external**, and on this spec that is not a nicety. The audited player is a
-// Paladin and Devotion Aura is a Paladin button: on the Garrosh capture, id 31821 carries 130 events, of
-// which 64 are the player's own aura fanning out across the raid and only 4 are another Paladin's landing
-// on them. `onTarget` plus the source check below is what keeps a button the player pressed themselves out
-// of a list of things the raid did for them.
+// **A self-cast is dropped for a targeted external and kept for a raid-wide one**, which is a distinction
+// this module did not draw at first and got wrong in one direction.
+//
+// Dropping it matters on this spec: the audited player is a Paladin and Devotion Aura is a Paladin button,
+// so on the Garrosh capture id 31821 carries 130 events, of which 64 are the player's own aura fanning out
+// across the raid. Those are things the player did *for other people* and belong in `given`, not in a list
+// of what the raid did for them.
+//
+// But the same press also covers the player, and that instance is real cover they had. Blessing of
+// Sacrifice cannot be cast on yourself, so for a `targeted` external the source check loses nothing; a
+// `raid` one is exactly the case where a self-cast lands on the caster too. So the check is now scoped to
+// `delivery`, and a Paladin who pressed their own Devotion Aura is credited with the one instance that
+// covered them rather than with none.
 //
 // **Some externals arrive with no caster.** Power Word: Barrier and Anti-Magic Zone are ground effects, and
 // WarcraftLogs files their aura under the persistent area rather than the player who placed it: every one
@@ -627,16 +635,17 @@ export function readExternals(
 	const auras = auraOnly(events);
 
 	const rows = EXTERNALS.map((external): ExternalRow => {
-		// Everything the log put on this player under these ids, bucketed by whoever put it there — then
-		// the player's own presses dropped. A self-cast is not an external, and on a Paladin auditing a
-		// Paladin button that is the difference between 4 instances and 68.
+		// Everything the log put on this player under these ids, bucketed by whoever put it there. A
+		// self-cast is dropped for a targeted external and kept for a raid-wide one — see the module note.
+		// `onTarget` has already restricted this to auras that landed on the player, so what a raid-wide
+		// self-cast contributes here is the single instance covering the caster, never the fan-out.
 		const received = windowsBySource(auras, external.ids, {
 			t0,
 			pullMs,
 			holdsMs: external.durationMs,
 			onTarget: actorID,
 		})
-			.filter(({ source }) => source !== actorID)
+			.filter(({ source }) => external.delivery === 'raid' || source !== actorID)
 			.map(({ source, windows }): ExternalCaster => ({ id: source, name: nameOf(source), windows }));
 
 		/**

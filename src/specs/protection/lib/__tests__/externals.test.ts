@@ -48,7 +48,11 @@ describe('the externals a pull received', () => {
 					ids.has(id) &&
 					isAuraApply(event) &&
 					event.targetID === me &&
-					(event as { sourceID?: number }).sourceID !== me
+					// A raid-wide cooldown the player pressed themselves still covered them, so its
+					// self-sourced application on *this* player counts. A targeted one cannot be self-cast at
+					// all, so excluding the source there loses nothing. See the note in `readExternals`.
+					(EXTERNALS.find((candidate) => candidate.key === row.key)?.delivery === 'raid' ||
+						(event as { sourceID?: number }).sourceID !== me)
 				);
 			});
 			const entry = EXTERNALS.find((candidate) => candidate.key === row.key)!;
@@ -74,7 +78,7 @@ describe('the externals a pull received', () => {
 		['garrosh.json', 7, 6, 0],
 		['paragons.json', 7, 5, 1],
 		['fallenProtectors.json', 7, 6, 0],
-		['galakras.json', 7, 1, 5],
+		['galakras.json', 7, 2, 4],
 		['spoils.json', 7, 3, 3],
 	] as const)('%s offers %i externals, of which %i landed and %i went unused', (name, available, used, unused) => {
 		const { externals } = auditOf(name);
@@ -101,7 +105,7 @@ describe('the externals a pull received', () => {
 		['garrosh.json', 'vigilance', 6, 72114],
 		['garrosh.json', 'hand-of-sacrifice', 9, 107982],
 		['garrosh.json', 'hand-of-purity', 0, 0],
-		['garrosh.json', 'devotion-aura', 3, 17996],
+		['garrosh.json', 'devotion-aura', 4, 24007],
 		['garrosh.json', 'power-word-barrier', 2, 16003],
 		['garrosh.json', 'smoke-bomb', 2, 9991],
 		['garrosh.json', 'demoralizing-banner', 0, 0],
@@ -109,7 +113,7 @@ describe('the externals a pull received', () => {
 		['paragons.json', 'vigilance', 2, 22539],
 		['paragons.json', 'hand-of-sacrifice', 4, 46749],
 		['paragons.json', 'hand-of-purity', 0, 0],
-		['paragons.json', 'devotion-aura', 3, 18014],
+		['paragons.json', 'devotion-aura', 4, 24024],
 		['paragons.json', 'power-word-barrier', 1, 6427],
 		['paragons.json', 'smoke-bomb', 0, 0],
 		['paragons.json', 'demoralizing-banner', 0, 0],
@@ -117,7 +121,7 @@ describe('the externals a pull received', () => {
 		['fallenProtectors.json', 'vigilance', 2, 24033],
 		['fallenProtectors.json', 'hand-of-sacrifice', 4, 48030],
 		['fallenProtectors.json', 'hand-of-purity', 0, 0],
-		['fallenProtectors.json', 'devotion-aura', 2, 12023],
+		['fallenProtectors.json', 'devotion-aura', 3, 18020],
 		['fallenProtectors.json', 'power-word-barrier', 1, 2339],
 		['fallenProtectors.json', 'smoke-bomb', 1, 4590],
 		['fallenProtectors.json', 'demoralizing-banner', 0, 0],
@@ -125,7 +129,7 @@ describe('the externals a pull received', () => {
 		['galakras.json', 'vigilance', 1, 10530],
 		['galakras.json', 'hand-of-sacrifice', 0, 0],
 		['galakras.json', 'hand-of-purity', 0, 0],
-		['galakras.json', 'devotion-aura', 0, 0],
+		['galakras.json', 'devotion-aura', 1, 6008],
 		['galakras.json', 'power-word-barrier', 0, 0],
 		['galakras.json', 'smoke-bomb', 0, 0],
 		['galakras.json', 'demoralizing-banner', 0, 0],
@@ -133,7 +137,7 @@ describe('the externals a pull received', () => {
 		['spoils.json', 'vigilance', 1, 12004],
 		['spoils.json', 'hand-of-sacrifice', 1, 11992],
 		['spoils.json', 'hand-of-purity', 0, 0],
-		['spoils.json', 'devotion-aura', 1, 5996],
+		['spoils.json', 'devotion-aura', 3, 17997],
 		['spoils.json', 'power-word-barrier', 0, 0],
 		['spoils.json', 'smoke-bomb', 0, 0],
 		['spoils.json', 'demoralizing-banner', 0, 0],
@@ -175,7 +179,7 @@ describe('the externals a pull received', () => {
 	 * out to everyone including themselves. Counted without the source check, this row would read 4 rather
 	 * than 2, and half of it would be the tank taking credit for their own cooldown.
 	 */
-	it('does not count the player pressing their own raid cooldown', () => {
+	it('counts a raid cooldown the player pressed once, not once per raider it reached', () => {
 		const dataset = rawFixture('protection', 'garrosh.json');
 		const me = dataset.actor.id;
 		const onMe = dataset.events.filter(
@@ -184,9 +188,15 @@ describe('the externals a pull received', () => {
 		expect(onMe.length).toBeGreaterThan(0);
 
 		const row = auditOf('garrosh.json').externals.rows.find((entry) => entry.key === 'devotion-aura')!;
-		// Fewer than landed on the player, because the player is a Paladin and some of those are their own.
-		expect(row.count).toBeLessThan(onMe.length);
-		expect(row.received.every((caster) => caster.id !== me)).toBe(true);
+		// **Every application that landed on the player, their own press included** — a raid-wide cooldown
+		// they pressed still covered them. What must not appear is the fan-out: the same press reaching
+		// two dozen other raiders is `given`, and on this capture id 31821 carries 130 events against the
+		// handful that touched this player.
+		expect(row.count).toBe(onMe.length);
+		expect(row.count).toBeLessThan(10);
+		// The player is among the casters now, and exactly once — which is the difference between crediting
+		// the press that covered them and crediting the two dozen it also reached.
+		expect(row.received.filter((caster) => caster.id === me)).toHaveLength(1);
 	});
 
 	/**
@@ -256,8 +266,11 @@ describe('a reduction that depends on who cast it', () => {
 	 * does not widen a row — see the note in `readExternals`.
 	 */
 	it('keeps the narrow reading on a pull nobody cast it in', () => {
+		// Galakras is the pull where the *only* Devotion Aura is the player's own, which is why it keeps the
+		// narrow reading: they are not Holy, and nobody who is cast one on them.
 		const row = auditOf('galakras.json').externals.rows.find((entry) => entry.key === 'devotion-aura')!;
-		expect(row.count).toBe(0);
+		expect(row.count).toBe(1);
+		expect(row.received.every((caster) => caster.id === rawFixture('protection', 'galakras.json').actor.id)).toBe(true);
 		expect(row.scope).toBe('magic');
 	});
 
