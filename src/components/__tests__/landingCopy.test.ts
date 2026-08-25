@@ -48,6 +48,9 @@ import { NEUTRAL_PRIMARY } from '~/lib/view/specColors';
 const INTRO_MARKER: Record<string, string> = {
 	windwalker: 'Tigereye Brew',
 	elemental: 'Flame Shock',
+	// The Protection paragraph's own claim, and the one no other spec's could make: this is the only
+	// report here that says some of the gaps were not the player's.
+	protection: 'the encounter itself took away',
 };
 
 const PAGES = resolve(import.meta.dirname, '../../pages');

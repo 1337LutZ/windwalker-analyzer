@@ -774,6 +774,16 @@ describe('report copy with no reader', () => {
 				'tigereyeBrewRune',
 			],
 		},
+		/**
+		 * The two kinds of excuse a boss rule can carry, and they are not equally strong — a `lockout` was
+		 * measured off the press stream and a `declared` is a reader's judgement about a phase. The report
+		 * prints which one it applied rather than flattening them, so both need a word.
+		 */
+		enforcedBasis: {
+			where: 'lib/analysis/enforced.ts → EnforcedRule.basis',
+			keys: () => ['lockout', 'declared'],
+			pinned: ['declared', 'lockout'],
+		},
 		gate: {
 			where: 'lib/game/model.ts → Gate',
 			keys: () => declaredArms('lib/game/model.ts', /export type Gate =/),
@@ -922,6 +932,7 @@ describe('report copy with no reader', () => {
 		'castLog.target.*Title': 'castLogGrouping',
 		'casts.gate.*': 'gate',
 		'earthElemental.state.*': 'earthElementalState',
+		'fight.basis.*': 'enforcedBasis',
 		'earthShock.state.*': 'earthShockReason',
 		'elementalMastery.state.*': 'elementalMasteryReason',
 		'fireElemental.state.*': 'fireElementalReason',
@@ -964,9 +975,10 @@ describe('report copy with no reader', () => {
 		'castLog.resourceAria.*': 5,
 		'castLog.target.*': 3,
 		'castLog.target.*Title': 3,
-		// Four and not five: `Gate` carries an `other` arm and no section prints a column for it.
+		// Five and not six: `Gate` carries an `other` arm and no section prints a column for it.
 		'casts.gate.*': 5,
 		'earthElemental.state.*': 3,
+		'fight.basis.*': 2,
 		'earthShock.state.*': 7,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,

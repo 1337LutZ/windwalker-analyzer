@@ -12,6 +12,8 @@
 export const CLASS_COLOR = {
 	// wowsims-mop ui/core/player_classes/monk.ts — `Monk.hexColor`.
 	monk: '#00ff98',
+	// wowsims-mop ui/core/player_classes/paladin.ts — `Paladin.hexColor`.
+	paladin: '#f58cba',
 	// wowsims-mop ui/core/player_classes/shaman.ts — `Shaman.hexColor`.
 	shaman: '#2459ff',
 } as const satisfies Record<string, string>;

@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { SPECS } from '~/lib/spec';
+import { PROTECTION_SPEC } from '~/specs/protection';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
@@ -220,6 +221,7 @@ describe('the haste band legend', () => {
 	const OWN: Record<string, string[]> = {
 		windwalker: Object.keys(WW_SPEC.resources),
 		elemental: Object.keys(ELEMENTAL_SPEC.resources),
+		protection: Object.keys(PROTECTION_SPEC.resources),
 	};
 	const ALL = [...new Set(Object.values(OWN).flat())];
 

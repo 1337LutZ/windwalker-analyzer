@@ -22,7 +22,7 @@
 
 import { abilityIdOf, classResourcesOf, isResourceChange, resourceActorOf, type WclEvent } from '~/lib/events';
 import type { ResourceTypeValue } from '~/lib/game/resources';
-import { RESOURCE_TYPE } from '~/lib/game/resources';
+import { RESOURCE_TYPE, SECONDARY_RESOURCE_TYPE } from '~/lib/game/resources';
 import type { PointsResourceAudit, PoolResourceAudit, ResourceCurve } from '~/lib/types';
 
 import { median, r1 } from './format';
@@ -41,6 +41,12 @@ const WCL_POWER_TYPE: Readonly<Partial<Record<ResourceTypeValue, number>>> = {
 	[RESOURCE_TYPE.mana]: 0,
 	[RESOURCE_TYPE.energy]: 3,
 	[RESOURCE_TYPE.chi]: 12,
+	// Holy power, and measured on the same terms the two above were: read off a real Protection Paladin
+	// pull (`DdpZg1AHfYQB2W9x` #30, Malkorok), where the player's own events carry exactly two bars —
+	// type 0 with a max of 60000, which is mana, and **type 9 with a max of 5**, which is the only thing
+	// it can be. 43 samples of it on that pull. The sim numbers this bar 138248 as a *secondary*
+	// resource, so the two enums disagree here more loudly than anywhere else in this table.
+	[SECONDARY_RESOURCE_TYPE.holyPower]: 9,
 };
 
 /** `wclPowerTypeOf(RESOURCE_TYPE.chi)` — the value to sample chi with, verified against real pulls. */

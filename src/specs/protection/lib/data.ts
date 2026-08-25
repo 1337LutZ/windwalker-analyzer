@@ -10,6 +10,7 @@
 
 import type { Ability, Aura, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
+import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 
 import { GCD_FLOOR_MS, cooldownMsFor } from '~/lib/analysis/haste';
 
@@ -482,48 +483,26 @@ const ABILITIES: Ability[] = [
 		cooldownMs: 600_000,
 	},
 	{
-		key: 'synapse-springs',
-		name: 'Synapse Springs',
-		castIds: [126734],
-		onGcd: false,
-		gate: 'other',
-		onUse: true,
-		cooldownMs: 60_000,
-	},
-	{
 		key: 'potion-of-mogu-power',
 		name: 'Potion of Mogu Power',
 		castIds: [105706],
 		onGcd: false,
 		gate: 'other',
 		onUse: true,
+		applies: ['potion-of-mogu-power'],
 	},
 
 	// ---------------------------------------------------------------------------------------------
 	// Passive damage. Pressed by nobody, but it is a real share of the total.
+	//
+	// Three that were here and are not: Melee, Stormlash and Lightning Strike. All three are damage ids
+	// wanting a name and nothing more, and all three name *shared* things — an auto-attack, somebody
+	// else's totem, a meta gem's payload — so both other specs name them in `EXTRA_NAMES` rather than
+	// declaring an ability. This one does the same, in `lib/index.ts`. It costs one real thing: the
+	// fork declared Melee with `echoCastIds: [1]`, which is a better treatment than either other spec
+	// has, and moving it to `SHARED_ABILITIES` so all three could keep it would move the Windwalker's
+	// own cast counts. Worth doing on its own; not as a side effect of adding a spec.
 	// ---------------------------------------------------------------------------------------------
-	{
-		key: 'melee',
-		name: 'Melee',
-		castIds: [],
-		damageIds: [1],
-		// A swing logs a cast as well — 116 of them on one reference pull, which is more cast events than
-		// any button on the bar. Declared as an echo rather than left unmodelled so it is explicitly not a
-		// press, instead of merely happening not to be counted as one.
-		echoCastIds: [1],
-		onGcd: false,
-		gate: 'other',
-	},
-	{
-		key: 'stormlash',
-		name: 'Stormlash',
-		castIds: [],
-		// Somebody else's totem, attributed to whoever it fires off. Named so a reader looking for it in
-		// the damage table finds a name rather than a number, and so it is not read as this spec's own.
-		damageIds: [120687],
-		onGcd: false,
-		gate: 'other',
-	},
 	{
 		key: 'seal-of-truth-proc',
 		name: 'Seal of Truth',
@@ -543,29 +522,27 @@ const ABILITIES: Ability[] = [
 		onGcd: false,
 		gate: 'other',
 	},
-	{
-		key: 'flurry-of-xuen',
-		name: 'Flurry of Xuen',
-		castIds: [],
-		// The legendary meta gem's proc, and no small share: 109 damage events on one reference pull,
-		// more than any single button. It is gear rather than rotation, which is exactly why it needs a
-		// name — an unnamed id at the top of the damage table reads as a mystery in the rotation.
-		damageIds: [147891],
-		onGcd: false,
-		gate: 'other',
-	},
-	{
-		key: 'lightning-strike',
-		name: 'Lightning Strike',
-		castIds: [],
-		// The legendary cloak's proc, under the buff 137596.
-		damageIds: [137597],
-		onGcd: false,
-		gate: 'other',
-	},
 ];
 
+// Four entries the fork carried and this build does not need: Synapse Springs, Flurry of Xuen,
+// Bloodlust and the Capacitive Primal Diamond's stacking buff. All four are in `SHARED_ABILITIES` /
+// `SHARED_AURAS`, which a single-spec build had no reason to have — and in two cases ours says more.
+// The shared Bloodlust carries the `variants` that name which of the five spells a pull got, and the
+// shared 137596 is declared as the five-stack *counter* it is rather than as a plain buff, with the
+// hunter's second payload id beside it.
 const AURAS: Aura[] = [
+	{
+		key: 'potion-of-mogu-power',
+		name: 'Potion of Mogu Power',
+		// The press and the buff under one id, which is how the log books every combat potion in this
+		// expansion — the Elemental's Jade Serpent Potion and the Windwalker's Virmen's Bite are the same
+		// shape. Measured here rather than assumed: three apply/remove pairs under 105706 on the Garrosh
+		// capture, and nothing else in the 105000 range but Holy Avenger.
+		ids: [105_706],
+		kind: 'buff',
+		durationMs: 25_000,
+		appliedBy: 'potion-of-mogu-power',
+	},
 	{
 		key: 'righteous-fury',
 		name: 'Righteous Fury',
@@ -708,12 +685,6 @@ const AURAS: Aura[] = [
 		// Tier 15 two-piece, off the same file ("Plate of the Lightning Emperor").
 	},
 	{
-		key: 'lightning-strike',
-		name: 'Lightning Strike',
-		ids: [137596],
-		kind: 'buff',
-	},
-	{
 		key: 'execution-sentence',
 		name: 'Execution Sentence',
 		ids: [114916],
@@ -721,16 +692,6 @@ const AURAS: Aura[] = [
 		durationMs: 10_000,
 		appliedBy: 'execution-sentence',
 		// The only evidence the button was pressed. See `pressSeenAsAura` on the ability.
-	},
-	{
-		key: 'bloodlust',
-		// Named for the effect rather than for any one spell, and carried over from the Windwalker spec this
-		// project forked: the log names whichever was cast, and an alignment question does not care which.
-		// All five ids or a raid with a mage instead of a shaman reads as having no haste cooldown at all.
-		name: 'Bloodlust',
-		ids: [2825, 32182, 80353, 90355, 146555],
-		kind: 'buff',
-		durationMs: 40_000,
 	},
 	{
 		key: 'vengeance',
@@ -832,7 +793,20 @@ export const DAMAGE_COOLDOWNS: readonly DamageCooldown[] = [
 	{ key: 'potion-of-mogu-power', castId: 105706, cooldownMs: 60_000, durationMs: 25_000, maxPerFight: 1 },
 ];
 
-export const PROTECTION: GameData = { abilities: ABILITIES, auras: AURAS };
+/**
+ * The shared lists come first, on the same terms both other specs take them.
+ *
+ * Racials, flasks, the raid's haste cooldown, the trinket and meta procs, and the two raid health
+ * buffs the Karma ceiling reads — none of them belongs to a class, and every spec needs them declared
+ * or the engine's own lookups (`aura('bloodlust')`, `aura('berserking')`) fail at construction.
+ *
+ * The fork carried its own copies of several of these, because it was a single-spec build with no
+ * shared list to reach for. Ours are the shared ones.
+ */
+export const PROTECTION: GameData = {
+	abilities: [...SHARED_ABILITIES, ...ABILITIES],
+	auras: [...SHARED_AURAS, ...AURAS],
+};
 
 /** The one way to ask what a spell id means. Construction validates the links between the two lists. */
 export const registry = createRegistry(PROTECTION);

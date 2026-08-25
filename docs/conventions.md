@@ -478,10 +478,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Protection Paladin's spell table arriving and the gate vocabulary gaining a third resource, it
-prints 1384 leaves, 679 prose, 21,093 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160;
-longest 9% carry 24%; report.json 612 prose leaves, 1,045 sentences, median 17, 199 past 25 (19.0%),
-256 em-dashes in 221 sentences (21.1%); 46 / 21 / 1 / 2 on the quote lines.
+As of the Protection Paladin becoming the third registered spec, it prints 1430 leaves, 701 prose,
+22,105 words; median 26, p75 43, p90 63, p95 77, p99 95, max 160; longest 9% carry 24%; report.json
+632 prose leaves, 1,089 sentences, median 17, 213 past 25 (19.6%), 267 em-dashes in 231 sentences
+(21.2%); 48 / 22 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->
 

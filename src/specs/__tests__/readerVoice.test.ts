@@ -498,6 +498,15 @@ const SHARED_SECTIONS = [
 	'timeline',
 ];
 
+/**
+ * The Protection sections. Three roots, and two of them are the spec's own subject.
+ *
+ * `globals` and `fight` are the two sections this spec adds; `holyPower` is the resource family the
+ * shared bar section reads, which lives at a root of its own the way `chi` and `energy` do — those two
+ * sit under `WINDWALKER_SECTIONS` for exactly the same reason.
+ */
+const PROTECTION_SECTIONS = ['globals', 'fight', 'holyPower'];
+
 /** The one section whose whole subject is the model. See the ruling above. */
 const REFERENCE_SECTIONS = ['rotation'];
 
@@ -693,6 +702,7 @@ describe('no string in report.json sits outside every scope', () => {
 		const classified = [
 			...ELEMENTAL_SECTIONS,
 			...WINDWALKER_SECTIONS,
+			...PROTECTION_SECTIONS,
 			...SHARED_SECTIONS,
 			...REFERENCE_SECTIONS,
 		].sort();

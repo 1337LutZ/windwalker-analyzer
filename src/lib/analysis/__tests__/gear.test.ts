@@ -137,6 +137,7 @@ describe('readGear', () => {
 			gems: 0,
 			masteryRating: null,
 			stamina: null,
+			hasteRating: null,
 		});
 	});
 
@@ -173,6 +174,20 @@ describe('readGear', () => {
 		expect(readGear([gearEvent(at(0, piece()), 10, { stamina: 42_553 })], 10).stamina).toBe(42_553);
 		expect(readGear([gearEvent(at(0, piece()), 10, { stamina: 0 })], 10).stamina).toBeNull();
 		expect(readGear([gearEvent(at(0, piece()))], 10).stamina).toBeNull();
+	});
+
+	/**
+	 * And the melee haste rating, on the same terms and for a sharper reason than either.
+	 *
+	 * A spec whose cooldowns move with haste divides by this, so a reported zero read as a real rating
+	 * would give every cooldown a third more length than it had and invent lost casts for a pull with
+	 * none. `hasteRanged` and `hasteSpell` arrive beside it and agree; the melee one is the term
+	 * Sanctity of Battle reads.
+	 */
+	it('reads the melee haste rating, and treats a reported zero as not reported', () => {
+		expect(readGear([gearEvent(at(0, piece()), 10, { hasteMelee: 18_363 })], 10).hasteRating).toBe(18_363);
+		expect(readGear([gearEvent(at(0, piece()), 10, { hasteMelee: 0 })], 10).hasteRating).toBeNull();
+		expect(readGear([gearEvent(at(0, piece()))], 10).hasteRating).toBeNull();
 	});
 });
 

@@ -1781,6 +1781,14 @@ export interface GearSummary {
 	 * because the committed fixtures predate the field.
 	 */
 	stamina?: number | null;
+	/**
+	 * Melee haste rating as `combatantinfo` reported it, or null when it reported none.
+	 *
+	 * A stat line for most specs and a denominator for one: Sanctity of Battle turns it into cooldown
+	 * reduction, so a Protection report divides by it. Null rather than zero for that reason — see
+	 * `readHaste`. Optional because the committed fixtures predate the field.
+	 */
+	hasteRating?: number | null;
 }
 
 /**
@@ -2184,6 +2192,76 @@ export interface SpecAuditResult {
 
 /** The full analysis of one fight — what the renderer consumes. */
 export type Analysis = AnalysisCore & SpecAuditResult;
+
+// --------------------------------------------------------------- Protection
+
+import type { HasteMeasure } from '~/lib/analysis/haste';
+
+/**
+ * The Protection Paladin audit's own shape, alongside `SpecAuditResult` on the same terms the
+ * Elemental's is — see the note above `ElementalAudit` for why the three do not share a type.
+ *
+ * Deliberately small. Fifteen of the fields the fork's own `FightMeasure` carried are fields
+ * `AnalysisCore` already produces, so what is left here is the three things no generic audit can
+ * know: what the pull's haste was, how many globals the *fight* took away, and which of the boss's
+ * rules actually fired.
+ */
+export interface ProtectionAudit {
+	/**
+	 * The two fields `analyseCore` reads back rather than merges — every spec's audit owes them.
+	 *
+	 * `cpm` is folded into the core's own rate block and `timeline` into its cast timeline, so both are
+	 * borrowed from `SpecAuditResult` rather than restated: three specs with three shapes for one field
+	 * is how a shared chart comes to compile against one of them.
+	 */
+	cpm: SpecAuditResult['cpm'];
+	timeline: SpecAuditResult['timeline'];
+	misses: SpecAuditResult['misses'];
+	/** The three terms of the pull's haste and what they came to — see `lib/analysis/haste`. */
+	haste: HasteMeasure;
+	globals: {
+		/** How many globals the pull had room for: active time over the measured global. */
+		available: number;
+		/** Presses that cost one. */
+		pressed: number;
+		/** The gap between the two. */
+		missed: number;
+		/** How long the encounter took the buttons away for, inside the pull. */
+		enforcedMs: number;
+		/** That time priced in globals, and never more than were missed. */
+		enforcedGlobals: number;
+		/**
+		 * What is left when the fight's share comes off — the player's half of the gap.
+		 *
+		 * **Not subtracted from `missed`, which stays whole.** A reader is owed the total and how much
+		 * of it anybody could have done something about, and netting the two produces one number that
+		 * hides which kind of fault it describes.
+		 */
+		missedFree: number;
+		/** The global this was all divided by, in ms. Measured, not declared. */
+		gcdMs: number;
+		/** The clock the above was taken over. */
+		measuredMs: number;
+	};
+	/** What this report knows about the boss, and where it applied in this pull. */
+	fight: {
+		/** The encounter's name in the rule table, or null when nothing is known about it. */
+		encounter: string | null;
+		/** What a reader needs that is not a rule, including what was tested and rejected. */
+		note: string | null;
+		rules: Array<{
+			key: string;
+			name: string;
+			basis: 'lockout' | 'declared';
+			source: 'player-aura' | 'player-buff' | 'enemy-aura' | 'phase';
+			evidence: string;
+			/** Where it applied. Empty means the rule exists and never fired, which is a real report. */
+			windows: Window[];
+			ms: number;
+		}>;
+		enforcedMs: number;
+	};
+}
 
 // ---------------------------------------------------------------- Elemental
 

@@ -38,13 +38,15 @@ describe('the Protection spell table', () => {
 	 * An echo is a cast event that is not a press, and it must not resolve as one.
 	 *
 	 * Hammer of the Righteous logs a cast under its cleave id as well as its own — five of each on a
-	 * reference pull, one press apiece — and a melee swing logs 116 casts under id 1, more cast events
-	 * than any button on the bar. Counted as presses, one button reads as two and the auto-attack reads
-	 * as the most-pressed thing in the pull.
+	 * reference pull, one press apiece. Counted as presses, one button reads as two.
+	 *
+	 * The fork declared a second echo, id 1, so an auto-attack's 116 cast events were explicitly not
+	 * presses. That is a better treatment than either other spec has and it is not here: the melee
+	 * entry it hung off named a shared thing, and moving it to `SHARED_ABILITIES` so all three specs
+	 * could keep it would move the Windwalker's own cast counts. See the note in `data.ts`.
 	 */
 	it('knows an echoed cast from a press', () => {
 		expect(registry.isEchoCast(88_263)).toBe(true);
-		expect(registry.isEchoCast(1)).toBe(true);
 		// And the echo id is not *also* a cast id, which is the ambiguity naming it removes.
 		expect(registry.abilityByCastId(88_263)).toBeUndefined();
 		// The cleave is still damage, and belongs in the damage table under the button that dealt it.

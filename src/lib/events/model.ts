@@ -283,6 +283,16 @@ export type CombatantInfoEvent = EventBase & {
 	 * Absent on legacy Mists reports: the 2014-era logs carry no `combatantinfo` at all.
 	 */
 	stamina?: number;
+	/**
+	 * Melee haste rating at the pull.
+	 *
+	 * Filled in and correct, like `stamina` beside it and unlike `mastery` above. It is the rating
+	 * Sanctity of Battle reads, so for a spec whose cooldowns move with haste it is the denominator of
+	 * the whole report — see `lib/analysis/haste`. `hasteRanged` and `hasteSpell` arrive with it and
+	 * agree on every Mists report checked; reading a different one would be a distinction the log does
+	 * not make.
+	 */
+	hasteMelee?: number;
 };
 
 /** The end of a death: `targetID` is who came back, `sourceID` who brought them. */

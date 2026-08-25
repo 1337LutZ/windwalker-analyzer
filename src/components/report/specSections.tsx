@@ -66,6 +66,8 @@ import {
 	SearingTotem,
 	Stormlash,
 } from '~/specs/elemental/components/sections';
+import { PROTECTION_SPEC } from '~/specs/protection';
+import { FightRules, Globals } from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -395,6 +397,39 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
 		{ id: 'priority', titleKey: 'priority.title', group: 'reference', Component: PriorityLadder, modeProps: 'forced' },
 		{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: ElementalRotation },
+		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
+	],
+	// Two sections of its own and nine shared ones, which is the whole shape of this port: every figure
+	// a generic audit produces is drawn by a component that already exists, and what the spec adds is
+	// the two questions no generic audit can ask.
+	protection: [
+		// First, because it is the report's subject. Everything under it explains a part of this number.
+		{ id: 'globals', titleKey: 'globals.title', group: 'core', Component: Globals },
+		// Directly under the globals it explains — the two are one question read from both ends: the
+		// first counts what went unpressed, the second says how much of it anybody could have helped.
+		{ id: 'fight', titleKey: 'fight.title', group: 'core', Component: FightRules },
+		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// The bar the spenders are paid from. A points bar, so its fault is a count rather than a
+		// duration — see `ResourceKind`.
+		{
+			id: 'holy-power',
+			titleKey: 'holyPower.title',
+			group: 'core',
+			Component: resourceSection({
+				id: 'holy-power',
+				barKey: 'holyPower',
+				copyPrefix: 'holyPower',
+				tone: 'kick',
+				color: PROTECTION_SPEC.colors.primary,
+			}),
+		},
+		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
+		// No miss ledger yet, and its absence is the honest report rather than an oversight: the ledger
+		// lists what the sections found, and neither of this spec's two finds anything a row can point
+		// at. It arrives with the priority ladder, which is the first thing here that can name a press
+		// and say what was wrong with it.
+		{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
+		{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 	],
 };

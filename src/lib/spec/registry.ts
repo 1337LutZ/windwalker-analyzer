@@ -51,6 +51,26 @@ import {
 	timelineNotes as timelineNotesElemental,
 } from '~/specs/elemental/lib/view/timelineBanks';
 import { RAID_BUFF_EFFECTS as raidBuffEffectsElemental } from '~/specs/elemental/lib/view/raidBuffs';
+import {
+	analyse as analyseProtection,
+	registry as protectionRegistry,
+	PROTECTION,
+	PROTECTION_SETTINGS,
+	PROTECTION_SPEC,
+} from '~/specs/protection';
+import {
+	scoreAnalysis as scoreProtection,
+	wasteTone as wasteToneProtection,
+	weightsFor as weightsForProtection,
+} from '~/specs/protection/lib/score';
+import {
+	timelineBanks as timelineBanksProtection,
+	SUMMARY_LANE_KEYS as summaryLaneKeysProtection,
+	timelineCounters as timelineCountersProtection,
+	TIMELINE_ROW_ORDER as timelineRowOrderProtection,
+	timelineNotes as timelineNotesProtection,
+} from '~/specs/protection/lib/view/timelineBanks';
+import { RAID_BUFF_EFFECTS as raidBuffEffectsProtection } from '~/specs/protection/lib/view/raidBuffs';
 
 export interface SpecDefinition {
 	/** The registry's own key — what the URL carries and `getSpec` reads. */
@@ -261,6 +281,32 @@ export const SPECS: SpecDefinition[] = [
 		summaryLaneKeys: summaryLaneKeysElemental,
 		raidBuffEffects: raidBuffEffectsElemental,
 		settings: ELEMENTAL_SETTINGS,
+	},
+	{
+		key: 'protection',
+		classKey: 'Paladin',
+		classSlug: 'paladin',
+		// Shield of the Righteous: the Protection spender, and not a button a Holy or a Retribution
+		// paladin has. The same rule `identify` uses, so the icon and the refusal name one thing.
+		iconSpellId: 53_600,
+		specName: 'Protection',
+		displayName: 'Protection Paladin',
+		colors: PROTECTION_SPEC.colors,
+		gameData: PROTECTION,
+		registry: protectionRegistry,
+		analyse: analyseProtection,
+		gcdMs: PROTECTION_SPEC.gcdMs,
+		identify: PROTECTION_SPEC.identify,
+		score: scoreProtection,
+		weightsFor: weightsForProtection,
+		wasteTone: wasteToneProtection,
+		timelineBanks: timelineBanksProtection,
+		timelineNotes: timelineNotesProtection,
+		timelineCounters: timelineCountersProtection,
+		timelineRowOrder: timelineRowOrderProtection,
+		summaryLaneKeys: summaryLaneKeysProtection,
+		raidBuffEffects: raidBuffEffectsProtection,
+		settings: PROTECTION_SETTINGS,
 	},
 ];
 

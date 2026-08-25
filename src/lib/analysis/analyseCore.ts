@@ -27,6 +27,7 @@ import {
 } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import { uncountedActorIDs } from '~/lib/game/rankingExclusions';
+import type { FightPhase } from '~/lib/wcl/phases';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
 import type { SpecColors } from '~/lib/game/classes';
@@ -240,6 +241,35 @@ export interface Handles {
 	 * rebuilding them.
 	 */
 	resourceAudits: Record<string, ResourceBarAudit>;
+	/**
+	 * The encounter's phase transitions, joined to their names — `[]` when WarcraftLogs reports none.
+	 *
+	 * On the handles because a spec's audit is the second thing that asks: the core puts them on the
+	 * timeline, and a rule that excuses a phase needs the same list rather than a second reading of it.
+	 * Empty covers both "this encounter has no phases" and "this dataset predates the fetch"; nothing
+	 * here can tell those apart and nothing should pretend to.
+	 */
+	phases: readonly FightPhase[];
+	/**
+	 * The pull's global clock, as the core measured it — the three numbers every "how many presses did
+	 * this pull have room for" figure divides by.
+	 *
+	 * On the handles because a spec's own audit is the second thing that asks. `AnalysisCore` publishes
+	 * the same values for the report to render; these are the same ones, before the spec's half runs,
+	 * so the two halves of the analysis cannot disagree about how long a global was.
+	 *
+	 * `effectiveGcd` is **measured**, not declared: the median observed gap after an instant press,
+	 * floored at `GCD_MIN_MS` and capped at the spec's own `gcdMs`. For a spec whose global moves with
+	 * haste that median *is* the hasted global, which is why nothing about a haste model is needed to
+	 * count globals — see `lib/analysis/haste`, which models the cooldowns instead.
+	 */
+	effectiveGcd: number;
+	/** WarcraftLogs' own active time for this player, falling back to the pull's length. */
+	activeMs: number;
+	/** How many globals the pull had room for: `activeMs` over `effectiveGcd`, floored. */
+	gcdSlots: number;
+	/** Presses that actually cost a global. */
+	onGcdCasts: number;
 	/** Cooldowns that sat ready and unused, judged against the engaged windows. */
 	lostCasts: LostCastRow[];
 	/**
@@ -1623,6 +1653,11 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// audits read. It sees nothing but these handles, and `identify` runs before it because the spec
 	// check answers a question the core itself has to print (`isSpec`) rather than one the audit does.
 	const h: Handles = {
+		phases: dataset.phases ?? [],
+		effectiveGcd,
+		activeMs,
+		gcdSlots: Math.floor(activeMs / effectiveGcd),
+		onGcdCasts,
 		code,
 		fight,
 		actor,
