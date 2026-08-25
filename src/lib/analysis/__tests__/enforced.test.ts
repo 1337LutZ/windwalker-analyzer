@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { enforcedDowntime, enforcedProfile, ENFORCED_PROFILES } from '../enforced';
+import { enforcedDowntime, enforcedProfile, phaseWindows, ENFORCED_PROFILES } from '../enforced';
 import type { WclEvent } from '~/lib/types';
 import type { FightPhase } from '~/lib/wcl/phases';
 
@@ -141,17 +141,29 @@ describe('what the fight enforced', () => {
 		expect(both.ms).toBe(34_000);
 	});
 
-	/** A phase rule runs from its transition to the next one, on the pull's own clock. */
+	/**
+	 * The phase branch, tested directly because no rule reaches it any more.
+	 *
+	 * Thok's Frenzy for Blood was the table's only `phase` rule and the press stream contradicted it, so
+	 * it is gone — and these two assertions went with it, which would have left a live branch of
+	 * `enforcedDowntime` with nothing exercising it. Keeping a rule the data refuses in order to keep a
+	 * test green is the wrong way round, so `phaseWindows` is exported and tested for itself. The next
+	 * phase rule inherits a mechanism that still works.
+	 */
 	it('reads a phase rule from the transitions the report carries', () => {
-		const thok = run([], 1_599, [phase(1, 0), phase(2, 40_000), phase(1, 105_000)]);
-		expect(thok.rules[0]?.rule.key).toBe('frenzy-for-blood');
-		expect(thok.rules[0]?.windows).toEqual([[40_000, 105_000]]);
+		expect(phaseWindows([phase(1, 0), phase(2, 40_000), phase(1, 105_000)], [2], T0, 300_000)).toEqual([
+			[40_000, 105_000],
+		]);
 	});
 
 	/** The last phase of a pull closes at the end of it rather than being dropped. */
 	it('closes a phase that was still running at the kill', () => {
-		const thok = run([], 1_599, [phase(1, 0), phase(2, 250_000)]);
-		expect(thok.rules[0]?.windows).toEqual([[250_000, 300_000]]);
+		expect(phaseWindows([phase(1, 0), phase(2, 250_000)], [2], T0, 300_000)).toEqual([[250_000, 300_000]]);
+	});
+
+	/** A phase the pull never reached covers nothing, which is how a rule stays silent on a short kill. */
+	it('covers nothing for a phase the pull never entered', () => {
+		expect(phaseWindows([phase(1, 0)], [2], T0, 300_000)).toEqual([]);
 	});
 
 	/**
@@ -175,6 +187,13 @@ describe('what the fight enforced', () => {
 		// them took every aura the player carried over 1.5s more than once — fifty-two of them — and three
 		// passed. Gene Splice is the fourth and was found by another route entirely, which is the whole
 		// reason `player-buff` exists as a source.
+		// **Every rule left in the table is a `lockout`.** Both `declared` ones were removed when a full
+		// clear contradicted them: Foul Geyser's windows hold a *higher* press rate than the pull around
+		// them, and Thok's phase 2 holds 84% of the player's own baseline against the 45% it was written
+		// from. What survives is the half that was measured rather than judged, which is worth noticing
+		// before anybody adds a `declared` rule again.
+		expect(ENFORCED_PROFILES.flatMap((p) => p.rules).every((r) => r.basis === 'lockout')).toBe(true);
+
 		const lockouts = ENFORCED_PROFILES.flatMap((p) => p.rules).filter((r) => r.basis === 'lockout');
 		expect(lockouts.map((r) => r.key).sort()).toEqual([
 			'gene-splice',

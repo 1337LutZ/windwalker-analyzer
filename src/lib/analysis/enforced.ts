@@ -115,18 +115,8 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 	{
 		encounterID: 1606,
 		name: "Kor'kron Dark Shaman",
-		rules: [
-			{
-				key: 'foul-geyser',
-				name: 'Foul Geyser',
-				source: 'player-aura',
-				ids: [143_990],
-				basis: 'declared',
-				evidence:
-					"8s aura, 3 occurrences in the first report and none in the second — the other tank took it there. 17 casts happen inside the three windows, so this is not a lockout; it is the reader's call that a tank moved by it is a tank the fight moved.",
-			},
-		],
-		note: "Read off the player's own debuff and never off the boss's buff: the boss casts it on the same cadence in both pulls, and only one of the two tanks is taken away by it.",
+		rules: [],
+		note: "Foul Geyser was a rule here and the press stream says it should not be. Re-measured on a full clear by a different tank, its four 8s windows cover 32.0s — 21% of the pull — and inside them the player presses at 76.9 a minute against 80.3 outside, swings **more** (0.81 against 0.77 a second) and takes **more** damage (278k against 229k a second). They are not moved off the boss; they are tanking harder. The whole encounter holds 5.2s of cast gaps past three seconds and none of it falls inside a window, so the rule excused 32.0s to cover 0.9s of idle. Read off the player's own debuff and never off the boss's cast, which is the part that was right: the boss casts it on the same cadence for everyone, and the friendly-debuff stream carries eight events, all four applications and all four removals, every one on the audited tank and none on the co-tank.",
 	},
 	{
 		encounterID: 1603,
@@ -142,17 +132,8 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 	{
 		encounterID: 1599,
 		name: 'Thok the Bloodthirsty',
-		rules: [
-			{
-				key: 'frenzy-for-blood',
-				name: 'Frenzy for Blood',
-				source: 'phase',
-				phaseIds: [2],
-				basis: 'declared',
-				evidence:
-					'65s in both pulls. Damage taken falls to 0.14x and 0.00x — the boss is not hitting the tank at all. Casts do continue at 33 a minute against 73 outside it, which is why this is declared rather than measured.',
-			},
-		],
+		rules: [],
+		note: "Frenzy for Blood was a rule here and does not survive re-measurement. On the one usable window — 57.3s of the kill — the player presses at 61 a minute against 73 in phase 1, which is 84% of their own baseline rather than the 33-against-73 the rule was written from. Melee does collapse and damage taken falls to 0.24x, so the fight genuinely moves them off the boss; it does not take the buttons away, which is the exact test that got Iron Juggernaut's Siege Mode rejected. The phase holds one cast gap past three seconds, so the rule excused 57s to cover 2.7s of idle. The second window that made it look like a clean lockout is corpse time: the player died 8.7s before phase 2 began on that pull.",
 	},
 	{
 		encounterID: 1601,
@@ -256,8 +237,16 @@ function auraWindows(
 	return out;
 }
 
-/** The stretches a phase rule covers, from the transitions WarcraftLogs reports. */
-function phaseWindows(
+/**
+ * The stretches a phase rule covers, from the transitions WarcraftLogs reports.
+ *
+ * **Exported, and the reason is that the table currently has no phase rule to reach it through.**
+ * Thok's Frenzy for Blood was the only one and the press stream contradicted it, so removing it left
+ * this branch of `enforcedDowntime` live and untestable from the outside — a mechanism that a later
+ * rule will need and that nothing would notice had broken in the meantime. The alternative was keeping
+ * a rule the data refuses in order to keep a test green, which is the wrong way round.
+ */
+export function phaseWindows(
 	phases: readonly FightPhase[],
 	ids: readonly number[],
 	t0: number,
