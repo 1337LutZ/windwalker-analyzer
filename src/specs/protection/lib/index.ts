@@ -27,6 +27,7 @@ import { readExternals } from '~/lib/analysis/externals';
 import { readGear } from '~/lib/analysis/gear';
 import { readVengeance, vengeanceBar } from '~/lib/analysis/vengeance';
 import { auraWindows, raidScoped, toIntervals } from '~/lib/analysis/auras';
+import { raidSourceLanes } from '~/lib/analysis/raidCasters';
 import { abilityIdOf, eventsOn, instanceKey, isAuraEvent, type WclEvent } from '~/lib/events';
 import { mergeIntervals, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
@@ -371,7 +372,29 @@ function protectionAudit(h: Handles): ProtectionAudit {
 	 * specs — which Protection still has no version of, and which is exactly the guard that would have
 	 * caught the nine-aura list.
 	 */
+	/**
+	 * The raid cooldowns somebody else presses, drawn **one row per caster** rather than merged.
+	 *
+	 * The same treatment the Elemental gives them, and generic for the reason a reader gave: these are
+	 * raid buffs and every spec should show them the same way. Merged into one row they answer only "was
+	 * it up", which loses the question a reader is asking at this grain — two warriors staggering their
+	 * banners cover twice the pull, and one warrior pressing twice does not. `raidSourceLanes` resolves
+	 * a pet to its owner, so two totems from one shaman stay one row.
+	 *
+	 * Off the raid-scoped stream, because the caster is somebody else: the player-scoped walk knows the
+	 * buff landed and cannot say who sent it.
+	 */
+	const RAID_SOURCE_AURAS = ['stormlash-totem', 'skull-banner'];
+	const raidLanes = raidSourceLanes(
+		raidScoped(h.events),
+		registry.auras.filter((aura) => RAID_SOURCE_AURAS.includes(aura.key)),
+		{ t0: h.t0, pullMs: h.duration, actorID: h.actor.id, actors: h.actors },
+	);
+
 	const LANE_ABSENT = new Map<string, string>([
+		// Drawn per caster instead — see `RAID_SOURCE_AURAS`. A merged row would say the buff was up and
+		// lose which of two warriors put it there, which is the whole question at this grain.
+		...RAID_SOURCE_AURAS.map((key): [string, string] => [key, 'drawn per caster']),
 		// Drawn as the Vengeance bar itself, above the presses — see `extraResources`. A second row saying
 		// the same stack was up would be the same measurement twice.
 		['vengeance', 'drawn as its own resource bar'],
@@ -563,10 +586,13 @@ function protectionAudit(h: Handles): ProtectionAudit {
 		 */
 		timeline: {
 			casts: h.marks,
-			lanes: [...buffLanes, ...weakenedBlows.drawn],
-			...(weakenedBlows.hidden.length === 0
+			lanes: [...buffLanes, ...raidLanes.drawn, ...weakenedBlows.drawn],
+			...(weakenedBlows.hidden.length + raidLanes.hidden.length === 0
 				? {}
-				: { hiddenLanes: weakenedBlows.hidden, hiddenTargets: weakenedBlows.hidden.length }),
+				: {
+						hiddenLanes: [...raidLanes.hidden, ...weakenedBlows.hidden],
+						hiddenTargets: weakenedBlows.hidden.length,
+					}),
 		},
 		fight: {
 			encounter: enforced.profile?.name ?? null,
