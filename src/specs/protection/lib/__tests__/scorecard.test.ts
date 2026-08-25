@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 
 import { rawFixture } from '~/lib/analysis/fixtures';
 import { analyse } from '~/specs/protection/lib';
-import { scoreAnalysis, WEIGHTS } from '~/specs/protection/lib/score';
+import { scoreAnalysis, THRESHOLDS, WEIGHTS } from '~/specs/protection/lib/score';
 import type { Grade } from '~/lib/score';
 
 const scoreOf = (name: string) => scoreAnalysis(analyse(rawFixture('protection', `${name}.json`)));
@@ -31,35 +31,51 @@ describe('the Protection scorecard', () => {
 	});
 
 	/**
-	 * The externals figure, and the spread is what says the line measures something.
+	 * The externals card speaks only where the pull gave it something to be about.
 	 *
-	 * Two pulls used everything their raid had, one missed a seventh of it, and two missed more than
-	 * half. Counted per *slot* rather than per button, so the two Hands nobody pressed on Galakras are
-	 * the one chance they really were.
+	 * Garrosh and Paragons spent 9.7s and 5.9s against the Vengeance ceiling, which is the state an
+	 * external is for — so what the raid did or did not press is worth a card there. The other three
+	 * never reached it and nobody died on any of the five, so the card stays quiet rather than telling a
+	 * reader their healers missed something neither of them needed.
+	 *
+	 * **Galakras is the case that shows this is a calibration and not a filter.** It has the worst
+	 * externals figure of the five — five of seven slots unused — and it is silent, because the tank
+	 * peaked at half their ceiling and finished the pull alive. The section still lists every row and
+	 * still names what went unused; only the summary card is withheld.
 	 */
 	it.each([
 		['garrosh', 0, 'good'],
 		['paragons', 14.3, 'good'],
-		['fallenProtectors', 0, 'good'],
-		['galakras', 57.1, 'ok'],
-		['spoils', 42.9, 'ok'],
 	] as const)('%s missed %f% of the externals it was offered', (name, share, grade: Grade) => {
 		const card = scoreOf(name).sections['externals'];
+		expect(card?.metrics[0]?.unmeasurable).toBe(false);
 		expect(card?.metrics[0]?.value).toBeCloseTo(share, 1);
 		expect(card?.metrics[0]?.grade).toBe(grade);
 	});
 
+	it.each(['fallenProtectors', 'galakras', 'spoils'])('%s says nothing about externals it never needed', (name) => {
+		expect(scoreOf(name).sections['externals']?.metrics[0]?.unmeasurable).toBe(true);
+	});
+
 	/**
-	 * Haste is capped at reaching the breakpoint, and every committed pull is past it.
+	 * Haste reads its own figure against the breakpoint, not a share of it.
 	 *
-	 * The cap is the reason this can be graded at all — a metric that kept rewarding haste past 1.5x
-	 * would be making exactly the claim `Haste.tsx` argues against. All five read 100 because this is one
-	 * character in one kit; a pull under the line is what would move it, and none is committed.
+	 * 52.8% against a target of 50%, which is the pair the Haste section prints and the pair a player
+	 * reads off their gear. It was a percentage *of* the breakpoint capped at 100, so the card said
+	 * "target 100% or better" — a number matching nothing anywhere else in the report.
+	 *
+	 * All five read the same because this is one character in one kit; a pull under the line is what
+	 * would move it, and none is committed.
 	 */
-	it.each(['garrosh', 'paragons', 'fallenProtectors', 'galakras', 'spoils'])('%s reaches the breakpoint', (name) => {
+	it.each(['garrosh', 'paragons', 'fallenProtectors', 'galakras', 'spoils'])('%s reads its real haste', (name) => {
 		const card = scoreOf(name).sections['haste'];
-		expect(card?.metrics[0]?.value).toBe(100);
+		expect(card?.metrics[0]?.value).toBeCloseTo(52.8, 1);
 		expect(card?.metrics[0]?.grade).toBe('good');
+	});
+
+	/** And the target is the sim's own line rather than a number somebody typed. */
+	it('aims at the breakpoint the global stops improving at', () => {
+		expect(THRESHOLDS.hasteToBreakpoint.good).toBeCloseTo(50, 10);
 	});
 
 	/**
@@ -72,11 +88,11 @@ describe('the Protection scorecard', () => {
 		expect(WEIGHTS.externalsMissed).toBe(0);
 		expect(WEIGHTS.hasteToBreakpoint).toBe(0);
 
-		// Galakras is the proof: its externals card is `ok` and its haste card is `good`, and the overall
-		// is `bad` — taken from the globals and cooldown figures alone.
-		const galakras = scoreOf('galakras');
-		expect(galakras.sections['externals']?.metrics[0]?.grade).toBe('ok');
-		expect(galakras.sections['haste']?.metrics[0]?.grade).toBe('good');
-		expect(galakras.overall).toBe('bad');
+		// Paragons is the proof: its externals card carries a real figure and its haste card is `good`,
+		// and neither moves an overall taken from the globals and cooldown figures alone.
+		const paragons = scoreOf('paragons');
+		expect(paragons.sections['externals']?.metrics[0]?.unmeasurable).toBe(false);
+		expect(paragons.sections['haste']?.metrics[0]?.grade).toBe('good');
+		expect(paragons.overall).toBe('good');
 	});
 });

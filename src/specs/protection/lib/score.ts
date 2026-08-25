@@ -91,25 +91,46 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * and a share over nothing is not nought. `unused` already counts per *slot* rather than per button,
 	 * so two Hands nobody pressed are the one chance they really were.
 	 */
+	/**
+	 * **Silent unless the pull gives it something to be about**, which is the whole calibration of it.
+	 *
+	 * An unused external is only a loss if the tank needed one. On a pull they never came close to dying
+	 * and never reached their Vengeance ceiling, "your raid did not press Pain Suppression" is a true
+	 * sentence about nothing — noise on a card that costs a reader attention, and an invitation to go
+	 * and ask a healer for something neither of them needed.
+	 *
+	 * Two things make it relevant and both are already measured. **A death** is the unarguable one:
+	 * whatever else was true, an external was worth having. **Time at the Vengeance ceiling** is the
+	 * other and the sharper on a pull nobody died — it says the fight was hitting faster than this
+	 * player's health could convert, which is exactly the state an external is for, and it is the same
+	 * reading the recommendation copy leans on.
+	 *
+	 * Null on every other pull, which parks it at `ok` and prints nothing. Nothing about the *catalogue*
+	 * changes: the Externals section still lists every row on every pull, and its own recommendation
+	 * still names what went unused. This is only about what earns a card in the summary.
+	 */
 	const externalsOffered = prot.externals.available;
+	const neededOne = (analysis.timeline?.deaths?.length ?? 0) > 0 || prot.vengeance.nearCapMs > 0;
 	const externalsMissed = metric(
 		'externalsMissed',
-		externalsOffered > 0 ? sharePct(prot.externals.unused, externalsOffered) : null,
+		externalsOffered > 0 && neededOne ? sharePct(prot.externals.unused, externalsOffered) : null,
 	);
 
 	/**
-	 * How close the pull's haste came to the breakpoint the global stops improving at.
+	 * The pull's melee haste, against the breakpoint it is aiming at.
 	 *
-	 * Clamped at 100, and the clamp is the whole reason this can be graded at all. `Haste.tsx` argues
-	 * that colouring the distance is wrong in both directions — past the breakpoint the globals stop
-	 * improving, short of it the cooldowns are still shortening — and a metric that rewarded haste past
-	 * 1.5x would be making exactly that mistake. Capped, it says one thing only: whether the pull
-	 * reached the line, which is a fact about the character and not a claim about the player.
+	 * **The figure a reader recognises, not a share of it.** This was the haste expressed as a percentage
+	 * *of* the breakpoint and capped at 100, so the card said "target 100% or better" — a number that
+	 * appears nowhere else in the report and matches nothing on a character sheet. It reads its own
+	 * quantity now: 52.8% against a target of 50%, which is the pair the Haste section prints and the
+	 * pair a player reads off their own gear.
 	 *
-	 * Out of `all` for that same reason. A gear decision is not a play fault and must not move a letter
-	 * that reads as one.
+	 * The target is the sim's line rather than a chosen one — `GCD_FLOOR_HASTE` is where Sanctity of
+	 * Battle's reduction stops buying globals — so it moves with the constant the section argues from.
+	 *
+	 * Out of `all`, so it moves no letter. A gear decision is not a play fault.
 	 */
-	const hasteToBreakpoint = metric('hasteToBreakpoint', Math.min(100, (prot.haste.base / GCD_FLOOR_HASTE) * 100));
+	const hasteToBreakpoint = metric('hasteToBreakpoint', (prot.haste.base - 1) * 100);
 
 	const all = [globalsMissed, cooldownsMissed];
 	const { grade, judged } = overallOf(all, weightsFor(view));
@@ -185,13 +206,18 @@ export const THRESHOLDS = {
 	 */
 	externalsMissed: { good: 25, ok: 60, higherIsBetter: false, unit: 'percent' },
 	/**
-	 * Haste as a share of the breakpoint, capped at reaching it.
+	 * Melee haste, against the breakpoint the global stops improving at.
 	 *
-	 * 100 is the line the sim puts the global's floor at and nothing above it counts for more. `ok` at 95
-	 * is five percent of the breakpoint — about two and a half points of haste — which is close enough
-	 * that a single piece of gear closes it.
+	 * `good` is the breakpoint itself, derived from `GCD_FLOOR_HASTE` rather than typed as 50 so the two
+	 * cannot drift apart. `ok` is two and a half points under it — close enough that one piece of gear
+	 * closes the gap, which is what separates "nearly there" from "this needs a plan".
 	 */
-	hasteToBreakpoint: { good: 100, ok: 95, higherIsBetter: true, unit: 'percent' },
+	hasteToBreakpoint: {
+		good: (GCD_FLOOR_HASTE - 1) * 100,
+		ok: (GCD_FLOOR_HASTE - 1) * 100 - 2.5,
+		higherIsBetter: true,
+		unit: 'percent',
+	},
 } as const satisfies Record<string, Threshold & { unit: string }>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
