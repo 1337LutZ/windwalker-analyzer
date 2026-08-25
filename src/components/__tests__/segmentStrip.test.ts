@@ -137,7 +137,7 @@ describe('the summary strip', () => {
 		expect(spans.map((span) => span.short)).toEqual(['1', '—', '3+', '~1', '2']);
 		expect(spans.map((span) => span.label)).toEqual([
 			'One enemy',
-			'Nothing to hit',
+			'Nothing hit',
 			'Three or more enemies',
 			'Coming and going',
 			'Two enemies',
@@ -147,11 +147,11 @@ describe('the summary strip', () => {
 
 	it('names in the key only the modes the pull actually held, in the order the ramp rises', () => {
 		const withIdle = draw(createElement(SegmentStrip, { analysis: pull(EVERY_MODE) }));
-		expect(withIdle.markup).toContain('Nothing to hit');
+		expect(withIdle.markup).toContain('Nothing hit');
 		const fought = [segment(0, 0, 150_000, 'single'), segment(1, 150_000, 300_000, 'aoe')];
 		const withoutIdle = draw(createElement(SegmentStrip, { analysis: pull(fought) }));
 		// A swatch for a bar the reader cannot find is a swatch they will go looking for.
-		expect(withoutIdle.markup).not.toContain('Nothing to hit');
+		expect(withoutIdle.markup).not.toContain('Nothing hit');
 		expect(withoutIdle.markup).not.toContain('Two enemies');
 		expect(withoutIdle.markup.indexOf('One enemy')).toBeLessThan(withoutIdle.markup.indexOf('Three or more'));
 		// And it still drew: the assertions above have to be about the key rather than an empty render.

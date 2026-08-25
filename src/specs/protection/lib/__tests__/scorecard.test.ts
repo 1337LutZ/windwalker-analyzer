@@ -33,6 +33,9 @@ describe('the Protection scorecard', () => {
 	/**
 	 * The externals card speaks only where the pull gave it something to be about.
 	 *
+	 * Both figures carry Symbiosis Barkskin, which no pull in the capture set ever received — the raid's
+	 * Druid gave Symbiosis to somebody else on all five — so it is a genuine unused slot on every one.
+	 *
 	 * Garrosh and Paragons spent 9.7s and 5.9s against the Vengeance ceiling, which is the state an
 	 * external is for — so what the raid did or did not press is worth a card there. The other three
 	 * never reached it and nobody died on any of the five, so the card stays quiet rather than telling a
@@ -44,8 +47,10 @@ describe('the Protection scorecard', () => {
 	 * still names what went unused; only the summary card is withheld.
 	 */
 	it.each([
-		['garrosh', 0, 'good'],
-		['paragons', 14.3, 'good'],
+		['garrosh', 12.5, 'good'],
+		// Exactly on the `good` line, which is `<= 25` — a quarter of the slots unused is a raid using most
+		// of what it has.
+		['paragons', 25, 'good'],
 	] as const)('%s missed %f% of the externals it was offered', (name, share, grade: Grade) => {
 		const card = scoreOf(name).sections['externals'];
 		expect(card?.metrics[0]?.unmeasurable).toBe(false);
@@ -88,10 +93,10 @@ describe('the Protection scorecard', () => {
 		expect(WEIGHTS.externalsMissed).toBe(0);
 		expect(WEIGHTS.hasteToBreakpoint).toBe(0);
 
-		// Paragons is the proof: its externals card carries a real figure and its haste card is `good`,
-		// and neither moves an overall taken from the globals and cooldown figures alone.
+		// Paragons is the proof: both new cards carry a real figure and the overall is taken from the
+		// globals and cooldown metrics alone, which is the only list `overallOf` is handed.
 		const paragons = scoreOf('paragons');
-		expect(paragons.sections['externals']?.metrics[0]?.unmeasurable).toBe(false);
+		expect(paragons.sections['externals']?.metrics[0]?.grade).toBe('good');
 		expect(paragons.sections['haste']?.metrics[0]?.grade).toBe('good');
 		expect(paragons.overall).toBe('good');
 	});

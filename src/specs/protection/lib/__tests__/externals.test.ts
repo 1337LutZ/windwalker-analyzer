@@ -75,11 +75,11 @@ describe('the externals a pull received', () => {
 	 * than about the gate, and it is why the gate gets a synthetic suite of its own below.
 	 */
 	it.each([
-		['garrosh.json', 7, 6, 0],
-		['paragons.json', 7, 5, 1],
-		['fallenProtectors.json', 7, 6, 0],
-		['galakras.json', 7, 2, 4],
-		['spoils.json', 7, 3, 3],
+		['garrosh.json', 8, 6, 1],
+		['paragons.json', 8, 5, 2],
+		['fallenProtectors.json', 8, 6, 1],
+		['galakras.json', 8, 2, 5],
+		['spoils.json', 8, 3, 4],
 	] as const)('%s offers %i externals, of which %i landed and %i went unused', (name, available, used, unused) => {
 		const { externals } = auditOf(name);
 		expect(externals.available).toBe(available);
@@ -108,6 +108,7 @@ describe('the externals a pull received', () => {
 		['garrosh.json', 'devotion-aura', 4, 24007],
 		['garrosh.json', 'power-word-barrier', 2, 16003],
 		['garrosh.json', 'smoke-bomb', 2, 9991],
+		['garrosh.json', 'barkskin', 0, 0],
 		['garrosh.json', 'demoralizing-banner', 0, 0],
 		['paragons.json', 'pain-suppression', 1, 8002],
 		['paragons.json', 'vigilance', 2, 22539],
@@ -116,6 +117,7 @@ describe('the externals a pull received', () => {
 		['paragons.json', 'devotion-aura', 4, 24024],
 		['paragons.json', 'power-word-barrier', 1, 6427],
 		['paragons.json', 'smoke-bomb', 0, 0],
+		['paragons.json', 'barkskin', 0, 0],
 		['paragons.json', 'demoralizing-banner', 0, 0],
 		['fallenProtectors.json', 'pain-suppression', 1, 7991],
 		['fallenProtectors.json', 'vigilance', 2, 24033],
@@ -124,6 +126,7 @@ describe('the externals a pull received', () => {
 		['fallenProtectors.json', 'devotion-aura', 3, 18020],
 		['fallenProtectors.json', 'power-word-barrier', 1, 2339],
 		['fallenProtectors.json', 'smoke-bomb', 1, 4590],
+		['fallenProtectors.json', 'barkskin', 0, 0],
 		['fallenProtectors.json', 'demoralizing-banner', 0, 0],
 		['galakras.json', 'pain-suppression', 0, 0],
 		['galakras.json', 'vigilance', 1, 10530],
@@ -132,6 +135,7 @@ describe('the externals a pull received', () => {
 		['galakras.json', 'devotion-aura', 1, 6008],
 		['galakras.json', 'power-word-barrier', 0, 0],
 		['galakras.json', 'smoke-bomb', 0, 0],
+		['galakras.json', 'barkskin', 0, 0],
 		['galakras.json', 'demoralizing-banner', 0, 0],
 		['spoils.json', 'pain-suppression', 0, 0],
 		['spoils.json', 'vigilance', 1, 12004],
@@ -140,6 +144,7 @@ describe('the externals a pull received', () => {
 		['spoils.json', 'devotion-aura', 3, 17997],
 		['spoils.json', 'power-word-barrier', 0, 0],
 		['spoils.json', 'smoke-bomb', 0, 0],
+		['spoils.json', 'barkskin', 0, 0],
 		['spoils.json', 'demoralizing-banner', 0, 0],
 	] as const)('%s had %s land %i times for %i ms', (name, key, count, heldMs) => {
 		const row = auditOf(name).externals.rows.find((entry) => entry.key === key)!;

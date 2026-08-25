@@ -1072,10 +1072,10 @@
       "row_aoe": "Three or more enemies",
       "row_mixed": "Coming and going",
       "rowMixed": "Between {{low}} and {{high}} enemies, mostly {{median}}",
-      "row_idle": "Nothing to hit",
+      "row_idle": "Nothing hit",
       "length": "{{seconds}}s",
-      "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches with nothing to hit are grey.",
-      "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time with nothing in front of you — no enemy was up to be hit, so none of it counts for or against you."
+      "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches where you hit nothing are grey.",
+      "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time you landed nothing in — usually because no enemy was up, sometimes because the fight had you stunned or moved away. None of it counts for or against you either way."
     },
     "takeaways": {
       "metric": {

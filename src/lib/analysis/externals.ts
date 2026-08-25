@@ -117,7 +117,7 @@ import { windowsBySource } from './raidCasters';
  * `targeted` window would be the buff having been consumed or dispelled, and a reader told "you had
  * Barrier for 0.8s" deserves to know which of those it is.
  */
-export type ExternalDelivery = 'targeted' | 'ground' | 'raid';
+export type ExternalDelivery = 'targeted' | 'ground' | 'raid' | 'granted';
 
 /**
  * What the reduction figure rests on.
@@ -423,6 +423,36 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		evidence: 'tooltip',
 	},
 	{
+		key: 'barkskin',
+		name: 'Barkskin',
+		/**
+		 * **The one entry the raid gives you and you press yourself**, which is why `delivery` needed a
+		 * fourth arm.
+		 *
+		 * A Druid's Symbiosis grants a Protection Paladin Barkskin, and from then on the paladin casts it.
+		 * So the *caster* is always the audited player and the *provider* is a Druid — and both halves of
+		 * the existing model get it wrong on their own. A `targeted` external drops self-casts, which
+		 * would drop every instance of this; the roster gate keyed on the caster's class would ask whether
+		 * the raid had a Paladin, which is a question about the tank themselves.
+		 *
+		 * `granted` says both things at once: gate on the provider, count the self-cast. Measured on the
+		 * reference clear the tank presses it 14 times, and the id is **113075** rather than the Druid's
+		 * own 22812 — that one fires nowhere in the whole report, which is what says the Symbiosis version
+		 * is a separate spell rather than the same button shared.
+		 */
+		ids: [113075],
+		providedBy: 'Druid',
+		// `sim/druid/barkskin.go:17-19` — 12s, and `DamageTakenMultiplier *= 0.8`. The Druid's own spell,
+		// which is what Symbiosis hands over; the sim models no Paladin Symbiosis, so the duration and the
+		// reduction are the Druid's and the id is the log's.
+		durationMs: 12_000,
+		cooldownMs: 60_000,
+		takenMultiplier: 0.8,
+		scope: 'all',
+		delivery: 'granted',
+		evidence: 'sim',
+	},
+	{
 		key: 'demoralizing-banner',
 		name: 'Demoralizing Banner',
 		// The banner's own id, which is what the enemy aura registers under (`sim/warrior/banners.go:44`).
@@ -645,7 +675,9 @@ export function readExternals(
 			holdsMs: external.durationMs,
 			onTarget: actorID,
 		})
-			.filter(({ source }) => external.delivery === 'raid' || source !== actorID)
+			// A `raid` cooldown the player pressed covers them too, and a `granted` one is *only* ever theirs
+			// to press — see the module note and `barkskin`. Everything else drops the self-cast.
+			.filter(({ source }) => external.delivery === 'raid' || external.delivery === 'granted' || source !== actorID)
 			.map(({ source, windows }): ExternalCaster => ({ id: source, name: nameOf(source), windows }));
 
 		/**
