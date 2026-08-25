@@ -279,3 +279,70 @@ describe('channelTickTimes / measureChannels', () => {
 		]);
 	});
 });
+
+/**
+ * A press the log emits only as an aura, and the field that was declared to read it.
+ *
+ * `Ability.pressSeenAsAura` was set, asserted by a registry test, and read by nothing in the analysis
+ * — so every press of the one button that needs it was invisible. Synthetic rather than fixture-driven
+ * on purpose: the button is a talent, and none of the five committed Protection captures took it, so
+ * the committed data cannot tell a working reader from a broken one. That is the same blind spot the
+ * aura sweep found, and here it is the whole reason the test has to build its own events.
+ */
+describe('a press the log only reports as an aura', () => {
+	const AURA_ONLY: GameData = {
+		abilities: [
+			{
+				key: 'sentence',
+				name: 'Sentence',
+				castIds: [114157],
+				onGcd: true,
+				gate: 'cooldown',
+				pressSeenAsAura: 'sentence',
+			},
+			{ key: 'jab', name: 'Jab', castIds: [115687], onGcd: true, gate: 'chi' },
+		],
+		auras: [{ key: 'sentence', name: 'Sentence', ids: [114916], kind: 'debuff' }],
+	};
+	const auraRegistry = createRegistry(AURA_ONLY);
+
+	const applied = (t: number, id: number, type = 'applydebuff'): WclEvent =>
+		({ timestamp: T0 + t, type, abilityGameID: id, sourceID: ME, targetID: 99 }) as unknown as WclEvent;
+
+	it('counts the debuff going up as the press, since no cast event exists', () => {
+		const series = castSeries(
+			[applied(1_000, 114_916), cast(2_000, 115_687), applied(3_000, 114_916)],
+			ME,
+			T0,
+			auraRegistry,
+		);
+		expect(series.get('sentence')?.count).toBe(2);
+		expect(series.get('sentence')?.times).toEqual([1_000, 3_000]);
+		// And the ordinary button beside it is untouched.
+		expect(series.get('jab')?.count).toBe(1);
+	});
+
+	/** A refresh is the same press still running. Counting one turns a dot kept up into a second press. */
+	it('counts applications and never refreshes', () => {
+		const series = castSeries(
+			[applied(1_000, 114_916), applied(2_000, 114_916, 'refreshdebuff'), applied(3_000, 114_916, 'refreshdebuff')],
+			ME,
+			T0,
+			auraRegistry,
+		);
+		expect(series.get('sentence')?.count).toBe(1);
+	});
+
+	/** Somebody else's debuff is not this player's press. */
+	it('ignores an application the player did not source', () => {
+		const other = { ...applied(1_000, 114_916), sourceID: 42 } as WclEvent;
+		expect(castSeries([other], ME, T0, auraRegistry).get('sentence')).toBeUndefined();
+	});
+
+	/** An ability declaring nothing keeps reading casts only, which is every other button in the tree. */
+	it('changes nothing for an ability with no aura declared', () => {
+		const series = castSeries([cast(1_000, 115_687), applied(2_000, 114_916)], ME, T0, registry);
+		expect(series.get('jab')?.count).toBe(1);
+		expect(series.get('sentence')).toBeUndefined();
+	});
+});

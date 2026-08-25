@@ -1,4 +1,4 @@
-import { abilityIdOf, isBeginCast, isCast, type WclEvent, instanceKey } from '~/lib/events';
+import { abilityIdOf, isAuraApply, isBeginCast, isCast, type WclEvent, instanceKey } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import type { Registry } from '~/lib/game/registry';
 import type { CastRow } from '~/lib/types';
@@ -206,6 +206,63 @@ export function castSeries(
 			spawn: e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance),
 		});
 		out.set(key, rec);
+	}
+
+	/**
+	 * Presses the log emits **only** as an aura, read off the aura instead.
+	 *
+	 * `Ability.pressSeenAsAura` has existed, been set on Execution Sentence and been asserted by a
+	 * registry test since this spec landed, and until now nothing in `lib/analysis` read it — so the
+	 * field was declared, tested and inert, and every press of that button was invisible to the report.
+	 *
+	 * What that cost is measurable rather than theoretical. Traced on one Blackfuse pull, the player
+	 * pressed Execution Sentence four times — the debuff going up at 13.50s, 76.11s, 139.29s and
+	 * 200.79s — with no `cast` event under any id at all. The report showed 185 presses against a true
+	 * 189, called four globals missed that were nothing of the kind, and left four phantom two-second
+	 * gaps in the idle picture for a reader to wonder about.
+	 *
+	 * **Applications only, never refreshes.** A refresh is the same press still running; counting one
+	 * would turn a dot the player kept up into a button they pressed twice.
+	 */
+	for (const ability of registry.abilities) {
+		const auraKey = ability.pressSeenAsAura;
+		if (auraKey === undefined) continue;
+		const ids = new Set(registry.aura(auraKey).ids);
+		for (const e of events) {
+			if (e.sourceID !== sourceID || !isAuraApply(e)) continue;
+			const id = abilityIdOf(e);
+			if (id === null || !ids.has(id)) continue;
+			const rec = out.get(ability.key) ?? {
+				ability,
+				key: ability.key,
+				id: ability.castIds[0] ?? id,
+				count: 0,
+				times: [],
+				beginTimes: [],
+				presses: [],
+			};
+			const t = e.timestamp - t0;
+			rec.count++;
+			rec.times.push(t);
+			rec.beginTimes.push(t);
+			rec.presses.push({
+				t,
+				begin: t,
+				...(e.targetID === undefined ? {} : { target: e.targetID }),
+				...(e.targetInstance === undefined ? {} : { instance: e.targetInstance }),
+				spawn: e.targetID === undefined ? null : instanceKey(e.targetID, e.targetInstance),
+			});
+			out.set(ability.key, rec);
+		}
+		// The rows above are built in stream order; these were appended after it. `gapStats` and every
+		// reader of `times` assume ascending, so the row is put back in order rather than left to a
+		// caller to notice.
+		const rec = out.get(ability.key);
+		if (rec !== undefined) {
+			rec.presses.sort((a, b) => a.t - b.t);
+			rec.times = rec.presses.map((press) => press.t);
+			rec.beginTimes = rec.presses.map((press) => press.begin);
+		}
 	}
 	return out;
 }
