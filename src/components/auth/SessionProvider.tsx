@@ -12,6 +12,7 @@ import {
 	readClientID,
 	rememberClientID,
 	rememberToken,
+	resumeAfterSignIn,
 	type Session,
 	type SessionStatus,
 	type StoredToken,
@@ -136,7 +137,11 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
 				// A sign-in that landed earns the tab its silent-renewal fuse back, so that this token
 				// ageing out later in the same tab is renewed as quietly as this one was.
 				if (fresh !== null) clearSilentRetry();
-				settle(fresh !== null ? { token: fresh, source: 'oauth' } : held);
+				settle(fresh !== null ? { token: fresh.token, source: 'oauth' } : held);
+				// Last, and after the token is in storage rather than before: this can be a real
+				// navigation, and the document it lands on has nothing but `sessionStorage` to tell it
+				// the sign-in worked. Today it lands on the page it is already on and does nothing.
+				if (fresh !== null && fresh.returnTo !== null) resumeAfterSignIn(fresh.returnTo);
 			})
 			.catch((cause: unknown) => {
 				if (!live) return;

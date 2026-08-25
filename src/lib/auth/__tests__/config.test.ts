@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { looksLikeClientID, requireClientID } from '../config';
+import { looksLikeClientID, redirectUri, requireClientID } from '../config';
 import { forgetClientID, readClientID, rememberClientID } from '../storage';
 
 /**
@@ -18,7 +18,10 @@ function stubStorage(): Map<string, string> {
 	return store;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
+});
 
 describe('looksLikeClientID', () => {
 	it('accepts the UUID WarcraftLogs issues', () => {
@@ -102,5 +105,43 @@ describe('requireClientID', () => {
 	it('throws with somewhere to go when none is set', () => {
 		stubStorage();
 		expect(() => requireClientID()).toThrow(/warcraftlogs\.com\/api\/clients/);
+	});
+});
+
+/**
+ * The one string WarcraftLogs matches byte for byte, pinned per deployment.
+ *
+ * These are not decorative. The URI is registered by hand on each visitor's own client, so a value
+ * that changes is a sign-in that breaks for everybody at once, with an `invalid_client` that blames
+ * their client id. The path is taken from this build's configured root rather than from the address
+ * bar precisely so that a second route cannot change it — the last case is that promise.
+ */
+describe('redirectUri', () => {
+	/** The origin in the address bar and the root this build was configured with. Nothing else. */
+	function servedFrom(origin: string, base: string, pathname = '/'): void {
+		vi.stubGlobal('window', { location: { origin, pathname } });
+		vi.stubEnv('BASE_URL', base);
+	}
+
+	it('is the domain root on Cloudflare Pages, where the slash is the whole path', () => {
+		servedFrom('https://windwalker-analyzer.pages.dev', '/');
+		expect(redirectUri()).toBe('https://windwalker-analyzer.pages.dev/');
+	});
+
+	it('drops the trailing slash a configured `base` carries on GitHub Pages', () => {
+		servedFrom('https://1337lutz.github.io', '/windwalker-analyzer/');
+		expect(redirectUri()).toBe('https://1337lutz.github.io/windwalker-analyzer');
+	});
+
+	it('follows the origin to localhost, which is what `astro dev` needs registered', () => {
+		servedFrom('http://localhost:4321', '/');
+		expect(redirectUri()).toBe('http://localhost:4321/');
+	});
+
+	it('is the same URI from a per-spec route, on either host', () => {
+		servedFrom('https://windwalker-analyzer.pages.dev', '/', '/monk/windwalker');
+		expect(redirectUri()).toBe('https://windwalker-analyzer.pages.dev/');
+		servedFrom('https://1337lutz.github.io', '/windwalker-analyzer/', '/windwalker-analyzer/shaman/elemental');
+		expect(redirectUri()).toBe('https://1337lutz.github.io/windwalker-analyzer');
 	});
 });

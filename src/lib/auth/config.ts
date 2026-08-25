@@ -69,25 +69,46 @@ export function requireClientID(): string {
 }
 
 /**
+ * A path in the spelling redirect URIs are registered in: no trailing slash, except at the site root
+ * where the slash *is* the path.
+ *
+ * The trailing slash is not cosmetic. WarcraftLogs matches redirect_uri byte for byte and reports a
+ * mismatch as `invalid_client` — "Client authentication failed" — which reads as though the client id
+ * were wrong or unregistered, so it sends you hunting in entirely the wrong place. Verified against
+ * the real client: `…/windwalker-analyzer` serves the consent form, while `…/windwalker-analyzer/`
+ * is a 401.
+ *
+ * Both spellings reach this app — Astro serves either, and `import.meta.env.BASE_URL` carries a
+ * trailing slash for a configured `base` — so the sent spelling is chosen here rather than taken as
+ * it comes. Also what makes two paths comparable: `/x` and `/x/` are one document, and telling them
+ * apart would send a tab reloading to where it already is.
+ */
+export function normalisePath(path: string): string {
+	const trimmed = path.replace(/\/+$/, '');
+	return trimmed === '' ? '/' : trimmed;
+}
+
+/**
  * Where WarcraftLogs sends the visitor back to.
  *
- * Derived from the address bar rather than written down, because the same build is served from
- * GitHub Pages and from `astro dev` on localhost, and a hard-coded origin makes one of the two
- * impossible to sign in to. The query string is dropped so the value is stable across the round
- * trip: the URL the callback lands on carries `?code=…`, and the exchange has to present the exact
- * `redirect_uri` the authorize step used.
+ * The origin is read from the address bar rather than written down, because the same build is served
+ * from Cloudflare Pages, from GitHub Pages and from `astro dev` on localhost, and a hard-coded one
+ * makes two of those three impossible to sign in to. The path is not read from anywhere: it is this
+ * build's own root, which is what `import.meta.env.BASE_URL` holds.
+ *
+ * **The path must not follow the address bar, and one page from now that stops being a nicety.** The
+ * URI is matched byte for byte against one registered on the visitor's own client, and every visitor
+ * registers their own — so a URI that trails the route would, the moment a second route exists, send
+ * everyone who registered the URI they were told to into `invalid_client`, with a message that blames
+ * their client id. One URI per deployment, anchored at the root, is a URI that stays registered.
+ *
+ * Nothing is lost by anchoring it: where the visitor was travels in `sessionStorage` instead, which
+ * is what `storage.RETURN_KEY` is for.
+ *
+ * Both live deployments keep the exact string they have registered, and the tests pin them. Cloudflare
+ * Pages has `BASE_URL === '/'` and gets `https://windwalker-analyzer.pages.dev/`; GitHub Pages has
+ * `/windwalker-analyzer/` and gets `https://1337lutz.github.io/windwalker-analyzer`.
  */
 export function redirectUri(): string {
-	const { origin, pathname } = window.location;
-	// The trailing slash is not cosmetic. WarcraftLogs matches redirect_uri byte for byte and reports
-	// a mismatch as `invalid_client` — "Client authentication failed" — which reads as though the
-	// client id were wrong or unregistered, so it sends you hunting in entirely the wrong place.
-	// Verified against the real client: `…/windwalker-analyzer` serves the consent form, while
-	// `…/windwalker-analyzer/` is a 401.
-	//
-	// Both spellings reach this app (Astro serves either, and `import.meta.env.BASE_URL` carries a
-	// trailing slash for a configured `base`), so normalise to the registered form: no trailing
-	// slash, except at the site root where the slash *is* the path.
-	const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
-	return `${origin}${path}`;
+	return `${window.location.origin}${normalisePath(import.meta.env.BASE_URL)}`;
 }

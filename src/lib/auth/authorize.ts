@@ -17,10 +17,11 @@ export async function beginAuthorize(): Promise<void> {
 	const state = createState();
 	const challenge = await challengeFor(verifier);
 
-	// The query goes with them. `redirect_uri` is matched byte for byte by WarcraftLogs, so a shared
-	// link's report and fight cannot ride back in the URL — signing in from one used to land on a
-	// bare page with the selection gone.
-	rememberAuthorization({ verifier, state, search: window.location.search });
+	// Where they are standing goes with them. `redirect_uri` is matched byte for byte by WarcraftLogs
+	// and points at this build's root, so neither the route nor a shared link's report and fight can
+	// ride back in the URL — signing in from one used to land on a bare page with the selection gone.
+	const { pathname, search, hash } = window.location;
+	rememberAuthorization({ verifier, state, returnTo: `${pathname}${search}${hash}` });
 
 	const url = new URL(WCL_AUTHORIZE_URL);
 	url.searchParams.set('client_id', clientID);

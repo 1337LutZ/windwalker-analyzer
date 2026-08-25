@@ -7,7 +7,8 @@ export {
 	requireClientID,
 } from './config';
 export { beginAuthorize } from './authorize';
-export { URL_RESTORED_EVENT, completeSignIn, hasCallbackParams } from './callback';
+export { URL_RESTORED_EVENT, completeSignIn, hasCallbackParams, resumeAfterSignIn } from './callback';
+export type { CompletedSignIn } from './callback';
 export { exchangeCode } from './exchange';
 export { challengeFor, createState, createVerifier } from './pkce';
 export {
