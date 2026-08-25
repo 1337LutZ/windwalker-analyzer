@@ -14,6 +14,8 @@ import type { Analysis } from '~/lib/types';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
 import { THRESHOLDS as ELE_THRESHOLDS } from '~/specs/elemental/lib/score';
+import { THRESHOLDS as PROT_THRESHOLDS } from '~/specs/protection/lib/score';
+import { PROTECTION_SPEC } from '~/specs/protection';
 import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
 import { WW_SPEC } from '~/specs/windwalker';
 import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
@@ -675,9 +677,10 @@ describe('report copy with no reader', () => {
 			keys: () => [
 				...Object.keys(WW_SPEC.resources ?? {}),
 				...Object.keys(ELEMENTAL_SPEC.resources ?? {}),
+				...Object.keys(PROTECTION_SPEC.resources ?? {}),
 				...bankKeys(),
 			],
-			pinned: ['brew', 'chi', 'energy', 'lightningShield', 'mana'],
+			pinned: ['brew', 'chi', 'energy', 'holyPower', 'lightningShield', 'mana'],
 		},
 		castLogGrouping: {
 			where: 'components/charts/CastTimeline.tsx → GROUPINGS',
@@ -886,13 +889,17 @@ describe('report copy with no reader', () => {
 		 */
 		scorecardMetric: {
 			where: 'both specs’ `THRESHOLDS`',
-			keys: () => [...new Set([...Object.keys(WW_THRESHOLDS), ...Object.keys(ELE_THRESHOLDS)])],
+			keys: () => [
+				...new Set([...Object.keys(WW_THRESHOLDS), ...Object.keys(ELE_THRESHOLDS), ...Object.keys(PROT_THRESHOLDS)]),
+			],
 			pinned: [
 				'brewCapWaste',
 				'brewShortUses',
 				'brewStacks',
+				'cooldownsMissed',
 				'earthShockWaste',
 				'fireElementalHasteUptime',
+				'globalsMissed',
 				'fireElementalPrepull',
 				'flameShockMultiDot',
 				'flameShockUptime',
@@ -971,8 +978,8 @@ describe('report copy with no reader', () => {
 	const FAMILY_LEAVES: Record<string, number> = {
 		'ascendance.read.fault.*': 5,
 		'ascendance.read.reason.*': 6,
-		'castLog.resource.*': 5,
-		'castLog.resourceAria.*': 5,
+		'castLog.resource.*': 6,
+		'castLog.resourceAria.*': 6,
 		'castLog.target.*': 3,
 		'castLog.target.*Title': 3,
 		// Five and not six: `Gate` carries an `other` arm and no section prints a column for it.
@@ -1004,7 +1011,7 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.label': 23,
+		'summary.takeaways.metric.*.label': 25,
 	};
 
 	/**

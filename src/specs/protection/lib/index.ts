@@ -171,7 +171,37 @@ function globalsOf(h: Handles, enforced: EnforcedDowntime): ProtectionAudit['glo
 	const enforcedMs = unionMs(
 		enforced.windows.map(([start, end]): Interval => [Math.max(start, 0), Math.min(end, h.duration)]),
 	);
-	const enforcedGlobals = Math.min(missed, Math.floor(enforcedMs / h.effectiveGcd));
+
+	/**
+	 * The globals the fight took, **measured** rather than priced.
+	 *
+	 * The room inside the enforced windows, less the presses actually made in them. That subtraction is
+	 * the whole of it and it is not a refinement: the first version of this priced the windows in
+	 * globals and clamped the result at the gap, and on the Paragons capture that read *98 of 98
+	 * globals taken by the fight, 0 left for the player* — a pull with 329 presses graded flawless
+	 * because the arithmetic could not see that 93 presses happened **inside** those windows.
+	 *
+	 * A window with presses in it is a window the player could act in, whatever the rule says about the
+	 * mechanic, and the press stream is the only thing that can say so. That is the same evidence the
+	 * `lockout` rules were measured with in the first place — this just applies it per pull instead of
+	 * trusting the table.
+	 *
+	 * Floored at nought: more presses inside a window than the window had room for means the window is
+	 * not costing the player anything, not that the fight owes them globals.
+	 *
+	 * **And capped at the gap, which is a presentation rule rather than a measurement.** The two sides
+	 * are counted on different clocks — `available` divides WarcraftLogs' own *active* time, which
+	 * already excludes much of a stretch where the player was not attacking — so the room a window
+	 * removes can genuinely exceed the gap it explains. On the Paragons capture that is 138 globals of
+	 * enforced downtime against 98 missed, and a sentence reading "the encounter accounts for 138 of
+	 * those 98" is nonsense whatever the arithmetic behind it. The cap says what the report can support:
+	 * the fight covers the whole gap. `enforcedMs` beside it is uncapped and is the measurement.
+	 */
+	const roomInside = Math.floor(enforcedMs / h.effectiveGcd);
+	const pressedInside = h.marks.filter(
+		(mark) => mark.onGcd && enforced.windows.some(([start, end]) => mark.t >= start && mark.t < end),
+	).length;
+	const enforcedGlobals = Math.min(missed, Math.max(0, roomInside - pressedInside));
 
 	return {
 		available,
@@ -179,7 +209,13 @@ function globalsOf(h: Handles, enforced: EnforcedDowntime): ProtectionAudit['glo
 		missed,
 		enforcedMs,
 		enforcedGlobals,
-		// What is left when the fight's own share is taken off: the player's half of the gap.
+		/**
+		 * What is left when the fight's own share is taken off: the player's half of the gap.
+		 *
+		 * Floored at nought for one case that is real rather than defensive — an encounter whose windows
+		 * cover more room than the pull's own gap. `missed` stays whole either way; it is the *share*
+		 * that is taken off, and the report prints both.
+		 */
 		missedFree: Math.max(0, missed - enforcedGlobals),
 		gcdMs: h.effectiveGcd,
 		measuredMs: unionMs(inPull),

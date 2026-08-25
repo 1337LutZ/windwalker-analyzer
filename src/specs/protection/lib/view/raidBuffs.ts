@@ -1,15 +1,34 @@
-// Which raid buffs this spec brings, for the roster the report draws.
+// Which raid buffs a Protection Paladin's damage rests on, and which of them are theirs to bring.
 //
-// A paladin brings two of the group and neither is optional: Blessing of Kings is the +5% stats buff
-// and Blessing of Might is the mastery one. `selfProvided` is what lets the section say "you brought
-// this" rather than listing it as something the raid happened to have.
+// Both fields are judgements about a spec rather than facts about the game — see `RaidBuffEffect`.
+// `selfProvided` is the one that misleads if it is wrong: it turns "the raid did not have this" into
+// "you failed to press this", and a paladin is the spec most exposed to getting it backwards, because
+// it is the commonest source of two of the seven groups.
+//
+// Six of the seven. Spell power is the one left out, and it is left out on the same terms the
+// Windwalker leaves out stamina: nothing a Protection Paladin presses scales from it, so a row for it
+// would be one nobody can act on.
 
 import type { RaidBuffEffect } from '~/lib/analysis/raidBuffs';
 
 export const RAID_BUFF_EFFECTS: readonly RaidBuffEffect[] = [
-	// Blessing of Kings, `sim/paladin/paladin.go`'s `AddRaidBuffs` — the +5% stats buff, and the
-	// paladin is its commonest source rather than one of several.
+	// Blessing of Kings, and the paladin's own press — `sim/core/buffs.go` takes it as a provider of the
+	// all-stats group. A gap here is genuinely this player's, which is what `selfProvided` claims.
 	{ key: 'stats', iconId: 20217, selfProvided: true },
-	// Blessing of Might: the mastery buff, and the same call registers it.
+	// Blessing of Might, the same argument: the paladin brings the mastery buff. Grace of Air and
+	// Roar of Courage supply the same group, so a pull can have it without the paladin having pressed
+	// anything — the row still reads as theirs to fix, because it is theirs to bring.
 	{ key: 'mastery', iconId: 19740, selfProvided: true },
+	// Horn of Winter: the commonest source of attack power, which is what every strike here scales
+	// from and which no paladin brings.
+	{ key: 'attackPower', iconId: 57330, selfProvided: false },
+	// Melee haste, and on this spec it is the odd one of the six: it swings the weapon faster and moves
+	// no cooldown at all. Sanctity of Battle reads `TotalMeleeHasteMultiplier`, which this buff does not
+	// touch — see `lib/analysis/haste`, which spends a paragraph on the distinction. So the row belongs
+	// here for the autoattacks and for nothing else.
+	{ key: 'meleeHaste', iconId: 55610, selfProvided: false },
+	// Crit, which every one of these strikes can take.
+	{ key: 'crit', iconId: 116781, selfProvided: false },
+	// Spell haste, for Holy Wrath and Consecration.
+	{ key: 'spellHaste', iconId: 24907, selfProvided: false },
 ];

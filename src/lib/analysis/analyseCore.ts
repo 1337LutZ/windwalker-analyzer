@@ -1307,6 +1307,17 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	}
 
 	// ------------------------------------------------------------ lost casts
+	// Buttons that share one timer are one row, and the merge has to happen before the walk rather than
+	// after it. Crusader Strike and Hammer of the Righteous both sit on `paladin.BuilderCooldown()`, so
+	// a walk over each in isolation sees the *other* button's presses as gaps: measured on the Garrosh
+	// capture, Crusader Strike read 52 lost casts and Hammer of the Righteous 138, against a pair that
+	// was actually pressed 142 times on one cooldown and lost far fewer. Neither number was a fact
+	// about the player.
+	//
+	// The partner is dropped rather than merged into: `sharesCooldownWith` is declared on both halves
+	// and `createRegistry` refuses a pair that disagrees, so taking the first of the two and skipping
+	// the second is a stable choice however the table is ordered.
+	const sharedHandled = new Set<string>();
 	const lostCasts = spec.registry.abilities
 		.filter((a) => a.gate === 'cooldown')
 		.map((ability): LostCastRow | null => {
@@ -1338,7 +1349,20 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			// (Plan §47 recorded this the other way round, "understated by one cast time". That only holds
 			// if the cooldown is armed at the `begincast`, which is not the premise this codebase reads its
 			// cooldowns on.)
-			const times = castTimes(ability);
+			// The pair's other half, when this button declares one and the registry can resolve it.
+			const partnerKey = ability.sharesCooldownWith;
+			if (partnerKey !== undefined && sharedHandled.has(ability.key)) return null;
+			const partner = partnerKey === undefined ? undefined : spec.registry.abilities.find((a) => a.key === partnerKey);
+			if (partner !== undefined) sharedHandled.add(partner.key);
+
+			// One series for the pair, in time order. `castBeginTimes` has to be merged the same way and
+			// stay element-for-element with it, or the two clocks come apart — see `cooldownDrift`.
+			const own = castTimes(ability).map((t, i) => [t, castBeginTimes(ability)[i] ?? t] as const);
+			const theirs =
+				partner === undefined ? [] : castTimes(partner).map((t, i) => [t, castBeginTimes(partner)[i] ?? t] as const);
+			const merged = [...own, ...theirs].sort((a, b) => a[0] - b[0]);
+			const times = merged.map(([t]) => t);
+			const begins = merged.map(([, b]) => b);
 			if (!times.length) return null;
 			const live: Interval[] = spec.needsTarget.has(ability.key) && engaged.length ? engaged : [[0, duration]];
 			const drift = cooldownDrift(
@@ -1347,14 +1371,17 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 				live,
 				duration,
 				cooldownLeewayMs,
-				castBeginTimes(ability),
+				begins,
 				// Only for a spec that declares one. Everything else takes the declared `cooldownMs`, which
 				// is what every committed capture was measured against.
 				spec.cooldownAt === undefined ? undefined : (t) => spec.cooldownAt!(dataset, ability, t),
 			);
 			return {
 				id: ability.castIds[0] ?? 0,
-				name: ability.name,
+				// A pair is named as one, because it is one button's worth of cooldown however many keys
+				// are bound to it. A row reading only the first half would attribute the other half's
+				// presses to a button the reader can see was pressed far fewer times.
+				name: partner === undefined ? ability.name : `${ability.name} · ${partner.name}`,
 				cooldownSec: (ability.cooldownMs ?? 0) / 1000,
 				casts: times.length,
 				driftSec: r1(drift.driftMs / 1000),

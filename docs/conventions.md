@@ -478,10 +478,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Protection Paladin becoming the third registered spec, it prints 1430 leaves, 701 prose,
-22,105 words; median 26, p75 43, p90 63, p95 77, p99 95, max 160; longest 9% carry 24%; report.json
-632 prose leaves, 1,089 sentences, median 17, 213 past 25 (19.6%), 267 em-dashes in 231 sentences
-(21.2%); 48 / 22 / 1 / 2 on the quote lines.
+As of the sweep over the Protection copy's own values, it prints 1436 leaves, 704 prose, 22,222 words;
+median 26, p75 43, p90 64, p95 77, p99 95, max 160; longest 9% carry 24%; report.json 635 prose leaves,
+1,094 sentences, median 17, 213 past 25 (19.5%), 266 em-dashes in 230 sentences (21.0%);
+48 / 22 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->
 

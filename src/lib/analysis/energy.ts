@@ -41,11 +41,14 @@ const WCL_POWER_TYPE: Readonly<Partial<Record<ResourceTypeValue, number>>> = {
 	[RESOURCE_TYPE.mana]: 0,
 	[RESOURCE_TYPE.energy]: 3,
 	[RESOURCE_TYPE.chi]: 12,
-	// Holy power, and measured on the same terms the two above were: read off a real Protection Paladin
-	// pull (`DdpZg1AHfYQB2W9x` #30, Malkorok), where the player's own events carry exactly two bars —
-	// type 0 with a max of 60000, which is mana, and **type 9 with a max of 5**, which is the only thing
-	// it can be. 43 samples of it on that pull. The sim numbers this bar 138248 as a *secondary*
-	// resource, so the two enums disagree here more loudly than anywhere else in this table.
+	// Holy power, and measured on the same terms the two above were. A Protection Paladin's own events
+	// carry exactly two bars: type 0 with a max of 60000, which is mana, and **type 9 with a max of 5**,
+	// which is the only thing it can be. Counted across the three committed Protection captures the
+	// second one is sampled 127, 91 and 53 times against pulls of 575s, 545s and 226s — about one
+	// reading every four or five seconds, which is what `pointsResourceAudit` has to walk between.
+	//
+	// The sim numbers this same bar 138248 as a *secondary* resource, so the two enums disagree here
+	// more loudly than anywhere else in this table.
 	[SECONDARY_RESOURCE_TYPE.holyPower]: 9,
 };
 

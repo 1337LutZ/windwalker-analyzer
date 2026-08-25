@@ -419,7 +419,7 @@
     "engaged": "Uptime is measured against engaged time — the pull minus intermissions and time with no target — rather than the raw fight length.",
     "energy_windwalker": "Energy is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from resourcechange events. A pull carries around twenty of those. It is used for time at the cap and nothing else.",
     "energy_elemental": "Mana is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, rather than from resourcechange events. A pull carries around twenty of those. The readings land on events and not on a timer, so a dip that opened and closed between two of them is not seen.",
-    "energy_protection": "Holy power is rebuilt from the presses that generate and spend it, and checked against the readings WarcraftLogs stamps onto casts and hits — around forty of those on a pull. The walk is what fills the gaps between them, so a point that arrived and was spent between two readings is inferred rather than seen.",
+    "energy_protection": "Holy power is rebuilt from the presses that generate and spend it, and checked against the readings WarcraftLogs stamps onto casts and hits — roughly one every four or five seconds, which on the three reference pulls is between fifty and a hundred and thirty of them. The walk is what fills the gaps between those, so a point that arrived and was spent inside one is inferred rather than seen.",
     "spec_windwalker": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Tigereye Brew cast.",
     "spec_elemental": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Lava Burst cast.",
     "spec_protection": "Classic logs report spec as 0. So the spec comes from the report’s own player list, confirmed by a Shield of the Righteous cast — the Protection spender, which no other paladin has."
@@ -553,6 +553,7 @@
     "resource": {
       "energy": "Energy",
       "chi": "Chi",
+      "holyPower": "Holy Power",
       "brew": "Brew bank",
       "mana": "Mana",
       "lightningShield": "Lightning Shield"
@@ -560,6 +561,7 @@
     "resourceAria": {
       "energy": "Energy over the pull, against a ceiling of {{max}}",
       "chi": "Chi over the pull, against a ceiling of {{max}}",
+      "holyPower": "Holy power over the pull, against a ceiling of {{max}}",
       "brew": "Tigereye Brew stacks banked over the pull, against a cap of {{max}}",
       "mana": "Mana over the pull, against a ceiling of {{max}}",
       "lightningShield": "Lightning Shield charges over the pull, against a ceiling of {{max}}"
@@ -591,7 +593,7 @@
       "reflected": "Damage returned",
       "perUse": "Average return",
       "landed": "Presses that landed",
-      "ofCap": "Cap used"
+      "ofCap": "Health reflected"
     },
     "columns": {
       "at": "at",
@@ -1141,6 +1143,12 @@
         },
         "karmaCapShare": {
           "label": "Health reflected"
+        },
+        "globalsMissed": {
+          "label": "Globals you missed"
+        },
+        "cooldownsMissed": {
+          "label": "Cooldown presses missed"
         }
       }
     },
@@ -1714,7 +1722,9 @@
       "gcd": "Your global"
     },
     "summary": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter accounts for {{enforced, integer}} of those, which leaves {{free, integer}} that were yours to make.",
-    "enforcedNote": "A global the fight takes away is not one you lost. Those seconds are stuns, phases that move you off the boss, and mechanics that replace your bar entirely — every one of them measured on real pulls of this encounter rather than assumed. The section below says which rule applied and what put it in the table."
+    "summary_covered": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter took the buttons away for at least that long, so there is nothing in the gap this report can call yours.",
+    "summary_none": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. This encounter took none of them away, so all of them were yours to make.",
+    "enforcedNote": "A global the fight takes away is not one you lost. Those seconds are stuns, phases that move you off the boss, and mechanics that replace your bar entirely. The section below lists the rule that applied and says which kind it is: a lockout was measured on real pulls of this boss, and a declared window is a phase somebody judged takes you away from it."
   },
   "fight": {
     "title": "What the fight did",

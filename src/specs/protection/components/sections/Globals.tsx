@@ -50,6 +50,11 @@ export default function Globals({ analysis }: { analysis: Analysis }) {
 			<div className="mt-5 flex flex-col gap-3.5">
 				<Prose>
 					{t('globals.summary', {
+						// Three arms, because two of the shapes this sentence can take are nonsense in the
+						// default wording. `covered` is a pull whose whole gap the fight explains — printing
+						// "leaves 0 that were yours to make" reads as an accusation of nothing. `none` is an
+						// encounter with no rules that fired, where naming a share of nought is noise.
+						context: globals.enforcedGlobals === 0 ? 'none' : globals.missedFree === 0 ? 'covered' : undefined,
 						available: globals.available,
 						pressed: globals.pressed,
 						missed: globals.missed,

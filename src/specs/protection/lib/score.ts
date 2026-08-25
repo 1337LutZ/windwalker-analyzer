@@ -11,7 +11,8 @@
 //   - **The globals that were free to press and were not.** `missedFree` over `available`, which is
 //     the fork's own headline figure with the fight's share already taken off it. What a threshold has
 //     to be defensible about here is only the *size* of an acceptable gap, not whether a gap is bad.
-//   - **The cooldowns that sat ready.** Our own `lostCasts`, on the same rule every other spec uses.
+//   - **The presses the cooldowns offered and never got.** Our own `lostCasts`, on the same rule every
+//     other spec uses, as a share of what those buttons offered.
 //
 // Everything else the report measures is described rather than judged: where a cooldown landed, what
 // a Sacred Shield refresh replaced, how much of the pull had a Consecration under it. The fork's
@@ -58,27 +59,38 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	);
 
 	/**
-	 * Cooldowns that came back and sat there, in seconds, over the pull's own length.
+	 * Presses the cooldowns offered and never got, as a share of the presses they offered in total.
+	 *
+	 * **A share of presses and not a duration, which is a correction rather than a preference.** Seconds
+	 * held over pull length was the first shape of this and it is unbounded: several buttons idle at
+	 * once, so the three reference pulls read 217%, 238% and 157% of their own length, against a
+	 * threshold that could only ever say `bad`. A number no pull can pass is not a rule.
 	 *
 	 * Read off the core's `lostCasts` rather than rebuilt, so this and the cast table cannot disagree
-	 * about what was held — and on this spec that reading passes through the haste curve, which is what
-	 * makes it true at all. Against the base cooldowns every generator would look permanently late.
+	 * about what was held. Two things make that reading true on this spec and neither is optional: the
+	 * haste curve, without which every generator looks permanently late against a base cooldown it never
+	 * had, and the shared-cooldown merge, without which the builder pair reports the same idle seconds
+	 * twice — 190 lost casts between them on the Garrosh capture, against 19 for the one button they
+	 * actually are.
 	 */
-	const heldSec = analysis.lostCasts.reduce((sum, row) => sum + row.driftSec, 0);
-	const cooldownsHeld = metric(
-		'cooldownsHeld',
-		analysis.durationMs > 0 ? (heldSec / (analysis.durationMs / 1000)) * 100 : null,
-	);
+	const lost = analysis.lostCasts.reduce((sum, row) => sum + row.lostCasts, 0);
+	const offered = analysis.lostCasts.reduce((sum, row) => sum + row.casts + row.lostCasts, 0);
+	const cooldownsMissed = metric('cooldownsMissed', offered > 0 ? sharePct(lost, offered) : null);
 
-	const all = [globalsMissed, cooldownsHeld];
+	const all = [globalsMissed, cooldownsMissed];
 	const { grade, judged } = overallOf(all, weightsFor(view));
 
 	return {
 		overall: grade,
 		judged,
 		sections: {
+			// Keyed by the page section each card is about, because `Scorecard` titles a card from
+			// `<key>.title` and falls back to the metric's own label when there is none — which prints the
+			// same words twice, once as the heading and once as the row under it. `globals` is a section on
+			// this page; `cooldownDrift` is the Elemental's heading for the same subject and the honest
+			// place for this figure until Protection has a cooldown section of its own.
 			globals: section([globalsMissed]),
-			cooldowns: section([cooldownsHeld]),
+			cooldownDrift: section([cooldownsMissed]),
 		},
 	};
 }
@@ -108,17 +120,23 @@ export const THRESHOLDS = {
 	 */
 	globalsMissed: { good: 10, ok: 25, higherIsBetter: false, unit: 'percent' },
 	/**
-	 * Seconds of cooldown sat on, as a share of the pull's length.
+	 * Presses the cooldowns offered that were never made, as a share of the presses they offered.
 	 *
 	 * A share rather than a count, for the reason every rate in this repository is one: a nine-minute
-	 * pull holds more of everything than a two-minute one, and a count would rank the bosses by length.
+	 * pull offers more of everything than a two-minute one, and a count would rank the bosses by length.
 	 *
-	 * Wide, and the width is this spec's own: the audited set is six buttons deep and two of them are
-	 * held on purpose — Avenging Wrath waits for a window worth spending it in, and Hammer of Wrath
-	 * cannot be pressed above twenty percent health at all. `needsTarget` clips the second and nothing
-	 * clips the first, so a pull that banked its Wrath correctly reads some drift here by construction.
+	 * The lines are calibrated against the three reference pulls rather than picked, and the spread is
+	 * what makes them worth stating: Fallen Protectors reads 10.3%, Garrosh 19.4% and Paragons 40.1%,
+	 * on the same character, in the same week, under the same ladder. So a tenth is what a clean pull of
+	 * this spec looks like and a quarter is where a real habit starts showing, which is what these two
+	 * lines say.
+	 *
+	 * Wide at the top for the same reason `globalsMissed` is: two of the audited buttons are held on
+	 * purpose — Avenging Wrath waits for a window worth spending it in, and Hammer of Wrath cannot be
+	 * pressed above twenty percent health at all. `needsTarget` clips the second and nothing clips the
+	 * first, so a pull that banked its Wrath correctly reads some loss here by construction.
 	 */
-	cooldownsHeld: { good: 5, ok: 15, higherIsBetter: false, unit: 'percent' },
+	cooldownsMissed: { good: 10, ok: 25, higherIsBetter: false, unit: 'percent' },
 } as const satisfies Record<string, Threshold & { unit: string }>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
@@ -132,7 +150,7 @@ export type MetricKey = keyof typeof THRESHOLDS;
  */
 export const WEIGHTS: Record<MetricKey, number> = {
 	globalsMissed: 4,
-	cooldownsHeld: 2,
+	cooldownsMissed: 2,
 };
 
 export function weightsFor(_view: ScoreView): Record<MetricKey, number> {
