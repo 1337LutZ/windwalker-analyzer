@@ -214,11 +214,12 @@ workflow files.
 
 ## Deployment
 
-Pushing to `main` publishes **one** site, from one workflow:
+Pushing to `main` publishes **one** site, and every pull request gets a preview of its own:
 
-| Workflow                           | Cloudflare project | URL                                  |
-| ---------------------------------- | ------------------ | ------------------------------------ |
-| `.github/workflows/cloudflare.yml` | `mop-log-analyzer` | `https://mop-log-analyzer.pages.dev` |
+| Workflow                           | Trigger            | Cloudflare project | URL                                           |
+| ---------------------------------- | ------------------ | ------------------ | --------------------------------------------- |
+| `.github/workflows/cloudflare.yml` | push to `main`     | `mop-log-analyzer` | `https://mop-log-analyzer.pages.dev`          |
+| `.github/workflows/preview.yml`    | every pull request | `mop-log-analyzer` | `https://<branch>.mop-log-analyzer.pages.dev` |
 
 That build serves every registered spec by route — `/monk/windwalker`, `/shaman/elemental`, a splash
 at `/` — so nothing in the pipeline is per-spec any more: no `PUBLIC_SPEC`, no second project, no
@@ -228,6 +229,42 @@ second queue, no second run to keep in step with the first.
 step: `npm ci`, `npm run check`, `npm test`, then `npm run build` and `wrangler pages deploy dist`. A
 build that fails any check is not published. Pull requests run `.github/workflows/ci.yml`, which is
 the same commands.
+
+### Every pull request gets a site
+
+`.github/workflows/preview.yml` uploads the branch to the **same** Cloudflare project under a branch
+name other than `main`, which is the whole of what makes a deploy a preview: Cloudflare moves
+`mop-log-analyzer.pages.dev` for the production branch and for nothing else. The branch gets an alias
+of its own, `https://<branch>.mop-log-analyzer.pages.dev`, and the workflow leaves it on the pull
+request as a single comment it edits in place rather than one per push.
+
+The alias belongs to the branch rather than to a push, which is what makes it worth registering — see
+below. Cloudflare also mints a `https://<hash>.mop-log-analyzer.pages.dev` per deployment; the comment
+does not link it, because it moves.
+
+Three ways it deliberately differs from the production deploy, each of them a decision rather than an
+omission:
+
+- **It does not re-run `npm run check` or `npm test`.** `ci.yml` runs both on the same commit, and a
+  preview exists to be looked at _before_ the branch is green — a review comment about a chart is
+  worth having while the tests are still red. It does run `npm run build`, because a branch that does
+  not compile has nothing to upload.
+- **It keeps `src/pages/preview.astro`.** The production deploy deletes that harness; a preview keeps
+  it for the same reason. It renders committed fixtures with no token and no report code, so
+  `/preview` on a branch alias is a route into the report that needs no sign-in at all.
+- **It cancels itself.** Production queues deploys and never cancels one mid-upload, because a
+  half-published live site is the worst outcome there. A superseded preview is merely stale.
+
+A pull request **from a fork** skips the job rather than failing it. GitHub withholds repository
+secrets from `pull_request` on a fork, so the deploy cannot work there, and a red X on a
+contributor's first PR would read as "your change is broken".
+
+**Signing in on a preview takes one line of setup, once per branch.** `redirectUri()` builds the
+OAuth redirect from the origin the page is served from, and a preview is a different origin — so add
+`https://<branch>.mop-log-analyzer.pages.dev/` to your own client's redirect URIs before signing in
+there. Without it the exchange fails as `invalid_client`, and the message blames your client id
+rather than the origin. See [`docs/wcl-oauth.md`](docs/wcl-oauth.md). Or use `/preview` on the alias,
+which needs none of this.
 
 Two files rather than one, still, and the reason for that changed. The old one was that two copies of
 a deploy are where the two drift, and it went with the second site. What replaces it is narrower and
