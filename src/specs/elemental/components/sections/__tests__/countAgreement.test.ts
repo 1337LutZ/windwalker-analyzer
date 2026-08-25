@@ -397,18 +397,20 @@ describe('the shield drop count agrees with itself', () => {
 	 * scoring model refuses.
 	 */
 	it('reads all three ways under an ok letter', () => {
+		// 8s and not 3s: the rule now carries five seconds of overcap inside `good`, so three lands `good`
+		// and this case needs a figure in the band between the two lines.
 		const okPull = (fellOff: number): El =>
-			({ ...cleave, lightningShield: { ...cleave.lightningShield, overcapMs: 3000, fellOff } }) as El;
+			({ ...cleave, lightningShield: { ...cleave.lightningShield, overcapMs: 8000, fellOff } }) as El;
 		for (const fellOff of [0, 1]) {
 			expect(ELEMENTAL_SPEC.score(okPull(fellOff)).sections['lightningShield']?.grade).toBe('ok');
 		}
 		const none = verdictOf(render(LightningShield, okPull(0)));
-		expect(none).toContain('sat at seven for 3s past the leeway, and never came all the way off');
+		expect(none).toContain('sat at seven for 8s past the leeway, and never came all the way off');
 		expect(none).not.toContain('0 times');
 		const one = verdictOf(render(LightningShield, okPull(1)));
-		expect(one).toContain('sat at seven for 3s past the leeway, and came all the way off once');
+		expect(one).toContain('sat at seven for 8s past the leeway, and came all the way off once');
 		expect(one).not.toContain('1 times');
-		expect(t('lightningShield.verdict', { context: 'ok', count: 4, overcap: 3000, fellOff: 4 })).toContain(
+		expect(t('lightningShield.verdict', { context: 'ok', count: 4, overcap: 8000, fellOff: 4 })).toContain(
 			'came all the way off 4 times',
 		);
 	});

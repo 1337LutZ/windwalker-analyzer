@@ -128,6 +128,10 @@ describe('the headline says how much of the pull it judged', () => {
 		quiet.brew.uses = 0;
 		quiet.brew.maxStacks = 0;
 		quiet.brew.useList = [];
+		// And the stacks it earned, which is what `brewCapWaste` reads since it became a share of them. A
+		// pull with no brews, no bank and no use list cannot have earned any, so leaving this set was the
+		// synthetic contradicting itself rather than the metric refusing to go quiet.
+		quiet.brew.stacksGained = 0;
 		const card = scoreAnalysis(quiet, resolveBands(quiet.targets, 'multi'));
 		expect(card.judged).toEqual({ measured: 4, total: 14, unmeasurable: true });
 		expect(card.overall).toBe('ok');

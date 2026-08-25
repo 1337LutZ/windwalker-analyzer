@@ -515,7 +515,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			earthShock: 'bad',
 			searingTotem: 'ok',
 			fireElemental: 'ok',
-			lightningShield: 'bad',
+			// `ok` since the rule took five seconds of overcap into `good`: these pulls read 9.6s, 17.6s,
+			// 21.9s and 4.5s, so the first now lands between the two lines rather than under both.
+			lightningShield: 'ok',
 			mana: 'ok',
 			casts: 'good',
 		};
@@ -531,24 +533,24 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		expect(card(cleavePull)).toEqual({
 			overall: 'ok',
 			judged: { measured: 14, total: 19, unmeasurable: false },
-			sections: { ...sections, searingTotem: 'good', fireElemental: 'good' },
+			sections: { ...sections, searingTotem: 'good', fireElemental: 'good', lightningShield: 'bad' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
 		});
 		expect(card(phasedPull)).toEqual({
 			overall: 'good',
 			judged: { measured: 14, total: 19, unmeasurable: false },
-			sections: { ...sections, flameShock: 'ok', fireElemental: 'good' },
+			sections: { ...sections, flameShock: 'ok', fireElemental: 'good', lightningShield: 'bad' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
 		});
 		expect(card(unbrokenPull)).toEqual({
 			overall: 'ok',
 			judged: { measured: 14, total: 19, unmeasurable: false },
-			// **The one shield letter the five-second grace moved.** `unbroken` sat at seven for 4.5s past
-			// the grace where it used to be 23.4s, which is the only one of the four to come under the
-			// rule's 5 000ms `ok` line — the other three are 9.6s, 17.6s and 21.9s and stay `bad`.
-			sections: { ...sections, searingTotem: 'bad', fireElemental: 'good', lightningShield: 'ok' },
+			// **The shield's four letters, now that the rule carries five seconds inside `good`.** These
+			// pulls read 4.5s, 9.6s, 17.6s and 21.9s past the per-window grace, so `unbroken` clears the
+			// `good` line outright, `addsThenBoss` sits between the two, and the other two stay `bad`.
+			sections: { ...sections, searingTotem: 'bad', fireElemental: 'good', lightningShield: 'good' },
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'good',
 		});

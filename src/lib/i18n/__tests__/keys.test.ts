@@ -404,6 +404,24 @@ describe('report copy with no reader', () => {
 		return [...sections].sort();
 	}
 
+	/**
+	 * Every section the scorecard can draw a card for, which is not the same set as `verdictSections`.
+	 *
+	 * Read off each spec's own `section([...])` calls rather than listed here, so a section added to a
+	 * spec is covered by the fact of being added. `potions` is why this exists: it scores one metric,
+	 * stores no graded sentence, and its heading is drawn by `Scorecard` off the same computed template
+	 * every other section's is.
+	 */
+	function scoreSections(): string[] {
+		const sections = new Set<string>();
+		for (const source of SOURCES) {
+			for (const match of source.matchAll(/^\s*(\w+): section\(/gm)) {
+				if (match[1] !== undefined) sections.add(match[1]);
+			}
+		}
+		return [...sections].sort();
+	}
+
 	/** The prefixes a `copyPrefix` is given. Same two spellings `copyPrefix.test.ts` looks for. */
 	function copyPrefixes(): string[] {
 		const prefixes = new Set<string>();
@@ -465,6 +483,11 @@ describe('report copy with no reader', () => {
 				for (const prefix of copyPrefixes()) add(`${prefix}${folded.slice(1)}`, 'copyPrefix');
 			} else if (raw.startsWith('${section}.')) {
 				for (const section of verdictSections()) add(`${section}${folded.slice(1)}`, 'verdict');
+				// `Scorecard` reads `${section}.title` for every *scored* section, and a scored section need
+				// not store a verdict: `potions` grades one metric and has no graded sentence, so its heading
+				// was reported as copy nothing reads while the card was rendering it. Only `.title` is widened
+				// — a verdict arm really is stored by the verdict sections and nobody else.
+				if (folded === '*.title') for (const section of scoreSections()) add(`${section}.title`, 'computed');
 			} else if (!raw.startsWith('${s.tKey}.')) {
 				const source = KEY_SOURCES[FAMILY_SOURCE[folded] ?? ''];
 				const live = source === undefined ? [] : source.keys();

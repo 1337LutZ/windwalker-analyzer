@@ -89,8 +89,11 @@ describe('the scorecard grid', () => {
 		// `cleave` is the pull with something wrong in three different places, so it is the one that can
 		// show an order at all. The shield is the largest miss on it by a distance — 42.2s at the ceiling
 		// against a rule whose `ok` band ends at 5s — and `casts` is 89.2% against an 80% target.
+		// Flame Shock and not the shield since the shield's rule took five seconds into `good`: 21.9s
+		// against a `good` of 5s and an `ok` of 15s is 1.7 bands out, where 83.9% against a 95/85 dot is
+		// 2.1. The order is the claim here, not which section happens to hold the worst number.
 		const drawn = cards(html(fixture('cleave')));
-		expect(drawn[0]).toBe('Lightning Shield');
+		expect(drawn[0]).toBe('Flame Shock');
 		expect(drawn.at(-1)).toBe('Casts per minute');
 		// Non-vacuity: an order over one card is not an order.
 		expect(drawn.length).toBeGreaterThan(4);
@@ -232,10 +235,13 @@ describe('the scorecard grid', () => {
 	 * fault rule with no fault is hidden by `silent`, so this line only exists on a pull that has one.
 	 */
 	it('names the floor on a fault rule instead of inviting the reader below it', () => {
+		// The count side, which is the arm still reachable on a committed pull: the shield's drop counter
+		// grades `good` at none and none is the best there is. Its sibling in seconds took a five-second
+		// leeway into `good`, so no fault rule in seconds now sits on a floor of nought and this asserts
+		// the count arm alone rather than pinning a `target 0s` nothing renders.
 		const markup = html(fixture('cleave'));
-		expect(markup).toContain('target 0s');
-		expect(markup).not.toContain('target 0s or less');
-		// The count side of the same rule, on the spec that has one drawn.
+		expect(markup).toContain('target none');
+		expect(markup).not.toContain('target 0 or fewer');
 		const brews = wwHtml('sections');
 		expect(brews).toContain('target none');
 		expect(brews).not.toContain('target 0 or fewer');

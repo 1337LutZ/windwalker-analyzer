@@ -229,7 +229,9 @@ describe('stacks lost at the cap while holding', () => {
 
 		expect(a.brew.wastedAtCap).toBe(1);
 		expect(a.brew.wastedProtecting).toBe(0);
-		expect(scoreAnalysis(a).sections.brew?.metrics.find((m) => m.key === 'brewCapWaste')?.value).toBe(1);
+		// One stack of the 21 this synthetic bank earned, as a share: the metric grades the leak against
+		// `stacksGained` rather than counting stacks. The count itself is asserted above it.
+		expect(scoreAnalysis(a).sections.brew?.metrics.find((m) => m.key === 'brewCapWaste')?.value).toBeCloseTo(4.762, 3);
 	});
 });
 

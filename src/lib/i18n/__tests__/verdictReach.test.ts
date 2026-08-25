@@ -237,7 +237,6 @@ const UNREACHED: string[] = [
 	'karma.verdict_none',
 	'lightningShield.verdict_bad_noOvercap',
 	'lightningShield.verdict_bad_other',
-	'lightningShield.verdict_good',
 	'lightningShield.verdict_none',
 	'lightningShield.verdict_ok_one',
 	'lightningShield.verdict_ok_other',

@@ -306,6 +306,10 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 // and `method` stay out, and the ruling that leaves them out is written there.
 
 const WINDWALKER_SECTIONS = [
+	// One key, a heading. `potions` scores on this spec and had no root at all, so the summary card
+	// borrowed its single metric's label and printed the same words twice — once as the heading and once
+	// as the row beneath it.
+	'potions',
 	'snapshots',
 	'casts',
 	'energy',

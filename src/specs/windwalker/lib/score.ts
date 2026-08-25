@@ -364,7 +364,28 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// still reported; only the avoidable ones are graded. `?? 0` because the committed fixtures predate
 	// the field and carry `undefined`, which must read as "nothing forgiven" rather than as NaN.
 	const avoidableCapWaste = Math.max(0, brew.wastedAtCap - (brew.wastedProtecting ?? 0));
-	const brewCapWaste = metric('brewCapWaste', brew.uses > 0 || brew.maxStacks > 0 ? avoidableCapWaste : null);
+	/**
+	 * **A share of the stacks the pull earned, and it used to be the bare count.**
+	 *
+	 * The rule declared `unit: 'percent'` and handed `metricOf` a number of stacks, so the card printed
+	 * *"5%"* for five stacks and the thresholds read as percentages while grading counts. Ten stacks lost
+	 * on a pull that earned 84 and ten lost on one that earned 151 are not the same mistake, and the
+	 * count could not tell them apart.
+	 *
+	 * `stacksGained` is the denominator its own docblock says it is — *"the denominator the two leaks are
+	 * read against"* — and it arrives from the bank walk rather than being summed here, because
+	 * `totalConsumed` drops any drain that never paired to a buff window and the arithmetic would then
+	 * disagree with the chart. Every committed pull carries it, 40 to 151.
+	 *
+	 * **The lines do not move and did not need to.** They were already written as percentages; only the
+	 * value was not one. `poor` is the single pull with any waste — 10 of 84, 11.90% — and it graded
+	 * `bad` against `ok: 5` read as stacks and still grades `bad` against 5 read as a share. What changes
+	 * is that the number now means what the rule always said it meant, and the card draws it as `10/84`.
+	 */
+	const brewCapWaste = metric(
+		'brewCapWaste',
+		brew.stacksGained === undefined || brew.stacksGained <= 0 ? null : shareOf(avoidableCapWaste, brew.stacksGained),
+	);
 	// Beside the mean rather than folded into it, and the argument is `karma`'s two tiles one section
 	// down: an average that clears its line and one brew that did not are separate faults, and the
 	// weaker of the two should carry the section rather than be averaged away by the other. Folding a

@@ -334,7 +334,9 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 	 */
 	it('does not name a gap in a mean that has none', () => {
 		const full = allFull(fixture('mixed'));
-		const capped: Analysis = { ...full, brew: { ...full.brew, wastedAtCap: 4, maxStacks: 20 } };
+		// Three stacks and not four, since the metric became a share: `mixed` earned 74, so four is 5.41%
+		// and lands `bad` against the 5% line while three is 4.05% and keeps the `ok` this case is about.
+		const capped: Analysis = { ...full, brew: { ...full.brew, wastedAtCap: 3, maxStacks: 20 } };
 		const card = WINDWALKER_SPEC.score(capped);
 		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewCapWaste')?.grade).toBe('ok');
 		expect(card.sections['brew']?.grade).toBe('ok');

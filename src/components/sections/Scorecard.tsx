@@ -324,9 +324,11 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 					const edge = `border-l-2 ${gradeClass('edge', score.grade)} ${TINT[score.grade]}`;
 					const body = (
 						<>
-							{/* The section's own heading where the page has one. `potions` has no section of its own —
-							    its evidence is the potion's row on the timeline — so it falls back to its single
-							    metric's label rather than to a key invented for one card. */}
+							{/* The section's own heading where the page has one, and every section now has one. The
+							    fallback stays because it is what `potions` needed before it was given a title: that
+							    section has no heading on the page — its evidence is the potion's row on the timeline —
+							    and a card borrowing its single metric's label read *"Potions drunk"* twice, once as
+							    the heading and once as the row under it. */}
 							<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-ink-2">
 								{has(`${section}.title`)
 									? t(`${section}.title`)

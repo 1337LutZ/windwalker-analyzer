@@ -113,8 +113,10 @@ describe('scoreAnalysis', () => {
 		};
 		const capOf = (a: Analysis) => scoreAnalysis(a).sections['brew']?.metrics.find((m) => m.key === 'brewCapWaste');
 
-		// The poor pull's ten lost stacks all sit outside any proc, so nothing there is forgiven.
-		expect(capOf(analysis)?.value).toBe(10);
+		// The poor pull's ten lost stacks all sit outside any proc, so nothing there is forgiven. Read as a
+		// share of the 84 stacks the pull earned since the metric stopped grading a bare count — ten lost
+		// on a pull that earned 84 and ten on one that earned 151 are not the same mistake.
+		expect(capOf(analysis)?.value).toBeCloseTo(11.905, 3);
 		expect(capOf(analysis)?.grade).toBe('bad');
 		expect(capOf(protectedWaste)?.value).toBe(0);
 		expect(capOf(protectedWaste)?.grade).toBe('good');

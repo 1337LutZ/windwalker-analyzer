@@ -711,6 +711,9 @@
       "missing_other": "{{count}} slots unenchanted"
     }
   },
+  "potions": {
+    "title": "Potions"
+  },
   "raidBuffs": {
     "title": "Raid buffs",
     "intent_windwalker": "The buffs that move a Windwalker's damage, one row per effect rather than one per spell — five classes bring the same attack power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Rising Sun Kick above: a buff stays up perfectly well while the boss is untargetable.",
@@ -1078,7 +1081,7 @@
           "label": "GCD utilisation"
         },
         "rskUptime": {
-          "label": "Keep the kick rolling"
+          "label": "Debuff uptime"
         },
         "brewStacks": {
           "label": "Stacks per brew"
@@ -1087,10 +1090,10 @@
           "label": "Brews spent early"
         },
         "brewCapWaste": {
-          "label": "Stop overflowing the bank"
+          "label": "Stacks overcapped"
         },
         "potionsUsed": {
-          "label": "Potions drunk"
+          "label": "Potions used"
         },
         "flameShockUptime": {
           "label": "Keep the dot up"

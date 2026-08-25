@@ -1022,7 +1022,7 @@ export const THRESHOLDS = {
 	 * `overcapMs` itself does not move on any fixture — this clock was already cut — so `cleave` stays at
 	 * 42 157ms and `bad`. What changed is only that an empty one can no longer pass for a perfect one.
 	 */
-	lightningShieldOvercap: { good: 0, ok: 5000, higherIsBetter: false, bands: [1, 2], unit: 'seconds' },
+	lightningShieldOvercap: { good: 5000, ok: 15_000, higherIsBetter: false, bands: [1, 2], unit: 'seconds' },
 
 	/**
 	 * How many times the shield came all the way off.
