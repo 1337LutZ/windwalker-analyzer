@@ -8,6 +8,14 @@
 // Six of the seven. Spell power is the one left out, and it is left out on the same terms the
 // Windwalker leaves out stamina: nothing a Protection Paladin presses scales from it, so a row for it
 // would be one nobody can act on.
+//
+// **Stamina stays out on that test and only that test, which is worth stating because the obvious
+// stronger reason is false here.** On the Windwalker it is fair to say stamina moves no figure on the
+// page. On this spec it moves one: `Target.MaxHealth()` is what caps Vengeance
+// (`sim/core/vengeance.go:106`), and it is the live Health stat rather than a constant, so anything
+// adding stamina raises the ceiling the Vengeance section draws. The row would still be one nobody can
+// act on — a raid either has the buff or does not — but the copy that justifies leaving it out has to
+// say the narrow thing rather than the wide one.
 
 import type { RaidBuffEffect } from '~/lib/analysis/raidBuffs';
 

@@ -408,21 +408,26 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// is an argument about some slice of this chart, and none of them can be checked without it.
 		// Both other specs open the same way for the same reason.
 		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// What the encounter took away, before the count it explains. These two are one question read
+		// from both ends and the excuses come first: `missedFree` is the globals figure with these
+		// windows already off it, so a reader who meets the number without them has to be talked back
+		// out of it. Meeting them in this order, the number arrives already qualified.
+		{ id: 'fight', titleKey: 'fight.title', group: 'core', Component: FightRules },
 		// The report's subject, and the reason this spec was worth porting: everything under it explains
 		// a part of this number.
 		{ id: 'globals', titleKey: 'globals.title', group: 'core', Component: Globals },
-		// Directly under the globals it explains — the two are one question read from both ends: the
-		// first counts what went unpressed, the second says how much of it anybody could have helped.
-		{ id: 'fight', titleKey: 'fight.title', group: 'core', Component: FightRules },
-		// The third thing that decides the same number, and the one the first two take for granted.
-		// `available` is active time over the global, and the global is what haste sets — so this is the
-		// denominator both headings above divide by, and the cooldowns every held press below is
-		// measured against. It sits after them rather than before because a reader wants the count
-		// before its arithmetic; it sits here rather than further down because everything from the holy
-		// power bar onwards is a figure this one has already scaled.
+		// What being hit paid for. Nothing in it is a fault — a tank against their Vengeance ceiling is
+		// a tank the fight is hitting harder than their health can convert — which is why it reads
+		// beside the encounter's own doing above rather than among the resource bars below.
+		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
+		// The character the pull was played on, and the denominator everything above divides by:
+		// `available` is active time over the global, and the global is what haste sets. It reads after
+		// the counts rather than before because a reader wants the figure before its arithmetic, and
+		// before the bar below because that bar is one more thing this reading has already scaled.
 		{ id: 'haste', titleKey: 'haste.title', group: 'core', Component: Haste },
-		// The bar the spenders are paid from. A points bar, so its fault is a count rather than a
-		// duration — see `ResourceKind`.
+		// Last of the Core headings because it is the narrowest: one bar, and the only one of these a
+		// press moves directly. A points bar, so its fault is a count rather than a duration — see
+		// `ResourceKind`.
 		{
 			id: 'holy-power',
 			titleKey: 'holyPower.title',
@@ -435,10 +440,6 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 				color: PROTECTION_SPEC.colors.primary,
 			}),
 		},
-		// Under the holy power bar because it is the other half of the same economy: that one is what a
-		// press buys, this one is what being hit pays. Nothing in it is a fault — a tank against their
-		// Vengeance ceiling is a tank the fight is hitting harder than their health can convert.
-		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
 		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
 		// No miss ledger yet, and its absence is the honest report rather than an oversight: the ledger
 		// lists what the sections found, and none of this spec's own three finds anything a row can point

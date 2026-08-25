@@ -479,8 +479,8 @@ copy itself follows — say it once, outside the arms.
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
 As of the Protection report gaining its Haste and Vengeance sections, it prints 1486 leaves, 724 prose,
-23,056 words; median 26, p75 43, p90 64, p95 77, p99 95, max 160; longest 9% carry 23%; report.json 655
-prose leaves, 1,135 sentences, median 17, 223 past 25 (19.6%), 272 em-dashes in 235 sentences (20.7%);
+23,110 words; median 26, p75 43, p90 64, p95 77, p99 97, max 160; longest 9% carry 24%; report.json 655
+prose leaves, 1,136 sentences, median 17, 223 past 25 (19.6%), 273 em-dashes in 236 sentences (20.8%);
 51 / 22 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->
