@@ -38,6 +38,7 @@ import DebuffTimeline from '~/specs/windwalker/components/charts/DebuffTimeline'
 import FlameShockUptime from '~/specs/elemental/components/charts/FlameShockUptime';
 import { buildBars } from '~/specs/elemental/components/charts/FlameShockDepth';
 import SearingTotemUptime from '~/specs/elemental/components/charts/SearingTotemUptime';
+import StormlashTotems from '~/specs/elemental/components/charts/StormlashTotems';
 import { analyse } from '~/specs/elemental/lib';
 
 /**
@@ -491,10 +492,10 @@ describe('the exempt row', () => {
 			const analysis = windwalker(name);
 			const contact = analysis.debuff.contactSegments ?? [];
 			expect(contact.length).toBeGreaterThan(0);
-			const away = rowsOf(createElement(DebuffTimeline, { analysis, target: 'the boss' })).find(
-				(row) => row.tone === EXEMPT,
+			const away = rowsOf(createElement(DebuffTimeline, { analysis, target: 'the boss' })).find((row) =>
+				isExempt(row.tone),
 			);
-			// The identity, which is the claim: the row **is** the complement of the denominator's own
+			// The identity, which is the claim: the ground **is** the complement of the denominator's own
 			// contact segments, not a filtered version of it.
 			expect(spans(away?.windows ?? [])).toEqual(complementOf([...contact], analysis.durationMs));
 			expect(unionMs(spans(away?.windows ?? [])), name).toBe(AWAY_MS[name]);
@@ -502,65 +503,72 @@ describe('the exempt row', () => {
 	);
 
 	/**
-	 * One tone per chart that draws rows, one ramp per chart that draws a lane, and never a mix.
+	 * One ramp per chart that draws a lane, and never the single tone a row chart would have used.
 	 *
-	 * **This used to read "one tone across every chart", and that claim is genuinely narrower now.** It
-	 * was right while every exempt stretch had a row of its own: the row's label said which cause it
-	 * was, so the colour only had to say "not graded", and two greys would have been two meanings for
-	 * one concept. A merged lane has no labels, so `FlameShockUptime` separates its three causes by
-	 * `EXEMPT_KIND` instead — see that table for why, and for the red the lightest step has to clear.
+	 * **This has narrowed twice, and the second narrowing is the one worth writing down.** It began as
+	 * "one tone across every chart", which was right while every exempt stretch had a row of its own: the
+	 * row's label said which cause it was, so the colour only had to say "not graded", and two greys
+	 * would have been two meanings for one concept. A merged lane has no labels, so `FlameShockUptime`
+	 * separates its three causes by `EXEMPT_KIND` instead — see that table for why, and for the red the
+	 * lightest step has to clear — and the claim became one tone on a row chart, one ramp on a lane.
+	 *
+	 * **`DebuffTimeline` was the row half of that pair, and it draws a lane too now, so the row half has
+	 * no chart left to point at.** Said out loud rather than quietly dropped: the two charts still built
+	 * on `WindowTracks` are `StormlashTotems` and `SpiritLanes`, whose rows are *instances* — one
+	 * shaman's totem, one spirit's target — and an instance is never a stretch a denominator dropped.
+	 * Stormlash is rendered below so that is measured rather than assumed, because a guard whose subject
+	 * quietly emptied is the failure `analysis/fixtures.ts` carries its own non-vacuity note about.
+	 * `EXEMPT` does not go dead with it: `LightningShield`, `Mana`, `FlameShockDepth` and the segment
+	 * strip all still reach for it, none of them through a row.
 	 *
 	 * What survives is the part that was load-bearing: a reader never has two greys to tell apart
-	 * *without being told which is which*. On a row chart the label does it; on a lane the step does,
-	 * with the key naming every one drawn. What this asserts is that no chart does neither, and that no
-	 * chart mixes the two vocabularies — a lane reaching for `EXEMPT` or a row chart for a kind would be
-	 * exactly the drift the old single-tone rule was written against.
+	 * *without being told which is which*. On a lane the step does it, with the key naming every one
+	 * drawn.
 	 */
-	it('uses one exempt vocabulary per chart, and never both', () => {
+	it('names every exempt ground with a kind, and never with a row chart’s tone', () => {
 		const lane = [
 			...rowsOf(createElement(FlameShockUptime, { analysis: phased })).slice(2),
 			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })).slice(2),
+			...rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2),
 		];
-		const rows = rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2);
 
 		expect(lane).not.toHaveLength(0);
-		expect(rows).not.toHaveLength(0);
-		// The merged lane: every ground is a kind, and none of them is the row charts' single tone.
 		expect(lane.every((row) => row.tone in EXEMPT_KIND)).toBe(true);
 		expect(lane.some((row) => row.tone === EXEMPT)).toBe(false);
-		// The charts that kept their rows: one tone, exactly as before.
-		expect([...new Set(rows.map((row) => row.tone))]).toEqual([EXEMPT]);
+
+		// The chart that kept its rows, and the half of the claim that is now about an absence: it draws
+		// no exempt stretch at all, on the one committed pull that has Stormlash totems in it.
+		const rows = rowsOf(createElement(StormlashTotems, { analysis: elemental('addsThenBoss') }));
+		expect(rows).not.toHaveLength(0);
+		expect(rows.some((row) => isExempt(row.tone))).toBe(false);
 	});
 
 	/**
-	 * A ground, not a mark.
+	 * A ground, not a mark — and the flag that used to enforce it has nothing left to sit on.
 	 *
-	 * **The one exception this used to carry is gone with the chart that needed it.** A row the tiles
-	 * above also *count* had to stay visible however short it was, and the Fire Elemental overlap row was
-	 * that row — so it kept its widening floor while every other ground dropped one. Searing Totem draws
-	 * a lane now, which has no floor to keep, and the worry turns out to have been theoretical anyway:
-	 * measured across the four Elemental fixtures the elemental holds the totem slot for 10.7%, 22.2%,
-	 * 22.2% and 31.5% of the pull, in one or two spans. Nothing near a sliver.
+	 * `widen` exists so a row's own bars stay visible when they are all the row has to show. A lane is
+	 * continuous, so a bar too small to see costs a reader nothing and its neighbours already say what
+	 * that instant was; `TrackLane` states that where the floor used to be decided. `DebuffTimeline` was
+	 * the last chart drawing an exempt stretch as a row, and it needed the flag hardest — its up source
+	 * is contact-scoped, 75 spans at a 0.44s median on `strong`, and widening those inflated the green
+	 * from 467s to 524s of a 535s pull. Merged, there is no floor to turn off, so what is left to assert
+	 * is that none of the three carries the flag at all.
 	 *
-	 * **Row charts only, because a lane has no floor to turn off.** `widen` exists so a row's own bars
-	 * stay visible when they are all the row has to show; a lane is continuous, so a bar too small to
-	 * see costs a reader nothing and its neighbours already say what that instant was. `TrackLane`
-	 * states that where the floor used to be decided, and the assertion below is scoped to the charts
-	 * the flag still applies to rather than made to tolerate its absence.
+	 * **The one exception this used to carry went with the chart that needed it**, and the worry behind
+	 * it was theoretical anyway. A row the tiles above also *count* had to stay visible however short it
+	 * was, and the Fire Elemental overlap row was that row — but measured across the four Elemental
+	 * fixtures the elemental holds the totem slot for 10.7%, 22.2%, 22.2% and 31.5% of the pull, in one
+	 * or two spans. Nothing near a sliver.
 	 */
-	it('is never widened on a chart that draws rows', () => {
-		const rows = rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })).slice(2);
-
-		expect(rows).not.toHaveLength(0);
-		for (const row of rows) expect('widen' in row ? (row.widen ?? true) : true).toBe(false);
-
-		// And neither lane carries the flag at all, which is the other half of the claim.
-		for (const row of [
+	it('carries no widening flag on a chart that merged its rows', () => {
+		const sources = [
 			...rowsOf(createElement(FlameShockUptime, { analysis: phased })),
 			...rowsOf(createElement(SearingTotemUptime, { analysis: phased })),
-		]) {
-			expect(row).not.toHaveProperty('widen');
-		}
+			...rowsOf(createElement(DebuffTimeline, { analysis: windwalker('waves'), target: 'the boss' })),
+		];
+
+		expect(sources).not.toHaveLength(0);
+		for (const source of sources) expect(source).not.toHaveProperty('widen');
 	});
 });
 

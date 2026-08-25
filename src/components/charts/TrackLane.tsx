@@ -84,12 +84,25 @@ export function laneBars(sources: readonly LaneSource[], durationMs: number): La
  * which is the question a reader actually brings to an uptime chart, and takes 252px back to 36.
  *
  * **It is only usable where the sources tile the pull**, and that is a fact about the data rather than
- * a style choice. `FlameShockUptime` and `SearingTotemUptime` both do — measured on all four Elemental
- * fixtures, their up, down and exempt rows sum to the pull to the millisecond, and their
- * unmeasured-but-up row sits entirely inside the exempt grounds, so lifting it out and painting it over
- * them loses no time. `DebuffTimeline` does *not* on a captured fixture: its pre-contact-scoping
- * fallback derives the down track from drop durations rather than as a complement, so the three
- * sources leave gaps. It keeps its rows until those captures are re-taken.
+ * a style choice. A gap does not leave a hole: the bars are flex children laid end to end, so a
+ * missing millisecond slides every bar after it left of the clock it is read against.
+ * `FlameShockUptime` and `SearingTotemUptime` both tile — measured on all four Elemental fixtures,
+ * their up, down and exempt rows sum to the pull to the millisecond, and their unmeasured-but-up row
+ * sits entirely inside the exempt grounds, so lifting it out and painting it over them loses no time.
+ * `DebuffTimeline` tiles too, on all ten committed Windwalker pulls: the six captures and the four raw
+ * datasets through `analyse()`, up plus dropped plus away summing to `durationMs` with every pairwise
+ * intersection at zero.
+ *
+ * **That last entry used to read the other way, and the correction is worth keeping.** It said the
+ * chart's pre-contact-scoping fallback derives its down track from drop durations rather than as a
+ * complement, so the sources gap on a captured fixture. The first half was true and the second was
+ * not: every capture in `specs/windwalker/__fixtures__` already carried `contactSegments` and
+ * `contactUpSegments` when that was written, so none of them takes the fallback and none of them
+ * gapped. The measurement had been taken on the branch rather than on a pull. The branch really did
+ * gap — 1 093 to 10 712ms on the six captures with those fields stripped, which is how
+ * `risingSunKick.test.ts` builds a legacy pull — so the fallback now takes its complement the same way
+ * the scoped branch does, and the disqualification goes with the defect rather than with the fixtures.
+ *
  * `StormlashTotems` and `SpiritLanes` never will — their rows are *instances* that genuinely overlap in
  * time, which is a thing one line cannot say at all.
  *

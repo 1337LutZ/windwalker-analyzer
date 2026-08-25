@@ -169,7 +169,7 @@
     },
     "chartCaption": "The tiles above, laid across the pull: where the enemy in front of you carried the debuff, where it did not, and where you had nothing to hit. Only the third track is uncounted.",
     "chartLabel": "Rising Sun Kick across the pull in three tracks: the debuff up on the enemy you were hitting for {{up, duration}}, off it for {{down, duration}} across {{drops}} stretches while you were still fighting, and {{away, duration}} with nothing to hit.",
-    "chartCaption_primary": "Drawn against {{target}} alone: this pull was analysed before per-enemy tracking was added, so its tracks are that one enemy's windows.",
+    "chartCaption_primary": "Drawn against {{target}} alone: this pull was analysed before per-enemy tracking was added, so its stretches are that one enemy's windows.",
     "chartLabel_primary": "Rising Sun Kick's debuff on {{target}} across the pull: up for {{up, duration}}, dropped for {{down, duration}} across {{drops}} stretches, and {{away, duration}} with that enemy out of reach."
   },
   "targets": {

@@ -8,20 +8,18 @@ import { ChartFigure } from '~/components/primitives';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import { exemptRows } from '~/components/charts/exempt';
-import { EXEMPT } from '~/components/charts/tones';
-import type { Track } from '~/components/charts/WindowTracks';
-import WindowTracks from '~/components/charts/WindowTracks';
+import TrackLane, { type LaneSource } from '~/components/charts/TrackLane';
 
 /**
  * Rising Sun Kick's debuff across the pull: where it was up, where it was not, and where there was
  * nothing to put it on.
  *
- * Three tracks rather than one, because the third is what makes the second fair. A gap while nothing
+ * Three things rather than one, because the third is what makes the second fair. A gap while nothing
  * could be hit is not a drop the player caused, and a single up/down bar cannot tell the two apart —
  * it would show a phase transition as the same red as a missed global.
  *
  * All three are the measurement the tiles above print, and that is the whole point of them: the up
- * track *is* `contactUpSegments`, whose union is the uptime figure, the middle track is what is left
+ * source *is* `contactUpSegments`, whose union is the uptime figure, the middle one is what is left
  * of contact time, whose union is the seconds-lost figure, and the third is the complement of contact.
  * They partition the pull with nothing left over. It used to draw the primary target's own windows
  * instead, under tiles that had moved to every enemy — and its third track then called 380 seconds of
@@ -30,47 +28,68 @@ import WindowTracks from '~/components/charts/WindowTracks';
  *
  * The primary target's window model has not gone anywhere: it is still what the pull timeline draws,
  * a lane per enemy with that enemy's name on it, which is where one enemy's windows are worth seeing.
+ *
+ * **One merged lane rather than three rows, and the partition above is exactly what earns it.**
+ * `TrackLane` is drawable only where the sources tile the pull, because its bars are laid out end to
+ * end: a gap does not leave a hole, it slides everything after it left of the clock the reader is
+ * reading against. Measured across all ten committed Windwalker pulls — the six captures and the four
+ * raw datasets through `analyse()` — up, dropped and away sum to `durationMs` to the millisecond with
+ * every pairwise intersection at zero. `waves` is the widest spread of the three, 254 115 + 56 502 +
+ * 123 575 of 434 192ms, and it closes like the rest.
+ *
+ * What the merge buys here is the same adjacency it bought `FlameShockUptime`: this chart's up source
+ * fragments hard, 75 spans on `strong` at a 0.44s median, so a drop and the intermission that excused
+ * it sat on separate lines and the reader had to scan down a column to see they were one moment.
  */
 export default function DebuffTimeline({ analysis, target }: { analysis: Analysis; target: string }) {
 	const { t } = useTranslation('report');
 	const { debuff } = analysis;
 
 	/**
-	 * The three tracks as intervals, and which measurement they came from.
+	 * The three sources as intervals, and which measurement they came from.
 	 *
-	 * `scoped` is false only on the committed fixtures, which are `analyse()` output from before the
-	 * contact-scoped arrays existed. There the chart falls back to the primary target's window model —
-	 * which is what those pulls' tiles were measured on too, so the section stays internally consistent
-	 * — and the copy switches with it rather than describing the wrong thing in the right words. Both
-	 * halves of the fallback go away when the fixtures are re-captured.
+	 * `scoped` is false on an `Analysis` captured before the contact-scoped arrays existed. No committed
+	 * fixture is one any more and `analyse()` has emitted both fields since `ba04cbe`, so the branch is
+	 * reached only by an object built without them — which is how `risingSunKick.test.ts` pins the copy
+	 * it switches to. There the chart falls back to the primary target's window model, which is what such
+	 * a pull's tiles were measured on too, so the section stays internally consistent, and the copy
+	 * switches with it rather than describing the wrong thing in the right words.
+	 *
+	 * **Both branches derive the down source as a complement, and the fallback did not used to.** It read
+	 * `debuff.drops`, which is the primary target's gaps with the longest one excluded and each length
+	 * rounded to a tenth of a second — so it was never the remainder of anything, and the three sources
+	 * left holes: 10 712ms across two gaps on `cleave`'s fields stripped, 9 387 on `waves`, 1 093 on
+	 * `weave`, 6 999 on `mixed`, 1 251 on `strong`, 1 173 on `poor`. Three rows could carry that, because
+	 * a row keeps its own left edge. A lane cannot. Taking the complement of `debuff.windows` inside
+	 * `engagedSegments` closes all six to zero, and it is the same construction the scoped branch above
+	 * uses, one clock in.
+	 *
+	 * What is left over on that branch is an *overlap* rather than a gap — the debuff ticking on the
+	 * primary target while the player was off it, 21 296ms on a stripped `strong` and under 400ms on the
+	 * other five — and an overlap is a thing a lane can say. Up is listed first below, so those seconds
+	 * read as coverage the reader had rather than as time nothing was there.
 	 */
 	const tracks = useMemo(() => {
 		const up = debuff.contactUpSegments;
 		const contact = debuff.contactSegments;
 		if (up === undefined || contact === undefined) {
+			const primary = debuff.windows.map(({ start, end }): Interval => [start, end]);
 			return {
 				scoped: false,
-				up: debuff.windows.map(({ start, end }): Interval => [start, end]),
-				down: debuff.drops.map(({ at, seconds }): Interval => [at, at + seconds * 1000]),
+				up: primary,
+				down: intersect([...debuff.engagedSegments], complementOf(primary, analysis.durationMs)),
 				away: gapsBetween(debuff.engagedSegments, analysis.durationMs),
 			};
 		}
 		return {
 			scoped: true,
 			up,
-			// Contact time that the up track does not cover. Derived rather than carried so it cannot
+			// Contact time that the up source does not cover. Derived rather than carried so it cannot
 			// disagree with the array it is the complement of.
 			down: intersect([...contact], complementOf([...up], analysis.durationMs)),
 			away: gapsBetween(contact, analysis.durationMs),
 		};
-	}, [
-		debuff.contactUpSegments,
-		debuff.contactSegments,
-		debuff.windows,
-		debuff.drops,
-		debuff.engagedSegments,
-		analysis.durationMs,
-	]);
+	}, [debuff.contactUpSegments, debuff.contactSegments, debuff.windows, debuff.engagedSegments, analysis.durationMs]);
 
 	/**
 	 * The exempt row, through the partitioner every other chart's exempt row goes through.
@@ -90,9 +109,9 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 	 * graded figure on any pull, because the uptime denominator is `contactSegments` either way.
 	 *
 	 * A rule that changes a stated total and nothing a reader can see is all cost, so the answer is one
-	 * floor and it is none. The row is `widen: false`, so a sliver draws at true sub-pixel width — nothing
-	 * appears, nothing is claimed, and the total is the denominator's. `CastTimeline` dropped a three-second
-	 * floor in the same change for the same reason.
+	 * floor and it is none. A lane bar is drawn at true width, so a sliver is a fraction of a pixel —
+	 * nothing appears, nothing is claimed, and the total is the denominator's. `CastTimeline` dropped a
+	 * three-second floor in the same change for the same reason.
 	 */
 	const exempt = useMemo(
 		() => exemptRows([{ label: t('debuff.track.away'), windows: tracks.away }], analysis.durationMs),
@@ -103,47 +122,44 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 		windows.reduce((ms, [start, end]) => ms + (end - start), 0);
 
 	/**
-	 * The rows as the track chart takes them, memoised because it redraws when they change identity.
+	 * The three things this chart draws, in precedence order — first one wins a millisecond two claim.
 	 *
-	 * **All three turn `widen` off, which is the one place this chart disagrees with the Elemental
-	 * uptime tracks, and the reason is in the data.** Their up rows are whole aura windows: a handful
-	 * of long bars, where a sub-second one is genuine coverage that has to stay visible. This chart's
-	 * up row is contact-scoped, so it fragments exactly as hard as the down row it interleaves with —
-	 * measured on the reference pulls, `strong` draws 75 up spans with a median of 0.44s and `waves` 64
-	 * with a median of 0.55s. Widening every one of those inflates the green from 467s to 524s of a
-	 * 535s pull, and from 256s to 289s of a 434s one: a track drawn near saturated above a tile that
-	 * reads 87%. Both rows are measurements the tiles state, so neither may overstate itself.
+	 * **Nothing turns `widen` off any more, because a lane has no floor to turn off.** Three rows each
+	 * needed one: this chart's up source is contact-scoped, so it fragments exactly as hard as the down
+	 * source it interleaves with, and on the reference pulls `strong` draws 75 up spans at a 0.44s median
+	 * and `waves` 64 at 0.55s. Widening every one of those inflated the green from 467s to 524s of a 535s
+	 * pull, and from 256s to 289s of a 434s one, above a tile reading 87%. A lane is continuous, so a bar
+	 * too small to see costs the reader nothing and its neighbours already say what that instant was. See
+	 * the note where `TrackLane` puts `min-w-px`.
 	 *
-	 * The away row now carries every span of the complement, slivers included, so the flag is doing real
-	 * work on it rather than being set for symmetry: a 442ms tail widened to the floor would claim a break
-	 * in the fight that never happened. See the note above `gapsBetween`.
+	 * The away source takes a *kind* rather than one `EXEMPT`: merged onto one line there is no row label
+	 * left to tell one grey from another, which is what `EXEMPT_KIND` in `charts/tones.ts` exists for.
+	 * `nothing` is the step for "nothing was up to act on", which is exactly what this cause is and is the
+	 * step `SearingTotemUptime` and `FlameShockUptime` already give their own out-of-reach ground. One
+	 * cause today, so the ramp has one step in use and the rest is headroom for the second.
 	 *
-	 * Its tone is `EXEMPT` rather than a token written out here, because this row is the precedent the
-	 * Elemental uptime charts now follow — it used to be `muted` while theirs was `track`, which is one
-	 * meaning wearing two colours. See the note beside `EXEMPT` in `charts/tones.ts`.
+	 * Precedence only ever decides anything on the fallback branch, where up and away can overlap; on a
+	 * scoped pull the three are disjoint and the order says nothing. See the note above `tracks`.
 	 */
-	const rows = useMemo(
-		(): Track[] => [
+	const sources = useMemo(
+		(): LaneSource[] => [
 			{
 				label: t('debuff.track.up'),
 				tone: 'kick',
 				windows: tracks.up,
 				lengthLabel: t('chart.length.held', { ns: 'ui' }),
-				widen: false,
 			},
 			{
 				label: t('debuff.track.dropped'),
 				tone: 'miss',
 				windows: tracks.down,
 				lengthLabel: t('chart.length.without', { ns: 'ui' }),
-				widen: false,
 			},
-			...exempt.map((row): Track => ({
+			...exempt.map((row): LaneSource => ({
 				label: row.label,
-				tone: EXEMPT,
+				tone: 'nothing',
 				windows: row.windows,
 				lengthLabel: t('chart.length.plain', { ns: 'ui' }),
-				widen: false,
 			})),
 		],
 		[t, tracks, exempt],
@@ -168,7 +184,7 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 					<ChartKey tone="miss">{t('debuff.track.dropped')}</ChartKey>
 					{exempt.map((row) =>
 						row.windows.length === 0 ? null : (
-							<ChartKey key={row.label} tone={EXEMPT}>
+							<ChartKey key={row.label} kind tone="nothing">
 								{row.label}
 							</ChartKey>
 						),
@@ -177,9 +193,8 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 			}
 			note={t('debuff.chartCaption', { context, target })}
 		>
-			<WindowTracks
-				tracks={rows}
-				chartId="ww-debuff"
+			<TrackLane
+				sources={sources}
 				durationMs={analysis.durationMs}
 				label={t('debuff.chartLabel', {
 					context,
@@ -202,8 +217,8 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
  * here on the argument that a sliver either side of a segment boundary is rounding rather than a phase.
  * That argument is about how the span is *drawn*, and it was applied to the array as well: the row went
  * into `chartLabel`'s `away` total, so the sentence stated a figure the uptime denominator had not
- * dropped. Nothing a reader could see changed either way, because `widen: false` draws a 442ms span at a
- * fraction of a pixel.
+ * dropped. Nothing a reader could see changed either way, because a 442ms span is a fraction of a pixel
+ * at any width a lane bar can take.
  *
  * The three kinds of span in here, measured rather than assumed, are worth knowing before anyone puts a
  * floor back: on every fixture the complement is the lead-in before the first hit lands (862–2475ms), the
