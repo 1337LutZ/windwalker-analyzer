@@ -107,6 +107,32 @@ export const BASE_GCD_MS = 1500;
  * reduction. At 50% haste the uncapped term is exactly 0.5s, so from there upwards the cap binds and
  * the global sits on 1.0s however fast the player gets. Bloodlust over a geared pull therefore buys
  * shorter cooldowns and not a shorter global.
+ *
+ * **Why one global covers every button, which is not obvious from that mask alone.**
+ * `SpellMaskSanctityOfBattleProtGcd` names only four — Crusader Strike, Hammer of the Righteous,
+ * Judgment and Hammer of Wrath — and read on its own that says Avenger's Shield, Consecration and
+ * Holy Wrath keep a full 1.5s global while their cooldowns shorten. They do not, and the reason is
+ * that those four are exactly the spells that set `IgnoreHaste: true` (`crusader_strike.go:38`,
+ * `hammer_of_the_righteous.go:70`, `judgment.go:42`, `hammer_of_wrath.go:43`). That flag is what makes
+ * `cast.go:130` skip them; every spell without it already has its global scaled there, by
+ * `ApplyCastSpeed`. So the mask is not an exclusion list — it is the *replacement* for the generic
+ * path, applied to the only spells that opted out of it.
+ *
+ * And the replacement is the same function, not an approximation of it. Sanctity's capped subtraction
+ * and the generic divide agree identically at every haste, because
+ *
+ *     1.5 - min(0.5, 1.5 - 1.5 / h)  ===  max(1.0, 1.5 / h)
+ *
+ * — the cap on one side is the floor on the other, and `cast.go` applies `max(GCDMin, gcd)` besides.
+ * `haste.test.ts` pins the identity rather than leaving it as arithmetic in a comment.
+ *
+ * One divergence exists in the sim and not in the game, and it is worth naming because it is the only
+ * thing that could make a button's global differ here: `CastSpeed` is `1 / TotalSpellHasteMultiplier()`
+ * (`unit.go:524`), so the generic path reads *spell* haste while Sanctity reads *melee* haste. Seal of
+ * Insight is a melee multiplier, so a sim Paladin at this repository's reference rating would take a
+ * 1015ms global on Avenger's Shield and 1000ms on Judgment. The game applies Sanctity of Battle to all
+ * of them, and the reference pulls' own press gaps show one uniform global, so that split is the sim's
+ * and this model does not reproduce it.
  */
 export const GCD_FLOOR_MS = 1000;
 export const MAX_GCD_REDUCTION_MS = 500;

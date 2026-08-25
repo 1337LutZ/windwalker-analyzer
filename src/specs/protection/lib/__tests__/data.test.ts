@@ -112,6 +112,25 @@ describe('the haste model', () => {
 	});
 
 	/**
+	 * The mask is a replacement for the generic path, and the two are one function.
+	 *
+	 * `SpellMaskSanctityOfBattleProtGcd` names four spells, and read as an exclusion list it would mean
+	 * Avenger's Shield, Consecration and Holy Wrath keep a full global while their cooldowns shorten.
+	 * It is not one: those four are exactly the spells carrying `IgnoreHaste: true`, which is the flag
+	 * that makes `cast.go:130` skip a spell — everything without it already has its global divided by
+	 * haste there. So Sanctity stands in for the generic path on the spells that opted out of it, and
+	 * `gcdMsFor` is right to treat the global as one number for every button.
+	 *
+	 * Asserted across the range rather than argued in prose, because the identity is what makes the
+	 * substitution exact rather than close: the cap on one side is the floor on the other.
+	 */
+	it('gives the same global as the generic divide, at every haste', () => {
+		for (const haste of [1.01, 1.1, 1.25, 1.478, 1.5, 1.5519, 1.95, 3]) {
+			expect(gcdMsFor(haste)).toBe(Math.round(Math.max(GCD_FLOOR_MS, BASE_GCD_MS / haste)));
+		}
+	});
+
+	/**
 	 * The rating conversion, checked against the reference pull the model was built on.
 	 *
 	 * `HasteRatingPerHastePercent = 425.0` in `sim/core/base_stats_auto_gen.go`, and 18363 rating is
