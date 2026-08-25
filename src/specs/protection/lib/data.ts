@@ -651,6 +651,21 @@ const AURAS: Aura[] = [
 		durationMs: 15_000,
 	},
 	{
+		key: 'speed-of-light',
+		name: 'Speed of Light',
+		ids: [85499],
+		kind: 'buff',
+		// `sim/paladin/talents.go:46-57` — 8s, and a pure movement-speed effect (`NewActiveMovementSpeedEffect`,
+		// +70%) with no bearing on damage taken or dealt. Declared anyway, and the reason is the whole point
+		// of declaring auras: an aura nothing names renders on the timeline as a bare spell id with no icon,
+		// which is what a reader reported seeing.
+		//
+		// **It appears in none of the five committed captures**, which is why `undeclaredAuras.test.ts` never
+		// raised it — that sweep can only see what a fixture carries, so a talent this tank did not take is
+		// outside its reach entirely. Found on a reader's own log rather than by the guard.
+		durationMs: 8000,
+	},
+	{
 		key: 'divine-purpose',
 		name: 'Divine Purpose',
 		ids: [90174],
