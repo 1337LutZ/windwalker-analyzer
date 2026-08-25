@@ -1,9 +1,9 @@
 {
   "overall": {
-    "good": "You scored well on this pull, but the score is an average — a quarter of the points can be scoring zero, and whole parts of the page can be red. Read down the page and start with anything flagged: a strong average can still hold a habit that cost you real damage.",
-    "ok": "Some parts were solid and others lost damage. Read down the page to see which was which.",
-    "bad": "Several core habits of the spec are missing here. Read down the page and start with what is flagged.",
-    "none": "Too little of this pull could be measured to call it either way. Read down the page for what could be read and what could not."
+    "good": "You scored well on this pull, but the score is an average — a quarter of the points can be scoring zero, and whole parts of this page can be red. Start with anything flagged below: a strong average can still hold a habit that cost you real damage.",
+    "ok": "Some parts were solid and others lost damage. The cards below say which was which.",
+    "bad": "Several core habits of the spec are missing here. Start with whatever is flagged below.",
+    "none": "Too little of this pull could be measured to call it either way. The cards below say what could be read and what could not."
   },
   "snapshots": {
     "title": "Snapshots",
@@ -424,15 +424,7 @@
   "kpi": {
     "dps": "DPS",
     "cpm": "Casts per minute",
-    "gcd": "GCD used",
-    "brewStacks": "Stacks per brew",
-    "rskUptime": "RSK uptime",
-    "snapshots": "Procs caught on the {{leeway}} leeway",
-    "potions": "Potions used",
-    "potions_unknown": "Potions · cannot say",
-    "label": "Headline figures",
-    "flameShock": "Flame Shock uptime",
-    "earthShock": "Good Earth Shocks"
+    "gcd": "GCD used"
   },
   "metric": {
     "notAsked": "not measured at this many enemies"
@@ -592,9 +584,9 @@
     "none": "Touch of Karma was never pressed, and the pull allowed {{available}} uses.",
     "caption": "Every Touch of Karma, and what the redirect returned while it ran",
     "kpi": {
-      "uses": "Uses taken",
+      "uses": "Uses",
       "reflected": "Damage returned",
-      "perUse": "Returned per use",
+      "perUse": "Average return",
       "landed": "Presses that landed",
       "ofCap": "Cap used"
     },
@@ -602,13 +594,14 @@
       "at": "at",
       "reflected": "returned",
       "hits": "hits",
-      "capPct": "share of cap",
+      "capPct": "% of max health",
       "fortifying": "fortifying brew"
     },
-    "capSummary_one": "One use drained its pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
-    "capSummary_other": "{{count}} uses drained their pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
-    "capSoleUse": "One use drained its pool completely, which puts the pool at {{health, compact}} health. It is also the only press on the pull, and a lone press that drains its pool has returned everything it could by definition — that is arithmetic rather than anything you did. Its row in the table above is the whole of what happened here.",
-    "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and the only thing that states your pool is a use that drains it — none here did. Guessing from a bar that only reports whole percent would be a guess, not a measurement.",
+    "capSummary_zero": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it — {{pct, percent}}. None of them ran out of pool, so every one of them had room left for damage that never came.",
+    "capSummary_one": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it — {{pct, percent}}. One press drained its pool completely and could not have returned more.",
+    "capSummary_other": "Your health pool on this pull was {{health, compact}}, and that is the most one press can absorb. Across {{casts}} presses that comes to {{possible, compact}}; the redirect absorbed {{absorbed, compact}} of it — {{pct, percent}}. {{count}} of them drained their pool completely and could not have returned more.",
+    "capSoleUse": "Your health pool on this pull was {{health, compact}}, and that is the most a press can absorb. This one absorbed {{absorbed, compact}} of it — {{pct, percent}}. Its row in the table above is the whole of what happened here.",
+    "capUnknown": "How much these presses left unspent cannot be said on this pull. Touch of Karma absorbs at most a full health pool, and this log does not report the stamina that pool is computed from — a Mists report old enough to carry no character sheet at all. Guessing from a health bar that only reports whole percent would be a guess, not a measurement.",
     "fortifying_one": "One of them ran under Fortifying Brew.",
     "fortifying_other": "{{count}} of them ran under Fortifying Brew.",
     "fortifyingNote": "That is not extra damage. Fortifying Brew raises your maximum health by a fifth, which raises the ceiling on what the redirect can return, and it also cuts the damage you take by a fifth, which is what fills the pool — so only a use already at its ceiling gains anything. The brew does pair with Touch of Death, which rolls against your maximum health; the standard opener casts those two back to back.",
@@ -668,7 +661,7 @@
     "none": "No spirit was sent out in this pull.",
     "caption": "Every spirit sent out, and the enemy it was aimed at",
     "kpi": {
-      "casts": "Spirits sent",
+      "casts": "Casts",
       "uptime": "Spirit uptime",
       "damage": "Spirits' damage",
       "overlap": "Time sharing a target"
@@ -1046,6 +1039,8 @@
   },
   "summary": {
     "title": "Summary",
+    "parse": "{{value, integer}}",
+    "openInLogs": "Open in Warcraft Logs",
     "judged": "Scored on {{measured}} of {{total}} points.",
     "judged_partial": "Scored on only {{measured}} of {{total}} points — too little of this pull to call.",
     "warning": {
@@ -1138,12 +1133,11 @@
           "label": "Karma wasted"
         },
         "karmaCapShare": {
-          "label": "Karma filled"
+          "label": "Health reflected"
         }
       }
     },
     "scorecard": {
-      "title": "Scores",
       "value_percent": "{{value, percent}}",
       "value_sample": "{{part, integer}}/{{total, integer}}",
       "value_seconds": "{{value, duration}}",

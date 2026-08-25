@@ -11,13 +11,10 @@
   "kill": true,
   "durationMs": 129531,
   "itemLevel": 578,
+  "rankPercent": 98,
   "isSpec": true,
   "specName": "Windwalker",
-  "primaryTarget": {
-    "id": 205,
-    "gameID": 71466,
-    "name": "Iron Juggernaut"
-  },
+  "primaryTarget": { "id": 205, "gameID": 71466, "name": "Iron Juggernaut" },
   "damage": {
     "wclTotal": 74354761,
     "eventTotal": 79507498,
@@ -525,2060 +522,301 @@
     "deaths": [],
     "contactSegments": [[908, 128832]],
     "cancels": [],
-    "hasteWindows": [
-      {
-        "start": 88,
-        "end": 40074,
-        "id": 2825,
-        "variant": "Bloodlust"
-      }
-    ],
+    "hasteWindows": [{ "start": 88, "end": 40074, "id": 2825, "variant": "Bloodlust" }],
     "berserkingWindows": [],
     "casts": [
-      {
-        "t": 862,
-        "begin": 862,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 907,
-        "begin": 907,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 1093,
-        "begin": 1093,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 1949,
-        "begin": 1949,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 2674,
-        "begin": 2674,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 2804,
-        "begin": 2804,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 2965,
-        "begin": 2965,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 3894,
-        "begin": 3894,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 3980,
-        "begin": 3980,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 4034,
-        "begin": 4034,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 4975,
-        "begin": 4975,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 5095,
-        "begin": 5095,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 5151,
-        "begin": 5151,
-        "id": 115399,
-        "name": "Chi Brew",
-        "onGcd": false
-      },
-      {
-        "t": 5251,
-        "begin": 5251,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 5982,
-        "begin": 5982,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 6167,
-        "begin": 6167,
-        "id": 115399,
-        "name": "Chi Brew",
-        "onGcd": false
-      },
-      {
-        "t": 6327,
-        "begin": 6327,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 6456,
-        "begin": 6456,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 7000,
-        "begin": 7000,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 7539,
-        "begin": 7539,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 7738,
-        "begin": 7738,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 7995,
-        "begin": 7995,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 8995,
-        "begin": 8995,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 9341,
-        "begin": 9341,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 9563,
-        "begin": 9563,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 9999,
-        "begin": 9999,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 10229,
-        "begin": 10229,
-        "id": 1247275,
-        "name": "Tigereye Brew",
-        "onGcd": false
-      },
-      {
-        "t": 10230,
-        "begin": 10230,
-        "id": 105684,
-        "name": "Elixir of the Rapids",
-        "onGcd": false
-      },
-      {
-        "t": 10412,
-        "begin": 10412,
-        "id": 123904,
-        "name": "Invoke Xuen, the White Tiger",
-        "onGcd": false
-      },
-      {
-        "t": 10432,
-        "begin": 10432,
-        "id": 126734,
-        "name": "Synapse Springs",
-        "onGcd": false
-      },
-      {
-        "t": 10433,
-        "begin": 10433,
-        "id": 33697,
-        "name": "Blood Fury",
-        "onGcd": false
-      },
-      {
-        "t": 11016,
-        "begin": 11016,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 11113,
-        "begin": 11113,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 11279,
-        "begin": 11279,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 12018,
-        "begin": 12018,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 12520,
-        "begin": 12520,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 12684,
-        "begin": 12684,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 13044,
-        "begin": 13044,
-        "id": 113656,
-        "name": "Fists of Fury",
-        "onGcd": true
-      },
-      {
-        "t": 15267,
-        "begin": 15267,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 15309,
-        "begin": 15309,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 15479,
-        "begin": 15479,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 16268,
-        "begin": 16268,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 16696,
-        "begin": 16696,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 16879,
-        "begin": 16879,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 17251,
-        "begin": 17251,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 18123,
-        "begin": 18123,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 18233,
-        "begin": 18233,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 18276,
-        "begin": 18276,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 19059,
-        "begin": 19059,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 19168,
-        "begin": 19168,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 19263,
-        "begin": 19263,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 19531,
-        "begin": 19531,
-        "id": 105688,
-        "name": "Monk's Elixir",
-        "onGcd": false
-      },
-      {
-        "t": 20006,
-        "begin": 20006,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 20154,
-        "begin": 20154,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 20264,
-        "begin": 20264,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 21288,
-        "begin": 21288,
-        "id": 115098,
-        "name": "Chi Wave",
-        "onGcd": true
-      },
-      {
-        "t": 21431,
-        "begin": 21431,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 21567,
-        "begin": 21567,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 22290,
-        "begin": 22290,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 22842,
-        "begin": 22842,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 22979,
-        "begin": 22979,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 23290,
-        "begin": 23290,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 24264,
-        "begin": 24264,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 24299,
-        "begin": 24299,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 24404,
-        "begin": 24404,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 25293,
-        "begin": 25293,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 25687,
-        "begin": 25687,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 25820,
-        "begin": 25820,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 26305,
-        "begin": 26305,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 27114,
-        "begin": 27114,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 27245,
-        "begin": 27245,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 27317,
-        "begin": 27317,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 28319,
-        "begin": 28319,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 28529,
-        "begin": 28529,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 28668,
-        "begin": 28668,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 29332,
-        "begin": 29332,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 29945,
-        "begin": 29945,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 30084,
-        "begin": 30084,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 30324,
-        "begin": 30324,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 31326,
-        "begin": 31326,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 31365,
-        "begin": 31365,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 31454,
-        "begin": 31454,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 32310,
-        "begin": 32310,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 32330,
-        "begin": 32330,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 32397,
-        "begin": 32397,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 33264,
-        "begin": 33264,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 33341,
-        "begin": 33341,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 33356,
-        "begin": 33356,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 34354,
-        "begin": 34354,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 34630,
-        "begin": 34630,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 34768,
-        "begin": 34768,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 35346,
-        "begin": 35346,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 36057,
-        "begin": 36057,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 36191,
-        "begin": 36191,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 36352,
-        "begin": 36352,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 37357,
-        "begin": 37357,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 37477,
-        "begin": 37477,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 37608,
-        "begin": 37608,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 38365,
-        "begin": 38365,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 38899,
-        "begin": 38899,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 39016,
-        "begin": 39016,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 39363,
-        "begin": 39363,
-        "id": 115098,
-        "name": "Chi Wave",
-        "onGcd": true
-      },
-      {
-        "t": 40363,
-        "begin": 40363,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 40399,
-        "begin": 40399,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 40547,
-        "begin": 40547,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 41366,
-        "begin": 41366,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 42235,
-        "begin": 42235,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 42378,
-        "begin": 42378,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 42392,
-        "begin": 42392,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 43378,
-        "begin": 43378,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 44081,
-        "begin": 44081,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 44237,
-        "begin": 44237,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 44393,
-        "begin": 44393,
-        "id": 122470,
-        "name": "Touch of Karma",
-        "onGcd": true
-      },
-      {
-        "t": 45388,
-        "begin": 45388,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 45920,
-        "begin": 45920,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 46084,
-        "begin": 46084,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 46404,
-        "begin": 46404,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 47396,
-        "begin": 47396,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 47757,
-        "begin": 47757,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 47937,
-        "begin": 47937,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 48412,
-        "begin": 48412,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 49411,
-        "begin": 49411,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 49616,
-        "begin": 49616,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 49763,
-        "begin": 49763,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 50410,
-        "begin": 50410,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 51421,
-        "begin": 51421,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 51447,
-        "begin": 51447,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 51611,
-        "begin": 51611,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 52430,
-        "begin": 52430,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 53292,
-        "begin": 53292,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 53439,
-        "begin": 53439,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 53464,
-        "begin": 53464,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 54436,
-        "begin": 54436,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 55135,
-        "begin": 55135,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 55314,
-        "begin": 55314,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 55427,
-        "begin": 55427,
-        "id": 115098,
-        "name": "Chi Wave",
-        "onGcd": true
-      },
-      {
-        "t": 56430,
-        "begin": 56430,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 56430,
-        "begin": 56430,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 56540,
-        "begin": 56540,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 57191,
-        "begin": 57191,
-        "id": 1247275,
-        "name": "Tigereye Brew",
-        "onGcd": false
-      },
-      {
-        "t": 57430,
-        "begin": 57430,
-        "id": 113656,
-        "name": "Fists of Fury",
-        "onGcd": true
-      },
-      {
-        "t": 60748,
-        "begin": 60748,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 61366,
-        "begin": 61366,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 61472,
-        "begin": 61472,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 61758,
-        "begin": 61758,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 62755,
-        "begin": 62755,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 63156,
-        "begin": 63156,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 63322,
-        "begin": 63322,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 63762,
-        "begin": 63762,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 63954,
-        "begin": 63954,
-        "id": 115288,
-        "name": "Energizing Brew",
-        "onGcd": false
-      },
-      {
-        "t": 64770,
-        "begin": 64770,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 65006,
-        "begin": 65006,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 65170,
-        "begin": 65170,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 65767,
-        "begin": 65767,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 66780,
-        "begin": 66780,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 66854,
-        "begin": 66854,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 67012,
-        "begin": 67012,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 67777,
-        "begin": 67777,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 68705,
-        "begin": 68705,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 68820,
-        "begin": 68820,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 68853,
-        "begin": 68853,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 69837,
-        "begin": 69837,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 70126,
-        "begin": 70126,
-        "id": 6262,
-        "name": "Healthstone",
-        "onGcd": false
-      },
-      {
-        "t": 70544,
-        "begin": 70544,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 70693,
-        "begin": 70693,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 70837,
-        "begin": 70837,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 71826,
-        "begin": 71826,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 71850,
-        "begin": 71850,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 71918,
-        "begin": 71918,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 72162,
-        "begin": 72162,
-        "id": 126734,
-        "name": "Synapse Springs",
-        "onGcd": false
-      },
-      {
-        "t": 72838,
-        "begin": 72838,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 73068,
-        "begin": 73068,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 73144,
-        "begin": 73144,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 73864,
-        "begin": 73864,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 74874,
-        "begin": 74874,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 74875,
-        "begin": 74875,
-        "id": 115098,
-        "name": "Chi Wave",
-        "onGcd": true
-      },
-      {
-        "t": 75490,
-        "begin": 75490,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 75864,
-        "begin": 75864,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 76710,
-        "begin": 76710,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 76864,
-        "begin": 76864,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 76975,
-        "begin": 76975,
-        "id": 115399,
-        "name": "Chi Brew",
-        "onGcd": false
-      },
-      {
-        "t": 77441,
-        "begin": 77441,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 77863,
-        "begin": 77863,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 78870,
-        "begin": 78870,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 78995,
-        "begin": 78995,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 79794,
-        "begin": 79794,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 79883,
-        "begin": 79883,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 81095,
-        "begin": 81095,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 81353,
-        "begin": 81353,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 82117,
-        "begin": 82117,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 82166,
-        "begin": 82166,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 83338,
-        "begin": 83338,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 83729,
-        "begin": 83729,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 84536,
-        "begin": 84536,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 85851,
-        "begin": 85851,
-        "id": 1247275,
-        "name": "Tigereye Brew",
-        "onGcd": false
-      },
-      {
-        "t": 85852,
-        "begin": 85852,
-        "id": 105684,
-        "name": "Elixir of the Rapids",
-        "onGcd": false
-      },
-      {
-        "t": 86073,
-        "begin": 86073,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 86085,
-        "begin": 86085,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 86882,
-        "begin": 86882,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 87093,
-        "begin": 87093,
-        "id": 113656,
-        "name": "Fists of Fury",
-        "onGcd": true
-      },
-      {
-        "t": 90070,
-        "begin": 90070,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 90541,
-        "begin": 90541,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 90541,
-        "begin": 90541,
-        "id": 105697,
-        "name": "Virmen's Bite",
-        "onGcd": false
-      },
-      {
-        "t": 91070,
-        "begin": 91070,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 91740,
-        "begin": 91740,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 92077,
-        "begin": 92077,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 92369,
-        "begin": 92369,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 93084,
-        "begin": 93084,
-        "id": 115098,
-        "name": "Chi Wave",
-        "onGcd": true
-      },
-      {
-        "t": 93159,
-        "begin": 93159,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 93583,
-        "begin": 93583,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 94105,
-        "begin": 94105,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 94371,
-        "begin": 94371,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 94797,
-        "begin": 94797,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 95101,
-        "begin": 95101,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 95368,
-        "begin": 95368,
-        "id": 105688,
-        "name": "Monk's Elixir",
-        "onGcd": false
-      },
-      {
-        "t": 95999,
-        "begin": 95999,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 96111,
-        "begin": 96111,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 96251,
-        "begin": 96251,
-        "id": 115399,
-        "name": "Chi Brew",
-        "onGcd": false
-      },
-      {
-        "t": 96623,
-        "begin": 96623,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 97110,
-        "begin": 97110,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 97846,
-        "begin": 97846,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 98108,
-        "begin": 98108,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 98470,
-        "begin": 98470,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 99117,
-        "begin": 99117,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 99695,
-        "begin": 99695,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 100116,
-        "begin": 100116,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 100305,
-        "begin": 100305,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 101109,
-        "begin": 101109,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 101648,
-        "begin": 101648,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 102450,
-        "begin": 102450,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 102769,
-        "begin": 102769,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 103783,
-        "begin": 103783,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 104023,
-        "begin": 104023,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 104808,
-        "begin": 104808,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 105232,
-        "begin": 105232,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 106374,
-        "begin": 106374,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 106823,
-        "begin": 106823,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 107180,
-        "begin": 107180,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 107821,
-        "begin": 107821,
-        "id": 115203,
-        "name": "Fortifying Brew",
-        "onGcd": false
-      },
-      {
-        "t": 108145,
-        "begin": 108145,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 108738,
-        "begin": 108738,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 109147,
-        "begin": 109147,
-        "id": 115098,
-        "name": "Chi Wave",
-        "onGcd": true
-      },
-      {
-        "t": 109547,
-        "begin": 109547,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 110250,
-        "begin": 110250,
-        "id": 1247275,
-        "name": "Tigereye Brew",
-        "onGcd": false
-      },
-      {
-        "t": 110250,
-        "begin": 110250,
-        "id": 105684,
-        "name": "Elixir of the Rapids",
-        "onGcd": false
-      },
-      {
-        "t": 110941,
-        "begin": 110941,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 111108,
-        "begin": 111108,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 111546,
-        "begin": 111546,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 111951,
-        "begin": 111951,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 112193,
-        "begin": 112193,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 112539,
-        "begin": 112539,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 112960,
-        "begin": 112960,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 113175,
-        "begin": 113175,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 113529,
-        "begin": 113529,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 113962,
-        "begin": 113962,
-        "id": 113656,
-        "name": "Fists of Fury",
-        "onGcd": true
-      },
-      {
-        "t": 115649,
-        "begin": 115649,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 116161,
-        "begin": 116161,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 116496,
-        "begin": 116496,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 116680,
-        "begin": 116680,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 117160,
-        "begin": 117160,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 117477,
-        "begin": 117477,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 117699,
-        "begin": 117699,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 118136,
-        "begin": 118136,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 118467,
-        "begin": 118467,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 118691,
-        "begin": 118691,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 119145,
-        "begin": 119145,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 119456,
-        "begin": 119456,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 119696,
-        "begin": 119696,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 119912,
-        "begin": 119912,
-        "id": 105688,
-        "name": "Monk's Elixir",
-        "onGcd": false
-      },
-      {
-        "t": 120113,
-        "begin": 120113,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 120349,
-        "begin": 120349,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 120704,
-        "begin": 120704,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 120789,
-        "begin": 120789,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 121019,
-        "begin": 121019,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 121554,
-        "begin": 121554,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 121714,
-        "begin": 121714,
-        "id": 100787,
-        "name": "Tiger Palm",
-        "onGcd": true
-      },
-      {
-        "t": 122369,
-        "begin": 122369,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 122708,
-        "begin": 122708,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 123716,
-        "begin": 123716,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 123909,
-        "begin": 123909,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 124709,
-        "begin": 124709,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 124734,
-        "begin": 124734,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 125620,
-        "begin": 125620,
-        "id": 1247275,
-        "name": "Tigereye Brew",
-        "onGcd": false
-      },
-      {
-        "t": 125807,
-        "begin": 125807,
-        "id": 107428,
-        "name": "Rising Sun Kick",
-        "onGcd": true
-      },
-      {
-        "t": 126224,
-        "begin": 126224,
-        "id": 115288,
-        "name": "Energizing Brew",
-        "onGcd": false
-      },
-      {
-        "t": 126273,
-        "begin": 126273,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 126804,
-        "begin": 126804,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 127097,
-        "begin": 127097,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 127814,
-        "begin": 127814,
-        "id": 100780,
-        "name": "Jab",
-        "onGcd": true
-      },
-      {
-        "t": 128652,
-        "begin": 128652,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      },
-      {
-        "t": 128832,
-        "begin": 128832,
-        "id": 100784,
-        "name": "Blackout Kick",
-        "onGcd": true
-      },
-      {
-        "t": 129467,
-        "begin": 129467,
-        "id": 1,
-        "name": "Melee",
-        "onGcd": false
-      }
+      { "t": 862, "begin": 862, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 907, "begin": 907, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 1093, "begin": 1093, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 1949, "begin": 1949, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 2674, "begin": 2674, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 2804, "begin": 2804, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 2965, "begin": 2965, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 3894, "begin": 3894, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 3980, "begin": 3980, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 4034, "begin": 4034, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 4975, "begin": 4975, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 5095, "begin": 5095, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 5151, "begin": 5151, "id": 115399, "name": "Chi Brew", "onGcd": false },
+      { "t": 5251, "begin": 5251, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 5982, "begin": 5982, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 6167, "begin": 6167, "id": 115399, "name": "Chi Brew", "onGcd": false },
+      { "t": 6327, "begin": 6327, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 6456, "begin": 6456, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 7000, "begin": 7000, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 7539, "begin": 7539, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 7738, "begin": 7738, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 7995, "begin": 7995, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 8995, "begin": 8995, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 9341, "begin": 9341, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 9563, "begin": 9563, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 9999, "begin": 9999, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 10229, "begin": 10229, "id": 1247275, "name": "Tigereye Brew", "onGcd": false },
+      { "t": 10230, "begin": 10230, "id": 105684, "name": "Elixir of the Rapids", "onGcd": false },
+      { "t": 10412, "begin": 10412, "id": 123904, "name": "Invoke Xuen, the White Tiger", "onGcd": false },
+      { "t": 10432, "begin": 10432, "id": 126734, "name": "Synapse Springs", "onGcd": false },
+      { "t": 10433, "begin": 10433, "id": 33697, "name": "Blood Fury", "onGcd": false },
+      { "t": 11016, "begin": 11016, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 11113, "begin": 11113, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 11279, "begin": 11279, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 12018, "begin": 12018, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 12520, "begin": 12520, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 12684, "begin": 12684, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 13044, "begin": 13044, "id": 113656, "name": "Fists of Fury", "onGcd": true },
+      { "t": 15267, "begin": 15267, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 15309, "begin": 15309, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 15479, "begin": 15479, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 16268, "begin": 16268, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 16696, "begin": 16696, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 16879, "begin": 16879, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 17251, "begin": 17251, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 18123, "begin": 18123, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 18233, "begin": 18233, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 18276, "begin": 18276, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 19059, "begin": 19059, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 19168, "begin": 19168, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 19263, "begin": 19263, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 19531, "begin": 19531, "id": 105688, "name": "Monk's Elixir", "onGcd": false },
+      { "t": 20006, "begin": 20006, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 20154, "begin": 20154, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 20264, "begin": 20264, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 21288, "begin": 21288, "id": 115098, "name": "Chi Wave", "onGcd": true },
+      { "t": 21431, "begin": 21431, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 21567, "begin": 21567, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 22290, "begin": 22290, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 22842, "begin": 22842, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 22979, "begin": 22979, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 23290, "begin": 23290, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 24264, "begin": 24264, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 24299, "begin": 24299, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 24404, "begin": 24404, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 25293, "begin": 25293, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 25687, "begin": 25687, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 25820, "begin": 25820, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 26305, "begin": 26305, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 27114, "begin": 27114, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 27245, "begin": 27245, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 27317, "begin": 27317, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 28319, "begin": 28319, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 28529, "begin": 28529, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 28668, "begin": 28668, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 29332, "begin": 29332, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 29945, "begin": 29945, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 30084, "begin": 30084, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 30324, "begin": 30324, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 31326, "begin": 31326, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 31365, "begin": 31365, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 31454, "begin": 31454, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 32310, "begin": 32310, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 32330, "begin": 32330, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 32397, "begin": 32397, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 33264, "begin": 33264, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 33341, "begin": 33341, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 33356, "begin": 33356, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 34354, "begin": 34354, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 34630, "begin": 34630, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 34768, "begin": 34768, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 35346, "begin": 35346, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 36057, "begin": 36057, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 36191, "begin": 36191, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 36352, "begin": 36352, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 37357, "begin": 37357, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 37477, "begin": 37477, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 37608, "begin": 37608, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 38365, "begin": 38365, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 38899, "begin": 38899, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 39016, "begin": 39016, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 39363, "begin": 39363, "id": 115098, "name": "Chi Wave", "onGcd": true },
+      { "t": 40363, "begin": 40363, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 40399, "begin": 40399, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 40547, "begin": 40547, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 41366, "begin": 41366, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 42235, "begin": 42235, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 42378, "begin": 42378, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 42392, "begin": 42392, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 43378, "begin": 43378, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 44081, "begin": 44081, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 44237, "begin": 44237, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 44393, "begin": 44393, "id": 122470, "name": "Touch of Karma", "onGcd": true },
+      { "t": 45388, "begin": 45388, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 45920, "begin": 45920, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 46084, "begin": 46084, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 46404, "begin": 46404, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 47396, "begin": 47396, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 47757, "begin": 47757, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 47937, "begin": 47937, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 48412, "begin": 48412, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 49411, "begin": 49411, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 49616, "begin": 49616, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 49763, "begin": 49763, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 50410, "begin": 50410, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 51421, "begin": 51421, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 51447, "begin": 51447, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 51611, "begin": 51611, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 52430, "begin": 52430, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 53292, "begin": 53292, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 53439, "begin": 53439, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 53464, "begin": 53464, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 54436, "begin": 54436, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 55135, "begin": 55135, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 55314, "begin": 55314, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 55427, "begin": 55427, "id": 115098, "name": "Chi Wave", "onGcd": true },
+      { "t": 56430, "begin": 56430, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 56430, "begin": 56430, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 56540, "begin": 56540, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 57191, "begin": 57191, "id": 1247275, "name": "Tigereye Brew", "onGcd": false },
+      { "t": 57430, "begin": 57430, "id": 113656, "name": "Fists of Fury", "onGcd": true },
+      { "t": 60748, "begin": 60748, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 61366, "begin": 61366, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 61472, "begin": 61472, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 61758, "begin": 61758, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 62755, "begin": 62755, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 63156, "begin": 63156, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 63322, "begin": 63322, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 63762, "begin": 63762, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 63954, "begin": 63954, "id": 115288, "name": "Energizing Brew", "onGcd": false },
+      { "t": 64770, "begin": 64770, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 65006, "begin": 65006, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 65170, "begin": 65170, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 65767, "begin": 65767, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 66780, "begin": 66780, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 66854, "begin": 66854, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 67012, "begin": 67012, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 67777, "begin": 67777, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 68705, "begin": 68705, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 68820, "begin": 68820, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 68853, "begin": 68853, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 69837, "begin": 69837, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 70126, "begin": 70126, "id": 6262, "name": "Healthstone", "onGcd": false },
+      { "t": 70544, "begin": 70544, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 70693, "begin": 70693, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 70837, "begin": 70837, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 71826, "begin": 71826, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 71850, "begin": 71850, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 71918, "begin": 71918, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 72162, "begin": 72162, "id": 126734, "name": "Synapse Springs", "onGcd": false },
+      { "t": 72838, "begin": 72838, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 73068, "begin": 73068, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 73144, "begin": 73144, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 73864, "begin": 73864, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 74874, "begin": 74874, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 74875, "begin": 74875, "id": 115098, "name": "Chi Wave", "onGcd": true },
+      { "t": 75490, "begin": 75490, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 75864, "begin": 75864, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 76710, "begin": 76710, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 76864, "begin": 76864, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 76975, "begin": 76975, "id": 115399, "name": "Chi Brew", "onGcd": false },
+      { "t": 77441, "begin": 77441, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 77863, "begin": 77863, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 78870, "begin": 78870, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 78995, "begin": 78995, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 79794, "begin": 79794, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 79883, "begin": 79883, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 81095, "begin": 81095, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 81353, "begin": 81353, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 82117, "begin": 82117, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 82166, "begin": 82166, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 83338, "begin": 83338, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 83729, "begin": 83729, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 84536, "begin": 84536, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 85851, "begin": 85851, "id": 1247275, "name": "Tigereye Brew", "onGcd": false },
+      { "t": 85852, "begin": 85852, "id": 105684, "name": "Elixir of the Rapids", "onGcd": false },
+      { "t": 86073, "begin": 86073, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 86085, "begin": 86085, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 86882, "begin": 86882, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 87093, "begin": 87093, "id": 113656, "name": "Fists of Fury", "onGcd": true },
+      { "t": 90070, "begin": 90070, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 90541, "begin": 90541, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 90541, "begin": 90541, "id": 105697, "name": "Virmen's Bite", "onGcd": false },
+      { "t": 91070, "begin": 91070, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 91740, "begin": 91740, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 92077, "begin": 92077, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 92369, "begin": 92369, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 93084, "begin": 93084, "id": 115098, "name": "Chi Wave", "onGcd": true },
+      { "t": 93159, "begin": 93159, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 93583, "begin": 93583, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 94105, "begin": 94105, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 94371, "begin": 94371, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 94797, "begin": 94797, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 95101, "begin": 95101, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 95368, "begin": 95368, "id": 105688, "name": "Monk's Elixir", "onGcd": false },
+      { "t": 95999, "begin": 95999, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 96111, "begin": 96111, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 96251, "begin": 96251, "id": 115399, "name": "Chi Brew", "onGcd": false },
+      { "t": 96623, "begin": 96623, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 97110, "begin": 97110, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 97846, "begin": 97846, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 98108, "begin": 98108, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 98470, "begin": 98470, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 99117, "begin": 99117, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 99695, "begin": 99695, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 100116, "begin": 100116, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 100305, "begin": 100305, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 101109, "begin": 101109, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 101648, "begin": 101648, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 102450, "begin": 102450, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 102769, "begin": 102769, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 103783, "begin": 103783, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 104023, "begin": 104023, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 104808, "begin": 104808, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 105232, "begin": 105232, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 106374, "begin": 106374, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 106823, "begin": 106823, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 107180, "begin": 107180, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 107821, "begin": 107821, "id": 115203, "name": "Fortifying Brew", "onGcd": false },
+      { "t": 108145, "begin": 108145, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 108738, "begin": 108738, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 109147, "begin": 109147, "id": 115098, "name": "Chi Wave", "onGcd": true },
+      { "t": 109547, "begin": 109547, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 110250, "begin": 110250, "id": 1247275, "name": "Tigereye Brew", "onGcd": false },
+      { "t": 110250, "begin": 110250, "id": 105684, "name": "Elixir of the Rapids", "onGcd": false },
+      { "t": 110941, "begin": 110941, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 111108, "begin": 111108, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 111546, "begin": 111546, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 111951, "begin": 111951, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 112193, "begin": 112193, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 112539, "begin": 112539, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 112960, "begin": 112960, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 113175, "begin": 113175, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 113529, "begin": 113529, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 113962, "begin": 113962, "id": 113656, "name": "Fists of Fury", "onGcd": true },
+      { "t": 115649, "begin": 115649, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 116161, "begin": 116161, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 116496, "begin": 116496, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 116680, "begin": 116680, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 117160, "begin": 117160, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 117477, "begin": 117477, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 117699, "begin": 117699, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 118136, "begin": 118136, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 118467, "begin": 118467, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 118691, "begin": 118691, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 119145, "begin": 119145, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 119456, "begin": 119456, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 119696, "begin": 119696, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 119912, "begin": 119912, "id": 105688, "name": "Monk's Elixir", "onGcd": false },
+      { "t": 120113, "begin": 120113, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 120349, "begin": 120349, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 120704, "begin": 120704, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 120789, "begin": 120789, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 121019, "begin": 121019, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 121554, "begin": 121554, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 121714, "begin": 121714, "id": 100787, "name": "Tiger Palm", "onGcd": true },
+      { "t": 122369, "begin": 122369, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 122708, "begin": 122708, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 123716, "begin": 123716, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 123909, "begin": 123909, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 124709, "begin": 124709, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 124734, "begin": 124734, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 125620, "begin": 125620, "id": 1247275, "name": "Tigereye Brew", "onGcd": false },
+      { "t": 125807, "begin": 125807, "id": 107428, "name": "Rising Sun Kick", "onGcd": true },
+      { "t": 126224, "begin": 126224, "id": 115288, "name": "Energizing Brew", "onGcd": false },
+      { "t": 126273, "begin": 126273, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 126804, "begin": 126804, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 127097, "begin": 127097, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 127814, "begin": 127814, "id": 100780, "name": "Jab", "onGcd": true },
+      { "t": 128652, "begin": 128652, "id": 1, "name": "Melee", "onGcd": false },
+      { "t": 128832, "begin": 128832, "id": 100784, "name": "Blackout Kick", "onGcd": true },
+      { "t": 129467, "begin": 129467, "id": 1, "name": "Melee", "onGcd": false }
     ],
     "lanes": [
       {
@@ -2587,37 +825,11 @@
         "id": 139117,
         "group": "proc",
         "windows": [
-          {
-            "start": 926,
-            "end": 10925,
-            "id": 139120,
-            "variant": "Mastery"
-          },
-          {
-            "start": 77011,
-            "end": 87018,
-            "id": 139120,
-            "variant": "Mastery"
-          },
-          {
-            "start": 101134,
-            "end": 111131,
-            "id": 139120,
-            "variant": "Mastery"
-          },
-          {
-            "start": 111328,
-            "end": 121317,
-            "id": 139121,
-            "variant": "Haste"
-          },
-          {
-            "start": 121584,
-            "end": 129531,
-            "truncated": true,
-            "id": 139120,
-            "variant": "Mastery"
-          }
+          { "start": 926, "end": 10925, "id": 139120, "variant": "Mastery" },
+          { "start": 77011, "end": 87018, "id": 139120, "variant": "Mastery" },
+          { "start": 101134, "end": 111131, "id": 139120, "variant": "Mastery" },
+          { "start": 111328, "end": 121317, "id": 139121, "variant": "Haste" },
+          { "start": 121584, "end": 129531, "truncated": true, "id": 139120, "variant": "Mastery" }
         ]
       },
       {
@@ -2626,41 +838,13 @@
         "id": 118864,
         "group": "proc",
         "windows": [
-          {
-            "start": 12018,
-            "end": 15267,
-            "id": 118864
-          },
-          {
-            "start": 23290,
-            "end": 30325,
-            "id": 118864
-          },
-          {
-            "start": 38364,
-            "end": 41366,
-            "id": 118864
-          },
-          {
-            "start": 43378,
-            "end": 46404,
-            "id": 118864
-          },
-          {
-            "start": 66779,
-            "end": 69837,
-            "id": 118864
-          },
-          {
-            "start": 112960,
-            "end": 118691,
-            "id": 118864
-          },
-          {
-            "start": 119696,
-            "end": 121714,
-            "id": 118864
-          }
+          { "start": 12018, "end": 15267, "id": 118864 },
+          { "start": 23290, "end": 30325, "id": 118864 },
+          { "start": 38364, "end": 41366, "id": 118864 },
+          { "start": 43378, "end": 46404, "id": 118864 },
+          { "start": 66779, "end": 69837, "id": 118864 },
+          { "start": 112960, "end": 118691, "id": 118864 },
+          { "start": 119696, "end": 121714, "id": 118864 }
         ]
       },
       {
@@ -2669,31 +853,11 @@
         "id": 116768,
         "group": "proc",
         "windows": [
-          {
-            "start": 32330,
-            "end": 33342,
-            "id": 116768
-          },
-          {
-            "start": 35346,
-            "end": 37357,
-            "id": 116768
-          },
-          {
-            "start": 38364,
-            "end": 40363,
-            "id": 116768
-          },
-          {
-            "start": 62755,
-            "end": 65768,
-            "id": 116768
-          },
-          {
-            "start": 66780,
-            "end": 68820,
-            "id": 116768
-          }
+          { "start": 32330, "end": 33342, "id": 116768 },
+          { "start": 35346, "end": 37357, "id": 116768 },
+          { "start": 38364, "end": 40363, "id": 116768 },
+          { "start": 62755, "end": 65768, "id": 116768 },
+          { "start": 66780, "end": 68820, "id": 116768 }
         ]
       },
       {
@@ -2702,32 +866,11 @@
         "id": 1247275,
         "group": "buff",
         "windows": [
-          {
-            "start": 10229,
-            "end": 25221,
-            "id": 1247275
-          },
-          {
-            "start": 57191,
-            "end": 72174,
-            "id": 1247275
-          },
-          {
-            "start": 85851,
-            "end": 100825,
-            "id": 1247275
-          },
-          {
-            "start": 110250,
-            "end": 125267,
-            "id": 1247275
-          },
-          {
-            "start": 125620,
-            "end": 129531,
-            "truncated": true,
-            "id": 1247275
-          }
+          { "start": 10229, "end": 25221, "id": 1247275 },
+          { "start": 57191, "end": 72174, "id": 1247275 },
+          { "start": 85851, "end": 100825, "id": 1247275 },
+          { "start": 110250, "end": 125267, "id": 1247275 },
+          { "start": 125620, "end": 129531, "truncated": true, "id": 1247275 }
         ]
       },
       {
@@ -2735,14 +878,7 @@
         "name": "Tiger Power",
         "id": 125359,
         "group": "buff",
-        "windows": [
-          {
-            "start": 2965,
-            "end": 129531,
-            "truncated": true,
-            "id": 125359
-          }
-        ]
+        "windows": [{ "start": 2965, "end": 129531, "truncated": true, "id": 125359 }]
       },
       {
         "key": "energizing-brew",
@@ -2750,17 +886,8 @@
         "id": 115288,
         "group": "buff",
         "windows": [
-          {
-            "start": 63954,
-            "end": 69956,
-            "id": 115288
-          },
-          {
-            "start": 126223,
-            "end": 129531,
-            "truncated": true,
-            "id": 115288
-          }
+          { "start": 63954, "end": 69956, "id": 115288 },
+          { "start": 126223, "end": 129531, "truncated": true, "id": 115288 }
         ]
       },
       {
@@ -2769,41 +896,13 @@
         "id": 120273,
         "group": "buff",
         "windows": [
-          {
-            "start": 2674,
-            "end": 7539,
-            "id": 120273
-          },
-          {
-            "start": 18123,
-            "end": 20006,
-            "id": 120273
-          },
-          {
-            "start": 31365,
-            "end": 33355,
-            "id": 120273
-          },
-          {
-            "start": 55314,
-            "end": 61471,
-            "id": 120273
-          },
-          {
-            "start": 70693,
-            "end": 73144,
-            "id": 120273
-          },
-          {
-            "start": 92369,
-            "end": 94797,
-            "id": 120273
-          },
-          {
-            "start": 120113,
-            "end": 121553,
-            "id": 120273
-          }
+          { "start": 2674, "end": 7539, "id": 120273 },
+          { "start": 18123, "end": 20006, "id": 120273 },
+          { "start": 31365, "end": 33355, "id": 120273 },
+          { "start": 55314, "end": 61471, "id": 120273 },
+          { "start": 70693, "end": 73144, "id": 120273 },
+          { "start": 92369, "end": 94797, "id": 120273 },
+          { "start": 120113, "end": 121553, "id": 120273 }
         ]
       },
       {
@@ -2811,13 +910,7 @@
         "name": "Touch of Karma",
         "id": 122470,
         "group": "buff",
-        "windows": [
-          {
-            "start": 44393,
-            "end": 54382,
-            "id": 122470
-          }
-        ]
+        "windows": [{ "start": 44393, "end": 54382, "id": 122470 }]
       },
       {
         "key": "capacitance",
@@ -2825,66 +918,18 @@
         "id": 137596,
         "group": "proc",
         "windows": [
-          {
-            "start": 926,
-            "end": 7768,
-            "id": 137596
-          },
-          {
-            "start": 9020,
-            "end": 17282,
-            "id": 137596
-          },
-          {
-            "start": 20175,
-            "end": 26325,
-            "id": 137596
-          },
-          {
-            "start": 28322,
-            "end": 36368,
-            "id": 137596
-          },
-          {
-            "start": 38380,
-            "end": 47418,
-            "id": 137596
-          },
-          {
-            "start": 48425,
-            "end": 56457,
-            "id": 137596
-          },
-          {
-            "start": 57446,
-            "end": 65171,
-            "id": 137596
-          },
-          {
-            "start": 67790,
-            "end": 77875,
-            "id": 137596
-          },
-          {
-            "start": 78896,
-            "end": 88569,
-            "id": 137596
-          },
-          {
-            "start": 91086,
-            "end": 110954,
-            "id": 137596
-          },
-          {
-            "start": 111559,
-            "end": 117711,
-            "id": 137596
-          },
-          {
-            "start": 118468,
-            "end": 128844,
-            "id": 137596
-          }
+          { "start": 926, "end": 7768, "id": 137596 },
+          { "start": 9020, "end": 17282, "id": 137596 },
+          { "start": 20175, "end": 26325, "id": 137596 },
+          { "start": 28322, "end": 36368, "id": 137596 },
+          { "start": 38380, "end": 47418, "id": 137596 },
+          { "start": 48425, "end": 56457, "id": 137596 },
+          { "start": 57446, "end": 65171, "id": 137596 },
+          { "start": 67790, "end": 77875, "id": 137596 },
+          { "start": 78896, "end": 88569, "id": 137596 },
+          { "start": 91086, "end": 110954, "id": 137596 },
+          { "start": 111559, "end": 117711, "id": 137596 },
+          { "start": 118468, "end": 128844, "id": 137596 }
         ],
         "stacks": {
           "points": [
@@ -2989,61 +1034,17 @@
           "payoff": "Lightning Strike",
           "payoffId": 137597,
           "discharges": [
-            {
-              "t": 8491,
-              "amount": 75001,
-              "from": 7768
-            },
-            {
-              "t": 18001,
-              "amount": 833855,
-              "from": 17282
-            },
-            {
-              "t": 27045,
-              "amount": 219429,
-              "from": 26325
-            },
-            {
-              "t": 37089,
-              "amount": 119287,
-              "from": 36368
-            },
-            {
-              "t": 48187,
-              "amount": 59657,
-              "from": 47418
-            },
-            {
-              "t": 57215,
-              "amount": 133164,
-              "from": 56457
-            },
-            {
-              "t": 65942,
-              "amount": 287735,
-              "from": 65171
-            },
-            {
-              "t": 78719,
-              "amount": 67164,
-              "from": 77875
-            },
-            {
-              "t": 89450,
-              "amount": 224586,
-              "from": 88569
-            },
-            {
-              "t": 111827,
-              "amount": 269254,
-              "from": 110954
-            },
-            {
-              "t": 118499,
-              "amount": 237569,
-              "from": 117711
-            }
+            { "t": 8491, "amount": 75001, "from": 7768 },
+            { "t": 18001, "amount": 833855, "from": 17282 },
+            { "t": 27045, "amount": 219429, "from": 26325 },
+            { "t": 37089, "amount": 119287, "from": 36368 },
+            { "t": 48187, "amount": 59657, "from": 47418 },
+            { "t": 57215, "amount": 133164, "from": 56457 },
+            { "t": 65942, "amount": 287735, "from": 65171 },
+            { "t": 78719, "amount": 67164, "from": 77875 },
+            { "t": 89450, "amount": 224586, "from": 88569 },
+            { "t": 111827, "amount": 269254, "from": 110954 },
+            { "t": 118499, "amount": 237569, "from": 117711 }
           ]
         }
       },
@@ -3053,36 +1054,12 @@
         "id": 146194,
         "group": "proc",
         "windows": [
-          {
-            "start": 926,
-            "end": 3921,
-            "id": 146194
-          },
-          {
-            "start": 36069,
-            "end": 39060,
-            "id": 146194
-          },
-          {
-            "start": 56458,
-            "end": 59453,
-            "id": 146194
-          },
-          {
-            "start": 59673,
-            "end": 62674,
-            "id": 146194
-          },
-          {
-            "start": 101135,
-            "end": 104133,
-            "id": 146194
-          },
-          {
-            "start": 106396,
-            "end": 109400,
-            "id": 146194
-          }
+          { "start": 926, "end": 3921, "id": 146194 },
+          { "start": 36069, "end": 39060, "id": 146194 },
+          { "start": 56458, "end": 59453, "id": 146194 },
+          { "start": 59673, "end": 62674, "id": 146194 },
+          { "start": 101135, "end": 104133, "id": 146194 },
+          { "start": 106396, "end": 109400, "id": 146194 }
         ]
       },
       {
@@ -3091,58 +1068,18 @@
         "id": 145024,
         "group": "proc",
         "windows": [
-          {
-            "start": 10230,
-            "end": 11016,
-            "id": 145024
-          },
-          {
-            "start": 57191,
-            "end": 57430,
-            "id": 145024
-          },
-          {
-            "start": 85852,
-            "end": 87093,
-            "id": 145024
-          },
-          {
-            "start": 110250,
-            "end": 111952,
-            "id": 145024
-          },
-          {
-            "start": 125620,
-            "end": 125807,
-            "id": 145024
-          }
+          { "start": 10230, "end": 11016, "id": 145024 },
+          { "start": 57191, "end": 57430, "id": 145024 },
+          { "start": 85852, "end": 87093, "id": 145024 },
+          { "start": 110250, "end": 111952, "id": 145024 },
+          { "start": 125620, "end": 125807, "id": 145024 }
         ],
         "spent": [
-          {
-            "start": 10230,
-            "id": 107428,
-            "name": "Rising Sun Kick"
-          },
-          {
-            "start": 57191,
-            "id": 113656,
-            "name": "Fists of Fury"
-          },
-          {
-            "start": 85852,
-            "id": 113656,
-            "name": "Fists of Fury"
-          },
-          {
-            "start": 110250,
-            "id": 100784,
-            "name": "Blackout Kick"
-          },
-          {
-            "start": 125620,
-            "id": 107428,
-            "name": "Rising Sun Kick"
-          }
+          { "start": 10230, "id": 107428, "name": "Rising Sun Kick" },
+          { "start": 57191, "id": 113656, "name": "Fists of Fury" },
+          { "start": 85852, "id": 113656, "name": "Fists of Fury" },
+          { "start": 110250, "id": 100784, "name": "Blackout Kick" },
+          { "start": 125620, "id": 107428, "name": "Rising Sun Kick" }
         ]
       },
       {
@@ -3151,16 +1088,8 @@
         "id": 148903,
         "group": "proc",
         "windows": [
-          {
-            "start": 9044,
-            "end": 19032,
-            "id": 148903
-          },
-          {
-            "start": 19078,
-            "end": 29062,
-            "id": 148903
-          }
+          { "start": 9044, "end": 19032, "id": 148903 },
+          { "start": 19078, "end": 29062, "id": 148903 }
         ]
       },
       {
@@ -3169,31 +1098,11 @@
         "id": 120032,
         "group": "proc",
         "windows": [
-          {
-            "start": 926,
-            "end": 13239,
-            "id": 120032
-          },
-          {
-            "start": 49786,
-            "end": 61774,
-            "id": 120032
-          },
-          {
-            "start": 63168,
-            "end": 67149,
-            "id": 120032
-          },
-          {
-            "start": 69381,
-            "end": 77775,
-            "id": 120032
-          },
-          {
-            "start": 93171,
-            "end": 110129,
-            "id": 120032
-          }
+          { "start": 926, "end": 13239, "id": 120032 },
+          { "start": 49786, "end": 61774, "id": 120032 },
+          { "start": 63168, "end": 67149, "id": 120032 },
+          { "start": 69381, "end": 77775, "id": 120032 },
+          { "start": 93171, "end": 110129, "id": 120032 }
         ]
       },
       {
@@ -3202,18 +1111,8 @@
         "id": 96228,
         "group": "buff",
         "windows": [
-          {
-            "start": 10412,
-            "end": 20429,
-            "id": 96228,
-            "variant": "Agility"
-          },
-          {
-            "start": 72162,
-            "end": 82153,
-            "id": 96228,
-            "variant": "Agility"
-          }
+          { "start": 10412, "end": 20429, "id": 96228, "variant": "Agility" },
+          { "start": 72162, "end": 82153, "id": 96228, "variant": "Agility" }
         ]
       },
       {
@@ -3222,17 +1121,8 @@
         "id": 105697,
         "group": "buff",
         "windows": [
-          {
-            "start": 0,
-            "end": 24017,
-            "preexisting": true,
-            "id": 105697
-          },
-          {
-            "start": 90541,
-            "end": 115522,
-            "id": 105697
-          }
+          { "start": 0, "end": 24017, "preexisting": true, "id": 105697 },
+          { "start": 90541, "end": 115522, "id": 105697 }
         ]
       },
       {
@@ -3240,168 +1130,92 @@
         "name": "Bloodlust",
         "id": 2825,
         "group": "buff",
-        "windows": [
-          {
-            "start": 88,
-            "end": 40074,
-            "id": 2825,
-            "variant": "Bloodlust"
-          }
-        ]
+        "windows": [{ "start": 88, "end": 40074, "id": 2825, "variant": "Bloodlust" }]
       },
       {
         "key": "blood-fury",
         "name": "Blood Fury",
         "id": 33697,
         "group": "buff",
-        "windows": [
-          {
-            "start": 10432,
-            "end": 25415,
-            "id": 33697
-          }
-        ]
+        "windows": [{ "start": 10432, "end": 25415, "id": 33697 }]
       },
       {
         "key": "skull-banner",
         "name": "Skull Banner",
         "id": 114206,
         "group": "buff",
-        "windows": [
-          {
-            "start": 1053,
-            "end": 11282
-          }
-        ],
-        "source": {
-          "id": 13,
-          "name": "Player (13)",
-          "own": false
-        }
+        "windows": [{ "start": 1053, "end": 11282 }],
+        "source": { "id": 13, "name": "Player (13)", "own": false }
       },
       {
         "key": "skull-banner",
         "name": "Skull Banner",
         "id": 114206,
         "group": "buff",
-        "windows": [
-          {
-            "start": 11282,
-            "end": 21639
-          }
-        ],
-        "source": {
-          "id": 23,
-          "name": "Player (23)",
-          "own": false
-        }
+        "windows": [{ "start": 11282, "end": 21639 }],
+        "source": { "id": 23, "name": "Player (23)", "own": false }
       },
       {
         "key": "skull-banner",
         "name": "Skull Banner",
         "id": 114206,
         "group": "buff",
-        "windows": [
-          {
-            "start": 22334,
-            "end": 32955
-          }
-        ],
-        "source": {
-          "id": 15,
-          "name": "Player (15)",
-          "own": false
-        }
+        "windows": [{ "start": 22334, "end": 32955 }],
+        "source": { "id": 15, "name": "Player (15)", "own": false }
       },
       {
         "key": "stormlash-totem",
         "name": "Stormlash Totem",
         "id": 120676,
         "group": "buff",
-        "windows": [
-          {
-            "start": 5409,
-            "end": 10281
-          }
-        ],
-        "source": {
-          "id": 11,
-          "name": "Player (11)",
-          "own": false
-        }
+        "windows": [{ "start": 5409, "end": 10281 }],
+        "source": { "id": 11, "name": "Player (11)", "own": false }
       },
       {
         "key": "stormlash-totem",
         "name": "Stormlash Totem",
         "id": 120676,
         "group": "buff",
-        "windows": [
-          {
-            "start": 12714,
-            "end": 22456
-          }
-        ],
-        "source": {
-          "id": 19,
-          "name": "Player (19)",
-          "own": false
-        }
+        "windows": [{ "start": 12714, "end": 22456 }],
+        "source": { "id": 19, "name": "Player (19)", "own": false }
       },
       {
         "key": "stormlash-totem",
         "name": "Stormlash Totem",
         "id": 120676,
         "group": "buff",
-        "windows": [
-          {
-            "start": 23657,
-            "end": 33359
-          }
-        ],
-        "source": {
-          "id": 24,
-          "name": "Player (24)",
-          "own": false
-        }
+        "windows": [{ "start": 23657, "end": 33359 }],
+        "source": { "id": 24, "name": "Player (24)", "own": false }
       },
       {
         "key": "rising-sun-kick-debuff",
         "name": "Rising Sun Kick (debuff)",
         "id": 130320,
         "group": "debuff",
-        "windows": [
-          {
-            "start": 1949,
-            "end": 129468
-          }
-        ],
-        "target": {
-          "id": 205,
-          "name": "Iron Juggernaut",
-          "primary": true
-        }
+        "windows": [{ "start": 1949, "end": 129468 }],
+        "target": { "id": 205, "name": "Iron Juggernaut", "primary": true }
       }
     ],
     "hiddenTargets": 0,
     "hiddenLanes": [],
     "phases": [
+      { "id": 1, "startTime": 2077966, "name": "Stage One: Assault Mode", "isIntermission": false },
+      { "id": 2, "startTime": 2201152, "name": "Stage Two: Siege Mode", "isIntermission": false },
+      { "id": 1, "startTime": 2207439, "name": "Stage One: Assault Mode", "isIntermission": false }
+    ]
+  },
+  "segments": {
+    "floorMs": 8000,
+    "segments": [
       {
-        "id": 1,
-        "startTime": 2077966,
-        "name": "Stage One: Assault Mode",
-        "isIntermission": false
-      },
-      {
-        "id": 2,
-        "startTime": 2201152,
-        "name": "Stage Two: Siege Mode",
-        "isIntermission": false
-      },
-      {
-        "id": 1,
-        "startTime": 2207439,
-        "name": "Stage One: Assault Mode",
-        "isIntermission": false
+        "index": 0,
+        "startMs": 0,
+        "endMs": 129531,
+        "mode": "single",
+        "dominance": 0.9933452223791988,
+        "bands": [1],
+        "medianEnemies": 1,
+        "msByCount": { "0": 862, "1": 128669 }
       }
     ]
   },
@@ -3483,6 +1297,45 @@
     "thresholdPct": 33,
     "detected": "single"
   },
+  "spawns": [
+    {
+      "key": "205:-",
+      "gameID": 71466,
+      "name": "Iron Juggernaut",
+      "firstMs": 862,
+      "lastMs": 129474,
+      "deathMs": 129491,
+      "hits": 802,
+      "aimedPresses": 257,
+      "immune": false,
+      "judgeable": true,
+      "excluded": false
+    },
+    {
+      "key": "211:2",
+      "gameID": 72050,
+      "name": "Crawler Mine",
+      "firstMs": 32397,
+      "lastMs": 32397,
+      "hits": 1,
+      "aimedPresses": 0,
+      "immune": true,
+      "judgeable": false,
+      "excluded": false
+    },
+    {
+      "key": "211:3",
+      "gameID": 72050,
+      "name": "Crawler Mine",
+      "firstMs": 32397,
+      "lastMs": 32397,
+      "hits": 1,
+      "aimedPresses": 0,
+      "immune": true,
+      "judgeable": false,
+      "excluded": false
+    }
+  ],
   "gear": {
     "slots": [
       {
@@ -3492,14 +1345,8 @@
         "quality": 4,
         "icon": "inv_helm_leather_raidmonk_n_01.jpg",
         "gems": [
-          {
-            "id": 95346,
-            "icon": "inv_legendary_chimeraoffear.jpg"
-          },
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
+          { "id": 95346, "icon": "inv_legendary_chimeraoffear.jpg" },
+          { "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }
         ],
         "enchantID": null,
         "enchantable": false,
@@ -3523,14 +1370,8 @@
         "quality": 4,
         "icon": "inv_shoulder_leather_raidmonk_n_01.jpg",
         "gems": [
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          },
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
+          { "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" },
+          { "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }
         ],
         "enchantID": 4804,
         "enchantable": true,
@@ -3554,18 +1395,9 @@
         "quality": 4,
         "icon": "inv_chest_leather_raidmonk_n_01.jpg",
         "gems": [
-          {
-            "id": 76667,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          },
-          {
-            "id": 76667,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          },
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
+          { "id": 76667, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" },
+          { "id": 76667, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" },
+          { "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }
         ],
         "enchantID": 4419,
         "enchantable": true,
@@ -3578,18 +1410,9 @@
         "quality": 4,
         "icon": "inv_leather_raiddruid_n_01belt.jpg",
         "gems": [
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          },
-          {
-            "id": 76699,
-            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
-          },
-          {
-            "id": 76699,
-            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
-          }
+          { "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" },
+          { "id": 76699, "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg" },
+          { "id": 76699, "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg" }
         ],
         "enchantID": null,
         "enchantable": false,
@@ -3602,14 +1425,8 @@
         "quality": 4,
         "icon": "inv_pant_leather_raidrogue_n_01.jpg",
         "gems": [
-          {
-            "id": 76642,
-            "icon": "inv_misc_gem_x4_rare_cut_green.jpg"
-          },
-          {
-            "id": 76642,
-            "icon": "inv_misc_gem_x4_rare_cut_green.jpg"
-          }
+          { "id": 76642, "icon": "inv_misc_gem_x4_rare_cut_green.jpg" },
+          { "id": 76642, "icon": "inv_misc_gem_x4_rare_cut_green.jpg" }
         ],
         "enchantID": 4822,
         "enchantable": true,
@@ -3621,12 +1438,7 @@
         "itemLevel": 580,
         "quality": 4,
         "icon": "inv_boot_leather_raidrogue_n_01.jpg",
-        "gems": [
-          {
-            "id": 76642,
-            "icon": "inv_misc_gem_x4_rare_cut_green.jpg"
-          }
-        ],
+        "gems": [{ "id": 76642, "icon": "inv_misc_gem_x4_rare_cut_green.jpg" }],
         "enchantID": 4429,
         "enchantable": true,
         "setID": null
@@ -3637,12 +1449,7 @@
         "itemLevel": 580,
         "quality": 4,
         "icon": "inv_leather_raiddruid_n_01bracer.jpg",
-        "gems": [
-          {
-            "id": 76700,
-            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
-          }
-        ],
+        "gems": [{ "id": 76700, "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg" }],
         "enchantID": 4416,
         "enchantable": true,
         "setID": null
@@ -3654,18 +1461,9 @@
         "quality": 4,
         "icon": "inv_glove_leather_raidmonk_n_01.jpg",
         "gems": [
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          },
-          {
-            "id": 76667,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          },
-          {
-            "id": 76697,
-            "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg"
-          }
+          { "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" },
+          { "id": 76667, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" },
+          { "id": 76697, "icon": "inv_misc_gem_x4_rare_cut_yellow.jpg" }
         ],
         "enchantID": 4107,
         "enchantable": true,
@@ -3677,12 +1475,7 @@
         "itemLevel": 580,
         "quality": 4,
         "icon": "inv_misc_ring_mop20.jpg",
-        "gems": [
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
-        ],
+        "gems": [{ "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }],
         "enchantID": null,
         "enchantable": false,
         "setID": null
@@ -3693,12 +1486,7 @@
         "itemLevel": 580,
         "quality": 4,
         "icon": "inv_misc_ring_mop16.jpg",
-        "gems": [
-          {
-            "id": 76642,
-            "icon": "inv_misc_gem_x4_rare_cut_green.jpg"
-          }
-        ],
+        "gems": [{ "id": 76642, "icon": "inv_misc_gem_x4_rare_cut_green.jpg" }],
         "enchantID": null,
         "enchantable": false,
         "setID": null
@@ -3731,12 +1519,7 @@
         "itemLevel": 608,
         "quality": 5,
         "icon": "inv_cape_pandaria_tigermelee_d_02.jpg",
-        "gems": [
-          {
-            "id": 76667,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
-        ],
+        "gems": [{ "id": 76667, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }],
         "enchantID": 4424,
         "enchantable": true,
         "setID": null
@@ -3747,12 +1530,7 @@
         "itemLevel": 580,
         "quality": 4,
         "icon": "inv_mace_1h_orgrimmarraid_d_04.jpg",
-        "gems": [
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
-        ],
+        "gems": [{ "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }],
         "enchantID": 4444,
         "enchantable": true,
         "setID": null
@@ -3763,12 +1541,7 @@
         "itemLevel": 580,
         "quality": 4,
         "icon": "inv_hand_1h_orgrimmarraid_d_01.jpg",
-        "gems": [
-          {
-            "id": 76659,
-            "icon": "inv_misc_gem_x4_rare_cut_orange.jpg"
-          }
-        ],
+        "gems": [{ "id": 76659, "icon": "inv_misc_gem_x4_rare_cut_orange.jpg" }],
         "enchantID": 4444,
         "enchantable": true,
         "setID": null
@@ -3788,7 +1561,8 @@
     "averageItemLevel": 578.3,
     "missingEnchants": [],
     "gems": 22,
-    "masteryRating": null
+    "masteryRating": null,
+    "stamina": 42553
   },
   "raidBuffs": {
     "rows": [
@@ -3886,11 +1660,7 @@
     "id": 105697,
     "used": 2,
     "slots": 2,
-    "prePull": {
-      "drunkMs": -983,
-      "expiredMs": 24017,
-      "preexisting": true
-    },
+    "prePull": { "drunkMs": -983, "expiredMs": 24017, "preexisting": true },
     "combat": [90541],
     "measurable": true
   },
@@ -4272,21 +2042,9 @@
         [37941, 38365],
         [41366, 43378]
       ],
-      "total": {
-        "cappedMs": 2693,
-        "pct": 2.0790389945264067,
-        "wasted": 36
-      },
-      "engaged": {
-        "cappedMs": 2693,
-        "pct": 2.105156186485726,
-        "wasted": 36
-      },
-      "downtime": {
-        "cappedMs": 0,
-        "pct": 0,
-        "wasted": 0
-      },
+      "total": { "cappedMs": 2693, "pct": 2.0790389945264067, "wasted": 36 },
+      "engaged": { "cappedMs": 2693, "pct": 2.105156186485726, "wasted": 36 },
+      "downtime": { "cappedMs": 0, "pct": 0, "wasted": 0 },
       "worst": [
         {
           "at": 41366,
@@ -4355,12 +2113,7 @@
           [126804, 3],
           [128832, 3]
         ],
-        "wasted": [
-          {
-            "t": 70837,
-            "wasted": 2
-          }
-        ],
+        "wasted": [{ "t": 70837, "wasted": 2 }],
         "gained": 96,
         "spent": 104
       },
@@ -4674,88 +2427,46 @@
     "uptimePct": 49.31406381483969,
     "damagePerStack": null,
     "windows": [
-      {
-        "start": 10229,
-        "end": 25221,
-        "id": 1247275
-      },
-      {
-        "start": 57191,
-        "end": 72174,
-        "id": 1247275
-      },
-      {
-        "start": 85851,
-        "end": 100825,
-        "id": 1247275
-      },
-      {
-        "start": 110250,
-        "end": 125267,
-        "id": 1247275
-      },
-      {
-        "start": 125620,
-        "end": 129531,
-        "truncated": true,
-        "id": 1247275
-      }
+      { "start": 10229, "end": 25221, "id": 1247275 },
+      { "start": 57191, "end": 72174, "id": 1247275 },
+      { "start": 85851, "end": 100825, "id": 1247275 },
+      { "start": 110250, "end": 125267, "id": 1247275 },
+      { "start": 125620, "end": 129531, "truncated": true, "id": 1247275 }
     ],
     "useList": [
       {
         "t": 10229,
         "before": 8,
         "consumed": 8,
-        "window": {
-          "start": 10229,
-          "end": 25221,
-          "id": 1247275
-        },
+        "window": { "start": 10229, "end": 25221, "id": 1247275 },
         "refresh": false
       },
       {
         "t": 57190,
         "before": 15,
         "consumed": 10,
-        "window": {
-          "start": 57191,
-          "end": 72174,
-          "id": 1247275
-        },
+        "window": { "start": 57191, "end": 72174, "id": 1247275 },
         "refresh": false
       },
       {
         "t": 85851,
         "before": 15,
         "consumed": 10,
-        "window": {
-          "start": 85851,
-          "end": 100825,
-          "id": 1247275
-        },
+        "window": { "start": 85851, "end": 100825, "id": 1247275 },
         "refresh": false
       },
       {
         "t": 110249,
         "before": 14,
         "consumed": 10,
-        "window": {
-          "start": 110250,
-          "end": 125267,
-          "id": 1247275
-        },
+        "window": { "start": 110250, "end": 125267, "id": 1247275 },
         "refresh": false
       },
       {
         "t": 125620,
         "before": 8,
         "consumed": 8,
-        "window": {
-          "start": 125620,
-          "end": 129531,
-          "truncated": true,
-          "id": 1247275
-        },
+        "window": { "start": 125620, "end": 129531, "truncated": true, "id": 1247275 },
         "refresh": false
       }
     ],
@@ -4884,10 +2595,7 @@
     "secondsGivenAway": 6.7,
     "brewsOutsideProc": 1,
     "uptimePct": 37.009673360045085,
-    "statMix": {
-      "Mastery": 4,
-      "Haste": 1
-    },
+    "statMix": { "Mastery": 4, "Haste": 1 },
     "lastGcdMs": 1000,
     "lateMs": 3000,
     "windows": [
@@ -4994,16 +2702,8 @@
         "stacksInside": 10,
         "gapToNextMs": 197,
         "overlaps": [
-          {
-            "index": 3,
-            "stat": "Haste",
-            "ms": 9989
-          },
-          {
-            "index": 4,
-            "stat": "Mastery",
-            "ms": 3665
-          }
+          { "index": 3, "stat": "Haste", "ms": 9989 },
+          { "index": 4, "stat": "Mastery", "ms": 3665 }
         ],
         "devaluedMs": 13654,
         "wastedMs": 3665,
@@ -5116,12 +2816,7 @@
     "secondsLost": 1,
     "intermissionSec": 0,
     "drops": [],
-    "windows": [
-      {
-        "start": 1949,
-        "end": 129468
-      }
-    ],
+    "windows": [{ "start": 1949, "end": 129468 }],
     "engagedSegments": [[862, 129474]],
     "contactSegments": [[908, 128832]],
     "contactUpSegments": [[1949, 128832]],
@@ -5140,12 +2835,7 @@
       [95151, 1],
       [96251, 0]
     ],
-    "cappedWindows": [
-      {
-        "start": 908,
-        "end": 5151
-      }
-    ],
+    "cappedWindows": [{ "start": 908, "end": 5151 }],
     "maxCharges": 2,
     "chiGained": 8,
     "chiWasted": 0,
@@ -5221,14 +2911,7 @@
     ]
   },
   "energizing": {
-    "hasteWindows": [
-      {
-        "start": 88,
-        "end": 40074,
-        "id": 2825,
-        "variant": "Bloodlust"
-      }
-    ],
+    "hasteWindows": [{ "start": 88, "end": 40074, "id": 2825, "variant": "Bloodlust" }],
     "casts": 2,
     "available": 3,
     "uptimeMs": 9310,
@@ -5264,17 +2947,8 @@
       }
     ],
     "windows": [
-      {
-        "start": 63954,
-        "end": 69956,
-        "id": 115288
-      },
-      {
-        "start": 126223,
-        "end": 129531,
-        "truncated": true,
-        "id": 115288
-      }
+      { "start": 63954, "end": 69956, "id": 115288 },
+      { "start": 126223, "end": 129531, "truncated": true, "id": 115288 }
     ]
   },
   "xuen": {
@@ -5339,7 +3013,7 @@
     "reflected": 935102,
     "absorbed": 890574,
     "sharePct": 1.176118005876628,
-    "capPerUse": 890574,
+    "capPerUse": 742145,
     "exhausted": 1,
     "withFortifyingBrew": 0,
     "uses": [
@@ -5349,6 +3023,7 @@
         "absorbed": 890574,
         "exhausted": true,
         "hits": 10,
+        "cap": 890574,
         "fortifyingBrew": false,
         "capPct": 100
       }
@@ -5363,98 +3038,26 @@
     "refreshWindowSec": 2,
     "buffUptimePct": 97.71097266291466,
     "castList": [
-      {
-        "t": 2965,
-        "proc": false,
-        "buffLeftMs": 0,
-        "reason": "apply"
-      },
-      {
-        "t": 15267,
-        "proc": true,
-        "buffLeftMs": 7698,
-        "reason": "proc"
-      },
-      {
-        "t": 30324,
-        "proc": true,
-        "buffLeftMs": 4943,
-        "reason": "proc"
-      },
-      {
-        "t": 41366,
-        "proc": true,
-        "buffLeftMs": 8958,
-        "reason": "proc"
-      },
-      {
-        "t": 46404,
-        "proc": true,
-        "buffLeftMs": 14961,
-        "reason": "proc"
-      },
-      {
-        "t": 64770,
-        "proc": false,
-        "buffLeftMs": 1634,
-        "reason": "refresh"
-      },
-      {
-        "t": 69837,
-        "proc": true,
-        "buffLeftMs": 14933,
-        "reason": "proc"
-      },
-      {
-        "t": 86085,
-        "proc": false,
-        "buffLeftMs": 3752,
-        "reason": "wasted"
-      },
-      {
-        "t": 103783,
-        "proc": false,
-        "buffLeftMs": 2301,
-        "reason": "wasted"
-      },
-      {
-        "t": 118691,
-        "proc": true,
-        "buffLeftMs": 5092,
-        "reason": "proc"
-      },
-      {
-        "t": 121714,
-        "proc": true,
-        "buffLeftMs": 16977,
-        "reason": "proc"
-      }
+      { "t": 2965, "proc": false, "buffLeftMs": 0, "reason": "apply" },
+      { "t": 15267, "proc": true, "buffLeftMs": 7698, "reason": "proc" },
+      { "t": 30324, "proc": true, "buffLeftMs": 4943, "reason": "proc" },
+      { "t": 41366, "proc": true, "buffLeftMs": 8958, "reason": "proc" },
+      { "t": 46404, "proc": true, "buffLeftMs": 14961, "reason": "proc" },
+      { "t": 64770, "proc": false, "buffLeftMs": 1634, "reason": "refresh" },
+      { "t": 69837, "proc": true, "buffLeftMs": 14933, "reason": "proc" },
+      { "t": 86085, "proc": false, "buffLeftMs": 3752, "reason": "wasted" },
+      { "t": 103783, "proc": false, "buffLeftMs": 2301, "reason": "wasted" },
+      { "t": 118691, "proc": true, "buffLeftMs": 5092, "reason": "proc" },
+      { "t": 121714, "proc": true, "buffLeftMs": 16977, "reason": "proc" }
     ]
   },
   "comboBreaker": [
-    {
-      "id": 118864,
-      "label": "Tiger Palm",
-      "procs": 7,
-      "wasted": 0
-    },
-    {
-      "id": 116768,
-      "label": "Blackout Kick",
-      "procs": 5,
-      "wasted": 0
-    }
+    { "id": 118864, "label": "Tiger Palm", "procs": 7, "wasted": 0 },
+    { "id": 116768, "label": "Blackout Kick", "procs": 5, "wasted": 0 }
   ],
   "apl": {
     "presses": [
-      {
-        "t": 907,
-        "decidedAt": 907,
-        "pressed": 100780,
-        "wanted": null,
-        "reason": null,
-        "verdict": "unknown"
-      },
+      { "t": 907, "decidedAt": 907, "pressed": 100780, "wanted": null, "reason": null, "verdict": "unknown" },
       {
         "t": 1949,
         "decidedAt": 1949,
@@ -5463,38 +3066,10 @@
         "reason": null,
         "verdict": "skipped"
       },
-      {
-        "t": 2965,
-        "decidedAt": 2965,
-        "pressed": 100787,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 3980,
-        "decidedAt": 3980,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
-      {
-        "t": 4975,
-        "decidedAt": 4975,
-        "pressed": 100784,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 5982,
-        "decidedAt": 5982,
-        "pressed": 100784,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
+      { "t": 2965, "decidedAt": 2965, "pressed": 100787, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 3980, "decidedAt": 3980, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+      { "t": 4975, "decidedAt": 4975, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 5982, "decidedAt": 5982, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
       {
         "t": 7000,
         "decidedAt": 7000,
@@ -5503,30 +3078,9 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 7995,
-        "decidedAt": 7995,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
-      {
-        "t": 8995,
-        "decidedAt": 8995,
-        "pressed": 100784,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 9999,
-        "decidedAt": 9999,
-        "pressed": 100780,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
+      { "t": 7995, "decidedAt": 7995, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+      { "t": 8995, "decidedAt": 8995, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 9999, "decidedAt": 9999, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
       {
         "t": 11016,
         "decidedAt": 11016,
@@ -5535,54 +3089,12 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 12018,
-        "decidedAt": 12018,
-        "pressed": 100780,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 13044,
-        "decidedAt": 13044,
-        "pressed": 113656,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 15267,
-        "decidedAt": 15267,
-        "pressed": 100787,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 16268,
-        "decidedAt": 16268,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
-      {
-        "t": 17251,
-        "decidedAt": 17251,
-        "pressed": 100784,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 18276,
-        "decidedAt": 18276,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 12018, "decidedAt": 12018, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 13044, "decidedAt": 13044, "pressed": 113656, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 15267, "decidedAt": 15267, "pressed": 100787, "wanted": "jab", "reason": null, "verdict": "skipped" },
+      { "t": 16268, "decidedAt": 16268, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+      { "t": 17251, "decidedAt": 17251, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 18276, "decidedAt": 18276, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 19263,
         "decidedAt": 19263,
@@ -5591,14 +3103,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 20264,
-        "decidedAt": 20264,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 20264, "decidedAt": 20264, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 21288,
         "decidedAt": 21288,
@@ -5615,14 +3120,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 23290,
-        "decidedAt": 23290,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 23290, "decidedAt": 23290, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 24299,
         "decidedAt": 24299,
@@ -5631,14 +3129,7 @@
         "reason": null,
         "verdict": "skipped"
       },
-      {
-        "t": 25293,
-        "decidedAt": 25293,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 25293, "decidedAt": 25293, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 26305,
         "decidedAt": 26305,
@@ -5647,14 +3138,7 @@
         "reason": null,
         "verdict": "skipped"
       },
-      {
-        "t": 27317,
-        "decidedAt": 27317,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 27317, "decidedAt": 27317, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 28319,
         "decidedAt": 28319,
@@ -5775,22 +3259,8 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 43378,
-        "decidedAt": 43378,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
-      {
-        "t": 44393,
-        "decidedAt": 44393,
-        "pressed": 122470,
-        "wanted": null,
-        "reason": "karma",
-        "verdict": "off-list"
-      },
+      { "t": 43378, "decidedAt": 43378, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+      { "t": 44393, "decidedAt": 44393, "pressed": 122470, "wanted": null, "reason": "karma", "verdict": "off-list" },
       {
         "t": 45388,
         "decidedAt": 45388,
@@ -5807,14 +3277,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 47396,
-        "decidedAt": 47396,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 47396, "decidedAt": 47396, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 48412,
         "decidedAt": 48412,
@@ -5823,14 +3286,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 49411,
-        "decidedAt": 49411,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 49411, "decidedAt": 49411, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 50410,
         "decidedAt": 50410,
@@ -5839,14 +3295,7 @@
         "reason": null,
         "verdict": "skipped"
       },
-      {
-        "t": 51421,
-        "decidedAt": 51421,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 51421, "decidedAt": 51421, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 52430,
         "decidedAt": 52430,
@@ -5855,14 +3304,7 @@
         "reason": null,
         "verdict": "skipped"
       },
-      {
-        "t": 53439,
-        "decidedAt": 53439,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 53439, "decidedAt": 53439, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 54436,
         "decidedAt": 54436,
@@ -5879,14 +3321,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 56430,
-        "decidedAt": 56430,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 56430, "decidedAt": 56430, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 57430,
         "decidedAt": 57430,
@@ -5895,14 +3330,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 60748,
-        "decidedAt": 60748,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 60748, "decidedAt": 60748, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 61758,
         "decidedAt": 61758,
@@ -5991,22 +3419,8 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 72838,
-        "decidedAt": 72838,
-        "pressed": 100780,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
-      {
-        "t": 73864,
-        "decidedAt": 73864,
-        "pressed": 100784,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
+      { "t": 72838, "decidedAt": 72838, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+      { "t": 73864, "decidedAt": 73864, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
       {
         "t": 74875,
         "decidedAt": 74875,
@@ -6015,14 +3429,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 75864,
-        "decidedAt": 75864,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 75864, "decidedAt": 75864, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 76864,
         "decidedAt": 76864,
@@ -6039,14 +3446,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 78870,
-        "decidedAt": 78870,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 78870, "decidedAt": 78870, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 79883,
         "decidedAt": 79883,
@@ -6055,14 +3455,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 81095,
-        "decidedAt": 81095,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 81095, "decidedAt": 81095, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 82117,
         "decidedAt": 82117,
@@ -6071,14 +3464,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 83338,
-        "decidedAt": 83338,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 83338, "decidedAt": 83338, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 86085,
         "decidedAt": 86085,
@@ -6095,14 +3481,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 90070,
-        "decidedAt": 90070,
-        "pressed": 100780,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
+      { "t": 90070, "decidedAt": 90070, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
       {
         "t": 91070,
         "decidedAt": 91070,
@@ -6111,14 +3490,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 92077,
-        "decidedAt": 92077,
-        "pressed": 100780,
-        "wanted": "chi-wave",
-        "reason": null,
-        "verdict": "skipped"
-      },
+      { "t": 92077, "decidedAt": 92077, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
       {
         "t": 93084,
         "decidedAt": 93084,
@@ -6135,14 +3507,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 95101,
-        "decidedAt": 95101,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 95101, "decidedAt": 95101, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 96111,
         "decidedAt": 96111,
@@ -6159,14 +3524,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 98108,
-        "decidedAt": 98108,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 98108, "decidedAt": 98108, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 99117,
         "decidedAt": 99117,
@@ -6175,14 +3533,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 100116,
-        "decidedAt": 100116,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 100116, "decidedAt": 100116, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 101109,
         "decidedAt": 101109,
@@ -6191,14 +3542,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 102769,
-        "decidedAt": 102769,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 102769, "decidedAt": 102769, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 103783,
         "decidedAt": 103783,
@@ -6215,14 +3559,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 106823,
-        "decidedAt": 106823,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 106823, "decidedAt": 106823, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 108145,
         "decidedAt": 108145,
@@ -6239,14 +3576,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 110941,
-        "decidedAt": 110941,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 110941, "decidedAt": 110941, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 111951,
         "decidedAt": 111951,
@@ -6303,14 +3633,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 119696,
-        "decidedAt": 119696,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 119696, "decidedAt": 119696, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 120704,
         "decidedAt": 120704,
@@ -6327,14 +3650,7 @@
         "reason": null,
         "verdict": "followed"
       },
-      {
-        "t": 122708,
-        "decidedAt": 122708,
-        "pressed": 100780,
-        "wanted": "jab",
-        "reason": null,
-        "verdict": "followed"
-      },
+      { "t": 122708, "decidedAt": 122708, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
       {
         "t": 123716,
         "decidedAt": 123716,
@@ -6389,60 +3705,21 @@
     "unknown": 1,
     "offList": 1,
     "skippedBy": [
-      {
-        "key": "chi-wave",
-        "id": 115098,
-        "count": 14
-      },
-      {
-        "key": "combo-breaker-palm",
-        "id": 100787,
-        "count": 7
-      },
-      {
-        "key": "combo-breaker-kick",
-        "id": 100784,
-        "count": 7
-      },
-      {
-        "key": "blackout-kick",
-        "id": 100784,
-        "count": 4
-      },
-      {
-        "key": "tiger-palm-refresh",
-        "id": 100787,
-        "count": 2
-      },
-      {
-        "key": "fists-of-fury",
-        "id": 113656,
-        "count": 2
-      },
-      {
-        "key": "jab",
-        "id": 100780,
-        "count": 1
-      },
-      {
-        "key": "rising-sun-kick-filler",
-        "id": 107428,
-        "count": 1
-      }
+      { "key": "chi-wave", "id": 115098, "count": 14 },
+      { "key": "combo-breaker-palm", "id": 100787, "count": 7 },
+      { "key": "combo-breaker-kick", "id": 100784, "count": 7 },
+      { "key": "blackout-kick", "id": 100784, "count": 4 },
+      { "key": "tiger-palm-refresh", "id": 100787, "count": 2 },
+      { "key": "fists-of-fury", "id": 113656, "count": 2 },
+      { "key": "jab", "id": 100780, "count": 1 },
+      { "key": "rising-sun-kick-filler", "id": 107428, "count": 1 }
     ],
     "characterUnread": false
   },
   "aplForced": {
     "1": {
       "presses": [
-        {
-          "t": 907,
-          "decidedAt": 907,
-          "pressed": 100780,
-          "wanted": null,
-          "reason": null,
-          "verdict": "unknown"
-        },
+        { "t": 907, "decidedAt": 907, "pressed": 100780, "wanted": null, "reason": null, "verdict": "unknown" },
         {
           "t": 1949,
           "decidedAt": 1949,
@@ -6451,38 +3728,10 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 2965,
-          "decidedAt": 2965,
-          "pressed": 100787,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 3980,
-          "decidedAt": 3980,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
-        {
-          "t": 4975,
-          "decidedAt": 4975,
-          "pressed": 100784,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 5982,
-          "decidedAt": 5982,
-          "pressed": 100784,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
+        { "t": 2965, "decidedAt": 2965, "pressed": 100787, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+        { "t": 3980, "decidedAt": 3980, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+        { "t": 4975, "decidedAt": 4975, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+        { "t": 5982, "decidedAt": 5982, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
         {
           "t": 7000,
           "decidedAt": 7000,
@@ -6491,30 +3740,9 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 7995,
-          "decidedAt": 7995,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
-        {
-          "t": 8995,
-          "decidedAt": 8995,
-          "pressed": 100784,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 9999,
-          "decidedAt": 9999,
-          "pressed": 100780,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
+        { "t": 7995, "decidedAt": 7995, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+        { "t": 8995, "decidedAt": 8995, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+        { "t": 9999, "decidedAt": 9999, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
         {
           "t": 11016,
           "decidedAt": 11016,
@@ -6539,22 +3767,8 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 15267,
-          "decidedAt": 15267,
-          "pressed": 100787,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 16268,
-          "decidedAt": 16268,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 15267, "decidedAt": 15267, "pressed": 100787, "wanted": "jab", "reason": null, "verdict": "skipped" },
+        { "t": 16268, "decidedAt": 16268, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 17251,
           "decidedAt": 17251,
@@ -6563,14 +3777,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 18276,
-          "decidedAt": 18276,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 18276, "decidedAt": 18276, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 19263,
           "decidedAt": 19263,
@@ -6579,14 +3786,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 20264,
-          "decidedAt": 20264,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 20264, "decidedAt": 20264, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 21288,
           "decidedAt": 21288,
@@ -6603,14 +3803,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 23290,
-          "decidedAt": 23290,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 23290, "decidedAt": 23290, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 24299,
           "decidedAt": 24299,
@@ -6619,14 +3812,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 25293,
-          "decidedAt": 25293,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 25293, "decidedAt": 25293, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 26305,
           "decidedAt": 26305,
@@ -6635,14 +3821,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 27317,
-          "decidedAt": 27317,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 27317, "decidedAt": 27317, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 28319,
           "decidedAt": 28319,
@@ -6763,22 +3942,8 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 43378,
-          "decidedAt": 43378,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
-        {
-          "t": 44393,
-          "decidedAt": 44393,
-          "pressed": 122470,
-          "wanted": null,
-          "reason": "karma",
-          "verdict": "off-list"
-        },
+        { "t": 43378, "decidedAt": 43378, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+        { "t": 44393, "decidedAt": 44393, "pressed": 122470, "wanted": null, "reason": "karma", "verdict": "off-list" },
         {
           "t": 45388,
           "decidedAt": 45388,
@@ -6795,14 +3960,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 47396,
-          "decidedAt": 47396,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 47396, "decidedAt": 47396, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 48412,
           "decidedAt": 48412,
@@ -6811,14 +3969,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 49411,
-          "decidedAt": 49411,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 49411, "decidedAt": 49411, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 50410,
           "decidedAt": 50410,
@@ -6827,14 +3978,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 51421,
-          "decidedAt": 51421,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 51421, "decidedAt": 51421, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 52430,
           "decidedAt": 52430,
@@ -6843,14 +3987,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 53439,
-          "decidedAt": 53439,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 53439, "decidedAt": 53439, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 54436,
           "decidedAt": 54436,
@@ -6867,14 +4004,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 56430,
-          "decidedAt": 56430,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 56430, "decidedAt": 56430, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 57430,
           "decidedAt": 57430,
@@ -6883,14 +4013,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 60748,
-          "decidedAt": 60748,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 60748, "decidedAt": 60748, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 61758,
           "decidedAt": 61758,
@@ -7003,14 +4126,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 75864,
-          "decidedAt": 75864,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 75864, "decidedAt": 75864, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 76864,
           "decidedAt": 76864,
@@ -7027,14 +4143,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 78870,
-          "decidedAt": 78870,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 78870, "decidedAt": 78870, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 79883,
           "decidedAt": 79883,
@@ -7043,14 +4152,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 81095,
-          "decidedAt": 81095,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 81095, "decidedAt": 81095, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 82117,
           "decidedAt": 82117,
@@ -7059,14 +4161,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 83338,
-          "decidedAt": 83338,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 83338, "decidedAt": 83338, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 86085,
           "decidedAt": 86085,
@@ -7123,14 +4218,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 95101,
-          "decidedAt": 95101,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 95101, "decidedAt": 95101, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 96111,
           "decidedAt": 96111,
@@ -7147,14 +4235,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 98108,
-          "decidedAt": 98108,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 98108, "decidedAt": 98108, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 99117,
           "decidedAt": 99117,
@@ -7163,14 +4244,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 100116,
-          "decidedAt": 100116,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 100116, "decidedAt": 100116, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 101109,
           "decidedAt": 101109,
@@ -7179,14 +4253,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 102769,
-          "decidedAt": 102769,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 102769, "decidedAt": 102769, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 103783,
           "decidedAt": 103783,
@@ -7203,14 +4270,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 106823,
-          "decidedAt": 106823,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 106823, "decidedAt": 106823, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 108145,
           "decidedAt": 108145,
@@ -7227,14 +4287,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 110941,
-          "decidedAt": 110941,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 110941, "decidedAt": 110941, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 111951,
           "decidedAt": 111951,
@@ -7291,14 +4344,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 119696,
-          "decidedAt": 119696,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 119696, "decidedAt": 119696, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 120704,
           "decidedAt": 120704,
@@ -7315,14 +4361,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 122708,
-          "decidedAt": 122708,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 122708, "decidedAt": 122708, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 123716,
           "decidedAt": 123716,
@@ -7377,59 +4416,20 @@
       "unknown": 1,
       "offList": 1,
       "skippedBy": [
-        {
-          "key": "chi-wave",
-          "id": 115098,
-          "count": 14
-        },
-        {
-          "key": "combo-breaker-palm",
-          "id": 100787,
-          "count": 7
-        },
-        {
-          "key": "combo-breaker-kick",
-          "id": 100784,
-          "count": 7
-        },
-        {
-          "key": "blackout-kick",
-          "id": 100784,
-          "count": 4
-        },
-        {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
-          "count": 2
-        },
-        {
-          "key": "fists-of-fury",
-          "id": 113656,
-          "count": 2
-        },
-        {
-          "key": "jab",
-          "id": 100780,
-          "count": 1
-        },
-        {
-          "key": "rising-sun-kick-filler",
-          "id": 107428,
-          "count": 1
-        }
+        { "key": "chi-wave", "id": 115098, "count": 14 },
+        { "key": "combo-breaker-palm", "id": 100787, "count": 7 },
+        { "key": "combo-breaker-kick", "id": 100784, "count": 7 },
+        { "key": "blackout-kick", "id": 100784, "count": 4 },
+        { "key": "tiger-palm-refresh", "id": 100787, "count": 2 },
+        { "key": "fists-of-fury", "id": 113656, "count": 2 },
+        { "key": "jab", "id": 100780, "count": 1 },
+        { "key": "rising-sun-kick-filler", "id": 107428, "count": 1 }
       ],
       "characterUnread": false
     },
     "2": {
       "presses": [
-        {
-          "t": 907,
-          "decidedAt": 907,
-          "pressed": 100780,
-          "wanted": null,
-          "reason": null,
-          "verdict": "unknown"
-        },
+        { "t": 907, "decidedAt": 907, "pressed": 100780, "wanted": null, "reason": null, "verdict": "unknown" },
         {
           "t": 1949,
           "decidedAt": 1949,
@@ -7438,38 +4438,10 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 2965,
-          "decidedAt": 2965,
-          "pressed": 100787,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 3980,
-          "decidedAt": 3980,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
-        {
-          "t": 4975,
-          "decidedAt": 4975,
-          "pressed": 100784,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 5982,
-          "decidedAt": 5982,
-          "pressed": 100784,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
+        { "t": 2965, "decidedAt": 2965, "pressed": 100787, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+        { "t": 3980, "decidedAt": 3980, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+        { "t": 4975, "decidedAt": 4975, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+        { "t": 5982, "decidedAt": 5982, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
         {
           "t": 7000,
           "decidedAt": 7000,
@@ -7478,30 +4450,9 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 7995,
-          "decidedAt": 7995,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
-        {
-          "t": 8995,
-          "decidedAt": 8995,
-          "pressed": 100784,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 9999,
-          "decidedAt": 9999,
-          "pressed": 100780,
-          "wanted": "chi-wave",
-          "reason": null,
-          "verdict": "skipped"
-        },
+        { "t": 7995, "decidedAt": 7995, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+        { "t": 8995, "decidedAt": 8995, "pressed": 100784, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
+        { "t": 9999, "decidedAt": 9999, "pressed": 100780, "wanted": "chi-wave", "reason": null, "verdict": "skipped" },
         {
           "t": 11016,
           "decidedAt": 11016,
@@ -7526,22 +4477,8 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 15267,
-          "decidedAt": 15267,
-          "pressed": 100787,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "skipped"
-        },
-        {
-          "t": 16268,
-          "decidedAt": 16268,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 15267, "decidedAt": 15267, "pressed": 100787, "wanted": "jab", "reason": null, "verdict": "skipped" },
+        { "t": 16268, "decidedAt": 16268, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 17251,
           "decidedAt": 17251,
@@ -7550,14 +4487,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 18276,
-          "decidedAt": 18276,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 18276, "decidedAt": 18276, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 19263,
           "decidedAt": 19263,
@@ -7566,14 +4496,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 20264,
-          "decidedAt": 20264,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 20264, "decidedAt": 20264, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 21288,
           "decidedAt": 21288,
@@ -7590,14 +4513,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 23290,
-          "decidedAt": 23290,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 23290, "decidedAt": 23290, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 24299,
           "decidedAt": 24299,
@@ -7606,14 +4522,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 25293,
-          "decidedAt": 25293,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 25293, "decidedAt": 25293, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 26305,
           "decidedAt": 26305,
@@ -7622,14 +4531,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 27317,
-          "decidedAt": 27317,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 27317, "decidedAt": 27317, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 28319,
           "decidedAt": 28319,
@@ -7750,22 +4652,8 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 43378,
-          "decidedAt": 43378,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
-        {
-          "t": 44393,
-          "decidedAt": 44393,
-          "pressed": 122470,
-          "wanted": null,
-          "reason": "karma",
-          "verdict": "off-list"
-        },
+        { "t": 43378, "decidedAt": 43378, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
+        { "t": 44393, "decidedAt": 44393, "pressed": 122470, "wanted": null, "reason": "karma", "verdict": "off-list" },
         {
           "t": 45388,
           "decidedAt": 45388,
@@ -7782,14 +4670,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 47396,
-          "decidedAt": 47396,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 47396, "decidedAt": 47396, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 48412,
           "decidedAt": 48412,
@@ -7798,14 +4679,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 49411,
-          "decidedAt": 49411,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 49411, "decidedAt": 49411, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 50410,
           "decidedAt": 50410,
@@ -7814,14 +4688,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 51421,
-          "decidedAt": 51421,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 51421, "decidedAt": 51421, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 52430,
           "decidedAt": 52430,
@@ -7830,14 +4697,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 53439,
-          "decidedAt": 53439,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 53439, "decidedAt": 53439, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 54436,
           "decidedAt": 54436,
@@ -7854,14 +4714,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 56430,
-          "decidedAt": 56430,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 56430, "decidedAt": 56430, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 57430,
           "decidedAt": 57430,
@@ -7870,14 +4723,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 60748,
-          "decidedAt": 60748,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 60748, "decidedAt": 60748, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 61758,
           "decidedAt": 61758,
@@ -7990,14 +4836,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 75864,
-          "decidedAt": 75864,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 75864, "decidedAt": 75864, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 76864,
           "decidedAt": 76864,
@@ -8014,14 +4853,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 78870,
-          "decidedAt": 78870,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 78870, "decidedAt": 78870, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 79883,
           "decidedAt": 79883,
@@ -8030,14 +4862,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 81095,
-          "decidedAt": 81095,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 81095, "decidedAt": 81095, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 82117,
           "decidedAt": 82117,
@@ -8046,14 +4871,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 83338,
-          "decidedAt": 83338,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 83338, "decidedAt": 83338, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 86085,
           "decidedAt": 86085,
@@ -8110,14 +4928,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 95101,
-          "decidedAt": 95101,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 95101, "decidedAt": 95101, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 96111,
           "decidedAt": 96111,
@@ -8134,14 +4945,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 98108,
-          "decidedAt": 98108,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 98108, "decidedAt": 98108, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 99117,
           "decidedAt": 99117,
@@ -8150,14 +4954,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 100116,
-          "decidedAt": 100116,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 100116, "decidedAt": 100116, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 101109,
           "decidedAt": 101109,
@@ -8166,14 +4963,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 102769,
-          "decidedAt": 102769,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 102769, "decidedAt": 102769, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 103783,
           "decidedAt": 103783,
@@ -8190,14 +4980,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 106823,
-          "decidedAt": 106823,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 106823, "decidedAt": 106823, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 108145,
           "decidedAt": 108145,
@@ -8214,14 +4997,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 110941,
-          "decidedAt": 110941,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 110941, "decidedAt": 110941, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 111951,
           "decidedAt": 111951,
@@ -8278,14 +5054,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 119696,
-          "decidedAt": 119696,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 119696, "decidedAt": 119696, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 120704,
           "decidedAt": 120704,
@@ -8302,14 +5071,7 @@
           "reason": null,
           "verdict": "followed"
         },
-        {
-          "t": 122708,
-          "decidedAt": 122708,
-          "pressed": 100780,
-          "wanted": "jab",
-          "reason": null,
-          "verdict": "followed"
-        },
+        { "t": 122708, "decidedAt": 122708, "pressed": 100780, "wanted": "jab", "reason": null, "verdict": "followed" },
         {
           "t": 123716,
           "decidedAt": 123716,
@@ -8364,59 +5126,20 @@
       "unknown": 1,
       "offList": 1,
       "skippedBy": [
-        {
-          "key": "chi-wave",
-          "id": 115098,
-          "count": 14
-        },
-        {
-          "key": "combo-breaker-palm",
-          "id": 100787,
-          "count": 7
-        },
-        {
-          "key": "combo-breaker-kick",
-          "id": 100784,
-          "count": 7
-        },
-        {
-          "key": "blackout-kick",
-          "id": 100784,
-          "count": 4
-        },
-        {
-          "key": "fists-of-fury",
-          "id": 113656,
-          "count": 2
-        },
-        {
-          "key": "jab",
-          "id": 100780,
-          "count": 1
-        },
-        {
-          "key": "rising-sun-kick",
-          "id": 107428,
-          "count": 1
-        },
-        {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
-          "count": 1
-        }
+        { "key": "chi-wave", "id": 115098, "count": 14 },
+        { "key": "combo-breaker-palm", "id": 100787, "count": 7 },
+        { "key": "combo-breaker-kick", "id": 100784, "count": 7 },
+        { "key": "blackout-kick", "id": 100784, "count": 4 },
+        { "key": "fists-of-fury", "id": 113656, "count": 2 },
+        { "key": "jab", "id": 100780, "count": 1 },
+        { "key": "rising-sun-kick", "id": 107428, "count": 1 },
+        { "key": "tiger-palm-refresh", "id": 100787, "count": 1 }
       ],
       "characterUnread": false
     },
     "3": {
       "presses": [
-        {
-          "t": 907,
-          "decidedAt": 907,
-          "pressed": 100780,
-          "wanted": null,
-          "reason": null,
-          "verdict": "unknown"
-        },
+        { "t": 907, "decidedAt": 907, "pressed": 100780, "wanted": null, "reason": null, "verdict": "unknown" },
         {
           "t": 1949,
           "decidedAt": 1949,
@@ -8745,14 +5468,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 44393,
-          "decidedAt": 44393,
-          "pressed": 122470,
-          "wanted": null,
-          "reason": "karma",
-          "verdict": "off-list"
-        },
+        { "t": 44393, "decidedAt": 44393, "pressed": 122470, "wanted": null, "reason": "karma", "verdict": "off-list" },
         {
           "t": 45388,
           "decidedAt": 45388,
@@ -9025,14 +5741,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 82117,
-          "decidedAt": 82117,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 82117, "decidedAt": 82117, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 83338,
           "decidedAt": 83338,
@@ -9041,14 +5750,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 86085,
-          "decidedAt": 86085,
-          "pressed": 100787,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 86085, "decidedAt": 86085, "pressed": 100787, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 87093,
           "decidedAt": 87093,
@@ -9105,14 +5807,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 96111,
-          "decidedAt": 96111,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 96111, "decidedAt": 96111, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 97110,
           "decidedAt": 97110,
@@ -9145,14 +5840,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 101109,
-          "decidedAt": 101109,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 101109, "decidedAt": 101109, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 102769,
           "decidedAt": 102769,
@@ -9161,22 +5849,8 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 103783,
-          "decidedAt": 103783,
-          "pressed": 100787,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
-        {
-          "t": 105232,
-          "decidedAt": 105232,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 103783, "decidedAt": 103783, "pressed": 100787, "wanted": null, "reason": null, "verdict": "off-list" },
+        { "t": 105232, "decidedAt": 105232, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 106823,
           "decidedAt": 106823,
@@ -9209,14 +5883,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 111951,
-          "decidedAt": 111951,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 111951, "decidedAt": 111951, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 112960,
           "decidedAt": 112960,
@@ -9351,44 +6018,17 @@
       "unknown": 1,
       "offList": 8,
       "skippedBy": [
-        {
-          "key": "spinning-crane-kick",
-          "id": 101546,
-          "count": 86
-        },
-        {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
-          "count": 2
-        },
-        {
-          "key": "fists-of-fury",
-          "id": 113656,
-          "count": 1
-        },
-        {
-          "key": "combo-breaker-kick",
-          "id": 100784,
-          "count": 1
-        },
-        {
-          "key": "rising-sun-kick-filler",
-          "id": 107428,
-          "count": 1
-        }
+        { "key": "spinning-crane-kick", "id": 101546, "count": 86 },
+        { "key": "tiger-palm-refresh", "id": 100787, "count": 2 },
+        { "key": "fists-of-fury", "id": 113656, "count": 1 },
+        { "key": "combo-breaker-kick", "id": 100784, "count": 1 },
+        { "key": "rising-sun-kick-filler", "id": 107428, "count": 1 }
       ],
       "characterUnread": false
     },
     "4": {
       "presses": [
-        {
-          "t": 907,
-          "decidedAt": 907,
-          "pressed": 100780,
-          "wanted": null,
-          "reason": null,
-          "verdict": "unknown"
-        },
+        { "t": 907, "decidedAt": 907, "pressed": 100780, "wanted": null, "reason": null, "verdict": "unknown" },
         {
           "t": 1949,
           "decidedAt": 1949,
@@ -9717,14 +6357,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 44393,
-          "decidedAt": 44393,
-          "pressed": 122470,
-          "wanted": null,
-          "reason": "karma",
-          "verdict": "off-list"
-        },
+        { "t": 44393, "decidedAt": 44393, "pressed": 122470, "wanted": null, "reason": "karma", "verdict": "off-list" },
         {
           "t": 45388,
           "decidedAt": 45388,
@@ -9997,14 +6630,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 82117,
-          "decidedAt": 82117,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 82117, "decidedAt": 82117, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 83338,
           "decidedAt": 83338,
@@ -10013,14 +6639,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 86085,
-          "decidedAt": 86085,
-          "pressed": 100787,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 86085, "decidedAt": 86085, "pressed": 100787, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 87093,
           "decidedAt": 87093,
@@ -10077,14 +6696,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 96111,
-          "decidedAt": 96111,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 96111, "decidedAt": 96111, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 97110,
           "decidedAt": 97110,
@@ -10117,14 +6729,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 101109,
-          "decidedAt": 101109,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 101109, "decidedAt": 101109, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 102769,
           "decidedAt": 102769,
@@ -10133,22 +6738,8 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 103783,
-          "decidedAt": 103783,
-          "pressed": 100787,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
-        {
-          "t": 105232,
-          "decidedAt": 105232,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 103783, "decidedAt": 103783, "pressed": 100787, "wanted": null, "reason": null, "verdict": "off-list" },
+        { "t": 105232, "decidedAt": 105232, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 106823,
           "decidedAt": 106823,
@@ -10181,14 +6772,7 @@
           "reason": null,
           "verdict": "skipped"
         },
-        {
-          "t": 111951,
-          "decidedAt": 111951,
-          "pressed": 100784,
-          "wanted": null,
-          "reason": null,
-          "verdict": "off-list"
-        },
+        { "t": 111951, "decidedAt": 111951, "pressed": 100784, "wanted": null, "reason": null, "verdict": "off-list" },
         {
           "t": 112960,
           "decidedAt": 112960,
@@ -10323,31 +6907,11 @@
       "unknown": 1,
       "offList": 8,
       "skippedBy": [
-        {
-          "key": "spinning-crane-kick-heavy",
-          "id": 101546,
-          "count": 95
-        },
-        {
-          "key": "tiger-palm-refresh",
-          "id": 100787,
-          "count": 2
-        },
-        {
-          "key": "fists-of-fury",
-          "id": 113656,
-          "count": 1
-        },
-        {
-          "key": "combo-breaker-kick",
-          "id": 100784,
-          "count": 1
-        },
-        {
-          "key": "spinning-crane-kick",
-          "id": 101546,
-          "count": 1
-        }
+        { "key": "spinning-crane-kick-heavy", "id": 101546, "count": 95 },
+        { "key": "tiger-palm-refresh", "id": 100787, "count": 2 },
+        { "key": "fists-of-fury", "id": 113656, "count": 1 },
+        { "key": "combo-breaker-kick", "id": 100784, "count": 1 },
+        { "key": "spinning-crane-kick", "id": 101546, "count": 1 }
       ],
       "characterUnread": false
     }

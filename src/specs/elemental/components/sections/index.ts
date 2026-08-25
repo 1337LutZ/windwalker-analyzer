@@ -10,7 +10,6 @@ export { default as EarthShock } from './EarthShock';
 export { default as ElementalMastery } from './ElementalMastery';
 export { default as FireElemental } from './FireElemental';
 export { default as FlameShock } from './FlameShock';
-export { default as KpiTiles } from './KpiTiles';
 export { default as LavaBurst } from './LavaBurst';
 export { default as LightningShield } from './LightningShield';
 export { default as Mana } from './Mana';

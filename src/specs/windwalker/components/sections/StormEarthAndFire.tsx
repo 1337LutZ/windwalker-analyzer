@@ -118,7 +118,19 @@ export default function StormEarthAndFire({ analysis }: { analysis: Analysis }) 
 						<StatTiles>
 							<StatTile value={`${sef.casts}`} label={t('sef.kpi.casts')} />
 							<StatTile value={formatPercentValue(sef.uptimePct)} label={t('sef.kpi.uptime')} />
-							{hasDamage ? <StatTile value={formatCompact(sef.cloneDamage)} label={t('sef.kpi.damage')} /> : null}
+							{/* Against the player's whole damage rather than alone, because the number on its own
+							    invites the wrong reading: a spirit's damage is already *inside* that total —
+							    WarcraftLogs files a pet's under its owner — so a bare figure looks like something
+							    added on top. `value/suffix` is the ratio shape every other tile on the page uses,
+							    and the denominator is `cloneSharePct`'s own, so the tile and the sentence under the
+							    table divide the same two numbers. */}
+							{hasDamage ? (
+								<StatTile
+									value={formatCompact(sef.cloneDamage)}
+									suffix={`/${formatCompact(analysis.damage.eventTotal)}`}
+									label={t('sef.kpi.damage')}
+								/>
+							) : null}
 							{/* The one figure here a colour can defend, and it is still only a reading aid.
 							    `wasteTone`, like the chi and energy overcap tiles, and against the same kind of
 							    denominator: the share of the player's own measured contact time that was spent on

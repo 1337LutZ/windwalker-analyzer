@@ -69,7 +69,7 @@ export type FightPlayerDetailsQueryVariables = Exact<{
 }>;
 
 
-export type FightPlayerDetailsQuery = { rateLimitData: { limitPerHour: number, pointsSpentThisHour: number, pointsResetIn: number } | null, reportData: { report: { playerDetails: unknown } | null } | null };
+export type FightPlayerDetailsQuery = { rateLimitData: { limitPerHour: number, pointsSpentThisHour: number, pointsResetIn: number } | null, reportData: { report: { playerDetails: unknown, rankings: unknown } | null } | null };
 
 export type RaidStormlashQueryVariables = Exact<{
   code: string;

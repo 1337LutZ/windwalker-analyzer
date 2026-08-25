@@ -17,11 +17,12 @@ const fixture = (name: string): Analysis =>
  * on a pull that had none.
  */
 /**
- * A pull whose Karma never demonstrated its ceiling: no use drained, so no pool can be stated.
+ * A pull whose log reported no stamina, so no pool can be computed and none can be stated.
  *
- * The presses and what they returned are untouched — only the measurement of the cap is removed,
- * which is exactly the shape of a real pull where every use was cut short by the fight ending or by
- * nothing more arriving to absorb.
+ * The presses and what they returned are untouched — only the pool goes, which is the shape of a
+ * legacy Mists report: those carry no `combatantinfo` at all, so there is no stamina to convert.
+ * Built rather than borrowed, because every committed capture states a pool now and a fixture
+ * reaching this branch would be pinning how old the capture is rather than what the engine does.
  */
 const unmeasured = (name: string): Analysis => {
 	const captured = fixture(name);
@@ -30,7 +31,7 @@ const unmeasured = (name: string): Analysis => {
 		karma: {
 			...captured.karma,
 			capPerUse: null,
-			uses: captured.karma.uses.map((use) => ({ ...use, exhausted: false, capPct: null })),
+			uses: captured.karma.uses.map((use) => ({ ...use, cap: null, exhausted: false, capPct: null })),
 		},
 	};
 };
@@ -150,88 +151,76 @@ describe('Touch of Karma', () => {
 	});
 
 	/**
-	 * And the other share in this section, which was wrong in a different way: not thin, **forced**.
+	 * And the ceiling that replaced it, which owes the numerator nothing.
 	 *
-	 * `karmaCapShare` divides what the presses absorbed by what they could have absorbed, and the second
-	 * of those is `capPerUse × casts`, where `capPerUse` is the *largest absorb on the pull*. So the
-	 * denominator is built out of the numerator's own biggest term. No press can exceed it, at least one
-	 * press equals it, and the share is therefore bounded below by one over the presses taken — however
-	 * badly the pull went.
+	 * `use.cap` comes from the character's stamina — see `karmaCap` in `../index` — so a press that
+	 * redirected nothing reads nought, which is the exact value the old arithmetic could not produce at
+	 * any press count. That is the whole of the argument for dropping this metric's sample floor: the
+	 * floor existed because the bad end of the scale was unreachable, and it is reachable now.
 	 *
-	 * At one press that bound is the whole scale: the pool was measured off the only press there is, so
-	 * the share is that press over itself and reads a hundred with nothing the player could have done to
-	 * move it. At two, the worse half of the scale simply is not there.
+	 * Built rather than borrowed, on the same terms as `unmeasured` above: the committed captures predate
+	 * the field, so a fixture reaching this branch would be pinning how old the capture is.
 	 */
-	it('cannot read below one over the presses taken', () => {
-		for (const name of ['weave', 'strong', 'mixed', 'poor']) {
-			const karma = fixture(name).karma;
-			expect(karma.capPerUse, `${name} demonstrated no pool, so it witnesses nothing here`).not.toBeNull();
-			// The bound is arithmetic and not a tendency: the ceiling per press *is* one of the absorbs
-			// being summed over it, so the fraction cannot fall under one over the press count.
-			expect(karma.capPerUse).toBe(Math.max(...karma.uses.map((use) => use.absorbed ?? 0)));
-			const share = (karma.absorbed ?? 0) / ((karma.capPerUse ?? 1) * karma.casts);
-			expect(share, name).toBeGreaterThanOrEqual(1 / karma.casts);
-		}
+	it('reaches the bottom of the scale at one press', () => {
+		const POOL = 742_145;
+		const withPool = (name: string, absorbed: number[]): Analysis => {
+			const captured = fixture(name);
+			return {
+				...captured,
+				karma: {
+					...captured.karma,
+					casts: absorbed.length,
+					absorbed: absorbed.reduce((sum, a) => sum + a, 0),
+					capPerUse: POOL,
+					uses: absorbed.map((a, i) => ({
+						...(captured.karma.uses[0] as (typeof captured.karma.uses)[number]),
+						t: i * 90_000,
+						absorbed: a,
+						cap: POOL,
+						capPct: (a / POOL) * 100,
+					})),
+				},
+			};
+		};
+		const capShare = (analysis: Analysis) =>
+			scoreAnalysis(analysis).sections.karma?.metrics.find((m) => m.key === 'karmaCapShare');
 
-		// One press, and it drained its pool — which is the only way a pool is ever stated. Numerator and
-		// denominator are the same measurement, so the figure is a definition rather than a reading.
-		const weave = fixture('weave').karma;
-		expect(weave.casts).toBe(1);
-		expect(weave.absorbed).toBe(weave.capPerUse);
+		// One press that redirected nothing: nought, graded, at a sample the old floor refused outright.
+		const wasted = capShare(withPool('weave', [0]));
+		expect(wasted?.unmeasurable).toBe(false);
+		expect(wasted?.value).toBe(0);
+		expect(wasted?.grade).toBe('bad');
 
-		// Two presses, and as badly as two presses can go: the second absorbed nothing whatsoever. The
-		// arithmetic still reads exactly a half, which is this rule's `ok`.
-		const strong = fixture('strong').karma;
-		expect(strong.casts).toBe(2);
-		expect(strong.uses.filter((use) => use.absorbed === 0)).toHaveLength(1);
-		expect((strong.absorbed ?? 0) / ((strong.capPerUse ?? 1) * strong.casts)).toBe(0.5);
+		// And one press that drained its pool still reads a hundred — the top of the scale is where it was.
+		const drained = capShare(withPool('weave', [POOL]));
+		expect(drained?.value).toBe(100);
+		expect(drained?.grade).toBe('good');
+
+		// The steps are the ones this metric always had; only the ceiling under them moved.
+		expect(THRESHOLDS.karmaCapShare.good).toBe(75);
+		expect(THRESHOLDS.karmaCapShare.ok).toBe(40);
 	});
 
 	/**
-	 * Three presses, and it is this metric's own steps that say three rather than `MIN_GRADED_SAMPLE`.
+	 * And the share is stated on every committed pull now, which is the change re-capturing published.
 	 *
-	 * The lowest value the share can reach over n presses is 100/n, so the lowest step of the rule is out
-	 * of reach until 100/n drops under it. At two presses the bottom of the scale is 50 — an `ok` — so a
-	 * pull cannot be marked down here however it pressed. At three it is 33.3, which is under the line.
-	 * Three is the first press count at which every letter this rule can award is reachable at all.
-	 *
-	 * Asserted against the steps rather than stated, because the coincidence with `MIN_GRADED_SAMPLE` is
-	 * a coincidence: move `ok` to 30 and the derivation would want four presses, and this fails rather
-	 * than quietly keeping three.
+	 * All six used to go quiet here: the ceiling is summed from each use's own pool, and the captures
+	 * predated that field. They carry it, so the section's second metric speaks on every one of them —
+	 * including the two that never drained a pool and therefore had no ceiling at all under the old
+	 * measurement.
 	 */
-	it('takes its floor from its own steps and not from the sample rule', () => {
-		expect(THRESHOLDS.karmaCapShare.good).toBe(75);
-		expect(THRESHOLDS.karmaCapShare.ok).toBe(40);
-		expect(100 / (MIN_GRADED_SAMPLE - 1)).toBeGreaterThanOrEqual(THRESHOLDS.karmaCapShare.ok);
-		expect(100 / MIN_GRADED_SAMPLE).toBeLessThan(THRESHOLDS.karmaCapShare.ok);
-	});
-
-	/** The refusal itself, on all six committed pulls. */
-	it('refuses the ceiling share under three presses and grades it at three', () => {
+	it('states the share on every committed pull', () => {
 		const capShare = (name: string) =>
 			scoreAnalysis(fixture(name)).sections.karma?.metrics.find((m) => m.key === 'karmaCapShare');
 
-		// The two that were being handed a letter off a figure they could not have moved: `weave` read a
-		// hundred over its one press and took `good` for it, `strong` a forced half and `ok`.
-		expect(capShare('weave')?.grade, 'weave').toBe('ok');
-		expect(capShare('strong')?.grade, 'strong').toBe('ok');
-		expect(capShare('weave')?.value, 'weave').toBe(0);
-
-		// `cleave` and `waves` demonstrated no pool and were unmeasurable already.
-		for (const name of ['cleave', 'strong', 'waves', 'weave']) {
-			expect(capShare(name)?.unmeasurable, name).toBe(true);
-			// The press count travels with the value, which is what lets the floor apply at all.
-			expect(capShare(name)?.sampleSize, name).toBe(fixture(name).karma.casts);
-		}
-
-		// And the two with three presses keep the readings they had, to the digit.
-		for (const [name, value, grade] of [
-			['mixed', 64.377_645_591_937_55, 'ok'],
-			['poor', 95.805_283_130_563_8, 'good'],
-		] as const) {
+		for (const name of ['strong', 'mixed', 'poor', 'waves', 'weave', 'cleave']) {
+			expect(
+				fixture(name).karma.uses.every((use) => typeof use.cap === 'number'),
+				name,
+			).toBe(true);
 			expect(capShare(name)?.unmeasurable, name).toBe(false);
-			expect(capShare(name)?.value, name).toBeCloseTo(value, 8);
-			expect(capShare(name)?.grade, name).toBe(grade);
+			expect(capShare(name)?.value ?? -1, name).toBeGreaterThanOrEqual(0);
+			expect(capShare(name)?.value ?? 101, name).toBeLessThanOrEqual(100);
 		}
 	});
 

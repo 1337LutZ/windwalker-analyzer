@@ -39,7 +39,6 @@ import {
 	EnergizingBrew,
 	ChiBrew,
 	FistsOfFury,
-	KpiTiles,
 	PullTimeline,
 	RisingSunKick,
 	Rotation,
@@ -59,7 +58,6 @@ import {
 	ElementalMastery,
 	FireElemental,
 	FlameShock,
-	KpiTiles as ElementalKpiTiles,
 	LavaBurst,
 	LightningShield,
 	Mana as ElementalMana,
@@ -403,20 +401,20 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 
 // ---------------------------------------------------------------- the summary
 //
-// The summary block — the KPI tiles and the optional warning above them — is the spec's own, for the
-// same reason the sections are: a Windwalker's headline is brew stacks and Rising Sun Kick uptime, an
-// Elemental's is Flame Shock uptime and snapshot catches, and there is no generic tile between them.
+// The summary block is the spec's own, for the same reason the sections are — and it is down to one
+// entry. It carried a row of KPI tiles beside the warning, and every figure on that row was the
+// headline of a scorecard card immediately under it; the grid orders those by what a reader stands to
+// gain, which the tiles could not, so the row was the same numbers in a worse order.
+//
 // `Report` renders whichever the spec names here, keyed by the registry's own key.
 
-/** One spec's headline block: the KPI tiles and the optional warning above them. */
+/** One spec's headline block: the optional warning above the scorecard. */
 export interface SpecSummary {
-	kpi: ComponentType<{ analysis: Analysis }>;
 	warning?: ComponentType<{ analysis: Analysis }>;
 }
 
 export const SPEC_SUMMARY: Record<string, SpecSummary | undefined> = {
-	windwalker: { kpi: KpiTiles, warning: SummaryWarning },
-	elemental: { kpi: ElementalKpiTiles },
+	windwalker: { warning: SummaryWarning },
 };
 
 /**

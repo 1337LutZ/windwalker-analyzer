@@ -13,7 +13,13 @@ import { StatTile } from '../primitives';
  * differ by drifting. They were two copies, and the second had already lost the reasoning the first
  * carries below.
  *
- * A fragment and not its own row: the spec's own `KpiTiles` owns the `StatTiles` grid, because the
+ * **Nothing renders this today.** It was the shared half of each spec's `KpiTiles`, and the summary's
+ * tile row came out when the scorecard grid below it was already printing every one of those figures
+ * as a card headline. Kept rather than deleted because the arithmetic in it is argued at length and
+ * is cited from `analysis/analyseCore.ts` and two of its tests; a future home for DPS, casts per
+ * minute and global utilisation wants this file rather than a third derivation of them.
+ *
+ * A fragment and not its own row: a spec's KPI block owned the `StatTiles` grid, because the
  * tiles that follow these three are the spec's own and the row has to be one grid for `auto-fit` to
  * lay it out and for the 1px gaps to draw as hairlines between neighbours.
  */

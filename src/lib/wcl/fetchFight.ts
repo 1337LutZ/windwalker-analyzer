@@ -172,11 +172,15 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 	// nothing and costs the reader a round trip. Neither reports progress — the counter is the player's
 	// event stream, and a second pass restarting it at zero would read as the first one having lost its
 	// place.
-	const [enemyDeaths, raidStormlash] = await Promise.all([
+	const [enemyDeaths, raidStormlash, rankPercent] = await Promise.all([
 		// Every hostile death in the pull, for the spawn lifetimes `spawnLives` currently has to infer.
 		fetchAllEvents(client, code, fight, ENEMY_DEATHS, undefined),
 		// The raid's Stormlash placements ride alongside the player's own stream, for the Stormlash section.
 		client.fetchRaidStormlash(code, fightID, fight.startTime, fight.endTime),
+		// The parse WarcraftLogs prints beside the name, which the report header shows next to it. It
+		// rides on the roster query rather than one of its own, and a pull with no ranking — a wipe, an
+		// unranked difficulty, a log still being processed — answers null rather than failing the fetch.
+		client.fetchRankPercent(code, fightID, actor.name).catch(() => null),
 	]);
 	onProgress?.({
 		phase: 'done',
@@ -189,6 +193,7 @@ export async function fetchFightDataset(client: WclClient, options: FetchFightOp
 		fight,
 		difficultyNames: report.difficultyNames,
 		actor,
+		rankPercent,
 		events,
 		table: { fight, damageDone },
 		actors,

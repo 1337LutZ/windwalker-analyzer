@@ -61,6 +61,13 @@ import { analyse, registry } from '~/specs/elemental/lib';
  * identical in a report and have to be told apart in the source.
  */
 const NOT_LANES: Record<string, string> = {
+	// The raid's two maximum-health buffs, declared for one reader and one reader only: Touch of Karma
+	// absorbs a full health pool, so the pool a press was scored against is whatever these had done to
+	// it — see `karmaCap` in `../index`. Somebody else presses both, neither changes what the rotation
+	// wanted, and a lane for a health bar this report does not otherwise draw would be a row about
+	// somebody else's cooldown. The number they move is printed where it matters, beside the press.
+	'ancestral-vigor': "raises the health pool Touch of Karma's ceiling is read off; nothing rotational",
+	'rallying-cry': "raises the health pool Touch of Karma's ceiling is read off; nothing rotational",
 	// Drawn above the rows as its own counter, not among them — `timelineBanks`.
 	'lightning-shield': 'drawn as the charge bank',
 	// The player lived, moved or healed. None of it changes what the rotation wanted, and a row each

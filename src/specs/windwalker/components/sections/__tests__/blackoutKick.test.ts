@@ -51,13 +51,14 @@ describe('Blackout Kick section', () => {
 
 	/**
 	 * The starvation half, in the currency the rest of the report already loses casts in. `strong` gives
-	 * away 38.3 seconds of a button on an eight-second cooldown, which is four kicks — the single
-	 * biggest thing this pull does wrong, and invisible to every other section.
+	 * away 39.3 seconds of a button on an eight-second cooldown, which is four kicks — the single
+	 * biggest thing this pull does wrong, and invisible to every other section. It read 38.3s before the
+	 * 2026-08-25 re-capture; one second of charge moved and the four kicks did not.
 	 */
 	it('charges the kick it starved to the press that starved it', () => {
 		const html = render(fixture('strong'), 'single');
 		expect(html).toContain(t('blackoutKick.kpi.starved'));
-		expect(html).toContain('38.3s');
+		expect(html).toContain('39.3s');
 		expect(html).toContain(escaped(t('blackoutKick.starveKicks', { count: 4 })));
 		expect(html).toContain(t('blackoutKick.starveCaption'));
 	});
@@ -87,19 +88,19 @@ describe('Blackout Kick section', () => {
 		expect(single).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 109, followed: 56 })));
 		expect(multi).toContain(escaped(t('blackoutKick.ladder', { context: 'some', count: 73, followed: 7 })));
 		// The same seconds under both readings, and the note that promises it.
-		expect(single).toContain('38.3s');
-		expect(multi).toContain('38.3s');
+		expect(single).toContain('39.3s');
+		expect(multi).toContain('39.3s');
 		expect(single).toContain(escaped(t('blackoutKick.starveUnbanded')));
 	});
 
 	/** Every number here rests on a reconstructed bar, and each pull states its own score for it. */
 	it('states the accuracy of the bar it judged on', () => {
 		expect(render(fixture('strong'), 'single')).toContain(
-			escaped(t('blackoutKick.reconstructed', { accuracy: (154 / 177) * 100 })),
+			escaped(t('blackoutKick.reconstructed', { accuracy: (160 / 177) * 100 })),
 		);
 		// A different pull, a different score — never the ladder note's quoted range.
 		expect(render(fixture('cleave'), 'multi')).toContain(
-			escaped(t('blackoutKick.reconstructed', { accuracy: (40 / 59) * 100 })),
+			escaped(t('blackoutKick.reconstructed', { accuracy: (56 / 59) * 100 })),
 		);
 	});
 

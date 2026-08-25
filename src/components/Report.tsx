@@ -118,7 +118,10 @@ export default function Report({
 							<section aria-labelledby="summary-heading" className="flex flex-col gap-10 md:gap-12">
 								<ReportHeader analysis={analysis} />
 								{summary?.warning ? <summary.warning analysis={analysis} /> : null}
-								{summary ? <summary.kpi analysis={analysis} /> : null}
+								{/* The scorecard is the summary's figures. There was a row of headline tiles above it —
+					    DPS, casts per minute, brew stacks, debuff uptime — and every number on it is the
+					    headline of a card directly below, so the two said the same things twice with the
+					    grid's ordering doing the useful half of it. */}
 								<Scorecard analysis={analysis} />
 								{/* Last in the summary, and below the short list rather than above it: the tiles and the
 					    cards are the verdict on the pull, and this is the shape of the pull they were read

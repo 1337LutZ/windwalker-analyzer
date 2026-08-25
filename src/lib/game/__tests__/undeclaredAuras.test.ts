@@ -252,7 +252,6 @@ const LEDGER: Record<number, string> = {
 	// ---------------------------------------- other players' defensives and utility
 	31821: raidDefensive('Devotion Aura'),
 	76577: raidDefensive('Smoke Bomb'),
-	97463: raidDefensive('Rallying Cry'),
 	106898: raidDefensive('Stampeding Roar'),
 	115213: raidDefensive('Avert Harm'),
 	145629: raidDefensive('Anti-Magic Zone'),
@@ -277,7 +276,6 @@ const LEDGER: Record<number, string> = {
 	77489: healing("Echo of Light, the trickle a priest's mastery adds to a heal"),
 	81782: healing('Power Word: Barrier'),
 	86273: healing("Illuminated Healing, the absorb a paladin's mastery adds to a heal"),
-	105284: healing("Ancestral Vigor, the maximum-health buff a resto shaman's heals leave behind"),
 	114163: healing('Eternal Flame'),
 	114908: healing('Spirit Shell'),
 	119523: healing("Healing Stream Totem, another shaman's"),

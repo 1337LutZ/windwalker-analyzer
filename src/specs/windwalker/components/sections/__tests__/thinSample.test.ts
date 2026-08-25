@@ -474,13 +474,20 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 * `cleave` reads 14 of 14 and read 11 of 14 before the 2026-08-24 re-capture. That is not this metric
 	 * and not this section: `targets.aplCounts` took its Tiger Palm sample over `MIN_GRADED_SAMPLE`, so
 	 * the three points that rule carries came back into the denominator. The letter is `good` either way.
+	 *
+	 * `waves` reads `good` and read `ok` before the re-capture that came with the stamina-derived Karma
+	 * ceiling — and it is not Karma that moved it, which is the thing worth writing down. Both of that
+	 * section's metrics carry nought weight. What moved is `gcdUtilisation`, from 74.85 to 75.18 across
+	 * its own `ok` line of 75: the captures were old enough that the engine's global arithmetic had
+	 * drifted a third of a point under them. Karma's own share moved too — `ok` 0.00 to `bad` 27.25 —
+	 * and changed nothing above it, which is this test's claim stated by a pull rather than by a weight.
 	 */
 	const HEADLINES = {
 		cleave: 'good over 14 of 14',
 		mixed: 'ok over 15 of 15',
 		poor: 'bad over 15 of 15',
 		strong: 'good over 15 of 15',
-		waves: 'ok over 14 of 14',
+		waves: 'good over 14 of 14',
 		weave: 'good over 14 of 15',
 	};
 
@@ -556,28 +563,27 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	});
 
 	/**
-	 * The first reason the arm is reached by name: on some pulls the refusal takes the letter with it.
+	 * The first reason the arm is reached by name, and re-capturing turned it inside out.
 	 *
-	 * `cleave` and `waves` never demonstrated a health pool, so `karmaCapShare` is unmeasurable too and
-	 * the whole section is — `gradeOf` answers `none` and `verdict()` reaches the never-pressed sentence,
-	 * printed directly under a table with a row for every press. The same fold the two sections above
-	 * had, arrived at from the scorer's side.
+	 * It used to be that on `cleave` and `waves` the refusal took the *letter* with it: neither pull
+	 * demonstrated a health pool, so `karmaCapShare` was unmeasurable alongside `karmaEmpty`, the section
+	 * answered `none`, and `verdict()` reached the never-pressed sentence — printed directly under a
+	 * table with a row for every press.
 	 *
-	 * **This one is a falsehood the floor would have *introduced*, not one it inherits**, and saying so is
-	 * the point rather than a caveat: before the floor these two had a letter and printed a graded
-	 * sentence. Put the floor in without the arm and `cleave` reads "Touch of Karma was never pressed, and
-	 * the pull allowed 3 uses. One press redirected nothing at all" — two sentences contradicting each
-	 * other in one paragraph, over a table of two presses. Which is why the arm and the floor are one
-	 * change and not two.
+	 * Both pulls state a pool now, because the ceiling is computed from stamina rather than demonstrated
+	 * by a use that drained. So the section keeps a letter and `verdict()` would hand back a graded
+	 * sentence — which is the *same* falsehood from the other side, generalising two presses into a
+	 * habit. The arm is still correct and is still chosen off the empty-press metric rather than off the
+	 * letter, which is the whole reason it was written that way.
 	 */
-	it('does not tell a pull it never pressed the button it has a table of presses for', () => {
+	it('does not read a habit off two presses, whatever letter the section carries', () => {
 		for (const name of ['cleave', 'waves'] as const) {
 			const analysis = fixture(name);
-			expect(karmaOf(analysis)?.unmeasurable, `${name} keeps a letter, so this pull tests the wrong route`).toBe(true);
+			expect(analysis.karma.casts, name).toBeLessThan(MIN_GRADED_SAMPLE);
+			// The letter is back, and the sentence must not be chosen by it.
+			expect(karmaOf(analysis)?.unmeasurable, name).toBe(false);
 			const sentence = verdictOf(render(TouchOfKarma, analysis));
 			expect(sentence, name).not.toContain(NEVER_PRESSED);
-			// `waves` reached the plain sentence only after the floor took its letter away; before that it
-			// was handed a clean sheet off its single press, which the arm must not print either.
 			expect(sentence, name).not.toContain(CLEAN_SHEET);
 			expect(sentence, name).toContain(TOO_FEW_PRESSES);
 			noRawKey(sentence);
@@ -585,27 +591,24 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	});
 
 	/**
-	 * The second reason, and the one the section's letter could not catch at the time.
+	 * The second reason, and the one the section's letter never could catch.
 	 *
-	 * `weave` took a single press, and that press drained its pool — which is what states the pool, so
-	 * `karmaCapShare` read a hundred percent and handed the section a `good` all by itself. The section
-	 * was *not* unmeasurable, `gradeOf` never said `none`, and the arm chosen at that letter asserted
-	 * that every press ran while damage was coming in: the exact reading the scorer had just refused,
-	 * claimed off a sample of one. A letter this arm was chosen by would have left this one standing.
+	 * `weave` took a single press, and that press drained its pool. `karmaCapShare` reads a hundred
+	 * percent off it and hands the section a `good` all by itself, so the section is *not* unmeasurable
+	 * and an arm chosen at that letter would assert that every press ran while damage was coming in —
+	 * the exact generalisation the sample floor on the other metric had just refused, claimed off one
+	 * press.
 	 *
-	 * **The letter has since gone, and the arm did not have to move with it — which is the argument for
-	 * choosing it by name made twice.** `karmaCapShare` carries a press floor of its own now: its
-	 * ceiling is the largest absorb on the pull, so the share cannot read below one over the presses
-	 * taken and the whole bad end of its scale is out of reach under three of them. Both metrics here
-	 * are refused at one press, so the section is unmeasurable and the two no longer come apart on a
-	 * pull this thin. The sentence below is unchanged through that, because it never read the letter.
+	 * A hundred percent is a real reading here rather than a tautology, which is what changed: the
+	 * ceiling is the character's pool and owes nothing to what this press absorbed. It is still one
+	 * press, and one press is not a habit.
 	 */
 	it('does not claim a clean sheet off a single press', () => {
 		const analysis = fixture('weave');
 		expect(analysis.karma.casts).toBe(1);
 		const section = karmaOf(analysis);
-		expect(section?.grade, 'the letter this arm used to be chosen by, since withdrawn').toBe('ok');
-		expect(section?.unmeasurable, 'both metrics are refused at one press, so the section is too').toBe(true);
+		expect(section?.grade, 'the letter this arm must not be chosen by').toBe('good');
+		expect(section?.unmeasurable, 'the ceiling share speaks at one press, so the section does too').toBe(false);
 
 		const sentence = verdictOf(render(TouchOfKarma, analysis));
 		expect(sentence).not.toContain(CLEAN_SHEET);
@@ -630,20 +633,22 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 		// beside it, which takes its tone from a wide press-count band and never from a graded metric,
 		// stays exactly as it was.
 		expect(tileTone(drawn, 'Presses that landed')).toBe('line');
-		expect(tileTone(drawn, 'Uses taken'), 'an ungraded tone, so this one must not move').toBe('miss');
+		expect(tileTone(drawn, 'Uses'), 'an ungraded tone, so this one must not move').toBe('miss');
 	});
 
 	/**
 	 * The no-change guard: the two pulls with a sample worth reading keep their letters and sentences.
 	 *
 	 * Three presses is the floor exactly, and both of these clear it with nothing empty, so both grade
-	 * `good` on the share and print the clean-sheet sentence they printed before. A fix that reached past
-	 * the floor and silenced a real reading fails here.
+	 * `good` on the empty share and print the clean-sheet sentence. A fix that reached past the floor
+	 * and silenced a real reading fails here.
+	 *
+	 * Each pull's own opening rather than one shared clause, because the two reach different letters:
+	 * neither left a press on a quiet stretch, so both grade `good` on the empty share, and it is the
+	 * *other* metric that separates them — `poor` returned 94.3% of what its three presses could have
+	 * absorbed and `mixed` 56.1%.
 	 */
 	it('leaves the two pulls above the floor alone', () => {
-		// Each pull's own opening rather than one shared clause, because the two reach different letters:
-		// neither left a press on a quiet stretch, so both grade `good` on the share, and it is the *other*
-		// metric that separates them — `poor` returned 95.8% of its ceiling and `mixed` 64.4%.
 		for (const [name, opening] of [
 			['mixed', 'Only part of their potential came back'],
 			['poor', CLEAN_SHEET],

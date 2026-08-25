@@ -122,6 +122,16 @@ export interface FightTable {
 export interface FightDataset {
 	code: string;
 	fight: Fight;
+	/**
+	 * The parse percentile WarcraftLogs prints beside this player's name on this pull, 0-100.
+	 *
+	 * Null when the site has none, which is an ordinary answer and not a failure: a wipe, a difficulty
+	 * or partition nothing is ranked in, a log still being processed. Optional on top of that because
+	 * every committed dataset fixture predates the field — absent means "never fetched", null means
+	 * "asked, and there is no ranking". Never rendered as a nought, which would read as a
+	 * bottom-percentile pull.
+	 */
+	rankPercent?: number | null;
 	/** The zone's difficulty names by id, so the report can label the pull without a hardcoded table. */
 	difficultyNames?: Record<number, string>;
 	actor: Actor;
@@ -1470,11 +1480,19 @@ export interface KarmaAudit {
 	/** Share of the player's whole damage that came from the redirect. */
 	sharePct: number;
 	/**
-	 * The health pool, measured from a use that drained it — null when no use on the pull did.
+	 * The character's health pool with no buff on it — null when the log reported no stamina.
 	 *
-	 * This used to come from the settings, and asking was never necessary: an exhausted use absorbs
-	 * exactly one pool. The setting is gone, so a stored `maxHealth` from an older build is now an
-	 * unknown key that `normaliseSettings` drops.
+	 * Computed from `combatantinfo`'s stamina rather than measured off the pull, because a player's
+	 * health bar is a percentage on these reports and the pull only demonstrates a pool when a use
+	 * happens to drain one. See `karmaCap` in `~/specs/windwalker/lib` for the derivation and the
+	 * sixty-pull check behind it, and `maxHealthFrom` in `~/lib/analysis/gear` for the arithmetic.
+	 *
+	 * **Not the ceiling any single press was scored against** — that is `cap` on the use, which is
+	 * this times whatever raised maximum health while the press went out. A press under Fortifying
+	 * Brew had a fifth more pool than this number states.
+	 *
+	 * This used to come from the settings, and asking was never necessary. The setting is gone, so a
+	 * stored `maxHealth` from an older build is now an unknown key that `normaliseSettings` drops.
 	 */
 	capPerUse: number | null;
 	/** Uses that reached their ceiling. Absent on a fixture captured before it was measured. */
@@ -1499,6 +1517,14 @@ export interface KarmaAudit {
 		 * cannot be faulted, whatever the number beside it. Absent on a fixture, never `false`.
 		 */
 		exhausted?: boolean;
+		/**
+		 * The health pool *this* press had, buffs and all — null when the log reported no stamina.
+		 *
+		 * Floored at what the press absorbed, because a shield cannot pay out more than it held: a use
+		 * that beat the arithmetic has demonstrated a pool the arithmetic did not know about, and the
+		 * demonstration wins. Absent on a fixture captured before it existed.
+		 */
+		cap?: number | null;
 		/** Share of the per-use ceiling this one returned, or null when no ceiling is known. */
 		capPct: number | null;
 		/** Fortifying Brew was running for part of the redirect. Absent on a fixture, never null. */
@@ -1743,6 +1769,18 @@ export interface GearSummary {
 	 * predate the field entirely.
 	 */
 	masteryRating?: number | null;
+	/**
+	 * Stamina as `combatantinfo` reported it, or null when the log reported none.
+	 *
+	 * The one absolute health figure a Mists Classic log carries: the health *bar* is a percentage
+	 * there — `maxHitPoints` is 100 on every player-describing event — so this is the only route to a
+	 * health pool, and Touch of Karma absorbs exactly one pool. `maxHealthFrom` converts it; see
+	 * `karmaCap` in `~/specs/windwalker/lib`.
+	 *
+	 * Null on a legacy Mists report, which carries no `combatantinfo` at all. Optional on top of that
+	 * because the committed fixtures predate the field.
+	 */
+	stamina?: number | null;
 }
 
 /**
@@ -1860,6 +1898,17 @@ export interface AnalysisCore {
 	kill: boolean;
 	durationMs: number;
 	itemLevel: number | null;
+	/**
+	 * WarcraftLogs' parse percentile for this player on this pull, 0-100, or null when it has none.
+	 *
+	 * The number the site prints beside a name, shown in the report header for the same reason the
+	 * link beside it exists: it is the reader's bearing on how this pull sat against everyone else's,
+	 * which nothing this tool computes is a substitute for. Null on a wipe, an unranked difficulty, a
+	 * private log, or a report WarcraftLogs is still processing — all of which mean "no parse" and
+	 * none of which mean nought. Optional because an analysis captured before the field existed has
+	 * none.
+	 */
+	rankPercent?: number | null;
 	/** False when the player never cast the spec's signature ability; the UI must refuse to render. */
 	isSpec: boolean;
 	specName: string;

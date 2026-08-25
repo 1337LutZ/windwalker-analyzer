@@ -134,10 +134,14 @@ describe('the switches a pull offers', () => {
 	 * the bar did not.
 	 *
 	 * The bar drew a permanently-checked one-item radio group at `md` and up and a one-item popup below it,
-	 * on every pull whose only offer is the whole fight — which is every captured fixture in the tree.
+	 * on every pull whose only offer is the whole fight.
+	 *
+	 * Built by hand since the 2026-08-25 re-capture rather than taken off a fixture: every committed
+	 * capture carries a timeline now, so the pull with nothing to switch between is a *stored* analysis
+	 * from before the field existed, and that is what this strips back to.
 	 */
 	it('draws no control on the bar when the whole fight is the only reading', () => {
-		const pull = captured('cleave');
+		const pull = { ...captured('cleave'), segments: undefined };
 		expect(pull.segments).toBeUndefined();
 		expect(bar(pull)).not.toContain(t('targets.mode'));
 		expect(drawnShort(barHtml(pull))).toEqual([]);
@@ -152,7 +156,7 @@ describe('the switches a pull offers', () => {
 	 * job and does not depend on having anything to switch between.
 	 */
 	it('drops the switches, not the detection, when the whole fight is the only reading', () => {
-		const pull = captured('cleave');
+		const pull = { ...captured('cleave'), segments: undefined };
 		expect(pull.segments).toBeUndefined();
 		expect(blockHtml(pull)).not.toContain('radiogroup');
 		expect(block(pull)).toContain(t('targets.onlyWhole'));

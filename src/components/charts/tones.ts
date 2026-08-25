@@ -72,9 +72,22 @@ export type Tone = keyof typeof SWATCH;
  * washing it again would leave nothing to see. Which leaves the three judgements and `track`.
  */
 export const BAND = {
-	brew: { fill: 'fill-[var(--color-band-brew)]', swatch: 'bg-brew', text: 'text-brew' },
-	rune: { fill: 'fill-[var(--color-band-rune)]', swatch: 'bg-rune', text: 'text-rune' },
-	miss: { fill: 'fill-[var(--color-band-miss)]', swatch: 'bg-miss', text: 'text-miss' },
+	/**
+	 * **The chip is the band's own token, not the tone at full strength** — the same mistake this
+	 * module was written to fix, surviving one level down inside the fix.
+	 *
+	 * `fill` has been `--color-band-*` since the module existed: a third of the tone mixed into the
+	 * surface, because a wash behind a curve has to sit under it. `swatch` was still the undiluted
+	 * `bg-rune`, so the key beside Energizing Brew showed a bright violet chip over a band drawn in a
+	 * muted one, and a reader matching the two by eye could not tell which stretch the entry named.
+	 * The other two are the same shape and were reported once the violet made it obvious.
+	 *
+	 * They match exactly rather than approximately wherever the key sits on `--color-surface`, which
+	 * is what the mix is against and what `ChartFigure` draws its caption on.
+	 */
+	brew: { fill: 'fill-[var(--color-band-brew)]', swatch: 'bg-band-brew', text: 'text-brew' },
+	rune: { fill: 'fill-[var(--color-band-rune)]', swatch: 'bg-band-rune', text: 'text-rune' },
+	miss: { fill: 'fill-[var(--color-band-miss)]', swatch: 'bg-band-miss', text: 'text-miss' },
 	/**
 	 * The exempt ground, washed under a bar rather than given a row of its own — see `EXEMPT` below.
 	 *

@@ -325,9 +325,10 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 
 	return (
 		<div className="flex flex-col gap-3.5">
-			<h3 className="m-0 font-mono text-sm font-semibold tracking-[0.14em] uppercase text-muted">
-				{t('summary.scorecard.title')}
-			</h3>
+			{/* No heading. The grid used to sit under one reading "Scores", below a row of headline tiles
+			    that has since gone — and with the tiles gone the grid *is* the summary, so a label over it
+			    names the section a reader is already inside. The contents list still reaches it through the
+			    report title's own `summary-heading`, which is the anchor it always used. */}
 			<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
 				{ordered.map(([section, score]) => {
 					const anchor = anchors[section];

@@ -67,15 +67,26 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { describe, it } from 'vitest';
 
+import { analyse } from '~/specs/windwalker';
 import { WclClient, fetchFightDataset } from '~/lib/wcl';
 
 const token = process.env['WCL_TOKEN'] ?? '';
 const CODE = process.env['FIXTURE_CODE'] ?? 'a:6MhZgjyAknFWrYfK';
 const FIGHT = Number(process.env['FIXTURE_FIGHT'] ?? '57');
 const PLAYER = process.env['FIXTURE_PLAYER'] ?? '';
+/**
+ * Which half of the engine to write: its input, or its output.
+ *
+ * `dataset` is the default and the one anything new should take — a raw pull a guard can hand to
+ * today's `analyse()`. `FIXTURE_SHAPE=analysis` writes the *output* instead, which is the shape the
+ * first six fixtures were captured in and the only reason this branch exists: those six are pinned
+ * by dozens of assertions about published figures, and re-capturing them as datasets would be a
+ * different change entirely. Use it to refresh one of the six, never to add a seventh.
+ */
+const SHAPE = process.env['FIXTURE_SHAPE'] === 'analysis' ? 'analysis' : 'dataset';
 
 describe.skipIf(token === '')('capture', () => {
-	it('writes a raw dataset fixture', { timeout: 180_000 }, async () => {
+	it('writes a fixture', { timeout: 180_000 }, async () => {
 		const client = new WclClient({ token });
 
 		let player = PLAYER;
@@ -95,9 +106,11 @@ describe.skipIf(token === '')('capture', () => {
 
 		const out = resolve(import.meta.dirname, 'analysis.json');
 		mkdirSync(dirname(out), { recursive: true });
-		writeFileSync(out, JSON.stringify(dataset));
+		// Default settings on purpose, which is what the six captured analyses were taken under: a
+		// fixture carrying somebody's tuned leeway is a fixture nobody else can reason about.
+		writeFileSync(out, JSON.stringify(SHAPE === 'analysis' ? analyse(dataset) : dataset));
 		console.log(
-			`WROTE ${out} — ${dataset.actor.name} ${dataset.fight.name} kill=${dataset.fight.kill} ` +
+			`WROTE ${out} (${SHAPE}) — ${dataset.actor.name} ${dataset.fight.name} kill=${dataset.fight.kill} ` +
 				`events=${dataset.events.length} enemyDeaths=${dataset.enemyDeaths.length}`,
 		);
 	});
