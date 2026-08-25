@@ -104,13 +104,33 @@ function buildRows(
 	counters: readonly TimelineCounter[],
 	rowOrder: readonly string[],
 	summaryKeys: readonly string[] | null,
+	hiddenRows: readonly string[],
 ): Row[] {
 	const lanes = analysis.timeline?.lanes ?? [];
 	const casts = analysis.timeline?.casts ?? [];
 	const byName = new Map<string, Row>();
 
+	/**
+	 * The spec's own denylist, applied to lanes and presses alike — which is why it is written in row
+	 * names rather than in the two identifiers underneath them.
+	 *
+	 * A row here is a lane, a press stream, or both merged under one name, and the two halves are keyed
+	 * differently: an `AuraLane` carries an ability key and a `CastMark` carries a name and an id. So a
+	 * spec that wants Grand Crusader off this chart — a proc lane *and* a press row on a Paladin's pull —
+	 * would need two entries in two vocabularies to say one thing. It says it once, in the currency the
+	 * rows are grouped and ordered in.
+	 *
+	 * **`summaryKeys` is the other cut and they are not alternatives.** That one keeps a named handful of
+	 * lanes and drops every press; this one keeps everything and drops named rows. A spec whose summary is
+	 * five auras takes the first, a spec whose summary is nearly the whole pull takes the second, and a
+	 * spec may take both — the allowlist runs first below, so a key that survives it can still be hidden
+	 * by name.
+	 */
+	const hidden = (name: string): boolean => hiddenRows.includes(name);
+
 	for (const lane of lanes) {
 		if (summaryKeys !== null && !summaryKeys.includes(lane.key)) continue;
+		if (hidden(lane.name)) continue;
 		const tone = GROUP_TONE[lane.group];
 		const row = byName.get(lane.name) ?? { name: lane.name, id: lane.id, tone, windows: [], presses: [] };
 		row.windows.push(...lane.windows.map((w): [number, number] => [w.start, w.end]));
@@ -118,6 +138,7 @@ function buildRows(
 	}
 	if (summaryKeys === null) {
 		for (const mark of casts) {
+			if (hidden(mark.name)) continue;
 			const row = byName.get(mark.name) ?? { name: mark.name, id: mark.id, tone: CAST_TONE, windows: [], presses: [] };
 			row.presses.push(mark.t);
 			byName.set(mark.name, row);
@@ -249,13 +270,14 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 	const spec = useSpec();
 	const rowOrder = spec.timelineRowOrder;
 	const summaryKeys = spec.summaryLaneKeys;
+	const hiddenRows = spec.summaryHiddenRows;
 	// Memoised on its own, not read inline: a spec that has a counter builds a fresh array per call, and
 	// a fresh array here would give `rows` — and so `build`, and so the ApexCharts instance — a new
 	// identity on every render, tearing the chart down and redrawing it each time.
 	const counters = useMemo(() => spec.timelineCounters(analysis), [spec, analysis]);
 	const rows = useMemo(
-		() => buildRows(analysis, counters, rowOrder, summaryKeys),
-		[analysis, counters, rowOrder, summaryKeys],
+		() => buildRows(analysis, counters, rowOrder, summaryKeys, hiddenRows),
+		[analysis, counters, rowOrder, summaryKeys, hiddenRows],
 	);
 	const height = rows.length * ROW_HEIGHT + CHROME;
 

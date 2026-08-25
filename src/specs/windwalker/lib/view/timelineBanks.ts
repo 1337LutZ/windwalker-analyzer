@@ -164,3 +164,13 @@ export const TIMELINE_ROW_ORDER: readonly string[] = [
  * the old `SUMMARY_LANE_KEYS` table gave by having no entry for it.
  */
 export const SUMMARY_LANE_KEYS: readonly string[] | null = null;
+
+/**
+ * Nothing hidden: this spec's summary timeline draws every row it is handed.
+ *
+ * The Protection Paladin is the spec this seam was written for and its own list carries the argument.
+ * Empty here is a decision rather than a default — a monk's melee row is as uninformative as a
+ * paladin's, and the case for taking it off has not been made against this chart the way it was made
+ * against that one. See `specs/protection/lib/view/timelineBanks.ts`.
+ */
+export const SUMMARY_HIDDEN_ROWS: readonly string[] = [];

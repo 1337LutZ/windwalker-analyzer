@@ -10,7 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Actor, FightDataset, WclEvent } from '~/lib/types';
 
-import { IGNORED_MULTI_TARGET_ACTORS, TARGET_WINDOW_MS, analyse } from '../index';
+import { IGNORED_MULTI_TARGET_ACTORS } from '~/lib/game/multiTargetActors';
+import { TARGET_WINDOW_MS, analyse } from '../index';
 
 const T0 = 100_000;
 const DURATION = 120_000;

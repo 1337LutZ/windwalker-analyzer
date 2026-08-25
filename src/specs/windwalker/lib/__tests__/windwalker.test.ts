@@ -2,14 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { WclEvent } from '~/lib/events';
 import { defaultSettings } from '~/lib/settings';
 import type { FightDataset } from '~/lib/types';
-import {
-	abilityCooldownMs,
-	analyse,
-	energizingBrewPressable,
-	ignoredMultiTargetActorIDs,
-	registry,
-	WW_SETTINGS,
-} from '../index';
+import { ignoredMultiTargetActorIDs } from '~/lib/game/multiTargetActors';
+import { abilityCooldownMs, analyse, energizingBrewPressable, registry, WW_SETTINGS } from '../index';
 
 const tigerPalm = WW_SETTINGS.find((s) => s.key === 'tigerPalmRefreshMs')!;
 const cooldown = WW_SETTINGS.find((s) => s.key === 'cooldownLeewayMs')!;

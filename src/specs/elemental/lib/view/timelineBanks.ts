@@ -217,3 +217,12 @@ export const SUMMARY_LANE_KEYS: readonly string[] | null = [
 	'searing-totem',
 	't16-2pc-debuff',
 ];
+
+/**
+ * Nothing hidden, and nothing for it to hide.
+ *
+ * `SUMMARY_LANE_KEYS` above already names the five rows this chart draws, so a denylist beside it would
+ * have nothing to subtract — an allowlist is the stronger cut and this spec has taken it. The seam is
+ * declared rather than omitted because `SpecDefinition` asks every spec the same question.
+ */
+export const SUMMARY_HIDDEN_ROWS: readonly string[] = [];

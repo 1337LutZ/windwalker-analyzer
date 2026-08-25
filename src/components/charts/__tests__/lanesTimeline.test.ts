@@ -18,6 +18,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { rawFixtures } from '~/lib/analysis/fixtures';
 import { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
 import type { Analysis } from '~/lib/types';
@@ -277,5 +278,82 @@ describe('the counter marks what was wasted', () => {
 	it('claims no faults for an analysis captured before those fields existed', () => {
 		// A stored `Analysis` predates whichever field came after it, and this spec is handed those.
 		expect(ELEMENTAL.timelineCounters(shieldWith({}))[0]!.faultWindows).toEqual([]);
+	});
+});
+
+/**
+ * The rows a Protection pull actually draws, and the five this spec takes off.
+ *
+ * **Written against the committed captures rather than a hand-built analysis, deliberately.** Everything
+ * above this block is synthetic, because what it asks — *which spec is consulted about the counter* —
+ * needs one analysis that both specs can be handed. This asks the opposite kind of question: whether a
+ * denylist written in row names removes the rows a reader complained about on a real pull, and a hand-made
+ * pull would be a list of the names the list already contains.
+ *
+ * `SUMMARY_HIDDEN_ROWS` in `specs/protection/lib/view/timelineBanks.ts` carries the argument for each of
+ * the five. What is pinned here is the arithmetic under it: **22, 23, 24, 24 and 23 rows become 18, 18,
+ * 19, 19 and 18**, and the pull that only drops four is `fallenProtectors`, whose player never taunted.
+ */
+describe('the Protection summary timeline draws every press but the five this spec hides', () => {
+	const PROTECTION = getSpec('protection')!;
+	const PULLS = rawFixtures('protection').map(({ name, dataset }): [string, Analysis] => [
+		name,
+		PROTECTION.analyse(dataset),
+	]);
+
+	/** The same spec with the denylist emptied — the chart as it drew before the five came off. */
+	const SHOWING_EVERYTHING = { ...PROTECTION, summaryHiddenRows: [] as readonly string[] };
+
+	it('sweeps the five committed pulls, found rather than listed', () => {
+		expect(PULLS.map(([name]) => name)).toEqual([
+			'fallenProtectors.json',
+			'galakras.json',
+			'garrosh.json',
+			'paragons.json',
+			'spoils.json',
+		]);
+	});
+
+	it('takes four or five rows off each pull and leaves the rest standing', () => {
+		const before = PULLS.map(([, analysis]) => rowsIn(renderUnder(SHOWING_EVERYTHING, analysis)));
+		const after = PULLS.map(([, analysis]) => rowsIn(renderUnder(PROTECTION, analysis)));
+		expect(before).toEqual([22, 23, 24, 24, 23]);
+		expect(after).toEqual([18, 18, 19, 19, 18]);
+		// Four on the first pull and five on the other four: `Hand of Reckoning` is never pressed on
+		// `fallenProtectors`, so there is no row of it there to take off.
+		expect(before.map((rows, at) => rows - after[at]!)).toEqual([4, 5, 5, 5, 5]);
+	});
+
+	/**
+	 * The list is a denylist and not the allowlist beside it, which is the whole reason it exists.
+	 *
+	 * `summaryLaneKeys` stays `null` here, and switching it on instead would drop **every** press row —
+	 * the condition in `buildRows` is on the whole cast loop — leaving a Paladin's chart with the six
+	 * aura rows and none of Judgment, Crusader Strike, Avenger's Shield or Consecration. Executed rather
+	 * than asserted in prose: the same pulls under a spec that names its lanes draw a handful of rows.
+	 */
+	it('would lose every press row if the same cut were made with the allowlist', () => {
+		expect(PROTECTION.summaryLaneKeys).toBeNull();
+		const asAllowlist = { ...PROTECTION, summaryLaneKeys: ['avenging-wrath', 'holy-avenger'] as readonly string[] };
+		expect(PULLS.map(([, analysis]) => rowsIn(renderUnder(asAllowlist, analysis)))).toEqual([2, 2, 2, 2, 2]);
+	});
+
+	/**
+	 * And the cast log is not touched, which is the constraint the user set on this change.
+	 *
+	 * The per-enemy Weakened Blows lanes are the multi-target work; they come off *this* chart, where they
+	 * merge into one nameless-enemy row, and stay on the cast log, where the chart groups them per enemy
+	 * behind its own picker. The audit is what both charts read, so the test that they still exist is a
+	 * test of the audit rather than of either chart.
+	 */
+	it('leaves the per-enemy debuff lanes on the analysis for the cast log to draw', () => {
+		for (const [name, analysis] of PULLS) {
+			const drawn = (analysis.timeline?.lanes ?? []).filter((lane) => lane.key === 'weakened-blows');
+			expect(drawn.length, name).toBeGreaterThan(0);
+			expect(
+				drawn.every((lane) => lane.target !== undefined),
+				name,
+			).toBe(true);
+		}
 	});
 });

@@ -15,6 +15,7 @@ import { abilityIdOf, instanceKey, isAbsorbed, isCast, isResourceChange, resourc
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
+import { ignoredMultiTargetActorIDs } from '~/lib/game/multiTargetActors';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
@@ -413,42 +414,6 @@ export const SINGLE_TARGET_SHARE_PCT = 66;
  * ago has stopped counting, which is what rules out anything on the scale of Tiger Power's 20s.
  */
 export const TARGET_WINDOW_MS = 5000;
-
-/** NPCs that should not count as useful multi-target damage for this spec in a specific encounter. */
-export const IGNORED_MULTI_TARGET_ACTORS = [
-	{
-		encounterID: 51601,
-		gameID: 71591,
-		name: 'Automated Shredder',
-		reason: '90% damage reduction for non-tanks',
-	},
-] as const;
-
-/**
- * The list above resolved to this report's actor ids.
- *
- * One function rather than one filter per reader, because the report has more than one number about
- * "how many enemies was this" and they have to agree. The per-moment target count applied the list;
- * Rushing Jade Wind's fan-out — a *different* count, over the same damage events — did not, so on a
- * pull full of Automated Shredders the report could call the wind a four-target button in one section
- * while the section beside it said the pull was single-target. Both readers take this set now.
- *
- * `gameID` is the NPC's own id in the game's data and is stable across reports; `id` is the report's
- * local actor number and is not, which is why the list is written in the first and matched into the
- * second here.
- */
-export function ignoredMultiTargetActorIDs(
-	encounterID: number | undefined,
-	enemyNPCs: readonly { id: number; gameID?: number | null }[] | undefined,
-): Set<number> {
-	return new Set(
-		(enemyNPCs ?? [])
-			.filter((npc) =>
-				IGNORED_MULTI_TARGET_ACTORS.some((rule) => rule.encounterID === encounterID && rule.gameID === npc.gameID),
-			)
-			.map((npc) => npc.id),
-	);
-}
 
 /**
  * How much of the time a player was hitting *anything* has to be spent hitting more than one thing

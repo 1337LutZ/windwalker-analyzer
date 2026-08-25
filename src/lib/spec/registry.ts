@@ -24,6 +24,7 @@ import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/ti
 import { analyse, registry as windwalkerRegistry, WINDWALKER, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis, wasteTone, weightsFor } from '~/specs/windwalker/lib/score';
 import {
+	SUMMARY_HIDDEN_ROWS as summaryHiddenRows,
 	SUMMARY_LANE_KEYS as summaryLaneKeys,
 	timelineBanks,
 	timelineCounters,
@@ -45,6 +46,7 @@ import {
 } from '~/specs/elemental/lib/score';
 import {
 	timelineBanks as timelineBanksElemental,
+	SUMMARY_HIDDEN_ROWS as summaryHiddenRowsElemental,
 	SUMMARY_LANE_KEYS as summaryLaneKeysElemental,
 	timelineCounters as timelineCountersElemental,
 	TIMELINE_ROW_ORDER as timelineRowOrderElemental,
@@ -65,6 +67,7 @@ import {
 } from '~/specs/protection/lib/score';
 import {
 	timelineBanks as timelineBanksProtection,
+	SUMMARY_HIDDEN_ROWS as summaryHiddenRowsProtection,
 	SUMMARY_LANE_KEYS as summaryLaneKeysProtection,
 	timelineCounters as timelineCountersProtection,
 	TIMELINE_ROW_ORDER as timelineRowOrderProtection,
@@ -213,6 +216,19 @@ export interface SpecDefinition {
 	 */
 	summaryLaneKeys: readonly string[] | null;
 	/**
+	 * Rows the summary timeline leaves out, by the name it draws them under.
+	 *
+	 * The counterpart of `summaryLaneKeys` and deliberately not a second spelling of it: that one is an
+	 * allowlist over **lane keys** and switching it on also drops every press row, which is the right cut
+	 * for a spec whose "at a glance" is a handful of auras. This is a denylist over **row names**, which
+	 * is what a spec needs when the chart is nearly right and four or five particular rows are noise —
+	 * an auto-attack, a taunt, a glove enchant. Names rather than keys because a row can be a press
+	 * stream, and a `CastMark` carries no ability key.
+	 *
+	 * Empty for a spec that hides nothing, which is both of the first two.
+	 */
+	summaryHiddenRows: readonly string[];
+	/**
 	 * The raid-buff effects this spec's damage rests on, in the order its report draws them.
 	 *
 	 * The fourth of the view properties above and the same reason as the other three: the section is
@@ -254,6 +270,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters,
 		timelineRowOrder,
 		summaryLaneKeys,
+		summaryHiddenRows,
 		raidBuffEffects,
 		settings: WW_SETTINGS,
 	},
@@ -279,6 +296,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters: timelineCountersElemental,
 		timelineRowOrder: timelineRowOrderElemental,
 		summaryLaneKeys: summaryLaneKeysElemental,
+		summaryHiddenRows: summaryHiddenRowsElemental,
 		raidBuffEffects: raidBuffEffectsElemental,
 		settings: ELEMENTAL_SETTINGS,
 	},
@@ -305,6 +323,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters: timelineCountersProtection,
 		timelineRowOrder: timelineRowOrderProtection,
 		summaryLaneKeys: summaryLaneKeysProtection,
+		summaryHiddenRows: summaryHiddenRowsProtection,
 		raidBuffEffects: raidBuffEffectsProtection,
 		settings: PROTECTION_SETTINGS,
 	},

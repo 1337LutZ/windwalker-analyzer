@@ -67,7 +67,14 @@ import {
 	Stormlash,
 } from '~/specs/elemental/components/sections';
 import { PROTECTION_SPEC } from '~/specs/protection';
-import { Externals, FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
+import {
+	Externals,
+	FightRules,
+	Globals,
+	Haste,
+	PullTimeline as ProtectionPullTimeline,
+	Vengeance,
+} from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -408,6 +415,14 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// is an argument about some slice of this chart, and none of them can be checked without it.
 		// Both other specs open the same way for the same reason.
 		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// The same pull at a coarser grain: the auras without the presses, read against each other. Where
+		// the Elemental puts its own, and second for the same reason — the chart above answers "what did I
+		// press", this one answers "what was up", and the second question is the one every heading below
+		// is really about.
+		//
+		// It could not be registered until the audit had lanes to draw. With `lanes: []` this section drew
+		// the press rows and nothing else, which is the cast log above it with the detail taken out.
+		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: ProtectionPullTimeline },
 		// What the encounter took away, before the count it explains. These two are one question read
 		// from both ends and the excuses come first: `missedFree` is the globals figure with these
 		// windows already off it, so a reader who meets the number without them has to be talked back

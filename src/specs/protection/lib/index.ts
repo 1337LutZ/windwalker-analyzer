@@ -21,17 +21,19 @@
 import { enforcedDowntime, type EnforcedDowntime } from '~/lib/analysis/enforced';
 import { buildHasteCurve, checkHaste, SEAL_OF_INSIGHT_HASTE, type HasteCurve } from '~/lib/analysis/haste';
 import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analyseCore';
-import { auraWindows, raidScoped } from '~/lib/analysis/auras';
+import { damageByTarget } from '~/lib/analysis/damage';
+import { ignoredMultiTargetActorIDs } from '~/lib/game/multiTargetActors';
 import { readExternals } from '~/lib/analysis/externals';
 import { readGear } from '~/lib/analysis/gear';
 import { readVengeance, vengeanceBar } from '~/lib/analysis/vengeance';
-import { eventsOn } from '~/lib/events';
-import { unionMs, type Interval } from '~/lib/analysis/intervals';
+import { auraWindows, raidScoped, toIntervals } from '~/lib/analysis/auras';
+import { abilityIdOf, eventsOn, instanceKey, isAuraEvent, type WclEvent } from '~/lib/events';
+import { mergeIntervals, unionMs, type Interval } from '~/lib/analysis/intervals';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { SECONDARY_RESOURCE_TYPE } from '~/lib/game/resources';
-import type { Ability } from '~/lib/game/model';
-import type { Analysis, FightDataset, ProtectionAudit } from '~/lib/types';
+import type { Ability, Aura } from '~/lib/game/model';
+import type { Analysis, AuraLane, FightDataset, ProtectionAudit, Window } from '~/lib/types';
 
 import { GCD_MS, registry } from './data';
 
@@ -269,9 +271,193 @@ function globalsOf(h: Handles, enforced: EnforcedDowntime): ProtectionAudit['glo
 	};
 }
 
+/**
+ * How many enemies get a Weakened Blows row before the rest are folded away.
+ *
+ * Six, matching the Windwalker's `RSK_TARGET_LANES` and the Elemental's `FS_TARGET_LANES`, and for the
+ * reason their docblocks give: it is a property of how tall a chart reads rather than of how a pull is
+ * measured, so it is a constant here and not a setting. **Nothing graded reads it** — it decides which
+ * rows are drawn and which are behind the chart's own picker, and the enemies past it are kept rather
+ * than dropped.
+ *
+ * Protection reaches it more often than either of the other two. The five committed captures put the
+ * debuff on 21, 10, 7, 7 and 5 separate enemies, so four of the five overflow six and the picker is
+ * reachable on real data rather than only in principle — `spoils.json` alone folds fifteen away.
+ */
+const WEAKENED_BLOWS_LANES = 6;
+
 /** The Protection half of the analysis, from the handles and nothing else. */
 function protectionAudit(h: Handles): ProtectionAudit {
 	const curve = curveFor(h);
+	const own = eventsOn(h.events, h.actor.id);
+
+	/**
+	 * The rows the timeline draws above the presses.
+	 *
+	 * Nine declared and six drawn: Divine Purpose, Bastion of Power and Shield of Glory open no window on
+	 * any of the five committed captures, so they fall out on `windows.length > 0` rather than being
+	 * listed conditionally. An empty row costs a line of chart to say a talent was not taken.
+	 *
+	 * **This spec has no `drawnAuras.test.ts`, and that gap is now reachable rather than moot.** Both
+	 * other specs run one — "every aura the log put on the player has somewhere to be drawn, or a stated
+	 * reason not to" — and it could say nothing here while the audit published `lanes: []`, because the
+	 * honest answer for every aura was the same one. With rows to compare against, the sweep would have
+	 * something to find; it needs a ledger of deliberate absences to go with it, which is the next lane's
+	 * work rather than this one's.
+	 *
+	 * Split by what a reader is asking of each. A `buff` is something the player turned on and can be
+	 * held responsible for; a `proc` is something that happened to them and is read for whether they
+	 * spent it. Grand Crusader is the clearest case of the second — it resets Avenger's Shield, so its
+	 * row is only interesting beside the press row under it, which is also why the summary timeline
+	 * leaves it out and the cast log keeps it (`view/timelineBanks.ts`, `SUMMARY_HIDDEN_ROWS`).
+	 */
+	const lane = (aura: Aura, group: 'buff' | 'proc' | 'debuff', windows: readonly Window[]): AuraLane => ({
+		key: aura.key,
+		name: aura.name,
+		id: aura.ids[0] ?? 0,
+		group,
+		/**
+		 * A copy that keeps the window's **provenance** on the way to the chart.
+		 *
+		 * `{ start, end }` alone is what the Elemental's own lane builder records having shipped first:
+		 * `preexisting` and `truncated` are what tell a bar the log proved both ends of from one that was
+		 * inferred, the chart reads them, and rebuilding each window from two of its fields throws both
+		 * away with no type able to catch it — a narrower object still satisfies an optional field.
+		 * Spread only when true, so a lane carrying neither serialises exactly as it did before.
+		 */
+		windows: windows.map((w) => ({
+			start: w.start,
+			end: w.end,
+			...(w.preexisting === true ? { preexisting: true } : {}),
+			...(w.truncated === true ? { truncated: true } : {}),
+		})),
+	});
+
+	/** The same row built from the player's own aura stream, which is where every buff and proc below lives. */
+	const selfLane = (aura: Aura, group: 'buff' | 'proc'): AuraLane =>
+		lane(aura, group, auraWindows(own, aura, h.t0, h.fight.endTime));
+
+	const buffLanes = [
+		selfLane(registry.aura('avenging-wrath'), 'buff'),
+		selfLane(registry.aura('holy-avenger'), 'buff'),
+		selfLane(registry.aura('sacred-shield'), 'buff'),
+		selfLane(registry.aura('shield-of-the-righteous'), 'buff'),
+		selfLane(registry.aura('bastion-of-glory'), 'buff'),
+		selfLane(registry.aura('grand-crusader'), 'proc'),
+		selfLane(registry.aura('divine-purpose'), 'proc'),
+		selfLane(registry.aura('bastion-of-power'), 'proc'),
+		selfLane(registry.aura('shield-of-glory'), 'proc'),
+	].filter((row) => row.windows.length > 0);
+
+	/**
+	 * Weakened Blows, one row per enemy that carried it — and the reason this spec has a target lane at
+	 * all.
+	 *
+	 * The debuff is the Paladin's own, applied by the builders, so its rows are a picture of how many
+	 * bodies the player was actually working through. Ordered by the damage that enemy took from this
+	 * player, the same currency `primaryID` is chosen in, so the row order agrees with the report's own
+	 * answer to "which enemy was this pull about" rather than offering a second one. Time carrying the
+	 * debuff was the alternative and it ranks a tagged-and-abandoned add above the one the player killed.
+	 *
+	 * Past the cap the enemies are kept rather than dropped: `hiddenLanes` is what the chart's own
+	 * picker offers, and a reader who wants the seventh add can only be given it if it survived here.
+	 *
+	 * ## Three filters, two of which move a number on the committed captures
+	 *
+	 *   - **Bucketed per `(targetID, targetInstance)` and merged per enemy afterwards.** WarcraftLogs
+	 *     hands one actor id to an NPC *type*, so a pass keyed on `targetID` alone gives `auraWindows`
+	 *     several spawns' applies and removes interleaved into one stream, where each remove closes
+	 *     whichever window happens to be open and every apply arriving while one is open is dropped.
+	 *     The Windwalker's Rising Sun Kick walk records 17.4 seconds of coverage lost to exactly this
+	 *     and `dotWindowsBySpawn` in the Elemental argues it at length. **It is not hypothetical here:**
+	 *     the debuff's events name 21, 10, 8, 7 and 7 enemy ids across the five captures but 72, 10,
+	 *     10, 1 and 1 spawn keys, and 217 of `spoils.json`'s 286 debuff events carry an instance
+	 *     number. Keyed on the id alone that pull draws **496.0s** of debuff where the spawns say
+	 *     536.4s, and `garrosh.json` 162.7s against 166.6s.
+	 *   - **A friendly is not an enemy, however it got hit.** `analyseCore` drops a hit on a target the
+	 *     log positively declares a `Player` or a `Pet` from every count it publishes, and a drawn row
+	 *     the enemy count refuses to see would be a second answer to "how many things were there".
+	 *     `garrosh.json` is the pull that makes it real: three of its eight debuffed bodies are actors
+	 *     16, 20 and 46 — raiders the boss had taken, which the Paladin then had to hit — and the
+	 *     block goes from eight rows to five with them out.
+	 *   - **`e.sourceID === h.actor.id`.** Weakened Blows is a shared debuff — a warrior's Thunder Clap
+	 *     and a monk's Keg Smash write the same 115798 — so a row labelled "this Paladin's" has to say
+	 *     so rather than inherit it from how the events were fetched. Measured, it removes nothing: all
+	 *     840 of the debuff's events across the five captures are already sourced to actor 29, because
+	 *     the fetch is scoped to this player. That is a fact about these captures and not about the
+	 *     mechanic, which is the whole reason the filter is written down.
+	 *
+	 * **`openOnRefresh` is deliberately not passed**, which is where this parts company with the
+	 * Windwalker's walk. There it recovers 42.3 seconds, because a refresh arriving with nothing open is
+	 * proof the debuff was up and the application that started it never reached the stream. Here the
+	 * source filter above already means every application this walk can see is one it also saw start:
+	 * the five captures carry 22, 10, 9, 7 and 4 refreshes and **not one of them is an orphan**, so the
+	 * option is worth exactly 0.0s on every committed pull. Turning it on would be a switch nothing in
+	 * the tree could tell had been thrown.
+	 *
+	 * A fourth copy of the same bucket-and-merge is not what this should be, and the docblock says so
+	 * rather than pretending otherwise: the Windwalker has one inline (`rskByInstance`) and the Elemental
+	 * has `dotWindowsBySpawn`, and the two differ only in the fields they publish. The shared walk
+	 * belongs in `lib/analysis/auras.ts` beside `auraWindows`, and moving it there is a change to two
+	 * specs' measured figures rather than to this lane's drawing — so it is named here as the next
+	 * lane's work instead of being smuggled into this one.
+	 */
+	const weakenedBlows = (() => {
+		const aura = registry.aura('weakened-blows');
+		const ids = new Set(aura.ids);
+		// Written the way `analyseCore` writes it, and for the reason it gives: an id absent from the
+		// actor list is *unknown* rather than friendly, so what is excluded is what the log positively
+		// declared, never everything it failed to declare an enemy.
+		const friendly = new Set(h.actors.filter((a) => a.type === 'Player' || a.type === 'Pet').map((a) => a.id));
+		const bySpawn = new Map<string, { target: number; spawn: WclEvent[] }>();
+		for (const event of h.events) {
+			const id = abilityIdOf(event);
+			if (id === null || !ids.has(id) || !isAuraEvent(event)) continue;
+			if (event.sourceID !== h.actor.id) continue;
+			const target = event.targetID;
+			if (target === undefined || friendly.has(target)) continue;
+			const key = instanceKey(target, event.targetInstance);
+			const bucket = bySpawn.get(key);
+			if (bucket) bucket.spawn.push(event);
+			else bySpawn.set(key, { target, spawn: [event] });
+		}
+		// Walked per spawn, kept per enemy: two copies of an add carrying the debuff at once is the enemy
+		// covered, not twice covered, and `mergeIntervals` is what says so. The union is also the only
+		// honest reading of a row labelled with one name.
+		const perTarget = new Map<number, Interval[]>();
+		for (const { target, spawn } of bySpawn.values()) {
+			const spans = mergeIntervals(toIntervals(auraWindows(spawn, aura, h.t0, h.fight.endTime)));
+			const gathered = perTarget.get(target);
+			if (gathered) gathered.push(...spans);
+			else perTarget.set(target, [...spans]);
+		}
+
+		const damage = damageByTarget(h.damageEvents);
+		// The report's actor list is the only thing that can name an enemy — `enemyNPCs` carries ids and
+		// gameIDs and no names. An id it cannot answer for stays null and the chart labels it as an
+		// unnamed enemy carrying that id, which is the truth; a row named after the wrong add is worse.
+		const named = (id: number): string | null => h.actors.find((actor) => actor.id === id)?.name ?? null;
+		const rows = [...perTarget]
+			.map(([id, spans]) => ({
+				id,
+				name: named(id),
+				damage: damage.get(id) ?? 0,
+				windows: mergeIntervals(spans).map(([start, end]): Window => ({ start, end })),
+			}))
+			// An enemy whose only trace is a stray event has no window to draw, and an empty row costs a
+			// line to say that the add existed.
+			.filter((row) => row.windows.length > 0)
+			.sort((a, b) => b.damage - a.damage || (a.windows[0]?.start ?? 0) - (b.windows[0]?.start ?? 0));
+
+		const toLane = (row: (typeof rows)[number]): AuraLane => ({
+			...lane(aura, 'debuff', row.windows),
+			target: { id: row.id, name: row.name, primary: row.id === h.primaryID },
+		});
+		return {
+			drawn: rows.slice(0, WEAKENED_BLOWS_LANES).map(toLane),
+			hidden: rows.slice(WEAKENED_BLOWS_LANES).map(toLane),
+		};
+	})();
 	const enforced = enforcedDowntime({
 		encounterID: h.fight.encounterID,
 		events: h.events,
@@ -318,14 +504,25 @@ function protectionAudit(h: Handles): ProtectionAudit {
 		 */
 		misses: [],
 		/**
-		 * The presses, and no aura lanes yet.
+		 * The presses, and the rows drawn above them.
 		 *
-		 * `marks` straight through — the core built them and this audit decorates none of them. An empty
-		 * lane list means the timeline draws the press rows and nothing above them, which is honest for
-		 * a first cut and is what `drawnAuras.test.ts` will start arguing with as soon as this spec has
-		 * a fixture swept: every aura the pull puts on the player wants a lane or a stated reason.
+		 * `marks` straight through — the core built them and this audit decorates none of them. The lanes
+		 * beside them are new: this field shipped as `lanes: []`, which drew the press rows and nothing
+		 * above them, and an empty lane list is what `drawnAuras.test.ts` exists to argue with. Every aura
+		 * the pull puts on the player wants a row or a stated reason.
+		 *
+		 * `hiddenLanes` and `hiddenTargets` are written only where there are any, so a pull whose enemies
+		 * all fit under the cap serialises exactly as it did before. They are the chart's picker rather
+		 * than a second measurement: `lanes` ++ `hiddenLanes` is the full per-enemy set in the order the
+		 * cut left it in.
 		 */
-		timeline: { casts: h.marks, lanes: [] },
+		timeline: {
+			casts: h.marks,
+			lanes: [...buffLanes, ...weakenedBlows.drawn],
+			...(weakenedBlows.hidden.length === 0
+				? {}
+				: { hiddenLanes: weakenedBlows.hidden, hiddenTargets: weakenedBlows.hidden.length }),
+		},
 		fight: {
 			encounter: enforced.profile?.name ?? null,
 			note: enforced.profile?.note ?? null,
@@ -453,7 +650,79 @@ export const PROTECTION_SPEC: SpecConfig = {
 	extraResources: (h, audit) => ({
 		vengeance: vengeanceBar((audit as unknown as ProtectionAudit).vengeance, h.duration),
 	}),
-	ignoredMultiTargetActors: () => new Set(),
+	/**
+	 * The shared list, and this spec used to answer `() => new Set()` — a stub that read as unfinished
+	 * and was very nearly right for the wrong reason.
+	 *
+	 * The one rule on the list is Siegecrafter Blackfuse's Automated Shredder, which the Windwalker
+	 * excludes because a non-tank does 10% damage to it. **A tank is the exception to that reduction and
+	 * is not an exception to the rule**, which is the thing worth having written down twice: a Protection
+	 * Paladin genuinely can hurt a Shredder and the Electrostatic Charge debuff is the mechanic they do
+	 * it under, but they are on it *alone* and killing it with a single-target rotation, because nobody
+	 * else can touch it. Counting it would push the pull into the cleave or area band and start expecting
+	 * area buttons the player was right not to press. `game/multiTargetActors.ts` carries the evidence
+	 * and the full argument; read it before deciding a tank should be counting Shredders.
+	 *
+	 * No committed Protection capture is a Blackfuse pull, so this resolves to the empty set on all five
+	 * and changes no figure in the tree. It changes what the spec *means* by answering nothing.
+	 */
+	ignoredMultiTargetActors: ignoredMultiTargetActorIDs,
+	/**
+	 * The two ground effects, kept out of the count the priority ladder bands on.
+	 *
+	 * **This is the first thing in this spec to consume its own declared area damage, and until it went
+	 * in `aplCounts` was `counts` — the same array under two names.** `analyseCore` publishes both
+	 * deliberately: `counts` is the evidence series a reader is shown, `aplCounts` is what a band
+	 * question has to read, and for a spec declaring nothing here the second says nothing at all.
+	 *
+	 * ## Why these two and not the third
+	 *
+	 * Consecration and Light's Hammer are laid on the ground and tick on whatever is standing in them.
+	 * Neither chooses a body: the press picks a patch of floor, and the number of things it lands on is
+	 * a fact about where the raid happened to be. Counting those ticks as evidence of fan-out lets the
+	 * ladder cite the button to itself — "the ground hit four, so the pull is an area pull, so press
+	 * more ground" — which is the argument the Windwalker's `aplTargetCountExclude: ['rushing-jade-wind']`
+	 * already makes for the wind, in a spec whose own docblock calls it the structural case.
+	 *
+	 * **Hammer of the Righteous stays in, and it is not a free choice.** Its cleave (88263) reaches the
+	 * three enemies beside a target the *player* picked, and a fan-out the player aimed is exactly the
+	 * evidence a band question wants. Priced rather than assumed: adding it takes the ladder's
+	 * multi-target share on `spoils.json` from 83.5% to 76.2% and its peak from 11 to 9, on
+	 * `fallenProtectors.json` from 95.8% to 94.9% — enough to move that pull's whole-pull segment from
+	 * `aoe` to `mixed` — and on `garrosh.json` from 8.8% to 7.8%. So leaving it in is worth several
+	 * points on the pulls that cleave hardest, and the reason it is worth them is the aiming, not the
+	 * size of the number.
+	 *
+	 * ## What it moves, on the five committed captures
+	 *
+	 * Consecration's ticks (81297) are the single largest event source the Paladin produces: 719, 544,
+	 * 500, 352 and 153 damage events, first by a wide margin on every pull. Light's Hammer (114919)
+	 * lands on two of the five and is small beside it.
+	 *
+	 *     pull                evidence   ladder before   after Consecration   after both   peak
+	 *     fallenProtectors      99.9 %          99.9 %              96.8 %        95.8 %    8 → 7
+	 *     galakras              52.6 %          52.6 %              34.2 %        34.2 %    5 → 4
+	 *     garrosh               15.8 %          15.8 %               8.8 %         8.8 %    8 → 7
+	 *     paragons              82.7 %          82.7 %              42.9 %        42.9 %    4 → 3
+	 *     spoils                88.1 %          88.1 %              84.7 %        83.5 %   15 → 11
+	 *
+	 * Light's Hammer moves only the two pulls it was talented on — 96.8 → 95.8 and 84.7 → 83.5 — and it
+	 * is declared beside Consecration because it is the same kind of thing rather than because of what
+	 * it is worth here.
+	 *
+	 * **The reader's own figure does not move, and that is the design rather than a limitation.**
+	 * `multiTargetPct` and `detected` are taken off `counts`, so all five pulls read what they read
+	 * before: four multi, `garrosh` single. What changes is the series a rung is chosen on, and there
+	 * it changes a great deal — `paragons` goes from an area pull for four fifths of its length to one
+	 * for two fifths, and its segment cut goes from `mixed aoe cleave mixed cleave aoe mixed aoe single
+	 * cleave single` to `mixed mixed single mixed single aoe mixed cleave single`.
+	 *
+	 * **Nothing this spec grades reads either series yet**, which is why this lands as a correction to a
+	 * seam rather than as a change to a score: `score.ts` grades two metrics and neither declares
+	 * `bands`. The exclusion is right whether or not anything is looking, and the day a rung is graded
+	 * it will be graded on a count that Consecration cannot inflate.
+	 */
+	aplTargetCountExclude: ['consecration', 'lights-hammer'],
 	needsTarget: NEEDS_TARGET,
 	samePressMs: SAME_PRESS_MS,
 	potion: {
