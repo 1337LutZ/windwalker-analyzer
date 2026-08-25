@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 
 import { EXTERNALS, classesInPull } from '~/lib/analysis/externals';
 import { rawFixture } from '~/lib/analysis/fixtures';
+import report from '~/locales/en/report.json';
 import { abilityIdOf, isAuraApply } from '~/lib/events';
 import type { Analysis, ProtectionAudit } from '~/lib/types';
 import { analyse } from '~/specs/protection/lib';
@@ -256,6 +257,33 @@ describe('the roster gate', () => {
 });
 
 describe('the catalogue', () => {
+	/**
+	 * Every scope the catalogue uses has a column to print itself in.
+	 *
+	 * **This is here because the copy guards structurally cannot catch it.** `keys.test.ts` peels
+	 * `_context` suffixes back off before checking a key is read — deliberately, and its own docblock
+	 * argues why: a whitelist of suffixes rots the moment somebody invents a context. The consequence is
+	 * that `externals.cuts_all` and `externals.cuts_physical` both count as `externals.cuts` being read,
+	 * so a scope with no arm at all passes every guard in the tree and renders an **empty table cell**.
+	 *
+	 * That is not hypothetical. Adding Demoralizing Banner introduced `scope: 'physical'`, no
+	 * `cuts_physical` arm went in with it, and the row printed nothing where its reduction should be —
+	 * found by a reader looking at the page rather than by anything here.
+	 *
+	 * So the check belongs where the two lists can be compared: the scopes the catalogue actually uses,
+	 * against the arms the copy actually has.
+	 */
+	it('prints a reduction for every scope the catalogue uses', () => {
+		const copy = report['externals'] as Record<string, unknown>;
+		for (const scope of new Set(EXTERNALS.map((entry) => entry.scope))) {
+			expect(typeof copy[`cuts_${scope}`], scope).toBe('string');
+			expect((copy[`cuts_${scope}`] as string).length, scope).toBeGreaterThan(0);
+		}
+		// And the arm for an entry whose size nothing states, which is unused today and kept for the same
+		// reason `evidence: 'log'` is — see the catalogue's own note.
+		expect(typeof copy['cuts_unknown']).toBe('string');
+	});
+
 	/**
 	 * Every entry either cites the simulator for its reduction or admits it has none.
 	 *

@@ -1884,7 +1884,8 @@
     "never": "never",
     "cuts_all": "{{percent, percent}} of all damage",
     "cuts_magic": "{{percent, percent}} of magic damage",
-    "cuts_unknown": "not modelled by the simulator",
+    "cuts_physical": "{{percent, percent}} of physical damage",
+    "cuts_unknown": "size not established",
     "unreadable": "{{names}} would also have helped here and this report cannot see it. It works by weakening what is hitting you rather than by shielding you, so it lands on the enemy — and the events this page is built from only cover you. Whether anyone used it is not something the numbers above answer either way."
   }
 }
