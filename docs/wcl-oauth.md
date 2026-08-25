@@ -3,6 +3,37 @@
 Transcribed from <https://www.warcraftlogs.com/api/docs> (read 2026-08-13) so the implementation has
 a written reference and does not drift on someone's recollection.
 
+## The site moved: what every existing user has to do, once
+
+The analyser is served from **`https://mop-log-analyzer.pages.dev/`** — one site for every spec,
+where there used to be `windwalker-analyzer.pages.dev` and `elemental-analyzer.pages.dev`.
+
+**Add that exact string, trailing slash included, to your own WarcraftLogs client.** Nothing else
+about your client changes: the id is the same, the tokens are the same, and the entries already on it
+can stay. Redirect URIs are comma-separated, so this is an addition rather than a replacement, and it
+takes about as long as pasting one line.
+
+Until you do, sign-in fails with `invalid_client` — "Client authentication failed" — and that message
+is wrong about the cause. It reads as though the id were unregistered. The id is fine; the URI the
+app sends is one your client has never seen. _The redirect URI must match exactly_, below, includes a
+single request that separates the two cases, so this does not have to be guessed at.
+
+**Signing in on an old host is not a fallback, because it no longer works at all.** Both old hosts 301
+to the new one, and a 301 breaks the round trip in two independent places. A callback cannot land on
+a host that redirects, so the browser is carried on to the new origin with the `?code=` in hand. And
+the verifier and `state` that the exchange needs were written into the _old_ origin's
+`sessionStorage`, which the new origin cannot read — so the code that did arrive cannot be spent
+either. This is the one part of the move that fails outright rather than degrading, which is why it
+is at the top of this file rather than in the migration notes at the bottom.
+
+**One entry covers every route.** `redirectUri()` is anchored at the build's own root rather than
+following the address bar, so `/monk/windwalker` and `/shaman/elemental` send the same URI that `/`
+does. That is what keeps a registration good as the site grows: a URI that trailed the route would
+need a fresh registration from every user for every route added.
+
+The app renders the exact string it will send, with a copy button. Copy that rather than any line
+written here.
+
 ## Why PKCE and not the other two flows
 
 WarcraftLogs offers three flows. Only one of them fits a static site:
@@ -34,7 +65,7 @@ into the app; see the ClientIdSetup spec in component-specs.md.
    **Create Client**.
 3. Enter a client name. It is shown on the authorization screen when signing in.
 4. Enter the redirect URI. Multiple are comma-separated; escape commas inside a single URI.
-   - production: `https://windwalker-analyzer.pages.dev/`
+   - production: `https://mop-log-analyzer.pages.dev/`
    - local dev: `http://localhost:4321/`
 
    **The trailing slash is part of the match, and whether there is one depends on the path.**
@@ -119,11 +150,19 @@ before use — the naive `origin + BASE_URL` is exactly the broken variant above
 Every environment needs its own registered entry, comma-separated on the client:
 
 - local dev: `http://localhost:4321/`
-- production: `https://windwalker-analyzer.pages.dev/`
+- production: `https://mop-log-analyzer.pages.dev/`
+- the GitHub Pages fallback, if it is ever published: `https://1337lutz.github.io/windwalker-analyzer`
 
-Both changed when the site moved to Cloudflare Pages, which serves at the domain root rather than
-under a repo path. An entry for a host you no longer serve from is harmless; a missing one fails as
-`invalid_client`, which reads as though the client id were wrong.
+The production entry has now changed twice, and for different reasons. It changed once when the site
+moved to Cloudflare Pages, which serves at the domain root rather than under a repo path, and the
+trailing slash arrived with it. It changed again when two spec-pinned sites became one build serving
+every spec by route, which is the move at the top of this file and the one that costs every existing
+user a minute. An entry for a host you no longer serve from is harmless and can be left; a missing
+one fails as `invalid_client`, which reads as though the client id were wrong.
+
+The fallback entry has no trailing slash, and that is not an inconsistency: it is served under a path
+prefix, where the slash is not part of the path, and the table above measured that difference against
+the real client.
 
 ## Confirmed against the real client
 

@@ -111,8 +111,9 @@ You do not have to take that on faith. In descending order of effort:
 
 4. **Read it.** This repo is the site. Every network call in the app goes through one method,
    `#graphql` in `src/lib/wcl/client.ts` — that is the only place a request leaves the page, and it
-   is short enough to read in a minute. The build that publishes it is `.github/workflows/deploy.yml`,
-   and its run log names the commit it built; nothing is uploaded by hand.
+   is short enough to read in a minute. The build that publishes it is
+   `.github/workflows/cloudflare.yml`, and its run log names the commit it built; nothing is uploaded
+   by hand.
 
 Two honest caveats. A WarcraftLogs token is a credential: anyone holding it can read whatever your
 WarcraftLogs account can read, so treat it like a password and regenerate it if it leaks. And
@@ -135,8 +136,8 @@ spends. It takes about a minute.
 3. For the redirect URL, **copy the one the app shows you** — it renders the exact string it will
    send, with a copy button, next to this field. Matching is byte-exact, and a trailing slash is
    enough to break it — and at the root of a domain the slash _is_ the path, so it belongs there.
-   (For reference: `https://windwalker-analyzer.pages.dev/`, or `http://localhost:4321/` if you are
-   running it yourself.)
+   (For reference: `https://mop-log-analyzer.pages.dev/`, or `http://localhost:4321/` if you are
+   running it yourself.) One entry covers the whole site, every spec route included.
 4. Tick **Public Client**. That is what allows PKCE, which is how a page with no backend signs you
    in without ever holding a secret.
 5. Paste the **client ID** back into the app. Not the client secret — this app has no use for one,
@@ -145,6 +146,12 @@ spends. It takes about a minute.
 If sign-in comes back **"Client authentication failed"** or `invalid_client`, the redirect URL is
 the thing to check, not the id. That error is what a URL mismatch looks like, and it names the wrong
 culprit.
+
+**If you registered a client before the site moved,** that error is exactly what you will get, and
+one line fixes it: add `https://mop-log-analyzer.pages.dev/` to your client's redirect URIs. They are
+comma-separated, so it is an addition and nothing has to be removed. The old hosts,
+`windwalker-analyzer.pages.dev` and `elemental-analyzer.pages.dev`, now redirect here and cannot be
+signed in on at all. `docs/wcl-oauth.md` opens with the whole of it.
 
 ### Then sign in
 
@@ -178,63 +185,61 @@ Node 24 — the version is pinned in `.nvmrc`, so `nvm use` picks it up.
 ```sh
 nvm use          # Node 24
 npm install
-npm run dev      # http://localhost:4321/windwalker-analyzer
+npm run dev      # http://localhost:4321/
 npm run check    # astro check + tsc --noEmit
 npm test         # vitest
 npm run build    # static site into dist/
 npm run preview  # serve dist/ as it will be served in production
 ```
 
-The dev server serves under the `/windwalker-analyzer` base path, same as production, so links and
-asset URLs behave identically in both.
+The dev server serves at the domain root with no path prefix, and so does the deployed site, so links
+and asset URLs behave identically in both. `astro.config.mjs` sets `base` only when `BASE_PATH` is
+exported into the shell, and it reads `process.env` rather than `.env`, so nothing written in a local
+file can put a prefix there. The one place a prefix exists is the GitHub Pages fallback, whose
+workflow exports `BASE_PATH=/windwalker-analyzer` because a project site is served under `/<repo>/`.
 
 ### Environment
 
-Environment is read two ways, and only one of them reads `.env`:
+There is nothing for the app to read out of `.env` any more. `PUBLIC_SPEC` was the only variable that
+channel ever carried; it pinned a build to one spec, and it went away with the per-spec builds. One
+build serves every spec, and a spec is chosen by visiting its route.
 
-- **`PUBLIC_SPEC`** — the registry key of the spec a build defaults to — is read by the app as
-  `import.meta.env.PUBLIC_SPEC`, Astro's `.env`-loaded channel. A local `.env` re-points
-  `npm run dev` at another spec; the registered keys are `windwalker` and `elemental`.
-- **`SITE_URL` and `BASE_PATH`** are read by `astro.config.mjs` from the real process environment
-  (`process.env`), **not** from `.env` — export them in the shell instead (`SITE_URL=… npm run build`).
+`SITE_URL` and `BASE_PATH` are read by `astro.config.mjs` from the real process environment
+(`process.env`), **not** from `.env` — export them in the shell instead (`SITE_URL=… npm run build`).
+`.env.example` documents both, with that warning attached rather than as a template to copy: writing
+them into a file does nothing.
 
-Copy `.env.example` to `.env` for the documented templates. `.env` is gitignored, so none of this
-reaches CI — the deploy reads its environment from the workflow files, not from here.
+`.env` is gitignored and never reaches CI either way. The deploy reads its environment from the
+workflow files.
 
 ## Deployment
 
-Pushing to `main` publishes **both** sites from the same commit, through two independent runs:
+Pushing to `main` publishes **one** site, from one workflow:
 
-| Workflow                                      | Cloudflare project    | `PUBLIC_SPEC` | URL                                     |
-| --------------------------------------------- | --------------------- | ------------- | --------------------------------------- |
-| `.github/workflows/cloudflare-windwalker.yml` | `windwalker-analyzer` | `windwalker`  | `https://windwalker-analyzer.pages.dev` |
-| `.github/workflows/cloudflare-elemental.yml`  | `elemental-analyzer`  | `elemental`   | `https://elemental-analyzer.pages.dev`  |
+| Workflow                           | Cloudflare project | URL                                  |
+| ---------------------------------- | ------------------ | ------------------------------------ |
+| `.github/workflows/cloudflare.yml` | `mop-log-analyzer` | `https://mop-log-analyzer.pages.dev` |
 
-Both are thin callers over `.github/workflows/deploy-cloudflare.yml`, which holds every step: `npm ci`,
-`npm run check`, `npm test`, then `npm run build` and `wrangler pages deploy dist`. A build that fails
-any check is not published. Pull requests run `.github/workflows/ci.yml`, which is the same commands.
+That build serves every registered spec by route — `/monk/windwalker`, `/shaman/elemental`, a splash
+at `/` — so nothing in the pipeline is per-spec any more: no `PUBLIC_SPEC`, no second project, no
+second queue, no second run to keep in step with the first.
 
-One reusable workflow rather than two copies, because a copy is where the two drift and only one of
-them would keep getting the fixes. Not a matrix over the two specs either: a matrix is one run
-publishing both, so a re-run from the Actions tab re-publishes both, one failure marks the other red,
-and the two would share a concurrency group — the queueing this repo went out of its way to get right
-for a single site. Two callers, two runs, two queues (`cloudflare-pages-<spec>`).
+`cloudflare.yml` is a thin caller over `.github/workflows/deploy-cloudflare.yml`, which holds every
+step: `npm ci`, `npm run check`, `npm test`, then `npm run build` and `wrangler pages deploy dist`. A
+build that fails any check is not published. Pull requests run `.github/workflows/ci.yml`, which is
+the same commands.
 
-The gates are deliberately spec-independent: `npm run check` and `npm test` cover every registered
-spec in one pass, so a change that breaks the Elemental audit blocks the Windwalker deploy too. They
-are one codebase and one report engine.
+Two files rather than one, still, and the reason for that changed. The old one was that two copies of
+a deploy are where the two drift, and it went with the second site. What replaces it is narrower and
+still buys the file: the caller's `with:` block is the single visible place naming the project and the
+host, and GitHub checks a required `workflow_call` input before anything runs — so a caller that
+forgets `site_url` fails instead of publishing against whatever `astro.config.mjs` defaults to.
 
-A new host has to be registered with WarcraftLogs as a redirect URI in its own right — OAuth redirects
-back to `window.location` and WarcraftLogs matches the registered URI byte for byte, so sign-in on an
-unregistered host fails with a message that blames the client id.
+The gates cover every registered spec in one pass. That used to be a deliberate choice cutting against
+the grain of two spec-pinned sites, and it is now simply what the site is: a change that breaks the
+Elemental audit breaks the page a Windwalker visitor lands on, because it is the same page.
 
-`site_url` is a required input of the shared workflow rather than a default worth trusting, because
-`astro.config.mjs` defaults to the Windwalker domain. Today a wrong value there is latent rather than
-broken: `base` is empty on Pages, so every asset URL is root-relative and nothing in the emitted HTML
-names the host. It stops being latent the moment anything canonical is emitted — a `<link rel=
-"canonical">`, an `og:url`, a sitemap — and a required input is cheaper than finding that out later.
-
-Both go through `npm run`, never `npx <tool>`. `npx` downloads a tool that is not a declared
+Everything goes through `npm run`, never `npx <tool>`. `npx` downloads a tool that is not a declared
 dependency, so CI can silently run a different version from the one on your machine — which is how
 the first deploy failed, on a file that was correctly formatted locally.
 
@@ -245,23 +250,13 @@ It needs two repository secrets, under Settings → Secrets and variables → Ac
 | `CLOUDFLARE_API_TOKEN`  | Cloudflare dashboard → My Profile → API Tokens, template **Edit Cloudflare Workers**, or a custom token with the _Cloudflare Pages: Edit_ permission |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → Workers & Pages, shown in the right-hand sidebar                                                                              |
 
-Both projects share those two secrets — one Cloudflare account — which is what `secrets: inherit` in
-each caller says.
+One Cloudflare account holds every project this repository has ever published to, so there is one pair
+of secrets and `secrets: inherit` in the caller is the honest way to say so.
 
 The Pages project is created by the workflow if it does not exist, so a fresh account needs no
-dashboard visit — only the two secrets. Each site's name and URL live in one place, the `with:` block
-of its caller workflow; nothing about a project name is hardcoded in the shared steps.
-
-To add a third spec's site: register the spec in `src/lib/spec/registry.ts`, then copy
-`cloudflare-elemental.yml`, changing the four values in it (workflow name, concurrency group,
-`project_name`, `spec`, `site_url`). `src/lib/spec/__tests__/registry.test.ts` reads the `spec:` values
-back out of the workflow files and fails if one is not a key the registry answers — `DEFAULT_SPEC`
-falls back to the first spec when `PUBLIC_SPEC` does not resolve, so a typo would otherwise deploy a
-site that is branded and behaves as the wrong spec, with nothing in the pipeline going red.
-
-If you would rather create it by hand, make it a **Direct Upload** project: the workflow uploads a
-build it made itself, and a Git-connected project would build the site a second time on Cloudflare's
-side.
+dashboard visit beyond the two secrets. If you would rather create it by hand, make it a **Direct
+Upload** project: the workflow uploads a build it made itself, and a Git-connected project would
+build the site a second time on Cloudflare's side.
 
 Wrangler is a pinned dependency and is invoked directly rather than through
 `cloudflare/wrangler-action`. The action looks for a local wrangler, rejects what it finds, and
@@ -271,27 +266,106 @@ The workflow deletes `src/pages/preview.astro` before building. That page is a d
 that renders committed fixtures, and removing it also removes the only import of that data, so none
 of it is bundled into the published site. It stays available in `npm run dev`.
 
-The spec a deployment serves is set by `PUBLIC_SPEC`, passed down from the caller's `spec:` input, and
-the registry's `DEFAULT_SPEC` reads it: the settings schema, the sections and the page branding all
-follow the pinned spec. Every build still ships every spec's code, and the URL's own `?spec=` wins at
-runtime — so a visitor handed an Elemental link on the Windwalker host still gets an Elemental report.
-The pinning decides the default and the branding, not what is available.
+### The two old projects redirect, and you set that up by hand
+
+`windwalker-analyzer` and `elemental-analyzer` still exist and still answer, and nothing in this
+repository builds them any more. CI publishes to `mop-log-analyzer` and to nothing else, which is
+deliberate: a workflow deploying to a project the repo no longer builds would be a second build to
+keep honest, and there is no build left to give it.
+
+So the redirects are **a dashboard job, done once per project, by you.** Cloudflare Pages reads them
+from a `_redirects` file at the root of what a project serves, which makes this a deployment to that
+project rather than a setting to toggle.
+
+1. Make a folder holding one file called `_redirects` and nothing else. For `windwalker-analyzer` its
+   entire contents are:
+
+   ```
+   /* https://mop-log-analyzer.pages.dev/monk/windwalker 301
+   ```
+
+   Nothing else in the folder, so no leftover page of the old build is left for a request to match
+   instead of the rule.
+
+2. Cloudflare dashboard → **Workers & Pages** → `windwalker-analyzer` → **Deployments** → **Create
+   deployment**. Choose the production branch (`main`), drag the folder in, and deploy.
+
+3. Repeat for `elemental-analyzer`, whose one line names the other route:
+
+   ```
+   /* https://mop-log-analyzer.pages.dev/shaman/elemental 301
+   ```
+
+The destination is the spec's own route rather than the splash at `/`, because that is what the old
+host meant. `windwalker-analyzer.pages.dev` was never a copy of the whole site; it was one spec's
+front door, and a bookmark to it was asking for the Windwalker.
+
+The same thing from a terminal, if you would rather, with the same folder and the same one-off intent.
+This is not a CI step and must not become one:
+
+```sh
+# from the repo root, so the pinned wrangler is the one that runs
+CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… \
+  npx --no-install wrangler pages deploy ./redirect-stub \
+  --project-name=windwalker-analyzer --branch=main --commit-dirty=true
+```
+
+Deleting the two projects would also stop them serving the old site, and it is the worse trade: a
+deleted project answers `404`, and a `404` tells a bookmark nothing about where the site went.
+
+### Every existing user has to re-register their redirect URI
+
+**This is the most expensive consequence of the whole move, and it lands on people rather than on the
+pipeline.** Sign-in matches the redirect URI byte for byte against a URI registered on each visitor's
+_own_ WarcraftLogs client, and every visitor registers their own. A new hostname therefore means every
+existing user has to add `https://mop-log-analyzer.pages.dev/` to their client before they can sign in
+again. Until they do, sign-in fails with `invalid_client` — an error `docs/wcl-oauth.md` documents as
+actively misleading, because it reads as a wrong client id and sends you off to re-check the id, the
+host, and whether the client exists at all.
+
+The old hosts are not a way to put that off. A 301 means the OAuth callback can never land on one:
+the browser is carried straight on to the new origin, and the verifier and `state` the exchange needs
+were written into the _old_ origin's `sessionStorage`, which the new origin cannot read. Sign-in on
+the old hosts dies outright rather than degrading, which is the opposite of how a redirect usually
+behaves and is worth saying out loud.
+
+One entry covers the whole site. `redirectUri()` is anchored at the build's own root rather than
+following the address bar, so every route sends the same URI and a spec added later costs nobody a
+second registration. `docs/wcl-oauth.md` opens with the migration note in full.
+
+### Where the build thinks it lives
 
 `site` and `base` come from the `SITE_URL` and `BASE_PATH` environment variables, defaulting to the
-Cloudflare Pages domain at its root. `.github/workflows/deploy.yml` publishes to GitHub Pages
-instead and sets both, because a project site there is served under `/<repo>/` and an unprefixed
-build 404s every asset. It is manual-only (`workflow_dispatch`): two hosts publishing the same
-commit means two live copies, and only one of them can hold the redirect URI registered with
-WarcraftLogs. It takes a `spec` choice input, defaulting to `windwalker` — but it publishes **one**
-site whichever you pick, because a GitHub project site is `/<repo>/` and there is one repo, so a run
-for Elemental replaces whatever it published last. Cloudflare is the path that serves both at once.
+Cloudflare Pages host at its root. `site_url` is a required input of the shared workflow rather than a
+default worth trusting, and its two reasons now pull very different weights. The asset-URL one is
+still latent: `base` is empty on Pages, so every asset URL is root-relative and nothing in the emitted
+HTML names the host, and a wrong value would still publish a site that works. It stops being latent
+the moment anything canonical is emitted — a `<link rel="canonical">`, an `og:url`, a sitemap. The
+sign-in one is not latent at all, and it is the section above.
 
-These are read from the workflow's own environment — a `.env` file never reaches the CI build
-(see _Running it locally → Environment_).
+`.github/workflows/deploy.yml` publishes to GitHub Pages instead and sets both variables, because a
+project site there is served under `/<repo>/` and an unprefixed build 404s every asset. It is
+manual-only (`workflow_dispatch`): two hosts publishing the same commit means two live copies, and
+only one of them can be the host a visitor has registered. It no longer takes a `spec` input, because
+there is no spec left to pick — it publishes the whole site, with the routes under the prefix as
+`/windwalker-analyzer/monk/windwalker`. That host needs its own registered redirect URI,
+`https://1337lutz.github.io/windwalker-analyzer`, with no trailing slash.
 
-**Moving the site means re-registering the redirect URI.** OAuth redirects back to
-`window.location`, and WarcraftLogs matches it byte for byte; a URL that is not registered fails as
-`invalid_client`, which reads as though the client id were wrong. See `docs/wcl-oauth.md`.
+These are read from the workflow's own environment. A `.env` file never reaches the CI build, and
+`astro.config.mjs` would not read it if it did (see _Running it locally → Environment_).
+
+### Adding a spec
+
+Register it in `src/lib/spec/registry.ts`. That is the whole of it: no workflow to copy, no project to
+create, no host to register and nobody to ask for a new redirect URI, because the pipeline stopped
+naming specs.
+
+One loose end came with that. `src/lib/spec/__tests__/registry.test.ts` reads the `spec:` values back
+out of the workflow files and checks each against the registry, guarding against a typo that would
+otherwise deploy a site branded and behaving as the wrong spec with nothing going red. No workflow
+names a spec any more, so that scrape finds nothing and the test fails on its own "so a rename cannot
+quietly empty this test" assertion. The guard it should become is one over the routes, and it belongs
+with them rather than here.
 
 ## Project layout
 
@@ -307,7 +381,7 @@ src/layouts/ src/pages/  Astro shell — one page, the app itself is client-side
 src/styles/global.css    the dark-only palette, as Tailwind v4 @theme tokens
 src/generated/           API types, generated from schema/wcl.graphql — not hand-edited
 schema/wcl.graphql       the WarcraftLogs schema, vendored so builds need no token
-.github/workflows/       CI on pull requests, a Cloudflare Pages deploy per spec on main
+.github/workflows/       CI on pull requests, one Cloudflare Pages deploy on main
 ```
 
 Abilities and auras are modelled as objects with relationships rather than as loose spell-id
@@ -331,7 +405,7 @@ union on `type` with narrowing helpers instead.
   marks those casts unjudged rather than guessing: a channel reported as clean here may still have
   overcapped, and the report says so where it matters. Everything reported as a fault is a fault the
   log actually proves.
-- One spec per site, only Mists of Pandaria, only `classic.warcraftlogs.com`.
+- Two specs, only Mists of Pandaria, only `classic.warcraftlogs.com`.
 - It reads one pull. It does not model gear, simulate alternatives, or compare you to rankings.
 - It sees what the log recorded. A missing debuff on a target that was never in range looks the same
   as a missed cast.

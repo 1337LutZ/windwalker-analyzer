@@ -1,17 +1,17 @@
-name: Deploy a spec to Cloudflare Pages
+name: Deploy to Cloudflare Pages (reusable)
 
-# The deploy itself, written once, for whichever spec the caller names.
+# The deploy itself: the gates a build has to pass, and the upload that follows them.
 #
-# Two live sites are built out of this one repository — `windwalker-analyzer` and
-# `elemental-analyzer` — and only three things differ between them: the Cloudflare project, the
-# canonical URL, and which spec the build is pinned to. Everything else, the gates above all, has to
-# be identical or one site is published to a standard the other is not. That is the whole argument
-# for a reusable workflow rather than a second copy of this file: a copy is where the two drift.
+# One site now, not two. `mop-log-analyzer` serves every registered spec by route — `/monk/windwalker`,
+# `/shaman/elemental`, a splash at `/` — so the thing that used to differ between the two runs, the
+# spec each build was pinned to, no longer exists. What is left is a project name and a canonical URL,
+# and both come from the caller.
 #
-# Not a matrix over the two specs, deliberately. A matrix is one workflow run publishing both sites,
-# so a re-run from the Actions tab re-publishes both, one deploy failing marks the other's run red,
-# and the two share a concurrency group — which is the queueing behaviour this repo went out of its
-# way to get right for a single site. Two callers, two runs, two queues.
+# The argument that used to keep this file separate from its caller was that a copy is where two
+# deploys drift, and that argument died with the second site. The narrower one that replaces it: the
+# caller's `with:` block is the single visible place that says *where* the site lands, and a required
+# `workflow_call` input is checked by GitHub before anything runs, so a caller that forgets one fails
+# instead of publishing against whatever `astro.config.mjs` happens to default to.
 on:
   workflow_call:
     inputs:
@@ -20,40 +20,52 @@ on:
           The Cloudflare Pages project to publish to. Its `.pages.dev` host is derived from this.
         required: true
         type: string
-      spec:
-        description: >-
-          The spec this deployment serves, by registry key (`getSpec`). Astro inlines `PUBLIC_SPEC`
-          at build time and `DEFAULT_SPEC` reads it, so every default in the page follows it — the
-          title, the accent colour, the analyser the report flow reaches for. The URL's own
-          `?spec=` still wins at runtime, which is how a single-spec build keeps working for a
-          visitor who was handed the other spec's link.
-        required: true
-        type: string
       site_url:
         description: >-
           Astro's `site` — the host this build is made for. Passed rather than left to default,
-          because `astro.config.mjs` defaults to the Windwalker domain and the Elemental build would
-          otherwise carry it. Today that is latent: `base` is empty on Pages so every asset URL is
-          root-relative and nothing in the emitted HTML names the host, so a wrong value publishes a
-          working site. It stops being latent the moment anything canonical is emitted — a `<link
-          rel="canonical">`, an `og:url`, a sitemap — which is why it is a required input rather than
-          a default worth trusting. Note that the host also has to be registered with WarcraftLogs as
-          a redirect URI in its own right: OAuth redirects back to `window.location` and the match is
-          byte for byte, so sign-in on an unregistered host fails with a message that blames the
-          client id.
+          because `astro.config.mjs` names a host of its own and the build would otherwise carry it.
+
+          Half of that is still latent, and the other half is why this input is required.
+
+          The latent half is the asset URLs. `base` is empty on Pages, so every asset URL is
+          root-relative and nothing in the emitted HTML names the host, which means a wrong value
+          here still publishes a site that works. It stops being latent the moment anything canonical
+          is emitted — a `<link rel="canonical">`, an `og:url`, a sitemap.
+
+          The load-bearing half is sign-in, and moving from two sites to one made it heavier rather
+          than lighter. WarcraftLogs matches the OAuth redirect URI byte for byte against a URI
+          registered on each visitor's *own* client, and `redirectUri()` builds that URI from the
+          origin the page is served from. So the host named here is the string every user has to have
+          registered, and there is now exactly one of them where there used to be one per spec. The
+          two hosts it replaces 301 to this one, so signing in on an old host is not a fallback: a
+          callback cannot land on a host that redirects, and the verifier and state the exchange
+          needs were written to the old origin's `sessionStorage`, which this origin cannot read.
+          Naming the wrong host here does not publish a broken-looking site. It publishes a working
+          one that nobody can sign in to, under an error that blames their client id. See
+          `docs/wcl-oauth.md`.
         required: true
         type: string
 
 permissions:
   contents: read
 
-# `PROJECT_NAME` only. The two build inputs are deliberately *not* hoisted here: a workflow-level
-# `env:` reaches every step, `PUBLIC_SPEC` included, and the gates below read it too. Vitest puts the
-# whole process environment on `import.meta.env`, so a job-wide pin made `DEFAULT_SPEC` the deployed
-# spec *inside the test run* — the suite renders Windwalker fixtures through it, and the Elemental
-# deploy failed 96 tests in 18 files while the Windwalker one passed only because Windwalker happens
-# to be `SPECS[0]`, the same value the fallback would have chosen anyway. The build's two inputs are
-# scoped to the build step instead, which is what `deploy.yml` already does.
+# `PROJECT_NAME` only, and `SITE_URL` deliberately not beside it. A workflow-level `env:` reaches
+# every step, the gates included, and a gate that can see a build variable is a gate answering a
+# question about the deployment rather than about the code.
+#
+# What that rule was written from: the build used to carry a second variable, `PUBLIC_SPEC`, pinning
+# each site to one spec, and it was set job-wide. Vitest puts the whole process environment onto
+# `import.meta.env`, so the pin reached `DEFAULT_SPEC` *inside the test run* — the suite renders
+# Windwalker fixtures through it, and the Elemental deploy failed 96 tests across 18 files while the
+# Windwalker one passed only because `windwalker` was `SPECS[0]`, the value the fallback would have
+# chosen anyway. One of two sites went red for a reason that had nothing to do with the code it was
+# publishing.
+#
+# That variable is gone: one build serves every spec by route, so nothing pins a spec any more and
+# that exact failure cannot recur. `SITE_URL` is what the rule now applies to, and the honest reading
+# is that hoisting it would break nothing today — `astro check` would read it and set `site`, and
+# vitest never loads `astro.config.mjs` at all. It stays on the build step regardless, because the
+# reason a gate must not see a build variable was never that this particular one bites.
 env:
   PROJECT_NAME: ${{ inputs.project_name }}
 
@@ -73,10 +85,9 @@ jobs:
       # The gates that decide whether this build deserves to be published. A deploy that skips them
       # publishes whatever happens to compile.
       #
-      # Spec-independent on purpose: `npm run check` and `npm test` cover every registered spec in
-      # one pass, so both sites are held to the whole suite rather than to the half that is theirs.
-      # A change that breaks the Elemental audit therefore blocks the Windwalker deploy too, which is
-      # the right way round — they are one codebase and one report engine.
+      # They cover every registered spec in one pass, which used to be a deliberate choice against
+      # the grain of two spec-pinned sites and is now simply what the site is: one build, every spec,
+      # so a change that breaks the Elemental audit breaks the page a Windwalker visitor lands on.
       #
       # Through `npm run`, not `npx <tool>`. `npx` falls back to *downloading* a tool that is not a
       # declared dependency, so CI silently ran a different version from the one on this machine —
@@ -92,14 +103,11 @@ jobs:
       - name: Drop the fixture preview harness from the published build
         run: rm -f src/pages/preview.astro
 
-      # `PUBLIC_SPEC` and `SITE_URL` are set here, on the one step that needs them, rather than on the
-      # job. They are two different channels into the build and both have to be set: Astro reads
-      # `PUBLIC_SPEC` from the environment and inlines it into the client bundle, while
-      # `astro.config.mjs` reads `SITE_URL` from `process.env` to decide every asset URL. Scoped to
-      # this step because the gates above must not see the spec pin — see the `env:` block's note.
+      # `SITE_URL` is set here, on the one step that needs it, rather than on the job — the `env:`
+      # block above holds the incident that rule was written from. `astro.config.mjs` reads it from
+      # `process.env`, which is a different channel from `.env` and does not read that file.
       - run: npm run build
         env:
-          PUBLIC_SPEC: ${{ inputs.spec }}
           SITE_URL: ${{ inputs.site_url }}
 
       # Wrangler is run directly rather than through `cloudflare/wrangler-action`. The action looks
@@ -110,12 +118,15 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        # Idempotent, so a spec's first deploy needs no dashboard visit and later ones cost one API
-        # call. `project list` failing is a real error — a bad token, or one without the Pages
+        # Idempotent, so a fresh account needs no dashboard visit and every later deploy costs one
+        # API call. `project list` failing is a real error — a bad token, or one without the Pages
         # permission — and is left to fail the job rather than being swallowed by `|| true`.
         #
-        # `grep -qw` against the whole list, which is why the project names must not be substrings of
-        # each other under word boundaries: `windwalker-analyzer` and `elemental-analyzer` are not.
+        # `grep -qw` against the whole list, so the project names in the account have to stay
+        # distinguishable under word boundaries. Still worth saying with one project deployed from
+        # here, because the account holds more than one: `windwalker-analyzer` and
+        # `elemental-analyzer` are kept alive by hand as 301s to this site, so the list this greps
+        # has three names in it, and none of the three is a substring of another.
         run: |
           if npx --no-install wrangler pages project list | grep -qw "$PROJECT_NAME"; then
             echo "Project $PROJECT_NAME already exists."

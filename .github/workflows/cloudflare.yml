@@ -1,0 +1,46 @@
+name: Deploy to Cloudflare Pages
+
+# The Cloudflare deploy, and now the only one. A push to `main` publishes `mop-log-analyzer`, which
+# serves every registered spec by route: `/monk/windwalker`, `/shaman/elemental`, a splash at `/`.
+#
+# This file used to be two, `cloudflare-windwalker.yml` and `cloudflare-elemental.yml`, and each
+# argued that neither of them could be called `cloudflare.yml` because a file with that name reads as
+# *the* Cloudflare deploy and would make the other one an afterthought bolted beside it. With one
+# site the argument inverts: there is one deploy, this is it, and the plain name is the accurate one.
+#
+# `deploy-cloudflare.yml` holds every step either of them ran.
+on:
+  push:
+    branches: [main]
+  # So a failed or superseded deploy can be re-run from the Actions tab without an empty commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One live site. Queue pushes rather than racing them, and never cancel a deploy mid-upload — that is
+# how a half-published site happens.
+#
+# The group used to carry the spec, so that an Elemental upload already in flight was not a reason to
+# hold the Windwalker's. One site is one queue, and a suffix here would now name a distinction that
+# no longer exists.
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-cloudflare.yml
+    with:
+      project_name: mop-log-analyzer
+      # The only host sign-in can work on, which is why it is worth reading twice. WarcraftLogs
+      # matches the redirect URI byte for byte against one registered on the visitor's own client, so
+      # every existing user has to add `https://mop-log-analyzer.pages.dev/` to theirs; until they
+      # do, sign-in fails as `invalid_client` and the message blames their client id. The two hosts
+      # this replaces 301 here, so signing in there is not a fallback — it is dead. See
+      # `docs/wcl-oauth.md`.
+      site_url: https://mop-log-analyzer.pages.dev
+    # The Cloudflare token and account id. `inherit` rather than naming them: they are repository
+    # secrets, and one Cloudflare account holds every project this repo has ever published to,
+    # including the two old ones now serving redirects.
+    secrets: inherit

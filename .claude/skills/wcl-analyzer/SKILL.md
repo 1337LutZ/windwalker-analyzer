@@ -186,23 +186,40 @@ across a 40-second absence. That was a real bug caught in review.
 
 ## A trap that has cost a red deploy
 
-**Never put `PUBLIC_SPEC` on a workflow-level `env:`.** It reaches every step, the test gate included,
-and vitest puts the process environment onto `import.meta.env` — so `DEFAULT_SPEC` resolves to the
-pinned spec _inside the test run_. The component suites render committed Windwalker fixtures through
-`DEFAULT_SPEC`, so they then score a Monk pull with the Shaman's scorer: 18 files, 96 tests, and the
-tell-tale `expected 1500 to be 1000` (Elemental's `gcdMs` against Windwalker's). Scope it to the
-`npm run build` step, which is the only thing that needs it.
+**Never hoist a build variable onto a workflow-level `env:`.** It reaches every step, the test gate
+included, and vitest puts the whole process environment onto `import.meta.env` — so a value meant for
+`npm run build` is read by the suite as well. Scope it to the build step, which is the only thing that
+needs it.
 
-The Windwalker deploy passed through this bug by pure coincidence — `windwalker` is `SPECS[0]`, so
-pinning it picks exactly what the fallback would have chosen. One of two sites was red for that reason.
+What that cost, measured: the deploy used to pin each site to one spec with `PUBLIC_SPEC`, set job-wide.
+`DEFAULT_SPEC` then resolved to the pinned spec _inside the test run_, the component suites rendered
+committed Windwalker fixtures through it, and the Elemental deploy failed 96 tests across 18 files on
+the tell-tale `expected 1500 to be 1000` (Elemental's `gcdMs` against Windwalker's). The Windwalker
+deploy passed through the same bug by pure coincidence — `windwalker` is `SPECS[0]`, so pinning it picks
+exactly what the fallback would have chosen. One of two sites was red for that reason.
 
-Reproduce with `RTK_DISABLED=1 PUBLIC_SPEC=elemental npx vitest run` — 18 files fail.
+`PUBLIC_SPEC` itself is gone: one build serves every spec by route, so nothing pins a spec and that
+exact failure cannot recur. `SITE_URL` is the only build variable left, and hoisting it would break
+nothing today — `astro check` would read it and set `site`, and vitest never loads `astro.config.mjs`.
+It is scoped to the build step anyway, because the reason a gate must not see a build variable was never
+that this particular one bites.
 
-**Related latent debt:** roughly 18 test files implicitly assume `DEFAULT_SPEC` is the Windwalker, so
-the suite cannot run under an Elemental pin at all. `spec/__tests__/registry.test.ts` is the clearest
-case — `const ww = DEFAULT_SPEC; expect(ww.gcdMs).toBe(1000)` names the variable `ww` while reading the
-_default_; it should ask for `getSpec('windwalker')`. Harmless while the gates stay spec-independent,
-but it is the same assumption that produced the red deploy.
+**The debt that trailed it is paid, and that was worth re-measuring rather than assuming.** What used to
+stand here — roughly 18 test files implicitly assume `DEFAULT_SPEC` is the Windwalker, so the suite
+cannot run under an Elemental pin at all — is no longer true. Measured on this tree,
+`RTK_DISABLED=1 PUBLIC_SPEC=elemental npx vitest run` returns totals identical to an unpinned run, down
+to the passing count: the pin adds nothing. Exactly two test files still import `DEFAULT_SPEC`, and
+both say something true under either pin by construction:
+
+- `src/lib/spec/__tests__/registry.test.ts` reads it only as `expect(SPECS).toContain(DEFAULT_SPEC)`,
+  which is a claim about the fallback rather than about which spec it landed on.
+- `src/components/__tests__/landingCopy.test.ts` reads it as _the value under test_ — the landing page
+  must name the build's own spec and no other — and pairs every positive assertion with a cross-spec
+  exclusion, so it says something different, and true, under each pin.
+
+Every other file that mentions `DEFAULT_SPEC` does so in a comment explaining why it names
+`getSpec('windwalker')` instead. Re-check with `grep -rn "import .*DEFAULT_SPEC" src` rather than
+grepping for the bare identifier, which is mostly comments.
 
 ## Migration status
 
@@ -213,9 +230,24 @@ with its own audits, APL, score thresholds, sections and fixtures.
 Work now follows **`docs/plan.md`**, steps 0–22. Steps 0–21 are done or explicitly closed with a stated
 reason; step 22 ("Validate the whole of it") is the remaining gate. Worth knowing:
 
-- Both specs deploy independently: `cloudflare-windwalker.yml` and `cloudflare-elemental.yml`, thin
-  callers over a reusable `deploy-cloudflare.yml` taking `project_name`/`spec`/`site_url`. `PUBLIC_SPEC`
-  pins the build; the URL's `?spec=` still wins at runtime.
+- One deploy, one site: `cloudflare.yml`, a thin caller over a reusable `deploy-cloudflare.yml` taking
+  `project_name`/`site_url`, publishing the `mop-log-analyzer` Pages project. It serves every spec by
+  route — `/monk/windwalker`, `/shaman/elemental`, a splash at `/` — so there is no `PUBLIC_SPEC` and
+  no per-spec project. The two old projects, `windwalker-analyzer` and `elemental-analyzer`, 301 to it
+  from a hand-uploaded `_redirects` stub; CI does not build them, so that is a dashboard job and the
+  exact steps are in README → Deployment.
+- **The host moved, and it costs every existing user a minute.** The redirect URI is matched byte for
+  byte against one registered on each visitor's _own_ WarcraftLogs client, so everybody has to add
+  `https://mop-log-analyzer.pages.dev/` or sign-in fails as `invalid_client`, an error that blames
+  their client id instead. The old hosts 301, and a callback cannot land on a redirect, so signing in
+  there is dead rather than degraded. `docs/wcl-oauth.md` opens with the migration note.
+- **Known red, and expected:** `src/lib/spec/__tests__/registry.test.ts` scrapes every `.yml` under
+  `.github/workflows` for `spec:`/`PUBLIC_SPEC:` values and asserts it finds `windwalker` and
+  `elemental`. No workflow names a spec any more, so the scrape comes back empty and the "so a rename
+  cannot quietly empty this test" case fails on `expected 0 to be greater than 0`. Only that one case
+  fails: `resolves every one of them` passes vacuously over the empty list, which is exactly the hole
+  the emptiness guard exists to plug. The guard belongs over the routes now; replacing it is the
+  routing work's job, and weakening it to pass is not.
 - A large extraction pass removed duplicated machinery: the `score.ts` helpers, `LADDER_ENTRIES`, three
   hand-rolled binary searches, `instanceKey` (which had been defined three times), the
   `complementOf`/`intervalsAtLeast`/`uptimePct` re-implementations, the counter derivations, the
