@@ -664,8 +664,23 @@ export const THRESHOLDS = {
 	 *
 	 * This one grades tightly on purpose: brewing under a full ten is throwing away the difference,
 	 * and even weak pulls tend to land near the cap, so the interesting range is narrow.
+	 *
+	 * **`good` is 9 and was 9.5, on the user's ruling that nine stacks is a full brew's worth.** The
+	 * half-stack line charged a monk for a mean of 9.4 across a pull whose every brew was a deliberate
+	 * ten-stack press bar one, which is a rounding rather than a habit.
+	 *
+	 * **`ok` moved with it, from 8.5 to 8, and that is arithmetic rather than a second ruling.** The band
+	 * width is what decides how many brews a mean needs before one of them stops deciding the letter:
+	 * `thinMean.test.ts` derives it as the first `n` where `10 / n` is under the step, so a step of 1
+	 * needs eleven brews and a step of 0.5 needs **twenty-one**. No committed pull has twenty-one — the
+	 * best has sixteen — so leaving `ok` at 8.5 would have made this metric unstable on every pull we
+	 * hold, at the same moment it was being made stricter. Holding the step at 1 keeps the stability
+	 * argument the metric already rests on.
+	 *
+	 * It also keeps three letters reachable at a sample of one, where stacks are integers: ten is `good`,
+	 * eight is `ok`, five is `bad`. At 8.5 nothing integral landed in the band.
 	 */
-	brewStacks: { good: 9.5, ok: 8.5, higherIsBetter: true, unit: 'stacks' },
+	brewStacks: { good: 9, ok: 8, higherIsBetter: true, unit: 'stacks' },
 
 	/**
 	 * Stacks lost to sitting at the twenty-stack cap.

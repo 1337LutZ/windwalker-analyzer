@@ -130,7 +130,7 @@ describe('a section whose only graded metric was never asked', () => {
 		expect(verdictOf(html)).toContain('Rolling Thunder returns 2% of your maximum mana per charge');
 		// 17.6s of it, still printed and still named — an unmeasured figure is not a deleted one.
 		expect(verdictOf(html)).toContain('17.6s');
-		expect(html).toContain(`Time at full charge — ${t('metric.notAsked')}`);
+		expect(html).toContain(`Time at max stacks — ${t('metric.notAsked')}`);
 		expect(verdictOf(html)).not.toContain('The shield never sat at seven past the leeway');
 	});
 

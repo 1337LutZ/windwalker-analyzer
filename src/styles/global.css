@@ -84,6 +84,19 @@
 	 * bar a chart draws its subject in. What it stops being is a verdict. */
 	--color-good: #3ddc97;
 
+	/* The ground a grade tint is mixed into, and deliberately **not** `--color-surface`.
+	 *
+	 * Every other surface in this file is `color-mix(… var(--spec-primary) N%, <base>)`, so it carries
+	 * the spec's own hue. A grade tint mixed into that lands differently per spec at one percentage: the
+	 * Windwalker's surface is already green (`#00ff98`), so a green `good` washed out into it and the
+	 * summary grid read as having no colour at all, while the same mix over the Elemental's blue-black
+	 * came out loud. Measured in oklab, the two disagree by hue rather than by distance.
+	 *
+	 * This is `--color-surface`'s own base with no spec in it, so a tint reads identically whoever is
+	 * reading. Same argument `--color-good` above makes for not following the spec: a verdict is the one
+	 * thing on the page that has to look the same to everyone. */
+	--color-tint-base: #0e1210;
+
 	--color-brew: #fbbf24;
 	--color-rune: #a78bfa;
 	--color-kick: color-mix(in oklch, var(--spec-primary) 65%, white);

@@ -90,10 +90,22 @@ const silent = (metric: Metric): boolean =>
  * than the ratio predicts. `ink-2` reads 12.3:1 there, and the hierarchy that `muted` was carrying moves
  * to size and to the value's own mono weight, which is where it survives being small.
  */
+/**
+ * The card's ground, tinted by its grade.
+ *
+ * **Mixed into `--color-tint-base` rather than into the surface**, which is what makes it read the same
+ * on both specs. The surface carries `--spec-primary`, so one percentage over it landed faint on the
+ * Windwalker — whose ground is already green, swallowing a green `good` — and loud on the Elemental's
+ * blue-black. That is a hue disagreement rather than a strength one, and no single percentage fixes it.
+ *
+ * **14% over the neutral base**, which puts the three at ΔE 9–11 from the ground and well apart from
+ * each other. 10% over the old surface measured ΔE 5–7 and read as a shade rather than as a colour;
+ * 22% was past what a full card should carry. Measured in oklab, not picked by eye.
+ */
 const TINT: Record<Grade, string> = {
-	good: 'bg-[color-mix(in_oklch,var(--color-good)_10%,var(--color-surface))]',
-	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_10%,var(--color-surface))]',
-	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_10%,var(--color-surface))]',
+	good: 'bg-[color-mix(in_oklch,var(--color-good)_14%,var(--color-tint-base))]',
+	ok: 'bg-[color-mix(in_oklch,var(--color-brew)_14%,var(--color-tint-base))]',
+	bad: 'bg-[color-mix(in_oklch,var(--color-miss)_14%,var(--color-tint-base))]',
 };
 
 type T = ReturnType<typeof useReportCopy>['t'];
@@ -334,13 +346,29 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 											</span>
 											<span className="tabular font-mono text-sm text-ink">
 												{metric.unmeasurable
-													? t('summary.scorecard.unmeasured')
+													? sampled(metric)
+														? reading(metric, t)
+														: t('summary.scorecard.unmeasured')
 													: metric.context === undefined
 														? reading(metric, t)
 														: null}
 											</span>
 										</span>
-										{metric.unmeasurable ? null : metric.context === undefined ? (
+										{/* **A refused count is still a count, and withholding it was a defect.** `metricOf` parks
+										    the *value* of a metric it will not grade, but `part` and `sampleSize` survive on the
+										    metric and are true whatever the sample size. Flame Shock's wasted refreshes is the
+										    case: at one wasted of two judged the rule declines — the reachable values are 0, 50
+										    and 100, and one press would carry the section — so the card printed "not measured"
+										    while the section three screens down said "1 of the refreshes threw away a tick". Two
+										    surfaces, one pull, no number joining them. The count now prints with the reason
+										    under it, which is the rule `8e011ac` set for the section copy and this never took:
+										    an unmeasured figure is not a deleted one. The scale and the target line stay off,
+										    because those are the parts that would be claiming a grade. */}
+										{metric.unmeasurable ? (
+											sampled(metric) ? (
+												<span className="font-mono text-xs text-ink-2">{t('summary.scorecard.tooThin')}</span>
+											) : null
+										) : metric.context === undefined ? (
 											<>
 												<BandScale metric={metric} />
 												{/* The denominator already frames the number, so a percentage target under a count

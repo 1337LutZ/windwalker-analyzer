@@ -31,6 +31,7 @@ import TargetModeControl from './TargetModeControl';
 import { defaultFightID, groupByEncounter } from './encounterGroups';
 import { describeFailure } from './describeFailure';
 import type { ResolvedReportInput } from './parseReportInput';
+import { selectionDiverged } from './selectionDiverged';
 
 /**
  * Steps two to four, and the report they produce. Step one is the sign-in above it.
@@ -43,8 +44,9 @@ import type { ResolvedReportInput } from './parseReportInput';
  *
  * The analysis is driven by an explicit request, not by the selection. Fetching a pull is several
  * round trips and a real cost against the API's hourly point budget, so nothing starts it but the
- * button — and keeping the request separate is also what leaves a finished report on screen while
- * the next pull is being lined up.
+ * button. The request doubles as the record of what the report below is about, and the divergence
+ * effect drops it the moment the pickers move off it: a request that outlived its selection is a
+ * previous fight's report sitting under the new fight's name.
  */
 export default function ReportFlow() {
 	// Step labels are shell copy, so they come from the `ui` namespace, not the report's.
@@ -258,6 +260,21 @@ export default function ReportFlow() {
 		autoRan.current = true;
 		requestPull({ code, fightID, playerName });
 	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, roster, requestPull]);
+
+	// The two pickers get the answer `ReportInput` already gives for the field above them: what is on
+	// screen belongs to a request, and the moment the selection stops matching that request, it belongs
+	// to a pull nobody is looking at. Only the request is dropped — the picks *are* the new selection.
+	//
+	// This has to be the whole triple rather than a handler on the fight picker, because the fight is
+	// not the only part that moves on its own: choosing a pull the reader's player was not in resolves
+	// a different name through `resolvePlayerName`, and that is a different report under the same two
+	// headings. Dropping the request takes the skeleton and the progress bar with it too, so a pull
+	// abandoned mid-fetch stops narrating itself under a selection it is not about; the fetch is
+	// already in the air and lands in the cache, where asking for that pull again is free.
+	useEffect(() => {
+		if (!selectionDiverged(request, { code, fightID, playerName })) return;
+		requestPull(null);
+	}, [request, code, fightID, playerName, requestPull]);
 
 	const signedIn = token !== null;
 	const loaded = fights.data !== undefined;

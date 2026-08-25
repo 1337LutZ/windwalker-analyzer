@@ -199,7 +199,10 @@ describe('the Tigereye Brew sentence names the fault its own metric found', () =
 		const strong = fixture('strong');
 		const card = WINDWALKER_SPEC.score(strong);
 		expect(card.sections['brew']?.grade).toBe('bad');
-		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade).toBe('ok');
+		// `good` at 9 puts the mean of 9.25 on the right side of the line, which sharpens this test rather
+		// than weakening it: the section is `bad` while its mean metric is `good`, so the letter can only
+		// be coming from the short brews.
+		expect(card.sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade).toBe('good');
 		expect(short(strong)?.value).toBe(3);
 
 		const html = render(strong);
@@ -476,7 +479,9 @@ describe('a pull with one brew', () => {
 	it('is graded good, ok and bad at ten, nine and eight stacks', () => {
 		const gradeAt = (consumed: number) =>
 			WINDWALKER_SPEC.score(oneBrew(consumed)).sections['brew']?.metrics.find((m) => m.key === 'brewStacks')?.grade;
-		expect([gradeAt(10), gradeAt(9), gradeAt(8), gradeAt(5)]).toEqual(['good', 'ok', 'bad', 'bad']);
+		// Nine is `good` since the line moved, and eight is the `ok` the band still reaches at a sample of
+		// one. Three letters, which is what this test is for.
+		expect([gradeAt(10), gradeAt(9), gradeAt(8), gradeAt(5)]).toEqual(['good', 'good', 'ok', 'bad']);
 	});
 
 	/**

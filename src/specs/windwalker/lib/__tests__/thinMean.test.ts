@@ -174,10 +174,13 @@ describe('a mean reaches every letter off one observation, which is what a share
 		const letters = [...new Set(stacksOf('strong'))]
 			.sort((a, b) => b - a)
 			.map((n) => [n, gradeOf(THRESHOLDS.brewStacks, n)]);
+		// `good` moved to 9 and `ok` to 8 with it, so nine now reads `good` where it read `ok`. Three
+		// letters are still reachable off one observation, which is the claim here and what a share
+		// cannot do. The argument for both lines is on `brewStacks` in `score.ts`.
 		expect(letters).toEqual([
 			[10, 'good'],
-			[9, 'ok'],
-			[8, 'bad'],
+			[9, 'good'],
+			[8, 'ok'],
 			[5, 'bad'],
 		]);
 	});
@@ -230,8 +233,12 @@ describe('a floor of three would leave the pulls it permits exactly as thin', ()
 	it('still lets one real brew move `weave` across a band at five', () => {
 		const weave = stacksOf('weave');
 		expect(weave.toSorted((a, b) => a - b)).toEqual([8, 8, 10, 10, 10]);
-		expect(gradeOf(THRESHOLDS.brewStacks, mean(weave))).toBe('ok');
-		expect(gradeOf(THRESHOLDS.brewStacks, mean(weave.toSorted((a, b) => a - b).with(0, 10)))).toBe('good');
+		// `good` moved to 9, so weave's own mean of 9.2 now clears it and the swap has to run the other
+		// way to cross a band: drop its best brew to five and the mean falls to 8.2, which is `ok`. The
+		// claim is unchanged — one brew of five still decides the letter — and it is the direction that
+		// moved with the line, not the arithmetic.
+		expect(gradeOf(THRESHOLDS.brewStacks, mean(weave))).toBe('good');
+		expect(gradeOf(THRESHOLDS.brewStacks, mean(weave.toSorted((a, b) => b - a).with(0, 5)))).toBe('ok');
 	});
 });
 

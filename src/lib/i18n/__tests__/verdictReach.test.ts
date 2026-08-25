@@ -189,10 +189,20 @@ const UNREACHED: string[] = [
 	// next still has to be written — so an arm leaving this list means the copy exists and reads, not
 	// that a button exists to reach it here.
 	//
-	// **`brew.verdict_bad_other` was here and has been read.** `idle.json` reaches it — four brews spent
-	// averaging exactly 8.0 of 10, `brewStacks` grading `bad`, and `brewShortUses` too thin a sample to
-	// grade — so a reader sees *"4 brews spent, averaging only 8 of 10 stacks."* and nothing else about
-	// the presses.
+	// **`brew.verdict_bad_other` is back, and the reason is a threshold rather than a fixture.**
+	// `idle.json` was its one reader — four brews spent averaging exactly 8.0 of 10, with `brewStacks`
+	// grading `bad` and `brewShortUses` too thin a sample to grade. `brewStacks` moved to `good: 9`
+	// on the user's ruling that nine stacks is a full brew's worth, and `ok` moved to 8 with it to hold
+	// the band a stable mean needs (see `score.ts`). A mean of exactly 8.0 now lands on the `ok` line
+	// rather than under it, so the arm has no pull behind it again.
+	//
+	// Worth stating plainly rather than filing: the sentence is not wrong, it is unreached. What it
+	// needs is a committed pull averaging under 8, which none of the ten has — the worst is `idle` at
+	// exactly the line. The paragraphs below are what it said while it was read, kept because they are
+	// the evidence that the arm says the right thing when a pull does reach it.
+	//
+	// While it was read: a reader saw *"4 brews spent, averaging only 8 of 10 stacks."* and nothing else
+	// about the presses.
 	//
 	// Read, and it says the right thing, which is not something the arm's own neighbours could take for
 	// granted: `BrewBankTimeline.tsx` carries two long comments about this exact sentence going out over
@@ -203,6 +213,7 @@ const UNREACHED: string[] = [
 	// against a cap of 10 over four presses, and the "only" is earned. The clause that would have named
 	// the short presses instead is silent because it *cannot* be read at this sample size, which is the
 	// state `faulted === null` exists for.
+	'brew.verdict_bad_other',
 	'brew.verdict_good_one',
 	'brew.verdict_good_other',
 	'brew.verdict_none',

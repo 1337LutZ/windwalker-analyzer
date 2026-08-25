@@ -478,7 +478,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of wave 1 of the copy sweep — every label that sits beside a figure — it prints 1378 leaves,
+As of a refused count printing instead of being deleted, it prints 1379 leaves,
 674 prose, 20,926 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160; longest 9% carry 24%;
 report.json 611 prose leaves, 1,040 sentences, median 17, 200 past 25 (19.2%), 255 em-dashes in 220
 sentences (21.2%); 46 / 21 / 1 / 2 on the quote lines.

@@ -244,6 +244,34 @@ describe('the scorecard grid', () => {
 		expect(markup).toContain('target 95% or better');
 	});
 
+	/**
+	 * A refused count is still a count, and the card used to delete it.
+	 *
+	 * `metricOf` parks the *value* of a metric too thin to grade, but `part` and `sampleSize` are true
+	 * whatever the sample size. `cleave`'s Flame Shock made two refreshes, one of them with more than one
+	 * enemy up and so unjudged, which leaves a single judged refresh: the rule declines, because at one
+	 * the only reachable readings are 0 and 100 and that press would carry the whole section. The card
+	 * printed "not measured" while the section counted the refreshes in words — two surfaces, one pull,
+	 * no number joining them.
+	 *
+	 * The scale and the target line stay off, because those are the parts that would be claiming a grade.
+	 */
+	it('prints a refused count with its reason, rather than deleting the figure', () => {
+		const markup = html(fixture('cleave'));
+		const card = markup.slice(markup.indexOf('#flame-shock-heading'));
+		const shock = card.slice(0, card.indexOf('</a>'));
+		expect(shock).toContain('0/1');
+		expect(shock).toContain('too few to grade');
+		// The scale would be claiming the grade the rule just refused, so that row carries none. Sliced to
+		// the row itself: its siblings on this card are graded and do draw one.
+		const row = shock.slice(shock.indexOf('Wasted refreshes'), shock.indexOf('Dot the second target'));
+		expect(row).not.toContain('relative h-3.5');
+		expect(row).not.toContain('target');
+		// A refusal with no count behind it still says so in words — this is a rule about counts, not about
+		// every refusal. `addsThenBoss` carries one: the totem's overlaps have no sample at all.
+		expect(html(fixture('addsThenBoss'))).toContain(t('summary.scorecard.unmeasured'));
+	});
+
 	it('prints a sentence and no figure for a metric whose value is not a reading', () => {
 		// The potion metric is the Windwalker's; the Elemental's case is the shield on a pull that never
 		// wore it, and `neverUpShield.test.ts` owns that render. What is asserted here is the other half:

@@ -294,7 +294,8 @@ describe('the committed pulls', () => {
 		['cleave', cleaveFixture as unknown as Analysis, 0, 'good', 'ok'],
 		// Two of five brews were last-global presses and one was a tail dump, so two remain and the
 		// metric declines rather than crediting a clean sheet off them.
-		['weave', weaveFixture as unknown as Analysis, null, 'ok', 'ok'],
+		// `good` at 9 lifts weave's brew section: its mean is 9.2, which read `ok` against the old 9.5.
+		['weave', weaveFixture as unknown as Analysis, null, 'ok', 'good'],
 		['waves', wavesFixture as unknown as Analysis, 2, 'bad', 'bad'],
 	];
 

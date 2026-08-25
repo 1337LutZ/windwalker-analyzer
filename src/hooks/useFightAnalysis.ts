@@ -2,8 +2,9 @@
 //
 // This is the expensive one — a report query, a damage table and several pages of events — so it
 // never runs off a selection changing. It runs off a request: a `{ code, fightID, playerName }`
-// triple that someone explicitly asked for. Passing the request rather than the current selection
-// is also what keeps a finished report on screen while the next pull is being chosen.
+// triple that someone explicitly asked for. That triple is also what makes the report on screen a
+// fact about a named pull rather than about whatever the pickers happen to say, which is how
+// `ReportFlow` can tell that they have moved off it and drop the report they no longer describe.
 //
 // TanStack Query does not replace the progress callback, it wraps it. The page count is not known
 // until the last page says so, so the only thing that can report how far along the fetch is, is the
