@@ -1668,6 +1668,10 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		kill: fight.kill,
 		durationMs: duration,
 		itemLevel: entry?.itemLevel ?? null,
+		// WarcraftLogs' own percentile for this pull, carried through untouched. Null where the site has
+		// none — see `FightDataset.rankPercent`; `undefined` where a dataset predates the fetch, and the
+		// header draws nothing in either case rather than a nought.
+		rankPercent: dataset.rankPercent ?? null,
 		isSpec,
 		specName: spec.specName,
 		primaryTarget: { id: primaryID, gameID: primaryGameID, name: primaryName },

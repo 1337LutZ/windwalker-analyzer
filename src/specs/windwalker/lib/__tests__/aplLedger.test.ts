@@ -50,13 +50,26 @@ const fixture = (name: string): Analysis =>
  * or `'karma'` means it never arbitrated it at all. Same column, opposite facts.
  */
 const LEDGER = {
-	waves: { presses: 247, followed: 126, skipped: 92, unknown: 0, offList: 29, delegated: 16, sef: 15, karma: 1 },
-	cleave: { presses: 161, followed: 73, skipped: 72, unknown: 3, offList: 13, delegated: 6, sef: 4, karma: 2 },
+	waves: { presses: 247, followed: 129, skipped: 89, unknown: 0, offList: 29, delegated: 16, sef: 15, karma: 1 },
+	cleave: { presses: 161, followed: 77, skipped: 68, unknown: 3, offList: 13, delegated: 6, sef: 4, karma: 2 },
 	mixed: { presses: 200, followed: 95, skipped: 95, unknown: 1, offList: 9, delegated: 3, sef: 0, karma: 3 },
-	strong: { presses: 409, followed: 252, skipped: 143, unknown: 0, offList: 14, delegated: 2, sef: 0, karma: 2 },
+	strong: { presses: 409, followed: 257, skipped: 138, unknown: 0, offList: 14, delegated: 2, sef: 0, karma: 2 },
 	poor: { presses: 217, followed: 101, skipped: 110, unknown: 2, offList: 4, delegated: 3, sef: 0, karma: 3 },
 	weave: { presses: 117, followed: 77, skipped: 38, unknown: 1, offList: 1, delegated: 1, sef: 0, karma: 1 },
 } as const;
+
+/**
+ * What the 2026-08-25 re-capture moved here, and what it did not.
+ *
+ * Three pulls traded skips for follows and nothing else did: `waves` 126→129, `cleave` 73→77,
+ * `strong` 252→257, each with the matching fall in `skipped` and no press appearing or vanishing.
+ * `presses`, `offList`, `delegated`, `sef` and `karma` are identical on all six.
+ *
+ * That shape is the reassuring one. The captures predated changes to the ladder's own arbitration, so
+ * a handful of presses the walk used to decline now match a rung — while the two declared buttons and
+ * the split between delegation and fall-through, which is what this file is actually about, are
+ * exactly where they were. `mixed`, `poor` and `weave` did not move at all.
+ */
 
 type PullName = keyof typeof LEDGER;
 const PULLS = Object.keys(LEDGER) as PullName[];

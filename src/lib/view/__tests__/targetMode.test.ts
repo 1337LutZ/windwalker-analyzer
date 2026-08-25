@@ -218,11 +218,15 @@ describe('resolveBands', () => {
  */
 describe('the readings a pull offers', () => {
 	it('offers the whole fight and nothing else when the pull has no timeline', () => {
-		// Every committed `Analysis` capture predates `Analysis.segments`. Offering the three anyway
-		// would offer the reading this whole mechanism removes: `spansForChoice` has no timeline to cut
-		// with, so the bands would narrow and every clock would keep running over the whole pull.
+		// A stored analysis from before `Analysis.segments` existed. Offering the three anyway would offer
+		// the reading this whole mechanism removes: `spansForChoice` has no timeline to cut with, so the
+		// bands would narrow and every clock would keep running over the whole pull.
 		expect(targetModeChoices(undefined)).toEqual(['auto']);
-		expect(windwalker('cleave').segments).toBeUndefined();
+		// The anti-vacuity half, and it changed with the 2026-08-25 re-capture: the six Windwalker
+		// captures carry a timeline now, so a real pull is what proves the refusal above is about the
+		// missing field rather than about this function never offering anything.
+		expect(windwalker('cleave').segments?.segments.length).toBe(8);
+		expect(targetModeChoices(windwalker('cleave').segments)).toEqual(['auto', 'cleave', 'aoe']);
 	});
 
 	it('offers only single target on a pull that never left one enemy', () => {

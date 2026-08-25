@@ -9,7 +9,6 @@ export { default as CastsPerMinute } from './CastsPerMinute';
 export { default as EnergizingBrew } from './EnergizingBrew';
 export { default as ChiBrew } from './ChiBrew';
 export { default as FistsOfFury } from './FistsOfFury';
-export { default as KpiTiles } from './KpiTiles';
 export { default as PullTimeline } from './PullTimeline';
 export { default as RisingSunKick } from './RisingSunKick';
 export { default as Rotation } from './Rotation';

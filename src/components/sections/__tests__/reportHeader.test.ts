@@ -201,8 +201,12 @@ describe('the good headline does not deny the faults under it', () => {
 	 * go and look at.
 	 */
 	it('sends the reader down the page on every grade, the good one included', () => {
+		// The word rather than the sentence, and the word is the whole property: every arm has to point
+		// at the cards under it. The wording moved once already — all four used to open the same clause
+		// with "Read down the page", which reads as instruction rather than as a report — and the next
+		// rewrite should be free to move it again without this guard having an opinion about phrasing.
 		for (const grade of ['good', 'ok', 'bad', 'none']) {
-			expect(t(`overall.${grade}`), grade).toContain('Read down the page');
+			expect(t(`overall.${grade}`), grade).toContain('below');
 		}
 	});
 
@@ -227,13 +231,13 @@ describe('the good headline does not deny the faults under it', () => {
 	 *
 	 * So the property is **ordering**, not vocabulary: the letter has to be owned as an average before
 	 * the reader is sent anywhere. Asserted as an ordering rather than as a phrase for the reason the
-	 * `Read down the page` test above gives — the next rewrite should be free to reword both clauses and
+	 * `below` test above gives — the next rewrite should be free to reword both clauses and
 	 * still be held to the same thing.
 	 */
 	it('owns the letter as an average before it sends the reader anywhere', () => {
 		const good = t('overall.good');
 		expect(good).toContain('average');
-		expect(good.indexOf('average')).toBeLessThan(good.indexOf('Read down the page'));
+		expect(good.indexOf('average')).toBeLessThan(good.indexOf('below'));
 	});
 
 	/**
@@ -246,7 +250,7 @@ describe('the good headline does not deny the faults under it', () => {
 	 */
 	it('admits that whole parts of the page can be red under it', () => {
 		const good = t('overall.good');
-		expect(good).toMatch(/whole parts of the page can be red/);
+		expect(good).toMatch(/whole parts of this page can be red/);
 		expect(good).not.toMatch(/whole parts of the page are red/);
 	});
 });
@@ -364,5 +368,76 @@ describe('the worst case a good letter permits', () => {
 		const three = letterOver(allBut({ karmaEmpty: 'bad', brewShortUses: 'bad', potionsUsed: 'bad' }));
 		expect(three.judged).toEqual({ measured: 15, total: 15, unmeasurable: false });
 		expect(three.grade).toBe('good');
+	});
+});
+
+/**
+ * The two things beside the name that come from WarcraftLogs rather than from this report.
+ *
+ * Both exist for the same reason: everything else on the page is this tool's reading, and a reader
+ * has to be able to get back to the source of it and to the site's own number for the pull.
+ */
+describe('the headline carries the log’s own figures', () => {
+	const withParse = (percent: number | null | undefined): Analysis => ({ ...fx('strong'), rankPercent: percent });
+
+	it('links to the pull and the player it analysed, in a new tab', () => {
+		const html = render(fx('strong'));
+		const analysis = fx('strong');
+
+		// The three things the analysis was built from, all in the fragment — a link to the report alone
+		// lands the reader on somebody else's pull.
+		expect(html).toContain(`#fight=${analysis.fightID}`);
+		expect(html).toContain(`source=${analysis.actorID}`);
+		expect(html).toContain(`/reports/${analysis.code}`);
+		expect(html).toContain('target="_blank"');
+		// The report is held in memory, so navigating away costs the whole fetch again.
+		expect(html).toContain('rel="noopener noreferrer"');
+	});
+
+	/**
+	 * The bands are WarcraftLogs' own, boundaries included — see `--color-parse-*` in `global.css` for
+	 * why they are not translated into this report's palette. Pinned at both edges of each band,
+	 * because an off-by-one here paints a 95 purple and reads as a worse pull than it was.
+	 */
+	it('paints the parse in the site’s own band', () => {
+		for (const [percent, tone, ink] of [
+			[0, 'common', 'black'],
+			[24, 'common', 'black'],
+			[25, 'uncommon', 'black'],
+			[49, 'uncommon', 'black'],
+			[50, 'rare', 'black'],
+			[74, 'rare', 'black'],
+			[75, 'epic', 'white'],
+			[94, 'epic', 'white'],
+			[95, 'legendary', 'black'],
+			[98, 'legendary', 'black'],
+			[99, 'astounding', 'black'],
+			[100, 'artifact', 'black'],
+		] as const) {
+			const html = render(withParse(percent));
+			expect(html, `${percent}`).toContain(`bg-parse-${tone}`);
+			expect(html, `${percent}`).toContain(`>${percent}<`);
+			// The ink travels with the band and is measured rather than chosen — see `PARSE_BANDS`. The
+			// epic violet is the one band white wins on, and an ink applied uniformly puts either it or
+			// five of the other six under 4.5:1.
+			expect(html, `${percent} ink`).toContain(`text-${ink}`);
+		}
+	});
+
+	/**
+	 * And no tag at all where there is no ranking, which is not the same as a ranking of nought.
+	 *
+	 * A wipe, an unranked difficulty, a private log, a report still being processed, an analysis
+	 * captured before the field existed. `0 parse` over any of those states a bottom-percentile pull
+	 * the site never claimed.
+	 */
+	it('draws nothing rather than a nought when the site has no ranking', () => {
+		// The band class is the tag's own tell: the number alone could be anything on the page, and the
+		// word "parse" is no longer in it — the tag is the percentile and nothing else.
+		for (const value of [null, undefined]) {
+			expect(render(withParse(value))).not.toContain('bg-parse-');
+		}
+		expect(render(withParse(0))).toContain('bg-parse-common');
+		expect(render(withParse(0))).toContain('>0<');
 	});
 });

@@ -595,7 +595,9 @@ describe('the two series on every committed pull', () => {
 			1,
 		);
 		expect(shareOf(pull('strong.json').targets!.aplCounts!.points, pull('strong.json').durationMs)).toBeCloseTo(
-			11.75,
+			// 11.75 before the 2026-08-25 re-capture, and the gap against the evidence series widened with
+			// it rather than closing: 12.21 there against 10.82 here.
+			10.82,
 			1,
 		);
 		expect(shareOf(pull('waves.json').targets!.aplCounts!.points, pull('waves.json').durationMs)).toBeCloseTo(68.2, 1);

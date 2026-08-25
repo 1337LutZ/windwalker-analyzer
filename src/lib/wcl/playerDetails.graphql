@@ -8,6 +8,12 @@
 # It is also one point, and it runs *before* the several pages of events. Discovering after that
 # fetch that the chosen monk was a tank throws the whole fetch away.
 #
+# `rankings` rides along on the same request, and it is the only thing that can state a parse. It is
+# the same untyped JSON scalar and its payload is `data[].roles.{tanks,healers,dps}.characters[]`,
+# each carrying `rankPercent` — the percentile the report page prints beside a name. Characters are
+# matched by **name**, because `id` comes back `0` on an anonymised report, which is every fixture
+# this repository commits.
+#
 # `playerDetails` is the untyped JSON scalar, so codegen types it `unknown`; the shape is narrowed
 # in client.ts and nowhere else.
 
@@ -22,6 +28,7 @@ query FightPlayerDetails($code: String!, $fightID: Int!) {
 	reportData {
 		report(code: $code) {
 			playerDetails(fightIDs: [$fightID])
+			rankings(fightIDs: [$fightID])
 		}
 	}
 }

@@ -63,6 +63,13 @@ import { analyse, registry } from '../index';
  * "forgotten" are the same thing in a report and can only be told apart in the source.
  */
 const NOT_LANES: Record<string, string> = {
+	// The raid's two maximum-health buffs, declared for one reader and one reader only: Touch of Karma
+	// absorbs a full health pool, so the pool a press was scored against is whatever these had done to
+	// it — see `karmaCap` in `../index`. Somebody else presses both, neither changes what the rotation
+	// wanted, and a lane for a health bar this report does not otherwise draw would be a row about
+	// somebody else's cooldown. The number they move is printed where it matters, beside the press.
+	'ancestral-vigor': "raises the health pool Touch of Karma's ceiling is read off; nothing rotational",
+	'rallying-cry': "raises the health pool Touch of Karma's ceiling is read off; nothing rotational",
 	// Drawn above the rows as its own resource curve, not among them — `view/timelineBanks`, off
 	// `brew.bankTimeline`. 127 applications on this pull, which is a row nobody wants as a row.
 	'tigereye-brew-bank': 'drawn as the brew bank',

@@ -60,7 +60,14 @@ const ENCHANTABLE = new Set(['Shoulder', 'Chest', 'Legs', 'Feet', 'Wrist', 'Hand
 /** Slots that never count toward an item level average, whatever they hold. */
 const COSMETIC = new Set(['Shirt', 'Tabard']);
 
-const EMPTY: GearSummary = { slots: [], averageItemLevel: null, missingEnchants: [], gems: 0, masteryRating: null };
+const EMPTY: GearSummary = {
+	slots: [],
+	averageItemLevel: null,
+	missingEnchants: [],
+	gems: 0,
+	masteryRating: null,
+	stamina: null,
+};
 
 /**
  * What the player was wearing, from the `combatantinfo` event the fight fetch already returns.
@@ -87,6 +94,7 @@ export function readGear(events: readonly WclEvent[], sourceID: number): GearSum
 		missingEnchants: slots.filter((s) => s.enchantable && s.id !== 0 && s.enchantID === null).map((s) => s.slot),
 		gems: slots.reduce((count, s) => count + s.gems.length, 0),
 		masteryRating: readMastery(info.mastery),
+		stamina: readStamina(info.stamina),
 	};
 }
 
@@ -107,6 +115,41 @@ export function readGear(events: readonly WclEvent[], sourceID: number): GearSum
 function readMastery(rating: unknown): number | null {
 	return typeof rating === 'number' && rating > 0 ? rating : null;
 }
+
+/**
+ * The player's stamina at the pull, or null when the log did not report one.
+ *
+ * Guarded the same way `readMastery` above is, and for the same reason rather than by imitation:
+ * nobody at level 90 has zero stamina, so a `0` here is WarcraftLogs declining to fill the field —
+ * or, on a legacy Mists report, an event stream carrying no `combatantinfo` at all.
+ */
+function readStamina(stamina: unknown): number | null {
+	return typeof stamina === 'number' && stamina > 0 ? stamina : null;
+}
+
+/**
+ * The maximum health that stamina buys, or null when the log did not report a stamina.
+ *
+ * `BaseHealth + 14 per point`, which is `sim/core/character.go:274-275` in wowsims-mop —
+ * `AddStat(stats.Health, 20-14*20)` then `AddStatDependency(stats.Stamina, stats.Health, 14)` — over
+ * the monk's base health of 146,663 from `sim/core/base_stats.go`. The constant folded below is
+ * `146663 + 20 - 280`.
+ *
+ * **Measured, not assumed.** Touch of Karma absorbs at most one health pool, so a use that drains
+ * its pool states one exactly, and across sixty ranked Mists Classic Siege pulls those drained uses
+ * land on this arithmetic to the unit: 742,145 absorbed against 146,403 + 14 × 42,553 on a press
+ * with no health buff up, and the same agreement under each of the multipliers `karmaCap` applies.
+ *
+ * Monk-only as written, because the base health is per class and this is the only class the report
+ * analyses. A second spec of another class needs its own base rather than a share of this one.
+ */
+export function maxHealthFrom(stamina: number | null | undefined): number | null {
+	return typeof stamina === 'number' && stamina > 0 ? MONK_BASE_HEALTH + HEALTH_PER_STAMINA * stamina : null;
+}
+
+/** Monk base health at 90, less the 20 points of base stamina the dependency below double-counts. */
+const MONK_BASE_HEALTH = 146_663 + 20 - 14 * 20;
+const HEALTH_PER_STAMINA = 14;
 
 function toSlot(piece: GearPiece, slot: string): GearSlot {
 	return {

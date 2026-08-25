@@ -450,6 +450,25 @@ export class WclClient {
 		return ['tanks', 'healers', 'dps'].flatMap((role) => normalisePlayers(roles[role]));
 	}
 
+	/**
+	 * The parse percentile WarcraftLogs itself prints beside a name, or null when it has none.
+	 *
+	 * Null is an ordinary answer rather than a failure, and there are several ways to reach it: a
+	 * wipe, a difficulty or partition nothing is ranked in, a private log, and a pull whose rankings
+	 * WarcraftLogs has not finished computing. Every one of them means "no parse", which is what the
+	 * header prints — never a nought, which would read as a bottom-percentile pull.
+	 *
+	 * Matched on name because `id` is `0` for every character on an anonymised report, which is what
+	 * every fixture in this repository is.
+	 */
+	async fetchRankPercent(code: string, fightID: number, playerName: string): Promise<number | null> {
+		const data = await this.#graphql<FightPlayerDetailsQuery, FightPlayerDetailsQueryVariables>(PLAYER_DETAILS_QUERY, {
+			code,
+			fightID,
+		});
+		return readRankPercent(data.reportData?.report?.rankings, playerName);
+	}
+
 	async fetchDamageTable(code: string, fightID: number): Promise<{ entries: DamageEntry[] }> {
 		const data = await this.#graphql<FightDamageTableQuery, FightDamageTableQueryVariables>(FIGHT_DAMAGE_TABLE_QUERY, {
 			code,
@@ -547,6 +566,32 @@ function unwrapPlayerDetails(value: unknown): Record<string, unknown> | null {
 	if (isRecord(node) && isRecord(node['data'])) node = node['data'];
 	if (isRecord(node) && isRecord(node['playerDetails'])) node = node['playerDetails'];
 	return isRecord(node) ? node : null;
+}
+
+/**
+ * One character's `rankPercent` out of the `rankings` payload, by name.
+ *
+ * The shape is `{ data: [ { roles: { tanks, healers, dps } } ] }` with `characters` under each role,
+ * and every level of it is optional — the field is an untyped JSON scalar, so nothing about it is
+ * guaranteed by the schema. A percentile outside 0-100 is refused rather than clamped: it would mean
+ * the shape moved, and printing a clamped number would hide that.
+ */
+export function readRankPercent(value: unknown, playerName: string): number | null {
+	const root: unknown = isRecord(value) && Array.isArray(value['data']) ? value['data'] : value;
+	const fights = Array.isArray(root) ? root : [];
+	for (const fight of fights) {
+		if (!isRecord(fight) || !isRecord(fight['roles'])) continue;
+		for (const role of Object.values(fight['roles'])) {
+			if (!isRecord(role) || !Array.isArray(role['characters'])) continue;
+			for (const character of role['characters']) {
+				if (!isRecord(character) || character['name'] !== playerName) continue;
+				const percent = character['rankPercent'];
+				if (typeof percent !== 'number' || !Number.isFinite(percent) || percent < 0 || percent > 100) return null;
+				return percent;
+			}
+		}
+	}
+	return null;
 }
 
 function normalisePlayers(rows: unknown): FightPlayer[] {

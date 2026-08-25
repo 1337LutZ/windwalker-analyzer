@@ -265,6 +265,24 @@ export type CombatantInfoEvent = EventBase & {
 	 * has to treat zero as "not reported" — see `readMastery` in `~/lib/analysis/gear`.
 	 */
 	mastery?: number;
+	/**
+	 * Stamina at the pull, in absolute points — and the only absolute health figure a Mists Classic
+	 * log carries anywhere.
+	 *
+	 * Not a trap, unlike `mastery` above it: this one is filled in and correct. It matters because a
+	 * player's health bar on these reports is a *percentage* — `maxHitPoints` is 100 on every
+	 * player-describing event — so nothing else in the stream can say how large a health pool is, and
+	 * Touch of Karma absorbs exactly one of them. `maxHealthFrom` in `~/lib/analysis/gear` turns it
+	 * into that pool; `karmaCap` in `~/specs/windwalker/lib` is what needs it.
+	 *
+	 * Already buffed. The +5% stat auras (Mark of the Wild, Blessing of Kings, Legacy of the Emperor)
+	 * and the +10% stamina ones (Power Word: Fortitude, Blood Pact, Commanding Shout) are inside this
+	 * number as the pull started, which is why the pool derivation multiplies only by the auras that
+	 * move *maximum health* rather than stamina.
+	 *
+	 * Absent on legacy Mists reports: the 2014-era logs carry no `combatantinfo` at all.
+	 */
+	stamina?: number;
 };
 
 /** The end of a death: `targetID` is who came back, `sourceID` who brought them. */

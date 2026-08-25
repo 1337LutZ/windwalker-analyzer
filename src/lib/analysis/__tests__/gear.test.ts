@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/types';
 
-import { readGear } from '../gear';
+import { maxHealthFrom, readGear } from '../gear';
 
 /**
  * The slot array as `combatantinfo` gives it: positional, eighteen long, empty slots included.
@@ -136,6 +136,7 @@ describe('readGear', () => {
 			missingEnchants: [],
 			gems: 0,
 			masteryRating: null,
+			stamina: null,
 		});
 	});
 
@@ -160,5 +161,43 @@ describe('readGear', () => {
 
 	it('says nothing when the field is absent altogether', () => {
 		expect(readGear([gearEvent(at(0, piece()))], 10).masteryRating).toBeNull();
+	});
+
+	/**
+	 * Stamina, on the same terms as the mastery above it and for a sharper reason: it is the only
+	 * absolute health figure a Mists Classic log carries anywhere, because the player's health bar on
+	 * these reports is a percentage. Touch of Karma absorbs exactly one health pool, so without this
+	 * the section scoring it has nothing to divide by.
+	 */
+	it('reads the stamina off the same event, and treats a reported zero as not reported', () => {
+		expect(readGear([gearEvent(at(0, piece()), 10, { stamina: 42_553 })], 10).stamina).toBe(42_553);
+		expect(readGear([gearEvent(at(0, piece()), 10, { stamina: 0 })], 10).stamina).toBeNull();
+		expect(readGear([gearEvent(at(0, piece()))], 10).stamina).toBeNull();
+	});
+});
+
+/**
+ * The health pool that stamina buys, pinned against pulls that measured it rather than against the
+ * arithmetic restated.
+ *
+ * A Touch of Karma use that drains its pool absorbs exactly one pool, so a drained use *states* the
+ * answer — which makes this one of the few conversions in the repository that can be checked against
+ * the game rather than against its own source. All three numbers below are absorbs off real Mists
+ * Classic pulls, taken by presses with no maximum-health buff up, or with one whose factor is known.
+ */
+describe('maxHealthFrom', () => {
+	it('agrees with the pools real Touch of Karma uses drained', () => {
+		// Ranked Siege pull, no health buff at the press: 742,145 absorbed, to the unit.
+		expect(maxHealthFrom(42_553)).toBe(742_145);
+		// `dataset-ironJuggernaut`'s monk, whose Garrosh use drained 805,148 under Ancestral Vigor.
+		expect((maxHealthFrom(41_825) ?? 0) * 1.1).toBeCloseTo(805_148, 0);
+		// And the same base under Fortifying Brew's fifth: 890,557 absorbed on a ranked Malkorok pull.
+		expect((maxHealthFrom(42_552) ?? 0) * 1.2).toBeCloseTo(890_557, 0);
+	});
+
+	it('says nothing without a stamina to convert', () => {
+		expect(maxHealthFrom(null)).toBeNull();
+		expect(maxHealthFrom(undefined)).toBeNull();
+		expect(maxHealthFrom(0)).toBeNull();
 	});
 });

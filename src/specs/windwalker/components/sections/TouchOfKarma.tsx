@@ -14,13 +14,14 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
  * not done as well as damage not avoided — which is why it earns a section rather than a row in the
  * cast table.
  *
- * What it *could* have returned is shown on a pull that measured it, and only there. The redirect
- * absorbs at most a full health pool, and a use that drained its own states that pool exactly — so
- * on a pull with one of those the section can say how much of each press was left unspent. On a pull
- * with none it says so in as many words instead of estimating: a player's `maxHitPoints` reads 100,
- * and a pool derived from absolute damage against a percentage bar is good to about ±10%, which is
- * how the old column came to print 105% of a ceiling that cannot be exceeded. See `karmaCap` in the
- * engine for both measurements.
+ * What it *could* have returned is the health pool, and the section states one on every pull whose
+ * log reports a stamina — which is every Mists Classic report. The pool is computed from that
+ * stamina and multiplied by whatever was raising maximum health when each press went out, so the
+ * ceiling owes nothing to what the pull happened to absorb; see `karmaCap` in the engine for the
+ * derivation and the sixty-pull check behind it. The health *bar* is still not the source and cannot
+ * be: a player's `maxHitPoints` reads 100 on these reports, and a pool derived from absolute damage
+ * against a percentage bar is good to about ±10%, which is how an older column came to print 105% of
+ * a ceiling that cannot be exceeded.
  *
  * The judgement it can always support is the one that matters most: a Karma pressed into a quiet
  * stretch returns nothing, and the per-use table shows that directly.
@@ -42,6 +43,21 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 	const empties = card.sections.karma?.metrics.find((m) => m.key === 'karmaEmpty');
 	const capShare = card.sections.karma?.metrics.find((m) => m.key === 'karmaCapShare');
 	const emptyPresses = karma.uses.filter((use) => use.reflected === 0).length;
+	/**
+	 * What every press together could have absorbed: each one's own pool, summed.
+	 *
+	 * Null on an analysis captured before the per-use pool existed, which is the same answer the
+	 * scorer gives — the prose and the letter go quiet together rather than the prose inventing a
+	 * ceiling out of the pull's largest absorb.
+	 */
+	const ceiling = useMemo(
+		() =>
+			karma.uses.reduce<number | null>(
+				(sum, use) => (sum === null || use.cap === null || use.cap === undefined ? null : sum + use.cap),
+				karma.casts === 0 ? null : 0,
+			),
+		[karma.uses, karma.casts],
+	);
 
 	/**
 	 * The presses went out and there are too few of them to read a share off. A fifth sentence, and not
@@ -247,38 +263,38 @@ export default function TouchOfKarma({ analysis }: { analysis: Analysis }) {
 							    asserted empty presses would be wrong on a pull graded down for half-filled ones. */}
 							{emptyPresses > 0 ? t('karma.empty', { count: emptyPresses }) : null}
 						</Prose>
-						{/* Three situations now, and the copy has to say which one the reader is looking at. A pull
-						    where a use drained its pool states that pool and what the presses left unspent; a
-						    pull where none did says it cannot tell, rather than estimating one.
+						{/* Three situations, and the copy has to say which one the reader is looking at. A pull
+						    whose log reports a stamina states the pool and what the presses left unspent; one
+						    that does not says it cannot tell, rather than estimating.
 
-						    **The percentage is computed here rather than read off `karmaCapShare`, and that is
-						    load-bearing rather than tidy.** That metric carries a press floor now — its ceiling is
-						    the largest absorb on the pull, so the share cannot read below one over the presses
-						    taken, and under three presses the bad end of its scale does not exist — and `metricOf`
-						    parks a refused value at nought. Reading it would print "returned 890,574 — 0% of it" on
-						    exactly the pulls the floor catches, which is a fresh falsehood in place of the old one.
-						    The arithmetic is a fact about the pull and survives the refusal; what the refusal
-						    withdraws is the letter.
+						    **`ceiling` is the sum of the presses' own pools, not one pool times the count**, and
+						    that is the whole reason it is computed here rather than multiplied inline: a press
+						    under Fortifying Brew had a fifth more pool than the headline number states, and
+						    multiplying would credit it for beating a ceiling it never had.
 
-						    **And at one press even the arithmetic says nothing, which is the third sentence.** The
-						    pool is measured off that press, so the share of it is a hundred by construction: the very
-						    reading the scorer declined, printed as prose. That sentence names the pool and stops.
-						    Chosen off the press count and not off the metric, because the two answer different
-						    questions — the metric declines a letter at one press *or* two, and only at one is the
-						    number restating its own definition. `strong`, at two, returned half of what its presses
-						    could have and should say so. */}
-						{karma.capPerUse === null ? (
+						    **The percentage is computed here rather than read off `karmaCapShare`.** `metricOf`
+						    parks a refused value at nought, so reading it would print "absorbed 890,574 — 0% of
+						    it" wherever that metric declines — an analysis captured before the pool existed being
+						    the case that still reaches it. The arithmetic is a fact about the pull and survives
+						    the refusal; what the refusal withdraws is the letter. */}
+						{karma.capPerUse === null || ceiling === null ? (
 							<Note>{t('karma.capUnknown')}</Note>
 						) : karma.casts === 1 ? (
-							<Prose>{t('karma.capSoleUse', { health: karma.capPerUse })}</Prose>
+							<Prose>
+								{t('karma.capSoleUse', {
+									health: karma.capPerUse,
+									absorbed: karma.absorbed ?? 0,
+									pct: ((karma.absorbed ?? 0) / ceiling) * 100,
+								})}
+							</Prose>
 						) : (
 							<Prose>
 								{t('karma.capSummary', {
 									health: karma.capPerUse,
 									casts: karma.casts,
-									possible: karma.capPerUse * karma.casts,
+									possible: ceiling,
 									absorbed: karma.absorbed ?? 0,
-									pct: ((karma.absorbed ?? 0) / (karma.capPerUse * karma.casts)) * 100,
+									pct: ((karma.absorbed ?? 0) / ceiling) * 100,
 									count: karma.exhausted ?? 0,
 								})}
 							</Prose>

@@ -34,36 +34,59 @@ const fixture = (name: string): Analysis =>
 const render = (analysis: Analysis) => renderToStaticMarkup(asWindwalker(createElement(TouchOfKarma, { analysis })));
 
 /**
- * The Iron Juggernaut reference pull with its absorbs filled in, which the committed fixture predates.
+ * The Iron Juggernaut reference pull with its pool filled in, which the committed fixture predates.
  *
- * Verbatim from `../../../__fixtures__/karmacap.test.ts`, which measures these against the live log: three
- * presses, the middle one drained its pool at 629,585, and the other two returned 60.8% and 32.3% of
- * that. Written out rather than derived, so a change to how `analyse` computes them shows up as a
- * disagreement between two files instead of moving both at once.
+ * Verbatim from `../../../__fixtures__/karmacap.test.ts`, which measures these against the live log:
+ * a 677,899 pool off 37,964 stamina, three presses, and the middle one taken between a resto shaman's
+ * heals so it had no Ancestral Vigor on it — hence a ceiling of the bare pool where the other two get
+ * a tenth more. Written out rather than derived, so a change to how `analyse` computes them shows up
+ * as a disagreement between two files instead of moving both at once.
  */
 function measured(): Analysis {
 	const analysis = structuredClone(fixture('mixed'));
 	const absorbed = [382_715, 629_585, 203_636];
-	const exhausted = [false, true, false];
-	const capPct = [60.8, 100, 32.3];
-	analysis.karma.capPerUse = 629_585;
+	const cap = [745_689, 677_899, 745_689];
+	const capPct = [51.3, 92.9, 27.3];
+	analysis.karma.capPerUse = 677_899;
 	analysis.karma.absorbed = absorbed.reduce((sum, n) => sum + n, 0);
-	analysis.karma.exhausted = 1;
+	analysis.karma.exhausted = 0;
 	analysis.karma.uses = analysis.karma.uses.map((use, i) => ({
 		...use,
 		absorbed: absorbed[i] ?? 0,
-		exhausted: exhausted[i] ?? false,
+		cap: cap[i] ?? 0,
+		exhausted: false,
 		capPct: capPct[i] ?? 0,
 	}));
 	return analysis;
 }
 
 /**
+ * The same pull with its last press drained, which no reference pull happens to do at three presses.
+ *
+ * Needed because "(capped)" and the drained sentence are reachable only from a use that returned
+ * everything its pool held, and the one committed pull that does — Garrosh, `strong` — has two
+ * presses rather than three. Built off `measured` so only the drained flag differs.
+ */
+function drained(): Analysis {
+	const analysis = measured();
+	const uses = analysis.karma.uses.map((use, i) =>
+		i === 1 ? { ...use, absorbed: 677_899, exhausted: true, capPct: 100 } : use,
+	);
+	analysis.karma = {
+		...analysis.karma,
+		uses,
+		exhausted: 1,
+		absorbed: uses.reduce((sum, use) => sum + (use.absorbed ?? 0), 0),
+	};
+	return analysis;
+}
+
+/**
  * `a:YBQzrcgVJnAj7NMP` #15, Kor'kron Dark Shaman — the pull the tile was reported wrong on.
  *
- * Two presses in a 245s pull, so three charges the cooldown allowed; both landed, and neither absorb
- * came up short of its blow, so the ceiling is unknowable. Figures verbatim from the live assertions
- * in `../../../__fixtures__/karmacap.test.ts`.
+ * Two presses in a 245s pull, so three charges the cooldown allowed, and both landed. Neither drained
+ * its pool, which used to make the ceiling unknowable and now makes it merely unreached. Figures
+ * verbatim from the live assertions in `../../../__fixtures__/karmacap.test.ts`.
  */
 function darkShaman(): Analysis {
 	const analysis = structuredClone(fixture('mixed'));
@@ -73,11 +96,11 @@ function darkShaman(): Analysis {
 		available: 3,
 		reflected: 936_608,
 		absorbed: 892_008,
-		capPerUse: null,
+		capPerUse: 677_899,
 		exhausted: 0,
 		uses: [
-			{ t: 20_432, reflected: 198_901, absorbed: 189_430, exhausted: false, hits: 6, capPct: null },
-			{ t: 133_923, reflected: 737_707, absorbed: 702_578, exhausted: false, hits: 6, capPct: null },
+			{ t: 20_432, reflected: 198_901, absorbed: 189_430, cap: 677_899, exhausted: false, hits: 6, capPct: 27.9 },
+			{ t: 133_923, reflected: 737_707, absorbed: 702_578, cap: 745_689, exhausted: false, hits: 6, capPct: 94.2 },
 		],
 	};
 	return analysis;
@@ -126,39 +149,53 @@ function oneEmptyOfThree(): Analysis {
 
 describe('the Touch of Karma section', () => {
 	/**
-	 * The case the section exists to handle honestly: no use drained its pool, so the ceiling is
-	 * unknown and has to be said to be unknown. A dash, a zero or an estimate would each imply the
-	 * report knows something it does not.
+	 * The case the section still has to handle honestly, and the one that has become rare.
+	 *
+	 * The pool is computed from `combatantinfo`'s stamina, so a log that reports none can state
+	 * nothing — a Mists report old enough to carry no character sheet at all. A dash, a zero or an
+	 * estimate would each imply the report knows something it does not.
 	 */
-	it('says it cannot tell what a use was worth when no use measured the pool', () => {
-		// The measurement is stripped rather than a fixture trusted not to have one. Every reference
-		// pull now drains a pool on at least one use, which is what re-capturing revealed — and a test
-		// that reached this branch only because the captures were old was pinning their age.
+	it('says it cannot tell what a use was worth when the log reports no stamina', () => {
+		// The pool is stripped rather than a fixture trusted not to have one. Every reference pull states
+		// one now, and a test that reached this branch through a capture would be pinning its age.
 		const captured = fixture('mixed');
 		const unmeasured: Analysis = {
 			...captured,
 			karma: {
 				...captured.karma,
 				capPerUse: null,
-				uses: captured.karma.uses.map((use) => ({ ...use, exhausted: false, capPct: null })),
+				uses: captured.karma.uses.map((use) => ({ ...use, cap: null, exhausted: false, capPct: null })),
 			},
 		};
 		const html = render(unmeasured);
 
 		expect(html).toContain('cannot be said on this pull');
 		// The column is absent rather than empty, and no share of any ceiling is printed.
-		expect(html).not.toContain('of cap');
 		expect(html).not.toContain(t('karma.kpi.ofCap'));
 	});
 
-	/** And the case where it can: the pool is named, and named as measured rather than as supplied. */
-	it('states the pool a use demonstrated, and what the presses left in them', () => {
+	/** And the ordinary case: the pool is named, and named off the character rather than off the pull. */
+	it('states the pool and what the presses left in it', () => {
 		const html = render(measured());
 
-		expect(html).toContain('drained its pool completely');
-		expect(html).toContain('629.6k health');
-		expect(html).toContain('of cap');
-		expect(html).toContain(t('karma.kpi.ofCap'));
+		expect(capLine(html)).toContain('677.9k');
+		// Each press against its own ceiling, so the total is not one pool times three: two of these three
+		// had Ancestral Vigor on them and one did not.
+		expect(capLine(html)).toContain('2.2M');
+		expect(html).toContain(t('karma.columns.capPct'));
+	});
+
+	/**
+	 * A press that redirected nothing is a press with a ceiling it never approached, and the arithmetic
+	 * has to be able to say so — which is what the old, pull-measured ceiling could not do.
+	 */
+	it('reads a press well short of its pool as well short of it', () => {
+		const html = render(measured());
+
+		// 203,636 of a 745,689 ceiling. Under the old ceiling — the pull's largest absorb, 629,585 — the
+		// same press printed 32.3%.
+		expect(html).toContain('27.3%');
+		expect(html).not.toContain('32.3%');
 	});
 
 	/**
@@ -166,65 +203,72 @@ describe('the Touch of Karma section', () => {
 	 * everything it could and cannot be faulted, whatever the number beside it.
 	 */
 	it('marks the use that reached its ceiling', () => {
-		const html = render(measured());
+		const html = render(drained());
 
 		// Twice for one row: `DataGrid` renders the table and the stacked phone cards side by side and
 		// hides one of them in CSS, so every cell is in the markup exactly twice.
 		expect(html.match(/\(capped\)/g)).toHaveLength(2);
-		// Exactly 100%, never 105% — the bug this replaced divided the redirect, which is 1.05× the
-		// absorb, by the pool. Nothing in the table may read above its own ceiling.
+		// Exactly 100%, never 105% — an older reading divided the redirect, which is 1.05× the absorb, by
+		// the pool. Nothing in the table may read above its own ceiling.
 		expect(html).toContain('100%');
 		expect(html).not.toContain('105%');
+		expect(capLine(html)).toContain('drained its pool completely');
 	});
 
 	/**
-	 * The trap the ceiling share's press floor sets, and the sentence that had to move with it.
+	 * The trap the scorer sets for this sentence, and the reason the component does its own arithmetic.
 	 *
 	 * `metricOf` parks a refused metric's value at nought, and this sentence used to interpolate
-	 * `capShare?.value ?? 0`. So the floor on its own printed the pool, then the damage the presses
-	 * actually returned, and then "0% of it" — a fresh falsehood laid over the one being fixed. The
-	 * percentage is arithmetic about the pull and survives the refusal, so the component computes it off
-	 * `absorbed` over `capPerUse × casts` and no longer reads it off the scorer. Only the letter goes,
-	 * and with it the tile that carried one.
+	 * `capShare?.value ?? 0` — so a refusal printed the pool, then the damage the presses actually
+	 * returned, and then "0% of it". The percentage is a fact about the pull and survives the refusal,
+	 * so the component computes it off the presses' own ceilings and never reads the scorer.
 	 *
-	 * `strong` is a committed capture: two presses, the first drained an 805,148 pool and the second
-	 * absorbed nothing at all, so half of what the pair could have returned came back.
+	 * Reached by hand now rather than by a fixture, and that is the shape of the fix rather than a
+	 * weakening of the test: every committed capture states a pool, so nothing in the tree refuses this
+	 * metric any more. A log reporting no stamina still does.
 	 */
-	it('still says what the presses returned on a pull whose share it refuses', () => {
-		const html = render(fixture('strong'));
+	it('still says what the presses returned on a pull whose share the scorer refuses', () => {
+		const captured = fixture('strong');
+		const noStamina: Analysis = {
+			...captured,
+			karma: {
+				...captured.karma,
+				capPerUse: null,
+				uses: captured.karma.uses.map((use) => ({ ...use, cap: null, capPct: null, exhausted: false })),
+			},
+		};
 
-		expect(capLine(html)).toContain('805.1k health');
-		expect(capLine(html)).toContain('returned 805.1k — 50% of it');
+		const html = render(noStamina);
+
+		expect(capLine(html)).toContain('cannot be said on this pull');
 		expect(capLine(html)).not.toContain('— 0% of it');
-		// The letter is what the floor withdrew, so the tile that showed one is not drawn. It read 50%
-		// in amber here, off a scale whose bad end two presses cannot reach.
 		expect(tile(html, t('karma.kpi.ofCap'))).toBe('');
 	});
 
 	/**
-	 * And the pull where the arithmetic itself says nothing, so the sentence stops before it.
+	 * One press, and the sentence that stops before a share of the pull.
 	 *
-	 * `weave` is a committed capture with a single press, and that press drained its pool — which is the
-	 * only way a pool is ever stated. The share therefore divides that press by a ceiling measured off
-	 * that same press and reads a hundred percent by construction. Printing "your 1 uses could have
-	 * absorbed 890,574 between them and returned 890,574 — 100% of it" restates the definition of the
-	 * number, and a reader takes a hundred percent for a perfect mark. So the pool is named and the
-	 * share is not offered: the press has its own row above, which is all this pull can support.
+	 * A lone press has no pull-level total worth stating — "your 1 uses could have absorbed X between
+	 * them" reads as arithmetic performed on nothing — so the pool is named, the press's own share of
+	 * it is given, and the row above carries the rest.
 	 */
-	it('does not restate the definition of the number as a full mark', () => {
-		const analysis = fixture('weave');
-		expect(analysis.karma.casts).toBe(1);
-		expect(analysis.karma.absorbed).toBe(analysis.karma.capPerUse);
+	it('does not spread one press across a pull-level total', () => {
+		const captured = fixture('weave');
+		expect(captured.karma.casts).toBe(1);
+		const analysis: Analysis = {
+			...captured,
+			karma: {
+				...captured.karma,
+				capPerUse: 742_145,
+				uses: captured.karma.uses.map((use) => ({ ...use, cap: 890_574, capPct: 100 })),
+			},
+		};
 
 		const html = render(analysis);
 
-		expect(capLine(html)).not.toContain('— 100% of it');
 		expect(capLine(html)).not.toContain('could have absorbed');
-		// The pool is still named, because a press did measure it — what goes is the share of it.
-		expect(capLine(html)).toContain('890.6k health');
-		expect(capLine(html)).toContain('the only press on the pull');
-		// And the tile, which read a green 100% off the same forced figure.
-		expect(tile(html, t('karma.kpi.ofCap'))).toBe('');
+		expect(capLine(html)).toContain('742.1k');
+		expect(capLine(html)).toContain('the whole of what happened here');
 	});
 
 	/** A press that returned nothing is counted in words, not only banded in the table. */
@@ -293,9 +337,9 @@ describe('the Touch of Karma section', () => {
 	 * and not red. `usageTone`'s 90/70, which the Chi Brew tile uses, would call it a failure.
 	 */
 	it('tones the uses taken by how many the pull offered', () => {
-		expect(tile(render(darkShaman()), 'Uses taken')).toContain(TONE.ok);
+		expect(tile(render(darkShaman()), 'Uses')).toContain(TONE.ok);
 		// Three of three the pull allowed, and two of six.
-		expect(tile(render(fixture('poor')), 'Uses taken')).toContain(TONE.good);
-		expect(tile(render(fixture('strong')), 'Uses taken')).toContain(TONE.bad);
+		expect(tile(render(fixture('poor')), 'Uses')).toContain(TONE.good);
+		expect(tile(render(fixture('strong')), 'Uses')).toContain(TONE.bad);
 	});
 });

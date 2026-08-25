@@ -189,6 +189,39 @@ export const SHARED_AURAS: Aura[] = [
 		durationMs: 10_000,
 	},
 
+	// -------------------------------------------------- the raid's health buffs
+	//
+	// Both raise *maximum health* rather than stamina, both are pressed by somebody else, and both
+	// exist here for one reader: Touch of Karma redirects at most one full health pool, so the pool a
+	// press was scored against is whatever these two had done to it at the moment it went out. A
+	// Windwalker-only declaration would be wrong on its own terms — neither belongs to the monk — and
+	// the pool they move is a property of any character, not of a spec.
+	//
+	// Their sizes are not guesses. A Karma use that drains its pool absorbs exactly one pool, so a
+	// drained use *states* the pool; across sixty ranked Mists Classic Siege pulls the drained uses
+	// land on `base × 1.1` under Ancestral Vigor and `base × 1.2` under Rallying Cry to the unit.
+	{
+		key: 'ancestral-vigor',
+		name: 'Ancestral Vigor',
+		// The Restoration Shaman talent: +10% maximum health for fifteen seconds, refreshed by every
+		// heal that lands. Near-permanent on anyone a healer is watching, which is why a pool derived
+		// without it reads about a tenth low on most pulls that took damage at all.
+		ids: [105284],
+		kind: 'buff',
+		durationMs: 15_000,
+	},
+	{
+		key: 'rallying-cry',
+		name: 'Rallying Cry',
+		// The Warrior's raid defensive: +20% maximum health for ten seconds. 97463 is the buff the raid
+		// carries; 97462 is the button the warrior pressed, and this report never sees that actor's
+		// casts. Rare and worth having anyway — the one press of it in the reference sweep moved a
+		// Karma ceiling by a fifth, and without it that use read 121% of a ceiling nothing can exceed.
+		ids: [97463],
+		kind: 'buff',
+		durationMs: 10_000,
+	},
+
 	// ---------------------------------------------------------- the tinker buff
 	{
 		key: 'synapse-springs',

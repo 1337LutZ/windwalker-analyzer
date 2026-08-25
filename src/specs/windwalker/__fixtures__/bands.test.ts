@@ -164,7 +164,9 @@ describe('the Tiger Palm rule says which target counts it is honest over', () =>
 	 */
 	it('narrows the sample on a mixed pull whose habit was clean throughout', () => {
 		const metric = tigerPalm('strong', 'auto');
-		expect(metric?.sampleSize).toBe(28);
+		// 28 before the 2026-08-25 re-capture: the APL series moved by one press, so four of the
+		// thirty-three leave the sample rather than five. The claim is the narrowing, not the number.
+		expect(metric?.sampleSize).toBe(29);
 		expect(fixture('strong').filler.casts).toBe(33);
 		// Deliberate no-change guard: nothing was wasted at any count, so no cut can move this.
 		expect(metric?.grade).toBe('good');
@@ -229,10 +231,13 @@ describe('the weight the band replaced', () => {
 	it('moves no headline in the committed set, and says why for each', () => {
 		// `cleave` forced single: `good` since the APL series took its Tiger Palm sample over the floor.
 		expect(overall('cleave', 'single')).toBe('good');
-		// `waves` is the one the brew metric took back — the band's contribution to it is unchanged.
-		expect(overall('waves', 'auto')).toBe('ok');
-		// And nothing in the set moves under the reader's own default, before or after the re-capture.
-		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['good', 'ok', 'bad', 'good', 'good', 'ok']);
+		// `waves` read `ok` until the 2026-08-25 re-capture and reads `good` now, and it is not this band
+		// that moved it: `gcdUtilisation` crossed its own line at 75, from 74.85 to 75.18. The captures
+		// were old enough for the engine's global arithmetic to have drifted a third of a point under
+		// them, which is the thing re-capturing was for.
+		expect(overall('waves', 'auto')).toBe('good');
+		// And nothing in the set moves *with the band* under the reader's own default.
+		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['good', 'ok', 'bad', 'good', 'good', 'good']);
 	});
 });
 

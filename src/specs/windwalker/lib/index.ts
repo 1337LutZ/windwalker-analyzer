@@ -11,23 +11,14 @@
 //
 // Ids are verified against qDZ2J7v4CP98aQmV #57 and KvCazMYkqZxfjRBg #48 (Garrosh HC 25).
 
-import {
-	abilityIdOf,
-	instanceKey,
-	isAbsorbed,
-	isCast,
-	isDamage,
-	isResourceChange,
-	resourceActorOf,
-} from '~/lib/events';
-import type { AbsorbedEvent, DamageEvent } from '~/lib/events';
+import { abilityIdOf, instanceKey, isAbsorbed, isCast, isResourceChange, resourceActorOf } from '~/lib/events';
 import { formatGap } from '~/lib/format';
 import type { Ability, Aura, Channel, GameData } from '~/lib/game/model';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
-import { readTalents } from '~/lib/analysis/gear';
+import { maxHealthFrom, readTalents } from '~/lib/analysis/gear';
 import { aplAudit } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { CHI_COST, LADDER, UNARBITRATED } from './apl';
@@ -188,6 +179,22 @@ const RJW_CHI_ID = 129_881;
  * grades it, because Windwalker presses it to survive.
  */
 const FORTIFYING_BREW_MS = 20000;
+/**
+ * What each of the three raid health buffs does to a maximum health pool.
+ *
+ * Only Touch of Karma's ceiling reads them, and they are here rather than on the aura declarations
+ * because an `Aura` describes what the log writes, not what the effect is worth.
+ *
+ * Fortifying Brew's fifth is `sim/monk/fortifying_brew.go:15`. **Glyph of Fortifying Brew halves it
+ * to a tenth** and a Mists Classic log reports no glyphs, so a press under the brew carries that
+ * ambiguity — which is the one shape the arithmetic cannot resolve, and the reason the ceiling takes
+ * the larger of itself and what the use actually absorbed. Ancestral Vigor's tenth and Rallying
+ * Cry's fifth are the client's, and all three are confirmed by drained uses landing on the product
+ * to the unit — see `karmaCap`.
+ */
+const FORTIFYING_BREW_HEALTH = 1.2;
+const ANCESTRAL_VIGOR_HEALTH = 1.1;
+const RALLYING_CRY_HEALTH = 1.2;
 /**
  * Touch of Karma's advertised ten seconds, and deliberately *not* `KARMA_WINDOW_MS`.
  *
@@ -1110,6 +1117,8 @@ const TIGER_POWER = registry.aura('tiger-power');
 const CB_TIGER_PALM = registry.aura('combo-breaker-tiger-palm');
 const ENERGIZING_BREW = registry.aura('energizing-brew');
 const FORTIFYING_BREW = registry.aura('fortifying-brew');
+const ANCESTRAL_VIGOR = registry.aura('ancestral-vigor');
+const RALLYING_CRY = registry.aura('rallying-cry');
 const RUSHING_JADE_WIND = registry.aura('rushing-jade-wind');
 const TIGER_STRIKES = registry.aura('tiger-strikes');
 const TOUCH_OF_KARMA_AURA = registry.aura('touch-of-karma');
@@ -1693,38 +1702,28 @@ function chiBrewAudit(
  * is a six-second periodic effect that each absorbed hit *refreshes*, so the ticks run six seconds
  * past the last blow the redirect ate rather than stopping with the ten-second aura.
  *
- * The *cap* on what it redirects is a full health pool, and the report does now claim it — measured
- * from the absorb rather than derived from a health bar. See `karmaCap` in `analyse`, which carries
- * the game-database citation and the measurement. What is no longer relevant, but is worth not
- * re-deriving: a pool estimated from absolute damage against a *percentage* bar — `maxHitPoints` is
- * 100 on all 1,902 player-describing events of one pull, while NPCs in the same report carry
- * absolute values — is only good to about ±10%, and against one such estimate the Garrosh use read
- * 107% of its own ceiling. The absorb is exact and needs no estimate at all.
+ * The *cap* on what it redirects is a full health pool, and that pool is computed from the player's
+ * stamina rather than read off a health bar — see `karmaCap` in `analyse`, which carries the
+ * derivation and the measurement. What is worth not re-deriving: a pool estimated from absolute
+ * damage against a *percentage* bar — `maxHitPoints` is 100 on all 1,902 player-describing events of
+ * one pull, while NPCs in the same report carry absolute values — is only good to about ±10%, and
+ * against one such estimate the Garrosh use read 107% of its own ceiling.
  */
 export const KARMA_WINDOW_MS = 20000;
 
 /**
- * How big the blow behind one absorb was, or null when the log did not pair them.
+ * How close to its ceiling a use has to come to be called drained.
  *
- * The absorb event says what a shield paid; it does not say what it was asked for. That is on the
- * damage event it belongs to, as `amount` (what got through) plus `absorbed` (what every shield on
- * the player took off it together) — so a shield paying less than the sum of those two is a shield
- * that ran out mid-blow.
- *
- * Paired on ability and time rather than on an id, because the two events are not stamped alike: on
- * the reference pulls a third of the pairs sit one millisecond apart, which an equality match drops
- * silently and which then reads as a use that never hit its ceiling.
+ * A use that drains its pool absorbs exactly one pool, so the honest test is equality — and the
+ * slack is here because the *ceiling* carries about a percent of error rather than because the
+ * absorb does. Stacked health buffs each snapshot their bonus off the pool as it stood when they
+ * landed (`OnGain: bonusHealth = MaxHealth() * modifier`, `sim/monk/fortifying_brew.go:25`), so a
+ * press under two of them sits a shade above the product `karmaCap` multiplies out. Measured across
+ * sixty ranked Mists Classic Siege pulls: 81 uses that absorbed anything, the two highest reading
+ * 101.3% and 101.6% of the product and everything else at or under it, with 27 landing inside this
+ * band. One percent is the width of that error, not a tolerance picked to make a number look round.
  */
-const ABSORB_PAIR_TOLERANCE_MS = 5;
-function blowBehind(damageTaken: DamageEvent[], absorb: AbsorbedEvent): number | null {
-	let best: DamageEvent | null = null;
-	for (const hit of damageTaken) {
-		const apart = Math.abs(hit.timestamp - absorb.timestamp);
-		if (apart > ABSORB_PAIR_TOLERANCE_MS || abilityIdOf(hit) !== absorb.extraAbilityGameID) continue;
-		if (best === null || apart < Math.abs(best.timestamp - absorb.timestamp)) best = hit;
-	}
-	return best === null ? null : (best.amount ?? 0) + (best.absorbed ?? 0);
-}
+const KARMA_DRAINED_SHARE = 0.99;
 
 /**
  * How close two differently-identified presses of one ability have to be to be the same press.
@@ -2536,44 +2535,55 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	 * Ancient Barrier paid for.
 	 */
 	const karmaAbsorbIds = new Set(TOUCH_OF_KARMA.castIds ?? []);
-	const damageTaken = events.filter(isDamage).filter((e) => e.targetID === actor.id);
 	for (const absorb of events.filter(isAbsorbed)) {
 		if (!karmaAbsorbIds.has(abilityIdOf(absorb) ?? -1) || absorb.targetID !== actor.id) continue;
 		const owner = karmaOwner(absorb.timestamp - t0);
 		if (owner === undefined) continue;
 		owner.absorbed += absorb.amount ?? 0;
-		// Did this absorb cover the whole blow? The pool is fixed and the aura is *not* removed when it
-		// empties — which is why `KARMA_WINDOW_MS` is what it is — so the only tell that a use reached
-		// its ceiling is the one absorb that came up short: the shield paid what was left of the pool
-		// and the rest went through, or on to another shield. It is always the last absorb of the use,
-		// verified on all eight reference uses, five of which ended this way — so the flag is simply
-		// overwritten by each absorb rather than latched.
-		const blow = blowBehind(damageTaken, absorb);
-		owner.exhausted = blow !== null && (absorb.amount ?? 0) < blow;
 	}
 	/**
-	 * The health pool, measured instead of asked for.
+	 * The health pool, computed rather than inferred from what the pull happened to demonstrate.
 	 *
-	 * The share is a *full* pool, and the source is the game database rather than the simulator —
-	 * which is itself the finding. `sim/monk/` registers no spell, no aura and no APL entry for
-	 * 122470; the only trace of Touch of Karma anywhere in wowsims-mop is a glyph enum, so the sim can
-	 * say nothing about it. `Spell.Description_lang` for 122470 in `tools/database/wowsims.db` can:
-	 * "All damage you take is redirected to the enemy target as Nature damage over $124280d instead of
-	 * you. **Damage cannot exceed your total health.**"
+	 * The ceiling is a *full* pool, and `Spell.Description_lang` for 122470 in
+	 * `tools/database/wowsims.db` is where that comes from — the simulator itself says nothing, since
+	 * `sim/monk/` registers no spell, no aura and no APL entry for Touch of Karma, and the only trace
+	 * of it anywhere in wowsims-mop is a glyph enum. The database: "All damage you take is redirected
+	 * to the enemy target as Nature damage over $124280d instead of you. **Damage cannot exceed your
+	 * total health.**"
 	 *
-	 * So a use that drained its pool absorbed exactly one health pool, and that is a measurement with
-	 * no percentage arithmetic in it — where a ratio estimate against the health bar was also
-	 * available the two agreed to 0.03%, 0.8% and −0.7%. Null when no use drained one: a pull can
-	 * genuinely carry no information about the ceiling — one Garrosh use took no damage at all — and
-	 * the section then says so rather than deriving a pool from a bar that reports in whole percent.
+	 * **The pool comes from stamina, because it is the only absolute health figure these logs carry.**
+	 * A player's health *bar* is a percentage on a Mists Classic report — `maxHitPoints` is 100 on
+	 * every player-describing event — but `combatantinfo` reports stamina in points, and
+	 * `maxHealthFrom` turns it into health at the game's own rate. See that function for the citation.
 	 *
-	 * The largest absorb on the pull rather than the first drained one, because a pull spans buffs
-	 * that move a health pool: the three drained uses on the Malkorok reference read 689,443, 686,656
-	 * and 734,249. Every use's absorb is a hard lower bound on the pool it drew from — a shield cannot
-	 * pay out more than it held — so the largest of them cannot be exceeded by any other use, which is
-	 * what stops `capPct` printing above 100% for a use that did not actually cap.
+	 * **Times whatever was raising maximum health when the press went out.** Three auras do, and all
+	 * three are declared in `SHARED_AURAS` because none of them is the monk's to press except one:
+	 * Ancestral Vigor (+10%), Fortifying Brew (+20%) and Rallying Cry (+20%). Read at the *cast*
+	 * rather than across the redirect, because the shield's capacity is fixed when it goes up — a brew
+	 * pressed halfway through does not refill it.
+	 *
+	 * **What replaced, and why.** This used to be the largest absorb on any use whose last absorb came
+	 * up short of the blow behind it, on the reasoning that a shield paying less than it was asked for
+	 * had run out. That test cannot tell a drained pool from a blow another shield ate part of —
+	 * Divine Aegis, Spirit Shell, Guard, Malkorok's own Ancient Barrier — and the Malkorok reference
+	 * pull `a:YBQzrcgVJnAj7NMP` #30 is the demonstration: all three uses flagged, reading 689,443 /
+	 * 686,656 / 734,249 for one pool that never moved. Swept over sixty ranked Mists Classic Siege
+	 * pulls the old flag fires on 38 uses, seven of which absorbed only 90-94% of the real pool, and
+	 * misses two that genuinely drained.
+	 *
+	 * **And it is falsifiable, which the old measurement was not.** A use cannot absorb more than one
+	 * pool, so the arithmetic can be checked against every use on every pull rather than only against
+	 * the ones it was derived from: across those sixty pulls the highest of 81 uses reads 101.57% of
+	 * prediction, only two clear 100.5% at all, and 27 land inside 99-100.5% — drained, onto the
+	 * predicted number. Drained uses hit it to the unit: 742,145 absorbed against 146,403 + 14 × 42,553
+	 * with no health buff up, 816,344 against the same base × 1.1 under Ancestral Vigor, 890,557
+	 * against × 1.2 under Fortifying Brew.
+	 *
+	 * Null when the log reports no stamina, which is a legacy Mists report carrying no `combatantinfo`
+	 * at all. The section then says it cannot state a pool, exactly as it did on a pull where nothing
+	 * drained — that branch has not gone away, it has become rare instead of usual.
 	 */
-	const karmaCap = karmaUses.some((use) => use.exhausted) ? Math.max(...karmaUses.map((use) => use.absorbed)) : null;
+	const karmaCap = maxHealthFrom(gear.stamina);
 
 	/**
 	 * Whether Fortifying Brew was up while the redirect ran — reported, and deliberately not praised.
@@ -2599,10 +2609,45 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 	 * attribution window: a brew pressed after the redirect finished did not overlap it.
 	 */
 	const fortifyingWindows = auraWindows(selfEvents, FORTIFYING_BREW, t0, fight.endTime);
-	const karmaWithFortifying = karmaUses.map((use) => ({
-		...use,
-		fortifyingBrew: fortifyingWindows.some((w) => w.start <= use.t + TOUCH_OF_KARMA_MS && w.end >= use.t),
-	}));
+	const vigorWindows = auraWindows(selfEvents, ANCESTRAL_VIGOR, t0, fight.endTime);
+	const rallyingWindows = auraWindows(selfEvents, RALLYING_CRY, t0, fight.endTime);
+	/**
+	 * The ceiling this particular press had, which is not the pull's pool whenever a health buff moved
+	 * it. See `karmaCap` above for where the pool and the three multipliers come from.
+	 *
+	 * **At the cast and not across the redirect**, which is the one place this differs from the
+	 * `fortifyingBrew` flag beside it. That flag answers "did the pairing happen", so it takes any
+	 * overlap with the ten seconds; this answers "how big was the shield", and a shield's capacity is
+	 * fixed when it goes up. A brew pressed halfway through the redirect does not refill it.
+	 *
+	 * **The absorb is a floor under the answer.** A shield cannot pay out more than it held, so a use
+	 * that absorbed more than the arithmetic predicts has demonstrated a larger pool than the
+	 * arithmetic knew about — a health buff applied a moment before the press and logged a moment
+	 * after it, or two of them snapshotting off each other. Taking the larger is what stops `capPct`
+	 * printing above 100% on the two uses in eighty-one that do this.
+	 */
+	const upAt = (windows: readonly { start: number; end: number }[], at: number): boolean =>
+		windows.some((w) => w.start <= at && w.end >= at);
+	const karmaWithFortifying = karmaUses.map((use) => {
+		const pool =
+			karmaCap === null
+				? null
+				: karmaCap *
+					(upAt(vigorWindows, use.t) ? ANCESTRAL_VIGOR_HEALTH : 1) *
+					(upAt(fortifyingWindows, use.t) ? FORTIFYING_BREW_HEALTH : 1) *
+					(upAt(rallyingWindows, use.t) ? RALLYING_CRY_HEALTH : 1);
+		// Rounded, because a health pool is a whole number of points and the multipliers are not: the
+		// Garrosh reference use absorbs 805,148 against a raw 805,148.3, which would otherwise print as
+		// 99.99996% of a ceiling it demonstrably reached.
+		const cap = pool === null ? null : Math.max(Math.round(pool), use.absorbed);
+		return {
+			...use,
+			cap,
+			// Restated off the ceiling rather than off the last absorb's shortfall — see `karmaCap`.
+			exhausted: cap !== null && cap > 0 && use.absorbed >= cap * KARMA_DRAINED_SHARE,
+			fortifyingBrew: fortifyingWindows.some((w) => w.start <= use.t + TOUCH_OF_KARMA_MS && w.end >= use.t),
+		};
+	});
 
 	// ------------------------------------------------------------ Invoke Xuen
 	//
@@ -4122,17 +4167,18 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 			reflected: karmaReflected,
 			absorbed: karmaUses.reduce((sum, u) => sum + u.absorbed, 0),
 			sharePct: eventTotal > 0 ? (karmaReflected / eventTotal) * 100 : 0,
+			// The character's pool, with nothing on it. What each press was actually scored against is
+			// `use.cap`, which is this times whatever health buff was up — so a press under Fortifying
+			// Brew is not credited for clearing a bare pool, and the two numbers are printed together.
 			capPerUse: karmaCap,
-			exhausted: karmaUses.filter((use) => use.exhausted).length,
+			exhausted: karmaWithFortifying.filter((use) => use.exhausted).length,
 			withFortifyingBrew: karmaWithFortifying.filter((use) => use.fortifyingBrew).length,
 			uses: karmaWithFortifying.map((use) => ({
 				...use,
-				// Exactly 100 for a use that drained its pool, and not the ratio: that use *is* the
-				// measurement of the pool, so dividing it by the pull's largest one would report a use
-				// that returned everything it could as having fallen short of a moment it never saw.
-				// Every other use divides the absorb — never the redirect, which is 1.05× larger — by a
-				// pool no use on the pull exceeded, so this cannot print above 100 again.
-				capPct: karmaCap === null ? null : use.exhausted ? 100 : (use.absorbed / karmaCap) * 100,
+				// The absorb over this press's own ceiling — never the redirect, which is 1.05× larger, and
+				// never the pull's bare pool, which a press under a health buff would exceed. `use.cap` is
+				// itself floored at what the press absorbed, so this cannot print above 100.
+				capPct: use.cap === null || use.cap <= 0 ? null : (use.absorbed / use.cap) * 100,
 			})),
 		},
 		filler: {

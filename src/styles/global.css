@@ -140,7 +140,13 @@
 	 * Mixed against the surface once, here, and painted at full opacity, a band is the same colour
 	 * wherever it is drawn. It hides the area wash it covers, which is the right way round: the wash
 	 * is decoration under the line and the band is the thing the chart is arguing about. */
-	--color-band-miss: color-mix(in oklch, var(--color-miss) 38%, var(--color-surface));
+	/* The red one is mixed harder than the other two, and that is a correction rather than a preference.
+	 * At the 38% the three shared, the rose lands on #684441 over the Windwalker's green-tinted surface
+	 * — 104/68/65, barely redder than it is anything else — and it is drawn directly beside the amber
+	 * haste band at #585329. Two muddy olives, one of which is supposed to be the fault. At 65% it lands
+	 * on #a6585e and reads as red at a glance, 3.18:1 against the surface where 38% gave 1.90, and the
+	 * same on the Elemental's blue-black ground: #a45461 at 3.30. */
+	--color-band-miss: color-mix(in oklch, var(--color-miss) 65%, var(--color-surface));
 	--color-band-brew: color-mix(in oklch, var(--color-brew) 32%, var(--color-surface));
 	--color-band-rune: color-mix(in oklch, var(--color-rune) 34%, var(--color-surface));
 	/* The fourth is the odd one and mixed weaker for it. The three above are drawn *inside* one lane,
@@ -185,6 +191,26 @@
 	--color-count-2: #9575e8;
 	--color-count-3: #d9c9ff;
 	--color-count-mixed: #6b6459;
+
+	/* WarcraftLogs' own parse bands, and the one place in this file where the colours are somebody
+	 * else's on purpose.
+	 *
+	 * The percentile in the report header is the site's number, not this tool's, and a reader who
+	 * knows what an orange parse looks like has to be able to read it at a glance without translating.
+	 * Recolouring it into the palette above would be this report asserting its own scale over a figure
+	 * it did not compute — the six item-quality hues plus the grey are what WarcraftLogs paints, and
+	 * they are copied rather than approximated.
+	 *
+	 * They are deliberately **not** used anywhere else. Nothing this report measures gets to borrow
+	 * them, because the moment one does, a colour a reader has learned to read as a percentile starts
+	 * meaning two things. */
+	--color-parse-common: #9d9d9d;
+	--color-parse-uncommon: #1eff00;
+	--color-parse-rare: #0070ff;
+	--color-parse-epic: #a335ee;
+	--color-parse-legendary: #ff8000;
+	--color-parse-astounding: #e268a8;
+	--color-parse-artifact: #e5cc80;
 
 	/* The three kinds of exempt, as one grey at three steps — the ramp a merged track lane needs.
 	 *
