@@ -100,9 +100,14 @@ export const SUMMARY_LANE_KEYS: readonly string[] | null = null;
  *   - **Synapse Springs** and **Hand of Reckoning** — a glove enchant and a taunt, 1 to 8 and 0 to 18
  *     presses. Neither is rotational. `Hand of Reckoning` is absent from `fallenProtectors.json`
  *     altogether, which is why the count below differs by one on that pull.
+ *   - **Speed of Light** — a movement cooldown, and the only entry here that costs the player nothing
+ *     to press: it is off the global, so it takes no room from the rotation and there is no decision to
+ *     read out of where it landed. It draws on none of the five captures, which is a fact about this
+ *     tank's talents rather than about the button — see its own note in `data.ts`, and note that its
+ *     absence here means the row counts below are unmoved by adding it.
  *
  * **What it costs: 22/23/24/24/23 rows become 18/18/19/19/18.** Everything else stays, presses included,
- * which is the whole reason this is a list of five names rather than a switch on `SUMMARY_LANE_KEYS`.
+ * which is the whole reason this is a list of names rather than a switch on `SUMMARY_LANE_KEYS`.
  */
 export const SUMMARY_HIDDEN_ROWS: readonly string[] = [
 	'Melee',
@@ -110,4 +115,5 @@ export const SUMMARY_HIDDEN_ROWS: readonly string[] = [
 	'Grand Crusader',
 	'Synapse Springs',
 	'Hand of Reckoning',
+	'Speed of Light',
 ];
