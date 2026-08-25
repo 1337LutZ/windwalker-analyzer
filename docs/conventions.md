@@ -478,8 +478,8 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of Touch of Karma's ceiling being computed from stamina and the summary losing its KPI row, it
-prints 1383 leaves, 679 prose, 21,093 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160;
+As of the Protection Paladin's spell table arriving and the gate vocabulary gaining a third resource, it
+prints 1384 leaves, 679 prose, 21,093 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160;
 longest 9% carry 24%; report.json 612 prose leaves, 1,045 sentences, median 17, 199 past 25 (19.0%),
 256 em-dashes in 221 sentences (21.1%); 46 / 21 / 1 / 2 on the quote lines.
 

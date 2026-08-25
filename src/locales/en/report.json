@@ -137,7 +137,8 @@
       "cooldownSec": "{{seconds, seconds}} cooldown",
       "chi": "chi",
       "conditional": "the rotation",
-      "energy": "energy"
+      "energy": "energy",
+      "holy-power": "holy power"
     },
     "noCeiling": "no cooldown",
     "barCaveat": "Each target belongs to that ability alone — rows are not compared with each other. For a cooldown, the target is the rate the cooldown allows, so falling short means casts you never made. Tiger Palm is the reverse: its target counts only presses that achieved something, so going over means globals wasted. Chi spenders have no target and are left blank."

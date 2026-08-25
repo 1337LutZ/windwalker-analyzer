@@ -777,7 +777,7 @@ describe('report copy with no reader', () => {
 		gate: {
 			where: 'lib/game/model.ts → Gate',
 			keys: () => declaredArms('lib/game/model.ts', /export type Gate =/),
-			pinned: ['chi', 'conditional', 'cooldown', 'energy', 'other'],
+			pinned: ['chi', 'conditional', 'cooldown', 'energy', 'holy-power', 'other'],
 		},
 		grade: {
 			where: 'lib/score/model.ts → GRADE_ORDER',
@@ -965,7 +965,7 @@ describe('report copy with no reader', () => {
 		'castLog.target.*': 3,
 		'castLog.target.*Title': 3,
 		// Four and not five: `Gate` carries an `other` arm and no section prints a column for it.
-		'casts.gate.*': 4,
+		'casts.gate.*': 5,
 		'earthElemental.state.*': 3,
 		'earthShock.state.*': 7,
 		'elementalMastery.state.*': 5,

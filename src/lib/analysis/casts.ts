@@ -183,7 +183,10 @@ export function castSeries(
 	for (const e of events) {
 		if (!isCast(e) || e.sourceID !== sourceID) continue;
 		const id = abilityIdOf(e);
-		if (id === null || registry.isChannelTick(id)) continue;
+		// A channel tick and an echo are both logged as casts and neither is a press. Skipped together,
+		// because the alternative is the same for both: an id nothing models becomes a `#88263` row in
+		// the cast table, and a reader is shown a button that does not exist.
+		if (id === null || registry.isChannelTick(id) || registry.isEchoCast(id)) continue;
 
 		const ability = registry.abilityByCastId(id) ?? null;
 		const key = ability?.key ?? `#${id}`;

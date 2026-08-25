@@ -31,6 +31,14 @@ export interface Registry {
 	castIds(): Set<number>;
 	/** True when the id is a channel tick — logged as a cast, but not one. */
 	isChannelTick(id: number): boolean;
+	/**
+	 * True when the id is an echo — logged as a cast, and not a second press of the button that owns it.
+	 *
+	 * The same shape as `isChannelTick` above and for the same reason: a combat log is not a list of
+	 * decisions, and every id that arrives as a `cast` and is not one has to be named somewhere or it
+	 * becomes a phantom row in the cast table. See `Ability.echoCastIds`.
+	 */
+	isEchoCast(id: number): boolean;
 }
 
 export function createRegistry(data: GameData): Registry {
@@ -40,6 +48,7 @@ export function createRegistry(data: GameData): Registry {
 	const byDamageId = new Map<number, Ability>();
 	const auraIds = new Map<number, Aura>();
 	const tickIds = new Set<number>();
+	const echoIds = new Set<number>();
 
 	const claim = <T>(map: Map<number, T>, id: number, value: T, what: string) => {
 		const existing = map.get(id);
@@ -55,6 +64,7 @@ export function createRegistry(data: GameData): Registry {
 		for (const id of ability.castIds) claim(byCastId, id, ability, 'cast');
 		for (const id of ability.damageIds ?? []) claim(byDamageId, id, ability, 'damage source');
 		if (ability.channel) tickIds.add(ability.channel.tickId);
+		for (const id of ability.echoCastIds ?? []) echoIds.add(id);
 	}
 
 	for (const aura of data.auras) {
@@ -100,6 +110,31 @@ export function createRegistry(data: GameData): Registry {
 		}
 	}
 
+	// An echo that is also a real cast id would make the same id both a press and not one, which is the
+	// exact ambiguity naming it was supposed to remove. Refused on the same terms as a channel tick.
+	for (const id of echoIds) {
+		const owner = byCastId.get(id);
+		if (owner) {
+			throw new Error(`spell id ${id} is declared an echo but is also a cast id on "${owner.key}"`);
+		}
+	}
+
+	// A shared cooldown is a fact about a pair, so both halves have to say it. Declared on one side
+	// only, a drift figure taken per button reports the same idle seconds twice and nothing fails.
+	for (const ability of data.abilities) {
+		const partnerKey = ability.sharesCooldownWith;
+		if (partnerKey === undefined) continue;
+		const partner = abilityByKey.get(partnerKey);
+		if (!partner) {
+			throw new Error(`ability "${ability.key}" shares a cooldown with unknown ability "${partnerKey}"`);
+		}
+		if (partner.sharesCooldownWith !== ability.key) {
+			throw new Error(
+				`ability "${ability.key}" shares a cooldown with "${partnerKey}", which does not say so in return`,
+			);
+		}
+	}
+
 	const need = <T>(map: Map<string, T>, key: string, what: string): T => {
 		const found = map.get(key);
 		if (!found) throw new Error(`unknown ${what}: ${key}`);
@@ -119,5 +154,6 @@ export function createRegistry(data: GameData): Registry {
 		consumedBy: (key) => (need(abilityByKey, key, 'ability').consumes ?? []).map((k) => need(auraByKey, k, 'aura')),
 		castIds: () => new Set(byCastId.keys()),
 		isChannelTick: (id) => tickIds.has(id),
+		isEchoCast: (id) => echoIds.has(id),
 	};
 }
