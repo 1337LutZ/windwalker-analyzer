@@ -881,7 +881,7 @@ describe('report copy with no reader', () => {
 				'brewCapWaste',
 				'brewShortUses',
 				'brewStacks',
-				'earthShockGood',
+				'earthShockWaste',
 				'fireElementalHasteUptime',
 				'fireElementalPrepull',
 				'flameShockMultiDot',

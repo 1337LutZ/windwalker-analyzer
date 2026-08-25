@@ -48,9 +48,9 @@ const fx = (name: Fixture): Analysis & ElementalAuditResult => {
 	return el;
 };
 
-const goodPct = (name: Fixture): number | null => {
-	const metric = scoreAnalysis(fx(name)).sections['earthShock']?.metrics.find((m) => m.key === 'earthShockGood');
-	if (metric === undefined) throw new Error('earthShockGood is not on the scorecard');
+const wastePct = (name: Fixture): number | null => {
+	const metric = scoreAnalysis(fx(name)).sections['earthShock']?.metrics.find((m) => m.key === 'earthShockWaste');
+	if (metric === undefined) throw new Error('earthShockWaste is not on the scorecard');
 	return metric.value;
 };
 
@@ -162,27 +162,28 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 	 * **It separates, and only on the pull that has the presses** — §90's requirement, because a declared
 	 * exemption that moves no figure is not an exemption.
 	 *
-	 * `cleave` was 6 of 12 = 50% and is 4 of 7 = 57.14%. `unbroken` (38.46%) and `phased` (58.33%) are
-	 * entirely band 1 and must not move by a thousandth.
+	 * Read as waste since the rule was inverted, so these are the shocks that bought nothing: `cleave` was
+	 * 6 of 12 = 50% and is 3 of 7 = 42.86%. `unbroken` (61.54%) and `phased` (41.67%) are entirely band 1
+	 * and must not move by a thousandth.
 	 */
 	it('moves every pull that leaves the banded counts and no other', () => {
-		expect(goodPct('cleave')).toBeCloseTo(57.142_86, 4);
+		expect(wastePct('cleave')).toBeCloseTo(42.857_14, 4);
 		expect(fx('cleave').earthShock.good).toBe(4);
 		expect(fx('cleave').earthShock.presses).toHaveLength(12);
 		// The pull the three-name grid never asked: 43 presses, 23 of them outside the bands, so the metric
 		// is over 20 rather than over 43 and this is by far the largest separation the exemption makes.
-		expect(goodPct('addsThenBoss')).toBeCloseTo(50, 4);
+		expect(wastePct('addsThenBoss')).toBeCloseTo(50, 4);
 		expect(fx('addsThenBoss').earthShock.good).toBe(10);
 		expect(fx('addsThenBoss').earthShock.presses).toHaveLength(43);
 
-		expect(goodPct('unbroken')).toBeCloseTo(38.461_54, 4);
-		expect(goodPct('phased')).toBeCloseTo(58.333_33, 4);
+		expect(wastePct('unbroken')).toBeCloseTo(61.538_46, 4);
+		expect(wastePct('phased')).toBeCloseTo(41.666_67, 4);
 
-		// The metric is the good count over the *judged* count on every pull, not over the presses — the
+		// The metric is the *un*good count over the *judged* count on every pull, not over the presses — the
 		// identity the four figures above are four instances of, so a fifth pull is measured and not listed.
 		for (const name of FIXTURES) {
 			const audit = fx(name).earthShock;
-			expect(goodPct(name), name).toBeCloseTo((audit.good / audit.judged) * 100, 9);
+			expect(wastePct(name), name).toBeCloseTo(((audit.judged - audit.good) / audit.judged) * 100, 9);
 		}
 	});
 

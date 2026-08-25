@@ -110,7 +110,7 @@ const BANDED = [
 	'flameShockUptime',
 	'flameShockWaste',
 	'flameShockMultiDot',
-	'earthShockGood',
+	'earthShockWaste',
 	'searingTotemUptime',
 	'lightningShieldOvercap',
 ] as const;

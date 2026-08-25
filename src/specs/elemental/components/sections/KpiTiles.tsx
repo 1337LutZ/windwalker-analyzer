@@ -48,7 +48,7 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					grade={toneOf('flameShockUptime')}
 				/>
 				{/*
-				 * Over `judged` rather than every press, so this tile and `earthShockGood` beside it are the
+				 * Over `judged` rather than every press, so this tile and `earthShockWaste` beside it are the
 				 * same fraction. At three or more enemies no list has an Earth Shock rule, so those presses
 				 * are not in the graded set — see `EarthShockPress.good`.
 				 */}
@@ -56,8 +56,8 @@ export default function KpiTiles({ analysis }: { analysis: Analysis }) {
 					value={`${earthShock.good}`}
 					suffix={earthShock.judged > 0 ? `/${earthShock.judged}` : undefined}
 					label={t('kpi.earthShock')}
-					caption={caption('earthShockGood')}
-					grade={toneOf('earthShockGood')}
+					caption={caption('earthShockWaste')}
+					grade={toneOf('earthShockWaste')}
 				/>
 			</StatTiles>
 		</section>

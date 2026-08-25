@@ -164,8 +164,8 @@ describe('the scorecard grid', () => {
 		// sweep of the whole render would pass while the shocks kept theirs.
 		const card = markup.slice(markup.indexOf('#earth-shock-heading'));
 		const shocks = card.slice(0, card.indexOf('</a>'));
-		expect(shocks).toContain('4/7');
-		expect(shocks).not.toContain('57.14%');
+		expect(shocks).toContain('3/7');
+		expect(shocks).not.toContain('42.86%');
 		expect(shocks).not.toContain('target');
 		// The unsampled metric beside it keeps both, so this is a rule about samples rather than about
 		// percentages: Flame Shock's uptime is a share of a clock and has no count to fall back to.

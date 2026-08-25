@@ -20,8 +20,8 @@
 // `auraRemainingTime` returns 0 for an inactive aura (`sim/core/apl_values_aura.go:108-111`) and `0 <= 4s`.
 //
 // **What the committed fixtures can and cannot show.** Three of the four carry the debuff (144999,
-// Elemental Discharge) and therefore own the set. `earthShockGood` moves on `phased` alone
-// (41.6667 → 58.3333, still `bad`), because that pull's five other faults were `fsLow` and `ascReady` on
+// Elemental Discharge) and therefore own the set. `earthShockWaste` moves on `phased` alone
+// (41.6667 → 41.6667, still `bad`), because that pull's five other faults were `fsLow` and `ascReady` on
 // presses whose debuff was down. None of those three has a shock in the last four seconds of a window
 // *with the shield full*: `unbroken`'s press at 180 744 is the only one inside a tail and it spent two
 // stacks, so it stays a fault on `belowFull`. The press B rescues outright is synthetic, and that is stated
@@ -62,10 +62,10 @@ const analysed = (name: string): Analysis & ElementalAuditResult => {
 /** Every raw Elemental pull, found rather than listed. See the branch-A test for why that matters here. */
 const FIXTURES = rawFixtures('elemental').map(({ name }) => name.replace(/\.json$/, ''));
 
-/** `earthShockGood` as the report grades it, in percent. */
-const goodPct = (el: Analysis & ElementalAuditResult): number | null => {
-	const metric = scoreAnalysis(el).sections['earthShock']?.metrics.find((m) => m.key === 'earthShockGood');
-	if (metric === undefined) throw new Error('earthShockGood is not on the scorecard');
+/** `earthShockWaste` as the report grades it, in percent. */
+const wastePct = (el: Analysis & ElementalAuditResult): number | null => {
+	const metric = scoreAnalysis(el).sections['earthShock']?.metrics.find((m) => m.key === 'earthShockWaste');
+	if (metric === undefined) throw new Error('earthShockWaste is not on the scorecard');
 	return metric.value;
 };
 
@@ -131,18 +131,18 @@ describe('the branch on the committed pulls', () => {
 	 * throughout — `targets.counts.max` is 1 on both — so neither can move, and both are pinned here as
 	 * the guard for that.
 	 *
-	 * **And `cleave` has moved once more, 50 → 57.1429**, for a third reason that belongs in the same
+	 * **And `cleave` has moved once more, 50 → 42.8571**, for a third reason that belongs in the same
 	 * ledger: its band-3 and band-4 presses have left the denominator entirely, because `aoe.apl.json`
 	 * carries no Earth Shock rung and so nothing judges a shock at three or more enemies. Five of its
 	 * twelve presses, three of which this branch had been charging with `twoPiece` or `fsTail` under a
 	 * list that does not contain either. Measured in `earthShockAoeBand.test.ts`.
 	 *
-	 * All three stay `bad` — the `ok` boundary is 65 (`score.ts`'s `earthShockGood` threshold).
+	 * All three stay `bad` — the `ok` boundary is 65 (`score.ts`'s `earthShockWaste` threshold).
 	 */
-	it('moves earthShockGood on phased alone, and upward', () => {
-		expect(goodPct(unbroken)).toBeCloseTo(38.4615, 3);
-		expect(goodPct(analysed('cleave'))).toBeCloseTo(57.1429, 3);
-		expect(goodPct(analysed('phased'))).toBeCloseTo(58.3333, 3);
+	it('moves earthShockWaste on phased alone, and upward', () => {
+		expect(wastePct(unbroken)).toBeCloseTo(61.5385, 3);
+		expect(wastePct(analysed('cleave'))).toBeCloseTo(42.8571, 3);
+		expect(wastePct(analysed('phased'))).toBeCloseTo(41.6667, 3);
 	});
 
 	/**
@@ -329,7 +329,7 @@ describe('a shock taken in the tail of a two-piece window', () => {
 	/**
 	 * The press the change exists for: proc up, 3 000ms left on it, shield full, dot 24s.
 	 *
-	 * Under the old rule this read `twoPiece` and was charged against `earthShockGood` — a shock fired
+	 * Under the old rule this read `twoPiece` and was charged against `earthShockWaste` — a shock fired
 	 * exactly as the list's second branch asks for it, reported as a shock spent early.
 	 */
 	it('is the press the list asked for, and carries no reason', () => {
@@ -372,6 +372,6 @@ describe('a shock taken in the tail of a two-piece window', () => {
 	/** Two of the four, and the two that pass are one from each branch. */
 	it('grades two of the four good', () => {
 		expect(el.earthShock.good).toBe(2);
-		expect(goodPct(el)).toBeCloseTo(50, 3);
+		expect(wastePct(el)).toBeCloseTo(50, 3);
 	});
 });

@@ -1104,8 +1104,8 @@
         "flameShockMultiDot": {
           "label": "Dot the second target"
         },
-        "earthShockGood": {
-          "label": "Good shocks"
+        "earthShockWaste": {
+          "label": "Inefficient shocks"
         },
         "searingTotemUptime": {
           "label": "Totem uptime"
@@ -1129,7 +1129,7 @@
           "label": "Shamanistic Rage missed"
         },
         "fireElementalHasteUptime": {
-          "label": "Cover the haste cooldown"
+          "label": "Cover {{cooldown}} window"
         },
         "snapshotDepth": {
           "label": "Snapshot depth"
@@ -1566,6 +1566,7 @@
   },
   "fireElemental": {
     "title": "Fire Elemental",
+    "hasteFallback": "haste cooldown",
     "intent": "The five-minute summon, and where you put it is all of its value. Press it prepull when Heroism is going up as the pull starts, with Ascendance, or in the fight's last minute — press it anywhere else and one of those three goes without an elemental.",
     "kpi": {
       "used": "Summons",

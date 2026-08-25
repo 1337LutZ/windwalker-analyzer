@@ -82,10 +82,10 @@ const targetsAtFromEvents = (data: FightDataset, at: number, windowMs: number): 
 const bandFromEvents = (data: FightDataset, at: number, windowMs: number): number =>
 	Math.min(4, Math.max(1, targetsAtFromEvents(data, at, windowMs)));
 
-/** `earthShockGood` as the report grades it, in percent. */
-const goodPct = (el: Analysis): number | null => {
-	const metric = scoreAnalysis(el).sections['earthShock']?.metrics.find((m) => m.key === 'earthShockGood');
-	if (metric === undefined) throw new Error('earthShockGood is not on the scorecard');
+/** `earthShockWaste` as the report grades it, in percent. */
+const wastePct = (el: Analysis): number | null => {
+	const metric = scoreAnalysis(el).sections['earthShock']?.metrics.find((m) => m.key === 'earthShockWaste');
+	if (metric === undefined) throw new Error('earthShockWaste is not on the scorecard');
 	return metric.value;
 };
 
@@ -215,12 +215,12 @@ describe('the two-target list judges the two-target presses', () => {
 	 * `earthShockAoeBand.test.ts` measures the whole of it). The two other pulls are unaffected, which is
 	 * what makes them still the guard they were written to be.
 	 */
-	it('moves earthShockGood on cleave alone', () => {
-		expect(goodPct(cleave)).toBeCloseTo(57.1429, 3);
+	it('moves earthShockWaste on cleave alone', () => {
+		expect(wastePct(cleave)).toBeCloseTo(42.8571, 3);
 		expect(cleave.earthShock.good).toBe(4);
 		expect(cleave.earthShock.judged).toBe(7);
-		expect(goodPct(fx('phased'))).toBeCloseTo(58.3333, 3);
-		expect(goodPct(fx('unbroken'))).toBeCloseTo(38.4615, 3);
+		expect(wastePct(fx('phased'))).toBeCloseTo(41.6667, 3);
+		expect(wastePct(fx('unbroken'))).toBeCloseTo(61.5385, 3);
 		expect(scoreAnalysis(cleave).sections['earthShock']?.grade).toBe('bad');
 	});
 });

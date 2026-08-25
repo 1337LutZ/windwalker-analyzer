@@ -284,6 +284,22 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 	const { t, card } = useReportCopy(analysis);
 	const spec = useSpec();
 
+	/**
+	 * The raid's haste cooldown, by the name this pull's raid actually used.
+	 *
+	 * `fireElementalHasteUptime` asks whether the summon covered *that* window, and the card called it
+	 * "the haste cooldown" — a category, where the reader is looking at a fight in which somebody pressed
+	 * Bloodlust or Heroism or Time Warp. The audit already knows which: `AuraWindow.variant` carries the
+	 * spelling off the aura's own id, which is how `CastTimeline`'s legend names it.
+	 *
+	 * The first window and not all of them, because the metric grades one window — the one the summon
+	 * could have covered. Falls back to the category when a pull has none, which is also every pull where
+	 * the metric is unmeasurable and the label is drawn beside the words "not measured" rather than a
+	 * figure. Handed to every label's `t()`, not just this one: an unused interpolation costs nothing and
+	 * a second dynamic label should not need this plumbing built again.
+	 */
+	const cooldown = analysis.timeline?.hasteWindows?.[0]?.variant ?? t('fireElemental.hasteFallback');
+
 	const ordered = useMemo(() => {
 		return (
 			Object.entries(card.sections)
@@ -343,7 +359,7 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 										<span className="flex items-baseline justify-between gap-2">
 											<span className="text-sm text-ink-2">
 												{has(`summary.takeaways.metric.${metric.key}.label`)
-													? t(`summary.takeaways.metric.${metric.key}.label`)
+													? t(`summary.takeaways.metric.${metric.key}.label`, { cooldown })
 													: metric.key}
 											</span>
 											<span className="tabular font-mono text-sm text-ink">

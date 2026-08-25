@@ -37,7 +37,7 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	 * The pull pressed the shock, and too few of the presses fell where a list has an opinion to read a
 	 * share off them. A fourth sentence, and not new wording under an existing one.
 	 *
-	 * `earthShockGood` is a share over the presses made at one or two enemies, and `shareOf` hands that
+	 * `earthShockWaste` is a share over the presses made at one or two enemies, and `shareOf` hands that
 	 * share its denominator as a sample size, which the scorer refuses under its own floor of three. So a
 	 * pull with one or two of them has no letter, `gradeOf` answers `none`, and the sentence a reader got
 	 * was the one for a pull that never pressed the button at all — printed over a table of the presses
@@ -109,7 +109,7 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 						value={`${earthShock.good}`}
 						suffix={`/${earthShock.judged}`}
 						label={t('earthShock.kpi.good')}
-						caption={unasked('earthShockGood') ? t('metric.notAsked') : undefined}
+						caption={unasked('earthShockWaste') ? t('metric.notAsked') : undefined}
 					/>
 					<StatTile value={`${earthShock.belowFull}`} label={t('earthShock.kpi.belowFull')} />
 				</StatTiles>

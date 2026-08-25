@@ -219,7 +219,19 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * cases: a denominator of zero still declines, and one of two judged presses now declines as well.
 	 * Two shocks cannot separate a habit from a coin toss — see `MIN_GRADED_SAMPLE`.
 	 */
-	const earthShockGood = metric('earthShockGood', shareOf(earthShock.good, earthShock.judged));
+	/**
+	 * The shocks that were **not** worth their global, over the shocks this reading judged.
+	 *
+	 * **It counted the good ones until now, and the card is a list of things to fix.** Every other row on
+	 * the summary names a fault — wasted refreshes, wasted casts, shield drops — and this one named the
+	 * successes, so a reader scanning for what to work on had to invert one row in their head. The
+	 * quantity is the same either way; what changes is which end of it the report puts its finger on.
+	 *
+	 * The lines are the old ones mirrored: 85/65 good-or-better becomes 15/35 wasted-or-fewer, so no pull
+	 * changes letter. `judged` is unchanged and still the band-narrowed counter, which is what keeps a
+	 * press made at four enemies out of both halves rather than out of one.
+	 */
+	const earthShockWaste = metric('earthShockWaste', shareOf(earthShock.judged - earthShock.good, earthShock.judged));
 
 	// `gradedOver` for the reason `flameShockUptime` above gives: `scoredMs` here composes three exempt
 	// causes — the elemental's window, the intermissions and the add waves — and a pull that is all three
@@ -472,7 +484,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		flameShockUptime,
 		flameShockWaste,
 		flameShockMultiDot,
-		earthShockGood,
+		earthShockWaste,
 		searingTotemUptime,
 		searingTotemOverlaps,
 		fireElementalPrepull,
@@ -492,7 +504,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		judged,
 		sections: {
 			flameShock: section([flameShockUptime, flameShockWaste], [flameShockMultiDot]),
-			earthShock: section([earthShockGood]),
+			earthShock: section([earthShockWaste]),
 			searingTotem: section([searingTotemUptime, searingTotemOverlaps]),
 			// The summon's own section, which carries one metric and gets no card link: the anchors map in
 			// `specSections.tsx` has no entry for it, so the takeaway renders without a jump the way the
@@ -553,7 +565,7 @@ export { GRADE_ORDER };
 // So a declaration is necessary and not sufficient, and both halves have to be present for a rule to be
 // honest. Four of the seven declarations below have a cut clock behind them, `flameShockMultiDot` being the
 // last to get one — band 2 alone, `>= 2` less `>= 3`, the one cut with an edge at both ends. The remaining
-// three are rules whose *sample* is narrowed instead of their clock (`earthShockGood`'s `judged` counter) or
+// three are rules whose *sample* is narrowed instead of their clock (`earthShockWaste`'s `judged` counter) or
 // whose number is a count of presses rather than a span. Reading a verdict, the two states to keep apart
 // are: an `exempt` metric was never asked of this pull at all, and a graded metric whose clock has been
 // narrowed to the stretches that did ask.
@@ -740,7 +752,7 @@ export const THRESHOLDS = {
 	 * wholly above two enemies now reads `exempt` — the rule was not asked — rather than merely arriving at
 	 * a denominator of zero, which is "the log could not say" and is a different sentence.
 	 */
-	earthShockGood: { good: 85, ok: 65, higherIsBetter: true, bands: [1, 2], unit: 'percent' },
+	earthShockWaste: { good: 15, ok: 35, higherIsBetter: false, bands: [1, 2], unit: 'percent' },
 
 	/**
 	 * Searing Totem's uptime against the time it could have been up.
@@ -1109,7 +1121,7 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	gcdUtilisation: 2,
 	flameShockWaste: 2,
 	flameShockMultiDot: 2,
-	earthShockGood: 1,
+	earthShockWaste: 1,
 	searingTotemUptime: 1,
 	searingTotemOverlaps: 1,
 	// The lightest weight there is, and it cannot grade worse than `ok` — so the most this can take off
@@ -1210,7 +1222,7 @@ export const WEIGHTS: Record<MetricKey, number> = {
  *
  * **No weight changes, and that is now a decision rather than a gap.** The claim this docstring used to
  * make — "none of the metrics are mode-dependent" — was already false when it was written and is plainly
- * false now: `earthShockGood` has been scoped to bands 1 and 2 since `0de530e`, `lightningShieldOvercap`
+ * false now: `earthShockWaste` has been scoped to bands 1 and 2 since `0de530e`, `lightningShieldOvercap`
  * grades on a clock with the aoe stretches cut out of it, and seven of the thirteen rules above declare
  * their bands. Seven mode-dependent metrics is what this table is about.
  *
@@ -1232,7 +1244,7 @@ export const WEIGHTS: Record<MetricKey, number> = {
  * why rather than leaving an empty table to be read as an oversight.** The widening asks one question of
  * a weight table: does the discount you apply when the job is spreading depend on *how much* spreading.
  * This table applies no discount at any count, so it has no answer to give and needs none. Where the
- * Elemental's seven scoped rules genuinely do split two enemies from three — `earthShockGood` at bands 1
+ * Elemental's seven scoped rules genuinely do split two enemies from three — `earthShockWaste` at bands 1
  * and 2 is exactly that line — they say so through `bands`, which is the mechanism that can tell the two
  * apart. A weight cannot, and adding one here to look responsive to the new words would charge the same
  * pull twice for one fact, which is what the paragraph above already refuses.

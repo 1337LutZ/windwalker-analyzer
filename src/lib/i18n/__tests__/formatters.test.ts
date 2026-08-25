@@ -48,10 +48,20 @@ describe('percentages in the copy', () => {
 
 	it('formats every value in the summary takeaways', () => {
 		// The takeaway cards read metric values straight off the scorecard, which holds them unrounded.
-		// There is no case there where a bare interpolation is right.
+		// There is no case there where a bare interpolation of a *value* is right.
+		//
+		// `cooldown` is not one. It carries the raid's haste cooldown by the name this pull's raid used —
+		// Bloodlust, Heroism, Time Warp — so that `fireElementalHasteUptime` names the window it grades
+		// instead of calling it "the haste cooldown" at a reader looking at a fight where somebody pressed
+		// a particular button. An ability name has nothing to round and no formatter to reach for, and it
+		// comes off `AuraWindow.variant` rather than out of the locale, which is the same rule every other
+		// ability name on the page follows.
+		const NAMES = new Set(['cooldown']);
 		const takeaways = strings((copy['summary'] as Record<string, unknown>)['takeaways']);
 		const bare = takeaways.flatMap(({ key, text }) =>
-			[...text.matchAll(INTERPOLATION)].filter((m) => m[2] === undefined).map((m) => `${key}: ${m[0]}`),
+			[...text.matchAll(INTERPOLATION)]
+				.filter((m) => m[2] === undefined && !NAMES.has((m[1] ?? '').trim()))
+				.map((m) => `${key}: ${m[0]}`),
 		);
 		expect(bare).toEqual([]);
 	});
