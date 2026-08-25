@@ -499,13 +499,13 @@ const SHARED_SECTIONS = [
 ];
 
 /**
- * The Protection sections. Four roots, and three of them are the spec's own subject.
+ * The Protection sections. Six roots, and five of them are the spec's own subject.
  *
- * `globals`, `fight` and `haste` are the three sections this spec adds; `holyPower` is the resource
+ * `globals`, `fight`, `haste`, `vengeance` and `externals` are what this spec adds; `holyPower` is the resource
  * family the shared bar section reads, which lives at a root of its own the way `chi` and `energy`
  * do — those two sit under `WINDWALKER_SECTIONS` for exactly the same reason.
  */
-const PROTECTION_SECTIONS = ['globals', 'fight', 'haste', 'holyPower', 'vengeance'];
+const PROTECTION_SECTIONS = ['globals', 'fight', 'haste', 'holyPower', 'vengeance', 'externals'];
 
 /** The one section whose whole subject is the model. See the ruling above. */
 const REFERENCE_SECTIONS = ['rotation'];

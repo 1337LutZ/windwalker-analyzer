@@ -7,3 +7,4 @@ export { default as Globals } from './Globals';
 export { default as FightRules } from './FightRules';
 export { default as Haste } from './Haste';
 export { default as Vengeance } from './Vengeance';
+export { default as Externals } from './Externals';

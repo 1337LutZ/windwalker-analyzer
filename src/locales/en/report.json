@@ -1837,5 +1837,50 @@
     "summary_clear": "Your attack power peaked at {{peak, compact}} at {{at, clock}}, which was {{share, percent}} of what your health pool allowed. You never reached the ceiling, so every hit you took was still paying you.",
     "capMoved": "Your ceiling is your maximum health, so anything that raises your health raises it too. {{names}} landed {{times, integer}} times on this pull and held for {{held, duration}}, lifting the most you could hold from {{resting, compact}} to {{raised, compact}} while it was up. The shaded stretches on the chart are where that applied.",
     "resolution": "Attack power is sampled rather than tracked: WarcraftLogs staples it onto casts, hits and heals rather than reporting it on a timer. This pull carried {{samples, integer}} readings, typically {{median, gap}} apart and at worst {{p99, gap}}. A moment at the ceiling that opened and closed between two readings leaves no trace here, so treat the time at the ceiling as a minimum."
+  },
+  "externals": {
+    "title": "Externals",
+    "intent": "A damage reduction another raider puts on you is the one thing that makes a tank safer without making them weaker. Vengeance is taken from the damage before your own reductions apply, so a cooldown that cuts an incoming hit leaves the attack power that hit paid you untouched. There is nothing to trade away here, which is why a cooldown nobody cast on you is listed as an improvement rather than left alone.",
+    "kpi": {
+      "available": "Your raid could cast",
+      "landed": "Landed on you",
+      "unused": "Never cast on you"
+    },
+    "recommendation": {
+      "title": "Cooldowns this raid brought and never used on you",
+      "body": "Nobody cast {{names}} on you at any point in this pull, and somebody standing in it could have. Each one would have cut a stretch of what you took while paying you exactly the same attack power, so asking for them costs you no damage."
+    },
+    "key": {
+      "landed": "Landed on you",
+      "given": "You put it on somebody else"
+    },
+    "chartLabel": "When each external cooldown was on you across the pull: {{landed, integer}} of them landed over {{duration, duration}}.",
+    "length": {
+      "held": "on you for",
+      "given": "on them for"
+    },
+    "track": {
+      "given": "{{name}} to {{target}}"
+    },
+    "empty": "No external damage reduction landed on you in this pull, and none went out from you either.",
+    "summary": "{{used, integer}} of the {{available, integer}} externals this raid could have put on you landed at least once, and the longest-running of them covered {{held, duration}}. A shaded row in the table is a cooldown somebody here was able to cast and nobody did.",
+    "summary_none": "None of the {{available, integer}} externals this raid could have put on you ever landed. Every shaded row below is a cooldown somebody standing in this pull was able to cast.",
+    "given": "You put {{names}} on somebody else rather than keeping it, which is a real use of it and is drawn as its own row under what landed on you.",
+    "scope": "This reads what landed on you and what you put on somebody else, because a fetch scoped to you carries both ends of an event you were part of. A cooldown a healer put on your co-tank is in neither, so nothing here counts it as used or as missing.",
+    "caption": "Every external damage reduction, and whether this raid could cast it",
+    "columns": {
+      "external": "external",
+      "brings": "brought by",
+      "cuts": "cuts",
+      "landed": "landed",
+      "held": "held for"
+    },
+    "brings_one": "{{count}} {{className}}",
+    "brings_other": "{{count}} {{className}}s",
+    "absent": "nobody in this pull",
+    "never": "never",
+    "cuts_all": "{{percent, percent}} of all damage",
+    "cuts_magic": "{{percent, percent}} of magic damage",
+    "cuts_unknown": "not modelled by the simulator"
   }
 }

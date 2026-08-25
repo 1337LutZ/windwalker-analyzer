@@ -21,7 +21,8 @@
 import { enforcedDowntime, type EnforcedDowntime } from '~/lib/analysis/enforced';
 import { buildHasteCurve, checkHaste, SEAL_OF_INSIGHT_HASTE, type HasteCurve } from '~/lib/analysis/haste';
 import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analyseCore';
-import { auraWindows } from '~/lib/analysis/auras';
+import { auraWindows, raidScoped } from '~/lib/analysis/auras';
+import { readExternals } from '~/lib/analysis/externals';
 import { readGear } from '~/lib/analysis/gear';
 import { readVengeance } from '~/lib/analysis/vengeance';
 import { eventsOn } from '~/lib/events';
@@ -366,6 +367,26 @@ function protectionAudit(h: Handles): ProtectionAudit {
 					windows: auraWindows(eventsOn(h.events, h.actor.id), registry.aura('ancestral-vigor'), h.t0, h.fight.endTime),
 				},
 			],
+		}),
+		/**
+		 * The externals the raid could have put on this tank, and which of them landed.
+		 *
+		 * `raidScoped` is written out here rather than left implicit, because the walk behind it buckets by
+		 * caster and that is meaningless on a stream narrowed to one actor. The stream is the player's own
+		 * fetch, which is exactly why the brand matters: it carries every actor that touched this player,
+		 * so it answers "who put this on me" honestly and cannot answer "who put this on anyone else" at
+		 * all. See the module header for what follows from that.
+		 *
+		 * `fight.friendlyPlayers` and not `h.actors`: the first is the twenty-five who were in this pull,
+		 * the second is the thirty-nine who were in the report. Gating on the second would offer this raid
+		 * cooldowns from people who had logged off.
+		 */
+		externals: readExternals(raidScoped(h.events), {
+			t0: h.t0,
+			pullMs: h.duration,
+			actorID: h.actor.id,
+			actors: h.actors,
+			friendlyPlayers: h.fight.friendlyPlayers ?? [],
 		}),
 	};
 }

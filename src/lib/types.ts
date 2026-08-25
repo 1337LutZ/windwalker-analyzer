@@ -2245,6 +2245,7 @@ export type Analysis = AnalysisCore & SpecAuditResult;
 
 // --------------------------------------------------------------- Protection
 
+import type { ExternalsAudit } from '~/lib/analysis/externals';
 import type { HasteMeasure } from '~/lib/analysis/haste';
 import type { VengeanceAudit } from '~/lib/analysis/vengeance';
 
@@ -2327,6 +2328,18 @@ export interface ProtectionAudit {
 	 * arithmetic in `lib/analysis/vengeance` and is borrowed here the way `HasteMeasure` is.
 	 */
 	vengeance: VengeanceAudit;
+	/**
+	 * The damage-reduction cooldowns other raiders could have put on this tank, and which of them did.
+	 *
+	 * Generic for the same reason `vengeance` is — every tank is the target of the same short list — so
+	 * the catalogue and the reading live in `lib/analysis/externals` and only the field is borrowed here.
+	 *
+	 * The one field on this audit whose figures rest on who else was in the pull rather than on what the
+	 * player did, which is why `ExternalsAudit` carries the roster's classes beside the counts: a raid
+	 * with no priest missed no Pain Suppression, and a count that did not say so would be a fault
+	 * invented out of the roster.
+	 */
+	externals: ExternalsAudit;
 }
 
 // ---------------------------------------------------------------- Elemental

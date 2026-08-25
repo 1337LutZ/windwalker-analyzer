@@ -67,7 +67,7 @@ import {
 	Stormlash,
 } from '~/specs/elemental/components/sections';
 import { PROTECTION_SPEC } from '~/specs/protection';
-import { FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
+import { Externals, FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -420,6 +420,12 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// a tank the fight is hitting harder than their health can convert — which is why it reads
 		// beside the encounter's own doing above rather than among the resource bars below.
 		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
+		// Directly after Vengeance, because Vengeance is what licenses it. A reader who has just been told
+		// that being hit pays attack power is the reader ready to hear that cutting the damage does not cut
+		// the pay — which is the one argument that lets this heading recommend where the rest of the page
+		// describes. Read before Haste for the same reason `fight` reads before `globals`: the claim arrives
+		// already qualified rather than needing a reader talked back out of it.
+		{ id: 'externals', titleKey: 'externals.title', group: 'core', Component: Externals },
 		// The character the pull was played on, and the denominator everything above divides by:
 		// `available` is active time over the global, and the global is what haste sets. It reads after
 		// the counts rather than before because a reader wants the figure before its arithmetic, and
