@@ -999,28 +999,6 @@ const AURAS: Aura[] = [
 		durationMs: 6000,
 		appliedBy: 'diffuse-magic',
 	},
-	{
-		/**
-		 * The shaman's raid buff, which lands on a monk exactly as it lands on the shaman who cast it.
-		 *
-		 * **120676 is the aura, not the press.** The Elemental model records the split and the measurement:
-		 * 120668 is what a shaman presses, 120687 is the damage each lash deals, and 120676 is the buff the
-		 * raid gets — 7 447 applications across three raid nights, while 120668 never appears as a buff at
-		 * all. No `appliedBy`, for the honest reason: nothing in *this* model presses it.
-		 *
-		 * Declared for the timeline's per-caster rows and nothing else — no figure in this audit reads it.
-		 * `dataset-ironJuggernaut` carries two of them on the monk from two different shamans, and the
-		 * report had no row for either: the same class of gap `drawnAuras.test.ts` exists to catch. Skull
-		 * Banner is its twin and belongs beside it in `game/shared.ts` rather than here, since it lands on
-		 * both specs; this one is a spec declaration only because that file is not this lane's to edit.
-		 */
-		key: 'stormlash-totem',
-		name: 'Stormlash Totem',
-		ids: [120676],
-		kind: 'buff',
-		// `sim/core/buffs.go`: `StormLashDuration = time.Second * 10`.
-		durationMs: 10_000,
-	},
 ];
 
 export const WINDWALKER: GameData = {

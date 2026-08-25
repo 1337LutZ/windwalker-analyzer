@@ -157,6 +157,32 @@ export const SHARED_AURAS: Aura[] = [
 		kind: 'buff',
 	},
 	{
+		key: 'stormlash-totem',
+		name: 'Stormlash Totem',
+		/**
+		 * The Shaman's raid cooldown, and the aura is **120676** rather than the press.
+		 *
+		 * Three ids belong to one totem and only one of them is this: 120668 is what the shaman presses,
+		 * 120687 is the damage each lash deals, and 120676 is what the raid carries. Confirmed on every
+		 * committed raw fixture and on 7,447 applications across three raid nights, while 120668 never
+		 * appears as a buff at all.
+		 *
+		 * **Shared rather than a spec's, for the reason Skull Banner beside it is.** It is pressed by
+		 * somebody else and lands on whoever is standing there — the committed captures carry it on a monk
+		 * and on a shaman, and it would land on a paladin the same way. Both specs that declared it said
+		 * in their own comments that it belonged here and that moving it was not their lane's to do; this
+		 * is that move, and it is what lets a third spec draw the row without declaring anything.
+		 *
+		 * No `appliedBy`: the link would dangle for every spec without a Stormlash button, and the
+		 * registry refuses a dangling aura link at construction. The Elemental keeps its own ability
+		 * declaration, which is where the press belongs.
+		 */
+		ids: [120676],
+		kind: 'buff',
+		// `sim/core/buffs.go`: `StormLashDuration = time.Second * 10`.
+		durationMs: 10_000,
+	},
+	{
 		key: 'skull-banner',
 		name: 'Skull Banner',
 		/**

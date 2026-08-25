@@ -1117,18 +1117,6 @@ const AURAS: Aura[] = [
 		appliedBy: 'earth-elemental',
 	},
 	{
-		key: 'stormlash-totem',
-		name: 'Stormlash Totem',
-		// The aura the raid gets is **120676**, not the press. Confirmed on all four committed raw fixtures
-		// (8/4/8 Elemental, 4 Windwalker) and on 7,447 applications across three raid nights, while 120668
-		// never appears as a buff at all. Note it lands on a monk too, so this is arguably a shared raid
-		// buff rather than an Elemental-only one — worth moving to `game/shared.ts` when someone is there.
-		ids: [120676],
-		kind: 'buff',
-		durationMs: STORMLASH_DURATION_MS,
-		appliedBy: 'stormlash-totem',
-	},
-	{
 		key: 't16-2pc-debuff',
 		name: 'Elemental Discharge',
 		ids: [144999],
