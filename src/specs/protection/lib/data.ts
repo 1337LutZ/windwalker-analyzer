@@ -389,6 +389,16 @@ const ABILITIES: Ability[] = [
 	// so a defensive global is not read as a missing generator.
 	// ---------------------------------------------------------------------------------------------
 	{
+		key: 'speed-of-light',
+		name: 'Speed of Light',
+		castIds: [85499],
+		// Off the global: `sim/paladin/talents.go:68-76` gives its cast config a cooldown and no GCD at
+		// all, which `spell.go:324` then reads as haste-ignoring because both GCD and cast time are nought.
+		onGcd: false,
+		gate: 'other',
+		cooldownMs: 45_000,
+	},
+	{
 		key: 'divine-protection',
 		name: 'Divine Protection',
 		castIds: [498],
@@ -663,7 +673,13 @@ const AURAS: Aura[] = [
 		// **It appears in none of the five committed captures**, which is why `undeclaredAuras.test.ts` never
 		// raised it — that sweep can only see what a fixture carries, so a talent this tank did not take is
 		// outside its reach entirely. Found on a reader's own log rather than by the guard.
+		//
+		// **Declaring the aura alone was not enough, which is the part worth remembering.** The first pass
+		// added this entry and the id still drew bare, because the timeline names a *press* from an
+		// `Ability`'s `castIds` — an aura with no button behind it gives the lane nothing to label. The
+		// ability above is what actually fixes it; this makes the buff it applies nameable too.
 		durationMs: 8000,
+		appliedBy: 'speed-of-light',
 	},
 	{
 		key: 'divine-purpose',
