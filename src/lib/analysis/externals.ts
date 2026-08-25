@@ -119,10 +119,10 @@ export type ExternalDelivery = 'targeted' | 'ground' | 'raid';
  * duration are real, the reduction is unknown, and the row says so rather than carrying a remembered
  * number. Nothing is graded off a `log` row's magnitude, because there is none to grade.
  */
-export type ExternalEvidence = 'sim' | 'log';
+export type ExternalEvidence = 'sim' | 'tooltip' | 'log';
 
 /** Which damage an external actually reduces, as the sim applies it. */
-export type ExternalScope = 'all' | 'magic';
+export type ExternalScope = 'all' | 'magic' | 'physical';
 
 export interface ExternalSpell {
 	key: string;
@@ -146,6 +146,43 @@ export interface ExternalSpell {
 	scope: ExternalScope;
 	delivery: ExternalDelivery;
 	evidence: ExternalEvidence;
+	/**
+	 * Buttons that cannot be up on one target at the same time, named by the group they compete for.
+	 *
+	 * **A Paladin's Hands are the case, and the sim does not model it.** Every Hand carries "Only one
+	 * Hand may be active at a time" in its own tooltip, and `sim/paladin/talents.go:375` registers Hand
+	 * of Purity's ally aura with no shared group of any kind — so a sim Paladin can hold Purity and
+	 * Sacrifice on one target at once and the game cannot. This is therefore sourced from the spell
+	 * description rather than from `wowsims-mop`, which is worth saying plainly: everything else in this
+	 * catalogue that carries a number carries it because the sim states it.
+	 *
+	 * What it changes here is the arithmetic of a *fault*. Two Hands unused are not two missed chances —
+	 * they are one slot that could only ever have held one of them, and counting both would inflate the
+	 * headline of a section whose whole claim is that an unused external is a pure loss. See
+	 * `ExternalRow.blocked` for the other half: a Hand that never landed while a competing Hand did is
+	 * not a miss at all.
+	 */
+	exclusiveGroup?: string;
+	/**
+	 * Whether this report can see the spell at all.
+	 *
+	 * **Demoralizing Banner is the case, and it is a limit of the fetch rather than a fact about the
+	 * raid.** The banner reduces the damage its targets *deal* (`sim/warrior/banners.go:51`,
+	 * `DamageDealtMultiplier ×0.9`), so it registers through `NewEnemyAuraArray` at `banners.go:46` — an
+	 * aura on the boss and not on the tank. Every other entry here is read off an aura the protected
+	 * player carried, and this fetch holds only events the player or their pet is involved in, so a
+	 * warrior planting a banner under the boss appears in neither half of the stream.
+	 *
+	 * Kept in the catalogue rather than dropped, because it is a real tank external carrying the same
+	 * licence as the rest — `vengeance.go:50-52` divides it back out by name, so it cuts damage taken and
+	 * costs no attack power. But kept **out of the counted gate**: a row this report can never observe
+	 * would read as unused on every pull ever analysed, which is a fabricated fault and the exact failure
+	 * this section exists to avoid.
+	 *
+	 * Reading it needs the same second, raid-scoped fetch the co-tank case needs. Until that exists the
+	 * section lists it and says it cannot see it.
+	 */
+	readable?: boolean;
 }
 
 /**
@@ -247,30 +284,27 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 	},
 	{
 		key: 'hand-of-sacrifice',
+		exclusiveGroup: 'hand',
 		name: 'Hand of Sacrifice',
 		ids: [6940],
 		providedBy: 'Paladin',
 		durationMs: 12_000,
-		cooldownMs: null,
-		takenMultiplier: null,
+		cooldownMs: 120_000,
+		// 30% of the damage taken is redirected to the casting paladin, so the protected player takes 70%.
+		// Off the 5.4 tooltip rather than the sim, which implements no effect for it.
+		//
+		// **The one entry here whose reduction has a second limit**: the redirect also ends once it has
+		// moved a full health bar's worth of damage, so a twelve-second window under heavy damage can stop
+		// paying before it expires. Nothing in this module models that, and it errs towards crediting the
+		// external with more than it gave — worth knowing before this figure is ever used to size a loss.
+		takenMultiplier: 0.7,
 		scope: 'all',
 		delivery: 'targeted',
-		evidence: 'log',
-	},
-	{
-		key: 'life-cocoon',
-		name: 'Life Cocoon',
-		ids: [116849],
-		providedBy: 'Monk',
-		durationMs: 12_000,
-		cooldownMs: null,
-		takenMultiplier: null,
-		scope: 'all',
-		delivery: 'targeted',
-		evidence: 'log',
+		evidence: 'tooltip',
 	},
 	{
 		key: 'hand-of-purity',
+		exclusiveGroup: 'hand',
 		name: 'Hand of Purity',
 		ids: [114039],
 		providedBy: 'Paladin',
@@ -299,23 +333,13 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		ids: [81782],
 		providedBy: 'Priest',
 		durationMs: 10_000,
-		cooldownMs: null,
-		takenMultiplier: null,
+		cooldownMs: 180_000,
+		// "Reduces all damage done to friendly targets by 25%" — the 5.4 tooltip, the sim implementing
+		// nothing for it. `81782` is the aura the standing player carries; `62618` is the placement cast.
+		takenMultiplier: 0.75,
 		scope: 'all',
 		delivery: 'ground',
-		evidence: 'log',
-	},
-	{
-		key: 'anti-magic-zone',
-		name: 'Anti-Magic Zone',
-		ids: [145629],
-		providedBy: 'DeathKnight',
-		durationMs: 3_000,
-		cooldownMs: 120_000,
-		takenMultiplier: 0.6,
-		scope: 'magic',
-		delivery: 'ground',
-		evidence: 'sim',
+		evidence: 'tooltip',
 	},
 	{
 		key: 'smoke-bomb',
@@ -328,6 +352,23 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		scope: 'all',
 		delivery: 'ground',
 		evidence: 'log',
+	},
+	{
+		key: 'demoralizing-banner',
+		name: 'Demoralizing Banner',
+		// The banner's own id, which is what the enemy aura registers under (`sim/warrior/banners.go:44`).
+		ids: [114203],
+		providedBy: 'Warrior',
+		durationMs: 15_000,
+		cooldownMs: 180_000,
+		// ×0.9 on the *enemy's* outgoing damage (`sim/warrior/banners.go:51`), which reaches the tank as
+		// ten percent less damage taken from anything it is planted on.
+		takenMultiplier: 0.9,
+		// Physical only: `vengeance.go:44` guards the whole divide-back-out block on `SpellSchoolPhysical`.
+		scope: 'physical',
+		delivery: 'ground',
+		evidence: 'sim',
+		readable: false,
 	},
 ] as const;
 
@@ -353,6 +394,22 @@ export interface ExternalRow {
 	available: boolean;
 	/** How many raiders of the providing class were in the pull, excluding the audited player. */
 	providers: number;
+	/**
+	 * The slot this competes for, when it shares one — `'hand'` for a Paladin's Hands.
+	 *
+	 * Null for everything that stacks freely, which is all but two entries.
+	 */
+	group: string | null;
+	/**
+	 * This never landed, but something it competes with did, so its absence is not a fault.
+	 *
+	 * Only one Hand may be active on a target at a time, so a pull that had Hand of Sacrifice on the tank
+	 * could not also have had Hand of Purity. Listing the second as a missed chance would recommend an
+	 * impossibility.
+	 */
+	blocked: boolean;
+	/** This report cannot observe the spell, so its absence says nothing. See `ExternalSpell.readable`. */
+	readable: boolean;
 	/** Instances that landed on the audited player, by caster, in first-seen order. */
 	received: ExternalCaster[];
 	/** How many landed in total. */
@@ -379,6 +436,12 @@ export interface ExternalsAudit {
 	used: number;
 	/** Of those, how many never landed. The section's headline. */
 	unused: number;
+	/**
+	 * Externals somebody in this raid could have cast that this report cannot observe at all.
+	 *
+	 * Named rather than counted, and kept out of every other figure here — see `ExternalSpell.readable`.
+	 */
+	unreadable: string[];
 }
 
 /**
@@ -417,6 +480,40 @@ export function classesInPull(friendlyPlayers: readonly number[], actors: readon
  * being counted once per raider it reached; see `windowsBySource`, whose own docblock records the 38-to-1
  * measurement that made the argument.
  */
+/**
+ * One ground effect is one placement, however many times the player walked out of it and back in.
+ *
+ * **Measured, not assumed.** Power Word: Barrier on the Garrosh capture logs
+ * `applybuff@35.0 removebuff@36.2 applybuff@36.2 removebuff@36.4 applybuff@37.1 removebuff@40.6
+ * applybuff@40.7 removebuff@41.8 applybuff@41.9 removebuff@41.9`, then nothing until 360.5. That is a
+ * priest placing one Barrier and a tank stepping over its edge four times — not five Barriers. Read
+ * raw, the pull reports five instances of a ten-second cooldown inside seven seconds, which is not a
+ * thing that can happen.
+ *
+ * A placement therefore runs for the spell's own duration from the moment it first covered the player,
+ * and every window opening inside that belongs to it. Nothing else would be principled: a fixed gap
+ * threshold would be a number picked to fit these two captures.
+ *
+ * **Ground deliveries only.** A targeted external cannot pulse — Pain Suppression is on you or it is
+ * not — so merging one would hide a genuine second cast. Devotion Aura and Smoke Bomb pass through
+ * unchanged on all three captures, which is the check that this narrows nothing it should not.
+ *
+ * The windows themselves are kept rather than filled in: the seconds the player spent *outside* the
+ * circle were seconds without cover, and `heldMs` should not claim them.
+ */
+export function mergePlacements(windows: readonly Window[], durationMs: number): Window[][] {
+	const placements: Window[][] = [];
+	let openedAt: number | null = null;
+	for (const w of windows) {
+		const current = placements[placements.length - 1];
+		if (current === undefined || openedAt === null || w.start >= openedAt + durationMs) {
+			openedAt = w.start;
+			placements.push([w]);
+		} else current.push(w);
+	}
+	return placements;
+}
+
 export function readExternals(
 	events: RaidEvents,
 	{
@@ -454,6 +551,16 @@ export function readExternals(
 
 		const given = givenBySource(auras, external, { t0, pullMs, actorID, nameOf });
 		const spans = received.flatMap((caster) => caster.windows.map((w): Interval => [w.start, w.end]));
+		// A ground effect is counted by placements rather than by the times the player crossed its edge.
+		// Pooled across casters first, because two priests dropping one Barrier each are two placements
+		// and the walk above buckets by caster.
+		const placements =
+			external.delivery === 'ground'
+				? mergePlacements(
+						received.flatMap((caster) => caster.windows).sort((a, b) => a.start - b.start),
+						external.durationMs,
+					).length
+				: spans.length;
 
 		return {
 			key: external.key,
@@ -461,8 +568,13 @@ export function readExternals(
 			providedBy: external.providedBy,
 			available: present.has(external.providedBy),
 			providers: countProviders(friendlyPlayers, actors, actorID, external.providedBy),
+			group: external.exclusiveGroup ?? null,
+			readable: external.readable ?? true,
+			// Filled in a second pass: whether a competitor took the slot cannot be known until every row
+			// has been read.
+			blocked: false,
 			received,
-			count: spans.length,
+			count: placements,
 			// Overlap counted once: two Vigilances from two warriors covering the same second are one
 			// second of cover, and a sum of window lengths would report two.
 			heldMs: unionMs(spans),
@@ -470,13 +582,24 @@ export function readExternals(
 		};
 	});
 
-	const available = rows.filter((row) => row.available);
+	// Which competitive slots were filled, now that every row has been read. A Hand that landed takes the
+	// Hand slot, and the Hands that did not are then not misses — see `ExternalSpell.exclusiveGroup`.
+	const filledGroups = new Set(rows.filter((row) => row.count > 0 && row.group !== null).map((row) => row.group));
+	for (const row of rows) row.blocked = row.count === 0 && row.group !== null && filledGroups.has(row.group);
+
+	// Unreadable rows are listed and never counted — see `ExternalSpell.readable`.
+	const available = rows.filter((row) => row.available && row.readable);
+	const missed = available.filter((row) => row.count === 0 && !row.blocked);
+	// **Counted per slot rather than per button**, which is the whole point of the group. Two Hands that
+	// both went unused are one chance nobody took, because only one of them could ever have been up.
+	const missedSlots = new Set(missed.map((row) => row.group ?? row.key));
 	return {
 		rows,
 		classes,
 		available: available.length,
 		used: available.filter((row) => row.count > 0).length,
-		unused: available.filter((row) => row.count === 0).length,
+		unused: missedSlots.size,
+		unreadable: rows.filter((row) => row.available && !row.readable).map((row) => row.name),
 	};
 }
 

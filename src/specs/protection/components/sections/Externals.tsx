@@ -8,6 +8,8 @@ import type { Analysis } from '~/lib/types';
 import ChartEmpty from '~/components/charts/ChartEmpty';
 import ChartKey from '~/components/charts/ChartKey';
 import WindowTracks, { type Track } from '~/components/charts/WindowTracks';
+import ResourceTrack from '~/components/charts/ResourceTrack';
+import type { VengeanceAudit } from '~/lib/analysis/vengeance';
 import {
 	Callout,
 	ChartFigure,
@@ -65,6 +67,9 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 	// Optional, like every other audit field is read here: a report captured before this existed
 	// carries no `externals`, and assuming one would throw on it.
 	const { externals } = analysis as Analysis & { externals?: ExternalsAudit };
+	// Optional for the same reason `externals` is: a capture taken before either section existed carries
+	// neither, and the chart simply omits the line rather than the section refusing to draw.
+	const { vengeance } = analysis as Analysis & { vengeance?: VengeanceAudit };
 	const { t } = useReportCopy(analysis);
 
 	const rows = externals?.rows ?? NO_ROWS;
@@ -169,11 +174,40 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 						gap="wide"
 						caption={
 							<>
+								{vengeance === undefined ? null : <ChartKey tone="rune">{t('externals.key.vengeance')}</ChartKey>}
 								<ChartKey tone="brew">{t('externals.key.landed')}</ChartKey>
 								{gave.length === 0 ? null : <ChartKey tone="kick">{t('externals.key.given')}</ChartKey>}
 							</>
 						}
 					>
+						{/* Vengeance over the same seconds, above the rows and on the same time axis.
+						    
+						    **Above rather than behind, and the reason is the chart library.** `WindowTracks` is a
+						    horizontal `rangeBar`, so its y-axis is the row *labels* — a categorical axis. ApexCharts
+						    cannot mix a time-series line into that plot, and compositing an SVG behind the plot area
+						    would mean guessing the library's own left offset, which moves with the label width and
+						    the breakpoint. Stacked and sharing `durationMs`, the two read as one figure and the
+						    alignment is exact at every width.
+						    
+						    It is here because it is what the section argues from: an external cuts damage taken and
+						    does not cut the attack power that damage pays, so the stretches where Vengeance was high
+						    are the stretches an external was worth most — and a reader can now see whether the bars
+						    below line up with them. */}
+						{vengeance === undefined ? null : (
+							<ResourceTrack
+								curve={vengeance.curve}
+								durationMs={analysis.durationMs}
+								stroke="var(--color-rune)"
+								fill="var(--color-rune-wash)"
+								mode="line"
+								smooth
+								showStepLabels={false}
+								label={t('externals.vengeanceLabel', {
+									peak: vengeance.peak?.attackPower ?? 0,
+									duration: analysis.durationMs,
+								})}
+							/>
+						)}
 						<WindowTracks
 							tracks={tracks}
 							chartId="prot-externals"
@@ -195,6 +229,9 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 				</Prose>
 				{gave.length === 0 ? null : (
 					<Note>{t('externals.given', { names: gave.map((row) => row.name).join(', ') })}</Note>
+				)}
+				{externals.unreadable.length === 0 ? null : (
+					<Note>{t('externals.unreadable', { names: externals.unreadable.join(', ') })}</Note>
 				)}
 				<Note>{t('externals.scope')}</Note>
 			</div>

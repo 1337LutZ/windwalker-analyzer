@@ -6,7 +6,7 @@
 // `HasteMeasure` moves a figure here rather than moving a figure on the page quietly.
 //
 // **All three are the same character in the same kit**, and that is worth stating before any of it is
-// read as a sample: one `combatantinfo`, 20,314 melee haste rating, three bosses in one week. So the
+// read as a sample: one `combatantinfo`, 19,352 melee haste rating, five bosses in one week. So the
 // spread below is a spread of *encounters* and never of gear, and nothing here supports a claim about
 // what a Protection Paladin generally runs at.
 //
@@ -27,11 +27,15 @@ const pull = (name: string): Pull => analyse(rawFixture('protection', name)) as 
 const garrosh = pull('garrosh.json');
 const paragons = pull('paragons.json');
 const fallenProtectors = pull('fallenProtectors.json');
+const galakras = pull('galakras.json');
+const spoils = pull('spoils.json');
 
 const ALL: Array<[string, Pull]> = [
 	['garrosh', garrosh],
 	['paragons', paragons],
 	['fallenProtectors', fallenProtectors],
+	['galakras', galakras],
+	['spoils', spoils],
 ];
 
 describe('the haste every committed pull was played at', () => {
@@ -43,9 +47,9 @@ describe('the haste every committed pull was played at', () => {
 	 * re-captured from somebody else or the gear reader changed what it reads — and both of those want
 	 * to be found here rather than in a section whose numbers moved for no stated reason.
 	 */
-	it('reads 20,314 melee haste rating off all three', () => {
+	it('reads 19,352 melee haste rating off every capture', () => {
 		for (const [name, analysis] of ALL) {
-			expect(analysis.haste.rating, name).toBe(20_314);
+			expect(analysis.haste.rating, name).toBe(19_352);
 			expect(analysis.haste.assumed, name).toBe(false);
 		}
 	});
@@ -53,21 +57,21 @@ describe('the haste every committed pull was played at', () => {
 	/**
 	 * The three terms, and the one that crosses the line.
 	 *
-	 * 20,314 rating is 47.80% — **short of the breakpoint on its own**, and a 1,015ms global with it. The
-	 * seal's five percent over the top is what reaches 55.19% and puts the pull on the 1,000ms floor. That
+	 * 19,352 rating is 45.53% — **short of the breakpoint on its own**, and a 1,031ms global with it. The
+	 * seal's five percent over the top is what reaches 52.81% and puts the pull on the 1,000ms floor. That
 	 * is the whole argument for the section's terms table being cumulative rather than a column of
 	 * multipliers: the reader needs to see which term crossed, and no per-term figure says it.
 	 */
 	it('reaches the breakpoint on the seal rather than on the gear', () => {
-		const fromRating = hasteFromRating(20_314);
-		expect(fromRating).toBeCloseTo(1.478, 3);
+		const fromRating = hasteFromRating(19_352);
+		expect(fromRating).toBeCloseTo(1.4553, 4);
 		expect(fromRating).toBeLessThan(GCD_FLOOR_HASTE);
 
 		const base = fromRating * SEAL_OF_INSIGHT_HASTE;
-		expect(base).toBeCloseTo(1.5519, 4);
+		expect(base).toBeCloseTo(1.5281, 4);
 		expect(base).toBeGreaterThan(GCD_FLOOR_HASTE);
-		// 5.19 percentage points past 50%, which is the figure the breakpoint tile prints.
-		expect((base - GCD_FLOOR_HASTE) * 100).toBeCloseTo(5.19, 2);
+		// 2.81 percentage points past 50%, which is the figure the breakpoint tile prints.
+		expect((base - GCD_FLOOR_HASTE) * 100).toBeCloseTo(2.81, 2);
 
 		for (const [name, analysis] of ALL) {
 			expect(analysis.haste.fromRating, name).toBeCloseTo(fromRating, 10);
@@ -80,7 +84,7 @@ describe('the haste every committed pull was played at', () => {
 	/**
 	 * Bloodlust, and the reason it buys no globals on any of these pulls.
 	 *
-	 * 55.19% × 1.3 is 101.74% melee haste, which is more than twice what the global's cap can spend — so
+	 * 52.81% × 1.3 is 98.65% melee haste, which is nearly twice what the global's cap can spend — so
 	 * the modelled global under Bloodlust is the same 1,000ms it was without it. Every one of the forty
 	 * seconds is bought in *cooldowns* instead, which is exactly the claim the section makes in prose and
 	 * the reason the terms table prints a global column that does not move on its last row.
@@ -90,15 +94,17 @@ describe('the haste every committed pull was played at', () => {
 	 */
 	it('doubles the haste under Bloodlust and does not move the global', () => {
 		for (const [name, analysis] of ALL) {
-			expect(analysis.haste.underLust, name).toBeCloseTo(2.0174, 4);
+			expect(analysis.haste.underLust, name).toBeCloseTo(1.9865, 4);
 			expect(analysis.haste.gcdMsUnderLust, name).toBe(GCD_FLOOR_MS);
 			// One 40s cooldown per pull, to the tens of milliseconds the log stamps it at.
 			expect(analysis.haste.lustMs, name).toBeGreaterThan(39_900);
 			expect(analysis.haste.lustMs, name).toBeLessThan(40_100);
 		}
-		expect(fallenProtectors.haste.lustMs).toBe(39_999);
-		expect(garrosh.haste.lustMs).toBe(40_025);
-		expect(paragons.haste.lustMs).toBe(39_987);
+		expect(fallenProtectors.haste.lustMs).toBe(40_009);
+		expect(garrosh.haste.lustMs).toBe(39_998);
+		expect(paragons.haste.lustMs).toBe(39_979);
+		expect(galakras.haste.lustMs).toBe(39_994);
+		expect(spoils.haste.lustMs).toBe(40_000);
 	});
 
 	/**
@@ -118,12 +124,18 @@ describe('the haste every committed pull was played at', () => {
 	it('measures the global off the presses within ten milliseconds of the model', () => {
 		for (const [name, analysis] of ALL) {
 			expect(analysis.haste.gcdMs, name).toBe(1000);
-			expect(analysis.measuredGcd.medianMs, name).toBe(1010);
+			// Within a global's own hundredth of the modelled 1,000ms on all five, and the spread across
+			// them is 7ms — which is what a measurement looks like against a constant.
+			expect(analysis.measuredGcd.medianMs, name).toBeGreaterThanOrEqual(1_005);
+			expect(analysis.measuredGcd.medianMs, name).toBeLessThanOrEqual(1_015);
 			expect(analysis.globals.gcdMs, name).toBe(GCD_FLOOR_MS);
 		}
-		expect(fallenProtectors.measuredGcd.samples).toBe(194);
-		expect(paragons.measuredGcd.samples).toBe(328);
-		expect(garrosh.measuredGcd.samples).toBe(468);
+		expect(fallenProtectors.measuredGcd.medianMs).toBe(1_009);
+		expect(garrosh.measuredGcd.medianMs).toBe(1_007);
+		expect(paragons.measuredGcd.medianMs).toBe(1_006);
+		expect(fallenProtectors.measuredGcd.samples).toBe(150);
+		expect(paragons.measuredGcd.samples).toBe(354);
+		expect(garrosh.measuredGcd.samples).toBe(432);
 	});
 });
 
@@ -153,63 +165,56 @@ describe('what the pulls own presses say about that haste', () => {
 	});
 
 	/**
-	 * *** The check finds every pull faster than the model, and none of the three reasons is the model
-	 * being wrong about haste. ***
+	 * *** The check still reads every pull as faster than the model, and the margins are now small. ***
 	 *
-	 * This is the finding the cross-check exists to surface, and it is recorded here rather than fixed,
-	 * because two of the three causes are outside what `HasteCurve` claims to model and the third is
-	 * outside what a combat log can be trusted for. `checkHaste`'s own docstring says a gap shorter than
-	 * the prediction "is proof the model is wrong"; on real Siege logs that claim is too strong, and
-	 * these are the counter-examples.
+	 * This block previously recorded three causes measured on a different capture of this spec, and the
+	 * re-capture settles which of them were about the model and which were about that log. The worst
+	 * margin across five pulls is now **238ms**, against 2,146ms before. The old headline — Fallen
+	 * Protectors' Judgment at −2,146ms — was the log stamping four presses inside 53ms after 3.4s of
+	 * silence, and it does not survive a different recording of the same encounter. It was a property of
+	 * that capture rather than of the spec.
 	 *
-	 *   1. **A cooldown that was already running when Bloodlust landed.** `HasteCurve.cooldownMsAt` asks
-	 *      at the press, because `sim/core/cast.go` stamps `spell.CD.Set(sim.CurrentTime + cd)` once and
-	 *      never revisits it. The game did revisit it. Paragons presses a builder at 7,887ms with
-	 *      Bloodlust arriving at 8,580ms: stamped at the press it is due back at 10,787ms, and it was
-	 *      pressed again at 10,261ms. Recomputed the way a live rescale would — 693ms of a 2,900ms
-	 *      cooldown spent, then the remaining 76.1% run at the Bloodlust cooldown of 2,231ms — it is due
-	 *      at 10,278ms. **Seventeen milliseconds.** The same arithmetic explains Garrosh's worst row to
-	 *      21ms: Judgment pressed at 250,482ms with Bloodlust at 252,671ms is due at 253,962ms rescaled
-	 *      against an observed 253,983ms, where the stamped model says 254,348ms.
-	 *   2. **The log stamping a run of presses together.** Fallen Protectors emits Judgment at 50,629ms,
-	 *      Shield of the Righteous at 50,634ms, Holy Wrath at 50,653ms and Hammer of the Righteous at
-	 *      50,682ms — four presses in 53ms, after 3.4s of nothing — and both of the pull's failing rows
-	 *      start inside that burst. Nothing about haste produces a Judgment 1,720ms after a Judgment; the
-	 *      cooldown is six seconds and the fastest any haste in this expansion makes it is 3.0s.
-	 *   3. **Twenty-five milliseconds of tolerance is tight for a spender.** Shield of the Righteous
-	 *      misses by 26ms on Paragons and 30ms on Garrosh against a 967ms cooldown — three percent, on
-	 *      the one button in the table pressed off the global.
+	 * What does survive is the real limitation: `HasteCurve.cooldownMsAt` prices a cooldown at the press,
+	 * because `sim/core/cast.go` stamps `spell.CD.Set(sim.CurrentTime + cd)` once and never revisits it,
+	 * while the game rescales a cooldown that is already running when Bloodlust lands. That is what the
+	 * remaining margins are made of, and it is why this is recorded rather than fixed.
 	 *
-	 * What the check does *not* find is any evidence against the haste itself: the builders on Garrosh
-	 * are 10ms off a 2,900ms prediction over 141 gaps, and Holy Wrath is inside 40ms on two of three
-	 * pulls. The model is right about the haste and incomplete about when a cooldown is priced.
+	 * **And the evidence now runs in both directions**, which it could not before. Galakras reads its
+	 * builders 64ms *slower* than the model and Spoils 14ms slower — a button pressed a little late,
+	 * which is what an ordinary pull looks like. A model that was simply too generous could not produce
+	 * rows on both sides of its own prediction.
 	 */
-	it('reports every pull as faster than the model, from the three causes named above', () => {
+	it('reports every pull as faster than the model, with margins inside a quarter second', () => {
 		for (const [name, analysis] of ALL) {
 			expect(analysis.haste.check?.verdict, name).toBe('faster');
+			// No pull misses by as much as a global any more. The bound is the finding: a return to
+			// multi-second margins would mean either the curve or the capture had changed.
+			expect(analysis.haste.check?.worstMs ?? 0, name).toBeGreaterThan(-250);
 		}
 
-		// The worst margin on each pull, and which button it belongs to — the row the section leads its
-		// sentence with. Pinned so a change to the curve, the merge or the tolerance moves a number here.
+		// The worst margin on each pull and the button it belongs to — the row the section leads with.
 		const worst = (analysis: Pull) => [analysis.haste.check?.rows[0]?.key, analysis.haste.check?.worstMs];
-		expect(worst(fallenProtectors)).toEqual(['judgment', -2146]);
-		expect(worst(garrosh)).toEqual(['judgment', -365]);
-		expect(worst(paragons)).toEqual(['crusader-strike', -526]);
+		expect(worst(fallenProtectors)).toEqual(['crusader-strike', -74]);
+		expect(worst(garrosh)).toEqual(['holy-wrath', -222]);
+		expect(worst(paragons)).toEqual(['judgment', -238]);
 	});
 
 	/**
-	 * The rows that agree, which are most of them and are the reason the ones that do not are readable.
+	 * The rows that agree, which are most of them and are why the ones that do not are readable.
 	 *
-	 * A haste-scaled cooldown's floor is visible in the press stream, so the shortest gap between two
-	 * presses of a button *is* that cooldown wherever the player pressed it on cooldown once. At 1.5519
-	 * the builders are modelled at 2,900ms and Garrosh's tightest of 141 gaps is 2,890ms — ten
-	 * milliseconds, which is the same order as the 1ms and 11ms the model's author measured across nine
-	 * reference kills. It is the strongest single piece of evidence on the page that the divisor the
-	 * whole report scales by is the right one.
+	 * A haste-scaled cooldown's floor is visible in the press stream: the shortest gap between two
+	 * presses of a button *is* that cooldown wherever the player pressed it on cooldown once. At 1.5281
+	 * the builders are modelled at 2,945ms, and across the five captures the observed floor runs 2,747 /
+	 * 2,871 / 2,925 / 2,959 / 3,009 — straddling the prediction rather than sitting under it.
+	 *
+	 * Spoils is the tightest at 14ms over 55 gaps, and it is the strongest single piece of evidence on
+	 * the page that the divisor the whole report scales by is the right one.
 	 */
-	it('lands the builders within ten milliseconds on the longest pull', () => {
-		const builders = garrosh.haste.check?.rows.find((row) => row.key === 'crusader-strike');
-		expect(builders).toMatchObject({ samples: 141, observedMs: 2890, predictedMs: 2900, deltaMs: -10 });
+	it('lands the builders within a few percent of the model, on both sides of it', () => {
+		const builders = (analysis: Pull) => analysis.haste.check?.rows.find((row) => row.key === 'crusader-strike');
+		expect(builders(spoils)).toMatchObject({ samples: 55, observedMs: 2959, predictedMs: 2945, deltaMs: 14 });
+		expect(builders(galakras)).toMatchObject({ samples: 31, observedMs: 3009, predictedMs: 2945, deltaMs: 64 });
+		expect(builders(garrosh)).toMatchObject({ samples: 107, observedMs: 2925, predictedMs: 2945, deltaMs: -20 });
 	});
 });
 

@@ -420,17 +420,19 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// a tank the fight is hitting harder than their health can convert — which is why it reads
 		// beside the encounter's own doing above rather than among the resource bars below.
 		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
-		// Directly after Vengeance, because Vengeance is what licenses it. A reader who has just been told
-		// that being hit pays attack power is the reader ready to hear that cutting the damage does not cut
-		// the pay — which is the one argument that lets this heading recommend where the rest of the page
-		// describes. Read before Haste for the same reason `fight` reads before `globals`: the claim arrives
-		// already qualified rather than needing a reader talked back out of it.
-		{ id: 'externals', titleKey: 'externals.title', group: 'core', Component: Externals },
 		// The character the pull was played on, and the denominator everything above divides by:
 		// `available` is active time over the global, and the global is what haste sets. It reads after
 		// the counts rather than before because a reader wants the figure before its arithmetic, and
 		// before the bar below because that bar is one more thing this reading has already scaled.
 		{ id: 'haste', titleKey: 'haste.title', group: 'core', Component: Haste },
+		// Vengeance is what licenses this heading, and the reader meets it two headings up: told that being
+		// hit pays attack power, they are ready to hear that cutting the damage does not cut the pay. That
+		// is the one argument letting this section recommend where the rest of the page describes.
+		//
+		// Below Haste rather than above it, so the two readings about the character the pull was played on
+		// — what their gear set the global to, and what their health let Vengeance pay — sit together, and
+		// the one thing on this page addressed to somebody other than the player comes last of them.
+		{ id: 'externals', titleKey: 'externals.title', group: 'core', Component: Externals },
 		// Last of the Core headings because it is the narrowest: one bar, and the only one of these a
 		// press moves directly. A points bar, so its fault is a count rather than a duration — see
 		// `ResourceKind`.

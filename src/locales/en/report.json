@@ -1145,7 +1145,7 @@
           "label": "Health reflected"
         },
         "globalsMissed": {
-          "label": "Globals you missed"
+          "label": "Missed globals"
         },
         "cooldownsMissed": {
           "label": "Cooldown presses missed"
@@ -1717,13 +1717,13 @@
     "intent": "Every second of a pull is a number of globals long, and this counts them: how many the fight had room for, how many you pressed, and what the gap is made of. The gap is split rather than totalled — some of it the encounter took away, and the rest is yours. Neither number is subtracted from the other, so what you see is the whole gap and your share of it side by side.",
     "kpi": {
       "pressed": "Globals pressed",
-      "missedFree": "Yours to press",
+      "missedFree": "Missed globals",
       "enforced": "Taken by the fight",
       "gcd": "Your global"
     },
-    "summary": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter accounts for {{enforced, integer}} of those, which leaves {{free, integer}} that were yours to make.",
+    "summary": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter accounts for {{enforced, integer}} of those, which leaves {{free, integer}} that were yours to press.",
     "summary_covered": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter took the buttons away for at least that long, so there is nothing in the gap this report can call yours.",
-    "summary_none": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. This encounter took none of them away, so all of them were yours to make.",
+    "summary_none": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. This encounter took none of them away, so all of them were yours to press.",
     "enforcedNote": "A global the fight takes away is not one you lost. Those seconds are stuns, phases that move you off the boss, and mechanics that replace your bar entirely. The section below lists the rule that applied and says which kind it is: a lockout was measured on real pulls of this boss, and a declared window is a phase somebody judged takes you away from it."
   },
   "fight": {
@@ -1852,7 +1852,8 @@
     },
     "key": {
       "landed": "Landed on you",
-      "given": "You put it on somebody else"
+      "given": "You put it on somebody else",
+      "vengeance": "Your attack power"
     },
     "chartLabel": "When each external cooldown was on you across the pull: {{landed, integer}} of them landed over {{duration, duration}}.",
     "length": {
@@ -1881,6 +1882,8 @@
     "never": "never",
     "cuts_all": "{{percent, percent}} of all damage",
     "cuts_magic": "{{percent, percent}} of magic damage",
-    "cuts_unknown": "not modelled by the simulator"
+    "cuts_unknown": "not modelled by the simulator",
+    "vengeanceLabel": "Attack power from Vengeance over the pull, peaking at {{peak, compact}}, drawn on the same seconds as the cooldowns below over {{duration, duration}}",
+    "unreadable": "{{names}} would also have helped here and this report cannot see it. It works by weakening what is hitting you rather than by shielding you, so it lands on the enemy — and the events this page is built from only cover you. Whether anyone used it is not something the numbers above answer either way."
   }
 }

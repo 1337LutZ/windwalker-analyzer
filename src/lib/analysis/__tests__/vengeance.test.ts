@@ -33,6 +33,8 @@ const sample = (t: number, attackPower: number, sourceID = 7): WclEvent =>
  * suite does not reach into a spec's registry to test a spec-agnostic module. 97463 is the buff the
  * raid carries; 97462 is the warrior's button, which this report never sees.
  */
+const ANCESTRAL_VIGOR: Aura = { key: 'ancestral-vigor', name: 'Ancestral Vigor', ids: [105284] } as Aura;
+
 const RALLYING_CRY: Aura = {
 	key: 'rallying-cry',
 	name: 'Rallying Cry',
@@ -308,6 +310,8 @@ describe('vengeanceAudit', () => {
 
 interface Expected {
 	file: string;
+	/** The report actor id, which is not the same on every capture and must not be assumed. */
+	actorID: number;
 	stamina: number;
 	strength: number;
 	maxHealth: number;
@@ -316,45 +320,109 @@ interface Expected {
 	peakAtMs: number;
 	peakShareOfCapPct: number;
 	rallyingCryWindows: number;
+	/** Stretches where *any* health buff held, which is more than Rallying Cry's on this raid. */
+	capWindows: number;
 	capRaisedMs: number;
+	nearCapMs: number;
+	ceilingSteps: number;
+	/**
+	 * `baseAttackPower` came from the fallback rather than from a pre-damage reading.
+	 *
+	 * True only where the tank was hit before the log sampled them once, so the prediction cannot be
+	 * checked against the audit — see the note on Fallen Protectors' own row.
+	 */
+	baseIsFallback?: boolean;
 }
 
 const PULLS: Expected[] = [
 	{
 		file: 'garrosh.json',
-		stamina: 67_433,
-		strength: 31_367,
-		maxHealth: 1_090_465,
-		baseAttackPower: 69_282,
-		peakAttackPower: 918_411,
-		peakAtMs: 384_199,
-		peakShareOfCapPct: 70.8,
-		rallyingCryWindows: 10,
-		capRaisedMs: 100_005,
+		actorID: 29,
+		stamina: 58_105,
+		strength: 34_879,
+		maxHealth: 959_873,
+		baseAttackPower: 77_009,
+		peakAttackPower: 1_247_414,
+		peakAtMs: 355_043,
+		peakShareOfCapPct: 100.8,
+		rallyingCryWindows: 4,
+		capWindows: 9,
+		capRaisedMs: 378_290,
+		nearCapMs: 9_725,
+		ceilingSteps: 11,
 	},
 	{
 		file: 'paragons.json',
-		stamina: 67_433,
-		strength: 31_367,
-		maxHealth: 1_090_465,
-		baseAttackPower: 69_282,
-		peakAttackPower: 919_332,
-		peakAtMs: 67_331,
-		peakShareOfCapPct: 70.9,
-		rallyingCryWindows: 7,
-		capRaisedMs: 70_022,
+		actorID: 29,
+		stamina: 58_105,
+		strength: 34_879,
+		maxHealth: 959_873,
+		baseAttackPower: 77_009,
+		peakAttackPower: 1_443_883,
+		peakAtMs: 294_593,
+		peakShareOfCapPct: 98.1,
+		rallyingCryWindows: 2,
+		capWindows: 5,
+		capRaisedMs: 384_153,
+		nearCapMs: 5_943,
+		ceilingSteps: 7,
 	},
 	{
 		file: 'fallenProtectors.json',
-		stamina: 64_574,
-		strength: 32_753,
-		maxHealth: 1_050_439,
-		baseAttackPower: 72_332,
-		peakAttackPower: 505_259,
-		peakAtMs: 119_012,
-		peakShareOfCapPct: 31.2,
-		rallyingCryWindows: 4,
-		capRaisedMs: 40_021,
+		actorID: 29,
+		stamina: 57_455,
+		strength: 35_194,
+		maxHealth: 950_773,
+		// **The one capture where this is not `(250 + 2 × Strength) × 1.1`, and the reason is a limitation
+		// worth pinning rather than hiding.** `baseAttackPower` is the lowest reading taken *before the
+		// first blow*, and on a pull where the tank is hit immediately there is no such reading — so it
+		// falls back to the pull's own minimum, which already carries Vengeance. 205,006 against a
+		// predicted 77,436 is that fallback, and it makes every Vengeance figure on this pull an
+		// understatement. See `vengeanceAudit`, which states the fallback and its direction.
+		baseAttackPower: 205_006,
+		baseIsFallback: true,
+		peakAttackPower: 737_248,
+		peakAtMs: 167_900,
+		peakShareOfCapPct: 50.9,
+		rallyingCryWindows: 2,
+		capWindows: 2,
+		capRaisedMs: 20_009,
+		nearCapMs: 0,
+		ceilingSteps: 5,
+	},
+	{
+		file: 'galakras.json',
+		actorID: 29,
+		stamina: 57_455,
+		strength: 30_994,
+		maxHealth: 950_773,
+		baseAttackPower: 68_462,
+		peakAttackPower: 615_458,
+		peakAtMs: 387_190,
+		peakShareOfCapPct: 52.3,
+		// The only committed capture where Rallying Cry never lands, which is what makes it the one that
+		// exercises the fixed-ceiling path end to end.
+		rallyingCryWindows: 0,
+		capWindows: 3,
+		capRaisedMs: 197_371,
+		nearCapMs: 0,
+		ceilingSteps: 7,
+	},
+	{
+		file: 'spoils.json',
+		actorID: 29,
+		stamina: 57_455,
+		strength: 30_994,
+		maxHealth: 950_773,
+		baseAttackPower: 68_462,
+		peakAttackPower: 547_210,
+		peakAtMs: 246_048,
+		peakShareOfCapPct: 41.6,
+		rallyingCryWindows: 2,
+		capWindows: 5,
+		capRaisedMs: 334_856,
+		nearCapMs: 0,
+		ceilingSteps: 7,
 	},
 ];
 
@@ -366,6 +434,7 @@ const auditOf = (expected: Expected) => {
 		| (WclEvent & { strength?: number })
 		| undefined;
 	const windows = auraWindows(eventsOn(dataset.events, actorID), RALLYING_CRY, t0, dataset.fight.endTime);
+	const vigorWindows = auraWindows(eventsOn(dataset.events, actorID), ANCESTRAL_VIGOR, t0, dataset.fight.endTime);
 
 	return {
 		strength: info?.strength ?? null,
@@ -378,7 +447,14 @@ const auditOf = (expected: Expected) => {
 			t0,
 			durationMs: dataset.fight.endTime - t0,
 			stamina: readGear(dataset.events, actorID).stamina,
-			healthBuffs: [{ name: 'Rallying Cry', multiplier: 1.2, windows }],
+			// **Both buffs, because the raid brought both.** Passing Rallying Cry alone understates the
+			// ceiling on this report and pushes the peak share to 110.8% on Garrosh — a bar over its own
+			// limit, which is the shape of a missing multiplier rather than a measurement. Ancestral Vigor
+			// compounds with it, so the peak ceiling is `maxHealth × 1.2 × 1.1`.
+			healthBuffs: [
+				{ name: 'Rallying Cry', multiplier: 1.2, windows },
+				{ name: 'Ancestral Vigor', multiplier: 1.1, windows: vigorWindows },
+			],
 		}),
 	};
 };
@@ -386,7 +462,7 @@ const auditOf = (expected: Expected) => {
 describe.each(PULLS)('the $file capture', (expected) => {
 	it('reads the health pool the cap is a function of', () => {
 		const { audit } = auditOf(expected);
-		expect(readGear(rawFixture('protection', expected.file).events, 33).stamina).toBe(expected.stamina);
+		expect(readGear(rawFixture('protection', expected.file).events, expected.actorID).stamina).toBe(expected.stamina);
 		expect(audit.maxHealth).toBe(expected.maxHealth);
 		expect(audit.restingCap).toBe(expected.maxHealth);
 	});
@@ -402,8 +478,13 @@ describe.each(PULLS)('the $file capture', (expected) => {
 		// `(CharacterLevel*3 - 20) + 2 × Strength`, times the raid buff. Rounded because the product is
 		// fractional and a character sheet is not.
 		const predicted = Math.round((90 * 3 - 20 + 2 * expected.strength) * AP_RAID_BUFF_MULTIPLIER);
-		expect(predicted).toBe(expected.baseAttackPower);
 		expect(audit.baseAttackPower).toBe(expected.baseAttackPower);
+		// On a pull with a clean pre-damage reading the prediction *is* the reading, to the unit — which is
+		// what checks the Strength dependency, the class base and the raid multiplier together. Where the
+		// tank was hit before being sampled the audit falls back to the pull minimum, and all that can be
+		// asserted is the direction: the fallback already carries Vengeance, so it can only overstate.
+		if (expected.baseIsFallback === true) expect(audit.baseAttackPower).toBeGreaterThan(predicted);
+		else expect(predicted).toBe(expected.baseAttackPower);
 	});
 
 	it('measures the peak and what share of the cap it was', () => {
@@ -414,21 +495,47 @@ describe.each(PULLS)('the $file capture', (expected) => {
 		expect((audit.peak?.shareOfCap ?? 0) * 100).toBeCloseTo(expected.peakShareOfCapPct, 1);
 	});
 
-	it('finds the cap moving during the pull, because Rallying Cry lands on it', () => {
+	it('finds the cap moving during the pull, because health buffs land on it', () => {
 		const { audit, windows } = auditOf(expected);
 		expect(windows).toHaveLength(expected.rallyingCryWindows);
-		expect(audit.capWindows).toHaveLength(expected.rallyingCryWindows);
+		// More stretches than Rallying Cry's, because Ancestral Vigor raises it too. Galakras is the
+		// capture that separates the two: no Rallying Cry at all, and three raised stretches regardless.
+		expect(audit.capWindows).toHaveLength(expected.capWindows);
 		expect(audit.capRaisedMs).toBe(expected.capRaisedMs);
-		// A fifth more ceiling, for as long as it holds.
-		expect(audit.peakCap).toBeCloseTo(expected.maxHealth * 1.2, 6);
+		// Bounded rather than fixed, because which buffs overlap is a property of the pull: a fifth more
+		// for Rallying Cry alone, a tenth for Ancestral Vigor alone, and the product where they coincide.
+		if (expected.capWindows > 0) {
+			expect(audit.peakCap ?? 0).toBeGreaterThan(expected.maxHealth);
+			expect(audit.peakCap ?? 0).toBeLessThanOrEqual(expected.maxHealth * 1.2 * 1.1 + 1);
+		}
 	});
 
-	it('finds no time at or near the cap, which is the honest answer for these pulls', () => {
+	/**
+	 * Two of these pulls reach the ceiling, and that is new evidence rather than a moved line.
+	 *
+	 * The captures this file first pinned peaked at 71%, 71% and 31%, so `NEAR_CAP_SHARE` was a stated
+	 * definition with nothing exercising it — recorded as such rather than tuned down until a number
+	 * appeared. This tank reaches it: 100.8% on Garrosh and 98.1% on Paragons, with 9.7s and 5.9s held at
+	 * or near the limit. The three that do not reach it keep the other half of the assertion, so both
+	 * arms of the constant are now covered by real pulls.
+	 */
+	it('measures time at or near the ceiling where the pull reached it', () => {
 		const { audit } = auditOf(expected);
-		// The peak share above is 71%, 71% and 31%. Nothing here tests `NEAR_CAP_SHARE`, and the constant
-		// says so rather than being moved down until a number appears.
-		expect(audit.nearCap).toEqual([]);
-		expect(audit.nearCapMs).toBe(0);
+		expect(audit.nearCapMs).toBe(expected.nearCapMs);
+		if (expected.nearCapMs === 0) expect(audit.nearCap).toEqual([]);
+		else expect(audit.nearCap.length).toBeGreaterThan(0);
+	});
+
+	/**
+	 * A share slightly over the ceiling is the documented residual, not a broken model.
+	 *
+	 * `baseAttackPower` is the pull's *minimum* reading and Strength procs raise the real base later, so
+	 * the share drifts about a percent high on a pull that sits against its limit. Garrosh reads 100.8%.
+	 * Bounded here so the drift stays a rounding matter and a genuine modelling error still fails.
+	 */
+	it('never exceeds its own ceiling by more than the drift the module documents', () => {
+		const { audit } = auditOf(expected);
+		expect((audit.peak?.shareOfCap ?? 0) * 100).toBeLessThan(102);
 	});
 
 	it('samples densely enough for a stretch at the cap to be visible at all', () => {
@@ -452,19 +559,23 @@ describe('the ceiling the chart draws', () => {
 		const { audit } = auditOf(expected);
 		const steps = audit.curve.ceiling;
 		expect(steps).toBeDefined();
-		expect(steps).toHaveLength(expected.rallyingCryWindows * 2 + 1);
+		if (expected.ceilingSteps === 0) return;
+		expect(steps).toHaveLength(expected.ceilingSteps);
 
 		// The opening entry is the resting ceiling, and every level alternates from there — a raise and a
 		// return, never two of either in a row.
 		const levels = (steps ?? []).map(([, level]) => level);
 		const resting = levels[0];
-		const raised = levels[1];
 		expect(resting).toBeDefined();
-		expect(raised).toBeGreaterThan(resting ?? 0);
-		levels.forEach((level, i) => expect(level).toBe(i % 2 === 0 ? resting : raised));
+		// Every step is at or above the resting ceiling, and at least one is above it — the series describes
+		// a limit that only ever moves up from rest. Strict alternation is not asserted any more: two
+		// different health buffs can overlap, so a pull can step from raised to more-raised and back.
+		levels.forEach((level) => expect(level).toBeGreaterThanOrEqual(resting ?? 0));
+		expect(Math.max(...levels)).toBeGreaterThan(resting ?? 0);
 
-		// And the scalar the axis is scaled by is the raised level, so the curve can never leave it.
-		expect(audit.curve.max).toBe(raised);
+		// And the scalar the axis is scaled by is the highest the series ever reaches, so the curve can
+		// never leave its own axis.
+		expect(audit.curve.max).toBeCloseTo(Math.max(...levels), 6);
 		expect((steps ?? [])[0]?.[0]).toBe(0);
 	});
 
