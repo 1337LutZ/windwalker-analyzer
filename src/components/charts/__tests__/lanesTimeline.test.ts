@@ -317,10 +317,17 @@ describe('the Protection summary timeline draws every press but the five this sp
 	it('takes four or five rows off each pull and leaves the rest standing', () => {
 		const before = PULLS.map(([, analysis]) => rowsIn(renderUnder(SHOWING_EVERYTHING, analysis)));
 		const after = PULLS.map(([, analysis]) => rowsIn(renderUnder(PROTECTION, analysis)));
-		expect(before).toEqual([22, 23, 24, 24, 23]);
-		expect(after).toEqual([18, 18, 19, 19, 18]);
+		expect(before).toEqual([32, 32, 35, 35, 34]);
+		expect(after).toEqual([28, 27, 30, 30, 29]);
 		// Four on the first pull and five on the other four: `Hand of Reckoning` is never pressed on
-		// `fallenProtectors`, so there is no row of it there to take off.
+		// `fallenProtectors`, so there is no row of it there to take off. Speed of Light is on the list
+		// too and takes nothing off any of them — this tank never talented it.
+		//
+		// **The `before` figures are ten higher than when this was written**, and the reason is the point
+		// of the change that moved them: the audit built lanes from a hand-picked list of nine auras, and
+		// now builds one for every aura in the registry the pull actually carried. Synapse Springs, Skull
+		// Banner, Bloodlust, the trinket procs and the potion were all declared, all present, and all
+		// drawing nothing.
 		expect(before.map((rows, at) => rows - after[at]!)).toEqual([4, 5, 5, 5, 5]);
 	});
 

@@ -333,21 +333,53 @@ function protectionAudit(h: Handles): ProtectionAudit {
 		})),
 	});
 
-	/** The same row built from the player's own aura stream, which is where every buff and proc below lives. */
+	/**
+	 * The same row built from the player's own aura stream, which is where every buff and proc below lives.
+	 *
+	 * `openAtPull` is what makes a buff already up when the pull started draw from the start rather than
+	 * from its first refresh. It matters most for the ones that are never *cast* during a fight —
+	 * Righteous Fury and the seal are on before the boss is pulled, and without it they draw either
+	 * nothing or a bar beginning at some arbitrary reapplication.
+	 */
 	const selfLane = (aura: Aura, group: 'buff' | 'proc'): AuraLane =>
-		lane(aura, group, auraWindows(own, aura, h.t0, h.fight.endTime));
+		lane(aura, group, auraWindows(own, aura, h.t0, h.fight.endTime, { openAtPull: true, pullAuras: h.pullAuras }));
 
-	const buffLanes = [
-		selfLane(registry.aura('avenging-wrath'), 'buff'),
-		selfLane(registry.aura('holy-avenger'), 'buff'),
-		selfLane(registry.aura('sacred-shield'), 'buff'),
-		selfLane(registry.aura('shield-of-the-righteous'), 'buff'),
-		selfLane(registry.aura('bastion-of-glory'), 'buff'),
-		selfLane(registry.aura('grand-crusader'), 'proc'),
-		selfLane(registry.aura('divine-purpose'), 'proc'),
-		selfLane(registry.aura('bastion-of-power'), 'proc'),
-		selfLane(registry.aura('shield-of-glory'), 'proc'),
-	].filter((row) => row.windows.length > 0);
+	/**
+	 * **Every declared aura the player carried, not a hand-picked handful.**
+	 *
+	 * The first version of this named nine auras it thought were interesting, and a reader immediately
+	 * found what that costs: Synapse Springs is declared, fires on real pulls, and drew no bar anywhere,
+	 * along with most of the rest of the table. A list of interesting auras is a list somebody has to
+	 * keep, and the way it fails is silent — the aura is declared, the model knows its name and its
+	 * duration, and the chart simply never asks for it.
+	 *
+	 * So the rule is inverted: every aura in the registry gets a lane, and anything left out is left out
+	 * here, by name, with a reason. That is the shape `drawnAuras.test.ts` enforces on the other two
+	 * specs — which Protection still has no version of, and which is exactly the guard that would have
+	 * caught the nine-aura list.
+	 */
+	const LANE_ABSENT = new Map<string, string>([
+		// Drawn as the Vengeance bar itself, above the presses — see `extraResources`. A second row saying
+		// the same stack was up would be the same measurement twice.
+		['vengeance', 'drawn as its own resource bar'],
+		// One row per enemy, built below with a `target` so the chart can group them behind its picker.
+		['weakened-blows', 'drawn per enemy below'],
+		// On the boss rather than on the player: `auraWindows` over the player's own stream finds nothing,
+		// and a lane read off the raid stream would be a different measurement wearing this row's name.
+		['censure', 'a debuff this spec puts on the enemy'],
+		['execution-sentence', 'a debuff this spec puts on the enemy'],
+	]);
+
+	/** Procs are read for whether they were spent; everything else for whether it was up. */
+	const PROC_AURAS = new Set(['grand-crusader', 'divine-purpose', 'bastion-of-power', 'shield-of-glory']);
+
+	const buffLanes = registry.auras
+		.filter((aura) => !LANE_ABSENT.has(aura.key))
+		.map((aura) => selfLane(aura, PROC_AURAS.has(aura.key) ? 'proc' : 'buff'))
+		// An aura the pull never carried has no window to draw, and an empty row costs a line to say that
+		// the player did not have it. The seals are the common case: one is up all pull and the other two
+		// never appear.
+		.filter((row) => row.windows.length > 0);
 
 	/**
 	 * Weakened Blows, one row per enemy that carried it — and the reason this spec has a target lane at
