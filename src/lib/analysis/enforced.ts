@@ -107,6 +107,18 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 		note: 'No phases and no enforced downtime beyond the stun. Sha Sear is a debuff on other players and never once landed on the reference tank, so it excuses nothing.',
 	},
 	{
+		encounterID: 1602,
+		name: 'Immerseus',
+		rules: [],
+		note: "Purified Residue was a candidate and the press stream refuses it twice over. It is not a mechanic the fight applies: nine Protection Paladin pulls from nine reports carry eleven windows between them, and four of the nine tanks never get it at all. Nine of the eleven applications land within 0.9s of the player healing a puddle — Flash of Light or Word of Glory on an NPC target — and every one carries a 15,000-mana resourcechange. It is the refund for purifying a Contaminated Puddle and a fifteen-second lockout on refunding again, not on pressing. Inside the windows the press rate runs 10% of the player's own baseline on one raid and 78% on another, where melee holds 0.57 against 0.75 swings a second and four Shields of the Righteous go out; 31 off-GCD presses land inside the eleven windows in total. The zero-melee reading belongs to Stage Two: Split, which covers 46-72% of every pull and contains all eleven windows — on one of them the window's press rate and Split's own are the same number. On the reference pull the rule would excuse 59.9s against 54.6s of inactive time in the whole pull, and zero out all fourteen missed globals.",
+	},
+	{
+		encounterID: 1594,
+		name: 'Spoils of Pandaria',
+		rules: [],
+		note: "Unstable Defense Systems is the encounter's opening flag — one application to all 25 players at the pull start, gone 3.0-4.2s later — and it is deliberately not a rule. Ten Protection Paladin pulls from eight reports hold eleven windows covering 39.1s: no melee in any of them, no damage taken in ten of the eleven, no off-GCD press anywhere, and 20.3% of the players' own press rate. That is far cleaner than either declared rule this file has lost, and it still fails. Six on-GCD presses land inside, five of them Sacred Shield — the player's own bar going out while the rule would say the buttons were gone. The first melee swing comes at 7.3-10.4s on every pull, so the aura marks only the first third of the stretch with nothing to hit, which is the same stretch Siegecrafter Blackfuse's note already declines to excuse. It is also not per room: the raid-wide burst fires once, and the scattered later applications reached the audited tank on one pull of ten. Across the ten it would excuse 39.1s to cover 4.9s of cast gaps past three seconds, and about 24 globals of 377 missed.",
+	},
+	{
 		encounterID: 1600,
 		name: 'Iron Juggernaut',
 		rules: [],
@@ -128,6 +140,7 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 		encounterID: 1595,
 		name: 'Malkorok',
 		rules: [],
+		note: "No enforced downtime, and the empty list was the only one here that never said why. Measured on a full clear: 19s of idle across 554s alive, 3% of the time, and all five gaps past ten seconds are corpse time on wipes rather than anything the fight did. Blood Rage was the candidate and it does nothing to the press stream — 74 a minute inside it against the pull's own rate, with melee flat at 0.64 swings a second.",
 	},
 	{
 		encounterID: 1599,

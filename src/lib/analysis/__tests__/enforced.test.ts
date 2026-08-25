@@ -187,6 +187,14 @@ describe('what the fight enforced', () => {
 		// them took every aura the player carried over 1.5s more than once — fifty-two of them — and three
 		// passed. Gene Splice is the fourth and was found by another route entirely, which is the whole
 		// reason `player-buff` exists as a source.
+		// **A profile with no rules is a claim too, and eight of the twelve are now one.** "This boss
+		// enforces nothing" and "nobody has looked at this boss" are different sentences, and the table can
+		// only make the first if a rejected candidate is written down beside a kept one. Every empty
+		// profile carries a note saying what was measured and refused.
+		for (const profile of ENFORCED_PROFILES) {
+			if (profile.rules.length === 0) expect(profile.note, profile.name).toBeDefined();
+		}
+
 		// **Every rule left in the table is a `lockout`.** Both `declared` ones were removed when a full
 		// clear contradicted them: Foul Geyser's windows hold a *higher* press rate than the pull around
 		// them, and Thok's phase 2 holds 84% of the player's own baseline against the 45% it was written
