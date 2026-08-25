@@ -130,7 +130,11 @@ describe('the summary strip', () => {
 		// violet, and a reader who cannot separate them has to be able to read the lane anyway — so every
 		// bar carries its own count, and every bar carries its full name in a tooltip whatever its width.
 		const { spans } = draw(createElement(SegmentStrip, { analysis: pull(EVERY_MODE) }));
-		expect(spans.map((span) => span.short)).toEqual(['1', '—', '3+', '~', '2']);
+		// **The mixed bar carries a number too, and used not to.** A bare `~` said only "it moved", which
+		// is what the bar's own hatch already says — so the longest stretch of some pulls was the least
+		// informative bar on the chart. `~1` is the segment's own median with the "it moved" kept, which
+		// is both halves of what mixed means.
+		expect(spans.map((span) => span.short)).toEqual(['1', '—', '3+', '~1', '2']);
 		expect(spans.map((span) => span.label)).toEqual([
 			'One enemy',
 			'Nothing to hit',

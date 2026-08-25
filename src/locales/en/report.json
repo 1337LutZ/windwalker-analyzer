@@ -1071,6 +1071,7 @@
       "row_cleave": "Two enemies",
       "row_aoe": "Three or more enemies",
       "row_mixed": "Coming and going",
+      "rowMixed": "Between {{low}} and {{high}} enemies, mostly {{median}}",
       "row_idle": "Nothing to hit",
       "length": "{{seconds}}s",
       "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches with nothing to hit are grey.",
