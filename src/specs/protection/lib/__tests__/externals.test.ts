@@ -227,6 +227,51 @@ describe('the externals a pull received', () => {
 	});
 });
 
+describe('a reduction that depends on who cast it', () => {
+	/**
+	 * Devotion Aura is two spells wearing one name, and the row has to say which one landed.
+	 *
+	 * `core/buffs.go:857` gives a Holy Paladin's the whole of the damage and everyone else's only the six
+	 * magic schools. No Mists log states a spec, so the caster is established from what they cast — and
+	 * the captures make the case: the raid fields two paladins, and only actor 18 ever casts Holy
+	 * Radiance, Holy Shock, Light of Dawn or Beacon of Light.
+	 */
+	it.each([
+		['garrosh.json', 'all'],
+		['paragons.json', 'all'],
+		['fallenProtectors.json', 'all'],
+		['spoils.json', 'all'],
+	] as const)('%s reads the whole-damage version, because a Holy Paladin cast it', (name, scope) => {
+		const row = auditOf(name).externals.rows.find((entry) => entry.key === 'devotion-aura')!;
+		expect(row.count).toBeGreaterThan(0);
+		expect(row.scope).toBe(scope);
+		expect(row.takenMultiplier).toBe(0.8);
+	});
+
+	/**
+	 * And the pull where nobody cast it keeps the catalogue's own narrower figure.
+	 *
+	 * Not a separate rule: the widening is read off the casters of instances that *landed*, so a pull with
+	 * no instances has nobody to establish. That is also why a Holy Paladin merely standing in the raid
+	 * does not widen a row — see the note in `readExternals`.
+	 */
+	it('keeps the narrow reading on a pull nobody cast it in', () => {
+		const row = auditOf('galakras.json').externals.rows.find((entry) => entry.key === 'devotion-aura')!;
+		expect(row.count).toBe(0);
+		expect(row.scope).toBe('magic');
+	});
+
+	/** Every other row reports exactly what the catalogue declares, so the widening stays one spell's. */
+	it.each(PULLS)('%s widens nothing but Devotion Aura', (name) => {
+		for (const row of auditOf(name).externals.rows) {
+			if (row.key === 'devotion-aura') continue;
+			const entry = EXTERNALS.find((candidate) => candidate.key === row.key)!;
+			expect(row.scope, row.key).toBe(entry.scope);
+			expect(row.takenMultiplier, row.key).toBe(entry.takenMultiplier);
+		}
+	});
+});
+
 describe('the roster gate', () => {
 	/**
 	 * Synthetic, because no committed pull can exercise it.

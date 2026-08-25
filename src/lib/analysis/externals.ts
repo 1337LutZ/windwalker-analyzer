@@ -183,6 +183,31 @@ export interface ExternalSpell {
 	 * section lists it and says it cannot see it.
 	 */
 	readable?: boolean;
+	/**
+	 * A wider effect this spell has when its caster is of a particular spec, and how to establish that.
+	 *
+	 * **Devotion Aura is the case and the sim states both halves outright.** `sim/core/buffs.go:857`
+	 * branches on `isHoly`: a Holy Paladin's reduces *all* damage by 20%, and anyone else's reduces only
+	 * the six magic schools, school by school (`:859-864`). The sim cites the 5.5 beta note that made the
+	 * change. So the row is not one reduction — it is two, and which one applied is a fact about whoever
+	 * pressed it.
+	 *
+	 * This report cannot read a caster's spec: the actor list carries class only, and `combatantinfo`
+	 * reports `specID` as 0 on Mists logs. **But it can read what they cast.** `signatureIds` names
+	 * spells only the wider spec has, and seeing one in the pull is what establishes the caster. Measured
+	 * on the five captures, that separates the two paladins cleanly — actor 18 casts Holy Radiance and
+	 * Holy Shock on every pull they appear in, actor 16 casts neither on any.
+	 *
+	 * Evidence for the *ids* is the log rather than the simulator, and the distinction is worth keeping:
+	 * wowsims' Holy module is a healing stub that registers none of these spells, so it cannot confirm
+	 * them. The reduction either side of the branch is the sim's; the way we tell the casters apart is
+	 * ours.
+	 */
+	casterDependent?: {
+		signatureIds: number[];
+		scope: ExternalScope;
+		takenMultiplier: number;
+	};
 }
 
 /**
@@ -205,13 +230,22 @@ export interface ExternalSpell {
  * (`core/buffs.go:883`), Devotion Aura 3min (`core/buffs.go:814`), Hand of Purity 30s
  * (`paladin/talents.go:415`), Demoralizing Banner 3min (`warrior/banners.go:70`).
  *
- * **Devotion Aura is filed as `magic` and it is the one row where that understates the button.** The sim
- * branches on the caster's spec (`core/buffs.go:852-867`): a Holy Paladin's reduces *all* damage by 20%,
- * and anyone else's reduces the six magic schools by 20% and physical damage not at all. The branch exists
- * because of a real 5.5 change the sim cites in place. This report cannot tell the two apart — spec is not
- * in the actor list and `combatantinfo` reports `specID` as 0 on Mists logs (see
- * `lib/wcl/playerDetails.graphql`) — so the narrower of the two readings is recorded, on the principle
- * that a row should not claim more coverage than it can establish.
+ * **Devotion Aura is two reductions, and which one applied is a fact about the caster.** The sim
+ * branches on their spec (`core/buffs.go:852-867`): a Holy Paladin's reduces *all* damage by 20%, and
+ * anyone else's reduces the six magic schools by 20% and physical damage not at all. The branch exists
+ * because of a real 5.5 change the sim cites in place.
+ *
+ * This report cannot read a spec — the actor list carries class only and `combatantinfo` reports
+ * `specID` as 0 on Mists logs — so it reads what the caster *cast* instead, and the wider figure is
+ * taken only where a spell no other Paladin spec has turns up in the pull. See
+ * `ExternalSpell.casterDependent`. On the five captures that separates the raid's two paladins on every
+ * pull: four of them resolve to the whole-damage reading, and Galakras keeps the narrow one because
+ * nobody cast it there at all.
+ *
+ * The asymmetry is deliberate and errs one way: seeing a signature spell proves the spec, seeing none
+ * proves nothing, so a Holy Paladin who never got a Holy Radiance out reads as the narrower reduction.
+ * That understates what the raid gave the tank, which is the direction a section that recommends
+ * asking for more should be wrong in.
  *
  * Hand of Purity carries a second effect the `takenMultiplier` field cannot hold: harmful periodic damage
  * is additionally cut to a fifth (`paladin/talents.go:384-388`). The ×0.9 recorded here is the part that
@@ -330,7 +364,10 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 	{
 		key: 'devotion-aura',
 		name: 'Devotion Aura',
-		ids: [31821],
+		// 31821 is what these logs carry, and the client names it *Aura Mastery* there — the MoP button
+		// renamed and the id did not. 64364 is the other id the spell is documented under; it fires in none
+		// of the five captures and is carried so a client that emits it is not silently missed.
+		ids: [31821, 64364],
 		providedBy: 'Paladin',
 		durationMs: 6_000,
 		cooldownMs: 180_000,
@@ -338,6 +375,13 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		scope: 'magic',
 		delivery: 'raid',
 		evidence: 'sim',
+		// A Holy Paladin's covers physical damage too — `sim/core/buffs.go:857`. Established from what the
+		// caster cast, because no Mists log states a spec. See `ExternalSpell.casterDependent`.
+		casterDependent: {
+			signatureIds: [82_327, 20_473, 85_222, 53_563],
+			scope: 'all',
+			takenMultiplier: 0.8,
+		},
 	},
 	{
 		key: 'power-word-barrier',
@@ -424,6 +468,15 @@ export interface ExternalRow {
 	blocked: boolean;
 	/** This report cannot observe the spell, so its absence says nothing. See `ExternalSpell.readable`. */
 	readable: boolean;
+	/**
+	 * What this row actually cut on this pull, and over which schools.
+	 *
+	 * The catalogue's own figures where nothing widens them, and the wider pair where a caster was
+	 * established — see `ExternalSpell.casterDependent`. Read from here and never from `EXTERNALS`, or a
+	 * Holy Paladin's Devotion Aura prints the reduction somebody else's would have given.
+	 */
+	scope: ExternalScope;
+	takenMultiplier: number | null;
 	/** Instances that landed on the audited player, by caster, in first-seen order. */
 	received: ExternalCaster[];
 	/** How many landed in total. */
@@ -528,6 +581,26 @@ export function mergePlacements(windows: readonly Window[], durationMs: number):
 	return placements;
 }
 
+/**
+ * Whether an actor cast any of a set of spells in this pull.
+ *
+ * The whole of the spec inference, and deliberately crude: seeing one spell only a spec has is proof
+ * of that spec, and seeing none is not proof of its absence. That asymmetry is why the wider reading
+ * has to be the one that needs establishing — a healer who never got a Holy Radiance out still cast a
+ * Holy Paladin's Devotion Aura, and this will read it as the narrower one. Erring that way understates
+ * what the raid gave the tank, which is the direction a section that recommends asking for more should
+ * err in.
+ */
+function castersWithSignature(events: RaidEvents, actorID: number, signatureIds: readonly number[]): boolean {
+	const ids = new Set(signatureIds);
+	for (const event of events) {
+		if (event.sourceID !== actorID) continue;
+		const id = abilityIdOf(event);
+		if (id !== null && ids.has(id)) return true;
+	}
+	return false;
+}
+
 export function readExternals(
 	events: RaidEvents,
 	{
@@ -563,6 +636,18 @@ export function readExternals(
 			.filter(({ source }) => source !== actorID)
 			.map(({ source, windows }): ExternalCaster => ({ id: source, name: nameOf(source), windows }));
 
+		/**
+		 * The wider reading, taken only where a caster of a landed instance is established.
+		 *
+		 * Off the casters who actually put it on this player, not off anyone in the raid who could have:
+		 * a Holy Paladin standing in the pull says nothing about the Retribution one whose aura the tank
+		 * was standing in. On the Garrosh capture both paladins cast it and only one is Holy, which is the
+		 * pull that makes the distinction do work.
+		 */
+		const widened =
+			external.casterDependent !== undefined &&
+			received.some(({ id }) => castersWithSignature(events, id, external.casterDependent!.signatureIds));
+
 		const given = givenBySource(auras, external, { t0, pullMs, actorID, nameOf });
 		const spans = received.flatMap((caster) => caster.windows.map((w): Interval => [w.start, w.end]));
 		// A ground effect is counted by placements rather than by the times the player crossed its edge.
@@ -584,6 +669,8 @@ export function readExternals(
 			providers: countProviders(friendlyPlayers, actors, actorID, external.providedBy),
 			group: external.exclusiveGroup ?? null,
 			readable: external.readable ?? true,
+			scope: widened ? external.casterDependent!.scope : external.scope,
+			takenMultiplier: widened ? external.casterDependent!.takenMultiplier : external.takenMultiplier,
 			// Filled in a second pass: whether a competitor took the slot cannot be known until every row
 			// has been read.
 			blocked: false,

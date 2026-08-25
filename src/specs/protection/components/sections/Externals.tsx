@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useReportCopy } from '~/hooks/useReportCopy';
 import type { ExternalsAudit } from '~/lib/analysis/externals';
-import { EXTERNALS } from '~/lib/analysis/externals';
 import { formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
@@ -113,8 +112,9 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 	const heldMs = rows.reduce((most, row) => Math.max(most, row.heldMs), 0);
 	const gave = rows.filter((row) => row.given.length > 0);
 
+	// No catalogue lookup here any more: every figure this table prints now comes off the row, because
+	// the row is the half that knows which caster a pull actually had. See `ExternalRow.scope`.
 	const grid: GridRow[] = rows.map((row) => {
-		const spell = EXTERNALS.find((entry) => entry.key === row.key);
 		return {
 			key: row.key,
 			// Shaded only where somebody could have cast it and nobody did. An external no one in the
@@ -130,10 +130,13 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 					</span>
 				),
 				cuts: (
+					// Off the row and never off the catalogue entry: a Holy Paladin's Devotion Aura cuts all
+					// damage where anybody else's cuts only magic, and the row is the half that knows which
+					// caster this pull actually had. See `ExternalSpell.casterDependent`.
 					<span className="text-ink-2">
 						{t('externals.cuts', {
-							context: spell?.takenMultiplier === undefined || spell.takenMultiplier === null ? 'unknown' : spell.scope,
-							percent: spell?.takenMultiplier == null ? 0 : Math.round((1 - spell.takenMultiplier) * 100),
+							context: row.takenMultiplier == null ? 'unknown' : row.scope,
+							percent: row.takenMultiplier == null ? 0 : Math.round((1 - row.takenMultiplier) * 100),
 						})}
 					</span>
 				),
