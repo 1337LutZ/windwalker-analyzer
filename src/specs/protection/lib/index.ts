@@ -342,7 +342,20 @@ function protectionAudit(h: Handles): ProtectionAudit {
 	 * nothing or a bar beginning at some arbitrary reapplication.
 	 */
 	const selfLane = (aura: Aura, group: 'buff' | 'proc'): AuraLane =>
-		lane(aura, group, auraWindows(own, aura, h.t0, h.fight.endTime, { openAtPull: true, pullAuras: h.pullAuras }));
+		lane(
+			aura,
+			group,
+			auraWindows(own, aura, h.t0, h.fight.endTime, {
+				openAtPull: true,
+				pullAuras: h.pullAuras,
+				// A refresh with no application before it is an aura that was already up. Ancestral Vigor is
+				// the case: on `fallenProtectors` it carries 110 events and **every one is a `refreshbuff`**,
+				// because a healer put it on before the pull and it never dropped. `openAtPull` cannot reach
+				// it — `combatantinfo` does not list it — so without this the aura fires all pull and draws
+				// nothing, which is precisely what the sweep beside this file exists to catch.
+				openOnRefresh: true,
+			}),
+		);
 
 	/**
 	 * **Every declared aura the player carried, not a hand-picked handful.**

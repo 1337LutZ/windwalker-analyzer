@@ -317,8 +317,8 @@ describe('the Protection summary timeline draws every press but the five this sp
 	it('takes four or five rows off each pull and leaves the rest standing', () => {
 		const before = PULLS.map(([, analysis]) => rowsIn(renderUnder(SHOWING_EVERYTHING, analysis)));
 		const after = PULLS.map(([, analysis]) => rowsIn(renderUnder(PROTECTION, analysis)));
-		expect(before).toEqual([33, 34, 37, 37, 35]);
-		expect(after).toEqual([29, 29, 32, 32, 30]);
+		expect(before).toEqual([34, 34, 37, 37, 35]);
+		expect(after).toEqual([30, 29, 32, 32, 30]);
 		// Four on the first pull and five on the other four: `Hand of Reckoning` is never pressed on
 		// `fallenProtectors`, so there is no row of it there to take off. Speed of Light is on the list
 		// too and takes nothing off any of them — this tank never talented it.
@@ -331,7 +331,10 @@ describe('the Protection summary timeline draws every press but the five this sp
 		// where both specs that had declared it privately said in their own comments it belonged. One more
 		// again on Galakras, Garrosh and Paragons — and only those three — when `pressSeenAsAura` finally
 		// got a reader: Execution Sentence is pressed 1, 9 and 6 times on them with no cast event of any
-		// kind, so its row could not exist until the press was read off the debuff going up.
+		// kind, so its row could not exist until the press was read off the debuff going up. And one on
+		// `fallenProtectors` alone, from `openOnRefresh`: Ancestral Vigor carries 110 events there and
+		// every one is a refresh, so the aura ran the whole pull with no application to open a window
+		// from and drew nothing.
 		expect(before.map((rows, at) => rows - after[at]!)).toEqual([4, 5, 5, 5, 5]);
 	});
 
