@@ -4,7 +4,7 @@
 		"commit": "18a346ec8cc52c6e3fc66ac8a8d269428ca1be11",
 		"committed": "2026-08-25T11:27:51.000Z",
 		"fromDatabase": 120,
-		"fromWowhead": 209
+		"fromWowhead": 213
 	},
 	"spells": {
 		"1": {
@@ -102,6 +102,10 @@
 		"6673": {
 			"name": "Battle Shout",
 			"icon": "ability_warrior_battleshout"
+		},
+		"6940": {
+			"name": "Hand of Sacrifice",
+			"icon": "spell_holy_sealofsacrifice"
 		},
 		"8004": {
 			"name": "Healing Surge",
@@ -523,6 +527,10 @@
 			"name": "Synapse Springs",
 			"icon": "spell_shaman_elementaloath"
 		},
+		"96231": {
+			"name": "Rebuke",
+			"icon": "spell_holy_rebuke"
+		},
 		"97463": {
 			"name": "Rallying Cry",
 			"icon": "ability_toughness"
@@ -662,6 +670,10 @@
 		"110745": {
 			"name": "Divine Star",
 			"icon": "spell_priest_divinestar"
+		},
+		"113075": {
+			"name": "Barkskin",
+			"icon": "spell_nature_stoneclawtotem"
 		},
 		"113656": {
 			"name": "Fists of Fury",
@@ -1006,6 +1018,10 @@
 		"124988": {
 			"name": "Nature's Vigil",
 			"icon": "achievement_zone_feralas"
+		},
+		"125282": {
+			"name": "Kafa Boost",
+			"icon": "inv_drink_15"
 		},
 		"125359": {
 			"name": "Tiger Power",

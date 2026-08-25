@@ -389,6 +389,49 @@ const ABILITIES: Ability[] = [
 	// so a defensive global is not read as a missing generator.
 	// ---------------------------------------------------------------------------------------------
 	{
+		key: 'rebuke',
+		name: 'Rebuke',
+		castIds: [96231],
+		// Off the global, measured rather than assumed: the one press in the reference clear lands 272ms
+		// after a Judgment, and this spec's global is a flat second.
+		onGcd: false,
+		gate: 'other',
+		cooldownMs: 15_000,
+	},
+	{
+		key: 'barkskin',
+		name: 'Barkskin',
+		// **113075 and not 22812.** The Druid's own Barkskin never touches this player; 113075 is the id a
+		// Paladin casts once a Druid has put Symbiosis on them, which is why it reads as Druid-provided
+		// and is pressed by the Paladin. 22812 fires zero times anywhere in the reference clear.
+		castIds: [113075],
+		// 14 presses, nearest neighbouring press 26ms away.
+		onGcd: false,
+		gate: 'other',
+		cooldownMs: 60_000,
+	},
+	{
+		key: 'blessing-of-sacrifice',
+		name: 'Blessing of Sacrifice',
+		// The client's own name for 6940. `lib/analysis/externals` called it *Hand of Sacrifice* — the
+		// name the tooltip carries — and a reader comparing the two tables would have found one cooldown
+		// under two names, which is a fault this report has fixed before. Both say the client's now.
+		castIds: [6940],
+		// 12 presses, nearest neighbouring press 59ms away.
+		onGcd: false,
+		gate: 'other',
+		cooldownMs: 120_000,
+	},
+	{
+		key: 'kafa-boost',
+		name: 'Kafa Boost',
+		// A consumable rather than a button, and declared for one reason only: undeclared, it draws on the
+		// timeline as a bare id. Nothing measures it.
+		castIds: [125282],
+		onGcd: false,
+		gate: 'other',
+	},
+	{
 		key: 'speed-of-light',
 		name: 'Speed of Light',
 		castIds: [85499],
@@ -659,6 +702,29 @@ const AURAS: Aura[] = [
 		kind: 'debuff',
 		maxStacks: 5,
 		durationMs: 15_000,
+	},
+	{
+		key: 'barkskin',
+		name: 'Barkskin',
+		ids: [113075],
+		kind: 'buff',
+		durationMs: 12_000,
+		appliedBy: 'barkskin',
+	},
+	{
+		key: 'blessing-of-sacrifice',
+		name: 'Blessing of Sacrifice',
+		ids: [6940],
+		kind: 'buff',
+		durationMs: 12_000,
+		appliedBy: 'blessing-of-sacrifice',
+	},
+	{
+		key: 'kafa-boost',
+		name: 'Kafa Boost',
+		ids: [125282],
+		kind: 'buff',
+		appliedBy: 'kafa-boost',
 	},
 	{
 		key: 'speed-of-light',

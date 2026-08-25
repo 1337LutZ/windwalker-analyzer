@@ -331,7 +331,10 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 	{
 		key: 'hand-of-sacrifice',
 		exclusiveGroup: 'hand',
-		name: 'Hand of Sacrifice',
+		// The client's own name for 6940, and the registry says the same. The tooltip calls it Hand of
+		// Sacrifice; a reader comparing this table against the timeline would have found one cooldown
+		// under two names.
+		name: 'Blessing of Sacrifice',
 		ids: [6940],
 		providedBy: 'Paladin',
 		durationMs: 12_000,
