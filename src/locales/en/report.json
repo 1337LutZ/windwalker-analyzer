@@ -556,7 +556,8 @@
       "holyPower": "Holy Power",
       "brew": "Brew bank",
       "mana": "Mana",
-      "lightningShield": "Lightning Shield"
+      "lightningShield": "Lightning Shield",
+      "vengeance": "Vengeance"
     },
     "resourceAria": {
       "energy": "Energy over the pull, against a ceiling of {{max}}",
@@ -564,7 +565,8 @@
       "holyPower": "Holy power over the pull, against a ceiling of {{max}}",
       "brew": "Tigereye Brew stacks banked over the pull, against a cap of {{max}}",
       "mana": "Mana over the pull, against a ceiling of {{max}}",
-      "lightningShield": "Lightning Shield charges over the pull, against a ceiling of {{max}}"
+      "lightningShield": "Lightning Shield charges over the pull, against a ceiling of {{max}}",
+      "vengeance": "Vengeance over the pull, as attack power"
     }
   },
   "nav": {

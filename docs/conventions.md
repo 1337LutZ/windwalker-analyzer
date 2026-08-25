@@ -479,7 +479,7 @@ copy itself follows — say it once, outside the arms.
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
 As of the Protection report gaining its Externals section and a re-capture of every Paladin fixture, it
-prints 1520 leaves, 736 prose, 23,517 words; median 27, p75 43, p90 64, p95 77, p99 97, max 160; longest
+prints 1522 leaves, 736 prose, 23,517 words; median 27, p75 43, p90 64, p95 77, p99 97, max 160; longest
 9% carry 24%; report.json 667 prose leaves, 1,156 sentences, median 17, 228 past 25 (19.7%), 274
 em-dashes in 237 sentences (20.5%); 51 / 22 / 1 / 2 on the quote lines.
 

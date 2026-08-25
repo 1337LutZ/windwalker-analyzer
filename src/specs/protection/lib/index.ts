@@ -24,7 +24,7 @@ import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analy
 import { auraWindows, raidScoped } from '~/lib/analysis/auras';
 import { readExternals } from '~/lib/analysis/externals';
 import { readGear } from '~/lib/analysis/gear';
-import { readVengeance } from '~/lib/analysis/vengeance';
+import { readVengeance, vengeanceBar } from '~/lib/analysis/vengeance';
 import { eventsOn } from '~/lib/events';
 import { unionMs, type Interval } from '~/lib/analysis/intervals';
 import { defaultSettings, type AnalysisSettings, type SettingSchema } from '~/lib/settings';
@@ -442,6 +442,17 @@ export const PROTECTION_SPEC: SpecConfig = {
 		singleTargetSharePct: SINGLE_TARGET_SHARE_PCT,
 		engagedGapMs: ENGAGED_GAP_MS,
 	},
+	/**
+	 * Vengeance on the cast timeline, above the holy power bar.
+	 *
+	 * Read off the audit rather than measured again — `audit()` has already built it — and placed first
+	 * so it draws as the top lane. The two together are the pull's whole economy from both ends: holy
+	 * power is what the player's presses earned, and this is what the fight paid them for standing in
+	 * front of it.
+	 */
+	extraResources: (h, audit) => ({
+		vengeance: vengeanceBar((audit as unknown as ProtectionAudit).vengeance, h.duration),
+	}),
 	ignoredMultiTargetActors: () => new Set(),
 	needsTarget: NEEDS_TARGET,
 	samePressMs: SAME_PRESS_MS,

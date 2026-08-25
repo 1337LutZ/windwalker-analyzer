@@ -70,7 +70,8 @@
 // Protection captures. Attack power is the only handle there is.
 
 import { isCombatantInfo, resourceActorOf, type WclEvent } from '~/lib/events';
-import type { ResourceCurve } from '~/lib/types';
+import type { PoolResourceAudit, ResourceCapSplit, ResourceCurve } from '~/lib/types';
+import { RESOURCE_TYPE } from '~/lib/game/resources';
 
 import { median } from './format';
 import { maxHealthFrom } from './gear';
@@ -551,4 +552,55 @@ function percentile(sorted: readonly number[], p: number): number {
 	if (sorted.length === 0) return 0;
 	const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
 	return sorted[rank] ?? 0;
+}
+
+/**
+ * The Vengeance reading in the shape the generic resource machinery draws.
+ *
+ * **Why a `pool` and not a bar of its own kind.** `CastTimeline` derives its lanes from
+ * `analysis.resources`, and `ResourceBarAudit` has exactly two arms: a pool that refills on a clock and
+ * wastes by the second, and a points bar that arrives in whole units and wastes by the point. Vengeance
+ * is neither — it decays — but of the two, a pool is the one whose *drawing* is right: a continuous
+ * line under a ceiling, shaded where it sat against it.
+ *
+ * So the fields that would be a claim about regeneration are refused rather than filled.
+ * `regenPerSec` is null, which `lostIn` in `CastTimeline` already reads as "this bar's capped stretches
+ * carry a duration and not a cost" — the same treatment chi gets, and for a related reason: what a
+ * stretch at the ceiling cost depends on how hard the fight was hitting, which this bar cannot see.
+ *
+ * `engaged` and `downtime` are nought, and that is a statement rather than a gap. The contact split
+ * asks whether there was something to hit, which is the right question for a bar filled by *hitting*
+ * and the wrong one for a bar filled by *being hit* — a tank stood in a fire with no target is gaining
+ * Vengeance at full rate. `total` carries the real measurement.
+ *
+ * `max` is rounded because it is printed beside the lane's own label, and a ceiling is a number off a
+ * character sheet rather than a float.
+ */
+export function vengeanceBar(audit: VengeanceAudit, durationMs: number): PoolResourceAudit {
+	const nil: ResourceCapSplit = { cappedMs: 0, pct: 0, wasted: null };
+	return {
+		kind: 'pool',
+		// The sim numbers the bars it models and attack power is not one of them, so this is `generic`
+		// rather than a borrowed enum value — and `resourceColorOf` has no colour for it, which is correct:
+		// the drawing side falls back rather than painting this in another resource's palette.
+		type: RESOURCE_TYPE.generic,
+		curve: { ...audit.curve, max: Math.round(audit.curve.max) },
+		max: Math.round(audit.curve.max),
+		samples: audit.samples,
+		regenPerSec: null,
+		medianGapMs: audit.medianGapMs,
+		p99GapMs: audit.p99GapMs,
+		capped: audit.nearCap.map(([start, end]): [number, number] => [start, end]),
+		total: {
+			cappedMs: audit.nearCapMs,
+			pct: durationMs > 0 ? (audit.nearCapMs / durationMs) * 100 : 0,
+			wasted: null,
+		},
+		engaged: nil,
+		downtime: nil,
+		worst: audit.nearCap
+			.map(([start, end]) => ({ at: start, ms: end - start, engaged: true, link: `#vengeance-heading` }))
+			.sort((a, b) => b.ms - a.ms)
+			.slice(0, 5),
+	};
 }

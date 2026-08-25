@@ -361,6 +361,22 @@ export interface SpecConfig {
 	 */
 	resources: Record<string, ResourceConfig>;
 	/**
+	 * Bars the spec computes itself, drawn beside the declared ones and **ahead** of them.
+	 *
+	 * The declared `resources` above are sampled generically: the engine reads a power type off
+	 * `classResources` and audits it. Some readings a spec wants on the same axes cannot come from
+	 * there — a tank's Vengeance is attack power, which the log staples onto events as a plain field
+	 * rather than as a bar, and whose ceiling is the player's own maximum health.
+	 *
+	 * Called after `audit()` so a spec can hand back something it has already computed rather than
+	 * measuring the pull twice, and merged **first** so these draw above the declared bars:
+	 * `CastTimeline` derives its lane order from `Object.keys`, so key order *is* row order.
+	 *
+	 * Generic on purpose. Vengeance is every tank's, not a Paladin idea, and the seam is what lets a
+	 * future Blood or Guardian spec put the same reading on the same chart without touching the engine.
+	 */
+	extraResources?(h: Handles, audit: SpecAuditResult): Record<string, ResourceBarAudit>;
+	/**
 	 * The spec's report colours, derived from its class's primary colour as wowsims-mop defines it
 	 * (`ui/core/player_classes/*.ts` `hexColor`) — see `~/lib/game/classes`. The bars and accents of
 	 * the spec's sections draw in these, so each spec's report is recognisable at a glance.
@@ -1762,6 +1778,8 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 
 	const isSpec = spec.identify(h);
 	const audit = spec.audit(h);
+	// Spec-computed bars, ahead of the declared ones so they draw on top — see `SpecConfig.extraResources`.
+	const allResources: Record<string, ResourceBarAudit> = { ...spec.extraResources?.(h, audit), ...resourceAudits };
 
 	// --------------------------------------------------------------- assembly
 	const core: AnalysisCore = {
@@ -1915,7 +1933,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		gear,
 		raidBuffs,
 		potions,
-		resources: resourceAudits,
+		resources: allResources,
 	};
 
 	// The two places the halves share one figure. The spec's audit found the wasted globals; the core

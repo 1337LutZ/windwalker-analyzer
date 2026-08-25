@@ -670,17 +670,23 @@ describe('report copy with no reader', () => {
 				't16-2pc-not-in-log',
 			],
 		},
-		// The bars the cast log draws a lane for: each spec's own `resources`, and the counter row its
-		// `timelineBanks` adds beside them. Both halves, because both halves reach the same copy.
+		// The bars the cast log draws a lane for: each spec's own `resources`, the counter row its
+		// `timelineBanks` adds beside them, and the bars a spec computes for itself rather than declaring.
+		//
+		// **All three halves, because all three reach the same copy.** `extraResources` is the last of
+		// them and the one a key list cannot discover: a declared bar is a `resources` entry that can be
+		// read off the config, while an extra one is built inside a function at analysis time. Naming its
+		// keys here is the price of the seam — see `SpecConfig.extraResources`.
 		castLogBar: {
-			where: 'both specs’ `SpecConfig.resources`, plus each spec’s `timelineBanks`',
+			where: 'every spec’s `SpecConfig.resources`, its `extraResources`, and its `timelineBanks`',
 			keys: () => [
 				...Object.keys(WW_SPEC.resources ?? {}),
 				...Object.keys(ELEMENTAL_SPEC.resources ?? {}),
 				...Object.keys(PROTECTION_SPEC.resources ?? {}),
+				...EXTRA_RESOURCE_KEYS,
 				...bankKeys(),
 			],
-			pinned: ['brew', 'chi', 'energy', 'holyPower', 'lightningShield', 'mana'],
+			pinned: ['brew', 'chi', 'energy', 'holyPower', 'lightningShield', 'mana', 'vengeance'],
 		},
 		castLogGrouping: {
 			where: 'components/charts/CastTimeline.tsx → GROUPINGS',
@@ -930,6 +936,15 @@ describe('report copy with no reader', () => {
 	 * fifth indirect route, or a family whose source has been renamed out from under it, cannot arrive
 	 * without showing up here.
 	 */
+	/**
+	 * Bars a spec builds in `extraResources` rather than declaring in `resources`.
+	 *
+	 * Listed by hand because there is nothing to enumerate: the seam hands back a map built at analysis
+	 * time, so its keys exist only inside a closure. A spec that adds one and forgets this line fails the
+	 * orphan check on its own copy, which is the intended way to find out.
+	 */
+	const EXTRA_RESOURCE_KEYS = ['vengeance'] as const;
+
 	const FAMILY_SOURCE: Record<string, string> = {
 		'ascendance.read.fault.*': 'ascendanceFault',
 		'ascendance.read.reason.*': 'ascendanceReason',
@@ -978,8 +993,8 @@ describe('report copy with no reader', () => {
 	const FAMILY_LEAVES: Record<string, number> = {
 		'ascendance.read.fault.*': 5,
 		'ascendance.read.reason.*': 6,
-		'castLog.resource.*': 6,
-		'castLog.resourceAria.*': 6,
+		'castLog.resource.*': 7,
+		'castLog.resourceAria.*': 7,
 		'castLog.target.*': 3,
 		'castLog.target.*Title': 3,
 		// Five and not six: `Gate` carries an `other` arm and no section prints a column for it.
