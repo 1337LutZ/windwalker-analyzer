@@ -14,7 +14,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { EXTERNALS, classesInPull } from '~/lib/analysis/externals';
+import { EXTERNALS, classesInPull, readExternals } from '~/lib/analysis/externals';
+import { raidScoped } from '~/lib/analysis/auras';
 import { rawFixture } from '~/lib/analysis/fixtures';
 import report from '~/locales/en/report.json';
 import { abilityIdOf, isAuraApply } from '~/lib/events';
@@ -316,6 +317,51 @@ describe('the roster gate', () => {
 
 	it('drops an actor whose class the report could not resolve', () => {
 		expect(classesInPull([1, 4], actors, 1)).toEqual([]);
+	});
+
+	/**
+	 * What a raid could not bring is counted, not listed — and the count is the thing the section prints.
+	 *
+	 * A row reading "nobody in this pull" is a fact about who came rather than about the tank or the
+	 * healers, and nine of them bury the two or three that are real. The section draws only the offered
+	 * rows and states the rest as a number underneath.
+	 *
+	 * Synthetic for the reason the whole block is: every committed capture is a 25-man fielding every
+	 * class, so `absent` is nought on all five and the filter never once refuses a row there.
+	 */
+	it.each([
+		[[1, 2], ['Priest']],
+		[
+			[1, 2, 3],
+			['Druid', 'Priest'],
+		],
+		[[1], []],
+	] as const)('counts every catalogue entry the roster could not cast', (present, classes) => {
+		const audit = readExternals(raidScoped([]), {
+			t0: 0,
+			pullMs: 300_000,
+			actorID: 1,
+			actors: actors as never,
+			friendlyPlayers: [...present],
+		});
+		expect(audit.classes).toEqual([...classes]);
+		// Every entry is either offered or absent, and nothing is both or neither.
+		expect(audit.available + audit.absent).toBe(EXTERNALS.length);
+		expect(audit.absent).toBe(EXTERNALS.filter((entry) => !classes.includes(entry.providedBy as never)).length);
+	});
+
+	/** A raid with nobody but the tank offers nothing at all, which is the floor of the gate. */
+	it('offers nothing to a pull with only the audited player in it', () => {
+		const audit = readExternals(raidScoped([]), {
+			t0: 0,
+			pullMs: 300_000,
+			actorID: 1,
+			actors: actors as never,
+			friendlyPlayers: [1],
+		});
+		expect(audit.available).toBe(0);
+		expect(audit.absent).toBe(EXTERNALS.length);
+		expect(audit.unused).toBe(0);
 	});
 });
 

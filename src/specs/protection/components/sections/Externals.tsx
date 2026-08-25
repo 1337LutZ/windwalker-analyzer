@@ -112,21 +112,38 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 	const heldMs = rows.reduce((most, row) => Math.max(most, row.heldMs), 0);
 	const gave = rows.filter((row) => row.given.length > 0);
 
+	/**
+	 * Only the cooldowns somebody in this raid could actually have cast.
+	 *
+	 * **A row for a spell nobody brought is a row a reader cannot act on.** A raid with no warrior is
+	 * told nothing useful by a Vigilance line reading "nobody in this pull" — it is a fact about the
+	 * roster, not about the tank or the healers, and printing nine of them buries the two or three that
+	 * are real. The count of what was left out is stated under the table instead, so the omission is
+	 * visible without costing a line each.
+	 *
+	 * The gate is class presence, which is as far as the log will go: whether the warrior who *was* there
+	 * had Vigilance talented is not in any stream this report reads, so a row can be offered by a raid
+	 * that could not in fact have cast it. That errs towards showing one row too many rather than hiding
+	 * a real chance, which is the right direction for a section that recommends.
+	 */
+	const offered = rows.filter((row) => row.available);
+	// Off the audit rather than recomputed here, so the figure the note prints and the gate the table
+	// filters on cannot drift apart — and so the synthetic roster suite can pin it.
+	const absent = externals?.absent ?? 0;
+
 	// No catalogue lookup here any more: every figure this table prints now comes off the row, because
 	// the row is the half that knows which caster a pull actually had. See `ExternalRow.scope`.
-	const grid: GridRow[] = rows.map((row) => {
+	const grid: GridRow[] = offered.map((row) => {
 		return {
 			key: row.key,
-			// Shaded only where somebody could have cast it and nobody did. An external no one in the
-			// raid brought is not a fault and must not read as one.
-			band: row.available && row.count === 0 ? ('warn' as const) : undefined,
+			// Shaded where nobody cast it, which every row here could have been. The unavailable ones are
+			// filtered out above rather than drawn unshaded.
+			band: row.count === 0 ? ('warn' as const) : undefined,
 			cells: {
 				external: <b className="font-semibold text-ink">{row.name}</b>,
 				brings: (
 					<span className="text-ink-2">
-						{row.available
-							? t('externals.brings', { count: row.providers, className: readableClass(row.providedBy) })
-							: t('externals.absent')}
+						{t('externals.brings', { count: row.providers, className: readableClass(row.providedBy) })}
 					</span>
 				),
 				cuts: (
@@ -223,6 +240,7 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 				{externals.unreadable.length === 0 ? null : (
 					<Note>{t('externals.unreadable', { names: externals.unreadable.join(', ') })}</Note>
 				)}
+				{absent === 0 ? null : <Note>{t('externals.absent', { count: absent })}</Note>}
 				<Note>{t('externals.scope')}</Note>
 			</div>
 

@@ -1879,6 +1879,8 @@
     "given": "You put {{names}} on somebody else rather than keeping it, which is a real use of it and is drawn as its own row under what landed on you.",
     "scope": "This reads what landed on you and what you put on somebody else, because a fetch scoped to you carries both ends of an event you were part of. A cooldown a healer put on your co-tank is in neither, so nothing here counts it as used or as missing.",
     "caption": "Every external damage reduction, and whether this raid could cast it",
+    "absent_one": "One more damage reduction exists that nobody in this pull could cast, so it is not listed. Whether it was available is a fact about who came, not about how the fight went.",
+    "absent_other": "{{count}} more damage reductions exist that nobody in this pull could cast, so they are not listed. Whether they were available is a fact about who came, not about how the fight went.",
     "columns": {
       "external": "external",
       "brings": "brought by",
@@ -1888,7 +1890,6 @@
     },
     "brings_one": "{{count}} {{className}}",
     "brings_other": "{{count}} {{className}}s",
-    "absent": "nobody in this pull",
     "never": "never",
     "cuts_all": "{{percent, percent}} of all damage",
     "cuts_magic": "{{percent, percent}} of magic damage",

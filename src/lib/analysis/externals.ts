@@ -545,6 +545,14 @@ export interface ExternalsAudit {
 	/** Of those, how many never landed. The section's headline. */
 	unused: number;
 	/**
+	 * Catalogue entries nobody in this raid could have cast, counted rather than listed.
+	 *
+	 * The section draws no row for these: a Vigilance line reading "nobody in this pull" is a fact about
+	 * who came rather than about the tank or the healers, and nine of them bury the two or three that are
+	 * real. The count is printed under the table so the omission is visible without costing a line each.
+	 */
+	absent: number;
+	/**
 	 * Externals somebody in this raid could have cast that this report cannot observe at all.
 	 *
 	 * Named rather than counted, and kept out of every other figure here — see `ExternalSpell.readable`.
@@ -742,6 +750,7 @@ export function readExternals(
 		rows,
 		classes,
 		available: available.length,
+		absent: rows.filter((row) => !row.available).length,
 		used: available.filter((row) => row.count > 0).length,
 		unused: missedSlots.size,
 		unreadable: rows.filter((row) => row.available && !row.readable).map((row) => row.name),

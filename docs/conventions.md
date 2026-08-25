@@ -478,9 +478,9 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Protection report gaining its summary cards, it prints 1526 leaves, 736 prose, 23,573 words;
-median 27, p75 43, p90 64, p95 77, p99 97, max 160; longest 9% carry 23%; report.json 667 prose leaves,
-1,159 sentences, median 17, 227 past 25 (19.6%), 275 em-dashes in 238 sentences (20.5%);
+As of the Protection report gaining its summary cards, it prints 1527 leaves, 738 prose, 23,639 words;
+median 27, p75 43, p90 64, p95 77, p99 97, max 160; longest 9% carry 23%; report.json 669 prose leaves,
+1,163 sentences, median 17, 227 past 25 (19.5%), 275 em-dashes in 238 sentences (20.5%);
 51 / 22 / 1 / 2 on the quote lines.
 
 <!-- /census:figures -->
