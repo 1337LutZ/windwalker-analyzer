@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 
 import { Field } from '../primitives';
 import { buttonClass, fieldClass } from '../primitives/controls';
@@ -31,14 +32,12 @@ interface Props {
 	onDiverge: () => void;
 }
 
-const REFUSAL =
-	'Paste the whole WarcraftLogs report URL, or just its code — the run of letters and digits after /reports/.';
-
 /**
  * Where a report comes in. One field, because a report URL already carries the fight and the player
  * in its fragment and re-typing them is work nobody should be asked to do twice.
  */
 export default function ReportInput({ busy, initialReport = null, onSubmit, onDiverge }: Props) {
+	const { t } = useTranslation('ui');
 	const inputID = useId();
 	const {
 		register,
@@ -76,7 +75,7 @@ export default function ReportInput({ busy, initialReport = null, onSubmit, onDi
 
 	return (
 		<form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-			<Field id={inputID} label="Report code or URL" error={problem}>
+			<Field id={inputID} label={t('app.reportField')} error={problem}>
 				<input
 					id={inputID}
 					type="text"
@@ -90,7 +89,7 @@ export default function ReportInput({ busy, initialReport = null, onSubmit, onDi
 					aria-invalid={problem !== undefined}
 					aria-describedby={problem === undefined ? undefined : `${inputID}-error`}
 					{...register('report', {
-						validate: (value) => parseReportInput(value).code !== null || REFUSAL,
+						validate: (value) => parseReportInput(value).code !== null || t('app.reportRefusal'),
 					})}
 				/>
 			</Field>

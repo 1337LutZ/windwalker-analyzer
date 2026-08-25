@@ -124,19 +124,25 @@ export default function DebuffTimeline({ analysis, target }: { analysis: Analysi
 	 */
 	const rows = useMemo(
 		(): Track[] => [
-			{ label: t('debuff.track.up'), tone: 'kick', windows: tracks.up, lengthLabel: 'held for', widen: false },
+			{
+				label: t('debuff.track.up'),
+				tone: 'kick',
+				windows: tracks.up,
+				lengthLabel: t('chart.length.held', { ns: 'ui' }),
+				widen: false,
+			},
 			{
 				label: t('debuff.track.dropped'),
 				tone: 'miss',
 				windows: tracks.down,
-				lengthLabel: 'without it for',
+				lengthLabel: t('chart.length.without', { ns: 'ui' }),
 				widen: false,
 			},
 			...exempt.map((row): Track => ({
 				label: row.label,
 				tone: EXEMPT,
 				windows: row.windows,
-				lengthLabel: 'for',
+				lengthLabel: t('chart.length.plain', { ns: 'ui' }),
 				widen: false,
 			})),
 		],

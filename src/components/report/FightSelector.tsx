@@ -32,7 +32,7 @@ export default function FightSelector({ fights, difficultyNames, value, onChange
 	const groups = groupByEncounter(fights);
 
 	return (
-		<ul aria-label="Boss pulls in this report" className="m-0 flex list-none flex-col gap-2 p-0">
+		<ul aria-label={t('app.fightList')} className="m-0 flex list-none flex-col gap-2 p-0">
 			{groups.map((group) => {
 				// The row stands for whatever is selected inside it, so a specific attempt picked out of
 				// the expander is still what the group reports once it is closed again.

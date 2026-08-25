@@ -139,8 +139,18 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 	 */
 	const sources = useMemo(
 		(): LaneSource[] => [
-			{ label: t('searingTotem.track.up'), tone: 'kick', windows: up, lengthLabel: 'ticking for' },
-			{ label: t('searingTotem.track.dropped'), tone: 'miss', windows: dropped, lengthLabel: 'without it for' },
+			{
+				label: t('searingTotem.track.up'),
+				tone: 'kick',
+				windows: up,
+				lengthLabel: t('chart.length.ticking', { ns: 'ui' }),
+			},
+			{
+				label: t('searingTotem.track.dropped'),
+				tone: 'miss',
+				windows: dropped,
+				lengthLabel: t('chart.length.without', { ns: 'ui' }),
+			},
 			...(uncounted.length === 0
 				? []
 				: [
@@ -148,13 +158,18 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 							label: t('searingTotem.track.uncounted'),
 							tone: 'unmeasured',
 							windows: uncounted,
-							lengthLabel: 'ticking but unmeasured for',
+							lengthLabel: t('chart.length.tickingUnmeasured', { ns: 'ui' }),
 						} satisfies LaneSource,
 					]),
 			// The three grounds in the order the rows drew them, which `exemptRows` has already made disjoint
 			// by its own precedence — so unlike `uncounted` above, their order here decides only the key's,
 			// not what is painted.
-			{ label: away?.label ?? '', tone: 'nothing', windows: away?.windows ?? [], lengthLabel: 'for' },
+			{
+				label: away?.label ?? '',
+				tone: 'nothing',
+				windows: away?.windows ?? [],
+				lengthLabel: t('chart.length.plain', { ns: 'ui' }),
+			},
 			...(aoe === undefined || aoe.windows.length === 0
 				? []
 				: [
@@ -162,10 +177,15 @@ export default function SearingTotemUptime({ analysis }: { analysis: Analysis })
 							label: aoe.label,
 							tone: 'otherList',
 							windows: aoe.windows,
-							lengthLabel: 'for',
+							lengthLabel: t('chart.length.plain', { ns: 'ui' }),
 						} satisfies LaneSource,
 					]),
-			{ label: slot?.label ?? '', tone: 'slot', windows: slot?.windows ?? [], lengthLabel: 'out for' },
+			{
+				label: slot?.label ?? '',
+				tone: 'slot',
+				windows: slot?.windows ?? [],
+				lengthLabel: t('chart.length.out', { ns: 'ui' }),
+			},
 		],
 		[t, up, uncounted, dropped, away, aoe, slot],
 	);

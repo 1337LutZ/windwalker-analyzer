@@ -73,6 +73,31 @@ function literalKeys(source: string): string[] {
 }
 
 /**
+ * Keys a call sends to a namespace other than the file's own, by passing `{ ns: … }` to `t`.
+ *
+ * **`namespaceOf` answers per file, and a per-call override is the one thing it cannot see.** A chart
+ * bound to `useTranslation('report')` may still reach one shell string — the tooltip length-labels do,
+ * because the words are chart furniture rather than analysis and belong in `ui.json` beside the rest of
+ * the shell. Checked against `report` those keys are missing, and the file's own report keys would be
+ * missing if it were answered `'ui'`; neither answer is right for a file that reads both by call.
+ *
+ * So the override is read where it is written. The pair is returned rather than the key alone, because
+ * the whole point of this file's namespace handling is that a key existing in the *wrong* namespace is
+ * the failure, not a pass — which is what searching both would give.
+ */
+function overriddenKeys(source: string): Array<[key: string, ns: 'report' | 'ui']> {
+	const out: Array<[string, 'report' | 'ui']> = [];
+	const call = new RegExp(
+		String.raw`\b(?:${keyTakers(source).join('|')})\(\s*'([a-zA-Z][\w.]*)'[^)]*?\bns:\s*'(report|ui)'`,
+		'g',
+	);
+	for (const match of source.matchAll(call)) {
+		if (match[1] !== undefined && match[2] !== undefined) out.push([match[1], match[2] as 'report' | 'ui']);
+	}
+	return out;
+}
+
+/**
  * The settings panel's keys, which are computed and so invisible to `literalKeys`.
  *
  * `SettingsDialog` renders whatever schema the spec declares and reaches its copy through the
@@ -174,15 +199,18 @@ describe('translation keys', () => {
 		for (const file of files) {
 			const source = readFileSync(file, 'utf8');
 			const ns = namespaceOf(source);
+			// A key the call sends elsewhere is checked there and nowhere else — see `overriddenKeys`.
+			const sentElsewhere = new Map(overriddenKeys(source));
 			for (const key of literalKeys(source)) {
 				// A section's verdict is stored per grade (`verdict_good`) and all four must exist, or a
 				// pull of the missing grade renders a raw key. `<section>.verdict` only — a column
 				// happens to be named `verdict` too, and `fistsOfFury.columns.verdict` is an ordinary
 				// string, not a graded one.
 				const graded = key.split('.').length === 2 && key.endsWith('.verdict');
+				const where = sentElsewhere.get(key) ?? ns;
 				const exists = graded
-					? ['good', 'ok', 'bad', 'none'].every((c) => resolves(`${key}_${c}`, ns))
-					: resolves(key, ns);
+					? ['good', 'ok', 'bad', 'none'].every((c) => resolves(`${key}_${c}`, where))
+					: resolves(key, where);
 				if (!exists) missing.push(`${file.replace(SRC, 'src')} → ${key}`);
 			}
 		}

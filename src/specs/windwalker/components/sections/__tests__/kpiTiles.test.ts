@@ -96,7 +96,7 @@ describe('KPI tiles', () => {
 			for (const [label, key] of [
 				['GCD used', 'gcdUtilisation'],
 				['Casts per minute', 'gcdUtilisation'],
-				['Avg brew stacks', 'brewStacks'],
+				['Stacks per brew', 'brewStacks'],
 			] as const) {
 				const grade = gradeOf(analysis, key);
 				expect(tile(html, label), `${name} / ${label}`).toContain(grade === null ? 'text-ink' : TONE[grade]);
@@ -197,7 +197,7 @@ describe('KPI tiles', () => {
 	it('divides by the procs the section says are buyable, not by every proc that fired', () => {
 		const drawn = PULLS.map((name) => {
 			const { procs } = fixture(name);
-			const html = tile(render(fixture(name)), 'RoRo snapshots');
+			const html = tile(render(fixture(name)), 'Procs caught');
 			const shown = /(\d+)\s*<[^>]*>\s*\/(\d+)/.exec(html.replaceAll(/<\/?b[^>]*>/g, ''));
 			const fraction =
 				shown === null
@@ -221,7 +221,7 @@ describe('KPI tiles', () => {
 	it('leaves the snapshot tile ungraded on every committed pull', () => {
 		const painted = PULLS.map((name) => {
 			const analysis = fixture(name);
-			const html = tile(render(analysis), 'RoRo snapshots');
+			const html = tile(render(analysis), 'Procs caught');
 			return `${name}: ${analysis.procs.lastGcd}/${analysis.procs.procs} held to the last global, drawn in ${hue(html)}`;
 		});
 		expect(painted.join('\n')).toBe(
@@ -251,7 +251,7 @@ describe('KPI tiles', () => {
 			return {
 				line: `${name} held ${procs.lastGcd} of ${procs.procs}`,
 				share: procs.procs > 0 ? procs.lastGcd / procs.procs : 0,
-				rank: RANK[hue(tile(render(fixture(name)), 'RoRo snapshots'))] ?? NO_CLAIM,
+				rank: RANK[hue(tile(render(fixture(name)), 'Procs caught'))] ?? NO_CLAIM,
 			};
 		}).filter((claim) => claim.rank !== NO_CLAIM);
 		const contradictions = claims.flatMap((a) =>

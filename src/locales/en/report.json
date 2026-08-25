@@ -74,14 +74,14 @@
     "capProtected_one": "One of those was lost while you held a brew for a Re-Origination proc — brewing sooner would have cost more of the proc than the stack was worth, so it does not count against you.",
     "capProtected_other": "{{count}} of those were lost while you held a brew for a Re-Origination proc — brewing sooner would have cost more of the proc than the stacks were worth, so they do not count against you.",
     "kpi": {
-      "used": "Used of gained",
+      "used": "Stacks spent",
       "banked": "Left banked",
-      "capped": "Overcapped"
+      "capped": "Stacks overcapped"
     },
     "key": {
       "bank": "Stacks",
       "press": "Used",
-      "capped": "Overcapped"
+      "capped": "Stacks overcapped"
     },
     "spentStacks_one": "{{count}} stack",
     "spentStacks_other": "{{count}} stacks",
@@ -99,7 +99,7 @@
     "capped_some": "Both charges sat full for {{seconds, duration}} of the time you had something to hit — {{pct, percent}} of that time, worth about {{chi, decimal}} chi. Time when nothing could be hit is not counted against you. The cost is measured in chi rather than presses, because an unused recharge is only part of a press.",
     "scope": "Nothing here is graded: the priority list presses Chi Brew when chi is needed and holds it otherwise, and it sets no number of acceptable idle seconds. Charges recharge every {{seconds}}.",
     "kpi": {
-      "uses": "Presses of possible",
+      "uses": "Presses taken",
       "chi": "Chi gained",
       "overcapped": "Chi overcapped",
       "capped": "Charges idle for"
@@ -127,7 +127,7 @@
     "caveat": "There is no \"of possible\" figure for the pull as a whole, because that would assume the boss was always targetable and every condition was always met. Each row's own target is the honest version of that question.",
     "columns": {
       "name": "ability",
-      "bar": "of its own ceiling",
+      "bar": "share of ceiling",
       "rate": "cpm / target",
       "casts": "casts",
       "gate": "limited by"
@@ -267,7 +267,7 @@
       "noReadings": "—"
     },
     "kpi": {
-      "uses": "Uses / possible"
+      "uses": "Uses taken"
     },
     "pairing": {
       "label": "Bloodlust + RJW",
@@ -294,7 +294,7 @@
     "split_some": "{{engaged, duration}} of that was while you had something to hit — {{engagedPct, percent}} of that time, and that is the only part that involves a decision. The other {{downtime, duration}} fell in the run-up, an intermission or the tail, and is not counted against you.",
     "wasted": "At the measured refill rate that is about {{wasted, integer}} energy gained while capped, with an enemy in range to spend it on.",
     "kpi": {
-      "engaged": "Overcapped",
+      "engaged": "Time at the cap",
       "wasted": "Energy lost"
     },
     "caption": "The five longest stretches the bar spent full, in the order they happened",
@@ -323,7 +323,7 @@
     "summary": "{{wasted}} chi was wasted across {{moments}} presses that gave back more chi than the bar could hold. Each of those presses cost a global and achieved nothing.",
     "key": {
       "bar": "Chi",
-      "wasted": "Overcapped"
+      "wasted": "Chi overcapped"
     },
     "chartLabel": "Chi over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
     "tableCaption": "Every press that returned more chi than the bar could hold, in the order they happened",
@@ -335,8 +335,8 @@
       "gained": "Chi gained"
     },
     "columns": {
-      "at": "At",
-      "wasted": "Chi lost"
+      "at": "at",
+      "wasted": "chi lost"
     }
   },
   "damage": {
@@ -393,7 +393,7 @@
     "caption": "Every stretch you spent under one of the two numbers with the button for it up — press the button and the stretch disappears",
     "columns": {
       "at": "at",
-      "held": "for",
+      "held": "held for",
       "low": "down to",
       "press": "press"
     },
@@ -425,9 +425,9 @@
     "dps": "DPS",
     "cpm": "Casts per minute",
     "gcd": "GCD used",
-    "brewStacks": "Avg brew stacks",
+    "brewStacks": "Stacks per brew",
     "rskUptime": "RSK uptime",
-    "snapshots": "RoRo snapshots on the {{leeway}} leeway",
+    "snapshots": "Procs caught on the {{leeway}} leeway",
     "potions": "Potions used",
     "potions_unknown": "Potions · cannot say",
     "label": "Headline figures",
@@ -487,10 +487,10 @@
       "entered": "Entered",
       "cast": "Cast for",
       "stat": "Converted into",
-      "from": "Up",
-      "to": "Down",
+      "from": "Went up",
+      "to": "Came off",
       "by": "Killed by",
-      "charges": "Charges",
+      "charges": "Charges left",
       "landed": "Landed",
       "hit": "Hit for",
       "wait": "Waited",
@@ -594,16 +594,16 @@
     "kpi": {
       "uses": "Uses taken",
       "reflected": "Damage returned",
-      "perUse": "Per use",
+      "perUse": "Returned per use",
       "landed": "Presses that landed",
-      "ofCap": "Efficiency"
+      "ofCap": "Cap used"
     },
     "columns": {
       "at": "at",
       "reflected": "returned",
       "hits": "hits",
-      "capPct": "of cap",
-      "fortifying": "fort. brew"
+      "capPct": "share of cap",
+      "fortifying": "fortifying brew"
     },
     "capSummary_one": "One use drained its pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
     "capSummary_other": "{{count}} uses drained their pool completely, which puts the pool at {{health, compact}} health. That is the most one press can absorb, so your {{casts}} uses could have absorbed {{possible, compact}} between them and returned {{absorbed, compact}} — {{pct, percent}} of it.",
@@ -631,7 +631,7 @@
     "caption": "Every summon, how long the tiger was out for, and what it dealt while it was",
     "kpi": {
       "uses": "Summons taken",
-      "uptime": "Pull with Xuen out",
+      "uptime": "Xuen uptime",
       "damage": "Tiger's damage"
     },
     "columns": {
@@ -671,7 +671,7 @@
       "casts": "Spirits sent",
       "uptime": "Spirit uptime",
       "damage": "Spirits' damage",
-      "overlap": "Shared a target"
+      "overlap": "Time sharing a target"
     },
     "columns": {
       "at": "at",
@@ -687,9 +687,9 @@
       "gridCaption": "Per enemy: how long a spirit stood on it, that as a share of the pull, and how long you spent hitting it too",
       "columns": {
         "enemy": "enemy",
-        "held": "spirit",
+        "held": "spirit held for",
         "share": "share",
-        "doubled": "doubled"
+        "doubled": "doubled for"
       },
       "shortLived_one": "One more enemy has no row: everything you and your spirits did to it started and stopped inside {{rule, duration}}. That measures how long it was in combat with you, not how long it lived — this log carries no enemy deaths.",
       "shortLived_other": "{{count}} more enemies have no rows: everything you and your spirits did to each of them started and stopped inside {{rule, duration}}. That measures how long each was in combat with you, not how long it lived — this log carries no enemy deaths.",
@@ -719,10 +719,10 @@
     "caption_windwalker": "Raid buffs affecting this Windwalker, by effect",
     "caption_elemental": "Raid buffs affecting this Elemental Shaman, by effect",
     "columns": {
-      "buff": "Effect",
-      "uptime": "Uptime",
-      "source": "Seen from",
-      "state": "What the log says"
+      "buff": "effect",
+      "uptime": "uptime",
+      "source": "seen from",
+      "state": "what the log says"
     },
     "effects": {
       "stats": "+5% all stats",
@@ -1179,11 +1179,11 @@
     "kpi": {
       "followed": "Followed the priority list",
       "skipped": "Passed over",
-      "unknown": "Can't tell"
+      "unknown": "Unreadable globals"
     },
     "columns": {
-      "button": "Button",
-      "count": "Times passed over"
+      "button": "button",
+      "count": "times passed over"
     },
     "rule": {
       "rising-sun-kick": "Rising Sun Kick",
@@ -1221,9 +1221,9 @@
     "decisions": {
       "caption": "Every Rushing Jade Wind press, and every moment the priority list asked for one, in time order",
       "columns": {
-        "at": "At",
-        "event": "Event",
-        "reason": "Why"
+        "at": "at",
+        "event": "event",
+        "reason": "why"
       },
       "cells": {
         "used": "RJW used",
@@ -1257,7 +1257,7 @@
     "absent_unknown": "Rushing Jade Wind was never pressed, and this log cannot say whether it was on your bar: a log carries no talent tree, and neither of the buttons that would settle it — Invoke Xuen, Spinning Crane Kick — appears here. So this is a question the events cannot answer, not a missing press.",
     "kpi": {
       "targets": "Average targets hit",
-      "opportunities": "Presses / asked for"
+      "opportunities": "Presses taken"
     },
     "choice": {
       "value": "Non-optimal",
@@ -1271,7 +1271,7 @@
     "kpi": {
       "casts": "Presses",
       "followed": "Pressed where the rotation says",
-      "starved": "Rising Sun Kick left waiting"
+      "starved": "Time Rising Sun Kick waited"
     },
     "ladderMissing": "The priority list was not walked on this pull — it needs resource readings to reconstruct both bars, and this log carried none. Nothing here says whether these were the globals to spend.",
     "ladder_all_one": "At the one press this log could check against the priority list, no higher-priority ability was ready.",
@@ -1290,8 +1290,8 @@
     "wantedCaption": "Higher-priority abilities that were ready where you used Blackout Kick, most often first",
     "wantedNone": "No Blackout Kick used a global that a higher-priority ability was ready for.",
     "columns": {
-      "button": "Button",
-      "count": "Globals"
+      "button": "button",
+      "count": "globals"
     },
     "starveMissing": "This pull was analysed before chi reconstruction existed, so nothing here says whether a press cost you a kick.",
     "starveClean": "Rising Sun Kick was never left waiting on this pull, so Blackout Kick cannot have delayed it.",
@@ -1308,11 +1308,11 @@
     "starveFollowed_other": "{{count}} of them had no higher-priority ability ready. The priority list only checks energy before the dump, but the shortfall is chi, so following it is not enough on its own.",
     "starveCaption": "Every kick that came up on a bar this button had emptied",
     "starveColumns": {
-      "at": "Kick ready",
-      "waited": "Waited",
-      "bar": "Chi held",
-      "press": "Kicked at",
-      "debuff": "Debuff"
+      "at": "kick ready",
+      "waited": "waited",
+      "bar": "chi held",
+      "press": "kicked at",
+      "debuff": "debuff"
     },
     "cells": {
       "dropped": "Dropped",
@@ -1342,7 +1342,7 @@
     "wasteSplit": "{{unmeasured, integer}} of those came with more than one enemy up, where the multi-target order stops asking you to refresh a dot that is still running — so none of it is measured, and it is greyed in the chart above. What is measured is the {{judged, integer}} of them you made with one enemy in front of you. Once a second enemy is up, put Flame Shock back up only when it has dropped, and spend the rest of those globals on Chain Lightning.",
     "kpi": {
       "uptime": "Dot uptime",
-      "applies": "Fresh applies",
+      "applies": "Fresh applications",
       "refreshes": "Refreshes",
       "windowed": "In the last tick",
       "multiDot": "Second target uptime"
@@ -1590,7 +1590,7 @@
     "kpi": {
       "used": "Summons",
       "nearEnd": "In the last minute",
-      "unknown": "Your log can't say"
+      "unknown": "Unreadable presses"
     },
     "columns": {
       "at": "at",
@@ -1621,7 +1621,7 @@
     "verdict_bad_noOvercap": "Your shield came off {{fellOff, integer}} times, and keeping it up is measured at every enemy count. Re-cast Lightning Shield the moment it drops: Rolling Thunder returns 2% of your maximum mana per charge and only while the buff is up, so every charge it cannot hand you is mana you cast without. From three enemies up nothing in the multi-target order spends the shield, so sitting at seven was the only place it could be and the {{overcap, duration}} it spent there is not measured on this reading.",
     "verdict_none": "Lightning Shield was never up in this pull, and nothing worse can happen to it. Rolling Thunder returns 2% of your maximum mana per charge, and only while the buff is up. None of that mana was ever yours, and Earth Shock had nothing to spend. Cast it before you pull, and put it straight back the moment it drops.",
     "kpi": {
-      "overcap": "Overcapped",
+      "overcap": "Time at full charge",
       "fellOff": "Fell off",
       "badSpends": "Bad spends"
     },

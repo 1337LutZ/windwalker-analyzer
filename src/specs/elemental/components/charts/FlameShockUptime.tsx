@@ -260,25 +260,30 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 	 */
 	const sources = useMemo(
 		(): LaneSource[] => [
-			{ label: t('flameShock.track.up'), tone: 'kick', windows: up, lengthLabel: 'held for' },
+			{ label: t('flameShock.track.up'), tone: 'kick', windows: up, lengthLabel: t('chart.length.held', { ns: 'ui' }) },
 			...(elsewhere.length > 0
 				? [
 						{
 							label: t('flameShock.track.elsewhere'),
 							tone: 'missSoft',
 							windows: elsewhere,
-							lengthLabel: 'up elsewhere for',
+							lengthLabel: t('chart.length.elsewhere', { ns: 'ui' }),
 						} satisfies LaneSource,
 					]
 				: []),
-			{ label: t('flameShock.track.dropped'), tone: 'miss', windows: dropped, lengthLabel: 'without it for' },
+			{
+				label: t('flameShock.track.dropped'),
+				tone: 'miss',
+				windows: dropped,
+				lengthLabel: t('chart.length.without', { ns: 'ui' }),
+			},
 			...(uncounted.length > 0
 				? [
 						{
 							label: t('flameShock.track.uncounted'),
 							tone: 'unmeasured',
 							windows: uncounted,
-							lengthLabel: 'up but unmeasured for',
+							lengthLabel: t('chart.length.unmeasured', { ns: 'ui' }),
 						} satisfies LaneSource,
 					]
 				: []),
@@ -288,7 +293,7 @@ export default function FlameShockUptime({ analysis }: { analysis: Analysis }) {
 				// in that order — the same order the precedence argument above it is written in.
 				tone: index === 0 ? 'nothing' : 'otherList',
 				windows: row.windows,
-				lengthLabel: 'for',
+				lengthLabel: t('chart.length.plain', { ns: 'ui' }),
 			})),
 		],
 		[t, up, elsewhere, uncounted, dropped, exempt],

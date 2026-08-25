@@ -2,6 +2,9 @@
   "app": {
     "eyebrow": "Mists of Pandaria · {{spec}}",
     "title": "{{spec}} analyzer",
+    "reportField": "Report code or URL",
+    "reportRefusal": "Paste the whole WarcraftLogs report URL, or just its code — the run of letters and digits after /reports/.",
+    "fightList": "Boss pulls in this report",
     "stage": "Alpha",
     "stageNote": "Alpha: the measurements are real, but the thresholds and the wording are still moving.",
     "intro_windwalker": "Analyse a single Mists of Pandaria pull: how full your Tigereye Brew bank was when you spent it, whether your brews lined up with Re-Origination procs, where your rotation lost damage, and a list of every mistake with a link back to the replay. Everything runs in this tab.",
@@ -155,7 +158,19 @@
     }
   },
   "chart": {
-    "drawing": "Drawing chart"
+    "drawing": "Drawing chart",
+    "length": {
+      "held": "held for",
+      "elsewhere": "up elsewhere for",
+      "without": "without it for",
+      "unmeasured": "up but unmeasured for",
+      "ticking": "ticking for",
+      "tickingUnmeasured": "ticking but unmeasured for",
+      "out": "out for",
+      "totem": "totem up for",
+      "twoTotems": "two totems up for",
+      "plain": "for"
+    }
   },
   "common": {
     "change": "Change",
