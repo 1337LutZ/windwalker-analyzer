@@ -21,6 +21,7 @@
 import { overallOf, section, sharePct, grader, gradeOf, GRADE_ORDER } from '~/lib/score';
 import type { Grade, Scorecard, ScoreView, Threshold } from '~/lib/score';
 import type { Analysis, ProtectionAudit } from '~/lib/types';
+import { GCD_FLOOR_HASTE } from '~/lib/analysis/haste';
 
 /** The audit's fields, named for the type that holds them — the same bounded cast the Elemental makes. */
 type ProtectionAnalysis = Analysis & ProtectionAudit;
@@ -77,6 +78,39 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	const offered = analysis.lostCasts.reduce((sum, row) => sum + row.casts + row.lostCasts, 0);
 	const cooldownsMissed = metric('cooldownsMissed', offered > 0 ? sharePct(lost, offered) : null);
 
+	/**
+	 * Externals the raid could have put on this tank and never did, as a share of the slots offered.
+	 *
+	 * **A card and not a grade**, which is the distinction the rest of this file spends its header on.
+	 * It is in `sections` so a reader sees it and is out of `all` below, so it moves the overall letter
+	 * by nothing. An unused external is a real loss and it is somebody else's press: charging a tank's
+	 * own score for what their healers did not do would be the fabricated fault this spec was ported to
+	 * remove, in a new place.
+	 *
+	 * Null when the roster offered nothing — a raid with nobody who could cast one has not missed any,
+	 * and a share over nothing is not nought. `unused` already counts per *slot* rather than per button,
+	 * so two Hands nobody pressed are the one chance they really were.
+	 */
+	const externalsOffered = prot.externals.available;
+	const externalsMissed = metric(
+		'externalsMissed',
+		externalsOffered > 0 ? sharePct(prot.externals.unused, externalsOffered) : null,
+	);
+
+	/**
+	 * How close the pull's haste came to the breakpoint the global stops improving at.
+	 *
+	 * Clamped at 100, and the clamp is the whole reason this can be graded at all. `Haste.tsx` argues
+	 * that colouring the distance is wrong in both directions — past the breakpoint the globals stop
+	 * improving, short of it the cooldowns are still shortening — and a metric that rewarded haste past
+	 * 1.5x would be making exactly that mistake. Capped, it says one thing only: whether the pull
+	 * reached the line, which is a fact about the character and not a claim about the player.
+	 *
+	 * Out of `all` for that same reason. A gear decision is not a play fault and must not move a letter
+	 * that reads as one.
+	 */
+	const hasteToBreakpoint = metric('hasteToBreakpoint', Math.min(100, (prot.haste.base / GCD_FLOOR_HASTE) * 100));
+
 	const all = [globalsMissed, cooldownsMissed];
 	const { grade, judged } = overallOf(all, weightsFor(view));
 
@@ -91,6 +125,10 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 			// place for this figure until Protection has a cooldown section of its own.
 			globals: section([globalsMissed]),
 			cooldownDrift: section([cooldownsMissed]),
+			// Both keyed by the page section that argues them, the same join the other two make — see the
+			// note above. Neither reaches `all`, so neither moves the overall grade.
+			externals: section([externalsMissed]),
+			haste: section([hasteToBreakpoint]),
 		},
 	};
 }
@@ -137,6 +175,23 @@ export const THRESHOLDS = {
 	 * first, so a pull that banked its Wrath correctly reads some loss here by construction.
 	 */
 	cooldownsMissed: { good: 10, ok: 25, higherIsBetter: false, unit: 'percent' },
+	/**
+	 * Externals the raid never used, as a share of what it could have cast.
+	 *
+	 * Wide, and deliberately: this is a raid's habit rather than a player's, and it is on the page as a
+	 * recommendation rather than a judgement. The five captures read 0%, 14%, 0%, 71% and 43% — a spread
+	 * that says the line is measuring something, and that a quarter is a raid using most of what it has
+	 * while three quarters unused is a raid that has stopped thinking about it.
+	 */
+	externalsMissed: { good: 25, ok: 60, higherIsBetter: false, unit: 'percent' },
+	/**
+	 * Haste as a share of the breakpoint, capped at reaching it.
+	 *
+	 * 100 is the line the sim puts the global's floor at and nothing above it counts for more. `ok` at 95
+	 * is five percent of the breakpoint — about two and a half points of haste — which is close enough
+	 * that a single piece of gear closes it.
+	 */
+	hasteToBreakpoint: { good: 100, ok: 95, higherIsBetter: true, unit: 'percent' },
 } as const satisfies Record<string, Threshold & { unit: string }>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
@@ -151,6 +206,12 @@ export type MetricKey = keyof typeof THRESHOLDS;
 export const WEIGHTS: Record<MetricKey, number> = {
 	globalsMissed: 4,
 	cooldownsMissed: 2,
+	// Nought, and not an omission. Both are drawn as cards and neither is the player's to answer for:
+	// one is the raid's use of its own cooldowns, the other is the gear they walked in wearing.
+	// `overallOf` is handed only the two above, so these never reach it — the zero is here so the record
+	// stays total and a future reader sees the decision rather than a missing key.
+	externalsMissed: 0,
+	hasteToBreakpoint: 0,
 };
 
 export function weightsFor(_view: ScoreView): Record<MetricKey, number> {

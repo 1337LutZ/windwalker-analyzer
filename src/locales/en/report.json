@@ -1152,6 +1152,12 @@
         },
         "cooldownsMissed": {
           "label": "Cooldown presses missed"
+        },
+        "externalsMissed": {
+          "label": "Externals never used on you"
+        },
+        "hasteToBreakpoint": {
+          "label": "Haste against the breakpoint"
         }
       }
     },

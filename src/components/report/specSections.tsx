@@ -509,6 +509,20 @@ export interface SpecTakeaways {
 }
 
 export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
+	// Protection had no entry at all, so every card it drew was a card a reader could not follow — the
+	// scorecard renders one without a link rather than guessing an anchor. Four now, which is every
+	// section this spec grades or describes with a card.
+	protection: {
+		anchors: {
+			globals: 'globals',
+			// The cooldown card is keyed by the Elemental's section name, because that is the heading this
+			// spec borrows for the figure — see `score.ts`. The anchor is the cast log, which is where a
+			// Protection reader can actually see which button was held.
+			cooldownDrift: 'cast-log',
+			externals: 'externals',
+			haste: 'haste',
+		},
+	},
 	windwalker: {
 		// The scorecard names its sections for the thing they measure; the page names them for the id
 		// a reader jumps to. The two lists were never going to be the same — `tigerPalm` is
