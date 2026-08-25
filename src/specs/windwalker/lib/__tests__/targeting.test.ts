@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
 import type { Actor, FightDataset, WclEvent } from '~/lib/types';
 
-import { IGNORED_MULTI_TARGET_ACTORS } from '~/lib/game/multiTargetActors';
+import { IGNORED_MULTI_TARGET_ACTORS, ignoredMultiTargetActorIDs } from '~/lib/game/multiTargetActors';
 import { TARGET_WINDOW_MS, analyse } from '../index';
 
 const T0 = 100_000;
@@ -350,15 +350,27 @@ describe('the debuff windows the figure is read from', () => {
 	});
 });
 
+/**
+ * The id a Classic report actually carries for Siegecrafter Blackfuse.
+ *
+ * The rule is written as `1601` and matched through `baseEncounterID`, so it holds for retail's 1601,
+ * this 51601, and a later re-release's 101601 alike. Every committed fixture carries the middle one,
+ * which is why a strict equality against it passed for as long as it did.
+ */
+const CLASSIC_SIEGECRAFTER = 51_601;
+
 describe('the per-moment target count', () => {
 	it('ignores encounter-specific non-tank actors in the APL target count', () => {
 		const base = datasetOf(addFight);
-		const rule = IGNORED_MULTI_TARGET_ACTORS.find((candidate) => candidate.encounterID === 51601)!;
+		// Found by `gameID`, which is the NPC's own id and stable, rather than by the encounter — the rule
+		// is written in the base id now and matched through `baseEncounterID`, so an equality here would be
+		// asserting the very thing that used to be wrong.
+		const rule = IGNORED_MULTI_TARGET_ACTORS.find((candidate) => candidate.gameID === 71_591)!;
 		const siege = {
 			...base,
 			fight: {
 				...base.fight,
-				encounterID: rule.encounterID,
+				encounterID: CLASSIC_SIEGECRAFTER,
 				enemyNPCs: [
 					{ id: BOSS, gameID: 71504 },
 					{ id: ADD, gameID: rule.gameID },
@@ -368,7 +380,7 @@ describe('the per-moment target count', () => {
 				...base.table,
 				fight: {
 					...base.table.fight,
-					encounterID: rule.encounterID,
+					encounterID: CLASSIC_SIEGECRAFTER,
 					enemyNPCs: [
 						{ id: BOSS, gameID: 71504 },
 						{ id: ADD, gameID: rule.gameID },
@@ -378,6 +390,28 @@ describe('the per-moment target count', () => {
 		};
 
 		expect(analyse(siege).targets?.counts.max).toBe(1);
+	});
+
+	/**
+	 * The same rule through every id the same boss is registered under.
+	 *
+	 * `1623`, `51623` and `101623` are all Garrosh, and Siegecrafter is the same three ways — retail SoO,
+	 * the Classic re-release, and a later one. The rule was written as `51601` and compared with strict
+	 * equality, so it held for exactly one of the three and silently counted the Shredder as a target on
+	 * the other two. Every committed fixture carries the middle id, which is why nothing failed.
+	 */
+	it.each([1_601, 51_601, 101_601])('resolves the rule through encounter id %i', (encounterID) => {
+		const rule = IGNORED_MULTI_TARGET_ACTORS.find((candidate) => candidate.gameID === 71_591)!;
+		const ids = ignoredMultiTargetActorIDs(encounterID, [
+			{ id: 1, gameID: 71_504 },
+			{ id: 2, gameID: rule.gameID },
+		]);
+		expect([...ids]).toEqual([2]);
+	});
+
+	/** And a boss the list says nothing about keeps every enemy it had. */
+	it('ignores nothing on an encounter with no rule', () => {
+		expect([...ignoredMultiTargetActorIDs(51_623, [{ id: 2, gameID: 71_591 }])]).toEqual([]);
 	});
 
 	it('carries the counts as a step series, in the shape the resource curves use', () => {

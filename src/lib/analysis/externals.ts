@@ -696,9 +696,15 @@ export function readExternals(
 		 * was standing in. On the Garrosh capture both paladins cast it and only one is Holy, which is the
 		 * pull that makes the distinction do work.
 		 */
-		const widened =
-			external.casterDependent !== undefined &&
-			received.some(({ id }) => castersWithSignature(events, id, external.casterDependent!.signatureIds));
+		//
+		// Hoisted so the narrowing is real rather than asserted: `external.casterDependent` does not stay
+		// narrowed inside the closure below, and the three `!` this used to need were each a place the
+		// compiler was being told something it could have checked.
+		const dependent = external.casterDependent;
+		const wider =
+			dependent !== undefined && received.some(({ id }) => castersWithSignature(events, id, dependent.signatureIds))
+				? dependent
+				: undefined;
 
 		const given = givenBySource(auras, external, { t0, pullMs, actorID, nameOf });
 		const spans = received.flatMap((caster) => caster.windows.map((w): Interval => [w.start, w.end]));
@@ -721,8 +727,10 @@ export function readExternals(
 			providers: countProviders(friendlyPlayers, actors, actorID, external.providedBy),
 			group: external.exclusiveGroup ?? null,
 			readable: external.readable ?? true,
-			scope: widened ? external.casterDependent!.scope : external.scope,
-			takenMultiplier: widened ? external.casterDependent!.takenMultiplier : external.takenMultiplier,
+			scope: wider?.scope ?? external.scope,
+			// `??` and not `||`: an external's reduction is a multiplier, and a wider reading of `0` — total
+			// immunity — is a real value that `||` would discard for the narrow one.
+			takenMultiplier: wider?.takenMultiplier ?? external.takenMultiplier,
 			// Filled in a second pass: whether a competitor took the slot cannot be known until every row
 			// has been read.
 			blocked: false,

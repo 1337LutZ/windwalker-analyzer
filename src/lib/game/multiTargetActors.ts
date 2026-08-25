@@ -1,3 +1,5 @@
+import { baseEncounterID } from './rankingExclusions';
+
 // NPCs whose damage is not evidence that the pull had another enemy worth turning towards.
 //
 // **Game truth rather than one spec's opinion, which is why this is here and not in a spec.** It began
@@ -47,7 +49,12 @@
  */
 export const IGNORED_MULTI_TARGET_ACTORS = [
 	{
-		encounterID: 51601,
+		// **The base id, matched through `baseEncounterID`.** Written as 51601 it was strict-equal against
+		// the Classic re-registration, so a report from retail SoO (1601) or a later re-release (101601)
+		// matched nothing and the Shredder counted as a target on both. Every committed fixture happens to
+		// carry the `51xxx` form, which is why nothing here failed — the same trap `enforced.ts` keeps a
+		// test for.
+		encounterID: 1601,
 		gameID: 71591,
 		name: 'Automated Shredder',
 		reason: '90% damage reduction for non-tanks; a tank fights one alone, which is not a pack',
@@ -80,7 +87,12 @@ export function ignoredMultiTargetActorIDs(
 	return new Set(
 		(enemyNPCs ?? [])
 			.filter((npc) =>
-				IGNORED_MULTI_TARGET_ACTORS.some((rule) => rule.encounterID === encounterID && rule.gameID === npc.gameID),
+				IGNORED_MULTI_TARGET_ACTORS.some(
+					(rule) =>
+						encounterID !== undefined &&
+						baseEncounterID(rule.encounterID) === baseEncounterID(encounterID) &&
+						rule.gameID === npc.gameID,
+				),
 			)
 			.map((npc) => npc.id),
 	);

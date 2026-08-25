@@ -12,7 +12,7 @@ import type { Ability, Aura, GameData } from '~/lib/game/model';
 import { createRegistry } from '~/lib/game/registry';
 import { SHARED_ABILITIES, SHARED_AURAS } from '~/lib/game/shared';
 
-import { GCD_FLOOR_MS, cooldownMsFor } from '~/lib/analysis/haste';
+import { GCD_FLOOR_MS } from '~/lib/analysis/haste';
 
 /**
  * The global at the pull's own haste, in ms — the floor rather than the value.
@@ -26,19 +26,6 @@ import { GCD_FLOOR_MS, cooldownMsFor } from '~/lib/analysis/haste';
  * a geared pull is limited by the global and by nothing else.
  */
 export const GCD_MS = GCD_FLOOR_MS;
-
-/**
- * A cooldown as a press at a given haste stamps it.
- *
- * The haste comes in rather than being read from a constant here, because it is a property of the
- * pull and of the moment inside it: Sanctity of Battle multiplies these cooldowns by `1 / meleeHaste`
- * (`sim/paladin/sanctity_of_battle.go`), and Bloodlust moves that term for forty seconds. Callers
- * hold a `HasteCurve` and ask it for the value at the press.
- */
-export function effectiveCooldownMs(ability: Ability, haste: number): number {
-	const base = ability.cooldownMs ?? 0;
-	return ability.hasteScaled === true ? cooldownMsFor(base, haste) : base;
-}
 
 /**
  * What Shield of the Righteous costs, from `sim/paladin/protection/shield_of_the_righteous.go`.
@@ -856,6 +843,15 @@ export interface DamageCooldown {
 	talentTier?: string;
 }
 
+/**
+ * **Nothing reads this yet**, and the honest place to say so is here rather than in a plan.
+ *
+ * It is the cooldown-placement section's table, ported with the rest of the spell knowledge and ahead
+ * of the section that will use it. It is kept rather than deleted because what it carries was measured
+ * and would cost that measurement again: which buttons snapshot, which share a talent tier — the fault
+ * that had three of nine reference pulls accusing a player of missing a spell they had not brought —
+ * and that the potion's real limit is one per fight rather than its sixty-second cooldown.
+ */
 export const DAMAGE_COOLDOWNS: readonly DamageCooldown[] = [
 	// The anchor. Everything else is aligned to this one, so it is listed first.
 	{ key: 'avenging-wrath', castId: 31884, cooldownMs: 180_000, durationMs: 20_000 },

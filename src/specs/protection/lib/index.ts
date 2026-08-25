@@ -627,12 +627,12 @@ function protectionAudit(h: Handles): ProtectionAudit {
 				{
 					name: registry.aura('rallying-cry').name,
 					multiplier: 1.2,
-					windows: auraWindows(eventsOn(h.events, h.actor.id), registry.aura('rallying-cry'), h.t0, h.fight.endTime),
+					windows: auraWindows(own, registry.aura('rallying-cry'), h.t0, h.fight.endTime),
 				},
 				{
 					name: registry.aura('ancestral-vigor').name,
 					multiplier: 1.1,
-					windows: auraWindows(eventsOn(h.events, h.actor.id), registry.aura('ancestral-vigor'), h.t0, h.fight.endTime),
+					windows: auraWindows(own, registry.aura('ancestral-vigor'), h.t0, h.fight.endTime),
 				},
 			],
 		}),
