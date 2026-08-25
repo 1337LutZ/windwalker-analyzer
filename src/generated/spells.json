@@ -3,7 +3,7 @@
 		"repo": "wowsims/mop",
 		"commit": "18a346ec8cc52c6e3fc66ac8a8d269428ca1be11",
 		"committed": "2026-08-25T11:27:51.000Z",
-		"fromDatabase": 119,
+		"fromDatabase": 120,
 		"fromWowhead": 209
 	},
 	"spells": {
@@ -458,6 +458,10 @@
 		"85416": {
 			"name": "Grand Crusader",
 			"icon": "inv_helmet_74"
+		},
+		"85499": {
+			"name": "Speed of Light",
+			"icon": "ability_paladin_speedoflight"
 		},
 		"85673": {
 			"name": "Word of Glory",
