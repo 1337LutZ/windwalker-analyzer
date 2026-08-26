@@ -108,7 +108,10 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 		);
 	}
 
-	const missing = rows.filter((row) => row.available && row.count === 0);
+	// Off the audit, never rebuilt here: the rule has three clauses — offered, observable, and not
+	// blocked by a competing Hand — and a second copy of it in the view drifted from all three. See
+	// `ExternalsAudit.missed`.
+	const missing = externals?.missed ?? [];
 	const heldMs = rows.reduce((most, row) => Math.max(most, row.heldMs), 0);
 	const gave = rows.filter((row) => row.given.length > 0);
 
@@ -178,9 +181,7 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 			{missing.length === 0 ? null : (
 				<div className="mt-4">
 					<Callout tone="brew" title={t('externals.recommendation.title')}>
-						<p className="m-0">
-							{t('externals.recommendation.body', { names: missing.map((row) => row.name).join(', ') })}
-						</p>
+						<p className="m-0">{t('externals.recommendation.body', { names: missing.join(', ') })}</p>
 					</Callout>
 				</div>
 			)}

@@ -335,18 +335,51 @@ function protectionAudit(h: Handles): ProtectionAudit {
 	});
 
 	/**
+	 * The player's aura events bucketed by ability id, once.
+	 *
+	 * **Because the sweep below asks about seventy auras and the answer for sixty-four is "nothing".**
+	 * Built the obvious way — `auraWindows(own, aura)` per aura — that is seventy full passes over the
+	 * player's stream, 685,000 event visits on the Garrosh capture to find the 3,093 events that are
+	 * auras at all, and it measured at 13.9ms of a 38.5ms analysis. One pass to bucket and a lookup per
+	 * aura is the same answer for 0.7ms.
+	 *
+	 * It matters beyond the analysis being fast: `useFightAnalysis` re-runs the whole thing whenever a
+	 * setting changes, synchronously, so this was a third of the cost of every drag of the cooldown
+	 * slider.
+	 */
+	const auraEventsById = new Map<number, WclEvent[]>();
+	for (const event of own) {
+		if (!isAuraEvent(event)) continue;
+		const id = abilityIdOf(event);
+		if (id === null) continue;
+		const bucket = auraEventsById.get(id);
+		if (bucket === undefined) auraEventsById.set(id, [event]);
+		else bucket.push(event);
+	}
+
+	/**
 	 * The same row built from the player's own aura stream, which is where every buff and proc below lives.
 	 *
 	 * `openAtPull` is what makes a buff already up when the pull started draw from the start rather than
 	 * from its first refresh. It matters most for the ones that are never *cast* during a fight —
 	 * Righteous Fury and the seal are on before the boss is pulled, and without it they draw either
 	 * nothing or a bar beginning at some arbitrary reapplication.
+	 *
+	 * Handed only its own aura's events rather than the whole stream — see `auraEventsById`. The walk
+	 * filters on `aura.ids` itself, so a pre-filtered slice is the same input with the misses removed;
+	 * re-sorted because concatenating per-id buckets does not preserve the stream's own order, which
+	 * every window walk depends on.
 	 */
+	const eventsFor = (aura: Aura): WclEvent[] =>
+		aura.ids.length === 1
+			? (auraEventsById.get(aura.ids[0] ?? 0) ?? [])
+			: aura.ids.flatMap((id) => auraEventsById.get(id) ?? []).sort((a, b) => a.timestamp - b.timestamp);
+
 	const selfLane = (aura: Aura, group: 'buff' | 'proc'): AuraLane =>
 		lane(
 			aura,
 			group,
-			auraWindows(own, aura, h.t0, h.fight.endTime, {
+			auraWindows(eventsFor(aura), aura, h.t0, h.fight.endTime, {
 				openAtPull: true,
 				pullAuras: h.pullAuras,
 				// A refresh with no application before it is an aura that was already up. Ancestral Vigor is
@@ -719,7 +752,7 @@ export const PROTECTION_SPEC: SpecConfig = {
 	 * front of it.
 	 */
 	extraResources: (h, audit) => ({
-		vengeance: vengeanceBar((audit as unknown as ProtectionAudit).vengeance, h.duration),
+		vengeance: vengeanceBar((audit as unknown as ProtectionAudit).vengeance),
 	}),
 	/**
 	 * The shared list, and this spec used to answer `() => new Set()` — a stub that read as unfinished

@@ -98,7 +98,7 @@
 // against a nominal ten, because the tank walks in and out of a circle on the floor rather than carrying a
 // buff. A targeted external's spans do not behave that way, and the catalogue records which is which.
 
-import { abilityIdOf, isAuraApply, isCast } from '~/lib/events';
+import { abilityIdOf, isAuraApply, isCast, type WclEvent } from '~/lib/events';
 import type { Actor, Window } from '~/lib/types';
 
 import { raidScoped, type RaidEvents } from './auras';
@@ -191,6 +191,19 @@ export interface ExternalSpell {
 	 * section lists it and says it cannot see it.
 	 */
 	readable?: boolean;
+	/**
+	 * The class this is *granted to*, for an entry only one class can ever receive.
+	 *
+	 * Every other row here is class-agnostic by construction — anyone can be handed a Pain Suppression —
+	 * and the module header says nothing below names a class. Symbiosis breaks that: a Druid grants a
+	 * Protection Paladin **Barkskin**, and grants something else entirely to a Death Knight or a Warrior.
+	 * The row is real for one class and meaningless for every other.
+	 *
+	 * Without this the entry is offered to every tank that adopts this module, unconditionally —
+	 * available, observable, never blocked, never cast, on every pull for ever. That is a permanent
+	 * invented fault arriving through the door beside the one `readable: false` was built to shut.
+	 */
+	grantedTo?: string;
 	/**
 	 * A wider effect this spell has when its caster is of a particular spec, and how to establish that.
 	 *
@@ -450,6 +463,7 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		takenMultiplier: 0.8,
 		scope: 'all',
 		delivery: 'granted',
+		grantedTo: 'Paladin',
 		evidence: 'sim',
 	},
 	{
@@ -544,6 +558,19 @@ export interface ExternalsAudit {
 	used: number;
 	/** Of those, how many never landed. The section's headline. */
 	unused: number;
+	/**
+	 * The rows that headline counts, by name, in catalogue order.
+	 *
+	 * **Published rather than re-derived, because it was re-derived and drifted.** The recommendation
+	 * callout rebuilt "what went unused" as `available && count === 0`, dropping both of the rules this
+	 * module argues at length: `readable`, so it named Demoralizing Banner two lines above the note
+	 * saying this report cannot observe it, and `blocked`, so it named a Hand that could not have been up
+	 * because another Hand was. On the Garrosh capture the tile read one and the callout named three.
+	 *
+	 * Names and not rows, because naming them is all the callout does with them — and a name is what
+	 * survives a reader comparing the sentence against the table above it.
+	 */
+	missed: readonly string[];
 	/**
 	 * Catalogue entries nobody in this raid could have cast, counted rather than listed.
 	 *
@@ -672,12 +699,44 @@ export function readExternals(
 
 	const auras = auraOnly(events);
 
+	/**
+	 * The aura stream bucketed by ability id, once, so no walk below sees an event it cannot use.
+	 *
+	 * The catalogue has ten entries and each is asked twice — once for what landed on the player and once
+	 * for what the player put on somebody else — so the obvious shape is seventeen full passes over the
+	 * stream. On the Garrosh capture that is 191,000 event visits to find the **122 events in the whole
+	 * pull that carry any catalogue id at all**, measured at 3.4ms.
+	 *
+	 * Each walk still receives a plain event array and still filters on its own ids; it is the same input
+	 * with the misses removed. Re-sorted per entry because concatenating buckets does not preserve stream
+	 * order, which both walks depend on.
+	 */
+	const aurasById = new Map<number, WclEvent[]>();
+	for (const event of auras) {
+		const id = abilityIdOf(event);
+		if (id === null) continue;
+		const bucket = aurasById.get(id);
+		if (bucket === undefined) aurasById.set(id, [event]);
+		else bucket.push(event);
+	}
+	const aurasFor = (ids: readonly number[]): RaidEvents =>
+		raidScoped(
+			ids.length === 1
+				? (aurasById.get(ids[0] ?? 0) ?? [])
+				: ids.flatMap((id) => aurasById.get(id) ?? []).sort((a, b) => a.timestamp - b.timestamp),
+		);
+
+	// The audited player's own class, which is what a `grantedTo` entry is gated on. Read off the actor
+	// list rather than passed in, so no caller has to know the field exists.
+	const ownClass = actors.find((actor) => actor.id === actorID)?.subType ?? null;
+
 	const rows = EXTERNALS.map((external): ExternalRow => {
+		const mine = aurasFor(external.ids);
 		// Everything the log put on this player under these ids, bucketed by whoever put it there. A
 		// self-cast is dropped for a targeted external and kept for a raid-wide one — see the module note.
 		// `onTarget` has already restricted this to auras that landed on the player, so what a raid-wide
 		// self-cast contributes here is the single instance covering the caster, never the fan-out.
-		const received = windowsBySource(auras, external.ids, {
+		const received = windowsBySource(mine, external.ids, {
 			t0,
 			pullMs,
 			holdsMs: external.durationMs,
@@ -706,7 +765,7 @@ export function readExternals(
 				? dependent
 				: undefined;
 
-		const given = givenBySource(auras, external, { t0, pullMs, actorID, nameOf });
+		const given = givenBySource(mine, external, { t0, pullMs, actorID, nameOf });
 		const spans = received.flatMap((caster) => caster.windows.map((w): Interval => [w.start, w.end]));
 		// A ground effect is counted by placements rather than by the times the player crossed its edge.
 		// Pooled across casters first, because two priests dropping one Barrier each are two placements
@@ -723,7 +782,10 @@ export function readExternals(
 			key: external.key,
 			name: external.name,
 			providedBy: external.providedBy,
-			available: present.has(external.providedBy),
+			// Offered only when somebody could cast it *and*, for a granted entry, when this player is the
+			// class it can be granted to — see `ExternalSpell.grantedTo`.
+			available:
+				present.has(external.providedBy) && (external.grantedTo === undefined || external.grantedTo === ownClass),
 			providers: countProviders(friendlyPlayers, actors, actorID, external.providedBy),
 			group: external.exclusiveGroup ?? null,
 			readable: external.readable ?? true,
@@ -761,6 +823,7 @@ export function readExternals(
 		absent: rows.filter((row) => !row.available).length,
 		used: available.filter((row) => row.count > 0).length,
 		unused: missedSlots.size,
+		missed: missed.map((row) => row.name),
 		unreadable: rows.filter((row) => row.available && !row.readable).map((row) => row.name),
 	};
 }

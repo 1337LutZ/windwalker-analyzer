@@ -325,7 +325,7 @@ function Overlaid({
 	 * sample inside.
 	 */
 	const path = useMemo(() => {
-		if (box === null) return '';
+		if (box === null) return null;
 		const span = Math.max(1, view.max - view.min);
 		const max = Math.max(1, behind.curve.max);
 		const x = (t: number) => ((t - view.min) / span) * box.width;
@@ -337,18 +337,49 @@ function Overlaid({
 		while (from < points.length - 1 && (points[from + 1]?.[0] ?? 0) < view.min) from += 1;
 		while (to > 0 && (points[to - 1]?.[0] ?? 0) > view.max) to -= 1;
 		const visible = points.slice(from, to + 1);
-		if (visible.length < 2) return '';
+		if (visible.length < 2) return null;
 
-		return visible.map(([t, v], i) => `${i === 0 ? 'M' : 'L'}${x(t).toFixed(1)} ${y(v).toFixed(1)}`).join('');
+		// **Steps, not a polyline, and the same argument `ResourceTrack` makes.** The curve is sampled at
+		// irregular instants and holds its value between them, so a diagonal drawn between two readings is
+		// a climb that never happened — `Vengeance.tsx` draws this same curve in `steps` mode and says so.
+		// Two renderings of one curve disagreeing about its shape is worse than either being wrong.
+		const line = visible
+			.map(([t, v], i) =>
+				i === 0 ? `M${x(t).toFixed(1)} ${y(v).toFixed(1)}` : `H${x(t).toFixed(1)}V${y(v).toFixed(1)}`,
+			)
+			.join('');
+
+		// The ceiling, where the curve carries a moving one. Omitting it here reintroduced exactly the
+		// fault `ResourceCurve.ceiling` was added to remove: scaled by a single `max`, a stretch where the
+		// limit rose to meet the player reads as the player falling away from it.
+		const ceiling = behind.curve.ceiling;
+		const capLine =
+			ceiling === undefined || ceiling.length === 0
+				? ''
+				: ceiling
+						.map(([t, v], i) =>
+							i === 0 ? `M${x(t).toFixed(1)} ${y(v).toFixed(1)}` : `H${x(t).toFixed(1)}V${y(v).toFixed(1)}`,
+						)
+						.join('') + `H${x(view.max).toFixed(1)}`;
+
+		return { line, capLine };
 	}, [behind.curve, box, view]);
 
 	// Rebuilt here rather than in the parent so the chart's own `onView` can reach this component's
 	// state. The dependency list is the parent's plus the setter, which never changes identity.
-	const build = useCallback((env: ChartEnv): ApexOptions => outer(env, (min, max) => setView({ min, max })), [outer]);
+	const build = useCallback(
+		(env: ChartEnv): ApexOptions =>
+			// Same bail as the box above: `boundsWithin`'s `scrolled` publishes on every scroll frame, and a
+			// fresh `{min, max}` re-renders even when the window has not actually moved.
+			outer(env, (min, max) =>
+				setView((current) => (current.min === min && current.max === max ? current : { min, max })),
+			),
+		[outer],
+	);
 
 	return (
 		<div ref={host} className="relative">
-			{box === null || path === '' ? null : (
+			{box === null || path === null ? null : (
 				<svg
 					className="pointer-events-none absolute"
 					style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
@@ -356,8 +387,23 @@ function Overlaid({
 					preserveAspectRatio="none"
 					aria-hidden="true"
 				>
-					<path d={`${path}L${box.width.toFixed(1)} ${box.height}L0 ${box.height}Z`} fill={behind.fill} stroke="none" />
-					<path d={path} fill="none" stroke={behind.stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+					<path
+						d={`${path.line}L${box.width.toFixed(1)} ${box.height}L0 ${box.height}Z`}
+						fill={behind.fill}
+						stroke="none"
+					/>
+					{path.capLine === '' ? null : (
+						<path
+							d={path.capLine}
+							fill="none"
+							stroke={behind.stroke}
+							strokeWidth={1}
+							strokeDasharray="4 3"
+							strokeOpacity={0.55}
+							vectorEffect="non-scaling-stroke"
+						/>
+					)}
+					<path d={path.line} fill="none" stroke={behind.stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
 				</svg>
 			)}
 			<ApexChart build={build} height={height} label={label} />

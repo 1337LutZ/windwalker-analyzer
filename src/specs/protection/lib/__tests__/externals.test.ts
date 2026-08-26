@@ -350,6 +350,36 @@ describe('the roster gate', () => {
 		expect(audit.absent).toBe(EXTERNALS.filter((entry) => !classes.includes(entry.providedBy as never)).length);
 	});
 
+	/**
+	 * A granted entry is offered only to the class that can be granted it.
+	 *
+	 * Symbiosis hands a Protection Paladin Barkskin and hands a Death Knight something else entirely, so
+	 * the row is real for one class and meaningless for every other. Unconditional, it would have been a
+	 * permanent unused external for the next tank spec that adopts this module — which is the whole
+	 * reason the module lives in `lib/analysis` rather than in this spec.
+	 */
+	it('offers a Symbiosis row to a Paladin and to nobody else', () => {
+		const withDruid = [1, 3];
+		const asPaladin = readExternals(raidScoped([]), {
+			t0: 0,
+			pullMs: 300_000,
+			actorID: 1,
+			actors: actors as never,
+			friendlyPlayers: withDruid,
+		});
+		expect(asPaladin.rows.find((row) => row.key === 'barkskin')?.available).toBe(true);
+
+		// The same raid, audited from the Druid's own id — a class Symbiosis does not hand Barkskin to.
+		const asDruid = readExternals(raidScoped([]), {
+			t0: 0,
+			pullMs: 300_000,
+			actorID: 3,
+			actors: [...actors, { id: 5, name: 'Other', type: 'Player', subType: 'Druid', petOwner: null }] as never,
+			friendlyPlayers: [3, 5],
+		});
+		expect(asDruid.rows.find((row) => row.key === 'barkskin')?.available).toBe(false);
+	});
+
 	/** A raid with nobody but the tank offers nothing at all, which is the floor of the gate. */
 	it('offers nothing to a pull with only the audited player in it', () => {
 		const audit = readExternals(raidScoped([]), {

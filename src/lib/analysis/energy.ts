@@ -25,7 +25,7 @@ import type { ResourceTypeValue } from '~/lib/game/resources';
 import { RESOURCE_TYPE, SECONDARY_RESOURCE_TYPE } from '~/lib/game/resources';
 import type { PointsResourceAudit, PoolResourceAudit, ResourceCurve } from '~/lib/types';
 
-import { median, r1 } from './format';
+import { median, percentile, r1 } from './format';
 import { mergeIntervals, overlapMs, unionMs, type Interval } from './intervals';
 
 /**
@@ -322,13 +322,6 @@ export function trackResourceBar(
 		engaged: split(cappedEngagedMs, engagedMs),
 		downtime: split(cappedDowntimeMs, downtimeMs),
 	};
-}
-
-/** Nearest-rank percentile over an already-sorted list. */
-function percentile(sorted: readonly number[], p: number): number {
-	if (sorted.length === 0) return 0;
-	const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
-	return sorted[rank] ?? 0;
 }
 
 /**

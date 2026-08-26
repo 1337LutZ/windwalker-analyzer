@@ -1,3 +1,4 @@
+import { valueAtOrBefore } from '~/lib/analysis/search';
 import type { ResourceCurve, Window } from '~/lib/types';
 
 /**
@@ -18,25 +19,18 @@ import type { ResourceCurve, Window } from '~/lib/types';
 /**
  * The ceiling in force at a given moment, for a bar whose ceiling moves.
  *
- * A closure rather than a lookup per call: the step series is walked forward with the caller's own
- * cursor, so a whole curve costs one pass rather than one scan per reading. Callers read points in
- * time order, which is the only thing this relies on — and it re-scans from the start if they do not,
- * so an out-of-order read is slow rather than wrong.
+ * `valueAtOrBefore` from `~/lib/analysis/search` and not a walk of its own — that module exists
+ * because this exact search had been hand-rolled four times, and its docblock says as much. The step
+ * series is `[stamp, value]` pairs, which is the shape it takes unmodified.
  *
- * A curve with no `ceiling` gets `max` for every moment, which is the behaviour every caller had
- * before the field existed.
+ * Before the first step the pull is on whatever that step says: a series opening after `t=0` describes
+ * a ceiling that was already in force, not one that did not exist yet. A curve with no `ceiling` gets
+ * `max` at every moment, which is the behaviour every caller had before the field existed.
  */
 export function ceilingReader(curve: ResourceCurve): (t: number) => number {
 	const steps = curve.ceiling;
 	if (steps === undefined || steps.length === 0) return () => curve.max;
-	let i = 0;
-	return (t: number) => {
-		if (i > 0 && (steps[i]?.[0] ?? 0) > t) i = 0;
-		while (i + 1 < steps.length && (steps[i + 1]?.[0] ?? 0) <= t) i += 1;
-		// Before the first step the pull is on whatever that step says: a series that opens after t=0
-		// is describing a ceiling that was already in force, not one that did not exist yet.
-		return steps[i]?.[1] ?? curve.max;
-	};
+	return (t: number) => valueAtOrBefore(steps, t) ?? steps[0]?.[1] ?? curve.max;
 }
 
 export function cappedOf(curve: ResourceCurve): Window[] {

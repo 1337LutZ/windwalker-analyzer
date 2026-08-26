@@ -73,7 +73,7 @@ import { isCombatantInfo, resourceActorOf, type WclEvent } from '~/lib/events';
 import type { PoolResourceAudit, ResourceCapSplit, ResourceCurve } from '~/lib/types';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 
-import { median } from './format';
+import { median, percentile } from './format';
 import { maxHealthFrom } from './gear';
 import { mergeIntervals, unionMs, type Interval } from './intervals';
 
@@ -547,13 +547,6 @@ function sameNames(a: readonly string[], b: readonly string[]): boolean {
 	return a.length === b.length && a.every((name, i) => name === b[i]);
 }
 
-/** Nearest-rank percentile over an already-sorted list — the same one `./energy` uses on its gaps. */
-function percentile(sorted: readonly number[], p: number): number {
-	if (sorted.length === 0) return 0;
-	const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
-	return sorted[rank] ?? 0;
-}
-
 /**
  * The Vengeance reading in the shape the generic resource machinery draws.
  *
@@ -576,7 +569,7 @@ function percentile(sorted: readonly number[], p: number): number {
  * `max` is rounded because it is printed beside the lane's own label, and a ceiling is a number off a
  * character sheet rather than a float.
  */
-export function vengeanceBar(audit: VengeanceAudit, durationMs: number): PoolResourceAudit {
+export function vengeanceBar(audit: VengeanceAudit): PoolResourceAudit {
 	const nil: ResourceCapSplit = { cappedMs: 0, pct: 0, wasted: null };
 	return {
 		kind: 'pool',
@@ -593,7 +586,9 @@ export function vengeanceBar(audit: VengeanceAudit, durationMs: number): PoolRes
 		capped: audit.nearCap.map(([start, end]): [number, number] => [start, end]),
 		total: {
 			cappedMs: audit.nearCapMs,
-			pct: durationMs > 0 ? (audit.nearCapMs / durationMs) * 100 : 0,
+			// `nearCapPct` and not the same division again: the audit already holds this share, and two
+			// computations of one number are two things that can disagree about which clock it is over.
+			pct: audit.nearCapPct,
 			wasted: null,
 		},
 		engaged: nil,

@@ -23,6 +23,20 @@ export function r1(v: number): number {
 }
 
 /** Upper median: for an even count this takes the higher of the two middle values. */
+/**
+ * Nearest-rank percentile over an **already-sorted** list.
+ *
+ * Beside `median` because the two are asked together everywhere they are asked at all: a sample's
+ * median gap and its p99 gap are one sentence in the report, and two modules were computing the pair
+ * with their own copies of this. Sorted rather than sorting, because both callers already hold a sorted
+ * array and sorting again on a per-pull sample of several thousand is the expensive half.
+ */
+export function percentile(sorted: readonly number[], p: number): number {
+	if (sorted.length === 0) return 0;
+	const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
+	return sorted[rank] ?? 0;
+}
+
 export function median(xs: readonly number[]): number {
 	if (!xs.length) return 0;
 	const sorted = [...xs].sort((a, b) => a - b);

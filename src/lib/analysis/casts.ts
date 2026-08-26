@@ -243,8 +243,8 @@ export function castSeries(
 			};
 			const t = e.timestamp - t0;
 			rec.count++;
-			rec.times.push(t);
-			rec.beginTimes.push(t);
+			// `presses` only: the sort below rebuilds `times` and `beginTimes` from it whenever this row
+			// exists, so pushing them here writes values that are always overwritten.
 			rec.presses.push({
 				t,
 				begin: t,
