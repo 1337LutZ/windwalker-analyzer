@@ -2307,8 +2307,14 @@ export interface ProtectionAudit {
 	fight: {
 		/** The encounter's name in the rule table, or null when nothing is known about it. */
 		encounter: string | null;
-		/** What a reader needs that is not a rule, including what was tested and rejected. */
-		note: string | null;
+		/**
+		 * The copy key for what a reader needs that is not a rule, or null when the table has nothing to add.
+		 *
+		 * A key and not the prose: these are the only reader-facing sentences that used to live outside
+		 * `report.json`, which meant the copy suite could not see the longest text block on the section.
+		 * See `EnforcedProfile.noteKey`.
+		 */
+		noteKey: string | null;
 		rules: Array<{
 			key: string;
 			name: string;

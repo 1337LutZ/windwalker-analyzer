@@ -37,27 +37,6 @@ export const GCD_MS = GCD_FLOOR_MS;
 export const SOTR_COST = 3;
 
 /**
- * The holy power bar's ceiling, and the power type it is reported under.
- *
- * Both confirmed against a real MoP Classic report rather than assumed. Holy power is **not** in
- * `classResources` — a Protection Paladin's samples there carry mana and nothing else, so the trick
- * that rebuilt a Windwalker's energy curve finds no bar here at all. What the log does carry is every
- * *change* to it, as `resourcechange` events:
- *
- *   { type: 'resourcechange', abilityGameID: 35395, resourceChange: 3,
- *     resourceChangeType: 9, maxResourceAmount: 5, waste: 0 }
- *
- * Which is better than a sampled bar for the one question worth asking. `resourceChangeType: 9` names
- * the resource, `resourceChange` is what arrived, `maxResourceAmount` is the cap, and `waste` is what
- * did not fit — measured by the game rather than inferred here. The 3 above is a Crusader Strike
- * inside Holy Avenger.
- */
-export const HOLY_POWER_MAX = 5;
-
-/** `resourceChangeType` for holy power, as the events above report it. */
-export const HOLY_POWER_TYPE = 9;
-
-/**
  * How long Holy Avenger runs, from `registerHolyAvenger` in `sim/paladin/talents.go`.
  *
  * 18 seconds, in which every generator gives 3 holy power instead of 1 and deals 30% more damage.
@@ -83,57 +62,6 @@ export const BASTION_OF_GLORY_MS = 20_000;
  * is not recoverable inside the same tick.
  */
 export const SACRED_SHIELD_MS = 30_000;
-
-/** How long is left on Sacred Shield when the sim's list wants it re-applied. */
-export const SACRED_SHIELD_REFRESH_MS = 5000;
-
-/**
- * The attack-power gain that makes re-snapshotting Sacred Shield worth a global at all.
- *
- * 20%, the reader's figure. The shield snapshots at cast and re-applies off that snapshot every six
- * seconds, and its size runs off spell power — which for Protection *is* attack power, since
- * `guarded_by_the_light.go` overrides spell power to `floor(MeleeAttackPower() * 0.5)`. So Vengeance
- * decides how big the shield is, and a refresh taken while Vengeance is flat pays a damaging global
- * for nothing.
- *
- * A threshold rather than a rule, and it grades rather than demands: below this the press is a fault
- * only if something else was ready, because a global nothing else wanted is free.
- */
-export const SACRED_SHIELD_WORTH_IT_PCT = 20;
-
-/**
- * The attack-power gain that puts Sacred Shield above every damaging button.
- *
- * 100% — a doubling, also the reader's figure, and the gap between this and the 20% above is the point.
- * A fifth more Vengeance makes a refresh worth a *spare* global. Twice the Vengeance makes the shield
- * worth taking a global *from* the rotation, because the snapshot will then stand for the next thirty
- * seconds of re-applications.
- */
-export const SACRED_SHIELD_SNAPSHOT_PCT = 100;
-
-/**
- * How much smaller a Sacred Shield refresh may be and still count as the same shield.
- *
- * The reader's figure, and it exists for one question: when nothing that deals damage is off
- * cooldown, is there anything worth doing with the global at all? A refresh that would land within
- * this much of the running shield is worth taking — the aura is maintained for free, since nothing
- * was competing for the press. One that would land meaningfully smaller is not, and a global with
- * nothing behind it is not a fault the player committed.
- */
-export const SACRED_SHIELD_EQUAL_PCT = 5;
-
-/**
- * The health a target has to be under for Hammer of Wrath.
- *
- * The only condition, for Protection: `sim/paladin/hammer_of_wrath.go` gates the spell on
- * `IsExecutePhase20()` and nothing else, and the tooltip's "or during Avenging Wrath" belongs to Sword
- * of Light, the Retribution passive. So there is no second clause to get out of step with.
- *
- * Here rather than in `apl.ts`, where it started, because two things read it now: the priority list
- * deciding whether the button was wanted, and the globals measure deciding whether there was anything
- * to press at all. Those two must not be able to disagree about when the execute is live.
- */
-export const HAMMER_OF_WRATH_HEALTH_PCT = 20;
 
 const ABILITIES: Ability[] = [
 	// ---------------------------------------------------------------------------------------------
@@ -294,6 +222,17 @@ const ABILITIES: Ability[] = [
 
 	// ---------------------------------------------------------------------------------------------
 	// Talents that cost a global and deal damage. Which one the player brought is read off the log.
+	//
+	// One tier and you take exactly one, which is a fact any section that grades these has to hold: on
+	// the two committed pulls that brought Light's Hammer, a report reading the other two as unpressed
+	// would be accusing the player of missing spells they did not have. `gear.ts` publishes the talent
+	// ids off `combatantinfo` for that, and the three entries below are the group.
+	//
+	// They also differ in *when* the damage is decided, which is the difference between grading the
+	// press and grading the window: `registerExecutionSentence` ramps each tick 10% over the last and
+	// multiplies the final one by five, all off a snapshot taken at the cast, so lining up the press is
+	// the whole of it. `registerLightsHammer` recomputes every two seconds instead, so every second of
+	// its fifteen counts. Holy Prism is one hit at the press and has no window at all.
 	// ---------------------------------------------------------------------------------------------
 	{
 		key: 'execution-sentence',
@@ -335,6 +274,10 @@ const ABILITIES: Ability[] = [
 		key: 'sacred-shield',
 		name: 'Sacred Shield',
 		castIds: [20925],
+		// The shield snapshots at the cast and re-applies off that snapshot every six seconds, and its
+		// size runs off spell power — which for Protection *is* attack power, since
+		// `guarded_by_the_light.go` overrides spell power to `floor(MeleeAttackPower() * 0.5)`. So
+		// Vengeance decides how big it is, and a refresh taken while Vengeance is flat buys nothing.
 		onGcd: true,
 		// A cooldown that is pressed to maintain an aura rather than to spend a cooldown, so idle time
 		// on it says nothing: the fault is a gap in the aura, which the aura's own section measures.
@@ -787,103 +730,6 @@ const AURAS: Aura[] = [
 		// being a rotation decision. The sim's priority list never reads it, which is why nothing
 		// here does either yet.
 	},
-];
-
-/**
- * The cooldowns that drive damage, and what has to line up for one to be worth pressing.
- *
- * A separate table from `ABILITIES` because the question is different. The ladder asks which button gets
- * a global; this asks whether a two-minute cooldown was spent at the right moment — and "the right
- * moment" is not a priority, it is an alignment. A Holy Avenger held for thirty seconds so it lands
- * inside Avenging Wrath is a *better* Holy Avenger, and every rule in the priority list would call
- * holding it a mistake.
- *
- * `snapshots` is the distinction that matters most here. Execution Sentence captures its damage when it
- * is cast — `executionSentenceFactory` in `sim/paladin/talents.go` gives its dot an `OnSnapshot` hook —
- * so the whole ten seconds is decided by the attack power and the buffs standing at the instant of the
- * press. Overlap tells you nothing about it: cast one second before Avenging Wrath and none of it is
- * boosted, cast one second after and all of it is. The buffs below are the opposite, and are measured
- * by how much of their window they shared.
- */
-export interface DamageCooldown {
-	key: string;
-	castId: number;
-	/** The spellbook cooldown. None of these is haste-scaled. */
-	cooldownMs: number;
-	durationMs: number;
-	/** True when the press decides its damage once, at the moment it lands. */
-	snapshots?: true;
-	/**
-	 * True when the reader presses this on cooldown on purpose and does not want it judged on alignment.
-	 *
-	 * Synapse Springs is the case. A one-minute tinker cannot be held for a three-minute cooldown without
-	 * giving up presses, and the reader's own answer is that lining it up is not worth anything — so it is
-	 * measured and printed, and kept out of every table that grades alignment. A metric nobody will act on
-	 * is a metric that makes the ones beside it harder to read.
-	 */
-	pressedOnCooldown?: true;
-	/**
-	 * The most presses a single pull can hold, when something other than the cooldown decides that.
-	 *
-	 * The potion is the case, and without this its ceiling reads as pull length divided by a category
-	 * cooldown — three on a two-and-a-half-minute fight, of which two were never available. A ceiling a
-	 * player cannot reach is an accusation rather than a measurement, which is the same fault
-	 * `talentTier` exists to prevent.
-	 */
-	maxPerFight?: number;
-	/**
-	 * Name of a mutually exclusive talent group this button belongs to.
-	 *
-	 * Without it a report accuses a player of missing a spell they did not bring. Execution Sentence,
-	 * Light's Hammer and Holy Prism are one tier and you take exactly one — so on a pull where Light's
-	 * Hammer went out nine times, Execution Sentence's ceiling is not nine missed casts, it is not a
-	 * ceiling at all. Three of nine reference pulls read that way before this existed, and they were the
-	 * three that supplied most of the "missed" total.
-	 */
-	talentTier?: string;
-}
-
-/**
- * **Nothing reads this yet**, and the honest place to say so is here rather than in a plan.
- *
- * It is the cooldown-placement section's table, ported with the rest of the spell knowledge and ahead
- * of the section that will use it. It is kept rather than deleted because what it carries was measured
- * and would cost that measurement again: which buttons snapshot, which share a talent tier — the fault
- * that had three of nine reference pulls accusing a player of missing a spell they had not brought —
- * and that the potion's real limit is one per fight rather than its sixty-second cooldown.
- */
-export const DAMAGE_COOLDOWNS: readonly DamageCooldown[] = [
-	// The anchor. Everything else is aligned to this one, so it is listed first.
-	{ key: 'avenging-wrath', castId: 31884, cooldownMs: 180_000, durationMs: 20_000 },
-	{ key: 'holy-avenger', castId: 105809, cooldownMs: 120_000, durationMs: HOLY_AVENGER_MS },
-	// Ten seconds, snapshotted at the press, and heavily back-loaded: `registerExecutionSentence` ramps each
-	// tick 10% over the last and then multiplies the final one by five. So the press decides the damage and
-	// the payoff arrives ten seconds later, which is exactly why lining the *cast* up matters.
-	{
-		key: 'execution-sentence',
-		castId: 114916,
-		cooldownMs: 60_000,
-		durationMs: 10_000,
-		snapshots: true,
-		talentTier: 'level-90',
-	},
-	// The alternative on the same tier, and the one the reader took on three of the nine reference pulls.
-	// `registerLightsHammer` ticks every two seconds and recomputes damage each tick, so it does not
-	// snapshot — every second of its window counts, unlike Execution Sentence.
-	{ key: 'lights-hammer', castId: 114158, cooldownMs: 60_000, durationMs: 15_000, talentTier: 'level-90' },
-	// The third. One hit at the moment of the press, so there is no window to share — it is judged where it
-	// landed, like a snapshot.
-	{ key: 'holy-prism', castId: 114852, cooldownMs: 20_000, durationMs: 0, snapshots: true, talentTier: 'level-90' },
-	// "Increases your Intellect, Agility, or Strength by 1920 for 10 sec", one minute.
-	{ key: 'synapse-springs', castId: 126734, cooldownMs: 60_000, durationMs: 10_000, pressedOnCooldown: true },
-	// "Increases your Strength by 4000 for 25 sec".
-	//
-	// One per fight, and that is the binding limit rather than the sixty seconds beside it: a combat
-	// potion can be drunk once per encounter however long the encounter runs, so the category cooldown
-	// never gets the chance to matter. The pre-pull potion is drunk out of combat and is not in the
-	// log's fight window at all, so a count of presses here is a lower bound on what was actually drunk
-	// — and the ceiling beside it is one.
-	{ key: 'potion-of-mogu-power', castId: 105706, cooldownMs: 60_000, durationMs: 25_000, maxPerFight: 1 },
 ];
 
 /**

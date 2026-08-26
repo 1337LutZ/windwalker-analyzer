@@ -12,6 +12,8 @@
 
 import { describe, expect, it } from 'vitest';
 
+import report from '~/locales/en/report.json';
+
 import { enforcedDowntime, enforcedProfile, phaseWindows, ENFORCED_PROFILES } from '../enforced';
 import type { WclEvent } from '~/lib/types';
 import type { FightPhase } from '~/lib/wcl/phases';
@@ -191,8 +193,14 @@ describe('what the fight enforced', () => {
 		// enforces nothing" and "nobody has looked at this boss" are different sentences, and the table can
 		// only make the first if a rejected candidate is written down beside a kept one. Every empty
 		// profile carries a note saying what was measured and refused.
+		const copy = report['fight'] as { note: Record<string, string> };
 		for (const profile of ENFORCED_PROFILES) {
-			if (profile.rules.length === 0) expect(profile.note, profile.name).toBeDefined();
+			if (profile.rules.length === 0) expect(profile.noteKey, profile.name).toBeDefined();
+			// And the key resolves. The notes moved into `report.json` so the copy suite could see them, and
+			// a key with no string behind it would render the key itself into the section.
+			if (profile.noteKey !== undefined) {
+				expect(typeof copy.note[profile.noteKey], profile.name).toBe('string');
+			}
 		}
 
 		// **Every rule left in the table is a `lockout`.** Both `declared` ones were removed when a full

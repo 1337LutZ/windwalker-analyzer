@@ -478,10 +478,16 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Protection report gaining its summary cards, it prints 1527 leaves, 738 prose, 23,639 words;
-median 27, p75 43, p90 64, p95 77, p99 97, max 160; longest 9% carry 23%; report.json 669 prose leaves,
-1,163 sentences, median 17, 227 past 25 (19.5%), 275 em-dashes in 238 sentences (20.5%);
-51 / 22 / 1 / 2 on the quote lines.
+As of the boss notes moving into the copy tree, it prints 1538 leaves, 749 prose, 24,633 words;
+median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 25%; report.json 680 prose leaves,
+1,201 sentences, median 17, 245 past 25 (20.4%), 288 em-dashes in 247 sentences (20.6%);
+57 / 23 / 1 / 2 on the quote lines.
+
+The tail moved and the head did not, which is what those eleven strings are: p99 went 97 → 117 and the
+max 160 → 204, while both medians held. They are the `fight.note.*` paragraphs — the reader's account of
+what a boss enforces and, mostly, of what it was measured for and does not — and they were English
+literals in `lib/analysis/enforced.ts` until this commit, which is why the longest prose in the tree was
+also the only prose no census had ever counted.
 
 <!-- /census:figures -->
 

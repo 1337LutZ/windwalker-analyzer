@@ -28,6 +28,9 @@ import {
 	Method,
 	MissLedger,
 	PriorityLadder,
+	// Aliased: the Windwalker has a `PullTimeline` of its own and it is a different component — a
+	// four-track chart with monk spell ids in it — rather than this one with a different string.
+	PullTimeline as SharedPullTimeline,
 	RaidBuffs,
 	Resource,
 } from '../sections';
@@ -61,20 +64,12 @@ import {
 	LavaBurst,
 	LightningShield,
 	Mana as ElementalMana,
-	PullTimeline as ElementalPullTimeline,
 	Rotation as ElementalRotation,
 	SearingTotem,
 	Stormlash,
 } from '~/specs/elemental/components/sections';
 import { PROTECTION_SPEC } from '~/specs/protection';
-import {
-	Externals,
-	FightRules,
-	Globals,
-	Haste,
-	PullTimeline as ProtectionPullTimeline,
-	Vengeance,
-} from '~/specs/protection/components/sections';
+import { Externals, FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -92,6 +87,20 @@ import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/compone
 function resourceSection(config: Omit<ResourceProps, 'analysis'>): ComponentType<{ analysis: Analysis }> {
 	return function ResourceSection({ analysis }: { analysis: Analysis }) {
 		return <Resource analysis={analysis} {...config} />;
+	};
+}
+
+/**
+ * The summary timeline, which differs between specs only by the sentence above the chart.
+ *
+ * The same shape `resourceSection` above takes, and for the same reason: two specs had a file each
+ * that was identical but for one translation key, so the key is the parameter and the file is shared.
+ * The Windwalker is not built through this — its timeline is `FightTimeline`, a four-track chart with
+ * monk spell ids in it, which is a different component rather than this one with a different string.
+ */
+function pullTimelineSection(intentKey: string): ComponentType<{ analysis: Analysis }> {
+	return function PullTimelineSection({ analysis }: { analysis: Analysis }) {
+		return <SharedPullTimeline analysis={analysis} intentKey={intentKey} />;
 	};
 }
 
@@ -325,7 +334,7 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// First after the summary, because it is the pull itself: every press, every buff, one clock.
 		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
 		// The same pull at a coarser grain: the auras without the presses, read against each other.
-		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: ElementalPullTimeline },
+		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: pullTimelineSection('timeline.eleIntent') },
 		// The pool the casts are paid from, beside the dot it feeds — the one bar an Elemental has, and the
 		// one that is never overcap but is sometimes empty.
 		//
@@ -422,7 +431,12 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		//
 		// It could not be registered until the audit had lanes to draw. With `lanes: []` this section drew
 		// the press rows and nothing else, which is the cast log above it with the detail taken out.
-		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: ProtectionPullTimeline },
+		{
+			id: 'timeline',
+			titleKey: 'timeline.title',
+			group: 'core',
+			Component: pullTimelineSection('timeline.protIntent'),
+		},
 		// What the encounter took away, before the count it explains. These two are one question read
 		// from both ends and the excuses come first: `missedFree` is the globals figure with these
 		// windows already off it, so a reader who meets the number without them has to be talked back

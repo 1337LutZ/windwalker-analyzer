@@ -78,8 +78,19 @@ export interface EnforcedProfile {
 	encounterID: number;
 	name: string;
 	rules: readonly EnforcedRule[];
-	/** What a reader of the report needs that is not a rule, including what was rejected and why. */
-	note?: string;
+	/**
+	 * The copy key for what this encounter's rules do *not* say, or undefined when there is nothing to add.
+	 *
+	 * **A key rather than the prose, because this is the only string on the page a reader sees that the
+	 * copy suite could not.** Every other sentence in the report goes through `report.json` and is held
+	 * by `keys.test.ts`, `copy.test.ts` and `readerVoice.test.ts`; these were English literals in an
+	 * analysis module, rendered straight into a `Note`, and the longest of them is a thousand characters.
+	 * The first localisation or tone sweep would have missed the largest prose block on the section.
+	 *
+	 * The rules' own `evidence` strings stay literals on purpose — nothing renders them, and they are
+	 * notes to whoever re-checks a rule rather than to a reader.
+	 */
+	noteKey?: string;
 }
 
 /**
@@ -104,55 +115,55 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 					'18 windows across the two reports, mean 2.5s, 1 cast inside all 18 — 17 of them completely silent. Every cast gap over 2.5s in either pull is one of these.',
 			},
 		],
-		note: 'No phases and no enforced downtime beyond the stun. Sha Sear is a debuff on other players and never once landed on the reference tank, so it excuses nothing.',
+		noteKey: 'fallen-protectors',
 	},
 	{
 		encounterID: 1602,
 		name: 'Immerseus',
 		rules: [],
-		note: "Purified Residue was a candidate and the press stream refuses it twice over. It is not a mechanic the fight applies: nine Protection Paladin pulls from nine reports carry eleven windows between them, and four of the nine tanks never get it at all. Nine of the eleven applications land within 0.9s of the player healing a puddle — Flash of Light or Word of Glory on an NPC target — and every one carries a 15,000-mana resourcechange. It is the refund for purifying a Contaminated Puddle and a fifteen-second lockout on refunding again, not on pressing. Inside the windows the press rate runs 10% of the player's own baseline on one raid and 78% on another, where melee holds 0.57 against 0.75 swings a second and four Shields of the Righteous go out; 31 off-GCD presses land inside the eleven windows in total. The zero-melee reading belongs to Stage Two: Split, which covers 46-72% of every pull and contains all eleven windows — on one of them the window's press rate and Split's own are the same number. On the reference pull the rule would excuse 59.9s against 54.6s of inactive time in the whole pull, and zero out all fourteen missed globals.",
+		noteKey: 'immerseus',
 	},
 	{
 		encounterID: 1594,
 		name: 'Spoils of Pandaria',
 		rules: [],
-		note: "Unstable Defense Systems is the encounter's opening flag — one application to all 25 players at the pull start, gone 3.0-4.2s later — and it is deliberately not a rule. Ten Protection Paladin pulls from eight reports hold eleven windows covering 39.1s: no melee in any of them, no damage taken in ten of the eleven, no off-GCD press anywhere, and 20.3% of the players' own press rate. That is far cleaner than either declared rule this file has lost, and it still fails. Six on-GCD presses land inside, five of them Sacred Shield — the player's own bar going out while the rule would say the buttons were gone. The first melee swing comes at 7.3-10.4s on every pull, so the aura marks only the first third of the stretch with nothing to hit, which is the same stretch Siegecrafter Blackfuse's note already declines to excuse. It is also not per room: the raid-wide burst fires once, and the scattered later applications reached the audited tank on one pull of ten. Across the ten it would excuse 39.1s to cover 4.9s of cast gaps past three seconds, and about 24 globals of 377 missed.",
+		noteKey: 'spoils-of-pandaria',
 	},
 	{
 		encounterID: 1600,
 		name: 'Iron Juggernaut',
 		rules: [],
-		note: 'Siege Mode is phase 2 and is deliberately not a rule. Melee drops from 0.60 to 0.27 swings a second while the player keeps casting at 56 a minute — the fight takes them off the boss without taking the buttons away, so the globals lost inside it are still globals lost.',
+		noteKey: 'iron-juggernaut',
 	},
 	{
 		encounterID: 1606,
 		name: "Kor'kron Dark Shaman",
 		rules: [],
-		note: "Foul Geyser was a rule here and the press stream says it should not be. Re-measured on a full clear by a different tank, its four 8s windows cover 32.0s — 21% of the pull — and inside them the player presses at 76.9 a minute against 80.3 outside, swings **more** (0.81 against 0.77 a second) and takes **more** damage (278k against 229k a second). They are not moved off the boss; they are tanking harder. The whole encounter holds 5.2s of cast gaps past three seconds and none of it falls inside a window, so the rule excused 32.0s to cover 0.9s of idle. Read off the player's own debuff and never off the boss's cast, which is the part that was right: the boss casts it on the same cadence for everyone, and the friendly-debuff stream carries eight events, all four applications and all four removals, every one on the audited tank and none on the co-tank.",
+		noteKey: 'kor-kron-dark-shaman',
 	},
 	{
 		encounterID: 1603,
 		name: 'General Nazgrim',
 		rules: [],
-		note: 'No enforced downtime at all — melee is flat at 0.57-0.59 swings a second through all three stances, so every idle global here belongs to the player. Berserker Stance takes 2.18x the damage and was a candidate until it was measured.',
+		noteKey: 'general-nazgrim',
 	},
 	{
 		encounterID: 1595,
 		name: 'Malkorok',
 		rules: [],
-		note: "No enforced downtime, and the empty list was the only one here that never said why. Measured on a full clear: 19s of idle across 554s alive, 3% of the time, and all five gaps past ten seconds are corpse time on wipes rather than anything the fight did. Blood Rage was the candidate and it does nothing to the press stream — 74 a minute inside it against the pull's own rate, with melee flat at 0.64 swings a second.",
+		noteKey: 'malkorok',
 	},
 	{
 		encounterID: 1599,
 		name: 'Thok the Bloodthirsty',
 		rules: [],
-		note: "Frenzy for Blood was a rule here and does not survive re-measurement. On the one usable window — 57.3s of the kill — the player presses at 61 a minute against 73 in phase 1, which is 84% of their own baseline rather than the 33-against-73 the rule was written from. Melee does collapse and damage taken falls to 0.24x, so the fight genuinely moves them off the boss; it does not take the buttons away, which is the exact test that got Iron Juggernaut's Siege Mode rejected. The phase holds one cast gap past three seconds, so the rule excused 57s to cover 2.7s of idle. The second window that made it look like a clean lockout is corpse time: the player died 8.7s before phase 2 began on that pull.",
+		noteKey: 'thok-the-bloodthirsty',
 	},
 	{
 		encounterID: 1601,
 		name: 'Siegecrafter Blackfuse',
 		rules: [],
-		note: 'No enforced downtime; 3-6% of the pull is lost to melee gaps and most of that is the opening seconds before the boss is reachable.',
+		noteKey: 'siegecrafter-blackfuse',
 	},
 	{
 		encounterID: 1593,
@@ -176,7 +187,7 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 					'2 windows across the four Paragons pulls, 30.0s each, zero on-GCD presses of the player’s own class inside either. What is pressed inside is the scorpion bar — Claw, Swipe, Sting, Fiery Tail — 16 and 19 casts. Both windows open within a second of a Shield Bash ending.',
 			},
 		],
-		note: 'Gene Splice replaces the player’s bar for thirty seconds, so any priority list has nothing to say about that time. It appears in only one of the two reports, which is why the rule is kept with an empty window list on the other rather than dropped.',
+		noteKey: 'paragons-of-the-klaxxi',
 	},
 	{
 		encounterID: 1623,
@@ -192,7 +203,7 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 					'2 windows, 15.0s each, zero casts inside either. Lands 19s and 18.5s after the last phase begins, and the melee gap around it runs 23-25s — the stun plus the run back.',
 			},
 		],
-		note: "The intermission is also the player debuff Realm of Y'Shaarj (144954), which spans it exactly. The last phase loses a further 7-12s per Call Bombardment, which is not excused.",
+		noteKey: 'garrosh-hellscream',
 	},
 ];
 

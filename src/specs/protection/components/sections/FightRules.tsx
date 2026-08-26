@@ -67,9 +67,9 @@ export default function FightRules({ analysis }: { analysis: Analysis }) {
 				/>
 			</div>
 
-			{fight.note === null ? null : (
+			{fight.noteKey === null ? null : (
 				<div className="mt-5">
-					<Note>{fight.note}</Note>
+					<Note>{t(`fight.note.${fight.noteKey}`)}</Note>
 				</div>
 			)}
 		</Section>

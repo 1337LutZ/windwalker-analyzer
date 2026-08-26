@@ -629,7 +629,7 @@ function protectionAudit(h: Handles): ProtectionAudit {
 		},
 		fight: {
 			encounter: enforced.profile?.name ?? null,
-			note: enforced.profile?.note ?? null,
+			noteKey: enforced.profile?.noteKey ?? null,
 			rules: enforced.rules.map(({ rule, windows, ms }) => ({
 				key: rule.key,
 				name: rule.name,
@@ -725,6 +725,17 @@ export const PROTECTION_SPEC: SpecConfig = {
 	 * 18 of 28 presses on the Fallen Protectors capture returned anything at all.
 	 */
 	resources: {
+		/**
+		 * **Holy power is not in `classResources`**, which is the fact this whole declaration rests on and
+		 * the reason the bar is read the way it is. A Protection Paladin's samples there carry mana and
+		 * nothing else, so the walk that rebuilds a Windwalker's energy curve finds no bar at all. What the
+		 * log carries instead is every *change* to it, as `resourcechange` events — each one naming the
+		 * amount, the ceiling (`maxResourceAmount`, 5) and the overflow.
+		 *
+		 * So the ceiling is read off the events rather than declared: a constant for it existed here and
+		 * was never consulted, because the log states it on every gain and a hardcoded 5 could only ever
+		 * disagree with that.
+		 */
 		holyPower: {
 			type: SECONDARY_RESOURCE_TYPE.holyPower,
 			kind: 'points',

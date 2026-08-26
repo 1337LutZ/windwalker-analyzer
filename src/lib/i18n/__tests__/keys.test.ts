@@ -8,6 +8,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ENFORCED_PROFILES } from '~/lib/analysis/enforced';
 import { RAID_BUFF_EFFECT_KEYS } from '~/lib/analysis/raidBuffs';
 import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
@@ -793,6 +794,31 @@ describe('report copy with no reader', () => {
 			keys: () => ['lockout', 'declared'],
 			pinned: ['declared', 'lockout'],
 		},
+		/**
+		 * The encounters whose profile has something to say that its rules do not, one note apiece.
+		 *
+		 * A live set and not a wildcard for the reason the block above gives: these notes are mostly
+		 * about rules that were *refused*, and a boss that later earns a real rule loses its note. Left
+		 * as `*` the retired paragraph would sit in the tree unread, which is the exact shape the four
+		 * unread `grade.*` labels had.
+		 */
+		enforcedNote: {
+			where: 'lib/analysis/enforced.ts → EnforcedProfile.noteKey',
+			keys: () => ENFORCED_PROFILES.map((profile) => profile.noteKey).filter((key) => key !== undefined),
+			pinned: [
+				'fallen-protectors',
+				'garrosh-hellscream',
+				'general-nazgrim',
+				'immerseus',
+				'iron-juggernaut',
+				'kor-kron-dark-shaman',
+				'malkorok',
+				'paragons-of-the-klaxxi',
+				'siegecrafter-blackfuse',
+				'spoils-of-pandaria',
+				'thok-the-bloodthirsty',
+			],
+		},
 		gate: {
 			where: 'lib/game/model.ts → Gate',
 			keys: () => declaredArms('lib/game/model.ts', /export type Gate =/),
@@ -957,6 +983,7 @@ describe('report copy with no reader', () => {
 		'casts.gate.*': 'gate',
 		'earthElemental.state.*': 'earthElementalState',
 		'fight.basis.*': 'enforcedBasis',
+		'fight.note.*': 'enforcedNote',
 		'earthShock.state.*': 'earthShockReason',
 		'elementalMastery.state.*': 'elementalMasteryReason',
 		'fireElemental.state.*': 'fireElementalReason',
@@ -1003,6 +1030,7 @@ describe('report copy with no reader', () => {
 		'casts.gate.*': 5,
 		'earthElemental.state.*': 3,
 		'fight.basis.*': 2,
+		'fight.note.*': 11,
 		'earthShock.state.*': 7,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,
