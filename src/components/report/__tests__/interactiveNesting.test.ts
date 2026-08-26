@@ -25,9 +25,8 @@ import { describe, expect, it } from 'vitest';
 
 import PreviewSwitcher from '~/components/PreviewSwitcher';
 import { initI18n } from '~/lib/i18n/config';
+import { SPECS } from '~/lib/spec';
 import type { Analysis, FightDataset } from '~/lib/types';
-import { analyse as analyseElemental } from '~/specs/elemental';
-import { analyse as analyseWindwalker } from '~/specs/windwalker';
 
 initI18n();
 
@@ -129,18 +128,22 @@ function interactiveNesting(html: string): string[] {
  * in either form is covered without this file having to know which form it is in.
  */
 function pulls(): Array<[string, Analysis]> {
-	const specs = [
-		{ dir: 'windwalker', analyse: analyseWindwalker },
-		{ dir: 'elemental', analyse: analyseElemental },
-	] as const;
-	return specs.flatMap(({ dir, analyse }) => {
-		const root = resolve(import.meta.dirname, '../../../specs', dir, '__fixtures__');
+	// **The specs come off the registry rather than out of a literal here**, which is the same argument
+	// this function already makes about fixture files one level down. A list of two spec names was
+	// exactly the thing that goes stale: the Protection Paladin shipped a whole report — five captures,
+	// a cast log, a pull timeline with a per-enemy picker in it — and every anchor and button on it was
+	// swept by nothing, while the omission looked identical to a spec that passes. `specVocabulary.test.ts`
+	// reads `SPECS` for the same reason and its header says so. The claim about *which* specs is not lost;
+	// it moves to an assertion in the non-vacuity block below, where a reader can see it.
+	return SPECS.flatMap((spec) => {
+		const root = resolve(import.meta.dirname, '../../../specs', spec.key, '__fixtures__');
 		return readdirSync(root)
 			.filter((file) => file.endsWith('.json'))
 			.map((file): [string, Analysis] => {
 				const raw = JSON.parse(readFileSync(resolve(root, file), 'utf8')) as Record<string, unknown>;
-				const analysis = 'specName' in raw ? (raw as unknown as Analysis) : analyse(raw as unknown as FightDataset);
-				return [`${dir}/${file.replace(/\.json$/, '')}`, analysis];
+				const analysis =
+					'specName' in raw ? (raw as unknown as Analysis) : spec.analyse(raw as unknown as FightDataset);
+				return [`${spec.key}/${file.replace(/\.json$/, '')}`, analysis];
 			});
 	});
 }
@@ -148,8 +151,23 @@ function pulls(): Array<[string, Analysis]> {
 const PULLS = pulls();
 
 /** Exactly what `preview.astro` hands the island, one pull at a time — `PreviewSwitcher` shows the first. */
-const markup = (name: string, analysis: Analysis): string =>
-	renderToStaticMarkup(createElement(PreviewSwitcher, { fixtures: { [name]: analysis } }));
+/**
+ * The whole report as a browser would receive it, rendered once per pull and kept.
+ *
+ * Memoised because it is not cheap and this file asks for it three times per pull: twice in the sweep
+ * below and once in each of the two `it.each` blocks. Rendering fifteen committed pulls three times over
+ * had the sweep at 4.6s against vitest's 5s default with the machine to itself, so it was one added
+ * section away from a timeout that would read as a hydration fault rather than as a slow test — and the
+ * Protection report gaining its priority ladder was that section.
+ */
+const rendered = new Map<string, string>();
+const markup = (name: string, analysis: Analysis): string => {
+	const had = rendered.get(name);
+	if (had !== undefined) return had;
+	const html = renderToStaticMarkup(createElement(PreviewSwitcher, { fixtures: { [name]: analysis } }));
+	rendered.set(name, html);
+	return html;
+};
 
 describe('the served report is the tree a browser parses back', () => {
 	it.each(PULLS)('%s', (name, analysis) => {
@@ -185,10 +203,12 @@ describe('the sweep above is not vacuous', () => {
 
 	it('renders every committed pull, and each one really does draw anchors', () => {
 		// A pull that rendered nothing would satisfy the sweep, and so would a fixture directory this
-		// file failed to find. Both fixture dirs are covered, and every pull draws the links the report
-		// is built from — the contents list alone is a dozen of them.
+		// file failed to find. All three fixture dirs are covered, and every pull draws the links the
+		// report is built from — the contents list alone is a dozen of them.
 		expect(PULLS.length).toBeGreaterThan(6);
-		expect(new Set(PULLS.map(([name]) => name.split('/')[0]))).toEqual(new Set(['windwalker', 'elemental']));
+		expect(new Set(PULLS.map(([name]) => name.split('/')[0]))).toEqual(
+			new Set(['windwalker', 'elemental', 'protection']),
+		);
 		for (const [name, analysis] of PULLS) {
 			expect(markup(name, analysis).match(/<a\b/g)?.length ?? 0, name).toBeGreaterThan(5);
 			// And the buttons, for the same reason: a sweep for a link inside a button has said nothing at

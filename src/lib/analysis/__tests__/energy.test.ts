@@ -6,9 +6,16 @@
 import { describe, expect, it } from 'vitest';
 
 import type { WclEvent } from '~/lib/events';
-import { RESOURCE_TYPE } from '~/lib/game/resources';
+import { RESOURCE_TYPE, SECONDARY_RESOURCE_TYPE } from '~/lib/game/resources';
 
-import { cappedIntervals, regenPerSecond, resourceSamples, trackResourceBar, wclPowerTypeOf } from '../energy';
+import {
+	cappedIntervals,
+	chiWasted,
+	regenPerSecond,
+	resourceSamples,
+	trackResourceBar,
+	wclPowerTypeOf,
+} from '../energy';
 import type { ResourceSample } from '../energy';
 
 const T0 = 100_000;
@@ -286,5 +293,87 @@ describe('trackResourceBar', () => {
 		expect(bar.whole.cappedMs).toBe(0);
 		expect(bar.medianGapMs).toBe(0);
 		expect(bar.p99GapMs).toBe(0);
+	});
+});
+
+describe('chiWasted', () => {
+	const HP = wclPowerTypeOf(SECONDARY_RESOURCE_TYPE.holyPower);
+	const CS = 35_395;
+	const JAB = 100_780;
+
+	/** A press carrying a pre-spend reading of the bar, which is the only reading a spender leaves. */
+	const spender = (t: number, amount: number, cost: number, max = 5): WclEvent =>
+		({
+			timestamp: T0 + t,
+			type: 'cast',
+			abilityGameID: 53_600,
+			sourceID: ME,
+			resourceActor: 1,
+			classResources: [{ type: HP, amount, max, cost }],
+		}) as unknown as WclEvent;
+
+	/** A press with no bar on it — a generator, which is what makes the walk necessary at all. */
+	const press = (t: number, abilityGameID: number): WclEvent =>
+		({ timestamp: T0 + t, type: 'cast', abilityGameID, sourceID: ME, resourceActor: 1 }) as unknown as WclEvent;
+
+	/** The gain the log states outright, with its own overflow measured on it. */
+	const change = (t: number, abilityGameID: number, resourceChange: number, waste: number): WclEvent =>
+		({
+			timestamp: T0 + t,
+			type: 'resourcechange',
+			abilityGameID,
+			sourceID: ME,
+			targetID: ME,
+			resourceActor: 1,
+			resourceChangeType: HP,
+			resourceChange,
+			maxResourceAmount: 5,
+			waste,
+		}) as unknown as WclEvent;
+
+	/**
+	 * The whole holy-power finding in one case: the log counted the overflow, so nothing reconstructs it.
+	 *
+	 * On the live pull this was found on, the walk read two points wasted where every `waste` field in
+	 * the stream was nought — because a flat table credits a press the boss dodged, and the log emits no
+	 * event for a strike that did not land.
+	 */
+	it('reads waste off the event for a gain the log reports, and credits the press once', () => {
+		const events = [spender(0, 3, 3), change(1_000, CS, 1, 0), change(2_000, CS, 1, 2), press(2_000, CS)];
+		const out = chiWasted(
+			events,
+			ME,
+			T0,
+			(id) => (id === CS ? 1 : undefined),
+			HP,
+			(id) => id === CS,
+		);
+		// One row, and it is the event's own number rather than anything derived from the walk.
+		expect(out).toEqual([{ t: 2_000, wasted: 2 }]);
+	});
+
+	/**
+	 * Holy Avenger, which is the second half of the same argument.
+	 *
+	 * A generator pressed under it pays three, and the event says three. A declared table cannot know
+	 * that, so a walk fed the table reads the bar three points low for the eighteen seconds it is up —
+	 * and then reports no overflow at the moment the bar actually filled.
+	 */
+	it('applies the amount the event carries rather than the declared one', () => {
+		const events = [spender(0, 3, 3), change(1_000, CS, 3, 0), change(2_000, CS, 3, 1)];
+		const gains = (id: number) => (id === CS ? 1 : undefined);
+		expect(chiWasted(events, ME, T0, gains, HP, (id) => id === CS)).toEqual([{ t: 2_000, wasted: 1 }]);
+	});
+
+	/**
+	 * And the bar the log says nothing about is still walked, because chi is that bar.
+	 *
+	 * A Jab returns two chi and reports only the energy it paid, so there is no reading to compare the
+	 * gain against at the moment it happens. `reported` says nothing about it, so the table applies.
+	 */
+	it('still walks a gain the log does not report', () => {
+		const events = [spender(0, 3, 2, 4), press(1_000, JAB), press(2_000, JAB)];
+		const gains = (id: number) => (id === JAB ? 2 : undefined);
+		expect(chiWasted(events, ME, T0, gains, HP)).toEqual([{ t: 2_000, wasted: 1 }]);
 	});
 });

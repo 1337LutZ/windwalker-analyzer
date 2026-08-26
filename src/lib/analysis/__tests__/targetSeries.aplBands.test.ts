@@ -30,15 +30,46 @@
 // cannot separate them.
 import { describe, expect, it } from 'vitest';
 
-import type { Analysis, FightDataset, WclEvent } from '~/lib/types';
+import type { Analysis, FightDataset, TargetSummary, WclEvent } from '~/lib/types';
 import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analyseCore';
 import { capturedAnalyses, rawFixtures } from '~/lib/analysis/fixtures';
 import { unionMs } from '~/lib/analysis/intervals';
 import { countAt, intervalsAtLeast, type TargetCountPoint } from '~/lib/analysis/targets';
 import { defaultSettings } from '~/lib/settings/model';
 import { bandsInPull, resolveBands } from '~/lib/view/targetMode';
+import { PROTECTION_SETTINGS, PROTECTION_SPEC } from '~/specs/protection/lib';
 import { analyse as analyseWindwalker, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker/lib';
 import { scoreAnalysis } from '~/specs/windwalker/lib/score';
+
+/**
+ * The three readings both halves of this file take, at module scope so the two specs' blocks cannot
+ * answer the same question two ways.
+ *
+ * They were local to the Windwalker block until the Protection arm at the foot needed them. A second
+ * copy is what `docs/conventions.md` says goes stale — and here it would go stale in the worst
+ * direction, with two blocks each asserting an invariant against its own definition of the invariant.
+ */
+
+/** Every instant either series samples, and what each of them answers there. */
+const readingsOf = (targets: TargetSummary): Array<[t: number, evidence: number, ladder: number]> => {
+	const evidence = targets.counts.points;
+	const ladder = targets.aplCounts?.points ?? [];
+	const evidenceAt = countAt(evidence);
+	const ladderAt = countAt(ladder);
+	return [...new Set([...evidence, ...ladder].map(([t]) => t))]
+		.sort((a, b) => a - b)
+		.map((t) => [t, evidenceAt(t), ladderAt(t)]);
+};
+
+/** `[t, evidence, ladder]` at the first instant the two readings part company, or `undefined`. */
+const firstDisagreement = (analysis: Analysis): [number, number, number] | undefined =>
+	readingsOf(analysis.targets!).find(([, evidence, ladder]) => evidence !== ladder);
+
+/** The multi-target share of contact time, off whichever series is handed in. */
+const shareOf = (points: readonly TargetCountPoint[], durationMs: number): number => {
+	const contact = unionMs(intervalsAtLeast(points, 1, durationMs));
+	return contact > 0 ? (unionMs(intervalsAtLeast(points, 2, durationMs)) / contact) * 100 : 0;
+};
 
 const T0 = 300_000;
 const DURATION = 60_000;
@@ -400,16 +431,7 @@ describe('the two series on every committed pull', () => {
 		return analysis;
 	};
 
-	/** Every instant either series samples, and what each of them answers there. */
-	const readings = (analysis: Analysis): Array<[t: number, evidence: number, ladder: number]> => {
-		const evidence = analysis.targets?.counts.points ?? [];
-		const ladder = analysis.targets?.aplCounts?.points ?? [];
-		const evidenceAt = countAt(evidence);
-		const ladderAt = countAt(ladder);
-		return [...new Set([...evidence, ...ladder].map(([t]) => t))]
-			.sort((a, b) => a - b)
-			.map((t) => [t, evidenceAt(t), ladderAt(t)]);
-	};
+	const readings = (analysis: Analysis) => readingsOf(analysis.targets!);
 
 	const disagreements = (analysis: Analysis) =>
 		readings(analysis).filter(([, evidence, ladder]) => evidence !== ladder);
@@ -570,10 +592,6 @@ describe('the two series on every committed pull', () => {
 	 * the two series answer different whole-pull modes. This is the assertion that would say so.
 	 */
 	it('keeps the published mode share on the evidence series, which the ladder’s would now move', () => {
-		const shareOf = (points: readonly TargetCountPoint[], durationMs: number): number => {
-			const contact = unionMs(intervalsAtLeast(points, 1, durationMs));
-			return contact > 0 ? (unionMs(intervalsAtLeast(points, 2, durationMs)) / contact) * 100 : 0;
-		};
 		for (const name of NAMES) {
 			const analysis = pull(name);
 			const targets = analysis.targets!;
@@ -613,6 +631,245 @@ describe('the two series on every committed pull', () => {
 			expect(shareOf(analysis.targets!.aplCounts!.points, analysis.durationMs) >= threshold, name).toBe(
 				analysis.targets!.multiTargetPct >= threshold,
 			);
+		}
+	});
+});
+
+/**
+ * The same two series on the Protection Paladin, which is the second spec in the tree to separate them.
+ *
+ * **Until `aplTargetCountExclude` was declared on `PROTECTION_SPEC`, `aplCounts` was `counts`** — the
+ * same numbers under two names, because the spec had never named any area damage of its own and
+ * `analyseCore` therefore had nothing to filter out. The block above says in as many words that four
+ * Elemental pulls are held elsewhere *because* that spec declares no exclusion and its two series are
+ * one array by construction; this spec has stopped being that case, so it is held here.
+ *
+ * ## What the exclusion is, and the one button it deliberately leaves in
+ *
+ * Consecration and Light's Hammer are laid on the ground and tick on whatever stands in them. The press
+ * chooses a patch of floor and not a body, so the number of things it reaches is a fact about where the
+ * raid happened to be standing — the structural twin of Rushing Jade Wind, whose exclusion the block
+ * above is built on. Hammer of the Righteous is not that: its cleave reaches the enemies beside a target
+ * the *player* aimed at, and a fan-out the player aimed is the evidence a rung question wants.
+ *
+ * That last decision is priced rather than assumed, in `hammerOfTheRighteous` below. It is not free —
+ * adding it would take `spoils`' ladder share down another 7.3 points and its peak from 11 to 9 — which
+ * is the point of pinning it: the button stays in because of what it is, not because it is cheap.
+ *
+ * ## What moves, and what deliberately does not
+ *
+ * Consecration's ticks (81297) are the largest single event source a Protection Paladin produces — 719,
+ * 544, 500, 352 and 153 damage events across the five captures, first by a wide margin on every one of
+ * them — so this is the largest correction of its kind in the tree. The ladder's multi-target share
+ * falls on all five, by 39.8 points on `paragons` and 18.4 on `galakras`.
+ *
+ * **The reader's own figure does not move at all.** `multiTargetPct` and `detected` are taken off the
+ * evidence series, and all five pulls read exactly what they read before. That is the split working
+ * rather than a limitation of it, and the last test in this block is what executes the claim.
+ */
+describe('the two series on every committed Protection pull', () => {
+	const RAW = rawFixtures('protection');
+	const SETTINGS = defaultSettings(PROTECTION_SETTINGS);
+
+	/**
+	 * One analysis per pull per exclusion list, memoised.
+	 *
+	 * Four readings of five pulls is twenty passes over a few megabytes of events, and three of the four
+	 * are counterfactuals — a spec config that differs from the shipped one in exactly one field, which is
+	 * the same matched-pair method the synthetic pulls at the head of this file use. Spread onto
+	 * `PROTECTION_SPEC` rather than rebuilt, so nothing else about the spec can drift between the arms.
+	 */
+	const analysed = new Map<string, Analysis>();
+	const pull = (name: string, exclude: readonly string[] = PROTECTION_SPEC.aplTargetCountExclude ?? []): Analysis => {
+		const key = `${name}|${exclude.join(',')}`;
+		const memo = analysed.get(key);
+		if (memo !== undefined) return memo;
+		const raw = RAW.find((fixture) => fixture.name === name);
+		if (raw === undefined) throw new Error(`no Protection fixture named ${name}`);
+		const analysis = analyseCore(raw.dataset, SETTINGS, { ...PROTECTION_SPEC, aplTargetCountExclude: exclude });
+		analysed.set(key, analysis);
+		return analysis;
+	};
+
+	/** The ladder's multi-target share, rebuilt from the array the chart draws rather than read off a field. */
+	const ladderShare = (analysis: Analysis): number => shareOf(analysis.targets!.aplCounts!.points, analysis.durationMs);
+
+	const NAMES = RAW.map(({ name }) => name);
+
+	it('sweeps every Protection pull the tree holds, found rather than listed', () => {
+		// Five raw datasets and no captures: this spec's harness writes `analyse()`'s input, where the
+		// Windwalker's writes its output. `readFixtures` throws on a file that is neither, so an empty
+		// captured half here is a fact rather than a silent miss.
+		expect(NAMES).toEqual(['fallenProtectors.json', 'galakras.json', 'garrosh.json', 'paragons.json', 'spoils.json']);
+		expect(capturedAnalyses('protection')).toEqual([]);
+	});
+
+	it('declares the two ground effects and nothing else', () => {
+		expect(PROTECTION_SPEC.aplTargetCountExclude).toEqual(['consecration', 'lights-hammer']);
+	});
+
+	/**
+	 * The invariant the block above states for the Windwalker, asked of this spec's five.
+	 *
+	 * `aplTargetHits` is `multiTargetHits.filter(notOwnAreaDamage)` and `targetCounts` is monotone in its
+	 * input, so the ladder can never see an enemy the evidence did not. It survives any edit to either
+	 * exclusion list, which is what makes it worth more than the figures below.
+	 */
+	for (const name of NAMES) {
+		it(`never counts an enemy the evidence series did not, on ${name}`, { timeout: 120_000 }, () => {
+			const targets = pull(name).targets;
+			expect(targets?.counts.points.length, name).toBeGreaterThan(0);
+			expect(targets?.aplCounts?.points.length, name).toBeGreaterThan(0);
+			expect(
+				readingsOf(targets!).filter(([, evidence, ladder]) => ladder > evidence),
+				name,
+			).toEqual([]);
+			expect(targets?.aplCounts?.max, name).toBeLessThanOrEqual(targets!.counts.max);
+		});
+	}
+
+	/**
+	 * All five genuinely part company, and the counterfactual is what says the divergence is the
+	 * exclusion's doing rather than an accident of the walk.
+	 *
+	 * With the list emptied the two arrays are equal point for point on every pull — the state this spec
+	 * shipped in — so the second half of each pair is the whole of the change.
+	 */
+	it('coincides on all five with the list emptied and on none of them with it declared', () => {
+		for (const name of NAMES) {
+			const off = pull(name, []);
+			expect(off.targets?.aplCounts?.points, `${name} with nothing excluded`).toEqual(off.targets?.counts.points);
+			expect(readingsOf(pull(name).targets!).filter(([, e, l]) => e !== l).length, name).toBeGreaterThan(0);
+		}
+		// `[t, evidence, ladder]` at the first instant the two readings part company on each pull.
+		expect(firstDisagreement(pull('fallenProtectors.json')), 'fallenProtectors').toEqual([11_621, 3, 2]);
+		expect(firstDisagreement(pull('galakras.json')), 'galakras').toEqual([126_152, 1, 0]);
+		expect(firstDisagreement(pull('garrosh.json')), 'garrosh').toEqual([11_429, 7, 1]);
+		expect(firstDisagreement(pull('paragons.json')), 'paragons').toEqual([14_280, 3, 2]);
+		expect(firstDisagreement(pull('spoils.json')), 'spoils').toEqual([12_446, 3, 2]);
+	});
+
+	/**
+	 * The Consecration measurement, pinned pull by pull — the reason the exclusion was written.
+	 *
+	 * Three arms per pull: nothing excluded, Consecration alone, and the shipped pair. Light's Hammer was
+	 * talented on two of the five and moves only those two, which is why it is worth a column of its own
+	 * rather than being folded into the first number — it is declared because it is the same *kind* of
+	 * button as Consecration, not because of what it is worth here.
+	 */
+	it('takes the ladder’s share down on all five, and Consecration is nearly all of it', () => {
+		const arms = (name: string) => ({
+			none: ladderShare(pull(name, [])),
+			consecration: ladderShare(pull(name, ['consecration'])),
+			both: ladderShare(pull(name)),
+			peak: [pull(name, []).targets!.aplCounts!.max, pull(name).targets!.aplCounts!.max],
+		});
+
+		const fallen = arms('fallenProtectors.json');
+		expect(fallen.none).toBeCloseTo(99.9002, 3);
+		expect(fallen.consecration).toBeCloseTo(96.7774, 3);
+		expect(fallen.both).toBeCloseTo(95.7901, 3);
+		expect(fallen.peak).toEqual([8, 7]);
+
+		const galakras = arms('galakras.json');
+		expect(galakras.none).toBeCloseTo(52.5887, 3);
+		// Light's Hammer was not talented on this pull, nor on the two below it, so the second and third
+		// arms are the same number three times over. Stated rather than skipped: a column that is equal on
+		// three of five is what tells a reader which of the two buttons is carrying the change.
+		expect(galakras.consecration).toBeCloseTo(34.1988, 3);
+		expect(galakras.both).toBeCloseTo(34.1988, 3);
+		expect(galakras.peak).toEqual([5, 4]);
+
+		const garrosh = arms('garrosh.json');
+		expect(garrosh.none).toBeCloseTo(15.7883, 3);
+		expect(garrosh.consecration).toBeCloseTo(8.7573, 3);
+		expect(garrosh.both).toBeCloseTo(8.7573, 3);
+		expect(garrosh.peak).toEqual([8, 7]);
+
+		const paragons = arms('paragons.json');
+		expect(paragons.none).toBeCloseTo(82.7353, 3);
+		expect(paragons.consecration).toBeCloseTo(42.9313, 3);
+		expect(paragons.both).toBeCloseTo(42.9313, 3);
+		expect(paragons.peak).toEqual([4, 3]);
+
+		const spoils = arms('spoils.json');
+		expect(spoils.none).toBeCloseTo(88.1298, 3);
+		expect(spoils.consecration).toBeCloseTo(84.6753, 3);
+		expect(spoils.both).toBeCloseTo(83.4867, 3);
+		expect(spoils.peak).toEqual([15, 11]);
+	});
+
+	/**
+	 * Why Hammer of the Righteous is **not** on the list, with the price of leaving it off written down.
+	 *
+	 * A cleave the player aimed is evidence about the pull; a patch of ground is evidence about where the
+	 * raid stood. That is the whole argument, and it is an argument about the button rather than about the
+	 * number — so the number is pinned here to stop the next reader assuming the button was left in
+	 * because it made no difference. On the pull that cleaves hardest it is worth 7.3 points and two
+	 * enemies of peak.
+	 */
+	it('would take another 7.3 points off spoils if the aimed cleave were excluded too', () => {
+		const withCleave = (name: string) => pull(name, ['consecration', 'lights-hammer', 'hammer-of-the-righteous']);
+		expect(ladderShare(withCleave('spoils.json'))).toBeCloseTo(76.1723, 3);
+		expect(withCleave('spoils.json').targets!.aplCounts!.max).toBe(9);
+		expect(ladderShare(withCleave('fallenProtectors.json'))).toBeCloseTo(94.8855, 3);
+		expect(ladderShare(withCleave('garrosh.json'))).toBeCloseTo(7.8306, 3);
+		// And on the two pulls whose fan-out is all adds and no cleave, it is worth nothing at all.
+		expect(ladderShare(withCleave('galakras.json'))).toBeCloseTo(34.1988, 3);
+		expect(ladderShare(withCleave('paragons.json'))).toBeCloseTo(42.9313, 3);
+	});
+
+	/**
+	 * The half the split exists to protect: the published figures stay on the evidence series.
+	 *
+	 * `multiTargetPct` and `detected` are what the target-count section prints and what the whole-pull
+	 * mode is derived from, and `analyseCore` takes both halves of that ratio off `targetPoints`. So the
+	 * exclusion may not move any of them, and on four of the five it would move them a long way — the
+	 * ladder's reading of `paragons` is 39.8 points below the published one.
+	 *
+	 * **One of the five would change mode outright.** `paragons` reads 82.7% against a 33% threshold and
+	 * stays `multi` either way, but `galakras` at 52.6% would fall to 34.2% — still above the line by 1.2
+	 * points, which is the narrowest margin in the tree and the reason this is asserted rather than
+	 * assumed.
+	 */
+	it('keeps the published share and mode on the evidence series', () => {
+		for (const name of NAMES) {
+			const analysis = pull(name);
+			const off = pull(name, []);
+			expect(analysis.targets!.multiTargetPct, name).toBe(off.targets!.multiTargetPct);
+			expect(analysis.targets!.detected, name).toBe(off.targets!.detected);
+			expect(shareOf(analysis.targets!.counts.points, analysis.durationMs), name).toBeCloseTo(
+				analysis.targets!.multiTargetPct,
+				10,
+			);
+		}
+		expect(NAMES.map((name) => pull(name).targets!.detected)).toEqual(['multi', 'multi', 'single', 'multi', 'multi']);
+		// Every one of the five is a genuine divergence at the published figure, so none of the assertions
+		// above can be passing by the two series being one array.
+		for (const name of NAMES) {
+			expect(ladderShare(pull(name)), name).not.toBeCloseTo(pull(name).targets!.multiTargetPct, 1);
+		}
+	});
+
+	/**
+	 * What it costs a reader who opens the target-mode control, which is the one visible consequence.
+	 *
+	 * `bandsInPull` reads `aplCounts`, so the positions the control offers are the rungs the *ladder* was
+	 * handed. On four of the five pulls the set is unchanged; on `paragons` it goes from `[1, 2, 3, 4]` to
+	 * `[1, 2, 3]`, because the ladder never sees a fourth enemy once the ground is out of the count. That
+	 * is the exclusion doing exactly what it is for — the pull had four bodies in it and the player's own
+	 * area damage is what found the fourth.
+	 *
+	 * Nothing is graded differently by it. This spec's `score.ts` declares no `bands` on either threshold,
+	 * so no metric is scoped by this set today; the assertion is here because the day one is, `paragons`
+	 * is the pull that will show it.
+	 */
+	it('narrows the bands paragons visited, and leaves the other four alone', () => {
+		expect(bandsInPull(pull('paragons.json').targets)).toEqual([1, 2, 3]);
+		expect(bandsInPull(pull('paragons.json', []).targets)).toEqual([1, 2, 3, 4]);
+		for (const name of NAMES.filter((n) => n !== 'paragons.json')) {
+			expect(bandsInPull(pull(name).targets), name).toEqual([1, 2, 3, 4]);
+			expect(bandsInPull(pull(name, []).targets), name).toEqual([1, 2, 3, 4]);
 		}
 	});
 });

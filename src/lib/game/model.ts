@@ -25,6 +25,19 @@ export type Gate =
 	| 'chi'
 	/** Held back by energy, on the same terms: a resource ceiling, not a clock. */
 	| 'energy'
+	/**
+	 * Held back by holy power, and the same argument the chi one makes about which half of the economy
+	 * a button is on.
+	 *
+	 * Only the *spenders*: Shield of the Righteous at a flat three, Word of Glory and Eternal Flame at
+	 * a variable one. Every generator is on `cooldown` — Crusader Strike, Judgment, Avenger's Shield —
+	 * because what limits those is a timer and calling them holy-power-gated inverts the loop.
+	 *
+	 * Neither spender is on the global for Protection, which is why this can never be the reason a
+	 * generator was late: `sim/paladin/shield_of_the_righteous.go` gives its cast config no `GCD` at
+	 * all, and Word of Glory takes `GCD: TernaryDuration(isProt, 0, GCDDefault)`.
+	 */
+	| 'holy-power'
 	/** Only correct in specific situations; judged against those conditions, never against a cooldown. */
 	| 'conditional'
 	/** Utility, defensives, consumables: counted, not scored. */
@@ -258,6 +271,59 @@ export interface Ability {
 	 */
 	targeting?: AbilityTargeting;
 	cooldownMs?: number;
+	/**
+	 * Another ability whose cooldown this one shares, by key.
+	 *
+	 * Pressing either starts the same timer, so neither is ever available on its own schedule and a
+	 * drift figure taken per button reports the same idle seconds twice. Protection's two builders are
+	 * the case: Crusader Strike and Hammer of the Righteous both sit on `paladin.BuilderCooldown()`.
+	 *
+	 * Declared on both halves rather than on one, so a reader arriving at either finds it — and the
+	 * registry can check that the two agree instead of taking one file's word for it.
+	 */
+	sharesCooldownWith?: string;
+	/**
+	 * Ids the log emits a `cast` under that are **not** a second press of this button.
+	 *
+	 * A combat log is not a list of decisions, and treating every `cast` as one over-counts. Three
+	 * shapes produce this and all three are real: the cleave half of a press logging its own cast
+	 * (Hammer of the Righteous under 88263, five of each on a reference pull, one press apiece), an
+	 * auto-attack logging a cast (id 1, 116 of them on one pull — more cast events than any button on
+	 * the bar), and a spell the game splits in two.
+	 *
+	 * Declared rather than left unmodelled, which is the point: an id nobody named is an id that
+	 * happens not to be counted, and an id named here is one the model has *decided* is not a press.
+	 */
+	echoCastIds?: readonly number[];
+	/**
+	 * The aura key whose application stands in for this button's press, when the log emits no cast.
+	 *
+	 * Rare and specific. Execution Sentence is the case it was written for: traced through a whole
+	 * pull, 114916 shows up as thirty ticks of damage and three debuff applications, and there is no
+	 * `cast` event under any id at all. Until that was found every press of it was missing from the
+	 * global count and the ladder's talent gate stayed shut for a player demonstrably using it.
+	 *
+	 * The aura is a worse clock than a cast and the difference is worth knowing: an application is the
+	 * moment the debuff *landed*, which for a press with travel time is not the moment the button went
+	 * out. It is used where the alternative is not counting the press at all.
+	 */
+	pressSeenAsAura?: string;
+	/**
+	 * True when haste shortens this cooldown, so `cooldownMs` is the value at no haste rather than the
+	 * value on any real pull.
+	 *
+	 * Absent on every Windwalker and Elemental button, and that is the honest default rather than an
+	 * oversight: an energy or mana cooldown does not read haste at all. Protection Paladin is the spec
+	 * this exists for — Sanctity of Battle (25956) turns melee haste into cooldown reduction on every
+	 * generator and on Shield of the Righteous, so on a geared pull the base numbers here are a third
+	 * too long and every drift figure built on them would invent lost casts.
+	 *
+	 * Nothing reads this on its own. A spec that declares it also declares `cooldownAt` on its
+	 * `SpecConfig`, which is what turns the flag into a number at the moment of a press — see
+	 * `cooldownDrift`, where the *when* matters: the game arms a cooldown when the button goes out, so
+	 * a press made inside Bloodlust stamps a shorter one than the press before it.
+	 */
+	hasteScaled?: boolean;
 	/** Present when pressing it locks out every other button for a while. */
 	channel?: Channel;
 	/**

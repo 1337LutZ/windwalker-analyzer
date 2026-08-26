@@ -9,14 +9,33 @@ import ScrollableTrack from '../charts/ScrollableTrack';
 import SegmentLane, { type LaneSpan } from '../charts/SegmentLane';
 import { ChartFigure } from '../primitives';
 
-/** What goes inside a bar wide enough to hold it. Never the only thing that says which mode it is. */
-const SHORT: Record<SegmentMode, string> = {
+/**
+ * What goes inside a bar wide enough to hold it. Never the only thing that says which mode it is.
+ *
+ * `mixed` is absent on purpose: a bare `~` says only "it moved", which is the one thing the bar's own
+ * hatch already says, and it left the longest stretch of some pulls as the least informative bar on
+ * the chart — a reader looking at 86 seconds of Garrosh was told nothing about what was in it.
+ * `shortOf` fills it from the segment's own median instead.
+ */
+const SHORT: Record<Exclude<SegmentMode, 'mixed'>, string> = {
 	single: '1',
 	cleave: '2',
 	aoe: '3+',
-	mixed: '~',
 	idle: '—',
 };
+
+/**
+ * The count to write on a bar, which for a mixed stretch is the middle of what it held.
+ *
+ * `~2` reads as "about two, and it moved", which is both halves of what `mixed` means and is what the
+ * segment already measured — `medianEnemies` is the median over the stretch's own clock. A count of
+ * three or more takes the same `3+` the aoe bars use, so the two are read off one scale.
+ */
+function shortOf(segment: { mode: SegmentMode; medianEnemies: number }): string {
+	if (segment.mode !== 'mixed') return SHORT[segment.mode];
+	const median = Math.round(segment.medianEnemies);
+	return median >= 3 ? '~3+' : `~${Math.max(1, median)}`;
+}
 
 /**
  * The order the key names the modes in, and the only place that order is decided.
@@ -66,9 +85,24 @@ export default function SegmentStrip({ analysis }: { analysis: Analysis }) {
 				startMs: segment.startMs,
 				endMs: segment.endMs,
 				tone: segment.mode,
-				label: t('summary.shape.row', { context: segment.mode }),
+				// The tooltip names the mix rather than repeating the key: a stretch that ran between one and
+				// three enemies says so, which is the question a `mixed` bar raises and used not to answer.
+				// A mixed stretch with no bands recorded cannot describe its own range, and `Math.min` of an
+				// empty list is `Infinity` — so that case keeps the generic name rather than printing one.
+				label:
+					segment.mode === 'mixed' && segment.bands.length > 0
+						? t('summary.shape.rowMixed', {
+								low: Math.min(...segment.bands),
+								high: Math.max(...segment.bands),
+								// Floored at one, for the same reason `shortOf` floors it: a stretch can hold enough
+								// zero-run to median at nought without ever being idle — `spoils` opens with 13s of
+								// exactly that — and "mostly 0 enemies" on a bar that is not the idle bar reads as a
+								// contradiction of the bar beside it.
+								median: Math.max(1, Math.round(segment.medianEnemies)),
+							})
+						: t('summary.shape.row', { context: segment.mode }),
 				lengthLabel: t('summary.shape.length', { seconds: Math.round((segment.endMs - segment.startMs) / 1000) }),
-				short: SHORT[segment.mode],
+				short: shortOf(segment),
 			})),
 		[segments, t],
 	);

@@ -1,3 +1,4 @@
+import { valueAtOrBefore } from '~/lib/analysis/search';
 import type { ResourceCurve, Window } from '~/lib/types';
 
 /**
@@ -15,14 +16,36 @@ import type { ResourceCurve, Window } from '~/lib/types';
  * Chi and energy both go through it. Overcapped chi is the same fault as wasted energy — generation
  * that went nowhere — and drawing them the same way is what lets one glance cover both.
  */
+/**
+ * The ceiling in force at a given moment, for a bar whose ceiling moves.
+ *
+ * `valueAtOrBefore` from `~/lib/analysis/search` and not a walk of its own — that module exists
+ * because this exact search had been hand-rolled four times, and its docblock says as much. The step
+ * series is `[stamp, value]` pairs, which is the shape it takes unmodified.
+ *
+ * Before the first step the pull is on whatever that step says: a series opening after `t=0` describes
+ * a ceiling that was already in force, not one that did not exist yet. A curve with no `ceiling` gets
+ * `max` at every moment, which is the behaviour every caller had before the field existed.
+ */
+export function ceilingReader(curve: ResourceCurve): (t: number) => number {
+	const steps = curve.ceiling;
+	if (steps === undefined || steps.length === 0) return () => curve.max;
+	return (t: number) => valueAtOrBefore(steps, t) ?? steps[0]?.[1] ?? curve.max;
+}
+
 export function cappedOf(curve: ResourceCurve): Window[] {
 	const out: Window[] = [];
 	const points = curve.points;
+	const ceiling = ceilingReader(curve);
 	for (let i = 1; i < points.length; i += 1) {
 		const prev = points[i - 1];
 		const cur = points[i];
 		if (prev === undefined || cur === undefined) continue;
-		if (prev[1] < curve.max || cur[1] < curve.max) continue;
+		// Each reading against the ceiling that was in force at *its* moment, not the pull's highest.
+		// For every bar but one those are the same number; for Vengeance under a health buff they are
+		// not, and comparing a raised-ceiling reading against the raised `max` would report a bar that
+		// was at its limit as short of it. See `ResourceCurve.ceiling`.
+		if (prev[1] < ceiling(prev[0]) || cur[1] < ceiling(cur[0])) continue;
 		const last = out[out.length - 1];
 		// Merged as they are found: consecutive full readings are one stretch, not one band per gap.
 		if (last !== undefined && last.end === prev[0]) last.end = cur[0];

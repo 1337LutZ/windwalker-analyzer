@@ -1,8 +1,9 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApexOptions } from 'apexcharts';
 
 import { DROP_MS } from '~/lib/analysis/auras';
 import { formatSeconds, formatStamp } from '~/lib/format';
+import type { ResourceCurve } from '~/lib/types';
 
 import type { ChartEnv } from './ApexChart';
 import ApexChart from './ApexChart';
@@ -135,6 +136,7 @@ export default function WindowTracks({
 	chartId,
 	durationMs,
 	label,
+	behind,
 }: {
 	/**
 	 * The rows, top to bottom. Empty ones are dropped — see `drawn`.
@@ -148,6 +150,22 @@ export default function WindowTracks({
 	durationMs: number;
 	/** Describes the finished picture for a reader who cannot see it. */
 	label: string;
+	/**
+	 * A curve drawn *behind* the rows, on the same time axis and inside the same plot area.
+	 *
+	 * **Why this is an overlay and not a second chart.** ApexCharts cannot mix a time-series line into a
+	 * horizontal `rangeBar`: the bars run along x, so the y-axis is the row *labels* — a categorical
+	 * scale with no room for a number. Stacking a second chart above gets the alignment right and
+	 * answers a different question, because the reader has to carry their eye between two plots to ask
+	 * which window sat under which part of the curve.
+	 *
+	 * So the curve is its own SVG, positioned over the library's plot rectangle. The rectangle is
+	 * **measured rather than assumed** — ApexCharts sizes its left gutter from the widest y-axis label,
+	 * which changes with the rows, the breakpoint and the font — by reading `.apexcharts-grid`'s own box
+	 * after render and again whenever the element resizes. Guessing it from `grid.padding` would line up
+	 * on one chart and drift on the next.
+	 */
+	behind?: { curve: ResourceCurve; label: string; stroke: string; fill: string };
 }) {
 	/**
 	 * Only the rows that have something in them.
@@ -163,8 +181,10 @@ export default function WindowTracks({
 	const drawn = useMemo(() => tracks.filter((track) => track.windows.length > 0), [tracks]);
 	const height = drawn.length * ROW_HEIGHT + CHROME;
 
+	// Takes the view reporter as a second argument rather than closing over one, so the same builder
+	// serves the plain chart and the overlaid one — see `Overlaid`.
 	const build = useCallback(
-		({ theme, narrow, animate, touch }: ChartEnv): ApexOptions => {
+		({ theme, narrow, animate, touch }: ChartEnv, onView?: (min: number, max: number) => void): ApexOptions => {
 			const floor = minimumSpan(durationMs);
 			const spans = drawn.flatMap(({ label: row, tone, windows, lengthLabel, widen = true }) =>
 				windows.map(([start, end]): Span => ({
@@ -193,6 +213,7 @@ export default function WindowTracks({
 						scrubbable: true,
 						durationMs,
 						touch,
+						onView,
 					}),
 				},
 				// One series for every row: the tracks are one measurement split by state, not several
@@ -219,5 +240,173 @@ export default function WindowTracks({
 		[chartId, durationMs, drawn, height],
 	);
 
-	return <ApexChart build={build} height={height} label={label} />;
+	if (behind === undefined) return <ApexChart build={build} height={height} label={label} />;
+	return <Overlaid behind={behind} durationMs={durationMs} build={build} height={height} label={label} />;
+}
+
+/**
+ * The curve, laid into the chart's own plot rectangle.
+ *
+ * Behind the bars in paint order and inert to the pointer, so the tooltip, the scrub and the keyboard
+ * path all still belong to the chart. It draws nothing until the rectangle has been measured, which is
+ * the honest state: an overlay at the wrong offset is worse than one that arrives a frame late.
+ */
+function Overlaid({
+	behind,
+	durationMs,
+	build: outer,
+	height,
+	label,
+}: {
+	behind: { curve: ResourceCurve; label: string; stroke: string; fill: string };
+	durationMs: number;
+	/** The parent's builder, which takes the view reporter this component supplies. */
+	build: (env: ChartEnv, onView?: (min: number, max: number) => void) => ApexOptions;
+	height: number;
+	label: string;
+}) {
+	const host = useRef<HTMLDivElement>(null);
+	/**
+	 * The window the reader is looking at, which is the whole pull until they zoom.
+	 *
+	 * Reported by the chart rather than inferred, because the overlay has no other way to know: zooming
+	 * does not move or resize the plot rectangle, it redraws different data inside the same one, so
+	 * nothing the `ResizeObserver` watches changes at all.
+	 *
+	 * The reporter only ever calls `setView`, whose identity React guarantees is stable — which is what
+	 * makes it safe to hand to event handlers the library captures once when it builds its options.
+	 */
+	const [view, setView] = useState<{ min: number; max: number }>({ min: 0, max: durationMs });
+	const [box, setBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+
+	useEffect(() => {
+		const element = host.current;
+		if (element === null) return;
+
+		const measure = () => {
+			const grid = element.querySelector('.apexcharts-grid');
+			if (grid === null) return false;
+			const outer = element.getBoundingClientRect();
+			const inner = grid.getBoundingClientRect();
+			if (inner.width <= 0) return false;
+			setBox({
+				left: inner.left - outer.left,
+				top: inner.top - outer.top,
+				width: inner.width,
+				height: inner.height,
+			});
+			return true;
+		};
+
+		// The chart imports ApexCharts lazily and draws on a later tick, so the grid does not exist yet on
+		// the first pass. Poll briefly rather than racing it, then stop: a chart that never drew is a
+		// chart with nothing to align to.
+		let tries = 0;
+		const timer = window.setInterval(() => {
+			tries += 1;
+			if (measure() || tries > 40) window.clearInterval(timer);
+		}, 50);
+
+		const observer = new ResizeObserver(() => measure());
+		observer.observe(element);
+		return () => {
+			window.clearInterval(timer);
+			observer.disconnect();
+		};
+	}, []);
+
+	/**
+	 * The curve across the *visible* window, not across the pull.
+	 *
+	 * Zooming does not move this SVG — the library redraws its own plot inside the same rectangle — so
+	 * the mapping has to follow `view` or the overlay keeps painting four minutes across a chart showing
+	 * twenty seconds of them. Readings outside the window are dropped rather than clipped, with one kept
+	 * on each side so the line still enters and leaves at the edges instead of starting at the first
+	 * sample inside.
+	 */
+	const path = useMemo(() => {
+		if (box === null) return null;
+		const span = Math.max(1, view.max - view.min);
+		const max = Math.max(1, behind.curve.max);
+		const x = (t: number) => ((t - view.min) / span) * box.width;
+		const y = (v: number) => box.height - (v / max) * box.height;
+
+		const points = behind.curve.points;
+		let from = 0;
+		let to = points.length - 1;
+		while (from < points.length - 1 && (points[from + 1]?.[0] ?? 0) < view.min) from += 1;
+		while (to > 0 && (points[to - 1]?.[0] ?? 0) > view.max) to -= 1;
+		const visible = points.slice(from, to + 1);
+		if (visible.length < 2) return null;
+
+		// **Steps, not a polyline, and the same argument `ResourceTrack` makes.** The curve is sampled at
+		// irregular instants and holds its value between them, so a diagonal drawn between two readings is
+		// a climb that never happened — `Vengeance.tsx` draws this same curve in `steps` mode and says so.
+		// Two renderings of one curve disagreeing about its shape is worse than either being wrong.
+		const line = visible
+			.map(([t, v], i) =>
+				i === 0 ? `M${x(t).toFixed(1)} ${y(v).toFixed(1)}` : `H${x(t).toFixed(1)}V${y(v).toFixed(1)}`,
+			)
+			.join('');
+
+		// The ceiling, where the curve carries a moving one. Omitting it here reintroduced exactly the
+		// fault `ResourceCurve.ceiling` was added to remove: scaled by a single `max`, a stretch where the
+		// limit rose to meet the player reads as the player falling away from it.
+		const ceiling = behind.curve.ceiling;
+		const capLine =
+			ceiling === undefined || ceiling.length === 0
+				? ''
+				: ceiling
+						.map(([t, v], i) =>
+							i === 0 ? `M${x(t).toFixed(1)} ${y(v).toFixed(1)}` : `H${x(t).toFixed(1)}V${y(v).toFixed(1)}`,
+						)
+						.join('') + `H${x(view.max).toFixed(1)}`;
+
+		return { line, capLine };
+	}, [behind.curve, box, view]);
+
+	// Rebuilt here rather than in the parent so the chart's own `onView` can reach this component's
+	// state. The dependency list is the parent's plus the setter, which never changes identity.
+	const build = useCallback(
+		(env: ChartEnv): ApexOptions =>
+			// Same bail as the box above: `boundsWithin`'s `scrolled` publishes on every scroll frame, and a
+			// fresh `{min, max}` re-renders even when the window has not actually moved.
+			outer(env, (min, max) =>
+				setView((current) => (current.min === min && current.max === max ? current : { min, max })),
+			),
+		[outer],
+	);
+
+	return (
+		<div ref={host} className="relative">
+			{box === null || path === null ? null : (
+				<svg
+					className="pointer-events-none absolute"
+					style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
+					viewBox={`0 0 ${box.width} ${box.height}`}
+					preserveAspectRatio="none"
+					aria-hidden="true"
+				>
+					<path
+						d={`${path.line}L${box.width.toFixed(1)} ${box.height}L0 ${box.height}Z`}
+						fill={behind.fill}
+						stroke="none"
+					/>
+					{path.capLine === '' ? null : (
+						<path
+							d={path.capLine}
+							fill="none"
+							stroke={behind.stroke}
+							strokeWidth={1}
+							strokeDasharray="4 3"
+							strokeOpacity={0.55}
+							vectorEffect="non-scaling-stroke"
+						/>
+					)}
+					<path d={path.line} fill="none" stroke={behind.stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+				</svg>
+			)}
+			<ApexChart build={build} height={height} label={label} />
+		</div>
+	);
 }

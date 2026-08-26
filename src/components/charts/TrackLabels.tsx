@@ -64,14 +64,30 @@ export default function TrackLabels({ tracks, width }: { tracks: Track[]; width:
 	if (band === null) return <div ref={host} className="hidden" />;
 
 	return (
+		// **`pointer-events-none` on the column, restored on each row, and both halves are load-bearing.**
+		// The column is drawn over the chart, and ApexCharts' own `svg.apexcharts-zoomable` covers the
+		// full width of its canvas — the reserved gutter included. Whichever of the two takes a pointer
+		// event, the other cannot have it.
+		//
+		// Transparent everywhere meant the chart won every time, which cost two things a reader noticed:
+		// dragging on a label panned the chart, and hovering a spell icon never reached the link, so
+		// Wowhead's widget — which works by delegating from `mouseover` on the document — had nothing to
+		// fire on and no tooltip appeared on any row of any timeline.
+		//
+		// Solid everywhere is the opposite fault: the gutter is inside the chart's canvas, so a wholly
+		// opaque column would swallow drags that belong to the plot and break panning from the left edge.
+		//
+		// So the rows take their events back and the space between and around them does not. `z-10` puts
+		// them above the canvas, which paints after this in DOM order and would otherwise cover them
+		// however their events were set.
 		<div
 			ref={host}
 			aria-hidden="true"
-			className="pointer-events-none absolute left-0 flex flex-col"
+			className="pointer-events-none absolute left-0 z-10 flex flex-col"
 			style={{ top: band.top, height: band.height, width }}
 		>
 			{tracks.map((track) => (
-				<div key={track.label} className="flex flex-1 items-center gap-2 pr-2">
+				<div key={track.label} className="pointer-events-auto flex flex-1 items-center gap-2 pr-2">
 					<SpellIcon id={track.iconId} size="sm" />
 					<span className="truncate font-mono text-sm text-ink-2">{track.label}</span>
 				</div>

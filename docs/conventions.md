@@ -478,10 +478,18 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of Touch of Karma's ceiling being computed from stamina and the summary losing its KPI row, it
-prints 1383 leaves, 679 prose, 21,093 words; median 26, p75 42, p90 63, p95 77, p99 97, max 160;
-longest 9% carry 24%; report.json 612 prose leaves, 1,045 sentences, median 17, 199 past 25 (19.0%),
-256 em-dashes in 221 sentences (21.1%); 46 / 21 / 1 / 2 on the quote lines.
+As of the externals chart naming the reader's own presses, it prints 1556 leaves, 751 prose, 24,657 words;
+median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 682 prose leaves,
+1,203 sentences, median 17, 245 past 25 (20.4%), 288 em-dashes in 247 sentences (20.5%);
+60 / 23 / 1 / 2 on the quote lines.
+
+Two commits sit behind those figures and they moved different halves of the file. The `fight.note.*`
+paragraphs took p99 from 97 to 117 and the max from 160 to 204 while both medians held — they had been
+English literals in `lib/analysis/enforced.ts`, so the longest prose in the tree was also the only prose
+no census had ever counted. The seventeen Protection rung labels then added leaves without adding words:
+a label is a spell's name and sometimes a short clause, so `prose` rose by two against seventeen new
+leaves, and the only figure they really move is the straight apostrophe, up three for Avenger's Shield
+and Light's Hammer.
 
 <!-- /census:figures -->
 

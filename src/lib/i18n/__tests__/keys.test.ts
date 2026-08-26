@@ -8,12 +8,16 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ENFORCED_PROFILES } from '~/lib/analysis/enforced';
 import { RAID_BUFF_EFFECT_KEYS } from '~/lib/analysis/raidBuffs';
 import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
 import { THRESHOLDS as ELE_THRESHOLDS } from '~/specs/elemental/lib/score';
+import { LADDER_ENTRIES as PROT_LADDER } from '~/specs/protection/lib/apl';
+import { THRESHOLDS as PROT_THRESHOLDS } from '~/specs/protection/lib/score';
+import { PROTECTION_SPEC } from '~/specs/protection';
 import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
 import { WW_SPEC } from '~/specs/windwalker';
 import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
@@ -668,16 +672,23 @@ describe('report copy with no reader', () => {
 				't16-2pc-not-in-log',
 			],
 		},
-		// The bars the cast log draws a lane for: each spec's own `resources`, and the counter row its
-		// `timelineBanks` adds beside them. Both halves, because both halves reach the same copy.
+		// The bars the cast log draws a lane for: each spec's own `resources`, the counter row its
+		// `timelineBanks` adds beside them, and the bars a spec computes for itself rather than declaring.
+		//
+		// **All three halves, because all three reach the same copy.** `extraResources` is the last of
+		// them and the one a key list cannot discover: a declared bar is a `resources` entry that can be
+		// read off the config, while an extra one is built inside a function at analysis time. Naming its
+		// keys here is the price of the seam — see `SpecConfig.extraResources`.
 		castLogBar: {
-			where: 'both specs’ `SpecConfig.resources`, plus each spec’s `timelineBanks`',
+			where: 'every spec’s `SpecConfig.resources`, its `extraResources`, and its `timelineBanks`',
 			keys: () => [
 				...Object.keys(WW_SPEC.resources ?? {}),
 				...Object.keys(ELEMENTAL_SPEC.resources ?? {}),
+				...Object.keys(PROTECTION_SPEC.resources ?? {}),
+				...EXTRA_RESOURCE_KEYS,
 				...bankKeys(),
 			],
-			pinned: ['brew', 'chi', 'energy', 'lightningShield', 'mana'],
+			pinned: ['brew', 'chi', 'energy', 'holyPower', 'lightningShield', 'mana', 'vengeance'],
 		},
 		castLogGrouping: {
 			where: 'components/charts/CastTimeline.tsx → GROUPINGS',
@@ -774,10 +785,45 @@ describe('report copy with no reader', () => {
 				'tigereyeBrewRune',
 			],
 		},
+		/**
+		 * The two kinds of excuse a boss rule can carry, and they are not equally strong — a `lockout` was
+		 * measured off the press stream and a `declared` is a reader's judgement about a phase. The report
+		 * prints which one it applied rather than flattening them, so both need a word.
+		 */
+		enforcedBasis: {
+			where: 'lib/analysis/enforced.ts → EnforcedRule.basis',
+			keys: () => ['lockout', 'declared'],
+			pinned: ['declared', 'lockout'],
+		},
+		/**
+		 * The encounters whose profile has something to say that its rules do not, one note apiece.
+		 *
+		 * A live set and not a wildcard for the reason the block above gives: these notes are mostly
+		 * about rules that were *refused*, and a boss that later earns a real rule loses its note. Left
+		 * as `*` the retired paragraph would sit in the tree unread, which is the exact shape the four
+		 * unread `grade.*` labels had.
+		 */
+		enforcedNote: {
+			where: 'lib/analysis/enforced.ts → EnforcedProfile.noteKey',
+			keys: () => ENFORCED_PROFILES.map((profile) => profile.noteKey).filter((key) => key !== undefined),
+			pinned: [
+				'fallen-protectors',
+				'garrosh-hellscream',
+				'general-nazgrim',
+				'immerseus',
+				'iron-juggernaut',
+				'kor-kron-dark-shaman',
+				'malkorok',
+				'paragons-of-the-klaxxi',
+				'siegecrafter-blackfuse',
+				'spoils-of-pandaria',
+				'thok-the-bloodthirsty',
+			],
+		},
 		gate: {
 			where: 'lib/game/model.ts → Gate',
 			keys: () => declaredArms('lib/game/model.ts', /export type Gate =/),
-			pinned: ['chi', 'conditional', 'cooldown', 'energy', 'other'],
+			pinned: ['chi', 'conditional', 'cooldown', 'energy', 'holy-power', 'other'],
 		},
 		grade: {
 			where: 'lib/score/model.ts → GRADE_ORDER',
@@ -786,26 +832,43 @@ describe('report copy with no reader', () => {
 		},
 		// Both specs' ladders, because one shared `priority.rule.*` root holds both lists' rule ids.
 		ladderRule: {
-			where: 'both specs’ `LADDER_ENTRIES`',
-			keys: () => [...WW_LADDER, ...ELE_LADDER].map((entry) => entry.key),
+			where: 'all three specs’ `LADDER_ENTRIES`',
+			keys: () => [...WW_LADDER, ...ELE_LADDER, ...PROT_LADDER].map((entry) => entry.key),
 			pinned: [
+				'avengers-shield',
+				'avengers-shield-grand-crusader',
 				'blackout-kick',
 				'chain-lightning',
 				'chi-wave',
 				'combo-breaker-kick',
 				'combo-breaker-palm',
+				'consecration',
+				'consecration-multi',
+				'crusader-strike',
+				'crusader-strike-holy-avenger',
 				'earth-shock',
 				'elemental-blast',
+				'execution-sentence',
 				'fists-of-fury',
 				'flame-shock',
+				'hammer-of-the-righteous',
+				'hammer-of-the-righteous-holy-avenger',
+				'hammer-of-wrath',
+				'holy-prism',
+				'holy-wrath',
 				'jab',
+				'judgment',
+				'judgment-sanctified-wrath',
 				'lava-beam',
 				'lava-burst',
 				'lightning-bolt',
+				'lights-hammer',
 				'rising-sun-kick',
 				'rising-sun-kick-filler',
 				'rushing-jade-wind',
 				'rushing-jade-wind-open',
+				'sacred-shield',
+				'sacred-shield-refresh',
 				'searing-totem',
 				'spinning-crane-kick',
 				'spinning-crane-kick-heavy',
@@ -876,13 +939,19 @@ describe('report copy with no reader', () => {
 		 */
 		scorecardMetric: {
 			where: 'both specs’ `THRESHOLDS`',
-			keys: () => [...new Set([...Object.keys(WW_THRESHOLDS), ...Object.keys(ELE_THRESHOLDS)])],
+			keys: () => [
+				...new Set([...Object.keys(WW_THRESHOLDS), ...Object.keys(ELE_THRESHOLDS), ...Object.keys(PROT_THRESHOLDS)]),
+			],
 			pinned: [
 				'brewCapWaste',
 				'brewShortUses',
 				'brewStacks',
+				'cooldownsMissed',
 				'earthShockWaste',
+				'externalsMissed',
 				'fireElementalHasteUptime',
+				'hasteToBreakpoint',
+				'globalsMissed',
 				'fireElementalPrepull',
 				'flameShockMultiDot',
 				'flameShockUptime',
@@ -913,6 +982,15 @@ describe('report copy with no reader', () => {
 	 * fifth indirect route, or a family whose source has been renamed out from under it, cannot arrive
 	 * without showing up here.
 	 */
+	/**
+	 * Bars a spec builds in `extraResources` rather than declaring in `resources`.
+	 *
+	 * Listed by hand because there is nothing to enumerate: the seam hands back a map built at analysis
+	 * time, so its keys exist only inside a closure. A spec that adds one and forgets this line fails the
+	 * orphan check on its own copy, which is the intended way to find out.
+	 */
+	const EXTRA_RESOURCE_KEYS = ['vengeance'] as const;
+
 	const FAMILY_SOURCE: Record<string, string> = {
 		'ascendance.read.fault.*': 'ascendanceFault',
 		'ascendance.read.reason.*': 'ascendanceReason',
@@ -922,6 +1000,8 @@ describe('report copy with no reader', () => {
 		'castLog.target.*Title': 'castLogGrouping',
 		'casts.gate.*': 'gate',
 		'earthElemental.state.*': 'earthElementalState',
+		'fight.basis.*': 'enforcedBasis',
+		'fight.note.*': 'enforcedNote',
 		'earthShock.state.*': 'earthShockReason',
 		'elementalMastery.state.*': 'elementalMasteryReason',
 		'fireElemental.state.*': 'fireElementalReason',
@@ -960,20 +1040,22 @@ describe('report copy with no reader', () => {
 	const FAMILY_LEAVES: Record<string, number> = {
 		'ascendance.read.fault.*': 5,
 		'ascendance.read.reason.*': 6,
-		'castLog.resource.*': 5,
-		'castLog.resourceAria.*': 5,
+		'castLog.resource.*': 7,
+		'castLog.resourceAria.*': 7,
 		'castLog.target.*': 3,
 		'castLog.target.*Title': 3,
-		// Four and not five: `Gate` carries an `other` arm and no section prints a column for it.
-		'casts.gate.*': 4,
+		// Five and not six: `Gate` carries an `other` arm and no section prints a column for it.
+		'casts.gate.*': 5,
 		'earthElemental.state.*': 3,
+		'fight.basis.*': 2,
+		'fight.note.*': 11,
 		'earthShock.state.*': 7,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,
 		// Nine against seven press kinds: `snapshot` stores two narrowings, and the peel counts both.
 		'flameShock.state.*': 9,
 		'overall.*': 3,
-		'priority.rule.*': 22,
+		'priority.rule.*': 39,
 		// More than the seven effects, on both: each is stored per spec where the two want different words.
 		'raidBuffs.effects.*': 9,
 		'raidBuffs.worth.*': 14,
@@ -992,7 +1074,7 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.label': 23,
+		'summary.takeaways.metric.*.label': 27,
 	};
 
 	/**

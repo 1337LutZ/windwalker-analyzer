@@ -431,7 +431,7 @@ const LANE_RULE = 'border-b border-line/40';
  * The sections that argue about each bar, keyed by the bar's own key. A bar with no section gets no
  * jump link — the mana bar on an Elemental report has nothing to argue it, so its label is a span.
  */
-const RESOURCE_SECTION: Readonly<Record<string, string>> = { energy: 'energy', chi: 'chi' };
+const RESOURCE_SECTION: Readonly<Record<string, string>> = { energy: 'energy', chi: 'chi', vengeance: 'vengeance' };
 
 /**
  * The resource lanes this pull actually carries, derived from the audited bars rather than hardcoded:

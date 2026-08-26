@@ -368,6 +368,27 @@ export interface AplInputs {
 	 */
 	offLadderCooldowns?: Readonly<Partial<Record<number, { cooldownMs: number; casts: readonly number[] }>>>;
 	/**
+	 * This ladder's cooldowns as a press at that moment stamps them, in ms — for a spec whose cooldowns
+	 * move with haste.
+	 *
+	 * Absent is the ordinary case and keeps every figure exactly where it was: `AplRule.cooldownMs`, one
+	 * number for the whole pull. The Protection ladder is the first that cannot use it. Sanctity of Battle
+	 * divides every generator's cooldown by melee haste, so a Judgment declared at 6000 is off cooldown
+	 * 1.8s before this walk believes it at the haste that spec targets — and a rung the walk thinks is on
+	 * cooldown is a rung the list is not offering, so the skip below it is charged to the wrong button.
+	 *
+	 * The same shape and the same argument as `cooldownDrift`'s own `cooldownAt` parameter in
+	 * `analysis/cooldowns.ts`, and the same *when*: `sim/core/cast.go` stamps
+	 * `spell.CD.Set(sim.CurrentTime + cd)` at the press, so a cooldown started before Bloodlust runs its
+	 * full length and one started inside it does not. Asked at the press being judged rather than at the
+	 * press that armed the clock would answer a different question; this is called with the arming press's
+	 * instant, which is the one the game stamped.
+	 *
+	 * Consulted by `ready` and by `cooldownsAt` alike, so a rule reading `cooldowns.readyInSec` gets the
+	 * same clock its own readiness was decided on.
+	 */
+	cooldownMsAt?: (id: number, t: number) => number;
+	/**
 	 * On-GCD buttons this ladder does not arbitrate, keyed by cast id, each naming the section that does.
 	 *
 	 * The engine already has a verdict for "nothing on this list wanted the global" — `off-list` at the
@@ -700,11 +721,19 @@ function bandFor(rule: AplRule, state: State, inputs: AplInputs): Band {
 // scheduled at `Hardcast.Expires` — `begincast + castTime` (`sim/core/gcd.go:8-24`). So `sim.CurrentTime`
 // there *is* the landing, and the cooldown is armed at the landing. An instant press runs the same two
 // statements inline at `:241`, where the two instants coincide anyway.
-function ready(rule: AplRule, t: number, lastCast: ReadonlyMap<number, number>, auras: AuraReader): boolean {
+function ready(
+	rule: AplRule,
+	t: number,
+	lastCast: ReadonlyMap<number, number>,
+	auras: AuraReader,
+	cooldownMsAt?: AplInputs['cooldownMsAt'],
+): boolean {
 	if (rule.cooldownMs === undefined) return true;
 	if (rule.readyWhen !== undefined && rule.readyWhen(auras)) return true;
 	const last = lastCast.get(rule.id);
-	return last === undefined || t - last >= rule.cooldownMs;
+	if (last === undefined) return true;
+	// Stamped at the press that armed it, not at the press being judged — see `AplInputs.cooldownMsAt`.
+	return t - last >= (cooldownMsAt?.(rule.id, last) ?? rule.cooldownMs);
 }
 
 /** Cooldown state at a moment, read off the presses that came before. */
@@ -713,6 +742,7 @@ function cooldownsAt(
 	ladder: readonly AplRule[],
 	lastCast: ReadonlyMap<number, number>,
 	offLadder?: AplInputs['offLadderCooldowns'],
+	cooldownMsAt?: AplInputs['cooldownMsAt'],
 ): CooldownReader {
 	const cooldownBy = new Map<number, number>();
 	for (const rule of ladder) {
@@ -747,7 +777,9 @@ function cooldownsAt(
 				last = lastCast.get(id);
 			}
 			if (last === undefined) return 0;
-			return Math.max(0, last + cooldownMs - t) / 1000;
+			// The curve, where the spec supplied one, read at the arming press for the reason `ready` reads
+			// it there. `cooldownMs` is the flat fallback and is what every spec without a curve gets.
+			return Math.max(0, last + (cooldownMsAt?.(id, last) ?? cooldownMs) - t) / 1000;
 		},
 	};
 }
@@ -849,7 +881,7 @@ function judge(
 		// never pressing one is a fault this ladder can still name. Two-valued, and where it always was:
 		// see `knowsTalent` for why the third answer is not taken and what it was measured to cost.
 		if (!knowsTalent(rule, inputs, seen)) continue;
-		if (!ready(rule, state.t, lastCast, auras)) continue;
+		if (!ready(rule, state.t, lastCast, auras, inputs.cooldownMsAt)) continue;
 
 		// A rule the press itself satisfies is not worth stopping for: pressing the button the list might
 		// have wanted cannot be the mistake the unknown is hiding.
@@ -970,7 +1002,7 @@ export function aplAudit(inputs: AplInputs, ladder: readonly AplRule[]): AplAudi
 		// the one exception and `stateAt` explains why.
 		const state = stateAt(cast.decidedAt, cast.t, inputs);
 		const auras = readerAt(cast.decidedAt, inputs);
-		const cooldowns = cooldownsAt(cast.decidedAt, ladder, lastCast, inputs.offLadderCooldowns);
+		const cooldowns = cooldownsAt(cast.decidedAt, ladder, lastCast, inputs.offLadderCooldowns, inputs.cooldownMsAt);
 		const verdict = judge(cast, state, auras, cooldowns, seen, reduction, lastCast, ladder, inputs);
 		presses.push(verdict);
 		if (verdict.verdict === 'skipped' && verdict.wanted !== null) {

@@ -1,19 +1,35 @@
 {
 	"source": {
 		"repo": "wowsims/mop",
-		"commit": "49588f62b50966e304f8f0eeb0067de9666849c3",
-		"committed": "2026-08-21T06:52:09.000Z",
-		"fromDatabase": 87,
-		"fromWowhead": 192
+		"commit": "18a346ec8cc52c6e3fc66ac8a8d269428ca1be11",
+		"committed": "2026-08-25T11:27:51.000Z",
+		"fromDatabase": 120,
+		"fromWowhead": 213
 	},
 	"spells": {
 		"1": {
 			"name": "Melee",
 			"icon": "inv_sword_04"
 		},
+		"61": {
+			"name": "Really Long bow shot (TEST)",
+			"icon": "trade_engineering"
+		},
+		"77": {
+			"name": "Turtle's Shell",
+			"icon": "trade_engineering"
+		},
+		"246": {
+			"name": "Slow",
+			"icon": "spell_nature_slow"
+		},
 		"324": {
 			"name": "Lightning Shield",
 			"icon": "spell_nature_lightningshield"
+		},
+		"370": {
+			"name": "Purge",
+			"icon": "spell_nature_purge"
 		},
 		"403": {
 			"name": "Lightning Bolt",
@@ -22,6 +38,14 @@
 		"421": {
 			"name": "Chain Lightning",
 			"icon": "spell_nature_chainlightning"
+		},
+		"498": {
+			"name": "Divine Protection",
+			"icon": "spell_holy_divineprotection"
+		},
+		"633": {
+			"name": "Lay on Hands",
+			"icon": "spell_holy_layonhands"
 		},
 		"774": {
 			"name": "Rejuvenation",
@@ -79,6 +103,10 @@
 			"name": "Battle Shout",
 			"icon": "ability_warrior_battleshout"
 		},
+		"6940": {
+			"name": "Hand of Sacrifice",
+			"icon": "spell_holy_sealofsacrifice"
+		},
 		"8004": {
 			"name": "Healing Surge",
 			"icon": "classic_spell_nature_healingway"
@@ -90,6 +118,10 @@
 		"8050": {
 			"name": "Flame Shock",
 			"icon": "spell_fire_flameshock"
+		},
+		"8056": {
+			"name": "Frost Shock",
+			"icon": "spell_frost_frostshock"
 		},
 		"8177": {
 			"name": "Grounding Totem",
@@ -127,13 +159,33 @@
 			"name": "Blessing of Might",
 			"icon": "spell_holy_greaterblessingofkings"
 		},
+		"20154": {
+			"name": "Seal of Righteousness",
+			"icon": "spell_holy_righteousnessaura"
+		},
+		"20165": {
+			"name": "Seal of Insight",
+			"icon": "spell_holy_healingaura"
+		},
 		"20217": {
 			"name": "Blessing of Kings",
 			"icon": "spell_magic_greaterblessingofkings"
 		},
+		"20271": {
+			"name": "Judgment",
+			"icon": "spell_holy_righteousfury"
+		},
+		"20925": {
+			"name": "Sacred Shield",
+			"icon": "ability_paladin_blessedmending"
+		},
 		"21562": {
 			"name": "Power Word: Fortitude",
 			"icon": "spell_holy_wordfortitude"
+		},
+		"24275": {
+			"name": "Hammer of Wrath",
+			"icon": "spell_paladin_hammerofwrath"
 		},
 		"24604": {
 			"name": "Furious Howl",
@@ -151,6 +203,10 @@
 			"name": "Arcane Torrent",
 			"icon": "spell_shadow_teleport"
 		},
+		"25780": {
+			"name": "Righteous Fury",
+			"icon": "spell_holy_sealoffury"
+		},
 		"26297": {
 			"name": "Berserking",
 			"icon": "racial_troll_berserk"
@@ -158,6 +214,10 @@
 		"26364": {
 			"name": "Lightning Shield",
 			"icon": "spell_nature_lightning"
+		},
+		"26573": {
+			"name": "Consecration",
+			"icon": "spell_holy_innerfire"
 		},
 		"28730": {
 			"name": "Arcane Torrent",
@@ -171,9 +231,29 @@
 			"name": "Shamanistic Rage",
 			"icon": "spell_nature_shamanrage"
 		},
+		"31801": {
+			"name": "Seal of Truth",
+			"icon": "spell_holy_sealofvengeance"
+		},
+		"31803": {
+			"name": "Censure",
+			"icon": "spell_holy_sealofvengeance"
+		},
 		"31821": {
 			"name": "Devotion Aura",
 			"icon": "spell_holy_auramastery"
+		},
+		"31850": {
+			"name": "Ardent Defender",
+			"icon": "spell_holy_ardentdefender"
+		},
+		"31884": {
+			"name": "Avenging Wrath",
+			"icon": "spell_holy_avenginewrath"
+		},
+		"31935": {
+			"name": "Avenger's Shield",
+			"icon": "spell_holy_avengersshield"
 		},
 		"32182": {
 			"name": "Heroism",
@@ -182,6 +262,14 @@
 		"33697": {
 			"name": "Blood Fury",
 			"icon": "racial_orc_berserkerstrength"
+		},
+		"35395": {
+			"name": "Crusader Strike",
+			"icon": "spell_holy_crusaderstrike"
+		},
+		"42463": {
+			"name": "Seal of Truth",
+			"icon": "spell_holy_sealofvengeance"
 		},
 		"44203": {
 			"name": "Tranquility",
@@ -247,6 +335,14 @@
 			"name": "Ancestral Awakening",
 			"icon": "spell_shaman_ancestralawakening"
 		},
+		"53595": {
+			"name": "Hammer of the Righteous",
+			"icon": "ability_paladin_hammeroftherighteous"
+		},
+		"53600": {
+			"name": "Shield of the Righteous",
+			"icon": "ability_paladin_shieldofvengeance"
+		},
 		"54861": {
 			"name": "Nitro Boosts",
 			"icon": "spell_fire_burningspeed"
@@ -270,6 +366,14 @@
 		"61316": {
 			"name": "Dalaran Brilliance",
 			"icon": "achievement_dungeon_theviolethold_heroic"
+		},
+		"61882": {
+			"name": "Earthquake",
+			"icon": "spell_shaman_earthquake"
+		},
+		"62124": {
+			"name": "Reckoning",
+			"icon": "spell_holy_unyieldingfaith"
 		},
 		"69179": {
 			"name": "Arcane Torrent",
@@ -303,6 +407,10 @@
 			"name": "Greater Healing Wave",
 			"icon": "spell_nature_healingwavelesser"
 		},
+		"77478": {
+			"name": "Earthquake",
+			"icon": "spell_shaman_earthquake"
+		},
 		"77747": {
 			"name": "Burning Wrath",
 			"icon": "spell_fire_totemofwrath"
@@ -331,6 +439,10 @@
 			"name": "Efflorescence",
 			"icon": "inv_misc_herb_talandrasrose"
 		},
+		"81297": {
+			"name": "Consecration",
+			"icon": "spell_holy_innerfire"
+		},
 		"81751": {
 			"name": "Atonement",
 			"icon": "spell_holy_circleofrenewal"
@@ -343,9 +455,33 @@
 			"name": "Holy Radiance",
 			"icon": "spell_paladin_divinecircle"
 		},
+		"84839": {
+			"name": "Vengeance",
+			"icon": "spell_shadow_charm"
+		},
+		"85416": {
+			"name": "Grand Crusader",
+			"icon": "inv_helmet_74"
+		},
+		"85499": {
+			"name": "Speed of Light",
+			"icon": "ability_paladin_speedoflight"
+		},
+		"85673": {
+			"name": "Word of Glory",
+			"icon": "inv_helmet_96"
+		},
 		"86273": {
 			"name": "Illuminated Healing",
 			"icon": "spell_holy_absolution"
+		},
+		"86659": {
+			"name": "Guardian of Ancient Kings",
+			"icon": "spell_holy_heroism"
+		},
+		"88263": {
+			"name": "Hammer of the Righteous",
+			"icon": "ability_paladin_hammeroftherighteous"
 		},
 		"88765": {
 			"name": "Rolling Thunder",
@@ -354,6 +490,10 @@
 		"88767": {
 			"name": "Fulmination",
 			"icon": "spell_nature_unrelentingstorm"
+		},
+		"90174": {
+			"name": "Divine Purpose",
+			"icon": "spell_holy_mindvision"
 		},
 		"90309": {
 			"name": "Terrifying Roar",
@@ -387,9 +527,17 @@
 			"name": "Synapse Springs",
 			"icon": "spell_shaman_elementaloath"
 		},
+		"96231": {
+			"name": "Rebuke",
+			"icon": "spell_holy_rebuke"
+		},
 		"97463": {
 			"name": "Rallying Cry",
 			"icon": "ability_toughness"
+		},
+		"98057": {
+			"name": "Grand Crusader",
+			"icon": "inv_helmet_74"
 		},
 		"100780": {
 			"name": "Jab",
@@ -402,6 +550,10 @@
 		"100787": {
 			"name": "Tiger Palm",
 			"icon": "ability_monk_tigerpalm"
+		},
+		"101423": {
+			"name": "Seal of Righteousness",
+			"icon": "spell_holy_righteousnessaura"
 		},
 		"101545": {
 			"name": "Flying Serpent Kick",
@@ -435,6 +587,10 @@
 			"name": "Ancestral Vigor",
 			"icon": "spell_shaman_blessingoftheeternals"
 		},
+		"105593": {
+			"name": "Fist of Justice",
+			"icon": "spell_holy_fistofjustice"
+		},
 		"105682": {
 			"name": "Mad Hozen Elixir",
 			"icon": "trade_alchemy_potionb1"
@@ -458,6 +614,14 @@
 		"105702": {
 			"name": "Potion of the Jade Serpent",
 			"icon": "trade_alchemy_potiond4"
+		},
+		"105706": {
+			"name": "Potion of Mogu Power",
+			"icon": "trade_alchemy_potiond5"
+		},
+		"105809": {
+			"name": "Holy Avenger",
+			"icon": "ability_paladin_holyavenger"
 		},
 		"107270": {
 			"name": "Spinning Crane Kick",
@@ -507,6 +671,10 @@
 			"name": "Divine Star",
 			"icon": "spell_priest_divinestar"
 		},
+		"113075": {
+			"name": "Barkskin",
+			"icon": "spell_nature_stoneclawtotem"
+		},
 		"113656": {
 			"name": "Fists of Fury",
 			"icon": "monk_ability_fistoffury"
@@ -531,6 +699,10 @@
 			"name": "Restorative Mists",
 			"icon": "spell_shaman_tidalwaves"
 		},
+		"114158": {
+			"name": "Light's Hammer",
+			"icon": "spell_paladin_lightshammer"
+		},
 		"114163": {
 			"name": "Eternal Flame",
 			"icon": "inv_torch_thrown"
@@ -539,9 +711,21 @@
 			"name": "Skull Banner",
 			"icon": "warrior_skullbanner"
 		},
+		"114232": {
+			"name": "Sanctified Wrath",
+			"icon": "ability_paladin_sanctifiedwrath"
+		},
+		"114637": {
+			"name": "Bastion of Glory",
+			"icon": "achievement_dungeon_ulduarraid_misc_03"
+		},
 		"114738": {
 			"name": "Lava Beam",
 			"icon": "spell_fire_soulburn"
+		},
+		"114852": {
+			"name": "Holy Prism",
+			"icon": "spell_paladin_holyprism"
 		},
 		"114908": {
 			"name": "Spirit Shell",
@@ -550,6 +734,14 @@
 		"114911": {
 			"name": "Ancestral Guidance",
 			"icon": "ability_shaman_ancestralguidance"
+		},
+		"114916": {
+			"name": "Execution Sentence",
+			"icon": "spell_paladin_executionsentence"
+		},
+		"114919": {
+			"name": "Arcing Light",
+			"icon": "spell_paladin_lightshammer"
 		},
 		"114942": {
 			"name": "Healing Tide",
@@ -598,6 +790,10 @@
 		"115460": {
 			"name": "Healing Sphere",
 			"icon": "ability_monk_healthsphere"
+		},
+		"115546": {
+			"name": "Provoke",
+			"icon": "ability_monk_provoke"
 		},
 		"115687": {
 			"name": "Jab",
@@ -715,6 +911,10 @@
 			"name": "Combo Breaker: Tiger Palm",
 			"icon": "ability_monk_palmstrike"
 		},
+		"119072": {
+			"name": "Holy Wrath",
+			"icon": "spell_holy_weaponmastery"
+		},
 		"119381": {
 			"name": "Leg Sweep",
 			"icon": "ability_monk_legsweep"
@@ -819,6 +1019,10 @@
 			"name": "Nature's Vigil",
 			"icon": "achievement_zone_feralas"
 		},
+		"125282": {
+			"name": "Kafa Boost",
+			"icon": "inv_drink_15"
+		},
 		"125359": {
 			"name": "Tiger Power",
 			"icon": "ability_monk_tigerpalm"
@@ -871,6 +1075,10 @@
 			"name": "Rising Sun Kick",
 			"icon": "ability_monk_risingsunkick"
 		},
+		"132403": {
+			"name": "Shield of the Righteous",
+			"icon": "ability_paladin_shieldofvengeance"
+		},
 		"132467": {
 			"name": "Chi Wave",
 			"icon": "ability_monk_chiwave"
@@ -898,6 +1106,10 @@
 		"138144": {
 			"name": "Item - Shaman T15 Elemental 4P Bonus",
 			"icon": "trade_engineering"
+		},
+		"138242": {
+			"name": "Shield of Glory",
+			"icon": "classic_spell_holy_blessingofprotection"
 		},
 		"138737": {
 			"name": "Blades",
@@ -1014,6 +1226,10 @@
 		"144459": {
 			"name": "Laser Burn",
 			"icon": "ability_deathwing_grasping_tendrils"
+		},
+		"144569": {
+			"name": "Bastion of Power",
+			"icon": "spell_holy_revivechampion"
 		},
 		"144876": {
 			"name": "Spark of Life",

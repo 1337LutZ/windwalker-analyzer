@@ -217,3 +217,11 @@ export const SUMMARY_LANE_KEYS: readonly string[] | null = [
 	'searing-totem',
 	't16-2pc-debuff',
 ];
+
+/**
+ * Every row this spec has, in `TIMELINE_ROW_ORDER`'s order — which is what `null` means.
+ *
+ * The name allowlist is Protection's cut and this spec does not make it: its summary is already the
+ * shape a reader wants. See `specs/protection/lib/view/timelineBanks.ts` for the argument.
+ */
+export const SUMMARY_ROW_NAMES: readonly string[] | null = null;

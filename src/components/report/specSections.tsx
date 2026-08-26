@@ -28,6 +28,9 @@ import {
 	Method,
 	MissLedger,
 	PriorityLadder,
+	// Aliased: the Windwalker has a `PullTimeline` of its own and it is a different component — a
+	// four-track chart with monk spell ids in it — rather than this one with a different string.
+	PullTimeline as SharedPullTimeline,
 	RaidBuffs,
 	Resource,
 } from '../sections';
@@ -61,11 +64,12 @@ import {
 	LavaBurst,
 	LightningShield,
 	Mana as ElementalMana,
-	PullTimeline as ElementalPullTimeline,
 	Rotation as ElementalRotation,
 	SearingTotem,
 	Stormlash,
 } from '~/specs/elemental/components/sections';
+import { PROTECTION_SPEC } from '~/specs/protection';
+import { Externals, FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -83,6 +87,20 @@ import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/compone
 function resourceSection(config: Omit<ResourceProps, 'analysis'>): ComponentType<{ analysis: Analysis }> {
 	return function ResourceSection({ analysis }: { analysis: Analysis }) {
 		return <Resource analysis={analysis} {...config} />;
+	};
+}
+
+/**
+ * The summary timeline, which differs between specs only by the sentence above the chart.
+ *
+ * The same shape `resourceSection` above takes, and for the same reason: two specs had a file each
+ * that was identical but for one translation key, so the key is the parameter and the file is shared.
+ * The Windwalker is not built through this — its timeline is `FightTimeline`, a four-track chart with
+ * monk spell ids in it, which is a different component rather than this one with a different string.
+ */
+function pullTimelineSection(intentKey: string): ComponentType<{ analysis: Analysis }> {
+	return function PullTimelineSection({ analysis }: { analysis: Analysis }) {
+		return <SharedPullTimeline analysis={analysis} intentKey={intentKey} />;
 	};
 }
 
@@ -316,7 +334,7 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// First after the summary, because it is the pull itself: every press, every buff, one clock.
 		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
 		// The same pull at a coarser grain: the auras without the presses, read against each other.
-		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: ElementalPullTimeline },
+		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: pullTimelineSection('timeline.eleIntent') },
 		// The pool the casts are paid from, beside the dot it feeds — the one bar an Elemental has, and the
 		// one that is never overcap but is sometimes empty.
 		//
@@ -397,6 +415,87 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: ElementalRotation },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 	],
+	// Three sections of its own and nine shared ones, which is the whole shape of this port: every
+	// figure a generic audit produces is drawn by a component that already exists, and what the spec
+	// adds is the three questions no generic audit can ask.
+	protection: [
+		// The pull before any argument about it. A reader arriving here has just been handed a score,
+		// and what they want first is the four minutes it was taken from — every heading below this one
+		// is an argument about some slice of this chart, and none of them can be checked without it.
+		// Both other specs open the same way for the same reason.
+		{ id: 'cast-log', titleKey: 'castLog.title', group: 'core', Component: CastLog },
+		// The same pull at a coarser grain: the auras without the presses, read against each other. Where
+		// the Elemental puts its own, and second for the same reason — the chart above answers "what did I
+		// press", this one answers "what was up", and the second question is the one every heading below
+		// is really about.
+		//
+		// It could not be registered until the audit had lanes to draw. With `lanes: []` this section drew
+		// the press rows and nothing else, which is the cast log above it with the detail taken out.
+		{
+			id: 'timeline',
+			titleKey: 'timeline.title',
+			group: 'core',
+			Component: pullTimelineSection('timeline.protIntent'),
+		},
+		// What the encounter took away, before the count it explains. These two are one question read
+		// from both ends and the excuses come first: `missedFree` is the globals figure with these
+		// windows already off it, so a reader who meets the number without them has to be talked back
+		// out of it. Meeting them in this order, the number arrives already qualified.
+		{ id: 'fight', titleKey: 'fight.title', group: 'core', Component: FightRules },
+		// The report's subject, and the reason this spec was worth porting: everything under it explains
+		// a part of this number.
+		{ id: 'globals', titleKey: 'globals.title', group: 'core', Component: Globals },
+		// What being hit paid for. Nothing in it is a fault — a tank against their Vengeance ceiling is
+		// a tank the fight is hitting harder than their health can convert — which is why it reads
+		// beside the encounter's own doing above rather than among the resource bars below.
+		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
+		// The character the pull was played on, and the denominator everything above divides by:
+		// `available` is active time over the global, and the global is what haste sets. It reads after
+		// the counts rather than before because a reader wants the figure before its arithmetic, and
+		// before the bar below because that bar is one more thing this reading has already scaled.
+		{ id: 'haste', titleKey: 'haste.title', group: 'core', Component: Haste },
+		// Vengeance is what licenses this heading, and the reader meets it two headings up: told that being
+		// hit pays attack power, they are ready to hear that cutting the damage does not cut the pay. That
+		// is the one argument letting this section recommend where the rest of the page describes.
+		//
+		// Below Haste rather than above it, so the two readings about the character the pull was played on
+		// — what their gear set the global to, and what their health let Vengeance pay — sit together, and
+		// the one thing on this page addressed to somebody other than the player comes last of them.
+		{ id: 'externals', titleKey: 'externals.title', group: 'core', Component: Externals },
+		// Last of the Core headings because it is the narrowest: one bar, and the only one of these a
+		// press moves directly. A points bar, so its fault is a count rather than a duration — see
+		// `ResourceKind`.
+		{
+			id: 'holy-power',
+			titleKey: 'holyPower.title',
+			group: 'core',
+			Component: resourceSection({
+				id: 'holy-power',
+				barKey: 'holyPower',
+				copyPrefix: 'holyPower',
+				tone: 'kick',
+				color: PROTECTION_SPEC.colors.primary,
+			}),
+		},
+		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
+		// No miss ledger yet, and its absence is the honest report rather than an oversight: the ledger
+		// lists what the sections found, one row per kind with a link back to the moment, and the priority
+		// ladder below produces a count per button rather than a moment per fault. The rows arrive when
+		// something here can point at one press and say what was wrong with it.
+		{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
+		{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
+		// The question no other heading on this page can ask: at the moment you spent that global, was a
+		// better button ready? Everything above measures one thing on its own — a count of globals, a
+		// window the encounter took, a haste reading — and none of them can say what a press should have
+		// been instead.
+		//
+		// `forced` for the reason both other specs take it: this spec's ladder bands, and the two things
+		// the target count moves here are exactly the two the reader's own list changed from the shipped
+		// one. A pull read as single-target is checked against Crusader Strike with Consecration low, and
+		// the same pull read as an add fight against Hammer of the Righteous with Consecration high.
+		{ id: 'priority', titleKey: 'priority.title', group: 'reference', Component: PriorityLadder, modeProps: 'forced' },
+		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
+	],
 };
 
 // ---------------------------------------------------------------- the summary
@@ -433,6 +532,20 @@ export interface SpecTakeaways {
 }
 
 export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
+	// Protection had no entry at all, so every card it drew was a card a reader could not follow — the
+	// scorecard renders one without a link rather than guessing an anchor. Four now, which is every
+	// section this spec grades or describes with a card.
+	protection: {
+		anchors: {
+			globals: 'globals',
+			// The cooldown card is keyed by the Elemental's section name, because that is the heading this
+			// spec borrows for the figure — see `score.ts`. The anchor is the cast log, which is where a
+			// Protection reader can actually see which button was held.
+			cooldownDrift: 'cast-log',
+			externals: 'externals',
+			haste: 'haste',
+		},
+	},
 	windwalker: {
 		// The scorecard names its sections for the thing they measure; the page names them for the id
 		// a reader jumps to. The two lists were never going to be the same — `tigerPalm` is

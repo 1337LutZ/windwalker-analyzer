@@ -24,6 +24,7 @@ import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
+import { analyse as protection } from '~/specs/protection/lib';
 import type { Analysis, FightDataset } from '~/lib/types';
 import { resolveBands } from '~/lib/view/targetMode';
 
@@ -59,6 +60,26 @@ const wrap = (analysis: Analysis, node: ReactNode) =>
 
 const html = (analysis: Analysis): string =>
 	renderToStaticMarkup(wrap(analysis, createElement(Scorecard, { analysis })));
+
+/** The same render for the third spec, which owns the haste rule. */
+function protHtml(name: string): string {
+	const analysis = protection(
+		JSON.parse(
+			readFileSync(resolve(import.meta.dirname, `../../../specs/protection/__fixtures__/${name}.json`), 'utf8'),
+		) as FightDataset,
+	);
+	return renderToStaticMarkup(
+		createElement(
+			SpecContext.Provider,
+			{ value: getSpec('protection')! },
+			createElement(
+				ScoreViewContext.Provider,
+				{ value: resolveBands(analysis.targets, 'auto') },
+				createElement(Scorecard, { analysis }),
+			),
+		),
+	);
+}
 
 /** The same render for the other spec, which owns the potion and Tiger Palm rules. */
 function wwHtml(name: string): string {
@@ -217,6 +238,24 @@ describe('the scorecard grid', () => {
 		// bare `0` — so the lid is drawn whether or not it was reached.
 		expect(haste).toContain('1/1');
 		expect(html(fixture('addsThenBoss'))).toContain('0/1');
+
+		/*
+		 * **A soft cap is a lid too, and this is the case that is not 100%.**
+		 *
+		 * Protection's haste rule is `good` at fifty percent, because that is where Sanctity of Battle's
+		 * reduction stops buying globals — so haste past it is not a better score, it is haste buying
+		 * something this metric does not measure. Written as a bar the card said "target 50% or better",
+		 * which is an instruction to keep going, and a reader read it as one twice.
+		 *
+		 * The two lids above are both the top of their scale and could have been inferred; this one
+		 * cannot, which is the whole reason `ceiling` is declared rather than derived.
+		 */
+		const prot = protHtml('garrosh');
+		expect(prot).toContain('target 50%<');
+		expect(prot).not.toContain('target 50% or better');
+		// And the card is named for the thing rather than for the comparison.
+		expect(prot).toContain('>Haste<');
+		expect(prot).not.toContain('Haste against the breakpoint');
 	});
 
 	/**

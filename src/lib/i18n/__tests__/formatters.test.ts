@@ -69,7 +69,17 @@ describe('percentages in the copy', () => {
 	it('only names formatters that exist', () => {
 		// A typo in a formatter name does not throw — i18next quietly prints the raw value — so the set
 		// is checked against the one the config registers.
-		const known = new Set(['percent', 'integer', 'decimal', 'compact', 'clock', 'duration', 'seconds', 'gap']);
+		const known = new Set([
+			'percent',
+			'integer',
+			'decimal',
+			'compact',
+			'clock',
+			'duration',
+			'seconds',
+			'gap',
+			'millis',
+		]);
 		const unknown = new Set<string>();
 		for (const { text } of strings(copy)) {
 			for (const match of text.matchAll(INTERPOLATION)) {

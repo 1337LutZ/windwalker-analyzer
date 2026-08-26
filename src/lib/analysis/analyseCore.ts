@@ -27,6 +27,7 @@ import {
 } from '~/lib/events';
 import type { Ability } from '~/lib/game/model';
 import { uncountedActorIDs } from '~/lib/game/rankingExclusions';
+import type { FightPhase } from '~/lib/wcl/phases';
 import type { Registry } from '~/lib/game/registry';
 import type { ResourceConfig } from '~/lib/game/resources';
 import type { SpecColors } from '~/lib/game/classes';
@@ -43,6 +44,7 @@ import type {
 	FightDataset,
 	GearSummary,
 	LostCastRow,
+	MeasuredGcd,
 	PotionAudit,
 	RaidBuffSummary,
 	ResourceBarAudit,
@@ -240,6 +242,43 @@ export interface Handles {
 	 * rebuilding them.
 	 */
 	resourceAudits: Record<string, ResourceBarAudit>;
+	/**
+	 * The encounter's phase transitions, joined to their names — `[]` when WarcraftLogs reports none.
+	 *
+	 * On the handles because a spec's audit is the second thing that asks: the core puts them on the
+	 * timeline, and a rule that excuses a phase needs the same list rather than a second reading of it.
+	 * Empty covers both "this encounter has no phases" and "this dataset predates the fetch"; nothing
+	 * here can tell those apart and nothing should pretend to.
+	 */
+	phases: readonly FightPhase[];
+	/**
+	 * The pull's global clock, as the core measured it — the three numbers every "how many presses did
+	 * this pull have room for" figure divides by.
+	 *
+	 * On the handles because a spec's own audit is the second thing that asks. `AnalysisCore` publishes
+	 * the same values for the report to render; these are the same ones, before the spec's half runs,
+	 * so the two halves of the analysis cannot disagree about how long a global was.
+	 *
+	 * `effectiveGcd` is **measured**, not declared: the median observed gap after an instant press,
+	 * floored at `GCD_MIN_MS` and capped at the spec's own `gcdMs`. For a spec whose global moves with
+	 * haste that median *is* the hasted global, which is why nothing about a haste model is needed to
+	 * count globals — see `lib/analysis/haste`, which models the cooldowns instead.
+	 */
+	effectiveGcd: number;
+	/**
+	 * The same median before either end of the clamp — the reading, rather than the divisor.
+	 *
+	 * Here so an audit that wants to *check* a model of the global has something the model cannot have
+	 * already agreed with. `effectiveGcd` above is capped at `spec.gcdMs`, and a spec that declares its
+	 * floor as its GCD gets the same number back on every pull. See `MeasuredGcd`.
+	 */
+	measuredGcd: MeasuredGcd;
+	/** WarcraftLogs' own active time for this player, falling back to the pull's length. */
+	activeMs: number;
+	/** How many globals the pull had room for: `activeMs` over `effectiveGcd`, floored. */
+	gcdSlots: number;
+	/** Presses that actually cost a global. */
+	onGcdCasts: number;
 	/** Cooldowns that sat ready and unused, judged against the engaged windows. */
 	lostCasts: LostCastRow[];
 	/**
@@ -322,6 +361,22 @@ export interface SpecConfig {
 	 */
 	resources: Record<string, ResourceConfig>;
 	/**
+	 * Bars the spec computes itself, drawn beside the declared ones and **ahead** of them.
+	 *
+	 * The declared `resources` above are sampled generically: the engine reads a power type off
+	 * `classResources` and audits it. Some readings a spec wants on the same axes cannot come from
+	 * there — a tank's Vengeance is attack power, which the log staples onto events as a plain field
+	 * rather than as a bar, and whose ceiling is the player's own maximum health.
+	 *
+	 * Called after `audit()` so a spec can hand back something it has already computed rather than
+	 * measuring the pull twice, and merged **first** so these draw above the declared bars:
+	 * `CastTimeline` derives its lane order from `Object.keys`, so key order *is* row order.
+	 *
+	 * Generic on purpose. Vengeance is every tank's, not a Paladin idea, and the seam is what lets a
+	 * future Blood or Guardian spec put the same reading on the same chart without touching the engine.
+	 */
+	extraResources?(h: Handles, audit: SpecAuditResult): Record<string, ResourceBarAudit>;
+	/**
 	 * The spec's report colours, derived from its class's primary colour as wowsims-mop defines it
 	 * (`ui/core/player_classes/*.ts` `hexColor`) — see `~/lib/game/classes`. The bars and accents of
 	 * the spec's sections draw in these, so each spec's report is recognisable at a glance.
@@ -367,6 +422,19 @@ export interface SpecConfig {
 	 * periodic damage would keep the ladder in its multi-target branch long after the adds are gone.
 	 */
 	aplTargetCountExclude?: readonly string[];
+	/**
+	 * This spec's cooldowns at a moment in the pull, for a spec whose cooldowns move with haste.
+	 *
+	 * Absent on every spec whose cooldowns are fixed, which is both of the first two, and every drift
+	 * figure on their captures is unchanged by this existing — `cooldownDrift` takes the declared
+	 * number when nothing is passed. A spec that declares `hasteScaled` on an ability declares this
+	 * too, and the two together are the whole of the feature.
+	 *
+	 * Built from the dataset rather than from the handles, because the handles are what it feeds: the
+	 * curve needs the haste rating off `combatantinfo` and the Bloodlust windows, and both are read
+	 * before the cast tables that consume it.
+	 */
+	cooldownAt?(dataset: FightDataset, ability: Ability, t: number): number;
 	/** Whether this player was actually playing the spec. False means the UI must refuse to render. */
 	identify(h: Handles): boolean;
 	/** The spec's half of the analysis, computed from the handles and nothing else. */
@@ -744,6 +812,20 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		gcdGaps.push(onGcdStarts[i]!.start - previous.start);
 	}
 	const effectiveGcd = gcdGaps.length > 0 ? Math.max(GCD_MIN_MS, Math.min(median(gcdGaps), spec.gcdMs)) : spec.gcdMs;
+	/**
+	 * The same median with neither end of the clamp on it, published beside the clamped one.
+	 *
+	 * Two figures out of one measurement, because they answer two questions and only the clamped one
+	 * can answer the first. `effectiveGcd` is a **divisor** — a slot count, a track width, a leeway —
+	 * and a divisor has to be a plausible global whatever a nine-gap wipe hands it. This is
+	 * **evidence**, and evidence that has been squeezed to fit the thing it is meant to check is not
+	 * evidence: on a spec whose `gcdMs` is already `GCD_MIN_MS`, the floor and the cap meet, and the
+	 * published figure is 1000ms on every pull however the presses fell. See `MeasuredGcd`.
+	 */
+	const measuredGcd: MeasuredGcd = {
+		medianMs: gcdGaps.length > 0 ? median(gcdGaps) : null,
+		samples: gcdGaps.length,
+	};
 
 	/**
 	 * Where each on-GCD press sat on the clock — spans, not a sum.
@@ -1264,6 +1346,17 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	}
 
 	// ------------------------------------------------------------ lost casts
+	// Buttons that share one timer are one row, and the merge has to happen before the walk rather than
+	// after it. Crusader Strike and Hammer of the Righteous both sit on `paladin.BuilderCooldown()`, so
+	// a walk over each in isolation sees the *other* button's presses as gaps: measured on the Garrosh
+	// capture, Crusader Strike read 52 lost casts and Hammer of the Righteous 138, against a pair that
+	// was actually pressed 142 times on one cooldown and lost far fewer. Neither number was a fact
+	// about the player.
+	//
+	// The partner is dropped rather than merged into: `sharesCooldownWith` is declared on both halves
+	// and `createRegistry` refuses a pair that disagrees, so taking the first of the two and skipping
+	// the second is a stable choice however the table is ordered.
+	const sharedHandled = new Set<string>();
 	const lostCasts = spec.registry.abilities
 		.filter((a) => a.gate === 'cooldown')
 		.map((ability): LostCastRow | null => {
@@ -1295,13 +1388,39 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			// (Plan §47 recorded this the other way round, "understated by one cast time". That only holds
 			// if the cooldown is armed at the `begincast`, which is not the premise this codebase reads its
 			// cooldowns on.)
-			const times = castTimes(ability);
+			// The pair's other half, when this button declares one and the registry can resolve it.
+			const partnerKey = ability.sharesCooldownWith;
+			if (partnerKey !== undefined && sharedHandled.has(ability.key)) return null;
+			const partner = partnerKey === undefined ? undefined : spec.registry.abilities.find((a) => a.key === partnerKey);
+			if (partner !== undefined) sharedHandled.add(partner.key);
+
+			// One series for the pair, in time order. `castBeginTimes` has to be merged the same way and
+			// stay element-for-element with it, or the two clocks come apart — see `cooldownDrift`.
+			const own = castTimes(ability).map((t, i) => [t, castBeginTimes(ability)[i] ?? t] as const);
+			const theirs =
+				partner === undefined ? [] : castTimes(partner).map((t, i) => [t, castBeginTimes(partner)[i] ?? t] as const);
+			const merged = [...own, ...theirs].sort((a, b) => a[0] - b[0]);
+			const times = merged.map(([t]) => t);
+			const begins = merged.map(([, b]) => b);
 			if (!times.length) return null;
 			const live: Interval[] = spec.needsTarget.has(ability.key) && engaged.length ? engaged : [[0, duration]];
-			const drift = cooldownDrift(times, ability, live, duration, cooldownLeewayMs, castBeginTimes(ability));
+			const drift = cooldownDrift(
+				times,
+				ability,
+				live,
+				duration,
+				cooldownLeewayMs,
+				begins,
+				// Only for a spec that declares one. Everything else takes the declared `cooldownMs`, which
+				// is what every committed capture was measured against.
+				spec.cooldownAt === undefined ? undefined : (t) => spec.cooldownAt!(dataset, ability, t),
+			);
 			return {
 				id: ability.castIds[0] ?? 0,
-				name: ability.name,
+				// A pair is named as one, because it is one button's worth of cooldown however many keys
+				// are bound to it. A row reading only the first half would attribute the other half's
+				// presses to a button the reader can see was pressed far fewer times.
+				name: partner === undefined ? ability.name : `${ability.name} · ${partner.name}`,
 				cooldownSec: (ability.cooldownMs ?? 0) / 1000,
 				casts: times.length,
 				driftSec: r1(drift.driftMs / 1000),
@@ -1600,6 +1719,12 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 	// audits read. It sees nothing but these handles, and `identify` runs before it because the spec
 	// check answers a question the core itself has to print (`isSpec`) rather than one the audit does.
 	const h: Handles = {
+		phases: dataset.phases ?? [],
+		effectiveGcd,
+		measuredGcd,
+		activeMs,
+		gcdSlots: Math.floor(activeMs / effectiveGcd),
+		onGcdCasts,
 		code,
 		fight,
 		actor,
@@ -1653,6 +1778,8 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 
 	const isSpec = spec.identify(h);
 	const audit = spec.audit(h);
+	// Spec-computed bars, ahead of the declared ones so they draw on top — see `SpecConfig.extraResources`.
+	const allResources: Record<string, ResourceBarAudit> = { ...spec.extraResources?.(h, audit), ...resourceAudits };
 
 	// --------------------------------------------------------------- assembly
 	const core: AnalysisCore = {
@@ -1806,7 +1933,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		gear,
 		raidBuffs,
 		potions,
-		resources: resourceAudits,
+		resources: allResources,
 	};
 
 	// The two places the halves share one figure. The spec's audit found the wasted globals; the core

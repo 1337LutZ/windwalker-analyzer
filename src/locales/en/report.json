@@ -137,7 +137,8 @@
       "cooldownSec": "{{seconds, seconds}} cooldown",
       "chi": "chi",
       "conditional": "the rotation",
-      "energy": "energy"
+      "energy": "energy",
+      "holy-power": "holy power"
     },
     "noCeiling": "no cooldown",
     "barCaveat": "Each target belongs to that ability alone — rows are not compared with each other. For a cooldown, the target is the rate the cooldown allows, so falling short means casts you never made. Tiger Palm is the reverse: its target counts only presses that achieved something, so going over means globals wasted. Chi spenders have no target and are left blank."
@@ -418,8 +419,10 @@
     "engaged": "Uptime is measured against engaged time — the pull minus intermissions and time with no target — rather than the raw fight length.",
     "energy_windwalker": "Energy is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, about three readings a second — not from resourcechange events. A pull carries around twenty of those. It is used for time at the cap and nothing else.",
     "energy_elemental": "Mana is read from the classResources snapshot WarcraftLogs stamps onto casts and hits, rather than from resourcechange events. A pull carries around twenty of those. The readings land on events and not on a timer, so a dip that opened and closed between two of them is not seen.",
+    "energy_protection": "Holy power is rebuilt from the presses that generate and spend it, and checked against the readings WarcraftLogs stamps onto casts and hits — roughly one every four or five seconds, which on the three reference pulls is between fifty and a hundred and thirty of them. The walk is what fills the gaps between those, so a point that arrived and was spent inside one is inferred rather than seen.",
     "spec_windwalker": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Tigereye Brew cast.",
-    "spec_elemental": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Lava Burst cast."
+    "spec_elemental": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Lava Burst cast.",
+    "spec_protection": "Classic logs report spec as 0. So the spec comes from the report’s own player list, confirmed by a Shield of the Righteous cast — the Protection spender, which no other paladin has."
   },
   "kpi": {
     "dps": "DPS",
@@ -446,6 +449,7 @@
       "miss": "A drop, a proc left unsnapshotted, or a misplaced channel"
     },
     "eleIntent": "The pull at a glance: the Lightning Shield counter, the two cooldowns, the Flame Shock dot, the Searing Totem and the two-piece on one timeline — so the lining-up reads off the shape before the numbers.",
+    "protIntent": "The pull at a glance: every press on one timeline, with Avenging Wrath, Holy Avenger, Sacred Shield, Shield of the Righteous and Bastion of Glory drawn over them as the windows they held — so what was up when reads off the shape before the numbers. Auto-attacks, taunts and the Grand Crusader procs are left out here; the cast log above draws all of them.",
     "lanes": {
       "key": {
         "buff": "A buff you pressed",
@@ -550,16 +554,20 @@
     "resource": {
       "energy": "Energy",
       "chi": "Chi",
+      "holyPower": "Holy Power",
       "brew": "Brew bank",
       "mana": "Mana",
-      "lightningShield": "Lightning Shield"
+      "lightningShield": "Lightning Shield",
+      "vengeance": "Vengeance"
     },
     "resourceAria": {
       "energy": "Energy over the pull, against a ceiling of {{max}}",
       "chi": "Chi over the pull, against a ceiling of {{max}}",
+      "holyPower": "Holy power over the pull, against a ceiling of {{max}}",
       "brew": "Tigereye Brew stacks banked over the pull, against a cap of {{max}}",
       "mana": "Mana over the pull, against a ceiling of {{max}}",
-      "lightningShield": "Lightning Shield charges over the pull, against a ceiling of {{max}}"
+      "lightningShield": "Lightning Shield charges over the pull, against a ceiling of {{max}}",
+      "vengeance": "Vengeance over the pull, as attack power"
     }
   },
   "nav": {
@@ -588,7 +596,7 @@
       "reflected": "Damage returned",
       "perUse": "Average return",
       "landed": "Presses that landed",
-      "ofCap": "Cap used"
+      "ofCap": "Health reflected"
     },
     "columns": {
       "at": "at",
@@ -711,9 +719,11 @@
     "title": "Raid buffs",
     "intent_windwalker": "The buffs that move a Windwalker's damage, one row per effect rather than one per spell — five classes bring the same attack power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Rising Sun Kick above: a buff stays up perfectly well while the boss is untargetable.",
     "intent_elemental": "The buffs that move an Elemental Shaman's damage, one row per effect rather than one per spell — four classes bring the same spell power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime here is measured against the whole pull, unlike Flame Shock above: a buff stays up perfectly well while the boss is untargetable.",
+    "intent_protection": "The buffs that move a Protection Paladin's damage, one row per effect rather than one per spell — five classes bring the same attack power and they do not stack, so what matters is whether the effect was on you, not who supplied it. Uptime is measured against the whole pull: a buff stays up perfectly well while the boss is untargetable.",
     "none": "This report was produced before raid buffs were read, so there is nothing to show here. Nothing is wrong with the pull.",
     "caption_windwalker": "Raid buffs affecting this Windwalker, by effect",
     "caption_elemental": "Raid buffs affecting this Elemental Shaman, by effect",
+    "caption_protection": "Raid buffs affecting this Protection Paladin, by effect",
     "columns": {
       "buff": "effect",
       "uptime": "uptime",
@@ -761,8 +771,10 @@
     "deaths_other": "You died {{count}} times in this pull. You have no buffs while dead, so gaps that line up with those deaths are not missing buffs.",
     "excluded_windwalker": "Stamina and spell power are left out on purpose. Both are real raid buffs and neither adds a point of Windwalker damage, so a row for either would be one nobody can act on.",
     "excluded_elemental": "Stamina and attack power are left out on purpose. Both are real raid buffs and neither adds a point of Elemental Shaman damage: your spells are built out of spell power, and so are your elementals, which inherit that rather than attack power. A row for either would be one nobody can act on.",
+    "excluded_protection": "Spell power is left out on purpose. It is a real raid buff and it adds nothing to this spec's damage, so a row for it would be one nobody can act on. Stamina is left out too, and the reason is narrower than it looks: nothing you press scales from it. It is not that stamina does nothing here — your maximum health is what caps the attack power Vengeance pays you, so a stamina buff raises that ceiling, and the Vengeance section draws it moving.",
     "debuffs_windwalker": "The two target debuffs a melee cares about — weakened armour and physical vulnerability — are not on this page, and not because they were missing in the raid. The fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading them would take a second query this report does not make uninvited.",
-    "debuffs_elemental": "The target debuff a caster cares about — the extra five percent magic damage that Curse of the Elements and its equivalents put on the boss — is not on this page, and not because it was missing in the raid. Every row above is a buff on you, and the fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading it would take a second query this report does not make uninvited."
+    "debuffs_elemental": "The target debuff a caster cares about — the extra five percent magic damage that Curse of the Elements and its equivalents put on the boss — is not on this page, and not because it was missing in the raid. Every row above is a buff on you, and the fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading it would take a second query this report does not make uninvited.",
+    "debuffs_protection": "The two target debuffs a melee cares about — weakened armour and physical vulnerability — are not on this page, and not because they were missing in the raid. The fetch is scoped to you, so a debuff another raider puts on the boss is in neither what you cast nor what was cast on you. Reading them would take a second query this report does not make uninvited."
   },
   "rotation": {
     "title": "The rotation",
@@ -1059,10 +1071,11 @@
       "row_cleave": "Two enemies",
       "row_aoe": "Three or more enemies",
       "row_mixed": "Coming and going",
-      "row_idle": "Nothing to hit",
+      "rowMixed": "Between {{low}} and {{high}} enemies, mostly {{median}}",
+      "row_idle": "Nothing hit",
       "length": "{{seconds}}s",
-      "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches with nothing to hit are grey.",
-      "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time with nothing in front of you — no enemy was up to be hit, so none of it counts for or against you."
+      "chartLabel": "The whole pull in order, one bar per stretch, coloured by how many enemies you had in front of you at the time. The stretches where you hit nothing are grey.",
+      "note": "What you press changes at two enemies, and changes again at three. This is the order those stretches came in across the pull. The grey is time you landed nothing in — usually because no enemy was up, sometimes because the fight had you stunned or moved away. None of it counts for or against you either way."
     },
     "takeaways": {
       "metric": {
@@ -1134,6 +1147,18 @@
         },
         "karmaCapShare": {
           "label": "Health reflected"
+        },
+        "globalsMissed": {
+          "label": "Missed globals"
+        },
+        "cooldownsMissed": {
+          "label": "Cooldown presses missed"
+        },
+        "externalsMissed": {
+          "label": "Externals never used on you"
+        },
+        "hasteToBreakpoint": {
+          "label": "Haste"
         }
       }
     },
@@ -1173,7 +1198,7 @@
     "forced_aoe": "You are reading this pull as three or more targets, so every press below is checked against the three-target order — including the stretches where the log counted one enemy.",
     "caption": "Buttons that were available and passed over, most often first",
     "noRows": "Nothing was passed over.",
-    "scope": "The ladder covers the filler priorities — the entries that decide what a global is spent on. The cooldowns are out because each has its own section. A button you could not afford is never counted as passed over.",
+    "scope": "The ladder covers the filler priorities — the entries that decide what a global is spent on. The cooldowns are out: either they cost no global, or they have a heading of their own. A button you could not afford is never counted as passed over.",
     "kpi": {
       "followed": "Followed the priority list",
       "skipped": "Passed over",
@@ -1205,7 +1230,24 @@
       "searing-totem": "Searing Totem",
       "lava-beam": "Lava Beam",
       "chain-lightning": "Chain Lightning",
-      "lightning-bolt": "Lightning Bolt"
+      "lightning-bolt": "Lightning Bolt",
+      "judgment-sanctified-wrath": "Judgment, for the extra Holy Power inside Avenging Wrath",
+      "avengers-shield-grand-crusader": "Avenger's Shield, free from Grand Crusader",
+      "judgment": "Judgment",
+      "avengers-shield": "Avenger's Shield",
+      "consecration-multi": "Consecration, with a second enemy to stand on",
+      "holy-wrath": "Holy Wrath",
+      "hammer-of-the-righteous-holy-avenger": "Hammer of the Righteous, inside Holy Avenger",
+      "crusader-strike-holy-avenger": "Crusader Strike, inside Holy Avenger",
+      "execution-sentence": "Execution Sentence",
+      "hammer-of-the-righteous": "Hammer of the Righteous",
+      "crusader-strike": "Crusader Strike",
+      "hammer-of-wrath": "Hammer of Wrath",
+      "sacred-shield-refresh": "Sacred Shield, before it falls off",
+      "consecration": "Consecration",
+      "lights-hammer": "Light's Hammer",
+      "holy-prism": "Holy Prism",
+      "sacred-shield": "Sacred Shield"
     },
     "reconstructed": "Nothing here is graded, and this is why. The conditions behind these judgements are read off the log’s auras and cooldowns, which are only stamped when an event happened to move them — close, but a press judged against a state that is off by a moment can be called a miss when it was not."
   },
@@ -1696,5 +1738,194 @@
     "caption": "What this pull gave away: Lava Surge procs that expired with no Lava Burst inside them, and Lava Bursts you pressed with no Flame Shock on the enemy you aimed at",
     "none": "Nothing given away — every Lava Surge was spent, and every Lava Burst went out with Flame Shock already on its target.",
     "note": "Flame Shock is what makes Lava Burst hit hard: a ×1.5 on the damage, and the crit is unconditional, so the two are one bonus and not two. The bonus is settled when the cast goes out, not when the missile lands — a dot that runs out during the ~0.8s of travel has already paid for the hit, so a press this section leaves alone can still look wrong if you expect the dot to survive to impact. So it is the completion that decides the row: every press that finished with no dot on its target is listed here, including one you committed onto a dot with less than a cast time left — that dot was gone by the instant the bonus was read. The priority list refuses that press as well, at the moment you made it, and the two charges are not the same charge: one is the choice and this one is the outcome."
+  },
+  "globals": {
+    "title": "Globals",
+    "intent": "Every second of a pull is a number of globals long, and this counts them: how many the fight had room for, how many you pressed, and what the gap is made of. The gap is split rather than totalled — some of it the encounter took away, and the rest is yours. Neither number is subtracted from the other, so what you see is the whole gap and your share of it side by side.",
+    "kpi": {
+      "pressed": "Globals pressed",
+      "missedFree": "Missed globals",
+      "enforced": "Taken by the fight",
+      "gcd": "Your global"
+    },
+    "summary": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter accounts for {{enforced, integer}} of those, which leaves {{free, integer}} that were yours to press.",
+    "summary_covered": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. The encounter took the buttons away for at least that long, so there is nothing in the gap this report can call yours.",
+    "summary_none": "The pull had room for {{available, integer}} globals and you pressed {{pressed, integer}}, so {{missed, integer}} went unpressed. This encounter took none of them away, so all of them were yours to press.",
+    "enforcedNote": "A global the fight takes away is not one you lost. Those seconds are stuns, phases that move you off the boss, and mechanics that replace your bar entirely. The section below lists the rule that applied and says which kind it is: a lockout was measured on real pulls of this boss, and a declared window is a phase somebody judged takes you away from it."
+  },
+  "fight": {
+    "title": "What the fight did",
+    "intent": "What this boss does to a rotation, and where it happened in your pull. Only two kinds of thing are in here. A lockout is measured: an effect that was on you with no cast inside it, every single time it landed, across both reference pulls of the encounter. A declared window is a phase that takes you off the boss — casts do continue inside those, so they cannot be proven the same way, and each one carries the measurement behind it instead.",
+    "caption": "What {{encounter}} enforced, and where it applied",
+    "unknown": "Nothing is known about this encounter. That is the honest default rather than a claim there is nothing there: the rules were measured boss by boss, and one nobody measured gets no excuses and no windows. Every idle global on this pull is counted against you.",
+    "noRules": "This encounter has no enforced downtime. It was measured and nothing cleared the bar — the note below says what was tested.",
+    "never": "never landed",
+    "basis": {
+      "lockout": "measured",
+      "declared": "declared"
+    },
+    "columns": {
+      "rule": "rule",
+      "basis": "basis",
+      "windows": "at",
+      "held": "held"
+    },
+    "note": {
+      "fallen-protectors": "No phases and no enforced downtime beyond the stun. Sha Sear is a debuff on other players and never once landed on the reference tank, so it excuses nothing.",
+      "garrosh-hellscream": "The intermission is also the player debuff Realm of Y'Shaarj (144954), which spans it exactly. The last phase loses a further 7-12s per Call Bombardment, which is not excused.",
+      "general-nazgrim": "No enforced downtime at all — melee is flat at 0.57-0.59 swings a second through all three stances, so every idle global here belongs to the player. Berserker Stance takes 2.18x the damage and was a candidate until it was measured.",
+      "immerseus": "Purified Residue was a candidate and the press stream refuses it twice over. It is not a mechanic the fight applies: nine Protection Paladin pulls from nine reports carry eleven windows between them, and four of the nine tanks never get it at all. Nine of the eleven applications land within 0.9s of the player healing a puddle — Flash of Light or Word of Glory on an NPC target — and every one carries a 15,000-mana resourcechange. It is the refund for purifying a Contaminated Puddle and a fifteen-second lockout on refunding again, not on pressing. Inside the windows the press rate runs 10% of the player's own baseline on one raid and 78% on another, where melee holds 0.57 against 0.75 swings a second and four Shields of the Righteous go out; 31 off-GCD presses land inside the eleven windows in total. The zero-melee reading belongs to Stage Two: Split, which covers 46-72% of every pull and contains all eleven windows — on one of them the window's press rate and Split's own are the same number. On the reference pull the rule would excuse 59.9s against 54.6s of inactive time in the whole pull, and zero out all fourteen missed globals.",
+      "iron-juggernaut": "Siege Mode is phase 2 and is deliberately not a rule. Melee drops from 0.60 to 0.27 swings a second while the player keeps casting at 56 a minute — the fight takes them off the boss without taking the buttons away, so the globals lost inside it are still globals lost.",
+      "kor-kron-dark-shaman": "Foul Geyser was a rule here and the press stream says it should not be. Re-measured on a full clear by a different tank, its four 8s windows cover 32.0s — 21% of the pull — and inside them the player presses at 76.9 a minute against 80.3 outside, swings **more** (0.81 against 0.77 a second) and takes **more** damage (278k against 229k a second). They are not moved off the boss; they are tanking harder. The whole encounter holds 5.2s of cast gaps past three seconds and none of it falls inside a window, so the rule excused 32.0s to cover 0.9s of idle. Read off the player's own debuff and never off the boss's cast, which is the part that was right: the boss casts it on the same cadence for everyone, and the friendly-debuff stream carries eight events, all four applications and all four removals, every one on the audited tank and none on the co-tank.",
+      "malkorok": "No enforced downtime, and the empty list was the only one here that never said why. Measured on a full clear: 19s of idle across 554s alive, 3% of the time, and all five gaps past ten seconds are corpse time on wipes rather than anything the fight did. Blood Rage was the candidate and it does nothing to the press stream — 74 a minute inside it against the pull's own rate, with melee flat at 0.64 swings a second.",
+      "paragons-of-the-klaxxi": "Gene Splice replaces the player’s bar for thirty seconds, so any priority list has nothing to say about that time. It appears in only one of the two reports, which is why the rule is kept with an empty window list on the other rather than dropped.",
+      "siegecrafter-blackfuse": "No enforced downtime; 3-6% of the pull is lost to melee gaps and most of that is the opening seconds before the boss is reachable.",
+      "spoils-of-pandaria": "Unstable Defense Systems is the encounter's opening flag — one application to all 25 players at the pull start, gone 3.0-4.2s later — and it is deliberately not a rule. Ten Protection Paladin pulls from eight reports hold eleven windows covering 39.1s: no melee in any of them, no damage taken in ten of the eleven, no off-GCD press anywhere, and 20.3% of the players' own press rate. That is far cleaner than either declared rule this file has lost, and it still fails. Six on-GCD presses land inside, five of them Sacred Shield — the player's own bar going out while the rule would say the buttons were gone. The first melee swing comes at 7.3-10.4s on every pull, so the aura marks only the first third of the stretch with nothing to hit, which is the same stretch Siegecrafter Blackfuse's note already declines to excuse. It is also not per room: the raid-wide burst fires once, and the scattered later applications reached the audited tank on one pull of ten. Across the ten it would excuse 39.1s to cover 4.9s of cast gaps past three seconds, and about 24 globals of 377 missed.",
+      "thok-the-bloodthirsty": "Frenzy for Blood was a rule here and does not survive re-measurement. On the one usable window — 57.3s of the kill — the player presses at 61 a minute against 73 in phase 1, which is 84% of their own baseline rather than the 33-against-73 the rule was written from. Melee does collapse and damage taken falls to 0.24x, so the fight genuinely moves them off the boss; it does not take the buttons away, which is the exact test that got Iron Juggernaut's Siege Mode rejected. The phase holds one cast gap past three seconds, so the rule excused 57s to cover 2.7s of idle. The second window that made it look like a clean lockout is corpse time: the player died 8.7s before phase 2 began on that pull."
+    }
+  },
+  "haste": {
+    "title": "Haste",
+    "intent": "Haste is the number the rest of this report divides by. Sanctity of Battle turns melee haste into a shorter cooldown on every generator and a shorter global on top, so how many presses your pull had room for is a haste figure before it is anything else. Three things set it: what you were wearing, the seal you were running, and whether a Bloodlust landed.",
+    "kpi": {
+      "rating": "Haste rating",
+      "haste": "Melee haste",
+      "past": "Past the breakpoint",
+      "short": "Short of the breakpoint",
+      "gcd": "Modelled global",
+      "assumed": "none reported"
+    },
+    "summary": "The global stops improving at {{breakpoint, percent}} melee haste. Sanctity of Battle takes at most half a second off it, so from there upwards every Protection Paladin presses on the same {{floor, millis}} global, whatever else the gear adds. You are {{distance, percent}} past that, so more haste buys no more room between presses — what it still buys is the table below, where every cooldown keeps shortening with no cap on it at all.",
+    "summary_short": "The global stops improving at {{breakpoint, percent}} melee haste. Sanctity of Battle takes at most half a second off it, so from there upwards every Protection Paladin presses on the same {{floor, millis}} global, whatever else the gear adds. You are {{distance, percent}} under that, so haste is still buying you room between presses as well as shorter cooldowns.",
+    "key": {
+      "bar": "Melee haste, percent",
+      "lust": "Bloodlust"
+    },
+    "chartLabel": "Melee haste across the pull: {{base, percent}}, rising to {{lust, percent}} for the {{lustMs, duration}} Bloodlust was up.",
+    "terms": {
+      "caption": "What each term of your haste came to",
+      "columns": {
+        "term": "term",
+        "adds": "adds",
+        "haste": "melee haste",
+        "gcd": "global"
+      },
+      "gear": "Gear",
+      "seal": "Seal of Insight",
+      "lust": "Bloodlust"
+    },
+    "gcdNote": "Modelled at {{modelled, millis}}, and your own presses fell a median {{observed, millis}} apart over {{samples, integer}} gaps. Those are two readings of one number — the first from your rating, the second from the log — and it is them agreeing that says the figure above can be trusted.",
+    "gcdNote_none": "Modelled at {{modelled, millis}}. This pull left too few presses in a row to measure a global from, so there is nothing here to hold that figure against.",
+    "check": {
+      "caption": "The tightest gap between two presses of each button, against the cooldown your haste gives it",
+      "columns": {
+        "ability": "button",
+        "samples": "gaps",
+        "observed": "tightest",
+        "modelled": "modelled",
+        "margin": "margin"
+      },
+      "lust": "under Bloodlust",
+      "none": "No button was pressed often enough for its gaps to say anything about your haste."
+    },
+    "reading_agrees": "Nothing came back sooner than that haste allows, give or take {{tolerance, millis}} of timing jitter. A button cannot return before its cooldown, so a tightest gap that sits on the modelled figure is your own pull confirming it.",
+    "reading_faster": "{{worst}} came back {{margin, millis}} sooner than these three terms allow, which no amount of pressing can do. Something added haste they do not carry: a proc your rating cannot show, a Bloodlust arriving while the cooldown was already running, or the log stamping a run of presses closer together than you made them.",
+    "reading_unmeasured": "No button here was pressed often enough for its gaps to hold the haste above to anything. That is a fact about the pull's length rather than about your gear — a tightest gap means nothing until there are a few of them.",
+    "avengersShieldNote": "Avenger's Shield and Hammer of Wrath are left out of that table, and neither absence is an oversight. Grand Crusader resets the shield outright, so its gaps measure a proc rate rather than a cooldown; Hammer of Wrath needs the boss under twenty percent health, so its gaps outside the execute are the health bar."
+  },
+  "holyPower": {
+    "title": "Holy Power",
+    "intent": "Holy power is only wasted when you press a generator while the bar is already full — the point it gives back has nowhere to go, and the global that bought it achieved nothing. Neither spender costs you a global on this spec, so a full bar is never something you were waiting for a free moment to empty.",
+    "none": "This log carried no resource snapshots, so there is no holy power bar to read. Nothing is wrong with the pull — the report was not given the numbers.",
+    "clean": "Nothing overflowed. Every point of holy power the pull generated had somewhere to go.",
+    "summary": "{{wasted}} holy power was wasted across {{moments}} presses that gave back more than the bar could hold. Each of those presses cost a global and achieved nothing.",
+    "key": {
+      "bar": "Holy Power",
+      "wasted": "Holy power overcapped"
+    },
+    "chartLabel": "Holy power over the pull, holding up to {{max}}, with {{wasted}} points overflowed",
+    "tableCaption": "Every press that returned more holy power than the bar could hold, in the order they happened",
+    "noRows": "No press returned more holy power than the bar could hold.",
+    "resolution": "This bar is reconstructed rather than read straight off: WarcraftLogs reports holy power on casts and hits rather than on a timer, so the figures come from replaying the log forward through what each button gives and costs, checked against the readings it does carry. A point gained and spent between two readings is invisible, so treat the waste here as a minimum. And spent can exceed gained, because power you were holding before the log started is paid out here and never counted in.",
+    "kpi": {
+      "wasted": "Holy power wasted",
+      "spent": "Holy power spent",
+      "gained": "Holy power gained"
+    },
+    "columns": {
+      "at": "at",
+      "wasted": "power lost"
+    }
+  },
+  "vengeance": {
+    "title": "Vengeance",
+    "intent": "Being hit gives a tank attack power, and your own maximum health is the most it can ever give you. This is what you actually had, moment by moment, drawn under the ceiling your health pool set. Nothing here is a mistake to fix: sitting against that ceiling means the fight was hitting you faster than your health could turn into damage, which is the encounter's doing rather than yours.",
+    "noReadings": "This log carried no attack power readings, so there is no Vengeance to show. Nothing is wrong with the pull — the report was not given the numbers.",
+    "kpi": {
+      "peak": "Highest attack power",
+      "share": "Of your ceiling",
+      "cap": "Your ceiling",
+      "atCap": "Spent at the ceiling"
+    },
+    "key": {
+      "bar": "Attack power",
+      "raised": "Ceiling raised by {{names}}",
+      "atCap": "At or near the ceiling"
+    },
+    "chartLabel": "Attack power over the pull, peaking at {{peak, compact}} against a ceiling of {{max, compact}}, over {{duration, duration}}",
+    "summary": "Your attack power peaked at {{peak, compact}} at {{at, clock}}, which was {{share, percent}} of what your health pool allowed. You held it at or near that ceiling for {{held, duration}} — damage taken beyond that point bought you nothing more.",
+    "summary_clear": "Your attack power peaked at {{peak, compact}} at {{at, clock}}, which was {{share, percent}} of what your health pool allowed. You never reached the ceiling, so every hit you took was still paying you.",
+    "capMoved": "Your ceiling is your maximum health, so anything that raises your health raises it too. {{names}} landed {{times, integer}} times on this pull and held for {{held, duration}}, lifting the most you could hold from {{resting, compact}} to {{raised, compact}} while it was up. The shaded stretches on the chart are where that applied.",
+    "resolution": "Attack power is sampled rather than tracked: WarcraftLogs staples it onto casts, hits and heals rather than reporting it on a timer. This pull carried {{samples, integer}} readings, typically {{median, gap}} apart and at worst {{p99, gap}}. A moment at the ceiling that opened and closed between two readings leaves no trace here, so treat the time at the ceiling as a minimum."
+  },
+  "externals": {
+    "title": "Externals",
+    "intent": "A damage reduction another raider puts on you is the one thing that makes a tank safer without making them weaker. Vengeance is taken from the damage before your own reductions apply, so a cooldown that cuts an incoming hit leaves the attack power that hit paid you untouched. There is nothing to trade away here, which is why a cooldown nobody cast on you is listed as an improvement rather than left alone.",
+    "kpi": {
+      "available": "Your raid could cast",
+      "landed": "Landed on you",
+      "unused": "Never cast on you"
+    },
+    "recommendation": {
+      "title": "Cooldowns this raid brought and never used on you",
+      "body": "Nobody cast {{names}} on you at any point in this pull, and somebody standing in it could have. Each one reduces the damage you take without reducing your Vengeance, because Vengeance comes off the damage before your own reductions apply. You can ask for these without giving up any attack power."
+    },
+    "key": {
+      "landed": "Landed on you, from somebody else",
+      "vengeance": "Your attack power",
+      "own": "You pressed it yourself"
+    },
+    "chartLabel": "When each external cooldown was on you across the pull: {{landed, integer}} of them landed over {{duration, duration}}.",
+    "length": {
+      "held": "on you for",
+      "given": "on them for"
+    },
+    "track": {
+      "given": "{{name}} to {{target}}",
+      "yours": "{{name}}, yours"
+    },
+    "empty": "No external damage reduction landed on you in this pull, and none went out from you either.",
+    "summary": "{{used, integer}} of the {{available, integer}} externals this raid could have put on you landed at least once, and the longest-running of them covered {{held, duration}}. A shaded row in the table is a cooldown somebody here was able to cast and nobody did.",
+    "summary_none": "None of the {{available, integer}} externals this raid could have put on you ever landed. Every shaded row below is a cooldown somebody standing in this pull was able to cast.",
+    "given": "You put {{names}} on somebody else rather than keeping it, which is a real use of it and is drawn as its own row under what landed on you.",
+    "scope": "This reads what landed on you and what you put on somebody else, because a fetch scoped to you carries both ends of an event you were part of. A cooldown a healer put on your co-tank is in neither, so nothing here counts it as used or as missing.",
+    "caption": "Every external damage reduction, and whether this raid could cast it",
+    "absent_one": "One more damage reduction exists that nobody in this pull could cast, so it is not listed. Whether it was available is a fact about who came, not about how the fight went.",
+    "absent_other": "{{count}} more damage reductions exist that nobody in this pull could cast, so they are not listed. Whether they were available is a fact about who came, not about how the fight went.",
+    "columns": {
+      "external": "external",
+      "brings": "brought by",
+      "cuts": "cuts",
+      "landed": "landed",
+      "held": "held for"
+    },
+    "brings_one": "{{count}} {{className}}",
+    "brings_other": "{{count}} {{className}}s",
+    "never": "never",
+    "cuts_all": "{{percent, percent}} of all damage",
+    "cuts_magic": "{{percent, percent}} of magic damage",
+    "cuts_physical": "{{percent, percent}} of physical damage",
+    "cuts_unknown": "size not established",
+    "unreadable": "{{names}} would also have helped here and this report cannot see it. It works by weakening what is hitting you rather than by shielding you, so it lands on the enemy — and the events this page is built from only cover you. Whether anyone used it is not something the numbers above answer either way."
   }
 }

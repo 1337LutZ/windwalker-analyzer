@@ -68,6 +68,7 @@ import { dirname, resolve } from 'node:path';
 import { describe, it } from 'vitest';
 
 import { analyse } from '~/specs/windwalker';
+import { analyse as analyseProtection } from '~/specs/protection';
 import { WclClient, fetchFightDataset } from '~/lib/wcl';
 
 const token = process.env['WCL_TOKEN'] ?? '';
@@ -84,6 +85,14 @@ const PLAYER = process.env['FIXTURE_PLAYER'] ?? '';
  * different change entirely. Use it to refresh one of the six, never to add a seventh.
  */
 const SHAPE = process.env['FIXTURE_SHAPE'] === 'analysis' ? 'analysis' : 'dataset';
+/**
+ * Which spec's engine writes an `analysis` capture, and which folder a `dataset` is meant for.
+ *
+ * Only `FIXTURE_SHAPE=analysis` reads it — a raw dataset is the fetch's own output and knows nothing
+ * about specs. The written file always lands on `analysis.json` beside this harness whatever the
+ * value is; moving it into the right spec's `__fixtures__` is the same manual rename it always was.
+ */
+const SPEC = process.env['FIXTURE_SPEC'] ?? 'windwalker';
 
 describe.skipIf(token === '')('capture', () => {
 	it('writes a fixture', { timeout: 180_000 }, async () => {
@@ -96,6 +105,9 @@ describe.skipIf(token === '')('capture', () => {
 			if (!ww) throw new Error(`No Windwalker in ${CODE} fight ${FIGHT}: ${JSON.stringify(players)}`);
 			player = ww.name;
 		}
+		// The spec whose engine writes the analysis, for `FIXTURE_SHAPE=analysis`. The dataset shape is
+		// spec-neutral and ignores this entirely, which is most of the reason the default is `dataset`.
+		const analyseFor = SPEC === 'protection' ? analyseProtection : analyse;
 
 		const dataset = await fetchFightDataset(client, {
 			code: CODE,
@@ -108,7 +120,7 @@ describe.skipIf(token === '')('capture', () => {
 		mkdirSync(dirname(out), { recursive: true });
 		// Default settings on purpose, which is what the six captured analyses were taken under: a
 		// fixture carrying somebody's tuned leeway is a fixture nobody else can reason about.
-		writeFileSync(out, JSON.stringify(SHAPE === 'analysis' ? analyse(dataset) : dataset));
+		writeFileSync(out, JSON.stringify(SHAPE === 'analysis' ? analyseFor(dataset) : dataset));
 		console.log(
 			`WROTE ${out} (${SHAPE}) — ${dataset.actor.name} ${dataset.fight.name} kill=${dataset.fight.kill} ` +
 				`events=${dataset.events.length} enemyDeaths=${dataset.enemyDeaths.length}`,

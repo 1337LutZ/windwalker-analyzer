@@ -1,0 +1,139 @@
+name: Preview a pull request
+
+# A pull request gets its own site, so a change to the report can be *looked at* before it is merged.
+#
+# Cloudflare Pages calls this a preview deployment: the same project, uploaded under a branch name
+# other than the production one, which leaves `mop-log-analyzer.pages.dev` exactly where it was and
+# publishes the branch at an alias of its own. `deploy-cloudflare.yml` passes `--branch=main` for the
+# opposite reason — that flag is the only thing that makes a deploy production.
+#
+# ## Three deliberate differences from the production deploy
+#
+# **It does not re-run the gates.** `ci.yml` runs `npm run check` and `npm test` on this same commit,
+# and a preview exists to be looked at *before* the branch is green — a review comment about a chart
+# is worth having while the tests are still red. What this workflow does run is `npm run build`,
+# because a branch that does not compile has nothing to upload.
+#
+# **It keeps `src/pages/preview.astro`.** The production deploy deletes that harness, and the reason
+# it deletes it is the reason a preview keeps it: the harness renders committed fixtures with no
+# token, and a preview whose only route into the report needs WarcraftLogs sign-in is a preview most
+# reviewers will not get into. See the sign-in note on the comment step — it is the thing about this
+# workflow most likely to waste somebody's afternoon.
+#
+# **It cancels itself.** Production queues its deploys and never cancels one mid-upload, because a
+# half-published live site is the worst outcome there. A superseded preview is merely stale, and the
+# reviewer wants the newest push rather than the one before it.
+on:
+  pull_request:
+    branches: [main]
+
+# `contents` to check the branch out, `pull-requests` to leave the URL on the PR. Nothing else: this
+# workflow holds a Cloudflare token and should be able to do exactly two things with the repository.
+permissions:
+  contents: read
+  pull-requests: write
+
+# Per pull request, and cancelling. See the docblock: a preview of the commit before last is not
+# something anybody wants to review.
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_NAME: mop-log-analyzer
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    # A pull request from a fork runs without repository secrets — GitHub withholds them from
+    # `pull_request` on a fork, deliberately, because the workflow file comes from the fork's own
+    # branch. So the deploy cannot work there, and skipping is the honest failure: a red X on a
+    # contributor's first PR reads as "your change is broken" rather than "this repository does not
+    # hand its Cloudflare token to forks".
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # The host this build will be served from, worked out before the build because the build wants
+      # it and the comment wants it and the two must not disagree.
+      #
+      # Cloudflare derives a branch alias from the branch name: lowercased, every run of characters
+      # that is not a letter or a digit collapsed to a single `-`, leading and trailing `-` trimmed,
+      # and the result cut to 28 characters. `protection-paladin` survives that untouched; a branch
+      # called `feature/Some Long Name…` does not, which is why this is computed rather than assumed.
+      #
+      # The alias is stable for the life of the branch, and that stability is what makes sign-in
+      # usable at all — see the comment step. Every push also gets a one-off
+      # `<hash>.mop-log-analyzer.pages.dev`, which is not used here precisely because it moves.
+      - name: Work out the preview host
+        id: host
+        run: |
+          slug=$(printf '%s' "${{ github.event.pull_request.head.ref }}" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' \
+            | cut -c1-28 \
+            | sed -E 's/-+$//')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          echo "url=https://$slug.$PROJECT_NAME.pages.dev" >> "$GITHUB_OUTPUT"
+
+      # `SITE_URL` on the one step that needs it, for the reason `deploy-cloudflare.yml` spends a
+      # docblock on: a workflow-level `env:` reaches every step, and a build variable visible to a
+      # test run once failed 96 tests across 18 files on a deploy that had nothing wrong with it.
+      - run: npm run build
+        env:
+          SITE_URL: ${{ steps.host.outputs.url }}
+
+      - name: Deploy the preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # The same project as production and a branch that is not `main`, which is the whole of what
+        # makes this a preview: Cloudflare moves the production URL only for the production branch.
+        #
+        # No `--commit-dirty=true` here, and its absence is the point. Production passes it because
+        # that workflow deletes the preview harness a step earlier and would otherwise warn about a
+        # change it made on purpose. This tree is exactly the commit under review, so a dirty-tree
+        # warning here would mean something had modified it, and that is worth hearing about.
+        run: npx --no-install wrangler pages deploy dist --project-name="$PROJECT_NAME" --branch="${{ steps.host.outputs.slug }}"
+
+      # One comment per pull request, edited in place rather than a new one per push. A reviewer
+      # scrolling past fourteen bot comments to find the current URL is a worse experience than no
+      # comment at all, and the marker in the first line is how the next run finds this one again.
+      - name: Leave the preview URL on the pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          URL: ${{ steps.host.outputs.url }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cat > comment.md <<EOF
+          <!-- preview-deployment -->
+          **Preview:** $URL
+
+          Built from \`$SHA\`. The URL belongs to the branch rather than to this push, so it stays
+          the same as you push and always serves the newest build.
+
+          **Sign-in needs one thing first.** WarcraftLogs matches the redirect URI byte for byte
+          against one registered on *your own* client, and this is a different origin from the live
+          site — so add \`$URL/\` to your client's redirect URIs. Without it sign-in fails as
+          \`invalid_client\`, and the message blames the client id rather than the origin. One line,
+          once per branch.
+
+          **Or skip sign-in entirely.** [$URL/preview]($URL/preview) renders the committed fixtures
+          with no token and no report code — enough to check a chart, a label or a layout.
+          EOF
+
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            --jq '.[] | select(.body | contains("<!-- preview-deployment -->")) | .id' | tail -1)
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/comments/$id" -X PATCH -F body=@comment.md
+          else
+            gh pr comment "$PR" --body-file comment.md
+          fi

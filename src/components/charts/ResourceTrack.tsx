@@ -237,6 +237,25 @@ export default function ResourceTrack({
 			? ''
 			: `${line}L${x(last[0]).toFixed(2)} ${HEIGHT}L${x(first[0]).toFixed(2)} ${HEIGHT}Z`;
 
+	/**
+	 * The ceiling, when it moves, as a step path across the whole width.
+	 *
+	 * Drawn as steps whatever `mode` the bar itself uses, because a ceiling does not ramp: a buff
+	 * lands and the limit is higher from that instant. Interpolating between two ceilings would draw a
+	 * slope no reader could point at a cause for.
+	 *
+	 * It runs to the end of the pull rather than to the last reading, since the last ceiling holds
+	 * until the pull stops whether or not anything was sampled under it.
+	 */
+	const ceilingPath =
+		curve.ceiling === undefined || curve.ceiling.length === 0
+			? ''
+			: curve.ceiling
+					.map(([t, level], i) =>
+						i === 0 ? `M${x(t).toFixed(2)} ${y(level).toFixed(2)}` : `H${x(t).toFixed(2)}V${y(level).toFixed(2)}`,
+					)
+					.join('') + `H${x(span).toFixed(2)}`;
+
 	return (
 		// A positioned wrapper so labels can be HTML rather than SVG `<text>`.
 		//
@@ -279,6 +298,20 @@ export default function ResourceTrack({
 				)}
 				{/* `non-scaling-stroke` keeps the line a hairline however wide the chart is stretched —
 			    without it the horizontal squash would thin it and the vertical stretch would fatten it. */}
+				{/* The ceiling above the line rather than under it, and dashed so it cannot be mistaken for a
+				    second reading. It is a limit the pull was measured against, not a thing that was
+				    measured — see `ResourceCurve.ceiling` for the one bar that has a moving one. */}
+				{ceilingPath === '' ? null : (
+					<path
+						d={ceilingPath}
+						fill="none"
+						stroke={stroke}
+						strokeWidth={1}
+						strokeDasharray="4 3"
+						strokeOpacity={0.55}
+						vectorEffect="non-scaling-stroke"
+					/>
+				)}
 				<path d={line} fill="none" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
 			</svg>
 

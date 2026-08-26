@@ -197,11 +197,19 @@ export function bandForMode(mode: TargetMode | null): Band | null {
  *     sample with the same vocabulary at the same instants. Reading one series here and the other there
  *     lets the exemption and the sample argue about the same moment — the failure `resolveBands` below
  *     already names about the grade and the weights.
- *   - **It costs no exemption on anything in the tree.** Only the Windwalker declares an exclusion, and
- *     its only banded rule is `tigerPalmWaste`'s `bands: [1]`. `bandOf(0)` is 1, so a stretch the
- *     exclusion empties still reports band 1 and the intersection stays non-empty either way. Every
- *     Elemental declaration is on a spec with no exclusion, where the two series are the same array. So
- *     this closes the mismatch without moving a grade.
+ *   - **It costs no exemption on anything in the tree**, and two specs declare an exclusion now rather
+ *     than one. The Windwalker's only banded rule is `tigerPalmWaste`'s `bands: [1]`; `bandOf(0)` is 1,
+ *     so a stretch the exclusion empties still reports band 1 and the intersection stays non-empty
+ *     either way. Every Elemental declaration is on a spec with no exclusion, where the two series are
+ *     the same array. **The Protection Paladin declares `['consecration', 'lights-hammer']` and declares
+ *     no `bands` at all**, so nothing of its is scoped by this set today. So this closes the mismatch
+ *     without moving a grade.
+ *
+ *     What the second exclusion does move is the set itself, in one place, and it is worth knowing where:
+ *     the Paladin's `paragons` capture visits `[1, 2, 3, 4]` on the evidence series and `[1, 2, 3]` on the
+ *     ladder's, because the fourth enemy is only ever reached by that player's own Consecration. That is
+ *     the swap doing its job — a rung the ladder was never handed — and it is pinned in
+ *     `analysis/__tests__/targetSeries.aplBands.test.ts` against the day a Protection rule is banded.
  *
  * Falls back to `counts` when `aplCounts` is absent — every fixture captured before that field existed
  * — which is what keeps their band sets exactly what they were captured under.

@@ -13,7 +13,6 @@ export { default as FlameShock } from './FlameShock';
 export { default as LavaBurst } from './LavaBurst';
 export { default as LightningShield } from './LightningShield';
 export { default as Mana } from './Mana';
-export { default as PullTimeline } from './PullTimeline';
 export { default as Rotation } from './Rotation';
 export { default as SearingTotem } from './SearingTotem';
 export { default as Stormlash } from './Stormlash';

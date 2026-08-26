@@ -24,6 +24,7 @@ import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/ti
 import { analyse, registry as windwalkerRegistry, WINDWALKER, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis, wasteTone, weightsFor } from '~/specs/windwalker/lib/score';
 import {
+	SUMMARY_ROW_NAMES as summaryRowNames,
 	SUMMARY_LANE_KEYS as summaryLaneKeys,
 	timelineBanks,
 	timelineCounters,
@@ -45,12 +46,34 @@ import {
 } from '~/specs/elemental/lib/score';
 import {
 	timelineBanks as timelineBanksElemental,
+	SUMMARY_ROW_NAMES as summaryRowNamesElemental,
 	SUMMARY_LANE_KEYS as summaryLaneKeysElemental,
 	timelineCounters as timelineCountersElemental,
 	TIMELINE_ROW_ORDER as timelineRowOrderElemental,
 	timelineNotes as timelineNotesElemental,
 } from '~/specs/elemental/lib/view/timelineBanks';
 import { RAID_BUFF_EFFECTS as raidBuffEffectsElemental } from '~/specs/elemental/lib/view/raidBuffs';
+import {
+	analyse as analyseProtection,
+	registry as protectionRegistry,
+	PROTECTION,
+	PROTECTION_SETTINGS,
+	PROTECTION_SPEC,
+} from '~/specs/protection';
+import {
+	scoreAnalysis as scoreProtection,
+	wasteTone as wasteToneProtection,
+	weightsFor as weightsForProtection,
+} from '~/specs/protection/lib/score';
+import {
+	timelineBanks as timelineBanksProtection,
+	SUMMARY_ROW_NAMES as summaryRowNamesProtection,
+	SUMMARY_LANE_KEYS as summaryLaneKeysProtection,
+	timelineCounters as timelineCountersProtection,
+	TIMELINE_ROW_ORDER as timelineRowOrderProtection,
+	timelineNotes as timelineNotesProtection,
+} from '~/specs/protection/lib/view/timelineBanks';
+import { RAID_BUFF_EFFECTS as raidBuffEffectsProtection } from '~/specs/protection/lib/view/raidBuffs';
 
 export interface SpecDefinition {
 	/** The registry's own key — what the URL carries and `getSpec` reads. */
@@ -193,6 +216,24 @@ export interface SpecDefinition {
 	 */
 	summaryLaneKeys: readonly string[] | null;
 	/**
+	 * The rows the summary timeline draws and the order it draws them in, by the name on each row — or
+	 * `null` for a spec that draws every row it has.
+	 *
+	 * The counterpart of `summaryLaneKeys` and deliberately not a second spelling of it: that one is an
+	 * allowlist over **lane keys** and switching it on also drops every press row, which is the right cut
+	 * for a spec whose "at a glance" is a handful of auras. This one is over **row names**, so it can
+	 * keep a chart that is half buttons — names rather than keys because a row can be a press stream, and
+	 * a `CastMark` carries no ability key.
+	 *
+	 * It replaced a denylist of the same currency, and the direction is what changed: a row nobody named
+	 * is not drawn, so declaring an aura no longer silently adds one to a curated chart. Supplying it also
+	 * supplies the order, which `timelineRowOrder` otherwise gives — that one still ranks the cast log,
+	 * where every row is drawn.
+	 *
+	 * `null` for both of the first two specs.
+	 */
+	summaryRowNames: readonly string[] | null;
+	/**
 	 * The raid-buff effects this spec's damage rests on, in the order its report draws them.
 	 *
 	 * The fourth of the view properties above and the same reason as the other three: the section is
@@ -234,6 +275,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters,
 		timelineRowOrder,
 		summaryLaneKeys,
+		summaryRowNames,
 		raidBuffEffects,
 		settings: WW_SETTINGS,
 	},
@@ -259,8 +301,36 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters: timelineCountersElemental,
 		timelineRowOrder: timelineRowOrderElemental,
 		summaryLaneKeys: summaryLaneKeysElemental,
+		summaryRowNames: summaryRowNamesElemental,
 		raidBuffEffects: raidBuffEffectsElemental,
 		settings: ELEMENTAL_SETTINGS,
+	},
+	{
+		key: 'protection',
+		classKey: 'Paladin',
+		classSlug: 'paladin',
+		// Shield of the Righteous: the Protection spender, and not a button a Holy or a Retribution
+		// paladin has. The same rule `identify` uses, so the icon and the refusal name one thing.
+		iconSpellId: 53_600,
+		specName: 'Protection',
+		displayName: 'Protection Paladin',
+		colors: PROTECTION_SPEC.colors,
+		gameData: PROTECTION,
+		registry: protectionRegistry,
+		analyse: analyseProtection,
+		gcdMs: PROTECTION_SPEC.gcdMs,
+		identify: PROTECTION_SPEC.identify,
+		score: scoreProtection,
+		weightsFor: weightsForProtection,
+		wasteTone: wasteToneProtection,
+		timelineBanks: timelineBanksProtection,
+		timelineNotes: timelineNotesProtection,
+		timelineCounters: timelineCountersProtection,
+		timelineRowOrder: timelineRowOrderProtection,
+		summaryLaneKeys: summaryLaneKeysProtection,
+		summaryRowNames: summaryRowNamesProtection,
+		raidBuffEffects: raidBuffEffectsProtection,
+		settings: PROTECTION_SETTINGS,
 	},
 ];
 

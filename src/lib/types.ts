@@ -223,6 +223,30 @@ export interface AbilityDamage {
 	utility: boolean;
 }
 
+/**
+ * What the pull's own presses say a global was, before anything clamps it.
+ *
+ * `analyseCore` measures this and then squeezes it into `[GCD_MIN_MS, spec.gcdMs]` before publishing
+ * it as `effectiveGcd`, which is right for what `effectiveGcd` is used for — dividing a pull's active
+ * time into press slots, where a median drawn from nine gaps on a wipe must not be allowed to invent
+ * a two-second global. It is wrong for the one question that wants a *second opinion*: on a spec
+ * whose declared `gcdMs` is already the floor, the clamp pins the published figure to that floor from
+ * both sides, so it agrees with any model by construction and can never disagree with one.
+ *
+ * Protection is exactly that spec — `PROTECTION_SPEC.gcdMs` is `GCD_FLOOR_MS`, so `effectiveGcd` is
+ * 1000ms on every pull however the presses actually fell — which is why the raw figure is published
+ * beside it rather than left for a reader to recover. **Nothing divides by this**; it is evidence.
+ *
+ * Generic on purpose. Any spec whose global moves with haste can check a model of it against its own
+ * press stream from here, and there is nothing about a Paladin in it.
+ */
+export interface MeasuredGcd {
+	/** The median gap between consecutive instant on-GCD presses, in ms, or null when none was seen. */
+	medianMs: number | null;
+	/** How many gaps that median was taken over — a median over three is not a measurement. */
+	samples: number;
+}
+
 export interface CastRow {
 	id: number;
 	name: string;
@@ -1334,8 +1358,34 @@ export type ResourceBarAudit = PoolResourceAudit | PointsResourceAudit;
  * between the points.
  */
 export interface ResourceCurve {
+	/**
+	 * The ceiling the chart's vertical axis is scaled by.
+	 *
+	 * For a bar with a fixed ceiling this *is* the ceiling. For one whose ceiling moves — see
+	 * `ceiling` below — it is the **highest** the ceiling ever reached on this pull, so the line can
+	 * never leave its own axis, and the ceiling in force at any given moment is the step series
+	 * rather than this number.
+	 */
 	max: number;
 	points: Array<[number, number]>;
+	/**
+	 * The ceiling over time, when it is not one number for the whole pull.
+	 *
+	 * A step series in the same shape as `points`: each entry is the moment a new ceiling took effect
+	 * and what it became, holding until the next entry. Absent means the ceiling is `max` throughout,
+	 * which is every bar in the game except one.
+	 *
+	 * **Vengeance is why this exists.** Its ceiling is the tank's maximum health
+	 * (`sim/core/vengeance.go:106`), and `MaxHealth()` reads the live Health stat rather than a
+	 * constant — so a Rallying Cry or a Last Stand raises it for as long as it holds, and all three
+	 * committed Protection pulls carry one doing exactly that. Drawn against a single `max` the raised
+	 * stretches read as the player falling further from a ceiling that had in fact moved up to meet
+	 * them, which inverts what the chart is for.
+	 *
+	 * Optional and additive: every existing curve omits it and is scaled and shaded by `max` exactly
+	 * as before.
+	 */
+	ceiling?: Array<[number, number]>;
 	/**
 	 * Moments the bar overflowed, and by how much.
 	 *
@@ -1781,6 +1831,14 @@ export interface GearSummary {
 	 * because the committed fixtures predate the field.
 	 */
 	stamina?: number | null;
+	/**
+	 * Melee haste rating as `combatantinfo` reported it, or null when it reported none.
+	 *
+	 * A stat line for most specs and a denominator for one: Sanctity of Battle turns it into cooldown
+	 * reduction, so a Protection report divides by it. Null rather than zero for that reason — see
+	 * `readHaste`. Optional because the committed fixtures predate the field.
+	 */
+	hasteRating?: number | null;
 }
 
 /**
@@ -2184,6 +2242,120 @@ export interface SpecAuditResult {
 
 /** The full analysis of one fight — what the renderer consumes. */
 export type Analysis = AnalysisCore & SpecAuditResult;
+
+// --------------------------------------------------------------- Protection
+
+import type { ExternalsAudit } from '~/lib/analysis/externals';
+import type { HasteMeasure } from '~/lib/analysis/haste';
+import type { VengeanceAudit } from '~/lib/analysis/vengeance';
+
+/**
+ * The Protection Paladin audit's own shape, alongside `SpecAuditResult` on the same terms the
+ * Elemental's is — see the note above `ElementalAudit` for why the three do not share a type.
+ *
+ * Deliberately small. Fifteen of the fields the fork's own `FightMeasure` carried are fields
+ * `AnalysisCore` already produces, so what is left here is the three things no generic audit can
+ * know: what the pull's haste was, how many globals the *fight* took away, and which of the boss's
+ * rules actually fired.
+ */
+export interface ProtectionAudit {
+	/**
+	 * The two fields `analyseCore` reads back rather than merges — every spec's audit owes them.
+	 *
+	 * `cpm` is folded into the core's own rate block and `timeline` into its cast timeline, so both are
+	 * borrowed from `SpecAuditResult` rather than restated: three specs with three shapes for one field
+	 * is how a shared chart comes to compile against one of them.
+	 */
+	cpm: SpecAuditResult['cpm'];
+	timeline: SpecAuditResult['timeline'];
+	misses: SpecAuditResult['misses'];
+	/**
+	 * The priority list run against the pull, and the same walk forced to each target band.
+	 *
+	 * Borrowed from `SpecAuditResult` rather than restated, on the terms `cpm` and `timeline` above are:
+	 * `PriorityLadder` is a shared component reading `Analysis.apl`, and a spec with its own shape for
+	 * this field is a spec that compiles against a chart drawn for somebody else.
+	 */
+	apl: SpecAuditResult['apl'];
+	aplForced: SpecAuditResult['aplForced'];
+	/** The three terms of the pull's haste and what they came to — see `lib/analysis/haste`. */
+	haste: HasteMeasure;
+	/**
+	 * The same global arrived at from the other side: the median gap this pull's presses actually left.
+	 *
+	 * Carried so the Haste section can put a measurement next to a model. `globals.gcdMs` cannot do
+	 * that job on this spec — see `MeasuredGcd`, where the clamp that makes it useless as a check is
+	 * the same clamp that makes it right as a divisor.
+	 */
+	measuredGcd: MeasuredGcd;
+	globals: {
+		/** How many globals the pull had room for: active time over the measured global. */
+		available: number;
+		/** Presses that cost one. */
+		pressed: number;
+		/** The gap between the two. */
+		missed: number;
+		/** How long the encounter took the buttons away for, inside the pull. */
+		enforcedMs: number;
+		/** That time priced in globals, and never more than were missed. */
+		enforcedGlobals: number;
+		/**
+		 * What is left when the fight's share comes off — the player's half of the gap.
+		 *
+		 * **Not subtracted from `missed`, which stays whole.** A reader is owed the total and how much
+		 * of it anybody could have done something about, and netting the two produces one number that
+		 * hides which kind of fault it describes.
+		 */
+		missedFree: number;
+		/** The global this was all divided by, in ms. Measured, not declared. */
+		gcdMs: number;
+		/** The clock the above was taken over. */
+		measuredMs: number;
+	};
+	/** What this report knows about the boss, and where it applied in this pull. */
+	fight: {
+		/** The encounter's name in the rule table, or null when nothing is known about it. */
+		encounter: string | null;
+		/**
+		 * The copy key for what a reader needs that is not a rule, or null when the table has nothing to add.
+		 *
+		 * A key and not the prose: these are the only reader-facing sentences that used to live outside
+		 * `report.json`, which meant the copy suite could not see the longest text block on the section.
+		 * See `EnforcedProfile.noteKey`.
+		 */
+		noteKey: string | null;
+		rules: Array<{
+			key: string;
+			name: string;
+			basis: 'lockout' | 'declared';
+			source: 'player-aura' | 'player-buff' | 'enemy-aura' | 'phase';
+			evidence: string;
+			/** Where it applied. Empty means the rule exists and never fired, which is a real report. */
+			windows: Window[];
+			ms: number;
+		}>;
+		enforcedMs: number;
+	};
+	/**
+	 * The attack power Vengeance paid, and the ceiling the player's own health put on it.
+	 *
+	 * Generic rather than this spec's — every tank has Vengeance — so the shape lives beside the
+	 * arithmetic in `lib/analysis/vengeance` and is borrowed here the way `HasteMeasure` is.
+	 */
+	vengeance: VengeanceAudit;
+	/**
+	 * The damage-reduction cooldowns other raiders could have put on this tank, and which of them did.
+	 *
+	 * Generic for the same reason `vengeance` is — every tank is the target of the same short list — so
+	 * the catalogue and the reading live in `lib/analysis/externals` and only the field is borrowed here.
+	 *
+	 * The one field on this audit whose figures rest on who else was in the pull rather than on what the
+	 * player did, which is why `ExternalsAudit` carries the roster's classes beside the counts: a raid
+	 * with no priest missed no Pain Suppression, and a count that did not say so would be a fault
+	 * invented out of the roster.
+	 */
+	externals: ExternalsAudit;
+}
 
 // ---------------------------------------------------------------- Elemental
 

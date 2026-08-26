@@ -261,3 +261,120 @@ describe('cooldownDrift', () => {
 		});
 	});
 });
+
+/**
+ * A cooldown that moves with haste, which is a thing no spec in this repository had until Protection.
+ *
+ * Sanctity of Battle turns melee haste into cooldown reduction, so `Ability.cooldownMs` is the value
+ * at no haste and the value on no real pull. The curve answers at the moment of the *press*, because
+ * the game arms a cooldown when the button goes out — a press before Bloodlust runs its full length
+ * and one inside it does not.
+ */
+describe('a haste-scaled cooldown', () => {
+	/** A 9s cooldown at 50% haste is a 6s one, and the drift has to be measured against the 6. */
+	const HOLY_WRATH: Ability = {
+		key: 'holy-wrath',
+		name: 'Holy Wrath',
+		castIds: [119_072],
+		onGcd: true,
+		gate: 'cooldown',
+		cooldownMs: 9000,
+		hasteScaled: true,
+	};
+
+	/**
+	 * The claim that keeps every committed capture where it is: passing nothing changes nothing.
+	 *
+	 * Both existing specs declare no `cooldownAt`, so this is the path all ten of their captures take,
+	 * and it has to be the same arithmetic it was before the parameter existed.
+	 */
+	it('is the declared number when no curve is passed', () => {
+		const times = [0, 12_000, 30_000];
+		expect(cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS)).toEqual(
+			cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 1500, times, undefined),
+		);
+	});
+
+	/**
+	 * A flat curve and no curve agree, which is what makes the two paths one rule rather than two.
+	 *
+	 * Worth asserting rather than reasoning about: the `lostCasts` arithmetic genuinely differs between
+	 * them — one divides the total drift, the other prices each window and sums — and they must land on
+	 * the same number wherever the cooldown does not move.
+	 */
+	it('agrees with the flat case when the curve does not move', () => {
+		const times = [0, 20_000, 44_000];
+		expect(cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 1500, times, () => 9000)).toEqual(
+			cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS),
+		);
+	});
+
+	/**
+	 * The finding the whole feature is for: a hasted pull is not idle where the base number says it is.
+	 *
+	 * Two presses 7s apart, on a button whose base cooldown is 9s. Read against the base the button was
+	 * never even ready, so there is no drift and the press looks early. Read at 50% haste the cooldown
+	 * is 6s, the button sat ready for a second, and the pull is described correctly.
+	 */
+	it('finds drift the base number cannot see', () => {
+		const times = [0, 7_000];
+		const flat = cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500);
+		const hasted = cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500, times, () => 6000);
+
+		expect(flat.driftMs).toBe(0);
+		expect(hasted.windows).toEqual([{ start: 6000, end: 7000, ms: 1000 }]);
+		expect(hasted.driftMs).toBe(1000);
+	});
+
+	/**
+	 * And the other direction, which is the one that would invent a fault rather than miss one.
+	 *
+	 * A button pressed on a 6s cooldown, graded against 9s, reads as a player pressing something that
+	 * was not available — the drift walk cannot say that, so what it does instead is charge the *next*
+	 * gap with three seconds of idle time that never happened. The curve removes it.
+	 */
+	it('stops the base number inventing idle time between presses', () => {
+		const times = [0, 6_000, 12_000, 18_000];
+		const flat = cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500);
+		const hasted = cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500, times, () => 6000);
+
+		// Pressed exactly on the hasted cooldown three times over: nothing was ever idle.
+		expect(hasted.driftMs).toBe(0);
+		expect(hasted.lostCasts).toBe(0);
+		// The flat reading agrees on the drift, and only because every press is *early* against 9s —
+		// which is the half of the error that hides. What it gets wrong is the tail: it believes the
+		// button was still on cooldown for three seconds it had actually come back in, and forgives
+		// three seconds of idle time at the end of the pull that really happened.
+		expect(hasted.tailMs - flat.tailMs).toBe(3000);
+	});
+
+	/**
+	 * The curve is asked at the press, not at the question — so Bloodlust only shortens what it covers.
+	 *
+	 * A pull with the lust up for its first forty seconds: the press at 0s stamps a 4.6s cooldown and
+	 * the press at 50s stamps the base 6s. A model that asked once and applied one answer to the pull
+	 * would be wrong in one direction or the other for most of it.
+	 */
+	it('asks the curve at the press rather than once for the pull', () => {
+		const lustUntil = 40_000;
+		const curve = (t: number) => (t < lustUntil ? 4600 : 6000);
+		const times = [0, 10_000, 50_000, 62_000];
+		const drift = cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500, times, curve);
+
+		// 0 + 4.6s ready, pressed at 10s: 5.4s idle under the lust. 10s + 4.6s ready, pressed at 50s:
+		// 35.4s idle. 50s + 6s ready, pressed at 62s: 6s idle, priced at the un-lusted cooldown.
+		expect(drift.windows.map((w) => w.ms)).toEqual([35_400, 6_000, 5_400]);
+		// Each window priced at the cooldown that was running when it opened: 35400/4600 = 7, 6000/6000
+		// = 1, 5400/4600 = 1. Nine, where dividing the 46.8s total by either number alone gives ten or
+		// seven.
+		expect(drift.lostCasts).toBe(9);
+	});
+
+	/** A curve that answers nonsense falls back to the declared number rather than dividing by zero. */
+	it('refuses a curve that answers zero', () => {
+		const times = [0, 30_000];
+		expect(cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500, times, () => 0)).toEqual(
+			cooldownDrift(times, HOLY_WRATH, WHOLE_FIGHT, FIGHT_MS, 500),
+		);
+	});
+});

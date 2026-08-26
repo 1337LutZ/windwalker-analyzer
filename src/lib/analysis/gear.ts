@@ -67,6 +67,7 @@ const EMPTY: GearSummary = {
 	gems: 0,
 	masteryRating: null,
 	stamina: null,
+	hasteRating: null,
 };
 
 /**
@@ -95,6 +96,7 @@ export function readGear(events: readonly WclEvent[], sourceID: number): GearSum
 		gems: slots.reduce((count, s) => count + s.gems.length, 0),
 		masteryRating: readMastery(info.mastery),
 		stamina: readStamina(info.stamina),
+		hasteRating: readHaste(info.hasteMelee),
 	};
 }
 
@@ -125,6 +127,20 @@ function readMastery(rating: unknown): number | null {
  */
 function readStamina(stamina: unknown): number | null {
 	return typeof stamina === 'number' && stamina > 0 ? stamina : null;
+}
+
+/**
+ * The player's melee haste rating at the pull, or null when the log did not report one.
+ *
+ * Guarded like the two above, and the guard matters more here than for either: a spec whose cooldowns
+ * move with haste divides by this, and a zero read as a real rating would report a player with no
+ * haste at all — every cooldown a third too long, and lost casts invented for a pull that had none.
+ *
+ * Melee rather than spell, because that is the term Sanctity of Battle reads. `combatantinfo` carries
+ * all three on a Mists report and they agree, which is not a reason to read a different one.
+ */
+function readHaste(rating: unknown): number | null {
+	return typeof rating === 'number' && rating > 0 ? rating : null;
 }
 
 /**

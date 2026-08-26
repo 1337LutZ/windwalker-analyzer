@@ -14,6 +14,21 @@ const secondsFormat = new Intl.NumberFormat('en-US', {
 	maximumFractionDigits: 1,
 });
 
+const millisFormat = new Intl.NumberFormat('en-US', {
+	style: 'unit',
+	unit: 'millisecond',
+	unitDisplay: 'narrow',
+	maximumFractionDigits: 0,
+});
+
+const millisDeltaFormat = new Intl.NumberFormat('en-US', {
+	style: 'unit',
+	unit: 'millisecond',
+	unitDisplay: 'narrow',
+	maximumFractionDigits: 0,
+	signDisplay: 'exceptZero',
+});
+
 /**
  * Fight-relative milliseconds as `m:ss` — the clock every timestamp in the report is read on, and
  * the one WarcraftLogs' own replay shows.
@@ -61,6 +76,44 @@ export function formatStamp(ms: number): string {
 /** Milliseconds as seconds with its unit, one decimal: `4200` → `4.2s`. */
 export function formatSeconds(ms: number): string {
 	return secondsFormat.format(ms / 1000);
+}
+
+/**
+ * A duration to the millisecond, with its unit: `2890` → `2,890ms`.
+ *
+ * **The one case where `formatSeconds` and `formatGap` both round away the argument being made.**
+ * Every figure the haste model produces is a millisecond figure that only means anything against
+ * another millisecond figure: a Crusader Strike modelled at 2,900ms beside a shortest observed gap of
+ * 2,890ms is the model being confirmed to a hundredth of a global, and both of those print `2.9s`.
+ * The same collapse hides the global's own breakpoint — rating alone gives 1,015ms and the seal over
+ * it gives 1,000ms, which is the difference between reaching the floor and not, and which
+ * `formatSeconds` renders as `1.0s` twice.
+ *
+ * So this is for a *comparison* at the log's own resolution and nothing else. A duration a reader is
+ * meant to feel rather than check — how long a stun held, how long a buff ran — stays
+ * `formatSeconds`; six digits of a fifteen-second window is precision nobody asked for. `formatGap`
+ * is the third case and sits between them: it picks its unit by size, which is right for a miss and
+ * wrong here, because it would print two of the numbers above in seconds and the third in
+ * milliseconds.
+ */
+export function formatMillis(ms: number): string {
+	return millisFormat.format(ms);
+}
+
+/**
+ * The same, as a difference: `-2146` → `-2,146ms`, `70` → `+70ms`.
+ *
+ * `Intl` writes both signs, which is the whole of what this adds — a column of margins where the
+ * positives are unsigned reads as a column of two different quantities. `exceptZero` rather than
+ * `always`, so an exact hit prints `0ms`: a margin of nothing is not a positive margin, and `+0ms`
+ * would claim a headroom the gap does not have.
+ *
+ * The minus is `en-US`'s own, which is the ASCII hyphen rather than U+2212. Left as `Intl` writes it:
+ * substituting the typographic minus by hand would be this file deciding a locale's punctuation, and
+ * the two do not differ in a monospace column.
+ */
+export function formatMillisDelta(ms: number): string {
+	return millisDeltaFormat.format(ms);
 }
 
 /**

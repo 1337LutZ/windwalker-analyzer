@@ -21,6 +21,7 @@ import {
 	formatPercentValue,
 	formatSeconds,
 	formatGap,
+	formatMillis,
 	formatSecondsValue,
 } from '~/lib/format';
 import { formatClock } from '~/lib/format';
@@ -58,6 +59,9 @@ const FORMATTERS: Record<string, (value: unknown) => string> = {
 	// Milliseconds as a short gap, in whichever unit keeps it honest: `21ms`, `0.7s`. `duration`
 	// rounds a miss by a fiftieth of a second to `0s`, which reads as no gap at all.
 	gap: (v) => formatGap(Number(v)),
+	// Milliseconds to the millisecond, `1,010ms`. For a figure whose whole point is how it compares
+	// with another one at the log's own resolution — `duration` prints 1000 and 1010 as `1.0s` twice.
+	millis: (v) => formatMillis(Number(v)),
 };
 
 let started = false;
