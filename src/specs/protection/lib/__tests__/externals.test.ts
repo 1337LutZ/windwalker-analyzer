@@ -243,6 +243,64 @@ describe('the externals a pull received', () => {
 	});
 });
 
+describe('an external the player pressed themselves', () => {
+	/**
+	 * The Paladin is on the catalogue, and their own Devotion Aura arrives as a caster in `received`.
+	 *
+	 * Not a curiosity: it is the case a reader complained the chart could not show. A raid-wide external
+	 * lands on the caster like anybody else, so a Devotion Aura the audited player pressed sits in
+	 * `received` under their own actor id — indistinguishable in that array from the healer's Pain
+	 * Suppression beside it, which is why the split is by `id` and the section makes it.
+	 *
+	 * All five committed pulls carry it, which is what makes the row worth a tone of its own rather than
+	 * an edge case: this tank presses their raid cooldown on every kill in the capture set.
+	 */
+	it('files the player among the casters of a raid-wide external', () => {
+		for (const name of PULLS) {
+			const audit = auditOf(name);
+			const row = audit.externals.rows.find((entry) => entry.key === 'devotion-aura');
+			expect(row, name).toBeDefined();
+			const own = row!.received.filter((caster) => caster.id === audit.actorID);
+			expect(own.length, name).toBe(1);
+			expect(own[0]!.windows.length, name).toBeGreaterThan(0);
+		}
+	});
+
+	/**
+	 * And it stays in `received`, which is the half of the decision that is not about the chart.
+	 *
+	 * `count` and `heldMs` answer "what protected you", and a cooldown of your own protected you exactly
+	 * as much as a healer's did. Moving the player's own presses out of `received` to make the chart
+	 * easier would take them off both figures and off the section's headline tile with them — so the
+	 * split lives in the view and the audit is left saying the true thing.
+	 */
+	it('counts the player’s own press as an external that landed', () => {
+		const audit = auditOf('garrosh.json');
+		const row = audit.externals.rows.find((entry) => entry.key === 'devotion-aura')!;
+		const own = row.received.filter((caster) => caster.id === audit.actorID);
+		const windows = own.flatMap((caster) => caster.windows);
+		expect(windows.length).toBeGreaterThan(0);
+		expect(row.count).toBeGreaterThanOrEqual(windows.length);
+		expect(row.heldMs).toBeGreaterThan(0);
+	});
+
+	/**
+	 * `given` stays empty for it, and that is deliberate rather than a gap the tone now papers over.
+	 *
+	 * A raid-wide cooldown reaching twenty-four other raiders is not an external the player redirected
+	 * away from themselves, and listing twenty-four recipients would drown the one case `given` exists
+	 * for — a Hand put on the other tank. `givenBySource` skips `delivery: 'raid'` outright, and the
+	 * chart's second tone is what now says "you pressed this" for the raid-wide half.
+	 */
+	it('does not file a raid-wide press as given away', () => {
+		for (const name of PULLS) {
+			const audit = auditOf(name);
+			const row = audit.externals.rows.find((entry) => entry.key === 'devotion-aura')!;
+			expect(row.given, name).toEqual([]);
+		}
+	});
+});
+
 describe('a reduction that depends on who cast it', () => {
 	/**
 	 * Devotion Aura is two spells wearing one name, and the row has to say which one landed.

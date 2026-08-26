@@ -1891,9 +1891,9 @@
       "body": "Nobody cast {{names}} on you at any point in this pull, and somebody standing in it could have. Each one reduces the damage you take without reducing your Vengeance, because Vengeance comes off the damage before your own reductions apply. You can ask for these without giving up any attack power."
     },
     "key": {
-      "landed": "Landed on you",
-      "given": "You put it on somebody else",
-      "vengeance": "Your attack power"
+      "landed": "Landed on you, from somebody else",
+      "vengeance": "Your attack power",
+      "own": "You pressed it yourself"
     },
     "chartLabel": "When each external cooldown was on you across the pull: {{landed, integer}} of them landed over {{duration, duration}}.",
     "length": {
@@ -1901,7 +1901,8 @@
       "given": "on them for"
     },
     "track": {
-      "given": "{{name}} to {{target}}"
+      "given": "{{name}} to {{target}}",
+      "yours": "{{name}}, yours"
     },
     "empty": "No external damage reduction landed on you in this pull, and none went out from you either.",
     "summary": "{{used, integer}} of the {{available, integer}} externals this raid could have put on you landed at least once, and the longest-running of them covered {{held, duration}}. A shaded row in the table is a cooldown somebody here was able to cast and nobody did.",

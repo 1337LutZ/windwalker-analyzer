@@ -478,7 +478,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the Protection ladder gaining its labels, it prints 1555 leaves, 751 prose, 24,657 words;
+As of the externals chart naming the reader's own presses, it prints 1556 leaves, 751 prose, 24,657 words;
 median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 682 prose leaves,
 1,203 sentences, median 17, 245 past 25 (20.4%), 288 em-dashes in 247 sentences (20.5%);
 60 / 23 / 1 / 2 on the quote lines.

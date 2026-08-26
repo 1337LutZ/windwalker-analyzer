@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useReportCopy } from '~/hooks/useReportCopy';
-import type { ExternalsAudit } from '~/lib/analysis/externals';
+import type { ExternalCaster, ExternalRow, ExternalsAudit } from '~/lib/analysis/externals';
 import { formatInteger, formatSeconds } from '~/lib/format';
 import type { Analysis } from '~/lib/types';
 
@@ -71,15 +71,49 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 	const { t } = useReportCopy(analysis);
 
 	const rows = externals?.rows ?? NO_ROWS;
+	// Bound outside the memo so the split inside it depends on a number rather than on `analysis`.
+	const actorID = analysis.actorID;
 
-	const tracks = useMemo(
-		(): Track[] => [
+	/**
+	 * The player's own presses, split out of `received` — which is what the second tone means.
+	 *
+	 * **A raid-wide external the player pressed lands on them like anybody else's**, so it arrives in
+	 * `received` under their own actor id and drew in the same tone as the healer's Pain Suppression
+	 * beside it. That is the row a reader came to this heading to find: Devotion Aura is on the Paladin's
+	 * own bar, and a heading about what the raid brought has to say which of it the reader brought.
+	 *
+	 * Split here rather than in the audit, deliberately. `received` is "what protected you", and a press
+	 * of your own protected you exactly as much — moving it out would take it off `count` and `heldMs`,
+	 * which answer a different question and are right as they stand. What changes is only how the chart
+	 * draws it.
+	 *
+	 * `id` and never a name: names come from the report's actor list, can be null, and two raiders can
+	 * share one. See `ExternalCaster.id`.
+	 */
+	const mine = (row: ExternalRow): ExternalCaster[] => row.received.filter((caster) => caster.id === actorID);
+
+	const tracks = useMemo((): Track[] => {
+		const spans = (casters: readonly ExternalCaster[]): Array<[number, number]> =>
+			casters.flatMap((caster) => caster.windows.map((w): [number, number] => [w.start, w.end]));
+		const self = (row: ExternalRow) => row.received.filter((caster) => caster.id === actorID);
+		const others = (row: ExternalRow) => row.received.filter((caster) => caster.id !== actorID);
+		return [
 			...rows
-				.filter((row) => row.count > 0)
+				.filter((row) => others(row).length > 0)
 				.map((row): Track => ({
 					label: row.name,
 					tone: 'brew',
-					windows: row.received.flatMap((caster) => caster.windows.map((w): [number, number] => [w.start, w.end])),
+					windows: spans(others(row)),
+					lengthLabel: t('externals.length.held'),
+				})),
+			// The player's own, in the pressed-it tone. Above the ones they gave away rather than below,
+			// because this heading is about the reader's own pull first and about the raid's second.
+			...rows
+				.filter((row) => self(row).length > 0)
+				.map((row): Track => ({
+					label: t('externals.track.yours', { name: row.name }),
+					tone: 'kick',
+					windows: spans(self(row)),
 					lengthLabel: t('externals.length.held'),
 				})),
 			...rows
@@ -90,12 +124,11 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 						target: row.given.map((who) => who.name ?? `#${who.id}`).join(', '),
 					}),
 					tone: 'kick',
-					windows: row.given.flatMap((who) => who.windows.map((w): [number, number] => [w.start, w.end])),
+					windows: spans(row.given),
 					lengthLabel: t('externals.length.given'),
 				})),
-		],
-		[rows, t],
-	);
+		];
+	}, [rows, actorID, t]);
 
 	if (externals === undefined) {
 		return (
@@ -113,7 +146,12 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 	// `ExternalsAudit.missed`.
 	const missing = externals?.missed ?? [];
 	const heldMs = rows.reduce((most, row) => Math.max(most, row.heldMs), 0);
+	// Two different questions, and the note under the chart wants the narrower one. `gave` is what the
+	// player redirected *away* from themselves, which is the sentence `externals.given` prints; `pressed`
+	// is every external they were the caster of, which is what the second tone on the chart means and so
+	// what its key line has to appear for.
 	const gave = rows.filter((row) => row.given.length > 0);
+	const pressed = rows.filter((row) => row.given.length > 0 || mine(row).length > 0);
 
 	/**
 	 * Only the cooldowns somebody in this raid could actually have cast.
@@ -196,7 +234,7 @@ export default function Externals({ analysis }: { analysis: Analysis }) {
 							<>
 								{vengeance === undefined ? null : <ChartKey tone="rune">{t('externals.key.vengeance')}</ChartKey>}
 								<ChartKey tone="brew">{t('externals.key.landed')}</ChartKey>
-								{gave.length === 0 ? null : <ChartKey tone="kick">{t('externals.key.given')}</ChartKey>}
+								{pressed.length === 0 ? null : <ChartKey tone="kick">{t('externals.key.own')}</ChartKey>}
 							</>
 						}
 					>
