@@ -50,6 +50,8 @@ import { describe, expect, it } from 'vitest';
 import type { Ability } from '~/lib/game/model';
 import type { AplInputs } from '~/lib/spec/apl';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
+import { PROTECTION_SPEC } from '~/specs/protection';
+import { LADDER_ENTRIES as PROT_LADDER, UNARBITRATED as PROT_UNARBITRATED } from '~/specs/protection/lib/apl';
 import { LADDER_ENTRIES as ELE_LADDER, UNARBITRATED as ELE_UNARBITRATED } from '~/specs/elemental/lib/apl';
 import { WW_SPEC } from '~/specs/windwalker';
 import { LADDER_ENTRIES as WW_LADDER, UNARBITRATED as WW_UNARBITRATED } from '~/specs/windwalker/lib/apl';
@@ -67,8 +69,8 @@ import { SPEC_SECTIONS } from '~/components/report/specSections';
  */
 const SPECS: ReadonlyArray<{
 	dir: string;
-	config: typeof ELEMENTAL_SPEC | typeof WW_SPEC;
-	ladder: typeof ELE_LADDER | typeof WW_LADDER;
+	config: typeof ELEMENTAL_SPEC | typeof WW_SPEC | typeof PROTECTION_SPEC;
+	ladder: typeof ELE_LADDER | typeof WW_LADDER | typeof PROT_LADDER;
 	/** What the spec hands the walk as `AplInputs.unarbitrated`, or `{}` for a spec that declares none. */
 	unarbitrated: NonNullable<AplInputs['unarbitrated']>;
 }> = [
@@ -80,6 +82,12 @@ const SPECS: ReadonlyArray<{
 	// measured off those pulls: 16 presses on `waves`, 6 on `cleave`, 3 each on `mixed` and `poor`, 2 on
 	// `strong`, 1 on `weave` — and `followed` untouched on all six. What it left alone is the ledger below.
 	{ dir: 'windwalker', config: WW_SPEC, ladder: WW_LADDER, unarbitrated: WW_UNARBITRATED },
+	// **The Protection ladder can reach the fall-through and never does**, which is the opposite of the
+	// Elemental's shape and worth stating: its bottom rung is Sacred Shield, which declines on its own
+	// cooldown *and* on a talent, so a player who took Eternal Flame instead has a ladder with a floor
+	// that opens. Its four declarations are the three seals and the taunt — buttons that occupy a global
+	// and are not rotational decisions, each naming where the report does say something about it.
+	{ dir: 'protection', config: PROTECTION_SPEC, ladder: PROT_LADDER, unarbitrated: PROT_UNARBITRATED },
 ];
 
 /**

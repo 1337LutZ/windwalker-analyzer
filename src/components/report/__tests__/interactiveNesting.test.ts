@@ -151,8 +151,23 @@ function pulls(): Array<[string, Analysis]> {
 const PULLS = pulls();
 
 /** Exactly what `preview.astro` hands the island, one pull at a time — `PreviewSwitcher` shows the first. */
-const markup = (name: string, analysis: Analysis): string =>
-	renderToStaticMarkup(createElement(PreviewSwitcher, { fixtures: { [name]: analysis } }));
+/**
+ * The whole report as a browser would receive it, rendered once per pull and kept.
+ *
+ * Memoised because it is not cheap and this file asks for it three times per pull: twice in the sweep
+ * below and once in each of the two `it.each` blocks. Rendering fifteen committed pulls three times over
+ * had the sweep at 4.6s against vitest's 5s default with the machine to itself, so it was one added
+ * section away from a timeout that would read as a hydration fault rather than as a slow test — and the
+ * Protection report gaining its priority ladder was that section.
+ */
+const rendered = new Map<string, string>();
+const markup = (name: string, analysis: Analysis): string => {
+	const had = rendered.get(name);
+	if (had !== undefined) return had;
+	const html = renderToStaticMarkup(createElement(PreviewSwitcher, { fixtures: { [name]: analysis } }));
+	rendered.set(name, html);
+	return html;
+};
 
 describe('the served report is the tree a browser parses back', () => {
 	it.each(PULLS)('%s', (name, analysis) => {

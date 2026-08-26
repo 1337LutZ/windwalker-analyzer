@@ -15,6 +15,7 @@ import type { Analysis } from '~/lib/types';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
 import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
 import { THRESHOLDS as ELE_THRESHOLDS } from '~/specs/elemental/lib/score';
+import { LADDER_ENTRIES as PROT_LADDER } from '~/specs/protection/lib/apl';
 import { THRESHOLDS as PROT_THRESHOLDS } from '~/specs/protection/lib/score';
 import { PROTECTION_SPEC } from '~/specs/protection';
 import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
@@ -831,26 +832,43 @@ describe('report copy with no reader', () => {
 		},
 		// Both specs' ladders, because one shared `priority.rule.*` root holds both lists' rule ids.
 		ladderRule: {
-			where: 'both specs’ `LADDER_ENTRIES`',
-			keys: () => [...WW_LADDER, ...ELE_LADDER].map((entry) => entry.key),
+			where: 'all three specs’ `LADDER_ENTRIES`',
+			keys: () => [...WW_LADDER, ...ELE_LADDER, ...PROT_LADDER].map((entry) => entry.key),
 			pinned: [
+				'avengers-shield',
+				'avengers-shield-grand-crusader',
 				'blackout-kick',
 				'chain-lightning',
 				'chi-wave',
 				'combo-breaker-kick',
 				'combo-breaker-palm',
+				'consecration',
+				'consecration-multi',
+				'crusader-strike',
+				'crusader-strike-holy-avenger',
 				'earth-shock',
 				'elemental-blast',
+				'execution-sentence',
 				'fists-of-fury',
 				'flame-shock',
+				'hammer-of-the-righteous',
+				'hammer-of-the-righteous-holy-avenger',
+				'hammer-of-wrath',
+				'holy-prism',
+				'holy-wrath',
 				'jab',
+				'judgment',
+				'judgment-sanctified-wrath',
 				'lava-beam',
 				'lava-burst',
 				'lightning-bolt',
+				'lights-hammer',
 				'rising-sun-kick',
 				'rising-sun-kick-filler',
 				'rushing-jade-wind',
 				'rushing-jade-wind-open',
+				'sacred-shield',
+				'sacred-shield-refresh',
 				'searing-totem',
 				'spinning-crane-kick',
 				'spinning-crane-kick-heavy',
@@ -1037,7 +1055,7 @@ describe('report copy with no reader', () => {
 		// Nine against seven press kinds: `snapshot` stores two narrowings, and the peel counts both.
 		'flameShock.state.*': 9,
 		'overall.*': 3,
-		'priority.rule.*': 22,
+		'priority.rule.*': 39,
 		// More than the seven effects, on both: each is stored per spec where the two want different words.
 		'raidBuffs.effects.*': 9,
 		'raidBuffs.worth.*': 14,

@@ -554,9 +554,32 @@ const referenceReaderStrings = (): [string, string][] =>
 /** Method notes among the shared roots. Both are `priority`'s; no other shared root has one. */
 const SHARED_METHOD_KEYS = ['scope', 'reconstructed'];
 
+/**
+ * The two rung labels a spell's own name puts at odds with `MODEL_WORDS`, named one by one.
+ *
+ * One word forces this and it is `judg`: the Paladin's generator is called *Judgment*, and the stem is
+ * in the table to catch "judged" and "judgement". The left word boundary `namesTheModel` already uses
+ * is what keeps our stems off ordinary English, and it cannot help here — the collision is at the start
+ * of the word rather than inside it. A report that spelled the button "Judgement" to get past a guard
+ * would be lying about the game, so the exception is the honest move and it is written down.
+ *
+ * **Two keys and not a `priority.rule.` prefix**, which was tried and is the wrong shape twice over. It
+ * would shelter thirty-eight labels to excuse two, and it would silently take
+ * `priority.rule.rising-sun-kick-filler` out of `SHARED_REDS`' reach — one of the twenty-seven keys that
+ * were at fault when this scope was drawn, and the guard that the scope has not gone dark. An exemption
+ * that quietly narrows the non-vacuity check is the failure this file is about.
+ *
+ * Pinned in both directions below, as the two lists above it are: a name with no key behind it is a
+ * stale exception, and a third arrival has to be argued for rather than inherited.
+ */
+const SPELL_NAME_KEYS = ['priority.rule.judgment', 'priority.rule.judgment-sanctified-wrath'];
+
 const sharedStrings = (): [string, string][] =>
 	localeStrings().filter(
-		([key]) => SHARED_SECTIONS.includes(key.split('.')[0]!) && !SHARED_METHOD_KEYS.includes(key.split('.').pop()!),
+		([key]) =>
+			SHARED_SECTIONS.includes(key.split('.')[0]!) &&
+			!SHARED_METHOD_KEYS.includes(key.split('.').pop()!) &&
+			!SPELL_NAME_KEYS.includes(key),
 	);
 
 /**
@@ -683,6 +706,23 @@ describe('the shared copy is about the pull, not about the audit', () => {
 
 	it('names no part of our own model in anything a reader is shown', () => {
 		expect(violations(sharedStrings())).toEqual([]);
+	});
+
+	/**
+	 * And the two named exceptions are still the only rung labels that need one.
+	 *
+	 * Both directions, as the two exemption tests above do it. That the keys exist, so a rename leaves a
+	 * stale name rather than a silent hole. That each really is red — an exception nothing needs is an
+	 * exception nobody should keep. And, the direction a named list cannot get for free, that **no other
+	 * rung label would be red if it were swept**: a thirty-ninth label tripping a stem has to arrive as a
+	 * failure here and be argued for, rather than being waved through because two of its neighbours were.
+	 */
+	it('makes an exception for two spell names, and needs no third', () => {
+		const labels = localeStrings().filter(([key]) => key.startsWith('priority.rule.'));
+		expect(labels.length).toBeGreaterThan(30);
+		expect(SPELL_NAME_KEYS.filter((key) => !labels.some(([at]) => at === key))).toEqual([]);
+		expect(violations(labels.filter(([key]) => SPELL_NAME_KEYS.includes(key))).length).toBe(2);
+		expect(violations(labels.filter(([key]) => !SPELL_NAME_KEYS.includes(key)))).toEqual([]);
 	});
 });
 

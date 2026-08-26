@@ -479,12 +479,21 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		},
 		{ id: 'damage', titleKey: 'damage.title', group: 'abilities', Component: DamageByAbility },
 		// No miss ledger yet, and its absence is the honest report rather than an oversight: the ledger
-		// lists what the sections found, and none of this spec's own three finds anything a row can point
-		// at. A globals count is a total, an enforced window is the encounter's, and a haste reading is a
-		// fact about the character. It arrives with the priority ladder, which is the first thing here
-		// that can name a press and say what was wrong with it.
+		// lists what the sections found, one row per kind with a link back to the moment, and the priority
+		// ladder below produces a count per button rather than a moment per fault. The rows arrive when
+		// something here can point at one press and say what was wrong with it.
 		{ id: 'raid-buffs', titleKey: 'raidBuffs.title', group: 'reference', Component: RaidBuffs },
 		{ id: 'gear', titleKey: 'gear.title', group: 'reference', Component: GearSetup },
+		// The question no other heading on this page can ask: at the moment you spent that global, was a
+		// better button ready? Everything above measures one thing on its own — a count of globals, a
+		// window the encounter took, a haste reading — and none of them can say what a press should have
+		// been instead.
+		//
+		// `forced` for the reason both other specs take it: this spec's ladder bands, and the two things
+		// the target count moves here are exactly the two the reader's own list changed from the shipped
+		// one. A pull read as single-target is checked against Crusader Strike with Consecration low, and
+		// the same pull read as an add fight against Hammer of the Righteous with Consecration high.
+		{ id: 'priority', titleKey: 'priority.title', group: 'reference', Component: PriorityLadder, modeProps: 'forced' },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 	],
 };

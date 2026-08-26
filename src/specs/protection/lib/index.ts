@@ -19,12 +19,14 @@
 // which is the fork's rule and the reason the section can be read at all.
 
 import { enforcedDowntime, type EnforcedDowntime } from '~/lib/analysis/enforced';
+import { executeWindows } from '~/lib/analysis/execute';
 import { buildHasteCurve, checkHaste, SEAL_OF_INSIGHT_HASTE, type HasteCurve } from '~/lib/analysis/haste';
 import { analyseCore, type Handles, type SpecConfig } from '~/lib/analysis/analyseCore';
+import { aplAudit, ALL_BANDS, type AplAudit, type AplInputs, type Band } from '~/lib/spec/apl';
 import { damageByTarget } from '~/lib/analysis/damage';
 import { ignoredMultiTargetActorIDs } from '~/lib/game/multiTargetActors';
 import { readExternals } from '~/lib/analysis/externals';
-import { readGear } from '~/lib/analysis/gear';
+import { readGear, readTalents } from '~/lib/analysis/gear';
 import { readVengeance, vengeanceBar } from '~/lib/analysis/vengeance';
 import { auraWindows, raidScoped, toIntervals } from '~/lib/analysis/auras';
 import { raidSourceLanes } from '~/lib/analysis/raidCasters';
@@ -37,6 +39,7 @@ import type { Ability, Aura } from '~/lib/game/model';
 import type { Analysis, AuraLane, FightDataset, ProtectionAudit, Window } from '~/lib/types';
 
 import { GCD_MS, registry } from './data';
+import { CONSECRATION_DOT_MS, EXECUTE_HEALTH_PCT, LADDER, UNARBITRATED } from './apl';
 
 export { PROTECTION, registry } from './data';
 
@@ -559,6 +562,106 @@ function protectionAudit(h: Handles): ProtectionAudit {
 			hidden: rows.slice(WEAKENED_BLOWS_LANES).map(toLane),
 		};
 	})();
+	// --------------------------------------------------------------------------------------- the ladder
+	/**
+	 * Consecration's dot as windows, because at this spec's haste it is not the same clock as its cooldown.
+	 *
+	 * The rung reads `NOT dotIsActive(26573)`, and a transcription that leaned on readiness instead would
+	 * be right only at zero haste: the cooldown is inside Sanctity of Battle's mask and the dot is not —
+	 * nine ticks of one second, `sim/paladin/protection/consecration.go:44-45` — so at the 50% this spec
+	 * targets the button returns in six seconds while the ground is still burning for another three.
+	 *
+	 * Built from the player's own presses rather than from the ticks, and the two are not the same
+	 * measurement: a tick stream says where the damage landed, and a re-cast *replaces* the ground effect
+	 * rather than stacking with it, so a window is a press and the nine seconds after it, clipped by the
+	 * next press. Ticks would have to be grouped back into runs to say the same thing, and a pull whose
+	 * Consecration hit nothing — every add dead, the boss out of reach — would come back with no dot at
+	 * all when the ground was plainly lit.
+	 *
+	 * **No `present` gate on the rung that reads this**, unlike every other condition in the ladder. The
+	 * windows come from the player's own cast list, which the log always carries, so an empty set is the
+	 * real answer "you never pressed it" and not "the log could not say" — and the honest reading of that
+	 * answer is that the list wanted the button, which is exactly what `active` returning false produces.
+	 */
+	const consecrationDot = ((): Window[] => {
+		const ability = registry.ability('consecration');
+		const presses = h
+			.castTimes(ability)
+			.slice()
+			.sort((a, b) => a - b);
+		return presses.map((at, index) => ({
+			start: at,
+			end: Math.min(at + CONSECRATION_DOT_MS, presses[index + 1] ?? h.duration, h.duration),
+		}));
+	})();
+
+	/**
+	 * When the pull held something in execute range, and whether it could be asked at all.
+	 *
+	 * Hammer of Wrath's rung is written unconditionally in every preset because the *spell* carries the
+	 * gate. See `lib/analysis/execute.ts` for what is measured and for the one place it departs from the
+	 * simulator's single target.
+	 *
+	 * **Two keys and not one**, which is the whole reason `readable` exists: an empty window set and an
+	 * unreadable stream are opposite facts, and the engine's `present` reads both as "never went up". So
+	 * the readability travels as its own full-pull window and the rung asks that one first. Without it a
+	 * log with no enemy health would answer "not in execute" at every global and charge the two Sacred
+	 * Shield rungs and the level-90 talents underneath with faults nobody could check.
+	 */
+	const execute = executeWindows(h.damageEvents, EXECUTE_HEALTH_PCT, h.t0, h.duration);
+
+	/**
+	 * The aura windows the ladder's conditions read, by the key each rung names.
+	 *
+	 * Off the lanes the audit already built rather than re-walked, so the ladder and the timeline cannot
+	 * disagree about when a proc was up. `laneWindows` is a lookup into that same list; an aura the pull
+	 * never carried is simply absent, which is what makes `present` mean "went up at some point".
+	 */
+	const laneWindows = (key: string): readonly Window[] | undefined => buffLanes.find((row) => row.key === key)?.windows;
+	const aplAuras: AplInputs['auras'] = {
+		...(laneWindows('avenging-wrath') === undefined ? {} : { 'avenging-wrath': laneWindows('avenging-wrath') }),
+		...(laneWindows('grand-crusader') === undefined ? {} : { 'grand-crusader': laneWindows('grand-crusader') }),
+		...(laneWindows('holy-avenger') === undefined ? {} : { 'holy-avenger': laneWindows('holy-avenger') }),
+		...(laneWindows('sacred-shield') === undefined ? {} : { 'sacred-shield': laneWindows('sacred-shield') }),
+		'consecration-dot': consecrationDot,
+		'execute-window': execute.windows.map(([start, end]) => ({ start, end })),
+		// The readability flag, as a window covering the pull — see `execute` above.
+		'enemy-health-read': execute.readable ? [{ start: 0, end: h.duration }] : [],
+	};
+
+	const aplInputs: AplInputs = {
+		casts: h.marks,
+		// Neither bar, and neither is a stub: both holy power spenders are off the GCD for this spec, so
+		// no rung on this ladder is paid for from a bar and `affordable` never consults one. `barsRequired`
+		// below is the same statement to the engine.
+		energy: { max: 0, points: [] },
+		chi: { max: 0, points: [] },
+		regenPerSec: 0,
+		gcdMs: GCD_MS,
+		pullMs: h.duration,
+		auras: aplAuras,
+		fofChannelSec: 0,
+		targetsAt: h.aplTargetCountAt,
+		// The tree, for the five talent-gated rungs — and Sanctified Wrath is the reason it is read rather
+		// than inferred: that rung's button is Judgment, which every Paladin has, so the press proxy can
+		// never answer it. See `TALENT` in `./apl`.
+		knownTalents: readTalents(h.events, h.actor.id),
+		// The first ladder in this tree whose cooldowns move, and the reason the engine gained a clock.
+		// Memoised through `curve`, which the audit already built: `cooldownDrift` asks the same question
+		// per press and rebuilding the curve for each would walk the Bloodlust stream a few dozen times.
+		cooldownMsAt: (id, at) => {
+			const ability = registry.abilityByCastId(id);
+			return ability === undefined ? 0 : curve.cooldownMsAt(ability, at);
+		},
+		barsRequired: false,
+		unarbitrated: UNARBITRATED,
+	};
+	const apl = aplAudit(aplInputs, LADDER);
+	const aplForced: Partial<Record<Band, AplAudit | null>> = {};
+	for (const band of ALL_BANDS) {
+		aplForced[band] = aplAudit({ ...aplInputs, forceBand: band }, LADDER);
+	}
+
 	const enforced = enforcedDowntime({
 		encounterID: h.fight.encounterID,
 		events: h.events,
@@ -604,6 +707,16 @@ function protectionAudit(h: Handles): ProtectionAudit {
 		 * ledger, which is the first thing here that can point at a press and say what was wrong with it.
 		 */
 		misses: [],
+		/**
+		 * The priority list run against the pull, press by press, and the same walk forced to each band.
+		 *
+		 * See `./apl` for the list, what it excludes and why, and the two windows the log is asked for.
+		 * `aplForced` is precomputed for the reason the other two specs precompute theirs: the inputs —
+		 * the aura windows, the cast marks, the haste curve — are not on `Analysis`, so answering the
+		 * reader's target-count override in the browser would mean shipping the engine to the client.
+		 */
+		apl,
+		aplForced,
 		/**
 		 * The presses, and the rows drawn above them.
 		 *

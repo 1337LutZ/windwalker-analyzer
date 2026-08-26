@@ -2269,6 +2269,15 @@ export interface ProtectionAudit {
 	cpm: SpecAuditResult['cpm'];
 	timeline: SpecAuditResult['timeline'];
 	misses: SpecAuditResult['misses'];
+	/**
+	 * The priority list run against the pull, and the same walk forced to each target band.
+	 *
+	 * Borrowed from `SpecAuditResult` rather than restated, on the terms `cpm` and `timeline` above are:
+	 * `PriorityLadder` is a shared component reading `Analysis.apl`, and a spec with its own shape for
+	 * this field is a spec that compiles against a chart drawn for somebody else.
+	 */
+	apl: SpecAuditResult['apl'];
+	aplForced: SpecAuditResult['aplForced'];
 	/** The three terms of the pull's haste and what they came to — see `lib/analysis/haste`. */
 	haste: HasteMeasure;
 	/**

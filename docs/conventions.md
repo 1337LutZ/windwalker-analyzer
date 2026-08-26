@@ -478,16 +478,18 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the boss notes moving into the copy tree, it prints 1538 leaves, 749 prose, 24,633 words;
-median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 25%; report.json 680 prose leaves,
-1,201 sentences, median 17, 245 past 25 (20.4%), 288 em-dashes in 247 sentences (20.6%);
-57 / 23 / 1 / 2 on the quote lines.
+As of the Protection ladder gaining its labels, it prints 1555 leaves, 751 prose, 24,657 words;
+median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 682 prose leaves,
+1,203 sentences, median 17, 245 past 25 (20.4%), 288 em-dashes in 247 sentences (20.5%);
+60 / 23 / 1 / 2 on the quote lines.
 
-The tail moved and the head did not, which is what those eleven strings are: p99 went 97 → 117 and the
-max 160 → 204, while both medians held. They are the `fight.note.*` paragraphs — the reader's account of
-what a boss enforces and, mostly, of what it was measured for and does not — and they were English
-literals in `lib/analysis/enforced.ts` until this commit, which is why the longest prose in the tree was
-also the only prose no census had ever counted.
+Two commits sit behind those figures and they moved different halves of the file. The `fight.note.*`
+paragraphs took p99 from 97 to 117 and the max from 160 to 204 while both medians held — they had been
+English literals in `lib/analysis/enforced.ts`, so the longest prose in the tree was also the only prose
+no census had ever counted. The seventeen Protection rung labels then added leaves without adding words:
+a label is a spell's name and sometimes a short clause, so `prose` rose by two against seventeen new
+leaves, and the only figure they really move is the straight apostrophe, up three for Avenger's Shield
+and Light's Hammer.
 
 <!-- /census:figures -->
 

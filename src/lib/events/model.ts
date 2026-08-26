@@ -85,6 +85,28 @@ export interface ResourceSampled {
 	/** Report actor id the bars belong to — not always the source, on a pull with pets in it. */
 	resourceActor?: number;
 	classResources?: ClassResource[];
+	/**
+	 * The health bar of whichever actor `resourceActor` names, after the event.
+	 *
+	 * **Absolute for an enemy and a percentage for a player**, which is the one thing about this pair that
+	 * has to be known before either is read. `combatantinfo.stamina`'s note says the player half:
+	 * `maxHitPoints` is 100 on every event describing a player, so a player's bar is already a percentage
+	 * and there is no pool in the stream at all. An enemy's is the real number — 676,012,350 on Garrosh —
+	 * so a threshold written as a fraction of `maxHitPoints` is right for both and a threshold written in
+	 * points is right for neither.
+	 *
+	 * Not on every event: about two thirds of a captured Protection pull's stream carries them, and the
+	 * third that does not is not a gap so much as a different kind of event. Read them as readings on a
+	 * curve rather than as a field of the event — `analysis/execute.ts` is what does.
+	 *
+	 * The Windwalker's fetch carries neither, which is why `specs/windwalker/lib/apl.ts` records Touch of
+	 * Death's health gate as unreadable: `wcl/fightEvents.graphql` asks for resources on the player and an
+	 * enemy-side reading was not in the query when that rung was written. The Protection captures have
+	 * them, and that is a fact about the query rather than about the game.
+	 */
+	hitPoints?: number;
+	/** The pool the reading above is out of. See `hitPoints` — 100 for a player, absolute for an enemy. */
+	maxHitPoints?: number;
 }
 
 /** An aura event that carries nothing beyond the base fields. */
