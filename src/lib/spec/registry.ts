@@ -24,7 +24,7 @@ import type { TimelineBank, TimelineCounter, TimelineNotes } from '~/lib/view/ti
 import { analyse, registry as windwalkerRegistry, WINDWALKER, WW_SETTINGS, WW_SPEC } from '~/specs/windwalker';
 import { scoreAnalysis, wasteTone, weightsFor } from '~/specs/windwalker/lib/score';
 import {
-	SUMMARY_HIDDEN_ROWS as summaryHiddenRows,
+	SUMMARY_ROW_NAMES as summaryRowNames,
 	SUMMARY_LANE_KEYS as summaryLaneKeys,
 	timelineBanks,
 	timelineCounters,
@@ -46,7 +46,7 @@ import {
 } from '~/specs/elemental/lib/score';
 import {
 	timelineBanks as timelineBanksElemental,
-	SUMMARY_HIDDEN_ROWS as summaryHiddenRowsElemental,
+	SUMMARY_ROW_NAMES as summaryRowNamesElemental,
 	SUMMARY_LANE_KEYS as summaryLaneKeysElemental,
 	timelineCounters as timelineCountersElemental,
 	TIMELINE_ROW_ORDER as timelineRowOrderElemental,
@@ -67,7 +67,7 @@ import {
 } from '~/specs/protection/lib/score';
 import {
 	timelineBanks as timelineBanksProtection,
-	SUMMARY_HIDDEN_ROWS as summaryHiddenRowsProtection,
+	SUMMARY_ROW_NAMES as summaryRowNamesProtection,
 	SUMMARY_LANE_KEYS as summaryLaneKeysProtection,
 	timelineCounters as timelineCountersProtection,
 	TIMELINE_ROW_ORDER as timelineRowOrderProtection,
@@ -216,18 +216,23 @@ export interface SpecDefinition {
 	 */
 	summaryLaneKeys: readonly string[] | null;
 	/**
-	 * Rows the summary timeline leaves out, by the name it draws them under.
+	 * The rows the summary timeline draws and the order it draws them in, by the name on each row — or
+	 * `null` for a spec that draws every row it has.
 	 *
 	 * The counterpart of `summaryLaneKeys` and deliberately not a second spelling of it: that one is an
 	 * allowlist over **lane keys** and switching it on also drops every press row, which is the right cut
-	 * for a spec whose "at a glance" is a handful of auras. This is a denylist over **row names**, which
-	 * is what a spec needs when the chart is nearly right and four or five particular rows are noise —
-	 * an auto-attack, a taunt, a glove enchant. Names rather than keys because a row can be a press
-	 * stream, and a `CastMark` carries no ability key.
+	 * for a spec whose "at a glance" is a handful of auras. This one is over **row names**, so it can
+	 * keep a chart that is half buttons — names rather than keys because a row can be a press stream, and
+	 * a `CastMark` carries no ability key.
 	 *
-	 * Empty for a spec that hides nothing, which is both of the first two.
+	 * It replaced a denylist of the same currency, and the direction is what changed: a row nobody named
+	 * is not drawn, so declaring an aura no longer silently adds one to a curated chart. Supplying it also
+	 * supplies the order, which `timelineRowOrder` otherwise gives — that one still ranks the cast log,
+	 * where every row is drawn.
+	 *
+	 * `null` for both of the first two specs.
 	 */
-	summaryHiddenRows: readonly string[];
+	summaryRowNames: readonly string[] | null;
 	/**
 	 * The raid-buff effects this spec's damage rests on, in the order its report draws them.
 	 *
@@ -270,7 +275,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters,
 		timelineRowOrder,
 		summaryLaneKeys,
-		summaryHiddenRows,
+		summaryRowNames,
 		raidBuffEffects,
 		settings: WW_SETTINGS,
 	},
@@ -296,7 +301,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters: timelineCountersElemental,
 		timelineRowOrder: timelineRowOrderElemental,
 		summaryLaneKeys: summaryLaneKeysElemental,
-		summaryHiddenRows: summaryHiddenRowsElemental,
+		summaryRowNames: summaryRowNamesElemental,
 		raidBuffEffects: raidBuffEffectsElemental,
 		settings: ELEMENTAL_SETTINGS,
 	},
@@ -323,7 +328,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineCounters: timelineCountersProtection,
 		timelineRowOrder: timelineRowOrderProtection,
 		summaryLaneKeys: summaryLaneKeysProtection,
-		summaryHiddenRows: summaryHiddenRowsProtection,
+		summaryRowNames: summaryRowNamesProtection,
 		raidBuffEffects: raidBuffEffectsProtection,
 		settings: PROTECTION_SETTINGS,
 	},

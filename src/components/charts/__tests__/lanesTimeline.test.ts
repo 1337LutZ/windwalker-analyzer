@@ -282,27 +282,27 @@ describe('the counter marks what was wasted', () => {
 });
 
 /**
- * The rows a Protection pull actually draws, and the five this spec takes off.
+ * The rows a Protection pull draws, which is the sixteen the reader named and no others.
  *
  * **Written against the committed captures rather than a hand-built analysis, deliberately.** Everything
  * above this block is synthetic, because what it asks — *which spec is consulted about the counter* —
  * needs one analysis that both specs can be handed. This asks the opposite kind of question: whether a
- * denylist written in row names removes the rows a reader complained about on a real pull, and a hand-made
- * pull would be a list of the names the list already contains.
+ * list written in row names draws those rows on a real pull, and a hand-made pull would be a list of the
+ * names the list already contains.
  *
- * `SUMMARY_HIDDEN_ROWS` in `specs/protection/lib/view/timelineBanks.ts` carries the argument for each of
- * the five. What is pinned here is the arithmetic under it: **22, 23, 24, 24 and 23 rows become 18, 18,
- * 19, 19 and 18**, and the pull that only drops four is `fallenProtectors`, whose player never taunted.
+ * `SUMMARY_ROW_NAMES` in `specs/protection/lib/view/timelineBanks.ts` carries the argument for the shape.
+ * What is pinned here is the arithmetic under it: **34, 34, 37, 37 and 35 rows become 16**, on every pull
+ * and by construction — which is the property the denylist this replaced did not have.
  */
-describe('the Protection summary timeline draws every press but the five this spec hides', () => {
+describe('the Protection summary timeline draws the rows this spec names and no others', () => {
 	const PROTECTION = getSpec('protection')!;
 	const PULLS = rawFixtures('protection').map(({ name, dataset }): [string, Analysis] => [
 		name,
 		PROTECTION.analyse(dataset),
 	]);
 
-	/** The same spec with the denylist emptied — the chart as it drew before the five came off. */
-	const SHOWING_EVERYTHING = { ...PROTECTION, summaryHiddenRows: [] as readonly string[] };
+	/** The same spec with the row list off — the chart as it draws when a spec curates nothing. */
+	const SHOWING_EVERYTHING = { ...PROTECTION, summaryRowNames: null };
 
 	it('sweeps the five committed pulls, found rather than listed', () => {
 		expect(PULLS.map(([name]) => name)).toEqual([
@@ -314,39 +314,65 @@ describe('the Protection summary timeline draws every press but the five this sp
 		]);
 	});
 
-	it('takes four or five rows off each pull and leaves the rest standing', () => {
+	it('draws the named rows and no others, whatever else the pull carried', () => {
 		const before = PULLS.map(([, analysis]) => rowsIn(renderUnder(SHOWING_EVERYTHING, analysis)));
 		const after = PULLS.map(([, analysis]) => rowsIn(renderUnder(PROTECTION, analysis)));
 		expect(before).toEqual([34, 34, 37, 37, 35]);
-		expect(after).toEqual([30, 29, 32, 32, 30]);
-		// Four on the first pull and five on the other four: `Hand of Reckoning` is never pressed on
-		// `fallenProtectors`, so there is no row of it there to take off. Speed of Light is on the list
-		// too and takes nothing off any of them — this tank never talented it.
-		//
-		// **The `before` figures are ten higher than when this was written**, and the reason is the point
-		// of the change that moved them: the audit built lanes from a hand-picked list of nine auras, and
-		// now builds one for every aura in the registry the pull actually carried. Synapse Springs, Skull
-		// Banner, Bloodlust, the trinket procs and the potion were all declared, all present, and all
-		// drawing nothing. One more arrived with Stormlash Totem moving into `game/shared.ts`, which is
-		// where both specs that had declared it privately said in their own comments it belonged. One more
-		// again on Galakras, Garrosh and Paragons — and only those three — when `pressSeenAsAura` finally
-		// got a reader: Execution Sentence is pressed 1, 9 and 6 times on them with no cast event of any
-		// kind, so its row could not exist until the press was read off the debuff going up. And one on
-		// `fallenProtectors` alone, from `openOnRefresh`: Ancestral Vigor carries 110 events there and
-		// every one is a refresh, so the aura ran the whole pull with no application to open a window
-		// from and drew nothing.
-		expect(before.map((rows, at) => rows - after[at]!)).toEqual([4, 5, 5, 5, 5]);
+		// Sixteen at most, and the ceiling is the finding rather than any one number. Under the denylist
+		// this replaced the same five pulls drew 30, 29, 32, 32 and 30 — a chart whose length depended on
+		// which trinket procced and whether the tank taunted. A row nobody named is not drawn now, so the
+		// only thing that moves the count is a named row the pull did not carry, which the next test names.
+		expect(after).toEqual([16, 15, 15, 14, 16]);
 	});
 
 	/**
-	 * The list is a denylist and not the allowlist beside it, which is the whole reason it exists.
+	 * And every name resolves somewhere, which a count cannot check.
+	 *
+	 * A count is satisfied by any sixteen rows. What it cannot see is a name that matches nothing, because
+	 * the chart is silent about one — a name nobody draws simply contributes no row, so a misspelling costs
+	 * a row and says nothing. Two names very nearly were exactly that: `TIMELINE_ROW_ORDER` had spelled
+	 * Avenger's Shield and Light's Hammer with a curly apostrophe since the spec was written while the
+	 * registry spells both straight, so neither had ever ranked anything, and copying either into this list
+	 * would have quietly dropped a row a reader asked for.
+	 *
+	 * **Per pull rather than per list, and the misses are written out rather than counted**, because a
+	 * named row missing from *one* pull is the ordinary case and missing from *all five* is the bug. Both
+	 * of the two here are that ordinary case and each says which kind it is: Light's Hammer is a level-90
+	 * talent this tank brought on two pulls of five, and Hammer of the Righteous is absent from `paragons`
+	 * because Crusader Strike is the single-target half of one shared button. Neither is a spelling.
+	 */
+	it('names rows the pulls carry, and says which pull lacked which', () => {
+		const list = PROTECTION.summaryRowNames!;
+		expect(list).toHaveLength(16);
+		const missing = PULLS.map(([name, analysis]): [string, string[]] => {
+			const carried = new Set([
+				...(analysis.timeline?.lanes ?? []).map((lane) => lane.name),
+				...(analysis.timeline?.casts ?? []).map((cast) => cast.name),
+			]);
+			return [name, list.filter((row) => !carried.has(row))];
+		});
+		expect(missing).toEqual([
+			['fallenProtectors.json', []],
+			['galakras.json', ["Light's Hammer"]],
+			['garrosh.json', ["Light's Hammer"]],
+			['paragons.json', ['Hammer of the Righteous', "Light's Hammer"]],
+			['spoils.json', []],
+		]);
+		// No name is missing from every pull, which is the assertion the two above cannot make: a row that
+		// resolves nowhere is a spelling, and it would sit inside both lists above looking like a talent.
+		expect(list.filter((row) => missing.every(([, gone]) => gone.includes(row)))).toEqual([]);
+	});
+
+	/**
+	 * The cut is over row names and not over lane keys, which is the whole reason it is a second hook.
 	 *
 	 * `summaryLaneKeys` stays `null` here, and switching it on instead would drop **every** press row —
-	 * the condition in `buildRows` is on the whole cast loop — leaving a Paladin's chart with the six
-	 * aura rows and none of Judgment, Crusader Strike, Avenger's Shield or Consecration. Executed rather
-	 * than asserted in prose: the same pulls under a spec that names its lanes draw a handful of rows.
+	 * the condition in `buildRows` is on the whole cast loop — leaving a Paladin's chart with its aura
+	 * rows and none of Judgment, Crusader Strike, Avenger's Shield or Consecration, ten of the sixteen
+	 * the reader asked for. Executed rather than asserted in prose: the same pulls under a spec that
+	 * names its lanes draw a handful of rows.
 	 */
-	it('would lose every press row if the same cut were made with the allowlist', () => {
+	it('would lose every press row if the same cut were made over lane keys', () => {
 		expect(PROTECTION.summaryLaneKeys).toBeNull();
 		const asAllowlist = { ...PROTECTION, summaryLaneKeys: ['avenging-wrath', 'holy-avenger'] as readonly string[] };
 		expect(PULLS.map(([, analysis]) => rowsIn(renderUnder(asAllowlist, analysis)))).toEqual([2, 2, 2, 2, 2]);

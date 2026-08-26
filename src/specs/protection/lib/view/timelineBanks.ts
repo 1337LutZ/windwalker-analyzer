@@ -37,7 +37,7 @@ export function timelineNotes(): TimelineNotes {
  * sit above one that fires forty.
  */
 export const TIMELINE_ROW_ORDER: readonly string[] = [
-	'Avenger’s Shield',
+	"Avenger's Shield",
 	'Judgment',
 	'Holy Wrath',
 	'Consecration',
@@ -51,69 +51,59 @@ export const TIMELINE_ROW_ORDER: readonly string[] = [
 	'Avenging Wrath',
 	'Holy Avenger',
 	'Execution Sentence',
-	'Light’s Hammer',
+	"Light's Hammer",
 	'Holy Prism',
 ];
 
 /**
- * Every lane **and every press**, which is what `null` means here — and the estimate under it was wrong.
+ * No lane allowlist. The cut this spec makes is by row *name*, one declaration below.
  *
- * This used to say "a Protection pull draws a dozen rows, and choosing eight of them would hide a button
- * a reader came to look for". That was written before the chart had ever been drawn for this spec: the
- * audit published `lanes: []` and there was no section registered to render them. Measured now, the five
- * committed captures draw **22, 23, 24, 24 and 23** rows — about double the guess.
- *
- * The conclusion survives the correction, but only because of what the alternative does. Setting this to
- * a list does two things and the second is not what a longer chart needs: it keeps the named lanes, and
- * it drops **the press rows entirely** — see `buildRows`, where `summaryKeys === null` is the condition
- * on the whole cast loop. That is right for the Elemental, whose "at a glance" is five auras and no
- * buttons. It is wrong here, where the rows a reader came for are Judgment, Crusader Strike, Avenger's
- * Shield and Consecration, and where the rows that want removing are five particular ones rather than
- * every press on the pull.
- *
- * So the curation is a **denylist beside this rather than an allowlist here**: see
- * `SUMMARY_HIDDEN_ROWS`, which takes off five rows and leaves the other eighteen alone.
+ * `SUMMARY_LANE_KEYS` names lanes and drops **every press row with them** — the condition in `buildRows`
+ * is on the whole cast loop — which would leave a Paladin's chart with its auras and none of Judgment,
+ * Crusader Strike or Avenger's Shield. That is the Elemental's answer and it is the wrong one here, where
+ * half the rows a reader came for are buttons.
  */
 export const SUMMARY_LANE_KEYS: readonly string[] | null = null;
 
 /**
- * The rows this spec's summary timeline leaves out, by the name the chart draws them under.
+ * The rows this spec's summary timeline draws, in the order it draws them — and `null` for a spec that
+ * draws every row it has.
  *
- * **By name and not by key, because half of these are not lanes.** A row on this chart is a lane, a press
- * stream, or both merged — `buildRows` groups on `Row.name` and a `CastMark` carries a name and an id and
- * no ability key at all. `TIMELINE_ROW_ORDER` above is written in the same currency for the same reason,
- * so the two lists a reader compares are in one vocabulary. Grand Crusader is the case that needs it:
- * it is a proc lane *and* a press row under one name, and one entry takes both.
+ * **A name allowlist, which is a third thing from the two cuts that were here before it.**
+ * `SUMMARY_LANE_KEYS` keeps named *lanes* and drops every press with them, which is right for a spec
+ * whose "at a glance" is five auras and no buttons. The denylist this replaces kept everything and named
+ * what to remove, which held while the list of unwanted rows was shorter than the list of wanted ones.
+ * On a Paladin it stopped being: the reader's own list is sixteen rows against the thirty this chart had
+ * grown to, and a denylist of fourteen names would have to be re-argued every time an aura was declared.
  *
- * All five were read off the drawn chart rather than guessed, and each is out for its own reason.
+ * So the currency stays row *names* — a row here is a lane, a press stream, or both merged under one
+ * name, and only a name can say one thing about all three — and the direction flips. Two consequences
+ * worth stating because they are the reasons this is not simply a shorter list:
  *
- *   - **Melee** — 111 to 313 marks per pull, more than any other row and by a wide margin. An
- *     auto-attack is not a press and not a decision; the row is a solid band of ticks that says the
- *     player was in range, which every other row on the chart already says.
- *   - **Weakened Blows** — the per-enemy debuff lanes the audit builds. They belong on the cast log,
- *     where the chart groups them per enemy behind its own picker and a reader is asking which body
- *     carried what; **they are not removed there and must not be.** Here they merge into one row by
- *     name, and what that row shows is a debuff the builders apply as a side effect. Nobody chose it.
- *   - **Grand Crusader** — 6 to 22 procs per pull. The question it answers is whether the Avenger's
- *     Shield under it was pressed, and that is a press-granularity question the cast log is for. At this
- *     grain it is a row of confetti.
- *   - **Synapse Springs** and **Hand of Reckoning** — a glove enchant and a taunt, 1 to 8 and 0 to 18
- *     presses. Neither is rotational. `Hand of Reckoning` is absent from `fallenProtectors.json`
- *     altogether, which is why the count below differs by one on that pull.
- *   - **Speed of Light** — a movement cooldown, and the only entry here that costs the player nothing
- *     to press: it is off the global, so it takes no room from the rotation and there is no decision to
- *     read out of where it landed. It draws on none of the five captures, which is a fact about this
- *     tank's talents rather than about the button — see its own note in `data.ts`, and note that its
- *     absence here means the row counts below are unmoved by adding it.
+ *   - **A row that is not named is not drawn, including one nobody has thought about yet.** That is the
+ *     property the denylist could not have. Declaring an aura no longer changes this chart.
+ *   - **This list is also the order.** `TIMELINE_ROW_ORDER` still ranks the cast log, where every row is
+ *     drawn and the generators want to sit together; here the reader named a sequence and it is the one
+ *     they get. See `buildRows`, which ranks against this list when a spec supplies one.
  *
- * **What it costs: 22/23/24/24/23 rows become 18/18/19/19/18.** Everything else stays, presses included,
- * which is the whole reason this is a list of names rather than a switch on `SUMMARY_LANE_KEYS`.
+ * Righteous Fury sits at the bottom on the reader's own instruction: it is the tanking stance, up for
+ * the whole pull, and a bar that never changes is a legend rather than a measurement.
  */
-export const SUMMARY_HIDDEN_ROWS: readonly string[] = [
-	'Melee',
-	'Weakened Blows',
-	'Grand Crusader',
-	'Synapse Springs',
-	'Hand of Reckoning',
-	'Speed of Light',
+export const SUMMARY_ROW_NAMES: readonly string[] | null = [
+	'Judgment',
+	'Holy Wrath',
+	'Consecration',
+	'Hammer of the Righteous',
+	'Crusader Strike',
+	'Shield of the Righteous',
+	'Sacred Shield',
+	'Avenging Wrath',
+	'Holy Avenger',
+	"Avenger's Shield",
+	'Bastion of Glory',
+	"Light's Hammer",
+	'Divine Protection',
+	'Devotion Aura',
+	'Ardent Defender',
+	'Righteous Fury',
 ];

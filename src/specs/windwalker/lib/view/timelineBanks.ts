@@ -166,11 +166,9 @@ export const TIMELINE_ROW_ORDER: readonly string[] = [
 export const SUMMARY_LANE_KEYS: readonly string[] | null = null;
 
 /**
- * Nothing hidden: this spec's summary timeline draws every row it is handed.
+ * Every row this spec has, in `TIMELINE_ROW_ORDER`'s order — which is what `null` means.
  *
- * The Protection Paladin is the spec this seam was written for and its own list carries the argument.
- * Empty here is a decision rather than a default — a monk's melee row is as uninformative as a
- * paladin's, and the case for taking it off has not been made against this chart the way it was made
- * against that one. See `specs/protection/lib/view/timelineBanks.ts`.
+ * The name allowlist is Protection's cut and this spec does not make it: its summary is already the
+ * shape a reader wants. See `specs/protection/lib/view/timelineBanks.ts` for the argument.
  */
-export const SUMMARY_HIDDEN_ROWS: readonly string[] = [];
+export const SUMMARY_ROW_NAMES: readonly string[] | null = null;

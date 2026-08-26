@@ -380,6 +380,24 @@ const ABILITIES: Ability[] = [
 		cooldownMs: 60_000,
 	},
 	{
+		key: 'devotion-aura',
+		name: 'Devotion Aura',
+		// 31821 is what these logs carry and the client names it *Aura Mastery* there — the MoP button was
+		// renamed and the id was not. 64364 is the other id the spell is documented under, carried so a
+		// client that emits it is not silently missed; it fires in none of the five captures.
+		//
+		// Declared here because a raid cooldown the player presses themselves has to be a row on their own
+		// timeline, and a lane can only exist for an aura the registry knows. `lib/analysis/externals.ts`
+		// carries the same two ids for the other half of the question — what the *raid* brought — and the
+		// two are not a duplication: that catalogue is about who else pressed it, this entry is about this
+		// player pressing it.
+		castIds: [31821, 64364],
+		onGcd: false,
+		gate: 'other',
+		cooldownMs: 180_000,
+		applies: ['devotion-aura'],
+	},
+	{
 		key: 'guardian-of-ancient-kings',
 		name: 'Guardian of Ancient Kings',
 		castIds: [86659],
@@ -535,6 +553,16 @@ const AURAS: Aura[] = [
 		// no damage button only this spec presses — Crusader Strike and Judgment belong to all three.
 		// Righteous Fury is the tanking stance, and `registerRighteousFury` is Protection-only in the
 		// sim. `playerDetails` is asked as well; this is the check that does not need a second query.
+	},
+	{
+		key: 'devotion-aura',
+		name: 'Devotion Aura',
+		ids: [31821, 64364],
+		kind: 'buff',
+		// Six seconds — `sim/core/buffs.go` registers it at that, and the externals catalogue reads the
+		// same number for the raid's copy of the button.
+		durationMs: 6000,
+		appliedBy: 'devotion-aura',
 	},
 	{
 		key: 'grand-crusader',

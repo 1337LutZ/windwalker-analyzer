@@ -219,10 +219,9 @@ export const SUMMARY_LANE_KEYS: readonly string[] | null = [
 ];
 
 /**
- * Nothing hidden, and nothing for it to hide.
+ * Every row this spec has, in `TIMELINE_ROW_ORDER`'s order — which is what `null` means.
  *
- * `SUMMARY_LANE_KEYS` above already names the five rows this chart draws, so a denylist beside it would
- * have nothing to subtract — an allowlist is the stronger cut and this spec has taken it. The seam is
- * declared rather than omitted because `SpecDefinition` asks every spec the same question.
+ * The name allowlist is Protection's cut and this spec does not make it: its summary is already the
+ * shape a reader wants. See `specs/protection/lib/view/timelineBanks.ts` for the argument.
  */
-export const SUMMARY_HIDDEN_ROWS: readonly string[] = [];
+export const SUMMARY_ROW_NAMES: readonly string[] | null = null;

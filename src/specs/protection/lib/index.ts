@@ -310,7 +310,7 @@ function protectionAudit(h: Handles): ProtectionAudit {
 	 * held responsible for; a `proc` is something that happened to them and is read for whether they
 	 * spent it. Grand Crusader is the clearest case of the second — it resets Avenger's Shield, so its
 	 * row is only interesting beside the press row under it, which is also why the summary timeline
-	 * leaves it out and the cast log keeps it (`view/timelineBanks.ts`, `SUMMARY_HIDDEN_ROWS`).
+	 * leaves it out and the cast log keeps it (`view/timelineBanks.ts`, `SUMMARY_ROW_NAMES`).
 	 */
 	const lane = (aura: Aura, group: 'buff' | 'proc' | 'debuff', windows: readonly Window[]): AuraLane => ({
 		key: aura.key,
