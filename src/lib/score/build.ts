@@ -91,6 +91,43 @@ export function gradedOver(value: number | null, gradedMs: number): Measured {
 }
 
 /**
+ * How much of a pull a player has to have been in reach for, before a figure over that reach is a
+ * claim about them.
+ *
+ * **Half, which is `MIN_JUDGED_WEIGHT_SHARE`'s argument one level down.** That constant refuses to
+ * print a whole-pull letter drawn from a minority of the spec's weight, on the grounds that a minority
+ * reading should not wear the clothes of a whole-pull one. The same sentence is true of the clock: a
+ * figure measured over a third of a fight is a reading of that third, however the rest of the fight
+ * went, and a scorecard that prints it as the pull's is making a claim its denominator cannot carry.
+ */
+export const MIN_CONTACT_SHARE = 0.5;
+
+/**
+ * Was the player in reach for enough of the pull to be graded on what they did with it?
+ *
+ * ***The defect this closes is that a player who dies early scores best.*** Every global-fill figure
+ * in this tree divides by the contact clock, and the contact clock ends when the player does — so a
+ * pull spent mostly dead is scored over the handful of seconds before it happened, when the rotation
+ * was fresh, the cooldowns were up and nothing had gone wrong yet. Measured on live logs rather than
+ * argued: a rank-**0** Iron Juggernaut kill with two deaths reads **94.52%**, the highest figure in its
+ * whole sample, off 32.7s of contact on a 260s fight — 31 presses in 36 slots.
+ *
+ * The only guard before this was `gcdSlots > 0`, which that pull passes comfortably.
+ *
+ * **A share and not a floor on the slot count, and the difference matters.** A count-based floor —
+ * "sixty globals or we do not grade it" — refuses a legitimate two-minute pull and accepts a
+ * nine-minute one the player spent eight minutes dead in. The share asks the question that is actually
+ * being got wrong, and it scales with the fight by construction.
+ *
+ * **It moves no committed fixture**, which is the property to keep: the lowest legitimate contact share
+ * across all nineteen is `protection/galakras` at 58.8%, with `windwalker/idle` at 62.6% and
+ * `windwalker/waves` at 71.5% behind it. Those are real Galakras tower phases and a real Immerseus
+ * split, and every one of them clears the line with room. The pull the line is drawn for sits at 12.6%.
+ */
+export const presentEnough = (contactMs: number, durationMs: number): boolean =>
+	durationMs > 0 && contactMs / durationMs >= MIN_CONTACT_SHARE;
+
+/**
  * One graded metric, against the spec's own rule for it.
  *
  * An unmeasurable metric is parked at `ok` so it neither flatters nor punishes the overall verdict;

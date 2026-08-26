@@ -316,7 +316,11 @@ describe('what the summary is willing to say about the pre-pull', () => {
 		const el = run(
 			make(200_000, [e(5000, 'cast', FIRE_ELEMENTAL, { targetID: -1 }), e(30_000, 'removebuff', FIRE_ELEMENTAL_BUFF)]),
 		);
-		expect(el.fireElemental.presses).toEqual([{ t: 5000, reason: 'early', inferred: false }]);
+		// `null` and not `'early'`. This pull is 200s and carries no `combatantinfo`, so the summon's
+		// cooldown reads the five minutes it takes without Primal Elementalist — and the button does not
+		// come back inside a pull that short, which is what `'early'` claims. The arm used to compare
+		// against a bare 180 000 whatever the talent said.
+		expect(el.fireElemental.presses).toEqual([{ t: 5000, reason: null, inferred: false }]);
 		expect(el.fireElemental.prepull).toBe(false);
 		// The press's own window off the slot walk, and nothing before it.
 		expect(el.searingTotem.feWindows).toEqual([{ start: 5000, end: 65_000 }]);

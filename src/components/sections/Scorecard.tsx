@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { Grade, Metric, SectionScore } from '~/lib/score/model';
 import { GRADE_ORDER } from '~/lib/score/model';
@@ -300,6 +300,21 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 	 */
 	const cooldown = analysis.timeline?.hasteWindows?.[0]?.variant ?? t('fireElemental.hasteFallback');
 
+	/**
+	 * Where a section sits in the spec's own lead order, or past everything if it is not in one.
+	 *
+	 * Read off `SPEC_TAKEAWAYS` like `anchors` beside it, so the claim "this button matters more than
+	 * that habit" lives with the spec that can make it rather than in a component shared by three.
+	 */
+	const lead = SPEC_TAKEAWAYS[spec.key]?.lead;
+	const leadRank = useCallback(
+		(key: string): number => {
+			const at = lead?.indexOf(key) ?? -1;
+			return at === -1 ? Number.POSITIVE_INFINITY : at;
+		},
+		[lead],
+	);
+
 	const ordered = useMemo(() => {
 		return (
 			Object.entries(card.sections)
@@ -313,11 +328,19 @@ export default function Scorecard({ analysis }: { analysis: Analysis }) {
 				// The coverage is not lost with the card: the headline above the grid already says how many of
 				// the spec's points were judged, which is where a reader learns that something went unasked.
 				.filter(([, score]) => !score.metrics.every((metric) => metric.unmeasurable))
+				// Letter, then the spec's own lead order, then headroom. The letter stays the first key on
+				// purpose — see `SpecTakeaways.lead`, which argues why a spec may reorder inside a group and
+				// never across one. `leadRank` is `Infinity` for a section the spec did not name, so an
+				// unlisted card keeps the `headroom` ordering it had and a spec with no list sorts exactly as
+				// it did before this existed.
 				.sort(
-					([, a], [, b]) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade) || headroom(b) - headroom(a),
+					([keyA, a], [keyB, b]) =>
+						GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade) ||
+						leadRank(keyA) - leadRank(keyB) ||
+						headroom(b) - headroom(a),
 				)
 		);
-	}, [card]);
+	}, [card, leadRank]);
 
 	if (ordered.length === 0) return null;
 

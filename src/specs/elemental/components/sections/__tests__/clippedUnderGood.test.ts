@@ -219,9 +219,11 @@ describe('a good totem section that clipped a totem', () => {
 				return [name, [card.sections['searingTotem']?.grade, card.overall]];
 			}),
 		);
+		// Two whole-pull letters moved with `gcdUtilisation`'s lines going to 95/90 — `cleave` to `bad` off
+		// 89.18% and `phased` to `ok` off 94.44%. Neither totem letter moved, which is what this test asks.
 		expect(letters).toEqual({
-			cleave: ['good', 'ok'],
-			phased: ['ok', 'good'],
+			cleave: ['good', 'bad'],
+			phased: ['ok', 'ok'],
 			unbroken: ['bad', 'ok'],
 			// The one pull that never lays a totem, and the only letter here this file did not pin itself.
 			// It used to read `ok` with `unmeasurable` set — both metrics declined, so the section had no

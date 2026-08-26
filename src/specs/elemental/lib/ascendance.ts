@@ -353,9 +353,10 @@ export const ASCENDANCE_DURATION_MS = 15_000;
 /**
  * Ascendance's cooldown — `wowsims-mop/sim/shaman/ascendance.go:112`, `time.Minute * 3`.
  *
- * Two readers: the `first-press-past-one-cooldown` guard, and rule 2's availability guard — a press
- * cannot be faulted for losing window to the kill if the button did not come back in time to fit one,
- * which is the difference between a fault and a fact about the previous press.
+ * One reader: rule 2's availability guard — a press cannot be faulted for losing window to the kill if
+ * the button did not come back in time to fit one, which is the difference between a fault and a fact
+ * about the previous press. It had a second, the `first-press-past-one-cooldown` refusal, and that guard
+ * is gone; `ascendanceAtPull`'s docstring carries the arithmetic that retired it.
  *
  * A local copy of `index.ts`' own `ASCENDANCE_COOLDOWN_MS`, and the duplication is stated rather than
  * hidden: this module deliberately does not import from `index.ts`, because the wiring goes the other
@@ -460,8 +461,6 @@ export type AscendanceRule = 'bloodlust' | 't16-2pc';
 export type AscendanceReason =
 	/** Ascendance was already running when the pull started — the press this rule judges is off-stream. */
 	| 'ascendance-up-at-the-pull'
-	/** The first press came more than one Ascendance cooldown in, so it may be a second charge. */
-	| 'first-press-past-one-cooldown'
 	/** Nothing was reachable when the press had to be made, so it could not have bought anything. */
 	| 'nothing-to-hit'
 	/** The caller established the player does not have the two-piece, so entry 15 does not apply. */
@@ -600,10 +599,21 @@ export interface AscendanceSyncInput {
 	 * `durationMs: 15_000`, so the bound that rule needs is available. Computed the same way the
 	 * audit's own `fePrepull` already is.
 	 *
-	 * It is not a complete guard and this module does not pretend otherwise: a press more than fifteen
-	 * seconds before the pull leaves no trace at all. `first-press-past-one-cooldown` is the second
-	 * half of the defence — beyond one full cooldown the first visible press may be a second charge, so
-	 * it is not graded.
+	 * **It is the only guard, and the one that used to sit beside it was arithmetic backwards.** A press
+	 * more than fifteen seconds before the pull leaves no trace at all, and `first-press-past-one-cooldown`
+	 * was written to cover that: past one full cooldown, the first visible press *may* be a recharge whose
+	 * first charge was spent off-stream, so it went ungraded. Work the timing through and the excuse
+	 * cannot reach where it fired. An invisible pre-pull press is one at `p <= -15_000` — anything later
+	 * leaves the `removebuff` this flag reads — so its recharge lands at `p + 180_000 <= 165_000`. The
+	 * button was therefore back by **165 s at the latest**, and a first press past 180 s is not that
+	 * recharge; it is a player who had Ascendance available for at least fifteen seconds and did not
+	 * press it. The guard refused exactly the presses that are provably late and graded the ones an
+	 * invisible press could actually account for.
+	 *
+	 * Nothing replaces it at 165 s either, and that is deliberate rather than an omission. Every press
+	 * from the opener deadline up to that point *could* be excused by some invisible pre-pull press, so a
+	 * bound honouring the speculation would refuse rule 1 on almost the whole pull. Speculation is not
+	 * evidence, and this flag is what the log can actually supply.
 	 */
 	ascendanceAtPull: boolean;
 	/**
@@ -828,7 +838,6 @@ export function ascendanceSync(input: AscendanceSyncInput): AscendanceSyncVerdic
 			const anchor = hasteWindows.find((w) => w.start <= ASCENDANCE_INTO_HASTE_MS);
 			const syncStartMs = anchor?.start ?? null;
 			if (ascendanceAtPull) return none('ascendance-up-at-the-pull', syncStartMs);
-			if (t > ASCENDANCE_COOLDOWN_MS) return none('first-press-past-one-cooldown', syncStartMs);
 
 			// Exempt time. The stretch being judged is everything the two halves of the grade look at —
 			// the opener itself, and the haste bound measured from a cooldown that may open later than

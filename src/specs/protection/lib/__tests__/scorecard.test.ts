@@ -47,10 +47,13 @@ describe('the Protection scorecard', () => {
 	 * still names what went unused; only the summary card is withheld.
 	 */
 	it.each([
-		['garrosh', 12.5, 'good'],
-		// Exactly on the `good` line, which is `<= 25` — a quarter of the slots unused is a raid using most
-		// of what it has.
-		['paragons', 25, 'good'],
+		// **Nothing missed at all, and two changes put it there.** Ironbark entered the catalogue and this
+		// pull received six of them; Hand of Purity left the offered set, because it is a talent no log can
+		// show another Paladin holding. What used to read as one slot in eight passed up was a row nobody
+		// could have cast beside a row nobody had named.
+		['garrosh', 0, 'good'],
+		// One slot in seven, and it is Smoke Bomb — inside the `good` line, which is `<= 25`.
+		['paragons', 14.285_714, 'good'],
 	] as const)('%s missed %f% of the externals it was offered', (name, share, grade: Grade) => {
 		const card = scoreOf(name).sections['externals'];
 		expect(card?.metrics[0]?.unmeasurable).toBe(false);

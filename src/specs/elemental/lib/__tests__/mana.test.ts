@@ -158,9 +158,12 @@ describe('the three pulls that answer neither fault', () => {
 	 * it was: two refusals added, three letters unchanged *by them*.
 	 */
 	it('keep the overall grade they had before the section existed', () => {
-		expect(scoreAnalysis(fx('phased')).overall).toBe('good');
+		// The three letters moved once, and not by this section: `gcdUtilisation`'s lines went from 80/65
+		// to 95/90, which is the first pair that grades these pulls apart rather than calling all four
+		// `good`. `phased` fills 94.44% and reads `ok`, `cleave` 89.18% and reads `bad`.
+		expect(scoreAnalysis(fx('phased')).overall).toBe('ok');
 		expect(scoreAnalysis(fx('unbroken')).overall).toBe('ok');
-		expect(scoreAnalysis(fx('cleave')).overall).toBe('ok');
+		expect(scoreAnalysis(fx('cleave')).overall).toBe('bad');
 	});
 });
 

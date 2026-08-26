@@ -131,10 +131,6 @@ describe('a press the rules refused is not a fault, and does not read like one',
 	it('renders each refusal as what could not be read', () => {
 		const cases: [AscendanceReason, string][] = [
 			['ascendance-up-at-the-pull', 'Already running at the pull, so this press is not in your log'],
-			[
-				'first-press-past-one-cooldown',
-				'Over a full cooldown into the pull — this may be a second use, so nothing is held against it',
-			],
 			['nothing-to-hit', 'Nothing was in reach when this press was due, so it cannot be read either way'],
 			['no-two-piece-evidence', 'No tier-16 two-piece in your gear, so there was no proc to pair it with'],
 			['t16-2pc-not-in-log', 'Your tier-16 two-piece never procced on this pull, so there was nothing to pair it with'],

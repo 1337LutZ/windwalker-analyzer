@@ -7,10 +7,22 @@
 // judgements into a headline, and the reading aids that colour the tiles.
 
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
-import { GRADE_ORDER, gradeOf, gradedOver, grader, overallOf, section, shareOf, sharePct } from '~/lib/score';
+import {
+	GRADE_ORDER,
+	gradedOver,
+	gradeOf,
+	grader,
+	overallOf,
+	presentEnough,
+	section,
+	shareOf,
+	sharePct,
+} from '~/lib/score';
 import type { Grade, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
 
+import { unionMs } from '~/lib/analysis/intervals';
 import { registry } from './index';
+import { OPENER_DEADLINE_MS, SKULL_BANNER_DURATION_MS, SKULL_BANNER_OVERLAP_MIN_MS } from './ascendance';
 
 /**
  * The Elemental audit's fields, named for the type that holds them.
@@ -66,11 +78,19 @@ export function wasteTone(wasted: number, generated: number): Grade | null {
  */
 export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
 	const el = analysis as ElementalAnalysis;
-	const { flameShock, earthShock, searingTotem, lightningShield, fireElemental, cpm } = el;
+	const { flameShock, earthShock, searingTotem, lightningShield, fireElemental, ascendance, cpm } = el;
 	// Bound once, so no metric below can be built outside the exemption. See `grader`.
 	const metric = grader(THRESHOLDS, view);
 
-	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
+	/**
+	 * **Two guards, and the second one is about the player rather than the pull.** `gcdSlots > 0` refuses
+	 * a fight with no room in it at all; `presentEnough` refuses one the player was not in reach for half
+	 * of. The clock this figure divides by ends when the player does, so without the second a pull spent
+	 * mostly dead is scored over the seconds before it happened — see `presentEnough`, which carries the
+	 * live log that reads 94.52% off two deaths.
+	 */
+	const inReach = presentEnough(unionMs(el.timeline?.contactSegments ?? []), el.durationMs);
+	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 && inReach ? cpm.gcdUtilisationPct : null);
 
 	/**
 	 * **`gradedOver` and not the bare percentage, which is the half of the exemption that the declaration
@@ -479,6 +499,123 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		manaRead && mana.strained.gradedMs > 0 ? mana.strained.stretches : null,
 	);
 
+	/**
+	 * Ascendance, as the three demands the rules actually make of a press plus a catch-all.
+	 *
+	 * **Three metrics rather than one aggregate, because the three are different mistakes with different
+	 * remedies.** "Ascendance was misplaced" is not something a reader can act on; "the opener press was
+	 * eleven seconds late", "it went down four seconds after Bloodlust ran out" and "there was no Skull
+	 * Banner inside the window" are three separate things to fix. The audit already decomposes a bad press
+	 * into a named fault for its own table, so the card and the table name the same three demands.
+	 *
+	 * **Every figure below is read off a field the audit publishes, never re-derived from the press list.**
+	 * `delayMs`, `bannerOverlapMs` and `t` are all on `AscendancePressVerdict`, computed once inside
+	 * `ascendanceSync`. What this file adds is which press to read and how to scale it, and that is the
+	 * only judgement it is allowed to make — the identity worth keeping is that a `bad` audit grade and a
+	 * `bad` section grade travel together, in both directions, which a test asserts.
+	 *
+	 * **Rules 1 and entry 14 read the opener press and no other.** `ascendanceSync` settles which rule
+	 * governs a press by its index, and both of those are the `'bloodlust'` arm — the first press of the
+	 * pull. Rule 3 is asked of every press, so the banner figure takes the **worst** of them, for the
+	 * reason a section takes the worst of its metrics: one window under a banner does not excuse the one
+	 * that was not.
+	 */
+	const ascPresses = ascendance.presses;
+	// The press the opener rules judge, and only where they judged it. A refused opener — the button
+	// already running at the pull, nothing in reach when it was due — is `null` on both metrics rather
+	// than a zero, because a pull that offered no chance has not failed to take it.
+	const opener = ascPresses.find((press) => press.sync.rule === 'bloodlust');
+	const judgedOpener = opener !== undefined && opener.sync.grade !== 'none' ? opener : undefined;
+	/**
+	 * The pull that pressed it nought times, which is rule 1's other half and the one arm no press can
+	 * carry.
+	 *
+	 * `ascendanceSync` puts that `bad` on the pull rather than on a row, so a figure read only off the
+	 * press list would print a clean nought over a section whose own empty table says the button was never
+	 * touched. Read against `'bad'` and not against an empty list, because a pull the rules refused to
+	 * judge at all also has no presses and has failed nothing.
+	 */
+	const neverPressed = ascPresses.length === 0 && ascendance.grade === 'bad';
+	const ascendanceOpener = metric(
+		'ascendanceOpener',
+		neverPressed ? 0 : judgedOpener === undefined ? null : judgedOpener.sync.t <= OPENER_DEADLINE_MS ? 1 : 0,
+	);
+	/**
+	 * How long after the raid's haste cooldown opened the press went down, **in milliseconds**.
+	 *
+	 * A duration and not a yes-or-no, because the sim's entry 14 is a real bound — five seconds — and a
+	 * card reading "3.2s" against "5s or less" tells a reader how much room they had where a mark in a box
+	 * does not. `Math.max(0, …)` because a press *before* the cooldown landed is not late: the bound is an
+	 * upper bound on lateness rather than a demand that the two land in a particular order, and
+	 * `ascendanceSync` grades a negative delay `good`. Clamping keeps the scale from drawing below zero.
+	 *
+	 * **Milliseconds and not seconds, which is what `unit: 'seconds'` means here.** The unit names what the
+	 * card *prints*; the formatter behind it is `duration`, which is `formatSeconds(Number(v))` and takes
+	 * milliseconds. `lightningShieldOvercap` and `thunderstormMissed` are both declared the same way, in
+	 * thousands. This metric shipped divided by 1 000 for a few minutes and a press three minutes late
+	 * rendered as **0.2s** — the grade was right by accident and the figure was off by a factor of a
+	 * thousand, which is the one direction a wrong unit is invisible to every type in the tree.
+	 *
+	 * Null where `delayMs` is null, which is the audit saying this pull brought no haste cooldown inside
+	 * the opener for the press to be measured into. Opening with Ascendance needs no raid cooldown, so a
+	 * missing one is a missing *measurement* and rule 1 above still grades the press by itself.
+	 */
+	const ascendanceIntoHaste = metric(
+		'ascendanceIntoHaste',
+		judgedOpener?.sync.delayMs === undefined || judgedOpener.sync.delayMs === null
+			? null
+			: Math.max(0, judgedOpener.sync.delayMs),
+	);
+	/**
+	 * The least Skull Banner any judged press had inside its fifteen seconds, as a share of a banner.
+	 *
+	 * **The denominator is the banner's ten seconds and not Ascendance's fifteen**, which is the raid
+	 * lead's own arithmetic: *"Ascendance should have at least 90% overlap with Skull Banner (Skull banner
+	 * is 10s, Asc 15s — 90% in this case would be based on the SB 10s)"*. `SKULL_BANNER_DURATION_MS` is
+	 * that ten, confirmed against `sim/core/buffs.go`, and `SKULL_BANNER_OVERLAP_MIN_MS` is the nine
+	 * seconds it makes the bar — so the 90 below is those two constants and not a third opinion.
+	 *
+	 * Clamped at 100, because the measurement is the union of every banner that landed and two warriors
+	 * staggering theirs can put more than one banner's worth inside one window — `phased` holds 14 999ms.
+	 * More than a full banner is still a full banner; a card reading 150% would be inviting a reader to
+	 * find a third warrior.
+	 *
+	 * The end-of-pull presses are dropped rather than graded, and the condition is `bannerOk`'s own: a
+	 * press with less pull left than the nine seconds the rule wants could not have met it whatever the
+	 * raid did. Grading them here would fault a player for the kill landing.
+	 */
+	const bannerOverlaps = ascPresses
+		.filter(
+			(press) =>
+				press.sync.grade !== 'none' &&
+				press.sync.bannerOverlapMs !== null &&
+				el.durationMs - press.sync.t >= SKULL_BANNER_OVERLAP_MIN_MS,
+		)
+		.map((press) => press.sync.bannerOverlapMs as number);
+	const ascendanceBanner = metric(
+		'ascendanceBanner',
+		bannerOverlaps.length === 0 ? null : Math.min(100, (Math.min(...bannerOverlaps) / SKULL_BANNER_DURATION_MS) * 100),
+	);
+	/**
+	 * The two demands the three cards above do not carry: the window that ran past the kill, and the
+	 * two-piece proc that was too thin to pair with.
+	 *
+	 * **A catch-all so that adding three named cards did not quietly stop scoring two rules**, and it is
+	 * drawn only when it fires: `good` is nought and the figure counts a mistake, so `silent()` in the
+	 * scorecard hides the row on every pull that made none. A reader normally sees exactly the three
+	 * demands named above; this appears when a later press really did break one of the other two.
+	 *
+	 * Both faults belong to presses after the opener, which is why neither could be folded into the three:
+	 * they are judged under the `'t16-2pc'` arm and the opener never reaches it.
+	 */
+	const ascendanceLatePresses = metric(
+		'ascendanceLatePresses',
+		ascendance.grade === 'none'
+			? null
+			: ascPresses.filter((press) => press.fault === 'window-past-the-kill' || press.fault === 'discharge-too-short')
+					.length,
+	);
+
 	const all = [
 		gcdUtilisation,
 		flameShockUptime,
@@ -493,6 +630,10 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		lightningShieldFellOff,
 		thunderstormMissed,
 		shamanisticRageMissed,
+		ascendanceOpener,
+		ascendanceIntoHaste,
+		ascendanceBanner,
+		ascendanceLatePresses,
 	];
 
 	// `overallOf` rather than `overall`: the denominator travels with the verdict, so a headline drawn
@@ -523,6 +664,10 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 			// primary-weighted enough to carry the headline on its own; the section reads its verdict off
 			// both so its copy can say which of the two buttons was the one left on the bar.
 			mana: section([thunderstormMissed, shamanisticRageMissed]),
+			// The cooldown's own section, and the key is the page's section id so the card links to the
+			// table that argues it — the join `SPEC_TAKEAWAYS.elemental.anchors` makes for every other card.
+			// One metric, and it is the audit's verdict rather than a second reading of the presses.
+			ascendance: section([ascendanceOpener, ascendanceIntoHaste, ascendanceBanner, ascendanceLatePresses]),
 			casts: section([gcdUtilisation]),
 		},
 	};
@@ -579,18 +724,33 @@ export const THRESHOLDS = {
 	/**
 	 * Share of available globals actually used.
 	 *
-	 * Elemental is a cooldown- and proc-driven rotation on a 1.5s global: there is no resource bar
-	 * to overcap, so the ceiling is the boss's uptime rather than a pool refilling. Between casts the
-	 * list genuinely wants to stand still — waiting for a Lava Surge or a cooldown is correct play,
-	 * not a missed global — so the thresholds are cut looser than the Windwalker's energy-gated rotation
-	 * and a high number is not the target the way it is there.
+	 * Elemental is a cooldown- and proc-driven rotation on a 1.5s global: there is no resource bar to
+	 * overcap, so the ceiling is the boss's uptime rather than a pool refilling. Between casts the list
+	 * genuinely wants to stand still — waiting for a Lava Surge or a cooldown is correct play, not a
+	 * missed global.
+	 *
+	 * **The lines were 80/65 and are now 95/90, at the raid lead's call, and the old pair graded nothing.**
+	 * All four committed pulls read `good` under 80/65 — 83.38, 89.18, 92.87 and 94.44 — so the metric
+	 * carried two weight and separated no pull from any other, which is the failure the Windwalker's own
+	 * bands were re-cut to fix: "a band nothing reaches is a weight that only ever flatters". Under
+	 * 95/90 the same four split three ways and the spread is the spec's own:
+	 *
+	 *     phased         94.44   ok
+	 *     unbroken       92.87   ok
+	 *     cleave         89.18   bad
+	 *     addsThenBoss   83.38   bad
+	 *
+	 * What makes the higher bar answerable rather than punishing is that the standing still it used to
+	 * forgive is now *priced* rather than ignored: `EXTRA_GLOBALS` charges every off-rotation press made
+	 * inside contact, and `occupiedMs` is intersected with the contact clock, so a global spent during an
+	 * intermission is neither counted as filled nor held against the player. The loose pair predates both.
 	 *
 	 * **No band.** Every one of the three lists fills every global, and none of them has a rung that says
 	 * to stand still — the standing still this forgives is the *absence* of a ready rung, which happens
 	 * at all four counts. Filling globals is the one thing this spec is asked for identically however many
 	 * enemies are up, and the aoe list is if anything the easiest of the three to fill them from.
 	 */
-	gcdUtilisation: { good: 80, ok: 65, higherIsBetter: true, unit: 'percent' },
+	gcdUtilisation: { good: 95, ok: 90, higherIsBetter: true, unit: 'percent' },
 
 	/**
 	 * Flame Shock's uptime on the primary target, against engaged time.
@@ -1100,6 +1260,77 @@ export const THRESHOLDS = {
 	 * by every list.
 	 */
 	shamanisticRageMissed: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
+
+	/**
+	 * Was the opener press in the opening five seconds?
+	 *
+	 * **A one-or-nothing rule, like `fireElementalPrepull` beside it, and for the same reason**: the pull
+	 * offers exactly one opener and the press either landed in it or did not. `ceiling: 1` so the card
+	 * prints "1/1" rather than inviting a reader to open with two.
+	 *
+	 * **The bar is an absolute because the raid lead phrased it as one** — Ascendance is *always* used in
+	 * the opener (plan §80) — and plan §80 settled that the absolutes among those rules are graded while
+	 * the hedged ones are shown with a reason. The five seconds is `OPENER_DEADLINE_MS`, which is
+	 * `OPENER_MS + OPENER_GRACE_MS` and the same boundary `isOpener` already applies everywhere else in
+	 * this spec; the grace is load-bearing rather than polite, because `phased` opens at 5 006ms and a
+	 * bare 5 000 would fault a clean opener by six milliseconds.
+	 */
+	ascendanceOpener: { good: 1, ok: 0, higherIsBetter: true, unit: 'count', ceiling: 1 },
+
+	/**
+	 * How long after the raid's haste cooldown the opener press went down, in seconds.
+	 *
+	 * **Five, and it is the simulator's number rather than a judgement**: `ASCENDANCE_INTO_HASTE_MS` is
+	 * 5 000, and its own docstring carries the three committed openers the figure was cut against. The two
+	 * lines coincide because the sim's list has one bound and no second opinion about a press that missed
+	 * it by a second — the same shape `ascendanceOpener` above has, and `headroom` in `Scorecard.tsx`
+	 * already branches on a rule whose band is zero.
+	 *
+	 * **Not `ASCENDANCE_INTO_HASTE_MS`'s sibling `OPENER_DEADLINE_MS`, which is also five seconds.** That
+	 * one is anchored on the *pull* and this on the *haste cooldown opening*; they disagree by design, and
+	 * a press four seconds into a lust that itself went out four seconds in is inside this bound and
+	 * outside that one. Two rules, two cards, and the card that reddens says which.
+	 *
+	 * A duration rather than a yes-or-no so the figure carries how much room there was, and **written in
+	 * milliseconds** like every other `unit: 'seconds'` rule in this table — see the metric's own docblock
+	 * for what that unit actually means and what it cost when this was written as a 5. No `ceiling`: a
+	 * lateness has no lid.
+	 */
+	ascendanceIntoHaste: { good: 5000, ok: 5000, higherIsBetter: false, unit: 'seconds' },
+
+	/**
+	 * Skull Banner inside the Ascendance window, as a share of a banner's ten seconds.
+	 *
+	 * **Ninety, and the raid lead wrote the arithmetic out**: *"Ascandence should have at least 90%
+	 * overlap with Skull Banner (Skull banner is 10s, Asc 15s — 90% in this case would be based on the SB
+	 * 10s)"*. So the denominator is the banner and not the buff, and the line is
+	 * `SKULL_BANNER_OVERLAP_MIN_MS / SKULL_BANNER_DURATION_MS` — 9 000 over 10 000 — rather than a number
+	 * chosen near it. Both constants are confirmed against `sim/core/buffs.go` in their own docstrings.
+	 *
+	 * **Graded and not merely shown, which is a departure from plan §80's grouping and a deliberate one.**
+	 * That box files this rule with the two hedged ones on the strength of the word "ideally", and on the
+	 * raid lead's actual words that hedge belongs to the *second*-banner rule and not to this one: this
+	 * sentence reads "should have at least", which is a bar. `secondBannerSynced` is the one that is shown
+	 * and never graded, and `ascendance.ts` argues the split sentence by sentence.
+	 *
+	 * `ceiling: 100`, and the figure is clamped to it — the measurement is the union of every banner that
+	 * landed, so two staggered warriors can put more than a full banner inside one window.
+	 */
+	ascendanceBanner: { good: 90, ok: 90, higherIsBetter: true, unit: 'percent', ceiling: 100 },
+
+	/**
+	 * Presses after the opener that broke one of the two rules the three cards above do not carry.
+	 *
+	 * The window that ran past the kill, and the two-piece proc too thin to pair with. Counted together
+	 * rather than carded apart because both are rare, both belong to the same class of press — the
+	 * `'t16-2pc'` arm, which the opener never reaches — and a spec that drew six cards for one button
+	 * would be spending a reader's attention on the shape of the rulebook rather than on the pull.
+	 *
+	 * `good` at nought with no `ok` band, for the reason every other rule on this button has none: the
+	 * audit grades a press `good` or `bad` and publishes no middle. `silent()` hides the row entirely on a
+	 * pull that made none, which is most of them.
+	 */
+	ascendanceLatePresses: { good: 0, ok: 0, higherIsBetter: false, unit: 'count' },
 } as const satisfies Record<string, MetricRule>;
 
 export type MetricKey = keyof typeof THRESHOLDS;
@@ -1215,6 +1446,27 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	 * faults, which are the same kind of "wake up and press it" habit.
 	 */
 	shamanisticRageMissed: 1,
+	/**
+	 * The pull's biggest cooldown, at four points across four rules — level with the dot's own three plus
+	 * a habit metric, and the heaviest single button on the card.
+	 *
+	 * **Weighted per rule and not per button**, which is how every other section on this list is weighted:
+	 * the dot carries seven across three metrics, the shield two across two. A button whose placement the
+	 * priority list writes two separate entries for, and which the raid lead gave four rules of their own,
+	 * is not one point's worth of the pull.
+	 *
+	 * The two opener rules carry the weight, because the opener press is the one the list asks for
+	 * unconditionally and the one a Siege pull always offers. The banner is one because it depends on what
+	 * the *raid* did as much as on the player, and the catch-all is one because it fires on a class of
+	 * press many pulls never make.
+	 *
+	 * Together they move the offered total from 19 to 24, which several tests pin — see the
+	 * `judged: { total }` assertions, all of which name the new number rather than a loosened one.
+	 */
+	ascendanceOpener: 2,
+	ascendanceIntoHaste: 1,
+	ascendanceBanner: 1,
+	ascendanceLatePresses: 1,
 };
 
 /**

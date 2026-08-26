@@ -36,6 +36,18 @@ export const SHARED_ABILITIES: Ability[] = [
 		applies: ['berserking'],
 	},
 	{
+		key: 'gift-of-the-naaru',
+		name: 'Gift of the Naaru',
+		// Draenei: a heal over fifteen seconds, off the global and on three minutes — `SpellCooldowns`
+		// reads `StartRecoveryTime` 0 and `RecoveryTime` 180000 for 59547. Here rather than in a spec's
+		// `EXTRA_NAMES` for the reason the block's header gives: any class can be a Draenei, and a
+		// shaman's report and a paladin's would otherwise each need their own copy of the name.
+		castIds: [59547],
+		onGcd: false,
+		gate: 'other',
+		cooldownMs: 180_000,
+	},
+	{
 		key: 'arcane-torrent',
 		name: 'Arcane Torrent',
 		// Blood Elf: a resource burst that logs a different id per resource — monk 129597, mana 28730,

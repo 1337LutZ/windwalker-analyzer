@@ -116,7 +116,7 @@ describe('a pull that never laid a totem', () => {
 		expect(card.sections['searingTotem']?.unmeasurable).toBe(false);
 		expect(card.sections['searingTotem']?.grade).toBe('bad');
 		// One more point in the denominator than the refusal collected, and the header says so.
-		expect(card.judged).toEqual({ measured: 15, total: 19, unmeasurable: false });
+		expect(card.judged).toEqual({ measured: 15, total: 24, unmeasurable: false });
 	});
 
 	/**

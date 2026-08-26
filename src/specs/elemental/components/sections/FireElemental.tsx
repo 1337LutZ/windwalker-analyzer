@@ -49,8 +49,13 @@ export default function FireElemental({ analysis }: { analysis: Analysis }) {
 			<div className="mt-4.5">
 				<StatTiles>
 					<StatTile value={`${fireElemental.presses.length}`} label={t('fireElemental.kpi.used')} />
+					{/* The three windows the intent names — prepull under Heroism, with Ascendance, or the last
+					    minute — and `'early'` is not one of them. This used to count `reason !== null`, which
+					    put every `'early'` press in the tile as a well-timed summon while the row beside it
+					    said the press was outside all three. `'early'` is an excuse for a press the list would
+					    not have made, not one of the presses it asks for. */}
 					<StatTile
-						value={`${fireElemental.presses.filter((p) => p.reason !== null).length}`}
+						value={`${fireElemental.presses.filter((p) => p.reason !== null && p.reason !== 'early').length}`}
 						label={t('fireElemental.kpi.inWindow')}
 					/>
 				</StatTiles>

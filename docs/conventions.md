@@ -478,18 +478,17 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the externals chart naming the reader's own presses, it prints 1556 leaves, 751 prose, 24,657 words;
-median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 682 prose leaves,
-1,203 sentences, median 17, 245 past 25 (20.4%), 288 em-dashes in 247 sentences (20.5%);
+As of Ascendance taking four cards on the scorecard, it prints 1559 leaves, 750 prose, 24,663 words;
+median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 681 prose leaves,
+1,202 sentences, median 17, 246 past 25 (20.5%), 288 em-dashes in 247 sentences (20.5%);
 60 / 23 / 1 / 2 on the quote lines.
 
-Two commits sit behind those figures and they moved different halves of the file. The `fight.note.*`
-paragraphs took p99 from 97 to 117 and the max from 160 to 204 while both medians held — they had been
-English literals in `lib/analysis/enforced.ts`, so the longest prose in the tree was also the only prose
-no census had ever counted. The seventeen Protection rung labels then added leaves without adding words:
-a label is a spell's name and sometimes a short clause, so `prose` rose by two against seventeen new
-leaves, and the only figure they really move is the straight apostrophe, up three for Avenger's Shield
-and Light's Hammer.
+Two commits sit behind this and they move different halves. The first retired
+`ascendance.read.reason.first-press-past-one-cooldown` with the refusal behind it and rewrote the Fire
+Elemental section's `intent` and `state.early` longer — one leaf out, six words in, and the sentence past
+25 that took the share from 20.4% to 20.5%. The second added four `summary.takeaways.metric.*.label`
+leaves for Ascendance's four rules, and a label is a noun phrase rather than prose: `leaves` rose by four
+against a `prose` count that did not move at all, and neither did any figure `report.json` is measured on.
 
 <!-- /census:figures -->
 

@@ -386,7 +386,10 @@ describe('the second dot is measured over band 2 alone', () => {
 		expect(md?.unmeasurable).toBe(false);
 		expect(md?.grade).toBe('bad');
 		expect(card.sections['flameShock']?.grade).toBe('bad');
-		expect(card.overall).toBe('ok');
+		// `bad` and not the `ok` this read before `gcdUtilisation`'s lines went to 95/90: this pull fills
+		// 89.18% of its globals, which the old 80/65 pair called `good` and the new one calls `bad`. The
+		// claim here is the dot's, and it is unchanged — the two lines above are what this test is about.
+		expect(card.overall).toBe('bad');
 	});
 
 	/**

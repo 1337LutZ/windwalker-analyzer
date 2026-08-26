@@ -350,18 +350,24 @@ describe('the card, and the pair that has to move together', () => {
 		// reason `judged` exists at all: a verdict has to say how much of the card it is a verdict on.
 		for (const name of FIXTURES) {
 			const scored = scoreAnalysis(fx(name));
+			// Nineteen on the three pulls whose Ascendance presses could be judged, fifteen on
+			// `addsThenBoss`, whose opener came back `nothing-to-hit` and whose later presses had no
+			// two-piece to pair with — it pays the four new rules' offered weight and collects none of it.
 			expect(scored.judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 15 : 14,
-				total: 19,
+				measured: name === 'addsThenBoss' ? 15 : 19,
+				total: 24,
 				unmeasurable: false,
 			});
 		}
 		// The overalls beside it, so a change that moved a grade without moving the denominator cannot pass
 		// here either. Two of the four are the multi-target pulls this file is about.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).overall]))).toEqual({
+			// The four moved once, under `gcdUtilisation`'s 95/90 lines, and not under anything this file
+			// changes: the pulls fill 83.38%, 89.18%, 94.44% and 92.87% of their globals, which the old
+			// 80/65 pair called `good` on all four.
 			addsThenBoss: 'bad',
-			cleave: 'ok',
-			phased: 'good',
+			cleave: 'bad',
+			phased: 'ok',
 			unbroken: 'ok',
 		});
 	});

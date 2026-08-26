@@ -356,6 +356,15 @@ const ELEMENTAL_MASTERY_DURATION_MS = 20_000;
  * for the queued Primal Fire Elemental uptime rule, which is where that measurement belongs.
  */
 const FIRE_ELEMENTAL_COOLDOWN_MS = 300_000;
+/**
+ * The same button with Primal Elementalist — `sim/shaman/talents_elemental.go` grants the three minutes.
+ *
+ * Declared rather than left as the literal `180_000` that `fePresses`' `'early'` arm used to carry, which
+ * is how that arm came to assume a talent nothing had checked. Nothing else reads it: `cooldownDrift`
+ * still measures against the five above, and moving *that* is the separate before/after the constant's
+ * own docstring asks for.
+ */
+const PRIMAL_FIRE_ELEMENTAL_COOLDOWN_MS = 180_000;
 /** And its duration, from `sim/shaman/fire_elemental_totem.go` — the other half of the PE detection. */
 const FIRE_ELEMENTAL_DURATION_MS = 60_000;
 /**
@@ -1407,6 +1416,12 @@ const EXTRA_NAMES: Record<number, string> = {
 	// keeps it out of `#370` and off the ladder while still costing the second it costs.
 	370: 'Purge',
 	1064: 'Chain Heal',
+	// The interrupt. Off the global — `SpellCooldowns` reads `StartRecoveryTime` 0 for 57994, on a
+	// twelve-second `RecoveryTime` — so it is named and priced at nothing, which is the same pair
+	// Shamanistic Rage below gets and for the same reason. Nothing on the ladder asks for it and
+	// nothing here grades it; what it needed was a name, because a shear pressed on a real pull was
+	// rendering as `#57994` with no icon beside it.
+	57994: 'Wind Shear',
 	2645: 'Ghost Wolf',
 	2825: 'Bloodlust',
 	5394: 'Healing Stream Totem',
@@ -1415,8 +1430,9 @@ const EXTRA_NAMES: Record<number, string> = {
 	73920: 'Healing Rain',
 	108280: 'Healing Tide Totem',
 	108287: 'Totemic Projection',
-	// One of the three presses here that really are off the global — the other two are Bloodlust and
-	// Totemic Projection above, both `StartRecoveryTime` 0. This line used to claim it was the only one.
+	// One of the four presses here that really are off the global — the other three are Bloodlust,
+	// Totemic Projection and Wind Shear above, all `StartRecoveryTime` 0. This line used to claim it was
+	// the only one, and then that it was one of three.
 	30823: 'Shamanistic Rage',
 };
 
@@ -1448,6 +1464,7 @@ const EXTRA_NAMES: Record<number, string> = {
  *   0     2825 Bloodlust               0
  *   0   108287 Totemic Projection      0
  *   0    30823 Shamanistic Rage        0
+ *   0    57994 Wind Shear              0    the interrupt; four off-GCD ids, not three
  *
  * **The three totems are the entry worth reading twice, and the fraction under-prices them.** A totem
  * triggers a 1.0s global rather than the caster's 1.5s, so the fraction is 2/3 — and the engine
@@ -1489,6 +1506,7 @@ const EXTRA_GLOBALS: Record<number, number> = {
 	2825: 0,
 	108287: 0,
 	30823: 0,
+	57994: 0,
 };
 
 // ------------------------------------------------------------------ settings
@@ -3827,6 +3845,20 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// The talent list the log carried at the pull, or null where it carried none. One read for the file:
 	// `combatantinfo` is a single event and the only thing that can answer "was this button even taken".
 	const talents = readTalents(events, actor.id);
+	// Read here rather than where the uptime rule below wants it, because two readers need it and the
+	// earlier one is `fePresses`' "does it come back" arithmetic. `null` is "the log did not say" and is
+	// not "did not take it" — the rule's own docstring, further down, argues that three-way read.
+	const primalElementalist = talents === null ? null : talents.has(PRIMAL_ELEMENTALIST_TALENT_ID);
+	/**
+	 * How long this player waits for the summon back: three minutes with Primal Elementalist, five
+	 * without — `FIRE_ELEMENTAL_COOLDOWN_MS` and the talent, which is the same pair that constant's own
+	 * docstring names.
+	 *
+	 * **A log that cannot say reads five.** `'early'` below is an excuse — the press was outside all three
+	 * windows, but the button comes back with fight left to spend it in — and an excuse handed out on an
+	 * unread talent is one invented for the player. Five minutes is the number that needs no evidence.
+	 */
+	const feCooldownMs = primalElementalist === true ? PRIMAL_FIRE_ELEMENTAL_COOLDOWN_MS : FIRE_ELEMENTAL_COOLDOWN_MS;
 	const t15Windows = selfWindows(T15_4PC);
 	/**
 	 * **The landing clock, unstated until now, and this row is the file's clearest *mixed* site.**
@@ -3928,12 +3960,16 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 		...feCommits.map((t): FireElementalPress => {
 			const remaining = duration - t;
 			const ascReady = ascendanceReadyInSec(ascCasts, t);
+			// `feCooldownMs` and not a bare 180 000. The literal here was the Primal Elementalist cooldown
+			// written out, on a pull whose talent nothing checked and in a section whose drift figure grades
+			// against `FIRE_ELEMENTAL_COOLDOWN_MS`' five minutes — so the same page said the summon comes
+			// back in three and measured it against five. Whichever is right, one section cannot hold both.
 			const reason: 'near-end' | 'sync' | 'early' | null =
 				remaining < FIRE_ELEMENTAL_DURATION_MS
 					? 'near-end'
 					: remaining < 150_000 && ascReady <= 5
 						? 'sync'
-						: remaining > 180_000
+						: remaining > feCooldownMs
 							? 'early'
 							: null;
 			return { t, reason, inferred: false };
@@ -3993,8 +4029,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * with nothing to hit would shorten both halves of a ratio that is already about the summon rather
 	 * than about damage, and would let a pull whose lust landed wholly in a transition read 100% off no
 	 * clock at all.
+	 *
+	 * `primalElementalist` itself is read at the top of the audit beside `talents`, because `fePresses`
+	 * needs the same answer earlier; this is where the rule it gates is written down.
 	 */
-	const primalElementalist = talents === null ? null : talents.has(PRIMAL_ELEMENTALIST_TALENT_ID);
 	const feAuraSpans = mergeIntervals(feAuraWindows.map((w): Interval => [w.start, w.end]));
 	/**
 	 * Could this player have had the pet standing through this haste cooldown?

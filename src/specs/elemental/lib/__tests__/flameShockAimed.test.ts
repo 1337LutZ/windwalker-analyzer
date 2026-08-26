@@ -444,7 +444,9 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 	it('charges four more globals and seven wasted refreshes instead of four', () => {
 		expect(addsThenBoss.cpm.wastedGcds).toBe(10);
 		expect(graded(addsThenBoss, 'gcdUtilisation')?.value).toBeCloseTo(83.377_925, 5);
-		expect(graded(addsThenBoss, 'gcdUtilisation')?.grade).toBe('good');
+		// `bad` since `gcdUtilisation`'s lines went from 80/65 to 95/90 — 83.38% is the lowest of the four
+		// committed pulls, and the old pair called every one of them `good`.
+		expect(graded(addsThenBoss, 'gcdUtilisation')?.grade).toBe('bad');
 		const waste = graded(addsThenBoss, 'flameShockWaste');
 		expect(waste?.value).toBeCloseTo(77.777_778, 5);
 		expect(waste?.sampleSize).toBe(9);
@@ -519,40 +521,53 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 			// 21.9s and 4.5s, so the first now lands between the two lines rather than under both.
 			lightningShield: 'ok',
 			mana: 'ok',
-			casts: 'good',
+			// The section is `gcdUtilisation` alone, so its letter is that metric's — and under 95/90 the
+			// four pulls split rather than reading `good` together: 83.38, 89.18, 92.87, 94.44.
+			casts: 'bad',
+			// The cooldown's own section, four rules. `bad` on the two pulls whose second press found too
+			// little Elemental Discharge, `good` on `unbroken`, and `ok` on `addsThenBoss` — where every press
+			// came back refused, so `section()` parks at `ok` with nothing decided.
+			ascendance: 'bad',
 		};
 		// `addsThenBoss` never laid a Searing Totem, so its totem letter is `bad` off nought per cent and
 		// its judged weight is one higher than the other three. Nothing here aimed a dot at either.
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
-			judged: { measured: 15, total: 19, unmeasurable: false },
-			sections: { ...sections, searingTotem: 'bad' },
+			judged: { measured: 15, total: 24, unmeasurable: false },
+			sections: { ...sections, searingTotem: 'bad', ascendance: 'ok' },
 			flameShockWaste: 'bad',
-			gcdUtilisation: 'good',
+			gcdUtilisation: 'bad',
 		});
 		expect(card(cleavePull)).toEqual({
-			overall: 'ok',
-			judged: { measured: 14, total: 19, unmeasurable: false },
+			overall: 'bad',
+			judged: { measured: 19, total: 24, unmeasurable: false },
 			sections: { ...sections, searingTotem: 'good', fireElemental: 'good', lightningShield: 'bad' },
 			flameShockWaste: 'ok',
-			gcdUtilisation: 'good',
+			gcdUtilisation: 'bad',
 		});
 		expect(card(phasedPull)).toEqual({
-			overall: 'good',
-			judged: { measured: 14, total: 19, unmeasurable: false },
-			sections: { ...sections, flameShock: 'ok', fireElemental: 'good', lightningShield: 'bad' },
+			overall: 'ok',
+			judged: { measured: 19, total: 24, unmeasurable: false },
+			sections: { ...sections, flameShock: 'ok', fireElemental: 'good', lightningShield: 'bad', casts: 'ok' },
 			flameShockWaste: 'ok',
-			gcdUtilisation: 'good',
+			gcdUtilisation: 'ok',
 		});
 		expect(card(unbrokenPull)).toEqual({
 			overall: 'ok',
-			judged: { measured: 14, total: 19, unmeasurable: false },
+			judged: { measured: 19, total: 24, unmeasurable: false },
 			// **The shield's four letters, now that the rule carries five seconds inside `good`.** These
 			// pulls read 4.5s, 9.6s, 17.6s and 21.9s past the per-window grace, so `unbroken` clears the
 			// `good` line outright, `addsThenBoss` sits between the two, and the other two stay `bad`.
-			sections: { ...sections, searingTotem: 'bad', fireElemental: 'good', lightningShield: 'good' },
+			sections: {
+				...sections,
+				searingTotem: 'bad',
+				fireElemental: 'good',
+				lightningShield: 'good',
+				casts: 'ok',
+				ascendance: 'good',
+			},
 			flameShockWaste: 'bad',
-			gcdUtilisation: 'good',
+			gcdUtilisation: 'ok',
 		});
 	});
 

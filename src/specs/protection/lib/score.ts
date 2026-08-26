@@ -176,8 +176,27 @@ export const THRESHOLDS = {
 	 *
 	 * Nothing softer would be honest either: the fork's own sweep of ninety-four kills puts the median
 	 * free miss well inside ten percent, so a `good` here is a pull that pressed what it could.
+	 *
+	 * ***The `ok` line was 25 and is 18, measured rather than argued.*** A sweep of a hundred heroic
+	 * Protection kills — forty-two top-ranked across all fourteen Siege bosses, plus every heroic kill of
+	 * four players' own full clears — puts this figure at p25 6.66, median 11.77, p75 15.87 and **p90
+	 * 18.75**. So 25 sat above the ninetieth percentile, and **one pull in fifty graded `bad`**: 44% good,
+	 * 50% ok, 6% bad. That is the failure the Windwalker's `gcdUtilisation` docblock names in its own
+	 * words — *"a band nothing reaches is a weight that only ever flatters"* — living in this file.
+	 *
+	 * At 18 the same hundred pulls read 44% good, 43% ok, **13% bad**, and the `good` line does not move:
+	 * the role argument above is about what a tank is asked for, and nothing in the sweep contradicts it.
+	 * The strict quartile pair the sweep also priced, 7/16, was declined for exactly that reason — it
+	 * would have moved `good` on no evidence that ten percent is too generous.
+	 *
+	 * **A note the sweep produced that this rule should carry.** This spec's `gcdUtilisationPct` and this
+	 * figure are not two readings of one number: they correlate at r = −0.68 and agree on the grade 76
+	 * times in 100, with 21 of the 24 disagreements landing softer here. Three reasons — the denominators
+	 * differ (`inContactMs` against WarcraftLogs' `activeTime`, 64.6s apart on one Thok pull), the
+	 * enforced-downtime credit fires on a fifth of pulls, and `wastedGcds` is deducted for the Windwalker
+	 * and hard-coded to nought here. Grading both would be double-counting under a disagreement.
 	 */
-	globalsMissed: { good: 10, ok: 25, higherIsBetter: false, unit: 'percent' },
+	globalsMissed: { good: 10, ok: 18, higherIsBetter: false, unit: 'percent' },
 	/**
 	 * Presses the cooldowns offered that were never made, as a share of the presses they offered.
 	 *

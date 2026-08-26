@@ -9,14 +9,16 @@
 
 import type { Analysis, BrewSummary, FillerAudit, ProcSummary, TargetSummary } from '~/lib/types';
 import { countAt } from '~/lib/analysis/targets';
+import { unionMs } from '~/lib/analysis/intervals';
 import { TEB_ACTIVE_MS, TEB_DRAIN } from '~/specs/windwalker/lib';
 import {
 	appliesAt,
 	GRADE_ORDER,
 	gradedOver,
-	grader,
 	gradeOf,
+	grader,
 	overallOf,
+	presentEnough,
 	section,
 	shareOf,
 	sharePct,
@@ -250,7 +252,15 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	// Bound once, so no metric below can be built outside the exemption. See `grader`.
 	const metric = grader(THRESHOLDS, view);
 
-	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 ? cpm.gcdUtilisationPct : null);
+	/**
+	 * **Two guards, and the second one is about the player rather than the pull.** `gcdSlots > 0` refuses
+	 * a fight with no room in it at all; `presentEnough` refuses one the player was not in reach for half
+	 * of. The clock this figure divides by ends when the player does, so without the second a pull spent
+	 * mostly dead is scored over the seconds before it happened — see `presentEnough`, which carries the
+	 * live log that reads 94.52% off two deaths.
+	 */
+	const inReach = presentEnough(unionMs(analysis.timeline?.contactSegments ?? []), analysis.durationMs);
+	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 && inReach ? cpm.gcdUtilisationPct : null);
 	// Against the procs the bank could actually have paid for, not every proc that fired. A pull opens
 	// with an empty bank, so the raw count charges players for procs they were never offered.
 	// `shareOf` rather than `sharePct`: the denominator is a count of procs, so the sample floor applies.

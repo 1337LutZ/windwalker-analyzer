@@ -696,18 +696,30 @@ describe('what the opener rule refuses to grade', () => {
 		expect([v.grade, v.reason]).toEqual(['none', 'ascendance-up-at-the-pull']);
 	});
 
-	it('says nothing when the first visible press is past one full cooldown', () => {
-		// At 180.001s the press could be a recharge whose first charge was spent before the pull and left
-		// no trace — more than fifteen seconds before the pull, so not even `ascendanceAtPull` catches it.
+	it('faults a first press past one full cooldown instead of excusing it as a recharge', () => {
+		// This used to come back `none` / `first-press-past-one-cooldown`, on the reading that the press
+		// could be a recharge whose first charge was spent before the pull and left no trace. The
+		// arithmetic does not support it: an invisible pre-pull press is one at `p <= -15_000`, because
+		// anything later leaves the `removebuff` that `ascendanceAtPull` reads, so its recharge lands at
+		// `p + 180_000 <= 165_000`. A press at 180.001s is fifteen seconds past the latest instant that
+		// excuse can reach. See `ascendanceAtPull`'s docstring.
 		const v = first({ ascendanceCasts: [180_001] });
-		expect([v.grade, v.reason]).toEqual(['none', 'first-press-past-one-cooldown']);
+		expect([v.grade, v.reason]).toEqual(['bad', null]);
 	});
 
-	it('grades a press on the cooldown boundary itself', () => {
-		// The complement of the test above, so the boundary is pinned rather than assumed: 180 000 is
-		// still graded, and graded bad, because at that point the press is provably the first.
+	it('faults one on the cooldown boundary itself, unchanged', () => {
+		// The press the old guard did grade, kept so the removal is visibly a widening rather than a
+		// swap: 180 000 read `bad` before and reads `bad` now, with the same delay.
 		const v = first({ ascendanceCasts: [180_000] });
 		expect([v.grade, v.reason, v.delayMs]).toEqual(['bad', null, 179_000]);
+	});
+
+	it('still says nothing where the log does carry the evidence, so the widening is not total', () => {
+		// The guard that survived. A press at the same instant, on a pull that logged Ascendance running
+		// at the start, is off-stream and stays ungraded — the distinction the removal turns on is
+		// evidence against speculation, not leniency against strictness.
+		const v = first({ ascendanceAtPull: true, ascendanceCasts: [180_001] });
+		expect([v.grade, v.reason]).toEqual(['none', 'ascendance-up-at-the-pull']);
 	});
 
 	it('says nothing when there was nothing reachable inside the graded window', () => {

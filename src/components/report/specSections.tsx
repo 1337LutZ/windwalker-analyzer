@@ -437,6 +437,15 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 			group: 'core',
 			Component: pullTimelineSection('timeline.protIntent'),
 		},
+		// **Straight under the pull, at the raid lead's call, and it used to sit two headings lower.** What
+		// being hit paid for is the number a tank reads their own pull by, so it belongs against the clock
+		// that shows the pull rather than after the two sections that explain the global count. Nothing in
+		// it is a fault — a tank against their Vengeance ceiling is a tank the fight is hitting harder than
+		// their health can convert — so meeting it early costs a reader nothing and frames everything under
+		// it. The one argument it used to sit above still holds and now reaches further: the externals
+		// section further down recommends cutting damage taken, and it can only do that once the reader has
+		// been told that being hit pays attack power and that cutting the damage does not cut the pay.
+		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
 		// What the encounter took away, before the count it explains. These two are one question read
 		// from both ends and the excuses come first: `missedFree` is the globals figure with these
 		// windows already off it, so a reader who meets the number without them has to be talked back
@@ -445,10 +454,6 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// The report's subject, and the reason this spec was worth porting: everything under it explains
 		// a part of this number.
 		{ id: 'globals', titleKey: 'globals.title', group: 'core', Component: Globals },
-		// What being hit paid for. Nothing in it is a fault — a tank against their Vengeance ceiling is
-		// a tank the fight is hitting harder than their health can convert — which is why it reads
-		// beside the encounter's own doing above rather than among the resource bars below.
-		{ id: 'vengeance', titleKey: 'vengeance.title', group: 'core', Component: Vengeance },
 		// The character the pull was played on, and the denominator everything above divides by:
 		// `available` is active time over the global, and the global is what haste sets. It reads after
 		// the counts rather than before because a reader wants the figure before its arithmetic, and
@@ -529,6 +534,20 @@ export const SPEC_SUMMARY: Record<string, SpecSummary | undefined> = {
 export interface SpecTakeaways {
 	/** Scorecard section name → page anchor id, for the card's link. */
 	anchors: Record<string, string>;
+	/**
+	 * Sections that lead their grade group, most important first.
+	 *
+	 * **Inside a group and never across one**, which is the whole of what this may do. The grid's first
+	 * sort key is the letter, and that is not negotiable: a summary whose promise is "start at the top"
+	 * cannot put a green card above a red one because the spec thinks the button matters. What a spec
+	 * gets to say is which of its *equally graded* sections a reader should read first, where the
+	 * alternative is `headroom` — a distance in bands, which is a fine tie-break between two habits and a
+	 * poor one between a habit and the pull's biggest cooldown.
+	 *
+	 * A section not named here sorts on `headroom` as before, so a spec with no list is unaffected and a
+	 * key that stops being a section is inert rather than a crash.
+	 */
+	lead?: readonly string[];
 }
 
 export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
@@ -568,11 +587,29 @@ export const SPEC_TAKEAWAYS: Record<string, SpecTakeaways> = {
 		},
 	},
 	elemental: {
+		/**
+		 * The two long cooldowns lead their group, at the raid lead's call.
+		 *
+		 * Both are decisions a player makes three or four times in a pull and cannot take back, where every
+		 * other section on this card is a habit measured over hundreds of globals. A misplaced Ascendance
+		 * or a Fire Elemental spent outside its three windows costs a burst window that does not come
+		 * round again; a point of Flame Shock uptime costs a tick. `headroom` cannot see that difference —
+		 * it measures distance in bands, and a habit metric drifts further from `good` than a
+		 * one-or-nothing rule ever can — so the ordering it produced put the two buttons under the habits
+		 * whenever they shared a letter.
+		 *
+		 * Ascendance first of the two: the Fire Elemental's own list wants it pressed *with* Ascendance, so
+		 * the button that anchors the pairing is the one to read first.
+		 */
+		lead: ['ascendance', 'fireElemental'],
 		// The same join the Windwalker map makes, in the Elemental's own section ids. `casts` is absent
 		// on purpose: the Elemental report draws no cast-rate section of its own yet, so the gcd card
 		// has no heading to jump to and its card renders without a link rather than being sent somewhere
 		// that argues a different number.
 		anchors: {
+			// The cooldown's own heading, which the scorecard now has a card for: the section grades four
+			// rules and the table under `#ascendance` is what argues each of them, press by press.
+			ascendance: 'ascendance',
 			flameShock: 'flame-shock',
 			earthShock: 'earth-shock',
 			searingTotem: 'searing-totem',

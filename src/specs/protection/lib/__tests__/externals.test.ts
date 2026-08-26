@@ -76,19 +76,26 @@ describe('the externals a pull received', () => {
 	 * than about the gate, and it is why the gate gets a synthetic suite of its own below.
 	 */
 	it.each([
-		['garrosh.json', 8, 6, 1],
-		['paragons.json', 8, 5, 2],
-		['fallenProtectors.json', 8, 6, 1],
-		['galakras.json', 8, 2, 5],
-		['spoils.json', 8, 3, 4],
+		['garrosh.json', 7, 7, 0],
+		['paragons.json', 7, 6, 1],
+		['fallenProtectors.json', 7, 7, 0],
+		['galakras.json', 7, 3, 4],
+		// **Six and not seven, and Ironbark is the row that leaves.** This pull splits the raid into two
+		// rooms and carries no druid heal on the tank at all, so nothing in it shows a Restoration Druid —
+		// see `ExternalSpell.providerSpec`. The row was `0 of 0` here in any case, so what changes is that
+		// the pull stops being told it passed up a cooldown nobody can be shown to have had.
+		['spoils.json', 6, 3, 3],
 	] as const)('%s offers %i externals, of which %i landed and %i went unused', (name, available, used, unused) => {
 		const { externals } = auditOf(name);
 		expect(externals.available).toBe(available);
 		expect(externals.used).toBe(used);
 		expect(externals.unused).toBe(unused);
-		// Demoralizing Banner is the one entry no player-scoped fetch can observe, so it is listed and
-		// never counted — `available` is seven where the catalogue holds eight castable rows.
+		// **Seven offered out of nine rows, and two different reasons take the other two.** Demoralizing
+		// Banner is the entry no player-scoped fetch can observe, so it is listed and never counted. Hand of
+		// Purity is a talent nobody else's `combatantinfo` reaches this report, so it is offered only where
+		// it actually landed — see `ExternalSpell.talent` — and it lands on none of the five.
 		expect(externals.unreadable).toEqual(['Demoralizing Banner']);
+		expect(externals.rows.find((row) => row.key === 'hand-of-purity')?.available).toBe(false);
 	});
 
 	/**
@@ -109,7 +116,7 @@ describe('the externals a pull received', () => {
 		['garrosh.json', 'devotion-aura', 4, 24007],
 		['garrosh.json', 'power-word-barrier', 2, 16003],
 		['garrosh.json', 'smoke-bomb', 2, 9991],
-		['garrosh.json', 'barkskin', 0, 0],
+		['garrosh.json', 'ironbark', 6, 72074],
 		['garrosh.json', 'demoralizing-banner', 0, 0],
 		['paragons.json', 'pain-suppression', 1, 8002],
 		['paragons.json', 'vigilance', 2, 22539],
@@ -118,7 +125,7 @@ describe('the externals a pull received', () => {
 		['paragons.json', 'devotion-aura', 4, 24024],
 		['paragons.json', 'power-word-barrier', 1, 6427],
 		['paragons.json', 'smoke-bomb', 0, 0],
-		['paragons.json', 'barkskin', 0, 0],
+		['paragons.json', 'ironbark', 3, 36000],
 		['paragons.json', 'demoralizing-banner', 0, 0],
 		['fallenProtectors.json', 'pain-suppression', 1, 7991],
 		['fallenProtectors.json', 'vigilance', 2, 24033],
@@ -127,7 +134,7 @@ describe('the externals a pull received', () => {
 		['fallenProtectors.json', 'devotion-aura', 3, 18020],
 		['fallenProtectors.json', 'power-word-barrier', 1, 2339],
 		['fallenProtectors.json', 'smoke-bomb', 1, 4590],
-		['fallenProtectors.json', 'barkskin', 0, 0],
+		['fallenProtectors.json', 'ironbark', 2, 24011],
 		['fallenProtectors.json', 'demoralizing-banner', 0, 0],
 		['galakras.json', 'pain-suppression', 0, 0],
 		['galakras.json', 'vigilance', 1, 10530],
@@ -136,7 +143,7 @@ describe('the externals a pull received', () => {
 		['galakras.json', 'devotion-aura', 1, 6008],
 		['galakras.json', 'power-word-barrier', 0, 0],
 		['galakras.json', 'smoke-bomb', 0, 0],
-		['galakras.json', 'barkskin', 0, 0],
+		['galakras.json', 'ironbark', 1, 11981],
 		['galakras.json', 'demoralizing-banner', 0, 0],
 		['spoils.json', 'pain-suppression', 0, 0],
 		['spoils.json', 'vigilance', 1, 12004],
@@ -145,7 +152,7 @@ describe('the externals a pull received', () => {
 		['spoils.json', 'devotion-aura', 3, 17997],
 		['spoils.json', 'power-word-barrier', 0, 0],
 		['spoils.json', 'smoke-bomb', 0, 0],
-		['spoils.json', 'barkskin', 0, 0],
+		['spoils.json', 'ironbark', 0, 0],
 		['spoils.json', 'demoralizing-banner', 0, 0],
 	] as const)('%s had %s land %i times for %i ms', (name, key, count, heldMs) => {
 		const row = auditOf(name).externals.rows.find((entry) => entry.key === key)!;
@@ -173,7 +180,13 @@ describe('the externals a pull received', () => {
 		// is the case: both Hands miss, and `unused` counts one.
 		const countable = rows.filter((row) => row.available && row.readable);
 		const missedRows = countable.filter((row) => row.count === 0 && !row.blocked).length;
-		const missedHandRows = hands.filter((row) => row.count === 0 && !row.blocked).length;
+		// Countable hands only. Hand of Purity is talent-gated and therefore never offered on a pull it did
+		// not land on, so it is not a slot the headline could have counted in the first place — the
+		// adjustment is for two *offered* Hands sharing one slot, which is a state no committed capture is
+		// in any more. See `ExternalSpell.talent`.
+		const missedHandRows = hands.filter(
+			(row) => row.available && row.readable && row.count === 0 && !row.blocked,
+		).length;
 		expect(unused).toBe(missedRows - Math.max(0, missedHandRows - 1));
 	});
 
@@ -405,37 +418,65 @@ describe('the roster gate', () => {
 		expect(audit.classes).toEqual([...classes]);
 		// Every entry is either offered or absent, and nothing is both or neither.
 		expect(audit.available + audit.absent).toBe(EXTERNALS.length);
-		expect(audit.absent).toBe(EXTERNALS.filter((entry) => !classes.includes(entry.providedBy as never)).length);
+		// **Two gates beyond the roster, and a synthetic raid with no events fails both by construction.**
+		// A `talent` row is offered only where the spell landed and a `providerSpec` row only where some
+		// raider of the class showed a spell of that spec — so on an empty stream Hand of Purity and
+		// Ironbark are absent whoever is standing in the pull. Written as the union rather than as a
+		// hard-coded count, so a third gated row joins this expectation without editing it.
+		expect(audit.absent).toBe(
+			EXTERNALS.filter(
+				(entry) =>
+					!classes.includes(entry.providedBy as never) || entry.talent === true || entry.providerSpec !== undefined,
+			).length,
+		);
 	});
 
 	/**
-	 * A granted entry is offered only to the class that can be granted it.
+	 * A talent-gated entry is offered only where it actually landed.
 	 *
-	 * Symbiosis hands a Protection Paladin Barkskin and hands a Death Knight something else entirely, so
-	 * the row is real for one class and meaningless for every other. Unconditional, it would have been a
-	 * permanent unused external for the next tank spec that adopts this module — which is the whole
-	 * reason the module lives in `lib/analysis` rather than in this spec.
+	 * **This replaces the Symbiosis test, and the row it was about is gone.** Barkskin used to sit in the
+	 * catalogue as a Druid external on the strength of Symbiosis handing a Protection Paladin the button.
+	 * A Druid cannot put Barkskin on anybody — what they hand over is an ability the Paladin then presses
+	 * — so the row read as "the raid failed to give you Barkskin" about a cooldown only the tank can cast.
+	 * It is one of the Paladin's own defensives in `specs/protection/lib/data.ts` and nothing else.
+	 *
+	 * What is asserted here instead is the gate that took its place. Hand of Purity is a tier-five talent
+	 * and this report reads only the audited player's `combatantinfo`, so another Paladin in the raid is
+	 * evidence of a class and not of the button. A raid with a second Paladin and no Purity in the log is
+	 * therefore not offered the row; the same raid with one instance landed is.
 	 */
-	it('offers a Symbiosis row to a Paladin and to nobody else', () => {
-		const withDruid = [1, 3];
-		const asPaladin = readExternals(raidScoped([]), {
+	it('offers a talent row only on a pull that carries the talent’s own spell', () => {
+		// A second Paladin, because the shared list above holds only the tank of that class and a provider
+		// count of nought would make the gate below pass for the wrong reason.
+		const withPaladin = [
+			...actors,
+			{ id: 5, name: 'Other Paladin', type: 'Player', subType: 'Paladin', petOwner: null },
+		];
+		const raid = [1, 5];
+		const never = readExternals(raidScoped([]), {
 			t0: 0,
 			pullMs: 300_000,
 			actorID: 1,
-			actors: actors as never,
-			friendlyPlayers: withDruid,
+			actors: withPaladin as never,
+			friendlyPlayers: raid,
 		});
-		expect(asPaladin.rows.find((row) => row.key === 'barkskin')?.available).toBe(true);
+		const notOffered = never.rows.find((row) => row.key === 'hand-of-purity');
+		expect(notOffered?.providers).toBe(1);
+		expect(notOffered?.available).toBe(false);
+		// And the gate is the talent and not the roster: Hand of Sacrifice comes off the same Paladin and is
+		// baseline, so the same raid is offered that one.
+		expect(never.rows.find((row) => row.key === 'hand-of-sacrifice')?.available).toBe(true);
 
-		// The same raid, audited from the Druid's own id — a class Symbiosis does not hand Barkskin to.
-		const asDruid = readExternals(raidScoped([]), {
-			t0: 0,
-			pullMs: 300_000,
-			actorID: 3,
-			actors: [...actors, { id: 5, name: 'Other', type: 'Player', subType: 'Druid', petOwner: null }] as never,
-			friendlyPlayers: [3, 5],
-		});
-		expect(asDruid.rows.find((row) => row.key === 'barkskin')?.available).toBe(false);
+		// The same raid with the Hand actually on the tank. One apply is all the evidence there can be, and
+		// it is enough: the button was cast, so somebody had the talent.
+		const landed = readExternals(
+			raidScoped([
+				{ timestamp: 10_000, type: 'applybuff', abilityGameID: 114_039, sourceID: 5, targetID: 1 },
+				{ timestamp: 16_000, type: 'removebuff', abilityGameID: 114_039, sourceID: 5, targetID: 1 },
+			] as never),
+			{ t0: 0, pullMs: 300_000, actorID: 1, actors: withPaladin as never, friendlyPlayers: raid },
+		);
+		expect(landed.rows.find((row) => row.key === 'hand-of-purity')?.available).toBe(true);
 	});
 
 	/** A raid with nobody but the tank offers nothing at all, which is the floor of the gate. */

@@ -1136,6 +1136,18 @@
         "shamanisticRageMissed": {
           "label": "Shamanistic Rage missed"
         },
+        "ascendanceOpener": {
+          "label": "Opener press"
+        },
+        "ascendanceIntoHaste": {
+          "label": "Late into {{cooldown}}"
+        },
+        "ascendanceBanner": {
+          "label": "Skull Banner overlap"
+        },
+        "ascendanceLatePresses": {
+          "label": "Later presses misplaced"
+        },
         "fireElementalHasteUptime": {
           "label": "Cover {{cooldown}} window"
         },
@@ -1552,7 +1564,6 @@
       },
       "reason": {
         "ascendance-up-at-the-pull": "Already running at the pull, so this press is not in your log",
-        "first-press-past-one-cooldown": "Over a full cooldown into the pull — this may be a second use, so nothing is held against it",
         "nothing-to-hit": "Nothing was in reach when this press was due, so it cannot be read either way",
         "no-two-piece-evidence": "No tier-16 two-piece in your gear, so there was no proc to pair it with",
         "t16-2pc-not-in-log": "Your tier-16 two-piece never procced on this pull, so there was nothing to pair it with",
@@ -1603,7 +1614,7 @@
   "fireElemental": {
     "title": "Fire Elemental",
     "hasteFallback": "haste cooldown",
-    "intent": "The five-minute summon, and where you put it is all of its value. Press it prepull when Heroism is going up as the pull starts, with Ascendance, or in the fight's last minute — press it anywhere else and one of those three goes without an elemental.",
+    "intent": "A minute of pet on a five-minute cooldown, three with Primal Elementalist, and where you put it is all of its value. Press it prepull when Heroism is going up as the pull starts, with Ascendance, or in the fight's last minute — press it anywhere else and one of those three goes without an elemental.",
     "kpi": {
       "used": "Summons",
       "inWindow": "Well-timed summons"
@@ -1616,7 +1627,7 @@
       "prepull": "Already out at the pull — no cast in your log",
       "near-end": "Pressed in the last minute — it lives to the end",
       "sync": "Pressed with Ascendance",
-      "early": "Early, but with over three minutes left it comes back for a second summon",
+      "early": "Outside all three windows, though the cooldown does come back before the end — pair it with Ascendance or hold it for the last minute and this becomes a second summon",
       "plain": "No Ascendance to pair with, and too late to come back before the end — press it with Ascendance or hold it for the last minute"
     },
     "caption": "Every Fire Elemental summon, and what you pressed it with",

@@ -13,11 +13,13 @@ import {
 	grader,
 	metricOf,
 	type MetricRule,
+	MIN_CONTACT_SHARE,
 	MIN_GRADED_SAMPLE,
 	MIN_JUDGED_WEIGHT_SHARE,
 	type Metric,
 	overall,
 	overallOf,
+	presentEnough,
 	shareOf,
 	sharePct,
 } from '../index';
@@ -233,5 +235,52 @@ describe('the judged denominator', () => {
 	it('keeps the old answer when every measurable metric carries no weight', () => {
 		const metrics = [at('a', 'bad'), at('b', 'bad')];
 		expect(overall(metrics, { a: 0, b: 0 })).toBe('ok');
+	});
+});
+
+/**
+ * The presence guard, and the defect it exists for.
+ *
+ * `gcdUtilisationPct` divides by the contact clock, and the contact clock ends when the player does —
+ * so a pull spent mostly dead is scored over the seconds before it happened, when the rotation was
+ * fresh and nothing had gone wrong yet. Measured on live logs rather than argued: a rank-**0** Iron
+ * Juggernaut kill with two deaths reads **94.52%**, the highest figure in its whole sample, off 32.7s
+ * of contact on a 260s fight. `gcdSlots > 0` passes that pull comfortably.
+ *
+ * Pinned as arithmetic here; that it moves no committed fixture is pinned in each spec's own suite.
+ */
+describe('how much of a pull a figure over its contact clock has to cover', () => {
+	it('refuses the pull the line was drawn for', () => {
+		// The live log, to the tenth: 32.7s of contact on a 260s fight is 12.6%.
+		expect(presentEnough(32_700, 260_000)).toBe(false);
+	});
+
+	it('keeps every contact share a committed fixture actually reads', () => {
+		// The three lowest across all nineteen committed fixtures, and they are real fights rather than
+		// deaths: a Galakras tower phase, an Immerseus split, and a Galakras add-wave pull.
+		expect(presentEnough(228_144, 388_000), 'protection/galakras 58.8%').toBe(true);
+		expect(presentEnough(159_630, 255_000), 'windwalker/idle 62.6%').toBe(true);
+		expect(presentEnough(310_310, 434_000), 'windwalker/waves 71.5%').toBe(true);
+	});
+
+	it('sits exactly on half, inclusive', () => {
+		expect(MIN_CONTACT_SHARE).toBe(0.5);
+		expect(presentEnough(50_000, 100_000), 'the line itself is enough').toBe(true);
+		expect(presentEnough(49_999, 100_000), 'and a millisecond under is not').toBe(false);
+	});
+
+	/**
+	 * A share and not a slot count, which is the half a floor on `gcdSlots` gets wrong in both
+	 * directions: it would refuse a legitimate short pull and accept a long one the player spent most of
+	 * dead. Both cases are asserted, because the argument is the whole reason for the shape.
+	 */
+	it('scales with the fight rather than counting globals', () => {
+		expect(presentEnough(80_000, 90_000), 'a short pull played end to end').toBe(true);
+		expect(presentEnough(80_000, 540_000), 'the same clock inside a nine-minute fight').toBe(false);
+	});
+
+	/** No duration, no denominator — and a share over nothing is not a share. */
+	it('refuses a pull with no length at all', () => {
+		expect(presentEnough(0, 0)).toBe(false);
 	});
 });

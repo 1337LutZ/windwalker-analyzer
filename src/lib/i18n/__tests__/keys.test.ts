@@ -665,7 +665,6 @@ describe('report copy with no reader', () => {
 			keys: () => declaredArms('specs/elemental/lib/ascendance.ts', /export type AscendanceReason =/),
 			pinned: [
 				'ascendance-up-at-the-pull',
-				'first-press-past-one-cooldown',
 				'no-two-piece-evidence',
 				'nothing-to-hit',
 				'pull-ends-too-soon',
@@ -943,6 +942,10 @@ describe('report copy with no reader', () => {
 				...new Set([...Object.keys(WW_THRESHOLDS), ...Object.keys(ELE_THRESHOLDS), ...Object.keys(PROT_THRESHOLDS)]),
 			],
 			pinned: [
+				'ascendanceBanner',
+				'ascendanceIntoHaste',
+				'ascendanceLatePresses',
+				'ascendanceOpener',
 				'brewCapWaste',
 				'brewShortUses',
 				'brewStacks',
@@ -1039,7 +1042,7 @@ describe('report copy with no reader', () => {
 	 */
 	const FAMILY_LEAVES: Record<string, number> = {
 		'ascendance.read.fault.*': 5,
-		'ascendance.read.reason.*': 6,
+		'ascendance.read.reason.*': 5,
 		'castLog.resource.*': 7,
 		'castLog.resourceAria.*': 7,
 		'castLog.target.*': 3,
@@ -1074,7 +1077,7 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.label': 27,
+		'summary.takeaways.metric.*.label': 31,
 	};
 
 	/**

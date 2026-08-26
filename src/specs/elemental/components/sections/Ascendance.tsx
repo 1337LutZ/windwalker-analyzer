@@ -50,6 +50,13 @@ export default function Ascendance({ analysis }: { analysis: Analysis }) {
 			.sort((a, b) => a.t - b.t)
 			.map((press, i) => ({
 				key: `${press.t}-${i}`,
+				// Red behind a press the rules faulted, and behind nothing else. `fault` is the decomposition
+				// of `grade: 'bad'` and is null on every other outcome, so this cannot tint a refusal — a
+				// press the log could not read has not been shown to be a mistake, and `docs/conventions.md`
+				// keeps `verdict_bad` and `verdict_none` apart for exactly that reason. The sentence in the
+				// last column already names the demand that broke; the band is what makes it findable in a
+				// table of four presses without reading all four.
+				band: press.fault !== null ? ('warn' as const) : undefined,
 				cells: {
 					at: formatClock(press.t),
 					dotLeft: press.fsRemainingMs === null ? '—' : formatSeconds(press.fsRemainingMs),

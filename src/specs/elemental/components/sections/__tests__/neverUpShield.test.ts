@@ -171,7 +171,7 @@ describe('a pull that never wore the shield', () => {
 		expect(section?.grade).toBe('bad');
 
 		// And the headline it now sits under: one more point in the denominator than the refusal collected.
-		expect(card.judged).toEqual({ measured: 13, total: 19, unmeasurable: false });
+		expect(card.judged).toEqual({ measured: 18, total: 24, unmeasurable: false });
 	});
 
 	/**
@@ -242,11 +242,15 @@ describe('a pull that never wore the shield', () => {
 		expect(html).not.toContain('came all the way off you');
 		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
 		expect(html).toContain(t('summary.scorecard.state', { context: 'neverUp' }));
-		expect(html).toContain('Scored on 13 of 19 points.');
-		// And it leads: the first card the grid draws is the shield's, which is what "leads the summary"
-		// means now that the summary is one ordered grid rather than a three-card short list.
+		expect(html).toContain('Scored on 18 of 24 points.');
+		// And it leads *the sections `headroom` orders*, which is what "leads the summary" means now that
+		// the grid has a spec-declared lead order in front of that key. Ascendance and Fire Elemental sit
+		// above their group by declaration — see `SpecTakeaways.lead` — so the claim this test can still
+		// make is that the shield is the first card the ordering actually ranks, and it is asserted that way
+		// rather than loosened to "appears somewhere".
 		const cards = [...html.matchAll(/uppercase text-ink-2">([^<]+)</g)].map((m) => m[1]);
-		expect(cards[0]).toBe('Lightning Shield');
+		const ranked = cards.filter((name) => name !== 'Ascendance' && name !== 'Fire Elemental');
+		expect(ranked[0]).toBe('Lightning Shield');
 	});
 
 	/** And the chart says so, which is the half the sentence used to contradict. */

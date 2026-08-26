@@ -158,8 +158,8 @@ describe('a pull whose shield went on late', () => {
 		// And the headline is taken over the same denominator every committed pull is scored on: nothing
 		// about a late application narrows what the report may claim.
 		expect(ELEMENTAL_SPEC.score(late, resolveBands(late.targets, 'auto')).judged).toEqual({
-			measured: 14,
-			total: 19,
+			measured: 19,
+			total: 24,
 			unmeasurable: false,
 		});
 	});

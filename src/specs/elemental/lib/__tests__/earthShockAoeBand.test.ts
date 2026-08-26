@@ -206,9 +206,12 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 		for (const name of FIXTURES) expect(scoreAnalysis(fx(name)).sections['earthShock']?.grade, name).toBe('bad');
 		// Keyed off the discovered set, so a fifth pull has to have its headline written down here.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).overall]))).toEqual({
+			// The four moved once, under `gcdUtilisation`'s 95/90 lines, and not under anything this file
+			// changes: the pulls fill 83.38%, 89.18%, 94.44% and 92.87% of their globals, which the old
+			// 80/65 pair called `good` on all four.
 			addsThenBoss: 'bad',
-			cleave: 'ok',
-			phased: 'good',
+			cleave: 'bad',
+			phased: 'ok',
 			unbroken: 'ok',
 		});
 		// And the shield's own ledger is untouched, because all five exempt presses were at the ceiling.

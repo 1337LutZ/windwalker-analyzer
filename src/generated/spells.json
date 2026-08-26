@@ -4,7 +4,7 @@
 		"commit": "18a346ec8cc52c6e3fc66ac8a8d269428ca1be11",
 		"committed": "2026-08-25T11:27:51.000Z",
 		"fromDatabase": 120,
-		"fromWowhead": 213
+		"fromWowhead": 216
 	},
 	"spells": {
 		"1": {
@@ -359,6 +359,14 @@
 			"name": "Fire Blast",
 			"icon": "spell_fire_fireball"
 		},
+		"57994": {
+			"name": "Wind Shear",
+			"icon": "spell_nature_cyclone"
+		},
+		"59547": {
+			"name": "Gift of the Naaru",
+			"icon": "spell_holy_holyprotection"
+		},
 		"61295": {
 			"name": "Riptide",
 			"icon": "spell_nature_riptide"
@@ -374,6 +382,10 @@
 		"62124": {
 			"name": "Reckoning",
 			"icon": "spell_holy_unyieldingfaith"
+		},
+		"64364": {
+			"name": "Devotion Aura",
+			"icon": "spell_holy_mindsooth"
 		},
 		"69179": {
 			"name": "Arcane Torrent",

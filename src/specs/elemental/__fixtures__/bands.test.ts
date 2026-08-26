@@ -122,6 +122,13 @@ const UNBANDED = [
 	'thunderstormMissed',
 	'shamanisticRageMissed',
 	'fireElementalHasteUptime',
+	// Ascendance's four, and none of them takes a band. The button is on the bar at every target count and
+	// the priority list presses it from the same two entries however many enemies are up — a rule about
+	// *when* a cooldown goes down is not a rule a target count can exempt.
+	'ascendanceOpener',
+	'ascendanceIntoHaste',
+	'ascendanceBanner',
+	'ascendanceLatePresses',
 ] as const;
 
 describe('the reported bug, on the pull it was reported from', () => {
@@ -163,8 +170,13 @@ describe('the reported bug, on the pull it was reported from', () => {
 	 */
 	it('replaces one of cleave three Flame Shock cards once the clocks are cut', () => {
 		expect(resolveBands(fixture('cleave').targets, 'auto').bands).toEqual([1, 2, 3, 4]);
-		expect(panel('cleave', 'auto')).toEqual(['flameShockUptime', 'flameShockMultiDot', 'lightningShieldOvercap']);
-		expect(card('cleave', 'auto').overall).toBe('ok');
+		// **The third card is `gcdUtilisation` now, and the letter under all three is `bad`.** Neither is
+		// the clock cut: `gcdUtilisation`'s lines went from 80/65 to 95/90, and this pull fills 89.18% of
+		// its globals. Under the old pair every committed pull read `good` there, so the metric carried two
+		// weight and never reached a panel; under the new one it is this pull's third-largest shortfall and
+		// `lightningShieldOvercap` — still a genuine fault on its own clock — is fourth.
+		expect(panel('cleave', 'auto')).toEqual(['flameShockUptime', 'flameShockMultiDot', 'gcdUtilisation']);
+		expect(card('cleave', 'auto').overall).toBe('bad');
 		// Still not one `exempt` among them: this pull visits every band, so the declarations remain inert
 		// here and the whole of the movement above is the clock. That is the claim this file began with and
 		// it is still true — it is only the panel that moved.
@@ -308,17 +320,31 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * read as a regression rather than as a fact about its rotation.
 	 */
 	it('stops printing a whole-pull verdict over six of twenty-three points', () => {
+		// **Eleven of twenty-four now, and the five that arrived are Ascendance's.** None of the four takes a
+		// band, so a pull read wholly as multi-target still owes an answer on all of them — the same reason
+		// `fireElementalHasteUptime` survives this reading. 11 of 24 is 46%, still under
+		// `MIN_JUDGED_WEIGHT_SHARE`, so the refusal this test is about is unchanged. `addsThenBoss` stays at
+		// five because every one of its Ascendance presses came back refused, which is a fact about that
+		// pull's own rotation rather than about the reading.
 		const measured: Record<string, number> = { addsThenBoss: 5 };
 		for (const name of ALL) {
 			expect(card(name, 'multi').judged, name).toEqual({
-				measured: measured[name] ?? 6,
-				total: 19,
+				measured: measured[name] ?? 11,
+				total: 24,
 				unmeasurable: true,
 			});
 			expect(card(name, 'multi').overall, name).toBe('ok');
 		}
-		expect(panel('cleave', 'multi')).toEqual(['lightningShieldFellOff']);
-		expect(panel('phased', 'multi')).toEqual([]);
+		// Two cards at this reading and not one, for the same reason as above: `gcdUtilisation` is one of the
+		// six metrics a `multi` card still measures, and 89.18% against 95/90 is a shortfall where 89.18%
+		// against 80/65 was not. The whole-pull letter is unmoved — the six are still under the floor.
+		expect(panel('cleave', 'multi')).toEqual(['gcdUtilisation', 'ascendanceLatePresses', 'lightningShieldFellOff']);
+		// `phased`'s panel was empty and now holds two. `gcdUtilisation` is the same metric for the same
+		// reason as above: 94.44% clears the old `good` line of 80 by fourteen points and misses the new one
+		// of 95 by half a point, and an `ok` with a real shortfall is a card where a `good` was never one.
+		// `ascendanceLatePresses` is above it because it is `bad` rather than short — this pull's second
+		// Ascendance found too little Elemental Discharge to pair with, on a rule no reading exempts.
+		expect(panel('phased', 'multi')).toEqual(['ascendanceLatePresses', 'gcdUtilisation']);
 	});
 
 	/**
@@ -373,7 +399,14 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * denominator instead of a `bad` half of whose weight was add-wave time.
 	 */
 	it('drops the spreading rule from a pull read as single-target and lifts its letter', () => {
-		expect(card('cleave', 'single').judged).toEqual({ measured: 12, total: 19, unmeasurable: false });
+		// Seventeen of twenty-four: the twelve this test was written on, plus Ascendance's five, which no
+		// reading exempts. The narrowing this test is about — the spreading rule leaving a single-target
+		// reading — is the gap between this and the nineteen `auto` measures.
+		expect(card('cleave', 'single').judged).toEqual({ measured: 17, total: 24, unmeasurable: false });
+		// **`ok`, and it has been round the houses.** It read `ok` before any of this, `bad` once
+		// `gcdUtilisation` went to 95/90, and `ok` again now that Ascendance's four rules are on the card:
+		// this pull's opener is clean on all three of the demands made of it and only its second press is
+		// faulted, so the section adds four points of `good` weight against one of `bad`.
 		expect(card('cleave', 'single').overall).toBe('ok');
 	});
 });
@@ -601,9 +634,13 @@ describe('the denominator travels with the verdict', () => {
 	 */
 	it('publishes what each pull was judged on', () => {
 		for (const name of ALL) {
+			// Nineteen of twenty-four on the three pulls whose Ascendance presses could be judged, and fifteen
+			// on `addsThenBoss`, which pays the four new rules' offered weight and collects none of it — its
+			// opener came back `nothing-to-hit` and every later press `no-two-piece-evidence`. The same shape
+			// `fireElementalHasteUptime` already had on that pull, and for a similar reason.
 			expect(card(name, 'auto').judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 15 : 14,
-				total: 19,
+				measured: name === 'addsThenBoss' ? 15 : 19,
+				total: 24,
 				unmeasurable: false,
 			});
 		}
@@ -613,7 +650,14 @@ describe('the denominator travels with the verdict', () => {
 				.filter((m) => m.unmeasurable)
 				.map((m) => m.key)
 				.sort();
+		// Ascendance's four join the list on this pull and on no other, which is the same asymmetry
+		// `fireElementalHasteUptime` already shows here: the opener came back `nothing-to-hit` and every
+		// later press `no-two-piece-evidence`, so all four rules are offered and none is collected.
 		expect(unmeasurableOn('addsThenBoss')).toEqual([
+			'ascendanceBanner',
+			'ascendanceIntoHaste',
+			'ascendanceLatePresses',
+			'ascendanceOpener',
 			'fireElementalHasteUptime',
 			'searingTotemOverlaps',
 			'thunderstormMissed',

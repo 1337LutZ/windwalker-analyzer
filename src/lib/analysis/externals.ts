@@ -117,7 +117,7 @@ import { windowsBySource } from './raidCasters';
  * `targeted` window would be the buff having been consumed or dispelled, and a reader told "you had
  * Barrier for 0.8s" deserves to know which of those it is.
  */
-export type ExternalDelivery = 'targeted' | 'ground' | 'raid' | 'granted';
+export type ExternalDelivery = 'targeted' | 'ground' | 'raid';
 
 /**
  * What the reduction figure rests on.
@@ -192,18 +192,56 @@ export interface ExternalSpell {
 	 */
 	readable?: boolean;
 	/**
-	 * The class this is *granted to*, for an entry only one class can ever receive.
+	 * The provider has to have *taken a talent* to cast this, and no log can tell us whether they did.
 	 *
-	 * Every other row here is class-agnostic by construction — anyone can be handed a Pain Suppression —
-	 * and the module header says nothing below names a class. Symbiosis breaks that: a Druid grants a
-	 * Protection Paladin **Barkskin**, and grants something else entirely to a Death Knight or a Warrior.
-	 * The row is real for one class and meaningless for every other.
+	 * **Hand of Purity is the case, and the gate it needs is not the one every other row uses.**
+	 * `available` asks whether a raider of the providing class was in the pull, which is exactly right for
+	 * a baseline button: every Discipline Priest has Pain Suppression, so a Priest in the raid really is a
+	 * Pain Suppression that could have been cast. Hand of Purity is a tier-five *talent*, competing with
+	 * Sacred Shield and Eternal Flame — so another Paladin in the raid is evidence of a class and not of a
+	 * button, and roughly two thirds of them will not have it.
 	 *
-	 * Without this the entry is offered to every tank that adopts this module, unconditionally —
-	 * available, observable, never blocked, never cast, on every pull for ever. That is a permanent
-	 * invented fault arriving through the door beside the one `readable: false` was built to shut.
+	 * **And the report cannot look.** `readTalents` answers this question off `combatantinfo`, and it can
+	 * answer it for any actor — but the fetch is scoped to the audited player, so the committed captures
+	 * carry exactly one `combatantinfo` event and it is the tank's own. Reading another Paladin's talents
+	 * needs the same second, raid-scoped fetch the co-tank case needs; the note on `readable` above says
+	 * where that stands.
+	 *
+	 * So a talent-gated row is only ever a **fact** and never a missed chance: it is available when it
+	 * actually landed, and absent when it did not. What that gives up is the case where a talented Paladin
+	 * really did hold it and never pressed it, which this report would have to invent evidence to see.
+	 * What it buys is that the section stops recommending a button the provider may not own — the same
+	 * "charged the player for something they could not have done" fault the rest of this file is careful
+	 * about, one step removed.
 	 */
-	grantedTo?: string;
+	talent?: true;
+	/**
+	 * The providing class only has this button in one **spec**, and which spec a raider played is
+	 * established the way `casterDependent` establishes it: by a spell only that spec has.
+	 *
+	 * **Ironbark is the case.** `providedBy` is a class, because that is what a WarcraftLogs roster
+	 * carries — `Actor.subType` is `'Druid'` and never `'Restoration'`. Ironbark is a Restoration spell,
+	 * so a raid whose only Druid is a Guardian was being offered a row it could not have had, and told it
+	 * went unused. That is the same invented fault `talent` above exists to stop, arriving through the
+	 * spec door instead of the talent one.
+	 *
+	 * **The signature list is the game's rather than the simulator's, and that is stated rather than
+	 * hidden.** `wowsims-mop` implements no Restoration Druid worth reading — `sim/druid/restoration/` is
+	 * two files and neither registers a spell — and `sim/druid/` holds Rejuvenation and Healing Touch,
+	 * which every Druid has, precisely because those are the shared ones. So the three ids below are
+	 * Restoration-only in 5.4 on the game's own terms: **Swiftmend (18562), Lifebloom (33763) and Wild
+	 * Growth (48438)**. Rejuvenation, Regrowth and Healing Touch are deliberately *not* here — a Guardian
+	 * casts all three, so any of them would make the gate pass for the wrong reason.
+	 *
+	 * **The same asymmetry `casterDependent` documents, and the same direction of error.** Seeing a
+	 * signature proves the spec; seeing none proves nothing. A Restoration Druid who healed the raid and
+	 * never this tank leaves no trace here, and the row is not offered — so the section stays quiet rather
+	 * than reporting a miss it cannot stand up. On the five committed captures the gate fires on four:
+	 * actor 21 lands Lifebloom, Wild Growth or Swiftmend on the tank in every one of them. `spoils` is the
+	 * fifth and carries **no druid heal on the tank at all** — that pull splits the raid into two rooms —
+	 * so its Ironbark row leaves the offered set. It was `0 of 0` there in any case.
+	 */
+	providerSpec?: { signatureIds: number[] };
 	/**
 	 * A wider effect this spell has when its caster is of a particular spec, and how to establish that.
 	 *
@@ -312,12 +350,14 @@ export interface ExternalSpell {
  *   actually used: it appears once across the three, as the audited player casting it on a Warlock, and
  *   it never lands on the tank at all. There is therefore also no window to take a duration from, which
  *   would rule it out on evidence even if the mechanic did not.
- * - **Ironbark, Safeguard and Spirit Link Totem** are real externals and are **not** in this catalogue,
- *   for a reason that is a gap rather than a judgement: there is no verifiable id for them. None is
- *   implemented in `sim/`, none appears in `assets/database/db.json`'s spell table, and none ever landed in
- *   the three captures — so there is no event to read an id off either. Adding them is a one-line change
- *   once an id can be cited; adding them from memory would put an unverifiable number in a table whose
- *   whole claim is that its numbers are checked. Safeguard is the near miss: `assets/database/db.json`
+ * - **Ironbark is now in the catalogue** and the id it wanted is cited on the row: 102342, off the 5.4
+ *   tooltip, twenty per cent for twelve seconds on a one-minute cooldown. It replaces the Barkskin entry,
+ *   which was never an external at all — see that row for the argument.
+ * - **Safeguard and Spirit Link Totem** are real externals and are still **not** here, for the reason
+ *   Ironbark used to share: no verifiable reduction. Neither is implemented in `sim/`, and neither ever
+ *   landed in the five captures, so there is no event to read one off either. Adding them is a one-line
+ *   change once a number can be cited; adding them from memory would put an unverifiable figure in a table
+ *   whose whole claim is that its numbers are checked. Safeguard is the near miss: `assets/database/db.json`
  *   does carry `{"id":114029,"name":"Safeguard"}` and the warrior proto has the talent, but `sim/warrior/`
  *   implements no effect for it, so its reduction would be a guess.
  * - **Weakened Blows, Demoralizing Banner and Demoralizing Shout** are debuffs on the attacker, not buffs
@@ -378,6 +418,11 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		name: 'Hand of Purity',
 		ids: [114039],
 		providedBy: 'Paladin',
+		// Tier five, against Sacred Shield and Eternal Flame — so another Paladin in the raid is evidence
+		// of a class and not of this button, and this report cannot read their talents. See
+		// `ExternalSpell.talent`: the row is a fact when it lands and absent when it does not, rather than
+		// a chance the raid is told it passed up.
+		talent: true,
 		durationMs: 6_000,
 		cooldownMs: 30_000,
 		takenMultiplier: 0.9,
@@ -436,35 +481,50 @@ export const EXTERNALS: readonly ExternalSpell[] = [
 		evidence: 'tooltip',
 	},
 	{
-		key: 'barkskin',
-		name: 'Barkskin',
+		key: 'ironbark',
+		name: 'Ironbark',
 		/**
-		 * **The one entry the raid gives you and you press yourself**, which is why `delivery` needed a
-		 * fourth arm.
+		 * **The Druid external, in place of the Barkskin this row used to hold.**
 		 *
-		 * A Druid's Symbiosis grants a Protection Paladin Barkskin, and from then on the paladin casts it.
-		 * So the *caster* is always the audited player and the *provider* is a Druid — and both halves of
-		 * the existing model get it wrong on their own. A `targeted` external drops self-casts, which
-		 * would drop every instance of this; the roster gate keyed on the caster's class would ask whether
-		 * the raid had a Paladin, which is a question about the tank themselves.
+		 * Barkskin was here on the strength of Symbiosis: a Druid grants a Protection Paladin the *button*,
+		 * and from then on the Paladin presses it — id 113075, fourteen presses in the reference clear. That
+		 * is a real mechanic and it is not an external. A Druid cannot put Barkskin on anybody; what they
+		 * hand over is an ability the tank then owns, so listing it here read as "the raid failed to give
+		 * you Barkskin" about a button only the tank can press. It stays declared as one of the Paladin's
+		 * own defensives in `specs/protection/lib/data.ts`, which is where a press-it-yourself cooldown
+		 * belongs, and the `delivery: 'granted'` arm this file grew to hold it is gone with it.
 		 *
-		 * `granted` says both things at once: gate on the provider, count the self-cast. Measured on the
-		 * reference clear the tank presses it 14 times, and the id is **113075** rather than the Druid's
-		 * own 22812 — that one fires nowhere in the whole report, which is what says the Symbiosis version
-		 * is a separate spell rather than the same button shared.
+		 * Ironbark is the spell a Druid actually casts on somebody else, and the module header used to
+		 * exclude it for want of a citable id. **102342**, and the id is now cited: the 5.4 tooltip reads
+		 * *"The target's skin becomes as tough as Ironwood, reducing all damage taken by 20%. Lasts 12
+		 * sec."*, instant, forty yards, one-minute cooldown, `Requires Druid` and no talent line.
+		 *
+		 * `evidence: 'tooltip'` and not `'sim'`, which is the honest label: `wowsims-mop` implements no
+		 * Ironbark, so the twenty per cent is the spell description's number the way Smoke Bomb's is. That
+		 * is the standard this catalogue already sets for a spell the simulator does not model.
+		 *
+		 * ***And the header's old reason for leaving it out was wrong about the evidence, not just about the
+		 * id.*** It said none of these ever landed in the captures, so there was no event to read an id off.
+		 * Ironbark lands on **four of the five**: Garrosh six times for 72 074ms, Paragons three for
+		 * 36 000ms, Fallen Protectors two for 24 011ms, Galakras once for 11 981ms, Spoils never. Every one
+		 * of those was in the committed data the whole time, under an id nothing named — which is the same
+		 * shape of miss as a cast rendering as `#57994`, one layer up.
+		 *
+		 * **Gated on a Restoration Druid and not on any Druid**, which is what `providerSpec` below is for:
+		 * the roster carries a class, Ironbark is Restoration's, and a raid whose only Druid is a Guardian
+		 * was being offered a row it could not have had. Pain Suppression is Discipline's and is still
+		 * gated on any Priest — that row wants the same treatment and a signature list of its own, which is
+		 * a separate change to a row nothing has reported a fault on.
 		 */
-		ids: [113075],
+		ids: [102342],
 		providedBy: 'Druid',
-		// `sim/druid/barkskin.go:17-19` — 12s, and `DamageTakenMultiplier *= 0.8`. The Druid's own spell,
-		// which is what Symbiosis hands over; the sim models no Paladin Symbiosis, so the duration and the
-		// reduction are the Druid's and the id is the log's.
+		providerSpec: { signatureIds: [18_562, 33_763, 48_438] },
 		durationMs: 12_000,
 		cooldownMs: 60_000,
 		takenMultiplier: 0.8,
 		scope: 'all',
-		delivery: 'granted',
-		grantedTo: 'Paladin',
-		evidence: 'sim',
+		delivery: 'targeted',
+		evidence: 'tooltip',
 	},
 	{
 		key: 'demoralizing-banner',
@@ -726,10 +786,6 @@ export function readExternals(
 				: ids.flatMap((id) => aurasById.get(id) ?? []).sort((a, b) => a.timestamp - b.timestamp),
 		);
 
-	// The audited player's own class, which is what a `grantedTo` entry is gated on. Read off the actor
-	// list rather than passed in, so no caller has to know the field exists.
-	const ownClass = actors.find((actor) => actor.id === actorID)?.subType ?? null;
-
 	const rows = EXTERNALS.map((external): ExternalRow => {
 		const mine = aurasFor(external.ids);
 		// Everything the log put on this player under these ids, bucketed by whoever put it there. A
@@ -742,9 +798,9 @@ export function readExternals(
 			holdsMs: external.durationMs,
 			onTarget: actorID,
 		})
-			// A `raid` cooldown the player pressed covers them too, and a `granted` one is *only* ever theirs
-			// to press — see the module note and `barkskin`. Everything else drops the self-cast.
-			.filter(({ source }) => external.delivery === 'raid' || external.delivery === 'granted' || source !== actorID)
+			// A `raid` cooldown the player pressed covers them too — see the module note. Everything else
+			// drops the self-cast, because an external is by definition something somebody else gave you.
+			.filter(({ source }) => external.delivery === 'raid' || source !== actorID)
 			.map(({ source, windows }): ExternalCaster => ({ id: source, name: nameOf(source), windows }));
 
 		/**
@@ -782,10 +838,22 @@ export function readExternals(
 			key: external.key,
 			name: external.name,
 			providedBy: external.providedBy,
-			// Offered only when somebody could cast it *and*, for a granted entry, when this player is the
-			// class it can be granted to — see `ExternalSpell.grantedTo`.
+			// Offered when somebody of the providing class was in the pull, and then narrowed twice: a
+			// talent is offered only where it actually landed, and a spec-gated button only where some
+			// raider of that class showed a spell of that spec. A class is evidence of neither on its own —
+			// see `ExternalSpell.talent` and `ExternalSpell.providerSpec`.
 			available:
-				present.has(external.providedBy) && (external.grantedTo === undefined || external.grantedTo === ownClass),
+				present.has(external.providedBy) &&
+				(external.talent !== true || placements > 0) &&
+				(external.providerSpec === undefined ||
+					providerOfSpec(
+						events,
+						friendlyPlayers,
+						actors,
+						actorID,
+						external.providedBy,
+						external.providerSpec.signatureIds,
+					)),
 			providers: countProviders(friendlyPlayers, actors, actorID, external.providedBy),
 			group: external.exclusiveGroup ?? null,
 			readable: external.readable ?? true,
@@ -901,6 +969,32 @@ function givenBySource(
 }
 
 /** How many raiders of one class were in the pull, the audited player excluded. */
+/**
+ * Did any raider of the providing class show a spell only the required spec has?
+ *
+ * The roster half of `castersWithSignature`: that one asks it of a caster who already landed the
+ * external, which is the right question for widening a reduction and the wrong one for offering a row
+ * at all. This asks it of everyone in the pull who *could* have cast it, and it is what
+ * `ExternalSpell.providerSpec` is checked with.
+ *
+ * The audited player is excluded for the reason `countProviders` excludes them: an external is
+ * something somebody else gave you, so a tank who is themselves the class does not make the row
+ * available to themselves.
+ */
+function providerOfSpec(
+	events: RaidEvents,
+	friendlyPlayers: readonly number[],
+	actors: readonly Actor[],
+	actorID: number,
+	subType: string,
+	signatureIds: readonly number[],
+): boolean {
+	const byID = new Map(actors.map((actor) => [actor.id, actor]));
+	return friendlyPlayers.some(
+		(id) => id !== actorID && byID.get(id)?.subType === subType && castersWithSignature(events, id, signatureIds),
+	);
+}
+
 function countProviders(
 	friendlyPlayers: readonly number[],
 	actors: readonly Actor[],

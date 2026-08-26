@@ -108,14 +108,28 @@ const cards = (markup: string): string[] =>
 describe('the scorecard grid', () => {
 	it('leads with the section furthest from good, and ends with the ones already there', () => {
 		// `cleave` is the pull with something wrong in three different places, so it is the one that can
-		// show an order at all. The shield is the largest miss on it by a distance — 42.2s at the ceiling
-		// against a rule whose `ok` band ends at 5s — and `casts` is 89.2% against an 80% target.
-		// Flame Shock and not the shield since the shield's rule took five seconds into `good`: 21.9s
-		// against a `good` of 5s and an `ok` of 15s is 1.7 bands out, where 83.9% against a 95/85 dot is
-		// 2.1. The order is the claim here, not which section happens to hold the worst number.
+		// show an order at all. Flame Shock leads and not the shield since the shield's rule took five
+		// seconds into `good`: 21.9s against a `good` of 5s and an `ok` of 15s is 1.7 bands out, where
+		// 83.9% against a 95/85 dot is 2.1. The order is the claim here, not which section happens to hold
+		// the worst number.
+		//
+		// **The tail is no longer `casts`, and that is `gcdUtilisation`'s lines moving.** This pull fills
+		// 89.2% of its globals, which the old 80/65 pair put comfortably in `good` and the new 95/90 pair
+		// puts in `bad` — so the section that used to be the one already there is now among the ones that
+		// are not.
+		//
+		// **And neither end is decided by `headroom` any more**, because the Elemental spec names two
+		// sections that lead their grade group — see `SpecTakeaways.lead`. Ascendance is `bad` on this pull
+		// and leads the reds; Fire Elemental is `good` and leads the greens, which puts Searing Totem last.
+		// The letter is still the first key: every red card sits above every green one either way.
 		const drawn = cards(html(fixture('cleave')));
-		expect(drawn[0]).toBe('Flame Shock');
-		expect(drawn.at(-1)).toBe('Casts per minute');
+		expect(drawn[0]).toBe('Ascendance');
+		expect(drawn.at(-1)).toBe('Searing Totem');
+		// The claim the two assertions above cannot make on their own: leading is *inside* a group. Flame
+		// Shock is the largest miss on this pull by `headroom` and still sits under Ascendance, while Fire
+		// Elemental — the other led section — sits below every red card rather than above them.
+		expect(drawn.indexOf('Ascendance')).toBeLessThan(drawn.indexOf('Flame Shock'));
+		expect(drawn.indexOf('Flame Shock')).toBeLessThan(drawn.indexOf('Fire Elemental'));
 		// Non-vacuity: an order over one card is not an order.
 		expect(drawn.length).toBeGreaterThan(4);
 	});

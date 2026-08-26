@@ -272,7 +272,9 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 		// the newest copy in the spec and were outside the sweep until the pattern named them.
 		const kinds = new Set(elementalStrings().flatMap(([key]) => key.split('.')));
 		for (const kind of ['state', 'kpi', 'caption', 'intent', 'read']) expect(kinds, kind).toContain(kind);
-		expect(elementalStrings().filter(([key]) => key.startsWith('ascendance.read.')).length).toBe(14);
+		// Thirteen and not fourteen since `first-press-past-one-cooldown` was retired — the refusal that
+		// excused a first press past one full cooldown as a possible recharge. See `ascendanceAtPull`.
+		expect(elementalStrings().filter(([key]) => key.startsWith('ascendance.read.')).length).toBe(13);
 		// The graded sentences, counted separately because they cannot be counted the same way: the grade is
 		// part of the segment, so `verdict` never appears in `kinds` and the loop above would pass whether
 		// or not a single one of them was selected.

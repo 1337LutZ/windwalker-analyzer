@@ -212,16 +212,20 @@ describe('what the committed pulls can say about rule 5', () => {
 				return `${name}/${choice} ${card.overall} ${judged?.measured}/${judged?.total}`;
 			});
 		});
+		// Four of the nine letters moved under `gcdUtilisation`'s 95/90 lines, and none of them under this
+		// rule: `phased` fills 94.44% of its globals and `cleave` 89.18%, which the old 80/65 pair called
+		// `good` on both. The three `multi` readings are unmoved: the metric is inside their six, but those
+		// cards are already `unmeasurable` under the judged-weight floor and the letter cannot move.
 		expect(cards).toEqual([
-			'phased/auto good 14/19',
-			'phased/single good 14/19',
-			'phased/multi ok 6/19',
-			'unbroken/auto ok 14/19',
-			'unbroken/single ok 14/19',
-			'unbroken/multi ok 6/19',
-			'cleave/auto ok 14/19',
-			'cleave/single ok 12/19',
-			'cleave/multi ok 6/19',
+			'phased/auto ok 19/24',
+			'phased/single ok 19/24',
+			'phased/multi ok 11/24',
+			'unbroken/auto ok 19/24',
+			'unbroken/single ok 19/24',
+			'unbroken/multi ok 11/24',
+			'cleave/auto bad 19/24',
+			'cleave/single ok 17/24',
+			'cleave/multi ok 11/24',
 		]);
 		expect(WEIGHTS.fireElementalHasteUptime).toBe(1);
 	});
