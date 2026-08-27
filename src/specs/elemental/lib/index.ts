@@ -3158,40 +3158,6 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	// Non-null because the registry entry above sets `maxStacks` unconditionally; a `??` fallback to the
 	// module constant would be unreachable code implying the two could disagree.
 	const lightningShieldCap = LIGHTNING_SHIELD.maxStacks ?? 0;
-	const lsLevels = auraLevels(selfEvents, LIGHTNING_SHIELD, t0, fightEnd);
-	/**
-	 * The two-piece window: the debuff the proc leaves on the target, read where it actually lands.
-	 *
-	 * This used to be `selfWindows(T16_2PC_PROC)` — the set's own name, `Celestial Harmony`, wired to id
-	 * 144998. That number is the simulator's `ExposeToAPL` handle and the game never writes it, so the
-	 * windows were permanently empty and everything downstream of them was too: Earth Shock's rule ran on
-	 * three of its four conditions because `twoPiece` could not fire, the ladder's priority gate always
-	 * read false, and a timeline lane drew nothing. Both committed pulls demonstrably had the set — 144999
-	 * appears twenty times on one and eighteen on the other.
-	 *
-	 * It is also a *debuff on the target*, not a buff on the player, so the scoping was wrong as well as
-	 * the id: `selfWindows` would have found nothing even had the number been right.
-	 */
-	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
-	const twoPieceWindows: Window[] = t16DebuffWindows.map(([start, end]) => ({ start, end }));
-	/**
-	 * Whether this player owns the T16 two-piece, which is what picks Earth Shock's branch.
-	 *
-	 * Read off the debuff rather than off the gear, and the gear is genuinely the better evidence when it
-	 * is there: `GearSlot.setID` exists (`analysis/gear.ts:113`) and `phased` carries two pieces of set
-	 * 1182. But it is **absent on three of the four committed pulls** — `phased` is the only one that
-	 * carries it, and `combatantinfo` simply does not carry the field on the other three captures, which is
-	 * the case that field's own comment warns about — so a gear read would answer "no set" for a player the
-	 * log proves had one. `addsThenBoss` is one of those three and the sharper case: it has no `setID`
-	 * **and** no Elemental Discharge window, so the two readings agree there by coincidence rather than by
-	 * evidence.
-	 *
-	 * Elemental Discharge can only exist if the two-piece is equipped: it is applied by the set bonus's
-	 * own proc trigger on Fulmination (`sim/shaman/items_mop.go:126-140`). So one window of it is proof,
-	 * and no window is the absence of proof rather than proof of absence — which is why this errs onto
-	 * branch A, the stricter one, rather than crediting a set nothing evidenced.
-	 */
-	const twoPieceOwned = twoPieceWindows.length > 0;
 	/**
 	 * How many Lightning Shield charges a shock spent, read back out of the debuff it applied.
 	 *
@@ -3217,7 +3183,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * ceiling — seven charges is all the aura can hold.
 	 */
 	const dischargeCharges = new Map<number, number>();
-	if (twoPieceOwned) {
+	{
 		const ids = new Set(T16_2PC_DEBUFF.ids);
 		// Every moment this player's debuff on the primary changed, in order: the applies and refreshes that
 		// open a window and the removes that close one. A span runs from one to the next whatever its kind,
@@ -3251,20 +3217,111 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			if (charges > 0) dischargeCharges.set(change.t, Math.min(7, charges));
 		}
 	}
-	/**
-	 * The charges a shock spent: the shield's own reading, raised by the debuff's where the debuff knows
-	 * better. Null only when neither has anything to say.
-	 */
-	const chargesAt = (t: number): number | null => {
-		const logged = levelAt(lsLevels, t);
-		let inferred: number | null = null;
+	/** The charges the debuff can vouch for at a moment, or null where it has nothing to say. */
+	const dischargeChargesNear = (t: number): number | null => {
+		let best: number | null = null;
 		for (const [applied, charges] of dischargeCharges) {
 			if (applied < t - DISCHARGE_JITTER_MS || applied > t + DISCHARGE_MATCH_MS) continue;
-			inferred = Math.max(inferred ?? 0, charges);
+			best = Math.max(best ?? 0, charges);
 		}
-		if (inferred === null) return logged;
-		return Math.max(logged ?? 0, inferred);
+		return best;
 	};
+
+	const lsRawLevels = auraLevels(selfEvents, LIGHTNING_SHIELD, t0, fightEnd);
+	/**
+	 * The shield's stretches, with `auraLevels`' pre-fight *guess* corrected wherever the debuff can.
+	 *
+	 * **Corrected here rather than at each reader, because there are four of them and they must agree.**
+	 * The press's stack count, the counter row the timeline draws, the overcap clock and the fell-off
+	 * complement all read this array; fixing the number at the press alone would have left the timeline
+	 * writing "2" on the very load the Earth Shock section had just called full.
+	 *
+	 * **What is wrong with the guess.** A pull can open with the shield already stacked and the log carries
+	 * no apply for it — the first Lightning Shield event of `XJ83wN9h1GQqP4tY` fight 16 is a bare
+	 * `removebuffstack` to 1 at 21 815ms. `auraLevels` recovers a level from such an event as `stack + 1`,
+	 * which is correct for an aura that sheds one charge at a time and wrong for Fulmination, which spends
+	 * every charge above the first. Seven was read as two.
+	 *
+	 * **What replaces it.** The stretch ends at the shock that spent it, and that shock applied Elemental
+	 * Discharge for two seconds a charge — so the debuff's own length is the count. `Math.max`, so a
+	 * recovery can only raise a guess and never argue a real reading down.
+	 *
+	 * Only the `preexisting` stretch is touched. Every level the log actually witnessed is left exactly as
+	 * it was.
+	 */
+	const lsLevels = lsRawLevels.map((stretch) =>
+		stretch.preexisting === true
+			? (() => {
+					const recovered = dischargeChargesNear(stretch.end);
+					return recovered === null ? stretch : { ...stretch, level: Math.max(stretch.level, recovered) };
+				})()
+			: stretch,
+	);
+	/**
+	 * Whether the shield's count at a press is still the pre-fight guess, the debuff having failed to
+	 * recover it — no two-piece, or a span the aura cannot hold.
+	 *
+	 * Read at the same guarded instant `levelAt` reads, or a press landing on the stretch's own boundary —
+	 * which the shock that ends it always does — would be tested against the stretch it opened rather than
+	 * the one it spent.
+	 */
+	const shieldGuessedAt = (t: number): boolean => {
+		const at = t - SELF_EVENT_MS;
+		return lsRawLevels.some(
+			(stretch) =>
+				stretch.preexisting === true &&
+				at >= stretch.start &&
+				at < stretch.end &&
+				dischargeChargesNear(stretch.end) === null,
+		);
+	};
+	/**
+	 * The charges a shock spent, and **withheld where the number would only be a guess**.
+	 *
+	 * `lsLevels` above has already taken the debuff's correction, so this is the shield's reading in every
+	 * case the log or the debuff can answer. What is left is the case neither can: `null`, which the
+	 * `belowFull` test is already written to skip — `stacks !== null && stacks < cap`. The condition goes
+	 * unasked and the press keeps every other one it can still be judged on.
+	 *
+	 * **Not gated on the set, deliberately.** The set is what makes recovery possible; it has nothing to do
+	 * with whether the guess is false. Gating the refusal on it would leave every pull without the
+	 * two-piece charged off the same bad number this exists to stop trusting.
+	 */
+	const chargesAt = (t: number): number | null => (shieldGuessedAt(t) ? null : levelAt(lsLevels, t));
+
+	/**
+	 * The two-piece window: the debuff the proc leaves on the target, read where it actually lands.
+	 *
+	 * This used to be `selfWindows(T16_2PC_PROC)` — the set's own name, `Celestial Harmony`, wired to id
+	 * 144998. That number is the simulator's `ExposeToAPL` handle and the game never writes it, so the
+	 * windows were permanently empty and everything downstream of them was too: Earth Shock's rule ran on
+	 * three of its four conditions because `twoPiece` could not fire, the ladder's priority gate always
+	 * read false, and a timeline lane drew nothing. Both committed pulls demonstrably had the set — 144999
+	 * appears twenty times on one and eighteen on the other.
+	 *
+	 * It is also a *debuff on the target*, not a buff on the player, so the scoping was wrong as well as
+	 * the id: `selfWindows` would have found nothing even had the number been right.
+	 */
+	const t16DebuffWindows = dotWindowsOnTarget(events, T16_2PC_DEBUFF, t0, fightEnd, primaryID, actor.id).merged;
+	const twoPieceWindows: Window[] = t16DebuffWindows.map(([start, end]) => ({ start, end }));
+	/**
+	 * Whether this player owns the T16 two-piece, which is what picks Earth Shock's branch.
+	 *
+	 * Read off the debuff rather than off the gear, and the gear is genuinely the better evidence when it
+	 * is there: `GearSlot.setID` exists (`analysis/gear.ts:113`) and `phased` carries two pieces of set
+	 * 1182. But it is **absent on three of the four committed pulls** — `phased` is the only one that
+	 * carries it, and `combatantinfo` simply does not carry the field on the other three captures, which is
+	 * the case that field's own comment warns about — so a gear read would answer "no set" for a player the
+	 * log proves had one. `addsThenBoss` is one of those three and the sharper case: it has no `setID`
+	 * **and** no Elemental Discharge window, so the two readings agree there by coincidence rather than by
+	 * evidence.
+	 *
+	 * Elemental Discharge can only exist if the two-piece is equipped: it is applied by the set bonus's
+	 * own proc trigger on Fulmination (`sim/shaman/items_mop.go:126-140`). So one window of it is proof,
+	 * and no window is the absence of proof rather than proof of absence — which is why this errs onto
+	 * branch A, the stricter one, rather than crediting a set nothing evidenced.
+	 */
+	const twoPieceOwned = twoPieceWindows.length > 0;
 	/**
 	 * **The landing clock, and every one of this row's four inputs is a join against an event stream.**
 	 *
