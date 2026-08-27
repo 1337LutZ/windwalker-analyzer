@@ -203,6 +203,19 @@ export interface SweepOptions {
 	sleep?: (ms: number) => Promise<void>;
 	/** Injected for the same reason: a test needs a clock it can move. */
 	now?: () => number;
+	/**
+	 * How many pulls are fetched at once.
+	 *
+	 * **Latency, not throughput — the point budget is unchanged.** One pull is four sequential documents
+	 * against an API answering in a few hundred milliseconds, so a sequential sweep spends most of its
+	 * wall clock waiting rather than spending. Three at a time cuts that without buying anything extra:
+	 * the hourly allowance is per account, so parallelism cannot raise it and sharding across jobs would
+	 * only exhaust it faster.
+	 *
+	 * Three rather than ten because the budget checks and the 429 backoff are shared state, and a wide
+	 * pool turns one rate-limit reply into a burst of them.
+	 */
+	concurrency?: number;
 }
 
 /**
@@ -222,6 +235,9 @@ const DEFAULT_RESERVE = 20;
  * scheduled run is the better way to buy another hour, and it does not hold a CI job open to do it.
  */
 const DEFAULT_MAX_WAIT_MS = 65 * 60 * 1000;
+
+/** Pulls fetched at once by default. See `SweepOptions.concurrency` for why it is small. */
+const DEFAULT_CONCURRENCY = 3;
 
 /**
  * What `value` reads, by the name the plan's `metric` carries.
@@ -342,7 +358,17 @@ export async function runSweep(options: SweepOptions): Promise<SweepResult> {
 	 * Returns false when waiting would outlast either cap, and that is the signal to stop the run
 	 * rather than to fail the job — the jobs behind it are still perfectly good work for next time.
 	 */
+	let waiting: Promise<boolean> | null = null;
 	const waitForReset = async (): Promise<boolean> => {
+		// One wait, shared. Without this every worker sleeps through the same window and `waitedMs`
+		// reports three hours where one was spent.
+		if (waiting !== null) return waiting;
+		waiting = doWait().finally(() => {
+			waiting = null;
+		});
+		return waiting;
+	};
+	const doWait = async (): Promise<boolean> => {
 		if (seen.credits === null) return false;
 		// A second past the reported reset, because the boundary is the server's and the clocks differ.
 		const need = seen.credits.resetAt - now() + 1_000;
@@ -354,8 +380,9 @@ export async function runSweep(options: SweepOptions): Promise<SweepResult> {
 	};
 
 	const total = plan.jobs.length;
-	for (let index = 0; index < plan.jobs.length; index += 1) {
-		const job = plan.jobs[index]!;
+	const queue = [...plan.jobs];
+
+	const runOne = async (job: SweepJob): Promise<'done' | 'requeue' | 'stop'> => {
 		const path = datasetPathFor(cacheDir, job);
 		const cached = existsSync(path);
 
@@ -364,12 +391,12 @@ export async function runSweep(options: SweepOptions): Promise<SweepResult> {
 		if (!cached) {
 			if (now() >= stopAt) {
 				stopped = 'time';
-				break;
+				return 'stop';
 			}
 			if (seen.credits !== null && seen.credits.limit - seen.credits.spent <= reserve) {
 				if (!(await waitForReset())) {
 					stopped = 'points';
-					break;
+					return 'stop';
 				}
 			}
 		}
@@ -413,18 +440,39 @@ export async function runSweep(options: SweepOptions): Promise<SweepResult> {
 			// the job for the next one.
 			if (error instanceof WclError && error.kind === 'rate-limit') {
 				done -= 1;
-				if (await waitForReset()) {
-					index -= 1;
-					continue;
-				}
+				if (await waitForReset()) return 'requeue';
 				stopped = 'points';
-				break;
+				return 'stop';
 			}
 			const reason = error instanceof Error ? error.message : String(error);
 			failures.push({ job, reason });
 			onProgress?.({ done, total, job, outcome: 'failed', reason });
 		}
-	}
+		return 'done';
+	};
+
+	// A pool rather than a loop. Workers share the queue, the credit reading and the backoff, so the
+	// stopping rules stay global: the first worker to run the budget out stops the run for all of them,
+	// and the jobs still in the queue are untouched work for the next one.
+	const worker = async (): Promise<void> => {
+		for (;;) {
+			if (stopped !== 'complete') return;
+			const job = queue.shift();
+			if (job === undefined) return;
+			const outcome = await runOne(job);
+			if (outcome === 'requeue') {
+				queue.unshift(job);
+				continue;
+			}
+			if (outcome === 'stop') {
+				queue.unshift(job);
+				return;
+			}
+		}
+	};
+
+	const width = Math.max(1, Math.min(options.concurrency ?? DEFAULT_CONCURRENCY, plan.jobs.length));
+	await Promise.all(Array.from({ length: width }, () => worker()));
 
 	return { pulls, failures, stopped, remaining: total - done, credits: seen.credits, waitedMs };
 }

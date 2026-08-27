@@ -51,6 +51,8 @@ const HEARTBEAT_EVERY = 50;
  */
 const MINUTES = Number(process.env['REFERENCE_MINUTES'] ?? '') || null;
 const RESERVE = Number(process.env['REFERENCE_RESERVE'] ?? '') || undefined;
+/** How many pulls to fetch at once. Latency only — see `SweepOptions.concurrency`. */
+const CONCURRENCY = Number(process.env['REFERENCE_CONCURRENCY'] ?? '') || undefined;
 
 /**
  * The committed Iron Juggernaut pull, standing in for a warm cache.
@@ -96,6 +98,7 @@ describe('the sweep', () => {
 				...(MINUTES === null ? {} : { stopAt: Date.now() + MINUTES * 60_000 }),
 				...(RESERVE === undefined ? {} : { reserve: RESERVE }),
 			},
+			...(CONCURRENCY === undefined ? {} : { concurrency: CONCURRENCY }),
 		});
 
 		writeFileSync(resolve(CACHE, 'pulls.json'), JSON.stringify(result.pulls));
@@ -441,6 +444,31 @@ describe('a sweep that runs out of time or points', () => {
 		);
 		expect(result.stopped).toBe('complete');
 		expect(result.pulls).toHaveLength(1);
+	});
+
+	/**
+	 * The pool drains the queue rather than losing what it took.
+	 *
+	 * A worker that shifted a job and returned without finishing or requeueing it would silently drop
+	 * work — the run would report `complete` having measured less than it planned, and the ledger would
+	 * never learn those jobs existed. Six jobs, three workers, six outcomes.
+	 */
+	it('finishes every job in the queue when several run at once', async () => {
+		const jobs = Array.from({ length: 6 }, (_, i) => job({ code: `job-${i}` }));
+		const result = await inTempCache(async (cacheDir) =>
+			withoutNetwork(async () => runSweep({ plan: planOf(jobs), cacheDir, concurrency: 3 })),
+		);
+		expect(result.failures).toHaveLength(6);
+		expect(result.remaining).toBe(0);
+		expect(result.stopped).toBe('complete');
+	});
+
+	/** And one worker is still a valid pool, so the sequential path never became unreachable. */
+	it('works with a pool of one', async () => {
+		const result = await inTempCache(async (cacheDir) =>
+			withoutNetwork(async () => runSweep({ plan: planOf([job(), job({ code: 'b' })]), cacheDir, concurrency: 1 })),
+		);
+		expect(result.failures).toHaveLength(2);
 	});
 
 	/** A run that finishes its plan says so, and has nothing left over. */

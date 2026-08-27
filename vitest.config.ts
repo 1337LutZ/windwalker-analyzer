@@ -27,7 +27,28 @@ export default defineConfig({
 		// alias has to be restated here or nothing resolves. `new URL(...).pathname` rather than
 		// `fileURLToPath` because @types/node is not installed and this file is inside the
 		// `tsc --noEmit` include — a `node:url` import fails the type check.
-		alias: { '~': new URL('./src', import.meta.url).pathname },
+		alias: [
+			// **The reference table is frozen under test, and this line is the whole reason the weekly
+			// refresh is usable.**
+			//
+			// `gcdUtilisation` grades against `src/generated/reference.json`, which a scheduled job
+			// refreshes from Warcraft Logs. Every committed fixture's letters, section grades and verdict
+			// arms move with it — eight new pulls once moved enough cells to fail eighteen tests across
+			// fourteen files. Tests that pin a grade were therefore pinning *this week's* data, and a
+			// refresh pull request arrived red with eighteen expectations to re-type by hand. Nobody does
+			// that twice; the automation gets switched off instead.
+			//
+			// So the suite grades against a deliberately stale snapshot. What that gives up is stated
+			// rather than hidden: **no test proves the live table grades a committed fixture any
+			// particular way.** What replaces it is `frozenReference.test.ts`, which asserts the two files
+			// still have the same *shape* — same specs, same encounters, same fields — so a structural
+			// change to the table still fails here rather than in production.
+			{
+				find: /^~\/generated\/reference\.json$/,
+				replacement: new URL('./src/lib/reference/__fixtures__/reference.frozen.json', import.meta.url).pathname,
+			},
+			{ find: '~', replacement: new URL('./src', import.meta.url).pathname },
+		],
 	},
 	test: {
 		// The analysis engine is pure functions over an already-fetched dataset: no DOM, no rendering.
