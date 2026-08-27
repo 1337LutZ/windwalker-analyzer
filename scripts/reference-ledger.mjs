@@ -85,6 +85,21 @@ export function playerKeyOf(player) {
  */
 export const ANALYSER_REV = '2026-08-27-enforced-downtime';
 
+/**
+ * The id a cell is counted under, whichever era the row was written in.
+ *
+ * **Two conventions are already in the committed ledger, and normalising on read is cheaper than
+ * rewriting it.** Rows seeded from the first sweeps carry WarcraftLogs' Classic id (51593); rows written
+ * since carry the base id the job was planned with (1593). `tableFrom` already reduces both, so the
+ * *table* was always right — but `needBy` grouped on the raw value, so one encounter counted as two
+ * half-full cells and the planner kept buying for a cell already at target.
+ *
+ * Duplicated from `build-reference-tables.mjs` rather than imported: that module imports this one, and a
+ * cycle would be a far worse problem than one repeated constant.
+ */
+const CLASSIC_OFFSET = 50_000;
+export const cellKeyOf = (encounterID) => encounterID % CLASSIC_OFFSET;
+
 /** An empty ledger, in the shape a fresh checkout would find. */
 export const EMPTY = { builtAt: null, pulls: [] };
 
@@ -175,10 +190,10 @@ export function mergeLedger(ledger, rows) {
 export function needBy(ledger, targetN = Infinity) {
 	const counts = new Map();
 	for (const row of measuredPulls(ledger)) {
-		const key = `${row.spec}:${row.encounterID}`;
+		const key = `${row.spec}:${cellKeyOf(row.encounterID)}`;
 		counts.set(key, (counts.get(key) ?? 0) + 1);
 	}
-	return (job) => targetN - (counts.get(`${job.spec}:${job.encounterID}`) ?? 0);
+	return (job) => targetN - (counts.get(`${job.spec}:${cellKeyOf(job.encounterID)}`) ?? 0);
 }
 
 /**

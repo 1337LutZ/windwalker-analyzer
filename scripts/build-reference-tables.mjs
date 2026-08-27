@@ -475,7 +475,17 @@ export function tableFrom(pulls, specs, metric = 'gcdUtilisationPct') {
 			// fight is called, and it is missing three of the fourteen. WarcraftLogs hands the name back
 			// with every ranking, so the table carries what it was told rather than a second list to
 			// maintain.
-			encounters[encounterID] = { ...cellOf(here.map((p) => p.value)), name: here[0].boss ?? String(encounterID) };
+			// `encounterName` first, `boss` second, id last. The two field names are the two eras of this
+			// pipeline — a raw sweep row calls it `boss`, a ledger row calls it `encounterName` — and the
+			// id fallback is a bug waiting to happen rather than a default: `encounterIdForName` joins the
+			// app's fight name to this table *by name*, so a cell called "1593" matches nothing and that
+			// encounter falls back to the spec-wide curve on every report, silently. It has happened: a
+			// rebuild from the ledger once produced 39 of 42 cells named after their own id.
+			const named = here.find((p) => p.encounterName !== undefined || p.boss !== undefined);
+			encounters[encounterID] = {
+				...cellOf(here.map((p) => p.value)),
+				name: named?.encounterName ?? named?.boss ?? String(encounterID),
+			};
 		}
 		out.specs[spec.key] = {
 			encounters,

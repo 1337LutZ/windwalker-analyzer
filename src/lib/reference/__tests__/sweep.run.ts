@@ -239,12 +239,21 @@ describe('what a swept pull reads off an analysis', () => {
 			...over,
 		}) as unknown as Analysis;
 
-	const dataset = (rankPercent?: number | null): Pick<FightDataset, 'rankPercent'> => ({ rankPercent });
+	/**
+	 * `fight` is here because the pull carries the encounter's *name*, and the reference table is joined
+	 * to a report by name rather than by id. A pull that arrives nameless produces a cell called after
+	 * its own id, which matches nothing — 39 of 42 cells were once written that way.
+	 */
+	const dataset = (rankPercent?: number | null): Pick<FightDataset, 'rankPercent' | 'fight'> => ({
+		rankPercent,
+		fight: { name: 'Iron Juggernaut' } as FightDataset['fight'],
+	});
 
 	it('carries every field the script gates on', () => {
 		expect(pullFrom(job(), dataset(73), analysisLike(), 'gcdUtilisationPct')).toEqual({
 			spec: 'windwalker',
 			encounterID: 1600,
+			encounterName: 'Iron Juggernaut',
 			code: 'a:6MhZgjyAknFWrYfK',
 			fightID: 12,
 			player: 'Player (17)',

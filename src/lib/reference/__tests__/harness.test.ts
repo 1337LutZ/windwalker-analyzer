@@ -314,6 +314,44 @@ describe('the raid size, which is a query argument', () => {
 	});
 });
 
+describe('the name a cell is joined by', () => {
+	/** The script ships no types, so the one field these tests read is picked out once. */
+	const nameOf = (table: unknown): string | undefined => {
+		const typed = table as { specs: Record<string, { encounters: Record<string, { name: string }> } | undefined> };
+		return typed.specs['windwalker']?.encounters['1595']?.name;
+	};
+
+	/**
+	 * ***A cell named after its own id matches nothing, and nothing looks broken.***
+	 *
+	 * `encounterIdForName` joins a report to this table by the fight's *name* — `analysis.encounter` is a
+	 * string and carries no id at all. So a cell called "1593" is never selected, that encounter grades
+	 * against the spec-wide curve instead of its own row, and every report still renders a perfectly
+	 * plausible letter.
+	 *
+	 * It happened: a rebuild from the ledger produced **39 of 42 cells named after their id**, because
+	 * `tableFrom` read `boss` while a ledger row calls the field `encounterName`. Both spellings are
+	 * accepted now, and the id is a last resort rather than a default.
+	 */
+	it('takes the name from a ledger row', () => {
+		expect(nameOf(tableFrom([clean({ encounterName: 'Immerseus' })], [{ key: 'windwalker' }]))).toBe('Immerseus');
+	});
+
+	it('takes the name from a raw sweep row', () => {
+		expect(nameOf(tableFrom([clean({ boss: 'Immerseus' })], [{ key: 'windwalker' }]))).toBe('Immerseus');
+	});
+
+	/** One nameless row among named ones must not decide the cell's name. */
+	it('finds a name even when some rows lack one', () => {
+		const rows = [clean({}), clean({ encounterName: 'Immerseus' })];
+		expect(nameOf(tableFrom(rows, [{ key: 'windwalker' }]))).toBe('Immerseus');
+	});
+
+	it('falls back to the id only when no row carries a name', () => {
+		expect(nameOf(tableFrom([clean({})], [{ key: 'windwalker' }]))).toBe('1595');
+	});
+});
+
 describe('the output budget', () => {
 	/**
 	 * **One line per cell, whatever the sample size**, plus a header. Asserted rather than trusted,
