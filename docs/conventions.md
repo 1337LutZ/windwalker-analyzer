@@ -486,7 +486,7 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the compare page and the elixir weave, it prints 1724 leaves, 824 prose, 27,336
+As of the compare page and the elixir weave, it prints 1725 leaves, 824 prose, 27,336
 words; median 27, p75 45, p90 65, p95 78, p99 110, max 204; longest 9% carry 24%; report.json 747 prose
 leaves, 1,332 sentences, median 17, 282 past 25 (21.2%), 293 em-dashes in 252 sentences (18.9%);
 72 / 30 / 1 / 2 on the quote lines.

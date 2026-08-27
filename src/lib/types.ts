@@ -855,6 +855,16 @@ export interface WeaveBrew {
 	/** The fight ended underneath this brew, so there was never a window to weave and return inside. */
 	truncated?: boolean;
 	/**
+	 * Whether this brew was a chance to weave at all: the monk held something that keeps mastery highest.
+	 *
+	 * False when they were already swapped onto a rival secondary when it went up — which is the tail of
+	 * a weave they never closed, not a decision made here. **The chart needs this and briefly did not
+	 * have it.** Stripped from the published row at first, so a brew nobody could weave off drew in a
+	 * weave's colour: a live pull showed nine bars coloured as weaves under a tile reading eight, and
+	 * counting the bars was the natural way to check the tile.
+	 */
+	offered: boolean;
+	/**
 	 * When the swap off Monk's Elixir landed, or null when none did.
 	 *
 	 * Relative to `start`, so a negative number is a swap that beat the brew — see `early`.

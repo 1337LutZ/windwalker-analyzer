@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { rawFixture } from '~/lib/analysis/fixtures';
+import { rawFixture, rawFixtures } from '~/lib/analysis/fixtures';
 import { getSpec } from '~/lib/spec';
 import { defaultSettings } from '~/lib/settings';
 import type { FightDataset } from '~/lib/types';
@@ -96,6 +96,39 @@ describe('the weave as captured', () => {
 		expect(clean.lateReturn).toBe(0);
 		expect(loose.taken).toBeGreaterThan(0);
 		expect(loose.lateReturn).toBe(loose.taken);
+	});
+});
+
+/**
+ * The chart and the tiles have to agree, because counting the bars is how a reader checks the count.
+ *
+ * They did not on the first live pull this was looked at: nine bars in weave colours under a tile
+ * reading eight. `offered` was computed and then stripped off the published row, so a brew nobody
+ * could weave off — the monk already swapped onto a rival secondary when it went up — drew in a
+ * weave's colour with nothing to say it was never a chance.
+ */
+describe('what the chart draws and what the tiles count', () => {
+	it('draws exactly as many weaves as it counts, on every raw pull', () => {
+		for (const { name, dataset } of rawFixtures('windwalker')) {
+			const weave = spec.analyse(dataset).weave;
+			if (weave === undefined) throw new Error(`no weave summary for ${name}`);
+			// A bar reads as a weave when the brew was a chance and the swap followed it. Anything else is
+			// a miss, a dilution, or a brew that was never a chance — three other colours.
+			const drawn = weave.brews.filter((brew) => brew.offered && brew.offAt !== null && !brew.early);
+			// Truncated brews are excluded from `offered` upstream, so this holds without a second filter.
+			expect(drawn.length, name).toBe(weave.taken);
+		}
+	});
+
+	it('marks the brews that were never a chance rather than hiding them', () => {
+		// The row count is every press; `offered` is the subset that could have been weaved off. The gap
+		// between them is what the neutral tone exists to draw.
+		for (const { name, dataset } of rawFixtures('windwalker')) {
+			const weave = spec.analyse(dataset).weave;
+			if (weave === undefined) throw new Error(`no weave summary for ${name}`);
+			const chances = weave.brews.filter((brew) => brew.offered && brew.truncated !== true);
+			expect(chances.length, name).toBe(weave.offered);
+		}
 	});
 });
 

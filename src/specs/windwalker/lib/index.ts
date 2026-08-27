@@ -4039,7 +4039,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 			// Only the weaves that happened can have returned late; a brew nobody swapped off is a miss
 			// on `taken` and must not be charged a second time here for a return it never owed.
 			lateReturn: weaveGraded.filter((b) => b.offAt !== null && !b.early && !b.returnedOnTime).length,
-			brews: weaveBrews.map(({ offered: _offered, ...row }) => row),
+			brews: weaveBrews,
 			returnLeewayMs: weaveReturnLeewayMs,
 		},
 		procs: {

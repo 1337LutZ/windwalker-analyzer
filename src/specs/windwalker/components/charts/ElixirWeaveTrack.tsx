@@ -94,6 +94,29 @@ function weaveBars(weave: WeaveSummary, theme: ChartTheme): Bar[] {
 		const length = brew.end - brew.start;
 		const label = rowLabel(brew.start, at);
 
+		/**
+		 * A brew that was never a chance, drawn in the one tone that is not a judgement.
+		 *
+		 * The monk was already on a rival secondary when it went up, so there was nothing here to weave
+		 * off — this is the tail of a weave they did not close rather than a decision made at this brew.
+		 * `tones.ts` keeps `track` for exactly this: "a stretch it deliberately did not grade".
+		 *
+		 * Without it the row drew as a weave and the chart disagreed with the tile beside it — nine bars
+		 * in weave colours under a count of eight, on the first live pull this was looked at.
+		 */
+		if (!brew.offered) {
+			return {
+				x: label,
+				y: r1(length / 1000),
+				fillColor: theme.track,
+				meta: {
+					title: label,
+					tone: 'track',
+					rows: [['no mastery elixir up', 'nothing to weave off']],
+				},
+			};
+		}
+
 		if (brew.early) {
 			// Drawn full width in the miss tone, because the brew was diluted for its whole life: the
 			// elixir came off before `OnGain` read the mastery, so every second of this bar is a brew
@@ -246,6 +269,9 @@ export default function ElixirWeaveTrack({ weave }: { weave: WeaveSummary }) {
 					{/* Only when the pull has one. A key for an outcome nobody hit sends a reader hunting the
 					    chart for a colour that is not on it — the rule the Snapshots keys already follow. */}
 					{weave.early > 0 ? <ChartKey tone="missSoft">{t('weave.key.diluted')}</ChartKey> : null}
+					{weave.brews.some((brew) => !brew.offered) ? (
+						<ChartKey tone="track">{t('weave.key.noChance')}</ChartKey>
+					) : null}
 				</>
 			}
 		>
