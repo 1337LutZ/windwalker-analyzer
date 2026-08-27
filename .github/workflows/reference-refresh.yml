@@ -94,6 +94,12 @@ jobs:
         env:
           BRANCH: reference-refresh
 
+      # main's table, kept aside before the sweep overwrites it. This is the baseline the pull request
+      # compares against — what merging would change — rather than the branch's own last commit, which
+      # would only show one evening's handful of pulls.
+      - name: Keep the table merging would replace
+        run: git show origin/main:src/generated/reference.json > /tmp/reference-before.json
+
       # The sweep reads the committed ledger, drops every candidate already answered, and buys only what
       # is left — so a re-run minutes later costs the 42 rankings queries and nothing else. The token is
       # passed as an environment variable and never appears in a command line or a log line.
@@ -157,6 +163,12 @@ jobs:
           {
             echo "Refreshed by \`.github/workflows/reference-refresh.yml\`."
             echo
+            echo '## What merging this would change'
+            echo
+            node scripts/reference-diff.mjs /tmp/reference-before.json src/generated/reference.json
+            echo
+            echo '<details><summary>What the sweep did</summary>'
+            echo
             echo '### What the sweep did'
             echo '```'
             cat refresh.log
@@ -166,6 +178,8 @@ jobs:
             echo '```'
             node scripts/gcd-analysis.mjs
             echo '```'
+            echo
+            echo '</details>'
             echo
             echo 'Grading lines resolve from this table, so merging it re-grades every report on a moved encounter.'
             echo 'See `.claude/skills/wcl-analyzer/references/spec-gcd-analysis.md` for how to read the block above.'

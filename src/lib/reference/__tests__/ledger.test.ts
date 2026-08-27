@@ -16,6 +16,7 @@ import {
 	knownKeys,
 	measuredPulls,
 	mergeLedger,
+	cellKeyOf,
 	needBy,
 	planJobs,
 	playerKeyOf,
@@ -132,6 +133,21 @@ describe('what the planner refuses to buy', () => {
 		const planned = planJobs(ledgerOf([]), jobs, { targetN: 40, limit: 3 });
 		expect(planned.jobs).toHaveLength(3);
 		expect(planned.deferred).toBe(7);
+	});
+
+	/**
+	 * ***Two id conventions live in the committed ledger, and counting them apart over-buys.***
+	 *
+	 * Rows seeded from the first sweeps carry WarcraftLogs' Classic id (51593); rows written since carry
+	 * the base id the job was planned with (1593). `tableFrom` reduces both, so the table was always
+	 * right — but the planner grouped on the raw value, so one encounter counted as two half-full cells
+	 * and it kept buying pulls for a cell that had already reached the target.
+	 */
+	it('counts both id conventions as one cell', () => {
+		expect(cellKeyOf(51593)).toBe(cellKeyOf(1593));
+		const mixed = [rowFrom(pull({ encounterID: 51593 })), rowFrom(pull({ encounterID: 1593, fightID: 2 }))];
+		expect(needBy(ledgerOf(mixed), 40)(job({ encounterID: 1593 }))).toBe(38);
+		expect(needBy(ledgerOf(mixed), 40)(job({ encounterID: 51593 }))).toBe(38);
 	});
 
 	it('counts what a cell still needs', () => {

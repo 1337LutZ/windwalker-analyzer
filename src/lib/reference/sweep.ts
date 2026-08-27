@@ -110,6 +110,8 @@ export interface SweptPull {
 	code: string;
 	fightID: number;
 	player: string;
+	/** WarcraftLogs' own name for the fight. The table is joined to a report by this, not by id. */
+	encounterName: string;
 	/** WarcraftLogs' own parse percentile for this pull. Null when the site has none — never a nought. */
 	rankPercent: number | null;
 	predictedRankPercent: number;
@@ -283,7 +285,7 @@ export function datasetPathFor(cacheDir: string, job: Pick<SweepJob, 'code' | 'f
  */
 export function pullFrom(
 	job: SweepJob,
-	dataset: Pick<FightDataset, 'rankPercent'>,
+	dataset: Pick<FightDataset, 'rankPercent' | 'fight'>,
 	analysis: Analysis,
 	metric: string,
 ): SweptPull {
@@ -295,6 +297,14 @@ export function pullFrom(
 	return {
 		spec: job.spec,
 		encounterID: job.encounterID,
+		/**
+		 * The fight's own name, straight from the dataset.
+		 *
+		 * Carried because the reference table is joined to a report *by name* — `analysis.encounter` is a
+		 * string and carries no id — so a pull that arrives nameless produces a cell named after its own
+		 * id, which matches nothing and quietly grades that encounter against the spec-wide curve.
+		 */
+		encounterName: dataset.fight.name,
 		code: job.code,
 		fightID: job.fightID,
 		player: job.player,
