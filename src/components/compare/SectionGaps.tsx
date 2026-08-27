@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { leaderOf, ranked, type MetricGap, type SectionGap } from '~/lib/compare';
@@ -9,6 +8,7 @@ import { ChartFigure } from '../primitives';
 import { reading } from '../score/reading';
 
 import PullKey from './PullKey';
+import { refusalOf } from './refusal';
 import { sectionAnchor } from './sectionAnchor';
 
 /**
@@ -40,60 +40,59 @@ const TICKS = [4, 2, 0, 2, 4];
 const at = (bands: number) => 50 - Math.max(-1, Math.min(1, bands / DOMAIN)) * 50;
 
 /**
- * Two columns: what is being compared, and where the two logs sit on it.
+ * A card per part of the pull, and a line per figure inside it.
  *
- * **The left column is a stack rather than a line.** Each figure takes two rows — its name, then both
- * logs' readings under it — because a name and two numbers on one line ran to
- * "Stacks overcapped 0/151 10/84", which needed more width than the column had and more than the axis
- * beside it could spare. Split, each row is short and the column narrows to fit the longer of the two.
+ * **One track per figure rather than one track per section.** Every figure in a section shared a rail,
+ * so a card holding three of them was three dots on one line and the reader had to match each back to
+ * a label above it by horizontal position alone. A figure now owns its own rail, directly under its own
+ * name and readings, and nothing has to be matched up.
  *
- * **Every comparable figure is listed, not just the widest one either way.** The chart drew a dot per
- * figure and named only the outermost on each side, so a section with three lost one and a section the
- * two logs tied on lost all of them: Potions drew a dot and said nothing about it. A dot with no
- * reading beside it is a position on an axis and nothing else.
+ * The rails all run the same fixed domain, so a dot two thirds of the way out means the same thing in
+ * every card. That is what keeps the cards comparable with each other rather than only internally.
  *
- * Below `sm` the column and the track stack, which is the only way both survive at 320: a fixed column
- * wide enough for these labels would leave the axis with nothing.
+ * The card itself borrows `Scorecard`'s: same border, same padding, same heading treatment, so the
+ * page has one card vocabulary rather than two.
  */
-const COLUMN = 'flex min-w-0 flex-col gap-0.5 sm:w-56 sm:shrink-0';
-/** The same column, empty, so the axis starts where the track does. */
-const GUTTER = 'hidden sm:block sm:w-56 sm:shrink-0';
-const TRACK = 'relative h-5 w-full sm:min-w-0 sm:flex-1 sm:basis-0';
+const TRACK = 'relative h-4 w-full';
 
 /**
- * Where the two pulls differ: every figure in every part of the pull, on one signed axis.
+ * Where the two pulls differ: a card per part of the pull, a line per figure inside it.
  *
  * **The unit is bands, and it has to be.** A page comparing a share, a count of potions and a clock in
  * seconds has no common axis available; what it does have is the distance between each rule's own two
- * thresholds, which means the same thing on every row. `headroom` in the scorecard already measures
+ * thresholds, which means the same thing on every rail. `headroom` in the scorecard already measures
  * distance that way and gives the argument in full: "1.4 bands short" is the same statement about all
  * three units.
  *
- * **A dot per figure, not a bar per section, and that is the whole design.** This drew one signed bar
- * per section at its worst figure, with a texture where the section also led the other way — and on the
- * two committed captures that is not a corner case, it is the first row: Snapshots has the first log
- * ahead 2.4 on procs caught and behind 1.7 on depth. One bar and a texture cannot say that. A reader
- * looking at the bar saw a section decided by 2.4 and had to scroll to find out it was not decided at
- * all. Dots carry it natively: a split section has dots either side of the rule and reads as split
- * before a word is read, and a decided one has all of them on one side.
+ * **A rail per figure, not a rail per section.** Every figure in a section used to share one, so a card
+ * holding three was three dots on one line and the reader matched each back to its label by horizontal
+ * position alone. On its own rail, directly under its own name and readings, a figure needs no matching
+ * up — and the two a section is furthest apart on stop being the only two worth naming, which is what
+ * the shared rail had forced.
  *
- * It also removes an aggregate that had to be argued for. The old bar took the section's *worst*
- * figure, following the rule `SectionScore.grade` uses, and summing or averaging instead would have
- * contradicted it. With no bar there is nothing to aggregate, so neither argument is needed.
+ * **No aggregate survives.** An earlier shape drew one signed bar per section at its *worst* figure with
+ * a texture where the section also led the other way, and Snapshots is exactly the case that breaks it:
+ * the first log is ahead 2.4 on procs caught and behind 1.7 on depth. One bar and a texture cannot say
+ * that. With a rail per figure there is nothing to aggregate, so no rule about how to aggregate is
+ * needed either.
  *
  * **Diverging from a centre, because the question has a side.** Left is the first log ahead and right
- * is the second — the order the whole page names them in, rather than the order the sign of `bands`
- * would give — and the rule down the middle is the only place a reader has to look to answer who is
- * winning. Rows are still ordered by the section's widest figure, because this is the index into the
- * page and the widest gap is where to start.
+ * is the second, which is the order the whole page names them in rather than the order the sign of
+ * `bands` would give. The rule down the middle is the only place a reader has to look to answer who is
+ * winning. Cards are ordered by the section's widest figure, because this is the index into the page
+ * and the widest gap is where to start.
  *
  * **A dot inside the tie width is drawn neutral.** It leans neither way, and painting it by the sign of
  * a number smaller than the noise the thresholds admit would claim a lead the scoring model refuses to
  * grade. See `TIE_BANDS`.
  *
- * Rows are HTML rather than a chart library. `conventions.md` sends charts to ApexCharts and forbids a
- * hand-built SVG one; this is neither, it is the same shape `BandScale` and `Bar` are already built
- * from — a few divs — and staying in HTML is what makes the row a button and keeps the labels out of
+ * **A figure with no comparison keeps its line and loses its rail**, saying which log could not answer
+ * and why. A rail carrying one dot is a picture of a comparison that did not happen, and a reader would
+ * take the absent mark for a zero.
+ *
+ * All of it is HTML rather than a chart library. `conventions.md` sends charts to ApexCharts and forbids
+ * a hand-built SVG one; this is neither, it is the same shape `BandScale` and `Bar` are already built
+ * from — a few divs — and staying in HTML is what makes the card a button and keeps the labels out of
  * SVG text, which that document warns about specifically.
  */
 export default function SectionGaps({
@@ -122,69 +121,45 @@ export default function SectionGaps({
 			}
 			note={t('compare.gaps.axis')}
 		>
-			<ul className="m-0 flex list-none flex-col gap-2 p-0">
+			<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
 				{rows.map((group) => {
 					// Spelled `section`, matching the idiom `Scorecard` titles a card with: the key guard skips
 					// this prefix by name, because it is a section arriving at runtime and not a key family.
 					const section = group.key;
 					const title = i18n.exists(`${section}.title`) ? t(`${section}.title`) : section;
-					const drawn = group.metrics.filter((gap): gap is MetricGap & { bands: number } => gap.bands !== null);
-					/**
-					 * A figure's name, and beneath it what each log actually read on it.
-					 *
-					 * **Not the distance.** This printed the gap in the axis's own unit — "Health reflected 1.6"
-					 * — and a name beside a bare number reads as that name's value, which 1.6 is not: it is how
-					 * far apart the two logs are, in threshold-widths. `labels-and-figures.md` states the test
-					 * it failed: read the label and the figure aloud as one phrase, and if it needs arithmetic
-					 * before it means anything then the number is wrong rather than the label.
-					 *
-					 * The size is already on screen twice over, as the dot's distance from the rule and as the
-					 * axis under the chart, so nothing is lost by giving these rows to the readings instead.
-					 * They come from the scorecard's own formatter, so a share over countable events prints as
-					 * the count here exactly as it does everywhere else.
-					 *
-					 * Both logs, always, in the page's own order. A row that named one of them would be a row
-					 * whose number the reader has to attribute by guessing.
-					 */
-					const named = (gap: MetricGap & { bands: number }) => {
+					const named = (gap: MetricGap) => {
 						const key = `summary.takeaways.metric.${gap.key}.label`;
 						return i18n.exists(key) ? t(key) : gap.key;
 					};
 
 					return (
-						<li key={section}>
-							{/* The whole row, not a target inside it: a row whose only job is to point at a part of
-							    the pull is a link to it, and 44px is the floor a tap target may reach. */}
+						<li key={section} className="contents">
+							{/* The whole card, not a target inside it: a card whose only job is to summarise a part
+							    of the pull is a link to that part, which is the treatment `Scorecard` gives its own.
+							    A small jump target inside a large clickable-looking box teaches a reader the rest of
+							    the card is dead. */}
 							<button
 								type="button"
 								onClick={() => jumpToHeading(sectionAnchor(section))}
-								className="flex w-full cursor-pointer flex-col items-stretch gap-2 rounded-sm px-1 py-1.5 text-left hover:bg-raised focus-visible:bg-raised sm:flex-row sm:items-center sm:gap-4"
+								className="flex h-full cursor-pointer flex-col gap-3 rounded-sm border border-line p-3.5 text-left transition-colors hover:border-muted focus-visible:border-muted"
 							>
-								<span className={COLUMN}>
-									<span className="text-sm text-ink-2">{title}</span>
-									{drawn.map((gap) =>
-										gap.a === null || gap.b === null ? null : (
-											<Fragment key={gap.key}>
-												<span className="mt-1 text-xs text-muted">{named(gap)}</span>
-												<span className="flex flex-wrap gap-x-3 gap-y-0.5 tabular font-mono text-xs text-ink-2">
-													<PullKey side="a">{reading(gap.a, t)}</PullKey>
-													<PullKey side="b">{reading(gap.b, t)}</PullKey>
+								<span className="font-mono text-sm font-medium tracking-[0.1em] uppercase text-ink-2">{title}</span>
+
+								<span className="flex flex-col gap-3">
+									{group.metrics.map((gap) => {
+										// A figure with no comparison says why and draws no rail. A rail with one dot on
+										// it would be a picture of a comparison that did not happen.
+										if (gap.bands === null || gap.a === null || gap.b === null) {
+											const refusal = refusalOf(gap, players);
+											return (
+												<span key={gap.key} className="flex flex-col gap-0.5">
+													<span className="text-xs text-muted">{named(gap)}</span>
+													<span className="text-xs text-muted italic">
+														{t(refusal.key, { player: refusal.player })}
+													</span>
 												</span>
-											</Fragment>
-										),
-									)}
-								</span>
-								<span aria-hidden="true" className={TRACK}>
-									{/* The rail first, then the rule, then the dots over both.
-									
-									    **The rule is drawn a step brighter than the rail it crosses.** Both were `line` to
-									    begin with and the zero mark disappeared into the axis it sits on, which on a chart
-									    whose whole question is "which side" is the one line that has to be findable. It
-									    takes the same neutral the tied dots take, so nothing on the chart reads as a side
-									    unless it is one. */}
-									<span className="absolute inset-x-0 top-1/2 block h-px -translate-y-1/2 bg-line" />
-									<span className="absolute top-0 left-1/2 block h-full w-px -translate-x-1/2 bg-track" />
-									{drawn.map((gap) => {
+											);
+										}
 										const side = leaderOf(gap.bands);
 										const mark =
 											side === 'a'
@@ -194,27 +169,41 @@ export default function SectionGaps({
 													: // Inside the tie width, so it leans neither way and is drawn saying so.
 														'bg-track';
 										return (
-											<span
-												key={gap.key}
-												className={`absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-bg ${mark}`}
-												style={{ left: `${at(gap.bands)}%` }}
-											/>
+											<span key={gap.key} className="flex flex-col gap-1">
+												<span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+													<span className="text-xs text-muted">{named(gap)}</span>
+													<span className="flex items-baseline gap-2 tabular font-mono text-xs text-ink-2">
+														<PullKey side="a">{reading(gap.a, t)}</PullKey>
+														<PullKey side="b">{reading(gap.b, t)}</PullKey>
+													</span>
+												</span>
+												<span aria-hidden="true" className={TRACK}>
+													{/* The rail, then the rule a step brighter so the zero mark does not
+													    disappear into the axis it sits on, then the dot over both. */}
+													<span className="absolute inset-x-0 top-1/2 block h-px -translate-y-1/2 bg-line" />
+													<span className="absolute top-0 left-1/2 block h-full w-px -translate-x-1/2 bg-track" />
+													<span
+														className={`absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-bg ${mark}`}
+														style={{ left: `${at(gap.bands)}%` }}
+													/>
+												</span>
+											</span>
 										);
 									})}
+								</span>
+
+								{/* One axis per card, because the cards sit side by side and a single axis under the
+								    grid would line up with none of them. */}
+								<span aria-hidden="true" className="mt-auto flex justify-between font-mono text-[11px] text-muted">
+									{TICKS.map((tick, index) => (
+										<span key={`${tick}-${index}`}>{tick}</span>
+									))}
 								</span>
 							</button>
 						</li>
 					);
 				})}
 			</ul>
-			<div aria-hidden="true" className="flex gap-4 px-1 pt-1">
-				<span className={GUTTER} />
-				<span className="flex min-w-0 flex-1 basis-0 justify-between font-mono text-xs text-muted">
-					{TICKS.map((tick, index) => (
-						<span key={`${tick}-${index}`}>{tick}</span>
-					))}
-				</span>
-			</div>
 		</ChartFigure>
 	);
 }

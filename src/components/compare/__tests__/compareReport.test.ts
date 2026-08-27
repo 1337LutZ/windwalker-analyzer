@@ -198,6 +198,23 @@ describe('the compare page', () => {
 		expect(chart).toContain('Potions used');
 	});
 
+	/**
+	 * A figure with no comparison keeps its line in the card and loses only its scale.
+	 *
+	 * The chart used to drop it entirely, so `karmaEmpty` — which `strong` cannot measure — was absent
+	 * from Touch of Karma's card while the section it belongs to was ranked on the figure beside it. A
+	 * card that lists two of a section's three figures is a card a reader has to distrust.
+	 */
+	it('keeps a figure it cannot compare, and says which log could not answer', () => {
+		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-metrics-heading'));
+		const refused = compare(pull('strong'), pull('poor'))
+			.sections.flatMap((section) => section.metrics)
+			.filter((gap) => gap.bands === null);
+		expect(refused.length).toBeGreaterThan(0);
+		expect(chart).toContain('Karma wasted');
+		expect(chart).toContain('has nothing to measure here');
+	});
+
 	it('refuses to compare timelines, and says so', () => {
 		expect(html).toContain('do not line up second for second');
 	});

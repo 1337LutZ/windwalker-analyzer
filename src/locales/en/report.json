@@ -1963,8 +1963,8 @@
     },
     "gaps": {
       "title": "Where they differ",
-      "intent": "Every figure in the pull, on one axis, grouped by the part of the pull it belongs to. The scale is each figure’s own target, so a share, a count of casts and a stretch of seconds can sit together. Pick a row to jump to it.",
-      "axis": "How far apart, measured against what each figure asks for. One dot per figure rather than one bar per row, so a part of the pull where each of you leads a different figure shows dots on both sides and reads as split rather than as decided.",
+      "intent": "A card for each part of the pull, and a line for each figure inside it. Every scale is that figure’s own target, so a share, a count of casts and a stretch of seconds can be read against one another. Pick a card to jump to it.",
+      "axis": "How far apart, measured against what each figure asks for. One scale per figure rather than one per card, so a part of the pull where each of you leads a different figure has dots on both sides and reads as split rather than as decided.",
       "ahead": "{{player}} ahead"
     },
     "metrics": {
