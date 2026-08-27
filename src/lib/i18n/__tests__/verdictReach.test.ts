@@ -222,6 +222,21 @@ const UNREACHED: string[] = [
 	// Windwalker pull spends at least three brews, so no page a reader can open shows a single-brew
 	// sentence at all. The three single-brew states are read by hand in `brewBankTimeline.test.ts`.
 	'brew.verdict_oneShort',
+	// **`casts.verdict_none` is back on this list, and the round trip is the point.** `gcdUtilisation` is
+	// no longer graded against one fixed pair per spec: it resolves against the encounter's own p90 and
+	// p50 from `src/generated/reference.json`, and three Siege fights — Immerseus, Galakras, Norushen —
+	// are *suppressed* in that profile because they take the player out of reach by design (median
+	// contact share 77.7 / 82.7 / 85.0% against 94% or better on the other eleven).
+	//
+	// That briefly put `verdict_none` on the page for the first time, on four committed pulls, and this
+	// list is what surfaced it — which is the whole reason the list exists. **The sentence was wrong at
+	// the values it rendered with.** It reads *"Too few globals passed to measure a rate."*, true of the
+	// only state that could reach it before; `windwalker/idle` offers 130 global slots, fills 106, and the
+	// figure being withheld is 69.53%. The cause is the *denominator*, not the sample.
+	//
+	// So the section gained `casts.verdict_suppressed`, which says that, and the four pulls take it
+	// instead. `verdict_none` returns here: still real, still the right sentence for a pull with almost no
+	// room in it, and still unreachable on anything committed.
 	'casts.verdict_none',
 	'debuff.verdict_noContact',
 	'debuff.verdict_none',

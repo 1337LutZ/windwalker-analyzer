@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { CROSSOVERS, flowKeys, type FlowSlot } from '~/specs/windwalker/lib/view/rotationFlow';
+import { flowKeys, slotKey, type FlowSlot } from '~/lib/view/rotationFlow';
 
 import { buttonClass } from '~/components/primitives/controls';
 
@@ -22,30 +22,27 @@ import FlowNode from './FlowNode';
 const FORK_COLUMNS: Record<number, string> = { 2: 'md:grid-cols-2', 3: 'md:grid-cols-3' };
 
 /**
- * The rungs whose gate is drawn across the line rather than inside the box.
- *
- * These are the four crossovers, and they are exactly the plain rungs the ladder bands — the target
- * count is the only thing that puts them in the list, so in a decision tree it is a boundary the line
- * crosses and not a label on a box. Everything else that carries a gate is a *branch inside a fork*,
- * where the chip is doing a different job: it says which of two alternatives this lane is, and it
- * belongs on the lane.
- *
- * Drawn whichever reading is on, and that is a departure from `rotationFlow`'s `gated` flag rather
- * than a use of it. `gated` answers "should this rung repeat the count in a list that has already
- * been filtered to one", and its answer is rightly no — nine chips all saying `3+ targets` under a
- * note that has just said "this is the list at three enemies" is noise. In a chart the question is
- * different: the reader can see that eighteen rungs became sixteen, and the useful thing is *which
- * three the pack handed them*. So the chip stays, and it stays in the one place that answers that.
- */
-const CROSSOVER_KEYS: ReadonlySet<string> = new Set(CROSSOVERS.map((c) => c.key));
-
-/**
- * The priority list drawn as the decision tree it is.
+ * The priority list drawn as the decision tree it is, for whichever spec handed one over.
  *
  * Every rung is one question with two ways out. **Yes** presses the button beside it and the list
- * stops there; **no** is the line down the left, on to the next question. Three of the rungs are
- * forks — one question with two or three answers — and those are the part of this list a column of
- * cards could not show at all.
+ * stops there; **no** is the line down the left, on to the next question. A rung can also be a fork —
+ * one question with two or three answers — and those are the part of a list a column of cards could
+ * not show at all.
+ *
+ * ## It is the repository's one rotation drawing
+ *
+ * Three sections used to answer "how is a priority list drawn" three ways: this chart, a column of
+ * bordered cards under the Elemental, and nothing at all under the Protection. It is one answer now,
+ * and the four props are the whole of what a spec gets to vary. Which rungs; which legend lines to
+ * print above them; which rungs carry a band across the line rather than a chip on the box; and
+ * whether the copy has a paragraph behind each rung for the box to disclose. Everything else is fixed,
+ * because everything else is a decision about how a decision tree reads rather than about one spec.
+ *
+ * `crossings` is the interesting one. The Windwalker's four target-count crossovers are boundaries the
+ * line passes through rather than labels on a box: below the count on the chip, the question
+ * underneath is never asked. The Elemental's three stage headings are the same drawing doing the same
+ * job one level up, naming the part of the list beneath them, so both arrive here as a band across the
+ * line and neither needed a second mechanism.
  *
  * ## Why there is no library under this
  *
@@ -61,7 +58,7 @@ const CROSSOVER_KEYS: ReadonlySet<string> = new Set(CROSSOVERS.map((c) => c.key)
  * chunk 121 KB, so mermaid is larger than the application it would be drawing inside of.
  * `docs/conventions.md` does say to reach for a library rather than hand-roll, and the row it says it
  * on is *charts* — where the argument is that a chart has axes, scales and tooltips nobody should
- * rewrite. This has none of those. It has nineteen boxes and a line.
+ * rewrite. This has none of those. It has a couple of dozen boxes and a line.
  *
  * The accessibility half weighs as much as the kilobytes. React Flow positions nodes absolutely
  * inside a pan-and-zoom viewport of an explicit pixel height, which has no reading order and no
@@ -72,17 +69,61 @@ const CROSSOVER_KEYS: ReadonlySet<string> = new Set(CROSSOVERS.map((c) => c.key)
  *
  * ## It redraws when the reading changes
  *
- * The chart is not one picture with rows hidden. `rotationFlow` hands back a different list per
- * target count — fourteen rungs at one enemy, eighteen at three, nineteen unfiltered — and forks
- * whose answer the count has already settled arrive as plain rungs instead. Because each `<li>` is
- * keyed by its own rung, React remounts exactly the boxes that entered and leaves the rest alone, so
- * `animate-rung-in` plays on the difference and on nothing else. That is the clearest thing this
- * chart can say about a control at the top of the page: here is what your reading just added.
+ * The chart is not one picture with rows hidden. The Windwalker's `rotationFlow` hands back a
+ * different list per target count — fourteen rungs at one enemy, eighteen at three, nineteen
+ * unfiltered — and forks whose answer the count has already settled arrive as plain rungs instead.
+ * Because each `<li>` is keyed by its own rung, React remounts exactly the boxes that entered and
+ * leaves the rest alone, so `animate-rung-in` plays on the difference and on nothing else. That is the
+ * clearest thing this chart can say about a control at the top of the page: here is what your reading
+ * just added.
  *
  * Nothing is drawn in SVG, and nothing carries meaning in colour alone: every mark here is a border,
  * and every mark has words beside it.
  */
-export default function FlowChart({ flow }: { flow: readonly FlowSlot[] }) {
+export default function FlowChart({
+	flow,
+	legend,
+	details,
+	crossings,
+}: {
+	flow: readonly FlowSlot[];
+	/**
+	 * The copy keys of the lines under "How to read it", in the order they are printed.
+	 *
+	 * A prop because the marks a chart uses are the spec's: the Windwalker draws forks and target-count
+	 * gates, the Protection draws neither and puts what a rung needs on a chip instead. A legend naming
+	 * a mark that is not on the page is worse than a short one — it sends a reader looking for a dashed
+	 * box that no rung here has.
+	 */
+	legend: readonly string[];
+	/**
+	 * Whether each rung has a `rotation.entry.<key>.why` behind it, and so a panel to open.
+	 *
+	 * False for a spec whose rungs say all they have to say on their face. See the copy-convention note
+	 * in `lib/view/rotationFlow` — a **why** button opening a panel that repeats the box above it is a
+	 * worse chart than one that offers no button at all.
+	 */
+	details: boolean;
+	/**
+	 * Rungs whose label is drawn across the line above the box rather than inside it, as slot key to
+	 * copy key.
+	 *
+	 * A band across the line is a boundary in the chart: the Windwalker's target-count crossovers, where
+	 * below the count on the chip the list never reaches the question that follows, and the Elemental's
+	 * stage headings, which name the part of the list under them. Everything a chip can say about a
+	 * single button — which half of a split rung this is, whether a trinket is equipped, which talent
+	 * gives you the rung — belongs on that button and goes through `FlowEntry.gated` instead.
+	 *
+	 * Drawn whichever reading is on, and for the Windwalker that is a departure from `rotationFlow`'s
+	 * `gated` flag rather than a use of it. `gated` answers "should this rung repeat the count in a list
+	 * that has already been filtered to one", and its answer is rightly no: nine chips all saying
+	 * `3+ targets` under a note that has just said "this is the list at three enemies" is noise. In a
+	 * chart the question is different. The reader can see that eighteen rungs became sixteen, and the
+	 * useful thing is *which three the pack handed them*, so the chip stays and it stays in the one
+	 * place that answers that.
+	 */
+	crossings?: ReadonlyMap<string, string>;
+}) {
 	const { t } = useTranslation('report');
 	const keys = flowKeys(flow);
 	/**
@@ -138,15 +179,20 @@ export default function FlowChart({ flow }: { flow: readonly FlowSlot[] }) {
 					</h4>
 					{/* The escape hatch, and what makes a disclosure an honest place to put the prose: one press
 					    restores every paragraph the chart folded away, which is also what lets the browser's own
-					    find-in-page reach them. */}
-					<button type="button" className={buttonClass} onClick={() => setOpen(new Set(allOpen ? [] : keys))}>
-						{t(allOpen ? 'rotation.flow.collapse' : 'rotation.flow.expand')}
-					</button>
+					    find-in-page reach them. A chart with no paragraphs behind it has nothing to restore, so
+					    the control leaves with them rather than sitting there doing nothing. */}
+					{details ? (
+						<button type="button" className={buttonClass} onClick={() => setOpen(new Set(allOpen ? [] : keys))}>
+							{t(allOpen ? 'rotation.flow.collapse' : 'rotation.flow.expand')}
+						</button>
+					) : null}
 				</div>
 				<ul role="list" className="m-0 mt-2.5 flex list-none flex-col gap-1.5 p-0">
-					<li className="max-w-[70ch] text-sm leading-relaxed text-muted">{t('rotation.flow.legend.spine')}</li>
-					<li className="max-w-[70ch] text-sm leading-relaxed text-muted">{t('rotation.flow.legend.gate')}</li>
-					<li className="max-w-[70ch] text-sm leading-relaxed text-muted">{t('rotation.flow.legend.fork')}</li>
+					{legend.map((line) => (
+						<li key={line} className="max-w-[70ch] text-sm leading-relaxed text-muted">
+							{t(line)}
+						</li>
+					))}
 				</ul>
 			</div>
 
@@ -155,22 +201,20 @@ export default function FlowChart({ flow }: { flow: readonly FlowSlot[] }) {
 			<ol role="list" aria-label={t('rotation.flow.caption')} className="m-0 mt-5 flex list-none flex-col p-0">
 				{flow.map((slot, index) => {
 					const last = index === flow.length - 1;
-					const gate = 'entry' in slot && CROSSOVER_KEYS.has(slot.entry.key) ? slot.entry : null;
+					const key = slotKey(slot);
+					const crossing = crossings?.get(key);
 					return (
-						<li
-							key={'fork' in slot ? slot.fork : slot.entry.key}
-							className="grid animate-rung-in grid-cols-[2.75rem_1fr] gap-x-2 sm:gap-x-3"
-						>
-							{/* A gate on a rung that owns a whole row is a boundary in the chart, so it is drawn
-							    across the line rather than inside the box under it: below the count on the chip the
-							    list never reaches the question that follows. Announced rather than hidden — the
-							    count is the content, and the two rules it separates are not otherwise
-							    distinguishable. */}
-							{gate === null ? null : (
+						<li key={key} className="grid animate-rung-in grid-cols-[2.75rem_1fr] gap-x-2 sm:gap-x-3">
+							{/* A band across the line is a boundary in the chart rather than a label on the box under
+							    it. Below the count on a Windwalker crossover the list never reaches the question that
+							    follows; under an Elemental stage heading every rung down to the next band is one part
+							    of the list. Announced rather than hidden — the words are the content, and what they
+							    separate is not otherwise distinguishable. */}
+							{crossing === undefined ? null : (
 								<p className="col-span-2 m-0 mb-2.5 flex items-center gap-2">
 									<span aria-hidden="true" className="h-px w-9 shrink-0 bg-line" />
 									<span className="rounded-sm border border-muted bg-raised px-2 py-[3px] font-mono text-sm font-medium tracking-[0.06em] text-ink-2">
-										{t(`rotation.gate.${gate.key}`)}
+										{t(crossing)}
 									</span>
 									<span aria-hidden="true" className="h-px flex-1 bg-line" />
 								</p>
@@ -222,6 +266,7 @@ export default function FlowChart({ flow }: { flow: readonly FlowSlot[] }) {
 														onToggle={() => toggle(branch.key)}
 														horizontal={false}
 														showGate
+														details={details}
 													/>
 												</li>
 											))}
@@ -234,9 +279,10 @@ export default function FlowChart({ flow }: { flow: readonly FlowSlot[] }) {
 										open={open.has(slot.entry.key)}
 										onToggle={() => toggle(slot.entry.key)}
 										horizontal
-										// The chip is already across the line above this box; printing it inside as well
-										// would say the same count twice on one rung.
-										showGate={gate === null}
+										// The band is already across the line above this box; printing a chip inside as
+										// well would say the same thing twice on one rung.
+										showGate={crossing === undefined}
+										details={details}
 									/>
 								)}
 							</div>

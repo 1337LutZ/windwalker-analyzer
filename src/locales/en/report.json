@@ -117,6 +117,7 @@
     "verdict_ok": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target. The remaining globals are worth working on.",
     "verdict_bad": "You spent {{used, percent}} of your globals on a press that achieved something, at {{cpm, decimal}} casts per minute of the time you spent on a target.",
     "verdict_none": "Too few globals passed to measure a rate.",
+    "verdict_suppressed": "You filled {{used, percent}} of your globals here, at {{cpm, decimal}} casts per minute of the time you spent on a target. There is no letter beside it: this fight puts you out of reach by design, so the time that share is measured over is the fight’s doing rather than yours.",
     "activeTime": "WarcraftLogs counts {{active, percent}} of the pull as active time for you. It comes off the damage table and forgives pauses of a few seconds, so it reads wider than the time you actually spent pressing something.",
     "wastedGcds_one": "One global went to a Tiger Palm that achieved nothing, and it is not counted above. A Jab or Blackout Kick there costs the same global and does count — this number is not asking you to press less.",
     "wastedGcds_other": "{{count}} globals went to Tiger Palms that achieved nothing, and they are not counted above. A Jab or Blackout Kick there costs the same globals and does count — this number is not asking you to press less.",
@@ -422,7 +423,14 @@
     "energy_protection": "Holy power is rebuilt from the presses that generate and spend it, and checked against the readings WarcraftLogs stamps onto casts and hits — roughly one every four or five seconds, which on the three reference pulls is between fifty and a hundred and thirty of them. The walk is what fills the gaps between those, so a point that arrived and was spent inside one is inferred rather than seen.",
     "spec_windwalker": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Tigereye Brew cast.",
     "spec_elemental": "Classic logs report spec as 0. So the spec comes from the report's own player list, confirmed by a Lava Burst cast.",
-    "spec_protection": "Classic logs report spec as 0. So the spec comes from the report’s own player list, confirmed by a Shield of the Righteous cast — the Protection spender, which no other paladin has."
+    "spec_protection": "Classic logs report spec as 0. So the spec comes from the report’s own player list, confirmed by a Shield of the Righteous cast — the Protection spender, which no other paladin has.",
+    "reference": {
+      "summary": "The globals target on each fight is read off real kills rather than picked: {{pulls}} heroic Siege kills across {{encounters}} encounters, last refreshed {{builtAt}}. It matters because the fight moves this number further than the player does — the easiest encounter in the set sits at {{highest, percent}} and the hardest at {{lowest, percent}}, a swing of {{swing, decimal}} points before anyone presses a button.",
+      "open": "See the per-encounter figures",
+      "dialogTitle": "What each fight actually costs",
+      "dialogIntent": "Every bar runs from an encounter's median kill to its ninetieth percentile — from where ok begins to where good does, so the bar is the middle grade's width on that fight. Drawn from {{pulls}} kills, last refreshed {{builtAt}}. The thinnest encounter rests on {{thinnest}} kills, so read a narrow bar as a soft line rather than a sharp one.",
+      "none": "No reference sweep has covered this spec yet, so its globals target is still a fixed number rather than one read off the encounter. Said here rather than left implied, because a missing reference and an easy raid look identical on the page."
+    }
   },
   "kpi": {
     "dps": "DPS",
@@ -780,6 +788,7 @@
     "title": "The rotation",
     "intent": "This is the priority list every section above compares you against. None of it is about your pull — read it when a number above looks wrong to you.",
     "economy": "Two things shape the list. Your global cooldown is a flat second — haste never shortens it, because none of these is a spell; haste buys energy instead. And chi comes slower than globals: Jab costs 40 energy for 2 chi, and energy refills at about ten a second, so a global earns you two thirds of a chi. Two presses in three have to be chi-free. The rest is about caps. Energy caps at 100 and the bank at 20, and nine entries do nothing but keep energy from overcapping. A full bar earns you nothing.",
+    "protEconomy": "Two things shape this list. Every rung on it is a generator, because both of the buttons holy power is spent on are off the global cooldown for a Protection Paladin: Shield of the Righteous and Eternal Flame cost you no press, so neither takes a rung. And holy power arrives a point at a time. Crusader Strike returns one every four and a half seconds, Judgment one every six, Avenger's Shield one every fifteen, and three of them buy a spender. Inside Holy Avenger the same presses pay three apiece, which is why the list spends that window on builders before anything else.",
     "field": {
       "when": "press it when",
       "why": "what the condition is for"
@@ -795,7 +804,9 @@
         "title": "How to read it",
         "spine": "Every rung is one question. Yes: press the button beside it and stop there. No: follow the line down to the next question.",
         "gate": "A chip across the line is a gate: below the count on it, the question underneath is never asked.",
-        "fork": "A dashed box is one question with two or three answers. Only one is ever yours, and the line above says what decides."
+        "fork": "A dashed box is one question with two or three answers. Only one is ever yours, and the line above says what decides.",
+        "stage": "A heading across the line names the part of the list under it, as far down as the next one.",
+        "chip": "A chip on a button says what you need before that rung is yours at all: a number of enemies, or the talent that hands you the button."
       },
       "yes": "yes",
       "no": "no",
@@ -823,7 +834,21 @@
       "tigereyeBrewRune": "Rune of Re-Origination equipped",
       "tigereyeBrewBank": "no Rune",
       "blackoutKick": "1–2 targets",
-      "blackoutKickDump": "3+ targets"
+      "blackoutKickDump": "3+ targets",
+      "unleash-elements": "Needs Unleashed Fury",
+      "elemental-blast": "Talent",
+      "judgment-sanctified-wrath": "Needs Sanctified Wrath",
+      "consecration-multi": "2+ targets",
+      "hammer-of-the-righteous-holy-avenger": "2+ targets",
+      "crusader-strike-holy-avenger": "1 target",
+      "execution-sentence": "Talent",
+      "hammer-of-the-righteous": "2+ targets",
+      "crusader-strike": "1 target",
+      "sacred-shield-refresh": "Talent",
+      "consecration": "1 target",
+      "lights-hammer": "Talent",
+      "holy-prism": "Talent",
+      "sacred-shield": "Talent"
     },
     "fork": {
       "tigereyeBrew": {
@@ -963,6 +988,155 @@
         "name": "Rising Sun Kick",
         "test": "Nothing above it fired",
         "why": "It never leaves the list, because the debuff lifts everything else you press. Nothing drops the kick — the refresh above it, and from three the pack buttons, only delay it."
+      },
+      "unleash-elements": {
+        "name": "Unleash Elements",
+        "test": "On cooldown, except during Ascendance."
+      },
+      "flame-shock-snapshot": {
+        "name": "Flame Shock",
+        "test": "Reapply inside a proc window with an intellect proc up, or on the opener."
+      },
+      "elemental-mastery": {
+        "name": "Elemental Mastery",
+        "test": "Off the global. Synced with Ascendance, or on the opener."
+      },
+      "jade-serpent-potion": {
+        "name": "Jade Serpent Potion",
+        "test": "Pre-pot, then on cooldown."
+      },
+      "flame-shock-asc-prep": {
+        "name": "Flame Shock",
+        "test": "Refresh just before Ascendance — the dot under 16s with Ascendance ready in 2s."
+      },
+      "lava-burst": {
+        "name": "Lava Burst",
+        "test": "On cooldown, or a Lava Surge reset, while the dot outlives the cast."
+      },
+      "ascendance": {
+        "name": "Ascendance",
+        "test": "Off the global. The opener (dot up, first five seconds) or the two-piece window (the debuff with 10s left)."
+      },
+      "flame-shock-multidot": {
+        "name": "Flame Shock",
+        "test": "On a second target whose dot has less than a tick left."
+      },
+      "elemental-blast": {
+        "name": "Elemental Blast",
+        "test": "On cooldown."
+      },
+      "earth-shock": {
+        "name": "Earth Shock",
+        "test": "At one target: the shield full, the dot 6s or more, Ascendance 6s or more away and no two-piece proc up. At two: six stacks and 8s of dot, and nothing else."
+      },
+      "fire-elemental": {
+        "name": "Fire Elemental",
+        "test": "On cooldown, synced with Ascendance."
+      },
+      "searing-totem": {
+        "name": "Searing Totem",
+        "test": "When no Fire Elemental and no totem are up."
+      },
+      "earth-elemental": {
+        "name": "Earth Elemental",
+        "test": "An or of three: the last 62s of the pull; or the Fire Elemental down with Ascendance inside 20s, its own cooldown over a minute out and a Skull Banner due; or the glyphed Fire Elemental’s gap. Only the first is readable off a log."
+      },
+      "lava-beam": {
+        "name": "Lava Beam",
+        "test": "From two targets up, while Ascendance is up — it replaces Chain Lightning."
+      },
+      "chain-lightning": {
+        "name": "Chain Lightning",
+        "test": "From two targets up, outside Ascendance."
+      },
+      "lightning-bolt": {
+        "name": "Lightning Bolt",
+        "test": "Filler. Always available."
+      },
+      "judgment-sanctified-wrath": {
+        "name": "Judgment",
+        "test": "Avenging Wrath is up",
+        "why": "Sanctified Wrath doubles what a Judgment pays you inside Avenging Wrath, two holy power instead of one, so for those twenty seconds it is worth a global ahead of every other builder. Outside the window the same button falls back to its own rung further down."
+      },
+      "avengers-shield-grand-crusader": {
+        "name": "Avenger's Shield",
+        "test": "Grand Crusader has just proc'd",
+        "why": "The proc clears the shield's cooldown outright rather than shortening it, so this press is a free one. It is spent the moment it lands because a proc you sit on is a proc the next one writes over, and Grand Crusader comes round often enough for that to be a real cost."
+      },
+      "judgment": {
+        "name": "Judgment",
+        "test": "It is ready",
+        "why": "The longest cooldown of the three builders that are always wanted, so it leads them. There is nothing to line it up with and nothing it gets better beside, so every second it sits ready is a press you do not get later in the pull."
+      },
+      "avengers-shield": {
+        "name": "Avenger's Shield",
+        "test": "It is ready",
+        "why": "The plain press, under Judgment because fifteen seconds of cooldown is easier to spend on time than six. Passing this one over is ordinary drift; passing over the free one at the top of the list throws a proc away, which is why the two are separate rungs."
+      },
+      "consecration-multi": {
+        "name": "Consecration",
+        "test": "Nothing of yours is burning on the ground",
+        "why": "Nine seconds of ticks under the boss and everything standing beside it, which is what a second body is worth: with only one, the same button sits eight rungs lower. The rung watches the ground rather than the cooldown, because the ticks are a flat nine seconds while the cooldown shortens with your haste, and the two stop agreeing the moment you have any."
+      },
+      "holy-wrath": {
+        "name": "Holy Wrath",
+        "test": "It is ready",
+        "why": "It hits everything in front of you and there is nothing to hold it for. Above the builders because a nine-second cooldown left ticking over is a press you never get back, where a builder is round again in four and a half."
+      },
+      "hammer-of-the-righteous-holy-avenger": {
+        "name": "Hammer of the Righteous",
+        "test": "Holy Avenger is up",
+        "why": "Holy Avenger pays three holy power for every builder instead of one, so its eighteen seconds go to builders before anything else on the list gets a look. This is the same button and the same cooldown as Crusader Strike, aimed at a pack instead of one body."
+      },
+      "crusader-strike-holy-avenger": {
+        "name": "Crusader Strike",
+        "test": "Holy Avenger is up",
+        "why": "The single-target half of the rung above it: one enemy, one body worth hitting, and the same three holy power a press for as long as the window is open."
+      },
+      "execution-sentence": {
+        "name": "Execution Sentence",
+        "test": "It is ready",
+        "why": "What it does is settled the moment you press it and lands ten seconds later, so nothing you do in between changes the number. That is why it sits above the builders that would otherwise have had the global rather than among them."
+      },
+      "hammer-of-the-righteous": {
+        "name": "Hammer of the Righteous",
+        "test": "It is ready",
+        "why": "The builder, and where most of a Protection pull's globals go. Everything above it is a cooldown or a window; this is the press that fills the bar in between them."
+      },
+      "crusader-strike": {
+        "name": "Crusader Strike",
+        "test": "It is ready",
+        "why": "The same builder at one enemy. The two share one cooldown, so this is not a second press you get: it is the one press aimed at a single body instead of a pack."
+      },
+      "hammer-of-wrath": {
+        "name": "Hammer of Wrath",
+        "test": "The target is under a fifth of its health",
+        "why": "Available only in the last fifth of a target's life, and worth a global for every one of its cooldowns while it is. The rung carries no clause of its own because the button does the gating: below a fifth it can be cast and above it cannot, so there is nothing left for the list to ask."
+      },
+      "sacred-shield-refresh": {
+        "name": "Sacred Shield",
+        "test": "Under five seconds left on it",
+        "why": "The shield runs thirty seconds, so this is the last sixth of it. A refresh window rather than a keep-it-up rule, which is why the plain Sacred Shield at the foot of the list is a rung of its own and not this one with the clause taken off."
+      },
+      "consecration": {
+        "name": "Consecration",
+        "test": "Nothing of yours is burning on the ground",
+        "why": "The same button and the same question as the rung eight above, at the height one enemy puts it: under the shield refresh rather than over four buttons that hit a single body. Two rungs rather than one, because a target count can take a rung off the list and cannot lift it up the list."
+      },
+      "lights-hammer": {
+        "name": "Light's Hammer",
+        "test": "It is ready",
+        "why": "It ticks every two seconds and works out what it is standing on at each tick, so unlike Execution Sentence every second of its window counts. Drop it where the bodies are and carry on down the list."
+      },
+      "holy-prism": {
+        "name": "Holy Prism",
+        "test": "It is ready",
+        "why": "Twenty seconds rather than sixty, so it is the level-90 button you press most often and the one that pays least a press. It asks nothing and waits for nothing, which is why it sits this low and still sits above the shield."
+      },
+      "sacred-shield": {
+        "name": "Sacred Shield",
+        "test": "It is ready",
+        "why": "The foot of the list, and the one rung whose job is to be there. It declines on its own cooldown, and a Paladin who took Eternal Flame or Selfless Healer instead has nothing down here at all, which is what lets a global reach the bottom of this list and find nothing waiting for it."
       }
     },
     "notes": {
@@ -974,79 +1148,16 @@
       "mastery": "One correction, because the name misleads. Your mastery in this patch is Bottled Fury, and all it does is make each Tigereye Brew stack hit harder. There is no alternating-ability mastery here — Combo Strikes belongs to a later expansion — so pressing the same button twice in a row costs you nothing.",
       "jadeWind": "Rushing Jade Wind is on the list twice, and the two are not alternatives. Entry 17 lifts it above Rising Sun Kick as soon as there is a second enemy and tests nothing else. Entry 31 keeps it near the bottom and fires when energy is a second from capping, the pull is under 75 seconds, or Bloodlust and Energizing Brew are both active. It costs 40, the same as a Jab, and returns one chi where Jab returns two. So the higher rung spends generator energy on AoE, and the lower rung uses overflow or the haste window. Its own six-second cooldown, re-armed to whatever is left of the dot, keeps that from being every global.",
       "cooldowns": "Elemental Mastery and Ascendance are off the global, so the ladder never walks them — each still has its own section.",
-      "raid": "Skull Banner, Stormlash Totem, Bloodlust and the racials are left off the list: they are raid calls or once-a-fight buttons, not a decision about your next global."
+      "raid": "Skull Banner, Stormlash Totem, Bloodlust and the racials are left off the list: they are raid calls or once-a-fight buttons, not a decision about your next global.",
+      "spenders": "Shield of the Righteous and Eternal Flame are not on the list above, and the absence is the point rather than an oversight. Both are off the global cooldown for a Protection Paladin, so pressing one costs you no press at all: it happens between the rungs rather than on one. What the list arbitrates is the global you still have.",
+      "counts": "Two of the buttons above move with the pack. Crusader Strike and Hammer of the Righteous are one button on one cooldown, and which of the two you press is only ever a question of how many bodies are in front of you. Consecration is on the list twice, high up with a second enemy and eight rungs lower without one, because that is the only way to say a button climbs the list rather than leaving it.",
+      "execute": "Hammer of Wrath is the one rung the priority list writes with nothing on it. The clause sits on the button instead: it cannot be cast at all above a fifth of the target's health, so the game enforces what the list leaves out. The line beside that rung above spells it out anyway, because a rung read exactly as written would have you pressing the button from the pull's first global.",
+      "protTalents": "Six of the rungs are talents, and a chip on the button says which. Execution Sentence, Light's Hammer and Holy Prism share the level-90 row, so at most one of the three is ever yours. Both Sacred Shield rungs leave the list for a Paladin who chose Eternal Flame or Selfless Healer, and the Judgment at the head of the list only pays what it claims if you took Sanctified Wrath."
     },
     "group": {
       "cooldown": "Cooldowns",
       "dot": "Flame Shock",
       "filler": "Fillers"
-    },
-    "talent": "Talent",
-    "rule": {
-      "unleash-elements": {
-        "name": "Unleash Elements",
-        "condition": "Talent. On cooldown, except during Ascendance."
-      },
-      "flame-shock-snapshot": {
-        "name": "Flame Shock",
-        "condition": "Reapply inside a proc window with an intellect proc up, or on the opener."
-      },
-      "elemental-mastery": {
-        "name": "Elemental Mastery",
-        "condition": "Off the global. Synced with Ascendance, or on the opener."
-      },
-      "jade-serpent-potion": {
-        "name": "Jade Serpent Potion",
-        "condition": "Pre-pot, then on cooldown."
-      },
-      "flame-shock-asc-prep": {
-        "name": "Flame Shock",
-        "condition": "Refresh just before Ascendance — the dot under 16s with Ascendance ready in 2s."
-      },
-      "lava-burst": {
-        "name": "Lava Burst",
-        "condition": "On cooldown, or a Lava Surge reset, while the dot outlives the cast."
-      },
-      "ascendance": {
-        "name": "Ascendance",
-        "condition": "Off the global. The opener (dot up, first five seconds) or the two-piece window (the debuff with 10s left)."
-      },
-      "flame-shock-multidot": {
-        "name": "Flame Shock",
-        "condition": "On a second target whose dot has less than a tick left."
-      },
-      "elemental-blast": {
-        "name": "Elemental Blast",
-        "condition": "Talent. On cooldown."
-      },
-      "earth-shock": {
-        "name": "Earth Shock",
-        "condition": "At one target: the shield full, the dot 6s or more, Ascendance 6s or more away and no two-piece proc up. At two: six stacks and 8s of dot, and nothing else."
-      },
-      "fire-elemental": {
-        "name": "Fire Elemental",
-        "condition": "On cooldown, synced with Ascendance."
-      },
-      "searing-totem": {
-        "name": "Searing Totem",
-        "condition": "When no Fire Elemental and no totem are up."
-      },
-      "earth-elemental": {
-        "name": "Earth Elemental",
-        "condition": "An or of three: the last 62s of the pull; or the Fire Elemental down with Ascendance inside 20s, its own cooldown over a minute out and a Skull Banner due; or the glyphed Fire Elemental’s gap. Only the first is readable off a log."
-      },
-      "lava-beam": {
-        "name": "Lava Beam",
-        "condition": "From two targets up, while Ascendance is up — it replaces Chain Lightning."
-      },
-      "chain-lightning": {
-        "name": "Chain Lightning",
-        "condition": "From two targets up, outside Ascendance."
-      },
-      "lightning-bolt": {
-        "name": "Lightning Bolt",
-        "condition": "Filler. Always available."
-      }
     }
   },
   "summary": {
@@ -1192,6 +1303,7 @@
       "unmeasured": "not measured",
       "tooThin": "too few to grade",
       "clean": "Nothing went wrong here.",
+      "state_suppressed": "This fight puts you out of reach by design, so the time this figure is measured over is the fight’s doing rather than yours. The number is still here; the letter is not.",
       "state_neverUp": "Lightning Shield was never on you at all in this pull.",
       "state_prepull": "One of two potions, and the pre-pull one was skipped.",
       "state_combat": "One of two potions, and the in-combat one was skipped."
@@ -1789,6 +1901,9 @@
       "iron-juggernaut": "Siege Mode is phase 2 and is deliberately not a rule. Melee drops from 0.60 to 0.27 swings a second while the player keeps casting at 56 a minute — the fight takes them off the boss without taking the buttons away, so the globals lost inside it are still globals lost.",
       "kor-kron-dark-shaman": "Foul Geyser was a rule here and the press stream says it should not be. Re-measured on a full clear by a different tank, its four 8s windows cover 32.0s — 21% of the pull — and inside them the player presses at 76.9 a minute against 80.3 outside, swings **more** (0.81 against 0.77 a second) and takes **more** damage (278k against 229k a second). They are not moved off the boss; they are tanking harder. The whole encounter holds 5.2s of cast gaps past three seconds and none of it falls inside a window, so the rule excused 32.0s to cover 0.9s of idle. Read off the player's own debuff and never off the boss's cast, which is the part that was right: the boss casts it on the same cadence for everyone, and the friendly-debuff stream carries eight events, all four applications and all four removals, every one on the audited tank and none on the co-tank.",
       "malkorok": "No enforced downtime, and the empty list was the only one here that never said why. Measured on a full clear: 19s of idle across 554s alive, 3% of the time, and all five gaps past ten seconds are corpse time on wipes rather than anything the fight did. Blood Rage was the candidate and it does nothing to the press stream — 74 a minute inside it against the pull's own rate, with melee flat at 0.64 swings a second.",
+      "galakras": "Nothing on Galakras was found to stop a tank pressing. Tower Strength looked like the candidate on how much idle time it covers, and its own windows hold twenty-two to forty-nine presses each — the tank is busy under it, not locked out. Bombard silences the player completely but for barely a second at a time, shorter than one global. The first stage carries most of the pull's idle time and most of its length, in the same proportion, which is a long phase rather than a mechanic.",
+      "norushen": "Nothing on Norushen was found to stop a tank pressing. Three gaps longer than three seconds across ten pulls, fourteen seconds between them. Self Doubt and Test of Confidence both run with presses throughout. WarcraftLogs reports no phase transitions for this fight, so no phase rule could be written from this data even if one were wanted.",
+      "sha-of-pride": "Nothing on Sha of Pride was found to stop a tank pressing. Four gaps longer than three seconds across nine pulls. Wounded Pride and Mark of Arrogance are damage over time with presses throughout, and the second stage is flat against the first — fifty presses a minute against fifty-two. Prison and Reflection leave no silent aura on any tank in the sample.",
       "paragons-of-the-klaxxi": "Gene Splice replaces the player’s bar for thirty seconds, so any priority list has nothing to say about that time. It appears in only one of the two reports, which is why the rule is kept with an empty window list on the other rather than dropped.",
       "siegecrafter-blackfuse": "No enforced downtime; 3-6% of the pull is lost to melee gaps and most of that is the opening seconds before the boss is reachable.",
       "spoils-of-pandaria": "Unstable Defense Systems is the encounter's opening flag — one application to all 25 players at the pull start, gone 3.0-4.2s later — and it is deliberately not a rule. Ten Protection Paladin pulls from eight reports hold eleven windows covering 39.1s: no melee in any of them, no damage taken in ten of the eleven, no off-GCD press anywhere, and 20.3% of the players' own press rate. That is far cleaner than either declared rule this file has lost, and it still fails. Six on-GCD presses land inside, five of them Sacred Shield — the player's own bar going out while the rule would say the buttons were gone. The first melee swing comes at 7.3-10.4s on every pull, so the aura marks only the first third of the stretch with nothing to hit, which is the same stretch Siegecrafter Blackfuse's note already declines to excuse. It is also not per room: the raid-wide burst fires once, and the scattered later applications reached the audited tank on one pull of ten. Across the ten it would excuse 39.1s to cover 4.9s of cast gaps past three seconds, and about 24 globals of 377 missed.",

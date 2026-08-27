@@ -69,6 +69,21 @@ export interface EnforcedRule {
 	 * rather than flattened.
 	 */
 	basis: 'lockout' | 'declared';
+	/**
+	 * The player could have avoided this, so it buys no credit against the globals figure.
+	 *
+	 * **The distinction is the game's, not the log's, and it cannot be measured from an event stream.**
+	 * A stun that lands because the mechanic is unavoidable took the globals away; one that lands because
+	 * the player stood in it is a play, and crediting it would pay for the mistake. Both look identical
+	 * in the log — an aura applied, an aura removed — so this is declared from the encounter's own design
+	 * and the source is named in `evidence`.
+	 *
+	 * Whirling on Paragons is the case: it is dodgeable, so it is marked and the globals clock keeps
+	 * charging for it. Both Gouges are not, so they are credited. `enforcedDowntime` still reports a
+	 * dodgeable rule's windows — the section that lists what the fight did is a different question from
+	 * the clock a grade divides by — and only `unavoidableWindows` filters them out.
+	 */
+	dodgeable?: true;
 	/** What in the two reference reports put this rule here. Kept so a stale rule can be re-checked. */
 	evidence: string;
 }
@@ -97,8 +112,27 @@ export interface EnforcedProfile {
  * Every encounter the reference reports cover.
  *
  * An encounter absent from here is graded with no excuses, which is the correct default: silence means
- * "nothing known", never "nothing there". Four of the nine are here with an empty rule list and a note
+ * "nothing known", never "nothing there". Most of these are here with an empty rule list and a note
  * saying what was tested — that is a different statement from absence and worth the entry.
+ *
+ * ------------------------------------------------------------------ re-measured at n=152
+ *
+ * ***The table was built from two reports, and the obvious worry about that turned out to be wrong.***
+ * Every rule's evidence line reads "across the two reports", and the credit those rules produce has a
+ * **median of 0.00%** across 152 real Protection pulls — which looks exactly like a registry too thin
+ * to fire. So it was swept again properly: 152 pulls, 8 to 14 on every one of the fourteen encounters,
+ * one distinct player per pull. Every aura the player carried for 1.5s or more, more than once — 1 471
+ * aura-by-encounter pairs — scored on window count, mean length, presses inside and silent windows;
+ * plus a trigger sweep over every hostile ability for gaps opening behind it.
+ *
+ * **It found three rules, and all three are on encounters that already had one.** The credit's median
+ * stays 0.00% after adding them, and one pull in a hundred and fifty-two changes grade. The two-report
+ * sample had the *shape* right: eleven of the fourteen Siege encounters do not enforce measurable tank
+ * downtime through anything the player's own log carries. That is a finding about the raid, not about
+ * the sample, and it is worth more than the three rules are.
+ *
+ * The empty rows below are therefore load-bearing. Each says a real sweep looked and found nothing, and
+ * the note beside it says what was tested — see `noteKey`.
  */
 export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 	{
@@ -112,7 +146,16 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 				ids: [144_396],
 				basis: 'lockout',
 				evidence:
-					'18 windows across the two reports, mean 2.5s, 1 cast inside all 18 — 17 of them completely silent. Every cast gap over 2.5s in either pull is one of these.',
+					'18 windows across the two reports, mean 2.5s, 1 cast inside all 18 — 17 of them completely silent. Every cast gap over 2.5s in either pull is one of these. Re-measured over 11 pulls and 11 players: 29 windows of a flat 3.0s on 7 of them, zero on-GCD presses inside any window and 5 presses of any kind across all 29, and 88% of their length is cast gap.',
+			},
+			{
+				key: 'gouge',
+				name: 'Gouge',
+				source: 'player-aura',
+				ids: [143_301],
+				basis: 'lockout',
+				evidence:
+					'4 windows across 11 pulls and 11 players, on 3 of them and 3 players, 7.99-8.01s each, and not one press of any kind inside any of them — on or off the global. 94% of their length is cast gap, the highest share of any rule in this table. Thin in absolute terms, and it is exactly the count and shape the accepted Shield Bash entry was written from; three players can share a habit, so this is the row to re-check first if anything here goes stale.',
 			},
 		],
 		noteKey: 'fallen-protectors',
@@ -184,7 +227,29 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 				ids: [143_373],
 				basis: 'lockout',
 				evidence:
-					'2 windows across the four Paragons pulls, 30.0s each, zero on-GCD presses of the player’s own class inside either. What is pressed inside is the scorpion bar — Claw, Swipe, Sting, Fiery Tail — 16 and 19 casts. Both windows open within a second of a Shield Bash ending.',
+					'2 windows across the four Paragons pulls, 30.0s each, zero on-GCD presses of the player’s own class inside either. What is pressed inside is the scorpion bar — Claw, Swipe, Sting, Fiery Tail — 16 and 19 casts. Both windows open within a second of a Shield Bash ending. Re-measured over 9 pulls and 9 players: 11 windows on 4 of them, mean 26.4s, zero of the player’s own presses in all 11 and 199 scorpion casts.',
+			},
+			{
+				key: 'whirling',
+				name: 'Whirling',
+				source: 'player-aura',
+				ids: [143_701],
+				basis: 'lockout',
+				// Avoidable, on the raid lead's reading of the encounter, so it never reaches the globals
+				// clock — see `dodgeable`. It stays in the table because the section that lists what the
+				// fight did still wants it; what it does not do is buy the player time back.
+				dodgeable: true,
+				evidence:
+					'11 windows across 9 pulls and 9 players, on 7 of them, mean 3.2s with six a flat 5.0s. Zero on-GCD presses inside any of the 11 and one press of any kind across all of them; 77% of their length is cast gap. **143702 is deliberately not in `ids`.** The log spells this mechanic twice and only one id marks the lockout: 143702 fires 17 times and 10 of those windows carry a press, but split by whether a 143701 rode along, its 11 paired windows hold 1 press between them and its 6 unpaired windows hold 9. Adding 143702 would put a rule over stretches the player demonstrably acted in. **The split was made after seeing which id was silent**, so it is descriptive as well as predictive — this is the first rule here to re-check if anything goes stale.',
+			},
+			{
+				key: 'gouge',
+				name: 'Gouge',
+				source: 'player-aura',
+				ids: [143_939],
+				basis: 'lockout',
+				evidence:
+					'8 windows across 9 pulls and 9 players, on 4 of them, 1.49-1.53s each, and not one press of any kind inside any of the 8 — on or off the global. 66% of their length is cast gap. The smallest rule in this table, worth about a global and a half apiece and moving the credit median not at all; kept because eight silent windows in a row against a measured global of 1.0s is not press cadence.',
 			},
 		],
 		noteKey: 'paragons-of-the-klaxxi',
@@ -200,10 +265,35 @@ export const ENFORCED_PROFILES: readonly EnforcedProfile[] = [
 				ids: [148_440],
 				basis: 'lockout',
 				evidence:
-					'2 windows, 15.0s each, zero casts inside either. Lands 19s and 18.5s after the last phase begins, and the melee gap around it runs 23-25s — the stun plus the run back.',
+					'2 windows, 15.0s each, zero casts inside either. Re-measured over 10 pulls and 9 players: 10 windows, one on every pull, 14.3-15.1s each, 9 of them completely silent and the tenth holding a single press. Lands 19s and 18.5s after the last phase begins, and the melee gap around it runs 23-25s — the stun plus the run back.',
 			},
 		],
 		noteKey: 'garrosh-hellscream',
+	},
+	/**
+	 * The three encounters that had no row at all until the n=152 sweep.
+	 *
+	 * Absent, they were graded with no excuses — which is the correct default, but it made them
+	 * indistinguishable from a fight nobody had looked at. Each was swept the same way as the rest and
+	 * each came back empty, so they are here as findings rather than as gaps.
+	 */
+	{
+		encounterID: 1604,
+		name: 'Sha of Pride',
+		rules: [],
+		noteKey: 'sha-of-pride',
+	},
+	{
+		encounterID: 1622,
+		name: 'Galakras',
+		rules: [],
+		noteKey: 'galakras',
+	},
+	{
+		encounterID: 1624,
+		name: 'Norushen',
+		rules: [],
+		noteKey: 'norushen',
 	},
 ];
 
@@ -342,4 +432,18 @@ export function enforcedDowntime(input: EnforcedInput): EnforcedDowntime {
 		windows,
 		ms: windows.reduce((sum, [start, end]) => sum + (end - start), 0),
 	};
+}
+
+/**
+ * The stretches a rule took away that the player could not have avoided.
+ *
+ * **The globals clock divides by this, and the section's own list does not.** `enforcedDowntime`
+ * answers "what did this fight do to you", which includes the things you could have stepped out of;
+ * a grade may only forgive the things you could not. Whirling is dodgeable and is therefore reported
+ * and not credited, while both Gouges are unavoidable and are both.
+ *
+ * Returns merged, fight-relative intervals, so a caller can subtract them from a clock directly.
+ */
+export function unavoidableWindows(downtime: EnforcedDowntime): readonly Interval[] {
+	return mergeIntervals(downtime.rules.filter((r) => r.rule.dodgeable !== true).flatMap((r) => [...r.windows]));
 }

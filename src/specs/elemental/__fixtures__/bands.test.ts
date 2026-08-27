@@ -318,15 +318,26 @@ describe('a declared scope is not asked of a pull outside it', () => {
 	 * further under the floor still, so it makes the same point one notch harder rather than a different
 	 * one. Written per pull, because a flat `toEqual` here is how the fourth pull's five would have been
 	 * read as a regression rather than as a fact about its rotation.
+	 *
+	 * **`addsThenBoss` measures three now, and the two that left are `gcdUtilisation`'s.** That pull is
+	 * Galakras, one of the three encounters `lib/reference/specProfile.ts` suppresses this metric on —
+	 * tower duty takes the player out of contact by design, measured median contact share 82.7% against
+	 * 94% or better on the other eleven, so the clock the figure divides by is the fight rather than the
+	 * rotation. A suppressed metric is `unmeasurable`, so its two points leave the denominator at *every*
+	 * reading, this one included. 3 of 24 is 12.5%, further under `MIN_JUDGED_WEIGHT_SHARE` again, and the
+	 * refusal this test is about is unchanged. The other three pulls are unaffected: `cleave` is Blackfuse
+	 * and the two Iron Juggernaut pulls are graded against their own reference rows, so all three still
+	 * measure eleven.
 	 */
 	it('stops printing a whole-pull verdict over six of twenty-three points', () => {
 		// **Eleven of twenty-four now, and the five that arrived are Ascendance's.** None of the four takes a
 		// band, so a pull read wholly as multi-target still owes an answer on all of them — the same reason
 		// `fireElementalHasteUptime` survives this reading. 11 of 24 is 46%, still under
-		// `MIN_JUDGED_WEIGHT_SHARE`, so the refusal this test is about is unchanged. `addsThenBoss` stays at
+		// `MIN_JUDGED_WEIGHT_SHARE`, so the refusal this test is about is unchanged. `addsThenBoss` stayed at
 		// five because every one of its Ascendance presses came back refused, which is a fact about that
-		// pull's own rotation rather than about the reading.
-		const measured: Record<string, number> = { addsThenBoss: 5 };
+		// pull's own rotation rather than about the reading — and it is three now because Galakras suppresses
+		// `gcdUtilisation` as well, which is a fact about the encounter rather than about either.
+		const measured: Record<string, number> = { addsThenBoss: 3 };
 		for (const name of ALL) {
 			expect(card(name, 'multi').judged, name).toEqual({
 				measured: measured[name] ?? 11,
@@ -336,15 +347,20 @@ describe('a declared scope is not asked of a pull outside it', () => {
 			expect(card(name, 'multi').overall, name).toBe('ok');
 		}
 		// Two cards at this reading and not one, for the same reason as above: `gcdUtilisation` is one of the
-		// six metrics a `multi` card still measures, and 89.18% against 95/90 is a shortfall where 89.18%
-		// against 80/65 was not. The whole-pull letter is unmoved — the six are still under the floor.
+		// six metrics a `multi` card still measures, and 89.18% is a shortfall where 89.18% against 80/65 was
+		// not. The line it falls short of has moved and the card has not: the fixed 95/90 became Blackfuse's
+		// own p90/p50 of 95.01/92.32, over the five kills the reference holds for that fight, and 89.18% is
+		// under both. The whole-pull letter is unmoved — the six are still under the floor.
 		expect(panel('cleave', 'multi')).toEqual(['gcdUtilisation', 'ascendanceLatePresses', 'lightningShieldFellOff']);
-		// `phased`'s panel was empty and now holds two. `gcdUtilisation` is the same metric for the same
-		// reason as above: 94.44% clears the old `good` line of 80 by fourteen points and misses the new one
-		// of 95 by half a point, and an `ok` with a real shortfall is a card where a `good` was never one.
-		// `ascendanceLatePresses` is above it because it is `bad` rather than short — this pull's second
-		// Ascendance found too little Elemental Discharge to pair with, on a rule no reading exempts.
-		expect(panel('phased', 'multi')).toEqual(['ascendanceLatePresses', 'gcdUtilisation']);
+		// **`phased`'s panel was empty, then held two, and holds one again — and the middle state is the one
+		// that was wrong.** `gcdUtilisation` earned a card at 94.44% only because the fixed `good` line was
+		// 95, half a point above it, on every fight in the tier. Iron Juggernaut's own p90 is 94.16 over the
+		// four kills the reference holds for it, so this pull is fractionally *above* the best that reference
+		// has seen on this fight and grades `good` — and `panel` shows no card for a `good` metric. What is
+		// left is `ascendanceLatePresses`, which was always the real fault here and was always ranked above
+		// it: this pull's second Ascendance found too little Elemental Discharge to pair with, on a rule no
+		// reading exempts. This is the Elemental's first `good` on this metric on any committed pull.
+		expect(panel('phased', 'multi')).toEqual(['ascendanceLatePresses']);
 	});
 
 	/**
@@ -631,15 +647,27 @@ describe('the denominator travels with the verdict', () => {
 	 * 438 207ms — that pull pays the offered weight and does not collect the judged half. 14 of 19 is 61%,
 	 * so the grade still prints — and the *share* barely moved, which is the point of reading this as a
 	 * fraction rather than a count.
+	 *
+	 * **`addsThenBoss` moved again, from 15 to 13, and the two points are `gcdUtilisation`'s.** That pull is
+	 * Galakras, and Galakras is one of the three encounters `lib/reference/specProfile.ts` suppresses this
+	 * metric on: tower duty takes the player out of contact by design — measured median contact share 82.7%
+	 * against 94% or better on the other eleven — so the clock the figure divides by is the fight rather
+	 * than the rotation, and the report prints the 83.38% without a letter. This is the *fourth* rule that
+	 * pull pays offered weight for and collects nothing on, and the only one refused by the encounter rather
+	 * than by the pull's own rotation, which is worth keeping distinct in a file about denominators. 13 of
+	 * 24 is 54%, still over `MIN_JUDGED_WEIGHT_SHARE`, so the header still prints a grade and the claim this
+	 * test makes is unchanged. The other three keep nineteen: Blackfuse and Iron Juggernaut are graded
+	 * against their own reference rows and neither is suppressed.
 	 */
 	it('publishes what each pull was judged on', () => {
 		for (const name of ALL) {
-			// Nineteen of twenty-four on the three pulls whose Ascendance presses could be judged, and fifteen
+			// Nineteen of twenty-four on the three pulls whose Ascendance presses could be judged, and thirteen
 			// on `addsThenBoss`, which pays the four new rules' offered weight and collects none of it — its
 			// opener came back `nothing-to-hit` and every later press `no-two-piece-evidence`. The same shape
-			// `fireElementalHasteUptime` already had on that pull, and for a similar reason.
+			// `fireElementalHasteUptime` already had on that pull, and for a similar reason. Two more of its
+			// points are `gcdUtilisation`'s, suppressed because the pull is Galakras — see the note above.
 			expect(card(name, 'auto').judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 15 : 19,
+				measured: name === 'addsThenBoss' ? 13 : 19,
 				total: 24,
 				unmeasurable: false,
 			});
@@ -653,12 +681,17 @@ describe('the denominator travels with the verdict', () => {
 		// Ascendance's four join the list on this pull and on no other, which is the same asymmetry
 		// `fireElementalHasteUptime` already shows here: the opener came back `nothing-to-hit` and every
 		// later press `no-two-piece-evidence`, so all four rules are offered and none is collected.
+		// `gcdUtilisation` joins for a different reason and the difference is the point of naming the set
+		// rather than counting it: the other six are refused by this pull's rotation, and that one is
+		// refused by the *encounter* — Galakras is suppressed for this metric, on every spec and every
+		// reading, because it takes the player out of contact by design.
 		expect(unmeasurableOn('addsThenBoss')).toEqual([
 			'ascendanceBanner',
 			'ascendanceIntoHaste',
 			'ascendanceLatePresses',
 			'ascendanceOpener',
 			'fireElementalHasteUptime',
+			'gcdUtilisation',
 			'searingTotemOverlaps',
 			'thunderstormMissed',
 		]);

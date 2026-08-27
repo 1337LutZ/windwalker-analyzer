@@ -10,28 +10,20 @@
 // deriving the rungs is that the two lists cannot drift, and "cannot drift" is a property a test has
 // to assert. A component cannot be asked what it would render at three targets for a monk who took
 // Rushing Jade Wind without mounting it.
+//
+// The *shape* it hands back is no longer its own. `FlowSlot`, `FlowEntry` and the `rotation.entry.*`
+// convention they are read through live in `lib/view/rotationFlow`, because all three specs' reference
+// sections are drawn by one chart now and a shape declared under one of them would be a shape the
+// other two import across a spec root. What stays here is everything that is actually about the
+// Windwalker: the prelude the ladder refuses to model, the talent rows, the Rune, and the four counts
+// at which this list changes button.
 
 import { SHARED_ITEM_SOURCES } from '~/lib/game/shared';
 import { LADDER_ENTRIES } from '~/specs/windwalker/lib/apl';
 import type { WW_AplRuleKey } from '~/specs/windwalker/lib/apl';
 import type { Band } from '~/lib/spec/apl';
 import type { CastRow, GearSlot } from '~/lib/types';
-
-/**
- * One button on a rung.
- *
- * `key` names the copy — `rotation.entry.<key>`, and `rotation.gate.<key>` when it is gated — and
- * `id` is the ability's cast id, which resolves the icon and is also the evidence a talent row is
- * read from. The words stay in the locale; only the structure is here.
- */
-export interface FlowEntry {
-	key: string;
-	id: number;
-	gated: boolean;
-}
-
-/** A rung: one button, or the alternatives that share it. */
-export type FlowSlot = { entry: FlowEntry } | { fork: string; branches: readonly FlowEntry[] };
+import type { FlowSlot } from '~/lib/view/rotationFlow';
 
 /**
  * A branch before filtering.
@@ -341,10 +333,20 @@ export const CROSSOVERS: readonly Crossover[] = [
 	{ copy: 'sckOverRsk', key: 'craneOverKick' },
 ];
 
-/** Every button a drawn flow holds, forks flattened. What the chart opens, and what the index checks against. */
-export function flowKeys(flow: readonly FlowSlot[]): string[] {
-	return flow.flatMap((slot) => ('fork' in slot ? slot.branches.map((b) => b.key) : [slot.entry.key]));
-}
+/**
+ * The four rungs whose chip the chart draws across the line rather than inside the box.
+ *
+ * They are exactly the crossovers, and the target count is the only thing that puts them there: in a
+ * decision tree a count that takes the rung below off the page is a boundary the line crosses rather
+ * than a label on a box. Everything else the Windwalker gates — the Rune branch, the two halves of a
+ * split rung — is a chip on a lane, saying which of two alternatives this one is.
+ *
+ * Derived from `CROSSOVERS` rather than written out again, so a renamed rung cannot leave a band
+ * pointing at copy no rung asks for.
+ */
+export const CROSSOVER_GATES: ReadonlyMap<string, string> = new Map(
+	CROSSOVERS.map(({ key }) => [key, `rotation.gate.${key}`]),
+);
 
 export interface RotationFlowInput {
 	/**

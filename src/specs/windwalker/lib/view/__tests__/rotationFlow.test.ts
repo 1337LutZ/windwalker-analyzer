@@ -8,15 +8,9 @@
 import { describe, expect, it } from 'vitest';
 
 import i18n, { initI18n } from '~/lib/i18n/config';
+import { flowKeys, type FlowSlot } from '~/lib/view/rotationFlow';
 import { LADDER_ENTRIES } from '~/specs/windwalker/lib/apl';
-import {
-	CROSSOVERS,
-	flowKeys,
-	pressedButtons,
-	rotationFlow,
-	runeOfReOriginationEquipped,
-	type FlowSlot,
-} from '../rotationFlow';
+import { CROSSOVERS, pressedButtons, rotationFlow, runeOfReOriginationEquipped } from '../rotationFlow';
 
 initI18n();
 const t = i18n.getFixedT('en', 'report');

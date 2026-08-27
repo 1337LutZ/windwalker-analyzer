@@ -156,12 +156,21 @@ describe('the three pulls that answer neither fault', () => {
 	 * `good` and `cleave` to `ok`, the arithmetic on `score.ts`' `WEIGHTS` — and not by anything in this
 	 * file. An unmeasurable metric still leaves the denominator, so this guard remains exactly the claim
 	 * it was: two refusals added, three letters unchanged *by them*.
+	 *
+	 * **`phased` has moved again, and again not by this section**, this time because `gcdUtilisation`
+	 * stopped grading against one fixed pair per spec. It reads off the encounter's own reference row now,
+	 * and Iron Juggernaut's Elemental row is p90 94.16 / p50 91.08 over four kills — so this pull's 94.44%
+	 * clears the p90 and grades `good` where the flat 95 called it half a point short. Two refusals added,
+	 * three letters still unchanged *by them*, which is all this guard has ever claimed.
 	 */
 	it('keep the overall grade they had before the section existed', () => {
 		// The three letters moved once, and not by this section: `gcdUtilisation`'s lines went from 80/65
-		// to 95/90, which is the first pair that grades these pulls apart rather than calling all four
-		// `good`. `phased` fills 94.44% and reads `ok`, `cleave` 89.18% and reads `bad`.
-		expect(scoreAnalysis(fx('phased')).overall).toBe('ok');
+		// to 95/90, which was the first pair that graded these pulls apart rather than calling all four
+		// `good`. They moved again when that pair became each encounter's own p90/p50 — the same three
+		// figures, 94.44%, 92.87% and 89.18%, read against 94.16/91.08 on Iron Juggernaut and 95.01/92.32
+		// on Blackfuse, which puts `phased` above its own fight's best pulls, `unbroken` between the lines
+		// and `cleave` under both.
+		expect(scoreAnalysis(fx('phased')).overall).toBe('good');
 		expect(scoreAnalysis(fx('unbroken')).overall).toBe('ok');
 		expect(scoreAnalysis(fx('cleave')).overall).toBe('bad');
 	});

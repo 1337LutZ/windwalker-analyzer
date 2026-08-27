@@ -22,7 +22,20 @@ describe('scoreAnalysis', () => {
 		const strong = scoreAnalysis(fixture('strong'));
 		const poor = scoreAnalysis(fixture('poor'));
 
-		expect(strong.overall).toBe('good');
+		// **`ok`, and it read `good` until `gcdUtilisation` was anchored to the encounter.** That metric no
+		// longer grades against a fixed `good 85 / ok 75` on every fight in the tier — it resolves against
+		// the pull's own encounter row in `src/generated/reference.json`, and `strong` is Garrosh, whose row
+		// is p90 86.01 / p50 83.82 over nine kills. This pull fills 82.83% of its globals, which is a point
+		// *below* the median Garrosh pull, so the metric goes `ok` → `bad`. At weight 2 that is one full
+		// point off a mean drawn over fifteen: 12.0 of 15 becomes 11.0, or 73.33%, just under the 75% a
+		// `good` needs.
+		//
+		// The fixture's name is a claim this measurement has narrowed rather than refuted, and the honest
+		// version of it is "slightly below a typical Garrosh pull" rather than "strong everywhere". What
+		// this test is about survives it intact: the point was never the letter on the better pull, it was
+		// that the two pulls come apart, and an `ok` against a `bad` still separates them by a letter and by
+		// every section assertion below.
+		expect(strong.overall).toBe('ok');
 		// `bad` again, but for a different reason than it once was. It briefly read `ok`: fixing the
 		// missing Jab spell ids lifted this player's globals from 58% to 90%, and the weights of the
 		// day let two near-universally-passed metrics outvote three red sections. The thresholds were

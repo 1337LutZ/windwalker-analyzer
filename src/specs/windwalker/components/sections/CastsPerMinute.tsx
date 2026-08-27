@@ -265,7 +265,7 @@ function barCell(c: CastRow, budget: TigerPalmBudget, t: ReportCopy['t']) {
  */
 export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 	const { cpm } = analysis;
-	const { t, verdict, gradeOf } = useReportCopy(analysis);
+	const { t, card, verdict, gradeOf } = useReportCopy(analysis);
 
 	// Utility presses are left out for the same reason they are left out of the damage comparison:
 	// Flying Serpent Kick is a movement button, and a cast rate for it invites a judgement about a
@@ -321,8 +321,16 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 	// some pulls, and a conditional sitting between two text nodes eats the space between them.
 	// A pull with no globals to measure gets the graded sentence's `none` variant and nothing else —
 	// "Active for 0% of the pull" is the "0 of 0" this layer exists to stop.
+	// **A suppressed encounter gets its own sentence, and the reason is that the other one is false.**
+	// `verdict_none` reads "Too few globals passed to measure a rate", which is true of the state it was
+	// written for — a pull with almost no room in it. It is not true of Immerseus, which offered 130
+	// global slots and had 106 of them filled: the figure is withheld because the *denominator* is the
+	// encounter's doing, not because the sample was thin. Two opposite findings cannot share a sentence.
+	const suppressed = card.sections['casts']?.metrics.some((metric) => metric.context === 'suppressed') === true;
 	const sentences = [
-		verdict('casts', { used: cpm.gcdUtilisationPct, cpm: cpm.totalCpm }),
+		suppressed
+			? t('casts.verdict_suppressed', { used: cpm.gcdUtilisationPct, cpm: cpm.totalCpm })
+			: verdict('casts', { used: cpm.gcdUtilisationPct, cpm: cpm.totalCpm }),
 		...(gradeOf('casts') === 'none'
 			? []
 			: [

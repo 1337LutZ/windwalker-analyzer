@@ -69,7 +69,14 @@ import {
 	Stormlash,
 } from '~/specs/elemental/components/sections';
 import { PROTECTION_SPEC } from '~/specs/protection';
-import { Externals, FightRules, Globals, Haste, Vengeance } from '~/specs/protection/components/sections';
+import {
+	Externals,
+	FightRules,
+	Globals,
+	Haste,
+	Rotation as ProtectionRotation,
+	Vengeance,
+} from '~/specs/protection/components/sections';
 import { hasElementalMastery, hasHeldCooldowns } from '~/specs/elemental/components/sections/gates';
 
 /**
@@ -499,6 +506,15 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// one. A pull read as single-target is checked against Crusader Strike with Consecration low, and
 		// the same pull read as an add fight against Hammer of the Righteous with Consecration high.
 		{ id: 'priority', titleKey: 'priority.title', group: 'reference', Component: PriorityLadder, modeProps: 'forced' },
+		// Directly under the ladder, where both other specs put theirs, and the adjacency is the argument:
+		// the heading above says what the list wanted at each of your globals, and this is the list. A
+		// reader told they passed a button over needs somewhere to go and read what that button was for.
+		//
+		// Reference rather than analysis, so it grades nothing and says nothing about how this pull went.
+		// It takes no mode: this spec's ladder does band, and the two rungs the count moves are drawn with
+		// a chip apiece rather than filtered away, because a tank reading the list wants to see the button
+		// the second body would hand them and not to have it taken off the page.
+		{ id: 'rotation', titleKey: 'rotation.title', group: 'reference', Component: ProtectionRotation },
 		{ id: 'method', titleKey: 'method.title', group: 'reference', Component: Method },
 	],
 };

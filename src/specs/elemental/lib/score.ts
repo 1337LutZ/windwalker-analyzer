@@ -21,6 +21,7 @@ import {
 import type { Grade, MetricRule, Scorecard, ScoreView, Threshold } from '~/lib/score';
 
 import { unionMs } from '~/lib/analysis/intervals';
+import { resolveGcdFor } from '~/lib/reference/specProfile';
 import { registry } from './index';
 import { OPENER_DEADLINE_MS, SKULL_BANNER_DURATION_MS, SKULL_BANNER_OVERLAP_MIN_MS } from './ascendance';
 
@@ -80,17 +81,44 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	const el = analysis as ElementalAnalysis;
 	const { flameShock, earthShock, searingTotem, lightningShield, fireElemental, ascendance, cpm } = el;
 	// Bound once, so no metric below can be built outside the exemption. See `grader`.
-	const metric = grader(THRESHOLDS, view);
+	/**
+	 * The lines this pull's globals figure is graded against, read off its own encounter.
+	 *
+	 * **The encounter moves this number further than the player does**, so a fixed pair grades the boss.
+	 * Measured across 332 heroic kills: this spec reads a median of 60.95% on Immerseus and 88.93% on
+	 * Malkorok, a 28-point swing before anyone presses a button. `resolveGcdFor` answers `null` for a spec
+	 * with no reference sweep, and the table below is then used untouched — which is what keeps this
+	 * additive rather than a rewrite of every spec's numbers.
+	 */
+	const gcdLines = resolveGcdFor('elemental', el.encounter, THRESHOLDS.gcdUtilisation);
+	const rules =
+		gcdLines === null
+			? THRESHOLDS
+			: { ...THRESHOLDS, gcdUtilisation: { ...THRESHOLDS.gcdUtilisation, good: gcdLines.good, ok: gcdLines.ok } };
+	const metric = grader(rules, view);
 
 	/**
 	 * **Two guards, and the second one is about the player rather than the pull.** `gcdSlots > 0` refuses
 	 * a fight with no room in it at all; `presentEnough` refuses one the player was not in reach for half
-	 * of. The clock this figure divides by ends when the player does, so without the second a pull spent
-	 * mostly dead is scored over the seconds before it happened — see `presentEnough`, which carries the
+	 * of. The clock this figure divides by counts only the stretches the player was damaging something, so
+	 * without the second a pull spent mostly dead, healing or phased out is scored over the part they were
+	 * engaged for — which is the part they were freshest for. See `presentEnough`, which carries the
 	 * live log that reads 94.52% off two deaths.
 	 */
 	const inReach = presentEnough(unionMs(el.timeline?.contactSegments ?? []), el.durationMs);
-	const gcdUtilisation = metric('gcdUtilisation', cpm.gcdSlots > 0 && inReach ? cpm.gcdUtilisationPct : null);
+	// A suppressed encounter reads `unmeasurable` rather than graded: the figure still prints and the
+	// letter is withheld, which is the distinction `docs/conventions.md` draws between a bad verdict
+	// and no verdict.
+	const gcdUtilisation = metric(
+		'gcdUtilisation',
+		cpm.gcdSlots > 0 && inReach && gcdLines?.suppressed === undefined ? cpm.gcdUtilisationPct : null,
+		// **Why it is unmeasurable, not just that it is.** Both states park the metric at `ok` with no
+		// letter, and they are opposite findings: a thin sample means the pull did not offer enough to
+		// read, while a suppressed encounter offered plenty and took the denominator away. `idle` filled
+		// 106 of 130 globals on Immerseus — nothing about that is too few to measure, and a sentence
+		// saying so would be false. `Metric.context` is the field that already exists for exactly this.
+		gcdLines?.suppressed === undefined ? undefined : 'suppressed',
+	);
 
 	/**
 	 * **`gradedOver` and not the bare percentage, which is the half of the exemption that the declaration

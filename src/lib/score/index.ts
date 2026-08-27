@@ -17,3 +17,15 @@ export {
 	sharePct,
 } from './build';
 export type { Measured, MetricValue } from './build';
+export { gradeAgainst, resolveThreshold } from './profile';
+export type {
+	Anchor,
+	Ceiling,
+	EncounterRef,
+	Line,
+	MetricProfile,
+	Resolved,
+	SpecScoreProfile,
+	Suppression,
+	UseCase,
+} from './profile';

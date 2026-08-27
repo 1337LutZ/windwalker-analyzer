@@ -241,11 +241,14 @@ describe('the judged denominator', () => {
 /**
  * The presence guard, and the defect it exists for.
  *
- * `gcdUtilisationPct` divides by the contact clock, and the contact clock ends when the player does —
- * so a pull spent mostly dead is scored over the seconds before it happened, when the rotation was
- * fresh and nothing had gone wrong yet. Measured on live logs rather than argued: a rank-**0** Iron
- * Juggernaut kill with two deaths reads **94.52%**, the highest figure in its whole sample, off 32.7s
- * of contact on a 260s fight. `gcdSlots > 0` passes that pull comfortably.
+ * `gcdUtilisationPct` divides by the contact clock, and that clock counts only the stretches the player
+ * was actually damaging something — so time spent dead, healing or phased out leaves the denominator
+ * and what survives is the part of the fight they were engaged for. Measured on live logs rather than
+ * argued: a rank-**0** Iron Juggernaut kill with two deaths reads **94.52%**, the highest figure in its
+ * whole sample, off 32.7s of contact on a 260s fight. `gcdSlots > 0` passes that pull comfortably.
+ *
+ * The mechanism is the missing denominator and **not** the death — `engagedWindows` resumes after a
+ * gap rather than truncating, which an earlier version of this comment got wrong. See `presentEnough`.
  *
  * Pinned as arithmetic here; that it moves no committed fixture is pinned in each spec's own suite.
  */

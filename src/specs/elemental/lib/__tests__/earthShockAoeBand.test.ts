@@ -201,17 +201,27 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 	 * They stay pinned as literals rather than being loosened, because a no-change guard that stops naming
 	 * a number stops guarding — what it now says is "this exemption moved no letter, and here is every
 	 * letter it did not move".
+	 *
+	 * **`phased` has moved a third time, to `good`, and again not here.** `gcdUtilisation` no longer grades
+	 * against one fixed pair per spec: it resolves against the encounter's own p90 and p50 from
+	 * `src/generated/reference.json`. Iron Juggernaut's Elemental row is p90 94.16 / p50 91.08 over four
+	 * kills, and this pull fills 94.44% of its globals — fractionally above the best that reference has
+	 * seen on that fight, so `good` where the flat 95 line said `ok`. It is the first `good` this spec has
+	 * scored on this metric on any committed pull; no fixture could reach 95. The Earth Shock exemption is
+	 * as untouched by it as by the two moves above.
 	 */
 	it('changes no section grade and no pull grade — no-change guard', () => {
 		for (const name of FIXTURES) expect(scoreAnalysis(fx(name)).sections['earthShock']?.grade, name).toBe('bad');
 		// Keyed off the discovered set, so a fifth pull has to have its headline written down here.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).overall]))).toEqual({
-			// The four moved once, under `gcdUtilisation`'s 95/90 lines, and not under anything this file
-			// changes: the pulls fill 83.38%, 89.18%, 94.44% and 92.87% of their globals, which the old
-			// 80/65 pair called `good` on all four.
+			// The four moved once under `gcdUtilisation`'s 95/90 lines, and again when those lines became
+			// each encounter's own p90/p50 — never under anything this file changes. The pulls fill 83.38%,
+			// 89.18%, 94.44% and 92.87% of their globals; the old 80/65 pair called all four `good`, the
+			// flat 95/90 pair called three of them short, and the reference rows call `phased` `good`,
+			// `unbroken` `ok`, `cleave` `bad` and `addsThenBoss` nothing at all — Galakras is suppressed.
 			addsThenBoss: 'bad',
 			cleave: 'bad',
-			phased: 'ok',
+			phased: 'good',
 			unbroken: 'ok',
 		});
 		// And the shield's own ledger is untouched, because all five exempt presses were at the ceiling.

@@ -105,14 +105,24 @@ export const MIN_CONTACT_SHARE = 0.5;
 /**
  * Was the player in reach for enough of the pull to be graded on what they did with it?
  *
- * ***The defect this closes is that a player who dies early scores best.*** Every global-fill figure
- * in this tree divides by the contact clock, and the contact clock ends when the player does — so a
- * pull spent mostly dead is scored over the handful of seconds before it happened, when the rotation
- * was fresh, the cooldowns were up and nothing had gone wrong yet. Measured on live logs rather than
- * argued: a rank-**0** Iron Juggernaut kill with two deaths reads **94.52%**, the highest figure in its
- * whole sample, off 32.7s of contact on a 260s fight — 31 presses in 36 slots.
+ * ***The defect this closes is that a pull the player was barely present for scores best.*** Every
+ * global-fill figure in this tree divides by the contact clock, and that clock counts only the
+ * stretches the player was actually damaging something — `engagedWindows` splits on a gap longer than
+ * `ENGAGED_GAP_MS` and resumes at the next hit. So time spent dead, healing, in an orb or running
+ * leaves the *denominator* rather than counting against the player, and what survives is the part of
+ * the fight they were engaged for, which is the part they were freshest for.
  *
- * The only guard before this was `gcdSlots > 0`, which that pull passes comfortably.
+ * Measured on live logs rather than argued: a rank-**0** Iron Juggernaut kill with two deaths reads
+ * **94.52%**, the highest figure in its whole sample, off 32.7s of contact on a 260s fight — 31 presses
+ * in 36 slots. The only guard before this was `gcdSlots > 0`, which that pull passes comfortably.
+ *
+ * **An earlier version of this docstring said the clock "ends when the player does", and that is wrong
+ * — it is corrected here rather than quietly reworded.** A death opens a gap and the clock resumes if
+ * the player is resurrected and hits something again; two live sweeps checked every death pull between
+ * them and found the players kept pressing to the end. Deaths are therefore *not* the mechanism, and
+ * the two sweeps' samples disagree about even the sign of their effect. The mechanism is the missing
+ * denominator, and it fires on a rank-97 shaman who never died and read 91.54% over 32% of an Immerseus
+ * pull because they spent the rest healing.
  *
  * **A share and not a floor on the slot count, and the difference matters.** A count-based floor —
  * "sixty globals or we do not grade it" — refuses a legitimate two-minute pull and accepts a

@@ -220,24 +220,46 @@ describe('the weight the band replaced', () => {
 	 * `cleave` forced single: three points used to be handed over for a `good` taken off twelve presses,
 	 * only two of which the rule was about, and the docstring here read "now the rule cannot say". It can
 	 * say again. The 2026-08-24 re-capture added `targets.aplCounts`, which puts four of those presses in
-	 * band rather than two — over `MIN_GRADED_SAMPLE` — so the metric is graded, the three points are
-	 * back in the reckoning, and the pull is `good` on this reading as it is on `auto`.
+	 * band rather than two — over `MIN_GRADED_SAMPLE` — so the metric is graded and the three points are
+	 * back in the reckoning.
 	 *
-	 * So the honest state of the claim is that the band moves **no** headline in the committed set. That
-	 * is not the band failing: it is one pull losing its exemption to a wider series and another being
-	 * re-lettered by a metric that did not exist when this was written. The grid below is the guard that
-	 * still earns its place, and it is unchanged by the re-capture — six pulls, same six letters.
+	 * **`cleave` forced single reads `ok` now, and this test's premise has changed with it: the two
+	 * readings of that pull no longer agree.** The cause is a grading line rather than a band.
+	 * `gcdUtilisation` is no longer graded against a fixed `good 85 / ok 75` on every fight in the tier; it
+	 * resolves against the encounter's own reference row, and Kor'kron Dark Shaman's is p90 85.78 / p50
+	 * 80.64 over the ten kills the table holds for that fight. This pull fills 77.75% of its globals, under
+	 * both, so the metric goes `ok` → `bad` and the one point it used to contribute at weight 2 leaves the
+	 * numerator at *every* reading. 10.5 points is 75.00% of the fourteen `auto` measures and 70.00% of the
+	 * fifteen `single` measures — either side of the line, where the same two readings used to agree at
+	 * 82.14% and 76.67%.
+	 *
+	 * **And that is the Rising Sun Kick discount deciding a letter, not the Tiger Palm band.**
+	 * `tigerPalmWaste` grades `good` on this pull at both readings and the band exempts nothing here; the
+	 * only difference between those two denominators is `rskUptime` carrying weight 2 under one enemy and
+	 * weight 1 when the job is spreading — on a metric this pull grades `bad`. So the honest state of the
+	 * claim is narrower than it was rather than broken: the band still moves **no** headline in the
+	 * committed set, and the discount it deliberately did *not* replace now moves one. Recorded rather
+	 * than quietly re-lettered, which is the whole point of this block.
 	 */
 	it('moves no headline in the committed set, and says why for each', () => {
-		// `cleave` forced single: `good` since the APL series took its Tiger Palm sample over the floor.
-		expect(overall('cleave', 'single')).toBe('good');
-		// `waves` read `ok` until the 2026-08-25 re-capture and reads `good` now, and it is not this band
-		// that moved it: `gcdUtilisation` crossed its own line at 75, from 74.85 to 75.18. The captures
-		// were old enough for the engine's global arithmetic to have drifted a third of a point under
-		// them, which is the thing re-capturing was for.
+		// `cleave` forced single: `good` from the day the APL series took its Tiger Palm sample over the
+		// floor until the globals line became Dark Shaman's own, `ok` since. The band is not what moved it —
+		// see the note above.
+		expect(overall('cleave', 'single')).toBe('ok');
+		// `waves` read `ok` until the 2026-08-25 re-capture and has read `good` since — but no longer for
+		// the reason this comment used to give, which was `gcdUtilisation` crossing its own line at 75, from
+		// 74.85 to 75.18. There is no line at 75 any more, and on this pull there is no line at all: `waves`
+		// is Galakras, one of the three encounters the metric is suppressed on, so the 75.18% prints without
+		// a letter and its two points leave the denominator. The pull scores 9.5 of the 12 points still
+		// measured — 79.17% — where it used to score 10.5 of 14, or 75.00% exactly on the line. Same letter,
+		// further clear of it, off a different sum.
 		expect(overall('waves', 'auto')).toBe('good');
-		// And nothing in the set moves *with the band* under the reader's own default.
-		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['good', 'ok', 'bad', 'good', 'good', 'good']);
+		// And nothing in the set moves *with the band* under the reader's own default. `strong` is the one
+		// letter here that moved, and the encounter moved it: 82.83% globals filled was `ok` against the old
+		// fixed 85/75 and is `bad` against Garrosh's own p90/p50 of 86.01/83.82 — the pull sits a point under
+		// the median of the nine Garrosh kills the table holds — which takes it from 12.0 points of 15 to
+		// 11.0, or 73.33%, just under the 75% a `good` needs.
+		expect(ALL.map((name) => overall(name, 'auto'))).toEqual(['ok', 'ok', 'bad', 'good', 'good', 'good']);
 	});
 });
 
@@ -266,13 +288,28 @@ describe('the scorecard says how much of itself it judged', () => {
 	 * Three of the nine brews the list would have required ten of went out short — one of them at five
 	 * stacks with no proc running at all — so the metric grades `bad`, and on this reading the pull is
 	 * 8.0 points of 11 rather than 8.0 of 10: 72.7% against 80.0%. The `auto` reading of the same pull
-	 * keeps its `good` with 1.67 points of margin, down from 7.14.
+	 * kept its `good` with 1.67 points of margin, down from 7.14.
+	 *
+	 * **The name is kept from when that was the whole story. The two readings letter the same now, and the
+	 * reading that moved is `auto`.** `gcdUtilisation` stopped being graded against a fixed `good 85 / ok
+	 * 75` and is now read off the encounter's own reference row. `strong` is Garrosh, whose row is p90
+	 * 86.01 / p50 83.82 over nine kills, and this pull fills 82.83% of its globals — a point below the
+	 * median Garrosh pull, so `bad` where the flat line said `ok`. The metric carries weight 2, so one full
+	 * point leaves the numerator at every reading: `auto` falls from 12.0 of 15 to 11.0, which is 73.33%
+	 * and under the line, and `multi` from 8.5 of 11 to 7.5, which is 68.18% and further under it.
+	 *
+	 * So the contrast this test was written to pin — a `good` under one reading and an `ok` under the
+	 * other — is gone, and it is not the multi reading that gave it up. That is worth saying rather than
+	 * re-lettering quietly, because the `brewShortUses` claim underneath is *unmoved*: three short brews,
+	 * `bad`, on both readings. It has simply stopped being the metric that decides this pull's letter.
+	 * Both letters are asserted exactly, so a change in either direction still shows up here.
 	 */
 	it('moves the strong pull read as multi-target', () => {
-		// `good` at 9 takes `brewStacks` on this pull from `ok` to `good` — its mean is 9.25 — which is
-		// enough to carry the multi reading back over the line. `brewShortUses` still grades `bad` on the
-		// three short brews, which is the claim this test is about and is unmoved.
-		expect(overall('strong', 'multi')).toBe('good');
-		expect(overall('strong', 'auto')).toBe('good'); // no-change guard
+		// `good` at 9 takes `brewStacks` on this pull from `ok` to `good` — its mean is 9.25 — which was
+		// once enough to carry the multi reading back over the line. `brewShortUses` still grades `bad` on
+		// the three short brews, which is the claim this test is about and is unmoved; what carries the
+		// letter now is the encounter-anchored globals line, on both readings alike.
+		expect(overall('strong', 'multi')).toBe('ok');
+		expect(overall('strong', 'auto')).toBe('ok');
 	});
 });

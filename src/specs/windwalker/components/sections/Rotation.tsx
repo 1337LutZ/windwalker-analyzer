@@ -2,17 +2,28 @@ import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
 import type { Analysis, TargetMode } from '~/lib/types';
+import { flowKeys } from '~/lib/view/rotationFlow';
 import { bandForMode } from '~/lib/view/targetMode';
 import {
 	CROSSOVERS,
-	flowKeys,
+	CROSSOVER_GATES,
 	pressedButtons,
 	rotationFlow,
 	runeOfReOriginationEquipped,
 } from '~/specs/windwalker/lib/view/rotationFlow';
 
 import { Note, Prose, Section } from '~/components/primitives';
-import { FlowChart } from '../rotation';
+import { FlowChart } from '~/components/rotation';
+
+/**
+ * What the legend prints above this chart, in order.
+ *
+ * Written out as literals rather than assembled, because a legend line is copy and a chart names only
+ * the marks it actually draws. The Windwalker draws all three — the spine, the target-count band across
+ * the line, and the dashed fork — which is why this is the longest of the three legends. See
+ * `FlowChart`'s `legend` prop for what a shorter one buys.
+ */
+const LEGEND = ['rotation.flow.legend.spine', 'rotation.flow.legend.gate', 'rotation.flow.legend.fork'];
 
 /**
  * The rotation itself: what to press, in what order, what decides each fork, and what every
@@ -36,7 +47,9 @@ import { FlowChart } from '../rotation';
  * ## The rungs are a drawing, and the paragraphs are still there
  *
  * A fallthrough chain is a graph and it is now drawn as one — `components/rotation/FlowChart` — which
- * is a reversal of what this file used to argue, so both halves are worth writing down.
+ * is a reversal of what this file used to argue, so both halves are worth writing down. The chart has
+ * since moved out from under this spec and into the shared tree, and every spec that prints a rotation
+ * draws it; what this section still owns is the reading, the crossover index and the seven notes.
  *
  * What was right in the old argument was the obstacle: every rung carries a condition and an
  * explanation, and the longer explanations reach several hundred characters on the Tigereye Brew
@@ -155,7 +168,7 @@ export default function Rotation({ analysis, mode }: { analysis: Analysis; mode?
 				{mode === undefined || mode === null ? null : <Note>{t(READING_NOTE[mode])}</Note>}
 			</div>
 
-			<FlowChart flow={flow} />
+			<FlowChart flow={flow} legend={LEGEND} details crossings={CROSSOVER_GATES} />
 
 			{/* The seven things a rung cannot carry: why the brew is spent where it is, why the channel
 			    needs three conditions, why the same wind is on the list twice, why one kick matters to

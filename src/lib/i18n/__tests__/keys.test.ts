@@ -13,16 +13,19 @@ import { RAID_BUFF_EFFECT_KEYS } from '~/lib/analysis/raidBuffs';
 import { GRADE_ORDER } from '~/lib/score/model';
 import type { Analysis } from '~/lib/types';
 import { ELEMENTAL_SPEC } from '~/specs/elemental';
-import { LADDER_ENTRIES as ELE_LADDER, ROTATION } from '~/specs/elemental/lib/apl';
+import { LADDER_ENTRIES as ELE_LADDER } from '~/specs/elemental/lib/apl';
 import { THRESHOLDS as ELE_THRESHOLDS } from '~/specs/elemental/lib/score';
+import { ROTATION_FLOW as ELE_FLOW } from '~/specs/elemental/lib/view/rotationFlow';
 import { LADDER_ENTRIES as PROT_LADDER } from '~/specs/protection/lib/apl';
 import { THRESHOLDS as PROT_THRESHOLDS } from '~/specs/protection/lib/score';
+import { ROTATION_FLOW as PROT_FLOW } from '~/specs/protection/lib/view/rotationFlow';
 import { PROTECTION_SPEC } from '~/specs/protection';
 import { timelineBanks as elementalBanks } from '~/specs/elemental/lib/view/timelineBanks';
+import { flowKeys } from '~/lib/view/rotationFlow';
 import { WW_SPEC } from '~/specs/windwalker';
 import { LADDER_ENTRIES as WW_LADDER } from '~/specs/windwalker/lib/apl';
 import { THRESHOLDS as WW_THRESHOLDS } from '~/specs/windwalker/lib/score';
-import { CROSSOVERS, flowKeys, rotationFlow } from '~/specs/windwalker/lib/view/rotationFlow';
+import { CROSSOVERS, rotationFlow } from '~/specs/windwalker/lib/view/rotationFlow';
 import { timelineBanks as windwalkerBanks } from '~/specs/windwalker/lib/view/timelineBanks';
 
 import i18n, { initI18n } from '../config';
@@ -463,9 +466,9 @@ describe('report copy with no reader', () => {
 	 *
 	 * **Every** interpolation is expanded against the values the source gives it rather than folded to a
 	 * `*`, which is the difference between a guard and a rubber stamp: `*.verdict` would accept a graded
-	 * sentence under a section nothing grades, and `rotation.rule.*.name` a rule the Elemental list
-	 * dropped, which is precisely the dead copy being hunted. `${section}` and `${copyPrefix}` were the
-	 * first two; the thirty families in `FAMILY_SOURCE` are the rest, each against the declaration that
+	 * sentence under a section nothing grades, and `rotation.entry.*.name` a rung no spec's list still
+	 * draws, which is precisely the dead copy being hunted. `${section}` and `${copyPrefix}` were the
+	 * first two; the families in `FAMILY_SOURCE` are the rest, each against the declaration that
 	 * owns its keys. `${s.tKey}` is dropped — those are the settings panel's, and they are `ui`.
 	 *
 	 * A family with no source, or one holding two interpolations, still falls back to the shape. There are
@@ -589,7 +592,18 @@ describe('report copy with no reader', () => {
 
 	/** The unfiltered flow: every rung of the Windwalker's priority list, at every band, either side of the fork. */
 	const FLOW = rotationFlow({ band: null, pressed: new Set<number>(), rune: null });
-	const FLOW_BRANCHES = FLOW.flatMap((slot) => ('fork' in slot ? slot.branches : [slot.entry]));
+
+	/**
+	 * Every rung of every spec's rotation reference, forks flattened.
+	 *
+	 * `rotation.entry.*` and `rotation.gate.*` stopped being the Windwalker's families when the flowchart
+	 * moved to `components/rotation` and the Elemental's `rotation.rule.*` was migrated onto them: one
+	 * chart reads one convention, so one namespace holds all three specs' rungs the way `priority.rule.*`
+	 * already holds all three ladders' labels. A source that still named only the Windwalker's would have
+	 * marked thirty-three live rungs as copy nothing asks for.
+	 */
+	const ALL_FLOWS = [...FLOW, ...ELE_FLOW, ...PROT_FLOW];
+	const FLOW_BRANCHES = ALL_FLOWS.flatMap((slot) => ('fork' in slot ? slot.branches : [slot.entry]));
 
 	/**
 	 * The literals a family's own interpolation writes down — `${totem.duringAscendance ? 'x' : 'y'}`.
@@ -649,8 +663,8 @@ describe('report copy with no reader', () => {
 	 * four `grade.*` labels sit unread from the first commit until a human read the file.
 	 *
 	 * It is the same argument the `${section}` expansion above already makes and for the same reason:
-	 * `*.verdict` would accept a graded sentence under a section nothing grades. `rotation.rule.*.name`
-	 * would accept a rule the Elemental list dropped, and `summary.takeaways.metric.*.fix` a metric the
+	 * `*.verdict` would accept a graded sentence under a section nothing grades. `rotation.entry.*.name`
+	 * would accept a rung dropped from a spec's list, and `summary.takeaways.metric.*.fix` a metric the
 	 * model stopped weighing — which is exactly what it was sheltering. See the reds in `it('carries no
 	 * key nothing asks for')`.
 	 */
@@ -732,25 +746,58 @@ describe('report copy with no reader', () => {
 			pinned: ['apply', 'ascPrep', 'early', 'late', 'reapply', 'snapshot', 'windowed'],
 		},
 		flowEntry: {
-			where: 'specs/windwalker/lib/view/rotationFlow.ts → rotationFlow at every band',
-			keys: () => flowKeys(FLOW),
+			where:
+				'every spec’s rotation flow — windwalker `rotationFlow` at every band, elemental and protection `ROTATION_FLOW`',
+			keys: () => flowKeys(ALL_FLOWS),
 			pinned: [
+				'ascendance',
+				'avengers-shield',
+				'avengers-shield-grand-crusader',
 				'blackoutKick',
 				'blackoutKickDump',
+				'chain-lightning',
 				'chiBrew',
 				'chiBurst',
 				'chiWave',
 				'comboBreakerKick',
+				'consecration',
+				'consecration-multi',
 				'craneOverKick',
+				'crusader-strike',
+				'crusader-strike-holy-avenger',
+				'earth-elemental',
+				'earth-shock',
+				'elemental-blast',
+				'elemental-mastery',
 				'energizingBrew',
+				'execution-sentence',
+				'fire-elemental',
 				'fistsOfFury',
+				'flame-shock-asc-prep',
+				'flame-shock-multidot',
+				'flame-shock-snapshot',
+				'hammer-of-the-righteous',
+				'hammer-of-the-righteous-holy-avenger',
+				'hammer-of-wrath',
+				'holy-prism',
+				'holy-wrath',
 				'invokeXuen',
 				'jab',
+				'jade-serpent-potion',
+				'judgment',
+				'judgment-sanctified-wrath',
+				'lava-beam',
+				'lava-burst',
+				'lightning-bolt',
+				'lights-hammer',
 				'risingSunKickCooldown',
 				'risingSunKickHold',
 				'risingSunKickMulti',
 				'rushingJadeWind',
 				'rushingJadeWindMulti',
+				'sacred-shield',
+				'sacred-shield-refresh',
+				'searing-totem',
 				'spinningCraneKick',
 				'stormEarthAndFire',
 				'tigerPalmProc',
@@ -758,30 +805,49 @@ describe('report copy with no reader', () => {
 				'tigereyeBrewBank',
 				'tigereyeBrewRune',
 				'touchOfDeath',
+				'unleash-elements',
 				'zenSphere',
 			],
 		},
+		// Forks, from all three flows and found only in one: neither the Elemental's `ROTATION` nor the
+		// Protection's `LADDER` holds an entry the reader's build or the pack in front of them picks
+		// between, so all four of these are the Windwalker's. Read from the union anyway, so the day a
+		// second spec grows one it is covered by the fact of being written.
 		flowFork: {
-			where: 'specs/windwalker/lib/view/rotationFlow.ts → the forks the unfiltered flow keeps',
-			keys: () => FLOW.flatMap((slot) => ('fork' in slot ? [slot.fork] : [])),
+			where: 'the forks every spec’s unfiltered rotation flow keeps',
+			keys: () => ALL_FLOWS.flatMap((slot) => ('fork' in slot ? [slot.fork] : [])),
 			pinned: ['blackoutKick', 'risingSunKick', 'talent', 'tigereyeBrew'],
 		},
 		// The chips, and only the rungs that carry one. Not every rung in the flow: a gate chip on a rung
 		// with nothing to gate is dead copy of exactly the kind being hunted, so the narrower set is used.
 		flowGate: {
-			where: 'specs/windwalker/lib/view/rotationFlow.ts → the gated branches of the unfiltered flow',
+			where: 'the gated rungs of every spec’s unfiltered rotation flow',
 			keys: () => FLOW_BRANCHES.filter((entry) => entry.gated).map((entry) => entry.key),
 			pinned: [
 				'blackoutKick',
 				'blackoutKickDump',
+				'consecration',
+				'consecration-multi',
 				'craneOverKick',
+				'crusader-strike',
+				'crusader-strike-holy-avenger',
+				'elemental-blast',
+				'execution-sentence',
+				'hammer-of-the-righteous',
+				'hammer-of-the-righteous-holy-avenger',
+				'holy-prism',
+				'judgment-sanctified-wrath',
+				'lights-hammer',
 				'risingSunKickCooldown',
 				'risingSunKickHold',
 				'rushingJadeWindMulti',
+				'sacred-shield',
+				'sacred-shield-refresh',
 				'spinningCraneKick',
 				'stormEarthAndFire',
 				'tigereyeBrewBank',
 				'tigereyeBrewRune',
+				'unleash-elements',
 			],
 		},
 		/**
@@ -807,13 +873,16 @@ describe('report copy with no reader', () => {
 			keys: () => ENFORCED_PROFILES.map((profile) => profile.noteKey).filter((key) => key !== undefined),
 			pinned: [
 				'fallen-protectors',
+				'galakras',
 				'garrosh-hellscream',
 				'general-nazgrim',
 				'immerseus',
 				'iron-juggernaut',
 				'kor-kron-dark-shaman',
 				'malkorok',
+				'norushen',
 				'paragons-of-the-klaxxi',
+				'sha-of-pride',
 				'siegecrafter-blackfuse',
 				'spoils-of-pandaria',
 				'thok-the-bloodthirsty',
@@ -879,33 +948,6 @@ describe('report copy with no reader', () => {
 			where: 'lib/analysis/raidBuffs.ts → RAID_BUFF_EFFECT_KEYS',
 			keys: () => RAID_BUFF_EFFECT_KEYS,
 			pinned: ['attackPower', 'crit', 'mastery', 'meleeHaste', 'spellHaste', 'spellPower', 'stats'],
-		},
-		rotationGroup: {
-			where: 'specs/elemental/lib/apl.ts → the groups ROTATION files its entries under',
-			keys: () => [...new Set(ROTATION.map((entry) => entry.group))],
-			pinned: ['cooldown', 'dot', 'filler'],
-		},
-		rotationRule: {
-			where: 'specs/elemental/lib/apl.ts → ROTATION',
-			keys: () => ROTATION.map((entry) => entry.key),
-			pinned: [
-				'ascendance',
-				'chain-lightning',
-				'earth-elemental',
-				'earth-shock',
-				'elemental-blast',
-				'elemental-mastery',
-				'fire-elemental',
-				'flame-shock-asc-prep',
-				'flame-shock-multidot',
-				'flame-shock-snapshot',
-				'jade-serpent-potion',
-				'lava-beam',
-				'lava-burst',
-				'lightning-bolt',
-				'searing-totem',
-				'unleash-elements',
-			],
 		},
 		stormlashState: {
 			where: 'the ternary inside the call in specs/elemental/components/sections/Stormlash.tsx',
@@ -1014,15 +1056,23 @@ describe('report copy with no reader', () => {
 		'raidBuffs.effects.*': 'raidBuffEffect',
 		'raidBuffs.worth.*': 'raidBuffEffect',
 		'rotation.crossover.*': 'crossover',
+		// **`rotation.group.*` and `rotation.rule.*` were here and are not any more**, and the two left for
+		// different reasons. `rotation.rule.*` was the Elemental's own copy convention for the column of
+		// cards it used to draw; the shared flowchart reads one convention, so its leaves were renamed onto
+		// `rotation.entry.*` and the family stopped existing. `rotation.group.*` is still live copy — the
+		// three stage headings the Elemental's chart draws across the line — but it stopped being
+		// *computed*: the keys are literals beside the group they name in
+		// `specs/elemental/lib/view/rotationFlow.ts`, because a band's copy key travels to `FlowChart` as a
+		// prop rather than through a template inside a `t(...)` call, and only a template is a family. The
+		// written-key route reaches all three, and `elemental/lib/view/__tests__/rotationFlow.test.ts`
+		// holds the forward half a `KEY_SOURCES` entry used to: that each band names a group `ROTATION`
+		// still files rows under, and that all three resolve to real copy rather than to their own key.
 		'rotation.entry.*.name': 'flowEntry',
 		'rotation.entry.*.test': 'flowEntry',
 		'rotation.entry.*.why': 'flowEntry',
 		'rotation.fork.*.detail': 'flowFork',
 		'rotation.fork.*.title': 'flowFork',
 		'rotation.gate.*': 'flowGate',
-		'rotation.group.*': 'rotationGroup',
-		'rotation.rule.*.condition': 'rotationRule',
-		'rotation.rule.*.name': 'rotationRule',
 		'stormlash.state.*': 'stormlashState',
 		// **The label reaches further than the fix now, which is why the two families differ.** A `fix`
 		// sentence is only ever written on a takeaway card, so its source stays the weighted metrics — a
@@ -1051,7 +1101,7 @@ describe('report copy with no reader', () => {
 		'casts.gate.*': 5,
 		'earthElemental.state.*': 3,
 		'fight.basis.*': 2,
-		'fight.note.*': 11,
+		'fight.note.*': 14,
 		'earthShock.state.*': 7,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,
@@ -1063,15 +1113,16 @@ describe('report copy with no reader', () => {
 		'raidBuffs.effects.*': 9,
 		'raidBuffs.worth.*': 14,
 		'rotation.crossover.*': 4,
-		'rotation.entry.*.name': 24,
-		'rotation.entry.*.test': 24,
-		'rotation.entry.*.why': 24,
+		// Fifty-seven rungs across the three specs' lists, and forty-one of them with a paragraph behind
+		// the box. The gap is the Elemental's sixteen: its rules are one line each with nothing to
+		// disclose, which is what `FlowChart`'s `details={false}` says out loud — see the copy-convention
+		// note in `lib/view/rotationFlow`.
+		'rotation.entry.*.name': 57,
+		'rotation.entry.*.test': 57,
+		'rotation.entry.*.why': 41,
 		'rotation.fork.*.detail': 4,
 		'rotation.fork.*.title': 4,
-		'rotation.gate.*': 10,
-		'rotation.group.*': 3,
-		'rotation.rule.*.condition': 16,
-		'rotation.rule.*.name': 16,
+		'rotation.gate.*': 24,
 		'stormlash.state.*': 2,
 		// Twenty-one cards, three of which store a second wording for a number that needs different
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
@@ -1132,7 +1183,11 @@ describe('report copy with no reader', () => {
 			'verdict_bad_other',
 			'verdict_none',
 		],
-		casts: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none'],
+		// `verdict_suppressed` is the fifth arm and it is not a grade. An encounter that puts the player
+		// out of reach by design has its letter withheld, and the sentence that used to cover that state
+		// — `verdict_none`, "too few globals passed to measure a rate" — was false of it: Immerseus
+		// offers 130 global slots and fills 106. Two opposite findings, two sentences.
+		casts: ['verdict_good', 'verdict_ok', 'verdict_bad', 'verdict_none', 'verdict_suppressed'],
 		// **`verdict_noContact` is the fifth arm, and it is the same defect `earthShock.verdict_tooFew` was
 		// added for, reached by the other of `metricOf`'s two refusals.** `rskUptime` carries the span it
 		// was measured over, and `metricOf` refuses an empty one — so a pull that cast the kick and

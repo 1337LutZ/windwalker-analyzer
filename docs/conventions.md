@@ -38,7 +38,15 @@ builders, a chart skeleton written four times — and several copies carried the
 the comment that justified them, so the reasoning survived in exactly one place and never the copy.
 Two of those copies re-introduced bugs the original's own comment existed to prevent. Before writing a
 second version of anything, look for the first: `src/lib/analysis/`, `src/lib/score/`,
-`src/components/charts/`.
+`src/components/charts/`, `src/components/rotation/`.
+
+The rotation folder is the most recent instance and the clearest one. Three specs answered "how is a
+priority list drawn" three ways — a flowchart filed under the Windwalker, a hand-rolled column of
+bordered cards under the Elemental, and nothing at all under the Protection — so the third spec had
+nothing to reach for and the second had a drawing that could not show a fork. The chart is shared now,
+and the copy convention with it: every rung of every spec reads `rotation.entry.<key>.{name,test,why}`
+with `rotation.gate.<key>` for its chip, and the argument for that choice is in
+`src/lib/view/rotationFlow.ts`.
 
 ## One component per file
 
@@ -478,17 +486,26 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of Ascendance taking four cards on the scorecard, it prints 1559 leaves, 750 prose, 24,663 words;
-median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 681 prose leaves,
-1,202 sentences, median 17, 246 past 25 (20.5%), 288 em-dashes in 247 sentences (20.5%);
-60 / 23 / 1 / 2 on the quote lines.
+As of the Protection rotation reference landing, it prints 1640 leaves, 785 prose, 26,369
+words; median 28, p75 46, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 716 prose
+leaves, 1,280 sentences, median 17, 276 past 25 (21.6%), 292 em-dashes in 251 sentences (19.6%);
+72 / 25 / 1 / 2 on the quote lines.
 
-Two commits sit behind this and they move different halves. The first retired
-`ascendance.read.reason.first-press-past-one-cooldown` with the refusal behind it and rewrote the Fire
-Elemental section's `intent` and `state.early` longer — one leaf out, six words in, and the sentence past
-25 that took the share from 20.4% to 20.5%. The second added four `summary.takeaways.metric.*.label`
-leaves for Ascendance's four rules, and a label is a noun phrase rather than prose: `leaves` rose by four
-against a `prose` count that did not move at all, and neither did any figure `report.json` is measured on.
+One block moved these, and it moved four of the lines in a direction none of the previous passes did.
+Making the Windwalker flowchart the repository's one rotation drawing gave the Protection a reference
+section it had never had: seventeen rungs, each with a name, a one-line condition and a paragraph
+behind the box, plus twelve chips, four notes and an economy paragraph. That is where the 71 new leaves
+and the 55 new sentences come from, and it is why the median string is a word longer.
+
+**The em-dash count did not move at all, and that is the interesting row.** It is 292 either side,
+across 55 more sentences, so the share carrying one fell from 20.5% to 19.6% — the new copy was written
+without reaching for the mark, and the ceiling of two per sentence is the reason. The straight
+apostrophe line is the other visible move, 62 to 72: the Paladin's own buttons are Avenger's Shield and
+Light's Hammer, and the ten new strings that name them follow `priority.rule.*`, which already spells
+both with the straight mark.
+
+The same pass renamed the Elemental's `rotation.rule.*` onto `rotation.entry.*` without touching a
+word of it, so the migration itself is worth nothing on any line here.
 
 <!-- /census:figures -->
 

@@ -69,7 +69,8 @@ import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf
 import { engagedWindows } from './engagement';
 import { readGear } from './gear';
 import { segmentPull } from './segments';
-import { intersect, type Interval, unionMs } from './intervals';
+import { complementOf, intersect, type Interval, unionMs } from './intervals';
+import { enforcedDowntime, unavoidableWindows } from './enforced';
 import { makeLinker } from './links';
 import { RAID_BUFF_NAMES, readRaidBuffs } from './raidBuffs';
 import {
@@ -967,8 +968,39 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 			.map((e) => e.timestamp - t0),
 		spec.thresholds.engagedGapMs,
 	);
+	/**
+	 * The seconds the encounter took away and the player could not have taken back.
+	 *
+	 * ***A stun is not a missed global, and until now every spec but one was charged for it.*** The
+	 * enforced table has always existed, and its credit reached exactly one figure: Protection's
+	 * `globals.missedFree`. `gcdUtilisationPct` never saw it, so a monk Gouged for eight seconds on
+	 * Fallen Protectors had those eight seconds sitting in the denominator of their own globals figure
+	 * with nothing they could have put in them. Contact does not break either, because `engagedWindows`
+	 * only splits on a gap longer than `ENGAGED_GAP_MS` — fifteen seconds — and every rule in the table
+	 * but one is shorter than that.
+	 *
+	 * **Only the unavoidable ones.** Whirling is dodgeable, so it stays in the denominator: forgiving it
+	 * would pay a player for standing in something. See `EnforcedRule.dodgeable`, where the distinction
+	 * is declared because no event stream carries it.
+	 *
+	 * Subtracted from `contact` itself rather than from the total, so it leaves **both** halves of every
+	 * ratio built on that clock. A press cannot happen inside a stun, so the numerator barely moves; what
+	 * moves is the divisor, which is the half that was wrong.
+	 */
+	const enforced = enforcedDowntime({
+		encounterID: fight.encounterID,
+		events,
+		actorID: actor.id,
+		t0,
+		endTime: fight.endTime,
+		durationMs: duration,
+		phases: dataset.phases ?? [],
+	});
+	// `intersect` with the complement rather than a `subtract` helper: the two primitives already exist
+	// and already cut clocks this way everywhere else in this file.
+	const contactLessEnforced = intersect(contact, complementOf(unavoidableWindows(enforced), duration));
 	/** Named apart from `contactMs` further down, which is the target-count audit's own, narrower clock. */
-	const inContactMs = unionMs(contact);
+	const inContactMs = unionMs(contactLessEnforced);
 
 	// ------------------------------------------------------------------ cast table
 	/**
