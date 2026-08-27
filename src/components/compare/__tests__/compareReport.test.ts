@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { capturedAnalyses } from '~/lib/analysis/fixtures';
-import type { Pull } from '~/lib/compare';
+import { compare, type Pull } from '~/lib/compare';
 import { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
 import type { Analysis } from '~/lib/types';
@@ -170,6 +170,32 @@ describe('the compare page', () => {
 			if (cls?.includes('bg-pull-a')) expect(atPercent).toBeLessThanOrEqual(50);
 			else expect(atPercent).toBeGreaterThanOrEqual(50);
 		}
+	});
+
+	/**
+	 * Every comparable figure gets a row, and every row names both logs.
+	 *
+	 * The chart used to draw a dot per figure and name only the widest one either way, so a section
+	 * holding three lost one and a section the two logs tied on lost all of them — Potions drew a dot
+	 * and said nothing at all about it. A dot with no reading beside it is a position on an axis and
+	 * nothing else.
+	 */
+	it('lists every comparable figure, with both logs on each', () => {
+		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-metrics-heading'));
+		const comparable = compare(pull('strong'), pull('poor'))
+			.sections.flatMap((section) => section.metrics)
+			.filter((gap) => gap.bands !== null);
+		expect(comparable.length).toBeGreaterThan(8);
+
+		// One swatch per log per figure, plus the pair in the legend. Counting the first log's swatch and
+		// the second's separately catches a row that names one of them and not the other.
+		const swatches = (mark: string) => chart.split(`size-2.5 shrink-0 rounded-full ${mark}`).length - 1;
+		expect(swatches('bg-pull-a')).toBe(comparable.length + 1);
+		expect(swatches('border-2 border-pull-b')).toBe(comparable.length + 1);
+
+		// The two the old shape dropped: a section's third figure, and a figure the logs tied on.
+		expect(chart).toContain('Stacks per brew');
+		expect(chart).toContain('Potions used');
 	});
 
 	it('refuses to compare timelines, and says so', () => {

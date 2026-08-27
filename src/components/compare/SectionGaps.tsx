@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { leaderOf, ranked, type MetricGap, type SectionGap } from '~/lib/compare';
@@ -39,25 +40,25 @@ const TICKS = [4, 2, 0, 2, 4];
 const at = (bands: number) => 50 - Math.max(-1, Math.min(1, bands / DOMAIN)) * 50;
 
 /**
- * A row is three stacked lines: the part of the pull, its figures, then the track.
+ * Two columns: what is being compared, and where the two logs sit on it.
  *
- * **Stacked at every width rather than a column beside a track**, which is what this was. Side by side,
- * the two competed for the same horizontal run: the labels wanted enough room for
- * "Stacks overcapped 0/151 10/84" and the axis wanted every pixel, because the whole reading is how far
- * along it the dots sit. On its own line the track gets the full width at 1440 and at 320 alike, and
- * the labels get as much as they need above it.
+ * **The left column is a stack rather than a line.** Each figure takes two rows — its name, then both
+ * logs' readings under it — because a name and two numbers on one line ran to
+ * "Stacks overcapped 0/151 10/84", which needed more width than the column had and more than the axis
+ * beside it could spare. Split, each row is short and the column narrows to fit the longer of the two.
  *
- * It also collapses a breakpoint. The narrow layout already stacked, so the two arrangements have
- * become one and there is no width at which the row changes shape.
+ * **Every comparable figure is listed, not just the widest one either way.** The chart drew a dot per
+ * figure and named only the outermost on each side, so a section with three lost one and a section the
+ * two logs tied on lost all of them: Potions drew a dot and said nothing about it. A dot with no
+ * reading beside it is a position on an axis and nothing else.
+ *
+ * Below `sm` the column and the track stack, which is the only way both survive at 320: a fixed column
+ * wide enough for these labels would leave the axis with nothing.
  */
-const TRACK = 'relative h-5 w-full';
-
-/** The figure furthest out on one side, which is the one worth naming under the row. */
-function outermost(metrics: readonly MetricGap[], side: 'a' | 'b'): MetricGap | null {
-	const leading = metrics.filter((gap) => gap.bands !== null && leaderOf(gap.bands) === side);
-	if (leading.length === 0) return null;
-	return leading.reduce((worst, gap) => (Math.abs(gap.bands ?? 0) > Math.abs(worst.bands ?? 0) ? gap : worst));
-}
+const COLUMN = 'flex min-w-0 flex-col gap-0.5 sm:w-56 sm:shrink-0';
+/** The same column, empty, so the axis starts where the track does. */
+const GUTTER = 'hidden sm:block sm:w-56 sm:shrink-0';
+const TRACK = 'relative h-5 w-full sm:min-w-0 sm:flex-1 sm:basis-0';
 
 /**
  * Where the two pulls differ: every figure in every part of the pull, on one signed axis.
@@ -129,7 +130,7 @@ export default function SectionGaps({
 					const title = i18n.exists(`${section}.title`) ? t(`${section}.title`) : section;
 					const drawn = group.metrics.filter((gap): gap is MetricGap & { bands: number } => gap.bands !== null);
 					/**
-					 * The figure's name, then what each log actually read on it.
+					 * A figure's name, and beneath it what each log actually read on it.
 					 *
 					 * **Not the distance.** This printed the gap in the axis's own unit — "Health reflected 1.6"
 					 * — and a name beside a bare number reads as that name's value, which 1.6 is not: it is how
@@ -138,27 +139,17 @@ export default function SectionGaps({
 					 * before it means anything then the number is wrong rather than the label.
 					 *
 					 * The size is already on screen twice over, as the dot's distance from the rule and as the
-					 * axis under the chart, so nothing is lost by giving this line to the readings instead. They
-					 * come from the scorecard's own formatter, so a share over countable events prints as the
-					 * count here exactly as it does everywhere else.
+					 * axis under the chart, so nothing is lost by giving these rows to the readings instead.
+					 * They come from the scorecard's own formatter, so a share over countable events prints as
+					 * the count here exactly as it does everywhere else.
+					 *
+					 * Both logs, always, in the page's own order. A row that named one of them would be a row
+					 * whose number the reader has to attribute by guessing.
 					 */
-					const label = (gap: MetricGap | null) => {
-						if (gap === null || gap.a === null || gap.b === null) return null;
+					const named = (gap: MetricGap & { bands: number }) => {
 						const key = `summary.takeaways.metric.${gap.key}.label`;
-						return (
-							<span className="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-								<span>{i18n.exists(key) ? t(key) : gap.key}</span>
-								<span className="inline-flex items-baseline gap-2 tabular font-mono text-ink-2">
-									<PullKey side="a">{reading(gap.a, t)}</PullKey>
-									<PullKey side="b">{reading(gap.b, t)}</PullKey>
-								</span>
-							</span>
-						);
+						return i18n.exists(key) ? t(key) : gap.key;
 					};
-					// The first log's figure first, which is the order the whole page names them in.
-					const leading = (['a', 'b'] as const)
-						.map((side) => outermost(drawn, side))
-						.filter((gap): gap is MetricGap => gap !== null);
 
 					return (
 						<li key={section}>
@@ -167,15 +158,21 @@ export default function SectionGaps({
 							<button
 								type="button"
 								onClick={() => jumpToHeading(sectionAnchor(section))}
-								className="flex w-full cursor-pointer flex-col items-stretch gap-1 rounded-sm px-1 py-1.5 text-left hover:bg-raised focus-visible:bg-raised"
+								className="flex w-full cursor-pointer flex-col items-stretch gap-2 rounded-sm px-1 py-1.5 text-left hover:bg-raised focus-visible:bg-raised sm:flex-row sm:items-center sm:gap-4"
 							>
-								<span className="flex min-w-0 flex-col gap-0.5">
+								<span className={COLUMN}>
 									<span className="text-sm text-ink-2">{title}</span>
-									{leading.map((gap) => (
-										<span key={gap.key} className="text-xs text-muted">
-											{label(gap)}
-										</span>
-									))}
+									{drawn.map((gap) =>
+										gap.a === null || gap.b === null ? null : (
+											<Fragment key={gap.key}>
+												<span className="mt-1 text-xs text-muted">{named(gap)}</span>
+												<span className="flex flex-wrap gap-x-3 gap-y-0.5 tabular font-mono text-xs text-ink-2">
+													<PullKey side="a">{reading(gap.a, t)}</PullKey>
+													<PullKey side="b">{reading(gap.b, t)}</PullKey>
+												</span>
+											</Fragment>
+										),
+									)}
 								</span>
 								<span aria-hidden="true" className={TRACK}>
 									{/* The rail first, then the rule, then the dots over both.
@@ -210,8 +207,9 @@ export default function SectionGaps({
 					);
 				})}
 			</ul>
-			<div aria-hidden="true" className="px-1 pt-1">
-				<span className="flex justify-between font-mono text-xs text-muted">
+			<div aria-hidden="true" className="flex gap-4 px-1 pt-1">
+				<span className={GUTTER} />
+				<span className="flex min-w-0 flex-1 basis-0 justify-between font-mono text-xs text-muted">
 					{TICKS.map((tick, index) => (
 						<span key={`${tick}-${index}`}>{tick}</span>
 					))}
