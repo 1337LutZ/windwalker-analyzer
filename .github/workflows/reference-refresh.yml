@@ -199,7 +199,15 @@ jobs:
           git push origin "$BRANCH"
           # The branch is pushed before this point, so the measured pulls are safe whatever happens next.
           # Reuse the open pull request for this branch if the job has already run today.
-          if gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
+          # **A closed pull request still accepts `gh pr edit`.** Editing one blindly would leave every
+          # future refresh updating a pull request nobody can see, for ever — so the state decides:
+          # reopen what was closed, create when the branch has none or its last one was merged.
+          STATE=$(gh pr view "$BRANCH" --json state --jq .state 2>/dev/null || echo NONE)
+          if [ "$STATE" = 'CLOSED' ]; then
+            gh pr reopen "$BRANCH" || true
+            STATE=OPEN
+          fi
+          if [ "$STATE" = 'OPEN' ] && gh pr edit "$BRANCH" --body-file pr-body.md; then
             exit 0
           fi
           if gh pr create --base main --head "$BRANCH" \
