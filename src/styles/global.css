@@ -126,6 +126,31 @@
 	 *     so a fifth accent leaves that number exactly where it found it. */
 	--color-lust: #0894bc;
 
+	/* The two pulls on the compare page: which of the pair a mark belongs to, and nothing else.
+	 *
+	 * **Their own tokens rather than a reuse of `rune` and `lust`, though the values are today the same
+	 * two.** Colour here is named for what it means, and what these mean is "the first pull" and "the
+	 * second" — not a proc window and not the raid's haste cooldown. Aliasing them with `var()` would
+	 * have been one value instead of two, and would also have meant that re-tuning the proc tone moved
+	 * player A, silently breaking a separation that was measured for a different purpose.
+	 *
+	 * The measurement is already in this file, one comment up: all pairs, protanopia and deuteranopia,
+	 * `lust` against `rune` is **9.5 dE**, re-measured at 9.5 protan and 11.9 tritan, and 18.1 dE to
+	 * normal vision. Past the 8 dE bar for two marks that must be told apart, and the widest separation
+	 * this palette had left once the three verdict hues were spoken for.
+	 *
+	 * **They must not be the verdict hues, and that is the harder constraint than the separation.** A
+	 * compare figure draws the good/ok/bad zones as its ground and the two pulls as marks on it. Green
+	 * for one player and rose for the other would read as right and wrong rather than as first and
+	 * second, whichever way round the numbers actually fell. Both are checked against all three:
+	 * worst is `pull-b` against `miss` at 8.4 dE protan, the same number this palette's worst pair
+	 * already was.
+	 *
+	 * Colour is never the only channel carrying which is which. The first pull is a filled mark and the
+	 * second a ring, every row prints both names, and the two always appear in the same order. */
+	--color-pull-a: #a78bfa;
+	--color-pull-b: #0894bc;
+
 	/* A band shaded on a resource chart: the tone already mixed into the chart's own ground, and
 	 * painted opaque.
 	 *

@@ -478,17 +478,22 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of Ascendance taking four cards on the scorecard, it prints 1559 leaves, 750 prose, 24,663 words;
-median 27, p75 44, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 681 prose leaves,
-1,202 sentences, median 17, 246 past 25 (20.5%), 288 em-dashes in 247 sentences (20.5%);
-60 / 23 / 1 / 2 on the quote lines.
+As of the compare page, it prints 1611 leaves, 775 prose, 25,246 words;
+median 27, p75 43, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 699 prose leaves,
+1,234 sentences, median 17, 249 past 25 (20.2%), 288 em-dashes in 247 sentences (20.0%);
+60 / 25 / 1 / 2 on the quote lines.
 
-Two commits sit behind this and they move different halves. The first retired
-`ascendance.read.reason.first-press-past-one-cooldown` with the refusal behind it and rewrote the Fire
-Elemental section's `intent` and `state.early` longer — one leaf out, six words in, and the sentence past
-25 that took the share from 20.4% to 20.5%. The second added four `summary.takeaways.metric.*.label`
-leaves for Ascendance's four rules, and a label is a noun phrase rather than prose: `leaves` rose by four
-against a `prose` count that did not move at all, and neither did any figure `report.json` is measured on.
+One change sits behind this: the compare page, which added a `compare` family to `report.json` and nine
+shell keys to `ui.json`. 52 leaves and 583 words, which is the largest single addition either file has
+taken, and the two shares it moved both fell rather than rose.
+
+**Both falls are arithmetic on the denominator, not a change of voice, and that is worth saying because
+either one read alone looks like a drift.** The em-dash count did not move at all — it is 288 before and
+after, because the new copy uses none — so its share fell from 20.5% to 20.0% purely on 33 more
+sentences being counted. Sentences past 25 words rose by three while the share fell from 20.5% to 20.2%,
+which is the same denominator doing the same thing. `p75` fell a word for the same reason: a page of
+labels and short refusals sits below the median length, and a `words/string` quartile is a fact about the
+whole file rather than about the strings added to it.
 
 <!-- /census:figures -->
 

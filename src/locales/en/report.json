@@ -1938,5 +1938,68 @@
     "cuts_physical": "{{percent, percent}} of physical damage",
     "cuts_unknown": "size not established",
     "unreadable": "{{names}} would also have helped here and this report cannot see it. It works by weakening what is hitting you rather than by shielding you, so it lands on the enemy — and the events this page is built from only cover you. Whether anyone used it is not something the numbers above answer either way."
+  },
+  "compare": {
+    "title": "The two pulls",
+    "intent": "Each pull is read on its own first and the two readings are then compared. Where one log could not answer something, the row says so rather than counting it as a zero.",
+    "pull": {
+      "itemLevel": "item level {{level, integer}}",
+      "parse": "{{value, integer}} parse"
+    },
+    "framing": {
+      "caption": "The three figures that mean the same thing whichever boss it was"
+    },
+    "column": {
+      "figure": "Figure",
+      "difference": "Difference"
+    },
+    "diff": {
+      "level": "Level"
+    },
+    "tally": {
+      "ahead": "{{player}} ahead",
+      "level": "Level",
+      "notComparable": "Not comparable"
+    },
+    "gaps": {
+      "title": "Where they differ",
+      "intent": "Every figure in the pull, on one axis, grouped by the part of the pull it belongs to. The scale is each figure’s own target, so a share, a count of casts and a stretch of seconds can sit together. Pick a row to jump to it.",
+      "axis": "How far apart, measured against what each figure asks for. One dot per figure rather than one bar per row, so a part of the pull where each of you leads a different figure shows dots on both sides and reads as split rather than as decided.",
+      "ahead": "{{player}} ahead"
+    },
+    "metrics": {
+      "title": "Figure by figure",
+      "intent": "Each figure drawn against its own targets, with both pulls marked on it and the distance between them joined up. These keep the order the report itself uses."
+    },
+    "metric": {
+      "missing": "One of the two reports does not measure this.",
+      "unmeasurable": "The log has nothing to measure here for {{player}}.",
+      "unmeasurableBoth": "Neither log has anything to measure here.",
+      "notAsked": "Not asked of {{player}} at this many enemies",
+      "notAskedEither": "Not asked of either pull at this many enemies"
+    },
+    "damage": {
+      "title": "Damage by ability",
+      "intent": "Each ability as a share of that player’s own damage, so a longer pull does not read as a better one. Sorted by how far apart the two of you are rather than by size, because the gap is the question here.",
+      "none": "Neither pull recorded damage from a button anybody pressed."
+    },
+    "casts": {
+      "title": "Casts per minute",
+      "intent": "How often each button went out, per minute of pull. A cooldown that differs here drifted; a button waiting on chi or energy differs because the economy behind it did.",
+      "none": "Neither pull recorded a cast."
+    },
+    "rate": {
+      "unpressed": "not pressed"
+    },
+    "note": {
+      "title": "What makes these two harder to compare",
+      "encounter": "Two different bosses: {{a}} and {{b}}. The targets are the same either way, but the fight asking for them is not.",
+      "difficulty": "Two different difficulties: {{a}} and {{b}}.",
+      "outcome": "One of these is a kill and the other is not. A wipe stops where it stops, and its last seconds are not a rotation.",
+      "duration": "Two different lengths: {{a}} and {{b}}. Drift and lost casts pile up over a pull while the opener stays the same size, so the shorter one is read on a different mix.",
+      "bands": "The two pulls were fought at different enemy counts. Anything that only applies at some counts is marked as not asked rather than compared.",
+      "itemLevel": "Item level {{a}} against {{b}}. Nothing here models gear, so read the damage gap with that in hand."
+    },
+    "elsewhere": "Timelines, cast logs and the miss ledger are not compared here. Two pulls of different length do not line up second for second, so putting their events beside each other would show you a difference that is only the difference in length. Open each report for those."
   }
 }

@@ -56,7 +56,11 @@ describe('no component reads the viewport during a render', () => {
 		//   useNarrow.ts     an effect, which is the whole point of the hook
 		//   jump.ts          a click handler, reading the reduced-motion preference
 		//   ReportFlow.tsx   two effects, same preference, before scrolling a step into view
-		const allowed = new Set(['ApexChart.tsx', 'useNarrow.ts', 'jump.ts', 'ReportFlow.tsx']);
+		//   CompareFlow.tsx  the same two calls for the same reason — one effect scrolling the comparison
+		//                    into view when both pulls land, one click handler behind the bar's Change
+		//                    button. Neither runs during a render, and the compare page is server-rendered
+		//                    exactly as the report page is.
+		const allowed = new Set(['ApexChart.tsx', 'useNarrow.ts', 'jump.ts', 'ReportFlow.tsx', 'CompareFlow.tsx']);
 		const root = resolve(import.meta.dirname, '../..');
 		const offenders = sources(root)
 			.filter((path) => !path.includes('__tests__'))
@@ -76,6 +80,7 @@ describe('no component reads the viewport during a render', () => {
 			'hooks/useNarrow.ts',
 			'components/jump.ts',
 			'components/report/ReportFlow.tsx',
+			'components/compare/CompareFlow.tsx',
 		]) {
 			expect(readFileSync(resolve(root, path), 'utf8'), path).toContain('matchMedia');
 		}

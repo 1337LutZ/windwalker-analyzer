@@ -30,7 +30,21 @@
     "thisTabOnly": "this tab only",
     "fightsHere": "Load a report above and its boss pulls appear here.",
     "checkingRoster": "Checking who was in that pull…",
-    "analyse": "Analyse this pull"
+    "analyse": "Analyse this pull",
+    "firstLog": "First log",
+    "secondLog": "Second log",
+    "compare": "Compare the two",
+    "compareAction": "Compare these pulls",
+    "compareCost": "This reads two pulls, so it costs about twice what one report costs against your hourly WarcraftLogs budget. Two players from the same pull is the cheap case: the report and its roster are fetched once and the second player reuses both.",
+    "compareRefused": "One of these two pulls is not this spec, so there is nothing to compare. Pick a different player.",
+    "signInFirst": "Sign in above, then paste a report URL or code.",
+    "encounter": "The encounter",
+    "encounterIntent": "Both pulls are read at the same boss. Only encounters that appear in both logs are offered.",
+    "noSharedEncounter": "These two logs have no boss in common, so there is nothing to compare. Point one of them at a different night.",
+    "reports": "The two logs",
+    "players": "The players",
+    "encounterHere": "Load both logs above and the bosses they share appear here.",
+    "playersHere": "Pick the boss above, then choose who to read from each log."
   },
   "auth": {
     "signIn": {
@@ -240,7 +254,8 @@
     }
   },
   "selection": {
-    "label": "Selected pull"
+    "label": "Selected pull",
+    "compareLabel": "Compared pulls"
   },
   "credits": {
     "label": "API credits",

@@ -484,6 +484,9 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
  */
 const SHARED_SECTIONS = [
 	'castLog',
+	// The compare page. Spec-agnostic by construction — nothing under `src/lib/compare` may name a
+	// spec — so it belongs here rather than to any one of the three.
+	'compare',
 	'damage',
 	'empty',
 	'gear',

@@ -33,6 +33,10 @@ shared UI under `src/components/`. Nothing in `src/lib/` may import a spec (see 
   `damage.ts`, `energy.ts`, `engagement.ts`, `gear.ts`, `raidBuffs.ts`, `links.ts`, `format.ts`.
 - `src/lib/score/` — `model.ts` (`Grade`, `Threshold`, `Metric`, `gradeOf`, `worst`) and `build.ts`
   (`sharePct`, `metricOf`, `section`, `overall`). Thresholds and weights stay per-spec.
+- `src/lib/compare/` — two scored pulls differenced. `gap.ts` (`bandGap`, `leaderOf`, `metricGap`,
+  `TIE_BANDS`), `build.ts` (`compare(a, b)`, `ranked`), `model.ts` (`MetricGap`, `SectionGap`,
+  `AbilityGap`, `CastGap`, `Comparison`). Spec-agnostic like the rest of `lib/`: it joins two
+  `Scorecard`s on metric key and never imports a spec.
 - `src/lib/spec/` — `registry.ts` (`SPECS`, `getSpec`, `findSpecForClass`, `DEFAULT_SPEC`,
   `SpecDefinition`), `apl.ts` (the whole ladder engine: `aplAudit(inputs, ladder)`, `ladderEntries`,
   `Band`), `index.ts` (re-exports the registry only — it must not export one spec's engine).
@@ -44,6 +48,9 @@ shared UI under `src/components/`. Nothing in `src/lib/` may import a spec (see 
 - `src/specs/windwalker/` and `src/specs/elemental/` — each with `lib/` (`index.ts` = GameData +
   registry + `<spec>Audit(h)` + thin `analyse()`, plus `apl.ts` and `score.ts`),
   `components/{charts,sections}/`, and `__fixtures__/`.
+- `src/components/compare/` — the compare page: `CompareFlow` (two `useReportSlot`s, one shared
+  encounter), `CompareReport`, `SectionGaps` (the ranked diverging rows), `MetricRow`, `RateGaps`,
+  `PullHeader`, `ComparabilityNotes`, `CompareBar`, `PullKey`.
 - `src/components/` — `Report.tsx`, `report/specSections.tsx` (the per-spec section registries and the
   `resourceSection` factory), `charts/` (`ApexChart`, `WindowTracks`, `ResourceChart`, `ResourceTrack`,
   `LanesTimeline`, `capped.ts`, `resourceCurve.ts`, `timelineOrder.ts`, `tones.ts`), `sections/`
@@ -105,6 +112,36 @@ reproducible hazard is the vitest one.
   `lust`, `track`…). No raw hex. Body copy 16px minimum; dense tables may reach 14px.
 - Charts: never put column labels in SVG text — they scale down and collide at phone widths.
 
+## The compare page
+
+`/monk/windwalker/compare` and its siblings, one per spec, built from the same registry as the report
+routes. Two pulls of **one spec and one boss**, read side by side.
+
+- **`useReportSlot`** is the report page's own selection state, lifted out of `ReportFlow`. The report
+  page holds one and the compare page holds two. A second copy of that logic is what this hook exists
+  to prevent — the fall-through in `resolvePlayerName`, the fight id held as an override rather than
+  an answer, the request dropped the moment the pickers move off it.
+- **One encounter, chosen once**, over both slots (`SlotInput.encounter`). Every threshold is
+  calibrated on a rotation being asked for the same things, so two different bosses are two different
+  questions. Which _attempt_ each report contributes stays per-slot. The picker offers the
+  intersection of the two reports' encounters.
+- **Each pull is scored at its own `ScoreView`.** Where that makes a rule apply to one and not the
+  other, the row reads _not asked_ rather than producing a number.
+- **The unit of the ranked chart is bands** — `|good - ok|` — because percent, seconds, count and
+  stacks have no common axis. Same normalisation as `headroom` in `Scorecard`, and for the same
+  reason it gives.
+- **`--color-pull-a` / `--color-pull-b`** are the two identity hues, re-measured at 9.5 dE protan and
+  18.1 dE to normal vision, and deliberately not the three verdict hues: green against rose would read
+  as right and wrong rather than as first and second. Colour is never the only channel — the first
+  pull is a filled mark and the second a ring (`PullKey`).
+- **No new chart library work.** The rows are HTML, like `BandScale` and `Bar`. `conventions.md`
+  forbids a hand-built _SVG_ chart, not a figure made of divs.
+- **Not compared:** timelines, cast logs, lanes, the miss ledger. Two pulls of different length do not
+  line up second for second. The page says so and links to each report instead.
+- Guards: `src/lib/compare/__tests__/` (real figures over the captures, plus the `TIE_BANDS` sweep —
+  146 metric pairs, none called level while the grades disagree) and
+  `src/components/compare/__tests__/compareReport.test.ts`.
+
 ## Fixtures — two kinds, and the difference matters
 
 `src/specs/*/__fixtures__/` holds **two different things**, and confusing them produces verification
@@ -155,9 +192,15 @@ grep -rn "from '~/specs/" src/components src/lib --include=*.ts --include=*.tsx 
   | grep -v "specSections\|spec/registry\|__tests__"
 ```
 
-**Expect exactly one hit today:** `src/components/sections/CastLog.tsx` imports the Windwalker
-`CastTimeline`. That is the known open item below, not a new regression — a clean run of this grep means
-it has been closed and this paragraph is stale.
+**Expect exactly one hit today:** `src/lib/types.ts` imports `AscendancePressVerdict` and
+`AscendanceSyncVerdict` from `~/specs/elemental/lib/ascendance`, which is the two Elemental audit types
+living beside every other audit type in that file.
+
+_**This paragraph named `src/components/sections/CastLog.tsx` until it was re-run.**_ That import is
+gone and the grep has not returned it for some time, so the sentence saying "expect CastLog" was
+telling a fresh session to accept a hit that is not there and to overlook the one that is. Re-run the
+grep before trusting this line, which is the same instruction the foot of this file gives about every
+count in it.
 
 Per-spec behaviour belongs on `SpecDefinition` (`identify`, `score`, `weightsFor`, `wasteTone`,
 `settings`, `colors`, `gcdMs`) or in the section/chart registries — never imported into shared code from

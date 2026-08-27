@@ -42,9 +42,18 @@ export interface AppProps {
 	 * same registry the route read it from. Everything below here takes the definition itself.
 	 */
 	specKey: string;
+	/**
+	 * Which page this island is: one pull read, or two put side by side.
+	 *
+	 * A string rather than a second island, and it crosses the boundary for the same reason `specKey`
+	 * does. Both pages hang off one session and one query cache, and they are the same page down to
+	 * the sign-in step, so splitting them here would duplicate every provider and — worse — give a
+	 * reader who moves between the two a second, empty cache to refill at the API's expense.
+	 */
+	mode?: 'report' | 'compare';
 }
 
-export default function App({ specKey }: AppProps) {
+export default function App({ specKey, mode = 'report' }: AppProps) {
 	// Built on mount rather than at module scope: Astro prerenders this island, and a client created
 	// during that pass would be a second, dead cache built into the bundle.
 	const [queryClient] = useState(createQueryClient);
@@ -58,7 +67,7 @@ export default function App({ specKey }: AppProps) {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<SessionProvider>
-				<Analyzer spec={spec} />
+				<Analyzer spec={spec} mode={mode} />
 			</SessionProvider>
 		</QueryClientProvider>
 	);

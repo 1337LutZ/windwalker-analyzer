@@ -7,6 +7,7 @@ import type { SpecDefinition } from '~/lib/spec';
 import SignInPanel from './auth/SignInPanel';
 import { Step } from './primitives';
 import { pageShellClass } from './primitives/pageShell';
+import CompareFlow from './compare/CompareFlow';
 import ReportFlow from './report/ReportFlow';
 
 /**
@@ -26,7 +27,7 @@ import ReportFlow from './report/ReportFlow';
  * `pages/[class]/[spec].astro` gives the page's own `<title>` the same reading from the same value,
  * and the two have to agree.
  */
-export default function Analyzer({ spec }: { spec: SpecDefinition }) {
+export default function Analyzer({ spec, mode = 'report' }: { spec: SpecDefinition; mode?: 'report' | 'compare' }) {
 	const { token } = useSession();
 	// The shell's own copy, in the `ui` namespace — `report` is the analysis, and the two are written
 	// and translated by different concerns.
@@ -74,7 +75,7 @@ export default function Analyzer({ spec }: { spec: SpecDefinition }) {
 				<SignInPanel />
 			</Step>
 
-			<ReportFlow spec={spec} />
+			{mode === 'compare' ? <CompareFlow spec={spec} /> : <ReportFlow spec={spec} />}
 
 			<footer className="mt-8 border-t border-line pt-5">
 				<p className="m-0 max-w-[70ch] leading-relaxed text-muted">{t('app.privacy')}</p>

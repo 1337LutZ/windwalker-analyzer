@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { __test, shouldAutoRun } from '../useReportUrlState';
 
-const { parse } = __test;
+const { parse, nextHref } = __test;
 
 describe('report URL state', () => {
 	it('reads a full selection', () => {
@@ -11,6 +11,7 @@ describe('report URL state', () => {
 			fightID: 30,
 			player: 'Examplemonk',
 			spec: null,
+			second: null,
 		});
 	});
 
@@ -23,12 +24,82 @@ describe('report URL state', () => {
 	});
 
 	it('treats missing and empty params as unset', () => {
-		expect(parse('')).toEqual({ code: null, fightID: null, player: null, spec: null });
+		expect(parse('')).toEqual({ code: null, fightID: null, player: null, spec: null, second: null });
 		expect(parse('?report=&fight=&player=&spec=')).toEqual({
 			code: null,
 			fightID: null,
 			player: null,
 			spec: null,
+			second: null,
+		});
+		// An empty second pull is no second pull. Three empty strings must not make a link read as a
+		// comparison of nothing against nothing.
+		expect(parse('?report2=&fight2=&player2=').second).toBeNull();
+	});
+
+	/**
+	 * The compare page's address, and the property that made these keys additive rather than a new
+	 * scheme: the first pull is read from the keys it has always been read from.
+	 */
+	it('reads a second pull, without touching how the first is read', () => {
+		const both = parse('?report=AAA&fight=1&player=One&report2=BBB&fight2=2&player2=Two');
+		expect(both).toMatchObject({ code: 'AAA', fightID: 1, player: 'One' });
+		expect(both.second).toEqual({ code: 'BBB', fightID: 2, player: 'Two' });
+	});
+
+	it('reads half a comparison as half a comparison', () => {
+		// A reader who filled in one slot and shared the link has named a second pull's absence, not a
+		// single-report address. The page opens on compare with one slot seeded.
+		expect(parse('?report=AAA&report2=BBB').second).toEqual({ code: 'BBB', fightID: null, player: null });
+	});
+
+	it('holds the second pull to the same rules as the first', () => {
+		expect(parse('?report2=abc&fight2=notanumber').second?.fightID).toBeNull();
+		const url = new URL('https://example.test/app');
+		url.searchParams.set('report2', 'a:6MhZgjyAknFWrYfK');
+		url.searchParams.set('player2', 'Player (17)');
+		expect(parse(url.search).second).toMatchObject({ code: 'a:6MhZgjyAknFWrYfK', player: 'Player (17)' });
+	});
+
+	/**
+	 * Writing the second pull, and the absence of one.
+	 *
+	 * The absence is the half worth pinning. A reader who compares two pulls and then opens a single
+	 * report in the same tab must not carry `report2` with them: the address would name a comparison
+	 * the page below it is not showing, and that link is what gets shared.
+	 */
+	it('writes a second pull, and clears it when there is not one', () => {
+		expect(
+			nextHref('https://example.test/monk/windwalker/compare', {
+				code: 'AAA',
+				fightID: 1,
+				player: 'One',
+				second: { code: 'BBB', fightID: 2, player: 'Two' },
+			}),
+		).toBe('/monk/windwalker/compare?report=AAA&fight=1&player=One&report2=BBB&fight2=2&player2=Two');
+
+		expect(
+			nextHref('https://example.test/monk/windwalker?report=AAA&report2=BBB&fight2=2&player2=Two', {
+				code: 'AAA',
+				fightID: null,
+				player: null,
+			}),
+		).toBe('/monk/windwalker?report=AAA');
+	});
+
+	it('round-trips a comparison through the address bar', () => {
+		const selection = {
+			code: 'AAA',
+			fightID: 1,
+			player: 'Player (17)',
+			second: { code: 'a:BBB', fightID: 22, player: 'Player (3)' },
+		};
+		const href = nextHref('https://example.test/monk/windwalker/compare', selection);
+		expect(parse(new URL(href, 'https://example.test').search)).toMatchObject({
+			code: 'AAA',
+			fightID: 1,
+			player: 'Player (17)',
+			second: { code: 'a:BBB', fightID: 22, player: 'Player (3)' },
 		});
 	});
 
@@ -47,7 +118,7 @@ describe('report URL state', () => {
 	it('has no notion of a token', () => {
 		const parsed = parse('?report=abc&token=SECRET&access_token=SECRET');
 		expect(JSON.stringify(parsed)).not.toContain('SECRET');
-		expect(Object.keys(parsed)).toEqual(['code', 'fightID', 'player', 'spec']);
+		expect(Object.keys(parsed)).toEqual(['code', 'fightID', 'player', 'spec', 'second']);
 	});
 });
 

@@ -1,0 +1,33 @@
+---
+// The compare page for one spec, beside that spec's own report page.
+//
+// A route rather than a mode on the report page, because the address is the thing being shared: two
+// pulls take two selections, and a link that carries both has to be distinguishable from a link that
+// carries one. The same registry builds both, so a spec cannot have a report page and no compare page.
+//
+// The spec reaches the island as its **key**, for the reason `[class]/[spec].astro` gives at length:
+// Astro serialises island props into the document and a `SpecDefinition` is mostly functions.
+import '~/styles/global.css';
+
+import App from '~/components/App';
+import Base from '~/layouts/Base.astro';
+import { SPECS } from '~/lib/spec';
+
+export function getStaticPaths() {
+	return SPECS.map((spec) => ({ params: { class: spec.classSlug, spec: spec.key } }));
+}
+
+const spec = SPECS.find((candidate) => candidate.key === Astro.params.spec);
+if (spec === undefined) {
+	// Unreachable: the paths above are built from this same list.
+	throw new Error(`No spec is registered as "${Astro.params.spec}", yet a route was built for it.`);
+}
+---
+
+<Base
+	title={`Compare two ${spec.displayName} pulls (alpha)`}
+	description={`Put two Mists of Pandaria ${spec.displayName} pulls side by side: which part of the rotation they differ on, by how much, and what neither log can answer. Runs entirely in your browser.`}
+	specColor={spec.colors.primary}
+>
+	<App client:load specKey={spec.key} mode="compare" />
+</Base>

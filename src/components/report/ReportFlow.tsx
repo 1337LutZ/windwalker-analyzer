@@ -1,16 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import '~/lib/i18n';
 
-import { useFightAnalysis, type AnalysisRequest } from '~/hooks/useFightAnalysis';
+import { useReportSlot } from '~/hooks/useReportSlot';
 import { useSettings } from '~/hooks/useSettings';
 import { shouldAutoRun, useInitialUrlSelection, useUrlSelectionWriter } from '~/hooks/useReportUrlState';
-import { useFightPlayers } from '~/hooks/useFightPlayers';
-import { useReportFights } from '~/hooks/useReportFights';
 
-import type { OfferedChoice } from '~/lib/view/targetMode';
 import type { SpecDefinition } from '~/lib/spec';
 import { forgetCredits } from '~/lib/wcl';
 
@@ -21,17 +18,13 @@ import { buttonClass, primaryButtonClass } from '../primitives/controls';
 
 import FetchProgress from './FetchProgress';
 import FightSelector from './FightSelector';
-import { resolvePlayerName } from './resolvePlayer';
 import PlayerSelector from './PlayerSelector';
 import ReportInput from './ReportInput';
 import ReportSkeleton from './ReportSkeleton';
 import SettingsDialog from './SettingsDialog';
 import StickySelectionBar from './StickySelectionBar';
 import TargetModeControl from './TargetModeControl';
-import { defaultFightID, groupByEncounter } from './encounterGroups';
 import { describeFailure } from './describeFailure';
-import type { ResolvedReportInput } from './parseReportInput';
-import { selectionDiverged } from './selectionDiverged';
 
 /**
  * Steps two to four, and the report they produce. Step one is the sign-in above it.
@@ -68,32 +61,6 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 	const settingsState = useSettings(spec.settings);
 	const queryClient = useQueryClient();
 
-	const [input, setInput] = useState<ResolvedReportInput | null>(null);
-	const [chosenFightID, setChosenFightID] = useState<number | null>(null);
-	/**
-	 * Set only when the reader picks a pull themselves.
-	 *
-	 * The scroll to the player step has to follow a *choice*, not a selection: the fight id also
-	 * changes when a report loads and the picker defaults to the last boss, and when a shared link
-	 * seeds one. Scrolling on those would yank the page while someone is still reading the fight list
-	 * they have not chosen from yet.
-	 */
-	const [fightJustChosen, setFightJustChosen] = useState(false);
-	const [chosenPlayer, setChosenPlayer] = useState<string | null>(null);
-	const [request, setRequest] = useState<AnalysisRequest | null>(null);
-	const [selectionOffScreen, setSelectionOffScreen] = useState(false);
-	/**
-	 * Which reading the report is graded at.
-	 *
-	 * It lives here rather than in `Report` because the control that sets it is in the sticky bar, and
-	 * the bar and the report are siblings — this is the nearest thing they share. It is still view
-	 * state, and everything `lib/view/targetMode` says about not making it a setting still holds: it
-	 * is not persisted, it is not an input to `analyse()`, and `requestPull` below puts it back to
-	 * `auto` on every new pull so a reading forced on one fight cannot follow the reader to the next.
-	 * That reset used to be free — `Report` unmounts when the analysis it is showing is dropped, and
-	 * took the state with it — and lifting the state is what made it something to do on purpose.
-	 */
-	const [targetChoice, setTargetChoice] = useState<OfferedChoice>('auto');
 	/**
 	 * Whether the selection carried in the URL has already been run.
 	 *
@@ -103,56 +70,49 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 	 * press the button, which is not what a shared link is for.
 	 */
 	const autoRan = useRef(false);
+	const [selectionOffScreen, setSelectionOffScreen] = useState(false);
 	const resultRef = useRef<HTMLDivElement | null>(null);
 	const playerStepRef = useRef<HTMLElement | null>(null);
 	const selectionRef = useRef<HTMLDivElement | null>(null);
 	const selectionEndRef = useRef<HTMLDivElement | null>(null);
 
 	/**
-	 * Every change of what is being read, in one place — including dropping it.
+	 * The selection the link supplied, as one stable object the slot can watch.
 	 *
-	 * The reading goes back to `auto` with the pull, and that is the whole reason this exists rather
-	 * than three bare `setRequest` calls: a reader who forced single target on Immerseus and then
-	 * analysed Galakras would otherwise have Galakras silently graded against the single-target list.
-	 * `lib/view/targetMode` names that exact failure as the reason this is not an `AnalysisSettings`;
-	 * it would have arrived anyway once the state outlived the report it belongs to.
+	 * `fromUrl` already changes identity only when the URL is actually read — once on mount, and once
+	 * more after a sign-in restores the query — so this passes that identity straight through rather
+	 * than minting a new object per render, which would re-seed the slot on every keystroke.
 	 */
-	const requestPull = useCallback((next: AnalysisRequest | null) => {
-		setRequest(next);
-		setTargetChoice('auto');
-	}, []);
+	const seed = useMemo(() => ({ code: fromUrl.code, fightID: fromUrl.fightID, player: fromUrl.player }), [fromUrl]);
 
-	useEffect(() => {
-		if (fromUrl.code === null) return;
-		setInput({
-			code: fromUrl.code,
-			fightID: fromUrl.fightID,
-			sourceID: null,
-		});
-		if (fromUrl.fightID !== null) setChosenFightID(fromUrl.fightID);
-		if (fromUrl.player !== null) setChosenPlayer(fromUrl.player);
-	}, [fromUrl]);
-
-	const code = input?.code ?? null;
-	const fights = useReportFights(token, code);
-	const groups = useMemo(() => groupByEncounter(fights.data?.fights ?? []), [fights.data]);
-
-	const fightID = chosenFightID ?? defaultFightID(groups, input?.fightID ?? null);
-	const fight = fights.data?.fights.find((candidate) => candidate.id === fightID) ?? null;
-
-	const players = useFightPlayers(token, code, fightID, spec.classKey, spec.specName);
-	// Memoised for the auto-run effect below, which depends on it. `players.data ?? []` hands back a
-	// fresh array on every render while the query is in flight, so that effect woke on every render
-	// until the roster arrived — harmless only because a ref stops it from firing twice.
-	const roster = useMemo(() => players.data ?? [], [players.data]);
-	const playerName = resolvePlayerName(roster, chosenPlayer, input?.sourceID ?? null);
-
+	/**
+	 * This page's one pull, held in the same hook the compare page holds two of.
+	 *
+	 * Everything about *a pull* is in there. What is left here is everything about *the page*: where it
+	 * scrolls, what the tab is called, what the address bar says, and the sticky bar that stands in for
+	 * the pickers once they are off screen. None of those is a question a slot can answer, and on a page
+	 * with two of them none of those is a question two slots should both try to.
+	 */
+	const slot = useReportSlot({ token, spec, settings: settingsState.settings, seed });
+	// Destructured to the names the markup below already uses, so lifting the state out is not also a
+	// rename of forty call sites.
 	const {
+		code,
+		fights,
+		groups,
+		fightID,
+		fight,
+		players,
+		roster,
+		playerName,
 		analysis,
-		error: analysisError,
 		isFetching,
 		progress,
-	} = useFightAnalysis(token, request, settingsState.settings, spec);
+		targetChoice,
+		setTargetChoice,
+		gradeable,
+	} = slot;
+	const analysisError = slot.error;
 
 	// Signing out drops the report with it. The analysis was fetched with that credential, and leaving
 	// it on screen would make "sign out" look like less than it is. The budget goes for the same
@@ -161,17 +121,14 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 		if (token !== null) return;
 		queryClient.clear();
 		forgetCredits();
-		setInput(null);
-		setChosenFightID(null);
-		setChosenPlayer(null);
-		requestPull(null);
-	}, [token, queryClient, requestPull]);
+		slot.reset();
+	}, [token, queryClient, slot]);
 
 	// Picking a pull is the moment the player step becomes answerable, and on a phone it sits below
 	// the whole fight list. Scroll it into view rather than leaving the reader to find it.
 	useEffect(() => {
-		if (!fightJustChosen) return;
-		setFightJustChosen(false);
+		if (!slot.fightJustChosen) return;
+		slot.clearFightJustChosen();
 		const step = playerStepRef.current;
 		if (step === null) return;
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -179,7 +136,7 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 			behavior: reduced ? 'auto' : 'smooth',
 			block: 'start',
 		});
-	}, [fightJustChosen]);
+	}, [slot]);
 
 	// The report lands below four steps of form, which on a phone is well past the fold.
 	useEffect(() => {
@@ -259,50 +216,12 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 		});
 		if (!ready || code === null || fightID === null || playerName === null) return;
 		autoRan.current = true;
-		requestPull({ code, fightID, playerName });
-	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, roster, requestPull]);
-
-	// The two pickers get the answer `ReportInput` already gives for the field above them: what is on
-	// screen belongs to a request, and the moment the selection stops matching that request, it belongs
-	// to a pull nobody is looking at. Only the request is dropped — the picks *are* the new selection.
-	//
-	// This has to be the whole triple rather than a handler on the fight picker, because the fight is
-	// not the only part that moves on its own: choosing a pull the reader's player was not in resolves
-	// a different name through `resolvePlayerName`, and that is a different report under the same two
-	// headings. Dropping the request takes the skeleton and the progress bar with it too, so a pull
-	// abandoned mid-fetch stops narrating itself under a selection it is not about; the fetch is
-	// already in the air and lands in the cache, where asking for that pull again is free.
-	useEffect(() => {
-		if (!selectionDiverged(request, { code, fightID, playerName })) return;
-		requestPull(null);
-	}, [request, code, fightID, playerName, requestPull]);
+		slot.analyse();
+	}, [fromUrl.code, fromUrl.player, token, code, fightID, playerName, roster, slot]);
 
 	const signedIn = token !== null;
 	const loaded = fights.data !== undefined;
 	const hasFights = groups.length > 0;
-	// Whether there is a reading to choose between: a report that was graded. Not the skeleton, which is
-	// not a report yet, and not the wrong-spec refusal, which has nothing to grade either way. One
-	// condition and two consumers below — the block above the sentinel and the bar's switches — because
-	// the two must never disagree about whether the control exists at all.
-	const gradeable = analysis !== null && analysis.isSpec;
-
-	/**
-	 * Drops everything that belonged to the previous report: the two picks and the analysis itself.
-	 *
-	 * `queryClient.removeQueries` is not needed — the queries are keyed by report code, so a new code
-	 * simply misses the cache — but the *rendered* report is held in `request`, which is keyed by
-	 * nothing and would otherwise survive the change.
-	 */
-	const clearBelow = useCallback(() => {
-		setChosenFightID(null);
-		setChosenPlayer(null);
-		requestPull(null);
-	}, [requestPull]);
-
-	const analyse = () => {
-		if (code === null || fightID === null || playerName === null) return;
-		requestPull({ code, fightID, playerName });
-	};
 
 	// Focus follows the scroll, or the sticky bar's Change button leaves a keyboard user at the bottom
 	// of the page having to tab back up through the whole report to reach what it just revealed.
@@ -355,13 +274,13 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 								busy={fights.isFetching}
 								initialReport={fromUrl.code}
 								onSubmit={(parsed) => {
-									setInput(parsed);
-									clearBelow();
+									slot.setInput(parsed);
+									slot.clearBelow();
 								}}
 								// Typing a different code makes everything below stale, including the report
 								// already on screen — which used to stay there, under a heading naming a
 								// report it did not come from.
-								onDiverge={clearBelow}
+								onDiverge={slot.clearBelow}
 							/>
 							{fights.data ? (
 								<p className="mt-3 mb-0 truncate text-sm text-muted">
@@ -392,15 +311,7 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 							fights={fights.data.fights}
 							difficultyNames={fights.data.difficultyNames}
 							value={fightID}
-							onChange={(next) => {
-								setChosenFightID(next);
-								// The reader's choice deliberately survives a change of pull: swapping between
-								// encounters is how you follow one person through a night, and clearing it here
-								// sent every swap back to whoever happens to be first in the roster. It is safe to
-								// keep because `resolvePlayerName` falls through — a name this pull has nobody by
-								// is not selected, it is simply not found.
-								setFightJustChosen(true);
-							}}
+							onChange={slot.chooseFight}
 						/>
 					) : (
 						<p className="m-0 max-w-[64ch] leading-relaxed text-ink-2">
@@ -429,7 +340,7 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 								<PlayerSelector
 									players={roster}
 									value={playerName}
-									onChange={setChosenPlayer}
+									onChange={slot.choosePlayer}
 									fightName={fight?.name ?? 'this pull'}
 									specName={spec.displayName}
 								/>
@@ -439,7 +350,7 @@ export default function ReportFlow({ spec }: { spec: SpecDefinition }) {
 								<button
 									type="button"
 									className={`${primaryButtonClass} w-full sm:w-auto`}
-									onClick={analyse}
+									onClick={slot.analyse}
 									disabled={isFetching || playerName === null}
 								>
 									{isFetching ? t('progress.fight') : t('steps.analyse')}

@@ -14,10 +14,28 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { URL_RESTORED_EVENT } from '~/lib/auth';
 
-export interface UrlSelection {
+/**
+ * One pull's address: which report, which pull in it, whose.
+ *
+ * Named as a shape rather than spelled out twice, because the compare page carries two of them and
+ * the second must be parsed and written by the same three rules as the first. A `player` that survives
+ * percent-encoding, a `fightID` that must be digits, an empty string that is not a value.
+ */
+export interface UrlPull {
 	code: string | null;
 	fightID: number | null;
 	player: string | null;
+}
+
+export interface UrlSelection extends UrlPull {
+	/**
+	 * The second pull, for the compare page. Null on every address that names one.
+	 *
+	 * Null rather than a triple of nulls, so that "this link is a comparison" is a question with an
+	 * answer instead of three questions that have to agree. A compare link naming only its first pull
+	 * is still a compare link, and it seeds one slot and leaves the other empty.
+	 */
+	second: UrlPull | null;
 	/**
 	 * The registry's own key, from the query — what `getSpec` reads.
 	 *
@@ -37,23 +55,43 @@ export interface UrlSelection {
  * a compile error rather than a value silently dropped — which is the shape the bug would take if the
  * path and the query ever disagreed about which spec a report belongs to.
  */
-export type WrittenSelection = Omit<UrlSelection, 'spec'>;
+export type WrittenSelection = Omit<UrlSelection, 'spec' | 'second'> & { second?: UrlPull | null };
 
-const EMPTY: UrlSelection = { code: null, fightID: null, player: null, spec: null };
+const EMPTY: UrlSelection = { code: null, fightID: null, player: null, spec: null, second: null };
 
+/**
+ * The query keys, first pull and second.
+ *
+ * The second pull's keys are the first's with a `2` on them, and they are **additive**: every link
+ * ever shared names the first pull under the keys it always used, so a report link opened today is
+ * read exactly as it was before the compare page existed. A scheme that packed both pulls into one
+ * key would have been shorter and would have broken all of them.
+ */
 const PARAM = { code: 'report', fight: 'fight', player: 'player', spec: 'spec' } as const;
+const PARAM2 = { code: 'report2', fight: 'fight2', player: 'player2' } as const;
 
-function parse(search: string): UrlSelection {
-	const params = new URLSearchParams(search);
-	const code = params.get(PARAM.code);
-	const fight = params.get(PARAM.fight);
-	const player = params.get(PARAM.player);
-	const spec = params.get(PARAM.spec);
+function pullFrom(params: URLSearchParams, keys: { code: string; fight: string; player: string }): UrlPull {
+	const code = params.get(keys.code);
+	const fight = params.get(keys.fight);
+	const player = params.get(keys.player);
 	return {
 		code: code !== null && code !== '' ? code : null,
 		fightID: fight !== null && /^\d+$/.test(fight) ? Number(fight) : null,
 		player: player !== null && player !== '' ? player : null,
+	};
+}
+
+function parse(search: string): UrlSelection {
+	const params = new URLSearchParams(search);
+	const spec = params.get(PARAM.spec);
+	const second = pullFrom(params, PARAM2);
+	return {
+		...pullFrom(params, PARAM),
 		spec: spec !== null && spec !== '' ? spec : null,
+		// A second pull exists when the address says anything at all about one. Any one of the three
+		// keys is enough: a compare link whose second slot was never filled in still opens the compare
+		// page with the first slot seeded, which is what half a comparison looks like.
+		second: second.code !== null || second.fightID !== null || second.player !== null ? second : null,
 	};
 }
 
@@ -110,6 +148,13 @@ function nextHref(href: string, selection: WrittenSelection): string {
 	set(PARAM.code, selection.code);
 	set(PARAM.fight, selection.fightID === null ? null : String(selection.fightID));
 	set(PARAM.player, selection.player);
+	// **Written on every call, including as absences.** A caller that names no second pull is a page
+	// about one pull, and leaving a stale `report2` in the address would make its link open a
+	// comparison the reader is not looking at.
+	const second = selection.second ?? null;
+	set(PARAM2.code, second?.code ?? null);
+	set(PARAM2.fight, second?.fightID === undefined || second.fightID === null ? null : String(second.fightID));
+	set(PARAM2.player, second?.player ?? null);
 	// **Dropped, not written.** The path names the spec now, so writing it here would put it in the
 	// address twice — and two spellings of one fact can disagree, whether by a hand-edited link or by
 	// an old `?spec=` outliving the route it was migrated to. Only one of the two chose the page, so

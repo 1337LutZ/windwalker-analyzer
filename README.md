@@ -442,7 +442,10 @@ union on `type` with narrowing helpers instead.
   marks those casts unjudged rather than guessing: a channel reported as clean here may still have
   overcapped, and the report says so where it matters. Everything reported as a fault is a fault the
   log actually proves.
-- Two specs, only Mists of Pandaria, only `classic.warcraftlogs.com`.
-- It reads one pull. It does not model gear, simulate alternatives, or compare you to rankings.
+- Three specs, only Mists of Pandaria, only `classic.warcraftlogs.com`.
+- It reads one pull, or two of them side by side. Both have to be the same spec and the same boss: every
+  threshold it grades against is calibrated on a rotation being asked for the same things, and two
+  different fights ask for different ones. It still does not model gear, simulate alternatives, or
+  compare you to rankings.
 - It sees what the log recorded. A missing debuff on a target that was never in range looks the same
   as a missed cast.

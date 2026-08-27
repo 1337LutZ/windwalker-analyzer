@@ -55,16 +55,32 @@ describe('whether the report on screen is still the one selected', () => {
 	});
 });
 
-describe('the flow consults it', () => {
+describe('the slot consults it', () => {
 	/**
-	 * The predicate is only half the fix, and the half a passing suite cannot see: `ReportFlow` has to
-	 * ask it and drop the request. A textual check the way `useNarrow.test.ts` sweeps for `matchMedia`,
-	 * because the wiring is an effect over React state and the suite runs in the node environment on
-	 * purpose — there is no DOM here to click a second fight in.
+	 * The predicate is only half the fix, and the half a passing suite cannot see: whatever holds a
+	 * pull has to ask it and drop the request. A textual check the way `useNarrow.test.ts` sweeps for
+	 * `matchMedia`, because the wiring is an effect over React state and the suite runs in the node
+	 * environment on purpose — there is no DOM here to click a second fight in.
+	 *
+	 * **It reads `useReportSlot`, which is where this moved when the compare page needed two pulls.**
+	 * It used to read `ReportFlow`, and pointing it at the new home rather than deleting it is the
+	 * whole value of the guard: a second copy of the selection logic is exactly the thing that would
+	 * have carried the code and left this behaviour behind.
 	 */
 	it('drops the request when the selection has moved off it', () => {
+		const slot = readFileSync(resolve(import.meta.dirname, '..', '..', '..', 'hooks', 'useReportSlot.ts'), 'utf8');
+		expect(slot).toContain('selectionDiverged(request, { code, fightID, playerName })');
+		expect(slot).toContain('requestPull(null)');
+	});
+
+	/**
+	 * And the flow no longer does it itself, so the two cannot both try.
+	 *
+	 * Two passes that must agree are a bug, and two `requestPull(null)` calls racing one selection
+	 * change is the shape that bug would take here.
+	 */
+	it('is asked in one place, not two', () => {
 		const flow = readFileSync(resolve(import.meta.dirname, '..', 'ReportFlow.tsx'), 'utf8');
-		expect(flow).toContain('selectionDiverged(request, { code, fightID, playerName })');
-		expect(flow).toContain('requestPull(null)');
+		expect(flow).not.toContain('selectionDiverged(');
 	});
 });
