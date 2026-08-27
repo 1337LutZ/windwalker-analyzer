@@ -17,6 +17,7 @@ export const SHARED_ABILITIES: Ability[] = [
 	// scored (`gate: 'other'`); the two with a buff window declare the aura they put up.
 	{
 		key: 'blood-fury',
+		gatedBy: 'race',
 		name: 'Blood Fury',
 		// Orc: +spell power / attack power for 15s — `sim/core/racials.go` (RegisterTemporaryStatsOnUseCD).
 		castIds: [33697],
@@ -27,6 +28,7 @@ export const SHARED_ABILITIES: Ability[] = [
 	},
 	{
 		key: 'berserking',
+		gatedBy: 'race',
 		name: 'Berserking',
 		// Troll: +20% cast and attack speed for 10s — `sim/core/racials.go:309`.
 		castIds: [26297],
@@ -37,6 +39,7 @@ export const SHARED_ABILITIES: Ability[] = [
 	},
 	{
 		key: 'gift-of-the-naaru',
+		gatedBy: 'race',
 		name: 'Gift of the Naaru',
 		// Draenei: a heal over fifteen seconds, off the global and on three minutes — `SpellCooldowns`
 		// reads `StartRecoveryTime` 0 and `RecoveryTime` 180000 for 59547. Here rather than in a spec's
@@ -49,6 +52,7 @@ export const SHARED_ABILITIES: Ability[] = [
 	},
 	{
 		key: 'arcane-torrent',
+		gatedBy: 'race',
 		name: 'Arcane Torrent',
 		// Blood Elf: a resource burst that logs a different id per resource — monk 129597, mana 28730,
 		// energy 25046, runic 50613, rage 69179, focus 80483 — `sim/core/racials.go:18`. Instant, no
@@ -62,6 +66,7 @@ export const SHARED_ABILITIES: Ability[] = [
 	// --------------------------------------------------------------- the tinker
 	{
 		key: 'synapse-springs',
+		gatedBy: 'profession',
 		name: 'Synapse Springs',
 		// The engineering glove tinker, registered as enchant 4898 in `sim/common/mop/enchants.go:216` —
 		// `RegisterTemporaryStatsOnUseCD(…, ActionID{SpellID: 126734})`, a 1-minute cooldown behind the

@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { capturedAnalyses } from '~/lib/analysis/fixtures';
-import { compare, ranked, TIE_BANDS, type Pull } from '~/lib/compare';
+import { compare, ranked, TIE_BANDS, type Pull, identityFrom } from '~/lib/compare';
 import { resolveBands } from '~/lib/view/targetMode';
 import { getSpec } from '~/lib/spec';
 import type { Analysis } from '~/lib/types';
@@ -15,6 +15,8 @@ import type { Analysis } from '~/lib/types';
 // The registry's own entry, asserted the way every other suite in this tree asserts it: a missing
 // spec is a broken registry, and the failure that follows names it either way.
 const spec = getSpec('windwalker')!;
+// Two spell ids can be one button — Jab has one per weapon type — and the registry is what says so.
+const IDENTITY = identityFrom(spec.registry);
 
 // Discovery hands back the file name, extension and all, and every reference below names a pull.
 const CAPTURED = new Map(
@@ -50,10 +52,10 @@ function forcedMulti(name: string): Pull {
 	return { analysis, scorecard: spec.score(analysis, view), view };
 }
 
-const strongVsPoor = compare(pull('strong'), pull('poor'));
-const strongVsCleave = compare(pull('strong'), pull('cleave'));
+const strongVsPoor = compare(pull('strong'), pull('poor'), IDENTITY);
+const strongVsCleave = compare(pull('strong'), pull('cleave'), IDENTITY);
 // One side read at the count it detected, the other forced onto the multi-target list.
-const acrossReadings = compare(pull('strong'), forcedMulti('cleave'));
+const acrossReadings = compare(pull('strong'), forcedMulti('cleave'), IDENTITY);
 
 describe('framing', () => {
 	it('carries the identity of each pull from its own analysis', () => {
@@ -82,12 +84,12 @@ describe('comparability notes', () => {
 	it('names a reading the two pulls do not share', () => {
 		// `mixed` reached one target only; `poor` reached two. Both are single-target pulls by mode, so
 		// the mode alone would have called them the same reading.
-		expect(compare(pull('mixed'), pull('poor')).notes.map((note) => note.kind)).toContain('bands');
+		expect(compare(pull('mixed'), pull('poor'), IDENTITY).notes.map((note) => note.kind)).toContain('bands');
 		expect(acrossReadings.notes.map((note) => note.kind)).toContain('bands');
 	});
 
 	it('says nothing about a pull compared with itself', () => {
-		expect(compare(pull('strong'), pull('strong')).notes).toEqual([]);
+		expect(compare(pull('strong'), pull('strong'), IDENTITY).notes).toEqual([]);
 	});
 });
 
@@ -99,7 +101,7 @@ describe('metric gaps', () => {
 	});
 
 	it('reports every metric as level when a pull is compared with itself', () => {
-		const self = compare(pull('strong'), pull('strong'));
+		const self = compare(pull('strong'), pull('strong'), IDENTITY);
 		for (const gap of self.sections.flatMap((section) => section.metrics)) {
 			if (gap.bands !== null) expect(gap.bands).toBe(0);
 			expect(gap.leader).toBeNull();
@@ -210,7 +212,7 @@ describe('abilities and casts', () => {
 	});
 
 	it('reports no movement at all against itself', () => {
-		const self = compare(pull('strong'), pull('strong'));
+		const self = compare(pull('strong'), pull('strong'), IDENTITY);
 		for (const ability of self.abilities) expect(ability.sharePoints).toBeCloseTo(0);
 		for (const row of self.casts) expect(row.cpm).toBeCloseTo(0);
 	});
@@ -233,8 +235,8 @@ describe('order', () => {
 
 describe('direction', () => {
 	it('negates every figure when the two sides swap', () => {
-		const forward = compare(pull('strong'), pull('poor'));
-		const back = compare(pull('poor'), pull('strong'));
+		const forward = compare(pull('strong'), pull('poor'), IDENTITY);
+		const back = compare(pull('poor'), pull('strong'), IDENTITY);
 		for (const [at, section] of forward.sections.entries()) {
 			const mirrored = back.sections[at];
 			expect(mirrored?.key).toBe(section.key);

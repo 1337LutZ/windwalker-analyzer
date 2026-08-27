@@ -67,7 +67,7 @@ import { cooldownDrift } from './cooldowns';
 import { aggregateDamage, damageByTarget, primaryTargetID } from './damage';
 import { pointsResourceAudit, poolResourceAudit, resourceSamples, wclPowerTypeOf } from './energy';
 import { engagedWindows } from './engagement';
-import { readGear } from './gear';
+import { readGear, readTalents } from './gear';
 import { segmentPull } from './segments';
 import { intersect, type Interval, unionMs } from './intervals';
 import { makeLinker } from './links';
@@ -873,6 +873,13 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 
 	// Read from the `combatantinfo` the event fetch already returned, so this costs no request.
 	const gear = readGear(events, actor.id);
+
+	// The same event again, for the talent list. Published on the analysis rather than read per spec
+	// because the compare page needs it for any spec: an ability one log took and the other did not is
+	// "did not take it", and only these two lists can say so. `readTalents` answers three ways and the
+	// array keeps all three — a list, an empty-of-this-id list, and null for a log that carried no
+	// `combatantinfo` at all.
+	const talents = readTalents(events, actor.id);
 
 	// Beside the gear because it reads the same free `combatantinfo` — that event's aura list is the
 	// only record of anything buffed before the pull, and without it a raid that buffs in the usual
@@ -1931,6 +1938,7 @@ export function analyseCore(dataset: FightDataset, settings: AnalysisSettings, s
 		// field's own docblock for why an empty aimed set may not produce rows.
 		...(spawns === undefined ? {} : { spawns }),
 		gear,
+		talents: talents === null ? null : [...talents],
 		raidBuffs,
 		potions,
 		resources: allResources,

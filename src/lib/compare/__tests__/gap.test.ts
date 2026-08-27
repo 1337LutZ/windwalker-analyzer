@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { capturedAnalyses } from '~/lib/analysis/fixtures';
-import { bandGap, compare, leaderOf, metricGap, TIE_BANDS } from '~/lib/compare';
+import { bandGap, compare, identityFrom, leaderOf, metricGap, TIE_BANDS } from '~/lib/compare';
 import { gradeOf, type Metric } from '~/lib/score/model';
 import { getSpec } from '~/lib/spec';
 import { resolveBands } from '~/lib/view/targetMode';
@@ -122,7 +122,7 @@ describe('metricGap', () => {
 		let compared = 0;
 		for (const [at, one] of pulls.entries()) {
 			for (const two of pulls.slice(at + 1)) {
-				for (const section of compare(one, two).sections) {
+				for (const section of compare(one, two, identityFrom(spec.registry)).sections) {
 					for (const gap of section.metrics) {
 						if (gap.bands === null || gap.a === null || gap.b === null) continue;
 						compared += 1;

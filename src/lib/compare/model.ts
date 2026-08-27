@@ -14,6 +14,8 @@ import type { Grade, Judged, Metric } from '~/lib/score/model';
 import type { Band } from '~/lib/spec/apl';
 import type { AbilityDamage, CastRow, TargetMode } from '~/lib/types';
 
+import type { Absence } from './absent';
+
 /** Which of the two pulls. `a` is the one named first, everywhere, in every figure. */
 export type Side = 'a' | 'b';
 
@@ -100,6 +102,8 @@ export interface AbilityGap {
 	/** True when either side reports it as such. Passives and utility are listed apart from the rest. */
 	passive: boolean;
 	utility: boolean;
+	/** Why the missing side is missing, when one is. Null when both logs have the button. */
+	absent: { side: Side; why: Absence } | null;
 }
 
 /** One ability's press rate, on both sides. Casts per minute is already length-normalised. */
@@ -118,6 +122,8 @@ export interface CastGap {
 	 * the column stays empty rather than asserting one pull's gate over a press the other never made.
 	 */
 	gate: Gate | null;
+	/** Why the missing side is missing, when one is. Null when both logs pressed the button. */
+	absent: { side: Side; why: Absence } | null;
 }
 
 /** Everything about one pull that frames the comparison rather than being compared by it. */

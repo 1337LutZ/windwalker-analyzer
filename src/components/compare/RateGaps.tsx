@@ -4,12 +4,34 @@ import { SpellIcon } from '../primitives';
 
 import PullKey from './PullKey';
 
+/**
+ * One key per reason a button is missing, written out so the key guard can see them.
+ *
+ * `i18n/__tests__/keys.test.ts` finds a key by reading the source for quoted key paths, and the row
+ * carries its key as a value. Without this table every one of these would be reported as copy nothing
+ * reads, and the four sentences would be four strings nobody could find.
+ */
+export const ABSENCE = {
+	notPressed: 'compare.rate.notPressed',
+	notTalented: 'compare.rate.notTalented',
+	cannotHave: 'compare.rate.cannotHave',
+	unknown: 'compare.rate.unknown',
+} as const;
+
 export interface RateRow {
 	id: number;
 	name: string;
 	/** Null where that pull never produced the thing being measured, which is not the same as zero. */
 	a: number | null;
 	b: number | null;
+	/**
+	 * Why the missing side is missing, as a copy key.
+	 *
+	 * **"not pressed" was every absence until it was measured, and it was wrong three ways.** A talent
+	 * the other player took instead, a racial this character could not have, and a log carrying no
+	 * talent list to answer from all read as a button somebody declined to press. See `absenceOf`.
+	 */
+	absent: string;
 }
 
 /**
@@ -63,8 +85,8 @@ export default function RateGaps({
 								<SpellIcon id={row.id} label={row.name} />
 							</span>
 							<span className="flex items-baseline gap-3 tabular font-mono text-sm text-ink">
-								<PullKey side="a">{row.a === null ? t('compare.rate.unpressed') : format(row.a)}</PullKey>
-								<PullKey side="b">{row.b === null ? t('compare.rate.unpressed') : format(row.b)}</PullKey>
+								<PullKey side="a">{row.a === null ? t(row.absent) : format(row.a)}</PullKey>
+								<PullKey side="b">{row.b === null ? t(row.absent) : format(row.b)}</PullKey>
 							</span>
 						</span>
 						{/* One track, no zones: there is no rule here to draw as ground, only two readings and the
@@ -89,8 +111,8 @@ export default function RateGaps({
 							) : null}
 						</span>
 						<span className="sr-only">
-							{players.a} {row.a === null ? t('compare.rate.unpressed') : format(row.a)}, {players.b}{' '}
-							{row.b === null ? t('compare.rate.unpressed') : format(row.b)}
+							{players.a} {row.a === null ? t(row.absent) : format(row.a)}, {players.b}{' '}
+							{row.b === null ? t(row.absent) : format(row.b)}
 						</span>
 					</li>
 				);

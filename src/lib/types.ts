@@ -2107,6 +2107,20 @@ export interface AnalysisCore {
 	 */
 	gear: GearSummary;
 	/**
+	 * The talent spell ids `combatantinfo` says the player brought, or null when it carried none.
+	 *
+	 * Off the same free `combatantinfo` `gear` already reads, so it costs no request. An array rather
+	 * than a `Set` because an `Analysis` is captured to JSON as a fixture, and a `Set` does not survive
+	 * that round trip.
+	 *
+	 * **Three answers, and the third is the reason this is published at all.** A list that does not
+	 * hold an id is a real "did not take it"; no list is a report that cannot say; and absent entirely
+	 * is a capture from before this field existed. None of the three may be read as any other — a
+	 * forgotten cooldown must never render as a talent somebody chose against, which is the inference
+	 * `readTalents`' own docblock exists to refuse.
+	 */
+	talents?: readonly number[] | null;
+	/**
 	 * The raid buffs that move this spec's damage, one row per effect.
 	 *
 	 * Optional for the same reason every field above it is: the committed fixtures are captured

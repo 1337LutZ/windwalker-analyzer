@@ -1,15 +1,16 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { compare, type Comparison, type Pull } from '~/lib/compare';
+import { compare, identityFrom, type Comparison, type Pull } from '~/lib/compare';
 import { formatDecimal, formatInteger, formatPercentValue } from '~/lib/format';
 
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
+import { useSpec } from '../report/specContext';
 
 import ComparabilityNotes from './ComparabilityNotes';
 import PullHeader from './PullHeader';
 import { pullLabels } from './pullLabels';
-import RateGaps, { type RateRow } from './RateGaps';
+import RateGaps, { ABSENCE, type RateRow } from './RateGaps';
 import SectionGaps from './SectionGaps';
 
 /**
@@ -27,6 +28,7 @@ function damageRows(comparison: Comparison): { rows: RateRow[]; max: number } {
 			name: ability.name,
 			a: ability.a?.share ?? null,
 			b: ability.b?.share ?? null,
+			absent: ABSENCE[ability.absent?.why ?? 'notPressed'],
 		}));
 	const max = Math.max(0, ...rows.flatMap((row) => [row.a ?? 0, row.b ?? 0]));
 	return { rows, max };
@@ -49,6 +51,7 @@ function castRows(comparison: Comparison): { rows: RateRow[]; max: number } {
 			name: row.name,
 			a: row.a?.cpm ?? null,
 			b: row.b?.cpm ?? null,
+			absent: ABSENCE[row.absent?.why ?? 'notPressed'],
 		}));
 	const max = Math.max(0, ...rows.flatMap((row) => [row.a ?? 0, row.b ?? 0]));
 	return { rows, max };
@@ -69,7 +72,9 @@ function castRows(comparison: Comparison): { rows: RateRow[]; max: number } {
  */
 export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 	const { t } = useTranslation('report');
-	const comparison = useMemo(() => compare(a, b), [a, b]);
+	// The spec's own ability table, which is what says two spell ids are one button.
+	const spec = useSpec();
+	const comparison = useMemo(() => compare(a, b, identityFrom(spec.registry)), [a, b, spec]);
 	const damage = useMemo(() => damageRows(comparison), [comparison]);
 	const casts = useMemo(() => castRows(comparison), [comparison]);
 

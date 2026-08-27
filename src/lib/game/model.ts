@@ -283,6 +283,19 @@ export interface Ability {
 	 */
 	sharesCooldownWith?: string;
 	/**
+	 * What a character has to *be* to have this button at all, when that is not "any of them".
+	 *
+	 * Absent on nearly everything, which is the honest default: a class ability belongs to the class,
+	 * and the spec that declares it is that claim already.
+	 *
+	 * It exists for the compare page, where an absent row has to say which of four things it is —
+	 * did not take it, cannot have it, had it and never pressed it, or the log cannot say. A talent
+	 * needs no declaration, because two logs' own talent lists settle it between them: an id in one
+	 * list and not the other was not taken. A racial has no such list to be missing from, so without
+	 * this a Draenei's Gift of the Naaru reads as a button the orc beside them declined to press.
+	 */
+	gatedBy?: 'race' | 'profession';
+	/**
 	 * Ids the log emits a `cast` under that are **not** a second press of this button.
 	 *
 	 * A combat log is not a list of decisions, and treating every `cast` as one over-counts. Three

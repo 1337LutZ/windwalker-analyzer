@@ -4,7 +4,11 @@ import type { BandView } from '~/lib/score/bands';
 import type { Metric, Scorecard, SectionScore } from '~/lib/score/model';
 import type { AbilityDamage, Analysis, CastRow } from '~/lib/types';
 
+import type { Absence } from './absent';
+
+import { absenceOf } from './absent';
 import { metricGap, TIE_BANDS } from './gap';
+import { identityIn, mergeRows, type AbilityIdentity } from './merge';
 import type {
 	AbilityGap,
 	CastGap,
@@ -13,6 +17,7 @@ import type {
 	MetricGap,
 	PullFraming,
 	SectionGap,
+	Side,
 	Tally,
 } from './model';
 
@@ -147,51 +152,123 @@ function tallyOf(sections: readonly SectionGap[]): Tally {
 	return tally;
 }
 
-function abilityGaps(a: readonly AbilityDamage[], b: readonly AbilityDamage[]): AbilityGap[] {
-	const left = new Map(a.map((ability) => [ability.id, ability]));
-	const right = new Map(b.map((ability) => [ability.id, ability]));
-	const ids = unionKeys(
-		a.map((ability) => String(ability.id)),
-		b.map((ability) => String(ability.id)),
-	).map(Number);
-	return ids
-		.map((id) => {
-			const one = left.get(id) ?? null;
-			const two = right.get(id) ?? null;
-			// One of the two is always present, because the id came from one of the two lists.
+/**
+ * Why one side has no row, when one side has none.
+ *
+ * Null when both logs have the button, which is most rows and the only case with a gap to report.
+ */
+function absenceFor(
+	one: { id: number } | null,
+	two: { id: number } | null,
+	a: Pull,
+	b: Pull,
+	identity: AbilityIdentity,
+): { side: Side; why: Absence } | null {
+	if (one !== null && two !== null) return null;
+	const present = one ?? two;
+	if (present === null) return null;
+	const side: Side = one === null ? 'a' : 'b';
+	const ability = identity.ability(present.id);
+	return {
+		side,
+		why: absenceOf({
+			castIds: ability?.castIds ?? [],
+			gatedBy: ability?.gatedBy,
+			mine: (side === 'a' ? a : b).analysis.talents,
+			theirs: (side === 'a' ? b : a).analysis.talents,
+		}),
+	};
+}
+
+/**
+ * Damage rows, folded to one row per button and joined across the two logs.
+ *
+ * **Folded first, joined second, and that order is the whole of it.** Jab logs under a different id
+ * per weapon type, so joining raw ids put one player's Jab beside the other player's absence twice
+ * over. `Ability.key` is the identity the game model already carries and `mergeRows` folds on it.
+ */
+function abilityGaps(a: Pull, b: Pull, identity: AbilityIdentity): AbilityGap[] {
+	const foldDamage = (into: AbilityDamage, next: AbilityDamage): AbilityDamage => {
+		const hits = into.hits + next.hits;
+		const total = into.total + next.total;
+		return {
+			...into,
+			total,
+			hits,
+			crits: into.crits + next.crits,
+			share: into.share + next.share,
+			// Re-derived rather than averaged: a mean of two averages weights the small half as heavily
+			// as the large one, and these two halves are a weapon swap, not a coin toss.
+			critPct: hits > 0 ? ((into.crits + next.crits) / hits) * 100 : 0,
+			avgHit: hits > 0 ? total / hits : 0,
+			averageTargetsHit:
+				into.averageTargetsHit === undefined && next.averageTargetsHit === undefined
+					? undefined
+					: hits > 0
+						? ((into.averageTargetsHit ?? 0) * into.hits + (next.averageTargetsHit ?? 0) * next.hits) / hits
+						: 0,
+		};
+	};
+	// Resolved over both lists at once, so a button the table carries on one side is recognised on the
+	// other, and an unmodelled id joins the button that shares its name rather than standing beside it.
+	const keyOf = identityIn([...a.analysis.damage.abilities, ...b.analysis.damage.abilities], identity.damage);
+	const fold = (rows: readonly AbilityDamage[]) => mergeRows(rows, keyOf, foldDamage);
+
+	const left = new Map(fold(a.analysis.damage.abilities).map((ability) => [keyOf(ability), ability]));
+	const right = new Map(fold(b.analysis.damage.abilities).map((ability) => [keyOf(ability), ability]));
+	return [...unionKeys([...left.keys()], [...right.keys()])]
+		.map((key) => {
+			const one = left.get(key) ?? null;
+			const two = right.get(key) ?? null;
 			const name = one?.name ?? two?.name ?? '';
 			return {
-				id,
+				id: one?.id ?? two?.id ?? 0,
 				name,
 				a: one,
 				b: two,
 				sharePoints: (one?.share ?? 0) - (two?.share ?? 0),
 				passive: (one?.passive ?? false) || (two?.passive ?? false),
 				utility: (one?.utility ?? false) || (two?.utility ?? false),
+				absent: absenceFor(one, two, a, b, identity),
 			};
 		})
 		.sort((one, two) => Math.abs(two.sharePoints) - Math.abs(one.sharePoints));
 }
 
-function castGaps(a: readonly CastRow[], b: readonly CastRow[]): CastGap[] {
-	const left = new Map(a.map((row) => [row.id, row]));
-	const right = new Map(b.map((row) => [row.id, row]));
-	const ids = unionKeys(
-		a.map((row) => String(row.id)),
-		b.map((row) => String(row.id)),
-	).map(Number);
-	return ids
-		.map((id) => {
-			const one = left.get(id) ?? null;
-			const two = right.get(id) ?? null;
+function castGaps(a: Pull, b: Pull, identity: AbilityIdentity): CastGap[] {
+	const foldCast = (into: CastRow, next: CastRow): CastRow => {
+		// The two halves are one button, so the presses are one series. Re-sorted because the gaps below
+		// are read off adjacent entries, and two interleaved lists concatenated are not in time order.
+		const times = [...into.times, ...next.times].sort((one, two) => one - two);
+		const gaps = times.slice(1).map((at, index) => (at - times[index]!) / 1000);
+		const sorted = [...gaps].sort((one, two) => one - two);
+		return {
+			...into,
+			count: into.count + next.count,
+			cpm: into.cpm + next.cpm,
+			times,
+			medianGapSec: sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length / 2)]!,
+			longestGapSec: gaps.length === 0 ? 0 : Math.max(...gaps),
+		};
+	};
+	const keyOf = identityIn([...a.analysis.casts, ...b.analysis.casts], identity.cast);
+	const fold = (rows: readonly CastRow[]) => mergeRows(rows, keyOf, foldCast);
+
+	const left = new Map(fold(a.analysis.casts).map((row) => [keyOf(row), row]));
+	const right = new Map(fold(b.analysis.casts).map((row) => [keyOf(row), row]));
+	return [...unionKeys([...left.keys()], [...right.keys()])]
+		.map((key) => {
+			const one = left.get(key) ?? null;
+			const two = right.get(key) ?? null;
 			const name = one?.name ?? two?.name ?? '';
 			return {
-				id,
+				id: one?.id ?? two?.id ?? 0,
 				name,
 				a: one,
 				b: two,
 				cpm: (one?.cpm ?? 0) - (two?.cpm ?? 0),
 				gate: one !== null && two !== null && one.gate === two.gate ? one.gate : null,
+				absent: absenceFor(one, two, a, b, identity),
 			};
 		})
 		.sort((one, two) => Math.abs(two.cpm) - Math.abs(one.cpm));
@@ -208,7 +285,7 @@ function castGaps(a: readonly CastRow[], b: readonly CastRow[]): CastGap[] {
  * that is what the metric detail is read in. Ranking them by gap is the chart's job and it sorts a
  * copy, so the two orderings cannot drift apart.
  */
-export function compare(a: Pull, b: Pull): Comparison {
+export function compare(a: Pull, b: Pull, identity: AbilityIdentity): Comparison {
 	const framingA = framingOf(a);
 	const framingB = framingOf(b);
 	const sections = unionKeys(Object.keys(a.scorecard.sections), Object.keys(b.scorecard.sections)).map((key) =>
@@ -220,8 +297,8 @@ export function compare(a: Pull, b: Pull): Comparison {
 		notes: notesFor(framingA, framingB),
 		tally: tallyOf(sections),
 		sections,
-		abilities: abilityGaps(a.analysis.damage.abilities, b.analysis.damage.abilities),
-		casts: castGaps(a.analysis.casts, b.analysis.casts),
+		abilities: abilityGaps(a, b, identity),
+		casts: castGaps(a, b, identity),
 	};
 }
 

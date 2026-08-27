@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
 import { capturedAnalyses } from '~/lib/analysis/fixtures';
-import { compare, type Pull } from '~/lib/compare';
+import { compare, type Pull, identityFrom } from '~/lib/compare';
 import { initI18n } from '~/lib/i18n/config';
 import { getSpec } from '~/lib/spec';
 import type { Analysis } from '~/lib/types';
@@ -18,6 +18,8 @@ import { SpecContext } from '../../report/specContext';
 initI18n();
 
 const spec = getSpec('windwalker')!;
+// Two spell ids can be one button — Jab has one per weapon type — and the registry is what says so.
+const IDENTITY = identityFrom(spec.registry);
 const CAPTURED = new Map(
 	capturedAnalyses('windwalker').map(({ name, analysis }) => [name.replace(/\.json$/, ''), analysis]),
 );
@@ -171,7 +173,7 @@ describe('the compare page', () => {
 	 */
 	it('draws each figure on its own scale rather than one shared axis', () => {
 		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
-		const comparable = compare(pull('strong'), pull('poor'))
+		const comparable = compare(pull('strong'), pull('poor'), IDENTITY)
 			.sections.flatMap((section) => section.metrics)
 			.filter((gap) => gap.bands !== null);
 		// One filled mark and one ring per comparable figure, on the scales themselves. `CompareScale`

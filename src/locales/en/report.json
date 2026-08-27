@@ -1984,7 +1984,10 @@
       "none": "Neither pull recorded a cast."
     },
     "rate": {
-      "unpressed": "not pressed"
+      "notPressed": "not pressed",
+      "notTalented": "not talented",
+      "cannotHave": "not available",
+      "unknown": "no talents on record"
     },
     "note": {
       "title": "What makes these two harder to compare",
