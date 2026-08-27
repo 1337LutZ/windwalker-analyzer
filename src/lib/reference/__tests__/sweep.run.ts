@@ -180,6 +180,7 @@ const job = (over: Partial<SweepJob> = {}): SweepJob => ({
 	rank: 104,
 	totalParses: 400,
 	...over,
+	loggedAt: 1_760_000_000_000,
 });
 
 const planOf = (jobs: SweepJob[]): SweepPlan => ({ metric: 'gcdUtilisationPct', specs: [], jobs });
@@ -254,6 +255,7 @@ describe('what a swept pull reads off an analysis', () => {
 			spec: 'windwalker',
 			encounterID: 1600,
 			encounterName: 'Iron Juggernaut',
+			loggedAt: 1_760_000_000_000,
 			code: 'a:6MhZgjyAknFWrYfK',
 			fightID: 12,
 			player: 'Player (17)',

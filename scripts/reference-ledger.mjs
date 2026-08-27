@@ -100,13 +100,59 @@ export const ANALYSER_REV = '2026-08-27-enforced-downtime';
 const CLASSIC_OFFSET = 50_000;
 export const cellKeyOf = (encounterID) => encounterID % CLASSIC_OFFSET;
 
+/**
+ * The parse bands a cell is bucketed by, as `[lo, hi)` percentile pairs.
+ *
+ * Mirrors `BANDS` in `build-reference-tables.mjs`, which owns the row arithmetic that turns these into
+ * ladder positions. Restated rather than imported because that module imports this one, and a cycle
+ * would be worse than a duplicated pair of numbers — `harness.test.ts` asserts the two agree.
+ *
+ * **Buckets are per band, not per cell, and that is what keeps the window honest.** A cell-wide window
+ * would let a run that happened to fetch ten top-band pulls evict every low-band pull it had, turning a
+ * ladder-spread reference into a top-parse one without anybody choosing that.
+ */
+export const BAND_EDGES = [
+	[0, 50],
+	[50, 75],
+	[75, 90],
+	[90, 101],
+];
+
+/** Which bucket a parse belongs to. Unranked pulls fall in the bottom band rather than a fifth one. */
+export function bandOf(rankPercent) {
+	const pct = rankPercent ?? 0;
+	const found = BAND_EDGES.find(([lo, hi]) => pct >= lo && pct < hi);
+	return found === undefined ? '0-50' : `${found[0]}-${found[1] > 100 ? 100 : found[1]}`;
+}
+
+/**
+ * How many pulls a band's bucket holds, and why the number grows.
+ *
+ * A fixed window keeps the reference current but never gets more precise: `p90` off forty pulls carries
+ * the same sampling error next year as it does today. So capacity rises a little each refresh, to a cap —
+ * newer parses still evict older ones, but the sample the estimate is drawn from widens, and the interval
+ * around `good` genuinely narrows instead of merely staying put.
+ *
+ * The cap exists because the return diminishes fast and the cost does not: each extra slot is a pull
+ * bought on every cell, on every refresh, for ever.
+ */
+export const BAND_START = 10;
+export const BAND_GROWTH = 2;
+export const BAND_CAP = 25;
+
+export const grownCapacity = (current) => Math.min(BAND_CAP, (current ?? BAND_START) + BAND_GROWTH);
+
 /** An empty ledger, in the shape a fresh checkout would find. */
-export const EMPTY = { builtAt: null, pulls: [] };
+export const EMPTY = { builtAt: null, bandCapacity: BAND_START, pulls: [] };
 
 export function readLedger(path = LEDGER) {
 	if (!existsSync(path)) return EMPTY;
 	const parsed = JSON.parse(readFileSync(path, 'utf8'));
-	return { builtAt: parsed.builtAt ?? null, pulls: parsed.pulls ?? [] };
+	return {
+		builtAt: parsed.builtAt ?? null,
+		bandCapacity: parsed.bandCapacity ?? BAND_START,
+		pulls: parsed.pulls ?? [],
+	};
 }
 
 export function writeLedger(ledger, path = LEDGER) {
@@ -130,6 +176,10 @@ export function rowFrom(pull, outcome = 'measured', rev = ANALYSER_REV) {
 		encounterName: pull.encounterName,
 		value: pull.value,
 		rankPercent: pull.rankPercent ?? null,
+		/** Which bucket this pull occupies. Stored rather than derived so a band edge change is visible. */
+		band: bandOf(pull.rankPercent),
+		/** Epoch ms of the kill. The sliding window retires the oldest, never the least recently fetched. */
+		loggedAt: pull.loggedAt ?? null,
 		isSpec: pull.isSpec,
 		kill: pull.kill,
 		difficulty: pull.difficulty,
@@ -156,6 +206,50 @@ export function knownKeys(ledger, { retryFailed = false } = {}) {
 	);
 }
 
+/**
+ * The buckets a ledger holds, keyed `spec:cell:band`, each sorted oldest first.
+ *
+ * Only measured rows: a retired or gated row still blocks re-buying but is not evidence.
+ */
+export function bucketsOf(ledger) {
+	const buckets = new Map();
+	for (const row of measuredPulls(ledger)) {
+		const key = `${row.spec}:${cellKeyOf(row.encounterID)}:${row.band ?? bandOf(row.rankPercent)}`;
+		if (!buckets.has(key)) buckets.set(key, []);
+		buckets.get(key).push(row);
+	}
+	// Nulls first: a row with no log date predates the field, so it is the oldest thing in the bucket and
+	// the first thing a growing window should replace.
+	for (const rows of buckets.values()) {
+		rows.sort((a, b) => (a.loggedAt ?? -Infinity) - (b.loggedAt ?? -Infinity));
+	}
+	return buckets;
+}
+
+/**
+ * Retire whatever a bucket no longer has room for, oldest kill first.
+ *
+ * **Retired rather than deleted, and the difference is the whole point.** A deleted row leaves the
+ * planner's known-keys set, so the next run buys the same pull again, evicts something to make room, and
+ * pays for that cycle every week for ever. A retired row stays in the ledger as a tombstone: it is not
+ * evidence, and it is not for sale.
+ */
+export function retire(ledger, capacity) {
+	const doomed = new Set();
+	for (const rows of bucketsOf(ledger).values()) {
+		if (rows.length <= capacity) continue;
+		for (const row of rows.slice(0, rows.length - capacity)) doomed.add(row.key);
+	}
+	if (doomed.size === 0) return { ledger, retired: 0 };
+	return {
+		ledger: {
+			...ledger,
+			pulls: ledger.pulls.map((row) => (doomed.has(row.key) ? { ...row, outcome: 'retired' } : row)),
+		},
+		retired: doomed.size,
+	};
+}
+
 /** The rows the table is built from: measured by the current analyser, and nothing else. */
 export function measuredPulls(ledger) {
 	return ledger.pulls.filter((row) => row.outcome === 'measured' && row.rev === ANALYSER_REV);
@@ -180,34 +274,51 @@ export function mergeLedger(ledger, rows) {
 }
 
 /**
- * How far each cell is from the target, so a run short on points spends them where they matter.
+ * Whether a candidate is worth buying, given what its bucket already holds.
  *
- * **Order is a credit optimisation, not a tidiness one.** A budget-limited run gets through some prefix
- * of the job list and stops; if that prefix is sorted by need, the run lifted the three cells sitting at
- * n=2 instead of adding a forty-first pull to a cell that was already fine. Over a few weeks this is the
- * difference between a table that fills out and one that fills out lopsidedly.
+ * Three answers, and the third is the one that stops a sliding window costing money for ever:
+ *
+ * - the bucket has room, so buy it;
+ * - the bucket is full and this parse is **newer** than its oldest, so buy it and let that one retire;
+ * - the bucket is full and this parse is **older** than everything in it, so do not buy it at all.
+ *
+ * That last case is decided *before* a point is spent, because the ranking row carries the kill's date.
+ * Without it a full bucket would re-buy the same ladder positions every week and evict at random.
  */
-export function needBy(ledger, targetN = Infinity) {
-	const counts = new Map();
-	for (const row of measuredPulls(ledger)) {
-		const key = `${row.spec}:${cellKeyOf(row.encounterID)}`;
-		counts.set(key, (counts.get(key) ?? 0) + 1);
-	}
-	return (job) => targetN - (counts.get(`${job.spec}:${cellKeyOf(job.encounterID)}`) ?? 0);
+export function wantsOf(ledger, capacity) {
+	const buckets = bucketsOf(ledger);
+	return (job) => {
+		const band = bandOf(job.predictedRankPercent ?? job.rankPercent);
+		const bucket = buckets.get(`${job.spec}:${cellKeyOf(job.encounterID)}:${band}`) ?? [];
+		if (bucket.length < capacity) return { want: true, room: capacity - bucket.length };
+		const oldest = bucket[0]?.loggedAt ?? -Infinity;
+		const mine = job.loggedAt ?? -Infinity;
+		return { want: mine > oldest, room: 0 };
+	};
 }
 
 /**
- * The jobs actually worth buying, in the order to buy them.
+ * How far each cell is from a full set of buckets, so a run short on points spends where it matters.
  *
- * Three filters, cheapest first: drop what the ledger already answers, drop cells that have reached the
- * target, then sort the rest by how badly their cell needs a pull. `limit` is the hard credit cap — the
- * caller's "spend no more than this many pulls' worth today".
+ * **Order is a credit optimisation, not tidiness.** A budget-limited run gets through some prefix of the
+ * list and stops; sorted by need, that prefix lifted the thinnest buckets rather than adding a
+ * twenty-sixth pull to one that was already full.
  */
-export function planJobs(ledger, jobs, { targetN = Infinity, limit = Infinity, retryFailed = false } = {}) {
+export function needBy(ledger, capacity = BAND_START) {
+	const buckets = bucketsOf(ledger);
+	return (job) => {
+		const band = bandOf(job.predictedRankPercent ?? job.rankPercent);
+		const bucket = buckets.get(`${job.spec}:${cellKeyOf(job.encounterID)}:${band}`) ?? [];
+		return capacity - bucket.length;
+	};
+}
+
+export function planJobs(ledger, jobs, { capacity = BAND_START, limit = Infinity, retryFailed = false } = {}) {
 	const known = knownKeys(ledger, { retryFailed });
-	const need = needBy(ledger, targetN);
+	const wants = wantsOf(ledger, capacity);
+	const need = needBy(ledger, capacity);
 	const fresh = jobs.filter((job) => !known.has(pullKeyOf(job)));
-	const wanted = fresh.filter((job) => need(job) > 0);
+	const wanted = fresh.filter((job) => wants(job).want);
 	wanted.sort((a, b) => need(b) - need(a));
 	return {
 		jobs: wanted.slice(0, limit),

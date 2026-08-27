@@ -78,6 +78,8 @@ export interface SweepJob {
 	predictedRankPercent: number;
 	rank: number;
 	totalParses: number;
+	/** Epoch ms of the kill itself, from the rankings row. Null when the site did not say. */
+	loggedAt: number | null;
 }
 
 export interface SweepPlan {
@@ -112,6 +114,8 @@ export interface SweptPull {
 	player: string;
 	/** WarcraftLogs' own name for the fight. The table is joined to a report by this, not by id. */
 	encounterName: string;
+	/** Epoch ms of the kill, for the sliding window. Null when the ranking row carried none. */
+	loggedAt: number | null;
 	/** WarcraftLogs' own parse percentile for this pull. Null when the site has none — never a nought. */
 	rankPercent: number | null;
 	predictedRankPercent: number;
@@ -305,6 +309,8 @@ export function pullFrom(
 		 * id, which matches nothing and quietly grades that encounter against the spec-wide curve.
 		 */
 		encounterName: dataset.fight.name,
+		/** Carried from the ranking row: the sliding window retires by when a pull happened. */
+		loggedAt: job.loggedAt,
 		code: job.code,
 		fightID: job.fightID,
 		player: job.player,
