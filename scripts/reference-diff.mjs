@@ -73,10 +73,24 @@ export function markdownFor(before, after) {
 	const rows = diffCells(before, after);
 	const out = [];
 
-	const evidence = evidenceOf(before, after)
-		.map(({ spec, before: was, after: now }) => `${spec} ${was} → ${now}`)
-		.join(' · ');
-	out.push(`**Evidence behind the table:** ${evidence}`);
+	const evidence = evidenceOf(before, after);
+	out.push(
+		`**Evidence behind the table:** ${evidence
+			.map(({ spec, before: was, after: now }) => `${spec} ${was} → ${now}`)
+			.join(' · ')}`,
+	);
+	// **A spec losing evidence looks like data loss and is not.** Values measured by an older analyser
+	// are excluded rather than averaged in — see `ANALYSER_REV` — so a rev bump drops the count until a
+	// sweep re-measures those pulls. Said here because the number is alarming without it.
+	const shrank = evidence.filter(({ before: was, after: now }) => now < was);
+	if (shrank.length > 0) {
+		out.push('');
+		out.push(
+			`> ${shrank.map((e) => e.spec).join(', ')} shows fewer pulls than main. Those are rows measured by an` +
+				' older analyser, held out of the table until a sweep re-measures them rather than averaged in with' +
+				' readings of a different quantity. Cells they backed keep their committed values meanwhile.',
+		);
+	}
 	out.push('');
 
 	if (rows.length === 0) {

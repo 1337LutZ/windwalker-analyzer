@@ -169,12 +169,12 @@ jobs:
             echo
             echo '<details><summary>What the sweep did</summary>'
             echo
-            echo '### What the sweep did'
             echo '```'
             cat refresh.log
             echo '```'
             echo
-            echo '### The metric on the new pool'
+            echo '**The metric on the new pool**'
+            echo
             echo '```'
             node scripts/gcd-analysis.mjs
             echo '```'
