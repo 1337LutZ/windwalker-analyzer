@@ -121,6 +121,14 @@ export const GATES = {
 	/** Kills only. Rankings return kills, but a cached dataset from elsewhere might not be one. */
 	requireKill: true,
 	difficulty: 4,
+	/**
+	 * Kept as the *documented intent* — 25-man only — while `RAID_SIZE` is what enforces it.
+	 *
+	 * It is not read by `gateOf`, and that is the point: raid size is settled server-side in the rankings
+	 * query, so no pull that reaches a gate can be the wrong size. It lived here as a client-side filter
+	 * against a field that does not exist, which silently discarded every candidate the sweep ever
+	 * planned. A constant nothing reads is better than a filter that reads the wrong thing.
+	 */
 	minRaidSize: 24,
 	/** Below this a handful of presses moves the figure a full point. */
 	minDurationMs: 120_000,
@@ -199,12 +207,23 @@ export function rowsForBand(totalParses, loPercent, hiPercent) {
 }
 
 /**
- * The bands a reference table is drawn from, and why it is the whole ladder.
+ * The bands a reference table is drawn from, and how wide a ladder they actually reach.
  *
  * A reference pooled only from top parses would answer "how does this compare to the best", which is a
  * ranking the report already shows. Pooled across the ladder it answers "what does this fight cost",
  * which is what a grading line needs — and the line is then anchored at the distribution's p90 rather
  * than its middle, so `good` still means good play. See `profile.ts` on why an anchor is not a curve.
+ *
+ * ***The ladder these cut is 2,000 rows deep, not the whole population, and the difference is not
+ * cosmetic.*** `characterRankings` stops serving past page 20 while still reporting `hasMorePages` —
+ * there are more parses and the API will not hand them over. Rankings are ordered by the metric, so the
+ * reachable window is the **top 2,000 by damage**, and a band labelled "0–50" is the lower half of that
+ * window rather than the lower half of everyone who killed the boss.
+ *
+ * So the reference describes *what a competent pull costs on this fight*, which is still the right
+ * question for a grading line, and every `rankPercent` derived here is a **floor** on the pull's true
+ * percentile. It is stated rather than assumed because the earlier version of this comment said "the
+ * whole ladder", which the API never permitted.
  */
 export const BANDS = [
 	[0, 50],
@@ -257,14 +276,82 @@ async function gql(token, query, variables) {
 	return body.data;
 }
 
+/**
+ * The raid size a reference is drawn from, as a **query argument**.
+ *
+ * ***This was the bug that made every sweep return nothing.*** It used to be a client-side filter,
+ * `entry.size < GATES.minRaidSize` — and `size` is not a field on a ranking entry. Every candidate read
+ * as `undefined`, `undefined ?? 0` is `0`, `0 < 24` is true, and all 4,200 candidates were discarded in
+ * silence. No error, no empty page, just `no candidates found` after a clean run against a live API.
+ *
+ * WarcraftLogs filters this server-side and the two rosters genuinely differ — the same encounter and
+ * spec returns a different first name at `size: 10` than at `size: 25`. So it belongs in the query,
+ * where a wrong value is a wrong list rather than an empty one.
+ */
+export const RAID_SIZE = 25;
+
 const RANKINGS = `
 query Rankings($encounterID: Int!, $className: String!, $specName: String!, $page: Int!) {
   worldData {
     encounter(id: $encounterID) {
-      characterRankings(className: $className, specName: $specName, difficulty: 4, metric: dps, page: $page)
+      characterRankings(className: $className, specName: $specName, difficulty: 4, metric: dps, size: ${RAID_SIZE}, page: $page)
     }
   }
 }`;
+
+/**
+ * How deep a ladder WarcraftLogs will actually serve, and why the number is not `count`.
+ *
+ * **`count` is the page size, not the total.** It reads 100 on every page of every encounter, with
+ * `hasMorePages: true` beside it, so the band arithmetic that divided by it was dividing by a constant.
+ * There is no total-parses field on this query at all.
+ *
+ * What there is instead is a hard ceiling: page 21 comes back empty for every spec and every encounter
+ * measured, so the reachable ladder is **2,000 rows**. That is the number the bands are cut against, and
+ * it is a *reachable* depth rather than a true population — a `rankPercent` derived from it says where a
+ * pull sits among the parses the API will hand over, which is a floor on its real percentile rather than
+ * the percentile itself.
+ *
+ * Two queries in the common case: page 1 is needed anyway, and page 20 answers whether the cap is hit.
+ */
+export const LADDER_PAGE_CAP = 20;
+export const PAGE_SIZE = 100;
+
+export async function depthOf(token, spec, encounterID, firstPage) {
+	const rowsOn = async (page) => {
+		if (page === 1) return firstPage;
+		const data = await gql(token, RANKINGS, {
+			encounterID,
+			className: spec.classKey,
+			specName: spec.specName,
+			page,
+		});
+		return data.worldData?.encounter?.characterRankings ?? {};
+	};
+	const depthAt = (page, payload) => (page - 1) * PAGE_SIZE + (payload.rankings?.length ?? 0);
+
+	if (firstPage.hasMorePages !== true) return depthAt(1, firstPage);
+
+	const capped = await rowsOn(LADDER_PAGE_CAP);
+	if ((capped.rankings?.length ?? 0) > 0) return depthAt(LADDER_PAGE_CAP, capped);
+
+	// Somewhere between the two. Binary search rather than a walk: a ladder that ends at page 6 should
+	// cost four queries, not six, and this runs once per cell on every scheduled refresh.
+	let lo = 1;
+	let hi = LADDER_PAGE_CAP;
+	let last = firstPage;
+	while (lo + 1 < hi) {
+		const mid = Math.floor((lo + hi) / 2);
+		const payload = await rowsOn(mid);
+		if ((payload.rankings?.length ?? 0) > 0) {
+			lo = mid;
+			last = payload;
+		} else {
+			hi = mid;
+		}
+	}
+	return depthAt(lo, last);
+}
 
 /**
  * Candidate pulls for one (spec, encounter), spread across the ladder.
@@ -282,7 +369,8 @@ export async function candidatesFor(token, spec, encounterID, perBand) {
 		page: 1,
 	});
 	const payload = first.worldData?.encounter?.characterRankings;
-	const total = payload?.count ?? payload?.rankings?.length ?? 0;
+	if ((payload?.rankings?.length ?? 0) === 0) return [];
+	const total = await depthOf(token, spec, encounterID, payload);
 	if (total === 0) return [];
 
 	const wanted = new Map();
@@ -318,7 +406,6 @@ export async function candidatesFor(token, spec, encounterID, perBand) {
 		for (const row of rows) {
 			const entry = data?.rankings?.[row - 1 - (page - 1) * 100];
 			if (entry?.report?.code === undefined) continue;
-			if ((entry.size ?? 0) < GATES.minRaidSize) continue;
 			out.push({
 				encounterID,
 				code: entry.report.code,
