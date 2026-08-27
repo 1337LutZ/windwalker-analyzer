@@ -6,7 +6,7 @@ import i18n from '~/lib/i18n/config';
 import CompareScale from '../score/CompareScale';
 import PullKey from './PullKey';
 import { refusalOf } from './refusal';
-import { reading } from '../score/reading';
+import { counted, reading, target } from '../score/reading';
 
 /**
  * One metric, on both pulls: what each of them read, and how far apart that is.
@@ -44,6 +44,12 @@ export default function MetricRow({ gap, players }: { gap: MetricGap; players: {
 				</span>
 			</span>
 			<CompareScale a={gap.a} b={gap.b} />
+			{/* Where the line sits, in the figure's own unit, so the zones under the marks are readable
+			    without going anywhere else. Withheld from a figure read as one count over another: the
+			    denominator already frames it, and a percentage target under "12/14" would be the row
+			    changing units mid-line to say the same thing twice. That is `Scorecard`'s rule and this
+			    calls the same predicate rather than restating it. */}
+			{counted(gap.a) ? null : <span className="font-mono text-xs text-ink-2">{target(gap.a, t)}</span>}
 		</li>
 	);
 }

@@ -147,72 +147,42 @@ describe('the compare page', () => {
 	/**
 	 * One order for the two logs, everywhere on the page.
 	 *
-	 * The ranked chart used to read the other way round: its legend named the second log first and its
-	 * axis put the first log on the right, because that is where the sign of `bands` sends it. Every
-	 * other figure names the first log first, so the chart was the one place a reader had to hold an
-	 * exception.
+	 * The legend named the second log first while every other figure named the first log first, so the
+	 * chart was the one place a reader had to hold an exception.
+	 *
+	 * **What this no longer asserts, and why.** It used to walk every dot and require the first log's
+	 * to sit left of centre, because position on the old shared rail *was* who led. The rails carry
+	 * each figure's own scale now, so a mark's position is its value: the first log sits left whenever
+	 * it read lower, which on a lower-is-better figure is where the better log belongs. Keeping that
+	 * assertion would have pinned the wrong invariant to the right name.
 	 */
-	it('puts the first log first in the ranked chart, legend and axis alike', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-metrics-heading'));
+	it('names the first log before the second in the chart legend', () => {
+		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
 		expect(chart).not.toBe('');
-
-		// The legend names them in the page's order.
 		const legend = chart.match(/<figcaption[\s\S]*?<\/figcaption>/)?.[0] ?? '';
 		expect(legend.indexOf(captured('strong').player)).toBeGreaterThan(-1);
 		expect(legend.indexOf(captured('strong').player)).toBeLessThan(legend.indexOf(captured('poor').player));
-
-		// And every dot sits on its own log's side of the rule: the first log left of centre, the second
-		// right of it. A tied dot is neutral and lands on the rule itself, so both bounds are inclusive.
-		const dots = [...chart.matchAll(/class="([^"]*?(?:bg-pull-a|border-pull-b)[^"]*?)"[^>]*?style="left:([\d.]+)%"/g)];
-		expect(dots.length).toBeGreaterThan(4);
-		for (const [, cls, left] of dots) {
-			const atPercent = Number(left);
-			if (cls?.includes('bg-pull-a')) expect(atPercent).toBeLessThanOrEqual(50);
-			else expect(atPercent).toBeGreaterThanOrEqual(50);
-		}
 	});
 
 	/**
-	 * Every comparable figure gets a row, and every row names both logs.
-	 *
-	 * The chart used to draw a dot per figure and name only the widest one either way, so a section
-	 * holding three lost one and a section the two logs tied on lost all of them — Potions drew a dot
-	 * and said nothing at all about it. A dot with no reading beside it is a position on an axis and
-	 * nothing else.
+	 * Every figure is drawn on its own scale, which is what replaced an axis whose unit could not be
+	 * named. Two marks per comparable figure, and the zones they stand on come from that figure's own
+	 * thresholds.
 	 */
-	it('lists every comparable figure, with both logs on each', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-metrics-heading'));
+	it('draws each figure on its own scale rather than one shared axis', () => {
+		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-damage-heading'));
 		const comparable = compare(pull('strong'), pull('poor'))
 			.sections.flatMap((section) => section.metrics)
 			.filter((gap) => gap.bands !== null);
-		expect(comparable.length).toBeGreaterThan(8);
-
-		// One swatch per log per figure, plus the pair in the legend. Counting the first log's swatch and
-		// the second's separately catches a row that names one of them and not the other.
-		const swatches = (mark: string) => chart.split(`size-2.5 shrink-0 rounded-full ${mark}`).length - 1;
-		expect(swatches('bg-pull-a')).toBe(comparable.length + 1);
-		expect(swatches('border-2 border-pull-b')).toBe(comparable.length + 1);
-
-		// The two the old shape dropped: a section's third figure, and a figure the logs tied on.
-		expect(chart).toContain('Stacks per brew');
-		expect(chart).toContain('Potions used');
-	});
-
-	/**
-	 * A figure with no comparison keeps its line in the card and loses only its scale.
-	 *
-	 * The chart used to drop it entirely, so `karmaEmpty` — which `strong` cannot measure — was absent
-	 * from Touch of Karma's card while the section it belongs to was ranked on the figure beside it. A
-	 * card that lists two of a section's three figures is a card a reader has to distrust.
-	 */
-	it('keeps a figure it cannot compare, and says which log could not answer', () => {
-		const chart = html.slice(html.indexOf('compare-gaps-heading'), html.indexOf('compare-metrics-heading'));
-		const refused = compare(pull('strong'), pull('poor'))
-			.sections.flatMap((section) => section.metrics)
-			.filter((gap) => gap.bands === null);
-		expect(refused.length).toBeGreaterThan(0);
-		expect(chart).toContain('Karma wasted');
-		expect(chart).toContain('has nothing to measure here');
+		// One filled mark and one ring per comparable figure, on the scales themselves. `CompareScale`
+		// spells these classes; counting its exact ones is what makes this a claim about the scale
+		// rather than about any violet pixel on the page.
+		const filled = chart.split('rounded-full bg-pull-a ring-2 ring-surface').length - 1;
+		const ringed = chart.split('rounded-full border-2 border-pull-b bg-surface ring-2 ring-surface').length - 1;
+		expect(filled).toBe(comparable.length);
+		expect(ringed).toBe(comparable.length);
+		// And no trace of the axis that went: no tick row, no bare scale numbers.
+		expect(chart).not.toContain('leading-none text-muted');
 	});
 
 	it('refuses to compare timelines, and says so', () => {

@@ -3,17 +3,14 @@ import { useTranslation } from 'react-i18next';
 
 import { compare, type Comparison, type Pull } from '~/lib/compare';
 import { formatDecimal, formatInteger, formatPercentValue } from '~/lib/format';
-import i18n from '~/lib/i18n/config';
 
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
 
 import ComparabilityNotes from './ComparabilityNotes';
-import MetricRow from './MetricRow';
 import PullHeader from './PullHeader';
 import { pullLabels } from './pullLabels';
 import RateGaps, { type RateRow } from './RateGaps';
 import SectionGaps from './SectionGaps';
-import { sectionAnchor } from './sectionAnchor';
 
 /**
  * Damage rows worth drawing: the buttons, ranked by how far apart the two pulls are.
@@ -103,30 +100,6 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 				<Prose>{t('compare.gaps.intent')}</Prose>
 				<div className="mt-5">
 					<SectionGaps sections={comparison.sections} players={players} />
-				</div>
-			</Section>
-
-			<Section id="compare-metrics" title={t('compare.metrics.title')}>
-				<Prose>{t('compare.metrics.intent')}</Prose>
-				<div className="mt-5 flex flex-col gap-7">
-					{comparison.sections.map((group) => {
-						// Held in a variable spelled `section`, which is the same shape `Scorecard` uses to
-						// title a card and is skipped by the key guard for the declared reason: the prefix is
-						// a section name arriving at runtime rather than a family of keys to enumerate.
-						const section = group.key;
-						return (
-							<div key={section} className="flex flex-col gap-1">
-								<h3 id={sectionAnchor(section)} className="m-0 scroll-mt-14 font-mono text-base font-semibold text-ink">
-									{i18n.exists(`${section}.title`) ? t(`${section}.title`) : section}
-								</h3>
-								<ul className="m-0 flex list-none flex-col divide-y divide-line p-0">
-									{group.metrics.map((gap) => (
-										<MetricRow key={gap.key} gap={gap} players={players} />
-									))}
-								</ul>
-							</div>
-						);
-					})}
 				</div>
 			</Section>
 

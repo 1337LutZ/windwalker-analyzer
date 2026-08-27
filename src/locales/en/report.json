@@ -1963,13 +1963,8 @@
     },
     "gaps": {
       "title": "Where they differ",
-      "intent": "A card for each part of the pull, and a line for each figure inside it. Every scale is that figure’s own target, so a share, a count of casts and a stretch of seconds can be read against one another. Pick a card to jump to it.",
-      "axis": "How far apart, measured against what each figure asks for. One scale per figure rather than one per card, so a part of the pull where each of you leads a different figure has dots on both sides and reads as split rather than as decided.",
-      "ahead": "{{player}} ahead"
-    },
-    "metrics": {
-      "title": "Figure by figure",
-      "intent": "Each figure drawn against its own targets, with both pulls marked on it and the distance between them joined up. These keep the order the report itself uses."
+      "intent": "A card for each part of the pull, and a line for each figure inside it: what each of you read, and where those two readings sit against the targets that figure is measured on. The cards are ordered so the part you are furthest apart on comes first.",
+      "axis": "Each scale is the figure’s own, with the target line under it, so every number here is in the unit that figure is measured in. Where a log could not answer, the line says so rather than drawing half a comparison."
     },
     "metric": {
       "missing": "One of the two reports does not measure this.",
