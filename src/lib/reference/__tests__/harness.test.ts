@@ -52,6 +52,9 @@ import {
 	mergeTable,
 	percentile,
 	printTable,
+	LADDER_PAGE_CAP,
+	PAGE_SIZE,
+	RAID_SIZE,
 	rankPercentOf,
 	registeredSpecs,
 	rowsForBand,
@@ -246,6 +249,45 @@ describe('drift, which is what `--check` reports', () => {
 
 	it('names a cell the committed table has never seen', () => {
 		expect(driftOf({ specs: {} }, fresh)).toEqual(['windwalker 1595 new n=1']);
+	});
+});
+
+describe('the raid size, which is a query argument', () => {
+	const raw = readFileSync(resolve(import.meta.dirname, '../../../../scripts/build-reference-tables.mjs'), 'utf8');
+	/**
+	 * Comments stripped before matching, because the file *documents* the bug it no longer has.
+	 *
+	 * The docstring beside `RAID_SIZE` quotes the old filter verbatim so the next reader knows what went
+	 * wrong. A source assertion that did not strip comments would read that explanation as the defect and
+	 * fail for ever — which is the exact way this kind of test gets deleted instead of fixed.
+	 */
+	const source = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+
+	/**
+	 * ***The regression test for the bug that made every sweep return nothing.***
+	 *
+	 * `size` is not a field on a ranking entry. The filter used to read `entry.size < GATES.minRaidSize`,
+	 * which evaluated `undefined ?? 0` to `0` for every candidate and discarded all 4,200 of them in
+	 * silence — a clean run against a live API that ended in `no candidates found`. Asserted against the
+	 * source because the failure had no observable symptom short of a live sweep.
+	 */
+	it('filters raid size in the query, never on the entry', () => {
+		expect(source, 'the rankings query must carry a size argument').toMatch(/characterRankings\([^)]*size:/);
+		expect(source, 'entry.size is always undefined — filter server-side').not.toMatch(/entry\.size/);
+	});
+
+	/** Twenty-five man heroic is what the reference describes; ten-man returns a different roster. */
+	it('asks for the size the reference is about', () => {
+		expect(RAID_SIZE).toBe(25);
+	});
+
+	/**
+	 * `count` reads 100 on every page, so the depth the bands are cut against comes from the page cap
+	 * rather than from a field. Pinned so a future edit does not quietly reintroduce `count` as a total.
+	 */
+	it('cuts bands against the reachable ladder, not a page count', () => {
+		expect(LADDER_PAGE_CAP * PAGE_SIZE).toBe(2000);
+		expect(source, 'count is the page size, never the population').not.toMatch(/payload\?\.count/);
 	});
 });
 
