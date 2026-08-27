@@ -30,6 +30,7 @@ import {
 	timelineCounters,
 	timelineNotes,
 	TIMELINE_ROW_ORDER as timelineRowOrder,
+	CAST_ORDER as castOrder,
 } from '~/specs/windwalker/lib/view/timelineBanks';
 import { RAID_BUFF_EFFECTS as raidBuffEffects } from '~/specs/windwalker/lib/view/raidBuffs';
 import {
@@ -50,6 +51,7 @@ import {
 	SUMMARY_LANE_KEYS as summaryLaneKeysElemental,
 	timelineCounters as timelineCountersElemental,
 	TIMELINE_ROW_ORDER as timelineRowOrderElemental,
+	CAST_ORDER as castOrderElemental,
 	timelineNotes as timelineNotesElemental,
 } from '~/specs/elemental/lib/view/timelineBanks';
 import { RAID_BUFF_EFFECTS as raidBuffEffectsElemental } from '~/specs/elemental/lib/view/raidBuffs';
@@ -71,6 +73,7 @@ import {
 	SUMMARY_LANE_KEYS as summaryLaneKeysProtection,
 	timelineCounters as timelineCountersProtection,
 	TIMELINE_ROW_ORDER as timelineRowOrderProtection,
+	CAST_ORDER as castOrderProtection,
 	timelineNotes as timelineNotesProtection,
 } from '~/specs/protection/lib/view/timelineBanks';
 import { RAID_BUFF_EFFECTS as raidBuffEffectsProtection } from '~/specs/protection/lib/view/raidBuffs';
@@ -209,6 +212,16 @@ export interface SpecDefinition {
 	 */
 	timelineRowOrder: readonly string[];
 	/**
+	 * The order a list of this spec's buttons is drawn in — see `lib/view/castOrder`.
+	 *
+	 * Ability keys, the named leaders only. Everything the spec owns and does not name sorts after
+	 * them, and the racials and consumables after that, so this list is the rotation's shape rather
+	 * than a full table anybody has to keep in step with the game data.
+	 *
+	 * Empty is a real answer: a spec that has not decided keeps the two tiers and declares no leaders.
+	 */
+	castOrder: readonly string[];
+	/**
 	 * The lanes the summary timeline shows, or `null` to show everything.
 	 *
 	 * `null` is not "not configured yet" — it is the honest reading for a spec that has not decided what
@@ -274,6 +287,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineNotes,
 		timelineCounters,
 		timelineRowOrder,
+		castOrder,
 		summaryLaneKeys,
 		summaryRowNames,
 		raidBuffEffects,
@@ -300,6 +314,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineNotes: timelineNotesElemental,
 		timelineCounters: timelineCountersElemental,
 		timelineRowOrder: timelineRowOrderElemental,
+		castOrder: castOrderElemental,
 		summaryLaneKeys: summaryLaneKeysElemental,
 		summaryRowNames: summaryRowNamesElemental,
 		raidBuffEffects: raidBuffEffectsElemental,
@@ -327,6 +342,7 @@ export const SPECS: SpecDefinition[] = [
 		timelineNotes: timelineNotesProtection,
 		timelineCounters: timelineCountersProtection,
 		timelineRowOrder: timelineRowOrderProtection,
+		castOrder: castOrderProtection,
 		summaryLaneKeys: summaryLaneKeysProtection,
 		summaryRowNames: summaryRowNamesProtection,
 		raidBuffEffects: raidBuffEffectsProtection,

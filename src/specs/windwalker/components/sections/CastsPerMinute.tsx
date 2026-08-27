@@ -6,6 +6,8 @@ import { formatDecimal } from '~/lib/format';
 import type { Analysis, CastRow } from '~/lib/types';
 
 import { Bar, DataGrid, Prose, Section, SpellIcon, type GridRow } from '~/components/primitives';
+import { useSpec } from '~/components/report/specContext';
+import { byCastOrder } from '~/lib/view/castOrder';
 
 const gateLabel = (c: CastRow, t: ReportCopy['t']): string =>
 	c.gate === 'cooldown'
@@ -266,13 +268,20 @@ function barCell(c: CastRow, budget: TigerPalmBudget, t: ReportCopy['t']) {
 export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 	const { cpm } = analysis;
 	const { t, verdict, gradeOf } = useReportCopy(analysis);
+	// For the ability table behind the cast order — the same registry the rest of the report reads.
+	const spec = useSpec();
 
 	// Utility presses are left out for the same reason they are left out of the damage comparison:
 	// Flying Serpent Kick is a movement button, and a cast rate for it invites a judgement about a
 	// rate nobody was aiming for.
 	const gcdCasts = useMemo(
-		() => analysis.casts.filter((c) => c.count > 1 && c.onGcd && !UTILITY_IDS.has(c.id)),
-		[analysis.casts],
+		() =>
+			analysis.casts
+				.filter((c) => c.count > 1 && c.onGcd && !UTILITY_IDS.has(c.id))
+				// The rotation's own shape rather than the order the event stream happened to produce,
+				// which put a flask between two rotational buttons. See `lib/view/castOrder`.
+				.sort(byCastOrder((c) => spec.registry.abilityByCastId(c.id)?.key ?? null, spec.castOrder)),
+		[analysis.casts, spec],
 	);
 	/**
 	 * The clock every rate on this section is per: the player's own contact span, summed from the

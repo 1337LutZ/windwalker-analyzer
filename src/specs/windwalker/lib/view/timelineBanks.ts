@@ -172,3 +172,20 @@ export const SUMMARY_LANE_KEYS: readonly string[] | null = null;
  * shape a reader wants. See `specs/protection/lib/view/timelineBanks.ts` for the argument.
  */
 export const SUMMARY_ROW_NAMES: readonly string[] | null = null;
+
+/**
+ * The order the cast lists put this spec's buttons in — see `lib/view/castOrder`.
+ *
+ * The rotation's own shape, which is what a monk already thinks in: Jab makes the chi, Tiger Palm and
+ * Blackout Kick spend it, and the two cooldowns it is spent on follow. Tigereye Brew closes the named
+ * set because it is the button the whole rotation is feeding. Everything else the spec owns sorts
+ * after these, and the racials and consumables after that.
+ */
+export const CAST_ORDER: readonly string[] = [
+	'jab',
+	'tiger-palm',
+	'blackout-kick',
+	'rising-sun-kick',
+	'fists-of-fury',
+	'tigereye-brew',
+];

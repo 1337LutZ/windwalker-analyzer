@@ -107,3 +107,12 @@ export const SUMMARY_ROW_NAMES: readonly string[] | null = [
 	'Ardent Defender',
 	'Righteous Fury',
 ];
+
+/**
+ * No declared cast order yet — see `lib/view/castOrder`.
+ *
+ * Empty rather than guessed: an order is editorial, and inventing one for a spec nobody has read a
+ * cast table of would be a claim about its rotation that no one has made. The two tiers below it still
+ * apply, so this spec's own buttons sort ahead of the racials and consumables.
+ */
+export const CAST_ORDER: readonly string[] = [];
