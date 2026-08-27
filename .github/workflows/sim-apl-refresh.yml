@@ -40,6 +40,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the branch below merges `origin/main`, and a shallow clone cannot.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -47,6 +50,24 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # One long-lived branch, continued rather than replaced. `--force-with-lease` refuses with "stale
+      # info" on a ref the runner never fetched, and an unmerged snapshot should not be discarded by the
+      # next week's run. Main is merged in first so the branch never drifts from the ladders it is
+      # compared against.
+      - name: Continue the open refresh, if there is one
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin "${BRANCH}" || true
+          if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
+            git checkout -B "${BRANCH}" "origin/${BRANCH}"
+            git merge --no-edit origin/main
+          else
+            git checkout -b "${BRANCH}"
+          fi
+        env:
+          BRANCH: sim-apl-refresh
 
       # `GITHUB_TOKEN` only lifts the API rate limit from 60 an hour to 1,000; the repository being read is
       # public and needs no authorisation. Through the environment, never a URL parameter, so it stays out
@@ -56,6 +77,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SPEC: ${{ inputs.spec }}
         run: |
+          # `| tee` reports the exit code of `tee`, not of the script it is reading.
+          set -o pipefail
           case "${SPEC}" in
             '') args='' ;;
             *[!a-z]*) echo "spec must be lowercase letters only, got: ${SPEC}" >&2; exit 1 ;;
@@ -129,14 +152,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="sim-apl-refresh/$(date -u +%Y-%m-%d)"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b "$BRANCH"
+          BRANCH=sim-apl-refresh
           git add src/generated/sim-apl.json
           git commit -m "Refresh the sim APL snapshot from wowsims/mop@master"
-          git push --force-with-lease origin "$BRANCH"
-          if ! gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
-            gh pr create --base main --head "$BRANCH" \
-              --title "Refresh the sim APL snapshot" --body-file pr-body.md
+          # Plain push: this run built on the branch rather than replacing it.
+          git push origin "$BRANCH"
+          if gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
+            exit 0
           fi
+          if gh pr create --base main --head "$BRANCH" \
+            --title "Refresh the sim APL snapshot" --body-file pr-body.md; then
+            exit 0
+          fi
+          echo "::error::Could not open the pull request. Enable Settings -> Actions -> General ->" \
+            "Workflow permissions -> 'Allow GitHub Actions to create and approve pull requests'."
+          echo "  https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          exit 1
