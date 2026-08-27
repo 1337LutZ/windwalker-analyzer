@@ -240,6 +240,24 @@ const ES_TWO_PIECE_EARLY_MS = 8000;
 const DISCHARGE_MS_PER_CHARGE = 2000;
 const DISCHARGE_MAX_MS = 7 * DISCHARGE_MS_PER_CHARGE;
 /**
+ * How long after a shock the debuff it applied may land and still be recognised as that shock's.
+ *
+ * Measured on `XJ83wN9h1GQqP4tY` fight 16, where the three pairs sit 54ms, 4ms and 24ms apart — the
+ * Fulmination is instant and the debuff follows it on the same hit. A second and a half is wide enough
+ * for any latency the log can carry and far short of the six-second cooldown, so no shock can claim the
+ * next shock's application.
+ */
+const DISCHARGE_MATCH_MS = 1500;
+/**
+ * Slack taken off an observed window before it is divided into charges.
+ *
+ * The division is `span / 2s` rounded *up*, because a refresh lands before the debuff expires and so
+ * under-states it. Rounding up with no slack turns a window that ran forty milliseconds long — server
+ * jitter, not a charge — into a whole extra charge. A tenth of a second is far below the two-second
+ * quantum this reads and comfortably above the millisecond noise the pairs above show.
+ */
+const DISCHARGE_JITTER_MS = 100;
+/**
  * How much stronger a new Flame Shock application has to be for refreshing early to be the right press.
  *
  * The sim's own number, not a tolerance chosen here: `Flame Shock Rules` in
@@ -3175,6 +3193,79 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 */
 	const twoPieceOwned = twoPieceWindows.length > 0;
 	/**
+	 * How many Lightning Shield charges a shock spent, read back out of the debuff it applied.
+	 *
+	 * **A validation fallback, and only that.** It is `Math.max` against the shield's own reading and can
+	 * therefore only ever *raise* a count the log under-states — never lower one the log gets right, and
+	 * never say anything at all for a shaman without the two-piece, who leaves no debuff to read. That
+	 * asymmetry is the whole licence for inferring a number rather than measuring it.
+	 *
+	 * **What it is for.** `auraLevels` builds the shield's stack count from the log's own stack events, and
+	 * a fight can begin with the shield already up: on `XJ83wN9h1GQqP4tY` fight 16 the first Lightning
+	 * Shield event of the pull is a `removebuffstack` to 1 at 21 815ms with no apply in front of it. The
+	 * seven charges that shock spent were built before the pull and are invisible, so the press read two
+	 * and the report told a player who had done it perfectly that they had unloaded at two stacks.
+	 *
+	 * **What the debuff knows that the shield does not.** Fulmination applies Elemental Discharge for two
+	 * seconds per charge consumed, so the window's length *is* the charge count. That same log applies the
+	 * debuff at 21 869 and refreshes it at 35 135 — 13 266ms, which cannot be bought with fewer than seven
+	 * charges. The press is corrected to seven and the fault disappears.
+	 *
+	 * **A lower bound, which is why it rounds up.** A refresh lands before expiry, so an observed span
+	 * under-states the window it interrupted; the true count is at least `span / 2s`. `DISCHARGE_JITTER_MS`
+	 * keeps that rounding from inventing a charge out of server noise. A span past the ceiling is the
+	 * ceiling — seven charges is all the aura can hold.
+	 */
+	const dischargeCharges = new Map<number, number>();
+	if (twoPieceOwned) {
+		const ids = new Set(T16_2PC_DEBUFF.ids);
+		// Every moment this player's debuff on the primary changed, in order: the applies and refreshes that
+		// open a window and the removes that close one. A span runs from one to the next whatever its kind,
+		// because any of the three ends the application that was running.
+		const changes: Array<{ t: number; opens: boolean }> = [];
+		for (const e of events) {
+			if (e.sourceID !== actor.id || e.targetID !== primaryID) continue;
+			const id = abilityIdOf(e);
+			if (id === null || !ids.has(id) || !isAuraEvent(e)) continue;
+			changes.push({ t: e.timestamp - t0, opens: isAuraApply(e) || isAuraRefresh(e) });
+		}
+		changes.sort((a, b) => a.t - b.t);
+		for (let i = 0; i < changes.length; i++) {
+			const change = changes[i];
+			if (change === undefined || !change.opens) continue;
+			const span = (changes[i + 1]?.t ?? duration) - change.t;
+			/**
+			 * **A span the aura cannot hold is not a big window, it is a missing event.**
+			 *
+			 * Seven charges is fourteen seconds and there is no eighth, so a span past that means the remove
+			 * that ended the application never reached the log and the next change is somebody else's. Capping
+			 * such a span at seven would read the ceiling off a gap — the one direction this must never guess
+			 * in, because `Math.max` then makes it permanent. So it declines instead, and the shield's own
+			 * reading stands exactly as it would have without any of this.
+			 *
+			 * The bound is the ceiling plus the same jitter the division allows: the real log's longest
+			 * application runs 14 021ms against a 14 000ms aura, and that has to pass.
+			 */
+			if (span > DISCHARGE_MAX_MS + DISCHARGE_JITTER_MS) continue;
+			const charges = Math.ceil(Math.max(0, span - DISCHARGE_JITTER_MS) / DISCHARGE_MS_PER_CHARGE);
+			if (charges > 0) dischargeCharges.set(change.t, Math.min(7, charges));
+		}
+	}
+	/**
+	 * The charges a shock spent: the shield's own reading, raised by the debuff's where the debuff knows
+	 * better. Null only when neither has anything to say.
+	 */
+	const chargesAt = (t: number): number | null => {
+		const logged = levelAt(lsLevels, t);
+		let inferred: number | null = null;
+		for (const [applied, charges] of dischargeCharges) {
+			if (applied < t - DISCHARGE_JITTER_MS || applied > t + DISCHARGE_MATCH_MS) continue;
+			inferred = Math.max(inferred ?? 0, charges);
+		}
+		if (inferred === null) return logged;
+		return Math.max(logged ?? 0, inferred);
+	};
+	/**
 	 * **The landing clock, and every one of this row's four inputs is a join against an event stream.**
 	 *
 	 * Stated because it was not: the `Handles` ruling's audit found eighteen of twenty cast readers across
@@ -3246,7 +3337,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			 */
 			const bound = drawn === undefined ? 0 : Math.min(drawn.end, drawn.start + DISCHARGE_MAX_MS);
 			dischargeExpiry.set(t, previous ?? bound);
-			const spent = levelAt(lsLevels, t) ?? 0;
+			const spent = chargesAt(t) ?? 0;
 			if (spent <= 0) continue;
 			const modelled = t + Math.min(DISCHARGE_MAX_MS, spent * DISCHARGE_MS_PER_CHARGE);
 			previous = drawn === undefined ? modelled : Math.min(modelled, drawn.end);
@@ -3256,7 +3347,10 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	const dischargeLeftAt = (t: number): number => Math.max(0, (dischargeExpiry.get(t) ?? 0) - t);
 
 	const esPresses = castTimes(EARTH_SHOCK).map((t) => {
-		const stacks = levelAt(lsLevels, t);
+		// The shield's reading where the log carries one, raised by the debuff's where it does not. See
+		// `dischargeCharges` — this is the number `belowFull` is tested against and the number the cast log
+		// prints, so a press corrected there is corrected everywhere a reader meets it.
+		const stacks = chargesAt(t);
 		// The dot on the enemy this shock is being fired at, not on any spawn of its actor id — the
 		// `fsLow` reason below is a statement about the target in front of the player.
 		const fsRemaining = fsRemainingAt(t);
