@@ -1226,6 +1226,9 @@
         "earthShockWaste": {
           "label": "Inefficient shocks"
         },
+        "elementalDischargeUptime": {
+          "label": "Elemental Discharge uptime"
+        },
         "searingTotemUptime": {
           "label": "Totem uptime"
         },
@@ -1296,7 +1299,7 @@
     },
     "scorecard": {
       "value_percent": "{{value, percent}}",
-      "value_sample": "{{part, integer}}/{{total, integer}}",
+      "value_sample": "{{part, decimal}}/{{total, integer}}",
       "value_seconds": "{{value, duration}}",
       "value_stacks": "{{value, decimal}}",
       "value_count": "{{value, integer}}",
@@ -1518,7 +1521,8 @@
       "applies": "Fresh applications",
       "refreshes": "Refreshes",
       "windowed": "In the last tick",
-      "multiDot": "Second target uptime"
+      "multiDot": "Second target uptime",
+      "secondaryWasted": "Second dots that never paid back"
     },
     "columns": {
       "at": "at",
@@ -1564,15 +1568,17 @@
       "aoe": "Three or more enemies"
     },
     "aoeNote": "The greyed stretches are the ones with three or more enemies up, and the uptime above is measured over what is left of the pull. The AoE priority list has no Lava Burst in it at all, and Lava Burst is why a dropped Flame Shock costs far more than the global that puts it back — so nothing there holds you to a dot uptime. At two enemies the figure still holds you to it, because that list casts both Flame Shock and Lava Burst. Put the dot back up when it is off the enemy in front of you either way: that is the AoE list's first rung.",
-    "multiDotNote": "The second-target figure is measured over less of the pull than the greyed stretches above explain: only the stretches where exactly two enemies were up. Below two there is no second target to put a dot on, and from three enemies up the multi-target order has no second-dot rung in it at all, so both ends leave that figure rather than counting against it. The grey covers the ceiling alone, because the dot uptime beside it is still measured at one enemy — so there is no shaded stretch on the graph for its floor."
+    "multiDotNote": "The second-target figure is measured over less of the pull than the greyed stretches above explain: only the stretches where exactly two enemies were up. Below two there is no second target to put a dot on, and from three enemies up the multi-target order has no second-dot rung in it at all, so both ends leave that figure rather than counting against it. The grey covers the ceiling alone, because the dot uptime beside it is still measured at one enemy — so there is no shaded stretch on the graph for its floor.",
+    "secondaryNote": "A Flame Shock on a second target costs the same global a Lightning Bolt would have, and it only earns that global back once enough of its ten ticks have landed. A dot that ran its full thirty seconds paid for itself; one that ran twenty is about even; anything shorter was a cast you would rather have spent on the target in front of you."
   },
   "earthShock": {
     "title": "Earth Shock",
     "intent": "Earth Shock spends the Lightning Shield, and what makes a press good depends on how many enemies were up when you pressed it — and on whether a tier-16 two-piece proc was running.",
     "rule": {
       "single": "Against one enemy, with no tier-16 proc running: press it with the shield at seven charges, over six seconds left on the Flame Shock dot, and Ascendance more than six seconds away, because Ascendance wants the same shock timer.",
-      "tier": "While a tier-16 proc is running, hold the shock instead. Wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks — so a shock pressed while the proc is running is not early just for being there, and only one pressed before those last four seconds is.",
-      "multi": "Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change."
+      "tier": "While a tier-16 proc is running, hold the shock instead. Wait until the proc's debuff is inside its last four seconds, then spend it with the shield full and the dot still good for two more ticks. A shock pressed inside those last four seconds is not early at all; one pressed four to eight seconds out is early but nearly held, and counts half; one pressed with more than eight seconds left is charged in full.",
+      "multi": "Against two enemies the numbers change: six charges instead of seven, eight seconds of dot instead of six, no waiting on Ascendance, and nothing the tier-16 set can change.",
+      "discharge": "Every Earth Shock that spends the shield leaves Elemental Discharge on that target — two seconds per charge consumed, and +4% to your Fire and Nature damage while it lasts. A shock at seven charges buys twelve seconds of it, which is why the shock is worth holding for: the window you are waiting out is the one your last shock paid for."
     },
     "verdict_good": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long.",
     "verdict_ok": "{{good, integer}} of {{casts, integer}} shocks were spent with the shield charged up and the Flame Shock dot still long. The rest went out early, and the table above says what was short on each one.",
@@ -1582,7 +1588,9 @@
     "verdict_none": "Earth Shock was never cast in this pull.",
     "kpi": {
       "good": "Good shocks",
-      "belowFull": "Below full stacks"
+      "belowFull": "Below full stacks",
+      "ok": "Nearly held",
+      "discharge": "Elemental Discharge uptime"
     },
     "columns": {
       "at": "at",
@@ -1593,7 +1601,8 @@
       "belowFull": "Shield below 7 charges",
       "fsLow": "Flame Shock had under 6s left",
       "ascReady": "Ascendance was up within 6s — hold the shock for it",
-      "twoPiece": "Spent with over 4s still on the tier-16 proc — wait for its last four seconds",
+      "twoPiece": "Spent with over 8s still on the tier-16 proc — the whole window was still ahead of it",
+      "twoPieceEarly": "Spent 4–8s before the tier-16 proc ran out — nearly held, and charged at half",
       "fsTail": "Flame Shock had under two ticks left",
       "cleaveStacks": "Shield below 6 charges, with two enemies up",
       "cleaveDot": "Flame Shock had under 8s left, with two enemies up"

@@ -216,12 +216,21 @@ describe('the two-target list judges the two-target presses', () => {
 	 * what makes them still the guard they were written to be.
 	 */
 	it('moves earthShockWaste on cleave alone', () => {
-		expect(wastePct(cleave)).toBeCloseTo(42.8571, 3);
-		expect(cleave.earthShock.good).toBe(4);
+		// **Every figure here has moved, and one defect explains all three.** The tier-16 `remaining` check
+		// read `remainingIn(t, twoPieceWindows)`, and `auraWindows` does not split a window on a refresh —
+		// so a debuff kept up across a phase was one window from its first apply to its last remove, and the
+		// check answered the distance to the end of that *run*. `unbroken`'s is 36.1 seconds against an aura
+		// that cannot hold fourteen. Every shock inside it read far too much time left and every one was
+		// charged, including the ones taken with under a second on the debuff. The remaining is modelled
+		// from the charges the previous shock spent now — see `dischargeExpiry` — and `twoPiece` reaches no
+		// committed pull at all, the same place `ascReady` has always been.
+		expect(wastePct(cleave)).toBeCloseTo(21.4286, 3);
+		expect(cleave.earthShock.good).toBe(5);
+		expect(cleave.earthShock.ok).toBe(1);
 		expect(cleave.earthShock.judged).toBe(7);
-		expect(wastePct(fx('phased'))).toBeCloseTo(41.6667, 3);
-		expect(wastePct(fx('unbroken'))).toBeCloseTo(61.5385, 3);
-		expect(scoreAnalysis(cleave).sections['earthShock']?.grade).toBe('bad');
+		expect(wastePct(fx('phased'))).toBeCloseTo(8.3333, 3);
+		expect(wastePct(fx('unbroken'))).toBeCloseTo(19.2308, 3);
+		expect(scoreAnalysis(cleave).sections['earthShock']?.grade).toBe('ok');
 	});
 });
 

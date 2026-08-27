@@ -198,10 +198,24 @@ describe('the scorecard grid', () => {
 		// That card and no other: `85%` is also Flame Shock's second-target line and Searing Totem's, so a
 		// sweep of the whole render would pass while the shocks kept theirs.
 		const card = markup.slice(markup.indexOf('#earth-shock-heading'));
-		const shocks = card.slice(0, card.indexOf('</a>'));
-		expect(shocks).toContain('3/7');
-		expect(shocks).not.toContain('42.86%');
+		const whole = card.slice(0, card.indexOf('</a>'));
+		// **That row and no other, which the card slice above stopped being.** `elementalDischargeUptime`
+		// now sits on this card beside the shocks — Fulmination is what applies the debuff — and it is an
+		// ordinary percentage against a 90 bar, so it prints the target line this test is about the absence
+		// of. The claim was only ever about the *sampled share*: a metric whose denominator is a count of
+		// presses says `3/7`, not `42.86%` with a percentage target restating the seven. Cutting at the
+		// second metric's own label keeps the assertion on the row that makes it.
+		const shocks = whole.slice(0, whole.indexOf('Elemental Discharge'));
+		// **One and a half of seven, and the half is the point.** A shock spent four to eight seconds before
+		// its Elemental Discharge window closes is charged at half — `SOFT_EARTH_SHOCK_REASONS` — so the
+		// numerator is a count with a half in it rather than a whole number that has rounded one away.
+		// `cleave` holds one full fault and one soft one over seven judged presses.
+		expect(shocks).toContain('1.5/7');
+		expect(shocks).not.toContain('21.43%');
 		expect(shocks).not.toContain('target');
+		// And the metric beside it does carry one, so the cut above is not hiding a regression.
+		expect(whole).toContain('Elemental Discharge');
+		expect(whole).toContain('target 90% or better');
 		// The unsampled metric beside it keeps both, so this is a rule about samples rather than about
 		// percentages: Flame Shock's uptime is a share of a clock and has no count to fall back to.
 		expect(markup).toContain('83.9%');

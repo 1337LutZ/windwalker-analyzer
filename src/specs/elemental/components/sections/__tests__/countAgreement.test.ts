@@ -274,7 +274,14 @@ describe('the exempt shock count agrees with itself', () => {
 		for (const judged of [1, 2]) {
 			const thin = { ...cleave, earthShock: { ...cleave.earthShock, judged, good: judged } } as El;
 			const section = ELEMENTAL_SPEC.score(thin).sections['earthShock'];
-			expect(section?.unmeasurable, `${judged} judged shocks should not grade`).toBe(true);
+			// **The metric and not the section, which is the same move the Windwalker's snapshot section made.**
+			// `elementalDischargeUptime` sits on this card as a secondary — Fulmination is what applies the
+			// debuff, so the two belong together — and `SectionScore.unmeasurable` is `every` over all of a
+			// section's metrics, so a pull with the tier-16 set worn keeps a measurable section however few
+			// shocks it holds. What must stay refused is the *shock* rule, which is what the sentence under
+			// test is about; `thinSample.test.ts` in `specs/windwalker` carries the argument in full.
+			const waste = section?.metrics.find((m) => m.key === 'earthShockWaste');
+			expect(waste?.unmeasurable, `${judged} judged shocks should not grade`).toBe(true);
 			expect(verdictOf(render(EarthShock, thin))).not.toContain(`of ${judged} shocks`);
 		}
 		// And three of them do grade, so the assertion above is about the floor and not about the edit.

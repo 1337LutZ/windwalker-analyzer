@@ -27,6 +27,7 @@ import type { SegmentTimeline } from '~/lib/analysis/segments';
 import type { SpawnRecord } from '~/lib/analysis/targets';
 import type { AuraWindow } from '~/lib/analysis/auras';
 import type { Gate } from '~/lib/game/model';
+import type { Grade } from '~/lib/score/model';
 // Type-only, and pointing at a spec rather than at `lib`, which is the same trade the two imports
 // above make: the Ascendance press verdict is defined beside the rules that produce it, and this file
 // already carries `ElementalAuditResult` and `AscendancePress`, so the alternative is not a cleaner
@@ -449,6 +450,19 @@ export interface AuraLane {
 	id: number;
 	group: LaneGroup;
 	windows: LaneWindow[];
+	/**
+	 * When this player applied or refreshed the aura, for the chart to mark on the bar.
+	 *
+	 * **A window is a coverage claim and says nothing about how often the aura was bought.** `auraWindows`
+	 * opens on an apply and closes on a remove; a refresh arriving on a live aura is deliberately
+	 * discarded, because counting it would break the coverage the window exists to state. The cost is that
+	 * an aura held across a phase draws as one unbroken bar with no sign of the presses that paid for it —
+	 * Elemental Discharge draws 38.9 seconds that way, over three applications.
+	 *
+	 * Absent when the log carries none, and absent on any analysis captured before this existed, so read
+	 * it for truthiness rather than against null. Drawing only: nothing graded reads it.
+	 */
+	applications?: number[];
 	/**
 	 * Which enemy these windows are on, when the aura is per-target.
 	 *
@@ -2720,6 +2734,43 @@ export interface FlameShockPress {
 	duringAscendance: boolean;
 }
 
+/**
+ * One Flame Shock application on an enemy other than the primary, graded by what the global bought.
+ *
+ * **The question this answers is the opposite of `multiDotUptimePct`'s**, and the two are deliberately
+ * kept apart. The uptime share asks whether a second target that was worth dotting *went* undotted; this
+ * asks whether a dot that was cast had any business being cast. A pull can fail one and pass the other,
+ * and a reader shown only the share is never told about the globals spent on adds that died before the
+ * dot could earn them back.
+ *
+ * **Which is why this runs over every non-primary application and not only the judgeable ones.** The
+ * `isJudgeableTarget` filter behind `multiTargetMs` exists to stop the report faulting a player for not
+ * dotting a mob that could never have paid — the right call for an *omission*. But it drops exactly the
+ * targets a wasted global is most likely to have been spent on, so applying it here would hide the fault
+ * this field exists to find. The two readings need opposite filters because they are opposite faults.
+ */
+export interface SecondaryDotApplication {
+	/** When the dot went up on that enemy. */
+	t: number;
+	/** Which spawn it was, so two copies of one add are two applications and not one. */
+	key: string;
+	/**
+	 * How long the dot actually stayed up, refreshes included — the realised runtime and not the declared
+	 * duration. A dot that rolls over past 30s reads longer than 30s, and that is the truth about it.
+	 */
+	runtimeMs: number;
+	/**
+	 * What that runtime was worth against the global it cost.
+	 *
+	 * Flame Shock's damage arrives in ten three-second ticks, so the cast is bought back only once enough
+	 * of them have landed to beat the Lightning Bolt it displaced. `good` is the full 30s duration —
+	 * every tick landed. `ok` is 20s, two thirds of it, which is the same crossing
+	 * `FS_SECOND_TARGET_LIFETIME_MS` is set at and the point past which the dot has out-earned the cast.
+	 * Below that the global did not pay back, and `bad` says so.
+	 */
+	grade: Grade;
+}
+
 export interface FlameShockAudit {
 	/** The dot's up-windows on the primary target, one per application, refresh-open. */
 	windows: Window[];
@@ -2869,6 +2920,21 @@ export interface FlameShockAudit {
 	 */
 	secondaryID: number | null;
 	/**
+	 * Every Flame Shock this pull put on an enemy other than the primary, graded by what its global bought.
+	 *
+	 * Published as the applications rather than as three counts, for the reason `presses` is: the section
+	 * draws a row per application and the counts are one `filter` away, while three counts cannot be
+	 * turned back into a ledger. See `SecondaryDotApplication` for why its population is filtered
+	 * differently from `multiTargetMs`'s.
+	 *
+	 * **On the scorecard through nothing at all, today.** `flameShockMultiDot` still grades the uptime
+	 * share alone and carries the same weight it did; this is the section's evidence and the summary's
+	 * count, not a second graded metric. Making it one would need its own `THRESHOLDS` entry and its own
+	 * weight, and the argument for what that weight should be has not been made — so it is not asserted
+	 * here by the back door.
+	 */
+	secondaryApplications: SecondaryDotApplication[];
+	/**
 	 * What `uptimePct` is a share of: the contact clock **less every stretch three or more enemies were
 	 * up** — the seconds the player was on an enemy they could damage under a list this figure's bar was
 	 * written from.
@@ -2986,9 +3052,25 @@ export type EarthShockReason =
 	| 'fsLow'
 	| 'ascReady'
 	| 'twoPiece'
+	| 'twoPieceEarly'
 	| 'fsTail'
 	| 'cleaveStacks'
 	| 'cleaveDot';
+
+/**
+ * The reasons that cost a press half its global rather than all of it.
+ *
+ * Every other member of `EarthShockReason` is a flat fault: the shield was under its floor, the dot was
+ * short, the branch did not want the press. `twoPieceEarly` is the one condition the rule grades by
+ * distance rather than by a pass/fail line — a shock spent four to eight seconds before the Elemental
+ * Discharge window closes is early, but it is not the same mistake as one spent with the whole window
+ * still ahead of it, and a report that charges both at full rate tells the player the two are equal.
+ *
+ * **A list, not a boolean on the reason**, because the softness belongs to the reason and not to the
+ * press: a press carrying `twoPieceEarly` *and* `belowFull` is a full fault, and the only way to keep
+ * that true is to ask whether *every* reason on the press is in here. See `EarthShockAudit.ok`.
+ */
+export const SOFT_EARTH_SHOCK_REASONS: readonly EarthShockReason[] = ['twoPieceEarly'];
 
 /** One Earth Shock press, with everything the sim's rule reads, at the press. */
 export interface EarthShockPress {
@@ -3041,8 +3123,39 @@ export interface EarthShockAudit {
 	 * summary tile and the scorecard all have to be over the same set or the report contradicts itself.
 	 */
 	judged: number;
+	/**
+	 * Judged presses whose every reason is a soft one — today that is a shock spent four to eight seconds
+	 * before its Elemental Discharge window closes, and nothing else.
+	 *
+	 * **Counted apart from `good` rather than folded into it**, because it is neither: the press was not
+	 * what the list asked for, and it was not the whole global thrown away either. `earthShockWaste`
+	 * charges it at half, which is the same scale `overallOf` already grades a whole metric on — `good`
+	 * 1, `ok` 0.5, `bad` 0 — so the press-level and the pull-level readings cannot disagree about what a
+	 * half-mistake is worth.
+	 *
+	 * `good + ok + bad === judged` by construction: a judged press has no reasons (good), only soft ones
+	 * (ok), or at least one hard one (bad).
+	 */
+	ok: number;
 	/** Shocks spent below the ceiling — the whole Fulmination the player left on the table. */
 	belowFull: number;
+	/** How much of `dischargeScoredMs` the tier-16 two-piece debuff was up for. */
+	dischargeUptimeMs: number;
+	/** That as a share, and `0` when the clock is empty — read the clock, not this, to tell the two apart. */
+	dischargeUptimePct: number;
+	/**
+	 * The clock the Discharge share is against, and **zero for a shaman without the two-piece**.
+	 *
+	 * Contact time less every stretch three or more enemies were up — the shield's own clock, taken once
+	 * and shared, because the two rules are exempt at the same counts for the same reason: no Earth Shock
+	 * rung above two enemies means no Fulmination, and no Fulmination means no debuff to maintain.
+	 *
+	 * The set gate lives here rather than in the score. A pull with no 144999 in it at all has an empty
+	 * clock, so `gradedOver` refuses the metric down the same path every other empty clock takes, and the
+	 * section hides the tile. That keeps "this shaman does not own the set" and "this stretch was not
+	 * gradable" one mechanism rather than two, which is the distinction `metricOf` already draws.
+	 */
+	dischargeScoredMs: number;
 }
 
 export interface SearingTotemAudit {

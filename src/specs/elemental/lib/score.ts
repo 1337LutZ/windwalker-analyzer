@@ -279,7 +279,44 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 	 * changes letter. `judged` is unchanged and still the band-narrowed counter, which is what keeps a
 	 * press made at four enemies out of both halves rather than out of one.
 	 */
-	const earthShockWaste = metric('earthShockWaste', shareOf(earthShock.judged - earthShock.good, earthShock.judged));
+	/**
+	 * **The half-charge, and why it is 0.5 and not a number chosen for this row.**
+	 *
+	 * `judged - good` is every faulted press; subtracting half of `ok` charges the soft ones at half rate.
+	 * A shock spent four to eight seconds before its Elemental Discharge window closes is a hold the player
+	 * nearly made, and 0.5 is what a half-mark is worth everywhere else in this report — `POINTS` in
+	 * `lib/score/build.ts` grades a whole metric `good` 1, `ok` 0.5, `bad` 0, and `overallOf` weights the
+	 * headline with it. Inventing a second scale for presses would mean the report answered "what is a
+	 * half-mistake worth" twice, in two places, with two numbers.
+	 *
+	 * The lines are untouched at 15/35: this can only ever move a share *down*, so no pull that graded
+	 * `good` can be made worse by it, and `earthShockTwoPiece.test.ts` pins the committed figures.
+	 *
+	 * A fractional numerator over an integer denominator, which `shareOf` is indifferent to — it divides
+	 * and multiplies, and `MIN_GRADED_SAMPLE` is applied to `whole`, which stays a count of presses.
+	 */
+	const earthShockWaste = metric(
+		'earthShockWaste',
+		shareOf(earthShock.judged - earthShock.good - 0.5 * earthShock.ok, earthShock.judged),
+	);
+
+	/**
+	 * The tier-16 two-piece debuff, as the uptime it actually is.
+	 *
+	 * **The payoff of the rule beside it.** `earthShockWaste` grades *when* the shock went out; this grades
+	 * what holding it bought. Fulmination applies Elemental Discharge for two seconds per shield charge it
+	 * consumed, so a shock at seven charges buys twelve seconds of +4% Fire and Nature damage and a shock
+	 * at three buys four — the same discipline, read at the other end. A section that graded only the
+	 * presses would tell a player their timing was poor without ever showing them what it cost.
+	 *
+	 * `gradedOver` and no hand-written set check: `dischargeScoredMs` is zero for a shaman who does not own
+	 * the two-piece, so the metric refuses through `metricOf`'s empty-clock arm rather than through an
+	 * `if` here. See the field's own docblock for why the gate lives at the audit.
+	 */
+	const elementalDischargeUptime = metric(
+		'elementalDischargeUptime',
+		gradedOver(earthShock.dischargeUptimePct, earthShock.dischargeScoredMs),
+	);
 
 	// `gradedOver` for the reason `flameShockUptime` above gives: `scoredMs` here composes three exempt
 	// causes — the elemental's window, the intermissions and the add waves — and a pull that is all three
@@ -650,6 +687,7 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		flameShockWaste,
 		flameShockMultiDot,
 		earthShockWaste,
+		elementalDischargeUptime,
 		searingTotemUptime,
 		searingTotemOverlaps,
 		fireElementalPrepull,
@@ -673,7 +711,20 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		judged,
 		sections: {
 			flameShock: section([flameShockUptime, flameShockWaste], [flameShockMultiDot]),
-			earthShock: section([earthShockWaste]),
+			// **The debuff belongs on this card, because this card's button is what applies it.** Fulmination
+			// is what puts Elemental Discharge up and the shield's charge count is what sets its length, so a
+			// reader sent to a separate card to find out what their shock discipline bought would be reading
+			// one habit in two places.
+			//
+			// **Secondary, and that is load-bearing rather than a default.** This section's verdict sentences
+			// are written about presses — "{{good}} of {{casts}} shocks were spent with the shield charged up"
+			// — and `section()`'s `grade` is `worst` over the *primaries* alone, so the letter stays the shock
+			// rule's. What a secondary does still change is `SectionScore.unmeasurable`, which is `every` over
+			// all of a section's metrics: with the set worn, a pull whose shocks are too few to grade is no
+			// longer an unmeasurable section. The arm selection that used to read off that flag now reads off
+			// the metric instead, in `EarthShock.tsx` — the same move the Windwalker's snapshot section made
+			// for the same reason, and its `thinSample.test.ts` docblock is where that argument is written.
+			earthShock: section([earthShockWaste], [elementalDischargeUptime]),
 			searingTotem: section([searingTotemUptime, searingTotemOverlaps]),
 			// The summon's own section, which carries one metric and gets no card link: the anchors map in
 			// `specSections.tsx` has no entry for it, so the takeaway renders without a jump the way the
@@ -941,6 +992,28 @@ export const THRESHOLDS = {
 	 * a denominator of zero, which is "the log could not say" and is a different sentence.
 	 */
 	earthShockWaste: { good: 15, ok: 35, higherIsBetter: false, bands: [1, 2], unit: 'percent' },
+
+	/**
+	 * Elemental Discharge uptime — the tier-16 two-piece debuff.
+	 *
+	 * **Ninety and eighty, and the debuff's own arithmetic is where they come from rather than a sweep.**
+	 * The window is two seconds per shield charge consumed, so a shock taken at the seven-charge ceiling
+	 * carries twelve seconds. Earth Shock's cooldown is six, and the section's other rule already tells the
+	 * player to hold it until this window is inside its last four — a player following both has the next
+	 * shock landing with two to four seconds still on the debuff, and the only gaps left are the ones the
+	 * fight forces. Near-unbroken is therefore the reachable state and not an ideal, which is what a 90 bar
+	 * has to be true of before it is fair to draw.
+	 *
+	 * Eighty for `ok` gives a pull one dropped window before it reads red — twelve seconds off a
+	 * sixty-second clock is twenty points, so the band is exactly "you lost one and recovered", which is
+	 * the smallest real mistake this metric can show.
+	 *
+	 * Bands 1 and 2, the same pair `earthShockWaste` carries and for the same reason: `aoe.apl.json` has no
+	 * Earth Shock rung, so above two enemies nothing asks for the Fulmination that applies this debuff and
+	 * its absence is not a fault. The clock is cut to match at `dischargeScoredMs`, so the declaration and
+	 * the denominator agree rather than merely coexisting.
+	 */
+	elementalDischargeUptime: { good: 90, ok: 80, higherIsBetter: true, bands: [1, 2], unit: 'percent' },
 
 	/**
 	 * Searing Totem's uptime against the time it could have been up.
@@ -1381,6 +1454,11 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	flameShockWaste: 2,
 	flameShockMultiDot: 2,
 	earthShockWaste: 1,
+	// The same weight as the rule it is the payoff of, deliberately and not by default. Heavier would let
+	// a bonus that only a geared shaman can score at all outweigh the habit that earns it, on a report
+	// whose headline is a weighted average — a player without the set would be scored out of a smaller
+	// denominator against one whose set did half the work. Lighter would say the +4% did not matter.
+	elementalDischargeUptime: 1,
 	searingTotemUptime: 1,
 	searingTotemOverlaps: 1,
 	// The lightest weight there is, and it cannot grade worse than `ok` — so the most this can take off

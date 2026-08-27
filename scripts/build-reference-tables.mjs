@@ -51,11 +51,16 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 import {
 	ANALYSER_REV,
+	BAND_CAP,
+	BAND_EDGES,
 	LEDGER,
+	bucketsOf,
+	grownCapacity,
 	measuredPulls,
 	mergeLedger,
 	planJobs,
 	readLedger,
+	retire,
 	rowFrom,
 	stalePulls,
 	writeLedger,
@@ -433,6 +438,14 @@ export async function candidatesFor(token, spec, encounterID, perBand) {
 				predictedRankPercent: wanted.get(row),
 				rank: row,
 				totalParses: total,
+				/**
+				 * When the pull happened, as WarcraftLogs reports it.
+				 *
+				 * **Eviction keys on this rather than on when we fetched it.** A bucket that retired its
+				 * oldest *fetch* would treat a 2014 log discovered today as fresher than a kill from last
+				 * month, which is the opposite of what a sliding window is for.
+				 */
+				loggedAt: entry.startTime ?? null,
 			});
 		}
 	}
@@ -604,25 +617,29 @@ async function main() {
 		// candidate already answered is dropped before a point is bought. So this is the number to look at
 		// before starting a sweep, and on a well-fed table it is zero.
 		const ledger = readLedger();
-		const counts = new Map();
-		for (const row of measuredPulls(ledger)) {
-			const key = `${row.spec}:${row.encounterID}`;
-			counts.set(key, (counts.get(key) ?? 0) + 1);
-		}
+		const capacity = grownCapacity(ledger.bandCapacity);
+		const buckets = bucketsOf(ledger);
 		let wanted = 0;
 		for (const spec of specs) {
-			const short = ENCOUNTERS.map((id) =>
-				Math.max(0, TARGET_N - (counts.get(`${spec.key}:${id + CLASSIC_OFFSET}`) ?? 0)),
-			);
-			const total = short.reduce((sum, n) => sum + n, 0);
-			wanted += total;
-			console.log(`${spec.key} wants ${total} more pull(s) across ${short.filter((n) => n > 0).length} cell(s)`);
+			let short = 0;
+			let thin = 0;
+			for (const id of ENCOUNTERS) {
+				for (const [lo, hi] of BAND_EDGES) {
+					const held = buckets.get(`${spec.key}:${id}:${lo}-${hi > 100 ? 100 : hi}`)?.length ?? 0;
+					if (held >= capacity) continue;
+					short += capacity - held;
+					thin += 1;
+				}
+			}
+			wanted += short;
+			console.log(`${spec.key} wants ${short} more pull(s) across ${thin} bucket(s)`);
 		}
 		const stale = stalePulls(ledger).length;
 		console.log(
-			`${wanted} pull(s) to buy at ${TARGET_N} a cell` +
-				`${stale > 0 ? `, ${stale} of them re-measures of rows predating ${ANALYSER_REV}` : ''}`,
+			`${wanted} pull(s) to fill every bucket to ${capacity}` +
+				`${stale > 0 ? `, plus ${stale} re-measures of rows predating ${ANALYSER_REV}` : ''}`,
 		);
+		console.log('a full bucket still buys a parse newer than its oldest, and retires that one');
 		console.log(`cache ${CACHE} · ledger ${LEDGER}`);
 		return;
 	}
@@ -666,13 +683,17 @@ async function main() {
 	// events. Dropping the candidates the ledger has already answered turns a scheduled refresh from
 	// "re-measure the top of the ladder every week" into "measure whatever entered it since", which in
 	// the steady state is a handful of pulls and often none at all.
+	// Capacity grows with each refresh, so the window slides *and* widens — see `BAND_START` on why a
+	// fixed window keeps the reference current without ever making it more precise.
+	const capacity = grownCapacity(ledger.bandCapacity);
 	const planned = planJobs(ledger, jobs, {
-		targetN: TARGET_N,
+		capacity,
 		limit: maxPulls,
 		retryFailed: args.includes('--retry-failed'),
 	});
+	console.log(`buckets hold ${capacity} per band (was ${ledger.bandCapacity ?? capacity}, cap ${BAND_CAP})`);
 	console.log(
-		`${jobs.length} candidates · ${planned.skippedKnown} already known · ${planned.skippedFull} in full cells` +
+		`${jobs.length} candidates · ${planned.skippedKnown} already known · ${planned.skippedFull} older than their bucket` +
 			`${planned.deferred > 0 ? ` · ${planned.deferred} deferred to a later run` : ''} · ${planned.jobs.length} to fetch`,
 	);
 	if (planned.jobs.length === 0) {
@@ -715,8 +736,12 @@ async function main() {
 		...swept.map((pull) => rowFrom(pull, gateOf(pull) === null ? 'measured' : 'gated')),
 		...runFailures.map(({ job }) => rowFrom({ ...job, value: null }, 'failed')),
 	];
-	const updated = mergeLedger(ledger, rows);
+	const merged = mergeLedger(ledger, rows);
+	// Retire *after* merging, so a newly measured pull competes with what is already in its bucket rather
+	// than being admitted unconditionally.
+	const { ledger: updated, retired } = retire(merged, capacity);
 	updated.builtAt = new Date().toISOString().slice(0, 10);
+	updated.bandCapacity = capacity;
 	writeLedger(updated);
 
 	const before = measuredPulls(ledger).length;
@@ -725,7 +750,8 @@ async function main() {
 
 	const gated = rows.filter((row) => row.outcome === 'gated').length;
 	console.log(
-		`${swept.length} fetched · ${gated} gated · ${runFailures.length} failed · ledger ${before} -> ${after} measured`,
+		`${swept.length} fetched · ${gated} gated · ${runFailures.length} failed · ${retired} retired` +
+			` · ledger ${before} -> ${after} measured`,
 	);
 	// **Which gate, and how many.** A run that fetches ten pulls and keeps none is either a bad sample or
 	// a broken sweep, and the two look identical without this line. It is what would have said "off-spec:

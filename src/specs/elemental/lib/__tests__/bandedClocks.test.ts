@@ -389,7 +389,10 @@ describe('the second dot is measured over band 2 alone', () => {
 		// `bad` and not the `ok` this read before `gcdUtilisation`'s lines went to 95/90: this pull fills
 		// 89.18% of its globals, which the old 80/65 pair called `good` and the new one calls `bad`. The
 		// claim here is the dot's, and it is unchanged — the two lines above are what this test is about.
-		expect(card.overall).toBe('bad');
+		// **`ok` since the tier-16 remaining check stopped reading a merged window's end.** That check
+		// charged nearly every shock taken inside a long Elemental Discharge run — see `dischargeExpiry` —
+		// and dropping the false faults lifts this pull's Earth Shock letter and the headline with it.
+		expect(card.overall).toBe('ok');
 	});
 
 	/**

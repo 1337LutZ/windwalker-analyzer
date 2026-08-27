@@ -170,9 +170,16 @@ describe('the three pulls that answer neither fault', () => {
 		// figures, 94.44%, 92.87% and 89.18%, read against 94.16/91.08 on Iron Juggernaut and 95.01/92.32
 		// on Blackfuse, which puts `phased` above its own fight's best pulls, `unbroken` between the lines
 		// and `cleave` under both.
+		// And once more, still not by this section: `elementalDischargeUptime` reads 65.80% on this pull
+		// against 90/80, and one `bad` at weight 1 is what takes it back under the headline's 75%.
+		// **And once more, on a defect rather than a threshold.** The tier-16 remaining check read the end
+		// of a *merged* aura window — `auraWindows` does not split on a refresh — so shocks held correctly
+		// inside a long Elemental Discharge run were charged as if the whole window were still ahead of
+		// them. Modelled off the previous shock's charges now (`dischargeExpiry`), which lifts every pull's
+		// Earth Shock letter. Nothing this file is about moved.
 		expect(scoreAnalysis(fx('phased')).overall).toBe('good');
-		expect(scoreAnalysis(fx('unbroken')).overall).toBe('ok');
-		expect(scoreAnalysis(fx('cleave')).overall).toBe('bad');
+		expect(scoreAnalysis(fx('unbroken')).overall).toBe('good');
+		expect(scoreAnalysis(fx('cleave')).overall).toBe('ok');
 	});
 });
 

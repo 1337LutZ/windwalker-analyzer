@@ -268,6 +268,13 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				` ${t('flameShock.wasteSplit', { unmeasured: flameShock.unjudgedWaste, judged: judgedRefreshes })}`
 			: '');
 
+	/**
+	 * Second dots whose global never came back — the applications graded `bad`, which is a runtime under
+	 * twenty seconds. Counted here rather than published as a number, because the section also wants the
+	 * ledger and three counts cannot be turned back into one.
+	 */
+	const secondaryWasted = flameShock.secondaryApplications.filter((a) => a.grade === 'bad').length;
+
 	return (
 		<Section id="flame-shock" title={t('flameShock.title')}>
 			<Prose>
@@ -307,6 +314,14 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 							label={t('flameShock.kpi.multiDot')}
 							caption={caption('flameShockMultiDot', flameShock.multiTargetMs === 0)}
 						/>
+					) : null}
+					{/* The second dot's other fault, and it is gated on the applications rather than on
+					    `multiTargetMs`: this count is not a share of the band-2 clock and does not go quiet when
+					    that clock is empty. A pull that never reached two enemies can still have thrown globals
+					    at an add, and this is the tile that says so. Hidden at nought for the same reason the
+					    `ok` tile beside Earth Shock is — a nought is not a finding. */}
+					{secondaryWasted > 0 ? (
+						<StatTile value={`${secondaryWasted}`} label={t('flameShock.kpi.secondaryWasted')} />
 					) : null}
 				</StatTiles>
 			</div>
@@ -369,6 +384,7 @@ export default function FlameShock({ analysis }: { analysis: Analysis }) {
 				    Gated with the tile rather than on the add waves: the floor exists on every pull the tile
 				    appears on, including one that never exceeded two enemies and so has no grey band at all. */}
 				{(el.targets?.multiTargetMs ?? 0) > 0 ? <Note>{t('flameShock.multiDotNote')}</Note> : null}
+				{secondaryWasted > 0 ? <Note>{t('flameShock.secondaryNote')}</Note> : null}
 				<Note>{t('flameShock.snapshotNote')}</Note>
 			</div>
 		</Section>

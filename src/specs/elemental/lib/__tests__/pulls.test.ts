@@ -593,12 +593,27 @@ describe('a multi-target pull', () => {
  * "the reason count moves and the window count does not" reading as the paragraph above.
  */
 describe('the T16 two-piece', () => {
-	const GRID: Record<string, [number, number]> = {
-		phased: [8, 4],
-		unbroken: [5, 7],
-		cleave: [8, 2],
-		// No set on this player, so both halves are honest zeroes rather than a silence.
-		addsThenBoss: [0, 0],
+	/**
+	 * Windows drawn, `twoPiece` charges, `twoPieceEarly` charges.
+	 *
+	 * **The middle column is nought on every committed pull now, and that is the finding rather than a
+	 * regression.** It used to read 4, 7 and 2, and every one of those was the same defect: the remaining
+	 * check asked `remainingIn` against the aura's *merged* window, and `auraWindows` does not split on a
+	 * refresh — so a debuff held across a phase was one window from first apply to last remove and the
+	 * check answered the distance to the end of that run. `unbroken`'s is 36.1 seconds on an aura that
+	 * cannot hold fourteen, so shocks taken with well under a second left were charged as though the whole
+	 * window were still ahead of them. Modelled from the previous shock's charges now — `dischargeExpiry`.
+	 *
+	 * What is left is one soft charge each on `unbroken` and `cleave`, at 6.7s and inside the 4–8s band.
+	 * `twoPiece` proper now reaches no committed pull, which is where `ascReady` has always been and is
+	 * why the synthetic in `earthShockTwoPiece.test.ts` is the only cover either of them has.
+	 */
+	const GRID: Record<string, [number, number, number]> = {
+		phased: [8, 0, 0],
+		unbroken: [5, 0, 1],
+		cleave: [8, 0, 1],
+		// No set on this player, so all three are honest zeroes rather than a silence.
+		addsThenBoss: [0, 0, 0],
 	};
 	// Discovered rather than listed, so a fifth fixture fails here for want of a row instead of walking
 	// past the grid — the exact way `addsThenBoss` walked past it.
@@ -607,10 +622,11 @@ describe('the T16 two-piece', () => {
 		it(`${name} sees the debuff and reads it as an Earth Shock condition`, () => {
 			const expected = GRID[name];
 			expect(expected, `${name} needs a row in GRID`).toBeDefined();
-			const [windows, shocks] = expected!;
+			const [windows, shocks, early] = expected!;
 			const el = fx(name);
 			expect(el.timeline?.lanes?.find((l) => l.key === 't16-2pc-debuff')?.windows ?? []).toHaveLength(windows);
 			expect(el.earthShock.presses.filter((p) => p.reasons.includes('twoPiece'))).toHaveLength(shocks);
+			expect(el.earthShock.presses.filter((p) => p.reasons.includes('twoPieceEarly'))).toHaveLength(early);
 		});
 	}
 });

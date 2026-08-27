@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 
 import { useReportCopy } from '~/hooks/useReportCopy';
-import { formatClock } from '~/lib/format';
+import { formatClock, formatPercentValue } from '~/lib/format';
 import type { Analysis, ElementalAuditResult } from '~/lib/types';
+import { SOFT_EARTH_SHOCK_REASONS } from '~/lib/types';
 
 import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type GridRow } from '~/components/primitives';
 
@@ -31,7 +32,7 @@ import { DataGrid, Note, Prose, Section, SpellIcon, StatTile, StatTiles, type Gr
 export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	const el = analysis as Analysis & ElementalAuditResult;
 	const { earthShock } = el;
-	const { t, gradeOf, unasked, verdict } = useReportCopy(analysis);
+	const { t, gradeOf, toneOf, unasked, verdict } = useReportCopy(analysis);
 
 	/**
 	 * The pull pressed the shock, and too few of the presses fell where a list has an opinion to read a
@@ -57,7 +58,26 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 	 * shock went out at three or more still pressed the button, and the reading it is being scored at is
 	 * the one thing that decides whether that is an exemption or a thin sample.
 	 */
-	const tooFew = gradeOf('earthShock') === 'none' && earthShock.presses.length > 0;
+	/**
+	 * The three arms this section cannot get from its own letter any more, and why.
+	 *
+	 * `tooFew` read `gradeOf('earthShock') === 'none'` while the section held one metric, and that was the
+	 * same fact. `elementalDischargeUptime` joined it as a secondary — it belongs on this card, because
+	 * Fulmination is what applies the debuff — and `SectionScore.unmeasurable` is `every` over *all* of a
+	 * section's metrics. So a pull with the tier-16 set worn is now a measurable section whatever its shock
+	 * count, `gradeOf` answers `section()`'s nothing-decided fallback of `'ok'`, and the `ok` arm reads the
+	 * counts: "1 of 1 shocks were spent with the shield charged up" over a sample the scorer refused, or
+	 * "0 of 0" at a player who never pressed the button. Both are guarded — `thinShockSample.test.ts`.
+	 *
+	 * So each arm is asked of the thing its sentence is about. `unasked` first, because a reading where no
+	 * list has an Earth Shock rule is `verdict_exempt`'s to answer and it must outrank the other two:
+	 * `countAgreement.test.ts` holds a multi-target reading with no presses on it, where both this and
+	 * `neverCast` would otherwise be true. Then the presses themselves, then `toneOf` — the metric-level
+	 * counterpart of `gradeOf`, null for exactly the metric that went thin.
+	 */
+	const shockUnasked = unasked('earthShockWaste');
+	const neverCast = !shockUnasked && earthShock.presses.length === 0;
+	const tooFew = !shockUnasked && toneOf('earthShockWaste') === null && earthShock.presses.length > 0;
 
 	const rows = useMemo<GridRow[]>(
 		() =>
@@ -72,7 +92,14 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				.sort((a, b) => a.t - b.t)
 				.map((press, i) => ({
 					key: `${press.t}-${i}`,
-					band: 'warn' as const,
+					// The row's band is the press's own charge, so the ledger reads the way the score counts. A
+					// press whose every reason is soft cost half a global and gets the quieter band; one carrying
+					// a hard reason — on its own or beside a soft one — is a full fault and keeps `warn`. The
+					// same `every` the audit counts `ok` with, for the same reason: two soft reasons must not
+					// add up to a promotion.
+					band: press.reasons.every((reason) => SOFT_EARTH_SHOCK_REASONS.includes(reason))
+						? ('ok' as const)
+						: ('warn' as const),
 					cells: {
 						at: formatClock(press.t),
 						stacks: press.lsStacks === null ? '—' : `${press.lsStacks}`,
@@ -101,6 +128,11 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				<Note>{t('earthShock.rule.single')}</Note>
 				<Note>{t('earthShock.rule.tier')}</Note>
 				<Note>{t('earthShock.rule.multi')}</Note>
+				{/* Only for a shaman who owns the set. The other three arms are the rule the player follows;
+				    this one says what following it buys, and on a pull with no two-piece it would be a
+				    sentence about equipment they do not have. Gated on the clock rather than on the metric,
+				    so it reads the same fact the metric refuses on. */}
+				{earthShock.dischargeScoredMs > 0 ? <Note>{t('earthShock.rule.discharge')}</Note> : null}
 			</div>
 
 			<div className="mt-4.5">
@@ -111,7 +143,19 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 						label={t('earthShock.kpi.good')}
 						caption={unasked('earthShockWaste') ? t('metric.notAsked') : undefined}
 					/>
+					{/* Shown only when the pull has one, the rule `8e011ac` set for the totem and shield tiles: a
+					    nought here would be a tile saying nothing happened, on every pull without the set. */}
+					{earthShock.ok > 0 ? <StatTile value={`${earthShock.ok}`} label={t('earthShock.kpi.ok')} /> : null}
 					<StatTile value={`${earthShock.belowFull}`} label={t('earthShock.kpi.belowFull')} />
+					{/* Same gate as the rule line above: no set, no clock, no tile. A pull without the two-piece
+					    is not a pull that scored 0% on it. */}
+					{earthShock.dischargeScoredMs > 0 ? (
+						<StatTile
+							value={formatPercentValue(earthShock.dischargeUptimePct)}
+							label={t('earthShock.kpi.discharge')}
+							caption={unasked('elementalDischargeUptime') ? t('metric.notAsked') : undefined}
+						/>
+					) : null}
 				</StatTiles>
 			</div>
 
@@ -140,17 +184,19 @@ export default function EarthShock({ analysis }: { analysis: Analysis }) {
 				    Its own name is spelled out at the call rather than assembled, because `useReportCopy`
 				    picks its arm off the grade and this one is not a grade. */}
 				<Prose>
-					{tooFew
-						? t('earthShock.verdict', {
-								context: 'tooFew',
-								counted: earthShock.judged,
-								presses: earthShock.presses.length,
-							})
-						: verdict('earthShock', {
-								good: earthShock.good,
-								casts: earthShock.judged,
-								presses: earthShock.presses.length,
-							})}
+					{neverCast
+						? t('earthShock.verdict', { context: 'none' })
+						: tooFew
+							? t('earthShock.verdict', {
+									context: 'tooFew',
+									counted: earthShock.judged,
+									presses: earthShock.presses.length,
+								})
+							: verdict('earthShock', {
+									good: earthShock.good,
+									casts: earthShock.judged,
+									presses: earthShock.presses.length,
+								})}
 				</Prose>
 				{/*
 				 * The presses this section is *not* judging, said out loud on the pulls that have any.

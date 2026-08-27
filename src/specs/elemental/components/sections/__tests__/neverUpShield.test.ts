@@ -67,6 +67,20 @@ type El = Analysis & ElementalAuditResult;
 
 /** Lightning Shield's own spell id, which is the one the audit reads its levels from. */
 const LIGHTNING_SHIELD = 324;
+/**
+ * Elemental Discharge, stripped alongside the shield because the premise requires it.
+ *
+ * The tier-16 two-piece debuff is applied *by Fulmination*, and Fulmination is an Earth Shock spending
+ * Lightning Shield charges — so a shaman who never wore the shield can never have put this up. Removing
+ * the shield's events and leaving the debuff's behind produced a pull that was impossible in both
+ * directions at once: no aura to spend, and 65.80% uptime on the thing spending it would have bought.
+ *
+ * That is not a subtle inconsistency. `elementalDischargeUptime` grades against 90/80, so the stale
+ * windows scored 2.42 bands short and took the top of the scorecard's `headroom` ordering off the shield
+ * — the exact claim the last assertion in this file makes. The fixture was asserting a defect it had
+ * manufactured, so the fixture is the thing that was wrong.
+ */
+const ELEMENTAL_DISCHARGE = 144_999;
 
 const raw = (name: string): FightDataset =>
 	JSON.parse(readFileSync(resolve(import.meta.dirname, `../../../__fixtures__/${name}.json`), 'utf8')) as FightDataset;
@@ -80,9 +94,10 @@ const raw = (name: string): FightDataset =>
  */
 const neverUp = (): El => {
 	const dataset = raw('phased');
-	const events = dataset.events.filter(
-		(event) => (event as { abilityGameID?: number }).abilityGameID !== LIGHTNING_SHIELD,
-	);
+	const events = dataset.events.filter((event) => {
+		const id = (event as { abilityGameID?: number }).abilityGameID;
+		return id !== LIGHTNING_SHIELD && id !== ELEMENTAL_DISCHARGE;
+	});
 	return analyse({ ...dataset, events }) as El;
 };
 
@@ -171,7 +186,10 @@ describe('a pull that never wore the shield', () => {
 		expect(section?.grade).toBe('bad');
 
 		// And the headline it now sits under: one more point in the denominator than the refusal collected.
-		expect(card.judged).toEqual({ measured: 18, total: 24, unmeasurable: false });
+		// Eighteen and not nineteen of the twenty-five: this pull carries no Elemental Discharge either, by
+		// the same premise that takes the shield away, so that metric offers its weight and collects none of
+		// it. See `ELEMENTAL_DISCHARGE` for why the fixture strips both.
+		expect(card.judged).toEqual({ measured: 18, total: 25, unmeasurable: false });
 	});
 
 	/**
@@ -242,7 +260,7 @@ describe('a pull that never wore the shield', () => {
 		expect(html).not.toContain('came all the way off you');
 		expect(html).toContain(t('summary.takeaways.metric.lightningShieldFellOff.label'));
 		expect(html).toContain(t('summary.scorecard.state', { context: 'neverUp' }));
-		expect(html).toContain('Scored on 18 of 24 points.');
+		expect(html).toContain('Scored on 18 of 25 points.');
 		// And it leads *the sections `headroom` orders*, which is what "leads the summary" means now that
 		// the grid has a spec-declared lead order in front of that key. Ascendance and Fire Elemental sit
 		// above their group by declaration — see `SpecTakeaways.lead` — so the claim this test can still
