@@ -1,10 +1,10 @@
 {
 	"source": {
 		"repo": "wowsims/mop",
-		"commit": "18a346ec8cc52c6e3fc66ac8a8d269428ca1be11",
-		"committed": "2026-08-25T11:27:51.000Z",
-		"fromDatabase": 120,
-		"fromWowhead": 216
+		"commit": "bf66107a252608ff414b88b6324abc8f5b4696c1",
+		"committed": "2026-08-24T18:05:32.000Z",
+		"fromDatabase": 125,
+		"fromWowhead": 248
 	},
 	"spells": {
 		"1": {
@@ -43,9 +43,17 @@
 			"name": "Divine Protection",
 			"icon": "spell_holy_divineprotection"
 		},
+		"546": {
+			"name": "Water Walking",
+			"icon": "spell_frost_windwalkon"
+		},
 		"633": {
 			"name": "Lay on Hands",
 			"icon": "spell_holy_layonhands"
+		},
+		"642": {
+			"name": "Divine Shield",
+			"icon": "spell_holy_divineshield"
 		},
 		"774": {
 			"name": "Rejuvenation",
@@ -54,6 +62,10 @@
 		"974": {
 			"name": "Earth Shield",
 			"icon": "spell_nature_skinofearth"
+		},
+		"1022": {
+			"name": "Hand of Protection",
+			"icon": "spell_holy_sealofprotection"
 		},
 		"1064": {
 			"name": "Chain Heal",
@@ -167,6 +179,10 @@
 			"name": "Seal of Insight",
 			"icon": "spell_holy_healingaura"
 		},
+		"20167": {
+			"name": "Seal of Insight",
+			"icon": "spell_holy_healingaura"
+		},
 		"20217": {
 			"name": "Blessing of Kings",
 			"icon": "spell_magic_greaterblessingofkings"
@@ -202,6 +218,10 @@
 		"25046": {
 			"name": "Arcane Torrent",
 			"icon": "spell_shadow_teleport"
+		},
+		"25771": {
+			"name": "Forbearance",
+			"icon": "spell_holy_removecurse"
 		},
 		"25780": {
 			"name": "Righteous Fury",
@@ -258,6 +278,10 @@
 		"32182": {
 			"name": "Heroism",
 			"icon": "ability_shaman_heroism"
+		},
+		"32747": {
+			"name": "Interrupt",
+			"icon": "inv_throwingknife_06"
 		},
 		"33697": {
 			"name": "Blood Fury",
@@ -355,6 +379,14 @@
 			"name": "Horn of Winter",
 			"icon": "inv_misc_horn_02"
 		},
+		"57723": {
+			"name": "Exhaustion",
+			"icon": "spell_nature_sleep"
+		},
+		"57724": {
+			"name": "Sated",
+			"icon": "spell_nature_sleep"
+		},
 		"57984": {
 			"name": "Fire Blast",
 			"icon": "spell_fire_fireball"
@@ -386,6 +418,14 @@
 		"64364": {
 			"name": "Devotion Aura",
 			"icon": "spell_holy_mindsooth"
+		},
+		"64695": {
+			"name": "Earthgrab",
+			"icon": "spell_nature_stranglevines"
+		},
+		"65148": {
+			"name": "Sacred Shield",
+			"icon": "ability_paladin_blessedmending"
 		},
 		"69179": {
 			"name": "Arcane Torrent",
@@ -491,6 +531,10 @@
 			"name": "Guardian of Ancient Kings",
 			"icon": "spell_holy_heroism"
 		},
+		"87173": {
+			"name": "Long Arm of the Law",
+			"icon": "ability_paladin_longarmofthelaw"
+		},
 		"88263": {
 			"name": "Hammer of the Righteous",
 			"icon": "ability_paladin_hammeroftherighteous"
@@ -519,6 +563,10 @@
 			"name": "Embrace of the Shale Spider",
 			"icon": "ability_hunter_pet_spider"
 		},
+		"91807": {
+			"name": "Shambling Rush",
+			"icon": "spell_shadow_skull"
+		},
 		"93435": {
 			"name": "Roar of Courage",
 			"icon": "ability_hunter_catlikereflexes"
@@ -526,6 +574,10 @@
 		"94472": {
 			"name": "Atonement",
 			"icon": "spell_holy_circleofrenewal"
+		},
+		"94686": {
+			"name": "Supplication",
+			"icon": "spell_holy_crusade"
 		},
 		"96228": {
 			"name": "Synapse Springs",
@@ -579,6 +631,14 @@
 			"name": "Transcendence",
 			"icon": "monk_ability_transcendence"
 		},
+		"104275": {
+			"name": "Well Fed",
+			"icon": "spell_misc_food"
+		},
+		"104277": {
+			"name": "Well Fed",
+			"icon": "spell_misc_food"
+		},
 		"104423": {
 			"name": "Windsong",
 			"icon": "spell_frost_arcticwinds"
@@ -598,6 +658,10 @@
 		"105284": {
 			"name": "Ancestral Vigor",
 			"icon": "spell_shaman_blessingoftheeternals"
+		},
+		"105427": {
+			"name": "Judgments of the Wise",
+			"icon": "ability_paladin_judgementblue"
 		},
 		"105593": {
 			"name": "Fist of Justice",
@@ -787,6 +851,10 @@
 			"name": "Fortifying Brew",
 			"icon": "ability_monk_fortifyingale_new"
 		},
+		"115213": {
+			"name": "Avert Harm",
+			"icon": "monk_ability_avertharm"
+		},
 		"115288": {
 			"name": "Energizing Brew",
 			"icon": "ability_monk_energizingwine"
@@ -800,6 +868,10 @@
 			"icon": "spell_holy_dispelmagic"
 		},
 		"115460": {
+			"name": "Healing Sphere",
+			"icon": "ability_monk_healthsphere"
+		},
+		"115464": {
 			"name": "Healing Sphere",
 			"icon": "ability_monk_healthsphere"
 		},
@@ -834,6 +906,14 @@
 		"115921": {
 			"name": "Legacy of the Emperor",
 			"icon": "ability_monk_legacyoftheemperor"
+		},
+		"116033": {
+			"name": "Sparring",
+			"icon": "ability_monk_sparring"
+		},
+		"116189": {
+			"name": "Provoke",
+			"icon": "ability_monk_provoke"
 		},
 		"116660": {
 			"name": "River's Song",
@@ -979,6 +1059,10 @@
 			"name": "Fortifying Brew",
 			"icon": "ability_monk_fortifyingale"
 		},
+		"121125": {
+			"name": "Death Note",
+			"icon": "ability_monk_touchofdeath"
+		},
 		"121129": {
 			"name": "Daybreak",
 			"icon": "inv_qirajidol_sun"
@@ -986,6 +1070,14 @@
 		"121279": {
 			"name": "Lifeblood",
 			"icon": "spell_nature_wispsplodegreen"
+		},
+		"121283": {
+			"name": "Chi Sphere",
+			"icon": "warlock_-healthstone"
+		},
+		"121467": {
+			"name": "Alabaster Shield",
+			"icon": "trade_archaeology_stoneshield"
 		},
 		"122278": {
 			"name": "Dampen Harm",
@@ -1035,6 +1127,10 @@
 			"name": "Kafa Boost",
 			"icon": "inv_drink_15"
 		},
+		"125355": {
+			"name": "Healing Sphere",
+			"icon": "ability_monk_healthsphere"
+		},
 		"125359": {
 			"name": "Tiger Power",
 			"icon": "ability_monk_tigerpalm"
@@ -1083,13 +1179,25 @@
 			"name": "Arcane Torrent",
 			"icon": "spell_shadow_teleport"
 		},
+		"129881": {
+			"name": "Spinning Crane Kick",
+			"icon": "ability_monk_cranekick_new"
+		},
 		"130320": {
 			"name": "Rising Sun Kick",
 			"icon": "ability_monk_risingsunkick"
 		},
+		"132365": {
+			"name": "Vengeance",
+			"icon": "spell_shadow_charm"
+		},
 		"132403": {
 			"name": "Shield of the Righteous",
 			"icon": "ability_paladin_shieldofvengeance"
+		},
+		"132463": {
+			"name": "Chi Wave",
+			"icon": "ability_monk_chiwave"
 		},
 		"132467": {
 			"name": "Chi Wave",
@@ -1118,6 +1226,10 @@
 		"138144": {
 			"name": "Item - Shaman T15 Elemental 4P Bonus",
 			"icon": "trade_engineering"
+		},
+		"138146": {
+			"name": "Lightning Strike",
+			"icon": "spell_nature_lightning"
 		},
 		"138242": {
 			"name": "Shield of Glory",
@@ -1187,6 +1299,18 @@
 			"name": "Eye of Brutality",
 			"icon": "ability_rogue_bloodyeye"
 		},
+		"142808": {
+			"name": "Fiery Edge",
+			"icon": "ability_mage_firestarter"
+		},
+		"142809": {
+			"name": "Fiery Edge",
+			"icon": "ability_mage_firestarter"
+		},
+		"142862": {
+			"name": "Ancient Barrier",
+			"icon": "warlock_siphonlife"
+		},
 		"142912": {
 			"name": "Glyph of Lightning Shield",
 			"icon": "inv_shield_06"
@@ -1202,6 +1326,10 @@
 		"143198": {
 			"name": "Garrote",
 			"icon": "ability_rogue_garrote"
+		},
+		"143322": {
+			"name": "Regeneration",
+			"icon": "spell_deathknight_bloodboil"
 		},
 		"143423": {
 			"name": "Sha Sear",
@@ -1275,6 +1403,10 @@
 			"name": "Multistrike",
 			"icon": "warrior_wild_strike"
 		},
+		"146068": {
+			"name": "Blade of the Hundred Steps",
+			"icon": "inv_spear_13"
+		},
 		"146071": {
 			"name": "Multistrike",
 			"icon": "spell_nature_lightning"
@@ -1282,6 +1414,14 @@
 		"146075": {
 			"name": "Multistrike",
 			"icon": "ability_monk_cracklingjadelightning"
+		},
+		"146081": {
+			"name": "Blade of the Hundred Steps",
+			"icon": "inv_spear_13"
+		},
+		"146099": {
+			"name": "Staff of Resonating Water",
+			"icon": "inv_staff_94"
 		},
 		"146137": {
 			"name": "Cleave",
@@ -1310,6 +1450,10 @@
 		"146202": {
 			"name": "Wrath",
 			"icon": "inv_legendary_sigilofpower"
+		},
+		"146250": {
+			"name": "Determination",
+			"icon": "ability_hunter_improvedtracking"
 		},
 		"146285": {
 			"name": "Cruelty",
@@ -1354,6 +1498,10 @@
 		"148235": {
 			"name": "Cleave",
 			"icon": "spell_nature_resistnature"
+		},
+		"148440": {
+			"name": "Weak Minded",
+			"icon": "spell_arcane_mindmastery"
 		},
 		"148896": {
 			"name": "Ferocity",

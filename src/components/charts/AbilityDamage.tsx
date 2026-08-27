@@ -74,7 +74,7 @@ export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
 				// drawing, and taking the top of a rotation-ordered list would drop whichever ones happen to
 				// sit late in the rotation rather than the ones that did the least.
 				.slice(0, ROWS)
-				.sort(byCastOrder((a) => spec.registry.abilityByDamageId(a.id)?.key ?? null, spec.castOrder)),
+				.sort(byCastOrder((a) => spec.registry.abilityByDamageId(a.id)?.key ?? null, spec)),
 		[analysis.damage.abilities, spec],
 	);
 	const height = abilities.length * ROW_HEIGHT + CHROME;

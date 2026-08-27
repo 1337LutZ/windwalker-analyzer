@@ -121,6 +121,23 @@ function idsFromFixtures() {
 			for (const row of analysis.casts ?? []) ids.add(row.id);
 			// Deaths name the boss ability that landed the killing blow, and `nameOf` is what renders it.
 			for (const death of analysis.timeline?.deaths ?? []) if (death.abilityId) ids.add(death.abilityId);
+			// A raw capture, which is the other shape a fixture ships in. Windwalker commits analyses;
+			// Protection and Elemental commit the event stream a report is built from, and none of the
+			// three reads above finds anything in one — so five Protection fixtures and four Elemental
+			// ones were contributing no ids at all. Divine Shield and Hand of Protection are how that
+			// surfaced: pressed on every one of those pulls, and drawn at a reader as `#642` and `#1022`.
+			//
+			// Only the captured actor's own events, which is the same line `ELEMENTAL_LOG_IDS` was
+			// measured along. A raid's whole stream carries 260 ids on these five pulls against 70 for
+			// the player, and the other 190 are other people's buffs and the boss's own script — spells
+			// no report of this player will ever draw an icon for, each costing a Wowhead call and a
+			// permanent entry in the map.
+			const actor = analysis.actor?.id;
+			if (Array.isArray(analysis.events) && typeof actor === 'number') {
+				for (const event of analysis.events) {
+					if (event.sourceID === actor && typeof event.abilityGameID === 'number') ids.add(event.abilityGameID);
+				}
+			}
 		}
 	}
 	return ids;

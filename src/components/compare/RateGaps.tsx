@@ -55,6 +55,28 @@ export interface RateRow {
  * **Both values are printed on every row.** The scale is the addition, not the delivery: nothing here
  * is reachable only by measuring a dot against an axis, so the figure survives greyscale, a screen
  * reader and a narrow viewport, where the track is the first thing to lose its precision.
+ *
+ * **One column, two or three, by how much width there is.** A cast list runs to twenty-odd rows, and a
+ * single column of them is a screen and a half of scrolling for a reader after one button. Grid flow is
+ * row-major, so the order the caller sorted into — the rotation, by way of `castOrder` — is still the
+ * order a reader meets the rows in: left to right, then down.
+ *
+ * The shared domain is what makes the columns honest. Every track is scaled by the same `max`, so a
+ * mark two thirds along in the third column means what it means in the first. The columns fold one
+ * list; they are not three lists side by side.
+ *
+ * **`lg` and `2xl` are measured rather than picked.** A row wants about 380px of content: below that the
+ * readings drop onto a second line under the name, and the longest rows go first — "Legacy of the White
+ * Tiger" beside "no talents on record" is the widest thing either list can hold. `md` would have given
+ * two columns of ~324px, where seven of twenty-four rows wrap; `lg` and `2xl` both clear 380 once the
+ * card's own padding is taken off. A wrapped row is still legible, so this is a raggedness ceiling and
+ * not a cliff.
+ *
+ * **A bordered card per row rather than a rule between rows.** `divide-y` cannot survive the grid: it
+ * borders every child but the first *in DOM order*, so across three columns the top-left row loses its
+ * rule and the two beside it keep theirs. A border that belongs to the row travels with it into any
+ * column count. `rounded-sm border border-line p-3.5` is `SectionGaps`' card, unchanged, because these
+ * two lists sit on the same page as those and a second card shape would read as a second kind of thing.
  */
 export default function RateGaps({
 	rows,
@@ -74,12 +96,12 @@ export default function RateGaps({
 	const at = (value: number) => Math.max(0, Math.min(100, (value / domain) * 100));
 
 	return (
-		<ul className="m-0 flex list-none flex-col gap-0 divide-y divide-line p-0">
+		<ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2 2xl:grid-cols-3">
 			{rows.map((row) => {
 				const left = at(row.a ?? 0);
 				const right = at(row.b ?? 0);
 				return (
-					<li key={row.id} className="flex flex-col gap-1.5 py-2.5">
+					<li key={row.id} className="flex flex-col gap-1.5 rounded-sm border border-line p-3.5">
 						<span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
 							<span className="flex min-w-0 items-center text-sm text-ink-2">
 								<SpellIcon id={row.id} label={row.name} />

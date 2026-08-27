@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 
 import { compare, identityFrom, type Comparison, type Pull } from '~/lib/compare';
 import { byCastOrder } from '~/lib/view/castOrder';
+
+/** What a cast list needs to be ordered: the spec's declared leaders, and the table the tiers read. */
+type CastOrdering = Parameters<typeof byCastOrder>[1];
 import { formatDecimal, formatInteger, formatPercentValue } from '~/lib/format';
 
 import { Note, Prose, Section, StatTile, StatTiles } from '../primitives';
@@ -25,7 +28,7 @@ import SectionGaps from './SectionGaps';
 function damageRows(
 	comparison: Comparison,
 	keyOf: (id: number) => string | null,
-	order: readonly string[],
+	spec: CastOrdering,
 ): { rows: RateRow[]; max: number } {
 	const rows = comparison.abilities
 		.filter((ability) => !ability.passive && !ability.utility)
@@ -38,7 +41,7 @@ function damageRows(
 		}))
 		// The same order the cast list below it uses, and the same the report's own damage chart uses.
 		// A reader moving between the three should not have to find each button three times.
-		.sort(byCastOrder((row) => keyOf(row.id), order));
+		.sort(byCastOrder((row) => keyOf(row.id), spec));
 	const max = Math.max(0, ...rows.flatMap((row) => [row.a ?? 0, row.b ?? 0]));
 	return { rows, max };
 }
@@ -55,7 +58,7 @@ const AUTO_ATTACK_ID = 1;
 function castRows(
 	comparison: Comparison,
 	keyOf: (id: number) => string | null,
-	order: readonly string[],
+	spec: CastOrdering,
 ): { rows: RateRow[]; max: number } {
 	const rows = comparison.casts
 		.filter((row) => row.id !== AUTO_ATTACK_ID)
@@ -69,7 +72,7 @@ function castRows(
 		// The rotation's own shape, the same order the report's own cast table uses. Sorting this list
 		// by the size of the gap put the racials and the flasks wherever the two logs happened to differ
 		// most, which is the middle of the rotation.
-		.sort(byCastOrder((row) => keyOf(row.id), order));
+		.sort(byCastOrder((row) => keyOf(row.id), spec));
 	const max = Math.max(0, ...rows.flatMap((row) => [row.a ?? 0, row.b ?? 0]));
 	return { rows, max };
 }
@@ -93,8 +96,8 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 	const spec = useSpec();
 	const comparison = useMemo(() => compare(a, b, identityFrom(spec.registry)), [a, b, spec]);
 	const identity = useMemo(() => identityFrom(spec.registry), [spec]);
-	const damage = useMemo(() => damageRows(comparison, identity.damage, spec.castOrder), [comparison, identity, spec]);
-	const casts = useMemo(() => castRows(comparison, identity.cast, spec.castOrder), [comparison, identity, spec]);
+	const damage = useMemo(() => damageRows(comparison, identity.damage, spec), [comparison, identity, spec]);
+	const casts = useMemo(() => castRows(comparison, identity.cast, spec), [comparison, identity, spec]);
 
 	// Not the bare names: two anonymous reports can both hold a `Player (10)`. See `pullLabels`.
 	const players = pullLabels(comparison.a, comparison.b);

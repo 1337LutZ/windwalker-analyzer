@@ -5,11 +5,14 @@ import { describe, expect, it } from 'vitest';
 import { rawFixtures } from '~/lib/analysis/fixtures';
 import { compare, identityFrom } from '~/lib/compare';
 import { getSpec, SPECS } from '~/lib/spec';
-import { byCastOrder, castRank, isShared } from '~/lib/view/castOrder';
+import { byCastOrder, castRank, isShared, lastTierKeys } from '~/lib/view/castOrder';
 import { resolveBands } from '~/lib/view/targetMode';
 
 const spec = getSpec('windwalker')!;
 const IDENTITY = identityFrom(spec.registry);
+// The tier a button closes the list in depends on the spec's own table as well as on `SHARED_ABILITIES`,
+// because a potion filed under the spec is still a potion.
+const LAST = lastTierKeys(spec.registry.abilities);
 const RAW = new Map(rawFixtures('windwalker').map(({ name, dataset }) => [name.replace(/\.json$/, ''), dataset]));
 
 function pull(name: string) {
@@ -28,13 +31,15 @@ describe('the three tiers', () => {
 			'fists-of-fury',
 			'tigereye-brew',
 		]);
-		const ranks = spec.castOrder.map((key) => castRank(key, spec.castOrder));
+		const ranks = spec.castOrder.map((key) => castRank(key, spec.castOrder, LAST));
 		expect(ranks).toEqual([0, 1, 2, 3, 4, 5]);
 	});
 
 	it('sorts the spec itself ahead of anything that belongs to no spec', () => {
-		expect(castRank('rushing-jade-wind', spec.castOrder)).toBeLessThan(castRank('blood-fury', spec.castOrder));
-		expect(castRank('expel-harm', spec.castOrder)).toBeLessThan(castRank('healthstone', spec.castOrder));
+		expect(castRank('rushing-jade-wind', spec.castOrder, LAST)).toBeLessThan(
+			castRank('blood-fury', spec.castOrder, LAST),
+		);
+		expect(castRank('expel-harm', spec.castOrder, LAST)).toBeLessThan(castRank('healthstone', spec.castOrder, LAST));
 	});
 
 	/**
@@ -49,9 +54,11 @@ describe('the three tiers', () => {
 		// Boosts are items anyone can press. Both arrive with no key, so nothing separates them — and
 		// ranking them with the spec put a glider above Energizing Brew.
 		expect(isShared(null)).toBe(false);
-		expect(castRank('energizing-brew', spec.castOrder)).toBeLessThan(castRank(null, spec.castOrder));
-		expect(castRank('touch-of-karma', spec.castOrder)).toBeLessThan(castRank(null, spec.castOrder));
-		expect(castRank(null, spec.castOrder)).toBeLessThan(castRank('flask-of-spring-blossoms', spec.castOrder));
+		expect(castRank('energizing-brew', spec.castOrder, LAST)).toBeLessThan(castRank(null, spec.castOrder, LAST));
+		expect(castRank('touch-of-karma', spec.castOrder, LAST)).toBeLessThan(castRank(null, spec.castOrder, LAST));
+		expect(castRank(null, spec.castOrder, LAST)).toBeLessThan(
+			castRank('flask-of-spring-blossoms', spec.castOrder, LAST),
+		);
 	});
 
 	it('knows the racials and the tinker belong to no spec', () => {
@@ -65,7 +72,7 @@ describe('the three tiers', () => {
 describe('over a real pull', () => {
 	const rows = compare(pull('sections'), pull('dataset-ironJuggernaut'), IDENTITY)
 		.casts.filter((row) => row.id !== 1)
-		.sort(byCastOrder((row) => IDENTITY.cast(row.id), spec.castOrder));
+		.sort(byCastOrder((row) => IDENTITY.cast(row.id), spec));
 
 	it('opens with the rotation in the order a monk presses it', () => {
 		expect(rows.slice(0, 6).map((row) => row.name)).toEqual([
@@ -79,11 +86,31 @@ describe('over a real pull', () => {
 	});
 
 	it('closes with the consumables and the tinker, uninterrupted', () => {
-		const shared = rows.map((row, at) => ({ at, shared: isShared(IDENTITY.cast(row.id)) })).filter((r) => r.shared);
-		expect(shared.length).toBeGreaterThan(2);
+		const closing = (row: { id: number }) => {
+			const key = IDENTITY.cast(row.id);
+			return key !== null && LAST.has(key);
+		};
+		const last = rows.map((row, at) => ({ at, last: closing(row) })).filter((r) => r.last);
+		expect(last.length).toBeGreaterThan(2);
 		// Every one of them sits past every row that is not one: a flask never lands mid-rotation again.
-		const firstShared = shared[0]!.at;
-		expect(rows.slice(firstShared).every((row) => isShared(IDENTITY.cast(row.id)))).toBe(true);
+		expect(rows.slice(last[0]!.at).every(closing)).toBe(true);
+	});
+
+	/**
+	 * The case a reader reported: a potion above three of the monk's own cooldowns.
+	 *
+	 * Virmen's Bite is in the Windwalker's own registry deliberately — the stat on it is agility, so no
+	 * other spec wants it — and that put it in the spec's tier, where the stable sort left it wherever
+	 * the gap between the two logs happened to place it. It is an item press, and `Ability.onUse` is
+	 * what says so.
+	 */
+	it('puts the spec’s own potion below the spec’s own cooldowns', () => {
+		const at = (name: string) => rows.findIndex((row) => row.name === name);
+		expect(at("Virmen's Bite")).toBeGreaterThan(-1);
+		for (const own of ['Energizing Brew', 'Chi Brew', 'Touch of Karma']) {
+			expect(at(own), own).toBeGreaterThan(-1);
+			expect(at(own), own).toBeLessThan(at("Virmen's Bite"));
+		}
 	});
 });
 
@@ -109,6 +136,26 @@ describe('every spec, present and future', () => {
 			expect(new Set(candidate.castOrder).size, candidate.key).toBe(candidate.castOrder.length);
 			// A racial or a flask in the leaders would contradict the tier below it.
 			expect(candidate.castOrder.filter(isShared), candidate.key).toEqual([]);
+		}
+	});
+
+	/**
+	 * Every spec that models a potion files it in its own table, for the stat on it, and every one of
+	 * them would otherwise rank it as rotation. Structural rather than a list of three potions, so the
+	 * fourth spec inherits the answer instead of the fault.
+	 */
+	it('closes each list with its own item presses, not with its own cooldowns', () => {
+		for (const candidate of SPECS) {
+			const last = lastTierKeys(candidate.registry.abilities);
+			const items = candidate.registry.abilities.filter((ability) => ability.onUse === true);
+			expect(items.length, candidate.key).toBeGreaterThan(0);
+			const spells = candidate.registry.abilities.filter(
+				(ability) => ability.onUse !== true && !isShared(ability.key) && !candidate.castOrder.includes(ability.key),
+			);
+			expect(spells.length, candidate.key).toBeGreaterThan(0);
+			const worstItem = Math.min(...items.map((ability) => castRank(ability.key, candidate.castOrder, last)));
+			const worstSpell = Math.max(...spells.map((ability) => castRank(ability.key, candidate.castOrder, last)));
+			expect(worstSpell, `${candidate.key}: an item press outranks one of its own spells`).toBeLessThan(worstItem);
 		}
 	});
 

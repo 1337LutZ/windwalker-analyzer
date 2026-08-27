@@ -280,7 +280,7 @@ export default function CastsPerMinute({ analysis }: { analysis: Analysis }) {
 				.filter((c) => c.count > 1 && c.onGcd && !UTILITY_IDS.has(c.id))
 				// The rotation's own shape rather than the order the event stream happened to produce,
 				// which put a flask between two rotational buttons. See `lib/view/castOrder`.
-				.sort(byCastOrder((c) => spec.registry.abilityByCastId(c.id)?.key ?? null, spec.castOrder)),
+				.sort(byCastOrder((c) => spec.registry.abilityByCastId(c.id)?.key ?? null, spec)),
 		[analysis.casts, spec],
 	);
 	/**

@@ -184,6 +184,9 @@ does owe:
 - **`Ability.castIds` and `damageIds` in full.** One button logs under several ids: Jab has one per
   weapon type. A spec that declares one of them drops every cast by anyone holding the other weapon,
   and on the compare page it splits one button into two half-empty rows.
+- **A regenerated `spells.json`, once the spec's fixtures are committed.** Discovery reads both fixture
+  shapes — an `Analysis` through `damage.abilities` and `casts`, a `FightDataset` through the captured
+  actor's own events — so committing the fixtures and re-running the generator is the whole step.
 
 ## Fixtures — two kinds, and the difference matters
 
@@ -204,6 +207,11 @@ Fixture rules:
 
 - **Anonymous reports only** (`a:` codes, every player `Player (N)`). Never a named player's log.
 - Pretty-printed to match the existing ones (~380–670 KB each is normal here).
+- **Committing a fixture of either kind adds spell ids that need a name and an icon.** Run
+  `node scripts/build-spell-map.mjs` and commit `spells.json` alongside it, or every button in it that
+  the spec model does not carry draws a bare `#642` at a reader. `fixtureSpellIcons.test.ts` fails
+  with the fixture and the id named, so this cannot drift quietly again — it did once, for as long as
+  Protection has had fixtures, because discovery could read an `Analysis` and not a `FightDataset`.
 - A raw dataset **must include the enemy NPCs in `actors`**. `analyseCore` builds `enemyIDs` from
   `actors.filter(a => a.type === 'NPC')`, so a dataset without them yields an empty contact clock and
   every contact-scoped figure silently reads zero.
