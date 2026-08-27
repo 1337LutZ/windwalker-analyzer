@@ -10,8 +10,19 @@ code + fight + player; the browser calls the WCL API directly (the token never l
 `analyse()` produces an `Analysis` object that React components render. Astro static build, deployed to
 Cloudflare Pages. Charts are **ApexCharts** via `react-apexcharts` — not Recharts.
 
-Originally Windwalker Monk only. It is now genuinely two specs: **Windwalker Monk** and **Elemental
-Shaman**, sharing one engine.
+Originally Windwalker Monk only. It is now genuinely three specs: **Windwalker Monk**, **Elemental
+Shaman** and **Protection Paladin**, sharing one engine.
+
+## References
+
+Deeper procedure lives beside this file rather than in it, so a session loads what the task needs.
+
+| File                              | Read it before                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `references/spec-gcd-analysis.md` | asking whether a metric measures the player or the boss, proposing or defending a threshold pair, or quoting a variance figure |
+
+Two sibling skills carry the rest: **`gcd-reference`** for refreshing `src/generated/reference.json`
+(the product half of the same machinery), and **`tone-of-voice`** for anything a reader sees.
 
 ## Repository layout
 
@@ -72,8 +83,8 @@ export PATH="$HOME/.nvm/versions/node/v24.19.0/bin:$PATH"
 npm run check && npm test && npm run build
 ```
 
-`npm run check` = astro check + tsc + oxlint + oxfmt. Current baseline: **979 tests pass, 9 skipped**,
-check 0 errors, build clean. All three must be green after every step.
+`npm run check` = astro check + tsc + oxlint + oxfmt. Current baseline: **3304 tests pass, 11 skipped**
+across 232 files, check 0 errors, build clean. All three must be green after every step.
 
 **Prefix every verification command with `RTK_DISABLED=1`.**
 
