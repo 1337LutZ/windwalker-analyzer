@@ -838,6 +838,87 @@ export interface ProcWindow extends Window {
 	unholdable?: boolean;
 }
 
+/**
+ * One Tigereye Brew, read as a chance to weave an elixir.
+ *
+ * The weave exists because the brew freezes mastery and then stops looking. `damagePerStack` is
+ * `0.05 + masteryPercent`, read once in `OnGain` and never again for the buff's fifteen seconds —
+ * `sim/monk/windwalker/tigereye_brew.go:53`. So once a brew is up, further mastery cannot raise the
+ * number it is carrying, while Rune of Re-Origination has converted crit and haste to nothing.
+ * Swapping off Monk's Elixir after the brew lands makes some other secondary the highest, so the next
+ * Rune proc returns a stat the player can actually use instead of mastery the brew cannot hold.
+ */
+export interface WeaveBrew {
+	/** When the brew's buff went up, and when it came down. The window is the whole of the chance. */
+	start: number;
+	end: number;
+	/** The fight ended underneath this brew, so there was never a window to weave and return inside. */
+	truncated?: boolean;
+	/**
+	 * When the swap off Monk's Elixir landed, or null when none did.
+	 *
+	 * Relative to `start`, so a negative number is a swap that beat the brew — see `early`.
+	 */
+	offAt: number | null;
+	/** Which elixir was swapped to, for copy that names it rather than saying "another elixir". */
+	offStat: string | null;
+	/**
+	 * True when the swap landed *before* the brew, which dilutes rather than weaves.
+	 *
+	 * Monk's Elixir is +750 mastery, so dropping it first lowers the very number `OnGain` is about to
+	 * freeze. This is the one weave fault that costs damage in both directions: the brew is weaker for
+	 * its whole fifteen seconds, and the proc it was meant to free up was never freed.
+	 */
+	early: boolean;
+	/**
+	 * When the weave was closed, or null when it never was before the brew ended.
+	 *
+	 * A close is anything that stops lifting a rival secondary, which puts mastery back on top: the
+	 * flask, whose stat is null, as readily as Monk's Elixir. Three of the four raw captures close with
+	 * the flask and never press Monk's Elixir again.
+	 */
+	backAt: number | null;
+	/** What closed it, so copy can name the elixir. Null is the flask, which lifts no secondary. */
+	backStat?: string | null;
+	/**
+	 * True when the return landed inside the last second of the brew, which is where it belongs.
+	 *
+	 * The same shape the snapshot rule already uses: there, a Rune proc runs ten seconds and a brew
+	 * cast inside the last second of it carries furthest. Here a brew runs fifteen and the elixir that
+	 * comes back inside the last second of it spent the longest possible time being useful. Returning
+	 * earlier is not a fault of correctness — the weave still happened — it is weave time given away.
+	 */
+	returnedOnTime: boolean;
+}
+
+/**
+ * Elixir weaving across a pull: whether it was done, and where it was done wrong.
+ *
+ * Optional on the audit because the committed fixtures predate it. `undefined` there, never a summary
+ * reading zero — "nobody weaved" and "nobody looked" are opposite facts about the same pull.
+ */
+export interface WeaveSummary {
+	/**
+	 * Whether Rune of Re-Origination was on the reported gear, or null when no gear was reported.
+	 *
+	 * The whole technique is a way of steering what the Rune converts, so without it there is no weave
+	 * to make and the section says nothing at all rather than grading a rule that was never asked.
+	 */
+	runeEquipped: boolean | null;
+	/** Brews that were a chance to weave: the monk held Monk's Elixir and the fight did not cut them short. */
+	offered: number;
+	/** Of those, the ones where the swap actually followed the brew. */
+	taken: number;
+	/** Swaps that beat their brew and diluted the mastery it froze. */
+	early: number;
+	/** Weaves whose return missed the last second of the brew, or never came at all. */
+	lateReturn: number;
+	/** Every brew read this way, truncated ones included, so a chart can draw what was excluded. */
+	brews: WeaveBrew[];
+	/** The window a return is judged against, so the UI names the number rather than repeating it. */
+	returnLeewayMs: number;
+}
+
 export interface ProcSummary {
 	procs: number;
 	snapshotted: number;
@@ -2157,6 +2238,13 @@ export interface SpecAuditResult {
 	 * it must never be mistaken for, since "no kick was ever starved" and "nobody looked" are opposite
 	 * facts about the same button. `analyse()` always fills it in. Anything reading it has to guard.
 	 */
+	/**
+	 * Elixir weaving, absent on any capture taken before the rule existed.
+	 *
+	 * Read the same way as every optional audit beside it: `undefined` is a pull nobody asked the
+	 * question of, and a summary reading zero is a pull that was asked and answered no.
+	 */
+	weave?: WeaveSummary;
 	blackoutKick?: BlackoutKickAudit;
 	channel: ChannelAudit;
 	/** Optional against a stored analysis, per `energizing` below; `analyse()` always fills it in. */

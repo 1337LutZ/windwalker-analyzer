@@ -20,6 +20,19 @@ export interface AnalysisSettings {
 	 */
 	snapshotLeewayMs: number;
 	/**
+	 * How close to a Tigereye Brew's expiry the elixir has to come back for the weave to be optimal.
+	 * Windwalker.
+	 *
+	 * The mirror of `snapshotLeewayMs`, and the same argument. There, a Rune proc runs ten seconds and
+	 * the brew wants to land inside its final global, so the frozen bonus outlives the proc by as much
+	 * as possible. Here a brew runs fifteen and Monk's Elixir wants to come back inside the brew's
+	 * final second, so the crit or haste it was swapped for was live for as long as possible.
+	 *
+	 * A setting rather than a constant for the reason the leeway is one: coming back on the exact tick
+	 * is a thing a simulator does, and a person playing a deliberate cushion is not playing badly.
+	 */
+	weaveReturnLeewayMs: number;
+	/**
 	 * How much Tiger Power may still be running for a Tiger Palm to be read as refreshing it. Windwalker.
 	 *
 	 * Below it a press is a refresh; above it the press clipped a healthy buff and burned a global

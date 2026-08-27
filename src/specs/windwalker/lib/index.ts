@@ -20,6 +20,7 @@ import { createRegistry } from '~/lib/game/registry';
 import { CLASS_COLOR } from '~/lib/game/classes';
 import { RESOURCE_TYPE } from '~/lib/game/resources';
 import { maxHealthFrom, readTalents } from '~/lib/analysis/gear';
+import { runeOfReOriginationEquipped } from '~/specs/windwalker/lib/view/rotationFlow';
 import { aplAudit } from '~/lib/spec/apl';
 import type { AplAudit, Band } from '~/lib/spec/apl';
 import { CHI_COST, LADDER, UNARBITRATED } from './apl';
@@ -1406,6 +1407,30 @@ export const LAST_GCD_MS = GCD_MS;
 export const LATE_MS = 3000;
 
 /**
+ * How close to the brew's expiry Monk's Elixir has to come back for the weave to be optimal.
+ *
+ * The default, and the mirror of `LAST_GCD_MS` on the snapshot side. A brew runs fifteen seconds and
+ * the elixir wants to return inside its last one, so the crit or haste it was swapped for stayed live
+ * for as long as the brew could carry it. Returning earlier is weave time given away rather than a
+ * fault of correctness, which is why it is counted separately from `early` and never as a miss.
+ *
+ * The reader may disagree — see `weaveReturnLeewayMs` in `WW_SETTINGS`.
+ */
+const WEAVE_RETURN_LEEWAY_MS = 1000;
+
+/** Monk's Elixir is the mastery one, and mastery is the stat the whole technique steers. */
+const WEAVE_HELD_STAT = 'Mastery';
+
+/**
+ * How far before a brew a swap can land and still be read as a mis-timed weave rather than a plan.
+ *
+ * One brew's length. A swap two brews ago is somebody running a different elixir, not somebody who
+ * weaved a fraction early, and charging them for it would put a dilution fault on every pull that
+ * never meant to weave at all.
+ */
+const WEAVE_EARLY_LOOKBACK_MS = 15_000;
+
+/**
  * The analysis thresholds a Windwalker reader may disagree with, declared for the settings panel.
  *
  * Everything else this report grades is a judgement it makes and defends in a comment; these three
@@ -1416,6 +1441,17 @@ export const LATE_MS = 3000;
  * writing its own numbers; the bands' reasoning lives on the entries.
  */
 export const WW_SETTINGS: SettingSchema[] = [
+	{
+		key: 'weaveReturnLeewayMs',
+		tKey: 'settings.ww.weave',
+		// The brew's final second, by default. The floor is where no human window remains to react in;
+		// the ceiling is a third of the brew, past which "came back near the end" would describe a swap
+		// made halfway through and the count would stop meaning anything.
+		default: WEAVE_RETURN_LEEWAY_MS,
+		min: 250,
+		max: 5000,
+		step: 50,
+	},
 	{
 		key: 'snapshotLeewayMs',
 		tKey: 'settings.ww.leeway',
@@ -1815,7 +1851,7 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		berserkingWindows,
 		settings,
 	} = h;
-	const { snapshotLeewayMs, cooldownLeewayMs } = settings;
+	const { snapshotLeewayMs, cooldownLeewayMs, weaveReturnLeewayMs } = settings;
 	// The bars this spec declared, fully audited by the core. The config's keys are what say which bars
 	// exist and the core always fills every one it declared, so both reads below are guaranteed — but
 	// `kind` still has to narrow, because the audits are one record holding two shapes and the fields
@@ -2019,6 +2055,97 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 		if (!brew || live.t < brew.start - WEAVE_ORDER_SLACK_MS) continue;
 		w.weaved = true;
 	}
+
+	/**
+	 * Every brew read as a chance to weave, which is the section's own reading rather than the procs'.
+	 *
+	 * The loop above answers a question about *procs* — did this one get skipped on purpose — and can
+	 * only ever see the weaves that a proc happened to land on. The section grades the *decision*, so
+	 * its unit is the brew: a monk who swapped correctly and drew no proc played it right, and a monk
+	 * who never swapped at all is invisible to a proc-shaped count because there is no proc to mark.
+	 *
+	 * Truncated brews are excluded from the two graded counts and still reported. The fight ending
+	 * three seconds into a brew leaves no window to swap and come back inside, so charging it would
+	 * grade when the boss died.
+	 */
+	const weaveBrews = uses.flatMap((use, at) => {
+		/**
+		 * **One row per press, not per aura window, because a refresh is a new snapshot.**
+		 *
+		 * `auraWindows` merges a re-application into the window it refreshed, so two presses twelve
+		 * seconds apart arrive as one 26.5s window — which is what `dataset-ironJuggernaut` contains and
+		 * what a reader spotted on their own log. Reading that as one brew is wrong twice: it offers one
+		 * chance where there were two, and it puts the leeway at the end of the pair instead of at the
+		 * end of each.
+		 *
+		 * The sim settles it. `ApplyEffects` on Tigereye Brew is `buffAura.Deactivate(sim)` followed by
+		 * `buffAura.Activate(sim)` — `sim/monk/windwalker/tigereye_brew.go:94-96` — so `OnGain` runs a
+		 * second time, re-reads `0.05 + masteryPercent` and consumes a fresh batch of stacks. The second
+		 * press is a whole new brew that happens to start before the first one ended.
+		 *
+		 * So each press runs from itself to whichever comes first: the next press, or the end of the
+		 * window it belongs to.
+		 */
+		const window = use.window;
+		// A drain that paired to no window is not a brew anybody can weave around. `pairDrainsToWindows`
+		// already reports those; there is nothing for this section to draw.
+		if (window === null) return [];
+		const next = uses[at + 1];
+		const cutShort = next !== undefined && next.t < window.end;
+		const b = {
+			start: use.t,
+			end: cutShort ? next.t : window.end,
+			// Only the press that actually runs to the window's end inherits its truncation. The one
+			// before it ended because the next press ended it, which is not the fight running out.
+			truncated: !cutShort && window.truncated === true,
+		};
+		return [weaveRowFor(b)];
+	});
+
+	/** One brew, read as a chance to weave. Split out so the press walk above stays about the split. */
+	function weaveRowFor(b: { start: number; end: number; truncated: boolean }) {
+		// **What opens a weave and what closes it are not the same set, and that is the mechanic.** Only
+		// a rival secondary can open one: Mad Hozen or the Rapids make crit or haste the highest stat,
+		// which is what steers the next Rune conversion. Closing it needs no elixir at all — anything
+		// that stops lifting a rival puts mastery back on top, and the reforge is built to keep it there
+		// (`sim/core/reforge_optimizer/relative_stat_cap.go`). `ELIXIR_STATS` says exactly this about the
+		// flask already: it "can close a weave but never open one".
+		//
+		// Measured rather than assumed. Three of the four raw captures close with Flask of Spring
+		// Blossoms and never touch Monk's Elixir again; `uncounted` does it five times out of five,
+		// between 544ms and 721ms before the brew expires. Reading the close as "Monk's Elixir returns"
+		// scored every one of those perfect weaves as a failed return.
+		const closes = (stat: string | null) => stat === null || stat === WEAVE_HELD_STAT;
+		// Before the first observed press the monk is on whatever they pulled with, and a Windwalker
+		// pulls on Monk's Elixir to force the opening mastery proc — so there is never an elixir cast
+		// before the first brew, and reading that silence as "no elixir" would exclude it.
+		const heldAt = (t: number) => closes(elixirAt(t)?.stat ?? WEAVE_HELD_STAT);
+		const swaps = battleElixirs.filter((e) => !closes(e.stat));
+		const off = swaps.find((e) => e.t >= b.start - WEAVE_ORDER_SLACK_MS && e.t <= b.end) ?? null;
+		const earlySwap =
+			off === null
+				? (swaps.find((e) => e.t < b.start - WEAVE_ORDER_SLACK_MS && e.t >= b.start - WEAVE_EARLY_LOOKBACK_MS) ?? null)
+				: null;
+		const swap = off ?? earlySwap;
+		const back =
+			swap === null ? null : (battleElixirs.find((e) => closes(e.stat) && e.t > swap.t && e.t <= b.end) ?? null);
+		return {
+			start: b.start,
+			end: b.end,
+			...(b.truncated ? { truncated: true } : {}),
+			offAt: swap === null ? null : swap.t - b.start,
+			offStat: swap?.stat ?? null,
+			early: off === null && earlySwap !== null,
+			backAt: back === null ? null : back.t - b.start,
+			backStat: back === null ? null : back.stat,
+			returnedOnTime: back !== null && b.end - back.t <= weaveReturnLeewayMs,
+			// Not on the row: whether this brew was a chance at all. Kept local because the shape is the
+			// chart's, and a chart drawing a brew nobody could have weaved off would be drawing noise.
+			offered: heldAt(b.start - WEAVE_ORDER_SLACK_MS) || earlySwap !== null,
+		};
+	}
+	/** The graded population: a real chance, on a brew the fight did not cut short. */
+	const weaveGraded = weaveBrews.filter((b) => b.offered && b.truncated !== true);
 
 	/**
 	 * The wider fact the weave is one cause of: the Rune returned a stat the brew cannot hold.
@@ -3903,6 +4030,17 @@ export function windwalkerAudit(h: Handles): SpecAuditResult {
 			windows: brewWindows,
 			useList: uses,
 			bankTimeline: bank.timeline,
+		},
+		weave: {
+			runeEquipped: runeOfReOriginationEquipped(gear.slots),
+			offered: weaveGraded.length,
+			taken: weaveGraded.filter((b) => b.offAt !== null && !b.early).length,
+			early: weaveGraded.filter((b) => b.early).length,
+			// Only the weaves that happened can have returned late; a brew nobody swapped off is a miss
+			// on `taken` and must not be charged a second time here for a return it never owed.
+			lateReturn: weaveGraded.filter((b) => b.offAt !== null && !b.early && !b.returnedOnTime).length,
+			brews: weaveBrews.map(({ offered: _offered, ...row }) => row),
+			returnLeewayMs: weaveReturnLeewayMs,
 		},
 		procs: {
 			procs: procs.length,

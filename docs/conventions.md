@@ -478,10 +478,10 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the compare page, it prints 1614 leaves, 776 prose, 25,255 words;
-median 27, p75 43, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 700 prose leaves,
-1,234 sentences, median 17, 249 past 25 (20.2%), 288 em-dashes in 247 sentences (20.0%);
-60 / 25 / 1 / 2 on the quote lines.
+As of the elixir weave section, it prints 1643 leaves, 789 prose, 25,630 words;
+median 27, p75 43, p90 65, p95 78, p99 117, max 204; longest 9% carry 25%; report.json 712 prose leaves,
+1,254 sentences, median 17, 252 past 25 (20.1%), 289 em-dashes in 248 sentences (19.8%);
+60 / 28 / 1 / 2 on the quote lines.
 
 One change sits behind this: the compare page, which added a `compare` family to `report.json` and nine
 shell keys to `ui.json`. 55 leaves and 592 words — the largest single addition either file has taken,

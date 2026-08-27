@@ -244,18 +244,22 @@ describe('the weight the band replaced', () => {
 describe('the scorecard says how much of itself it judged', () => {
 	/**
 	 * `judged` reaches the card now, which is what stops an exemption reading as a whole-pull verdict.
-	 * A pull whose Tiger Palm rule was not asked is a `good` over ten of thirteen points, and the report
-	 * can say so rather than presenting it as thirteen of thirteen.
+	 * A pull whose Tiger Palm rule was not asked is a `good` over eleven of sixteen points, and the
+	 * report can say so rather than presenting it as sixteen of sixteen.
+	 *
+	 * Two of the unread points in both readings are `weaveRate`, which every committed capture predates.
+	 * The multi-target reading loses three more to Tiger Palm's exemption, which is the case this guard
+	 * was written for and the one the two numbers still separate.
 	 */
 	it('publishes the denominator the headline was taken over', () => {
 		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'auto')).judged).toEqual({
 			measured: 15,
-			total: 15,
+			total: 17,
 			unmeasurable: false,
 		});
 		expect(scoreAnalysis(fixture('strong'), resolveBands(fixture('strong').targets, 'multi')).judged).toEqual({
 			measured: 11,
-			total: 14,
+			total: 16,
 			unmeasurable: false,
 		});
 	});

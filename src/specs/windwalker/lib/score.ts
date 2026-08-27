@@ -248,7 +248,7 @@ function shortBrews(brew: BrewSummary, procs: ProcSummary, durationMs: number): 
  * it already has.
  */
 export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Scorecard {
-	const { procs, brew, debuff, filler, cpm, karma, potions } = analysis;
+	const { procs, brew, debuff, filler, cpm, karma, potions, weave } = analysis;
 	// Bound once, so no metric below can be built outside the exemption. See `grader`.
 	const metric = grader(THRESHOLDS, view);
 
@@ -486,10 +486,42 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		potions?.measurable === true && potions.used === 1 ? (potions.prePull === null ? 'prepull' : 'combat') : undefined,
 	);
 
+	/**
+	 * Elixir weaving, in three readings: whether it was done, and the two ways of doing it wrong.
+	 *
+	 * **All three answer null without the Rune, and that is the point rather than a guard.** The
+	 * technique exists only to steer what Rune of Re-Origination converts — see `WeaveSummary` — so on a
+	 * pull without it there was no weave to make and the rule was never asked. A zero there would read
+	 * as a monk who declined, which is a claim about a player rather than about their trinkets.
+	 *
+	 * `runeEquipped` is null in turn when the log carried no gear at all, and that is a third answer
+	 * again: the report cannot say whether the Rune was worn, so it cannot say whether the weave was on
+	 * offer. Both nulls arrive here as one, because the section's copy says the same thing either way.
+	 */
+	/**
+	 * **A monk who has never weaved is prompted, not marked down.** The technique is worth a few percent
+	 * and costs nothing but attention, so the section's job on a pull that never tried is to say it
+	 * exists — grading a nought there would put a `bad` on every Windwalker who has not heard of it and
+	 * bury the one sentence that would tell them.
+	 *
+	 * `early > 0` is in the test on purpose. A monk whose every swap beat its brew has engaged with the
+	 * technique and got the ordering backwards, which is the one weave fault that costs damage twice;
+	 * `taken` alone reads that pull as "never weaved" and would hide the fault behind the prompt.
+	 */
+	const weaveAsked = weave !== undefined && weave.runeEquipped === true && (weave.taken > 0 || weave.early > 0);
+	// `shareOf` rather than `sharePct`: the denominator is a count of brews, and one or two of them
+	// cannot separate a habit from an accident — `MIN_GRADED_SAMPLE` is what says so.
+	const weaveRate = metric('weaveRate', weaveAsked ? shareOf(weave.taken, weave.offered) : null);
+	const weaveEarly = metric('weaveEarly', weaveAsked ? weave.early : null);
+	const weaveLateReturn = metric('weaveLateReturn', weaveAsked ? weave.lateReturn : null);
+
 	const all = [
 		gcdUtilisation,
 		snapshotRate,
 		snapshotDepth,
+		weaveRate,
+		weaveEarly,
+		weaveLateReturn,
 		rskUptime,
 		tigerPalmWaste,
 		brewStacks,
@@ -510,6 +542,12 @@ export function scoreAnalysis(analysis: Analysis, view: ScoreView = null): Score
 		sections: {
 			// Depth is deliberately secondary — see the note on SectionScore.
 			snapshots: section([snapshotRate], [snapshotDepth]),
+			// Below `snapshots` because it is the same trinket read one step on: that section asks whether
+			// the proc was caught, this one whether the procs the brew could not use were steered away.
+			// Only `weaveRate` is primary — the two fault counts describe how a weave went, and a monk who
+			// never weaves has nothing for them to describe, so letting either carry the section would
+			// hand a clean grade to a pull that never tried.
+			weave: section([weaveRate], [weaveEarly, weaveLateReturn]),
 			// All three primary: the mean, the bank's ceiling and the worst brew are three faults and not
 			// three readings of one, so the weakest carries the section. Same call as `karma` below.
 			brew: section([brewStacks, brewCapWaste, brewShortUses]),
@@ -597,6 +635,50 @@ export const THRESHOLDS = {
 	 * nothing could reach the old 45% floor either.
 	 */
 	snapshotDepth: { good: 80, ok: 65, higherIsBetter: true, unit: 'percent' },
+
+	/**
+	 * Share of the brews that were a chance to weave where the swap actually followed the brew.
+	 *
+	 * **Per brew, not per proc, because the brew is where the decision is.** A monk who swapped
+	 * correctly and drew no Rune proc played it right, and a monk who never swaps is invisible to any
+	 * proc-shaped count — there is no proc to mark. The denominator is every brew the monk held a
+	 * mastery-keeping consumable into, minus the ones the fight ended underneath.
+	 *
+	 * The bands are cut from the four raw captures, which spread further than any other rule in this
+	 * file: `uncounted` weaves 5 of 6, `idle` 4 of 4, `sections` 4 of 11, and `dataset-ironJuggernaut`
+	 * presses no elixir at all. 80% is where the two who play it sit and 50% separates a habit from
+	 * four scattered presses across a nine-minute Galakras.
+	 */
+	weaveRate: { good: 80, ok: 50, higherIsBetter: true, unit: 'percent' },
+
+	/**
+	 * Swaps that beat their own brew, diluting the mastery it was about to freeze.
+	 *
+	 * The one weave fault that costs damage twice: `damagePerStack` is `0.05 + masteryPercent` read
+	 * once in `OnGain`, so dropping Monk's Elixir first lowers the multiplier for the brew's whole
+	 * fifteen seconds — and the proc it was meant to free up was never freed either. One is a slip,
+	 * anything more is the ordering being played backwards, so the bands are as tight as they go.
+	 *
+	 * No fixture contains one. That is a statement about four captures rather than about the game, and
+	 * it is why `weaveOrdering.test.ts` builds the case synthetically instead of leaving the rule
+	 * asserted by nothing.
+	 */
+	weaveEarly: { good: 0, ok: 1, higherIsBetter: false, unit: 'count' },
+
+	/**
+	 * Weaves whose close missed the brew's final second, or never came at all.
+	 *
+	 * The mirror of `snapshotRate`'s leeway and the same argument in the other direction: there a brew
+	 * wants to land inside the proc's last global so the frozen bonus outlives the proc, here the close
+	 * wants to land inside the brew's last second so the crit or haste stayed live as long as the brew
+	 * could carry it. Closing early is weave time given away, not a weave done wrong, which is why this
+	 * is a secondary metric and cannot carry the section.
+	 *
+	 * The captures separate cleanly on it. `uncounted` closes five of five between 544ms and 721ms
+	 * before expiry; `sections` closes four of four between 6.5s and 10.2s early. One is somebody
+	 * counting the brew down, the other is somebody swapping back when they remember.
+	 */
+	weaveLateReturn: { good: 0, ok: 2, higherIsBetter: false, unit: 'count' },
 
 	/**
 	 * Rising Sun Kick's debuff uptime against engaged time.
@@ -858,6 +940,21 @@ export const WEIGHTS: Record<MetricKey, number> = {
 	// existing for the copy to read a band off, and so the reason it does not count lives beside every
 	// weight that does — see the note above `snapshotDepth` for the inversion that put it here.
 	snapshotDepth: 0,
+	// Two, against `snapshotRate`'s heavier hand. **This moves every pull's `judged` denominator from 14
+	// to 16**, which is the same cost `brewShortUses` states above and is stated here rather than
+	// absorbed: a pull that never weaved now reads "scored on 14 of 16 points" instead of 14 of 14, and
+	// that is the honest sentence — two points were offered and the pull did not answer them. The weave is real damage and a habit the player owns
+	// outright, but it is one step downstream of the thing that section grades: catching the proc is
+	// what the brew is for, and steering the ones it cannot use is the refinement on top. Weighting the
+	// refinement level with the fundamental would let a monk who never catches a proc grade well for
+	// swapping elixirs around it.
+	weaveRate: 2,
+	// Zero for both faults, on `snapshotDepth`'s argument rather than `karmaEmpty`'s. They are
+	// conditional numbers: neither can be anything but nought on a pull that never weaved, so a monk
+	// who does the technique badly grades worse on them than one who has never heard of it. The section
+	// reads a band off each and prints it; the headline is `weaveRate`'s alone.
+	weaveEarly: 0,
+	weaveLateReturn: 0,
 	brewStacks: 1,
 	brewCapWaste: 1,
 	// One, like the two beside it, and the light weight is the whole section's and not a discount on

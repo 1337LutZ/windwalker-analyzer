@@ -217,6 +217,11 @@
         "unit": "ms",
         "hint": "How much of a Re-Origination proc can be left over for a brew to still count as catching it on the last global. The default of {{default}}ms is one global, which is what the rotation asks for. Raise it if your latency means the log records you later than you acted, or if you deliberately brew with a safety cushion. Between {{min}} and {{max}}ms."
       },
+      "weave": {
+        "label": "Elixir weave leeway",
+        "unit": "ms",
+        "hint": "How close to a Tigereye Brew running out your elixir has to come back for the weave to count as played out in full. The default of {{default}}ms is the brew’s last second, which is as long as the crit or haste you swapped for can stay useful. Raise it if you would rather swap back with a cushion than cut it fine. Between {{min}} and {{max}}ms."
+      },
       "tigerPalm": {
         "label": "Tiger Palm refresh window",
         "unit": "ms",

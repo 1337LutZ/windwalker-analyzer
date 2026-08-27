@@ -6,6 +6,7 @@
 export { default as BlackoutKick } from './BlackoutKick';
 export { default as BrewBankTimeline } from './BrewBankTimeline';
 export { default as CastsPerMinute } from './CastsPerMinute';
+export { default as ElixirWeave } from './ElixirWeave';
 export { default as EnergizingBrew } from './EnergizingBrew';
 export { default as ChiBrew } from './ChiBrew';
 export { default as FistsOfFury } from './FistsOfFury';

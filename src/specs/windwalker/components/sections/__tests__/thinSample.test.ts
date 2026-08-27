@@ -471,7 +471,13 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 * was taken over — a metric dropping out of the denominator would move the second even where it left
 	 * the first alone. Neither moves, because `karmaEmpty` offers nought weight.
 	 *
-	 * `cleave` reads 14 of 14 and read 11 of 14 before the 2026-08-24 re-capture. That is not this metric
+	 * **Every denominator here gained two on 2026-08-27**, when `weaveRate` joined the weights. No
+	 * committed capture carries the elixir-weave audit — they all predate it — so on all six the metric
+	 * is unmeasurable, the numerator is untouched and only the offered weight moves. That is the shape
+	 * this docblock already warns about, arriving for a benign reason: a letter that held is still the
+	 * letter, taken over a wider offer.
+	 *
+	 * `cleave` reads 14 of 16 and read 11 of 14 before the 2026-08-24 re-capture. That is not this metric
 	 * and not this section: `targets.aplCounts` took its Tiger Palm sample over `MIN_GRADED_SAMPLE`, so
 	 * the three points that rule carries came back into the denominator. The letter is `good` either way.
 	 *
@@ -483,12 +489,12 @@ describe('a Windwalker pull with too few Touch of Karma presses to read a share 
 	 * and changed nothing above it, which is this test's claim stated by a pull rather than by a weight.
 	 */
 	const HEADLINES = {
-		cleave: 'good over 14 of 14',
-		mixed: 'ok over 15 of 15',
-		poor: 'bad over 15 of 15',
-		strong: 'good over 15 of 15',
-		waves: 'good over 14 of 14',
-		weave: 'good over 14 of 15',
+		cleave: 'good over 14 of 16',
+		mixed: 'ok over 15 of 17',
+		poor: 'bad over 15 of 17',
+		strong: 'good over 15 of 17',
+		waves: 'good over 14 of 16',
+		weave: 'good over 14 of 17',
 	};
 
 	const NEVER_PRESSED = 'Touch of Karma was never pressed, and the pull allowed';

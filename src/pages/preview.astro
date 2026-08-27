@@ -8,6 +8,8 @@ import { pageShellClass } from '~/components/primitives/pageShell';
 import Base from '~/layouts/Base.astro';
 import type { FightDataset } from '~/lib/types';
 import { analyse as analyseElemental } from '~/specs/elemental';
+import { analyse as analyseWindwalker } from '~/specs/windwalker';
+import idleRaw from '~/specs/windwalker/__fixtures__/idle.json';
 import cleaveRaw from '~/specs/elemental/__fixtures__/cleave.json';
 import phasedRaw from '~/specs/elemental/__fixtures__/phased.json';
 import unbrokenRaw from '~/specs/elemental/__fixtures__/unbroken.json';
@@ -96,11 +98,30 @@ import weave from '~/specs/windwalker/__fixtures__/weave.json';
  * argument rather than the pixels, is which reading each of the three pulls detects —
  * `components/report/__tests__/previewMultiTarget.test.ts`.
  */
+/**
+ * The one Windwalker entry analysed at build time, and the argument the paragraph above demands of it
+ * is that **the elixir weave is unreachable from any stored analysis.**
+ *
+ * All four Windwalker entries above are `analyse()` output frozen at capture time, and every one of
+ * them predates the weave audit — so `analysis.weave` is `undefined` on all four and the section can
+ * only ever draw its "nothing was captured" note. That is the same failure mode this file already
+ * warns about for `hasteWindows`, arriving on a whole section rather than on one band, and it makes
+ * the section the only one on the page that cannot be looked at here at all.
+ *
+ * `idle` rather than the cleaner weaver, because a harness wants the mixed case: four weaves out of
+ * four chances, two of them closing inside the brew's last second and two not, plus a brew the fight
+ * ended underneath. So the tiles, both fault sentences and every state the track can draw are on
+ * screen at once. `uncounted` weaves five of six with no faults at all and would show the empty half.
+ *
+ * The smallest of the four raw Windwalker pulls at 1.1MB, on the page-size argument the entries above
+ * are costed by, and paid by a dev harness that ships to nobody.
+ */
+const idle = analyseWindwalker(idleRaw as unknown as FightDataset);
 const phased = analyseElemental(phasedRaw as unknown as FightDataset);
 const unbroken = analyseElemental(unbrokenRaw as unknown as FightDataset);
 const cleave = analyseElemental(cleaveRaw as unknown as FightDataset);
 
-const fixtures = { poor, mixed, strong, weave, phased, unbroken, cleave } as never;
+const fixtures = { poor, mixed, strong, weave, idle, phased, unbroken, cleave } as never;
 ---
 
 <Base title="Report preview" description="Fixture-driven render for chart and copy validation.">

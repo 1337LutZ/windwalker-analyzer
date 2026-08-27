@@ -46,6 +46,7 @@ import {
 	RisingSunKick,
 	Rotation,
 	RushingJadeWind,
+	ElixirWeave,
 	SnapshotTable,
 	StormEarthAndFire,
 	SummaryWarning,
@@ -173,6 +174,9 @@ export const SPEC_SECTIONS: Record<string, ReportSectionWithComponent[]> = {
 		// naming a mechanic before the reader had seen a single press.
 		{ id: 'timeline', titleKey: 'timeline.title', group: 'core', Component: PullTimeline },
 		{ id: 'snapshots', titleKey: 'snapshots.title', group: 'core', Component: SnapshotTable },
+		// Directly below Snapshots, because it is the same trinket read one step on: that section asks
+		// whether the proc was caught, this one what the procs a running brew could not use came back as.
+		{ id: 'elixir-weave', titleKey: 'weave.title', group: 'core', Component: ElixirWeave },
 
 		// How the globals were spent, then what paid for them. Together these two are the whole economy of
 		// the pull: the rate says whether the buttons were pressed, the bars say whether there was anything

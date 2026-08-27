@@ -302,7 +302,7 @@ describe('the Elemental copy is about the pull, not about the audit', () => {
 
 // ================================================================= Windwalker
 //
-// The Windwalker's fifteen own sections — the locale roots only its own sections read. Everything the
+// The Windwalker's seventeen own sections — the locale roots only its own sections read. Everything the
 // two specs share (`castLog`, `timeline`, `damage`, `misses`, `raidBuffs`, `gear`, `priority`, `kpi`,
 // `summary` and the rest) is swept by the third scope below, which was opened for it; only `rotation`
 // and `method` stay out, and the ruling that leaves them out is written there.
@@ -313,6 +313,8 @@ const WINDWALKER_SECTIONS = [
 	// as the row beneath it.
 	'potions',
 	'snapshots',
+	// Sits under `snapshots` on the page and reads the same trinket one step on.
+	'weave',
 	'casts',
 	'energy',
 	'chi',
@@ -417,7 +419,9 @@ describe('the Windwalker copy is about the pull, not about the audit', () => {
 		// name with no key behind it is a stale exemption or a pre-emptive one; the pinned count makes
 		// adding a real one a visible edit with a reason next to it rather than a way to green a red run.
 		const exempt = localeStrings().filter((entry) => windwalkerSection(entry) && isMethodNote(entry));
-		expect(exempt.length).toBe(24);
+		// 25 since `weave.scope`, which names the second the elixir has to come back inside. A section
+		// whose reading turns on a number the reader can change owes them that sentence.
+		expect(exempt.length).toBe(25);
 		const withoutKeys = WINDWALKER_METHOD_KEYS.filter((name) => !exempt.some(([key]) => key.split('.').pop() === name));
 		expect(withoutKeys).toEqual([]);
 	});
