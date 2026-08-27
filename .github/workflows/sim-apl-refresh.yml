@@ -1,0 +1,142 @@
+# Watches wowsims' priority lists, so a rotation section written from one cannot go stale in silence.
+#
+# Every `src/specs/<spec>/lib/apl.ts` is a ladder written by hand from a wowsims APL — a copy of somebody
+# else's list, in another repository, on another release cycle. When the original changes nothing here
+# breaks: the rotation still renders, every test still passes, and the section is simply wrong about what
+# to press. This is the only thing that would ever tell anybody.
+#
+# **A red pull request is a successful run.** `simAplDrift.test.ts` fails when the sim casts a spell no
+# ladder models and no exemption covers, which is exactly the case a person needs to see. So the suite runs
+# without gating, and its result goes in the body rather than deciding whether to open one at all. Opening
+# nothing because the alarm went off would be the one unrecoverable mistake this job could make.
+#
+# It costs nothing. A dozen GitHub API requests against a public repository, no credentials beyond the
+# runner's own token.
+
+name: Sim APL refresh
+
+on:
+  schedule:
+    # Tuesdays, 05:00 UTC — a day off the reference refresh so two pull requests never land together.
+    - cron: '0 5 * * 2'
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'One spec key, or blank for every registered spec'
+        required: false
+        default: ''
+
+concurrency:
+  group: sim-apl-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # `GITHUB_TOKEN` only lifts the API rate limit from 60 an hour to 1,000; the repository being read is
+      # public and needs no authorisation. Through the environment, never a URL parameter, so it stays out
+      # of every log line.
+      - name: Refresh the snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SPEC: ${{ inputs.spec }}
+        run: |
+          case "${SPEC}" in
+            '') args='' ;;
+            *[!a-z]*) echo "spec must be lowercase letters only, got: ${SPEC}" >&2; exit 1 ;;
+            *) args="--spec=${SPEC}" ;;
+          esac
+          # shellcheck disable=SC2086
+          node scripts/build-sim-apl.mjs ${args} | tee refresh.log
+
+      - name: Stop if nothing moved
+        id: changed
+        run: |
+          if git diff --quiet -- src/generated/sim-apl.json; then
+            echo "wowsims has not changed a priority list since the last snapshot"
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Deliberately not a gate. A failure here is the finding, and the job's whole purpose is to carry it
+      # to a person rather than to swallow it.
+      - name: Check the ladders against the new snapshot
+        id: gate
+        if: steps.changed.outputs.any == 'true'
+        continue-on-error: true
+        run: |
+          set +e
+          npx vitest run src/specs/__tests__/simAplDrift.test.ts > drift.log 2>&1
+          echo "drift=$?" >> "$GITHUB_OUTPUT"
+          npm run check > suite.log 2>&1 && npm test >> suite.log 2>&1 && npm run build >> suite.log 2>&1
+          echo "suite=$?" >> "$GITHUB_OUTPUT"
+          cat drift.log
+
+      - name: Describe what changed
+        if: steps.changed.outputs.any == 'true'
+        run: |
+          {
+            echo "Refreshed from \`wowsims/mop@master\` by \`.github/workflows/sim-apl-refresh.yml\`."
+            echo
+            if [ "${{ steps.gate.outputs.drift }}" = '0' ]; then
+              echo '**The ladders still agree with the sim.** Every spell it casts is either a rung or a'
+              echo 'classified exemption, so this is a snapshot refresh with nothing to decide.'
+            else
+              echo '**A ladder no longer agrees with the sim.** Something was added, removed, or is not yet'
+              echo 'classified — read the failure below and decide whether it is a new rung, a rewrite of the'
+              echo 'prose, or another cooldown this repository does not model.'
+              echo
+              echo '```'
+              tail -40 drift.log
+              echo '```'
+            fi
+            echo
+            echo '### What the refresh saw'
+            echo '```'
+            cat refresh.log
+            echo '```'
+            echo
+            if [ "${{ steps.gate.outputs.suite }}" != '0' ]; then
+              echo '> The rest of the suite is also failing on this branch.'
+              echo
+              echo '```'
+              tail -30 suite.log
+              echo '```'
+              echo
+            fi
+            echo 'The snapshot is a projection: conditions, groups and strict sequences are flattened to the'
+            echo 'order casts are attempted. It cannot tell you that the *reason* for a rung changed.'
+          } > pr-body.md
+
+      - name: Open a pull request
+        if: steps.changed.outputs.any == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="sim-apl-refresh/$(date -u +%Y-%m-%d)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$BRANCH"
+          git add src/generated/sim-apl.json
+          git commit -m "Refresh the sim APL snapshot from wowsims/mop@master"
+          git push --force-with-lease origin "$BRANCH"
+          if ! gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "Refresh the sim APL snapshot" --body-file pr-body.md
+          fi

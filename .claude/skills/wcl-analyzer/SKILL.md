@@ -20,6 +20,7 @@ Deeper procedure lives beside this file rather than in it, so a session loads wh
 | File                              | Read it before                                                                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `references/spec-gcd-analysis.md` | asking whether a metric measures the player or the boss, proposing or defending a threshold pair, or quoting a variance figure |
+| `references/sim-apl-drift.md`     | touching a spec's `lib/apl.ts` ladder or a Rotation section, or handling a failure from the sim-APL refresh                    |
 
 Two sibling skills carry the rest: **`gcd-reference`** for refreshing `src/generated/reference.json`
 (the product half of the same machinery), and **`tone-of-voice`** for anything a reader sees.

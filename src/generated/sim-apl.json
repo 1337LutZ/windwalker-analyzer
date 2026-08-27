@@ -1,0 +1,1115 @@
+{
+	"source": {
+		"repo": "wowsims/mop",
+		"branch": "master",
+		"commit": "bf66107a252608ff414b88b6324abc8f5b4696c1",
+		"committed": "2026-08-24T18:05:32Z"
+	},
+	"specs": {
+		"windwalker": {
+			"dir": "ui/monk/windwalker/apls",
+			"files": {
+				"default.apl.json": {
+					"prepull": [
+						{
+							"spellId": 103985,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 115098,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 126456,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 115080,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 138228,
+							"via": "SEF: Use",
+							"hidden": false
+						},
+						{
+							"spellId": 138228,
+							"via": "SEF: Use",
+							"hidden": false
+						},
+						{
+							"spellId": 138228,
+							"via": "SEF: Use",
+							"hidden": false
+						},
+						{
+							"spellId": 138228,
+							"via": "SEF: Use",
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": "Cooldowns: On use",
+							"hidden": false
+						},
+						{
+							"spellId": 126734,
+							"via": "Cooldowns: On use",
+							"hidden": false
+						},
+						{
+							"spellId": 121279,
+							"via": "Cooldowns: On use",
+							"hidden": false
+						},
+						{
+							"spellId": 33697,
+							"via": "Cooldowns: On use",
+							"hidden": false
+						},
+						{
+							"spellId": 26297,
+							"via": "Cooldowns: On use",
+							"hidden": false
+						},
+						{
+							"spellId": 121283,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 115399,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 129597,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": "Internal: Cast TEB",
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": "Weapon Swap: TEB",
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": "Weapon Swap: TEB",
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": "Elixir Swap: TEB",
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": "Elixir Swap: TEB",
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": "Elixir Swap: TEB",
+							"hidden": false
+						},
+						{
+							"spellId": 1247275,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 138310,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 115288,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 116847,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 130320,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 100787,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 101546,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 130320,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 101546,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 115098,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 100784,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 113656,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 124081,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 100787,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 123986,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 100780,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 124081,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 116847,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 100784,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": [
+						"Wait for Channeling",
+						"SEF: Use",
+						"Cooldowns: On use",
+						"Internal: Cast TEB",
+						"RoRo: TEB - Action",
+						"RoRo: TEB - Actions",
+						"RoRo: TEB - Cast",
+						"Weapon Swap: ON/OFF",
+						"Weapon Swap: Restore",
+						"Weapon Swap: TEB",
+						"Elixir Swap: ON/OFF",
+						"Elixir Swap: Restore",
+						"Elixir Swap: TEB"
+					]
+				}
+			}
+		},
+		"elemental": {
+			"dir": "ui/shaman/elemental/apls",
+			"files": {
+				"aoe.apl.json": {
+					"prepull": [
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 421,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 8050,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114074,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 421,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": []
+				},
+				"cleave.apl.json": {
+					"prepull": [
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 421,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 30823,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 73680,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 16166,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 16166,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 3599,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114049,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8042,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2062,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51490,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 421,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 403,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": []
+				},
+				"default.apl.json": {
+					"prepull": [
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 73680,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 16166,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 16166,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114049,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8042,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 3599,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2062,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 403,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": []
+				},
+				"p4.apl.json": {
+					"prepull": [
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": "Prepull EB",
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": "Prepull LaBu",
+							"hidden": false
+						},
+						{
+							"spellId": 403,
+							"via": "Prepull LiBo",
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 73680,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114206,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114206,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2825,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 26297,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8050,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 16166,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 33697,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8050,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114049,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8042,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 3599,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2062,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 403,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": [
+						"Prepull LaBu",
+						"Prepull EB",
+						"Prepull LiBo"
+					]
+				},
+				"p5.apl.json": {
+					"prepull": [
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": "Prepull EB",
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": "Prepull LaBu",
+							"hidden": false
+						},
+						{
+							"spellId": 403,
+							"via": "Prepull LiBo",
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 73680,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114206,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114206,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 120668,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2825,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 26297,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8050,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 16166,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 33697,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8050,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 51505,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114049,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114049,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 117014,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 8042,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2894,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 3599,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 2062,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 403,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": [
+						"Prepull LaBu",
+						"Prepull EB",
+						"Prepull LiBo"
+					]
+				}
+			}
+		},
+		"protection": {
+			"dir": "ui/paladin/protection/apls",
+			"files": {
+				"horridon.apl.json": {
+					"prepull": [
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 31884,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 498,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 86659,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31850,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114030,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 53600,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 105809,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 35395,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20271,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31935,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 119072,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114916,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 24275,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 26573,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": []
+				},
+				"iron_juggernaut.apl.json": {
+					"prepull": [
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 31884,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 498,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 86659,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31850,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114030,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 97462,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 105809,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114163,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 53600,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20271,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31935,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20271,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31935,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 119072,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 35395,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114916,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 35395,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 24275,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 26573,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114158,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114852,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": []
+				},
+				"sha.apl.json": {
+					"prepull": [
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"other": "OtherActionPotion",
+							"via": null,
+							"hidden": false
+						}
+					],
+					"priority": [
+						{
+							"spellId": 498,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114030,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 86659,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31850,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 33206,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114030,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 53600,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 105809,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114163,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 53600,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20271,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 35395,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20271,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 31935,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 119072,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114916,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114158,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 24275,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 26573,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 114852,
+							"via": null,
+							"hidden": false
+						},
+						{
+							"spellId": 20925,
+							"via": null,
+							"hidden": false
+						}
+					],
+					"groups": []
+				}
+			}
+		}
+	}
+}
