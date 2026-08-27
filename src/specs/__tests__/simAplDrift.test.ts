@@ -119,6 +119,21 @@ describe.each(LADDERS)('%s against the simulator', (specKey, ladder) => {
 });
 
 describe('the exemption lists', () => {
+	/**
+	 * A ladder exemption stops being true the moment the sim starts casting the rung.
+	 *
+	 * **This is how the Protection paladin's open question closes itself.** `53595` is exempt because no
+	 * APL on master casts it — there is no Protection `default.apl.json` to check it against. When one
+	 * appears and casts Hammer of the Righteous, this fails and says to delete the entry, rather than
+	 * leaving a stale "somebody looked once" note in front of the next reader.
+	 */
+	it('exempts only rungs the sim still does not cast', () => {
+		const settled = Object.entries(LADDER_ONLY)
+			.filter(([id]) => LADDERS.some(([key]) => simSpellsFor(key).includes(Number(id))))
+			.map(([id, reason]) => `${id} (${reason})`);
+		expect(settled, `the sim now casts these, so the exemption can go: ${settled.join('; ')}`).toEqual([]);
+	});
+
 	/** An exemption for a spell the sim no longer casts is dead weight that hides the next real change. */
 	it('names only spells some spec still casts', () => {
 		const everywhere = new Set(LADDERS.flatMap(([key]) => simSpellsFor(key)));
