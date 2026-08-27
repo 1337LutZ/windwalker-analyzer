@@ -2825,6 +2825,13 @@ export default function CastTimeline({ analysis }: { analysis: Analysis }) {
 												stroke={laneColor}
 												fill={`color-mix(in oklch, ${laneColor} 18%, transparent)`}
 												mode={mode}
+												// The same rounding the Energy section draws, which this lane was missing: one
+												// resource drawn two ways on one page reads as two different readings. The
+												// condition is `ResourceTrack`'s own rule rather than a second copy of it — a
+												// pool refills on a clock and is sampled several times a global, so the straight
+												// segments between readings are the artefact; a bar counted in whole units has
+												// no in-between to round and must stay stepped.
+												smooth={mode === 'line'}
 												minLabelGapMs={labelGapMs}
 												// The stretches at the ceiling, in the colour every other section uses for a
 												// loss. A full bar is not a fault by itself — it is one while there was
