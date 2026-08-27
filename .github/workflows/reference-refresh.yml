@@ -1,0 +1,158 @@
+# Keeps the grading lines live, and puts every change to them in front of a person first.
+#
+# `src/generated/reference.json` is what every encounter-anchored threshold resolves against, and it is
+# meant to follow the ladder rather than sit where one sweep left it. This runs the refresh weekly, folds
+# whatever it measured into the committed evidence, and opens a pull request.
+#
+# **A pull request rather than a push, deliberately.** Moving a cell re-grades every report on that
+# encounter. The whole reason the table is committed derived data instead of a build-time fetch is that
+# drift shows up in a diff somebody reads; a job that pushed to main would give that up for a saved click.
+#
+# **It will not finish, and that is the design.** A full three-spec sweep is on the order of 1,700 pulls
+# at high single-digit points each — well past an hourly allowance. The run stops on whichever of its two
+# budgets it reaches first, the ledger records everything it paid for, and the next run resumes rather
+# than starting over. Weeks of partial runs converge; one heroic run is not required.
+
+name: Reference refresh
+
+on:
+  schedule:
+    # Mondays, 04:00 UTC. Early enough that a week's kills are logged, and off the deploy path.
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'One spec key, or blank for every registered spec'
+        required: false
+        default: ''
+      max_pulls:
+        description: 'Hard ceiling on pulls bought this run'
+        required: false
+        default: '150'
+      minutes:
+        description: 'Stop starting new fetches after this many minutes'
+        required: false
+        default: '240'
+      retry_failed:
+        description: 'Retry candidates that failed before (archived, private, malformed)'
+        type: boolean
+        required: false
+        default: false
+
+# Never two sweeps at once: they would buy the same candidates twice and race on the same ledger.
+# `cancel-in-progress` stays off — cancelling a running sweep throws away points already spent.
+concurrency:
+  group: reference-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # Above the default six-hour ceiling is impossible, so the sweep's own `--minutes` is set below it
+    # and this is the backstop for everything else.
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # The sweep reads the committed ledger, drops every candidate already answered, and buys only what
+      # is left — so a re-run minutes later costs the 42 rankings queries and nothing else. The token is
+      # passed as an environment variable and never appears in a command line or a log line.
+      - name: Refresh the reference table
+        env:
+          WCL_TOKEN: ${{ secrets.WCL_TOKEN }}
+          # Through the environment rather than interpolated into the script below. A `${{ }}` expansion
+          # inside a `run:` block is textual substitution into a shell, so a dispatch input containing a
+          # semicolon would be a command rather than an argument.
+          SPEC: ${{ inputs.spec }}
+          MAX_PULLS: ${{ inputs.max_pulls || '150' }}
+          MINUTES: ${{ inputs.minutes || '240' }}
+          RETRY_FAILED: ${{ inputs.retry_failed }}
+        run: |
+          if [ -z "${WCL_TOKEN}" ]; then
+            echo "WCL_TOKEN is not set on this repository — add it as an Actions secret" >&2
+            exit 1
+          fi
+          args="--max-pulls=${MAX_PULLS} --minutes=${MINUTES}"
+          case "${SPEC}" in
+            '') ;;
+            *[!a-z]*) echo "spec must be lowercase letters only, got: ${SPEC}" >&2; exit 1 ;;
+            *) args="${args} --spec=${SPEC}" ;;
+          esac
+          # `if` rather than `[ ... ] && ...`: GitHub runs these blocks under `bash -e`, where a test that
+          # comes out false is a non-zero status on a non-final line and aborts the step.
+          if [ "${RETRY_FAILED}" = 'true' ]; then
+            args="${args} --retry-failed"
+          fi
+          # shellcheck disable=SC2086
+          node scripts/build-reference-tables.mjs ${args} | tee refresh.log
+
+      - name: Stop if nothing moved
+        id: changed
+        run: |
+          if git diff --quiet -- src/generated/; then
+            echo "the sweep changed no committed data"
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The table feeds every grading line, so a refresh that breaks the suite must never reach a branch
+      # somebody might merge. Same commands CI runs on the pull request this is about to open.
+      - name: Types, lint, tests and build
+        if: steps.changed.outputs.any == 'true'
+        run: |
+          npm run check
+          npm test
+          npm run build
+
+      # What the reviewer needs: which cells moved, how much evidence stands behind them now, and what
+      # the metric looks like on the new pool. The analysis harness prints a fixed block per spec, so
+      # this stays readable however large the ledger grows.
+      - name: Describe what changed
+        if: steps.changed.outputs.any == 'true'
+        run: |
+          {
+            echo "Refreshed by \`.github/workflows/reference-refresh.yml\`."
+            echo
+            echo '### What the sweep did'
+            echo '```'
+            cat refresh.log
+            echo '```'
+            echo
+            echo '### The metric on the new pool'
+            echo '```'
+            node scripts/gcd-analysis.mjs
+            echo '```'
+            echo
+            echo 'Grading lines resolve from this table, so merging it re-grades every report on a moved encounter.'
+            echo 'See `.claude/skills/wcl-analyzer/references/spec-gcd-analysis.md` for how to read the block above.'
+          } > pr-body.md
+
+      - name: Open a pull request
+        if: steps.changed.outputs.any == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="reference-refresh/$(date -u +%Y-%m-%d)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$BRANCH"
+          git add src/generated/
+          git commit -m "Refresh the reference table from Warcraft Logs"
+          git push --force-with-lease origin "$BRANCH"
+          # Reuse the open pull request for this branch if the job has already run today.
+          if ! gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "Refresh the reference table" --body-file pr-body.md
+          fi

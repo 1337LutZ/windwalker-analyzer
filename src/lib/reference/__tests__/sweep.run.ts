@@ -43,6 +43,16 @@ const CACHE = process.env['REFERENCE_CACHE'] ?? resolve(process.cwd(), '.referen
 const HEARTBEAT_EVERY = 50;
 
 /**
+ * The run's stopping rule, handed down by the script.
+ *
+ * Both are minutes and points rather than a policy, because the policy belongs to whoever scheduled the
+ * run — a CI job with a six-hour ceiling and a person at a terminal want very different answers, and
+ * neither of them should have to edit this file to say so.
+ */
+const MINUTES = Number(process.env['REFERENCE_MINUTES'] ?? '') || null;
+const RESERVE = Number(process.env['REFERENCE_RESERVE'] ?? '') || undefined;
+
+/**
  * The committed Iron Juggernaut pull, standing in for a warm cache.
  *
  * A raw `FightDataset` rather than a captured `Analysis`, which is the only kind `analyse()` can be run
@@ -82,6 +92,10 @@ describe('the sweep', () => {
 					process.stderr.write(`sweep ${done}/${total} · ${fetched} fetched\n`);
 				}
 			},
+			budget: {
+				...(MINUTES === null ? {} : { stopAt: Date.now() + MINUTES * 60_000 }),
+				...(RESERVE === undefined ? {} : { reserve: RESERVE }),
+			},
 		});
 
 		writeFileSync(resolve(CACHE, 'pulls.json'), JSON.stringify(result.pulls));
@@ -89,12 +103,32 @@ describe('the sweep', () => {
 		// `pulls.json` by construction — a job that produced no pull produced no row. To disk rather than
 		// to the terminal, which is the same rule every other piece of per-pull detail here follows.
 		writeFileSync(resolve(CACHE, 'failures.json'), JSON.stringify(result.failures));
-		process.stderr.write(`sweep done · ${result.pulls.length} pulls · ${result.failures.length} failed\n`);
+		// How the run ended, for the script — which needs to tell a scheduled job whether there is more
+		// work waiting, and to say so in the pull request it opens rather than leaving a short run looking
+		// like a complete one.
+		writeFileSync(
+			resolve(CACHE, 'outcome.json'),
+			JSON.stringify({
+				stopped: result.stopped,
+				remaining: result.remaining,
+				waitedMs: result.waitedMs,
+				credits: result.credits,
+			}),
+		);
+		process.stderr.write(
+			`sweep ${result.stopped} · ${result.pulls.length} pulls · ${result.failures.length} failed · ${result.remaining} left\n`,
+		);
 
 		// A run where *everything* failed is not a thin sweep, it is a broken one — a dead token, a
 		// renamed field, an API that stopped answering — and it must fail the script rather than quietly
 		// rewriting `reference.json` from nothing.
-		expect(result.pulls.length, 'pulls measured').toBeGreaterThan(0);
+		//
+		// **Unless it stopped on its own budget before starting anything**, which is a legitimate outcome
+		// for a scheduled run that found the hourly window already spent. Nothing was measured and nothing
+		// is wrong; the next run picks the same jobs up.
+		if (result.stopped === 'complete' || result.remaining < plan.jobs.length) {
+			expect(result.pulls.length, 'pulls measured').toBeGreaterThan(0);
+		}
 	});
 });
 
@@ -364,5 +398,57 @@ describe('a sweep over a cache that is already warm', () => {
 			}),
 		);
 		expect(result.pulls[0]?.encounterID).toBe(1600);
+	});
+});
+
+describe('a sweep that runs out of time or points', () => {
+	/**
+	 * **Stopping is a normal outcome here, not a failure**, and the difference matters to whatever
+	 * scheduled the run. A full three-spec refresh plans on the order of 1,700 fetches at high
+	 * single-digit points each — far past an hourly allowance — so a scheduled job's ordinary experience
+	 * is to get partway and stop. The jobs it never reached must come back untouched rather than being
+	 * recorded as broken, or a rate-limited run would poison the ledger with 1,700 dead candidates.
+	 */
+	it('stops on the clock and leaves the rest of the plan alone', async () => {
+		const result = await inTempCache(async (cacheDir) =>
+			withoutNetwork(async () =>
+				runSweep({
+					plan: planOf([job({ code: 'a' }), job({ code: 'b' }), job({ code: 'c' })]),
+					cacheDir,
+					now: () => 1_000,
+					budget: { stopAt: 0 },
+				}),
+			),
+		);
+		expect(result.stopped).toBe('time');
+		expect(result.remaining).toBe(3);
+		expect(result.failures).toEqual([]);
+	});
+
+	/**
+	 * A cached job costs nothing, so the clock does not apply to it. Finishing the analysis of datasets
+	 * already on disk is free work, and refusing it would throw away the cheapest pulls in the plan.
+	 */
+	it('still measures what is already on disk after the clock runs out', async () => {
+		const fixture = resolve(import.meta.dirname, FIXTURE);
+		const result = await inTempCache(async (cacheDir) =>
+			withoutNetwork(async () => {
+				const only = job();
+				mkdirSync(resolve(cacheDir, 'datasets'), { recursive: true });
+				copyFileSync(fixture, datasetPathFor(cacheDir, only));
+				return runSweep({ plan: planOf([only]), cacheDir, now: () => 1_000, budget: { stopAt: 0 } });
+			}),
+		);
+		expect(result.stopped).toBe('complete');
+		expect(result.pulls).toHaveLength(1);
+	});
+
+	/** A run that finishes its plan says so, and has nothing left over. */
+	it('reports a complete run as complete', async () => {
+		const result = await inTempCache(async (cacheDir) =>
+			withoutNetwork(async () => runSweep({ plan: planOf([job()]), cacheDir })),
+		);
+		expect(result.stopped).toBe('complete');
+		expect(result.remaining).toBe(0);
 	});
 });

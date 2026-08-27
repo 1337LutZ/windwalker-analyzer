@@ -1,6 +1,6 @@
 ---
 name: gcd-reference
-description: "Refresh src/generated/reference.json — the per-encounter reference distributions every encounter-anchored grading line is drawn from. Covers the three commands (--check, --dry, a real refresh), loading WCL_TOKEN without ever printing it, the band arithmetic that makes a targeted sweep cheap, the gates a pull must clear, the stdout budget, and the one flag that silently deletes two specs' rows. Load before running or editing the reference harness."
+description: "Refresh src/generated/reference.json — the per-encounter reference distributions every encounter-anchored grading line is drawn from. Covers the commands (--check, --dry as a cost estimate, a budgeted refresh), the ledger that makes a repeat run nearly free, ANALYSER_REV and what invalidates stored values, the weekly GitHub Actions job that opens a pull request, loading WCL_TOKEN without ever printing it, the band arithmetic, the gates a pull must clear, and the guards that stop a short run eroding the table. Load before running or editing the reference harness."
 user-invocable: true
 argument-hint: [check] OR [dry] OR [refresh]
 ---
@@ -25,30 +25,90 @@ must never reach the network, and a derived table in the history makes drift _re
 produces a diff, so a reference that moved shows up in a pull request instead of silently re-grading
 every report in the tree.
 
-## The three commands
+## The commands
 
 Run everything with Node 24 on the path (`export PATH="$HOME/.nvm/versions/node/v24.19.0/bin:$PATH"`) and
 `RTK_DISABLED=1` in front of anything you intend to believe.
 
-| command                                           | costs                              | when it is the right one                                                                                                                                                                                                          |
-| ------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `node scripts/build-reference-tables.mjs --check` | nothing, no token                  | "is the committed table stale?" It rebuilds a table from `.reference-cache/pulls.json` and prints only the cells that differ — and nothing at all when the table is current, exit 0. This is the one to put in front of a review. |
-| `node scripts/build-reference-tables.mjs --dry`   | nothing, no token                  | "what would a refresh do?" Two lines: how many specs across fourteen encounters, and where the cache lives. Use it to confirm the roster picked up a spec you just registered.                                                    |
-| `node scripts/build-reference-tables.mjs`         | **thousands of API points, hours** | an actual refresh. Only when the table is genuinely stale, or a spec has been added, or a metric's reading changed.                                                                                                               |
+| command                     | costs                          | when it is the right one                                                                                                                                                             |
+| --------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--check`                   | nothing, no token              | "is the committed table stale?" Rebuilds from the committed ledger and prints only the cells that differ — nothing at all when it is current, exit 0. Put this in front of a review. |
+| `--dry`                     | nothing, no token              | **"what would this cost?"** Prints how many pulls each spec is still short of `TARGET_N`, which is exactly what a run will buy. On a full table it prints zero.                      |
+| `--max-pulls=N --minutes=M` | N pulls' worth                 | the ordinary refresh. Both budgets are stopping rules, not failures: the run measures what it can, records it, and the next run resumes.                                             |
+| (no flags)                  | **thousands of points, hours** | a full sweep to `TARGET_N`. A decision, not a step.                                                                                                                                  |
+
+Extra flags worth knowing: `--spec=<key>` narrows the sweep, `--retry-failed` re-attempts candidates that
+previously could not be read, and `--force` allows a cell to be overwritten by a _thinner_ one.
 
 `--check` says nothing when there is nothing to say, so a silent run is a pass rather than a failure to
 run. Confirm with `echo $?`.
 
-### The flag that deletes data
+## What a run costs, and why it is usually near nothing
 
-**`--spec=<key>` narrows the write, not just the sweep.** A `--spec=elemental` refresh replaces
-`.reference-cache/pulls.json` with elemental-only pulls and then writes `src/generated/reference.json`
-from _those pulls and that one-spec roster_ — so the Windwalker's and the Protection paladin's rows are
-gone from the committed table, silently, and the diff looks like a successful refresh.
+**The ledger is the whole answer.** `src/generated/reference-pulls.json` records every pull the sweep has
+ever resolved — measured, gated out, or permanently unreadable alike — under a one-way key. The planner
+drops every candidate it already holds _before a point is spent_, so:
 
-Use `--spec=` with `--dry` and `--check` freely. For a real refresh treat it as **a way to try the
-machinery on one spec**, never as a way to update one spec's rows: either sweep everything, or restore
-the other specs' rows from git afterwards and check the diff names only the spec you meant.
+- A re-run minutes after a full one costs the 42 rankings queries and nothing else.
+- A weekly refresh buys only what entered the ladder since last week, which is usually a handful.
+- A pull that turned out to be off-spec is never bought twice. The sweeps found seventeen of those, and
+  each cost the same points as a good one.
+- A cell already at `TARGET_N` is skipped entirely — a forty-first pull is pure cost.
+- What is left is sorted **thinnest cell first**, so a run cut short by its budget lifted the cells that
+  needed it rather than topping up the ones that did not.
+
+`--dry` prints the resulting number. Read it before starting anything.
+
+## When the metric changes, the ledger is wrong
+
+A stored value is a reading taken by a particular generation of `analyse()`. When the enforced-downtime
+registry gained three rules, Fallen Protectors' p90 moved 7.99 points — every value stored before that
+became a reading of a different quantity, and averaging the two generations in one cell describes neither.
+
+`ANALYSER_REV` in `scripts/reference-ledger.mjs` is the guard. **Bump it whenever a change moves
+`gcdUtilisationPct`.** Rows carrying an older rev are excluded from the table _and_ from the known-keys
+set, so the next sweep re-measures them. That is expensive on purpose: changing what the metric means
+costs a re-sweep, and the alternative is a table that is quietly wrong.
+
+Twenty-nine rows are in that state today — the seeded Windwalker/Garrosh, Protection/Paragons and
+Protection/Fallen Protectors cells predate the enforced-downtime change. Their committed cells are correct
+and are held in place by the shrink guard below until a sweep replaces them.
+
+## The weekly refresh
+
+`.github/workflows/reference-refresh.yml` runs the whole thing on Mondays at 04:00 UTC and on
+`workflow_dispatch`, then **opens a pull request rather than pushing**. Moving a cell re-grades every
+report on that encounter, and the reason the table is committed derived data at all is that such a change
+shows up in a diff somebody reads.
+
+It needs one repository secret, `WCL_TOKEN`. The job passes it through the environment and never puts it
+on a command line. Dispatch inputs are passed the same way and screened, because a `${{ }}` expansion
+inside a `run:` block is textual substitution into a shell.
+
+The job gates on `npm run check && npm test && npm run build` before opening anything, and the pull request
+body carries the sweep's own output plus a `gcd-analysis.mjs` block for the new pool.
+
+## Two guards on the committed table
+
+**A cell never gets worse on its own.** `mergeTable` keeps the committed cell whenever the fresh one has a
+smaller `n`, or none at all, and prints a count of what it kept. Without it, a run that stopped early or
+whose rows went stale would quietly erode the table into the spec-wide fallback — and on a scheduled job
+there is nobody reading closely enough to catch it. `--force` overrides.
+
+**A sweep that measures nothing fails loudly.** The runner asserts it measured at least one pull, unless it
+stopped on its own budget before starting — which is a legitimate outcome, not a broken run.
+
+### `--spec=` was the flag that deleted data, and no longer is
+
+**Fixed, and recorded because the failure was invisible.** A `--spec=elemental` refresh used to build the
+table from the filtered roster and write the whole file, so the Windwalker's and the Protection paladin's
+rows vanished from the committed table — and because the runner had also replaced the cache with that one
+spec's pulls, `--check` agreed with it. Two specs' grading lines would have silently fallen back to their
+spec-wide distribution on every report until somebody opened the file.
+
+`mergeTable` now folds a partial refresh into the committed table at the _cell_ level, keeping every spec
+and every encounter the run did not touch. A one-spec refresh is the common case — it is what you run when
+a spec is added, or when one spec's ladder has moved — so the partial path is the safe one.
 
 ## Loading the token
 
@@ -183,17 +243,21 @@ Two more worth knowing when adding a field to a swept pull:
 - **`encounterID` on a pull is the job's base id, not the dataset's raw one.** Iron Juggernaut arrives from
   the API as `51600` where the job says `1600`, and `profile.ts` keys its table by base id.
 
-## What a real refresh costs
+## What a cold full refresh costs
 
-There is no point estimate in the harness, and this is arithmetic rather than a measurement: `TARGET_N` is
-40 and `BANDS` has four entries, so a full three-spec sweep plans on the order of **3 × 14 × 40 ≈ 1,700
-jobs**. `ASSUMED_ANALYSIS_COST` puts the report/actors/damage-table/events part of one pull at 5 points, and
-the sweep also pays for enemy deaths, raid Stormlash and the rank query — so call it high single digits per
-pull, **well over ten thousand points**, against an hourly budget. Budget it in hours, and expect the
-hourly limit rather than the harness to be what paces it.
+The ceiling, for the case where the ledger cannot help — a first sweep, or one after `ANALYSER_REV` moved.
+Arithmetic rather than measurement: `TARGET_N` is 40 across 14 encounters and 3 specs, so a full sweep plans
+on the order of **1,700 jobs**. `ASSUMED_ANALYSIS_COST` puts the report/actors/damage-table/events part of
+one pull at 5 points, and the sweep also pays for enemy deaths, raid Stormlash and the rank query — call it
+high single digits per pull, **well over ten thousand points**, against an hourly budget.
 
-The honest way to size your own run is to sweep **one spec first** (`--spec=`, understanding the warning
-above), watch what it actually spends, and multiply. A cold full sweep is a decision, not a step.
+**That number is the worst case and is no longer the normal one.** With a populated ledger a run buys only
+what `--dry` says it will, which on a filled table is nothing. Size a real run by reading `--dry` rather
+than by multiplying the plan.
+
+Expect the hourly limit rather than the harness to pace a cold sweep. It handles that itself now: the run
+reads its remaining budget off every response for free, parks until the window rolls over when it is within
+`maxWaitMs`, and otherwise stops cleanly with the rest of the plan intact.
 
 ## Verifying a refresh
 
@@ -212,8 +276,13 @@ re-grades every report on that encounter.
 
 ## Current state
 
-`src/generated/reference.json` **does not exist yet** and no sweep has been run from this tree, so
-`--check` currently passes vacuously — an empty cache builds an empty table, and an empty table has drifted
-from nothing. `src/lib/score/profile.ts` is written and tested but is not yet wired to read the file. The
-first real sweep is what turns both of those from true statements into stale ones; update this section when
-it happens.
+The table is real: **42 cells across three specs**, built from 332 pulls, `builtAt` 2026-08-27, and
+`src/lib/reference/specProfile.ts` reads it for every `gcdUtilisation` grade. `src/lib/score/profile.ts` is
+wired and the default use case is `encounter`.
+
+The ledger holds **355 rows, 304 of them currently measurable** — 29 predate `ANALYSER_REV` and 22 are
+gated or failed. `--dry` reports **1,376 pulls** still wanted to reach `TARGET_N` of 40, so every cell is
+thin and the weekly job has roughly nine weeks of work at 150 pulls a run before the table is full.
+
+Update this section when that changes. The previous version of it claimed `reference.json` did not exist
+yet, which stayed wrong for as long as nobody re-read it.

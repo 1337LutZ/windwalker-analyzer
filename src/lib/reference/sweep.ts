@@ -45,7 +45,8 @@ import { resolve } from 'node:path';
 import { unionMs } from '~/lib/analysis/intervals';
 import { getSpec } from '~/lib/spec';
 import type { Analysis, FightDataset } from '~/lib/types';
-import { WclClient, fetchFightDataset } from '~/lib/wcl';
+import { WclClient, WclError, fetchFightDataset } from '~/lib/wcl';
+import type { ApiCredits } from '~/lib/wcl';
 
 /** One spec as the plan records it — the script's `registeredSpecs()` output, unchanged. */
 export interface PlannedSpec {
@@ -146,9 +147,48 @@ export interface SweepProgress {
 	reason?: string;
 }
 
+/**
+ * How long a run may take and how much of the hourly budget it may spend.
+ *
+ * **A sweep that cannot finish is the normal case, not the failure case.** A full three-spec refresh
+ * plans on the order of 1,700 jobs at high single-digit points each — well past an hourly allowance —
+ * so any honest scheduling of this has to stop partway and pick up later. Two things make that safe:
+ * the dataset cache means a fetched pull is never paid for twice, and the evidence file accumulates,
+ * so a run that measures a third of the plan has advanced the table by a third rather than wasted.
+ *
+ * Which is why the budget is a stopping rule rather than a failure. A run that hits it returns what it
+ * has, says why it stopped, and the next one resumes.
+ */
+export interface SweepBudget {
+	/** Epoch ms after which no new job is started. A CI job's own wall-clock limit, minus the tail. */
+	stopAt?: number;
+	/**
+	 * Points to leave unspent.
+	 *
+	 * Not zero, and not a rounding habit. A single pull costs several points across four documents, and
+	 * a sweep that spends down to the last point tears one pull in half — the events arrive, the damage
+	 * table 429s, and the dataset is written to cache in a state `analyse()` will throw on. The reserve
+	 * is what keeps the cache honest.
+	 */
+	reserve?: number;
+	/** Longest the run will sit waiting for the hourly window to roll over rather than stopping. */
+	maxWaitMs?: number;
+}
+
+/** Why a run ended, which the caller needs in order to know whether to schedule another. */
+export type SweepStop = 'complete' | 'time' | 'points';
+
 export interface SweepResult {
 	pulls: SweptPull[];
 	failures: SweepFailure[];
+	/** `complete` means the plan ran out, not that everything in it succeeded — read `failures` too. */
+	stopped: SweepStop;
+	/** Jobs never attempted, because the run stopped first. Zero when `stopped` is `complete`. */
+	remaining: number;
+	/** The last reading WarcraftLogs sent, or null if nothing was ever fetched. */
+	credits: ApiCredits | null;
+	/** Total time spent parked on the hourly reset. Reported so a schedule can be sized against it. */
+	waitedMs: number;
 }
 
 export interface SweepOptions {
@@ -158,7 +198,30 @@ export interface SweepOptions {
 	/** Only needed for a job whose dataset is not cached; a fully cached re-run needs no token at all. */
 	token?: string;
 	onProgress?: (progress: SweepProgress) => void;
+	budget?: SweepBudget;
+	/** Injected so the tests can exercise an exhausted budget without actually sleeping through one. */
+	sleep?: (ms: number) => Promise<void>;
+	/** Injected for the same reason: a test needs a clock it can move. */
+	now?: () => number;
 }
+
+/**
+ * Points left unspent by default.
+ *
+ * Twenty, which is a few pulls' worth. One pull spends across four documents — report, actors, damage
+ * table, events — and the failure this prevents is the torn one: events arrive, the next document 429s,
+ * and a half-built dataset is written to the cache where `analyse()` will throw on it every run after.
+ */
+const DEFAULT_RESERVE = 20;
+
+/**
+ * Longest the run will sit waiting for the hourly window rather than stopping, by default.
+ *
+ * A little over an hour, so a run that arrives just after a reset can wait out one full window. Longer
+ * would be waiting for a *second* window, which is a scheduling decision rather than a pause — the next
+ * scheduled run is the better way to buy another hour, and it does not hold a CI job open to do it.
+ */
+const DEFAULT_MAX_WAIT_MS = 65 * 60 * 1000;
 
 /**
  * What `value` reads, by the name the plan's `metric` carries.
@@ -255,20 +318,64 @@ export function pullFrom(
  * collected failure rather than a thrown one, for the reason above.
  */
 export async function runSweep(options: SweepOptions): Promise<SweepResult> {
-	const { plan, cacheDir, token, onProgress } = options;
+	const { plan, cacheDir, token, onProgress, budget } = options;
+	const now = options.now ?? (() => Date.now());
+	const sleep = options.sleep ?? ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)));
+	const stopAt = budget?.stopAt ?? Infinity;
+	const reserve = budget?.reserve ?? DEFAULT_RESERVE;
+	const maxWaitMs = budget?.maxWaitMs ?? DEFAULT_MAX_WAIT_MS;
 	mkdirSync(resolve(cacheDir, 'datasets'), { recursive: true });
 
 	let client: WclClient | undefined;
 	const pulls: SweptPull[] = [];
 	const failures: SweepFailure[] = [];
 	let done = 0;
+	// A holder rather than a bare `let`: the only writer is the client's `onCredits` callback, and
+	// TypeScript narrows a `let` initialised to null down to `never` at every read before it.
+	const seen: { credits: ApiCredits | null } = { credits: null };
+	let waitedMs = 0;
+	let stopped: SweepStop = 'complete';
 
-	for (const job of plan.jobs) {
+	/**
+	 * Park until the hourly window rolls over, or refuse to.
+	 *
+	 * Returns false when waiting would outlast either cap, and that is the signal to stop the run
+	 * rather than to fail the job — the jobs behind it are still perfectly good work for next time.
+	 */
+	const waitForReset = async (): Promise<boolean> => {
+		if (seen.credits === null) return false;
+		// A second past the reported reset, because the boundary is the server's and the clocks differ.
+		const need = seen.credits.resetAt - now() + 1_000;
+		if (need <= 0) return true;
+		if (need > maxWaitMs || now() + need >= stopAt) return false;
+		await sleep(need);
+		waitedMs += need;
+		return true;
+	};
+
+	const total = plan.jobs.length;
+	for (let index = 0; index < plan.jobs.length; index += 1) {
+		const job = plan.jobs[index]!;
+		const path = datasetPathFor(cacheDir, job);
+		const cached = existsSync(path);
+
+		// The two stopping rules, checked before any point is spent. A cached job costs nothing and is
+		// allowed through both — finishing the analysis of what is already on disk is free.
+		if (!cached) {
+			if (now() >= stopAt) {
+				stopped = 'time';
+				break;
+			}
+			if (seen.credits !== null && seen.credits.limit - seen.credits.spent <= reserve) {
+				if (!(await waitForReset())) {
+					stopped = 'points';
+					break;
+				}
+			}
+		}
+
 		done += 1;
-		const total = plan.jobs.length;
 		try {
-			const path = datasetPathFor(cacheDir, job);
-			const cached = existsSync(path);
 			let dataset: FightDataset;
 			if (cached) {
 				// A cast rather than a check, exactly as the committed fixtures are read: this file was
@@ -280,7 +387,9 @@ export async function runSweep(options: SweepOptions): Promise<SweepResult> {
 					if (token === undefined || token === '') {
 						throw new Error('no cached dataset, and no token to fetch one — load it with: set -a; . ./.env; set +a');
 					}
-					client = new WclClient({ token });
+					// Free: every document in `lib/wcl` carries `rateLimitData`, so the run learns its own
+					// budget from work it was doing anyway rather than polling for it.
+					client = new WclClient({ token, onCredits: (reading) => (seen.credits = reading) });
 				}
 				dataset = await fetchFightDataset(client, {
 					code: job.code,
@@ -298,11 +407,24 @@ export async function runSweep(options: SweepOptions): Promise<SweepResult> {
 			pulls.push(pullFrom(job, dataset, spec.analyse(dataset), plan.metric));
 			onProgress?.({ done, total, job, outcome: cached ? 'cached' : 'fetched' });
 		} catch (error) {
+			// **A 429 is not a failed job, it is a full bucket.** Recording it as a failure would burn the
+			// job for this run and, worse, make a rate-limited sweep look like 1,700 broken reports. Wait
+			// out the window and try the same job again; if waiting is not allowed, stop the run and leave
+			// the job for the next one.
+			if (error instanceof WclError && error.kind === 'rate-limit') {
+				done -= 1;
+				if (await waitForReset()) {
+					index -= 1;
+					continue;
+				}
+				stopped = 'points';
+				break;
+			}
 			const reason = error instanceof Error ? error.message : String(error);
 			failures.push({ job, reason });
 			onProgress?.({ done, total, job, outcome: 'failed', reason });
 		}
 	}
 
-	return { pulls, failures };
+	return { pulls, failures, stopped, remaining: total - done, credits: seen.credits, waitedMs };
 }

@@ -49,9 +49,23 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+import {
+	ANALYSER_REV,
+	LEDGER,
+	measuredPulls,
+	mergeLedger,
+	planJobs,
+	readLedger,
+	rowFrom,
+	stalePulls,
+	writeLedger,
+} from './reference-ledger.mjs';
+
 const OUT = resolve(ROOT, 'src/generated/reference.json');
 const CACHE = process.env.REFERENCE_CACHE ?? resolve(ROOT, '.reference-cache');
 const DETAIL = resolve(CACHE, 'pulls.json');
+const FAILURES = resolve(CACHE, 'failures.json');
+const OUTCOME = resolve(CACHE, 'outcome.json');
 
 const API = 'https://classic.warcraftlogs.com/api/v2/client';
 
@@ -413,12 +427,35 @@ export function driftOf(committed, fresh) {
  * A one-spec refresh is the *common* case — it is what you run when a spec is added, or when one spec's
  * ladder has moved — so the partial path has to be the safe one rather than the sharp one.
  */
-export function mergeTable(committed, fresh) {
-	return {
-		...committed,
-		...fresh,
-		specs: { ...committed.specs, ...fresh.specs },
-	};
+export function mergeTable(committed, fresh, { force = false } = {}) {
+	const specs = { ...committed.specs };
+	const kept = [];
+	for (const [key, spec] of Object.entries(fresh.specs ?? {})) {
+		const prior = specs[key];
+		if (prior === undefined) {
+			specs[key] = spec;
+			continue;
+		}
+		const encounters = { ...prior.encounters };
+		for (const [id, cell] of Object.entries(spec.encounters ?? {})) {
+			const before = encounters[id];
+			// **A cell never gets worse on its own.** A run whose rows for one encounter all went stale, or
+			// that stopped before reaching it, produces a thinner cell or none at all — and on a scheduled
+			// job with nobody watching, letting that overwrite a good cell is how a table quietly erodes
+			// into the fallback. Fresh wins when it is at least as well-evidenced; otherwise the committed
+			// cell stands and says so.
+			if (!force && before !== undefined && cell.n < before.n) {
+				kept.push(`${key} ${id} kept n=${before.n} over n=${cell.n}`);
+				continue;
+			}
+			encounters[id] = cell;
+		}
+		specs[key] = { ...prior, ...spec, encounters };
+	}
+	// The count is the honest part: a merge that silently preserved eleven cells looks identical to one
+	// that refreshed them, and on an automated run nobody is reading the diff closely enough to notice.
+	if (kept.length > 0) console.log(`${kept.length} cell(s) kept as committed: ${kept.slice(0, 3).join(', ')}`);
+	return { ...committed, ...fresh, specs };
 }
 
 async function main() {
@@ -429,8 +466,15 @@ async function main() {
 
 	if (args.includes('--check')) {
 		const committed = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : { specs: {} };
-		const fresh = tableFrom(readCache(), specs, committed.metric);
+		// The **ledger**, not the cache. `.reference-cache/` is one run's scratch and is absent in a fresh
+		// checkout, so a `--check` reading it would report every cell as drifted-to-nothing on CI while
+		// looking perfectly correct on the machine that last swept.
+		const fresh = tableFrom(measuredPulls(readLedger()), specs, committed.metric);
 		const drifted = driftOf(committed, fresh);
+		const stale = stalePulls(readLedger());
+		// Reported even when nothing drifted, because a stale row is drift that has not happened yet: the
+		// cell reads as current only because the ledger cannot rebuild it at all.
+		if (stale.length > 0) console.log(`${stale.length} row(s) predate ${ANALYSER_REV} and need re-measuring`);
 		if (drifted.length === 0) return;
 		console.log(`${drifted.length} cell(s) differ from the committed table:`);
 		for (const line of drifted) console.log(`  ${line}`);
@@ -439,8 +483,31 @@ async function main() {
 	}
 
 	if (args.includes('--dry')) {
-		console.log(`would sweep ${specs.length} spec(s) across 14 encounters, ${TARGET_N} pulls a cell`);
-		console.log(`cache ${CACHE}`);
+		// **The cost estimate, and it is arithmetic rather than a guess.** What a run spends is decided by
+		// how many pulls the ledger is still short of `TARGET_N`, not by the size of the plan — every
+		// candidate already answered is dropped before a point is bought. So this is the number to look at
+		// before starting a sweep, and on a well-fed table it is zero.
+		const ledger = readLedger();
+		const counts = new Map();
+		for (const row of measuredPulls(ledger)) {
+			const key = `${row.spec}:${row.encounterID}`;
+			counts.set(key, (counts.get(key) ?? 0) + 1);
+		}
+		let wanted = 0;
+		for (const spec of specs) {
+			const short = ENCOUNTERS.map((id) =>
+				Math.max(0, TARGET_N - (counts.get(`${spec.key}:${id + CLASSIC_OFFSET}`) ?? 0)),
+			);
+			const total = short.reduce((sum, n) => sum + n, 0);
+			wanted += total;
+			console.log(`${spec.key} wants ${total} more pull(s) across ${short.filter((n) => n > 0).length} cell(s)`);
+		}
+		const stale = stalePulls(ledger).length;
+		console.log(
+			`${wanted} pull(s) to buy at ${TARGET_N} a cell` +
+				`${stale > 0 ? `, ${stale} of them re-measures of rows predating ${ANALYSER_REV}` : ''}`,
+		);
+		console.log(`cache ${CACHE} · ledger ${LEDGER}`);
 		return;
 	}
 
@@ -448,6 +515,12 @@ async function main() {
 	if (token === undefined || token === '') {
 		throw new Error('WCL_TOKEN is not set — load it with: set -a; . ./.env; set +a');
 	}
+
+	// A hard ceiling on pulls bought today, which is the only credit control that is *arithmetic* rather
+	// than a hope: every other lever depends on what the API does under load, and this one does not.
+	const maxPulls = Number(args.find((a) => a.startsWith('--max-pulls='))?.slice('--max-pulls='.length)) || undefined;
+	const minutes = Number(args.find((a) => a.startsWith('--minutes='))?.slice('--minutes='.length)) || undefined;
+	const ledger = readLedger();
 
 	// ---------------------------------------------------------------- pick the pulls
 	//
@@ -469,7 +542,29 @@ async function main() {
 	}
 	if (jobs.length === 0)
 		throw new Error(`no candidates found${failures[0] === undefined ? '' : ` — e.g. ${failures[0]}`}`);
-	writeFileSync(resolve(CACHE, 'jobs.json'), JSON.stringify({ metric: METRIC, specs, jobs }));
+
+	// ---------------------------------------------------------------- spend nothing on what is known
+	//
+	// **The one optimisation that decides what a weekly refresh costs.** Candidate selection above is
+	// cheap and unavoidable; every job below it is a report, a roster, a damage table and a page of
+	// events. Dropping the candidates the ledger has already answered turns a scheduled refresh from
+	// "re-measure the top of the ladder every week" into "measure whatever entered it since", which in
+	// the steady state is a handful of pulls and often none at all.
+	const planned = planJobs(ledger, jobs, {
+		targetN: TARGET_N,
+		limit: maxPulls,
+		retryFailed: args.includes('--retry-failed'),
+	});
+	console.log(
+		`${jobs.length} candidates · ${planned.skippedKnown} already known · ${planned.skippedFull} in full cells` +
+			`${planned.deferred > 0 ? ` · ${planned.deferred} deferred to a later run` : ''} · ${planned.jobs.length} to fetch`,
+	);
+	if (planned.jobs.length === 0) {
+		console.log(`nothing to fetch — ledger holds ${measuredPulls(ledger).length} measured pull(s)`);
+		writeTable(ledger, specs, { force: args.includes('--force') });
+		return;
+	}
+	writeFileSync(resolve(CACHE, 'jobs.json'), JSON.stringify({ metric: METRIC, specs, jobs: planned.jobs }));
 
 	// **The fetch runs under vitest, and that is a constraint rather than a preference.** It needs
 	// `analyse()` from the spec modules — TypeScript, importing through the `~/` alias and pulling
@@ -488,23 +583,61 @@ async function main() {
 			REFERENCE_CACHE: CACHE,
 			REFERENCE_SPECS: specs.map((s) => s.key).join(','),
 			REFERENCE_TARGET_N: String(TARGET_N),
+			...(minutes === undefined ? {} : { REFERENCE_MINUTES: String(minutes) }),
 		},
 	});
 	if (status !== 0) throw new Error('the sweep did not finish — its own output is above');
 
-	const pulls = readCache();
+	// ---------------------------------------------------------------- record everything that was paid for
+	//
+	// Measured pulls, gated pulls and dead jobs all go in, and the last two matter as much as the first.
+	// A pull that turns out to be off-spec cost the same points as one that did not, and a report that is
+	// archived costs them again on every run that retries it. The ledger is the only thing that remembers.
+	const swept = readCache();
+	const runFailures = existsSync(FAILURES) ? JSON.parse(readFileSync(FAILURES, 'utf8')) : [];
+	const rows = [
+		...swept.map((pull) => rowFrom(pull, gateOf(pull) === null ? 'measured' : 'gated')),
+		...runFailures.map(({ job }) => rowFrom({ ...job, value: null }, 'failed')),
+	];
+	const updated = mergeLedger(ledger, rows);
+	updated.builtAt = new Date().toISOString().slice(0, 10);
+	writeLedger(updated);
+
+	const before = measuredPulls(ledger).length;
+	const after = writeTable(updated, specs, { force: args.includes('--force') });
+	const outcome = existsSync(OUTCOME) ? JSON.parse(readFileSync(OUTCOME, 'utf8')) : null;
+
+	const gated = rows.filter((row) => row.outcome === 'gated').length;
+	console.log(
+		`${swept.length} fetched · ${gated} gated · ${runFailures.length} failed · ledger ${before} -> ${after} measured`,
+	);
+	if (outcome !== null && outcome.stopped !== 'complete') {
+		const waited = outcome.waitedMs > 0 ? `, waited ${Math.round(outcome.waitedMs / 60_000)}m` : '';
+		console.log(`stopped on ${outcome.stopped} with ${outcome.remaining} job(s) left${waited} — run again to continue`);
+	}
+	console.log(`ledger ${LEDGER} · table ${OUT}`);
+}
+
+/**
+ * Build the table out of the ledger and write it, returning how many pulls stood behind it.
+ *
+ * Split out because two paths reach it: an ordinary refresh, and the early return when the planner finds
+ * nothing worth buying. That second path is the common one in a steady state, and it still has to write
+ * the table — a run that fetched nothing can legitimately move a cell, because `TARGET_N` or a gate may
+ * have changed since the last one.
+ */
+function writeTable(ledger, specs, { force = false } = {}) {
+	const pulls = measuredPulls(ledger);
+	const stale = stalePulls(ledger);
+	if (stale.length > 0) {
+		console.log(`${stale.length} row(s) predate ${ANALYSER_REV} and are excluded — a sweep will re-measure them`);
+	}
 	const committed = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : { specs: {} };
-	const table = mergeTable(committed, tableFrom(pulls, specs));
+	const table = mergeTable(committed, tableFrom(pulls, specs), { force });
 	table.builtAt = new Date().toISOString().slice(0, 10);
 	writeFileSync(OUT, `${JSON.stringify(table, null, '\t')}\n`);
-
 	printTable(table, specs);
-	const rejected = pulls.filter((pull) => gateOf(pull) !== null);
-	if (rejected.length > 0) {
-		const example = rejected[0];
-		console.log(`${rejected.length} pull(s) gated out, e.g. ${example.code}#${example.fightID} ${gateOf(example)}`);
-	}
-	console.log(`${pulls.length} pulls on hand · detail ${DETAIL} · table ${OUT}`);
+	return pulls.length;
 }
 
 mkdirSync(CACHE, { recursive: true });

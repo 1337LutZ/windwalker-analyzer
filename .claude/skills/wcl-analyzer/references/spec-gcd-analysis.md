@@ -20,8 +20,13 @@ node scripts/gcd-analysis.mjs --from=/path/to/pulls.json   # a set from somewher
 node scripts/gcd-analysis.mjs --json                       # everything, machine-readable
 ```
 
-It never touches the network. It reads what `build-reference-tables.mjs` already fetched, so the first
-step of any new question is usually a refresh of the table, not a new fetch.
+It never touches the network. It reads the committed ledger — `src/generated/reference-pulls.json`, which
+is also what the table is built from — so it answers the same way on any checkout, and the first step of a
+new question is usually a refresh rather than a new fetch. `.reference-cache/pulls.json` wins when a sweep
+has just run locally; `--from` overrides both.
+
+The ledger grows every time the weekly refresh lands, so a run of this a month from now is a run against a
+larger pool. Quote the `n` alongside any figure taken from it.
 
 Output is a fixed block per spec — about a dozen lines regardless of sample size. That is a contract,
 asserted in `src/lib/reference/__tests__/analysis.test.ts`, because this script is read by agents as

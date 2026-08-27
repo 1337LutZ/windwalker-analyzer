@@ -45,6 +45,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { CACHE, GATES, cellOf, gateOf, percentile, registeredSpecs } from './build-reference-tables.mjs';
+import { measuredPulls, readLedger } from './reference-ledger.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -303,12 +304,28 @@ export function printSpec(report) {
 	}
 }
 
+/**
+ * The pulls to analyse: the committed ledger by default, a file when `--from` names one.
+ *
+ * **The ledger rather than the cache**, because the cache is one run's scratch and is absent in a fresh
+ * checkout — an analysis that read it would work on the machine that last swept and report an empty pool
+ * everywhere else. The ledger is committed, so this command answers the same way for everybody.
+ *
+ * Ledger rows carry `playerKey` where a raw sweep carries `player`; the variance split only ever compares
+ * identities for equality, so the hash serves and no name is needed.
+ */
 function readPulls(from) {
-	const path = from ?? resolve(CACHE, 'pulls.json');
-	if (!existsSync(path)) {
-		throw new Error(`no pull set at ${path} — run scripts/build-reference-tables.mjs first, or pass --from`);
+	if (from !== undefined) {
+		if (!existsSync(from)) throw new Error(`no pull set at ${from}`);
+		return JSON.parse(readFileSync(from, 'utf8'));
 	}
-	return JSON.parse(readFileSync(path, 'utf8'));
+	const cached = resolve(CACHE, 'pulls.json');
+	if (existsSync(cached)) return JSON.parse(readFileSync(cached, 'utf8'));
+	const rows = measuredPulls(readLedger());
+	if (rows.length === 0) {
+		throw new Error('no pulls on hand — run scripts/build-reference-tables.mjs first, or pass --from');
+	}
+	return rows.map((row) => ({ ...row, player: row.player ?? row.playerKey }));
 }
 
 async function main() {
