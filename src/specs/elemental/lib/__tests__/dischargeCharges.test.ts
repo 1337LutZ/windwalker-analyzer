@@ -172,8 +172,24 @@ describe('a shield the log never saw stacked', () => {
 	 */
 	it('says nothing at all about a shaman without the set', () => {
 		expect(withoutSet.earthShock.presses.map((p) => p.t)).toEqual([FIRST, SECOND]);
+		// Nothing to infer from, so nothing is inferred — the count is not recovered.
 		expect(pressAt(withoutSet, FIRST)?.lsStacks).not.toBe(7);
-		expect(pressAt(withoutSet, FIRST)?.reasons).toContain('belowFull');
+		// **And it is not guessed either.** `auraLevels` offers two for this stretch, from a rule that reads
+		// a bare stack removal as having shed one charge; Fulmination sheds every charge above the first, so
+		// that two is a guess and not a reading. The condition goes unasked rather than charged.
+		expect(pressAt(withoutSet, FIRST)?.lsStacks).toBeNull();
+		expect(pressAt(withoutSet, FIRST)?.reasons).not.toContain('belowFull');
+	});
+
+	/**
+	 * The second shock is judged normally, which is what keeps the refusal narrow.
+	 *
+	 * Only the stretch `auraLevels` opened before the log's first real evidence is a guess. By the second
+	 * press the shield has been watched building from one, so its count is a reading and the rule applies —
+	 * a safeguard that swallowed every press would be worse than the number it replaced.
+	 */
+	it('withholds only the presses before the log knows the shield', () => {
+		expect(pressAt(withoutSet, SECOND)?.lsStacks).toBe(7);
 	});
 
 	/**
@@ -197,7 +213,24 @@ describe('a shield the log never saw stacked', () => {
 		]);
 		const press = pressAt(orphaned, FIRST);
 		expect(press?.lsStacks).not.toBe(7);
-		expect(press?.lsStacks).toBe(pressAt(withoutSet, FIRST)?.lsStacks);
+		// And with nothing recovered, the pre-fight guess is withheld exactly as it is without the set.
+		expect(press?.lsStacks).toBeNull();
+		expect(press?.reasons).not.toContain('belowFull');
+	});
+
+	/**
+	 * **The timeline's counter row reads the same corrected number**, which is the half a fix at the press
+	 * alone would have missed.
+	 *
+	 * `lightningShield.points` is the step series the shield's row is drawn from, and `counterLoads` turns
+	 * a fall in it into a load labelled with what the spend threw away. The pre-fight stretch is the first
+	 * point, so an uncorrected two would have been written on the very load the Earth Shock section had
+	 * just called full — the report contradicting itself across two surfaces, on one press.
+	 */
+	it('draws the corrected charge on the shield row, not the guess', () => {
+		expect(withSet.lightningShield?.points[0]).toEqual([0, 7]);
+		// And without the set there is nothing to correct it with, so the guess is what the log offered.
+		expect(withoutSet.lightningShield?.points[0]).toEqual([0, 2]);
 	});
 
 	/**
