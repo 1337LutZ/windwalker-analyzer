@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis, AuraLane } from '~/lib/types';
+import { spellIconUrl } from '~/components/primitives/spellIcon';
 import type { CounterLoad, TimelineCounter } from '~/lib/view/timelineBanks';
 
 import { formatSeconds, formatStamp } from '~/lib/format';
@@ -68,12 +69,22 @@ interface Span {
 /** A span shorter than this is a sliver too thin to hover, so it is drawn at this width. */
 const minimumSpan = (durationMs: number) => durationMs / 400;
 
+/** How large an application icon is drawn on a lane. A shade under the 9-unit lane height. */
+const APPLICATION_ICON_PX = 14;
+
 interface Row {
 	name: string;
 	id: number;
 	tone: keyof ChartTheme;
 	windows: Array<[number, number]>;
 	presses: number[];
+	/**
+	 * When the aura was applied or refreshed, drawn as an icon on the bar.
+	 *
+	 * A window closes on a remove and swallows every refresh inside it, so a long bar hides the presses
+	 * that paid for it — see `AuraLane.applications`. These are what puts them back on the page.
+	 */
+	applications: number[];
 	/**
 	 * A counter's loads, when the spec draws one on this row: one entry per load it built and let go of.
 	 *
@@ -134,14 +145,29 @@ function buildRows(
 		if (summaryKeys !== null && !summaryKeys.includes(lane.key)) continue;
 		if (!drawn(lane.name)) continue;
 		const tone = GROUP_TONE[lane.group];
-		const row = byName.get(lane.name) ?? { name: lane.name, id: lane.id, tone, windows: [], presses: [] };
+		const row = byName.get(lane.name) ?? {
+			name: lane.name,
+			id: lane.id,
+			tone,
+			windows: [],
+			presses: [],
+			applications: [],
+		};
 		row.windows.push(...lane.windows.map((w): [number, number] => [w.start, w.end]));
+		row.applications.push(...(lane.applications ?? []));
 		byName.set(lane.name, row);
 	}
 	if (summaryKeys === null) {
 		for (const mark of casts) {
 			if (!drawn(mark.name)) continue;
-			const row = byName.get(mark.name) ?? { name: mark.name, id: mark.id, tone: CAST_TONE, windows: [], presses: [] };
+			const row = byName.get(mark.name) ?? {
+				name: mark.name,
+				id: mark.id,
+				tone: CAST_TONE,
+				windows: [],
+				presses: [],
+				applications: [],
+			};
 			row.presses.push(mark.t);
 			byName.set(mark.name, row);
 		}
@@ -161,6 +187,9 @@ function buildRows(
 			tone: counter.tone,
 			windows: [],
 			presses: [],
+			// A counter row draws one bar per load and already shows every spend, so an icon per stack gain
+			// would be a second mark for a thing the row is made of.
+			applications: [],
 			loads: counter.loads,
 			faultWindows: counter.faultWindows,
 		});
@@ -325,6 +354,44 @@ export default function LanesTimeline({ analysis }: { analysis: Analysis }) {
 				grid: { ...baseGrid(theme), padding: { ...GRID_PADDING, left: narrow ? NARROW_LABEL_PX : LABEL_PX } },
 				xaxis: timeAxis(theme, analysis.durationMs, narrow),
 				yaxis: { labels: { show: false } },
+				/**
+				 * The aura's own icon wherever the player applied or refreshed it.
+				 *
+				 * **What this is for.** A bar says the aura was up; it cannot say how many presses kept it
+				 * there, because `auraWindows` closes a window on a remove and discards every refresh inside
+				 * it. Elemental Discharge on `XJ83wN9h1GQqP4tY` fight 16 is 38.9 seconds of unbroken bar over
+				 * three applications, and a reader looking for the refreshes had nothing to look at. The icon
+				 * marks each one on the bar it belongs to.
+				 *
+				 * **Off on a narrow chart, and stated rather than silent.** The icons are 14px and the rows
+				 * are 92% of a lane's height, so on a phone a busy row would stack them into an unreadable
+				 * smear — the same reason `dataLabels` is gated on `narrow` twenty lines above. The windows
+				 * still draw; it is the marks that wait for room.
+				 *
+				 * A row whose id has no icon in `spells.json` contributes nothing rather than a broken image.
+				 */
+				annotations: narrow
+					? {}
+					: {
+							/**
+							 * **A stated cast, and it is the axis rather than the annotation that forces it.**
+							 * `PointAnnotations.y` is typed `number | null`, which is right for a numeric axis and
+							 * wrong for this one: these bars are a category axis — the row's name is its
+							 * coordinate — and ApexCharts resolves a category annotation by that string at
+							 * runtime. A numeric `y` here would be read as a value on an axis that has none.
+							 */
+							points: rows.flatMap((row) => {
+								const path = spellIconUrl(row.id);
+								if (path === null) return [];
+								return row.applications.map((t) => ({
+									x: t,
+									y: row.name,
+									// The image is the mark, so the default dot underneath it would be a second one.
+									marker: { size: 0 },
+									image: { path, width: APPLICATION_ICON_PX, height: APPLICATION_ICON_PX },
+								}));
+							}) as unknown as ApexOptions['annotations'] extends { points?: infer P } ? P : never,
+						},
 				tooltip: baseTooltip(theme),
 			};
 		},

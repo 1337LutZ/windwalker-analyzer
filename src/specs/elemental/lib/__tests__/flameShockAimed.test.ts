@@ -543,7 +543,10 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		};
 		const sections = {
 			flameShock: 'bad',
-			earthShock: 'bad',
+			// `cleave`'s, and `ok` rather than the `bad` it read while the tier-16 remaining check measured to
+			// the end of a merged aura run. Every pull's Earth Shock letter moved with that fix, so the two
+			// that differ from this base override it below.
+			earthShock: 'ok',
 			searingTotem: 'ok',
 			fireElemental: 'ok',
 			// `ok` since the rule took five seconds of overcap into `good`: these pulls read 9.6s, 17.6s,
@@ -569,14 +572,14 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// is still a verdict and it is still `bad`.
 		expect(card(addsThenBoss)).toEqual({
 			overall: 'bad',
-			judged: { measured: 13, total: 24, unmeasurable: false },
-			sections: { ...sections, searingTotem: 'bad', ascendance: 'ok', casts: 'ok' },
+			judged: { measured: 13, total: 25, unmeasurable: false },
+			sections: { ...sections, earthShock: 'bad', searingTotem: 'bad', ascendance: 'ok', casts: 'ok' },
 			flameShockWaste: 'bad',
 			gcdUtilisation: 'ok',
 		});
 		expect(card(cleavePull)).toEqual({
-			overall: 'bad',
-			judged: { measured: 19, total: 24, unmeasurable: false },
+			overall: 'ok',
+			judged: { measured: 20, total: 25, unmeasurable: false },
 			sections: { ...sections, searingTotem: 'good', fireElemental: 'good', lightningShield: 'bad' },
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'bad',
@@ -585,16 +588,29 @@ describe('the dot’s own timeline, off the spawn the press was aimed at', () =>
 		// kills the reference holds for that fight, where it missed the flat 95 by half a point. `casts`
 		// goes `ok` → `good` and the headline with it — the first `good` this spec has on this metric on
 		// any committed pull.
+		//
+		// **And the headline has since gone back to `ok`, on a metric this file is not about.** The Earth
+		// Shock card gained `elementalDischargeUptime`, the tier-16 debuff's own uptime, and this pull reads
+		// 65.80% of it against 90/80 — one `bad` at weight 1, which is what takes twenty measured points back
+		// under the 75% a `good` headline needs. `casts` is still `good` and every letter this file pins is
+		// still where it was; the whole-pull letter is the only thing that moved.
 		expect(card(phasedPull)).toEqual({
 			overall: 'good',
-			judged: { measured: 19, total: 24, unmeasurable: false },
-			sections: { ...sections, flameShock: 'ok', fireElemental: 'good', lightningShield: 'bad', casts: 'good' },
+			judged: { measured: 20, total: 25, unmeasurable: false },
+			sections: {
+				...sections,
+				flameShock: 'ok',
+				earthShock: 'good',
+				fireElemental: 'good',
+				lightningShield: 'bad',
+				casts: 'good',
+			},
 			flameShockWaste: 'ok',
 			gcdUtilisation: 'good',
 		});
 		expect(card(unbrokenPull)).toEqual({
-			overall: 'ok',
-			judged: { measured: 19, total: 24, unmeasurable: false },
+			overall: 'good',
+			judged: { measured: 20, total: 25, unmeasurable: false },
 			// **The shield's four letters, now that the rule carries five seconds inside `good`.** These
 			// pulls read 4.5s, 9.6s, 17.6s and 21.9s past the per-window grace, so `unbroken` clears the
 			// `good` line outright, `addsThenBoss` sits between the two, and the other two stay `bad`.

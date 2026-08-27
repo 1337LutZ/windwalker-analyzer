@@ -233,16 +233,23 @@ describe('what the committed pulls can say about rule 5', () => {
 		// three `multi` cards stay refusals under the judged-weight floor whatever the metric says. The
 		// weight this test is about is `fireElementalHasteUptime`, and it is worth exactly what it was: the
 		// nine denominators below are the same nine.
+		// **A twenty-fifth rule landed and two of the nine letters moved with it, again not this one.**
+		// `elementalDischargeUptime` grades the tier-16 debuff's uptime, and `phased` reads 65.80% against
+		// its 90/80 lines — a `bad` at weight 1, which is enough to take that pull's `auto` and `single`
+		// cards under the 75% the headline needs for `good`. `unbroken` reads 83.51% and letters `ok` on the
+		// metric without moving its card; `cleave` reads 66.27% and was already `bad`. Every `multi` card is
+		// unchanged at 11 measured: the rule is `bands: [1, 2]`, so a reading declared multi-target exempts
+		// it and it joins the denominator without ever joining the numerator. Nine denominators, all +1.
 		expect(cards).toEqual([
-			'phased/auto good 19/24',
-			'phased/single good 19/24',
-			'phased/multi ok 11/24',
-			'unbroken/auto ok 19/24',
-			'unbroken/single ok 19/24',
-			'unbroken/multi ok 11/24',
-			'cleave/auto bad 19/24',
-			'cleave/single ok 17/24',
-			'cleave/multi ok 11/24',
+			'phased/auto good 20/25',
+			'phased/single good 20/25',
+			'phased/multi ok 11/25',
+			'unbroken/auto good 20/25',
+			'unbroken/single good 20/25',
+			'unbroken/multi ok 11/25',
+			'cleave/auto ok 20/25',
+			'cleave/single ok 18/25',
+			'cleave/multi ok 11/25',
 		]);
 		expect(WEIGHTS.fireElementalHasteUptime).toBe(1);
 	});

@@ -728,7 +728,7 @@ describe('report copy with no reader', () => {
 		earthShockReason: {
 			where: 'lib/types.ts → EarthShockReason',
 			keys: () => declaredArms('lib/types.ts', /export type EarthShockReason =/),
-			pinned: ['ascReady', 'belowFull', 'cleaveDot', 'cleaveStacks', 'fsLow', 'fsTail', 'twoPiece'],
+			pinned: ['ascReady', 'belowFull', 'cleaveDot', 'cleaveStacks', 'fsLow', 'fsTail', 'twoPiece', 'twoPieceEarly'],
 		},
 		elementalMasteryReason: {
 			where: 'lib/types.ts → ElementalMasteryPress.reason',
@@ -993,6 +993,7 @@ describe('report copy with no reader', () => {
 				'brewStacks',
 				'cooldownsMissed',
 				'earthShockWaste',
+				'elementalDischargeUptime',
 				'externalsMissed',
 				'fireElementalHasteUptime',
 				'hasteToBreakpoint',
@@ -1105,7 +1106,7 @@ describe('report copy with no reader', () => {
 		'earthElemental.state.*': 3,
 		'fight.basis.*': 2,
 		'fight.note.*': 14,
-		'earthShock.state.*': 7,
+		'earthShock.state.*': 8,
 		'elementalMastery.state.*': 5,
 		'fireElemental.state.*': 4,
 		// Nine against seven press kinds: `snapshot` stores two narrowings, and the peel counts both.
@@ -1131,7 +1132,7 @@ describe('report copy with no reader', () => {
 		// advice. The third is `lightningShieldFellOff`'s `fix_neverUp`. A shield never worn grades on a
 		// mark standing for "the buff was never up" rather than on a count of drops, so the base card —
 		// which prints that mark as a number of drops — is the one wording it must never be handed.
-		'summary.takeaways.metric.*.label': 34,
+		'summary.takeaways.metric.*.label': 35,
 	};
 
 	/**

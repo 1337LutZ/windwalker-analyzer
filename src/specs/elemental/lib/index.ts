@@ -80,12 +80,15 @@ import type {
 	FightDataset,
 	Miss,
 	SearingTotemPress,
+	SecondaryDotApplication,
 	StormlashAudit,
 	StormlashReceived,
 	WclEvent,
 	Window,
 } from '~/lib/types';
-import { abilityIdOf, instanceKey, isAuraEvent, isAuraRefresh, isCast } from '~/lib/events/guards';
+// A value and not a type: the soft-reason list is read at runtime to count `EarthShockAudit.ok`.
+import { SOFT_EARTH_SHOCK_REASONS } from '~/lib/types';
+import { abilityIdOf, instanceKey, isAuraApply, isAuraEvent, isAuraRefresh, isCast } from '~/lib/events/guards';
 
 import type { Handles } from '~/lib/analysis/analyseCore';
 import { analyseCore, type SpecConfig } from '~/lib/analysis/analyseCore';
@@ -200,6 +203,42 @@ const FS_ASC_PREP_MS = 16_000;
  * set of windows this audit can see, which is the 144999 debuff on the primary target.
  */
 const ES_TWO_PIECE_TAIL_MS = 4000;
+/**
+ * Where a shock spent before that tail stops being early and starts being wrong.
+ *
+ * **The list draws one line and this draws a second one behind it**, which is a judgement about how the
+ * report reads and not a clause of `Earth Shock Rules`. The sim's rule is a pass/fail: inside the last
+ * four seconds or not. But the two presses that fail it are not the same mistake — a shock at five
+ * seconds is a shock the player nearly held, and one taken with the whole fourteen-second window still
+ * ahead of it is a shock taken as if the proc were not there at all. Charging both at full rate tells a
+ * player who was two seconds out the same thing it tells one who ignored the window, and the first of
+ * those is the one who could act on being told.
+ *
+ * Eight seconds, which is twice the tail. Round, and round on purpose: nothing in the sim measures the
+ * distance a failed hold missed by, so there is no distribution to take a quantile off and a number
+ * dressed up as measured would be inventing evidence. Twice the bar it is a miss against is the one
+ * relation that means something without one.
+ *
+ * Between the two, `twoPieceEarly` — soft, and charged at half through `SOFT_EARTH_SHOCK_REASONS`.
+ * Past it, `twoPiece`, which keeps its key and its full charge so no press that was bad before this
+ * became merely `ok` by it.
+ */
+const ES_TWO_PIECE_EARLY_MS = 8000;
+/**
+ * How long a charge of Lightning Shield is worth on the tier-16 debuff, and the ceiling that puts on it.
+ *
+ * *"Fulmination increases all Fire and Nature damage dealt to that target from the Shaman by 4% for
+ * **2 sec per Lightning Shield charge consumed**"* — so the window a shock buys is not a fixed length at
+ * all, it is the shield's charge count doubled. Seven charges is fourteen seconds and is the most the
+ * aura can hold.
+ *
+ * **Measured against a real log rather than taken from the tooltip.** `XJ83wN9h1GQqP4tY` fight 16 has
+ * this shaman applying 144999 at 21 869ms and refreshing at 35 135 and 46 739; the debuff is then
+ * removed at 60 760. That last application ran **14 021ms** with the shield at its ceiling, which is
+ * this constant to twenty-one milliseconds and is what fixes seven charges as the cap rather than six.
+ */
+const DISCHARGE_MS_PER_CHARGE = 2000;
+const DISCHARGE_MAX_MS = 7 * DISCHARGE_MS_PER_CHARGE;
 /**
  * How much stronger a new Flame Shock application has to be for refreshing early to be the right press.
  *
@@ -2885,6 +2924,46 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			.flatMap(([, windows]) => toIntervals(windows)),
 	);
 	/**
+	 * The other half of the second dot's story: not the targets that went undotted, but the globals spent
+	 * dotting targets that could not pay them back.
+	 *
+	 * **Merged per spawn and never across them**, which is the whole reason this cannot be read off
+	 * `fsSecondaryWindows`: that array unions every secondary's windows into one series, so two adds each
+	 * carrying a twelve-second dot become one twenty-four-second window and a pair of wasted globals reads
+	 * as one that paid. The subject here is the application, so the spawn has to survive the merge.
+	 *
+	 * **No `isJudgeableTarget` filter, deliberately**, and it is the one place in this file that omits it.
+	 * The filter exists so the report never faults a player for leaving a short-lived add undotted — the
+	 * right call when the fault is an omission. Here the fault is a cast, and the adds the filter drops are
+	 * exactly the ones a wasted global was most likely spent on. Applying it would hide the finding. See
+	 * `SecondaryDotApplication`, where the two opposite filters are stated together.
+	 *
+	 * Off the raw windows and not the graded ones: a global spent inside an add wave was still spent, and
+	 * the band cut belongs to the uptime share's clock rather than to a count of casts.
+	 */
+	const fsSecondaryApplications: SecondaryDotApplication[] = [...fsAnywhere.byInstance]
+		.filter(([key]) => fsAnywhere.targetOf.get(key) !== primaryID)
+		.flatMap(([key, windows]) =>
+			mergeIntervals(toIntervals(windows)).map(([start, end]) => {
+				const runtimeMs = end - start;
+				return {
+					t: start,
+					key,
+					runtimeMs,
+					// The full duration is the bar for `good` and two thirds of it for `ok` — the same crossing
+					// `FS_SECOND_TARGET_LIFETIME_MS` names, read here as what the dot got rather than as what the
+					// target had. `>=` at both, so a dot that ran exactly its length is not one millisecond short.
+					grade:
+						runtimeMs >= FLAME_SHOCK_DURATION_MS
+							? ('good' as const)
+							: runtimeMs >= FS_SECOND_TARGET_LIFETIME_MS
+								? ('ok' as const)
+								: ('bad' as const),
+				};
+			}),
+		)
+		.sort((a, b) => a.t - b.t);
+	/**
 	 * The stretches this rule is graded over: **band 2 alone** — two enemies up, and not three.
 	 *
 	 * **The one clock in this file whose cut is a difference of two arrays rather than the complement of
@@ -3120,6 +3199,62 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * with `begin === t` it would be a refactor with no observable half, and `lavaBurstPresses` above
 	 * already carries the pattern for when there is one.
 	 */
+	/**
+	 * How much of the tier-16 debuff was left when a shock went out — **modelled from the charges the
+	 * previous shock spent, and not read off the debuff's drawn window.**
+	 *
+	 * **The bug this replaces charged a player for every correct press they made.** It was
+	 * `remainingIn(t, twoPieceWindows)`, and those windows come out of `auraWindows`, which does not split
+	 * on a refresh: `openOnRefresh` only rescues a refresh arriving with *nothing* open, and a refresh
+	 * landing on a live aura is discarded outright. So a debuff kept up across a whole phase is one window
+	 * from its first apply to its last remove, and `remainingIn` answers the distance to the *end of the
+	 * run* rather than to the end of the application the player was looking at. On `XJ83wN9h1GQqP4tY`
+	 * fight 16 that window is 38.9 seconds long, against an aura that cannot hold more than fourteen —
+	 * so every shock inside it read twenty-plus seconds remaining and every one was charged `twoPiece`,
+	 * including the two taken with 0.7s and 2.4s left, which are exactly the presses the rule asks for.
+	 * `unbroken`'s committed fixture carries the same shape at 36.1 seconds.
+	 *
+	 * **So the length is computed the way the game sets it**: a shock consumes the shield and buys
+	 * `2s × charges`, which the audit already knows because it reads `lsStacks` at every press. The
+	 * previous spending shock's expiry is this shock's remaining. Verified against the log above — 7
+	 * charges at 46 739 predicts 60 739 and the log removes the debuff at 60 760.
+	 *
+	 * **Clamped by the drawn window's own end**, which is the one thing the merged windows are still good
+	 * for: they end where the debuff really ended, so a target that died or a debuff that was dispelled
+	 * cuts the model short instead of letting it run past the evidence.
+	 *
+	 * A press that spends no charges applies nothing, so it neither sets an expiry nor inherits one.
+	 */
+	const dischargeExpiry = new Map<number, number>();
+	{
+		let previous: number | null = null;
+		for (const t of castTimes(EARTH_SHOCK)) {
+			const drawn = twoPieceWindows.find((w) => t >= w.start && t <= w.end);
+			/**
+			 * **The fallback, for a press the model has no predecessor for.**
+			 *
+			 * The expiry above is built from the shock that bought the window, so the first press of a pull
+			 * has nothing behind it — and neither does a press whose debuff was applied before the log's
+			 * first shock, or by a Fulmination the events do not carry. Answering nought there would call
+			 * every such press correct by default, which is the opposite of the fault being looked for.
+			 *
+			 * So the drawn window bounds it instead: the debuff cannot have gone up earlier than the window
+			 * did, and it cannot run longer than `DISCHARGE_MAX_MS` from there, so the later of those two is
+			 * the most it can have left. An over-estimate rather than an under-one, which is the right
+			 * direction for a bound standing in for a measurement — it can only ever charge a press the
+			 * model could not price, never excuse one.
+			 */
+			const bound = drawn === undefined ? 0 : Math.min(drawn.end, drawn.start + DISCHARGE_MAX_MS);
+			dischargeExpiry.set(t, previous ?? bound);
+			const spent = levelAt(lsLevels, t) ?? 0;
+			if (spent <= 0) continue;
+			const modelled = t + Math.min(DISCHARGE_MAX_MS, spent * DISCHARGE_MS_PER_CHARGE);
+			previous = drawn === undefined ? modelled : Math.min(modelled, drawn.end);
+		}
+	}
+	/** What the player had left on the debuff at this press, floored at nought. */
+	const dischargeLeftAt = (t: number): number => Math.max(0, (dischargeExpiry.get(t) ?? 0) - t);
+
 	const esPresses = castTimes(EARTH_SHOCK).map((t) => {
 		const stacks = levelAt(lsLevels, t);
 		// The dot on the enemy this shock is being fired at, not on any spawn of its actor id — the
@@ -3261,7 +3396,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			if (fsRemaining < ES_CLEAVE_FS_MIN_MS) reasons.push('cleaveDot');
 		} else if (twoPieceOwned) {
 			if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
-			if (remainingIn(t, twoPieceWindows) > ES_TWO_PIECE_TAIL_MS) reasons.push('twoPiece');
+			// Three bands off one quantity, ordered so a press picks exactly one of them: inside the tail is
+			// no reason at all, past twice the tail is the whole fault, and the span between is the soft one.
+			// `remainingIn` answers 0 outside every window, which is why the proc being down cannot reach
+			// either reason — the same reading branch B's `auraRemainingTime` takes of an inactive aura.
+			const twoPieceLeft = dischargeLeftAt(t);
+			if (twoPieceLeft > ES_TWO_PIECE_EARLY_MS) reasons.push('twoPiece');
+			else if (twoPieceLeft > ES_TWO_PIECE_TAIL_MS) reasons.push('twoPieceEarly');
 			if (fsRemaining < 2 * tickMs) reasons.push('fsTail');
 		} else {
 			if (stacks !== null && stacks < lightningShieldCap) reasons.push('belowFull');
@@ -3361,6 +3502,30 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * this name for this exact purpose, so the name is this audit's own rather than invented here.
 	 */
 	const shieldGradedMs = unionMs(shieldSpans);
+	/**
+	 * Elemental Discharge — the tier-16 two-piece debuff, read as an uptime the player maintains.
+	 *
+	 * **It is a maintenance metric and not a proc log, which is what makes it gradable at all.** The bonus
+	 * is not a random proc: Fulmination applies it, and it runs *two seconds per Lightning Shield charge
+	 * consumed* (`sim/shaman/items_mop.go`), so a shock spent at the ceiling buys twelve seconds of +4%
+	 * Fire and Nature damage on that target and a shock spent at three buys four. Every input is the
+	 * player's — when they shock, and with how much shield on it — which is exactly why the section's
+	 * other rule tells them to hold the button until this window is nearly out. This is that rule's
+	 * payoff, measured instead of assumed.
+	 *
+	 * Over `shieldSpans`, which is the clock beside it rather than a fourth cut of the pull: contact time
+	 * less the stretches three or more enemies were up. The same reasoning as the shield's own overcap —
+	 * `aoe.apl.json` has no Earth Shock rung, so above two enemies nothing asks for the Fulmination that
+	 * would carry this debuff, and grading its absence there would charge a player for following the list.
+	 *
+	 * **Zero clock when the set is not owned, which is the gate and not a special case.** `twoPieceWindows`
+	 * is empty for a shaman without the two-piece, so `dischargeScoredMs` is 0 and `gradedOver` refuses the
+	 * metric through the same path an empty clock is refused anywhere else. No `if` in the score, no
+	 * fourth arm in the copy: a pull without the set is simply a pull this question was not asked of.
+	 */
+	const dischargeScoredMs = twoPieceWindows.length === 0 ? 0 : shieldGradedMs;
+	const dischargeUptimeMs = unionMs(intersect(toIntervals(twoPieceWindows), shieldSpans));
+	const dischargeUptimePct = dischargeScoredMs > 0 ? (dischargeUptimeMs / dischargeScoredMs) * 100 : 0;
 	// Fell off: the stretches the shield was down, which is the complement of the stretches it was up.
 	// `complementOf` rather than the walk that was written here — same merge, same gap-push, same tail,
 	// and it is imported into this file already. `auraLevels` only ever emits stretches at level 1 or
@@ -4431,6 +4596,54 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 	 * sorted "its own" lane reorder a figure's own windows. Spread only when true, so a lane that carries
 	 * neither flag serialises exactly as it did before — every captured fixture included.
 	 */
+	/**
+	 * Every moment this player put the aura up or renewed it, for the chart to mark.
+	 *
+	 * **A window says the aura was there; it does not say how many times it was bought.** `auraWindows`
+	 * opens on an apply and closes on a remove, and a refresh landing on a live aura is discarded — by
+	 * design, because the window is a coverage claim. So a debuff held across a phase draws as one long
+	 * bar, and the reader cannot see the three presses that paid for it. Elemental Discharge is the case
+	 * that asked for this: 38.9 seconds of unbroken bar on `XJ83wN9h1GQqP4tY` fight 16, three applications
+	 * inside it, nothing on the page to tell them apart.
+	 *
+	 * So the timestamps travel beside the windows rather than instead of them. Nothing here reaches a
+	 * grade — it is a drawing, and the same walk a grade would need is the one `dischargeExpiry` does for
+	 * itself, off the presses.
+	 *
+	 * Sourced to this player for the reason `dotWindowsBySpawn` is: two Elemental shamans both keep this
+	 * debuff on the boss, and the log carries both. A debuff is scoped to the primary as well, which is
+	 * the enemy every debuff lane in this file draws.
+	 */
+	const laneApplications = (
+		aura: Ability | Aura,
+		group: 'buff' | 'proc' | 'debuff',
+		windows: readonly Window[],
+	): number[] => {
+		const ids = new Set<number>('castIds' in aura ? aura.castIds : aura.ids);
+		const out: number[] = [];
+		for (const e of group === 'debuff' ? events : selfEvents) {
+			if (e.sourceID !== actor.id) continue;
+			if (group === 'debuff' && primaryID !== undefined && e.targetID !== primaryID) continue;
+			const id = abilityIdOf(e);
+			if (id === null || !ids.has(id)) continue;
+			if (isAuraApply(e) || isAuraRefresh(e)) out.push(e.timestamp - t0);
+		}
+		/**
+		 * **Clipped to the lane's own windows, which is what keeps the mark attachable.**
+		 *
+		 * This walk scopes a debuff by *actor id*; several lanes are built per **spawn**, and the two are not
+		 * the same set — `instanceKey` is the distinction this file has already paid for getting wrong. On
+		 * `addsThenBoss` a Flame Shock application at 468 217ms landed on a second spawn of the primary's id
+		 * and so sat outside every window the primary's row draws: an icon with no bar under it, which is a
+		 * mark a reader cannot attach to anything.
+		 *
+		 * So the row's own windows decide. A refresh opens no window, so this cannot thin the marks the
+		 * field exists for — every one of those is inside the window it renewed by definition. What it drops
+		 * is the applications belonging to a row that is not this one.
+		 */
+		return [...new Set(out)].filter((t) => windows.some((w) => t >= w.start && t <= w.end)).sort((a, b) => a - b);
+	};
+
 	const lane = (aura: Ability | Aura, group: 'buff' | 'proc' | 'debuff', windows: readonly Window[]): AuraLane => ({
 		key: aura.key,
 		name: aura.name,
@@ -4442,6 +4655,13 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			...(w.preexisting === true ? { preexisting: true } : {}),
 			...(w.truncated === true ? { truncated: true } : {}),
 		})),
+		// Omitted when there are none, so a lane the log carries no applications for serialises exactly as
+		// it did before — every captured fixture included, which is the rule the windows spread above
+		// follows for the same reason.
+		...(() => {
+			const applications = laneApplications(aura, group, windows);
+			return applications.length > 0 ? { applications } : {};
+		})(),
 	});
 	/**
 	 * The Flame Shock dot again, one row per enemy that carried it — for drawing, and only for drawing.
@@ -4817,6 +5037,7 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// The band-2 clock and no longer the core's `>= 2` one: the same field, the same role — this
 			// share's denominator and its gate — measured over the stretches rung 9 was a rule at.
 			multiTargetMs: multiDotMs,
+			secondaryApplications: fsSecondaryApplications,
 			// The subject, beside its clock, so a zero clock can say which of its two causes it was. Null
 			// rather than `undefined`, because an `Analysis` is serialised and `undefined` does not survive
 			// `JSON.stringify` — an absent key and "no second target" would then be one value again.
@@ -4840,7 +5061,17 @@ export function elementalAudit(h: Handles): ElementalAuditResult {
 			// exemption exists to stop.
 			good: esPresses.filter((p) => p.good === true).length,
 			judged: esPresses.filter((p) => p.good !== null).length,
+			// `every` and not `some`: a press carrying a soft reason beside a hard one is a full fault, and
+			// the whole point of asking it this way round is that adding a second soft reason later cannot
+			// quietly promote a bad press. `good === false` keeps the unjudged presses out — they have no
+			// reasons at all, so a bare `every` over an empty list would count every one of them as `ok`.
+			ok: esPresses.filter(
+				(p) => p.good === false && p.reasons.every((reason) => SOFT_EARTH_SHOCK_REASONS.includes(reason)),
+			).length,
 			belowFull: badSpends.length,
+			dischargeUptimeMs,
+			dischargeUptimePct,
+			dischargeScoredMs,
 		},
 		searingTotem: {
 			windows: stMerged,

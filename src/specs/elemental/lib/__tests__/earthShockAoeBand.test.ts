@@ -167,8 +167,11 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 	 * and must not move by a thousandth.
 	 */
 	it('moves every pull that leaves the banded counts and no other', () => {
-		expect(wastePct('cleave')).toBeCloseTo(42.857_14, 4);
-		expect(fx('cleave').earthShock.good).toBe(4);
+		expect(wastePct('cleave')).toBeCloseTo(21.428_57, 4);
+		// Five now, not four: the press at two enemies that used to be charged `twoPiece` off a merged
+		// window's end is good, and one more carries `twoPieceEarly` alone and counts half.
+		expect(fx('cleave').earthShock.good).toBe(5);
+		expect(fx('cleave').earthShock.ok).toBe(1);
 		expect(fx('cleave').earthShock.presses).toHaveLength(12);
 		// The pull the three-name grid never asked: 43 presses, 23 of them outside the bands, so the metric
 		// is over 20 rather than over 43 and this is by far the largest separation the exemption makes.
@@ -176,14 +179,19 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 		expect(fx('addsThenBoss').earthShock.good).toBe(10);
 		expect(fx('addsThenBoss').earthShock.presses).toHaveLength(43);
 
-		expect(wastePct('unbroken')).toBeCloseTo(61.538_46, 4);
-		expect(wastePct('phased')).toBeCloseTo(41.666_67, 4);
+		expect(wastePct('unbroken')).toBeCloseTo(19.230_77, 4);
+		expect(wastePct('phased')).toBeCloseTo(8.333_33, 4);
 
 		// The metric is the *un*good count over the *judged* count on every pull, not over the presses — the
 		// identity the four figures above are four instances of, so a fifth pull is measured and not listed.
+		//
+		// **With the soft reasons at half, which is the term this identity gained.** A press whose every
+		// reason is in `SOFT_EARTH_SHOCK_REASONS` cost the player half a global rather than all of it, so it
+		// is half a fault here. `cleave` and `unbroken` each hold one; the other two hold none, which is why
+		// the identity read true without the term for as long as it did.
 		for (const name of FIXTURES) {
 			const audit = fx(name).earthShock;
-			expect(wastePct(name), name).toBeCloseTo(((audit.judged - audit.good) / audit.judged) * 100, 9);
+			expect(wastePct(name), name).toBeCloseTo(((audit.judged - audit.good - 0.5 * audit.ok) / audit.judged) * 100, 9);
 		}
 	});
 
@@ -211,7 +219,14 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 	 * as untouched by it as by the two moves above.
 	 */
 	it('changes no section grade and no pull grade — no-change guard', () => {
-		for (const name of FIXTURES) expect(scoreAnalysis(fx(name)).sections['earthShock']?.grade, name).toBe('bad');
+		// **Three of the four letters moved, and the tier-16 `remaining` defect is why.** That check read the
+		// end of a merged aura run rather than the end of the application in front of the player — 36.1
+		// seconds of "remaining" on a debuff that holds fourteen — so it charged nearly every shock taken
+		// inside a window the player was in fact holding correctly. Modelled off the previous shock's
+		// charges now; `dischargeExpiry` carries the argument and the log it was measured against.
+		expect(
+			Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).sections['earthShock']?.grade])),
+		).toEqual({ addsThenBoss: 'bad', cleave: 'ok', phased: 'good', unbroken: 'ok' });
 		// Keyed off the discovered set, so a fifth pull has to have its headline written down here.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, scoreAnalysis(fx(name)).overall]))).toEqual({
 			// The four moved once under `gcdUtilisation`'s 95/90 lines, and again when those lines became
@@ -220,9 +235,9 @@ describe('what it costs, measured on the fixtures that can show it', () => {
 			// flat 95/90 pair called three of them short, and the reference rows call `phased` `good`,
 			// `unbroken` `ok`, `cleave` `bad` and `addsThenBoss` nothing at all — Galakras is suppressed.
 			addsThenBoss: 'bad',
-			cleave: 'bad',
+			cleave: 'ok',
 			phased: 'good',
-			unbroken: 'ok',
+			unbroken: 'good',
 		});
 		// And the shield's own ledger is untouched, because all five exempt presses were at the ceiling.
 		expect(Object.fromEntries(FIXTURES.map((name) => [name, fx(name).earthShock.belowFull]))).toEqual({

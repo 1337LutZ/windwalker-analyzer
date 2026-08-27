@@ -145,12 +145,19 @@ describe('a pull whose shocks are too few to read', () => {
 	 */
 	it('does not tell a pull it never pressed a shock it pressed twelve times', () => {
 		const early = cleave.earthShock.presses.filter((press) => press.good === false);
-		expect(early).toHaveLength(3);
+		expect(early).toHaveLength(2);
 
 		for (const judged of [1, 2]) {
 			const thin = withJudged(judged);
 			const section = ELEMENTAL_SPEC.score(thin).sections['earthShock'];
-			expect(section?.unmeasurable, `${judged} judged shocks should not grade`).toBe(true);
+			// **The metric and not the section, which is the same move the Windwalker's snapshot section made.**
+			// `elementalDischargeUptime` sits on this card as a secondary — Fulmination is what applies the
+			// debuff, so the two belong together — and `SectionScore.unmeasurable` is `every` over all of a
+			// section's metrics, so a pull with the tier-16 set worn keeps a measurable section however few
+			// shocks it holds. What must stay refused is the *shock* rule, which is what the sentence under
+			// test is about; `thinSample.test.ts` in `specs/windwalker` carries the argument in full.
+			const waste = section?.metrics.find((m) => m.key === 'earthShockWaste');
+			expect(waste?.unmeasurable, `${judged} judged shocks should not grade`).toBe(true);
 
 			const html = render(EarthShock, thin);
 			const sentence = verdictOf(html);
@@ -242,9 +249,11 @@ describe('a pull whose shocks are too few to read', () => {
 	it('leaves every committed pull alone', () => {
 		const expected: Record<string, string> = {
 			addsThenBoss: 'Only 10 of 20 shocks were spent',
-			cleave: 'Only 4 of 7 shocks were spent',
-			phased: 'Only 7 of 12 shocks were spent',
-			unbroken: 'Only 5 of 13 shocks were spent',
+			cleave: '5 of 7 shocks were spent',
+			// No "Only" on these two any more: dropping the false tier-16 charges takes `phased` to `good` and
+			// `unbroken` to `ok`, and that prefix belongs to `verdict_bad` alone.
+			phased: '11 of 12 shocks were spent',
+			unbroken: '10 of 13 shocks were spent',
 		};
 		// Every discovered pull has a sentence written down for it, so a fifth fixture has to be read and
 		// pinned rather than skipped by a loop that never reaches it.

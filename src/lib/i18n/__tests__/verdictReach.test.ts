@@ -240,9 +240,12 @@ const UNREACHED: string[] = [
 	'casts.verdict_none',
 	'debuff.verdict_noContact',
 	'debuff.verdict_none',
-	'earthShock.verdict_good',
+	// `earthShock.verdict_good` and `verdict_ok` have left this list, and the reason is a defect rather
+	// than a threshold: the tier-16 remaining check measured to the end of a *merged* Elemental Discharge
+	// window — `auraWindows` does not split on a refresh — so shocks a player had held correctly were
+	// charged as if the whole window were still ahead of them, and every committed pull read `bad`. Two
+	// sentences that had never been rendered by a real log are rendered by three of the four now.
 	'earthShock.verdict_none',
-	'earthShock.verdict_ok',
 	'earthShock.verdict_tooFew',
 	'flameShock.verdict_good',
 	'flameShock.verdict_good_full',

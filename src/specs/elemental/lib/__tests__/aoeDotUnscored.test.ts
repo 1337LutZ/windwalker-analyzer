@@ -361,8 +361,8 @@ describe('the card, and the pair that has to move together', () => {
 			// the denominator. The other three keep nineteen. Nothing in this file's own subject moved: the
 			// dot rules are as unasked, and as asked, as they were.
 			expect(scored.judged, name).toEqual({
-				measured: name === 'addsThenBoss' ? 13 : 19,
-				total: 24,
+				measured: name === 'addsThenBoss' ? 13 : 20,
+				total: 25,
 				unmeasurable: false,
 			});
 		}
@@ -374,9 +374,9 @@ describe('the card, and the pair that has to move together', () => {
 			// 94.44% and 92.87% of their globals: `phased` is `good` now because Iron Juggernaut's own p90 is
 			// 94.16 over four kills and it cleared it, where no fixture could ever clear a flat 95.
 			addsThenBoss: 'bad',
-			cleave: 'bad',
+			cleave: 'ok',
 			phased: 'good',
-			unbroken: 'ok',
+			unbroken: 'good',
 		});
 	});
 });

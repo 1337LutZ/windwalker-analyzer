@@ -55,16 +55,16 @@ describe('the section counts only the presses a list had a rule for', () => {
 	 * the same denominator or the section disagrees with itself in two adjacent paragraphs.
 	 */
 	it('shows the judged fraction in the tile and the same one in the verdict', () => {
-		expect([cleave.earthShock.presses.length, cleave.earthShock.judged, cleave.earthShock.good]).toEqual([12, 7, 4]);
+		expect([cleave.earthShock.presses.length, cleave.earthShock.judged, cleave.earthShock.good]).toEqual([12, 7, 5]);
 		const html = render(cleave);
 		// The tile's own markup: the value and its suffix, so this cannot pass on a `/7` appearing anywhere
 		// else in the section.
-		expect(html).toContain('>4<em class="text-sm not-italic text-muted sm:text-base">/7</em>');
+		expect(html).toContain('>5<em class="text-sm not-italic text-muted sm:text-base">/7</em>');
 		expect(html).not.toContain('/12');
 		// Reworded when `readerVoice.test.ts`'s sweep grew to see `verdict_*` keys: "matched the rule the list
 		// had for them" named our own model at a reader. The fraction is what this case is about and is
 		// unchanged.
-		expect(html).toContain('4 of 7 shocks were spent with the shield charged up');
+		expect(html).toContain('5 of 7 shocks were spent with the shield charged up');
 	});
 
 	/** And the five it is not counting, named as a count with the reason nothing judged them. */
@@ -81,9 +81,11 @@ describe('the section counts only the presses a list had a rule for', () => {
 	 */
 	it('keeps the unjudged presses out of the fault table', () => {
 		const html = render(cleave);
-		// The table draws one row per faulted press and no more: three of `cleave`'s seven judged presses.
-		expect(cleave.earthShock.presses.filter((p) => p.good === false)).toHaveLength(3);
-		expect(html.split('<tr><th scope="row"').length - 1).toBe(3);
+		// The table draws one row per faulted press and no more: two of `cleave`'s seven judged presses.
+		// Three until the tier-16 remaining check stopped measuring to the end of a merged aura window —
+		// one of the three was a shock held correctly inside a live Discharge, charged for the whole run.
+		expect(cleave.earthShock.presses.filter((p) => p.good === false)).toHaveLength(2);
+		expect(html.split('<tr><th scope="row"').length - 1).toBe(2);
 		// And none of the five exempt presses is one of those rows, checked by the clock the row would
 		// print. `1:24` and the rest are absent from the whole section, not merely from the table.
 		for (const press of cleave.earthShock.presses.filter((p) => p.good === null))
@@ -104,6 +106,6 @@ describe('the section counts only the presses a list had a rule for', () => {
 		expect(html).not.toContain('three or more enemies were up');
 		expect(html).not.toContain('earthShock.aoeUnjudged');
 		// And its own fraction is still over every press it made, because every one of them was judged.
-		expect(html).toContain('>5<em class="text-sm not-italic text-muted sm:text-base">/13</em>');
+		expect(html).toContain('>10<em class="text-sm not-italic text-muted sm:text-base">/13</em>');
 	});
 });
