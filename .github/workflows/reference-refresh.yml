@@ -79,6 +79,9 @@ jobs:
           MINUTES: ${{ inputs.minutes || '240' }}
           RETRY_FAILED: ${{ inputs.retry_failed }}
         run: |
+          # **`| tee` hides the exit code.** A pipeline reports its *last* command's status, so the very
+          # first run of this workflow failed with "no candidates found" and was reported as a success.
+          set -o pipefail
           if [ -z "${WCL_TOKEN}" ]; then
             echo "WCL_TOKEN is not set on this repository — add it as an Actions secret" >&2
             exit 1
@@ -151,8 +154,20 @@ jobs:
           git add src/generated/
           git commit -m "Refresh the reference table from Warcraft Logs"
           git push --force-with-lease origin "$BRANCH"
+          # The branch is pushed before this point, so the measured pulls are safe whatever happens next.
           # Reuse the open pull request for this branch if the job has already run today.
-          if ! gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
-            gh pr create --base main --head "$BRANCH" \
-              --title "Refresh the reference table" --body-file pr-body.md
+          if gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
+            exit 0
           fi
+          if gh pr create --base main --head "$BRANCH" \
+            --title "Refresh the reference table" --body-file pr-body.md; then
+            exit 0
+          fi
+          # A repository setting, not a failure of the sweep. Said in full because the error GitHub
+          # returns — "GitHub Actions is not permitted to create or approve pull requests" — does not say
+          # where the switch is, and the work is already safely on the branch.
+          echo "::error::Could not open the pull request. Enable Settings -> Actions -> General ->" \
+            "Workflow permissions -> 'Allow GitHub Actions to create and approve pull requests'."
+          echo "The refreshed data is pushed and waiting on the branch:"
+          echo "  https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          exit 1

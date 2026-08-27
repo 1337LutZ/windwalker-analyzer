@@ -56,6 +56,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SPEC: ${{ inputs.spec }}
         run: |
+          # `| tee` reports the exit code of `tee`, not of the script it is reading.
+          set -o pipefail
           case "${SPEC}" in
             '') args='' ;;
             *[!a-z]*) echo "spec must be lowercase letters only, got: ${SPEC}" >&2; exit 1 ;;
@@ -136,7 +138,14 @@ jobs:
           git add src/generated/sim-apl.json
           git commit -m "Refresh the sim APL snapshot from wowsims/mop@master"
           git push --force-with-lease origin "$BRANCH"
-          if ! gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
-            gh pr create --base main --head "$BRANCH" \
-              --title "Refresh the sim APL snapshot" --body-file pr-body.md
+          if gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
+            exit 0
           fi
+          if gh pr create --base main --head "$BRANCH" \
+            --title "Refresh the sim APL snapshot" --body-file pr-body.md; then
+            exit 0
+          fi
+          echo "::error::Could not open the pull request. Enable Settings -> Actions -> General ->" \
+            "Workflow permissions -> 'Allow GitHub Actions to create and approve pull requests'."
+          echo "  https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          exit 1
