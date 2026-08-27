@@ -57,6 +57,9 @@ jobs:
     timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the branch below merges `origin/main`, and a shallow clone cannot.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -64,6 +67,32 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # ---------------------------------------------------------------- continue, rather than restart
+      #
+      # **The sweep must build on the last run's evidence, not on main's.** A run that branched from main
+      # each time would plan against main's ledger, re-buy pulls an unmerged pull request had already
+      # paid for, and then force-push over them — the previous run measured 22 pulls that would have been
+      # thrown away and bought again.
+      #
+      # One long-lived branch instead of one per day: the pull request stays open and keeps updating
+      # until somebody merges it, and the ledger accumulates across runs the whole time. Main is merged
+      # in first so the branch never drifts from the code the data is graded by.
+      - name: Continue the open refresh, if there is one
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin "${BRANCH}" || true
+          if git rev-parse --verify "origin/${BRANCH}" >/dev/null 2>&1; then
+            echo "continuing ${BRANCH}"
+            git checkout -B "${BRANCH}" "origin/${BRANCH}"
+            git merge --no-edit origin/main
+          else
+            echo "starting ${BRANCH}"
+            git checkout -b "${BRANCH}"
+          fi
+        env:
+          BRANCH: reference-refresh
 
       # The sweep reads the committed ledger, drops every candidate already answered, and buys only what
       # is left — so a re-run minutes later costs the 42 rankings queries and nothing else. The token is
@@ -147,13 +176,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="reference-refresh/$(date -u +%Y-%m-%d)"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b "$BRANCH"
+          BRANCH=reference-refresh
           git add src/generated/
           git commit -m "Refresh the reference table from Warcraft Logs"
-          git push --force-with-lease origin "$BRANCH"
+          # A plain push: this run built on top of the branch rather than replacing it, so there is
+          # nothing to force over. `--force-with-lease` was worse than useless here — the runner never
+          # fetched the remote ref, so it refused every push with "stale info".
+          git push origin "$BRANCH"
           # The branch is pushed before this point, so the measured pulls are safe whatever happens next.
           # Reuse the open pull request for this branch if the job has already run today.
           if gh pr edit "$BRANCH" --body-file pr-body.md 2>/dev/null; then
