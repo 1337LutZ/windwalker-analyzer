@@ -54,6 +54,8 @@ import {
 	printTable,
 	LADDER_PAGE_CAP,
 	PAGE_SIZE,
+	baseEncounterID,
+	classicEncounterID,
 	RAID_SIZE,
 	rankPercentOf,
 	registeredSpecs,
@@ -274,6 +276,27 @@ describe('the raid size, which is a query argument', () => {
 	it('filters raid size in the query, never on the entry', () => {
 		expect(source, 'the rankings query must carry a size argument').toMatch(/characterRankings\([^)]*size:/);
 		expect(source, 'entry.size is always undefined — filter server-side').not.toMatch(/entry\.size/);
+	});
+
+	/**
+	 * ***The era bug, and it is the one that cost the most to find.***
+	 *
+	 * `worldData.encounter(id: 1602)` and `encounter(id: 51602)` both answer "Immerseus" with a hundred
+	 * rankings. The first is the **original 2014 Siege of Orgrimmar**; the second is **MoP Classic**. A
+	 * sweep querying base ids fetched real August-2014 kills, analysed them cleanly, and gated every one
+	 * as off-spec — correctly, because a 2014 log carries Tigereye Brew's original aura 125195 while this
+	 * analyser knows the Classic id 1247279. Nothing in the output said it was reading a twelve-year-old
+	 * raid.
+	 *
+	 * A cell is keyed on the base id and the API is asked for the Classic one. Both directions pinned,
+	 * because a check that compared encounter *names* cleared this and it stayed broken.
+	 */
+	it('asks WarcraftLogs for the Classic encounter, not the 2014 one', () => {
+		expect(classicEncounterID(1602)).toBe(51602);
+		expect(baseEncounterID(classicEncounterID(1602))).toBe(1602);
+		// Already-offset ids pass through, so a caller holding a fight's own id is not sent to 101602.
+		expect(classicEncounterID(51602)).toBe(51602);
+		expect(source, 'every rankings call goes through the offset').not.toMatch(/RANKINGS,\s*\{\s*\n\s*encounterID,/);
 	});
 
 	/** Twenty-five man heroic is what the reference describes; ten-man returns a different roster. */

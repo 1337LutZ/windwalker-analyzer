@@ -104,6 +104,25 @@ export const ENCOUNTERS = [1593, 1594, 1595, 1598, 1599, 1600, 1601, 1602, 1603,
 export const CLASSIC_OFFSET = 50_000;
 export const baseEncounterID = (encounterID) => encounterID % CLASSIC_OFFSET;
 
+/**
+ * The id to *ask WarcraftLogs* for, which is not the id a cell is keyed on.
+ *
+ * ***This was the second bug that made the sweep useless, and it was invisible because both ids
+ * answer.*** `worldData.encounter(id: 1602)` and `encounter(id: 51602)` both return an encounter named
+ * "Immerseus" with a hundred rankings, so a check that compared names or counts cleared them. The
+ * difference is the era: 1602 is the **original 2014 Siege of Orgrimmar** and 51602 is **MoP Classic**.
+ *
+ * The sweep was fetching real kills from August 2014. They parsed, they analysed, and every one gated
+ * out as off-spec — correctly, because a 2014 log carries Tigereye Brew's original aura 125195 while
+ * this analyser knows the Classic id 1247279. Ten fetched, ten gated, and nothing to show it was reading
+ * a twelve-year-old raid.
+ *
+ * `ENCOUNTERS` stays in base ids because that is what a cell is keyed on — see `baseEncounterID` above.
+ * This is the one place the offset is added back.
+ */
+export const classicEncounterID = (encounterID) =>
+	encounterID >= CLASSIC_OFFSET ? encounterID : encounterID + CLASSIC_OFFSET;
+
 /** The figure a reference row describes. One today; the shape takes more without changing. */
 export const METRIC = 'gcdUtilisationPct';
 
@@ -321,7 +340,7 @@ export async function depthOf(token, spec, encounterID, firstPage) {
 	const rowsOn = async (page) => {
 		if (page === 1) return firstPage;
 		const data = await gql(token, RANKINGS, {
-			encounterID,
+			encounterID: classicEncounterID(encounterID),
 			className: spec.classKey,
 			specName: spec.specName,
 			page,
@@ -363,7 +382,7 @@ export async function depthOf(token, spec, encounterID, firstPage) {
  */
 export async function candidatesFor(token, spec, encounterID, perBand) {
 	const first = await gql(token, RANKINGS, {
-		encounterID,
+		encounterID: classicEncounterID(encounterID),
 		className: spec.classKey,
 		specName: spec.specName,
 		page: 1,
@@ -397,7 +416,7 @@ export async function candidatesFor(token, spec, encounterID, perBand) {
 				? payload
 				: (
 						await gql(token, RANKINGS, {
-							encounterID,
+							encounterID: classicEncounterID(encounterID),
 							className: spec.classKey,
 							specName: spec.specName,
 							page,
@@ -698,6 +717,22 @@ async function main() {
 	console.log(
 		`${swept.length} fetched · ${gated} gated · ${runFailures.length} failed · ledger ${before} -> ${after} measured`,
 	);
+	// **Which gate, and how many.** A run that fetches ten pulls and keeps none is either a bad sample or
+	// a broken sweep, and the two look identical without this line. It is what would have said "off-spec:
+	// 10" on the run that was quietly reading 2014 logs.
+	if (gated > 0) {
+		const reasons = {};
+		for (const pull of swept) {
+			const why = gateOf(pull);
+			if (why !== null) reasons[why] = (reasons[why] ?? 0) + 1;
+		}
+		console.log(
+			`gated: ${Object.entries(reasons)
+				.map(([why, n]) => `${why} ${n}`)
+				.join(', ')}`,
+		);
+	}
+	if (runFailures.length > 0) console.log(`first failure: ${runFailures[0].reason?.slice(0, 120)}`);
 	if (outcome !== null && outcome.stopped !== 'complete') {
 		const waited = outcome.waitedMs > 0 ? `, waited ${Math.round(outcome.waitedMs / 60_000)}m` : '';
 		console.log(`stopped on ${outcome.stopped} with ${outcome.remaining} job(s) left${waited} — run again to continue`);
