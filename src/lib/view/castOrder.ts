@@ -19,22 +19,26 @@ const SHARED_KEYS: ReadonlySet<string> = new Set(SHARED_ABILITIES.map((ability) 
 export const isShared = (key: string | null): boolean => key !== null && SHARED_KEYS.has(key);
 
 /**
- * Where a button sits: its place among the named leaders, then the spec's own, then everything else.
+ * Where a button sits: named leaders, then the spec's own, then what the model cannot place, then the
+ * buttons that belong to no spec at all.
  *
- * **The shared table decides the last tier, and an unmodelled id is not in it.** `SHARED_ABILITIES`
- * is the whole of what belongs to no spec — four racials, the tinker, the flasks, the healthstone —
- * so a button that is *not* on it and that this class pressed is that class's own, whether or not the
- * ability table happens to carry it. Roll, Tiger's Lust and Spear Hand Strike are all unmodelled and
- * all monk buttons; ranking them by the model's silence put them below a flask.
+ * **Four tiers, because "unmodelled" turned out to be two different things.** Roll and Spear Hand
+ * Strike are monk buttons the ability table does not carry; Goblin Glider and Nitro Boosts are items
+ * anyone can press. Both arrive with no key, so no lookup separates them — but ranking them with the
+ * spec put a glider above Energizing Brew, and ranking them with the flasks put Roll below one.
  *
- * So: named, then everything else the spec owns including what the model does not name, then the
- * shared table. A key the spec does not name and the shared table does not hold sits in the middle
- * tier — `rushing-jade-wind`, `expel-harm` — and so does `null`.
+ * A tier of their own settles it without inventing a fact about either: everything the spec actually
+ * models — which is every cooldown a reader is looking for, the defensives included — sorts above
+ * anything the model has nothing to say about, and the racials and consumables still close the list.
+ *
+ * `SHARED_ABILITIES` is the whole of what belongs to no spec, so it is the only thing that puts a
+ * button in the last tier. A key that is neither named nor shared is one of that spec's own.
  */
 export function castRank(key: string | null, order: readonly string[]): number {
-	const named = key === null ? -1 : order.indexOf(key);
+	if (key === null) return order.length + 1;
+	const named = order.indexOf(key);
 	if (named !== -1) return named;
-	return isShared(key) ? order.length + 1 : order.length;
+	return isShared(key) ? order.length + 2 : order.length;
 }
 
 /**

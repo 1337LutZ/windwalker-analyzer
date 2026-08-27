@@ -5,6 +5,9 @@ import { useNarrow } from '~/hooks/useNarrow';
 import type { ApexOptions } from 'apexcharts';
 
 import type { Analysis } from '~/lib/types';
+import { byCastOrder } from '~/lib/view/castOrder';
+
+import { useSpec } from '../report/specContext';
 
 import { n, r1 } from '../format';
 import type { ChartEnv } from './ApexChart';
@@ -57,11 +60,22 @@ const GRID_PADDING = { top: 0, right: 8, bottom: 0 };
  * something outside it. The report lists those separately underneath.
  */
 export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
+	// For the ability table behind the cast order — the same registry the rest of the report reads.
+	const spec = useSpec();
 	// `useTranslation`, not `useReportCopy`: a chart draws what it is handed and asks for no verdict.
 	const { t } = useTranslation('report');
+	// The rotation's own order, the same one the cast table and the compare page use, so a reader moving
+	// between the two is not re-learning where a button sits. See `lib/view/castOrder`.
 	const abilities = useMemo(
-		() => analysis.damage.abilities.filter((a) => !a.passive && !a.utility && a.total > 0).slice(0, ROWS),
-		[analysis.damage.abilities],
+		() =>
+			analysis.damage.abilities
+				.filter((a) => !a.passive && !a.utility && a.total > 0)
+				// Cut to the biggest rows *first*, then order them. The cap is about which buttons are worth
+				// drawing, and taking the top of a rotation-ordered list would drop whichever ones happen to
+				// sit late in the rotation rather than the ones that did the least.
+				.slice(0, ROWS)
+				.sort(byCastOrder((a) => spec.registry.abilityByDamageId(a.id)?.key ?? null, spec.castOrder)),
+		[analysis.damage.abilities, spec],
 	);
 	const height = abilities.length * ROW_HEIGHT + CHROME;
 
@@ -128,7 +142,9 @@ export default function AbilityDamage({ analysis }: { analysis: Analysis }) {
 				min: 0,
 				// Room past the longest bar for its label to sit in; without it the top row's number is
 				// clipped by the plot edge.
-				max: Math.ceil((abilities[0]?.share ?? 0) + LABEL_HEADROOM_PCT),
+				// The largest share rather than the first row's: the rows are in rotation order now, and the
+				// biggest bar is wherever the rotation happens to put it.
+				max: Math.ceil(Math.max(0, ...abilities.map((a) => a.share)) + LABEL_HEADROOM_PCT),
 				// Two labels fewer on a phone: at 14px, five `100%` ticks collide well before the bars do.
 				tickAmount: narrow ? 2 : 5,
 				axisBorder: { show: false },

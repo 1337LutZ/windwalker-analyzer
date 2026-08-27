@@ -109,10 +109,19 @@ export const SUMMARY_ROW_NAMES: readonly string[] | null = [
 ];
 
 /**
- * No declared cast order yet — see `lib/view/castOrder`.
+ * The order the cast lists put this spec's buttons in — see `lib/view/castOrder`.
  *
- * Empty rather than guessed: an order is editorial, and inventing one for a spec nobody has read a
- * cast table of would be a claim about its rotation that no one has made. The two tiers below it still
- * apply, so this spec's own buttons sort ahead of the racials and consumables.
+ * The rotation's own shape: the two builders first, then the three buttons that come off cooldown to
+ * be spent on, then Shield of the Righteous as what the holy power they generate is spent on.
+ *
+ * Editorial, like the other two, and deliberately short: everything else the spec owns still sorts
+ * ahead of the racials and the consumables without being named here.
  */
-export const CAST_ORDER: readonly string[] = [];
+export const CAST_ORDER: readonly string[] = [
+	'crusader-strike',
+	'hammer-of-the-righteous',
+	'judgment',
+	'avengers-shield',
+	'consecration',
+	'shield-of-the-righteous',
+];

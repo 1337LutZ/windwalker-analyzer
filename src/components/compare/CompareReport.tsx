@@ -10,6 +10,7 @@ import { useSpec } from '../report/specContext';
 
 import ComparabilityNotes from './ComparabilityNotes';
 import PullHeader from './PullHeader';
+import TalentGaps from './TalentGaps';
 import { pullLabels } from './pullLabels';
 import RateGaps, { ABSENCE, type RateRow } from './RateGaps';
 import SectionGaps from './SectionGaps';
@@ -21,7 +22,11 @@ import SectionGaps from './SectionGaps';
  * reason: neither is produced by a damage decision, so a difference in one is a difference in gear or
  * in movement rather than in how the rotation was played.
  */
-function damageRows(comparison: Comparison): { rows: RateRow[]; max: number } {
+function damageRows(
+	comparison: Comparison,
+	keyOf: (id: number) => string | null,
+	order: readonly string[],
+): { rows: RateRow[]; max: number } {
 	const rows = comparison.abilities
 		.filter((ability) => !ability.passive && !ability.utility)
 		.map((ability) => ({
@@ -30,7 +35,10 @@ function damageRows(comparison: Comparison): { rows: RateRow[]; max: number } {
 			a: ability.a?.share ?? null,
 			b: ability.b?.share ?? null,
 			absent: ABSENCE[ability.absent?.why ?? 'notPressed'],
-		}));
+		}))
+		// The same order the cast list below it uses, and the same the report's own damage chart uses.
+		// A reader moving between the three should not have to find each button three times.
+		.sort(byCastOrder((row) => keyOf(row.id), order));
 	const max = Math.max(0, ...rows.flatMap((row) => [row.a ?? 0, row.b ?? 0]));
 	return { rows, max };
 }
@@ -84,8 +92,8 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 	// The spec's own ability table, which is what says two spell ids are one button.
 	const spec = useSpec();
 	const comparison = useMemo(() => compare(a, b, identityFrom(spec.registry)), [a, b, spec]);
-	const damage = useMemo(() => damageRows(comparison), [comparison]);
 	const identity = useMemo(() => identityFrom(spec.registry), [spec]);
+	const damage = useMemo(() => damageRows(comparison, identity.damage, spec.castOrder), [comparison, identity, spec]);
 	const casts = useMemo(() => castRows(comparison, identity.cast, spec.castOrder), [comparison, identity, spec]);
 
 	// Not the bare names: two anonymous reports can both hold a `Player (10)`. See `pullLabels`.
@@ -108,6 +116,10 @@ export default function CompareReport({ a, b }: { a: Pull; b: Pull }) {
 						<StatTile value={formatInteger(tally.level)} label={t('compare.tally.level')} />
 						<StatTile value={formatInteger(tally.incomparable)} label={t('compare.tally.notComparable')} />
 					</StatTiles>
+					{/* After the tally rather than before it. The tally is the headline — how many figures each
+					    of you leads — and the talents are what a reader turns to next to explain it: a build that
+					    took Invoke Xuen is behind on Rushing Jade Wind by choice, not by play. */}
+					<TalentGaps gap={comparison.talents} players={players} />
 				</div>
 			</Section>
 

@@ -142,6 +142,49 @@ routes. Two pulls of **one spec and one boss**, read side by side.
   146 metric pairs, none called level while the grades disagree) and
   `src/components/compare/__tests__/compareReport.test.ts`.
 
+## Generated game data — three maps, one rule
+
+`src/generated/` is output. Change a generator, re-run it, commit both, and **never hand-edit the
+JSON**. All three read wowsims-mop, the project's source of truth for 5.4, and all three are committed
+rather than fetched at build time: `npm run build` must never reach the network, and a committed map
+makes upstream drift _reviewable_ — a renamed spell or a moved talent row arrives as a diff in a pull
+request instead of silently changing what the page says.
+
+| file            | generator               | source in wowsims-mop                                       |
+| --------------- | ----------------------- | ----------------------------------------------------------- |
+| `spells.json`   | `build-spell-map.mjs`   | `assets/database/db.json`, topped up from Wowhead           |
+| `enchants.json` | `build-enchant-map.mjs` | the same database                                           |
+| `talents.json`  | `build-talent-map.mjs`  | `ui/core/talents/trees/<class>.json` + the database's icons |
+
+```
+WOWSIMS=../wowsims-mop node scripts/build-talent-map.mjs     # local checkout, no download
+node scripts/build-talent-map.mjs --check                    # behind upstream? (no download)
+```
+
+**`spells.json` is not a dictionary and must not be used as one.** It is built from what the simulator
+and the logs _reference_, so it names ten of the monk's eighteen talents and has never heard of
+Celerity, Momentum, Power Strikes, Ascension, Charging Ox Wave, Healing Elixirs, Chi Torpedo or Ring of
+Peace. Nobody references a talent they did not take. Anything that needs the _unpicked_ half of the
+game — a talent tree, a full ability list — reads `talents.json`, which carries all eighteen with their
+rows and columns. This was found the hard way: a talent grid drawn from the spell map had eight holes,
+and the alternative on offer was writing the missing ids out from memory.
+
+### Adding a spec — what the generated data asks of you
+
+`talents.json` already covers all eleven classes, so a new spec needs nothing from it. What a new spec
+does owe:
+
+- **`SpecDefinition.castOrder`** — the ability keys the cast lists lead with, in the order a player
+  presses them. Empty is a real answer; the two tiers below it (this spec's own buttons, then
+  `SHARED_ABILITIES`) still apply. See `lib/view/castOrder`.
+- **`Ability.gatedBy`** on anything a character must _be_ something to have. Talents need no
+  declaration — two logs' own lists settle those between them — but a racial has no list to be missing
+  from, so without it a Draenei's Gift of the Naaru reads as a button the orc beside them declined to
+  press.
+- **`Ability.castIds` and `damageIds` in full.** One button logs under several ids: Jab has one per
+  weapon type. A spec that declares one of them drops every cast by anyone holding the other weapon,
+  and on the compare page it splits one button into two half-empty rows.
+
 ## Fixtures — two kinds, and the difference matters
 
 `src/specs/*/__fixtures__/` holds **two different things**, and confusing them produces verification

@@ -30,6 +30,20 @@ export function spellIconName(id: number): string | null {
 }
 
 /**
+ * The spell's name, or null when the generated map has never heard of the id.
+ *
+ * For the ids that reach the page as bare numbers rather than through an ability the spec models — a
+ * talent list is the case it was added for. `combatantinfo` gives six ids and no names, and the
+ * ability table only carries the handful of talents that are also buttons the rotation presses.
+ *
+ * Null rather than the id as a fallback, so a caller has to decide what an unnamed spell looks like
+ * rather than printing `116844` at a reader and calling it a talent.
+ */
+export function spellName(id: number): string | null {
+	return SPELL_BY_ID[String(id)]?.name ?? null;
+}
+
+/**
  * The image URL for a spell id, or null when nothing is known about it.
  *
  * Used by the cast timeline, which draws hundreds of icons and cannot afford the wrapper element

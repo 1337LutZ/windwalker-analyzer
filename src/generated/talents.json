@@ -1,0 +1,1153 @@
+{
+	"source": {
+		"repo": "wowsims/mop",
+		"path": "ui/core/talents/trees",
+		"commit": "local"
+	},
+	"talents": {
+		"deathknight": [
+			[
+				{
+					"id": 108170,
+					"name": "Roiling Blood",
+					"icon": "ability_deathknight_roilingblood"
+				},
+				{
+					"id": 123693,
+					"name": "Plague Leech",
+					"icon": "ability_creature_disease_02"
+				},
+				{
+					"id": 115989,
+					"name": "Unholy Blight",
+					"icon": "spell_shadow_contagion"
+				}
+			],
+			[
+				{
+					"id": 49039,
+					"name": "Lichborne",
+					"icon": "spell_shadow_raisedead"
+				},
+				{
+					"id": 51052,
+					"name": "Anti-Magic Zone",
+					"icon": "spell_deathknight_antimagiczone"
+				},
+				{
+					"id": 114556,
+					"name": "Purgatory",
+					"icon": "inv_misc_shadowegg"
+				}
+			],
+			[
+				{
+					"id": 96268,
+					"name": "Death's Advance",
+					"icon": "spell_shadow_demonicempathy"
+				},
+				{
+					"id": 50041,
+					"name": "Chilblains",
+					"icon": "spell_frost_wisp"
+				},
+				{
+					"id": 108194,
+					"name": "Asphyxiate",
+					"icon": "ability_deathknight_asphixiate"
+				}
+			],
+			[
+				{
+					"id": 48743,
+					"name": "Death Pact",
+					"icon": "spell_shadow_deathpact"
+				},
+				{
+					"id": 108196,
+					"name": "Death Siphon",
+					"icon": "ability_deathknight_deathsiphon"
+				},
+				{
+					"id": 119975,
+					"name": "Conversion",
+					"icon": "ability_deathknight_deathsiphon2"
+				}
+			],
+			[
+				{
+					"id": 45529,
+					"name": "Blood Tap",
+					"icon": "spell_deathknight_bloodtap"
+				},
+				{
+					"id": 81229,
+					"name": "Runic Empowerment",
+					"icon": "inv_misc_rune_10"
+				},
+				{
+					"id": 51462,
+					"name": "Runic Corruption",
+					"icon": "spell_shadow_rune"
+				}
+			],
+			[
+				{
+					"id": 108199,
+					"name": "Gorefiend's Grasp",
+					"icon": "ability_deathknight_aoedeathgrip"
+				},
+				{
+					"id": 108200,
+					"name": "Remorseless Winter",
+					"icon": "ability_deathknight_remorselesswinters2"
+				},
+				{
+					"id": 108201,
+					"name": "Desecrated Ground",
+					"icon": "ability_deathknight_desecratedground"
+				}
+			]
+		],
+		"druid": [
+			[
+				{
+					"id": 131768,
+					"name": "Feline Swiftness",
+					"icon": "spell_druid_tirelesspursuit"
+				},
+				{
+					"id": 102280,
+					"name": "Displacer Beast",
+					"icon": "spell_druid_displacement"
+				},
+				{
+					"id": 102401,
+					"name": "Wild Charge",
+					"icon": "spell_druid_wildcharge"
+				}
+			],
+			[
+				{
+					"id": 145108,
+					"name": "Ysera's Gift",
+					"icon": "inv_misc_head_dragon_green"
+				},
+				{
+					"id": 108238,
+					"name": "Renewal",
+					"icon": "spell_nature_natureblessing"
+				},
+				{
+					"id": 102351,
+					"name": "Cenarion Ward",
+					"icon": "ability_druid_naturalperfection"
+				}
+			],
+			[
+				{
+					"id": 106707,
+					"name": "Faerie Swarm",
+					"icon": "spell_druid_swarm"
+				},
+				{
+					"id": 102359,
+					"name": "Mass Entanglement",
+					"icon": "spell_druid_massentanglement"
+				},
+				{
+					"id": 132469,
+					"name": "Typhoon",
+					"icon": "ability_druid_typhoon"
+				}
+			],
+			[
+				{
+					"id": 114107,
+					"name": "Soul of the Forest",
+					"icon": "ability_druid_manatree"
+				},
+				{
+					"id": 106731,
+					"name": "Incarnation",
+					"icon": "spell_druid_incarnation"
+				},
+				{
+					"id": 106737,
+					"name": "Force of Nature",
+					"icon": "ability_druid_forceofnature"
+				}
+			],
+			[
+				{
+					"id": 99,
+					"name": "Disorienting Roar",
+					"icon": "ability_druid_demoralizingroar"
+				},
+				{
+					"id": 102793,
+					"name": "Ursol's Vortex",
+					"icon": "spell_druid_ursolsvortex"
+				},
+				{
+					"id": 5211,
+					"name": "Mighty Bash",
+					"icon": "ability_druid_bash"
+				}
+			],
+			[
+				{
+					"id": 108288,
+					"name": "Heart of the Wild",
+					"icon": "spell_holy_blessingofagility"
+				},
+				{
+					"id": 108373,
+					"name": "Dream of Cenarius",
+					"icon": "ability_druid_dreamstate"
+				},
+				{
+					"id": 124974,
+					"name": "Nature's Vigil",
+					"icon": "achievement_zone_feralas"
+				}
+			]
+		],
+		"hunter": [
+			[
+				{
+					"id": 109215,
+					"name": "Posthaste",
+					"icon": "ability_hunter_posthaste"
+				},
+				{
+					"id": 109298,
+					"name": "Narrow Escape",
+					"icon": "inv_misc_web_01"
+				},
+				{
+					"id": 118675,
+					"name": "Crouching Tiger, Hidden Chimera",
+					"icon": "ability_hunter_pet_chimera"
+				}
+			],
+			[
+				{
+					"id": 109248,
+					"name": "Binding Shot",
+					"icon": "spell_shaman_bindelemental"
+				},
+				{
+					"id": 19386,
+					"name": "Wyvern Sting",
+					"icon": "inv_spear_02"
+				},
+				{
+					"id": 19577,
+					"name": "Intimidation",
+					"icon": "ability_devour"
+				}
+			],
+			[
+				{
+					"id": 109304,
+					"name": "Exhilaration",
+					"icon": "ability_hunter_onewithnature"
+				},
+				{
+					"id": 109260,
+					"name": "Aspect of the Iron Hawk",
+					"icon": "spell_hunter_aspectoftheironhawk"
+				},
+				{
+					"id": 109212,
+					"name": "Spirit Bond",
+					"icon": "ability_druid_demoralizingroar"
+				}
+			],
+			[
+				{
+					"id": 82726,
+					"name": "Fervor",
+					"icon": "ability_hunter_aspectoftheviper"
+				},
+				{
+					"id": 120679,
+					"name": "Dire Beast",
+					"icon": "ability_hunter_sickem"
+				},
+				{
+					"id": 109306,
+					"name": "Thrill of the Hunt",
+					"icon": "ability_hunter_thrillofthehunt"
+				}
+			],
+			[
+				{
+					"id": 131894,
+					"name": "A Murder of Crows",
+					"icon": "ability_hunter_murderofcrows"
+				},
+				{
+					"id": 130392,
+					"name": "Blink Strikes",
+					"icon": "spell_arcane_arcane04"
+				},
+				{
+					"id": 120697,
+					"name": "Lynx Rush",
+					"icon": "ability_hunter_catlikereflexes"
+				}
+			],
+			[
+				{
+					"id": 117050,
+					"name": "Glaive Toss",
+					"icon": "ability_glaivetoss"
+				},
+				{
+					"id": 109259,
+					"name": "Powershot",
+					"icon": "ability_hunter_resistanceisfutile"
+				},
+				{
+					"id": 120360,
+					"name": "Barrage",
+					"icon": "ability_hunter_rapidregeneration"
+				}
+			]
+		],
+		"mage": [
+			[
+				{
+					"id": 12043,
+					"name": "Presence of Mind",
+					"icon": "spell_nature_enchantarmor"
+				},
+				{
+					"id": 108843,
+					"name": "Blazing Speed",
+					"icon": "spell_fire_burningspeed"
+				},
+				{
+					"id": 108839,
+					"name": "Ice Floes",
+					"icon": "spell_mage_iceflows"
+				}
+			],
+			[
+				{
+					"id": 115610,
+					"name": "Temporal Shield",
+					"icon": "spell_mage_temporalshield"
+				},
+				{
+					"id": 140468,
+					"name": "Flameglow",
+					"icon": "inv_elemental_primal_fire"
+				},
+				{
+					"id": 11426,
+					"name": "Ice Barrier",
+					"icon": "spell_ice_lament"
+				}
+			],
+			[
+				{
+					"id": 113724,
+					"name": "Ring of Frost",
+					"icon": "spell_frost_ring-of-frost"
+				},
+				{
+					"id": 111264,
+					"name": "Ice Ward",
+					"icon": "spell_frost_frostward"
+				},
+				{
+					"id": 102051,
+					"name": "Frostjaw",
+					"icon": "ability_mage_frostjaw"
+				}
+			],
+			[
+				{
+					"id": 110959,
+					"name": "Greater Invisibility",
+					"icon": "ability_mage_greaterinvisibility"
+				},
+				{
+					"id": 86949,
+					"name": "Cauterize",
+					"icon": "spell_fire_rune"
+				},
+				{
+					"id": 11958,
+					"name": "Cold Snap",
+					"icon": "spell_frost_wizardmark"
+				}
+			],
+			[
+				{
+					"id": 114923,
+					"name": "Nether Tempest",
+					"icon": "spell_mage_nethertempest"
+				},
+				{
+					"id": 44457,
+					"name": "Living Bomb",
+					"icon": "ability_mage_livingbomb"
+				},
+				{
+					"id": 112948,
+					"name": "Frost Bomb",
+					"icon": "spell_mage_frostbomb"
+				}
+			],
+			[
+				{
+					"id": 114003,
+					"name": "Invocation",
+					"icon": "spell_arcane_arcane03"
+				},
+				{
+					"id": 116011,
+					"name": "Rune of Power",
+					"icon": "spell_mage_runeofpower"
+				},
+				{
+					"id": 1463,
+					"name": "Incanter's Ward",
+					"icon": "spell_shadow_detectlesserinvisibility"
+				}
+			]
+		],
+		"monk": [
+			[
+				{
+					"id": 115173,
+					"name": "Celerity",
+					"icon": "ability_monk_quipunch"
+				},
+				{
+					"id": 116841,
+					"name": "Tiger's Lust",
+					"icon": "ability_monk_tigerslust"
+				},
+				{
+					"id": 115174,
+					"name": "Momentum",
+					"icon": "ability_monk_standingkick"
+				}
+			],
+			[
+				{
+					"id": 115098,
+					"name": "Chi Wave",
+					"icon": "ability_monk_chiwave"
+				},
+				{
+					"id": 124081,
+					"name": "Zen Sphere",
+					"icon": "ability_monk_forcesphere"
+				},
+				{
+					"id": 123986,
+					"name": "Chi Burst",
+					"icon": "spell_arcane_arcanetorrent"
+				}
+			],
+			[
+				{
+					"id": 121817,
+					"name": "Power Strikes",
+					"icon": "ability_monk_powerstrikes"
+				},
+				{
+					"id": 115396,
+					"name": "Ascension",
+					"icon": "ability_monk_ascension"
+				},
+				{
+					"id": 115399,
+					"name": "Chi Brew",
+					"icon": "ability_monk_chibrew"
+				}
+			],
+			[
+				{
+					"id": 116844,
+					"name": "Ring of Peace",
+					"icon": "spell_monk_ringofpeace"
+				},
+				{
+					"id": 119392,
+					"name": "Charging Ox Wave",
+					"icon": "ability_monk_chargingoxwave"
+				},
+				{
+					"id": 119381,
+					"name": "Leg Sweep",
+					"icon": "ability_monk_legsweep"
+				}
+			],
+			[
+				{
+					"id": 122280,
+					"name": "Healing Elixirs",
+					"icon": "ability_monk_jasmineforcetea"
+				},
+				{
+					"id": 122278,
+					"name": "Dampen Harm",
+					"icon": "ability_monk_dampenharm"
+				},
+				{
+					"id": 122783,
+					"name": "Diffuse Magic",
+					"icon": "spell_monk_diffusemagic"
+				}
+			],
+			[
+				{
+					"id": 116847,
+					"name": "Rushing Jade Wind",
+					"icon": "ability_monk_rushingjadewind"
+				},
+				{
+					"id": 123904,
+					"name": "Invoke Xuen, the White Tiger",
+					"icon": "ability_monk_summontigerstatue"
+				},
+				{
+					"id": 115008,
+					"name": "Chi Torpedo",
+					"icon": "ability_monk_quitornado"
+				}
+			]
+		],
+		"paladin": [
+			[
+				{
+					"id": 85499,
+					"name": "Speed of Light",
+					"icon": "ability_paladin_speedoflight"
+				},
+				{
+					"id": 87172,
+					"name": "Long Arm of the Law",
+					"icon": "ability_paladin_longarmofthelaw"
+				},
+				{
+					"id": 26023,
+					"name": "Pursuit of Justice",
+					"icon": "ability_paladin_veneration"
+				}
+			],
+			[
+				{
+					"id": 105593,
+					"name": "Fist of Justice",
+					"icon": "spell_holy_fistofjustice"
+				},
+				{
+					"id": 20066,
+					"name": "Repentance",
+					"icon": "spell_holy_prayerofhealing"
+				},
+				{
+					"id": 110301,
+					"name": "Evil is a Point of View",
+					"icon": "ability_paladin_turnevil"
+				}
+			],
+			[
+				{
+					"id": 85804,
+					"name": "Selfless Healer",
+					"icon": "ability_paladin_gaurdedbythelight"
+				},
+				{
+					"id": 114163,
+					"name": "Eternal Flame",
+					"icon": "inv_torch_thrown"
+				},
+				{
+					"id": 20925,
+					"name": "Sacred Shield",
+					"icon": "ability_paladin_blessedmending"
+				}
+			],
+			[
+				{
+					"id": 114039,
+					"name": "Hand of Purity",
+					"icon": "spell_holy_sealofwisdom"
+				},
+				{
+					"id": 114154,
+					"name": "Unbreakable Spirit",
+					"icon": "spell_holy_unyieldingfaith"
+				},
+				{
+					"id": 105622,
+					"name": "Clemency",
+					"icon": "ability_paladin_clemency"
+				}
+			],
+			[
+				{
+					"id": 105809,
+					"name": "Holy Avenger",
+					"icon": "ability_paladin_holyavenger"
+				},
+				{
+					"id": 53376,
+					"name": "Sanctified Wrath",
+					"icon": "ability_paladin_sanctifiedwrath"
+				},
+				{
+					"id": 86172,
+					"name": "Divine Purpose",
+					"icon": "spell_holy_divinepurpose"
+				}
+			],
+			[
+				{
+					"id": 114165,
+					"name": "Holy Prism",
+					"icon": "spell_paladin_holyprism"
+				},
+				{
+					"id": 114158,
+					"name": "Light's Hammer",
+					"icon": "spell_paladin_lightshammer"
+				},
+				{
+					"id": 114157,
+					"name": "Execution Sentence",
+					"icon": "spell_paladin_executionsentence"
+				}
+			]
+		],
+		"priest": [
+			[
+				{
+					"id": 108920,
+					"name": "Void Tendrils",
+					"icon": "spell_priest_voidtendrils"
+				},
+				{
+					"id": 108921,
+					"name": "Psyfiend",
+					"icon": "spell_priest_psyfiend"
+				},
+				{
+					"id": 605,
+					"name": "Dominate Mind",
+					"icon": "spell_shadow_shadowworddominate"
+				}
+			],
+			[
+				{
+					"id": 64129,
+					"name": "Body and Soul",
+					"icon": "spell_holy_symbolofhope"
+				},
+				{
+					"id": 121536,
+					"name": "Angelic Feather",
+					"icon": "ability_priest_angelicfeather"
+				},
+				{
+					"id": 108942,
+					"name": "Phantasm",
+					"icon": "ability_priest_phantasm"
+				}
+			],
+			[
+				{
+					"id": 109186,
+					"name": "From Darkness, Comes Light",
+					"icon": "spell_holy_surgeoflight"
+				},
+				{
+					"id": 123040,
+					"name": "Mindbender",
+					"icon": "spell_shadow_soulleech_3"
+				},
+				{
+					"id": 139139,
+					"name": "Solace and Insanity",
+					"icon": "ability_priest_flashoflight"
+				}
+			],
+			[
+				{
+					"id": 19236,
+					"name": "Desperate Prayer",
+					"icon": "spell_holy_testoffaith"
+				},
+				{
+					"id": 112833,
+					"name": "Spectral Guise",
+					"icon": "spell_priest_spectralguise"
+				},
+				{
+					"id": 108945,
+					"name": "Angelic Bulwark",
+					"icon": "ability_priest_angelicbulwark"
+				}
+			],
+			[
+				{
+					"id": 109142,
+					"name": "Twist of Fate",
+					"icon": "spell_shadow_mindtwisting"
+				},
+				{
+					"id": 10060,
+					"name": "Power Infusion",
+					"icon": "spell_holy_powerinfusion"
+				},
+				{
+					"id": 109175,
+					"name": "Divine Insight",
+					"icon": "spell_priest_burningwill"
+				}
+			],
+			[
+				{
+					"id": 121135,
+					"name": "Cascade",
+					"icon": "ability_priest_cascade"
+				},
+				{
+					"id": 110744,
+					"name": "Divine Star",
+					"icon": "spell_priest_divinestar"
+				},
+				{
+					"id": 120517,
+					"name": "Halo",
+					"icon": "ability_priest_halo"
+				}
+			]
+		],
+		"rogue": [
+			[
+				{
+					"id": 14062,
+					"name": "Nightstalker",
+					"icon": "ability_stealth"
+				},
+				{
+					"id": 108208,
+					"name": "Subterfuge",
+					"icon": "rogue_subterfuge"
+				},
+				{
+					"id": 108209,
+					"name": "Shadow Focus",
+					"icon": "rogue_shadowfocus"
+				}
+			],
+			[
+				{
+					"id": 26679,
+					"name": "Deadly Throw",
+					"icon": "inv_throwingknife_06"
+				},
+				{
+					"id": 108210,
+					"name": "Nerve Strike",
+					"icon": "rogue_nerve-_strike"
+				},
+				{
+					"id": 74001,
+					"name": "Combat Readiness",
+					"icon": "ability_rogue_combatreadiness"
+				}
+			],
+			[
+				{
+					"id": 31230,
+					"name": "Cheat Death",
+					"icon": "ability_rogue_cheatdeath"
+				},
+				{
+					"id": 108211,
+					"name": "Leeching Poison",
+					"icon": "rogue_leeching_poison"
+				},
+				{
+					"id": 79008,
+					"name": "Elusiveness",
+					"icon": "ability_rogue_turnthetables"
+				}
+			],
+			[
+				{
+					"id": 138106,
+					"name": "Cloak and Dagger",
+					"icon": "ability_rogue_unfairadvantage"
+				},
+				{
+					"id": 36554,
+					"name": "Shadowstep",
+					"icon": "ability_rogue_shadowstep"
+				},
+				{
+					"id": 108212,
+					"name": "Burst of Speed",
+					"icon": "rogue_burstofspeed"
+				}
+			],
+			[
+				{
+					"id": 131511,
+					"name": "Prey on the Weak",
+					"icon": "ability_rogue_preyontheweak"
+				},
+				{
+					"id": 108215,
+					"name": "Paralytic Poison",
+					"icon": "rogue_paralytic_poison"
+				},
+				{
+					"id": 108216,
+					"name": "Dirty Tricks",
+					"icon": "ability_rogue_dirtydeeds"
+				}
+			],
+			[
+				{
+					"id": 114014,
+					"name": "Shuriken Toss",
+					"icon": "inv_throwingknife_07"
+				},
+				{
+					"id": 137619,
+					"name": "Marked for Death",
+					"icon": "achievement_bg_killingblow_berserker"
+				},
+				{
+					"id": 114015,
+					"name": "Anticipation",
+					"icon": "ability_rogue_slaughterfromtheshadows"
+				}
+			]
+		],
+		"shaman": [
+			[
+				{
+					"id": 30884,
+					"name": "Nature's Guardian",
+					"icon": "spell_nature_natureguardian"
+				},
+				{
+					"id": 108270,
+					"name": "Stone Bulwark Totem",
+					"icon": "ability_shaman_stonebulwark"
+				},
+				{
+					"id": 108271,
+					"name": "Astral Shift",
+					"icon": "ability_shaman_astralshift"
+				}
+			],
+			[
+				{
+					"id": 63374,
+					"name": "Frozen Power",
+					"icon": "spell_fire_bluecano"
+				},
+				{
+					"id": 51485,
+					"name": "Earthgrab Totem",
+					"icon": "spell_nature_stranglevines"
+				},
+				{
+					"id": 108273,
+					"name": "Windwalk Totem",
+					"icon": "ability_shaman_windwalktotem"
+				}
+			],
+			[
+				{
+					"id": 108285,
+					"name": "Call of the Elements",
+					"icon": "ability_shaman_multitotemactivation"
+				},
+				{
+					"id": 108284,
+					"name": "Totemic Persistence",
+					"icon": "ability_shaman_totemcooldownrefund"
+				},
+				{
+					"id": 108287,
+					"name": "Totemic Projection",
+					"icon": "ability_shaman_totemrelocation"
+				}
+			],
+			[
+				{
+					"id": 16166,
+					"name": "Elemental Mastery",
+					"icon": "spell_nature_wispheal"
+				},
+				{
+					"id": 16188,
+					"name": "Ancestral Swiftness",
+					"icon": "spell_shaman_elementaloath"
+				},
+				{
+					"id": 108283,
+					"name": "Echo of the Elements",
+					"icon": "ability_shaman_echooftheelements"
+				}
+			],
+			[
+				{
+					"id": 147074,
+					"name": "Rushing Streams",
+					"icon": "inv_spear_04"
+				},
+				{
+					"id": 108281,
+					"name": "Ancestral Guidance",
+					"icon": "ability_shaman_ancestralguidance"
+				},
+				{
+					"id": 108282,
+					"name": "Conductivity",
+					"icon": "ability_shaman_fortifyingwaters"
+				}
+			],
+			[
+				{
+					"id": 117012,
+					"name": "Unleashed Fury",
+					"icon": "shaman_talent_unleashedfury"
+				},
+				{
+					"id": 117013,
+					"name": "Primal Elementalist",
+					"icon": "shaman_talent_primalelementalist"
+				},
+				{
+					"id": 117014,
+					"name": "Elemental Blast",
+					"icon": "shaman_talent_elementalblast"
+				}
+			]
+		],
+		"warlock": [
+			[
+				{
+					"id": 108359,
+					"name": "Dark Regeneration",
+					"icon": "spell_warlock_darkregeneration"
+				},
+				{
+					"id": 108370,
+					"name": "Soul Leech",
+					"icon": "warlock_siphonlife"
+				},
+				{
+					"id": 108371,
+					"name": "Harvest Life",
+					"icon": "spell_warlock_harvestoflife"
+				}
+			],
+			[
+				{
+					"id": 47897,
+					"name": "Demonic Breath",
+					"icon": "ability_warlock_shadowflame"
+				},
+				{
+					"id": 6789,
+					"name": "Mortal Coil",
+					"icon": "ability_warlock_mortalcoil"
+				},
+				{
+					"id": 30283,
+					"name": "Shadowfury",
+					"icon": "ability_warlock_shadowfurytga"
+				}
+			],
+			[
+				{
+					"id": 108415,
+					"name": "Soul Link",
+					"icon": "ability_warlock_soullink"
+				},
+				{
+					"id": 108416,
+					"name": "Sacrificial Pact",
+					"icon": "warlock_sacrificial_pact"
+				},
+				{
+					"id": 110913,
+					"name": "Dark Bargain",
+					"icon": "ability_deathwing_bloodcorruption_death"
+				}
+			],
+			[
+				{
+					"id": 111397,
+					"name": "Blood Horror",
+					"icon": "ability_deathwing_bloodcorruption_earth"
+				},
+				{
+					"id": 111400,
+					"name": "Burning Rush",
+					"icon": "ability_deathwing_sealarmorbreachtga"
+				},
+				{
+					"id": 108482,
+					"name": "Unbound Will",
+					"icon": "warlock_spelldrain"
+				}
+			],
+			[
+				{
+					"id": 108499,
+					"name": "Grimoire of Supremacy",
+					"icon": "warlock_grimoireofcommand"
+				},
+				{
+					"id": 108501,
+					"name": "Grimoire of Service",
+					"icon": "warlock_grimoireofservice"
+				},
+				{
+					"id": 108503,
+					"name": "Grimoire of Sacrifice",
+					"icon": "warlock_grimoireofsacrifice"
+				}
+			],
+			[
+				{
+					"id": 108505,
+					"name": "Archimonde's Darkness",
+					"icon": "achievement_boss_archimonde-"
+				},
+				{
+					"id": 137587,
+					"name": "Kil'jaeden's Cunning",
+					"icon": "achievement_boss_kiljaedan"
+				},
+				{
+					"id": 108508,
+					"name": "Mannoroth's Fury",
+					"icon": "achievement_boss_magtheridon"
+				}
+			]
+		],
+		"warrior": [
+			[
+				{
+					"id": 103826,
+					"name": "Juggernaut",
+					"icon": "ability_warrior_bullrush"
+				},
+				{
+					"id": 103827,
+					"name": "Double Time",
+					"icon": "inv_misc_horn_04"
+				},
+				{
+					"id": 103828,
+					"name": "Warbringer",
+					"icon": "ability_warrior_warbringer"
+				}
+			],
+			[
+				{
+					"id": 55694,
+					"name": "Enraged Regeneration",
+					"icon": "ability_warrior_focusedrage"
+				},
+				{
+					"id": 29838,
+					"name": "Second Wind",
+					"icon": "ability_hunter_harass"
+				},
+				{
+					"id": 103840,
+					"name": "Impending Victory",
+					"icon": "spell_impending_victory"
+				}
+			],
+			[
+				{
+					"id": 107566,
+					"name": "Staggering Shout",
+					"icon": "ability_bullrush"
+				},
+				{
+					"id": 12323,
+					"name": "Piercing Howl",
+					"icon": "spell_shadow_deathscream"
+				},
+				{
+					"id": 102060,
+					"name": "Disrupting Shout",
+					"icon": "warrior_disruptingshout"
+				}
+			],
+			[
+				{
+					"id": 46924,
+					"name": "Bladestorm",
+					"icon": "ability_warrior_bladestorm"
+				},
+				{
+					"id": 46968,
+					"name": "Shockwave",
+					"icon": "ability_warrior_shockwave"
+				},
+				{
+					"id": 118000,
+					"name": "Dragon Roar",
+					"icon": "ability_warrior_dragonroar"
+				}
+			],
+			[
+				{
+					"id": 114028,
+					"name": "Mass Spell Reflection",
+					"icon": "ability_warrior_shieldbreak"
+				},
+				{
+					"id": 114029,
+					"name": "Safeguard",
+					"icon": "ability_warrior_safeguard"
+				},
+				{
+					"id": 114030,
+					"name": "Vigilance",
+					"icon": "ability_warrior_vigilance"
+				}
+			],
+			[
+				{
+					"id": 107574,
+					"name": "Avatar",
+					"icon": "warrior_talent_icon_avatar"
+				},
+				{
+					"id": 12292,
+					"name": "Bloodbath",
+					"icon": "ability_warrior_bloodbath"
+				},
+				{
+					"id": 107570,
+					"name": "Storm Bolt",
+					"icon": "warrior_talent_icon_stormbolt"
+				}
+			]
+		]
+	}
+}

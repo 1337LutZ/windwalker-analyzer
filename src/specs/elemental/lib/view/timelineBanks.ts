@@ -227,10 +227,21 @@ export const SUMMARY_LANE_KEYS: readonly string[] | null = [
 export const SUMMARY_ROW_NAMES: readonly string[] | null = null;
 
 /**
- * No declared cast order yet — see `lib/view/castOrder`.
+ * The order the cast lists put this spec's buttons in — see `lib/view/castOrder`.
  *
- * Empty rather than guessed: an order is editorial, and inventing one for a spec nobody has read a
- * cast table of would be a claim about its rotation that no one has made. The two tiers below it still
- * apply, so this spec's own buttons sort ahead of the racials and consumables.
+ * The shot the rotation is built around first, then what interrupts it: Lightning Bolt is what a
+ * shaman presses when nothing else is due, Lava Burst and Flame Shock are the two that take priority
+ * over it, and Earth Shock spends what they build. Chain Lightning closes the named set as the button
+ * that replaces the filler once there is more than one thing to hit.
+ *
+ * Editorial, like the Windwalker's beside it, and deliberately short: everything else the spec owns
+ * still sorts ahead of the racials and the consumables without being named here.
  */
-export const CAST_ORDER: readonly string[] = [];
+export const CAST_ORDER: readonly string[] = [
+	'lightning-bolt',
+	'lava-burst',
+	'flame-shock',
+	'earth-shock',
+	'chain-lightning',
+	'unleash-elements',
+];

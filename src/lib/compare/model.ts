@@ -147,6 +147,40 @@ export interface PullFraming {
 	overall: Grade;
 	/** The weight the verdict was taken over. Without it a reader assumes the whole spec was judged. */
 	judged: Judged | undefined;
+	/** The talent ids this log carried, read three ways — see `AnalysisCore.talents`. */
+	talents: readonly number[] | null | undefined;
+}
+
+/**
+ * What the two players brought, and where they disagreed.
+ *
+ * **The differences are the block's subject and the agreements are its context.** Two monks of the
+ * same spec share most of a tree; what a reader wants from a comparison is the row where one took
+ * Rushing Jade Wind and the other took Invoke Xuen, because every figure below it is downstream of
+ * that choice.
+ */
+export interface TalentGap {
+	/**
+	 * Every id each log carried, in the order `combatantinfo` gave them.
+	 *
+	 * Kept in that order rather than sorted, because the log hands them back tier by tier and a reader
+	 * comparing two sets is comparing rows: the fourth cell is the fourth choice on both sides. Nothing
+	 * here asserts that — it is the log's order, reproduced — but re-sorting would destroy it.
+	 */
+	a: readonly number[];
+	b: readonly number[];
+	/** Ids only the first log took, and only the second. Both empty when the two brought the same. */
+	onlyA: readonly number[];
+	onlyB: readonly number[];
+	/** Ids both took, which is most of them. */
+	shared: readonly number[];
+	/**
+	 * False when either log carried no talent list, so none of the three above means anything.
+	 *
+	 * A pull that cannot say what was taken must not be drawn as a pull where nothing was, which is
+	 * exactly what three empty arrays would look like.
+	 */
+	known: boolean;
 }
 
 /**
@@ -181,6 +215,7 @@ export interface Comparison {
 	a: PullFraming;
 	b: PullFraming;
 	notes: ComparabilityNote[];
+	talents: TalentGap;
 	tally: Tally;
 	/** Scorecard order, which is the report's own editorial order. The ranked chart sorts a copy. */
 	sections: SectionGap[];

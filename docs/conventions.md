@@ -478,13 +478,13 @@ copy itself follows — say it once, outside the arms.
      src/lib/i18n/__tests__/conventionsCensus.test.ts. Re-run the block above and paste the whole set
      back inside these two comments; changing one figure by hand only moves the drift somewhere else. -->
 
-As of the compare page, it prints 1611 leaves, 774 prose, 25,214 words;
-median 27, p75 43, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 698 prose leaves,
-1,231 sentences, median 17, 249 past 25 (20.2%), 288 em-dashes in 247 sentences (20.1%);
+As of the compare page, it prints 1614 leaves, 776 prose, 25,255 words;
+median 27, p75 43, p90 65, p95 79, p99 117, max 204; longest 9% carry 24%; report.json 700 prose leaves,
+1,234 sentences, median 17, 249 past 25 (20.2%), 288 em-dashes in 247 sentences (20.0%);
 60 / 25 / 1 / 2 on the quote lines.
 
 One change sits behind this: the compare page, which added a `compare` family to `report.json` and nine
-shell keys to `ui.json`. 52 leaves and 551 words — the largest single addition either file has taken,
+shell keys to `ui.json`. 55 leaves and 592 words — the largest single addition either file has taken,
 even after the page folded its "Figure by figure" section into the cards above it and gave three keys
 back.
 

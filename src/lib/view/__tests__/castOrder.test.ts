@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { rawFixtures } from '~/lib/analysis/fixtures';
 import { compare, identityFrom } from '~/lib/compare';
-import { getSpec } from '~/lib/spec';
+import { getSpec, SPECS } from '~/lib/spec';
 import { byCastOrder, castRank, isShared } from '~/lib/view/castOrder';
 import { resolveBands } from '~/lib/view/targetMode';
 
@@ -44,9 +44,13 @@ describe('the three tiers', () => {
 	 * this class pressed is that class's own — whether or not the ability table happens to name it.
 	 * Ranking by the model's silence instead put Roll and Tiger's Lust, both monk buttons, below a flask.
 	 */
-	it('keeps a button the ability table does not name with the spec, not with the flasks', () => {
+	it('gives a button the ability table cannot place a tier of its own', () => {
+		// Roll and Spear Hand Strike are monk buttons the table does not carry; Goblin Glider and Nitro
+		// Boosts are items anyone can press. Both arrive with no key, so nothing separates them — and
+		// ranking them with the spec put a glider above Energizing Brew.
 		expect(isShared(null)).toBe(false);
-		expect(castRank(null, spec.castOrder)).toBe(castRank('rushing-jade-wind', spec.castOrder));
+		expect(castRank('energizing-brew', spec.castOrder)).toBeLessThan(castRank(null, spec.castOrder));
+		expect(castRank('touch-of-karma', spec.castOrder)).toBeLessThan(castRank(null, spec.castOrder));
 		expect(castRank(null, spec.castOrder)).toBeLessThan(castRank('flask-of-spring-blossoms', spec.castOrder));
 	});
 
@@ -80,5 +84,36 @@ describe('over a real pull', () => {
 		// Every one of them sits past every row that is not one: a flask never lands mid-rotation again.
 		const firstShared = shared[0]!.at;
 		expect(rows.slice(firstShared).every((row) => isShared(IDENTITY.cast(row.id)))).toBe(true);
+	});
+});
+
+/**
+ * The rule is structural, so it holds for a spec nobody has written yet.
+ *
+ * A `castOrder` naming a key the spec's own registry does not carry is a list that silently does
+ * nothing: `indexOf` answers -1, the button drops to the middle tier, and the order a reader was
+ * promised is not the one they get. A typo, a renamed ability or a key copied from another spec all
+ * arrive here rather than on the page.
+ */
+describe('every spec, present and future', () => {
+	it('names only buttons its own registry carries', () => {
+		for (const candidate of SPECS) {
+			const known = new Set(candidate.registry.abilities.map((ability) => ability.key));
+			const unknown = candidate.castOrder.filter((key) => !known.has(key));
+			expect(unknown, `${candidate.key} names ${unknown.join(', ')}`).toEqual([]);
+		}
+	});
+
+	it('names each button once, and never one that belongs to no spec', () => {
+		for (const candidate of SPECS) {
+			expect(new Set(candidate.castOrder).size, candidate.key).toBe(candidate.castOrder.length);
+			// A racial or a flask in the leaders would contradict the tier below it.
+			expect(candidate.castOrder.filter(isShared), candidate.key).toEqual([]);
+		}
+	});
+
+	it('is declared by every spec in the registry', () => {
+		expect(SPECS.length).toBeGreaterThan(2);
+		for (const candidate of SPECS) expect(Array.isArray(candidate.castOrder), candidate.key).toBe(true);
 	});
 });

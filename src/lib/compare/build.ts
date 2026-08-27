@@ -18,6 +18,7 @@ import type {
 	PullFraming,
 	SectionGap,
 	Side,
+	TalentGap,
 	Tally,
 } from './model';
 
@@ -75,6 +76,7 @@ function framingOf({ analysis, scorecard, view }: Pull): PullFraming {
 		mode: view.mode,
 		overall: scorecard.overall,
 		judged: scorecard.judged,
+		talents: analysis.talents,
 	};
 }
 
@@ -110,6 +112,28 @@ function notesFor(a: PullFraming, b: PullFraming): ComparabilityNote[] {
 		notes.push({ kind: 'itemLevel', a: a.itemLevel, b: b.itemLevel });
 	}
 	return notes;
+}
+
+/**
+ * What each of them brought, and where the two trees part.
+ *
+ * Unknown the moment either list is missing, because a comparison needs both sides: one log's talents
+ * against nothing is not a difference, it is one log's talents.
+ */
+function talentGap(a: PullFraming, b: PullFraming): TalentGap {
+	if (a.talents === null || a.talents === undefined || b.talents === null || b.talents === undefined) {
+		return { a: [], b: [], onlyA: [], onlyB: [], shared: [], known: false };
+	}
+	const mine = new Set(a.talents);
+	const theirs = new Set(b.talents);
+	return {
+		a: a.talents,
+		b: b.talents,
+		onlyA: a.talents.filter((id) => !theirs.has(id)),
+		onlyB: b.talents.filter((id) => !mine.has(id)),
+		shared: a.talents.filter((id) => theirs.has(id)),
+		known: true,
+	};
 }
 
 /** A's order first, then anything only B holds, so a shared key is never listed twice. */
@@ -295,6 +319,7 @@ export function compare(a: Pull, b: Pull, identity: AbilityIdentity): Comparison
 		a: framingA,
 		b: framingB,
 		notes: notesFor(framingA, framingB),
+		talents: talentGap(framingA, framingB),
 		tally: tallyOf(sections),
 		sections,
 		abilities: abilityGaps(a, b, identity),

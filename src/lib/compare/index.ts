@@ -15,6 +15,7 @@ export type {
 	NoteKind,
 	PullFraming,
 	SectionGap,
+	TalentGap,
 	Side,
 	Tally,
 } from './model';
