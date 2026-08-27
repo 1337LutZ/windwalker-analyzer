@@ -35,15 +35,15 @@
 					"name": "Thok the Bloodthirsty"
 				},
 				"1600": {
-					"n": 9,
-					"p50": 86.06,
-					"p90": 89.14,
+					"n": 17,
+					"p50": 86.04,
+					"p90": 87.99,
 					"name": "Iron Juggernaut"
 				},
 				"1601": {
-					"n": 8,
-					"p50": 77.17,
-					"p90": 86.2,
+					"n": 11,
+					"p50": 76.6,
+					"p90": 85.28,
 					"name": "Siegecrafter Blackfuse"
 				},
 				"1602": {
@@ -90,11 +90,11 @@
 				}
 			},
 			"fallback": {
-				"n": 162,
-				"p50": 77.66,
-				"p90": 87.65
+				"n": 173,
+				"p50": 78.12,
+				"p90": 87.56
 			},
-			"sourcePulls": 162
+			"sourcePulls": 173
 		},
 		"elemental": {
 			"encounters": {
